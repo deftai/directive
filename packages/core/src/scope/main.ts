@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { TRANSITIONS } from "./constants.js";
 import {
@@ -10,6 +10,11 @@ import {
   resolveFilePath,
   resolveProjectRootStrict,
 } from "./demote.js";
+import {
+  completedPathForScopeMove,
+  findOpenUmbrellaReferences,
+  renderOpenUmbrellaWarning,
+} from "./open-umbrella-warning.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import {
@@ -136,6 +141,21 @@ export function lifecycleMain(argv: string[]): number {
       );
     }
     process.stdout.write(`${result.message}\n`);
+    if (action === "complete") {
+      try {
+        const completedPath = completedPathForScopeMove(filePath);
+        const rootForWarning =
+          resolveProjectRoot(projectRoot) ?? dirname(dirname(dirname(completedPath)));
+        const warning = renderOpenUmbrellaWarning(
+          findOpenUmbrellaReferences(rootForWarning, completedPath),
+        );
+        if (warning.length > 0) {
+          process.stderr.write(`${warning}\n`);
+        }
+      } catch {
+        /* best-effort drift warning; lifecycle success remains authoritative */
+      }
+    }
     return 0;
   }
   process.stderr.write(`Error: ${result.message}\n`);

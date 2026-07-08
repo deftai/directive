@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `task scope:complete` now warns when the completed scope is still referenced by an open umbrella or tracker, and points maintainers at `task vbrief:reconcile:umbrellas` so current-shape comments do not silently drift after a scope ships. The warning is non-blocking and suppresses cached closed trackers. Closes #2322. Refs #1119, #1152.
+
 ### Removed
 
 ## [0.73.0] - 2026-07-07

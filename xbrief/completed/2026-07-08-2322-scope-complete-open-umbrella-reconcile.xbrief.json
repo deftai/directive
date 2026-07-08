@@ -1,0 +1,68 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2322"
+  },
+  "plan": {
+    "title": "scope:complete should warn and reconcile when completed scope is referenced by an open umbrella",
+    "status": "completed",
+    "narratives": {
+      "Description": "When task scope:complete moves a scope xBRIEF from active/ to completed/, it does not warn when an open umbrella or tracker issue still references that completed scope. The umbrella current-shape comment and body checklist can keep showing the scope as in-flight, and nothing points the operator at vbrief:reconcile:umbrellas.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2322",
+      "UserStory": "As a maintainer completing scope work under umbrella trackers, I want scope:complete to detect open umbrellas that still reference the completed scope and print a non-blocking reconcile hint, so umbrella current-shape/checklist state does not silently drift after the scope ships.",
+      "ImplementationPlan": "1. Find the TS scope-complete path and the existing umbrella reconciliation helpers. 2. After the lifecycle move succeeds, detect open umbrella/tracker references to the completed scope using available xBRIEF references, planRef links, and GitHub issue-reference compatibility. 3. Emit a non-blocking warning naming each open umbrella and pointing at task vbrief:reconcile:umbrellas. 4. Keep auto-reconcile behind an explicit flag or leave it as a clear follow-up if no existing consent surface is present. 5. Add consumer-style tests proving completion succeeds, the warning appears for open umbrella references, closed/non-referencing umbrellas do not warn, and existing completion behavior is preserved.",
+      "Traces": "#2322, #1649, #370, #1152, #1119",
+      "Overview": "Issue #2322 reports a recurrence from PR #2320: a completed scope moved to xbrief/completed while umbrella #1119 correctly stayed open, but no warning or reconcile handoff told the operator that the open umbrella still referenced the shipped scope. This complements #1649 and #370 by covering loose umbrella/tracker relationships rather than decomposed epic-child completion."
+    },
+    "items": [
+      {
+        "title": "scope:complete detects open umbrella or tracker issues that reference the completed scope.",
+        "status": "proposed"
+      },
+      {
+        "title": "scope:complete prints a non-blocking warning naming the open umbrella and the vbrief:reconcile:umbrellas next step.",
+        "status": "proposed"
+      },
+      {
+        "title": "Detection handles xBRIEF plan links and legacy GitHub issue-reference styles without regressing existing scope completion.",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests cover open umbrella warning, closed or unrelated umbrella suppression, and successful completion lifecycle behavior.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2322",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2322: scope:complete should warn + reconcile when the completed scope is referenced by an OPEN umbrella"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1649",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1649"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/370",
+        "type": "x-xbrief/refs",
+        "title": "Issue #370"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1152",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1152"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1119"
+      }
+    ],
+    "updated": "2026-07-08T08:11:29Z",
+    "metadata": {
+      "completedAt": "2026-07-08T08:11:29Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

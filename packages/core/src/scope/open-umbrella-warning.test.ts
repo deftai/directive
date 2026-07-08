@@ -1,0 +1,193 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { lifecycleMain } from "./main.js";
+import { findOpenUmbrellaReferences, renderOpenUmbrellaWarning } from "./open-umbrella-warning.js";
+import { formatVbriefJson } from "./vbrief-json.js";
+
+const REPO = "deftai/directive";
+
+function makeRepo(): string {
+  const root = mkdtempSync(join(tmpdir(), "scope-umbrella-"));
+  for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
+  }
+  return root;
+}
+
+function writeScope(
+  root: string,
+  folder: string,
+  name: string,
+  plan: Record<string, unknown>,
+): string {
+  const path = join(root, "xbrief", folder, name);
+  writeFileSync(
+    path,
+    formatVbriefJson({
+      xBRIEFInfo: { version: "0.8" },
+      plan,
+    }),
+    "utf8",
+  );
+  return path;
+}
+
+function writeCachedIssue(
+  root: string,
+  number: number,
+  payload: {
+    readonly title: string;
+    readonly state?: string;
+    readonly body?: string;
+    readonly labels?: readonly string[];
+    readonly subIssuesTotal?: number;
+  },
+): void {
+  const issueDir = join(root, ".deft-cache", "github-issue", "deftai", "directive", String(number));
+  mkdirSync(issueDir, { recursive: true });
+  writeFileSync(
+    join(issueDir, "raw.json"),
+    `${JSON.stringify(
+      {
+        number,
+        title: payload.title,
+        state: payload.state ?? "open",
+        body: payload.body ?? "",
+        labels: (payload.labels ?? []).map((name) => ({ name })),
+        sub_issues_summary: { total: payload.subIssuesTotal ?? 0 },
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+}
+
+describe("scope complete open umbrella warning", () => {
+  let root = "";
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("finds open xBRIEF parent references and renders a reconcile hint", () => {
+    root = makeRepo();
+    writeScope(root, "active", "umbrella.xbrief.json", {
+      title: "Umbrella tracker",
+      status: "running",
+      metadata: { kind: "epic" },
+      references: [
+        { type: "x-xbrief/plan", uri: "completed/child.xbrief.json" },
+        { type: "x-xbrief/github-issue", uri: `https://github.com/${REPO}/issues/1119` },
+      ],
+    });
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      planRef: "active/umbrella.xbrief.json",
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    writeCachedIssue(root, 1119, { title: "Umbrella tracker", labels: ["epic"] });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs).toHaveLength(1);
+    expect(refs[0]).toMatchObject({
+      repo: REPO,
+      issueNumber: 1119,
+      title: "Umbrella tracker",
+    });
+    expect(refs[0]?.sources).toEqual(
+      expect.arrayContaining(["plan.references", "completed planRef"]),
+    );
+    const warning = renderOpenUmbrellaWarning(refs);
+    expect(warning).toContain("#1119");
+    expect(warning).toContain("task vbrief:reconcile:umbrellas");
+  });
+
+  it("suppresses a local parent reference when the cached issue is closed", () => {
+    root = makeRepo();
+    writeScope(root, "active", "umbrella.xbrief.json", {
+      title: "Closed umbrella",
+      status: "running",
+      metadata: { kind: "epic" },
+      references: [
+        { type: "x-xbrief/plan", uri: "completed/child.xbrief.json" },
+        { type: "x-xbrief/github-issue", uri: `https://github.com/${REPO}/issues/1119` },
+      ],
+    });
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+    });
+    writeCachedIssue(root, 1119, { title: "Closed umbrella", state: "closed", labels: ["epic"] });
+
+    expect(findOpenUmbrellaReferences(root, child)).toEqual([]);
+  });
+
+  it("detects cached open tracker bodies that mention the completed scope issue", () => {
+    root = makeRepo();
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    writeCachedIssue(root, 1119, {
+      title: "Umbrella tracker",
+      labels: ["meta"],
+      body: "Current shape still lists #2322 as in flight.",
+    });
+    writeCachedIssue(root, 1200, {
+      title: "Ordinary bug",
+      labels: ["bug"],
+      body: "Mentions #2322 but is not an umbrella/tracker.",
+    });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs.map((ref) => ref.issueNumber)).toEqual([1119]);
+    expect(refs[0]?.sources).toContain("cached issue body");
+  });
+
+  it("prints a non-blocking warning after scope:complete succeeds", () => {
+    root = makeRepo();
+    writeScope(root, "active", "umbrella.xbrief.json", {
+      title: "Umbrella tracker",
+      status: "running",
+      metadata: { kind: "epic" },
+      references: [
+        { type: "x-xbrief/plan", uri: "active/child.xbrief.json" },
+        { type: "x-xbrief/github-issue", uri: `https://github.com/${REPO}/issues/1119` },
+      ],
+    });
+    const child = writeScope(root, "active", "child.xbrief.json", {
+      title: "Completed child",
+      status: "running",
+      planRef: "active/umbrella.xbrief.json",
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    writeCachedIssue(root, 1119, { title: "Umbrella tracker", labels: ["epic"] });
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    expect(lifecycleMain(["complete", child, "--project-root", root])).toBe(0);
+
+    const out = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
+    const err = stderr.mock.calls.map(([chunk]) => String(chunk)).join("");
+    expect(out).toContain("Completed child.xbrief.json");
+    expect(err).toContain("Warning: scope:complete found open umbrella/tracker reference");
+    expect(err).toContain("#1119");
+  });
+});
