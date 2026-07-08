@@ -160,7 +160,7 @@ A consumer project is **pre-cutover** if ANY of these hold:
 - `vbrief/` exists but one or more of the five lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) is missing
 - `vbrief/PROJECT-DEFINITION.vbrief.json` is absent on a project that otherwise looks set up
 
-The executable detection helper is [scripts/_precutover.py](./scripts/_precutover.py). The full agent-facing flow lives in [QUICK-START.md](./content/QUICK-START.md) Step 2 and in [skills/deft-directive-setup/SKILL.md](./content/skills/deft-directive-setup/SKILL.md) (Pre-Cutover Detection Guard).
+The executable detection helper is [scripts/_precutover.py](./scripts/_precutover.py). The full agent-facing flow lives in [QUICK-START.md](./content/QUICK-START.md) Step 1 and in [skills/deft-directive-setup/SKILL.md](./content/skills/deft-directive-setup/SKILL.md) (Pre-Cutover Detection Guard).
 
 ### Publishing deft tasks in your project root
 
@@ -223,7 +223,7 @@ The migrator ships with four flags (see #497):
 
 ### Cross-references
 
-- [QUICK-START.md](./content/QUICK-START.md) Step 2 (Case H, Case I) — the agent-side detection flow
+- [QUICK-START.md](./content/QUICK-START.md) Step 1 (Case H, Case I detection) — the agent-side detection flow
 - [skills/deft-directive-setup/SKILL.md](./content/skills/deft-directive-setup/SKILL.md) — the Pre-Cutover Detection Guard and preflight checks
 - [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) — the authoritative adoption guide for existing projects
 - [UPGRADING.md](./content/UPGRADING.md) — version-by-version upgrade checklist

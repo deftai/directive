@@ -70,8 +70,10 @@ describe("test_quickstart_combined_remediation.py", () => {
   });
   it("test_quick_start_keeps_non_blocking_contributor_pointer", () => {
     const text = readText("QUICK-START.md");
+    const step3Idx = text.indexOf("## Step 3 — Continue setup");
+    expect(step3Idx).not.toBe(-1);
     const pointerIdx = text.indexOf("**Contributor pointer:**");
-    expect(pointerIdx).toBeGreaterThan(text.indexOf("## Step 3 — Continue setup"));
+    expect(pointerIdx).toBeGreaterThan(step3Idx);
     const pointer = text.slice(pointerIdx, text.indexOf("**Brownfield pointer:**", pointerIdx));
     expect(pointer).toContain("AGENTS.md");
     expect(pointer).toContain("CONTRIBUTING.md");
