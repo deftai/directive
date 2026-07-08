@@ -227,6 +227,12 @@ function routeThreeToken(
   return null;
 }
 
+function routeColonToken(first: string, rest: string[]): RoutedArgv | null {
+  const colon = first.indexOf(":");
+  if (colon <= 0 || colon === first.length - 1) return null;
+  return routeNamespaceVerb(first.slice(0, colon), first.slice(colon + 1), rest);
+}
+
 /**
  * Transform user-facing argv (`directive <ns> <verb>` or top-level UX) into
  * flat dispatcher argv consumed by `dispatch()`.
@@ -244,6 +250,9 @@ export function routeArgv(argv: readonly string[]): RoutedArgv {
   if (isMetaVerb(first) || first === "help") {
     return { kind: "dispatch", argv: [...argv] };
   }
+
+  const colonToken = routeColonToken(first, argv.slice(1));
+  if (colonToken !== null) return colonToken;
 
   const topLevel = routeTopLevel(first, argv.slice(1));
   if (topLevel !== null) return topLevel;

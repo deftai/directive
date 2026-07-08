@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Top-level `directive` help now opens with a versioned, categorized command guide instead of dumping every registered alias, while `directive commands` / `--commands` keep the exhaustive list available for power users. Colon-style task commands shown in help, including scope and verify workflows, now route through the CLI as single-token commands so copied examples work. Closes #2172.
+
 ### Fixed
 
 ### Removed

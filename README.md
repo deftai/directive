@@ -55,7 +55,7 @@ Directive is driven by **three commands** — `init`, `update`, and `doctor`. Yo
 | Not sure, or something looks broken | `directive doctor` | Read-only diagnosis that prints exactly one recommended next step. |
 | Legacy / pre-v0.20 layout | `directive init` (or `directive doctor`) | Classifies the layout and routes you to the specific migration path (see [UPGRADING.md](./content/UPGRADING.md)). |
 
-`directive init` is the **universal entrypoint**: run it from a project directory and it classifies *that directory* and dispatches to exactly one of the paths above, always printing a state summary plus one recommended next action. `directive doctor` is the safe "where am I?" probe, and `directive update` is the refresh path — the same three-command model the CLI's own `directive` help screen leads with.
+`directive init` is the **universal entrypoint**: run it from a project directory and it classifies *that directory* and dispatches to exactly one of the paths above, always printing a state summary plus one recommended next action. `directive doctor` is the safe "where am I?" probe, and `directive update` is the refresh path — the same three-command model the CLI's own `directive` help screen includes in its setup category.
 
 ### 1. Install and initialize
 

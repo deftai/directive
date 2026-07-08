@@ -2707,31 +2707,58 @@ export function registeredVerbs(): readonly string[] {
   return [...names].sort();
 }
 
-/**
- * Print dispatcher help. Leads with the three-command model (init / update /
- * doctor) + first-run guidance so a no-arg `directive` orients a newcomer before
- * the exhaustive verb list, which stays available below for power users (#2273).
- */
+function helpVersion(): string {
+  const version = engineInfo().version;
+  const match = /^v?(\d+)\.(\d+)/.exec(version);
+  return match === null ? `v${version}` : `v${match[1]}.${match[2]}`;
+}
+
+/** Print curated dispatcher help for the human-facing top-level CLI (#2172). */
 export function printHelp(io: DispatchIo = defaultIo()): void {
   io.writeOut(
-    "directive -- the Deft Directive CLI\n" +
+    `Directive ${helpVersion()}\n` +
+      "Deft Directive project automation: setup, health checks, triage, scope, and generated docs.\n" +
       "\n" +
-      "Start here (most projects only need these three):\n" +
-      "  directive init      Set up Directive in the current project (first-time setup)\n" +
-      "  directive update    Refresh an existing install and self-heal the engine\n" +
-      "  directive doctor    Diagnose the install and print the one next step\n" +
+      "Usage:\n" +
+      "  directive <command> [options]\n" +
+      "  directive help\n" +
+      "  directive commands\n" +
       "\n" +
-      "First run? From the project root:\n" +
-      "  1. npm i -g @deftai/directive   (Node >= 20)\n" +
-      "     (pnpm: pnpm add -g @deftai/directive -- ensure PNPM_HOME is on PATH, run `pnpm setup` if needed)\n" +
-      "  2. directive init\n" +
-      "  3. directive doctor\n" +
-      "New clone where `directive` will not run? Read the Cold-start bootstrap block at the top of README.md.\n" +
+      "Common options:\n" +
+      "  -h, --help       Show this help.\n" +
+      "  -V, --version    Print version information.\n" +
       "\n" +
-      "Usage: directive <verb> [args...]\n" +
+      "Setup and maintenance:\n" +
+      "  init             Set up Directive in the current project.\n" +
+      "  update           Refresh an existing install and self-heal the engine.\n" +
+      "  doctor           Diagnose the install and print the next step.\n" +
+      "  First project: run `directive init`, then `directive doctor` from the project root.\n" +
+      "  Cold start: if `directive` will not run, read the bootstrap block at the top of README.md.\n" +
       "\n" +
-      "Registered verbs:\n",
+      "Daily checks:\n" +
+      "  session:start    Record the session-start ritual state.\n" +
+      "  check            Run the source checkout quality gate.\n" +
+      "  verify:cache-fresh\n" +
+      "                   Verify the deposited cache/bootstrap state.\n" +
+      "\n" +
+      "Triage and scope:\n" +
+      "  triage:welcome   Resume guided onboarding.\n" +
+      "  triage:queue     Show the ranked work queue.\n" +
+      "  scope:promote    Move a proposed scope into pending.\n" +
+      "  scope:activate   Start a pending scope.\n" +
+      "\n" +
+      "Project docs:\n" +
+      "  project:render   Regenerate PROJECT-DEFINITION-derived output.\n" +
+      "  spec:render      Regenerate SPECIFICATION.md.\n" +
+      "\n" +
+      "Help uses colon-style task verbs; dash-style aliases remain supported for compatibility.\n" +
+      "Run `directive commands` (or `directive --commands`) for the exhaustive registered command and alias list.\n",
   );
+}
+
+/** Print the exhaustive registered verb list for power users and compatibility checks. */
+export function printRegisteredCommands(io: DispatchIo = defaultIo()): void {
+  io.writeOut("Registered commands and aliases:\n");
   for (const name of registeredVerbs()) {
     io.writeOut(`  ${name}\n`);
   }
@@ -2758,6 +2785,11 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
 
   if (argv.length === 0 || argv[0] === "--help" || argv[0] === "-h" || argv[0] === "help") {
     printHelp(io);
+    return 0;
+  }
+
+  if (argv[0] === "commands" || argv[0] === "--commands") {
+    printRegisteredCommands(io);
     return 0;
   }
 

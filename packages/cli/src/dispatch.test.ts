@@ -22,6 +22,7 @@ import {
   installVerifiedGhxAsset,
   parseDirectiveBootstrapArgs,
   printHelp,
+  printRegisteredCommands,
   registeredVerbs,
   resetHandlerCacheForTests,
   resolveCanonicalVerb,
@@ -35,6 +36,14 @@ import {
 
 const engineVersion = engineInfo().version;
 const VERSION_BANNER = `@deftai/directive (engine: @deftai/directive-core@${engineVersion})\n`;
+
+function normalizeHelpSnapshot(text: string): string {
+  return text.replace(/^Directive v\d+\.\d+/m, "Directive vX.Y");
+}
+
+function normalizeVersionSnapshot(text: string): string {
+  return text.replace(/@deftai\/directive-core@[^)\n]+/, "@deftai/directive-core@X.Y.Z");
+}
 
 afterEach(() => {
   resetHandlerCacheForTests();
@@ -60,9 +69,11 @@ describe("registeredVerbs", () => {
 });
 
 describe("printHelp", () => {
-  function renderHelp(): string {
+  function render(
+    write: (io: { writeOut: (text: string) => void; writeErr: (text: string) => void }) => void,
+  ): string {
     const lines: string[] = [];
-    printHelp({
+    write({
       writeOut: (text) => {
         lines.push(text);
       },
@@ -71,58 +82,76 @@ describe("printHelp", () => {
     return lines.join("");
   }
 
-  it("lists all registered verbs", () => {
-    const body = renderHelp();
-    expect(body).toContain("Usage: directive <verb> [args...]");
-    expect(body).toContain("Registered verbs:");
+  it("snapshots concise categorized top-level help (#2172)", () => {
+    const body = render((io) => printHelp(io));
+    expect(normalizeHelpSnapshot(body)).toMatchInlineSnapshot(`
+"Directive vX.Y
+Deft Directive project automation: setup, health checks, triage, scope, and generated docs.
+
+Usage:
+  directive <command> [options]
+  directive help
+  directive commands
+
+Common options:
+  -h, --help       Show this help.
+  -V, --version    Print version information.
+
+Setup and maintenance:
+  init             Set up Directive in the current project.
+  update           Refresh an existing install and self-heal the engine.
+  doctor           Diagnose the install and print the next step.
+  First project: run \`directive init\`, then \`directive doctor\` from the project root.
+  Cold start: if \`directive\` will not run, read the bootstrap block at the top of README.md.
+
+Daily checks:
+  session:start    Record the session-start ritual state.
+  check            Run the source checkout quality gate.
+  verify:cache-fresh
+                   Verify the deposited cache/bootstrap state.
+
+Triage and scope:
+  triage:welcome   Resume guided onboarding.
+  triage:queue     Show the ranked work queue.
+  scope:promote    Move a proposed scope into pending.
+  scope:activate   Start a pending scope.
+
+Project docs:
+  project:render   Regenerate PROJECT-DEFINITION-derived output.
+  spec:render      Regenerate SPECIFICATION.md.
+
+Help uses colon-style task verbs; dash-style aliases remain supported for compatibility.
+Run \`directive commands\` (or \`directive --commands\`) for the exhaustive registered command and alias list.
+"
+`);
+    expect(body).not.toContain("Registered commands and aliases:");
+    expect(body).not.toContain("verify-encoding");
+    expect(body).not.toContain("framework-commands");
+  });
+
+  it("prints the exhaustive registered list only on the explicit command surface (#2172)", () => {
+    const body = render((io) => printRegisteredCommands(io));
+    expect(body).toContain("Registered commands and aliases:");
     for (const verb of registeredVerbs()) {
       expect(body).toContain(`  ${verb}\n`);
     }
   });
 
-  // #2273: no-arg `directive` leads with the three-command model + first-run
-  // guidance, printed BEFORE the exhaustive verb list.
-  it("prints the three-command model and first-run guidance before the verb list (#2273)", () => {
-    const body = renderHelp();
-    for (const line of [
-      "directive init",
-      "directive update",
-      "directive doctor",
-      "First run?",
-      "npm i -g @deftai/directive",
-    ]) {
-      expect(body).toContain(line);
-    }
-    // Cold-start recovery pointer is payload-independent (points at README.md).
-    expect(body).toContain("README.md");
-
-    const firstVerb = registeredVerbs()[0] ?? "";
-    const modelIdx = body.indexOf("directive init");
-    const listIdx = body.indexOf("Registered verbs:");
-    expect(modelIdx).toBeGreaterThanOrEqual(0);
-    expect(modelIdx).toBeLessThan(listIdx);
-    expect(listIdx).toBeLessThan(body.indexOf(`\n  ${firstVerb}\n`));
-  });
-
-  // #2274: the top-level help snapshot is the source the README / BROWNFIELD /
-  // UPGRADING docs mirror. Lock the "Start here" grouping, the init->update->
-  // doctor ordering, and each command's by-situation one-liner so the docs and
-  // the CLI can never drift out of agreement on the three-command model.
+  // #2274: keep the init->update->doctor ordering in the curated setup group so
+  // README / BROWNFIELD / UPGRADING stay aligned on the three-command model.
   it("routes users by situation: init sets up, update refreshes, doctor diagnoses (#2274)", () => {
-    const body = renderHelp();
-    expect(body).toContain("Start here (most projects only need these three):");
-
-    const initIdx = body.indexOf("directive init");
-    const updateIdx = body.indexOf("directive update");
-    const doctorIdx = body.indexOf("directive doctor");
+    const body = render((io) => printHelp(io));
+    const initIdx = body.indexOf("  init");
+    const updateIdx = body.indexOf("  update");
+    const doctorIdx = body.indexOf("  doctor");
     expect(initIdx).toBeGreaterThanOrEqual(0);
     expect(updateIdx).toBeGreaterThan(initIdx);
     expect(doctorIdx).toBeGreaterThan(updateIdx);
 
     for (const line of [
-      "directive init      Set up Directive in the current project (first-time setup)",
-      "directive update    Refresh an existing install and self-heal the engine",
-      "directive doctor    Diagnose the install and print the one next step",
+      "  init             Set up Directive in the current project.",
+      "  update           Refresh an existing install and self-heal the engine.",
+      "  doctor           Diagnose the install and print the next step.",
     ]) {
       expect(body).toContain(line);
     }
@@ -140,6 +169,9 @@ describe("dispatch", () => {
     });
     expect(code).toBe(0);
     expect(out.join("")).toBe(VERSION_BANNER);
+    expect(normalizeVersionSnapshot(out.join(""))).toMatchInlineSnapshot(
+      `"@deftai/directive (engine: @deftai/directive-core@X.Y.Z)\n"`,
+    );
   });
 
   it("returns 0 for -V and prints the engine banner", async () => {
@@ -163,7 +195,8 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
-    expect(out.join("")).toContain("Usage: directive");
+    expect(out.join("")).toContain("Usage:");
+    expect(out.join("")).toContain("directive <command> [options]");
   });
 
   it("returns 0 for -h and prints help", async () => {
@@ -175,7 +208,8 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
-    expect(out.join("")).toContain("verify-encoding");
+    expect(out.join("")).toContain("Common options:");
+    expect(out.join("")).not.toContain("verify-encoding");
   });
 
   it("returns 0 for help and prints help", async () => {
@@ -187,7 +221,35 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
+    expect(out.join("")).toContain("directive commands");
+    expect(out.join("")).not.toContain("framework-commands");
+  });
+
+  it("returns 0 for commands and prints the full registered list", async () => {
+    const out: string[] = [];
+    const code = await dispatch(["commands"], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("Registered commands and aliases:");
+    expect(out.join("")).toContain("framework-commands");
     expect(out.join("")).toContain("verify-encoding");
+  });
+
+  it("returns 0 for --commands and prints the full registered list", async () => {
+    const out: string[] = [];
+    const code = await dispatch(["--commands"], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("Registered commands and aliases:");
+    expect(out.join("")).toContain("framework-commands");
   });
 
   it("coerces non-number handler return to exit code 0", async () => {
@@ -267,7 +329,7 @@ describe("dispatch", () => {
     expect(err.join("")).toBe("directive: plain\n");
   });
 
-  it("returns 0 for --help and prints the verb list", async () => {
+  it("returns 0 for --help and prints concise help", async () => {
     const out: string[] = [];
     const code = await dispatch(["--help"], {
       writeOut: (text) => {
@@ -276,7 +338,8 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
-    expect(out.join("")).toContain("verify-encoding");
+    expect(out.join("")).toContain("Common options:");
+    expect(out.join("")).not.toContain("verify-encoding");
   });
 
   it("prints an error naming an unknown verb and exits non-zero", async () => {

@@ -43,6 +43,19 @@ describe("routeArgv", () => {
     ]);
   });
 
+  it("maps single-token colon task verbs to the same dispatcher routes", () => {
+    expect(routeArgv(["scope:promote", "path.xbrief.json"]).argv).toEqual([
+      "scope-lifecycle",
+      "promote",
+      "path.xbrief.json",
+    ]);
+    expect(routeArgv(["verify:cache-fresh", "--project-root", "."]).argv).toEqual([
+      "preflight-cache",
+      "--project-root",
+      ".",
+    ]);
+  });
+
   it("maps triage queue to triage:queue", () => {
     expect(routeArgv(["triage", "queue", "--limit", "5"]).argv).toEqual([
       "triage:queue",

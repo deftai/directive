@@ -1,0 +1,61 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2172"
+  },
+  "plan": {
+    "title": "Improve top-level directive help output and command discovery",
+    "status": "completed",
+    "narratives": {
+      "Description": "Improve top-level directive help output and command discovery",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2172",
+      "Overview": "## Summary\n\nThe top-level `directive` / `directive --help` output is currently an undifferentiated dump of registered verbs. It should be structured like a normal CLI help surface: title/version, usage, common options, common commands, and a clear path to the full command list.\n\n## Current behavior\n\nRunning `directive` or `directive --help` prints:\n\n- `Usage: directive <verb> [args...]`\n- a long `Registered verbs:` list\n- both canonical and alias forms such as `verify-branch` and `verify:branch`\n- no introductory description\n- no command categories\n- no explanation of common options such as `--help`, `-h`, `--version`, or `-V`\n- no version in the help title, even though `--version` exists\n\nThis is difficult for humans and first-time users to scan.\n\n## Proposed behavior\n\nReplace the top-level help spew with a curated help page:\n\n- Title including tool name and major/minor version, for example `Directive v0.x`.\n- One-line description of what Directive does.\n- Usage forms:\n  - `directive <command> [options]`\n  - `directive help`\n  - `directive commands` or equivalent for the full list.\n- Common options:\n  - `-h, --help`\n  - `-V, --version`\n- Common verbs grouped by workflow, such as:\n  - `doctor`\n  - `session:start`\n  - `check`\n  - `triage:welcome`\n  - `triage:queue`\n  - `scope:promote`\n  - `project:render`\n  - `spec:render`\n- A clear note that colon-style task verbs are preferred in help, while dash-style aliases may remain supported for compatibility.\n- A separate full-list command or flag for exhaustive output.\n\n## Acceptance criteria\n\n- `directive` and `directive --help` print concise, categorized help rather than every registered verb.\n- `directive --version` prints only version information.\n- Help output documents common options.\n- The exhaustive registered-verb list remains available through an explicit command or flag.\n- Help avoids listing both dash and colon aliases unless explicitly showing aliases.\n- Tests snapshot the top-level help output and version output.\n\n## Related\n\nRelated but not duplicate: #1150 covers categorized help for `task triage` / `task scope`; #49 covered version display on command startup; #1669 tracks broader distributable CLI work.\n\n",
+      "Labels": "enhancement, interfaces, adoption-blocker, agent-experience, area:cli"
+    },
+    "items": [
+      {
+        "title": "`directive` and `directive --help` print concise, categorized help rather than every registered verb.",
+        "status": "proposed"
+      },
+      {
+        "title": "`directive --version` prints only version information.",
+        "status": "proposed"
+      },
+      {
+        "title": "Help output documents common options.",
+        "status": "proposed"
+      },
+      {
+        "title": "The exhaustive registered-verb list remains available through an explicit command or flag.",
+        "status": "proposed"
+      },
+      {
+        "title": "Help avoids listing both dash and colon aliases unless explicitly showing aliases.",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests snapshot the top-level help output and version output.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "interfaces",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2172",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2172: Improve top-level directive help output and command discovery"
+      }
+    ],
+    "updated": "2026-07-08T07:35:13Z",
+    "metadata": {
+      "completedAt": "2026-07-08T07:35:13Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -118,7 +118,7 @@ describe("verify session ritual TS module (maps tests/cli/test_verify_session_ri
 
 describe("deft-ts resume sentinel (maps tests/cli/test_resume.py — core unit coverage)", () => {
   it("framework resume commands are registered", () => {
-    const { exitCode, stdout } = runDeftTs("", ["--help"]);
+    const { exitCode, stdout } = runDeftTs("", ["commands"]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("framework-commands");
   });
