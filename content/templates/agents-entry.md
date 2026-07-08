@@ -96,23 +96,21 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Umbrella status reading (#1152 / #2066)
 
-Rationale + cross-references: `.deft/core/docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152).
-
 - ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
 ## Deterministic questions runtime obligation (#1470)
 
-Rationale + cross-references: `.deft/core/content/contracts/deterministic-questions.md` (#767); closes the agent-runtime enforcement gap on issue #1470.
+Rationale + cross-references: `.deft/core/contracts/deterministic-questions.md` (#767); closes the agent-runtime enforcement gap on issue #1470.
 
-- ! ANY agent-initiated structured question — whether via host `ask_user_question` / `AskQuestion` tooling or a numbered menu rendered in chat — inside OR outside any skill flow MUST include `Discuss` and `Back` as the final two options, in that order, and MUST obey the Discuss-pause semantic documented verbatim in `.deft/core/content/contracts/deterministic-questions.md`.
+- ! ANY agent-initiated structured question — whether via host `ask_user_question` / `AskQuestion` tooling or a numbered menu rendered in chat — inside OR outside any skill flow MUST include `Discuss` and `Back` as the final two options, in that order, and MUST obey the Discuss-pause semantic documented verbatim in `.deft/core/contracts/deterministic-questions.md`.
 - ! Before emitting any structured or numbered question, self-check: confirm `Discuss` and `Back` are present as the final two options; if not, add them before calling the tool or rendering the menu. Host-native `Other` / free-text affordances are NOT substitutes for `Discuss` (#767 / #431).
 - ⊗ Emit a structured or numbered question without `Discuss` and `Back` as the final two options — including ad-hoc orchestration approvals, dispatch confirmations, and decision walkthroughs outside interview/setup/refinement skills.
 - ⊗ Treat the host UI's automatic `Other` option as the stop-and-discuss escape hatch — `Other` widens the answer space; `Discuss` exits the deterministic flow entirely (see contract).
 
 ## Issue body→comments reading (#2143)
 
-Rationale + cross-references: `.deft/core/docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Issue body→comments reading (#2143); preamble § 5.6 in `.deft/core/content/templates/agent-prompt-preamble.md`.
+Rationale + cross-references: preamble § 5.6 in `.deft/core/templates/agent-prompt-preamble.md` (#2143).
 
 - ! Fetch both the issue body and `repos/<owner>/<repo>/issues/<N>/comments` via REST before concluding what the issue asks for or building a worker dispatch envelope. Read body first, then the comment thread in chronological order.
 - ! `deft issue:ingest` / `task issue:ingest` fetches `/comments` by default and folds the thread into the ingested overview (#2143).
@@ -192,7 +190,7 @@ Override paths (`deft policy:show` / `deft policy:enforce-branches` / `deft poli
 
 ## Platform-conditional rules (PowerShell / Windows)
 
-Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). If your session matches a trigger below, load `.deft/core/content/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
+Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). If your session matches a trigger below, load `.deft/core/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
 
 - ! Editing files with non-ASCII glyphs from PowerShell (especially PS 5.1) -- enforced at commit by `deft verify:encoding` (#798).
 - ! Running shell commands under the Grok Build Windows + pwsh 7+ runtime -- piped/redirected commands leak wrapper text (#1353); PTY-based Warp + Claude are exempt.
@@ -222,7 +220,7 @@ Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they
 
 ## Commands
 
-Directive product commands use the `/deft:directive:*` namespace (#418 / #1670). Prior `/deft:*` product forms remain as deprecation-warning aliases — see `content/commands.md` for the full alias table. Cross-product session commands stay at the umbrella `/deft:*` level.
+Directive product commands use the `/deft:directive:*` namespace (#418 / #1670). Prior `/deft:*` product forms remain as deprecation-warning aliases — see `.deft/core/commands.md` for the full alias table. Cross-product session commands stay at the umbrella `/deft:*` level.
 
 **Directive product (`/deft:directive:*`):**
 
