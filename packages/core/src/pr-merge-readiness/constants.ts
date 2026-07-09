@@ -6,6 +6,13 @@ export const GREPTILE_LOGIN = "greptile-apps[bot]";
 
 export const GREPTILE_ERRORED_SENTINEL = "Greptile encountered an error while reviewing this PR";
 
+/** Greptile status marker on excluded-author skip comments (#2375). */
+export const GREPTILE_STATUS_MARKER = "<!-- greptile-status -->";
+
+/** Intentional opt-out when the PR author is on the excluded-authors list (#2375). */
+export const GREPTILE_EXCLUDED_AUTHOR_RE =
+  /(?:<!--\s*greptile-status\s*-->[\s\S]*)?excluded authors list/i;
+
 export const LAST_REVIEWED_RE =
   /Last reviewed commit:\s*\[[^\]]*\]\(https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/(?<sha>[0-9a-f]{7,40})/g;
 

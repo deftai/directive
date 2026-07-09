@@ -18,6 +18,7 @@ function verdictToDict(verdict: GreptileVerdict): Record<string, unknown> {
     p1_count: verdict.p1Count,
     p2_count: verdict.p2Count,
     informal_clean: verdict.informalClean,
+    excluded_author: verdict.excludedAuthor,
     raw_body_excerpt: verdict.rawBodyExcerpt,
   };
 }
@@ -59,15 +60,19 @@ export function printHuman(result: GateResult): string {
   const lines: string[] = [];
   lines.push(`PR #${result.prNumber} merge-readiness check  (via=${result.via})`);
   lines.push(`  HEAD SHA:           ${result.headSha ?? "<unknown>"}`);
-  lines.push(`  Greptile reviewed:  ${result.verdict.lastReviewedSha ?? "<not parsed>"}`);
-  const confidenceStr =
-    result.verdict.confidence !== null ? String(result.verdict.confidence) : "<not parsed>";
-  lines.push(`  Confidence:         ${confidenceStr}/5`);
-  lines.push(
-    `  Findings:           P0=${result.verdict.p0Count}  ` +
-      `P1=${result.verdict.p1Count}  P2=${result.verdict.p2Count}`,
-  );
-  lines.push(`  Errored sentinel:   ${result.verdict.errored ? "True" : "False"}`);
+  if (result.verdict.excludedAuthor) {
+    lines.push("  Greptile review:    skipped (author excluded)");
+  } else {
+    lines.push(`  Greptile reviewed:  ${result.verdict.lastReviewedSha ?? "<not parsed>"}`);
+    const confidenceStr =
+      result.verdict.confidence !== null ? String(result.verdict.confidence) : "<not parsed>";
+    lines.push(`  Confidence:         ${confidenceStr}/5`);
+    lines.push(
+      `  Findings:           P0=${result.verdict.p0Count}  ` +
+        `P1=${result.verdict.p1Count}  P2=${result.verdict.p2Count}`,
+    );
+    lines.push(`  Errored sentinel:   ${result.verdict.errored ? "True" : "False"}`);
+  }
   const ciBlock = result.partialData.ci;
   if (ciBlock !== null && typeof ciBlock === "object" && !Array.isArray(ciBlock)) {
     const ci = ciBlock as Record<string, unknown>;

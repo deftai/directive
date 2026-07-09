@@ -2,6 +2,7 @@ import { findLastReviewedCommitSha } from "../text/redos-safe.js";
 import {
   CONFIDENCE_RE,
   GREPTILE_ERRORED_SENTINEL,
+  GREPTILE_EXCLUDED_AUTHOR_RE,
   INFORMAL_CLEAN_SIGNAL_RE,
   P0_BADGE,
   P1_BADGE,
@@ -19,8 +20,13 @@ export function emptyVerdict(): GreptileVerdict {
     p1Count: 0,
     p2Count: 0,
     informalClean: false,
+    excludedAuthor: false,
     rawBodyExcerpt: "",
   };
+}
+
+export function isGreptileExcludedAuthor(body: string): boolean {
+  return GREPTILE_EXCLUDED_AUTHOR_RE.test(body);
 }
 
 export function isInformalCleanMissingCanonicalFields(
@@ -58,6 +64,7 @@ export function parseGreptileBody(body: string): GreptileVerdict {
   }
 
   const errored = body.trim().startsWith(GREPTILE_ERRORED_SENTINEL);
+  const excludedAuthor = isGreptileExcludedAuthor(body);
 
   const lastReviewedSha = findLastReviewedCommitSha(body);
 
@@ -92,6 +99,7 @@ export function parseGreptileBody(body: string): GreptileVerdict {
     p1Count,
     p2Count,
     informalClean: false,
+    excludedAuthor,
     rawBodyExcerpt: body.slice(0, 200),
   };
 

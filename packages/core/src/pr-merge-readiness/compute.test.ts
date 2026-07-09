@@ -105,6 +105,32 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(mergeability.mergeable_state).toBe("unstable");
   });
 
+  it("does NOT merge stale P0/P1 even when GitHub is CLEAN (#2382)", () => {
+    const body =
+      "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
+      `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${OLD})\n` +
+      '### P0 findings (1)\n<img alt="P0" />\n';
+    const result = computeGateResult(
+      2258,
+      "deftai/directive",
+      fakeRunGh({ commentBody: body, mergeableState: "clean", mergeable: true }),
+    );
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+  });
+
+  it("merges when Greptile excluded-author skip is present and CI is green (#2375)", () => {
+    const body = "<!-- greptile-status --> PR author is in the excluded authors list.";
+    const result = computeGateResult(
+      2352,
+      "deftai/directive",
+      fakeRunGh({ commentBody: body, mergeableState: "clean", mergeable: true }),
+    );
+    expect(result.failures).toEqual([]);
+    expect(result.verdict.excludedAuthor).toBe(true);
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+  });
+
   it("does NOT merge a genuine P0/P1 on the current head even when GitHub is CLEAN", () => {
     const body =
       "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +

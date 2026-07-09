@@ -90,13 +90,15 @@ export function verdictShaIsStale(verdict: GreptileVerdict, headSha: string | nu
  * Classify whether the verdict-based merge block is ONLY "soft" (#2260).
  *
  * A soft block means the review verdict is absent or pinned to a prior head
- * SHA (rebased staleness) -- i.e. the review has not spoken about the CURRENT
- * head. It is safe to reconcile a soft block against GitHub mergeability.
+ * SHA without carrying real blocker-class findings (rebased staleness with no
+ * P0/P1/errored/low-confidence) -- i.e. the review has not spoken about the
+ * CURRENT head in a blocking way. It is safe to reconcile a soft block against
+ * GitHub mergeability.
  *
- * A HARD block -- a genuine P0/P1 finding, an ERRORED review, or a low
- * confidence score on the current head -- is NEVER soft; those must keep
- * blocking regardless of GitHub mergeability (guardrail: do not merge a PR
- * with a real P0/P1 review finding).
+ * A HARD block -- a genuine P0/P1 finding (even on a stale SHA), an ERRORED
+ * review, or a low confidence score -- is NEVER soft; those must keep blocking
+ * regardless of GitHub mergeability (guardrail: do not merge a PR with a real
+ * P0/P1 review finding).
  */
 export function verdictBlockIsSoftOnly(verdict: GreptileVerdict, headSha: string | null): boolean {
   // Absent: no Greptile rolling-summary comment at all.
@@ -108,12 +110,11 @@ export function verdictBlockIsSoftOnly(verdict: GreptileVerdict, headSha: string
   if (verdict.informalClean) {
     return false;
   }
-  // Stale: verdict pinned to a prior head SHA -> its findings pertain to old code.
-  if (verdictShaIsStale(verdict, headSha)) {
+  // Excluded-author skip is an intentional N/A reviewer state (#2375).
+  if (verdict.excludedAuthor) {
     return true;
   }
-  // Verdict is current (or its SHA is unparseable). A genuine current-head
-  // finding is a hard block and must not be overridden.
+  // Blocker-class signals apply even when the verdict SHA is stale (#2382).
   if (verdict.errored) {
     return false;
   }
@@ -122,6 +123,10 @@ export function verdictBlockIsSoftOnly(verdict: GreptileVerdict, headSha: string
   }
   if (verdict.p0Count > 0 || verdict.p1Count > 0) {
     return false;
+  }
+  // Stale without blocker findings: review has not spoken about the current head.
+  if (verdictShaIsStale(verdict, headSha)) {
+    return true;
   }
   // No genuine finding: the block is a missing-canonical-field / not-yet-posted
   // wait, which GitHub mergeability may resolve.

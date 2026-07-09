@@ -118,10 +118,31 @@ describe("verdictBlockIsSoftOnly", () => {
     expect(verdictBlockIsSoftOnly(emptyVerdict(), HEAD)).toBe(true);
   });
 
-  it("stale head SHA is soft even with prior findings", () => {
+  it("stale head SHA without blocker findings is soft", () => {
+    expect(
+      verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: OLD, confidence: 5 }), HEAD),
+    ).toBe(true);
+  });
+
+  it("stale head SHA with P0/P1 is a HARD block (#2382)", () => {
     expect(
       verdictBlockIsSoftOnly(
         verdict({ found: true, lastReviewedSha: OLD, p0Count: 3, confidence: 1 }),
+        HEAD,
+      ),
+    ).toBe(false);
+  });
+
+  it("stale head SHA with errored is a HARD block (#2382)", () => {
+    expect(
+      verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: OLD, errored: true }), HEAD),
+    ).toBe(false);
+  });
+
+  it("excluded-author skip is soft (#2375)", () => {
+    expect(
+      verdictBlockIsSoftOnly(
+        verdict({ found: true, excludedAuthor: true, lastReviewedSha: null, confidence: null }),
         HEAD,
       ),
     ).toBe(true);

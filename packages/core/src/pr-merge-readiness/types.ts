@@ -7,6 +7,8 @@ export interface GreptileVerdict {
   readonly p1Count: number;
   readonly p2Count: number;
   readonly informalClean: boolean;
+  /** Greptile deliberately skipped review for an excluded PR author (#2375). */
+  readonly excludedAuthor: boolean;
   readonly rawBodyExcerpt: string;
 }
 

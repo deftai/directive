@@ -57,6 +57,20 @@ describe("output helpers", () => {
     expect(out).toContain("CI check-runs: 1 passed / 0 failed / 0 pending");
   });
 
+  it("prints excluded-author skip line (#2375)", () => {
+    const out = printHuman({
+      ...baseResult,
+      verdict: {
+        ...baseResult.verdict,
+        excludedAuthor: true,
+        lastReviewedSha: null,
+        confidence: null,
+      },
+    });
+    expect(out).toContain("Greptile review:    skipped (author excluded)");
+    expect(out).not.toContain("Confidence:");
+  });
+
   it("prints human merge-blocked", () => {
     const out = printHuman({ ...baseResult, failures: ["low confidence"] });
     expect(out).toContain("MERGE-BLOCKED");

@@ -107,6 +107,15 @@ describe("parseGreptileBody", () => {
     expect(v.informalClean).toBe(true);
   });
 
+  it("detects excluded-author skip sentinel (#2375)", () => {
+    const body = "<!-- greptile-status --> PR author is in the excluded authors list.";
+    const v = parseGreptileBody(body);
+    expect(v.found).toBe(true);
+    expect(v.excludedAuthor).toBe(true);
+    expect(v.lastReviewedSha).toBeNull();
+    expect(v.confidence).toBeNull();
+  });
+
   it("isInformalClean helper respects canonical fields", () => {
     const v = parseGreptileBody(cleanBody());
     expect(isInformalCleanMissingCanonicalFields(v, cleanBody())).toBe(false);
@@ -178,6 +187,16 @@ describe("evaluateGates", () => {
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain(INFORMAL_CLEAN_DIAGNOSTIC.slice(0, 40));
     expect(failures[0]).toContain("@greptileai review");
+  });
+
+  it("passes excluded-author skip without parse failures (#2375)", () => {
+    expect(
+      evaluateGates(
+        1,
+        HEAD,
+        verdict({ excludedAuthor: true, lastReviewedSha: null, confidence: null }),
+      ),
+    ).toEqual([]);
   });
 });
 

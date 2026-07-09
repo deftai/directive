@@ -18,6 +18,10 @@ export function evaluateGates(
     return failures;
   }
 
+  if (verdict.excludedAuthor) {
+    return failures;
+  }
+
   if (verdict.errored) {
     failures.push(
       "Greptile review is in the ERRORED state on the current HEAD (#526). " +
