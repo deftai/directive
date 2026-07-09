@@ -111,6 +111,8 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/process\.argv\[1\]/);
     expect(engine).toMatch(/readFileSync\(process\.argv\[1\]/);
     expect(engine).toMatch(/pm-run:/);
+    expect(engine).toMatch(/shell:true/);
+    expect(engine).toMatch(/trySteps/);
     expect(engine).toMatch(/corepack/);
     expect(engine).toMatch(/packageManager/);
     expect(engine).toMatch(/DEFT_PACKAGE_MANAGER/);

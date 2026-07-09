@@ -28,37 +28,39 @@ tasks:
             process.exit(2);
           }
           const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));
-          const which=(name)=>{
+          const hasCmd=(name)=>{
             try{
-              return execFileSync('sh',['-c','command -v '+name],{encoding:'utf8'}).trim();
+              execFileSync('sh',['-c','command -v '+name],{stdio:'ignore'});
+              return true;
             }catch{
-              return '';
+              return false;
             }
           };
           const run=(cmd,args)=>{
-            execFileSync(cmd,args,{cwd:root,stdio:'inherit'});
+            execFileSync(cmd,args,{cwd:root,stdio:'inherit',shell:true});
+          };
+          const trySteps=(steps)=>{
+            for(const [cmd,args] of steps){
+              try{
+                run(cmd,args);
+                process.exit(0);
+              }catch{
+                // fall through to Corepack / next resolver
+              }
+            }
           };
           const envPm=String(process.env.DEFT_PACKAGE_MANAGER||'').trim().toLowerCase();
           if(envPm==='npm'){
             run('npm',['run',script]);
             process.exit(0);
           }
-          const pnpm=which('pnpm');
-          if(pnpm){
-            run(pnpm,['run',script]);
-            process.exit(0);
-          }
-          const corepack=which('corepack');
           const pin=String(pkg.packageManager||'').trim();
           const match=pin.match(/^pnpm@(.+)$/);
-          if(corepack&&match){
-            run(corepack,['pnpm@'+match[1],'run',script]);
-            process.exit(0);
-          }
-          if(corepack){
-            run(corepack,['pnpm','run',script]);
-            process.exit(0);
-          }
+          const steps=[];
+          if(hasCmd('pnpm')) steps.push(['pnpm',['run',script]]);
+          if(hasCmd('corepack')&&match) steps.push(['corepack',['pnpm@'+match[1],'run',script]]);
+          if(hasCmd('corepack')) steps.push(['corepack',['pnpm','run',script]]);
+          trySteps(steps);
           console.error('deft: neither pnpm nor corepack is available to run \"'+script+'\".');
           if(pin){
             console.error('  Enable Corepack for the pinned manager: corepack enable && corepack prepare '+pin+' --activate');
@@ -98,37 +100,39 @@ tasks:
             const script='build';
             const pkgPath=root+'/package.json';
             const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));
-            const which=(name)=>{
+            const hasCmd=(name)=>{
               try{
-                return execFileSync('sh',['-c','command -v '+name],{encoding:'utf8'}).trim();
+                execFileSync('sh',['-c','command -v '+name],{stdio:'ignore'});
+                return true;
               }catch{
-                return '';
+                return false;
               }
             };
             const run=(cmd,args)=>{
-              execFileSync(cmd,args,{cwd:root,stdio:'inherit'});
+              execFileSync(cmd,args,{cwd:root,stdio:'inherit',shell:true});
+            };
+            const trySteps=(steps)=>{
+              for(const [cmd,args] of steps){
+                try{
+                  run(cmd,args);
+                  process.exit(0);
+                }catch{
+                  // fall through to Corepack / next resolver
+                }
+              }
             };
             const envPm=String(process.env.DEFT_PACKAGE_MANAGER||'').trim().toLowerCase();
             if(envPm==='npm'){
               run('npm',['run',script]);
               process.exit(0);
             }
-            const pnpm=which('pnpm');
-            if(pnpm){
-              run(pnpm,['run',script]);
-              process.exit(0);
-            }
-            const corepack=which('corepack');
             const pin=String(pkg.packageManager||'').trim();
             const match=pin.match(/^pnpm@(.+)$/);
-            if(corepack&&match){
-              run(corepack,['pnpm@'+match[1],'run',script]);
-              process.exit(0);
-            }
-            if(corepack){
-              run(corepack,['pnpm','run',script]);
-              process.exit(0);
-            }
+            const steps=[];
+            if(hasCmd('pnpm')) steps.push(['pnpm',['run',script]]);
+            if(hasCmd('corepack')&&match) steps.push(['corepack',['pnpm@'+match[1],'run',script]]);
+            if(hasCmd('corepack')) steps.push(['corepack',['pnpm','run',script]]);
+            trySteps(steps);
             console.error('deft: neither pnpm nor corepack is available to run \"'+script+'\".');
             if(pin){
               console.error('  Enable Corepack for the pinned manager: corepack enable && corepack prepare '+pin+' --activate');
