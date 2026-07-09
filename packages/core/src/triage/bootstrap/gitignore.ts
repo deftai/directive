@@ -1,5 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../../fs/projection-containment.js";
 import { MIGRATED_ARTIFACT_DIR, resolveLifecycleLayout } from "../../layout/resolve.js";
 import {
   resolveCandidatesLogPath,
@@ -203,6 +207,14 @@ function stepOutcome(
   return { name, ok, message, error, details };
 }
 
+function containmentFailure(stepName: string, err: unknown): StepOutcome {
+  const message =
+    err instanceof ProjectionContainmentError
+      ? err.message
+      : `projection path containment refused: ${String(err)}`;
+  return stepOutcome(stepName, false, message, {}, message);
+}
+
 /** Strip an inline `# ...` comment from a gitignore line. */
 export function stripGitignoreInlineComment(line: string): string {
   const stripped = line.trim();
@@ -227,6 +239,7 @@ function isCommentedGitignoreLine(raw: string, gitignoreLine: string): boolean {
 }
 
 function ensureGitignoreLine(
+  projectRoot: string,
   gitignorePath: string,
   line: string,
   stepName: string,
@@ -234,6 +247,12 @@ function ensureGitignoreLine(
   rationaleBlock: string,
   optInMessage: string,
 ): StepOutcome {
+  try {
+    assertProjectionContained(projectRoot, gitignorePath);
+  } catch (err) {
+    return containmentFailure(stepName, err);
+  }
+
   if (!existsSync(gitignorePath)) {
     if (!createIfMissing) {
       return stepOutcome(
@@ -296,6 +315,7 @@ function ensureGitignoreLine(
 /** Append `.deft-cache/` to `.gitignore` when absent. */
 export function stepEnsureGitignoreEntry(projectRoot: string): StepOutcome {
   return ensureGitignoreLine(
+    projectRoot,
     `${projectRoot}/.gitignore`,
     GITIGNORE_LINE,
     "ensure_gitignore_entry",
@@ -326,10 +346,17 @@ function gitattributesHasEvalMergeUnion(body: string, glob: string): boolean {
 }
 
 function ensureGitignoreSelectiveEntries(
+  projectRoot: string,
   gitignorePath: string,
   stepName: string,
   entries: readonly string[],
 ): StepOutcome {
+  try {
+    assertProjectionContained(projectRoot, gitignorePath);
+  } catch (err) {
+    return containmentFailure(stepName, err);
+  }
+
   let existing: string;
   try {
     existing = readFileSync(gitignorePath, { encoding: "utf8" });
@@ -400,11 +427,18 @@ function ensureGitignoreSelectiveEntries(
 }
 
 function ensureGitattributesMergeUnion(
+  projectRoot: string,
   gitattributesPath: string,
   stepName: string,
   glob: string,
   ruleLine: string,
 ): StepOutcome {
+  try {
+    assertProjectionContained(projectRoot, gitattributesPath);
+  } catch (err) {
+    return containmentFailure(stepName, err);
+  }
+
   if (existsSync(gitattributesPath)) {
     let existing: string;
     try {
@@ -511,14 +545,20 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   const stepName = "ensure_gitignore_eval_entries";
   const details: Record<string, unknown> = {};
 
-  const giResult = ensureGitignoreSelectiveEntries(gitignorePath, stepName, entries);
+  const giResult = ensureGitignoreSelectiveEntries(projectRoot, gitignorePath, stepName, entries);
   if (!giResult.ok) {
     Object.assign(details, giResult.details);
     return stepOutcome(stepName, false, giResult.message, details, giResult.error ?? null);
   }
   Object.assign(details, giResult.details);
 
-  const gaResult = ensureGitattributesMergeUnion(gitattributesPath, stepName, glob, ruleLine);
+  const gaResult = ensureGitattributesMergeUnion(
+    projectRoot,
+    gitattributesPath,
+    stepName,
+    glob,
+    ruleLine,
+  );
   if (!gaResult.ok) {
     Object.assign(details, gaResult.details);
     return stepOutcome(stepName, false, gaResult.message, details, gaResult.error ?? null);

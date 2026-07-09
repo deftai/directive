@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { assertProjectionContained } from "../fs/projection-containment.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { extractCodeStructure, loadJsonFile } from "../verify-source/code-structure-validate.js";
 import {
@@ -291,6 +292,7 @@ export function writeCodebaseMap(
   const resolvedOutput = isAbsolute(options.outputPath)
     ? options.outputPath
     : join(projectRoot, options.outputPath);
+  assertProjectionContained(projectRoot, resolvedOutput);
   if (!options.force && !isDeftGenerated(resolvedOutput)) {
     throw new Error(
       `refusing to overwrite non-generated MAP at ${resolvedOutput}; ` +
