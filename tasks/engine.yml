@@ -10,6 +10,65 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
+  pm-run:
+    internal: true
+    desc: "Run a package.json script via pnpm (bare or Corepack pin) or explicit DEFT_PACKAGE_MANAGER=npm (#2410)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - |
+        set -eu
+        node -e "
+          const {execFileSync}=require('child_process');
+          const fs=require('fs');
+          const root=process.argv[1];
+          const script=process.argv[2];
+          const pkgPath=root+'/package.json';
+          if(!fs.existsSync(pkgPath)){
+            console.error('deft: package.json missing at '+root);
+            process.exit(2);
+          }
+          const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));
+          const which=(name)=>{
+            try{
+              return execFileSync('sh',['-c','command -v '+name],{encoding:'utf8'}).trim();
+            }catch{
+              return '';
+            }
+          };
+          const run=(cmd,args)=>{
+            execFileSync(cmd,args,{cwd:root,stdio:'inherit'});
+          };
+          const envPm=String(process.env.DEFT_PACKAGE_MANAGER||'').trim().toLowerCase();
+          if(envPm==='npm'){
+            run('npm',['run',script]);
+            process.exit(0);
+          }
+          const pnpm=which('pnpm');
+          if(pnpm){
+            run(pnpm,['run',script]);
+            process.exit(0);
+          }
+          const corepack=which('corepack');
+          const pin=String(pkg.packageManager||'').trim();
+          const match=pin.match(/^pnpm@(.+)$/);
+          if(corepack&&match){
+            run(corepack,['pnpm@'+match[1],'run',script]);
+            process.exit(0);
+          }
+          if(corepack){
+            run(corepack,['pnpm','run',script]);
+            process.exit(0);
+          }
+          console.error('deft: neither pnpm nor corepack is available to run \"'+script+'\".');
+          if(pin){
+            console.error('  Enable Corepack for the pinned manager: corepack enable && corepack prepare '+pin+' --activate');
+          }else{
+            console.error('  Install pnpm or enable Corepack (see package.json#packageManager).');
+          }
+          console.error('  Or set DEFT_PACKAGE_MANAGER=npm for an explicit npm build path.');
+          process.exit(127);
+        " "{{.DEFT_ROOT}}" "{{.PM_SCRIPT}}"
+
   _ts-build:
     internal: true
     desc: "Build CLI dist from the framework source checkout; no-op on npm consumer deposits that ship no packages/ source (#2022 Phase 3 / #2126)."
@@ -32,12 +91,58 @@ tasks:
         if [ -f "{{.DEFT_ROOT}}/packages/cli/package.json" ] \
            && [ -f "{{.DEFT_ROOT}}/package.json" ] \
            && node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.exit(j.scripts&&j.scripts.build?0:1)" "{{.DEFT_ROOT}}/package.json"; then
-          pnpm --dir "{{.DEFT_ROOT}}" run build
+          node -e "
+            const {execFileSync}=require('child_process');
+            const fs=require('fs');
+            const root=process.argv[1];
+            const script='build';
+            const pkgPath=root+'/package.json';
+            const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));
+            const which=(name)=>{
+              try{
+                return execFileSync('sh',['-c','command -v '+name],{encoding:'utf8'}).trim();
+              }catch{
+                return '';
+              }
+            };
+            const run=(cmd,args)=>{
+              execFileSync(cmd,args,{cwd:root,stdio:'inherit'});
+            };
+            const envPm=String(process.env.DEFT_PACKAGE_MANAGER||'').trim().toLowerCase();
+            if(envPm==='npm'){
+              run('npm',['run',script]);
+              process.exit(0);
+            }
+            const pnpm=which('pnpm');
+            if(pnpm){
+              run(pnpm,['run',script]);
+              process.exit(0);
+            }
+            const corepack=which('corepack');
+            const pin=String(pkg.packageManager||'').trim();
+            const match=pin.match(/^pnpm@(.+)$/);
+            if(corepack&&match){
+              run(corepack,['pnpm@'+match[1],'run',script]);
+              process.exit(0);
+            }
+            if(corepack){
+              run(corepack,['pnpm','run',script]);
+              process.exit(0);
+            }
+            console.error('deft: neither pnpm nor corepack is available to run \"'+script+'\".');
+            if(pin){
+              console.error('  Enable Corepack for the pinned manager: corepack enable && corepack prepare '+pin+' --activate');
+            }else{
+              console.error('  Install pnpm or enable Corepack (see package.json#packageManager).');
+            }
+            console.error('  Or set DEFT_PACKAGE_MANAGER=npm for an explicit npm build path.');
+            process.exit(127);
+          " "{{.DEFT_ROOT}}"
         fi
 
   invoke:
     internal: true
-    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit). Source checkouts without a built dist fail fast (#2181) -- runtime/session tasks must not trigger engine:_ts-build / pnpm."
+    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit / runtime fallback #2409). Runtime/session verbs must not trigger engine:_ts-build / pnpm (#2181)."
     # Run from the operator project root so deft verbs resolve USER_WORKING_DIR
     # correctly; without this, included engine.yml defaults cwd to tasks/ (#2022).
     dir: '{{.USER_WORKING_DIR}}'
@@ -69,11 +174,67 @@ tasks:
           fi
           node "$bin" {{.ENGINE_CMD}}
         elif [ "$is_buildable_source" = 1 ]; then
-          echo "deft: CLI artifact missing at {{.DEFT_ROOT}}/packages/cli/dist/bin.js" >&2
-          echo "  Run \`task build\` first (framework source checkout)." >&2
-          exit 2
+          engine_cmd='{{.ENGINE_CMD}}'
+          first_token="${engine_cmd%% *}"
+          is_runtime_verb=0
+          case " ${first_token} " in
+            " session:start "|" session-start "|\
+            " verify:session-ritual "|" verify-session-ritual "|\
+            " verify:tools "|" verify-tools "|\
+            " triage:summary "|" triage-summary "|\
+            " triage:welcome "|" triage-welcome "|\
+            " verify:cache-fresh "|" verify-cache-fresh "|\
+            " preflight-cache ")
+              is_runtime_verb=1
+              ;;
+          esac
+          if [ "${DEFT_USE_GLOBAL_CLI:-}" = "1" ]; then
+            is_runtime_verb=1
+          fi
+          global_cli=""
+          if command -v deft >/dev/null 2>&1; then
+            global_cli=deft
+          elif command -v directive >/dev/null 2>&1; then
+            global_cli=directive
+          fi
+          if [ "$is_runtime_verb" = 1 ] && [ -n "$global_cli" ]; then
+            node -e "
+              const {execFileSync}=require('child_process');
+              const root=process.argv[1];
+              const cli=process.argv[2];
+              let srcVer='0.0.0-dev';
+              try{
+                if(process.env.DEFT_RELEASE_VERSION){
+                  srcVer=process.env.DEFT_RELEASE_VERSION;
+                }else{
+                  srcVer=execFileSync('git',['describe','--tags','--abbrev=0'],{cwd:root,encoding:'utf8'}).trim().replace(/^v/,'');
+                }
+              }catch{}
+              let globalVer='unknown';
+              try{
+                globalVer=execFileSync(cli,['--version'],{encoding:'utf8'}).trim();
+              }catch{}
+              const m=globalVer.match(/@([0-9]+\\.[0-9]+\\.[0-9]+)/)||globalVer.match(/([0-9]+\\.[0-9]+\\.[0-9]+)/);
+              const gv=m?m[1]:globalVer;
+              if(srcVer!=='0.0.0-dev'&&gv!=='unknown'&&gv!==srcVer){
+                console.error('deft: using global '+cli+' ('+gv+'); source checkout is v'+srcVer+' — run task build for a local engine match.');
+              }
+            " "{{.DEFT_ROOT}}" "$global_cli" >&2 || true
+            "$global_cli" {{.ENGINE_CMD}}
+          else
+            echo "deft: CLI artifact missing at {{.DEFT_ROOT}}/packages/cli/dist/bin.js" >&2
+            if [ "$is_runtime_verb" = 1 ]; then
+              echo "  Install global deft: npm i -g @deftai/directive" >&2
+              echo "  Or run \`task build\` first (framework source checkout)." >&2
+            else
+              echo "  Run \`task build\` first (framework source checkout)." >&2
+            fi
+            exit 2
+          fi
         elif command -v deft >/dev/null 2>&1; then
           deft {{.ENGINE_CMD}}
+        elif command -v directive >/dev/null 2>&1; then
+          directive {{.ENGINE_CMD}}
         else
           echo "deft: neither {{.DEFT_ROOT}}/packages/cli/dist/bin.js nor a global deft command is available." >&2
           echo "  Install with: npm i -g @deftai/directive" >&2

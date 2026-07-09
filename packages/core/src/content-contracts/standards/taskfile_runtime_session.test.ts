@@ -6,9 +6,9 @@ import { repoRoot } from "./_helpers.js";
 /**
  * Runtime/session task dispatch must not depend on engine:_ts-build / pnpm (#2181).
  *
- * Session-start and sibling ritual commands run the already-built CLI or fail fast
- * with an actionable message -- they must never invoke package managers or compile
- * TypeScript as a side effect of dispatch.
+ * Session-start and sibling ritual commands run the already-built CLI, fall back
+ * to global deft on unbuilt source (#2409), or fail fast — they must never invoke
+ * package managers or compile TypeScript as a side effect of dispatch.
  */
 
 const RUNTIME_SESSION_TASKFILES: Readonly<
@@ -23,6 +23,22 @@ const RUNTIME_SESSION_TASKFILES: Readonly<
     { task: "cache-fresh", mustNotDependOnBuild: true },
   ],
 };
+
+const RUNTIME_VERB_TOKENS = [
+  "session:start",
+  "session-start",
+  "verify:session-ritual",
+  "verify-session-ritual",
+  "verify:tools",
+  "verify-tools",
+  "triage:summary",
+  "triage-summary",
+  "triage:welcome",
+  "triage-welcome",
+  "verify:cache-fresh",
+  "verify-cache-fresh",
+  "preflight-cache",
+] as const;
 
 const TS_BUILD_DEP =
   /(?:deps:\s*\[[^\]]*":engine:_ts-build"[^\]]*\])|(?:-\s*task:\s*:engine:_ts-build\b)/;
@@ -47,18 +63,21 @@ function taskBlock(text: string, taskName: string): string {
 
 describe("runtime/session task dispatch (#2181)", () => {
   const engine = readTask("engine.yml");
+  const invokeBlock = engine.slice(engine.indexOf("invoke:"));
 
-  it("engine:invoke fails fast on buildable source checkout without dist/bin.js", () => {
-    expect(engine).toMatch(/is_buildable_source=1/);
-    expect(engine).toMatch(/CLI artifact missing/);
-    expect(engine).toMatch(/task build/);
-    // Must not fall through to global deft when source is buildable but dist is absent.
-    const invokeBlock = engine.slice(engine.indexOf("invoke:"));
-    const failFastBranch = invokeBlock.match(
-      /elif \[ "\$is_buildable_source" = 1 \]; then[\s\S]*?exit 2/m,
-    );
-    expect(failFastBranch, "fail-fast branch for missing artifact").not.toBeNull();
-    expect(failFastBranch?.[0]).not.toMatch(/command -v deft/);
+  it("engine:invoke allowlists runtime/session verbs for global fallback (#2409)", () => {
+    for (const token of RUNTIME_VERB_TOKENS) {
+      expect(invokeBlock, `missing runtime verb token ${token}`).toContain(`" ${token} "`);
+    }
+    expect(invokeBlock).toMatch(/DEFT_USE_GLOBAL_CLI/);
+    expect(invokeBlock).toMatch(/command -v directive/);
+    expect(invokeBlock).toMatch(/using global/);
+  });
+
+  it("engine:invoke still fail-closes build-gated verbs when dist is missing", () => {
+    expect(invokeBlock).toMatch(/CLI artifact missing/);
+    expect(invokeBlock).toMatch(/task build/);
+    expect(invokeBlock).toMatch(/is_runtime_verb=1/);
   });
 
   it("engine:invoke runs vendored bin.js when the artifact is present", () => {
@@ -68,7 +87,6 @@ describe("runtime/session task dispatch (#2181)", () => {
   it("engine:invoke checks Node via process.versions.node, not pnpm engine warnings", () => {
     expect(engine).toMatch(/process\.versions\.node/);
     expect(engine).toMatch(/engines\.node/);
-    const invokeBlock = engine.slice(engine.indexOf("invoke:"));
     expect(invokeBlock).not.toMatch(RAW_PNPM_BUILD);
   });
 

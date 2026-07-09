@@ -110,12 +110,17 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \]/);
     expect(engine).toMatch(/process\.argv\[1\]/);
     expect(engine).toMatch(/readFileSync\(process\.argv\[1\]/);
-    expect(engine).toMatch(RAW_PNPM_BUILD);
+    expect(engine).toMatch(/pm-run:/);
+    expect(engine).toMatch(/corepack/);
+    expect(engine).toMatch(/packageManager/);
+    expect(engine).toMatch(/DEFT_PACKAGE_MANAGER/);
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
+    expect(engine).toMatch(/command -v directive/);
     expect(engine).toMatch(/deft \{\{\.ENGINE_CMD\}\}/);
-    // #2181: source checkout without dist fails fast instead of triggering build.
+    // #2409: runtime verbs may fall back to global deft; build-gated verbs fail closed.
     expect(engine).toMatch(/CLI artifact missing/);
+    expect(engine).toMatch(/is_runtime_verb/);
     expect(engine).toMatch(/process\.versions\.node/);
   });
 
@@ -128,6 +133,12 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     const guardBlock = scriptMatch?.[0] ?? "";
     expect(guardBlock).toMatch(/process\.argv\[1\]/);
     expect(guardBlock).not.toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/dist\/bin\.js" \]/);
+  });
+
+  it("ts.yml routes monorepo scripts through Corepack-aware :engine:pm-run (#2410)", () => {
+    const ts = readTask("ts.yml");
+    expect(ts).toMatch(/:engine:pm-run/);
+    expect(ts).not.toMatch(/^\s*-\s*pnpm run/m);
   });
 
   it("TS_BUILD_DEP catches all three :ts:build spellings (regex self-test, #2126 Greptile P1)", () => {

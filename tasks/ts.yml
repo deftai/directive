@@ -8,21 +8,24 @@ vars:
 tasks:
   build:
     desc: "Build the TypeScript engine monorepo (tsc -b project references, #1717)"
-    dir: '{{.DEFT_ROOT}}'
     cmds:
-      - pnpm run build
+      - task: :engine:pm-run
+        vars:
+          PM_SCRIPT: build
 
   test:
     desc: "Run the TypeScript engine test suite with coverage (vitest, #1717)"
-    dir: '{{.DEFT_ROOT}}'
     cmds:
-      - pnpm run test
+      - task: :engine:pm-run
+        vars:
+          PM_SCRIPT: test
 
   lint:
     desc: "Lint + format-check the TypeScript engine (biome, #1717)"
-    dir: '{{.DEFT_ROOT}}'
     cmds:
-      - pnpm run lint
+      - task: :engine:pm-run
+        vars:
+          PM_SCRIPT: lint
 
   check-lane:
     desc: "Run the TS lane (lint+build+test) when a Node toolchain is present; skip with a notice otherwise (#1530, #1790)."
