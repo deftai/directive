@@ -150,6 +150,9 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 		if err := assertConsumerProjectionContained(projectDir, hookRel); err != nil {
 			return false, err
 		}
+		if err := assertDestinationNotSymlink(dst); err != nil {
+			return false, err
+		}
 		// Idempotency probe: skip the WRITE ONLY when the hook is already present
 		// byte-for-byte. A read error (os.ErrNotExist on first deposit, or an
 		// unreadable existing hook) is intentionally folded into upToDate=false so
