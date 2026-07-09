@@ -13,6 +13,7 @@
  */
 
 import { readPlanPolicy } from "../policy/plan-extensions.js";
+import { policySetInvocation } from "../policy/policy-invocation.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import { LEAF_CODING_WORKER_ROLE, SUBAGENT_BACKEND_SET_CMD } from "./constants.js";
 
@@ -172,7 +173,7 @@ export function enforceSubagentBackendPolicy(
         `${detail}\n` +
         "Select a coding sub-agent backend before headless dispatch:\n" +
         `${listing}\n` +
-        "Probe harness availability: task policy:subagent-backends\n" +
+        `Probe harness availability: ${policySetInvocation("subagent-backends")}\n` +
         `Persist a choice: ${SUBAGENT_BACKEND_SET_CMD.replace("{backend_id}", "<id>")}`,
     };
   }

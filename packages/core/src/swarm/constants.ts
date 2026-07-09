@@ -1,3 +1,5 @@
+import { policySetInvocation } from "../policy/policy-invocation.js";
+
 export const EXIT_OK = 0;
 export const EXIT_GATE_FAILED = 1;
 export const EXIT_CONFIG_ERROR = 2;
@@ -9,7 +11,7 @@ export const EXIT_EXTERNAL_ERROR = 2;
 
 export const DEFAULT_BASE_BRANCH = "master";
 export const LEAF_CODING_WORKER_ROLE = "leaf-implementation";
-export const SUBAGENT_BACKEND_SET_CMD = "task policy:subagent-backend -- --set {backend_id}";
+export const SUBAGENT_BACKEND_SET_CMD = `${policySetInvocation("subagent-backend", " -- --set {backend_id}")}`;
 
 export const GATE_ADVISE = "advise";
 export const GATE_ENFORCE = "enforce";

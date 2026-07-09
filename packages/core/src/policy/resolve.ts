@@ -5,8 +5,8 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
-import { policyColonInvocation } from "./disclosure.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
+import { policyColonInvocation } from "./policy-invocation.js";
 
 /** Filesystem-relative location of the project-definition xBRIEF (display/back-compat). */
 export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";

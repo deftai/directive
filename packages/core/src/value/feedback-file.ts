@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { isFrameworkRepoRoot } from "../check/orchestrator.js";
+import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { isValueFeedbackPathAllowed, resolveValueFeedback } from "../policy/value-feedback.js";
 import {
   GhRestError,
@@ -225,8 +226,8 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
       repo,
       message:
         "[deft feedback] Blocked: plan.policy.valueFeedback upstreamPrompt is OFF. " +
-        "Enable with `task policy:enable-value-feedback -- --confirm` and set upstreamPrompt, " +
-        "or inspect via `task policy:show --field=valueFeedback`.\n",
+        `Enable with \`${policyColonInvocation("enable-value-feedback", " -- --confirm")}\` and set upstreamPrompt, ` +
+        `or inspect via \`${policyColonInvocation("show", " --field=valueFeedback")}\`.\n`,
     };
   }
 

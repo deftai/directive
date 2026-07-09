@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { routeAndDispatch } from "./cli-router/index.js";
+import { routeAndDispatch, routeArgv } from "./cli-router/index.js";
+import { SUBCOMMAND_ROUTES } from "./cli-router/route-argv.js";
 import {
   CLI_MODULE_VERBS,
   CORE_MODULE_VERBS,
@@ -440,14 +441,19 @@ describe("dispatch", () => {
     expect(run).toHaveBeenCalledWith(["enable-value-feedback", "--project-root", "."]);
   });
 
-  it("routes policy:show through routeAndDispatch (#2367)", async () => {
-    const err: string[] = [];
-    const result = await routeAndDispatch(["policy:show"], {
-      writeOut: () => {},
-      writeErr: (text) => err.push(text),
+  it("keeps policy colon aliases in sync with cli-router SUBCOMMAND_ROUTES (#2367)", () => {
+    for (const [alias, subcommand] of Object.entries(POLICY_ACTION_ALIAS_SUBCOMMANDS)) {
+      const routed = SUBCOMMAND_ROUTES[alias];
+      expect(routed).toEqual(["policy", subcommand]);
+    }
+  });
+
+  it("passes policy:show colon argv through routeArgv (#2367)", () => {
+    const routed = routeArgv(["policy:show", "--field", "valueFeedback"]);
+    expect(routed).toEqual({
+      kind: "dispatch",
+      argv: ["policy:show", "--field", "valueFeedback"],
     });
-    expect(result).toBe(0);
-    expect(err.join("")).not.toContain("unknown verb");
   });
 });
 

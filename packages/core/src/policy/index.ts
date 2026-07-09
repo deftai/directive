@@ -13,6 +13,7 @@ export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./disclosure.js";
 export * from "./plan-extensions.js";
+export * from "./policy-invocation.js";
 export * from "./resolve.js";
 export * from "./value-feedback.js";
 export * from "./wip.js";

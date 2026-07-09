@@ -1,5 +1,6 @@
 import { recordBypassSignal, recordGateCatch } from "../events/attribution-ledger.js";
 import { disclosureLine } from "../policy/disclosure.js";
+import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { ENV_BYPASS, type PolicyResult, resolvePolicy } from "../policy/resolve.js";
 import { type BranchState, currentBranch, GitNotFoundError } from "./git.js";
 
@@ -58,7 +59,7 @@ function buildBlockMessage(branch: string, result: PolicyResult): string {
     "  How to proceed:",
     "    • Create a feature branch:  git switch -c feat/<name>",
     "    • Or opt out via the typed surface:",
-    "        task policy:allow-direct-commits -- --confirm",
+    `        ${policyColonInvocation("allow-direct-commits", " -- --confirm")}`,
     `    • Or set the emergency-escape env-var:  ${ENV_BYPASS}=1`,
     "",
     "  See README.md (Branch policy) and skills/deft-directive-setup/",

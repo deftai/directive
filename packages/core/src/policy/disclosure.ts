@@ -1,15 +1,7 @@
 import type { PolicyResult } from "./resolve.js";
 import { ENV_BYPASS } from "./resolve.js";
 
-/** User-facing colon-form policy verb for consumer `deft` disclosures (#2367). */
-export function policyColonInvocation(subcommand: string, trailing = ""): string {
-  return `deft policy:${subcommand}${trailing}`;
-}
-
-/** User-facing `deft policy set <cmd>` form for policy-set disclosures (#2367). */
-export function policySetInvocation(subcommand: string, trailing = ""): string {
-  return `deft policy set ${subcommand}${trailing}`;
-}
+export { policyColonInvocation, policySetInvocation } from "./policy-invocation.js";
 
 /** One-liner disclosure phrasing for AGENTS.md / setup interview echo. */
 export function disclosureLine(result: PolicyResult): string {

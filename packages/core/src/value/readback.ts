@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { ALL_ATTRIBUTION_EVENT_NAMES } from "../events/attribution-constants.js";
 import { type BehavioralEventRecord, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
+import { policyColonInvocation } from "../policy/policy-invocation.js";
 import {
   isValueFeedbackPathAllowed,
   resolveValueFeedback,
@@ -463,7 +464,7 @@ export function formatValueShowReport(trend: ValueShowTrend): string {
     return (
       `[value] No attributed signals in the last ${trend.windowLabel} ` +
       "(ledger empty for this window).\n" +
-      "Inspect policy: `task policy:show --field=valueFeedback`.\n"
+      `Inspect policy: \`${policyColonInvocation("show", " --field=valueFeedback")}\`.\n`
     );
   }
 
@@ -522,7 +523,7 @@ export function runValueShow(options: {
       empty: true,
       text:
         "[value] Blocked: plan.policy.valueFeedback is OFF. " +
-        "Enable with `task policy:enable-value-feedback -- --confirm`.\n",
+        `Enable with \`${policyColonInvocation("enable-value-feedback", " -- --confirm")}\`.\n`,
       trend: null,
     };
   }

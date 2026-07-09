@@ -3,8 +3,8 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
-import { policyColonInvocation } from "./disclosure.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
+import { policyColonInvocation } from "./policy-invocation.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
 import { isTrustedOrgAutoEnable, type OrgAutoEnableOptions } from "./value-feedback-autoenable.js";
 
