@@ -40,7 +40,7 @@ Older release lines may receive fixes at maintainer discretion when backporting 
 
 ## Response expectations
 
-- **Acknowledgment:** We aim to acknowledge receipt within **48 hours** (business days).
+- **Acknowledgment:** We aim to acknowledge receipt within **2 business days**.
 - **Triage:** We will assess severity and scope, and may ask for clarification.
 - **Coordinated disclosure:** We work toward a fix and advisory on a reasonable timeline (typically within **90 days** for confirmed issues). We will agree on a publication date with you when possible.
 - **Credit:** With your permission, we credit reporters in the advisory.
