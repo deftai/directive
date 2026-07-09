@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Responsible disclosure policy for security reports.** A root `SECURITY.md` directs reporters away from public GitHub issues and documents private reporting via GitHub Private Vulnerability Reporting (preferred) and `security@deftai.dev`, plus supported versions, scope, response expectations, and safe-harbor language. Closes #2405.
+
 ### Changed
 
 ### Fixed
