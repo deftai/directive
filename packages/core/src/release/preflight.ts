@@ -8,6 +8,16 @@
  * dispatches `check:framework-source`.
  */
 import { type CheckOrchestratorSeams, dispatchTaskCheck } from "../check/orchestrator.js";
+import { RELEASE_PREFLIGHT_ENV } from "./constants.js";
+import { releaseSubprocessEnv } from "./git.js";
+
+/** Step-5-only env: branch bypass plus release pre-flight cache staleness tolerance (#2386). */
+export function releaseCheckEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  return {
+    ...releaseSubprocessEnv(base),
+    [RELEASE_PREFLIGHT_ENV]: "1",
+  };
+}
 
 /** Seams for test isolation of the native release pre-flight. */
 export interface ReleasePreflightSeams {
@@ -34,7 +44,11 @@ export function runReleaseCheck(
   seams: ReleasePreflightSeams = {},
 ): [boolean, string] {
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
-  const code = dispatch(projectRoot, projectRoot, seams.checkSeams);
+  const checkSeams: CheckOrchestratorSeams = {
+    ...seams.checkSeams,
+    env: releaseCheckEnv(seams.checkSeams?.env ?? process.env),
+  };
+  const code = dispatch(projectRoot, projectRoot, checkSeams);
   if (code === 0) {
     return [true, "ran native TypeScript task check"];
   }

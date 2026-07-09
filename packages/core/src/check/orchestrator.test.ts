@@ -172,6 +172,28 @@ describe("dispatchTaskCheck", () => {
     expect(code).toBe(42);
   });
 
+  it("forwards release self-auth env to the task child (#2386)", () => {
+    const calls: Array<{ env?: NodeJS.ProcessEnv }> = [];
+    const spawnFn = (
+      _cmd: string,
+      _args: string[],
+      opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv },
+    ) => {
+      calls.push({ env: opts.env });
+      return { status: 0 };
+    };
+
+    const env = {
+      FOO: "bar",
+      DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1",
+      DEFT_RELEASE_PREFLIGHT: "1",
+    };
+    dispatchTaskCheck("/root", "/root", { spawnFn, env });
+    expect(calls[0]?.env?.FOO).toBe("bar");
+    expect(calls[0]?.env?.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT).toBe("1");
+    expect(calls[0]?.env?.DEFT_RELEASE_PREFLIGHT).toBe("1");
+  });
+
   it("uses the real defaultSpawn path when no spawnFn is provided (taskBin not found = error path)", () => {
     // When no spawnFn seam is given, dispatchTaskCheck calls the internal
     // defaultSpawn which wraps spawnSync. Using a non-existent binary causes

@@ -24,8 +24,10 @@ export interface CheckOrchestratorSeams {
   readonly spawnFn?: (
     cmd: string,
     args: string[],
-    opts: { cwd: string; stdio: string },
+    opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv },
   ) => { status: number | null; error?: Error };
+  /** Child-process environment (default: process.env). */
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 /**
@@ -102,6 +104,7 @@ export function dispatchTaskCheck(
   const result = spawn(taskBin, [target, "--taskfile", taskfilePath], {
     cwd,
     stdio: "inherit",
+    env: seams.env,
   });
 
   if (result.error !== undefined) {
@@ -115,12 +118,12 @@ export function dispatchTaskCheck(
 function defaultSpawn(
   cmd: string,
   args: string[],
-  opts: { cwd: string; stdio: string },
+  opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv },
 ): { status: number | null; error?: Error } {
   const result = spawnSync(cmd, args, {
     cwd: opts.cwd,
     stdio: opts.stdio as "inherit",
-    env: { ...process.env },
+    env: opts.env ?? process.env,
   });
   return { status: result.status, error: result.error };
 }

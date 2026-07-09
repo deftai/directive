@@ -323,6 +323,32 @@ describe("evaluate -- fresh cache", () => {
     expect(result.code).toBe(0);
     expect(result.message).toContain("⚠");
   });
+
+  it("allows stale cache when DEFT_RELEASE_PREFLIGHT is set (#2386)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1, nowMinus(48).toISOString());
+
+    const prev = process.env.DEFT_RELEASE_PREFLIGHT;
+    process.env.DEFT_RELEASE_PREFLIGHT = "1";
+    try {
+      const result = evaluate(root, {
+        allowMissingBootstrap: true,
+        repo: "owner/repo",
+        nowFn: () => new Date(),
+      });
+      expect(result.code).toBe(0);
+      expect(result.message).toContain("release pre-flight");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_RELEASE_PREFLIGHT;
+      } else {
+        process.env.DEFT_RELEASE_PREFLIGHT = prev;
+      }
+    }
+  });
 });
 
 describe("recoveryHintForStaleFailure -- branch-aware (#1953)", () => {

@@ -34,6 +34,8 @@ export const RELEASE_ARTIFACTS = ["CHANGELOG.md", "ROADMAP.md"] as const;
 
 export const BRANCH_GATE_BYPASS_ENV = "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT";
 export const DESTRUCTIVE_GH_GATE_BYPASS_ENV = "DEFT_ALLOW_DESTRUCTIVE_GH_VERBS";
+/** Set by releaseSubprocessEnv() so Step-5 pre-flight skips triage-cache staleness (#2386). */
+export const RELEASE_PREFLIGHT_ENV = "DEFT_RELEASE_PREFLIGHT";
 
 export const PYPROJECT_VERSION_LINE_RE = /version\s*=\s*"[^"]*"/;
 

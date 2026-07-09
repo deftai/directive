@@ -30,7 +30,16 @@ export const CANDIDATES_RELPATH = join("xbrief", ".triage-cache", "candidates.js
 export const DEFAULT_MAX_AGE_HOURS = 24;
 export const ENV_MAX_AGE_HOURS = "DEFT_CACHE_MAX_AGE_HOURS";
 export const ENV_TRIAGE_REPO = "DEFT_TRIAGE_REPO";
+/** Set by releaseSubprocessEnv() during task release Step 5 (#2386). */
+export const ENV_RELEASE_PREFLIGHT = "DEFT_RELEASE_PREFLIGHT";
 export const REQUIRED_DECISION = "accept";
+
+const TRUTHY = new Set(["1", "true", "yes", "on"]);
+
+function releasePreflightBypassActive(): boolean {
+  const raw = process.env[ENV_RELEASE_PREFLIGHT] ?? "";
+  return TRUTHY.has(raw.trim().toLowerCase());
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -374,6 +383,7 @@ const REMEDIATION_NO_CANDIDATES = [
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): GateResult {
   const source = options.source ?? DEFAULT_SOURCE;
   const allowStale = options.allowStale ?? false;
+  const releasePreflightStaleBypass = releasePreflightBypassActive();
   const allowMissingBootstrap = options.allowMissingBootstrap ?? false;
   const nowFn = options.nowFn ?? (() => new Date());
 
@@ -484,11 +494,14 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
   const allCandidatesClosed = minFetchedAt === null && rawCandidatePaths.length > 0;
   const stale = allCandidatesClosed ? false : ageH > maxAgeHours;
 
-  // Step 5b: --allow-stale bypass
-  if (stale && allowStale) {
+  // Step 5b: --allow-stale bypass (or release Step-5 age bypass only, #2386)
+  if (stale && (allowStale || releasePreflightStaleBypass)) {
+    const bypassReason = options.allowStale
+      ? "--allow-stale is set"
+      : `${ENV_RELEASE_PREFLIGHT} is set (release pre-flight)`;
     const warning = [
       `⚠ deft cache-fresh: cache is ${ageH.toFixed(1)}h old (max-age=${maxAgeHours}h) but`,
-      `  --allow-stale is set -- proceeding with audit-trail warning.`,
+      `  ${bypassReason} -- proceeding with audit-trail warning.`,
     ].join("\n");
     if (options.forIssue !== undefined && options.forIssue !== null) {
       const forResult = evaluateForIssue(

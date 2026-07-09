@@ -68,6 +68,7 @@ describe("git helpers", () => {
     const env = releaseSubprocessEnv({ FOO: "bar" });
     expect(env.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT).toBe("1");
     expect(env.DEFT_ALLOW_DESTRUCTIVE_GH_VERBS).toBe("1");
+    expect(env.DEFT_RELEASE_PREFLIGHT).toBeUndefined();
     expect(env.FOO).toBe("bar");
   });
 });
