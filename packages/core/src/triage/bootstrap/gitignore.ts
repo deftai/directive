@@ -505,6 +505,12 @@ interface EnsureEvalReadmeOptions {
 function ensureEvalReadme(options: EnsureEvalReadmeOptions): StepOutcome {
   const { projectRoot, readmePath, readmeRel, stepName } = options;
   try {
+    assertProjectionContained(projectRoot, readmePath);
+  } catch (err) {
+    return containmentFailure(stepName, err);
+  }
+
+  try {
     readFileSync(readmePath, { encoding: "utf8" });
     return stepOutcome(stepName, true, `${readmeRel} already present (no-op)`, {
       readme_created: false,
@@ -533,7 +539,6 @@ function ensureEvalReadme(options: EnsureEvalReadmeOptions): StepOutcome {
 
 /** Ensure the #1144 hybrid policy is encoded in the repo (idempotent). */
 export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome {
-  const gitignorePath = `${projectRoot}/.gitignore`;
   // Layout-aware (#2109): resolve the README under the active lifecycle `.eval`
   // dir (xbrief/ when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
   const readmePath = resolveTriageCachePath(projectRoot, "README.md");

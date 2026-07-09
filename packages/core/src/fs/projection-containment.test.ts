@@ -132,6 +132,21 @@ describe("projection writers refuse symlink escapes (#2413)", () => {
     expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
     expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
   });
+
+  it("triage:bootstrap fails closed when triage-cache README is a symlink outside the project", () => {
+    const projectDir = freshDir("proj-readme-symlink-");
+    const escapeTarget = freshDir("proj-readme-escape-");
+    const escapeFile = join(escapeTarget, "stolen-readme.md");
+    writeGitignore(projectDir);
+    mkdirSync(join(projectDir, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+    symlinkSync(escapeFile, join(projectDir, "xbrief", ".triage-cache", "README.md"));
+
+    const outcome = stepEnsureGitignoreEvalEntries(projectDir);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
+    expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
+  });
 });
 
 function writeGitignore(projectDir: string): void {
