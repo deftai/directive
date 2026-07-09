@@ -21,6 +21,5 @@ run_deft verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
 
 if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
     run_deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
+    run_deft verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?
 fi
-
-run_deft verify:xbrief-drift --staged --project-root "$REPO_ROOT" || exit $?

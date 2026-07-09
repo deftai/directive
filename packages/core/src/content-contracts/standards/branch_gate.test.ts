@@ -12,10 +12,21 @@ describe("test_branch_gate.py", () => {
   });
   it("test_pre_push_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-push");
-    expect(text).toContain("run_deft preflight-gh --pre-push-stdin");
+    expect(text).toContain("run_deft preflight-gh --pre-push-stdin --project-root");
     expect(text).toContain("_deft-run.sh");
     expect(text).not.toContain("preflight_branch.py");
     expect(text).not.toContain("deft verify:branch");
+  });
+  it("test_pre_commit_xbrief_drift_guarded_like_conformance (#2406)", () => {
+    const text = readText(".githooks/pre-commit");
+    const guardStart = text.indexOf('[ -d "$REPO_ROOT/xbrief" ]');
+    expect(guardStart).toBeGreaterThanOrEqual(0);
+    const guardEnd = text.indexOf("fi", guardStart);
+    expect(guardEnd).toBeGreaterThan(guardStart);
+    const guardBlock = text.slice(guardStart, guardEnd);
+    expect(guardBlock).toContain("verify:vbrief-conformance");
+    expect(guardBlock).toContain("verify:xbrief-drift");
+    expect(text.slice(guardEnd)).not.toContain("verify:xbrief-drift");
   });
   it("test_deft_run_sh_falls_back_to_local_cli", () => {
     const text = readText(".githooks/_deft-run.sh");

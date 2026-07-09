@@ -14,5 +14,5 @@ fi
 
 . "$REPO_ROOT/.githooks/_deft-run.sh"
 
-run_deft preflight-gh --pre-push-stdin
+run_deft preflight-gh --pre-push-stdin --project-root "$REPO_ROOT"
 exit $?
