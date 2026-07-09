@@ -347,10 +347,10 @@ function gitattributesHasEvalMergeUnion(body: string, glob: string): boolean {
 
 function ensureGitignoreSelectiveEntries(
   projectRoot: string,
-  gitignorePath: string,
   stepName: string,
   entries: readonly string[],
 ): StepOutcome {
+  const gitignorePath = `${projectRoot}/.gitignore`;
   try {
     assertProjectionContained(projectRoot, gitignorePath);
   } catch (err) {
@@ -428,11 +428,11 @@ function ensureGitignoreSelectiveEntries(
 
 function ensureGitattributesMergeUnion(
   projectRoot: string,
-  gitattributesPath: string,
   stepName: string,
   glob: string,
   ruleLine: string,
 ): StepOutcome {
+  const gitattributesPath = `${projectRoot}/.gitattributes`;
   try {
     assertProjectionContained(projectRoot, gitattributesPath);
   } catch (err) {
@@ -534,7 +534,6 @@ function ensureEvalReadme(options: EnsureEvalReadmeOptions): StepOutcome {
 /** Ensure the #1144 hybrid policy is encoded in the repo (idempotent). */
 export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome {
   const gitignorePath = `${projectRoot}/.gitignore`;
-  const gitattributesPath = `${projectRoot}/.gitattributes`;
   // Layout-aware (#2109): resolve the README under the active lifecycle `.eval`
   // dir (xbrief/ when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
   const readmePath = resolveTriageCachePath(projectRoot, "README.md");
@@ -545,20 +544,14 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   const stepName = "ensure_gitignore_eval_entries";
   const details: Record<string, unknown> = {};
 
-  const giResult = ensureGitignoreSelectiveEntries(projectRoot, gitignorePath, stepName, entries);
+  const giResult = ensureGitignoreSelectiveEntries(projectRoot, stepName, entries);
   if (!giResult.ok) {
     Object.assign(details, giResult.details);
     return stepOutcome(stepName, false, giResult.message, details, giResult.error ?? null);
   }
   Object.assign(details, giResult.details);
 
-  const gaResult = ensureGitattributesMergeUnion(
-    projectRoot,
-    gitattributesPath,
-    stepName,
-    glob,
-    ruleLine,
-  );
+  const gaResult = ensureGitattributesMergeUnion(projectRoot, stepName, glob, ruleLine);
   if (!gaResult.ok) {
     Object.assign(details, gaResult.details);
     return stepOutcome(stepName, false, gaResult.message, details, gaResult.error ?? null);

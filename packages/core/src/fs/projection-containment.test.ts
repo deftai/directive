@@ -55,6 +55,21 @@ describe("assertProjectionContained (#2413)", () => {
     ).toThrow(/symlink escaping the project tree/);
   });
 
+  it("throws when a nested symlink chain on the projection path escapes the tree", () => {
+    const projectDir = freshDir("proj-contain-nested-");
+    const escapeTarget = freshDir("proj-contain-nested-escape-");
+    const escapeFile = join(escapeTarget, "stolen.md");
+    const hopDir = join(projectDir, "hop");
+    mkdirSync(join(hopDir, "codebase"), { recursive: true });
+    writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+    symlinkSync(hopDir, join(projectDir, ".planning"), "dir");
+    symlinkSync(escapeFile, join(hopDir, "codebase", "MAP.md"));
+
+    expect(() =>
+      assertProjectionContained(projectDir, join(projectDir, ".planning", "codebase", "MAP.md")),
+    ).toThrow(/symlink escaping the project tree/);
+  });
+
   it("throws when the projection target is a broken symlink", () => {
     const projectDir = freshDir("proj-contain-dangling-");
     symlinkSync(join(projectDir, "missing-target"), join(projectDir, ".gitattributes"));

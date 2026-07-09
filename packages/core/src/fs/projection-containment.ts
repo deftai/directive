@@ -106,9 +106,34 @@ export function assertProjectionContained(projectDir: string, targetPath: string
         );
       }
       deepestExistingReal = linkReal;
+      current = linkReal;
     } else {
-      deepestExistingReal = realpathSync(current);
+      try {
+        deepestExistingReal = realpathSync(current);
+      } catch (err) {
+        throw new ProjectionContainmentError(
+          `projection write refused: could not resolve ${current} on the projection path`,
+          { projectDir: projectAbs, targetPath: targetAbs, offendingPath: current },
+        );
+      }
     }
+  }
+
+  try {
+    const targetReal = realpathSync(targetAbs);
+    if (!isContained(projectReal, targetReal)) {
+      throw new ProjectionContainmentError(
+        `projection write refused: projection target resolves outside the project tree ` +
+          `(${targetReal} is outside ${projectReal})`,
+        { projectDir: projectAbs, targetPath: targetAbs, offendingPath: targetReal },
+      );
+    }
+    deepestExistingReal = targetReal;
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw err;
+    }
+    // Target does not exist yet; parent walk above is sufficient.
   }
 
   if (!isContained(projectReal, deepestExistingReal)) {
