@@ -117,6 +117,9 @@ var gitIndexChmodExecFunc = func(dir string, relPaths ...string) error {
 // tree, permission denied) is returned so the installer can surface it; callers
 // treat hook wiring as non-fatal, mirroring depositNeutralization.
 func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, consumerHooksDirName); err != nil {
+		return false, err
+	}
 	srcDir := filepath.Join(deftDir, consumerHooksDirName)
 	info, err := os.Stat(srcDir)
 	if err != nil || !info.IsDir() {
@@ -143,6 +146,10 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 			return false, fmt.Errorf("could not read hook %s: %w", name, err)
 		}
 		dst := filepath.Join(dstDir, name)
+		hookRel := filepath.ToSlash(filepath.Join(consumerHooksDirName, name))
+		if err := assertConsumerProjectionContained(projectDir, hookRel); err != nil {
+			return false, err
+		}
 		// Idempotency probe: skip the WRITE ONLY when the hook is already present
 		// byte-for-byte. A read error (os.ErrNotExist on first deposit, or an
 		// unreadable existing hook) is intentionally folded into upToDate=false so

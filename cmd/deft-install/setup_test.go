@@ -1098,20 +1098,21 @@ func TestWriteConsumerVbrief_LifecycleDirs_Idempotent(t *testing.T) {
 // WriteConsumerVbrief) still get covered.
 func TestEnsureVbriefLifecycleDirs_DirectCall(t *testing.T) {
 	tmp := t.TempDir()
-	if err := ensureVbriefLifecycleDirs(tmp); err != nil {
+	consumerVbrief := filepath.Join(tmp, "vbrief")
+	if err := ensureVbriefLifecycleDirs(tmp, consumerVbrief); err != nil {
 		t.Fatal(err)
 	}
 	for _, sub := range vbriefLifecycleDirsExpected {
-		if info, err := os.Stat(filepath.Join(tmp, sub)); err != nil || !info.IsDir() {
+		if info, err := os.Stat(filepath.Join(consumerVbrief, sub)); err != nil || !info.IsDir() {
 			t.Errorf("ensureVbriefLifecycleDirs did not create %s: %v", sub, err)
 		}
-		if _, err := os.Stat(filepath.Join(tmp, sub, ".gitkeep")); err != nil {
+		if _, err := os.Stat(filepath.Join(consumerVbrief, sub, ".gitkeep")); err != nil {
 			t.Errorf("ensureVbriefLifecycleDirs did not drop .gitkeep in %s: %v", sub, err)
 		}
 	}
 
 	// Calling again must be a no-op on the filesystem.
-	if err := ensureVbriefLifecycleDirs(tmp); err != nil {
+	if err := ensureVbriefLifecycleDirs(tmp, consumerVbrief); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -2330,5 +2331,112 @@ func TestUpgradeRefreshBeforeStage_NoStragglers_RealGit(t *testing.T) {
 		if x := ln[0]; x == '?' || x == ' ' {
 			t.Errorf("post-stage straggler: framework file %q is unstaged (status %q) -- refresh-before-stage invariant violated (#1671)", paths[0], ln[:2])
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Consumer projection containment (#2383)
+// ---------------------------------------------------------------------------
+
+func seedOutsideSymlinkTarget(t *testing.T) string {
+	t.Helper()
+	outside := filepath.Join(t.TempDir(), "outside-target")
+	if err := os.WriteFile(outside, []byte("untouched-sensitive-content\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return outside
+}
+
+func symlinkOrSkip(t *testing.T, oldname, newname string) {
+	t.Helper()
+	if err := os.Symlink(oldname, newname); err != nil {
+		t.Skipf("symlink not supported on this host: %v", err)
+	}
+}
+
+// TestWriteAgentsMD_SymlinkOutside_RejectsProjection pins #2383: when AGENTS.md
+// is a repo-controlled symlink pointing outside the checkout, WriteAgentsMD
+// refuses before writing through the link.
+func TestWriteAgentsMD_SymlinkOutside_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	outside := seedOutsideSymlinkTarget(t)
+	symlinkOrSkip(t, outside, filepath.Join(proj, "AGENTS.md"))
+
+	w := NewWizard(strings.NewReader(""), io.Discard, false)
+	err := WriteAgentsMD(w, proj)
+	if err == nil {
+		t.Fatal("expected WriteAgentsMD to refuse symlink AGENTS.md, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+	got, readErr := os.ReadFile(outside)
+	if readErr != nil {
+		t.Fatalf("read outside target: %v", readErr)
+	}
+	if string(got) != "untouched-sensitive-content\n" {
+		t.Fatalf("outside target was modified through symlink; got %q", got)
+	}
+}
+
+// TestWriteConsumerGitHooks_SymlinkHooksDir_RejectsProjection pins #2383:
+// when .githooks is a symlink escaping the project tree, hook deposit refuses.
+func TestWriteConsumerGitHooks_SymlinkHooksDir_RejectsProjection(t *testing.T) {
+	origStatus := gitPorcelainStatusFunc
+	origGet := gitConfigGetHooksPathFunc
+	origSet := setGitHooksPathFunc
+	origIdx := gitIndexChmodExecFunc
+	defer func() {
+		gitPorcelainStatusFunc = origStatus
+		gitConfigGetHooksPathFunc = origGet
+		setGitHooksPathFunc = origSet
+		gitIndexChmodExecFunc = origIdx
+	}()
+
+	proj := t.TempDir()
+	deftDir := filepath.Join(proj, ".deft", "core")
+	seedPayloadHooks(t, deftDir)
+
+	outsideDir := filepath.Join(t.TempDir(), "outside-hooks")
+	if err := os.MkdirAll(outsideDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	symlinkOrSkip(t, outsideDir, filepath.Join(proj, ".githooks"))
+
+	gitPorcelainStatusFunc = func(string) ([]string, bool, error) { return nil, true, nil }
+	gitConfigGetHooksPathFunc = func(string) (string, error) { return "", nil }
+	setGitHooksPathFunc = func(string, string) error { return nil }
+	gitIndexChmodExecFunc = func(string, ...string) error { return nil }
+
+	_, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir)
+	if err == nil {
+		t.Fatal("expected WriteConsumerGitHooks to refuse symlink .githooks, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+	entries, err := os.ReadDir(outsideDir)
+	if err != nil {
+		t.Fatalf("read outside hooks dir: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected no hooks written through symlink, found %d entries", len(entries))
+	}
+}
+
+// TestWriteAgentsMD_RegularFile_Succeeds pins #2383 happy path: a normal
+// AGENTS.md deposit still succeeds when the target is not a symlink.
+func TestWriteAgentsMD_RegularFile_Succeeds(t *testing.T) {
+	proj := t.TempDir()
+	w := NewWizard(strings.NewReader(""), io.Discard, false)
+	if err := WriteAgentsMD(w, proj); err != nil {
+		t.Fatalf("WriteAgentsMD on greenfield project: %v", err)
+	}
+	info, err := os.Lstat(filepath.Join(proj, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("stat AGENTS.md: %v", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		t.Fatal("AGENTS.md should be a regular file, not a symlink")
 	}
 }

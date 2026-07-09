@@ -17,6 +17,133 @@ import (
 	"github.com/deftai/directive/content/templates"
 )
 
+// ---------------------------------------------------------------------------
+// Consumer projection containment (#2383)
+// ---------------------------------------------------------------------------
+//
+// Consumer projection helpers write repo-relative targets (AGENTS.md, vbrief/,
+// .agents/, .githooks/, etc.) via MkdirAll / WriteFile / copyDir / Chmod. A
+// malicious repo that commits one of those names as a symlink pointing outside
+// the checkout would otherwise let install/upgrade follow the link and write
+// out-of-tree. assertConsumerProjectionContained mirrors the deposit-boundary
+// guard in packages/core/src/deposit/contain.ts (#2305): Lstat each existing
+// path component, refuse escaping symlinks, and assert segment containment
+// (filepath.Rel, not string HasPrefix).
+
+// pathSegmentContained reports whether child is equal to parent or nested under
+// it using path-segment containment (so /foo does not contain /foobar).
+func pathSegmentContained(parent, child string) bool {
+	if parent == child {
+		return true
+	}
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel) && rel != ""
+}
+
+// assertDestinationNotSymlink refuses when target already exists as a symlink.
+// Missing paths are allowed — only pre-existing symlinks matter.
+func assertDestinationNotSymlink(target string) error {
+	info, err := os.Lstat(target)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("consumer projection: lstat %s: %w", target, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("consumer projection refused: refusing to write through destination symlink %s", target)
+	}
+	return nil
+}
+
+// assertConsumerProjectionContained refuses when targetRel (POSIX-style, relative
+// to projectDir) or any existing component on the way to it is a symlink that
+// escapes the resolved project tree. Call before MkdirAll / WriteFile / Chmod
+// on consumer projection targets (#2383).
+func assertConsumerProjectionContained(projectDir, targetRel string) error {
+	projectAbs, err := filepath.Abs(projectDir)
+	if err != nil {
+		return fmt.Errorf("consumer projection: %w", err)
+	}
+	projectReal, err := filepath.EvalSymlinks(projectAbs)
+	if err != nil {
+		return fmt.Errorf("consumer projection: resolve project root: %w", err)
+	}
+
+	targetRel = filepath.ToSlash(strings.TrimPrefix(targetRel, "./"))
+	targetAbs := filepath.Join(projectAbs, filepath.FromSlash(targetRel))
+	relToProject, err := filepath.Rel(projectAbs, targetAbs)
+	if err != nil || relToProject == ".." || strings.HasPrefix(relToProject, ".."+string(filepath.Separator)) || filepath.IsAbs(relToProject) {
+		return fmt.Errorf("consumer projection refused: %s is not under the project root", targetRel)
+	}
+
+	segments := strings.Split(targetRel, "/")
+	current := projectAbs
+	deepestExistingReal := projectReal
+
+	for _, seg := range segments {
+		if seg == "" || seg == "." {
+			continue
+		}
+		current = filepath.Join(current, seg)
+		info, err := os.Lstat(current)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				break
+			}
+			return fmt.Errorf("consumer projection: lstat %s: %w", current, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			linkReal, err := filepath.EvalSymlinks(current)
+			if err != nil {
+				return fmt.Errorf("consumer projection refused: %s is a broken symlink: %w", current, err)
+			}
+			if !pathSegmentContained(projectReal, linkReal) {
+				return fmt.Errorf(
+					"consumer projection refused: %s is a symlink escaping the project tree (resolves to %s, outside %s)",
+					current, linkReal, projectReal,
+				)
+			}
+			deepestExistingReal = linkReal
+		} else {
+			linkReal, err := filepath.EvalSymlinks(current)
+			if err != nil {
+				return fmt.Errorf("consumer projection: resolve %s: %w", current, err)
+			}
+			deepestExistingReal = linkReal
+		}
+	}
+
+	if !pathSegmentContained(projectReal, deepestExistingReal) {
+		return fmt.Errorf(
+			"consumer projection refused: path escapes the project tree (%s is outside %s)",
+			deepestExistingReal, projectReal,
+		)
+	}
+	return nil
+}
+
+// assertConsumerProjectionPath is assertConsumerProjectionContained for an
+// absolute target path under projectDir.
+func assertConsumerProjectionPath(projectDir, targetAbs string) error {
+	projectAbs, err := filepath.Abs(projectDir)
+	if err != nil {
+		return fmt.Errorf("consumer projection: %w", err)
+	}
+	targetAbs, err = filepath.Abs(targetAbs)
+	if err != nil {
+		return fmt.Errorf("consumer projection: %w", err)
+	}
+	rel, err := filepath.Rel(projectAbs, targetAbs)
+	if err != nil {
+		return fmt.Errorf("consumer projection: %w", err)
+	}
+	return assertConsumerProjectionContained(projectDir, filepath.ToSlash(rel))
+}
+
 // bareSemverPattern matches a bare `X.Y.Z[-pre][+build]` semver triple (no
 // leading `v`). Used by BuildInstallManifestText to gate the v-prefix
 // normalisation: only bare semver strings get the `v` prepended; branch refs
@@ -585,6 +712,9 @@ func rewriteAgentsMDBlock(body, replacement string) (string, bool) {
 // (the same value the deposit path uses) and normalised to POSIX form so the
 // AGENTS.md body never carries Windows backslashes regardless of host OS.
 func WriteAgentsMD(w *Wizard, projectDir string) error {
+	if err := assertConsumerProjectionContained(projectDir, "AGENTS.md"); err != nil {
+		return err
+	}
 	installRoot := filepath.ToSlash(w.frameworkSubdir())
 	path := filepath.Join(projectDir, "AGENTS.md")
 	body := renderAgentsEntry(installRoot)
@@ -703,6 +833,9 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // canonical default). Returns true if the file was modified -- a heal with no
 // additions still counts as a modification.
 func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, ".gitignore"); err != nil {
+		return false, err
+	}
 	path := filepath.Join(projectDir, ".gitignore")
 	existing := ""
 	if data, err := os.ReadFile(path); err == nil {
@@ -936,6 +1069,9 @@ func insertDeftIncludeAfterIncludesLine(content string) (string, bool) {
 // that is correct regardless of what other top-level keys come after
 // `includes:`.
 func EnsureTaskfile(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, "Taskfile.yml"); err != nil {
+		return false, err
+	}
 	path := filepath.Join(projectDir, "Taskfile.yml")
 	existing := ""
 	if data, err := os.ReadFile(path); err == nil {
@@ -1486,11 +1622,19 @@ const vbriefLifecycleGitkeepBody = `# This file keeps the lifecycle directory pr
 // later) are preserved. When a lifecycle directory already contains files
 // (e.g. the operator has filed scope vBRIEFs there) the `.gitkeep` is skipped
 // because the directory is no longer empty.
-func ensureVbriefLifecycleDirs(consumerVbrief string) error {
+func ensureVbriefLifecycleDirs(projectDir, consumerVbrief string) error {
 	for _, sub := range vbriefLifecycleDirs {
+		dirRel := filepath.ToSlash(filepath.Join("vbrief", sub))
+		if err := assertConsumerProjectionContained(projectDir, dirRel); err != nil {
+			return err
+		}
 		dir := filepath.Join(consumerVbrief, sub)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("could not create vbrief/%s/: %w", sub, err)
+		}
+		gitkeepRel := filepath.ToSlash(filepath.Join("vbrief", sub, ".gitkeep"))
+		if err := assertConsumerProjectionContained(projectDir, gitkeepRel); err != nil {
+			return err
 		}
 		gitkeep := filepath.Join(dir, ".gitkeep")
 		if _, err := os.Stat(gitkeep); err == nil {
@@ -1552,6 +1696,9 @@ func vbriefLifecycleDirsPresent(consumerVbrief string) bool {
 // lifecycle dirs at install time keeps the guard quiet and the install
 // greenfield-ready.
 func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, "vbrief"); err != nil {
+		return false, err
+	}
 	consumerVbrief := filepath.Join(projectDir, "vbrief")
 	schemasDst := filepath.Join(consumerVbrief, "schemas")
 	vbriefMDDst := filepath.Join(consumerVbrief, "vbrief.md")
@@ -1578,7 +1725,7 @@ func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 	if !schemasPresent {
 		fwSchemas := filepath.Join(deftDir, "vbrief", "schemas")
 		if info, err := os.Stat(fwSchemas); err == nil && info.IsDir() {
-			if err := copyDir(fwSchemas, schemasDst); err != nil {
+			if err := copyDir(fwSchemas, schemasDst, projectDir); err != nil {
 				return false, fmt.Errorf("could not seed vbrief/schemas/: %w", err)
 			}
 		} else {
@@ -1606,7 +1753,7 @@ func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 	// Materialise the canonical lifecycle directories (#1179). Done
 	// unconditionally on every call so a half-state install left behind by
 	// an older installer rail is repaired on the next re-run.
-	if err := ensureVbriefLifecycleDirs(consumerVbrief); err != nil {
+	if err := ensureVbriefLifecycleDirs(projectDir, consumerVbrief); err != nil {
 		return false, err
 	}
 
@@ -1617,13 +1764,22 @@ func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 // copyDir recursively copies src into dst. Intermediate directories are
 // created with mode 0o755; files keep their source bytes. Used by
 // WriteConsumerVbrief to seed schemas from the framework deposit.
-func copyDir(src, dst string) error {
+func copyDir(src, dst, projectDir string) error {
+	if err := assertConsumerProjectionPath(projectDir, dst); err != nil {
+		return err
+	}
 	return filepathWalk(src, func(srcPath string, isDir bool) error {
 		rel, err := filepath.Rel(src, srcPath)
 		if err != nil {
 			return err
 		}
 		dstPath := filepath.Join(dst, rel)
+		if err := assertConsumerProjectionPath(projectDir, dstPath); err != nil {
+			return err
+		}
+		if err := assertDestinationNotSymlink(dstPath); err != nil {
+			return err
+		}
 		if isDir {
 			return os.MkdirAll(dstPath, 0o755)
 		}
@@ -1711,6 +1867,9 @@ func copyStream(in io.Reader, out io.WriteCloser) (err error) {
 // Idempotent — skips only when all skill files are present.
 // Returns true if files were created, false if skipped.
 func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, ".agents"); err != nil {
+		return false, err
+	}
 	// All skills that the installer creates thin pointers for.
 	allSkillNames := []string{
 		"deft", "deft-directive-setup", "deft-directive-build",
@@ -1751,6 +1910,10 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 	}
 
 	for _, skill := range skills {
+		skillRel := filepath.ToSlash(filepath.Join(".agents", "skills", skill.dir, "SKILL.md"))
+		if err := assertConsumerProjectionContained(projectDir, skillRel); err != nil {
+			return false, err
+		}
 		dir := filepath.Join(projectDir, ".agents", "skills", skill.dir)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return false, fmt.Errorf("could not create %s: %w", dir, err)
