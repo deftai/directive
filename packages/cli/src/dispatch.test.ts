@@ -20,6 +20,7 @@ import {
   INSTALL_PS1_URL,
   INSTALL_SH_URL,
   installVerifiedGhxAsset,
+  POLICY_ACTION_ALIAS_SUBCOMMANDS,
   parseDirectiveBootstrapArgs,
   printHelp,
   registeredVerbs,
@@ -408,6 +409,45 @@ describe("dispatch", () => {
       "--repo",
       "deftai/directive",
     ]);
+  });
+
+  it("registers all policy colon aliases (#2367)", () => {
+    for (const alias of Object.keys(POLICY_ACTION_ALIAS_SUBCOMMANDS)) {
+      expect(resolveCanonicalVerb(alias)).toBe("policy");
+    }
+    expect(resolveCanonicalVerb("policy:show")).toBe("policy");
+    expect(resolveCanonicalVerb("policy:enable-value-feedback")).toBe("policy");
+  });
+
+  it("injects policy subcommand for colon aliases (#2367)", async () => {
+    const run = vi.fn(() => 0);
+    vi.doMock("./policy.js", () => ({ run }));
+    resetHandlerCacheForTests();
+
+    await dispatch(["policy:show", "--field", "wipCap", "--project-root", "."], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(run).toHaveBeenCalledWith(["show", "--field", "wipCap", "--project-root", "."]);
+
+    resetHandlerCacheForTests();
+    vi.doMock("./policy.js", () => ({ run }));
+
+    await dispatch(["policy:enable-value-feedback", "--project-root", "."], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(run).toHaveBeenCalledWith(["enable-value-feedback", "--project-root", "."]);
+  });
+
+  it("routes policy:show through routeAndDispatch (#2367)", async () => {
+    const err: string[] = [];
+    const result = await routeAndDispatch(["policy:show"], {
+      writeOut: () => {},
+      writeErr: (text) => err.push(text),
+    });
+    expect(result).toBe(0);
+    expect(err.join("")).not.toContain("unknown verb");
   });
 });
 
@@ -1002,7 +1042,7 @@ describe("native policy-set handler (#2022)", () => {
     expect(result.code).toBe(0);
     expect(result.out).toBe(
       "\u2713 plan.policy.wipCap=5.\n" +
-        "  audit: meta/policy-changes.log :: actor=task policy:wip-cap wipCap=5 previous=None\n" +
+        "  audit: meta/policy-changes.log :: actor=deft policy set wip-cap wipCap=5 previous=None\n" +
         "[deft policy] plan.policy.wipCap=5 (source: typed).\n",
     );
     expect(readPolicyBlock().wipCap).toBe(5);
@@ -1032,7 +1072,9 @@ describe("native policy-set handler (#2022)", () => {
     const result = await runPolicy(["wip-cap", "--set", "5", "--project-root", root]);
     expect(result.code).toBe(1);
     expect(result.out).toContain("Capability-cost disclosure");
-    expect(result.out).toContain("Re-run with --confirm to apply: task policy:wip-cap -- --set 5");
+    expect(result.out).toContain(
+      "Re-run with --confirm to apply: deft policy set wip-cap -- --set 5",
+    );
     // No write happened.
     expect("wipCap" in readPolicyBlock()).toBe(false);
     expect(existsSync(auditLogPath())).toBe(false);
@@ -1068,7 +1110,7 @@ describe("native policy-set handler (#2022)", () => {
     expect(result.code).toBe(0);
     expect(result.out).toBe(
       "\u2713 plan.policy.swarmSubagentBackend=composer.\n" +
-        "  audit: meta/policy-changes.log :: actor=task policy:subagent-backend " +
+        "  audit: meta/policy-changes.log :: actor=deft policy set subagent-backend " +
         "swarmSubagentBackend=composer previous=None\n" +
         "[deft policy] plan.policy.swarmSubagentBackend='composer' (source: typed).\n",
     );

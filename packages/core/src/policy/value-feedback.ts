@@ -3,6 +3,7 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
+import { policyColonInvocation } from "./disclosure.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
 import { isTrustedOrgAutoEnable, type OrgAutoEnableOptions } from "./value-feedback-autoenable.js";
@@ -46,7 +47,9 @@ export const VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE =
   "  \u2022 A budgeted session one-liner may appear when concrete attributed value exists.\n" +
   "  \u2022 Upstream gap-escalation prompts stay OFF unless you explicitly enable " +
   "`upstreamPrompt` (GitHub attention + token cost).\n" +
-  "  \u2022 Inspect current state: `task policy:show --field=valueFeedback`.\n" +
+  "  \u2022 Inspect current state: `" +
+  policyColonInvocation("show", " --field=valueFeedback") +
+  "`.\n" +
   "  \u2022 Reversible: set `enabled: false` under the typed policy block in PROJECT-DEFINITION.\n" +
   "  \u2022 Changes are recorded to meta/policy-changes.log for auditability.";
 
@@ -301,7 +304,7 @@ export function enableValueFeedback(
       exitCode: 1,
       stdout:
         `${VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE}\n\n` +
-        "Re-run with --confirm to apply: task policy:enable-value-feedback -- --confirm\n",
+        `Re-run with --confirm to apply: ${policyColonInvocation("enable-value-feedback", " -- --confirm")}\n`,
       changed: false,
     };
   }
@@ -368,7 +371,7 @@ export function enableValueFeedback(
         atomicWriteProjectDefinition(path, data);
       }
 
-      const actor = options.actor ?? "task policy:enable-value-feedback";
+      const actor = options.actor ?? policyColonInvocation("enable-value-feedback");
       const note = options.note ?? "";
       const parts = [
         `actor=${actor}`,

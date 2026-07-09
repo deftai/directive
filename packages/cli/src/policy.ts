@@ -17,6 +17,7 @@ import {
   inspectAllPolicies,
   inspectOnePolicy,
   loadProjectDefinition,
+  policyColonInvocation,
   projectDefinitionPath,
   pythonListRepr,
   pythonStringRepr,
@@ -36,7 +37,9 @@ const CAPABILITY_COST_DISCLOSURE =
   "  \u2022 verify:branch will pass on the default branch.\n" +
   "  \u2022 The CI sanity check (head_ref != base_ref) is still independent and " +
   "will continue to flag master->master PRs.\n" +
-  "  \u2022 This change is reversible: run `task policy:enforce-branches` to " +
+  "  \u2022 This change is reversible: run `" +
+  policyColonInvocation("enforce-branches") +
+  "` to " +
   "re-enable the gate.\n" +
   "  \u2022 The change is recorded to meta/policy-changes.log for auditability.";
 
@@ -160,7 +163,7 @@ export function parseArgs(argv: string[]): SetArgs {
     return {
       cmd: "show",
       confirm: false,
-      actor: "task policy:show",
+      actor: policyColonInvocation("show"),
       note: "",
       projectRoot: show.projectRoot,
       format: show.format,
@@ -193,10 +196,10 @@ export function parseArgs(argv: string[]): SetArgs {
     let confirm = false;
     let actor =
       cmd === "enforce-branches"
-        ? "task policy:enforce-branches"
+        ? policyColonInvocation("enforce-branches")
         : cmd === "allow-direct-commits"
-          ? "task policy:allow-direct-commits"
-          : "task policy:enable-value-feedback";
+          ? policyColonInvocation("allow-direct-commits")
+          : policyColonInvocation("enable-value-feedback");
     let note = "";
     let projectRoot = ".";
     for (let i = 1; i < argv.length; i += 1) {
@@ -338,7 +341,7 @@ function runSet(args: SetArgs): number {
   if (args.cmd === "allow-direct-commits" && !args.confirm) {
     process.stdout.write(`${CAPABILITY_COST_DISCLOSURE}\n\n`);
     process.stdout.write(
-      "Re-run with --confirm to apply: task policy:allow-direct-commits -- --confirm\n",
+      `Re-run with --confirm to apply: ${policyColonInvocation("allow-direct-commits", " -- --confirm")}\n`,
     );
     return 1;
   }

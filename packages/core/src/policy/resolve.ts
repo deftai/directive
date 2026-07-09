@@ -5,6 +5,7 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
+import { policyColonInvocation } from "./disclosure.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 
 /** Filesystem-relative location of the project-definition xBRIEF (display/back-compat). */
@@ -179,8 +180,9 @@ export function resolvePolicy(projectRoot: string): PolicyResult {
       `DEPRECATED: PROJECT-DEFINITION uses the legacy narrative key ` +
       `'${LEGACY_NARRATIVE_KEY}' (${pythonRepr(raw)}). Migrate to typed ` +
       `plan.policy.allowDirectCommitsToMaster (#746). Run ` +
-      `\`task policy:enforce-branches\` or \`task policy:allow-direct-commits ` +
-      `-- --confirm\` to set the typed flag explicitly.`;
+      `\`${policyColonInvocation("enforce-branches")}\` or ` +
+      `\`${policyColonInvocation("allow-direct-commits", " -- --confirm")}\` ` +
+      `to set the typed flag explicitly.`;
     return {
       allowDirectCommits: allow,
       source: "legacy-narrative",

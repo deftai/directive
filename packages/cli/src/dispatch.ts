@@ -25,6 +25,8 @@ import {
   disclosureLine,
   migrateLegacyPolicyKey,
   PLAN_POLICY_KEY,
+  policyColonInvocation,
+  policySetInvocation,
   projectDefinitionPath,
   resolvePolicy,
   resolveWipCap,
@@ -214,6 +216,18 @@ const TRIAGE_ACTION_COLON_ALIASES = Object.fromEntries(
   Object.keys(TRIAGE_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "triage-actions"]),
 ) as Record<string, string>;
 
+/** Colon aliases for policy subcommands (mirrors cli-router SUBCOMMAND_ROUTES). */
+export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "policy:show": "show",
+  "policy:enforce-branches": "enforce-branches",
+  "policy:allow-direct-commits": "allow-direct-commits",
+  "policy:enable-value-feedback": "enable-value-feedback",
+};
+
+const POLICY_ACTION_COLON_ALIASES = Object.fromEntries(
+  Object.keys(POLICY_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "policy"]),
+) as Record<string, string>;
+
 /** Task-style aliases (framework_commands / Taskfile names). */
 export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:encoding": "verify-encoding",
@@ -257,6 +271,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:queue": "triage-queue",
   "triage:scope": "triage-scope",
   ...TRIAGE_ACTION_COLON_ALIASES,
+  ...POLICY_ACTION_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
   "migrate:preflight": "migrate-preflight",
   "migrate:xbrief": "migrate-xbrief",
@@ -2033,7 +2048,9 @@ const POLICY_CAPABILITY_COST_DISCLOSURE =
   "  \u2022 verify:branch will pass on the default branch.\n" +
   "  \u2022 The CI sanity check (head_ref != base_ref) is still independent and " +
   "will continue to flag master->master PRs.\n" +
-  "  \u2022 This change is reversible: run `task policy:enforce-branches` to " +
+  "  \u2022 This change is reversible: run `" +
+  policyColonInvocation("enforce-branches") +
+  "` to " +
   "re-enable the gate.\n" +
   "  \u2022 The change is recorded to meta/policy-changes.log for auditability.";
 
@@ -2112,15 +2129,15 @@ function sanitizeNote(note: string): string {
 function defaultPolicySetActor(cmd: PolicySetCmd): string {
   switch (cmd) {
     case "enforce-branches":
-      return "task policy:enforce-branches";
+      return policyColonInvocation("enforce-branches");
     case "allow-direct-commits":
-      return "task policy:allow-direct-commits";
+      return policyColonInvocation("allow-direct-commits");
     case "wip-cap":
-      return "task policy:wip-cap";
+      return policySetInvocation("wip-cap");
     case "subagent-backend":
-      return "task policy:subagent-backend";
+      return policySetInvocation("subagent-backend");
     case "subagent-backends":
-      return "task policy:subagent-backends";
+      return policySetInvocation("subagent-backends");
   }
 }
 
@@ -2361,7 +2378,7 @@ function applyBranchPolicy(args: PolicySetArgs, io: DispatchIo): number {
       io.writeOut(`${POLICY_CAPABILITY_COST_DISCLOSURE}\n`);
       io.writeOut("\n");
       io.writeOut(
-        "Re-run with --confirm to apply: task policy:allow-direct-commits -- --confirm\n",
+        `Re-run with --confirm to apply: ${policyColonInvocation("allow-direct-commits", " -- --confirm")}\n`,
       );
       return 1;
     }
@@ -2411,7 +2428,9 @@ function applyWipCap(args: PolicySetArgs, io: DispatchIo): number {
   if (!args.confirm) {
     io.writeOut(`${POLICY_WIP_CAP_DISCLOSURE}\n`);
     io.writeOut("\n");
-    io.writeOut(`Re-run with --confirm to apply: task policy:wip-cap -- --set ${cap} --confirm\n`);
+    io.writeOut(
+      `Re-run with --confirm to apply: ${policySetInvocation("wip-cap", ` -- --set ${cap} --confirm`)}\n`,
+    );
     return 1;
   }
   let res: { changed: boolean; auditEntry: string };
@@ -2771,12 +2790,15 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   try {
     const handler = await loadHandler(canonical, io);
     const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const handlerArgv =
       canonical === "framework-commands" && verb !== undefined && verb !== canonical
         ? [verb, ...rest]
         : triageSubcommand !== undefined && canonical === "triage-actions"
           ? [triageSubcommand, ...rest]
-          : rest;
+          : policySubcommand !== undefined && canonical === "policy"
+            ? [policySubcommand, ...rest]
+            : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
