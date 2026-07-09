@@ -28,12 +28,21 @@ tasks:
             process.exit(2);
           }
           const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));
+          // Cross-platform probe (#2415): do NOT use Unix `sh -c 'command -v'` —
+          // Windows native Task often has no `sh` on PATH, so Corepack.cmd was
+          // invisible after #2411. Prefer a direct spawn (POSIX / real binaries);
+          // fall back to shell:true so PATHEXT resolves .cmd/.exe on win32.
           const hasCmd=(name)=>{
             try{
-              execFileSync('sh',['-c','command -v '+name],{stdio:'ignore'});
+              execFileSync(name,['--version'],{stdio:'ignore'});
               return true;
             }catch{
-              return false;
+              try{
+                execFileSync(name,['--version'],{stdio:'ignore',shell:true});
+                return true;
+              }catch{
+                return false;
+              }
             }
           };
           const run=(cmd,args)=>{
@@ -100,12 +109,21 @@ tasks:
             const script='build';
             const pkgPath=root+'/package.json';
             const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));
+            // Cross-platform probe (#2415): do NOT use Unix `sh -c 'command -v'` —
+            // Windows native Task often has no `sh` on PATH, so Corepack.cmd was
+            // invisible after #2411. Prefer a direct spawn (POSIX / real binaries);
+            // fall back to shell:true so PATHEXT resolves .cmd/.exe on win32.
             const hasCmd=(name)=>{
               try{
-                execFileSync('sh',['-c','command -v '+name],{stdio:'ignore'});
+                execFileSync(name,['--version'],{stdio:'ignore'});
                 return true;
               }catch{
-                return false;
+                try{
+                  execFileSync(name,['--version'],{stdio:'ignore',shell:true});
+                  return true;
+                }catch{
+                  return false;
+                }
               }
             };
             const run=(cmd,args)=>{

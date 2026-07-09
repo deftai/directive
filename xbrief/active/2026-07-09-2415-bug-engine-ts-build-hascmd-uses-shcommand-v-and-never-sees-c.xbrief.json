@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2415"
+  },
+  "plan": {
+    "title": "bug: engine:_ts-build hasCmd uses sh/command -v and never sees Corepack on Windows native",
+    "status": "running",
+    "narratives": {
+      "Description": "engine:_ts-build and pm-run detect tools with sh -c 'command -v', which always fails on Windows native when sh is missing from PATH. Corepack.cmd is present but never selected, so builds fail-close claiming Corepack is missing. Replace hasCmd with a cross-platform probe that uses shell:true --version (resolves .cmd/.exe), preserve #2411 step order (pnpm → corepack@pin → corepack → fail), and keep #2181 no-auto-build on session verbs.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2415",
+      "Overview": "## Summary\n\n#2410 / PR #2411 added a Corepack-aware package-manager resolver for `engine:_ts-build`, but tool detection still shells out to Unix `sh -c 'command -v <name>'`. On **Windows native** (PowerShell / go-task), `sh` is often **not** on PATH, so `hasCmd('pnpm')`, `hasCmd('corepack')`, and even `hasCmd('node')` all return false. The resolver then fail-closes with \"neither pnpm nor corepack is available\" even when `corepack.cmd` is present and `corepack prepare pnpm@… --activate` works from PowerShell.\n\nThis leaves maintainer `task policy:show` / any `_ts-build`-gated verb broken on Windows after the #2410 fix, while `task session:start` (global fallback, #2409) already works.\n\n## Observed (Windows 11 native, directive master @ v0.73.1, 2026-07-09)\n\nEnvironment:\n- `node` v24.18.0, `npm` 11.16.0 present\n- `corepack` → `C:\\Program Files\\nodejs\\corepack.cmd` (0.35.0)\n- `pnpm` **MISSING** on PATH (even after `corepack prepare pnpm@11.8.0 --activate`)\n- `sh` **MISSING** on PATH\n- `bash` present via WindowsApps; Git present\n- Local `packages/cli/dist/bin.js` and `node_modules` absent (cold source tree)\n\nRepro:\n```\ntask policy:show\n```\n\nActual:\n```\ndeft: neither pnpm nor corepack is available to run \"build\".\n  Enable Corepack for the pinned manager: corepack enable && corepack prepare pnpm@11.8.0 --activate\n  Or set DEFT_PACKAGE_MANAGER=npm for an explicit npm build path.\ntask: Failed to run task \"policy:show\": … engine:_ts-build: exit status 127\n```\n\nMeanwhile from PowerShell:\n```\ncorepack --version          # 0.35.0\ncorepack prepare pnpm@11.8.0 --activate   # succeeds\n```\n\nNode mimic of the shipped `hasCmd`:\n```\npnpm false\ncorepack false\nnode false\nnpm false\n```\nbecause `execFileSync('sh', ['-c', 'command -v …'])` cannot start `sh`.\n\nContrast: `task session:start` exits 0 via global `deft` fallback (#2409/#2411). Global `deft policy:show` works after upgrading to `@deftai/directive@0.73.1` (#2367/#2412).\n\n## Root cause\n\nIn `tasks/engine.yml` (both `pm-run` and the inlined `_ts-build` resolver), detection is:\n\n```js\nconst hasCmd=(name)=>{\n  try{\n    execFileSync('sh',['-c','command -v '+name],{stdio:'ignore'});\n    return true;\n  }catch{\n    return false;\n  }\n};\n```\n\nThat assumes a POSIX `sh` with `command -v`. Windows Task/Git Bash environments often lack a bare `sh` on PATH, so the Corepack steps are never queued even though `corepack.cmd` exists.\n\n`trySteps` never runs Corepack; the function jumps straight to the exit-127 remediation that tells the operator to enable Corepack — which they already have.\n\n## Expected\n\n- Detect `corepack` / `pnpm` / `npm` on Windows without requiring Unix `sh`\n- Prefer PATH lookup that understands `.cmd` / `.exe` shims (e.g. `where`, `shell: true` with `corepack --version`, or Node's own resolution)\n- With Corepack present and `packageManager: pnpm@…` pinned, `_ts-build` should invoke Corepack (or succeed via `DEFT_PACKAGE_MANAGER=npm`) instead of falsely claiming Corepack is missing\n- Remediation text should only claim Corepack is missing when it actually is\n\n## Proposed approach\n\n1. Replace `sh`/`command -v` detection with a cross-platform probe (try `execFileSync(name, ['--version'], {shell: true})` or `where`/`where.exe` on win32).\n2. Keep the existing step order: bare `pnpm` → `corepack pnpm@<pin>` → `corepack pnpm` → actionable fail.\n3. Add a Windows-native contract/regression test that mocks `sh` absent + `corepack.cmd` present and asserts Corepack steps are selected.\n4. Optionally document that `corepack prepare` alone may not put `pnpm` on PATH on Windows — Corepack invoke remains the supported path.\n\n## Acceptance criteria\n\n- [ ] On Windows native without `sh` on PATH, with `corepack.cmd` present and no bare `pnpm`, `task build` / `engine:_ts-build` attempts Corepack instead of exit 127 \"neither pnpm nor corepack\"\n- [ ] `hasCmd('corepack')` (or equivalent) is true when `Get-Command corepack` would succeed in PowerShell\n- [ ] False-negative remediation (\"enable Corepack\") is not printed when Corepack is already available\n- [ ] Linux/macOS path still works (bare pnpm and Corepack)\n- [ ] Regression test covers Windows-shaped PATH (no `sh`, `.cmd` shim present)\n\n## Non-goals\n\n- Requiring a global `pnpm` install on Windows\n- Reverting #2410 Corepack resolution\n- Changing session/runtime global fallback (#2409)\n\n## Related\n\n- Refs #2410 (closed/incomplete on Windows native detection)\n- Refs #2411 (shipped Corepack resolver that introduced this probe)\n- Sibling verified fixed on same host: #2409 (`task session:start`), #2367 (`deft policy:show` after 0.73.1)\n- Adjacent Windows Taskfile path work: #2120 (closed)\n\n## Labels\n\n`bug`, `adoption-blocker`",
+      "Labels": "bug, adoption-blocker",
+      "UserStory": "As a Windows-native maintainer without Unix sh on PATH, I want engine:_ts-build to detect Corepack via .cmd shims, so that task build and policy verbs work when bare pnpm is absent.",
+      "Traces": "#2415, #2410, #2411, #2181"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "title": "Windows without sh still selects Corepack",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Windows native PATH with corepack.cmd present, no bare pnpm, and no sh, when engine:_ts-build / pm-run runs, then Corepack steps are queued instead of exit 127 claiming neither pnpm nor corepack."
+        }
+      },
+      {
+        "id": "AC2",
+        "title": "hasCmd true when PowerShell Get-Command would succeed",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given corepack is resolvable as a .cmd shim, when hasCmd('corepack') runs, then it returns true without requiring Unix sh."
+        }
+      },
+      {
+        "id": "AC3",
+        "title": "False remediation not printed when Corepack present",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Corepack is available, when the resolver runs, then it does not print the enable-Corepack remediation as if Corepack were missing."
+        }
+      },
+      {
+        "id": "AC4",
+        "title": "Linux/macOS and #2411/#2181 preserved",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Linux/macOS with bare pnpm or Corepack, when build runs, then the #2411 step order still applies; session/runtime verbs still do not auto-build (#2181)."
+        }
+      },
+      {
+        "id": "AC5",
+        "title": "Regression contract for Windows-shaped detection",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content-contract tests, when they run, then they assert hasCmd does not rely solely on sh/command -v and covers the cross-platform probe."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "engine",
+      "windows"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2415",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2415: bug: engine:_ts-build hasCmd uses sh/command -v and never sees Corepack on Windows native"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2410",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2410"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2411",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2411"
+      }
+    ],
+    "id": "2415-windows-hascmd-corepack",
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2415",
+        "related": "#2410, #2411, #2181"
+      }
+    },
+    "updated": "2026-07-09T18:27:26Z"
+  }
+}

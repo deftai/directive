@@ -126,6 +126,25 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/process\.versions\.node/);
   });
 
+  it("pm-run / _ts-build hasCmd is cross-platform (no Unix sh/command -v) (#2415)", () => {
+    const engine = readTask(ENGINE_FILE);
+    // Windows-native Task often has no `sh` on PATH; #2411's probe never saw Corepack.cmd.
+    expect(engine).not.toMatch(/execFileSync\('sh',\s*\['-c',\s*'command -v/);
+    // Direct --version first (POSIX); shell:true fallback resolves .cmd/.exe on win32.
+    expect(engine).toMatch(/execFileSync\(name,\s*\['--version'\],\s*\{stdio:'ignore'\}/);
+    expect(engine).toMatch(
+      /execFileSync\(name,\s*\['--version'\],\s*\{stdio:'ignore',shell:true\}/,
+    );
+    // #2411 step order preserved: bare pnpm → corepack@pin → corepack → fail.
+    const pmRun = engine.slice(engine.indexOf("pm-run:"), engine.indexOf("_ts-build:"));
+    const pnpmIdx = pmRun.indexOf("hasCmd('pnpm')");
+    const pinIdx = pmRun.indexOf("hasCmd('corepack')&&match");
+    const bareCorepackIdx = pmRun.lastIndexOf("hasCmd('corepack')");
+    expect(pnpmIdx).toBeGreaterThan(-1);
+    expect(pinIdx).toBeGreaterThan(pnpmIdx);
+    expect(bareCorepackIdx).toBeGreaterThan(pinIdx);
+  });
+
   it("_ts-build guard no-ops on stray packages/ without root build script (#2142)", () => {
     const engine = readTask(ENGINE_FILE);
     const scriptMatch = engine.match(

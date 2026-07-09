@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows-native `engine:_ts-build` now detects Corepack without Unix `sh`.** Package-manager probes use a cross-platform `shell:true` `--version` check so `corepack.cmd` is visible when bare `pnpm` and `sh` are absent from PATH, while preserving the #2411 Corepack step order and #2181 no-auto-build session path. Closes #2415. Refs #2410, #2411.
+
 ### Removed
 
 ## [0.73.1] - 2026-07-09
