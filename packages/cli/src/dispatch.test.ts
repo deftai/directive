@@ -18,12 +18,12 @@ import {
   GHX_INSTALL_SH_SHA256,
   GHX_VERSION,
   type GhxInstallerAsset,
+  helpVersionLabel,
   INSTALL_PS1_URL,
   INSTALL_SH_URL,
   installVerifiedGhxAsset,
   POLICY_ACTION_ALIAS_SUBCOMMANDS,
   parseDirectiveBootstrapArgs,
-  helpVersionLabel,
   preferredCommandNames,
   printCommandsList,
   printHelp,
@@ -125,13 +125,7 @@ describe("printHelp", () => {
   // guidance, printed BEFORE the exhaustive verb list.
   it("prints the three-command model and first-run guidance before the verb list (#2273)", () => {
     const body = renderHelp();
-    for (const line of [
-      "init",
-      "update",
-      "doctor",
-      "First run?",
-      "npm i -g @deftai/directive",
-    ]) {
+    for (const line of ["init", "update", "doctor", "First run?", "npm i -g @deftai/directive"]) {
       expect(body).toContain(line);
     }
     // Cold-start recovery pointer is payload-independent (points at README.md).
