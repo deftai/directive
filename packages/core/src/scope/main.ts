@@ -151,8 +151,11 @@ export function lifecycleMain(argv: string[]): number {
         const warning = renderOpenUmbrellaWarning(refs);
         if (warning.length > 0) {
           process.stderr.write(`${warning}\n`);
-          const [reconcileCode, outcome] = reconcileUmbrellas(rootForWarning);
-          if (reconcileCode !== 0 || outcome.changed.length > 0 || outcome.errors.length > 0) {
+          const [, outcome] = reconcileUmbrellas(rootForWarning);
+          // Only surface a report when reconcile actually changed something or
+          // recorded per-epic errors — skip vacuous setup failures (exit 2 with
+          // empty buckets) so a missing lifecycle root does not spam stderr.
+          if (outcome.changed.length > 0 || outcome.errors.length > 0) {
             process.stderr.write(`${renderUmbrellasReport(outcome)}\n`);
           }
         }

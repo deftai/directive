@@ -50,4 +50,23 @@ describe("ScmUmbrellaClient comment create (#2324)", () => {
       UmbrellaScmError,
     );
   });
+
+  it("throws when POST succeeds but readback GET fails", () => {
+    vi.spyOn(scm, "call")
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({ id: 9001 }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 1,
+        stdout: "",
+        stderr: "create readback fail",
+      });
+    expect(() => new ScmUmbrellaClient().createComment("deftai/cartograph", 18, "body")).toThrow(
+      UmbrellaScmError,
+    );
+  });
 });
