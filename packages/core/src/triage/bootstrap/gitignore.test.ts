@@ -167,6 +167,25 @@ describe("stepSeedCandidatesLog", () => {
   });
 });
 
+/** Directive-internal markers that must not ship in consumer README deposits (#2374). */
+const FORBIDDEN_CONSUMER_README_MARKERS = [
+  "candidates_log.py",
+  "scripts/",
+  "#1144",
+  "#1132",
+  "#845",
+  "#1121",
+  "#1180",
+  "#1308",
+  "#1464",
+  "#1119",
+  "#1183",
+  "D13",
+  "D1 /",
+  "Current Shape",
+  "decision_id",
+] as const;
+
 describe("generateTriageCacheReadmeBody", () => {
   it("substitutes xbrief/.triage-cache for the active migrated layout", () => {
     const root = makeRoot();
@@ -179,5 +198,32 @@ describe("generateTriageCacheReadmeBody", () => {
     const body = generateTriageCacheReadmeBody(root);
     expect(body).toContain("xbrief/.triage-cache/");
     expect(body).not.toContain("vbrief/.triage-cache/");
+  });
+
+  it("is consumer-safe: no directive-internal IDs or dead script pointers (#2374)", () => {
+    const root = makeRoot();
+    const body = generateTriageCacheReadmeBody(root);
+    for (const marker of FORBIDDEN_CONSUMER_README_MARKERS) {
+      expect(body).not.toContain(marker);
+    }
+    expect(body).toContain("slices.jsonl");
+    expect(body).toContain("deft triage:bootstrap");
+    expect(body).toContain("merge=union");
+  });
+});
+
+describe("stepEnsureGitignoreEvalEntries README deposit", () => {
+  it("writes a consumer-safe README on bootstrap (#2374)", () => {
+    const root = makeRoot();
+    stepEnsureGitignoreEntry(root);
+    const outcome = stepEnsureGitignoreEvalEntries(root);
+    expect(outcome.ok).toBe(true);
+    expect(outcome.details.readme_created).toBe(true);
+    const readme = readFileSync(join(root, "xbrief", ".triage-cache", "README.md"), "utf8");
+    for (const marker of FORBIDDEN_CONSUMER_README_MARKERS) {
+      expect(readme).not.toContain(marker);
+    }
+    expect(readme).toContain("slices.jsonl");
+    expect(readme).toContain("candidates.jsonl");
   });
 });
