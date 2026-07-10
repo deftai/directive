@@ -484,8 +484,18 @@ export function findOpenUmbrellaReferences(
       sources: [...ref.sources].sort(),
     }))
     .sort((a, b) => {
-      const aKey = a.issueNumber !== null ? `${a.repo ?? ""}#${a.issueNumber}` : (a.path ?? "");
-      const bKey = b.issueNumber !== null ? `${b.repo ?? ""}#${b.issueNumber}` : (b.path ?? "");
+      const aKey =
+        a.issueNumber !== null
+          ? a.repo === null
+            ? `bare:#${a.issueNumber}`
+            : `${a.repo}#${a.issueNumber}`
+          : (a.path ?? "");
+      const bKey =
+        b.issueNumber !== null
+          ? b.repo === null
+            ? `bare:#${b.issueNumber}`
+            : `${b.repo}#${b.issueNumber}`
+          : (b.path ?? "");
       return aKey.localeCompare(bKey);
     });
 }
