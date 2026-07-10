@@ -664,9 +664,7 @@ export function shouldPreserveCoreGuardCheckoutPin(
 ): boolean {
   if (existingUsesLine === desiredUsesLine) return false;
   const existingRef = checkoutActionRef(existingUsesLine);
-  if (!existingRef || !extractCoreGuardCheckoutUsesLine(`steps:\n${desiredUsesLine}\n`)) {
-    return false;
-  }
+  if (!existingRef) return false;
   // Stale framework-deposited floating major tag — migrate to SHA template (#1672).
   return existingRef !== "v4";
 }
@@ -690,7 +688,7 @@ export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string)
   if (!desiredCheckout || !shouldPreserveCoreGuardCheckoutPin(existingCheckout, desiredCheckout)) {
     return desired;
   }
-  return desired.replace(CHECKOUT_USES_LINE_RE, existingCheckout);
+  return desired.replace(CHECKOUT_USES_LINE_RE, () => existingCheckout);
 }
 
 function coreGuardWorkflowContent(): string {

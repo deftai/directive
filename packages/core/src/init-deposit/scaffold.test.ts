@@ -15,8 +15,6 @@ import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import {
   buildInstallManifestText,
   CANONICAL_TASKFILE_INCLUDE,
-  CORE_GUARD_CHECKOUT_SHA,
-  CORE_GUARD_CHECKOUT_TAG,
   coreGuardCheckoutUsesLine,
   depositNeutralization,
   ensureCodeqlPathsIgnore,
@@ -174,9 +172,7 @@ describe("init-deposit scaffold", () => {
       "paths-ignore",
     );
     const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
-    expect(guard).toContain(`actions/checkout@${CORE_GUARD_CHECKOUT_SHA}`);
-    expect(guard).toContain(`# ${CORE_GUARD_CHECKOUT_TAG}`);
-    expect(guard).not.toContain("actions/checkout@v4");
+    expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(coreGuardCheckoutUsesLine());
   });
 
   it("skips AGENTS.md rewrite when the managed section is already current", () => {
