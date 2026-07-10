@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Deposited triage-cache README is now consumer-facing.** Bootstrap and migration no longer write directive-internal decision IDs or dead `scripts/candidates_log.py` pointers into `<lifecycle-root>/.triage-cache/README.md`; the file explains tracked vs gitignored cache files in plain project terms. Closes #2374.
+
 - **Merge-readiness no longer clears stale Greptile P0/P1 blockers when GitHub reports clean.** Stale verdicts that carried real P0/P1, errored, or low-confidence findings now stay hard blocks instead of being softened by the GitHub mergeability override, and Dependabot PRs with Greptile excluded-author skip comments are treated as pass rather than parse failures. Closes #2382. Closes #2375.
 - **Go installer consumer projections now refuse repo-controlled symlinks.** `deft-install` checks AGENTS.md, vbrief/, `.agents/`, `.githooks/`, and related projection targets with Lstat/containment before writing, so a malicious checkout cannot trick install or upgrade into overwriting files outside the project tree. Closes #2383.
 
