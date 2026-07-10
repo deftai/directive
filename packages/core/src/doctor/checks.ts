@@ -528,14 +528,6 @@ function gitignoreLineIsCovered(present: ReadonlySet<string>, line: string): boo
   return present.has(line);
 }
 
-/**
- * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
- * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
- * a broken install.
- *
- * Skips when `.gitignore` is absent (greenfield project that has not yet run
- * `directive init` or `directive update`).
- */
 /** Relative path to the deposited v0.6 schema file superseded by xbrief-core-0.8.schema.json. */
 export const STALE_VBRIEF_CORE_SCHEMA_REL = join(
   MIGRATED_ARTIFACT_DIR,
@@ -614,6 +606,14 @@ export function checkStaleXbriefSchemaDeposit(
   };
 }
 
+/**
+ * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
+ * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
+ * a broken install.
+ *
+ * Skips when `.gitignore` is absent (greenfield project that has not yet run
+ * `directive init` or `directive update`).
+ */
 export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = {}): CheckResult {
   const gitignorePath = join(projectRoot, ".gitignore");
   const text = readText(gitignorePath, seams);
