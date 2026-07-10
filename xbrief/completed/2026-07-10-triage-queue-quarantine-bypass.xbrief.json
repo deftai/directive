@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fail closed when triage:queue would render scanner-quarantined GitHub issue titles"
+  },
+  "plan": {
+    "title": "fix(triage): omit/sanitize quarantined cache titles in triage:queue",
+    "status": "completed",
+    "narratives": {
+      "Description": "triage:queue reads raw.json titles without consulting cache scan_result, so hard-fail quarantined issues and injection-shaped titles still reach the mandatory agent work-selection surface.",
+      "Origin": "Scheduled application-security review finding (2026-07-10).",
+      "UserStory": "As an operator or agent consulting task triage:queue, I want quarantined cache entries omitted or title-redacted so attacker-controlled issue titles cannot bypass the cache scanner into mandatory agent context.",
+      "ImplementationPlan": "1. In loadCachedIssues, read meta.json scan_result and omit entries where passed is false. 2. Sanitize each candidate title through the cache scanner before enqueue: hard-fail omits the issue; injection-heading / shell-vector fence-and-pass replaces the title with a neutral placeholder. 3. Add unit tests for hard-fail omission and injection title redaction. 4. CHANGELOG [Unreleased] Fixed entry. 5. task check / vitest for the touched suite.",
+      "Traces": "security-review-2026-07-10, #883",
+      "Overview": "cachePut always persists raw.json and only suppresses content.md on scanner hard-fail. loadCachedIssues currently copies payload.title from raw.json and renderQueue prints it. AGENTS.md requires agents to consult triage:queue, making this a mandatory context path.",
+      "GuardRails": "Do not weaken live-open reconcile (#2238). Prefer reusing packages/core/src/cache/scanner.ts rather than a parallel title filter. Keep queue ranking/output shape for clean titles unchanged."
+    },
+    "items": [
+      {
+        "title": "loadCachedIssues omits entries whose meta.json scan_result.passed is false.",
+        "status": "completed"
+      },
+      {
+        "title": "Queue titles are scanner-sanitized; hard-fail omits, injection fence-and-pass redacts to a placeholder.",
+        "status": "completed"
+      },
+      {
+        "title": "Regression tests cover hard-fail omission and injection title redaction.",
+        "status": "completed"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] Fixed entry documents the user-visible quarantine fix.",
+        "status": "completed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "packages/core/src/triage/queue/cache.ts",
+        "type": "x-xbrief/other",
+        "title": "Primary location: triage queue cache loader"
+      },
+      {
+        "uri": "packages/core/src/cache/scanner.ts",
+        "type": "x-xbrief/other",
+        "title": "Cache quarantine scanner"
+      },
+      {
+        "uri": "https://deft-mxt7615.slack.com/archives/C0AK5LAH5FF/p1783681985721849",
+        "type": "x-xbrief/other",
+        "title": "Security finding Slack report"
+      }
+    ],
+    "updated": "2026-07-10T13:50:39Z",
+    "metadata": {
+      "capacityBucket": "security",
+      "completedAt": "2026-07-10T13:50:39Z"
+    }
+  }
+}

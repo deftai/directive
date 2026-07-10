@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { scan } from "../../cache/scanner.js";
 import { resolveTriageCachePath } from "../cache-path.js";
 import { extractAuthor, extractMilestone } from "../scope-drift/cache-walker.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "./constants.js";
@@ -10,6 +11,55 @@ import {
 } from "./scope-ignores-filter.js";
 import { blockedByIssueNumber, rankByIssueNumber } from "./scope-walk.js";
 import type { CachedIssue } from "./types.js";
+
+/** Neutral title shown when the scanner fences injection-shaped title text. */
+export const QUARANTINED_TITLE_PLACEHOLDER = "[quarantined title]";
+
+/**
+ * Read `meta.json` `scan_result.passed` for a cache entry.
+ * Returns `false` when the scanner hard-failed, `true` when it passed, and
+ * `null` when meta is missing/unreadable (legacy or incomplete entries).
+ */
+export function readCacheScanPassed(entryDir: string): boolean | null {
+  const metaPath = join(entryDir, "meta.json");
+  if (!existsSync(metaPath)) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(metaPath, { encoding: "utf8" }));
+    if (typeof parsed !== "object" || parsed === null) {
+      return null;
+    }
+    const scanResult = (parsed as Record<string, unknown>).scan_result;
+    if (typeof scanResult !== "object" || scanResult === null) {
+      return null;
+    }
+    const passed = (scanResult as Record<string, unknown>).passed;
+    return typeof passed === "boolean" ? passed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sanitize a queue title through the cache scanner.
+ * Returns `null` when the title hard-fails (omit the issue); otherwise a
+ * display title that never carries unfenced injection-shaped attacker text.
+ */
+export function sanitizeQueueTitle(rawTitle: string): string | null {
+  const result = scan(rawTitle);
+  if (!result.passed) {
+    return null;
+  }
+  if (result.flags.some((flag) => flag.category === "injection-heading")) {
+    return QUARANTINED_TITLE_PLACEHOLDER;
+  }
+  if (result.flags.some((flag) => flag.category === "invisible-unicode")) {
+    const stripped = result.transformed_content.replace(/\r?\n+$/u, "");
+    return stripped.length > 0 ? stripped : rawTitle;
+  }
+  return rawTitle;
+}
 
 function cachedState(issue: { readonly state?: string } | undefined): string {
   if (issue === undefined) {
@@ -186,9 +236,23 @@ export function loadCachedIssues(
       continue;
     }
 
+    // Fail closed on scanner hard-fail: cachePut keeps raw.json but suppresses
+    // content.md when scan_result.passed is false. The queue must not promote
+    // those titles into the mandatory triage:queue agent context.
+    const scanPassed = readCacheScanPassed(entryDir);
+    if (scanPassed === false) {
+      continue;
+    }
+
+    const rawTitle = typeof payload.title === "string" ? payload.title : "";
+    const safeTitle = sanitizeQueueTitle(rawTitle);
+    if (safeTitle === null) {
+      continue;
+    }
+
     issues.push({
       number: n,
-      title: typeof payload.title === "string" ? payload.title : "",
+      title: safeTitle,
       state,
       labels: parseLabels(payload.labels),
       author: extractAuthor(payload),
