@@ -1,12 +1,4 @@
 import { join } from "node:path";
-import {
-  LEGACY_INFO_ROOT_KEY,
-  MIGRATED_ARTIFACT_DIR,
-} from "../xbrief-migrate/constants.js";
-import {
-  detectXbriefConvergence,
-  type XbriefConvergenceState,
-} from "../xbrief-migrate/detect.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import {
   detectLegacyLayout,
@@ -22,6 +14,8 @@ import {
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
 import { stripGitignoreInlineComment } from "../triage/bootstrap/gitignore.js";
+import { LEGACY_INFO_ROOT_KEY, MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
+import { detectXbriefConvergence, type XbriefConvergenceState } from "../xbrief-migrate/detect.js";
 import {
   CANONICAL_UPGRADE_COMMAND,
   GO_BRIDGE_RELEASES_URL,
@@ -570,7 +564,8 @@ export function checkStaleXbriefSchemaDeposit(
     return {
       name: checkName,
       status: "skip",
-      detail: "Project is not on a fully migrated xbrief/ layout; stale schema deposit check does not apply.",
+      detail:
+        "Project is not on a fully migrated xbrief/ layout; stale schema deposit check does not apply.",
       data: { convergence_state: convergence.state },
     };
   }
