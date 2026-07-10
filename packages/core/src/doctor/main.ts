@@ -451,7 +451,8 @@ function runInstallIntegrityChecks(
         (name === "legacy-layout" ||
           name === "canonical-vendored-npm-signpost" ||
           name === "manifest-version-reportable" ||
-          name === "gitignore-coverage") &&
+          name === "gitignore-coverage" ||
+          name === "stale-xbrief-schema-deposit") &&
         status === "fail"
       ) {
         sink.warn(`${name}: ${detail}`);

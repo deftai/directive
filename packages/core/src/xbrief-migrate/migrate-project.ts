@@ -289,6 +289,16 @@ export function runXbriefMigration(
   }
 
   if (!isDirectory(legacyDir)) {
+    // Already on canonical xbrief/ with no vbrief/ tree — residual markers (e.g. a
+    // stale deposited v0.6 schema under xbrief/schemas/) are refreshed by update,
+    // not migrate:xbrief (#2368).
+    if (convergence.xbriefHasContent && !convergence.vbriefPresent) {
+      return {
+        kind: "noop",
+        message:
+          "Project is already on the xbrief layout — residual legacy markers (e.g. a stale deposited schema) cannot be cleared by migrate:xbrief when no vbrief/ tree remains. Run `directive update` to refresh deposited schema files.",
+      };
+    }
     return {
       kind: "config",
       message: `Legacy markers detected but '${LEGACY_ARTIFACT_DIR}/' directory is missing.`,

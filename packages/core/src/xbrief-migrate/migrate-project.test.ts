@@ -506,6 +506,25 @@ describe("runXbriefMigration convergence (#2270)", () => {
     const rerun = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
     expect(rerun.kind).toBe("converged");
   });
+
+  it("returns a noop (not exit 2) when only a stale deposited schema remains (#2368)", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-stale-schema-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "schemas"), { recursive: true });
+    writeFileSync(
+      join(project, MIGRATED_ARTIFACT_DIR, "schemas", "vbrief-core.schema.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6", description: "stale deposit" } }),
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    expect(outcome.kind).toBe("noop");
+    if (outcome.kind === "noop") {
+      expect(outcome.message).toContain("directive update");
+      expect(outcome.message).not.toContain("Legacy markers detected");
+    }
+  });
 });
 
 describe("convergeLegacyVbriefRoot (#2270)", () => {

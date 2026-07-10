@@ -10,10 +10,12 @@ import {
   checkManifestVersionReportable,
   checkQuickStartResolves,
   checkSkillPathsResolve,
+  checkStaleXbriefSchemaDeposit,
   deriveExitCode,
   runChecks,
   runChecksImpl,
 } from "./checks.js";
+import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 
 describe("checks", () => {
   it("derives exit codes", () => {
@@ -344,5 +346,88 @@ describe("checkGitignoreCoverage (#2206)", () => {
     const fail = checkGitignoreCoverage("/proj", seamsFor("node_modules/\n"));
     expect(fail.status).toBe("fail");
     expect(deriveExitCode([fail], [])).toBe(0);
+  });
+});
+
+describe("checkStaleXbriefSchemaDeposit (#2368)", () => {
+  const LIFECYCLE = ["proposed", "pending", "active", "completed", "cancelled"] as const;
+
+  function scaffoldMigratedXbrief(root: string): void {
+    for (const folder of LIFECYCLE) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "fixture" },
+        plan: { title: "Migrated", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+  }
+
+  it("skips when the project is not on a migrated xbrief layout", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-schema-"));
+    try {
+      const result = checkStaleXbriefSchemaDeposit(root, { isFile: () => false });
+      expect(result.status).toBe("skip");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes when the deposited schema is already on xBRIEFInfo", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-schema-"));
+    try {
+      scaffoldMigratedXbrief(root);
+      mkdirSync(join(root, "xbrief", "schemas"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "schemas", "vbrief-core.schema.json"),
+        JSON.stringify({ xBRIEFInfo: { version: "0.8" } }),
+        "utf8",
+      );
+      const result = checkStaleXbriefSchemaDeposit(root);
+      expect(result.status).toBe("pass");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("advises directive update (not migrate:xbrief) for a stale deposited schema", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-schema-"));
+    try {
+      scaffoldMigratedXbrief(root);
+      mkdirSync(join(root, "xbrief", "schemas"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "schemas", "vbrief-core.schema.json"),
+        JSON.stringify({ vBRIEFInfo: { version: "0.6", description: "stale deposit" } }),
+        "utf8",
+      );
+      const result = checkStaleXbriefSchemaDeposit(root);
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("directive update");
+      expect(result.detail).toContain("not `deft migrate:xbrief`");
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not recommend migrate:xbrief on the doctor signpost line for stale schema only", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-schema-"));
+    try {
+      scaffoldMigratedXbrief(root);
+      mkdirSync(join(root, "xbrief", "schemas"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "schemas", "vbrief-core.schema.json"),
+        JSON.stringify({ vBRIEFInfo: { version: "0.6" } }),
+        "utf8",
+      );
+      const line = renderXbriefMigrationLine(root);
+      expect(line).toContain("xBrief migration: none");
+      expect(line).not.toContain("migrate:xbrief");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -145,4 +145,29 @@ describe("renderXbriefMigrationLine", () => {
     expect(line).toContain("both vbrief/ and xbrief/ found");
     expect(line).toContain("migrate:xbrief");
   });
+
+  it("reports none (not migrate:xbrief) when only a stale deposited schema remains (#2368)", () => {
+    const root = mkdtempSync(join(tmpdir(), "xbrief-signpost-stale-schema-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "fixture" },
+        plan: { title: "Migrated", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", "schemas"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "schemas", "vbrief-core.schema.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6", description: "stale deposit" } }),
+      "utf8",
+    );
+
+    const line = renderXbriefMigrationLine(root);
+    expect(line).toContain("xBrief migration: none");
+    expect(line).not.toContain("migrate:xbrief");
+    expect(line).not.toContain("legacy vbrief layout detected");
+  });
 });
