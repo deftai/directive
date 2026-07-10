@@ -2726,34 +2726,148 @@ export function registeredVerbs(): readonly string[] {
   return [...names].sort();
 }
 
+/** Top-level UX commands routed before the flat dispatcher (#1670). */
+const TOP_LEVEL_COMMAND_NAMES = [
+  "init",
+  "update",
+  "migrate",
+  "bootstrap",
+  "doctor",
+  "check",
+] as const;
+
+/** Scope lifecycle verbs exposed as scope:<verb> in help (#2172). */
+const SCOPE_COMMAND_NAMES = [
+  "scope:promote",
+  "scope:activate",
+  "scope:complete",
+  "scope:demote",
+  "scope:undo",
+] as const;
+
 /**
- * Print dispatcher help. Leads with the three-command model (init / update /
- * doctor) + first-run guidance so a no-arg `directive` orients a newcomer before
- * the exhaustive verb list, which stays available below for power users (#2273).
+ * Deduplicated command names for `directive commands`, preferring colon-style
+ * task verbs over dash-style canonical stems when both exist (#2172).
+ */
+export function preferredCommandNames(): readonly string[] {
+  const colonPreferred = new Set<string>([
+    ...TOP_LEVEL_COMMAND_NAMES,
+    ...SCOPE_COMMAND_NAMES,
+    ...Object.keys(VERB_ALIASES).filter((key) => key.includes(":")),
+  ]);
+  const aliasedCanonicals = new Set(Object.values(VERB_ALIASES));
+  const unaliasedCanonicals = [...CLI_MODULE_VERBS, ...CORE_MODULE_VERBS].filter(
+    (verb) => !aliasedCanonicals.has(verb),
+  );
+  return [...new Set([...colonPreferred, ...unaliasedCanonicals])].sort();
+}
+
+/** Major.minor label for the curated help title (#2172). */
+export function helpVersionLabel(): string {
+  const version = engineInfo().version;
+  const match = /^(\d+\.\d+)/.exec(version);
+  return match ? `v${match[1]}` : `v${version}`;
+}
+
+interface HelpCommand {
+  name: string;
+  summary: string;
+}
+
+interface HelpGroup {
+  title: string;
+  commands: readonly HelpCommand[];
+}
+
+const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
+  {
+    title: "Getting started",
+    commands: [
+      { name: "init", summary: "Set up Directive in the current project (first-time setup)" },
+      { name: "update", summary: "Refresh an existing install and self-heal the engine" },
+      { name: "doctor", summary: "Diagnose the install and print the one next step" },
+    ],
+  },
+  {
+    title: "Session & ritual",
+    commands: [{ name: "session:start", summary: "Record session-start ritual state" }],
+  },
+  {
+    title: "Quality & gates",
+    commands: [{ name: "check", summary: "Run install and lifecycle quality gates" }],
+  },
+  {
+    title: "Work queue & triage",
+    commands: [
+      { name: "triage:welcome", summary: "Session orientation and triage one-liner" },
+      { name: "triage:queue", summary: "Ranked work queue for what to do next" },
+    ],
+  },
+  {
+    title: "Scope lifecycle",
+    commands: [{ name: "scope:promote", summary: "Promote a scope xBRIEF to pending" }],
+  },
+  {
+    title: "Project artifacts",
+    commands: [
+      { name: "project:render", summary: "Render PROJECT-DEFINITION projection" },
+      { name: "spec:render", summary: "Render specification projection" },
+    ],
+  },
+];
+
+function formatHelpCommand(command: HelpCommand): string {
+  const padding = " ".repeat(Math.max(1, 22 - command.name.length));
+  return `  ${command.name}${padding}${command.summary}\n`;
+}
+
+/**
+ * Print the exhaustive registered-command list for `directive commands` (#2172).
+ * Lists deduplicated preferred names (colon-style when available).
+ */
+export function printCommandsList(io: DispatchIo = defaultIo()): void {
+  io.writeOut("Registered commands:\n");
+  for (const name of preferredCommandNames()) {
+    io.writeOut(`  ${name}\n`);
+  }
+}
+
+/**
+ * Print curated top-level help: title/version, usage, common options, grouped
+ * common commands, and a pointer to `directive commands` for the full list
+ * (#2172). Preserves the init/update/doctor first-run guidance from #2273.
  */
 export function printHelp(io: DispatchIo = defaultIo()): void {
+  io.writeOut(`Directive ${helpVersionLabel()}\n`);
+  io.writeOut("AI development framework CLI for project lifecycle, scope, and quality gates.\n\n");
+
+  io.writeOut("Usage:\n");
+  io.writeOut("  directive <command> [options]\n");
+  io.writeOut("  directive help\n");
+  io.writeOut("  directive commands          List every registered command\n\n");
+
+  io.writeOut("Options:\n");
+  io.writeOut("  -h, --help                  Show this help\n");
+  io.writeOut("  -V, --version               Print version information\n\n");
+
+  for (const group of CURATED_HELP_GROUPS) {
+    io.writeOut(`${group.title}:\n`);
+    for (const command of group.commands) {
+      io.writeOut(formatHelpCommand(command));
+    }
+    io.writeOut("\n");
+  }
+
   io.writeOut(
-    "directive -- the Deft Directive CLI\n" +
-      "\n" +
-      "Start here (most projects only need these three):\n" +
-      "  directive init      Set up Directive in the current project (first-time setup)\n" +
-      "  directive update    Refresh an existing install and self-heal the engine\n" +
-      "  directive doctor    Diagnose the install and print the one next step\n" +
-      "\n" +
+    "Commands use colon style (e.g. triage:queue); dash-style aliases remain supported.\n" +
+      "Run `directive commands` for the full registered-command list.\n\n" +
       "First run? From the project root:\n" +
       "  1. npm i -g @deftai/directive   (Node >= 20)\n" +
       "     (pnpm: pnpm add -g @deftai/directive -- ensure PNPM_HOME is on PATH, run `pnpm setup` if needed)\n" +
       "  2. directive init\n" +
       "  3. directive doctor\n" +
-      "New clone where `directive` will not run? Read the Cold-start bootstrap block at the top of README.md.\n" +
-      "\n" +
-      "Usage: directive <verb> [args...]\n" +
-      "\n" +
-      "Registered verbs:\n",
+      "New clone where `directive` will not run? Read the Cold-start bootstrap block at the top of README.md.\n",
   );
-  for (const name of registeredVerbs()) {
-    io.writeOut(`  ${name}\n`);
-  }
 }
 
 async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<number> {
@@ -2781,6 +2895,11 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   }
 
   const [verb, ...rest] = argv;
+
+  if (verb === "commands") {
+    printCommandsList(io);
+    return 0;
+  }
   const canonical = resolveCanonicalVerb(verb ?? "");
   if (canonical === null) {
     io.writeErr(`directive: unknown verb '${verb}'\n`);

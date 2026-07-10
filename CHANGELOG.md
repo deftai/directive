@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Structured top-level `directive --help` for faster command discovery.** Running `directive` or `directive --help` now shows a curated page with version, usage, common options, and grouped everyday commands instead of dumping every registered verb; run `directive commands` for the full list. Closes #2172.
+
 ### Fixed
 
 - **Merge-readiness no longer clears stale Greptile P0/P1 blockers when GitHub reports clean.** Stale verdicts that carried real P0/P1, errored, or low-confidence findings now stay hard blocks instead of being softened by the GitHub mergeability override, and Dependabot PRs with Greptile excluded-author skip comments are treated as pass rather than parse failures. Closes #2382. Closes #2375.
