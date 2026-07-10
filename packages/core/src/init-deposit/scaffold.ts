@@ -636,6 +636,39 @@ function githubActionsExpr(expression: string): string {
   return ["$", "{{ ", expression, " }}"].join("");
 }
 
+/** Commit SHA for `actions/checkout` deposited in deft-core-guard.yml (#1672 / #1072). */
+export const CORE_GUARD_CHECKOUT_SHA = "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0";
+/** Tag comment paired with {@link CORE_GUARD_CHECKOUT_SHA}. */
+export const CORE_GUARD_CHECKOUT_TAG = "v7.0.0";
+
+const CHECKOUT_USES_LINE_RE = /^\s+-\s+uses:\s+actions\/checkout@\S+(?:\s+#\s*.+)?\s*$/m;
+
+/** Extract the `uses: actions/checkout@…` step line from a guard workflow, if present. */
+export function extractCoreGuardCheckoutUsesLine(content: string): string | null {
+  const match = content.match(CHECKOUT_USES_LINE_RE);
+  return match ? match[0] : null;
+}
+
+/** Canonical SHA-pinned checkout step for the deposited deft-core-guard workflow. */
+export function coreGuardCheckoutUsesLine(
+  sha: string = CORE_GUARD_CHECKOUT_SHA,
+  tag: string = CORE_GUARD_CHECKOUT_TAG,
+): string {
+  return `      - uses: actions/checkout@${sha} # ${tag}`;
+}
+
+/**
+ * On refresh, preserve an existing consumer `actions/checkout@…` pin while updating
+ * the managed guard script / allowlist body (#1672 option 1).
+ */
+export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string): string {
+  const existingCheckout = extractCoreGuardCheckoutUsesLine(existing);
+  if (!existingCheckout) return desired;
+  const desiredCheckout = extractCoreGuardCheckoutUsesLine(desired);
+  if (!desiredCheckout || existingCheckout === desiredCheckout) return desired;
+  return desired.replace(CHECKOUT_USES_LINE_RE, existingCheckout);
+}
+
 function coreGuardWorkflowContent(): string {
   const baseSha = githubActionsExpr("github.event.pull_request.base.sha");
   const headSha = githubActionsExpr("github.event.pull_request.head.sha");
@@ -654,7 +687,7 @@ function coreGuardWorkflowContent(): string {
     "  no-mixed-core-and-app:\n" +
     "    runs-on: ubuntu-latest\n" +
     "    steps:\n" +
-    "      - uses: actions/checkout@v4\n" +
+    `${coreGuardCheckoutUsesLine()}\n` +
     "        with:\n" +
     "          fetch-depth: 0\n" +
     "      - name: Refuse PRs that mix .deft/core/** with non-framework paths\n" +
@@ -822,15 +855,16 @@ export function ensureCoreGuardWorkflow(projectDir: string, io: InitDepositIo): 
   const desired = coreGuardWorkflowContent();
   if (existsSync(path)) {
     const existing = readFileSync(path, "utf8");
-    if (existing === desired) {
-      io.printf(`${CORE_GUARD_WORKFLOW_REL} already current — skipping.\n`);
-      return false;
-    }
     if (!existing.includes("name: deft-core-guard")) {
       io.printf(`${CORE_GUARD_WORKFLOW_REL} present but not deft-managed — leaving unchanged.\n`);
       return false;
     }
-    writeFileSync(path, desired, "utf8");
+    const refreshed = mergeCoreGuardWorkflowRefresh(existing, desired);
+    if (existing === refreshed) {
+      io.printf(`${CORE_GUARD_WORKFLOW_REL} already current — skipping.\n`);
+      return false;
+    }
+    writeFileSync(path, refreshed, "utf8");
     io.printf(`${CORE_GUARD_WORKFLOW_REL} refreshed: deft-core-guard allowlist updated (#1478).\n`);
     return true;
   }
