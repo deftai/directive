@@ -432,18 +432,18 @@ describe("init-deposit scaffold", () => {
 
     it("shouldPreserveCoreGuardCheckoutPin rejects legacy @v4 but accepts consumer bumps", () => {
       const desired = coreGuardCheckoutUsesLine();
-      expect(
-        shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v4", desired),
-      ).toBe(false);
+      expect(shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v4", desired)).toBe(
+        false,
+      );
       expect(
         shouldPreserveCoreGuardCheckoutPin(
           "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
           desired,
         ),
       ).toBe(true);
-      expect(
-        shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v6", desired),
-      ).toBe(true);
+      expect(shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v6", desired)).toBe(
+        true,
+      );
     });
   });
 

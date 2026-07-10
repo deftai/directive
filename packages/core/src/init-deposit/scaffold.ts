@@ -687,10 +687,7 @@ export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string)
   const existingCheckout = extractCoreGuardCheckoutUsesLine(existing);
   if (!existingCheckout) return desired;
   const desiredCheckout = extractCoreGuardCheckoutUsesLine(desired);
-  if (
-    !desiredCheckout ||
-    !shouldPreserveCoreGuardCheckoutPin(existingCheckout, desiredCheckout)
-  ) {
+  if (!desiredCheckout || !shouldPreserveCoreGuardCheckoutPin(existingCheckout, desiredCheckout)) {
     return desired;
   }
   return desired.replace(CHECKOUT_USES_LINE_RE, existingCheckout);
