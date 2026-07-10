@@ -24,6 +24,22 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - User asks to create USER.md, PROJECT-DEFINITION.xbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
 
+## Consumer-first default (#1813)
+
+! Assume the operator is **using Deft in their project** (consumer path). Proceed directly to the Pre-Cutover Detection Guard and Phase 1 — do NOT open with a contributor-vs-consumer fork.
+
+~ The overwhelming majority of setup sessions are consumer installs; contributor onboarding is a separate, opt-in path (see below).
+
+## Contributor / framework-maintainer path (secondary)
+
+? Only enter this branch when the user **explicitly** says they are working on Deft itself (framework source checkout, `deftai/directive` clone, or maintainer tooling).
+
+When that happens:
+
+1. ! Tell the user: "Contributor setup lives in [`CONTRIBUTING.md`](../../../CONTRIBUTING.md) and this repo's root [`AGENTS.md`](../../../AGENTS.md). Use the maintainer installer: `deft-install --yes --upgrade --maintainer --repo-root . --json`."
+2. ⊗ Continue the consumer USER.md / PROJECT-DEFINITION interview — the maintainer path does not use the first-session consumer flow.
+3. **Stop here** unless the user explicitly asks to continue with consumer setup anyway.
+
 ## Pre-Cutover Detection Guard
 
 ! Before proceeding with any setup phase, detect whether the project uses the pre-v0.20 document model and redirect to migration if so.

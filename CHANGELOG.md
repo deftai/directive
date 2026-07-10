@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Onboarding no longer gates every user on a contributor question.** `QUICK-START.md` and the setup skill now default straight into the consumer project flow; framework contributors are routed via a non-blocking `CONTRIBUTING.md` / `--maintainer` pointer instead of an up-front fork. Closes #1813.
 - **Structured top-level `directive --help` for faster command discovery.** Running `directive` or `directive --help` now shows a curated page with version, usage, common options, and grouped everyday commands instead of dumping every registered verb; run `directive commands` for the full list. Closes #2172.
 
 ### Fixed

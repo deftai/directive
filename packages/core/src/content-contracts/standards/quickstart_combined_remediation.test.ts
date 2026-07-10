@@ -60,12 +60,12 @@ describe("test_quickstart_combined_remediation.py", () => {
   });
   it("test_joint_check_gate_present_in_detection", () => {
     const text = readText("QUICK-START.md");
-    const step3Idx = text.indexOf("## Step 3");
-    expect(step3Idx).not.toBe(-1);
+    const step2Idx = text.indexOf("## Step 2");
+    expect(step2Idx).not.toBe(-1);
     const gateIdx = text.indexOf("Big-jump joint check");
     expect(gateIdx).not.toBe(-1);
-    expect(gateIdx).toBeLessThan(step3Idx);
-    const gateWindow = text.slice(gateIdx, step3Idx);
+    expect(gateIdx).toBeLessThan(step2Idx);
+    const gateWindow = text.slice(gateIdx, step2Idx);
     for (const token of ["Case G+H", "pre-cutover", "Case G", "Case H"]) {
       expect(gateWindow).toContain(token);
     }
