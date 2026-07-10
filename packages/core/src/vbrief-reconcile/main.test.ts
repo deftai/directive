@@ -354,11 +354,28 @@ describe("umbrellas SCM client", () => {
         returncode: 0,
         stdout: JSON.stringify({ id: 42 }),
         stderr: "",
+      })
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({ id: 42, body: "body" }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({ id: 1, body: "new" }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({ id: 1, body: "new" }),
+        stderr: "",
       });
     const client = new ScmUmbrellaClient();
     expect(client.fetchComments("deftai/directive", 1)).toEqual([]);
     expect(client.createComment("deftai/directive", 1, "body")).toBe(42);
-    vi.spyOn(scm, "call").mockReturnValue({ args: [], returncode: 0, stdout: "", stderr: "" });
     client.editComment("deftai/directive", 1, "new");
   });
 

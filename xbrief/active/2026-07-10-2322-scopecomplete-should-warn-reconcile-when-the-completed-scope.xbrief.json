@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2322"
+  },
+  "plan": {
+    "title": "scope:complete should warn + reconcile when the completed scope is referenced by an OPEN umbrella",
+    "status": "running",
+    "narratives": {
+      "Description": "scope:complete should warn + reconcile when the completed scope is referenced by an OPEN umbrella. This story closes the linked GitHub issue with a scoped fix, tests, and a CHANGELOG entry. File scope and verify commands are recorded under plan.metadata.swarm for concurrent allocation.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2322",
+      "Overview": "## Problem\n\nWhen `task scope:complete -- <path>` moves a scope xBRIEF `active/ -> completed/`, it fires no signal even when that scope is referenced by an **open umbrella / tracker issue**. The umbrella's `## Current shape` comment and body checklist keep showing the scope as in-flight, and nothing triggers a reconcile.\n\nThis is the uncovered angle between the two existing open items:\n- #370 (Epic tier RFC) covers the *epic <-> decomposed-child* relationship and auto-completion.\n- #1649 covers *umbrella current-shape / checkbox sync* for epics whose children are decomposed plan-refs.\n\nNeither covers a scope reaching `completed/` while an **open umbrella references it loosely** (working-set / meta tracker, or via `x-xbrief/github-issue` rather than `x-xbrief/plan`).\n\n## Concrete recurrence\n\nJust observed on PR #2320: `task scope:complete` on `2026-07-05-security-triage-deposit-ingest-umbrella-omnibus.xbrief.json` moved it to `completed/` while umbrella #1119 stayed OPEN (correctly -- it's a meta working-set tracker). But:\n- nothing warned that a still-open umbrella references the shipped scope, and\n- nothing offered / triggered `task vbrief:reconcile:umbrellas`.\n\nThis is the folder-vs-forge-state \"secondary smell\" from #1649, but at the **scope** (non-epic-child) level, so #1649's fix scope wouldn't catch it.\n\n## Proposed behavior\n\nOn `scope:complete`, after the folder move:\n\n1. **Detect** any open umbrella/tracker issue that references the completed scope -- via `plan.references[]` back-links, `planRef`, or a scan of open umbrellas whose current-shape/body lists the scope's issue number. Resolve BOTH `x-xbrief/plan` and `x-xbrief/github-issue` ref types (the #1649 Defect 2 blind spot).\n2. **Warn** (non-blocking) naming the umbrella(s), e.g. `scope completed but referenced by OPEN umbrella #1119 -- run task vbrief:reconcile:umbrellas`.\n3. Optionally **auto-trigger** `reconcile:umbrellas` for the affected umbrella(s) (gated behind a flag / consent), closing the loop #1649 Defect \"no automation trigger\" leaves open.\n\n## Scope / relationship\n\n- Depends conceptually on #1649 Defects 2 + 3 (github-issue ref resolution + forge-state-aware open/closed) for the detection to be accurate.\n- Complementary to #370 auto-completion (that proposes completing the *epic*; this warns when a *scope* completes under an open *umbrella*).\n\nRefs #1649, #370, #1152, #1119.",
+      "Labels": "triage, source-of-truth, tooling, urgent",
+      "UserStory": "As a maintainer completing a scope under an open umbrella, I want scope:complete to warn and reconcile current-shape, so that umbrellas do not stay stale and comment create does not 422.",
+      "ImplementationPlan": "1. On scope:complete, detect open umbrella references and warn + reconcile current-shape (#2322). 2. Fix vbrief:reconcile:umbrellas / current-shape comment create GitHub 422 links/0/schema nil (#2324) in the same PR. 3. Tests for both. CHANGELOG Closes #2322 Closes #2324."
+    },
+    "items": [
+      {
+        "title": "When scope:complete finishes a scope referenced by an open umbrella, the command warns and",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When scope:complete finishes a scope referenced by an open umbrella, the command warns and reconciles the umbrella current-shape comment."
+        }
+      },
+      {
+        "title": "When reconcile creates a missing current-shape comment, the GitHub API call succeeds witho",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When reconcile creates a missing current-shape comment, the GitHub API call succeeds without a 422 links schema error."
+        }
+      },
+      {
+        "title": "Given lifecycle and reconcile fixtures, vitest validates warn+reconcile and successful com",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given lifecycle and reconcile fixtures, vitest validates warn+reconcile and successful comment create."
+        }
+      }
+    ],
+    "tags": [
+      "triage",
+      "source-of-truth",
+      "tooling",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2322",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2322: scope:complete should warn + reconcile when the completed scope is referenced by an OPEN umbrella"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1649",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1649"
+      }
+    ],
+    "updated": "2026-07-10T01:02:28Z",
+    "id": "2322-2324-scope-complete-umbrella-reconcile",
+    "metadata": {
+      "kind": "story",
+      "id": "2322-2324-scope-complete-umbrella-reconcile",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/decompose.test.ts",
+          "packages/core/src/scope/scope-coverage-boost.test.ts",
+          "packages/core/src/scope/index.test.ts",
+          "packages/core/src/scope/demote.test.ts",
+          "packages/core/src/intake/reconcile-issues.ts",
+          "packages/core/src/intake/reconcile-issues.test.ts",
+          "packages/core/src/intake/reconcile-issues-cli.ts",
+          "packages/core/src/triage/reconcile/reconcile.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core exec vitest run src/scope src/vbrief"
+        ],
+        "expected_outputs": [
+          "Closes #2322 with tests green"
+        ],
+        "depends_on": [],
+        "conflict_group": "umbrella-reconcile",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue-ingested story; acceptance traces deferred to implementation commits that Closes the GitHub issue."
+      }
+    }
+  }
+}

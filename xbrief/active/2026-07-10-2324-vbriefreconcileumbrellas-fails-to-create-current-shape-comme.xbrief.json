@@ -1,0 +1,72 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2324"
+  },
+  "plan": {
+    "title": "vbrief:reconcile:umbrellas fails to create current-shape comment \u2014 GitHub 422 'links/0/schema nil is not an object'",
+    "status": "running",
+    "narratives": {
+      "Description": "vbrief:reconcile:umbrellas fails to create current-shape comment \u2014 GitHub 422 'links/0/schema nil is not an object'. This story closes the linked GitHub issue with a scoped fix, tests, and a CHANGELOG entry. File scope and verify commands are recorded under plan.metadata.swarm for concurrent allocation.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2324",
+      "Overview": "## Summary\n\n`task vbrief:reconcile:umbrellas` (engine verb `vbrief-reconcile umbrellas`) fails when it tries to **create** a `## Current shape (as of pass-N)` comment on an umbrella issue. The dry-run reports the comment *would* be created, but the live run aborts with a GitHub **HTTP 422**:\n\n```\nUmbrellaScmError: create comment #18 (deftai/cartograph) failed:\ngh: Invalid request. For 'links/0/schema', nil is not an object. (HTTP 422)\n```\n\n`reconcile:graph` and `reconcile:labels` in the same run succeed (both no-ops). Only the umbrella comment-create path fails.\n\n## Environment\n\n- `@deftai/directive` engine: `@deftai/directive-core@0.68.0`\n- `gh` version 2.93.0 (2026-05-27)\n- Node v24.17.0\n- Consumer repo: `deftai/cartograph`, umbrella issue #18 (a completed epic with no existing current-shape comment \u2192 the reconcile takes the **create** branch, `created -> pass-1`)\n\n## Reproduction\n\n```bash\n# dry-run: reports it WOULD create the comment\ntask deft:vbrief:reconcile:umbrellas -- --repo deftai/cartograph --dry-run\n#   Changed (dry-run):\n#   - #18 (deftai/cartograph) [...]: created -> pass-1\n\n# live: 422\ntask deft:vbrief:reconcile:umbrellas -- --repo deftai/cartograph\n#   Errors:\n#   - ...: UmbrellaScmError: create comment #18 (deftai/cartograph) failed:\n#     gh: Invalid request. For 'links/0/schema', nil is not an object. (HTTP 422)\n```\n\n## Diagnosis so far\n\nThe create path is `directive-core/dist/intake/github-body.js::createIssueComment` \u2192\n`mutateWithReadback('repos/<owner>/<name>/issues/<n>/comments', 'POST', { body }, <readback>)`,\ni.e. `gh api repos/O/N/issues/18/comments --method POST --input -` with a `{ body }` payload, followed by a readback GET.\n\nI isolated the transport from the payload:\n\n- **The bare mechanism works.** Posting a plain `{ \"body\": \"...\" }` (including a unicode em-dash) to the exact same endpoint/method succeeds and returns a normal comment object:\n  ```bash\n  printf '%s' '{\"body\":\"probe\"}' | gh api repos/deftai/cartograph/issues/18/comments --method POST --input -\n  # -> 201, returns the comment JSON (id, html_url, ...)\n  ```\n  (`gh issue comment` also works fine.)\n\nSo the 422 is **not** the endpoint/method/`--input -` transport \u2014 it is triggered by *what the umbrella reconcile sends or does* on the create branch specifically. Two candidate causes:\n\n1. **Body-content-specific rejection** \u2014 something in the generated `pass-1` current-shape comment body trips GitHub's request validation. (A plain body posts fine, so if it's this, it's a specific construct in the generated markdown.)\n2. **Mis-attributed secondary call** \u2014 the `links/0/schema` wording matches GitHub's **issue-links / sub-issues** payload shape, not the comment-body schema. The umbrella reconcile may be making a secondary \"links\"/sub-issue API call while building or attaching the current-shape comment, and that failure is being surfaced under the `create comment #18 failed` label.\n\nThe `links/0/schema, nil is not an object` phrasing (Ruby-style `nil`, a `links` array whose element 0 lacks a `schema`) points at hypothesis 2 \u2014 a structured payload the code sends where a `links[0].schema` field is expected but null.\n\n## Impact\n\n`reconcile:umbrellas` cannot create a first current-shape comment on an umbrella that doesn't already have one, which blocks the AGENTS.md #1152 umbrella current-shape workflow for that path. The `--dry-run` reporting a clean `created -> pass-1` while the live create hard-fails is also a dry-run/live divergence worth closing.\n\n## Suggested next steps\n\n- Capture the exact `gh api` argv + `--input` payload the umbrella create branch emits (log the request on failure) to disambiguate hypothesis 1 vs 2.\n- If a `links`/sub-issue call is involved, guard against a null `schema` element before the request.\n- Add a fixture/regression test for the create branch (not just the edit-in-place branch) of `reconcile:umbrellas`.",
+      "Labels": "bug, scm, area:vbrief",
+      "UserStory": "As a maintainer running umbrella reconcile, I want current-shape comment create to succeed, so that GitHub 422 does not block reconciliation.",
+      "ImplementationPlan": "Implemented in the same PR as #2322 by the umbrella-reconcile worker. Fix links payload for comment create. Do not open a separate PR."
+    },
+    "items": [
+      {
+        "title": "When reconcile creates a current-shape comment, the API call returns success without a 422",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When reconcile creates a current-shape comment, the API call returns success without a 422 links schema error."
+        }
+      },
+      {
+        "title": "Given reconcile fixtures, vitest validates the comment create payload shape.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given reconcile fixtures, vitest validates the comment create payload shape."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "scm",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2324",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2324: vbrief:reconcile:umbrellas fails to create current-shape comment \u2014 GitHub 422 'links/0/schema nil is not an object'"
+      }
+    ],
+    "updated": "2026-07-10T01:02:28Z",
+    "id": "2324-umbrella-comment-422",
+    "metadata": {
+      "kind": "story",
+      "id": "2324-umbrella-comment-422",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core exec vitest run src/vbrief"
+        ],
+        "expected_outputs": [
+          "Closes #2324 with tests green"
+        ],
+        "depends_on": [],
+        "conflict_group": "umbrella-reconcile",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue-ingested story; acceptance traces deferred to implementation commits that Closes the GitHub issue."
+      }
+    }
+  }
+}

@@ -1,6 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import {
+  createIssueComment,
+  editIssueCommentBody,
+  GitHubBodyError,
+} from "../intake/github-body.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
@@ -270,36 +275,21 @@ export class ScmUmbrellaClient implements UmbrellaClient {
   }
 
   editComment(repo: string, commentId: number, body: string): void {
-    const proc = call(
-      SCM_SOURCE,
-      "api",
-      ["-X", "PATCH", `repos/${repo}/issues/comments/${commentId}`, "--input", "-"],
-      { input: JSON.stringify({ body }) },
-    );
-    if (proc.returncode !== 0) {
-      throw new UmbrellaScmError(
-        `edit comment ${commentId} (${repo}) failed: ${(proc.stderr || "").trim()}`,
-      );
+    try {
+      editIssueCommentBody(repo, commentId, { body });
+    } catch (exc) {
+      const message = exc instanceof GitHubBodyError ? exc.message : String(exc);
+      throw new UmbrellaScmError(`edit comment ${commentId} (${repo}) failed: ${message}`);
     }
   }
 
   createComment(repo: string, issueNumber: number, body: string): number | null {
-    const proc = call(
-      SCM_SOURCE,
-      "api",
-      ["-X", "POST", `repos/${repo}/issues/${issueNumber}/comments`, "--input", "-"],
-      { input: JSON.stringify({ body }) },
-    );
-    if (proc.returncode !== 0) {
-      throw new UmbrellaScmError(
-        `create comment #${issueNumber} (${repo}) failed: ${(proc.stderr || "").trim()}`,
-      );
-    }
     try {
-      const data = JSON.parse(proc.stdout || "{}") as Record<string, unknown>;
-      return typeof data.id === "number" ? data.id : null;
-    } catch {
-      return null;
+      const created = createIssueComment(repo, issueNumber, { body });
+      return typeof created.id === "number" ? created.id : null;
+    } catch (exc) {
+      const message = exc instanceof GitHubBodyError ? exc.message : String(exc);
+      throw new UmbrellaScmError(`create comment #${issueNumber} (${repo}) failed: ${message}`);
     }
   }
 }

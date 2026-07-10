@@ -3,6 +3,7 @@ export * from "./constants.js";
 export * from "./decomposed-refs.js";
 export * from "./demote.js";
 export * from "./main.js";
+export * from "./open-umbrella-warning.js";
 export * from "./project-context.js";
 export * from "./transition.js";
 export * from "./undo.js";

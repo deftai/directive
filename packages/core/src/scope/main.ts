@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { TRANSITIONS } from "./constants.js";
 import {
@@ -10,6 +11,11 @@ import {
   resolveFilePath,
   resolveProjectRootStrict,
 } from "./demote.js";
+import {
+  completedPathForScopeMove,
+  findOpenUmbrellaReferences,
+  renderOpenUmbrellaWarning,
+} from "./open-umbrella-warning.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import {
@@ -136,6 +142,24 @@ export function lifecycleMain(argv: string[]): number {
       );
     }
     process.stdout.write(`${result.message}\n`);
+    if (action === "complete") {
+      try {
+        const completedPath = completedPathForScopeMove(filePath);
+        const rootForWarning =
+          resolveProjectRoot(projectRoot) ?? dirname(dirname(dirname(completedPath)));
+        const refs = findOpenUmbrellaReferences(rootForWarning, completedPath);
+        const warning = renderOpenUmbrellaWarning(refs);
+        if (warning.length > 0) {
+          process.stderr.write(`${warning}\n`);
+          const [reconcileCode, outcome] = reconcileUmbrellas(rootForWarning);
+          if (reconcileCode !== 0 || outcome.changed.length > 0 || outcome.errors.length > 0) {
+            process.stderr.write(`${renderUmbrellasReport(outcome)}\n`);
+          }
+        }
+      } catch {
+        /* best-effort drift warning + reconcile; lifecycle success remains authoritative */
+      }
+    }
     return 0;
   }
   process.stderr.write(`Error: ${result.message}\n`);
