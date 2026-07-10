@@ -2750,16 +2750,19 @@ const SCOPE_COMMAND_NAMES = [
  * task verbs over dash-style canonical stems when both exist (#2172).
  */
 export function preferredCommandNames(): readonly string[] {
-  const colonPreferred = new Set<string>([
-    ...TOP_LEVEL_COMMAND_NAMES,
-    ...SCOPE_COMMAND_NAMES,
-    ...Object.keys(VERB_ALIASES).filter((key) => key.includes(":")),
-  ]);
+  const aliasKeys = Object.keys(VERB_ALIASES);
   const aliasedCanonicals = new Set(Object.values(VERB_ALIASES));
   const unaliasedCanonicals = [...CLI_MODULE_VERBS, ...CORE_MODULE_VERBS].filter(
     (verb) => !aliasedCanonicals.has(verb),
   );
-  return [...new Set([...colonPreferred, ...unaliasedCanonicals])].sort();
+  return [
+    ...new Set([
+      ...TOP_LEVEL_COMMAND_NAMES,
+      ...SCOPE_COMMAND_NAMES,
+      ...aliasKeys,
+      ...unaliasedCanonicals,
+    ]),
+  ].sort();
 }
 
 /** Major.minor label for the curated help title (#2172). */

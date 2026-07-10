@@ -14,7 +14,15 @@ describe("deft-ts runner", () => {
   it("runs --help with exit 0", () => {
     const result = runDeftTsArgv(["--help"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Usage: directive");
+    expect(result.stdout).toContain("directive <command> [options]");
+    expect(result.stdout).toContain("directive commands");
+    expect(result.stdout).not.toContain("Registered verbs:");
+  });
+
+  it("lists exhaustive commands via directive commands", () => {
+    const result = runDeftTsArgv(["commands"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Registered commands:");
     expect(result.stdout).toContain("pack-render");
   });
 

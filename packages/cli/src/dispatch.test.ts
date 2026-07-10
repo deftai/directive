@@ -119,6 +119,8 @@ describe("printHelp", () => {
     expect(body).not.toContain("  verify-encoding\n");
     expect(body).toContain("  triage:welcome\n");
     expect(body).not.toContain("  triage-welcome\n");
+    expect(body).toContain("  build\n");
+    expect(body).not.toContain("  framework-commands\n");
   });
 
   // #2273: no-arg `directive` leads with the three-command model + first-run
