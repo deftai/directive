@@ -649,6 +649,28 @@ export function extractCoreGuardCheckoutUsesLine(content: string): string | null
   return match ? match[0] : null;
 }
 
+function checkoutActionRef(usesLine: string): string | null {
+  const match = usesLine.match(/actions\/checkout@(\S+)/);
+  return match?.[1]?.replace(/\s+#.*$/, "") ?? null;
+}
+
+/**
+ * Whether refresh should keep the existing checkout pin instead of the template pin.
+ * Legacy framework-deposited `@v4` tags migrate forward; consumer/Dependabot bumps do not.
+ */
+export function shouldPreserveCoreGuardCheckoutPin(
+  existingUsesLine: string,
+  desiredUsesLine: string,
+): boolean {
+  if (existingUsesLine === desiredUsesLine) return false;
+  const existingRef = checkoutActionRef(existingUsesLine);
+  if (!existingRef || !extractCoreGuardCheckoutUsesLine(`steps:\n${desiredUsesLine}\n`)) {
+    return false;
+  }
+  // Stale framework-deposited floating major tag — migrate to SHA template (#1672).
+  return existingRef !== "v4";
+}
+
 /** Canonical SHA-pinned checkout step for the deposited deft-core-guard workflow. */
 export function coreGuardCheckoutUsesLine(
   sha: string = CORE_GUARD_CHECKOUT_SHA,
@@ -665,7 +687,12 @@ export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string)
   const existingCheckout = extractCoreGuardCheckoutUsesLine(existing);
   if (!existingCheckout) return desired;
   const desiredCheckout = extractCoreGuardCheckoutUsesLine(desired);
-  if (!desiredCheckout || existingCheckout === desiredCheckout) return desired;
+  if (
+    !desiredCheckout ||
+    !shouldPreserveCoreGuardCheckoutPin(existingCheckout, desiredCheckout)
+  ) {
+    return desired;
+  }
   return desired.replace(CHECKOUT_USES_LINE_RE, existingCheckout);
 }
 

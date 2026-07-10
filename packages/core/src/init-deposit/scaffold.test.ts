@@ -30,6 +30,7 @@ import {
   PIN_DEPENDENCY_NAME,
   pruneFrameworkSelfTests,
   pruneVendoredTsTests,
+  shouldPreserveCoreGuardCheckoutPin,
   writeAgentsMd,
   writeAgentsSkills,
   writeConsumerGitHooks,
@@ -395,6 +396,24 @@ describe("init-deposit scaffold", () => {
       expect(guard).not.toContain("echo stale-body");
     });
 
+    it("migrates a legacy framework @v4 pin to the SHA template on refresh", () => {
+      const project = freshRoot("scaffold-guard-migrate-v4-");
+      mkdirSync(join(project, ".github/workflows"), { recursive: true });
+      const legacy =
+        "name: deft-core-guard\n\non:\n  pull_request:\n\njobs:\n" +
+        "  no-mixed-core-and-app:\n    runs-on: ubuntu-latest\n    steps:\n" +
+        "      - uses: actions/checkout@v4\n" +
+        "        with:\n          fetch-depth: 0\n" +
+        "      - name: Refuse PRs that mix .deft/core/** with non-framework paths\n" +
+        "        run: echo stale-body\n";
+      writeFileSync(join(project, ".github/workflows/deft-core-guard.yml"), legacy, "utf8");
+      const { io } = captureIo();
+      expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
+      const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
+      expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(coreGuardCheckoutUsesLine());
+      expect(guard).not.toContain("actions/checkout@v4");
+    });
+
     it("mergeCoreGuardWorkflowRefresh keeps the existing pin when only checkout differs", () => {
       const existing =
         "steps:\n" +
@@ -409,6 +428,22 @@ describe("init-deposit scaffold", () => {
       const merged = mergeCoreGuardWorkflowRefresh(existing, desired);
       expect(extractCoreGuardCheckoutUsesLine(merged)).toBe("      - uses: actions/checkout@v6");
       expect(merged).toContain("run: new");
+    });
+
+    it("shouldPreserveCoreGuardCheckoutPin rejects legacy @v4 but accepts consumer bumps", () => {
+      const desired = coreGuardCheckoutUsesLine();
+      expect(
+        shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v4", desired),
+      ).toBe(false);
+      expect(
+        shouldPreserveCoreGuardCheckoutPin(
+          "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
+          desired,
+        ),
+      ).toBe(true);
+      expect(
+        shouldPreserveCoreGuardCheckoutPin("      - uses: actions/checkout@v6", desired),
+      ).toBe(true);
     });
   });
 
