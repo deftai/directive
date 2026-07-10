@@ -641,17 +641,38 @@ export const CORE_GUARD_CHECKOUT_SHA = "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 /** Tag comment paired with {@link CORE_GUARD_CHECKOUT_SHA}. */
 export const CORE_GUARD_CHECKOUT_TAG = "v7.0.0";
 
-const CHECKOUT_USES_LINE_RE = /^\s+-\s+uses:\s+actions\/checkout@\S+(?:\s+#\s*.+)?\s*$/m;
+const CHECKOUT_USES_PREFIX = "- uses: actions/checkout@";
 
-/** Extract the `uses: actions/checkout@…` step line from a guard workflow, if present. */
+/**
+ * Extract the `uses: actions/checkout@…` step line from a guard workflow, if present.
+ * Uses linear string scanning (no regex) to avoid CodeQL js/polynomial-redos (#1672).
+ */
 export function extractCoreGuardCheckoutUsesLine(content: string): string | null {
-  const match = content.match(CHECKOUT_USES_LINE_RE);
-  return match ? match[0] : null;
+  for (const line of content.split("\n")) {
+    const trimmed = line.trimStart();
+    if (!trimmed.startsWith(CHECKOUT_USES_PREFIX)) continue;
+    // YAML step lines are indented; a bare top-level match is not a step.
+    if (trimmed.length === line.length) continue;
+    return line;
+  }
+  return null;
 }
 
+/** Ref after `actions/checkout@` (tag, SHA, or major), stopping at whitespace. */
 function checkoutActionRef(usesLine: string): string | null {
-  const match = usesLine.match(/actions\/checkout@(\S+)/);
-  return match?.[1]?.replace(/\s+#.*$/, "") ?? null;
+  const idx = usesLine.indexOf(CHECKOUT_USES_PREFIX);
+  if (idx < 0) return null;
+  const after = usesLine.slice(idx + CHECKOUT_USES_PREFIX.length);
+  let end = after.length;
+  for (let i = 0; i < after.length; i += 1) {
+    const c = after[i];
+    if (c === " " || c === "\t" || c === "\r") {
+      end = i;
+      break;
+    }
+  }
+  const ref = after.slice(0, end);
+  return ref.length > 0 ? ref : null;
 }
 
 /**
@@ -688,7 +709,9 @@ export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string)
   if (!desiredCheckout || !shouldPreserveCoreGuardCheckoutPin(existingCheckout, desiredCheckout)) {
     return desired;
   }
-  return desired.replace(CHECKOUT_USES_LINE_RE, () => existingCheckout);
+  const idx = desired.indexOf(desiredCheckout);
+  if (idx < 0) return desired;
+  return desired.slice(0, idx) + existingCheckout + desired.slice(idx + desiredCheckout.length);
 }
 
 function coreGuardWorkflowContent(): string {
