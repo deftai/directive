@@ -44,12 +44,12 @@ Before touching `../AGENTS.md`, inspect the user's project root to decide whethe
 
 Run these deterministic checks, in order:
 
-### 2a. Does `../AGENTS.md` exist?
+### 1a. Does `../AGENTS.md` exist?
 
 - **No:** treat as fresh install — jump to Case F ("No AGENTS.md") in Step 2.
-- **Yes:** continue to 2b.
+- **Yes:** continue to 1b.
 
-### 2b. Does `../AGENTS.md`'s managed section match the current template? Do referenced paths resolve?
+### 1b. Does `../AGENTS.md`'s managed section match the current template? Do referenced paths resolve?
 
 Three checks here, in this order. The first match wins; later checks only run when earlier checks pass.
 
@@ -59,14 +59,14 @@ Three checks here, in this order. The first match wins; later checks only run wh
    - ! If the managed section is **byte-identical** to the current template render BUT the declared install path does NOT resolve, jump to **Case K ("Install location mismatch")** in Step 2. Refreshing the managed section is a documented no-op when the content already matches -- Case K is a different failure class than Case G and demands a different remediation (#1046 finding #2).
 3. **Legacy skill-path resolution (v0.19 AGENTS.md backstop).** Parse `../AGENTS.md` for any token matching `deft/skills/<name>/SKILL.md` (the legacy v0.19 path shape) and verify the file exists under `./skills/<name>/SKILL.md` (relative to this QUICK-START.md).
    - ! If any referenced path does not exist on disk, treat `../AGENTS.md` as **stale** -- jump to Case G in Step 2.
-   - ! If the referenced path exists but its first 200 characters contain `<!-- deft:deprecated-skill-redirect -->`, also treat as stale. These stubs exist to keep v0.19 `AGENTS.md` files working until QUICK-START can refresh them. (The 200-character window matches the same budget used in 2c and is guaranteed to cover the sentinel position in every stub this repo ships -- see `tests/content/test_deprecated_skill_redirects.py::test_stub_has_sentinel`.)
-   - If all referenced paths exist and none are redirect stubs, continue to 2c.
+   - ! If the referenced path exists but its first 200 characters contain `<!-- deft:deprecated-skill-redirect -->`, also treat as stale. These stubs exist to keep v0.19 `AGENTS.md` files working until QUICK-START can refresh them. (The 200-character window matches the same budget used in 1c and is guaranteed to cover the sentinel position in every stub this repo ships -- see `tests/content/test_deprecated_skill_redirects.py::test_stub_has_sentinel`.)
+   - If all referenced paths exist and none are redirect stubs, continue to 1c.
 
 Priority ordering: Case G (byte-different content) always wins over Case K (install-path mismatch) because the refresh path is the higher-priority remediation -- when the template content has moved on, the refresh closes BOTH the content drift and any incidental install-path mismatch that the new content might re-introduce. Case K only fires when the content is byte-current AND the path is unresolved -- the exact "refresh would be a no-op" failure class issue #1046 documents.
 
-**Big-jump joint check (Case G+H gate).** Before acting on ANY Case G routing above (a byte-different managed section, or an unresolved / redirect-stub legacy skill path), first ALSO evaluate the 2c pre-cutover check below against `../`. ! If 2c ALSO holds (real pre-v0.20 `SPECIFICATION.md` / `PROJECT.md` present), the project is in the **joint big-jump state** where both the AGENTS.md refresh (Case G) and the pre-cutover migration (Case H) are due — jump to **Case G+H** (combined single-session remediation) in Step 2 instead of Case G. The combined path runs the refresh and the migration in one session and emits a single restart, avoiding the wasted Case G → restart → Case H round-trip. If 2c does not hold, route to Case G as usual.
+**Big-jump joint check (Case G+H gate).** Before acting on ANY Case G routing above (a byte-different managed section, or an unresolved / redirect-stub legacy skill path), first ALSO evaluate the 1c pre-cutover check below against `../`. ! If 1c ALSO holds (real pre-v0.20 `SPECIFICATION.md` / `PROJECT.md` present), the project is in the **joint big-jump state** where both the AGENTS.md refresh (Case G) and the pre-cutover migration (Case H) are due — jump to **Case G+H** (combined single-session remediation) in Step 2 instead of Case G. The combined path runs the refresh and the migration in one session and emits a single restart, avoiding the wasted Case G → restart → Case H round-trip. If 1c does not hold, route to Case G as usual.
 
-### 2c. Are there pre-v0.20 artifacts at the user's project root?
+### 1c. Are there pre-v0.20 artifacts at the user's project root?
 
 Check both of these files at `../` (the user's project root), using the same
 rule implemented by `scripts/_precutover.py`:
@@ -75,15 +75,15 @@ rule implemented by `scripts/_precutover.py`:
 - `../PROJECT.md` — exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 
 - If **either** holds (real pre-v0.20 content present), treat as **pre-cutover** — jump to Case H ("Pre-cutover migration") in Step 2.
-- If both contain the sentinel (or neither exists), continue to 2d.
+- If both contain the sentinel (or neither exists), continue to 1d.
 
-### 2d. Partial migration?
+### 1d. Partial migration?
 
 Check whether `../xbrief/` exists. If it does, inspect for the 5 lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`). If `xbrief/` exists but any lifecycle subfolder is missing, treat as **partial migration** — jump to Case I ("Partial migration repair") in Step 2.
 
-### 2e. Everything clean
+### 1e. Everything clean
 
-If none of 2a–2d triggered, `../AGENTS.md` is current and the project is on v0.20+. Jump to Case J ("Everything clean") in Step 2.
+If none of 1a–1d triggered, `../AGENTS.md` is current and the project is on v0.20+. Jump to Case J ("Everything clean") in Step 2.
 
 ## Step 2 — Act on detected state
 
@@ -114,7 +114,7 @@ Pick exactly one case from Step 1 and follow its instructions. Do not mix cases.
 
 ### Case G+H — Combined stale AGENTS.md + pre-cutover migration (big-jump, one session)
 
-Reached only via the **Big-jump joint check** in 2b: the managed section in `../AGENTS.md` is stale (Case G) AND pre-v0.20 artifacts are present at `../` (Case H). This is the typical shape of a multi-version "big jump" that crossed both the AGENTS.md managed-section refresh and the pre-v0.20 document-model cutover.
+Reached only via the **Big-jump joint check** in 1b: the managed section in `../AGENTS.md` is stale (Case G) AND pre-v0.20 artifacts are present at `../` (Case H). This is the typical shape of a multi-version "big jump" that crossed both the AGENTS.md managed-section refresh and the pre-v0.20 document-model cutover.
 
 ! Run the two remediations in this exact order — **AGENTS.md refresh first, frozen migration guidance second** — then emit a **single** restart instruction at the very end:
 
