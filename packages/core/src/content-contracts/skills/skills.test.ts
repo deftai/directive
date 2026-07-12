@@ -1,7 +1,6 @@
 import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  DEPRECATED_SKILL_REDIRECT_STUBS,
   PLATFORM_DETECTION_HEADING,
   RFC2119_LEGEND,
   readRepoFile,
@@ -810,10 +809,7 @@ describe("test_skills", () => {
     const bareDeft = readdirSync(resolveRepoPath("skills"), { withFileTypes: true })
       .filter(
         (d) =>
-          d.isDirectory() &&
-          d.name.startsWith("deft-") &&
-          !d.name.startsWith("deft-directive-") &&
-          !DEPRECATED_SKILL_REDIRECT_STUBS.has(d.name),
+          d.isDirectory() && d.name.startsWith("deft-") && !d.name.startsWith("deft-directive-"),
       )
       .map((d) => d.name);
     expect(bareDeft).toEqual([]);

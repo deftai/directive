@@ -1207,9 +1207,6 @@ describe("test_standards.py", () => {
   it("scm/github.md no deprecated user path", () => {
     expect(readText("scm/github.md").toLowerCase()).not.toContain("core/user.md");
   });
-  it("skills/deft-build/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-build/SKILL.md").toLowerCase()).not.toContain("core/user.md");
-  });
   it("skills/deft-directive-article-review/SKILL.md no deprecated user path", () => {
     expect(readText("skills/deft-directive-article-review/SKILL.md").toLowerCase()).not.toContain(
       "core/user.md",
@@ -1304,31 +1301,6 @@ describe("test_standards.py", () => {
     expect(readText("skills/deft-directive-write-skill/SKILL.md").toLowerCase()).not.toContain(
       "core/user.md",
     );
-  });
-  it("skills/deft-interview/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-interview/SKILL.md").toLowerCase()).not.toContain("core/user.md");
-  });
-  it("skills/deft-pre-pr/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-pre-pr/SKILL.md").toLowerCase()).not.toContain("core/user.md");
-  });
-  it("skills/deft-review-cycle/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-review-cycle/SKILL.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("skills/deft-roadmap-refresh/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-roadmap-refresh/SKILL.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("skills/deft-setup/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-setup/SKILL.md").toLowerCase()).not.toContain("core/user.md");
-  });
-  it("skills/deft-swarm/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-swarm/SKILL.md").toLowerCase()).not.toContain("core/user.md");
-  });
-  it("skills/deft-sync/SKILL.md no deprecated user path", () => {
-    expect(readText("skills/deft-sync/SKILL.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("specs/strategy-chaining/SPECIFICATION.md no deprecated user path", () => {
     expect(readText("specs/strategy-chaining/SPECIFICATION.md").toLowerCase()).not.toContain(
@@ -2406,9 +2378,6 @@ describe("test_standards.py", () => {
   it("scm/github.md no warping", () => {
     expect(readText("scm/github.md").toLowerCase()).not.toContain("warping");
   });
-  it("skills/deft-build/SKILL.md no warping", () => {
-    expect(readText("skills/deft-build/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
   it("skills/deft-directive-article-review/SKILL.md no warping", () => {
     expect(readText("skills/deft-directive-article-review/SKILL.md").toLowerCase()).not.toContain(
       "warping",
@@ -2489,27 +2458,6 @@ describe("test_standards.py", () => {
     expect(readText("skills/deft-directive-write-skill/SKILL.md").toLowerCase()).not.toContain(
       "warping",
     );
-  });
-  it("skills/deft-interview/SKILL.md no warping", () => {
-    expect(readText("skills/deft-interview/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
-  it("skills/deft-pre-pr/SKILL.md no warping", () => {
-    expect(readText("skills/deft-pre-pr/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
-  it("skills/deft-review-cycle/SKILL.md no warping", () => {
-    expect(readText("skills/deft-review-cycle/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
-  it("skills/deft-roadmap-refresh/SKILL.md no warping", () => {
-    expect(readText("skills/deft-roadmap-refresh/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
-  it("skills/deft-setup/SKILL.md no warping", () => {
-    expect(readText("skills/deft-setup/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
-  it("skills/deft-swarm/SKILL.md no warping", () => {
-    expect(readText("skills/deft-swarm/SKILL.md").toLowerCase()).not.toContain("warping");
-  });
-  it("skills/deft-sync/SKILL.md no warping", () => {
-    expect(readText("skills/deft-sync/SKILL.md").toLowerCase()).not.toContain("warping");
   });
   it("specs/strategy-chaining/SPECIFICATION.md no warping", () => {
     expect(readText("specs/strategy-chaining/SPECIFICATION.md").toLowerCase()).not.toContain(

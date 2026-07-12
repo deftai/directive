@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Deprecated `deft-*` skill redirect stubs removed.** Eight v0.19 bridge stubs under `content/skills/` (`deft-build`, `deft-interview`, `deft-pre-pr`, `deft-review-cycle`, `deft-roadmap-refresh`, `deft-setup`, `deft-swarm`, `deft-sync`) are deleted so skill discovery and always-on frontmatter cost only carry live `deft-directive-*` successors. Closes #2451. Refs #2369.
+
 ## [0.74.0] - 2026-07-10
 
 > Operator-friction polish: consumer-first onboarding, clearer CLI help, safer deposits/hooks/projections, and doctor/merge-readiness fixes — plus a public SECURITY.md.

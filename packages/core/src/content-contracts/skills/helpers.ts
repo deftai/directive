@@ -70,15 +70,4 @@ export const RFC2119_LEGEND = "!=MUST, ~=SHOULD";
 export const PLATFORM_DETECTION_HEADING = "## Platform Detection";
 export const USER_MD_GATE_HEADING = "## USER.md Gate";
 
-export const DEPRECATED_SKILL_REDIRECT_STUBS = new Set([
-  "deft-build",
-  "deft-interview",
-  "deft-pre-pr",
-  "deft-review-cycle",
-  "deft-roadmap-refresh",
-  "deft-setup",
-  "deft-swarm",
-  "deft-sync",
-]);
-
 export const REQUIRED_OSES = new Set(["darwin", "linux", "windows"]);

@@ -1,0 +1,89 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "chore(skills): delete deprecated deft-* skill redirect stubs",
+    "created": "2026-07-12T22:06:33.361Z",
+    "updated": "2026-07-12T22:06:33.361Z"
+  },
+  "plan": {
+    "id": "2451-delete-deft-skill-stubs",
+    "title": "chore(skills): delete deprecated deft-* skill redirect stubs",
+    "status": "running",
+    "narratives": {
+      "Description": "Eight deprecated deft-* skill directories under content/skills/ only redirect to deft-directive-* successors and still inflate discovery/frontmatter cost. Removing them cleans Wave 1 deferred stubs called out by epic #2369 without relocating live skill bodies.",
+      "ImplementationPlan": "1) Delete content/skills/deft-build, deft-interview, deft-pre-pr, deft-review-cycle, deft-roadmap-refresh, deft-setup, deft-swarm, deft-sync (and matching content/.agents/skills mirrors if present). 2) Update REFERENCES.md and packs skill indexes that still name the stubs. 3) Grep for leftover deft-build/deft-swarm style references in templates/AGENTS and repoint. 4) Verify with pnpm exec vitest run packages/core/src/content-contracts and task packs:verify-drift if wired. 5) CHANGELOG note under Removed.",
+      "UserStory": "As a framework maintainer, I want deprecated deft-* redirect stubs removed, so that skill discovery and always-on frontmatter cost only carry live deft-directive-* skills.",
+      "Origin": "Enriched for swarm launch from GitHub issue #2451 under epic #2369"
+    },
+    "items": [
+      {
+        "id": "2451-delete-deft-skill-stubs-a1",
+        "title": "Remove stub directories",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the eight deft-* redirect stub dirs, when the story completes, then they are gone from the live skills catalog.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2451-delete-deft-skill-stubs-a2",
+        "title": "Update discovery indexes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given REFERENCES/packs skill indexes, when updated, then they point only at deft-directive-* successors.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2451-delete-deft-skill-stubs-a3",
+        "title": "Gates green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given pack-drift/content checks, when run, then they exit 0 without broken skill routing.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-build",
+          "content/skills/deft-interview",
+          "content/skills/deft-pre-pr",
+          "content/skills/deft-review-cycle",
+          "content/skills/deft-setup",
+          "content/skills/deft-swarm",
+          "content/skills/deft-sync",
+          "REFERENCES.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "stubs deleted",
+          "PR merged for #2451"
+        ],
+        "depends_on": [],
+        "conflict_group": "skill-stubs",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "x-tracking": {
+        "parent_epic": "#2369",
+        "origin_issue": "#2451"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2451",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2451"
+      }
+    ],
+    "updated": "2026-07-12T22:06:55.287Z"
+  }
+}

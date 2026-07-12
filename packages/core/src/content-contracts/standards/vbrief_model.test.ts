@@ -23,17 +23,7 @@ describe("test_vbrief_model.py", () => {
       statSync(join(skillsDir, d)).isDirectory(),
     );
     expect(subdirs.length).toBeGreaterThan(0);
-    const stubs = new Set([
-      "deft-build",
-      "deft-interview",
-      "deft-pre-pr",
-      "deft-review-cycle",
-      "deft-roadmap-refresh",
-      "deft-setup",
-      "deft-swarm",
-      "deft-sync",
-    ]);
-    const bad = subdirs.filter((d) => !d.startsWith("deft-directive-") && !stubs.has(d));
+    const bad = subdirs.filter((d) => !d.startsWith("deft-directive-"));
     expect(bad).toEqual([]);
   });
 
@@ -42,19 +32,7 @@ describe("test_vbrief_model.py", () => {
     const subdirs = readdirSync(skillsDir).filter((d) =>
       statSync(join(skillsDir, d)).isDirectory(),
     );
-    const stubs = new Set([
-      "deft-build",
-      "deft-interview",
-      "deft-pre-pr",
-      "deft-review-cycle",
-      "deft-roadmap-refresh",
-      "deft-setup",
-      "deft-swarm",
-      "deft-sync",
-    ]);
-    const bad = subdirs.filter(
-      (d) => d.startsWith("deft-") && !d.startsWith("deft-directive-") && !stubs.has(d),
-    );
+    const bad = subdirs.filter((d) => d.startsWith("deft-") && !d.startsWith("deft-directive-"));
     expect(bad).toEqual([]);
   });
 
@@ -195,30 +173,6 @@ describe("test_vbrief_model.py", () => {
   });
   it("no stale refs main.md", () => {
     const text = readText("main.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-build/SKILL.md", () => {
-    const text = readText("skills/deft-build/SKILL.md");
     const patterns = [
       /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
       /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
@@ -675,174 +629,6 @@ describe("test_vbrief_model.py", () => {
   });
   it("no stale refs skills/deft-directive-write-skill/SKILL.md", () => {
     const text = readText("skills/deft-directive-write-skill/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-interview/SKILL.md", () => {
-    const text = readText("skills/deft-interview/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-pre-pr/SKILL.md", () => {
-    const text = readText("skills/deft-pre-pr/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-review-cycle/SKILL.md", () => {
-    const text = readText("skills/deft-review-cycle/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-roadmap-refresh/SKILL.md", () => {
-    const text = readText("skills/deft-roadmap-refresh/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-setup/SKILL.md", () => {
-    const text = readText("skills/deft-setup/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-swarm/SKILL.md", () => {
-    const text = readText("skills/deft-swarm/SKILL.md");
-    const patterns = [
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
-      /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
-    ];
-    for (const line of text.split("\n")) {
-      const lower = line.toLowerCase();
-      if (
-        [
-          "deprecated",
-          "redirect",
-          "migration",
-          "legacy",
-          "replaced by",
-          "no longer",
-          "instead of",
-          "was previously",
-        ].some((w) => lower.includes(w))
-      )
-        continue;
-      for (const pat of patterns) expect(pat.test(line)).toBe(false);
-    }
-  });
-  it("no stale refs skills/deft-sync/SKILL.md", () => {
-    const text = readText("skills/deft-sync/SKILL.md");
     const patterns = [
       /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?SPECIFICATION\.md/i,
       /(?:output|generate|write|create|produce)\s+(?:to\s+)?(?:a\s+)?PROJECT\.md/i,
