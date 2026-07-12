@@ -110,8 +110,7 @@ describe("test_agents_md_session_start", () => {
 
   it("pre_start_agent_gate_stack_in_commands_canonical_home", () => {
     const section = extractSection(commandsText, "Session-start ritual \\(#1149\\)");
-    const stackLine =
-      section.match(/\*\*Pre-`start_agent` gate stack[^\n]*/)?.[0] ?? "";
+    const stackLine = section.match(/\*\*Pre-`start_agent` gate stack[^\n]*/)?.[0] ?? "";
     expect(stackLine).toContain("Pre-`start_agent` gate stack (#1149/#1348)");
     const pSession = stackLine.indexOf("verify:session-ritual");
     const pStory = stackLine.indexOf("verify:story-ready");
