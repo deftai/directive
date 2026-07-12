@@ -103,7 +103,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",
-  "## Platform-conditional rules (PowerShell / Windows)",
+  "## Contextual guardrails (runtime-detect lazy-load)",
   "## Content packs",
 ] as const;
 
@@ -295,6 +295,33 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "A `swarm-cohort` section is ready only when",
       "checkpoint-commit it and proceed",
       "Ask the operator to choose one path",
+    ],
+  },
+  {
+    id: "contextual-guardrails-2454",
+    shape: "doc",
+    header: "Contextual guardrails (runtime-detect lazy-load)",
+    canonicalHome: "scm/github.md",
+    pointerHints: [
+      "scm/github.md",
+      "runtime-detect",
+      "#2157",
+      "verify:encoding",
+      "verify:scm-boundary",
+    ],
+    canonicalBodyMarkers: [
+      "PowerShell platform-conditional rules for agents",
+      "Safe subprocess capture",
+      "Cascade automation surface",
+      "verify:scm-boundary",
+    ],
+    retiredFullTextMarkers: [
+      "piped/redirected commands leak wrapper text",
+      "execSync",
+      "hand-roll a cascade",
+      "Raw `gh` calls outside the TS SCM shim",
+      "authoritatively enforced at commit",
+      "lazy-loaded, not rendered here",
     ],
   },
 ] as const;

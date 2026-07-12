@@ -172,6 +172,38 @@ When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_co
 
 Refs #798, #1353 (root-cause audit), #2157.
 
+## Safe subprocess capture (#1366)
+
+Rationale + recurrence record: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Safe subprocess capture (#1366).
+
+- ! The `scripts/` Python directory was removed in #2022 (TS-native migration). All subprocess capture rules from this section now apply to TS tooling only -- the `scripts/_safe_subprocess.py` helper no longer exists; TS equivalents use the Node.js `child_process` / `execa` patterns and are not subject to Python locale-codepage decode issues.
+- ! TS scripts that shell out for parsable output (gh, git, task) MUST use `execa` or `child_process.spawn` with `encoding: "utf8"` -- never `execSync` with default encoding when the output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages).
+- ⊗ Use `execSync` / `spawnSync` without explicit `encoding: "utf8"` when capturing `gh api` output that may contain non-ASCII glyphs -- the default `Buffer` return is the TS analogue of the Python locale-codepage bug.
+- ⊗ Reference `scripts/_safe_subprocess.py`, `scripts/pr_merge_readiness.py`, or any deleted Python script as a live implementation path -- the entire `scripts/` directory was removed in #2022.
+
+## Cascade automation surface (#1369)
+
+Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Cascade automation surface (#1369). Canonical surface: `task pr:wait-mergeable-and-merge`.
+
+- ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>`. Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
+- ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `content/skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
+- ! When `--protected <issue-numbers>` is supplied, the helper runs the protected-issue check (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
+- ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
+- ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
+
+## SCM tooling (#884 / #1145)
+
+Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § SCM tooling — prefer ghx (#884).
+
+- ! When you need to invoke the GitHub CLI (`gh issue view`, `gh pr list`, `gh api`, ...) and `ghx` is on PATH, prefer `ghx` over `gh` -- the surface is identical and the cached responses are 10x faster on repeated calls
+- ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this keeps the rule additive for consumers who have not yet opted in
+- ~ Maintainers SHOULD run `task setup` to install `ghx`; the install is consent-gated and never auto-runs by default. Pass `--yes` for non-interactive (CI / scripted) approval
+- ⊗ Auto-install `ghx` without explicit operator consent -- `task setup` MUST prompt before invoking the upstream installer; the only non-interactive paths are `--yes` (explicit approval) or `DEFT_SETUP_GHX_SKIP=1` (explicit opt-out)
+- ! Raw `gh` calls outside the TS SCM shim layer are forbidden by `task verify:scm-boundary` (#1145 / N5 -- partial down-payment on #445 / #935 Workstream 6). The TS verb layer MUST route `gh` calls through the canonical SCM shim; the deterministic gate scans the canonical scope globs and fails `task check` when any of them route around the shim. Non-`github-issue` sources raise `NotImplementedError` so a consumer on GitLab / Gitea / local sees the deferred abstraction immediately.
+- ? Power users MAY install `ghx` manually via the upstream `install.ps1` (Windows) or `install.sh` (macOS / Linux); the `task setup` prompt is a convenience, not a gate
+
+See also § ghx cache proxy (#884) for install surfaces and read-only vs mutation rules.
+
 ## Windows / ASCII Conventions for Machine-Editable Sections
 
 Agent `edit_files` operations can fail when structured file sections contain Unicode characters that do not round-trip cleanly through Windows toolchains (xref warpdotdev/warp#9022). The following rules apply to **machine-editable structured sections**: ROADMAP.md phase bodies, CHANGELOG.md entries, and Open Issues Index rows.

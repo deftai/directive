@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Universal always-on guardrails are pointer-thin.** Session ritual, WIP cap, branch policy, implementation-intent, and story-start rules in AGENTS.md / agents-entry compress to one-line imperatives plus gate/skill/doc pointers; bulk lives in `commands.md`, `scm/github.md`, and swarm skill. Closes #2453. Refs #2369.
 
+- **Contextual guardrails lazy-load on runtime match.** PowerShell encoding, safe-subprocess capture, cascade automation, and SCM-boundary rules move out of the always-on AGENTS.md / agents-entry surface into `scm/github.md`; runtime-detect trigger pointers remain. Closes #2454. Refs #2369.
+
 - **Agents-entry propagation is pointer-sufficient.** The `agents_entry_contract` gate now validates skill/gate/doc pointer shapes and canonical homes instead of requiring full-text rule mirrors in the always-on AGENTS.md managed section — unblocking epic #2369 Wave 2 relocation. Closes #2371.
 
 ### Fixed

@@ -144,12 +144,14 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 
 ! When `plan.policy.allowDirectCommitsToMaster = true`, surface policy at session start via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — full phrasing and override paths in `.deft/core/scm/github.md` § Branch policy.
 
-## Platform-conditional rules (PowerShell / Windows)
+## Contextual guardrails (runtime-detect lazy-load)
 
-Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). If your session matches a trigger below, load `.deft/core/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
+Contextual / platform-specific rules lazy-load from `.deft/core/scm/github.md` — load the matching section **before** the risky operation when your session matches a trigger (#2157 / #2369):
 
-- ! Editing files with non-ASCII glyphs from PowerShell (especially PS 5.1) -- enforced at commit by `deft verify:encoding` (#798).
-- ! Running shell commands under the Grok Build Windows + pwsh 7+ runtime -- piped/redirected commands leak wrapper text (#1353); PTY-based Warp + Claude are exempt.
+- ! **PowerShell / Windows** → § PowerShell platform-conditional rules (#798 / #1353); encoding gate: `deft verify:encoding`.
+- ! **TS subprocess capture** → § Safe subprocess capture (#1366).
+- ! **Cascade / batch merge** → § Cascade automation surface (#1369); canonical `deft pr:wait-mergeable-and-merge`.
+- ! **GitHub CLI / SCM shim** → § SCM tooling (#884 / #1145); boundary gate: `deft verify:scm-boundary`.
 
 ## Development Process
 

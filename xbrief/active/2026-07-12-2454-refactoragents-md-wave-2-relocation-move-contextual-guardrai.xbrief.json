@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "refactor(agents-md): Wave 2 relocation — move contextual guardrails behind runtime-detect lazy pointers",
+    "created": "2026-07-12T23:03:51.565Z",
+    "updated": "2026-07-12T23:03:51.565Z"
+  },
+  "plan": {
+    "id": "2454-relocate-contextual-guardrails",
+    "title": "refactor(agents-md): Wave 2 relocation — move contextual guardrails behind runtime-detect lazy pointers",
+    "status": "running",
+    "narratives": {
+      "Description": "Contextual guardrails (PowerShell encoding, SCM-boundary, safe-subprocess, cascade automation, platform-conditional rules) should not occupy always-on paragraph bulk. Per DD-2 and #2157 precedent, move them behind runtime-detect lazy doc pointers.",
+      "ImplementationPlan": "1) Inventory contextual/platform-conditional blocks remaining in AGENTS.md and content/templates/agents-entry.md after #2453 (PowerShell encoding, SCM-boundary, safe-subprocess, cascade automation, other runtime-detect rules). 2) Move rule bodies into content/scm/github.md and sibling lazy docs; leave one-line runtime-detect pointers in always-on surfaces. 3) Keep agents_entry_contract pointer-sufficient tests green; add fixtures if needed. 4) Pass task verify:eval-health-relocation and task eval:health (baseline 85). 5) Verify: pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts. 6) CHANGELOG [Unreleased]. Do not rework universal one-liners already relocated by #2453.",
+      "UserStory": "As a framework maintainer, I want contextual guardrails loaded only when the runtime matches, so that always-on AGENTS.md stops carrying platform-specific rule bulk.",
+      "Origin": "Enriched for swarm from #2454 under epic #2369 Wave 2"
+    },
+    "items": [
+      {
+        "id": "2454-relocate-contextual-guardrails-a1",
+        "title": "Relocate targeted rule bulk",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the targeted always-on sections, when the PR lands, then paragraph bulk is gone and pointers remain.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2454-relocate-contextual-guardrails-a2",
+        "title": "Pointer contract + eval-health gate green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given agents_entry_contract and verify:eval-health-relocation, when run on the PR diff, then both pass.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2454-relocate-contextual-guardrails-a3",
+        "title": "CHANGELOG documents relocation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG [Unreleased], when read, then the user-visible always-on thinning is described.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "content/scm",
+          "content/docs",
+          "packages/core/src/content-contracts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "task eval:health"
+        ],
+        "expected_outputs": [
+          "relocation PR merged for #2454"
+        ],
+        "depends_on": [],
+        "conflict_group": "relocate-contextual",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "x-tracking": {
+        "parent_epic": "#2369",
+        "origin_issue": "#2454"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2454",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2454"
+      }
+    ],
+    "updated": "2026-07-12T23:42:41.315Z"
+  }
+}

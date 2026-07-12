@@ -140,31 +140,14 @@ Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CH
 
 Product commands use the `/deft:directive:*` namespace (#418 / #1670); the prior `/deft:*` product forms are deprecation-warning aliases, and cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. The legacy Python `run` CLI is deprecated (#1933) -- use the agent-driven setup skill for first-time setup and spec generation. See `content/commands.md` for the full command + alias table and the managed `## Commands` section below for the rendered surface.
 
-## Platform-conditional rules (PowerShell / Windows)
+## Contextual guardrails (runtime-detect lazy-load)
 
-Platform/tool/runtime-specific rules are lazy-loaded, not shipped in the always-loaded surface, so they don't crowd context for sessions that can't trigger them (#2157). If your session matches a trigger below, load `content/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
+Contextual / platform-specific rules lazy-load from `content/scm/github.md` — load the matching section **before** the risky operation when your session matches a trigger (#2157 / #2369):
 
-- ! Editing files with non-ASCII glyphs from PowerShell (especially PS 5.1) -- authoritatively enforced at commit by `task verify:encoding` (#798); the gate is the rule.
-- ! Running shell commands under the Grok Build Windows + pwsh 7+ runtime -- piped/redirected commands leak wrapper text (#1353); PTY-based Warp + Claude are exempt.
-
-## Safe subprocess capture (#1366)
-
-Rationale + recurrence record: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Safe subprocess capture (#1366).
-
-- ! The `scripts/` Python directory was removed in #2022 (TS-native migration). All subprocess capture rules from this section now apply to TS tooling only -- the `scripts/_safe_subprocess.py` helper no longer exists; TS equivalents use the Node.js `child_process` / `execa` patterns and are not subject to Python locale-codepage decode issues.
-- ! TS scripts that shell out for parsable output (gh, git, task) MUST use `execa` or `child_process.spawn` with `encoding: "utf8"` -- never `execSync` with default encoding when the output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages).
-- ⊗ Use `execSync` / `spawnSync` without explicit `encoding: "utf8"` when capturing `gh api` output that may contain non-ASCII glyphs -- the default `Buffer` return is the TS analogue of the Python locale-codepage bug.
-- ⊗ Reference `scripts/_safe_subprocess.py`, `scripts/pr_merge_readiness.py`, or any deleted Python script as a live implementation path -- the entire `scripts/` directory was removed in #2022.
-
-## Cascade automation surface (#1369)
-
-Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Cascade automation surface (#1369). Canonical surface: `task pr:wait-mergeable-and-merge`.
-
-- ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>`. Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
-- ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `content/skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
-- ! When `--protected <issue-numbers>` is supplied, the helper runs the protected-issue check (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
-- ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
-- ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
+- ! **PowerShell / Windows** → § PowerShell platform-conditional rules (#798 / #1353); encoding gate: `task verify:encoding`.
+- ! **TS subprocess capture** → § Safe subprocess capture (#1366).
+- ! **Cascade / batch merge** → § Cascade automation surface (#1369); canonical `task pr:wait-mergeable-and-merge`.
+- ! **GitHub CLI / SCM shim** → § SCM tooling (#884 / #1145); boundary gate: `task verify:scm-boundary`.
 
 ## Headless swarm launch gate-stack (#1387)
 
@@ -174,17 +157,6 @@ Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-
 - ! Phase 2 accepts a **pre-created worktree map** (the **C3** JSON array of `{ story_id, worktree_path, base_branch }`) resolved via `resolveWorktreeMap` (`packages/core/src/swarm/worktrees.ts`) -- which raises on same-path collisions or base-branch mismatches -- instead of always running `git worktree add` per agent.
 - ! Phase 3 consumes the **C2** launch-manifest (the JSON array of `{ story_id, xbrief_path, worktree_path, branch, allocation_context }`, where `allocation_context` is the #1378 token) emitted by `task swarm:launch` as dispatch PREP before spawning; the spawn itself stays agent-driven via the platform adapter (`start_agent` / `spawn_subagent`). `task swarm:launch` does NOT spawn agents -- it emits the manifest and stops.
 - ⊗ Re-prompt the operator for per-phase batching approval when a pre-approved cohort is launched via `task swarm:launch` -- the #1378 allocation-context token is the batched consent (all-or-nothing dispatch envelope, #954).
-
-## SCM tooling -- prefer ghx (#884)
-
-Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § SCM tooling — prefer ghx (#884).
-
-- ! When you need to invoke the GitHub CLI (`gh issue view`, `gh pr list`, `gh api`, ...) and `ghx` is on PATH, prefer `ghx` over `gh` -- the surface is identical and the cached responses are 10x faster on repeated calls
-- ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this keeps the rule additive for consumers who have not yet opted in
-- ~ Maintainers SHOULD run `task setup` to install `ghx`; the install is consent-gated and never auto-runs by default. Pass `--yes` for non-interactive (CI / scripted) approval
-- ⊗ Auto-install `ghx` without explicit operator consent -- `task setup` MUST prompt before invoking the upstream installer; the only non-interactive paths are `--yes` (explicit approval) or `DEFT_SETUP_GHX_SKIP=1` (explicit opt-out)
-- ! Raw `gh` calls outside the TS SCM shim layer are forbidden by `task verify:scm-boundary` (#1145 / N5 -- partial down-payment on #445 / #935 Workstream 6). The TS verb layer MUST route `gh` calls through the canonical SCM shim; the deterministic gate scans the canonical scope globs and fails `task check` when any of them route around the shim. Non-`github-issue` sources raise `NotImplementedError` so a consumer on GitLab / Gitea / local sees the deferred abstraction immediately.
-- ? Power users MAY install `ghx` manually via the upstream `install.ps1` (Windows) or `install.sh` (macOS / Linux); the `task setup` prompt is a convenience, not a gate
 
 ## Test performance discipline (#975)
 
@@ -387,12 +359,14 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 
 ! When `plan.policy.allowDirectCommitsToMaster = true`, surface policy at session start via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — full phrasing and override paths in `.deft/core/scm/github.md` § Branch policy.
 
-## Platform-conditional rules (PowerShell / Windows)
+## Contextual guardrails (runtime-detect lazy-load)
 
-Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). If your session matches a trigger below, load `.deft/core/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
+Contextual / platform-specific rules lazy-load from `.deft/core/scm/github.md` — load the matching section **before** the risky operation when your session matches a trigger (#2157 / #2369):
 
-- ! Editing files with non-ASCII glyphs from PowerShell (especially PS 5.1) -- enforced at commit by `deft verify:encoding` (#798).
-- ! Running shell commands under the Grok Build Windows + pwsh 7+ runtime -- piped/redirected commands leak wrapper text (#1353); PTY-based Warp + Claude are exempt.
+- ! **PowerShell / Windows** → § PowerShell platform-conditional rules (#798 / #1353); encoding gate: `deft verify:encoding`.
+- ! **TS subprocess capture** → § Safe subprocess capture (#1366).
+- ! **Cascade / batch merge** → § Cascade automation surface (#1369); canonical `deft pr:wait-mergeable-and-merge`.
+- ! **GitHub CLI / SCM shim** → § SCM tooling (#884 / #1145); boundary gate: `deft verify:scm-boundary`.
 
 ## Development Process
 
