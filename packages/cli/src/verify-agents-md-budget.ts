@@ -54,11 +54,11 @@ export function run(argv: string[]): number {
     }
   }
 
-  if (result.advisoryMessage !== undefined && result.advisoryMessage.length > 0) {
-    if (result.advisoryStream === "stdout") {
-      process.stdout.write(`${result.advisoryMessage}\n`);
-    } else if (result.advisoryStream === "stderr") {
-      process.stderr.write(`${result.advisoryMessage}\n`);
+  if (result.northStarMessage !== undefined && result.northStarMessage.length > 0) {
+    if (result.northStarStream === "stdout") {
+      process.stdout.write(`${result.northStarMessage}\n`);
+    } else if (result.northStarStream === "stderr") {
+      process.stderr.write(`${result.northStarMessage}\n`);
     }
   }
 

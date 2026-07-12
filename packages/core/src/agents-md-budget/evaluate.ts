@@ -6,14 +6,16 @@ import { resolveAgentsMdBudget } from "../policy/agents-md-budget.js";
 export type OutputStream = "stdout" | "stderr" | "none";
 
 /**
- * Layered absolute north-star for the always-on managed surface (#2372 / #2450).
+ * Layered absolute north-star for the always-on managed surface (#2372 / #2450 / #2452).
  *
- * Advisory-only in Wave 1: the relative line ratchet remains fail-closed; this
- * ceiling reports relocation progress without affecting exit codes. Promotion to
- * fail-closed is deferred to post-Wave-2 (#2369 current-shape).
+ * `ABSOLUTE_MANAGED_MAX_BYTES` is the relocation north-star (<=8192 B / ~2k tok).
+ * When `plan.policy.agentsMdBudget.absoluteMaxBytes` is set, growth past that seeded
+ * ratchet fails closed; distance-to-north-star is always reported. Optional release-gate
+ * north-star enforcement: DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR=1 (waiver:
+ * DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1).
  *
- * DD-3 (harness-injected skill frontmatter in the meter) is deferred to #2452 /
- * Child A — this Wave-1 measure covers the rendered managed section only.
+ * DD-3 (harness-injected skill frontmatter in the meter) is deferred — this measure
+ * covers the rendered managed section only.
  */
 export const ABSOLUTE_MANAGED_MAX_BYTES = 8192;
 export const ABSOLUTE_MANAGED_MAX_TOKENS = 2000;
@@ -31,9 +33,9 @@ export interface EvaluateResult {
   readonly code: 0 | 1 | 2;
   readonly message: string;
   readonly stream: OutputStream;
-  /** Advisory absolute-budget note (#2450); never affects `code`. */
-  readonly advisoryMessage?: string;
-  readonly advisoryStream?: OutputStream;
+  /** North-star distance note (#2452); may accompany success or failure paths. */
+  readonly northStarMessage?: string;
+  readonly northStarStream?: OutputStream;
 }
 
 export interface EvaluateOptions {
@@ -149,23 +151,78 @@ export function measureManagedSection(text: string): ManagedSectionMeasure | { e
   };
 }
 
+function formatNorthStarDistance(measure: ManagedSectionMeasure): string {
+  const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
+  const overTokens = measure.estimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
+  if (overBytes <= 0 && overTokens <= 0) {
+    return (
+      `north-star: ${measure.bytes} bytes (~${measure.estimatedTokens} tok) within ` +
+      `≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok target.`
+    );
+  }
+  return (
+    `north-star: ≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
+    `(current ${measure.bytes} bytes / ~${measure.estimatedTokens} tok — ` +
+    `${overBytes} bytes / ~${overTokens} tok over target).`
+  );
+}
+
 function formatAbsoluteAdvisory(measure: ManagedSectionMeasure): string {
   const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
   const overTokens = measure.estimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
   return (
     `⚠ verify:agents-md-budget: managed section absolute budget advisory — ` +
-    `${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the Wave-1 north-star ` +
+    `${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the north-star ` +
     `of ${ABSOLUTE_MANAGED_MAX_BYTES} bytes / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
-    `(OVER by ${overBytes} bytes / ~${overTokens} tok). Advisory only — task check is NOT affected.\n` +
-    "  The relative line ratchet (#645) remains fail-closed; this absolute ceiling is the\n" +
-    "  relocation goal for epic #2369. Fail-closed promotion is deferred until after Wave 2.\n" +
-    "  DD-3 harness skill frontmatter is not yet included in this meter (#2452)."
+    `(OVER by ${overBytes} bytes / ~${overTokens} tok). Advisory only — set ` +
+    "plan.policy.agentsMdBudget.absoluteMaxBytes to enable fail-closed growth ratchet (#2452).\n" +
+    "  The relative line ratchet (#645) remains fail-closed.\n" +
+    "  DD-3 harness skill frontmatter is not yet included in this meter."
   );
+}
+
+function formatAbsoluteRefusal(
+  measure: ManagedSectionMeasure,
+  absoluteMaxBytes: number,
+  projectRoot: string,
+): string {
+  const overBytes = measure.bytes - absoluteMaxBytes;
+  return (
+    `❌ verify:agents-md-budget: managed section grew past its absolute byte ratchet ` +
+    `(project_root=${projectRoot}).\n` +
+    `   managed section: ${measure.bytes}/${absoluteMaxBytes} bytes (OVER by ${overBytes})\n` +
+    `   ${formatNorthStarDistance(measure)}\n` +
+    "   AGENTS.md is a map, not a manual (#1882): push detail into a\n" +
+    "   reference doc (main.md / a pack / docs/) and leave a pointer,\n" +
+    "   rather than expanding AGENTS.md. See REFERENCES.md.\n" +
+    "   If the growth is deliberate, raise absoluteMaxBytes in\n" +
+    "   plan.policy.agentsMdBudget in PROJECT-DEFINITION (a reviewed diff). (#2452)"
+  );
+}
+
+function formatNorthStarRefusal(measure: ManagedSectionMeasure, projectRoot: string): string {
+  const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
+  return (
+    `❌ verify:agents-md-budget: managed section exceeds the north-star ceiling ` +
+    `(project_root=${projectRoot}, release-gate mode).\n` +
+    `   managed section: ${measure.bytes}/${ABSOLUTE_MANAGED_MAX_BYTES} bytes ` +
+    `(OVER by ${overBytes})\n` +
+    "   Thin the managed section toward the <=8192 B / ~2k tok north-star, or set\n" +
+    "   DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1 for a time-boxed operator waiver (#2452)."
+  );
+}
+
+function enforceNorthStarEnabled(): boolean {
+  return process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR === "1";
+}
+
+function northStarWaiverActive(): boolean {
+  return process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER === "1";
 }
 
 function absoluteAdvisoryForText(
   text: string,
-): { advisoryMessage: string; advisoryStream: OutputStream } | null {
+): { northStarMessage: string; northStarStream: OutputStream } | null {
   const measureResult = measureManagedSection(text);
   if ("error" in measureResult) {
     return null;
@@ -176,17 +233,37 @@ function absoluteAdvisoryForText(
     return null;
   }
   return {
-    advisoryMessage: formatAbsoluteAdvisory(measureResult),
-    advisoryStream: "stderr",
+    northStarMessage: formatAbsoluteAdvisory(measureResult),
+    northStarStream: "stderr",
   };
 }
 
-function attachAbsoluteAdvisory<T extends EvaluateResult>(result: T, text: string): T {
-  const advisory = absoluteAdvisoryForText(text);
-  if (advisory === null) {
+function attachNorthStarNote<T extends EvaluateResult>(
+  result: T,
+  text: string,
+  options: { advisoryOnly: boolean },
+): T {
+  if (options.advisoryOnly) {
+    const advisory = absoluteAdvisoryForText(text);
+    if (advisory === null) {
+      return result;
+    }
+    return { ...result, ...advisory };
+  }
+
+  const measureResult = measureManagedSection(text);
+  if ("error" in measureResult) {
     return result;
   }
-  return { ...result, ...advisory };
+  return {
+    ...result,
+    northStarMessage: formatNorthStarDistance(measureResult),
+    northStarStream: "stderr",
+  };
+}
+
+function formatAbsoluteSummary(measure: ManagedSectionMeasure, absoluteMaxBytes: number): string {
+  return `absolute ${measure.bytes}/${absoluteMaxBytes} bytes (~${measure.estimatedTokens} tok)`;
 }
 
 function formatRefusal(
@@ -268,12 +345,23 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     };
   }
   const counts = regionResult.counts;
+  const measureResult = measureManagedSection(text);
+  if ("error" in measureResult) {
+    return {
+      code: 2,
+      message: `❌ verify:agents-md-budget: ${measureResult.error}`,
+      stream: "stderr",
+    };
+  }
+  const measure = measureResult;
+  const absoluteMaxBytes = budgetResult.budget?.absoluteMaxBytes;
+  const advisoryOnly = absoluteMaxBytes === undefined;
 
   if (budgetResult.source === "unset") {
     if (quiet) {
-      return attachAbsoluteAdvisory({ code: 0, message: "", stream: "none" }, text);
+      return attachNorthStarNote({ code: 0, message: "", stream: "none" }, text, { advisoryOnly });
     }
-    return attachAbsoluteAdvisory(
+    return attachNorthStarNote(
       {
         code: 0,
         message:
@@ -285,6 +373,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         stream: "stderr",
       },
       text,
+      { advisoryOnly },
     );
   }
 
@@ -301,28 +390,63 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   const overManaged = counts.managed > budget.managedMaxLines;
   const overUnmanaged = counts.unmanaged > budget.unmanagedMaxLines;
 
-  if (!overManaged && !overUnmanaged) {
-    if (quiet) {
-      return attachAbsoluteAdvisory({ code: 0, message: "", stream: "none" }, text);
-    }
-    return attachAbsoluteAdvisory(
+  if (overManaged || overUnmanaged) {
+    return attachNorthStarNote(
       {
-        code: 0,
-        message:
-          `✓ verify:agents-md-budget: managed ${counts.managed}/${budget.managedMaxLines}, ` +
-          `unmanaged ${counts.unmanaged}/${budget.unmanagedMaxLines} lines (within ratchet).`,
-        stream: "stdout",
+        code: 1,
+        message: formatRefusal(counts, budget.managedMaxLines, budget.unmanagedMaxLines, root),
+        stream: "stderr",
       },
       text,
+      { advisoryOnly },
     );
   }
 
-  return attachAbsoluteAdvisory(
+  if (absoluteMaxBytes !== undefined && measure.bytes > absoluteMaxBytes) {
+    return attachNorthStarNote(
+      {
+        code: 1,
+        message: formatAbsoluteRefusal(measure, absoluteMaxBytes, root),
+        stream: "stderr",
+      },
+      text,
+      { advisoryOnly: false },
+    );
+  }
+
+  const overNorthStar =
+    measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES ||
+    measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  if (enforceNorthStarEnabled() && overNorthStar && !northStarWaiverActive()) {
+    return attachNorthStarNote(
+      {
+        code: 1,
+        message: formatNorthStarRefusal(measure, root),
+        stream: "stderr",
+      },
+      text,
+      { advisoryOnly: false },
+    );
+  }
+
+  const absoluteSummary =
+    absoluteMaxBytes !== undefined
+      ? `; ${formatAbsoluteSummary(measure, absoluteMaxBytes)}`
+      : "";
+
+  if (quiet) {
+    return attachNorthStarNote({ code: 0, message: "", stream: "none" }, text, { advisoryOnly });
+  }
+  return attachNorthStarNote(
     {
-      code: 1,
-      message: formatRefusal(counts, budget.managedMaxLines, budget.unmanagedMaxLines, root),
-      stream: "stderr",
+      code: 0,
+      message:
+        `✓ verify:agents-md-budget: managed ${counts.managed}/${budget.managedMaxLines}, ` +
+        `unmanaged ${counts.unmanaged}/${budget.unmanagedMaxLines} lines (within ratchet)` +
+        `${absoluteSummary}.`,
+      stream: "stdout",
     },
     text,
+    { advisoryOnly },
   );
 }

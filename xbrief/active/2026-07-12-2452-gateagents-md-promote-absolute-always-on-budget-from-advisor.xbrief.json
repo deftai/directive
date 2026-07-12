@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Promote absolute always-on budget from advisory to fail-closed",
+    "created": "2026-07-12T23:51:52.401Z",
+    "updated": "2026-07-12T23:51:52.401Z"
+  },
+  "plan": {
+    "id": "2452-promote-absolute-budget",
+    "title": "gate(agents-md): promote absolute always-on budget from advisory to fail-closed",
+    "status": "running",
+    "narratives": {
+      "Description": "Wave 2 relocation landed but the managed section is still ~16.6 KB vs the <=8 KB / ~2k tok north-star. This story promotes the absolute meter from advisory (#2450) to fail-closed without breaking master: seed an absolute byte ratchet at the current measured size (anti-growth), keep the <=8192 north-star documented, and provide a clear remediation path for further thinning. Relative #645 line ratchet stays fail-closed.",
+      "ImplementationPlan": "1) Extend packages/core agents-md-budget evaluate path / packages/cli/src/verify-agents-md-budget.ts so absolute over-budget can fail-closed. 2) Add plan.policy field (or reuse agentsMdBudget) for absoluteMaxBytes seeded at current managed UTF-8 size (~17029) so task check stays green, while documenting northStarBytes=8192. 3) Growth above seeded absolute max fails closed; report distance-to-north-star in output. 4) Optional release-gate mode that fails on north-star unless DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1 (time-boxed waiver documented in CHANGELOG/UPGRADING). 5) Tests in packages/core agents-md-budget evaluate tests. 6) Verify: pnpm exec vitest run packages/core/**/agents-md-budget* and task verify:agents-md-budget exits 0 on master. 7) CHANGELOG. DD-3 frontmatter: stub note that meter still excludes harness skill frontmatter.",
+      "UserStory": "As a framework maintainer, I want the absolute always-on budget to fail closed against growth while tracking the 8 KB north-star, so that Wave 2 gains cannot be given back and further thinning stays measurable.",
+      "Origin": "Enriched for swarm from #2452 under epic #2369 after Wave 2 relocation"
+    },
+    "items": [
+      {
+        "id": "2452-a1",
+        "title": "Fail-closed absolute growth ratchet",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given managed bytes above seeded absoluteMaxBytes, when verify:agents-md-budget runs, then it exits non-zero; master at seed size exits 0.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2452-a2",
+        "title": "North-star remaining visible",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given output/docs, when read, then <=8192 / ~2k tok north-star and distance-to-target are explicit.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2452-a3",
+        "title": "Relative ratchet unchanged",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given line-count growth past agentsMdBudget, when the gate runs, then it still fails closed as before.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/agents-md-budget",
+          "packages/cli/src/verify-agents-md-budget.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/agents-md-budget",
+          "task verify:agents-md-budget"
+        ],
+        "expected_outputs": [
+          "absolute fail-closed growth ratchet shipped",
+          "PR merged for #2452"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-budget-absolute",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "x-tracking": {
+        "parent_epic": "#2369",
+        "origin_issue": "#2452"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2452",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2452"
+      }
+    ],
+    "updated": "2026-07-12T23:51:52.401Z"
+  }
+}

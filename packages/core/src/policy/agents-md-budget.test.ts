@@ -139,6 +139,46 @@ describe("resolveAgentsMdBudget", () => {
     expect(result.budget).toEqual({ managedMaxLines: 223, unmanagedMaxLines: 347 });
   });
 
+  it("resolves optional absoluteMaxBytes when present", () => {
+    const result = resolveAgentsMdBudget(
+      makeRepo(
+        withPlan({
+          policy: {
+            agentsMdBudget: {
+              managedMaxLines: 1,
+              unmanagedMaxLines: 2,
+              absoluteMaxBytes: 16843,
+            },
+          },
+        }),
+      ),
+    );
+    expect(result.source).toBe("typed");
+    expect(result.budget).toEqual({
+      managedMaxLines: 1,
+      unmanagedMaxLines: 2,
+      absoluteMaxBytes: 16843,
+    });
+  });
+
+  it("returns default-on-error when absoluteMaxBytes is invalid", () => {
+    const result = resolveAgentsMdBudget(
+      makeRepo(
+        withPlan({
+          policy: {
+            agentsMdBudget: {
+              managedMaxLines: 1,
+              unmanagedMaxLines: 2,
+              absoluteMaxBytes: -1,
+            },
+          },
+        }),
+      ),
+    );
+    expect(result.source).toBe("default-on-error");
+    expect(result.error).toContain("absoluteMaxBytes");
+  });
+
   it("reads the namespaced x-directive/policy block", () => {
     const result = resolveAgentsMdBudget(
       makeRepo(

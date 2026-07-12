@@ -15,6 +15,12 @@ import { loadProjectDefinition } from "./resolve.js";
 export interface AgentsMdBudget {
   readonly managedMaxLines: number;
   readonly unmanagedMaxLines: number;
+  /**
+   * Fail-closed UTF-8 byte ratchet for the managed section (#2452).
+   * Seeded at the current measured size so the gate ships green; growth past
+   * this ceiling fails. The <=8192 B north-star is reported separately.
+   */
+  readonly absoluteMaxBytes?: number;
 }
 
 export type AgentsMdBudgetSource = "typed" | "unset" | "default-on-error";
@@ -54,6 +60,23 @@ function readRegion(
   if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0) {
     return {
       value: null,
+      error: `plan.policy.agentsMdBudget.${key} must be a non-negative integer; got ${pythonTypeName(raw)} (${pythonRepr(raw)})`,
+    };
+  }
+  return { value: raw, error: null };
+}
+
+function readOptionalRegion(
+  block: Record<string, unknown>,
+  key: string,
+): { value: number | undefined; error: string | null } {
+  if (!(key in block)) {
+    return { value: undefined, error: null };
+  }
+  const raw = block[key];
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0) {
+    return {
+      value: undefined,
       error: `plan.policy.agentsMdBudget.${key} must be a non-negative integer; got ${pythonTypeName(raw)} (${pythonRepr(raw)})`,
     };
   }
@@ -105,11 +128,25 @@ export function resolveAgentsMdBudget(projectRoot: string): AgentsMdBudgetResult
     return { budget: null, source: "default-on-error", error: unmanaged.error };
   }
 
+  const absolute = readOptionalRegion(block, "absoluteMaxBytes");
+  if (absolute.error !== null) {
+    return { budget: null, source: "default-on-error", error: absolute.error };
+  }
+
+  const budget: AgentsMdBudget = {
+    managedMaxLines: managed.value as number,
+    unmanagedMaxLines: unmanaged.value as number,
+  };
+  if (absolute.value !== undefined) {
+    return {
+      budget: { ...budget, absoluteMaxBytes: absolute.value },
+      source: "typed",
+      error: null,
+    };
+  }
+
   return {
-    budget: {
-      managedMaxLines: managed.value as number,
-      unmanagedMaxLines: unmanaged.value as number,
-    },
+    budget,
     source: "typed",
     error: null,
   };

@@ -113,7 +113,7 @@ describe("run", () => {
     }
   });
 
-  it("writes absolute advisory to stderr when the managed section is over budget", () => {
+  it("writes north-star note to stderr when absoluteMaxBytes is unset and over north-star", () => {
     const markerOpen = "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->";
     const markerClose = "<!-- /deft:managed-section -->";
     const fill = "x".repeat(9000);
@@ -132,5 +132,25 @@ describe("run", () => {
       out.mockRestore();
       err.mockRestore();
     }
+  });
+
+  it("returns 1 when absoluteMaxBytes is set and the managed section grows", () => {
+    const markerOpen = "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->";
+    const markerClose = "<!-- /deft:managed-section -->";
+    const fill = "x".repeat(9000);
+    const agents = ["unmanaged", markerOpen, fill, markerClose].join("\n");
+    const root = buildRepo({
+      plan: {
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 500,
+            unmanagedMaxLines: 500,
+            absoluteMaxBytes: 8000,
+          },
+        },
+      },
+      agents,
+    });
+    expect(silentRun(["--project-root", root])).toBe(1);
   });
 });

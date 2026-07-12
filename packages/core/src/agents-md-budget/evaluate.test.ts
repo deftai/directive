@@ -152,9 +152,19 @@ describe("measureManagedSection", () => {
   });
 });
 
-describe("absolute managed-section advisory", () => {
+describe("absolute managed-section budget", () => {
   const budgetPlan = {
     policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } },
+  };
+
+  const budgetWithAbsolute = {
+    policy: {
+      agentsMdBudget: {
+        managedMaxLines: 500,
+        unmanagedMaxLines: 500,
+        absoluteMaxBytes: 10_000,
+      },
+    },
   };
 
   /** Build a managed block whose UTF-8 body exceeds the 8192-byte north-star. */
@@ -172,20 +182,55 @@ describe("absolute managed-section advisory", () => {
     return lines.join("\n");
   }
 
-  it("emits advisory (exit 0) when the managed section exceeds the absolute ceiling", () => {
+  it("emits advisory (exit 0) when absoluteMaxBytes is unset and section exceeds north-star", () => {
     const root = makeRepo({ plan: budgetPlan, agents: agentsOverAbsolute(5, 9000) });
     const result = evaluate(root);
     expect(result.code).toBe(0);
-    expect(result.advisoryMessage).toContain("absolute budget advisory");
-    expect(result.advisoryMessage).toContain("Advisory only");
-    expect(result.advisoryStream).toBe("stderr");
+    expect(result.northStarMessage).toContain("absolute budget advisory");
+    expect(result.northStarMessage).toContain("Advisory only");
+    expect(result.northStarStream).toBe("stderr");
   });
 
-  it("stays quiet on absolute advisory when the managed section is under budget", () => {
+  it("fail-closes when absoluteMaxBytes is set and the managed section grows past it", () => {
+    const root = makeRepo({
+      plan: { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500, absoluteMaxBytes: 8000 } } },
+      agents: agentsOverAbsolute(5, 9000),
+    });
+    const result = evaluate(root);
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("absolute byte ratchet");
+    expect(result.northStarMessage).toContain("north-star");
+  });
+
+  it("passes at the seeded absolute ratchet and reports north-star distance", () => {
+    const agents = agentsOverAbsolute(5, 9000);
+    const measure = measureManagedSection(agents);
+    expect("bytes" in measure).toBe(true);
+    if (!("bytes" in measure)) return;
+    const root = makeRepo({
+      plan: {
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 500,
+            unmanagedMaxLines: 500,
+            absoluteMaxBytes: measure.bytes,
+          },
+        },
+      },
+      agents,
+    });
+    const result = evaluate(root);
+    expect(result.code).toBe(0);
+    expect(result.message).toContain(`absolute ${measure.bytes}/${measure.bytes} bytes`);
+    expect(result.northStarMessage).toContain("north-star");
+    expect(result.northStarMessage).toContain("over target");
+  });
+
+  it("stays quiet on north-star note when the managed section is under budget", () => {
     const root = makeRepo({ plan: budgetPlan, agents: agentsWith(5, 5) });
     const result = evaluate(root);
     expect(result.code).toBe(0);
-    expect(result.advisoryMessage).toBeUndefined();
+    expect(result.northStarMessage).toBeUndefined();
   });
 
   it("still fail-closes the relative ratchet when a region grows", () => {
@@ -196,12 +241,45 @@ describe("absolute managed-section advisory", () => {
     expect(result.message).toContain("grew past its ratchet");
   });
 
-  it("emits absolute advisory even when --quiet suppresses the success banner", () => {
-    const root = makeRepo({ plan: budgetPlan, agents: agentsOverAbsolute(5, 9000) });
+  it("fail-closes in release-gate north-star mode without a waiver", () => {
+    const agents = agentsOverAbsolute(5, 9000);
+    const measure = measureManagedSection(agents);
+    expect("bytes" in measure).toBe(true);
+    if (!("bytes" in measure)) return;
+    const root = makeRepo({
+      plan: {
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 500,
+            unmanagedMaxLines: 500,
+            absoluteMaxBytes: measure.bytes,
+          },
+        },
+      },
+      agents,
+    });
+    const prev = process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR;
+    const prevWaiver = process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
+    process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR = "1";
+    delete process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
+    try {
+      const result = evaluate(root);
+      expect(result.code).toBe(1);
+      expect(result.message).toContain("north-star ceiling");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR;
+      else process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR = prev;
+      if (prevWaiver === undefined) delete process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
+      else process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER = prevWaiver;
+    }
+  });
+
+  it("emits north-star note even when --quiet suppresses the success banner", () => {
+    const root = makeRepo({ plan: budgetWithAbsolute, agents: agentsOverAbsolute(5, 9000) });
     const result = evaluate(root, { quiet: true });
     expect(result.code).toBe(0);
     expect(result.message).toBe("");
-    expect(result.advisoryMessage).toContain("absolute budget advisory");
+    expect(result.northStarMessage).toContain("north-star");
   });
 });
 

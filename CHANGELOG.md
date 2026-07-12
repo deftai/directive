@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Layered AGENTS.md budget instrument now reports an advisory absolute north-star.** `verify:agents-md-budget` keeps the #645 relative line ratchet fail-closed and adds a Wave-1 advisory meter for the always-on managed section (≤8 KB / ~2k tok) that reports over-budget gaps without failing `task check`. Absolute fail-closed promotion and DD-3 harness frontmatter are deferred to post-Wave-2 (#2452). Closes #2450.
 
+- **Absolute always-on budget now fail-closes on growth.** `verify:agents-md-budget` promotes the managed-section byte ratchet from advisory to fail-closed via `plan.policy.agentsMdBudget.absoluteMaxBytes` (seeded at the current size so master stays green), keeps the ≤8192 B / ~2k tok north-star visible as distance-to-target, and supports optional release-gate north-star enforcement with `DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1`. Closes #2452. Refs #2369.
+
 ### Changed
 
 - **Universal always-on guardrails are pointer-thin.** Session ritual, WIP cap, branch policy, implementation-intent, and story-start rules in AGENTS.md / agents-entry compress to one-line imperatives plus gate/skill/doc pointers; bulk lives in `commands.md`, `scm/github.md`, and swarm skill. Closes #2453. Refs #2369.
