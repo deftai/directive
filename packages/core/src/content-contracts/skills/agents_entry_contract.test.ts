@@ -9,7 +9,17 @@ import { readRepoFile, repoFileExists, resolveRepoPath } from "./helpers.js";
 
 const OPEN_MARKER = "<!-- deft:managed-section v3 -->";
 const CLOSE_MARKER = "<!-- /deft:managed-section -->";
-const FIXTURES_DIR = join(import.meta.dirname, "..", "..", "..", "..", "..", "tests", "fixtures", "agents-md");
+const FIXTURES_DIR = join(
+  import.meta.dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "tests",
+  "fixtures",
+  "agents-md",
+);
 
 const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft session:start", "task session:start"],
@@ -137,6 +147,13 @@ const UNMANAGED_HEADER_MARKERS = [
   "Session orientation",
 ] as const;
 
+/** Not yet relocated to pointer form — retain full-text markers until Wave 2 (#2454). */
+const PROPAGATION_UMBRELLA_STATUS_MARKERS = [
+  "claim-cites-state-surface",
+  "issues/<N>/comments",
+  "Conclude umbrella or epic status from the issue body alone",
+] as const;
+
 type PointerShape = "skill" | "gate" | "doc";
 
 interface PointerRuleSpec {
@@ -157,17 +174,8 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "skill",
     header: "Review-surface precedence (#2308)",
     canonicalHome: "skills/deft-directive-review-cycle/SKILL.md",
-    pointerHints: [
-      "deft-directive-review-cycle",
-      "SKILL.md",
-      "advisory",
-      "#2308",
-    ],
-    canonicalBodyMarkers: [
-      "deft-directive-review-cycle",
-      "Greptile",
-      "review cycle",
-    ],
+    pointerHints: ["deft-directive-review-cycle", "SKILL.md", "advisory", "#2308"],
+    canonicalBodyMarkers: ["deft-directive-review-cycle", "Greptile", "review cycle"],
     retiredFullTextMarkers: [
       "wrong-review-surface class",
       "harness-aware-reviewer path",
@@ -179,17 +187,8 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "skill",
     header: "Value feedback and attribution (#1709)",
     canonicalHome: "skills/deft-directive-feedback/SKILL.md",
-    pointerHints: [
-      "deft-directive-feedback",
-      "SKILL.md",
-      "plan.policy.valueFeedback",
-      "#1709",
-    ],
-    canonicalBodyMarkers: [
-      "plan.policy.valueFeedback",
-      "deft-directive-feedback",
-      "attributed",
-    ],
+    pointerHints: ["deft-directive-feedback", "SKILL.md", "plan.policy.valueFeedback", "#1709"],
+    canonicalBodyMarkers: ["plan.policy.valueFeedback", "deft-directive-feedback", "attributed"],
     retiredFullTextMarkers: [
       "DEFT_VALUE_SELF_DOGFOOD",
       "without operator confirmation",
@@ -210,12 +209,7 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Deterministic questions runtime obligation (#1470)",
     canonicalHome: "contracts/deterministic-questions.md",
-    pointerHints: [
-      "contracts/deterministic-questions.md",
-      "Discuss",
-      "Back",
-      "#1470",
-    ],
+    pointerHints: ["contracts/deterministic-questions.md", "Discuss", "Back", "#1470"],
     canonicalBodyMarkers: ["Discuss` and `Back`", "final two numbered options"],
     retiredFullTextMarkers: [
       "NOT substitutes for `Discuss`",
@@ -246,7 +240,10 @@ function managedSection(text: string): string {
 }
 
 function extractSection(text: string, heading: string): string {
-  const headingRe = new RegExp(`^##\\s+${heading.replace(/[()]/g, "\\$&")}\\s*$`, "m");
+  const headingRe = new RegExp(
+    `^##\\s+${heading.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&")}\\s*$`,
+    "m",
+  );
   const match = headingRe.exec(text);
   if (!match || match.index === undefined) {
     return "";
@@ -294,7 +291,10 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   }
 
   if (spec.retiredFullTextMarkers) {
-    const leaked = spec.retiredFullTextMarkers.filter((m) => section.includes(m));
+    const normalizedSection = normalizeWhitespace(section);
+    const leaked = spec.retiredFullTextMarkers.filter((m) =>
+      normalizedSection.includes(normalizeWhitespace(m)),
+    );
     if (leaked.length > 0) {
       errors.push(
         `${spec.id}: retired full-text markers still in managed section: ${leaked.join(", ")}`,
@@ -379,21 +379,24 @@ describe("test_agents_entry_contract", () => {
     expect(missingMarkers(agents, UNMANAGED_HEADER_MARKERS)).toEqual([]);
   });
 
-  it.each(POINTER_RELOCATED_RULES)(
-    "pointer_sufficient_rule_in_consumer_managed_section $id",
-    (spec) => {
-      const section = extractSection(templateManaged, spec.header);
-      expect(validatePointerRule(section, spec)).toEqual([]);
-    },
-  );
+  it("propagation_umbrella_status_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
+  });
 
-  it.each(POINTER_RELOCATED_RULES)(
-    "pointer_sufficient_rule_in_maintainer_managed_section $id",
-    (spec) => {
-      const section = extractSection(agentsManaged, spec.header);
-      expect(validatePointerRule(section, spec)).toEqual([]);
-    },
-  );
+  it.each(
+    POINTER_RELOCATED_RULES,
+  )("pointer_sufficient_rule_in_consumer_managed_section $id", (spec) => {
+    const section = extractSection(templateManaged, spec.header);
+    expect(validatePointerRule(section, spec)).toEqual([]);
+  });
+
+  it.each(
+    POINTER_RELOCATED_RULES,
+  )("pointer_sufficient_rule_in_maintainer_managed_section $id", (spec) => {
+    const section = extractSection(agentsManaged, spec.header);
+    expect(validatePointerRule(section, spec)).toEqual([]);
+  });
 
   it("value_readback_suppression_window_is_four_hours", () => {
     expect(VALUE_READBACK_SUPPRESSION_HOURS).toBe(4);
@@ -413,27 +416,36 @@ describe("test_agents_entry_pointer_fixtures", () => {
   it("fixture_pointer_to_skill_passes_without_full_rule_body", () => {
     const fixture = readFixture("pointer-sufficient-skill.md");
     const spec = POINTER_RELOCATED_RULES.find((r) => r.id === "review-surface-2308");
-    expect(spec).toBeTruthy();
-    const section = extractSection(fixture, spec!.header);
-    expect(validatePointerRule(section, spec!)).toEqual([]);
+    expect(spec).toBeDefined();
+    if (!spec) {
+      return;
+    }
+    const section = extractSection(fixture, spec.header);
+    expect(validatePointerRule(section, spec)).toEqual([]);
     expect(section).not.toContain("wrong-review-surface class");
   });
 
   it("fixture_pointer_to_gate_passes_without_full_rule_body", () => {
     const fixture = readFixture("pointer-sufficient-gate.md");
     const spec = POINTER_RELOCATED_RULES.find((r) => r.id === "eval-framework-1703");
-    expect(spec).toBeTruthy();
-    const section = extractSection(fixture, spec!.header);
-    expect(validatePointerRule(section, spec!)).toEqual([]);
+    expect(spec).toBeDefined();
+    if (!spec) {
+      return;
+    }
+    const section = extractSection(fixture, spec.header);
+    expect(validatePointerRule(section, spec)).toEqual([]);
     expect(section).not.toContain("crud-metrics.jsonl");
   });
 
   it("fixture_pointer_to_doc_passes_without_full_rule_body", () => {
     const fixture = readFixture("pointer-sufficient-doc.md");
     const spec = POINTER_RELOCATED_RULES.find((r) => r.id === "deterministic-questions-1470");
-    expect(spec).toBeTruthy();
-    const section = extractSection(fixture, spec!.header);
-    expect(validatePointerRule(section, spec!)).toEqual([]);
+    expect(spec).toBeDefined();
+    if (!spec) {
+      return;
+    }
+    const section = extractSection(fixture, spec.header);
+    expect(validatePointerRule(section, spec)).toEqual([]);
     expect(section).not.toContain("Discuss-pause semantic");
   });
 
