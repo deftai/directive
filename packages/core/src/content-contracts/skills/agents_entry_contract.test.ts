@@ -1,12 +1,15 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { EVAL_READBACK_SUPPRESSION_HOURS } from "../../eval/readback.js";
 import { VALUE_READBACK_SUPPRESSION_HOURS } from "../../value/readback.js";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile, repoFileExists, resolveRepoPath } from "./helpers.js";
 
-/** Port of tests/content/test_agents_entry_contract.py (#768, #1309, #2111). */
+/** Port of tests/content/test_agents_entry_contract.py (#768, #1309, #2111, #2371). */
 
 const OPEN_MARKER = "<!-- deft:managed-section v3 -->";
 const CLOSE_MARKER = "<!-- /deft:managed-section -->";
+const FIXTURES_DIR = join(import.meta.dirname, "..", "..", "..", "..", "..", "tests", "fixtures", "agents-md");
 
 const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft session:start", "task session:start"],
@@ -103,12 +106,8 @@ const PROPAGATION_ACTION_VERBS = [
   "start agent",
 ] as const;
 
-// #838: skill routing moved from the AGENTS.md `## Skill Routing` table to the
-// REFERENCES.md Skills Index. AGENTS.md keeps only a `## Skills` pointer.
 const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "REFERENCES.md"] as const;
 
-// Every non-deprecated skill catalogued under content/skills/ that the
-// REFERENCES.md Skills Index MUST list (name + description + triggers).
 const INDEXED_SKILL_IDS = [
   "deft-directive-setup",
   "deft-directive-cost",
@@ -132,77 +131,98 @@ const INDEXED_SKILL_IDS = [
   "deft-directive-feedback",
 ] as const;
 
-const PROPAGATION_UMBRELLA_STATUS_MARKERS = [
-  "claim-cites-state-surface",
-  "issues/<N>/comments",
-  "Conclude umbrella or epic status from the issue body alone",
-] as const;
-
 const UNMANAGED_HEADER_MARKERS = [
   "Do NOT treat the unmanaged AGENTS.md header as the work queue",
   "Do NOT add `Status`, `Next:`, or `Known Issues` blocks",
   "Session orientation",
 ] as const;
 
-// #2308: the review-surface precedence rule (deft-directive-review-cycle wins
-// over host-provided review tooling; host reviewers are advisory-only inputs)
-// MUST be mirrored across the maintainer AGENTS.md and the consumer template.
-const REVIEW_SURFACE_PRECEDENCE_MARKERS = [
-  "## Review-surface precedence (#2308)",
-  "deft-directive-review-cycle",
-  "bugbot",
-  "security-review",
-  "review-bugbot",
-  "review-security",
-  "or any future host equivalent",
-  "advisory",
-  "harness-aware-reviewer path",
-  "wrong-review-surface class",
-] as const;
+type PointerShape = "skill" | "gate" | "doc";
 
-// #1709: value-feedback opt-in, attributed readbacks, and confirmation-gated gap
-// escalation MUST be mirrored across maintainer AGENTS.md and the consumer template.
-const VALUE_FEEDBACK_MARKERS = [
-  "## Value feedback and attribution (#1709)",
-  "plan.policy.valueFeedback.enabled",
-  "attributed-only",
-  "4-hour window",
-  "deft-directive-feedback",
-  "Refs #1709",
-  "DEFT_VALUE_SELF_DOGFOOD",
-  "without operator confirmation",
-  "Trusted-org local auto-enable (#2376)",
-  "DEFT_VALUE_AUTOENABLE_ORGS",
-  "source=org-auto",
-] as const;
+interface PointerRuleSpec {
+  id: string;
+  shape: PointerShape;
+  header: string;
+  canonicalHome: string;
+  pointerHints: readonly string[];
+  canonicalBodyMarkers: readonly string[];
+  /** Full-text markers that must NOT appear in the managed section once relocated (#2371). */
+  retiredFullTextMarkers?: readonly string[];
+}
 
-// #1703: tiered eval framework discoverability MUST mirror across maintainer
-// AGENTS.md and the consumer template (#2336 / #1309).
-const EVAL_FRAMEWORK_MARKERS = [
-  "## Eval and framework health (#1703)",
-  "eval:health",
-  "eval:run",
-  "eval:report",
-  "crud-metrics.jsonl",
-  "health-history.jsonl",
-  "contradictory gate",
-  "4-hour debounce",
-  "Tier 1",
-  "Tier 2",
-] as const;
-
-// #1470: Discuss/Back runtime obligation MUST mirror across maintainer AGENTS.md,
-// consumer template, contract scope text, and orchestrator preamble self-check.
-const DETERMINISTIC_QUESTIONS_RUNTIME_MARKERS = [
-  "## Deterministic questions runtime obligation (#1470)",
-  "agent-initiated",
-  "ask_user_question",
-  "Discuss",
-  "Back",
-  "final two options",
-  "Discuss-pause semantic",
-  "contracts/deterministic-questions.md",
-  "NOT substitutes for `Discuss`",
+/** Relocated rules: pointer-sufficient always-on surface (#2371 / #2369 DD-1). */
+const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
+  {
+    id: "review-surface-2308",
+    shape: "skill",
+    header: "Review-surface precedence (#2308)",
+    canonicalHome: "skills/deft-directive-review-cycle/SKILL.md",
+    pointerHints: [
+      "deft-directive-review-cycle",
+      "SKILL.md",
+      "advisory",
+      "#2308",
+    ],
+    canonicalBodyMarkers: [
+      "deft-directive-review-cycle",
+      "Greptile",
+      "review cycle",
+    ],
+    retiredFullTextMarkers: [
+      "wrong-review-surface class",
+      "harness-aware-reviewer path",
+      "or any future host equivalent",
+    ],
+  },
+  {
+    id: "value-feedback-1709",
+    shape: "skill",
+    header: "Value feedback and attribution (#1709)",
+    canonicalHome: "skills/deft-directive-feedback/SKILL.md",
+    pointerHints: [
+      "deft-directive-feedback",
+      "SKILL.md",
+      "plan.policy.valueFeedback",
+      "#1709",
+    ],
+    canonicalBodyMarkers: [
+      "plan.policy.valueFeedback",
+      "deft-directive-feedback",
+      "attributed",
+    ],
+    retiredFullTextMarkers: [
+      "DEFT_VALUE_SELF_DOGFOOD",
+      "without operator confirmation",
+      "DEFT_VALUE_AUTOENABLE_ORGS",
+    ],
+  },
+  {
+    id: "eval-framework-1703",
+    shape: "gate",
+    header: "Eval and framework health (#1703)",
+    canonicalHome: "packages/core/src/eval/health.ts",
+    pointerHints: ["eval:health", "Tier 0", "#1703"],
+    canonicalBodyMarkers: ["health-history", "contradictory"],
+    retiredFullTextMarkers: ["crud-metrics.jsonl", "health-history.jsonl", "Tier 2"],
+  },
+  {
+    id: "deterministic-questions-1470",
+    shape: "doc",
+    header: "Deterministic questions runtime obligation (#1470)",
+    canonicalHome: "contracts/deterministic-questions.md",
+    pointerHints: [
+      "contracts/deterministic-questions.md",
+      "Discuss",
+      "Back",
+      "#1470",
+    ],
+    canonicalBodyMarkers: ["Discuss` and `Back`", "final two numbered options"],
+    retiredFullTextMarkers: [
+      "NOT substitutes for `Discuss`",
+      "ask_user_question",
+      "Emit a structured or numbered question without",
+    ],
+  },
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -218,16 +238,82 @@ function missingMarkers(haystack: string, markers: readonly string[]): string[] 
 }
 
 function managedSection(text: string): string {
-  const start = text.indexOf(OPEN_MARKER);
+  const start = text.search(/<!-- deft:managed-section v3\b/);
   const end = text.indexOf(CLOSE_MARKER);
   expect(start).toBeGreaterThanOrEqual(0);
   expect(end).toBeGreaterThan(start);
   return text.slice(start, end + CLOSE_MARKER.length);
 }
 
+function extractSection(text: string, heading: string): string {
+  const headingRe = new RegExp(`^##\\s+${heading.replace(/[()]/g, "\\$&")}\\s*$`, "m");
+  const match = headingRe.exec(text);
+  if (!match || match.index === undefined) {
+    return "";
+  }
+  const start = match.index;
+  const afterHeading = text.slice(start + match[0].length);
+  const nextHeading = afterHeading.search(/^##\s/m);
+  return nextHeading === -1
+    ? text.slice(start)
+    : text.slice(start, start + match[0].length + nextHeading);
+}
+
+function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
+  const errors: string[] = [];
+  if (!section) {
+    errors.push(`${spec.id}: missing section header "## ${spec.header}"`);
+    return errors;
+  }
+
+  const missingHints = missingMarkers(section, spec.pointerHints);
+  if (missingHints.length > 0) {
+    errors.push(`${spec.id}: missing pointer hints: ${missingHints.join(", ")}`);
+  }
+
+  if (!repoFileExists(spec.canonicalHome)) {
+    errors.push(`${spec.id}: canonical home missing at ${spec.canonicalHome}`);
+  } else {
+    const homeText = readRepoFile(spec.canonicalHome);
+    const missingBody = missingMarkers(homeText, spec.canonicalBodyMarkers);
+    if (missingBody.length > 0) {
+      errors.push(
+        `${spec.id}: canonical home ${spec.canonicalHome} missing: ${missingBody.join(", ")}`,
+      );
+    }
+  }
+
+  if (spec.shape === "skill" && !/SKILL\.md|deft-directive-[\w-]+/.test(section)) {
+    errors.push(`${spec.id}: skill pointer shape not detected`);
+  }
+  if (spec.shape === "gate" && !/eval:health|verify:[\w-]+/.test(section)) {
+    errors.push(`${spec.id}: gate pointer shape not detected`);
+  }
+  if (spec.shape === "doc" && !/contracts\/[\w.-]+\.md|\.deft\/core\/contracts\//.test(section)) {
+    errors.push(`${spec.id}: doc pointer shape not detected`);
+  }
+
+  if (spec.retiredFullTextMarkers) {
+    const leaked = spec.retiredFullTextMarkers.filter((m) => section.includes(m));
+    if (leaked.length > 0) {
+      errors.push(
+        `${spec.id}: retired full-text markers still in managed section: ${leaked.join(", ")}`,
+      );
+    }
+  }
+
+  return errors;
+}
+
+function readFixture(name: string): string {
+  return readFileSync(join(FIXTURES_DIR, name), "utf8");
+}
+
 describe("test_agents_entry_contract", () => {
   const template = readRepoFile("templates/agents-entry.md");
   const agents = readRepoFile("AGENTS.md");
+  const templateManaged = managedSection(template);
+  const agentsManaged = managedSection(agents);
 
   it("template_carries_managed_section_markers", () => {
     expect(template).toContain(OPEN_MARKER);
@@ -236,7 +322,7 @@ describe("test_agents_entry_contract", () => {
   });
 
   it("managed_section_contains_implementation_intent_gate", () => {
-    expect(managedSection(template)).toContain("Implementation Intent Gate");
+    expect(templateManaged).toContain("Implementation Intent Gate");
   });
 
   it("propagation_command_markers_present_in_both_files", () => {
@@ -273,7 +359,6 @@ describe("test_agents_entry_contract", () => {
   });
 
   it("skill_routing_table_removed_from_policy_files", () => {
-    // #838: the keyword->path routing table moved to the REFERENCES.md Skills Index.
     expect(agents).not.toContain("## Skill Routing");
     expect(template).not.toContain("## Skill Routing");
   });
@@ -289,35 +374,26 @@ describe("test_agents_entry_contract", () => {
     expect(missingMarkers(references, INDEXED_SKILL_IDS)).toEqual([]);
   });
 
-  it("propagation_umbrella_status_markers_present_in_both_files", () => {
-    expect(missingMarkers(template, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
-  });
-
   it("unmanaged_header_contract_markers_present_in_both_files", () => {
     expect(missingMarkers(template, UNMANAGED_HEADER_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, UNMANAGED_HEADER_MARKERS)).toEqual([]);
   });
 
-  it("propagation_review_surface_precedence_markers_present_in_both_files", () => {
-    expect(missingMarkers(template, REVIEW_SURFACE_PRECEDENCE_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, REVIEW_SURFACE_PRECEDENCE_MARKERS)).toEqual([]);
-  });
+  it.each(POINTER_RELOCATED_RULES)(
+    "pointer_sufficient_rule_in_consumer_managed_section $id",
+    (spec) => {
+      const section = extractSection(templateManaged, spec.header);
+      expect(validatePointerRule(section, spec)).toEqual([]);
+    },
+  );
 
-  it("propagation_value_feedback_markers_present_in_both_files", () => {
-    expect(missingMarkers(template, VALUE_FEEDBACK_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, VALUE_FEEDBACK_MARKERS)).toEqual([]);
-  });
-
-  it("propagation_eval_framework_markers_present_in_both_files", () => {
-    expect(missingMarkers(template, EVAL_FRAMEWORK_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, EVAL_FRAMEWORK_MARKERS)).toEqual([]);
-  });
-
-  it("propagation_deterministic_questions_runtime_markers_present_in_both_files", () => {
-    expect(missingMarkers(template, DETERMINISTIC_QUESTIONS_RUNTIME_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, DETERMINISTIC_QUESTIONS_RUNTIME_MARKERS)).toEqual([]);
-  });
+  it.each(POINTER_RELOCATED_RULES)(
+    "pointer_sufficient_rule_in_maintainer_managed_section $id",
+    (spec) => {
+      const section = extractSection(agentsManaged, spec.header);
+      expect(validatePointerRule(section, spec)).toEqual([]);
+    },
+  );
 
   it("value_readback_suppression_window_is_four_hours", () => {
     expect(VALUE_READBACK_SUPPRESSION_HOURS).toBe(4);
@@ -328,8 +404,43 @@ describe("test_agents_entry_contract", () => {
   });
 
   it("content_packs_note_references_discovery_commands", () => {
-    const section = managedSection(template);
-    expect(section).toContain("--list-packs");
-    expect(section).toContain("<pack> --list");
+    expect(templateManaged).toContain("--list-packs");
+    expect(templateManaged).toContain("<pack> --list");
+  });
+});
+
+describe("test_agents_entry_pointer_fixtures", () => {
+  it("fixture_pointer_to_skill_passes_without_full_rule_body", () => {
+    const fixture = readFixture("pointer-sufficient-skill.md");
+    const spec = POINTER_RELOCATED_RULES.find((r) => r.id === "review-surface-2308");
+    expect(spec).toBeTruthy();
+    const section = extractSection(fixture, spec!.header);
+    expect(validatePointerRule(section, spec!)).toEqual([]);
+    expect(section).not.toContain("wrong-review-surface class");
+  });
+
+  it("fixture_pointer_to_gate_passes_without_full_rule_body", () => {
+    const fixture = readFixture("pointer-sufficient-gate.md");
+    const spec = POINTER_RELOCATED_RULES.find((r) => r.id === "eval-framework-1703");
+    expect(spec).toBeTruthy();
+    const section = extractSection(fixture, spec!.header);
+    expect(validatePointerRule(section, spec!)).toEqual([]);
+    expect(section).not.toContain("crud-metrics.jsonl");
+  });
+
+  it("fixture_pointer_to_doc_passes_without_full_rule_body", () => {
+    const fixture = readFixture("pointer-sufficient-doc.md");
+    const spec = POINTER_RELOCATED_RULES.find((r) => r.id === "deterministic-questions-1470");
+    expect(spec).toBeTruthy();
+    const section = extractSection(fixture, spec!.header);
+    expect(validatePointerRule(section, spec!)).toEqual([]);
+    expect(section).not.toContain("Discuss-pause semantic");
+  });
+
+  it("canonical_homes_resolve_on_disk", () => {
+    for (const spec of POINTER_RELOCATED_RULES) {
+      expect(resolveRepoPath(spec.canonicalHome)).toBeTruthy();
+      expect(repoFileExists(spec.canonicalHome)).toBe(true);
+    }
   });
 });

@@ -101,12 +101,7 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Deterministic questions runtime obligation (#1470)
 
-Rationale + cross-references: `.deft/core/contracts/deterministic-questions.md` (#767); closes the agent-runtime enforcement gap on issue #1470.
-
-- ! ANY agent-initiated structured question — whether via host `ask_user_question` / `AskQuestion` tooling or a numbered menu rendered in chat — inside OR outside any skill flow MUST include `Discuss` and `Back` as the final two options, in that order, and MUST obey the Discuss-pause semantic documented verbatim in `.deft/core/contracts/deterministic-questions.md`.
-- ! Before emitting any structured or numbered question, self-check: confirm `Discuss` and `Back` are present as the final two options; if not, add them before calling the tool or rendering the menu. Host-native `Other` / free-text affordances are NOT substitutes for `Discuss` (#767 / #431).
-- ⊗ Emit a structured or numbered question without `Discuss` and `Back` as the final two options — including ad-hoc orchestration approvals, dispatch confirmations, and decision walkthroughs outside interview/setup/refinement skills.
-- ⊗ Treat the host UI's automatic `Other` option as the stop-and-discuss escape hatch — `Other` widens the answer space; `Discuss` exits the deterministic flow entirely (see contract).
+! Any agent-initiated structured question MUST include `Discuss` and `Back` as the final two options — full Discuss-pause semantic in `.deft/core/contracts/deterministic-questions.md` (#1470 / #767).
 
 ## Issue body→comments reading (#2143)
 
@@ -141,30 +136,15 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 
 ## Review-surface precedence (#2308)
 
-! When the active host harness exposes its own review-labeled surfaces -- Cursor's `bugbot` / `security-review` Task **subagent types**, the `review-bugbot` / `review-security` **skills**, or any future host equivalent -- the orchestrator MUST route review work through the canonical `deft-directive-review-cycle` skill. A generic "review this" / "get this reviewed" / "use sub-agents for reviews" request maps to `deft-directive-review-cycle` by intent, not literal keyword (extends #1862 / #2261).
-
-~ Host review tools MAY be folded in as *advisory* finding sources inside the review cycle (the #2019 harness-aware-reviewer path) -- their findings are batched alongside Greptile / bot findings, never treated as the review of record.
-
-⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface -- the host review tools are advisory inputs, not a replacement. This is the 3rd recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class (see also #2019, #2018).
+! Route review work through `deft-directive-review-cycle` — full workflow in `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host review tools (`bugbot`, `security-review`, `review-*` skills) are advisory-only inputs, not the review of record (#2308 / #1862 / #2261 / #2019).
 
 ## Value feedback and attribution (#1709)
 
-- ! `plan.policy.valueFeedback.enabled` defaults OFF for non-org repos -- while off, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in for any repo via `deft policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `deft policy:show --field=valueFeedback`.
-- ! Trusted-org local auto-enable (#2376) -- for a repo whose GitHub origin belongs to a company-owned org (built-in default `deftai`; extend via the `DEFT_VALUE_AUTOENABLE_ORGS` env override), LOCAL emit + session readback resolve ON with `source=org-auto` and network/upstream OFF, with NO per-repo or per-machine confirmation: org membership IS the consent for local, no-egress collection on company-owned resources. An explicit typed `valueFeedback` block always wins (including `enabled: false`); a non-matching org or no origin remote stays OFF (fail-safe).
-- ! Attribution records are enriched at emit time (#2376) with `repo`, `directive_version`, `install_id` (a stable per-checkout uuid under gitignored `.deft-cache/`), and `schema_version`, so a later collector can aggregate cross-repo without re-deriving provenance.
-- ! Value claims MUST be attributed-only -- point to concrete logged events ("encoding gate caught 2 corruptions"), never vague quality claims. Silence when the ledger has nothing attributable for the session slot.
-- ! Budgeted awareness -- at most one session readback line when `sessionLine` is allowed; repeat suppression uses a 4-hour window per attribution event id (parity with #1279 triage welcome debounce). Pull-based detail is `deft value:show`, not pushed.
-- ! Gap escalation to `deftai/directive` is confirmation-gated -- route conversational filing through `deft-directive-feedback`; the agent drafts + dedups; the operator approves before `deft feedback:file -- --confirm`. Use `Refs #1709` in upstream bodies, not `Closes`.
-- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`. Trusted-org auto-enable still turns LOCAL emit ON inside the maintainer repo, but session readback stays gated behind `DEFT_VALUE_SELF_DOGFOOD=1`.
-- ⊗ Enable any NETWORK or upstream value-feedback surface (upstream gap escalation / `deft feedback:file`) without operator confirmation -- trusted-org auto-enable authorizes LOCAL, no-egress collection ONLY.
-- ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
-- ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
+! `plan.policy.valueFeedback.enabled` defaults OFF — opt-in via `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; pull-based detail via `deft value:show`; full rules in `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709). Trusted-org auto-enable uses `source=org-auto` (#2376); gap escalation via `deft feedback:file` is confirmation-gated.
 
 ## Eval and framework health (#1703)
 
-- ! Three tiers: **Tier 0** `deft eval:health` (static gate score + contradictory-gate detector; ledger: `.eval/results/health-history.jsonl`). **Tier 1** CRUD telemetry on scope transitions (`.eval/results/crud-metrics.jsonl`, automatic). **Tier 2** `deft eval:run` / `deft eval:report` (golden corpus champion–challenger + holdout tripwire).
-- ! Run `deft eval:health` when orienting, after gate/policy/doc changes, or when session start emits a budgeted `[eval]` nudge (score drop or contradictory gate; 4-hour debounce, parity #1279/#1709). Tier 2 is for maintainer release eval (`eval:run -- --model M`; `eval:report -- --champion V --challenger V --model M`).
-- ⊗ Discover eval only via CHANGELOG/`deft --list` — AGENTS.md and `deft triage:help` are canonical. ⊗ Treat Tier 1 telemetry as operator-invoked.
+! Run `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Maintainer release eval: `deft eval:run` / `deft eval:report` (#1703).
 
 ## Branch policy & branch verification
 

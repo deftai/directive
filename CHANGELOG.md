@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Agents-entry propagation is pointer-sufficient.** The `agents_entry_contract` gate now validates skill/gate/doc pointer shapes and canonical homes instead of requiring full-text rule mirrors in the always-on AGENTS.md managed section — unblocking epic #2369 Wave 2 relocation. Closes #2371.
+
 ### Fixed
 
 - **TS-native init now deposits the shared git-hook helper.** npm-installed projects receive `.githooks/_deft-run.sh` alongside `pre-commit` and `pre-push`, `verify:hooks-installed` catches missing helpers, and the Windows update smoke now baseline-commits through the hooks instead of bypassing them. Refs #2067, #2248.
