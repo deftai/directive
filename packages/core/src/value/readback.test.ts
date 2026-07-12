@@ -270,6 +270,7 @@ describe("value:show trend readout", () => {
     const result = runValueShow({
       projectRoot: root,
       window: "7d",
+      now: new Date("2026-07-05T12:00:00Z"),
       policyOverride: {
         enabled: true,
         emitEvents: true,

@@ -492,6 +492,7 @@ export function runValueShow(options: {
   format?: "text" | "json";
   logPath?: string | null;
   policyOverride?: ValueFeedbackResolved;
+  now?: Date;
 }): ValueShowResult {
   const rootRaw = resolveProjectRoot(options.projectRoot ?? undefined);
   if (rootRaw === null) {
@@ -529,7 +530,11 @@ export function runValueShow(options: {
   }
 
   const windowMs = parseWindowMs(options.window);
-  const trend = computeValueShowTrend(root, { windowMs, logPath: options.logPath });
+  const trend = computeValueShowTrend(root, {
+    windowMs,
+    logPath: options.logPath,
+    now: options.now,
+  });
   const empty = trend.total === 0;
 
   if (options.format === "json") {
