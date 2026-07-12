@@ -223,7 +223,11 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     header: "Session-start ritual (#1149)",
     canonicalHome: "commands.md",
     pointerHints: ["deft session:start", "deft verify:session-ritual", "#1149"],
-    canonicalBodyMarkers: ["sessionRitualStalenessHours", "DEFT_SESSION_RITUAL_SKIP", "ritual-state.json"],
+    canonicalBodyMarkers: [
+      "sessionRitualStalenessHours",
+      "DEFT_SESSION_RITUAL_SKIP",
+      "ritual-state.json",
+    ],
     retiredFullTextMarkers: [
       "lazily records the doctor and cache-fresh Python entrypoints",
       "D2 4-hour suppression window",
@@ -237,10 +241,7 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     canonicalHome: "skills/deft-directive-swarm/SKILL.md",
     pointerHints: ["plan.policy.wipCap", "deft scope:demote", "#1121"],
     canonicalBodyMarkers: ["plan.policy.wipCap", "scope:demote --batch", "wip_cap_override"],
-    retiredFullTextMarkers: [
-      "raised from the original 10 per umbrella",
-      "Phase 4 wipCap prompt",
-    ],
+    retiredFullTextMarkers: ["raised from the original 10 per umbrella", "Phase 4 wipCap prompt"],
   },
   {
     id: "branch-policy-746",
@@ -369,7 +370,10 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   if (spec.shape === "gate" && !/eval:health|verify:[\w-]+/.test(section)) {
     errors.push(`${spec.id}: gate pointer shape not detected`);
   }
-  if (spec.shape === "doc" && !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\//.test(section)) {
+  if (
+    spec.shape === "doc" &&
+    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\//.test(section)
+  ) {
     errors.push(`${spec.id}: doc pointer shape not detected`);
   }
 
