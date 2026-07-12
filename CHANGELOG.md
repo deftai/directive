@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Rule-relocation PRs now require eval:health no-regression.** `verify:eval-health-relocation` classifies diffs touching AGENTS.md, agents-entry, skills, or packs and fail-closed blocks when framework health drops against the committed baseline — the acceptance gate epic #2369 Wave 2 relocation slices need before merge. Closes #2373.
+
 - **Layered AGENTS.md budget instrument now reports an advisory absolute north-star.** `verify:agents-md-budget` keeps the #645 relative line ratchet fail-closed and adds a Wave-1 advisory meter for the always-on managed section (≤8 KB / ~2k tok) that reports over-budget gaps without failing `task check`. Absolute fail-closed promotion and DD-3 harness frontmatter are deferred to post-Wave-2 (#2452). Closes #2450.
 
 ### Changed

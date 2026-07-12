@@ -61,6 +61,25 @@ describe("deft-ts verify-agents-md-budget (#645)", () => {
   });
 });
 
+describe("deft-ts verify-eval-health-relocation (#2373)", () => {
+  it("skips when no relocation paths are in the diff", () => {
+    const { exitCode } = runDeftTs("verify-eval-health-relocation", [
+      "--project-root",
+      repoRoot(),
+      "--path",
+      "packages/core/src/eval/health.ts",
+    ]);
+    expect(exitCode).toBe(0);
+  });
+
+  it("verify:eval-health-relocation alias routes identically", () => {
+    const args = ["--project-root", repoRoot(), "--path", "README.md"];
+    expect(runDeftTs("verify:eval-health-relocation", args).exitCode).toBe(
+      runDeftTs("verify-eval-health-relocation", args).exitCode,
+    );
+  });
+});
+
 describe("deft-ts verify-judgment-gates (maps tests/cli/test_verify_judgment_gates.py)", () => {
   it("returns 2 when claim ledger path is missing", () => {
     const root = seedProject();

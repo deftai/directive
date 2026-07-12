@@ -395,6 +395,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:agents-md-budget --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  eval-health-relocation:
+    desc: "Fail-closed eval:health no-regression gate for epic #2369 rule-relocation PRs (#2373). Classifies diffs touching AGENTS.md, content/templates/agents-entry.md, content/skills/**/SKILL.md, or content/packs/** and requires eval:health to not regress against the committed baseline at xbrief/.eval/results/eval-health-baseline.json. Skips (exit 0) when no relocation paths are in the diff. Seed baseline once with --seed-baseline after master is healthy. Three-state exit (0 pass or skip / 1 regression / 2 config error). -- task verify:eval-health-relocation [-- --base-ref <ref> | --staged] [--quiet] [--seed-baseline]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:eval-health-relocation --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   agents-md-advisory:
     desc: "ADVISORY (never fail-closing) consumer AGENTS.md legibility signal (#2155). Counts the UNMANAGED (project-authored) region only -- the framework-owned managed section is excluded -- and compares it against the SOFT, operator-adjustable budget plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines (generous default when unset). Consumer companion to the maintainer-only #645 ratchet; deliberately NOT a check:consumer dependency (advise->observe->enforce per #1419). Default posture ALWAYS exits 0; the opt-in --enforce flag promotes an over-budget region to a hard cap (exit 1). Raising the field is the documented, no-friction way to accept growth and silence the nudge."
     dir: '{{.USER_WORKING_DIR}}'

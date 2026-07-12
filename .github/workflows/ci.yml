@@ -61,6 +61,12 @@ jobs:
       - name: Test with coverage (vitest)
         run: pnpm run test
 
+      - name: Rule-relocation eval:health gate (#2373)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          npx --yes task verify:eval-health-relocation -- --base-ref "origin/${{ github.base_ref }}"
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Wire eval:health no-regression gate on rule-relocation PRs",
+    "created": "2026-07-12T22:32:13.847Z",
+    "updated": "2026-07-12T22:32:13.847Z"
+  },
+  "plan": {
+    "id": "2373-eval-health-relocation-gate",
+    "title": "gate(agents-md): eval-health regression gate on rule-relocation PRs",
+    "status": "running",
+    "narratives": {
+      "Description": "Wave 2 relocation moves enforceable rules, not just rationale. A byte-count gate will not catch silent behavior loss. This story wires eval:health (and preferably Tier-2 golden checks when cheap) as an acceptance gate on rule-relocation PRs under epic #2369.",
+      "ImplementationPlan": "1) Locate eval health entrypoints in packages/core/src (eval health score / contradictory-gate detector) and the CLI/task wiring for task eval:health. 2) Add packages/core/src gate helper that detects rule-relocation diffs (paths: AGENTS.md, content/templates/agents-entry.md, content/skills/**/SKILL.md, content/packs/**) and requires eval:health no-regression. 3) Wire into .github/workflows CI and/or task check path used by relocation PRs; seed baseline if needed without weakening relative agents-md-budget. 4) Unit tests in packages/core/src/**/**.test.ts covering classifier + fail path. 5) Verify: pnpm exec vitest run <new-tests> and task eval:health. 6) CHANGELOG [Unreleased] Fixed/Added note.",
+      "UserStory": "As a framework maintainer, I want eval:health to gate rule-relocation PRs, so that moving rules out of always-on AGENTS.md cannot silently regress agent behavior.",
+      "Origin": "Ingested and enriched for swarm from #2373 under epic #2369"
+    },
+    "items": [
+      {
+        "id": "2373-a1",
+        "title": "Wire eval:health into relocation PR gate path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a PR classified as rule-relocation, when CI/local gate runs, then eval:health no-regression is required.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2373-a2",
+        "title": "Document enforcement posture",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given docs/CHANGELOG, when read, then fail-closed vs advisory seeding is explicit for Wave 2.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2373-a3",
+        "title": "Tests cover gate wiring",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given new unit tests, when vitest runs, then exit 0 and cover the relocation-gate path.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src",
+          "packages/cli/src",
+          ".github/workflows",
+          "tasks"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core"
+        ],
+        "expected_outputs": [
+          "eval-health relocation gate wired",
+          "PR merged for #2373"
+        ],
+        "depends_on": [],
+        "conflict_group": "eval-health-gate",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "x-tracking": {
+        "parent_epic": "#2369",
+        "origin_issue": "#2373"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2373",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2373"
+      }
+    ],
+    "updated": "2026-07-12T22:32:21.805Z"
+  }
+}
