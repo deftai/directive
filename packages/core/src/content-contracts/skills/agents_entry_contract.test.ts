@@ -217,6 +217,85 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "Emit a structured or numbered question without",
     ],
   },
+  {
+    id: "session-ritual-1149",
+    shape: "doc",
+    header: "Session-start ritual (#1149)",
+    canonicalHome: "commands.md",
+    pointerHints: ["deft session:start", "deft verify:session-ritual", "#1149"],
+    canonicalBodyMarkers: ["sessionRitualStalenessHours", "DEFT_SESSION_RITUAL_SKIP", "ritual-state.json"],
+    retiredFullTextMarkers: [
+      "lazily records the doctor and cache-fresh Python entrypoints",
+      "D2 4-hour suppression window",
+      "triage:welcome` implementation (#1143 / #1279)",
+    ],
+  },
+  {
+    id: "wip-cap-2319",
+    shape: "skill",
+    header: "WIP cap",
+    canonicalHome: "skills/deft-directive-swarm/SKILL.md",
+    pointerHints: ["plan.policy.wipCap", "deft scope:demote", "#1121"],
+    canonicalBodyMarkers: ["plan.policy.wipCap", "scope:demote --batch", "wip_cap_override"],
+    retiredFullTextMarkers: [
+      "raised from the original 10 per umbrella",
+      "Phase 4 wipCap prompt",
+    ],
+  },
+  {
+    id: "branch-policy-746",
+    shape: "doc",
+    header: "Branch policy & branch verification",
+    canonicalHome: "scm/github.md",
+    pointerHints: ["deft verify:branch", "#746", "#747"],
+    canonicalBodyMarkers: ["allowDirectCommitsToMaster", "verify:branch", "pre-commit"],
+    retiredFullTextMarkers: [
+      "deft check:framework-source",
+      "forward-coverage gate (#1310)",
+      "Mirrors the `deft verify:encoding`",
+    ],
+  },
+  {
+    id: "branch-disclosure-746",
+    shape: "doc",
+    header: "Branch Policy Disclosure (#746)",
+    canonicalHome: "scm/github.md",
+    pointerHints: ["deft policy:show --field=allowDirectCommitsToMaster", "#746"],
+    canonicalBodyMarkers: [
+      "Direct commits to the default branch are ENABLED",
+      "allowDirectCommitsToMaster",
+    ],
+    retiredFullTextMarkers: [
+      "Override paths (`deft policy:show`",
+      "absence of the disclosure line itself signals",
+    ],
+  },
+  {
+    id: "implementation-intent-810",
+    shape: "doc",
+    header: "Implementation Intent Gate (#810)",
+    canonicalHome: "commands.md",
+    pointerHints: ["deft xbrief:preflight", "action-verb", "#810"],
+    canonicalBodyMarkers: ["xbrief:preflight", 'plan.status == "running"', "implementation intent"],
+    retiredFullTextMarkers: [
+      "Workflow-shape vocabulary is NOT authorization",
+      "Broad approval is not a substitute",
+      "pre-`start_agent` gate stack (#1149/#1348)",
+    ],
+  },
+  {
+    id: "story-start-1378",
+    shape: "doc",
+    header: "Story Start Gate",
+    canonicalHome: "commands.md",
+    pointerHints: ["deft verify:story-ready", "git status --short --branch", "#1378"],
+    canonicalBodyMarkers: ["verify:story-ready", "git status --short --branch", "scope:complete"],
+    retiredFullTextMarkers: [
+      "A `swarm-cohort` section is ready only when",
+      "checkpoint-commit it and proceed",
+      "Ask the operator to choose one path",
+    ],
+  },
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -240,20 +319,24 @@ function managedSection(text: string): string {
 }
 
 function extractSection(text: string, heading: string): string {
-  const headingRe = new RegExp(
-    `^##\\s+${heading.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&")}\\s*$`,
-    "m",
-  );
-  const match = headingRe.exec(text);
-  if (!match || match.index === undefined) {
-    return "";
+  for (const level of [2, 3] as const) {
+    const hashes = "#".repeat(level);
+    const headingRe = new RegExp(
+      `^${hashes}\\s+${heading.replace(/[$()*+.?[\\\]^{|}]/g, "\\$&")}\\s*$`,
+      "m",
+    );
+    const match = headingRe.exec(text);
+    if (!match || match.index === undefined) {
+      continue;
+    }
+    const start = match.index;
+    const afterHeading = text.slice(start + match[0].length);
+    const nextHeading = afterHeading.search(/^#{2,3}\s/m);
+    return nextHeading === -1
+      ? text.slice(start)
+      : text.slice(start, start + match[0].length + nextHeading);
   }
-  const start = match.index;
-  const afterHeading = text.slice(start + match[0].length);
-  const nextHeading = afterHeading.search(/^##\s/m);
-  return nextHeading === -1
-    ? text.slice(start)
-    : text.slice(start, start + match[0].length + nextHeading);
+  return "";
 }
 
 function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
@@ -286,7 +369,7 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   if (spec.shape === "gate" && !/eval:health|verify:[\w-]+/.test(section)) {
     errors.push(`${spec.id}: gate pointer shape not detected`);
   }
-  if (spec.shape === "doc" && !/contracts\/[\w.-]+\.md|\.deft\/core\/contracts\//.test(section)) {
+  if (spec.shape === "doc" && !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\//.test(section)) {
     errors.push(`${spec.id}: doc pointer shape not detected`);
   }
 

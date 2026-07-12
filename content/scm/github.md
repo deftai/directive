@@ -257,6 +257,24 @@ task setup:ghx -- --yes      # non-interactive CI / scripted approval
 - ! Use live `gh` for mutations (POST/PATCH/PUT/DELETE) and for immediate read-back after a mutation — ghx is a cached GET proxy only
 - ⊗ Use `ghx api` for multi-arg write invocations — ghx accepts a single positional path arg; writes fall through to `gh`
 
+## Branch policy (#746 / #747)
+
+Three consumer-facing surfaces enforce the branch-policy contract:
+
+- `deft check` — consumer pre-commit quality gate. In vendored `.deft/core` installs it runs consumer-safe Deft install/lifecycle gates and does NOT run framework source-repo self-tests. Run `deft check:framework-source` only when explicitly validating the vendored framework payload itself (#1519).
+- `deft verify:branch` — refuses default-branch commit unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.
+- `.githooks/pre-commit` / `pre-push` — installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates (#2049).
+- `deft policy:show --field=allowDirectCommitsToMaster` — inspect policy; `deft policy:allow-direct-commits -- --confirm` writes typed override with audit row.
+- `deft verify:forward-coverage` — forward-coverage gate (#1310), wired into `deft check` + pre-commit (`--staged`); document exceptions via `--allow-list <path>`.
+
+When `plan.policy.allowDirectCommitsToMaster = true`, the agent MUST surface at session start (after alignment confirmation):
+
+> "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF."
+
+Phrasing from `deft policy:show --field=allowDirectCommitsToMaster`. When OFF (default), absence of the disclosure signals enforcing state. Override paths: `deft policy:show` / `deft policy:enforce-branches` / `deft policy:allow-direct-commits -- --confirm` / `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.
+
+⊗ Begin a session that will commit/push without surfacing policy when `allowDirectCommitsToMaster=true`.
+
 ## Local git hooks (#747 / #2049)
 
 Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). Hooks are installed idempotently via `deft setup` (`git config core.hooksPath .githooks`).

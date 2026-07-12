@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "refactor(agents-md): Wave 2 relocation — compress universal guardrails to one-line + gate pointers",
+    "created": "2026-07-12T23:03:51.565Z",
+    "updated": "2026-07-12T23:03:51.565Z"
+  },
+  "plan": {
+    "id": "2453-relocate-universal-guardrails",
+    "title": "refactor(agents-md): Wave 2 relocation — compress universal guardrails to one-line + gate pointers",
+    "status": "running",
+    "narratives": {
+      "Description": "Universal always-on guardrails still carry paragraph bulk in AGENTS.md and agents-entry despite #2371 pointer-sufficient contract. This story compresses branch policy, implementation-intent, deterministic-questions, session ritual, WIP, story-start stack, review-surface, value-feedback, and eval/framework-health to one-line imperatives plus gate/skill/doc pointers per DD-1/DD-2.",
+      "ImplementationPlan": "1) Inventory universal guardrail sections in AGENTS.md and content/templates/agents-entry.md. 2) Compress each to one-line imperative + pointer-to-gate/skill/doc; move bulk into canonical homes under content/skills, content/docs, or gate help text. 3) Keep agents_entry_contract pointer-sufficient tests green; add fixtures if needed. 4) Run task verify:eval-health-relocation / task check paths that fire the #2373 gate. 5) Verify: pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts and task eval:health. 6) CHANGELOG entry. Stay out of contextual PowerShell/SCM bulk owned by #2454.",
+      "UserStory": "As a framework maintainer, I want universal guardrails reduced to one-line always-on pointers, so that the managed section moves toward the <=8 KB absolute north-star without losing enforceable gates.",
+      "Origin": "Enriched for swarm from #2453 under epic #2369 Wave 2"
+    },
+    "items": [
+      {
+        "id": "2453-relocate-universal-guardrails-a1",
+        "title": "Relocate targeted rule bulk",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the targeted always-on sections, when the PR lands, then paragraph bulk is gone and pointers remain.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2453-relocate-universal-guardrails-a2",
+        "title": "Pointer contract + eval-health gate green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given agents_entry_contract and verify:eval-health-relocation, when run on the PR diff, then both pass.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2453-relocate-universal-guardrails-a3",
+        "title": "CHANGELOG documents relocation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG [Unreleased], when read, then the user-visible always-on thinning is described.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "content/skills",
+          "content/docs",
+          "packages/core/src/content-contracts/skills"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "task eval:health"
+        ],
+        "expected_outputs": [
+          "relocation PR merged for #2453"
+        ],
+        "depends_on": [],
+        "conflict_group": "relocate-universal",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "x-tracking": {
+        "parent_epic": "#2369",
+        "origin_issue": "#2453"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2453",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2453"
+      }
+    ],
+    "updated": "2026-07-12T23:03:51.565Z"
+  }
+}

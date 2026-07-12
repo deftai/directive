@@ -64,21 +64,11 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session-start ritual (#1149)
 
-! On every interactive session start, run `deft session:start` after loading AGENTS.md. This records the quick-tier ritual in `.deft/ritual-state.json`: Deft alignment confirmation, branch-policy disclosure, required-tool guidance from `deft verify:tools`, default-branch sync warnings, and `deft triage:welcome` one-line state/nudge. The state is worktree- and HEAD-bound, and becomes stale after `plan.policy.sessionRitualStalenessHours` hours (default: 4).
-
-! Before any code-writing tool call or `start_agent` implementation dispatch, run `deft verify:session-ritual -- --tier=gated`. The gated tier fails closed unless the quick-tier state is fresh, then lazily records the doctor and cache-fresh Python entrypoints (the checks exposed to operators as `deft doctor` and `deft verify:cache-fresh`) in the same ritual state. The verifier is now step 0 of the pre-`start_agent` gate stack; any non-zero exit aborts dispatch.
-
-? If a quick or gated step must be intentionally postponed, record the decision with `deft session:start -- --defer step=reason` using one of `alignment`, `branch_policy`, `triage_welcome`, `doctor`, or `cache_fresh`. Deferred steps satisfy the verifier but remain auditable in `.deft/ritual-state.json`.
-
-⊗ Self-report the session-start ritual as complete without a fresh `deft session:start` state, or bypass `deft verify:session-ritual` before implementation dispatch. Headless workers and CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; the verifier exits 0 but warns when the bypass hides a failure.
-
-⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
-
-`deft doctor` is the install-integrity + toolchain + managed-section freshness probe (#1308); when the managed section is stale it points at `deft agents:refresh`, and when the payload is behind it emits the upgrade command `npm i -g @deftai/directive@latest`. Install/upgrade via npm (`npm i -g @deftai/directive`; Node ≥ 20) — see `.deft/core/UPGRADING.md` for the bootstrap/upgrade path (the legacy Go installer is a legacy/offline bridge only). `deft triage:welcome` emits the triage one-liner and nudges `deft triage:welcome --onboard` when state is incomplete; its D2 4-hour suppression window and comparison-key set are owned by the `triage:welcome` implementation (#1143 / #1279).
+! On every interactive session start run `deft session:start`; before any code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft agents:refresh` / `npm i -g @deftai/directive@latest` entrypoints; #1149 / #1348) — full quick/gated tiers, defer steps, and headless bypass in `.deft/core/commands.md` § Session-start ritual.
 
 ## WIP cap
 
-The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`). The framework default is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
+! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP workflow: `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`.
 
 ## xBRIEF layout (#2034 / #2110)
 
@@ -148,25 +138,11 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 
 ## Branch policy & branch verification
 
-Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):
-
-- `deft check` -- authoritative consumer pre-commit quality gate. In vendored `.deft/core` installs it runs consumer-safe Deft install/lifecycle gates and does NOT run framework source-repo self-tests. Run `deft check:framework-source` only when explicitly validating the vendored framework payload itself (#1519).
-- `deft verify:branch` -- branch gate wired into the `deft check` aggregate; refuses a commit on the default branch unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is set.
-- `.githooks/pre-commit` / `pre-push` -- local hooks installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates to the current TS-native `deft verify:*` / `deft preflight-gh` wiring (#2049).
-- `deft policy:show --field=allowDirectCommitsToMaster` -- inspect the resolved policy; `deft policy:allow-direct-commits -- --confirm` writes the typed override with an audit row.
-- `deft verify:forward-coverage` -- forward-coverage gate (#1310): a NEW source file (`scripts/`, `src/`, `cmd/`, `packages/*/src`, or `*.py`/`*.go`/`*.ts`/`*.tsx`, excluding tests + `*.d.ts`) added without a corresponding test in the SAME diff fails the gate. Wired into `deft check` + the pre-commit hook (`--staged`); document genuine exceptions (shims, generated code) via `--allow-list <path>`. Mirrors the `deft verify:encoding` (#798) prose->deterministic migration.
+! Work on feature branches — `deft verify:branch`, `deft verify:forward-coverage`, hooks, and `deft check` enforce default-branch protection (#746 / #747); full surfaces in `.deft/core/scm/github.md` § Branch policy.
 
 ## Branch Policy Disclosure (#746)
 
-When the active project's `xbrief/PROJECT-DEFINITION.xbrief.json` has `plan.policy.allowDirectCommitsToMaster = true`, the agent MUST surface the policy state at the start of any interactive session (immediately after the Deft Directive alignment confirmation):
-
-> "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF."
-
-This phrasing is produced by `deft policy:show --field=allowDirectCommitsToMaster` and stays in lockstep with the typed surface (#746). When the policy is OFF (default; `allowDirectCommitsToMaster=false`), no session-start disclosure is required -- the absence of the disclosure line itself signals the default-enforcing state.
-
-Override paths (`deft policy:show` / `deft policy:enforce-branches` / `deft policy:allow-direct-commits -- --confirm` / `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`) are detailed in the Branch policy & branch verification section above.
-
-⊗ Begin a session that will commit/push without surfacing the policy state when allowDirectCommitsToMaster=true.
+! When `plan.policy.allowDirectCommitsToMaster = true`, surface policy at session start via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — full phrasing and override paths in `.deft/core/scm/github.md` § Branch policy.
 
 ## Platform-conditional rules (PowerShell / Windows)
 
@@ -179,24 +155,11 @@ Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they
 
 ### Implementation Intent Gate (#810)
 
-- ! Run `deft xbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. Use the pre-`start_agent` gate stack step 2 for ordering and the Story Start Gate below for the `deft scope:promote` / `deft scope:activate` workflow bridge. If the gate is misconfigured, run `deft framework:doctor` and follow UPGRADING.md recovery guidance (#1046 / #1047).
-- ! Require an explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) from the user before invoking the preflight gate or `start_agent` for implementation. When intent is ambiguous, ask one targeted question instead of inferring.
-- ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent.
-- ⊗ Treat affirmative continuation phrases (`yes`, `go`, `proceed`, `do it`) as implementation authorization unless the prior turn explicitly proposed implementation. Broad approval is not a substitute for an explicit action-verb directive.
-
-**Pre-`start_agent` gate stack (#1149/#1348):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (0) session ritual gate (#1348, `deft verify:session-ritual -- --tier=gated`) -> (1) story-start Gate 0 (#1378, `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`) -> (2) xBRIEF implementation-intent gate (#810, `deft xbrief:preflight -- <path>`) -> (3) `deft verify:cache-fresh` (D5 / #1127) -> (4) branch-policy gate (`deft verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks) -> (5) `start_agent`. Any non-zero exit aborts dispatch.
+! Run `deft xbrief:preflight -- <path>` before code-writing (`xbrief/active/` + `plan.status == "running"`); require explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — full rules in `.deft/core/commands.md` § Scope xBRIEF Lifecycle; `deft verify:cache-fresh` is gate-stack step 3 in `.deft/core/commands.md` § Session-start ritual.
 
 ### Story Start Gate
 
-- ! Before starting any new implementation story or switching from one story to another, run `git status --short --branch`.
-- ! If the working tree is dirty, stop and summarize the current branch, modified/untracked files, and whether the changes appear related to the next story. Ask the operator to choose one path: commit existing work, stash existing work, include existing work in the current story, or stop.
-- ⊗ Begin a new story while unrelated dirty work is present without explicit operator approval.
-- ! Default to one story per branch/PR: resolve exactly one target story xBRIEF path by default, require explicit operator approval plus a short rationale for batching multiple stories, and create a checkpoint commit after each completed story before beginning another story.
-- ! When invoked as part of a swarm cohort dispatch, the approved Phase 5 allocation plan satisfies the "explicit operator approval and a short rationale" requirement above -- the dispatched paths and allocation rationale ARE the consent token. Do NOT re-prompt the parent for batching approval mid-cohort; the all-or-nothing dispatch envelope rule (#954) forbids mid-scope user-approval gates.
-- ! Within a swarm cohort, between stories, the working tree MUST be clean (a checkpoint commit + `deft scope:complete` just landed). If `git status --short` shows uncommitted state between stories, checkpoint-commit it and proceed -- do NOT pause to ask the operator. The dirty-tree "ask the operator" branch above applies only at the FIRST story-start of a fresh branch.
-- ! If the target story is in `xbrief/proposed/`, run `deft scope:promote -- <path>` first; if it is in `xbrief/pending/`, run `deft scope:activate -- <path>`. After activation, run `deft xbrief:preflight -- <active-story-path>` before code-writing.
-- ! After checks pass for the story, complete the lifecycle with `deft scope:complete -- <active-story-path>` before final PR handoff.
-- ! Before dispatching an implementation sub-agent, run the deterministic Gate 0 `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]` ahead of `deft xbrief:preflight`. It machine-checks a clean working tree (or `--allow-dirty`), the target xBRIEF in `xbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token; three-state exit (0 ready / 1 not ready / 2 config error). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null; an absent section is the solo path. Any non-zero exit aborts dispatch.
+! Before starting stories run `git status --short --branch` and Gate 0 `deft verify:story-ready`; lifecycle via `deft scope:promote -- <path>` / `deft scope:activate -- <path>` / `deft scope:complete -- <active-story-path>` (#1378) — full workflow in `.deft/core/commands.md` § Scope xBRIEF Lifecycle.
 
 ## Commands
 

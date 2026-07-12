@@ -99,11 +99,14 @@ Common commands:
 Before implementation work, use:
 
 ```bash
+git status --short --branch
 task verify:story-ready -- --vbrief-path xbrief/active/<file>.xbrief.json
 deft xbrief:preflight -- xbrief/active/<file>.xbrief.json
 ```
 
-The implementation gate succeeds only for active scope xBRIEFs with `plan.status == "running"`.
+Gate 0 `task verify:story-ready` machine-checks working-tree cleanliness (or `--allow-dirty`), the target xBRIEF in `xbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token (#1378). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null. Complete stories with `task scope:complete -- <active-story-path>`.
+
+The implementation gate succeeds only for active scope xBRIEFs with `plan.status == "running"`. Do not infer implementation intent from lifecycle vocabulary — require explicit action-verb directives (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) per #810.
 
 ```mermaid
 flowchart TD
@@ -175,6 +178,18 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 - `task verify:capacity`, `task verify:wip-cap`, and `task verify:judgment-gates` -- policy/capacity gates.
 
 Use `task --list` for the exact current verify namespace.
+
+## Session-start ritual (#1149)
+
+Full always-on contract for the interactive session-start ritual and its gated verifier (#1149 / #1348).
+
+- ! On every interactive session start, run `deft session:start` (or `task session:start` in framework source) after loading AGENTS.md. Records quick-tier ritual in `.deft/ritual-state.json`: alignment confirmation, branch-policy disclosure, `deft verify:tools` guidance, default-branch sync warnings, and `deft triage:welcome` one-liner. State is worktree- and HEAD-bound; stale after `plan.policy.sessionRitualStalenessHours` hours (default 4).
+- ! Before any code-writing tool call or `start_agent` implementation dispatch, run `deft verify:session-ritual -- --tier=gated`. Gated tier fails closed unless quick-tier state is fresh; lazily records `deft doctor` and `deft verify:cache-fresh` entrypoints. Step 0 of the pre-`start_agent` gate stack.
+- ? Postpone with `deft session:start -- --defer step=reason` (`alignment`, `branch_policy`, `triage_welcome`, `doctor`, `cache_fresh`).
+- Headless workers / CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; verifier exits 0 but warns when bypass hides failure.
+- ⊗ Self-report ritual complete without fresh `deft session:start` state; ⊗ bypass `deft verify:session-ritual` before implementation dispatch; ⊗ reorder/skip/merge ritual tiers without operator override.
+
+**Pre-`start_agent` gate stack (#1149/#1348):** (0) `deft verify:session-ritual -- --tier=gated` → (1) `deft verify:story-ready` → (2) `deft xbrief:preflight` → (3) `deft verify:cache-fresh` → (4) `deft verify:branch` + hooks → (5) `start_agent`.
 
 ```mermaid
 flowchart TD
