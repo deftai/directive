@@ -8,7 +8,7 @@
   "plan": {
     "id": "2435-invisible-unicode-fail-closed",
     "title": "Fail closed on all-invisible-unicode triage queue titles",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "sanitizeQueueTitle must return QUARANTINED_TITLE_PLACEHOLDER when invisible-unicode stripping yields empty content, not raw unstripped bytes.",
       "ImplementationPlan": "Change cache.ts sanitizeQueueTitle branch; add regression test in cache-branches.test.ts.",
@@ -34,7 +34,9 @@
       "kind": "story",
       "x-tracking": {
         "parent_pr": "#2435"
-      }
+      },
+      "completedAt": "2026-07-12T21:49:44Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -43,6 +45,6 @@
         "title": "PR #2435: fix(triage): fail closed on quarantined titles in triage:queue"
       }
     ],
-    "updated": "2026-07-12T20:14:29Z"
+    "updated": "2026-07-12T21:49:44Z"
   }
 }
