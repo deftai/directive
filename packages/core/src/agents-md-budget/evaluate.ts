@@ -5,11 +5,35 @@ import { resolveAgentsMdBudget } from "../policy/agents-md-budget.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
+/**
+ * Layered absolute north-star for the always-on managed surface (#2372 / #2450).
+ *
+ * Advisory-only in Wave 1: the relative line ratchet remains fail-closed; this
+ * ceiling reports relocation progress without affecting exit codes. Promotion to
+ * fail-closed is deferred to post-Wave-2 (#2369 current-shape).
+ *
+ * DD-3 (harness-injected skill frontmatter in the meter) is deferred to #2452 /
+ * Child A — this Wave-1 measure covers the rendered managed section only.
+ */
+export const ABSOLUTE_MANAGED_MAX_BYTES = 8192;
+export const ABSOLUTE_MANAGED_MAX_TOKENS = 2000;
+/** Rough UTF-8 bytes-per-token estimate for advisory reporting (~8192 B ≈ ~2048 tok). */
+export const ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE = 4;
+
+/** Byte + estimated-token measure of the managed section body. */
+export interface ManagedSectionMeasure {
+  readonly bytes: number;
+  readonly estimatedTokens: number;
+}
+
 /** Result of verify:agents-md-budget evaluation; three-state exit contract. */
 export interface EvaluateResult {
   readonly code: 0 | 1 | 2;
   readonly message: string;
   readonly stream: OutputStream;
+  /** Advisory absolute-budget note (#2450); never affects `code`. */
+  readonly advisoryMessage?: string;
+  readonly advisoryStream?: OutputStream;
 }
 
 export interface EvaluateOptions {
@@ -69,6 +93,100 @@ export function countRegions(text: string): { counts: RegionCounts } | { error: 
 
   const managed = closeLine - openLine + 1;
   return { counts: { total, managed, unmanaged: total - managed } };
+}
+
+/**
+ * Extract the managed-section span (open marker through close marker, inclusive).
+ *
+ * Returns an empty section when no markers are present — consistent with
+ * `countRegions` treating markerless files as entirely unmanaged.
+ */
+export function extractManagedSection(text: string): { section: string } | { error: string } {
+  const normalized = text.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  if (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
+  }
+
+  const openLine = lines.findIndex((l) => l.startsWith(OPEN_MARKER_PREFIX));
+  const closeLine = lines.findIndex((l) => l.trim().startsWith(AGENTS_MANAGED_CLOSE));
+  const openCount = lines.filter((l) => l.startsWith(OPEN_MARKER_PREFIX)).length;
+  const closeCount = lines.filter((l) => l.trim().startsWith(AGENTS_MANAGED_CLOSE)).length;
+
+  if (openLine === -1 && closeLine === -1) {
+    return { section: "" };
+  }
+  if (
+    openLine === -1 ||
+    closeLine === -1 ||
+    closeLine < openLine ||
+    openCount > 1 ||
+    closeCount > 1
+  ) {
+    return {
+      error:
+        "AGENTS.md managed-section markers are malformed " +
+        `(open@${openLine === -1 ? "none" : openLine + 1}×${openCount}, ` +
+        `close@${closeLine === -1 ? "none" : closeLine + 1}×${closeCount}); ` +
+        "expected a single <!-- deft:managed-section ... --> ... " +
+        "<!-- /deft:managed-section --> pair.",
+    };
+  }
+
+  return { section: lines.slice(openLine, closeLine + 1).join("\n") };
+}
+
+/** Measure UTF-8 byte length and a rough token estimate for the managed section. */
+export function measureManagedSection(text: string): ManagedSectionMeasure | { error: string } {
+  const extracted = extractManagedSection(text);
+  if ("error" in extracted) {
+    return extracted;
+  }
+  const bytes = Buffer.byteLength(extracted.section, "utf8");
+  return {
+    bytes,
+    estimatedTokens: Math.ceil(bytes / ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE),
+  };
+}
+
+function formatAbsoluteAdvisory(measure: ManagedSectionMeasure): string {
+  const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
+  const overTokens = measure.estimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
+  return (
+    `⚠ verify:agents-md-budget: managed section absolute budget advisory — ` +
+    `${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the Wave-1 north-star ` +
+    `of ${ABSOLUTE_MANAGED_MAX_BYTES} bytes / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
+    `(OVER by ${overBytes} bytes / ~${overTokens} tok). Advisory only — task check is NOT affected.\n` +
+    "  The relative line ratchet (#645) remains fail-closed; this absolute ceiling is the\n" +
+    "  relocation goal for epic #2369. Fail-closed promotion is deferred until after Wave 2.\n" +
+    "  DD-3 harness skill frontmatter is not yet included in this meter (#2452)."
+  );
+}
+
+function absoluteAdvisoryForText(
+  text: string,
+): { advisoryMessage: string; advisoryStream: OutputStream } | null {
+  const measureResult = measureManagedSection(text);
+  if ("error" in measureResult) {
+    return null;
+  }
+  const overBytes = measureResult.bytes > ABSOLUTE_MANAGED_MAX_BYTES;
+  const overTokens = measureResult.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  if (!overBytes && !overTokens) {
+    return null;
+  }
+  return {
+    advisoryMessage: formatAbsoluteAdvisory(measureResult),
+    advisoryStream: "stderr",
+  };
+}
+
+function attachAbsoluteAdvisory<T extends EvaluateResult>(result: T, text: string): T {
+  const advisory = absoluteAdvisoryForText(text);
+  if (advisory === null) {
+    return result;
+  }
+  return { ...result, ...advisory };
 }
 
 function formatRefusal(
@@ -153,18 +271,21 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
 
   if (budgetResult.source === "unset") {
     if (quiet) {
-      return { code: 0, message: "", stream: "none" };
+      return attachAbsoluteAdvisory({ code: 0, message: "", stream: "none" }, text);
     }
-    return {
-      code: 0,
-      message:
-        "⚠ verify:agents-md-budget: no plan.policy.agentsMdBudget configured " +
-        `(managed=${counts.managed}, unmanaged=${counts.unmanaged} lines).\n` +
-        "  Seed a ratchet at current size to freeze growth (#645): set\n" +
-        "  plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} in " +
-        "PROJECT-DEFINITION.",
-      stream: "stderr",
-    };
+    return attachAbsoluteAdvisory(
+      {
+        code: 0,
+        message:
+          "⚠ verify:agents-md-budget: no plan.policy.agentsMdBudget configured " +
+          `(managed=${counts.managed}, unmanaged=${counts.unmanaged} lines).\n` +
+          "  Seed a ratchet at current size to freeze growth (#645): set\n" +
+          "  plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} in " +
+          "PROJECT-DEFINITION.",
+        stream: "stderr",
+      },
+      text,
+    );
   }
 
   /* v8 ignore start -- defensive: source "typed" always carries a non-null budget. */
@@ -182,20 +303,26 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
 
   if (!overManaged && !overUnmanaged) {
     if (quiet) {
-      return { code: 0, message: "", stream: "none" };
+      return attachAbsoluteAdvisory({ code: 0, message: "", stream: "none" }, text);
     }
-    return {
-      code: 0,
-      message:
-        `✓ verify:agents-md-budget: managed ${counts.managed}/${budget.managedMaxLines}, ` +
-        `unmanaged ${counts.unmanaged}/${budget.unmanagedMaxLines} lines (within ratchet).`,
-      stream: "stdout",
-    };
+    return attachAbsoluteAdvisory(
+      {
+        code: 0,
+        message:
+          `✓ verify:agents-md-budget: managed ${counts.managed}/${budget.managedMaxLines}, ` +
+          `unmanaged ${counts.unmanaged}/${budget.unmanagedMaxLines} lines (within ratchet).`,
+        stream: "stdout",
+      },
+      text,
+    );
   }
 
-  return {
-    code: 1,
-    message: formatRefusal(counts, budget.managedMaxLines, budget.unmanagedMaxLines, root),
-    stream: "stderr",
-  };
+  return attachAbsoluteAdvisory(
+    {
+      code: 1,
+      message: formatRefusal(counts, budget.managedMaxLines, budget.unmanagedMaxLines, root),
+      stream: "stderr",
+    },
+    text,
+  );
 }

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { countRegions, evaluate } from "./evaluate.js";
+import { countRegions, evaluate, extractManagedSection, measureManagedSection } from "./evaluate.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -116,6 +116,85 @@ describe("countRegions", () => {
     ].join("\n");
     const result = countRegions(text);
     expect("error" in result).toBe(true);
+  });
+});
+
+describe("extractManagedSection", () => {
+  it("returns the managed span including markers", () => {
+    const text = agentsWith(2, 4);
+    const result = extractManagedSection(text);
+    expect("section" in result).toBe(true);
+    if ("section" in result) {
+      expect(result.section).toContain("<!-- deft:managed-section");
+      expect(result.section).toContain("<!-- /deft:managed-section -->");
+    }
+  });
+
+  it("returns an empty section when no markers exist", () => {
+    expect(extractManagedSection("a\nb\nc")).toEqual({ section: "" });
+  });
+});
+
+describe("measureManagedSection", () => {
+  it("reports bytes and estimated tokens for the managed span", () => {
+    const text = agentsWith(0, 5);
+    const result = measureManagedSection(text);
+    expect("bytes" in result).toBe(true);
+    if ("bytes" in result) {
+      expect(result.bytes).toBeGreaterThan(0);
+      expect(result.estimatedTokens).toBe(Math.ceil(result.bytes / 4));
+    }
+  });
+});
+
+describe("absolute managed-section advisory", () => {
+  const budgetPlan = { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } } };
+
+  /** Build a managed block whose UTF-8 body exceeds the 8192-byte north-star. */
+  function agentsOverAbsolute(unmanaged: number, payloadBytes: number): string {
+    const markerOpen = "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->";
+    const markerClose = "<!-- /deft:managed-section -->";
+    const overhead = Buffer.byteLength(`${markerOpen}\n${markerClose}`, "utf8");
+    const fillLen = Math.max(0, payloadBytes - overhead);
+    const fill = "x".repeat(fillLen);
+    const lines: string[] = [];
+    for (let i = 0; i < unmanaged; i += 1) {
+      lines.push(`unmanaged ${i}`);
+    }
+    lines.push(markerOpen, fill, markerClose);
+    return lines.join("\n");
+  }
+
+  it("emits advisory (exit 0) when the managed section exceeds the absolute ceiling", () => {
+    const root = makeRepo({ plan: budgetPlan, agents: agentsOverAbsolute(5, 9000) });
+    const result = evaluate(root);
+    expect(result.code).toBe(0);
+    expect(result.advisoryMessage).toContain("absolute budget advisory");
+    expect(result.advisoryMessage).toContain("Advisory only");
+    expect(result.advisoryStream).toBe("stderr");
+  });
+
+  it("stays quiet on absolute advisory when the managed section is under budget", () => {
+    const root = makeRepo({ plan: budgetPlan, agents: agentsWith(5, 5) });
+    const result = evaluate(root);
+    expect(result.code).toBe(0);
+    expect(result.advisoryMessage).toBeUndefined();
+  });
+
+  it("still fail-closes the relative ratchet when a region grows", () => {
+    const tightPlan = { policy: { agentsMdBudget: { managedMaxLines: 5, unmanagedMaxLines: 10 } } };
+    const root = makeRepo({ plan: tightPlan, agents: agentsWith(20, 5) });
+    const result = evaluate(root);
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("grew past its ratchet");
+  });
+
+  it("emits absolute advisory even when --quiet suppresses the success banner", () => {
+    const root = makeRepo({ plan: budgetPlan, agents: agentsOverAbsolute(5, 9000) });
+    const result = evaluate(root, { quiet: true });
+    expect(result.code).toBe(0);
+    expect(result.message).toBe("");
+    expect(result.advisoryMessage).toContain("absolute budget advisory");
   });
 });
 

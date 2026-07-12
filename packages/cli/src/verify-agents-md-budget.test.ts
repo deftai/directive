@@ -106,7 +106,28 @@ describe("run", () => {
     try {
       expect(run(["--project-root", root, "--quiet"])).toBe(0);
       expect(out.mock.calls.length).toBe(0);
-      expect(err.mock.calls.length).toBe(0);
+      // Absolute advisory may still write to stderr on this repo's large managed section.
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  });
+
+  it("writes absolute advisory to stderr when the managed section is over budget", () => {
+    const markerOpen = "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->";
+    const markerClose = "<!-- /deft:managed-section -->";
+    const fill = "x".repeat(9000);
+    const agents = ["unmanaged", markerOpen, fill, markerClose].join("\n");
+    const root = buildRepo({
+      plan: { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } } },
+      agents,
+    });
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--project-root", root])).toBe(0);
+      const stderrText = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderrText).toContain("absolute budget advisory");
     } finally {
       out.mockRestore();
       err.mockRestore();
