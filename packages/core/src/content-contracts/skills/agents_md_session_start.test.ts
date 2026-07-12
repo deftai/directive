@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { readRepoFile } from "./helpers.js";
 
-/** Port of tests/content/test_agents_md_session_start.py (#1838 #1530) */
+/** Port of tests/content/test_agents_md_session_start.py (#1838 #1530); #2453 pointer relocation. */
 
 const agentsMdText = readRepoFile("AGENTS.md");
+const agentsEntryText = readRepoFile("templates/agents-entry.md");
+const commandsText = readRepoFile("commands.md");
 
 function extractSection(text: string, headingPattern: string): string {
   const headingRe = new RegExp(`^##\\s+${headingPattern}`, "m");
@@ -19,45 +21,48 @@ function extractSection(text: string, headingPattern: string): string {
     : text.slice(start, start + match[0].length + nextHeading);
 }
 
-function extractGateStackParagraph(agentsMd: string): string {
-  const intentGate = extractSection(agentsMd, "Development Process \\(always follow\\)");
-  const stackMatch = intentGate.match(
-    /\*\*Pre-`start_agent` gate stack \(#1149\/#1348\):\*\*[\s\S]*?(?=\r?\n\r?\n|^#{2,3}\s)/m,
-  );
-  return stackMatch?.[0] ?? "";
+function extractManagedSection(text: string): string {
+  const start = text.search(/<!-- deft:managed-section v3\b/);
+  const end = text.indexOf("<!-- /deft:managed-section -->");
+  if (start < 0 || end < start) {
+    return "";
+  }
+  return text.slice(start, end);
 }
 
 describe("test_agents_md_session_start", () => {
   it("session_start_ritual_header_present", () => {
     expect(/^##\s+Session-start ritual\s+\(#1149\)\s*$/m.test(agentsMdText)).toBe(true);
+    expect(/^##\s+Session-start ritual\s+\(#1149\)\s*$/m.test(agentsEntryText)).toBe(true);
   });
 
-  it("session_start_ritual_documents_two_tier_verifier_order", () => {
-    const section = extractSection(agentsMdText, "Session-start ritual \\(#1149\\)");
+  it("session_start_ritual_pointer_surface_in_managed_section", () => {
+    for (const text of [agentsMdText, agentsEntryText]) {
+      const managed = extractManagedSection(text);
+      const section = extractSection(managed, "Session-start ritual \\(#1149\\)");
+      expect(section).toBeTruthy();
+      expect(section).toContain("deft session:start");
+      expect(section).toContain("deft verify:session-ritual");
+      expect(section).toContain("plan.policy.sessionRitualStalenessHours");
+      expect(section).toContain("commands.md");
+    }
+  });
+
+  it("session_start_ritual_bulk_in_commands_canonical_home", () => {
+    const section = extractSection(commandsText, "Session-start ritual \\(#1149\\)");
     expect(section).toBeTruthy();
-    const pStart = section.indexOf("`task session:start`");
-    const pState = section.indexOf(".deft/ritual-state.json");
-    const pVerify = section.indexOf("`task verify:session-ritual -- --tier=gated`");
-    const pDoctor = section.indexOf("`task doctor`");
-    const pTriage = section.indexOf("`task triage:welcome`");
-    expect(pStart).toBeGreaterThanOrEqual(0);
-    expect(pStart).toBeLessThan(pState);
-    expect(pState).toBeLessThan(pTriage);
-    expect(pTriage).toBeLessThan(pVerify);
-    expect(pVerify).toBeLessThan(pDoctor);
     expect(section).toContain("plan.policy.sessionRitualStalenessHours");
     expect(section).toContain("DEFT_SESSION_RITUAL_SKIP=1");
     expect(section).toContain("--defer step=reason");
-  });
-
-  it("session_start_ritual_documents_d2_suppression_window", () => {
-    const section = extractSection(agentsMdText, "Session-start ritual \\(#1149\\)");
-    expect(/4[ -]hour/.test(section)).toBe(true);
-  });
-
-  it("session_start_ritual_marks_cache_fresh_as_stale_only", () => {
-    const section = extractSection(agentsMdText, "Session-start ritual \\(#1149\\)");
     expect(section.toLowerCase()).toContain("stale");
+    expect(section).toContain("Pre-`start_agent` gate stack (#1149/#1348)");
+  });
+
+  it("session_start_ritual_maintainer_substitution_line_present", () => {
+    const section = extractSection(agentsMdText, "Session-start ritual \\(#1149\\)");
+    expect(section).toContain("`task session:start`");
+    expect(section).toContain("`task verify:session-ritual -- --tier=gated`");
+    expect(section).toContain("`task verify:cache-fresh`");
   });
 
   it("cache_as_authoritative_section_present", () => {
@@ -103,33 +108,24 @@ describe("test_agents_md_session_start", () => {
     expect(skills).toContain("task triage:welcome --onboard");
   });
 
-  it("pre_start_agent_gate_stack_paragraph_present", () => {
-    const intentGate = extractSection(agentsMdText, "Development Process \\(always follow\\)");
-    expect(intentGate).toBeTruthy();
-    expect(intentGate).toContain("Pre-`start_agent` gate stack (#1149/#1348)");
-  });
-
-  it("pre_start_agent_gate_stack_canonical_order", () => {
-    const stack = extractGateStackParagraph(agentsMdText);
-    expect(stack).toBeTruthy();
-    const pSession = stack.indexOf("session ritual gate");
-    const pStory = stack.indexOf("story-start Gate 0");
-    const pVbrief = stack.indexOf("xBRIEF implementation-intent gate");
-    const pCache = stack.indexOf("task verify:cache-fresh");
-    const pBranch = stack.indexOf("branch-policy gate");
-    const pStart = stack.lastIndexOf("start_agent");
+  it("pre_start_agent_gate_stack_in_commands_canonical_home", () => {
+    const section = extractSection(commandsText, "Session-start ritual \\(#1149\\)");
+    const stackLine =
+      section.match(/\*\*Pre-`start_agent` gate stack[^\n]*/)?.[0] ?? "";
+    expect(stackLine).toContain("Pre-`start_agent` gate stack (#1149/#1348)");
+    const pSession = stackLine.indexOf("verify:session-ritual");
+    const pStory = stackLine.indexOf("verify:story-ready");
+    const pVbrief = stackLine.indexOf("xbrief:preflight");
+    const pCache = stackLine.indexOf("verify:cache-fresh");
+    const pBranch = stackLine.indexOf("verify:branch");
+    const pStart = stackLine.lastIndexOf("start_agent");
     expect(pSession).toBeGreaterThanOrEqual(0);
     expect(pSession).toBeLessThan(pStory);
     expect(pStory).toBeLessThan(pVbrief);
     expect(pVbrief).toBeLessThan(pCache);
     expect(pCache).toBeLessThan(pBranch);
     expect(pBranch).toBeLessThan(pStart);
-  });
-
-  it("pre_start_agent_gate_stack_cites_downstream_owners", () => {
-    const stack = extractGateStackParagraph(agentsMdText);
-    expect(stack).toContain("#1348");
-    expect(stack).toContain("#810");
-    expect(stack).toContain("#1127");
+    expect(section).toContain("#1348");
+    expect(section).toContain("verify:cache-fresh");
   });
 });
