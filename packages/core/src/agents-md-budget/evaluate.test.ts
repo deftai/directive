@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { countRegions, evaluate, extractManagedSection, measureManagedSection } from "./evaluate.js";
+import {
+  countRegions,
+  evaluate,
+  extractManagedSection,
+  measureManagedSection,
+} from "./evaluate.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -148,7 +153,9 @@ describe("measureManagedSection", () => {
 });
 
 describe("absolute managed-section advisory", () => {
-  const budgetPlan = { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } } };
+  const budgetPlan = {
+    policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } },
+  };
 
   /** Build a managed block whose UTF-8 body exceeds the 8192-byte north-star. */
   function agentsOverAbsolute(unmanaged: number, payloadBytes: number): string {
