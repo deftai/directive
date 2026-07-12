@@ -65,7 +65,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin "${{ github.base_ref }}" --depth=1
-          npx --yes task verify:eval-health-relocation -- --base-ref "origin/${{ github.base_ref }}"
+          node packages/cli/dist/bin.js verify:eval-health-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
 
   go:
     name: Go (test + build)
