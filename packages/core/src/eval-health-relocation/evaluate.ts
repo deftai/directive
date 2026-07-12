@@ -38,6 +38,23 @@ export interface EvaluateOptions {
   readonly quiet?: boolean;
   /** Write the current eval:health report as the committed baseline. */
   readonly seedBaseline?: boolean;
+  /** Test hook: override eval:health collection. */
+  readonly healthEvaluator?: (projectRoot: string) => HealthReport | null;
+}
+
+/** Validate a parsed baseline JSON object before use. */
+export function parseHealthBaseline(parsed: unknown): HealthReport | null {
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  const record = parsed as Record<string, unknown>;
+  if (typeof record.score !== "number" || !Array.isArray(record.gates)) {
+    return null;
+  }
+  if (!Array.isArray(record.contradictions)) {
+    return null;
+  }
+  return parsed as HealthReport;
 }
 
 /** True when *path* matches a rule-relocation home. */
@@ -67,10 +84,7 @@ export function readHealthBaseline(projectRoot: string): HealthReport | null {
   }
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed as HealthReport;
+    return parseHealthBaseline(parsed);
   } catch {
     return null;
   }
@@ -107,7 +121,7 @@ export function collectChangedPaths(
     return gitNameOnlyDiff(projectRoot, ["--cached"]);
   }
   if (options.baseRef !== undefined && options.baseRef.length > 0) {
-    return gitNameOnlyDiff(projectRoot, [options.baseRef]);
+    return gitNameOnlyDiff(projectRoot, [options.baseRef, "HEAD"]);
   }
   return [];
 }
@@ -191,6 +205,21 @@ function formatRegressionMessage(
   );
 }
 
+function runHealthEvaluator(
+  projectRoot: string,
+  healthEvaluator: EvaluateOptions["healthEvaluator"],
+): HealthReport | null {
+  if (healthEvaluator !== undefined) {
+    return healthEvaluator(projectRoot);
+  }
+  const healthResult = evaluateHealth({
+    projectRoot,
+    persist: false,
+    frameworkSource: true,
+  });
+  return healthResult.report;
+}
+
 /**
  * Conditional fail-closed gate for epic #2369 rule-relocation PRs (#2373).
  *
@@ -203,24 +232,20 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
   const quiet = options.quiet ?? false;
 
   if (options.seedBaseline) {
-    const healthResult = evaluateHealth({
-      projectRoot,
-      persist: false,
-      frameworkSource: true,
-    });
-    if (healthResult.report === null) {
+    const report = runHealthEvaluator(projectRoot, options.healthEvaluator);
+    if (report === null) {
       return {
         code: 2,
         message: "❌ verify:eval-health-relocation: eval:health returned no report.",
         stream: "stderr",
       };
     }
-    writeHealthBaseline(projectRoot, healthResult.report);
+    writeHealthBaseline(projectRoot, report);
     return {
       code: 0,
       message:
         `✓ verify:eval-health-relocation: seeded baseline at ${HEALTH_BASELINE_REL} ` +
-        `(score=${healthResult.report.score}/100).`,
+        `(score=${report.score}/100).`,
       stream: "stdout",
     };
   }
@@ -260,20 +285,14 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
     };
   }
 
-  const healthResult = evaluateHealth({
-    projectRoot,
-    persist: false,
-    frameworkSource: true,
-  });
-  if (healthResult.report === null) {
+  const current = runHealthEvaluator(projectRoot, options.healthEvaluator);
+  if (current === null) {
     return {
       code: 2,
       message: "❌ verify:eval-health-relocation: eval:health returned no report.",
       stream: "stderr",
     };
   }
-  const current = healthResult.report;
-
   const baseline = readHealthBaseline(projectRoot);
   if (baseline === null) {
     return {

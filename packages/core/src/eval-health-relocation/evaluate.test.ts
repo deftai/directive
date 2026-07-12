@@ -8,6 +8,7 @@ import {
   detectHealthRegression,
   evaluate,
   isRuleRelocationPath,
+  parseHealthBaseline,
   readHealthBaseline,
   writeHealthBaseline,
 } from "./evaluate.js";
@@ -129,6 +130,17 @@ describe("detectHealthRegression", () => {
   });
 });
 
+describe("parseHealthBaseline", () => {
+  it("rejects objects missing required arrays", () => {
+    expect(parseHealthBaseline({ score: 85 })).toBeNull();
+    expect(parseHealthBaseline({ score: 85, gates: [] })).toBeNull();
+  });
+
+  it("accepts a well-formed baseline snapshot", () => {
+    expect(parseHealthBaseline(baselineReport)).toMatchObject({ score: 85 });
+  });
+});
+
 describe("evaluate", () => {
   it("skips when no relocation paths are present", () => {
     const root = seedRepo();
@@ -170,13 +182,20 @@ describe("evaluate", () => {
     const root = seedRepo();
     writeHealthBaseline(root, {
       ...baselineReport,
-      gates: baselineReport.gates.map((gate) =>
-        gate.id === "agents-md-freshness" ? { ...gate, pass: true, exitCode: 0 } : gate,
-      ),
       score: 100,
     });
 
-    const result = evaluate({ projectRoot: root, paths: ["content/templates/agents-entry.md"] });
+    const result = evaluate({
+      projectRoot: root,
+      paths: ["content/templates/agents-entry.md"],
+      healthEvaluator: () => ({
+        ...baselineReport,
+        score: 60,
+        gates: baselineReport.gates.map((gate) =>
+          gate.id === "links" ? { ...gate, pass: false, exitCode: 1 } : gate,
+        ),
+      }),
+    });
     expect(result.code).toBe(1);
     expect(result.message).toContain("regression");
   });
