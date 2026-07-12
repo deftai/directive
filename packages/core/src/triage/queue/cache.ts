@@ -56,7 +56,7 @@ export function sanitizeQueueTitle(rawTitle: string): string | null {
   }
   if (result.flags.some((flag) => flag.category === "invisible-unicode")) {
     const stripped = result.transformed_content.replace(/\r?\n+$/u, "");
-    return stripped.length > 0 ? stripped : rawTitle;
+    return stripped.length > 0 ? stripped : QUARANTINED_TITLE_PLACEHOLDER;
   }
   return rawTitle;
 }

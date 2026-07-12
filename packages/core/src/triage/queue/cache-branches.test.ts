@@ -271,4 +271,9 @@ describe("sanitizeQueueTitle", () => {
   it("returns null for credential hard-fail titles", () => {
     expect(sanitizeQueueTitle(`token AKIA${"A".repeat(16)}`)).toBeNull();
   });
+
+  it("returns quarantined placeholder for all-invisible-unicode titles", () => {
+    const allInvisible = "\u200B\u200C\u200D\uFEFF";
+    expect(sanitizeQueueTitle(allInvisible)).toBe(QUARANTINED_TITLE_PLACEHOLDER);
+  });
 });

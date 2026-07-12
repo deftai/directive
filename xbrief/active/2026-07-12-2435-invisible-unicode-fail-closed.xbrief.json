@@ -1,0 +1,48 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "description": "Greptile P1 fix on PR #2435: fail closed when invisible-unicode strip leaves empty queue title.",
+    "created": "2026-07-12T20:16:00Z",
+    "updated": "2026-07-12T20:16:00Z"
+  },
+  "plan": {
+    "id": "2435-invisible-unicode-fail-closed",
+    "title": "Fail closed on all-invisible-unicode triage queue titles",
+    "status": "running",
+    "narratives": {
+      "Description": "sanitizeQueueTitle must return QUARANTINED_TITLE_PLACEHOLDER when invisible-unicode stripping yields empty content, not raw unstripped bytes.",
+      "ImplementationPlan": "Change cache.ts sanitizeQueueTitle branch; add regression test in cache-branches.test.ts.",
+      "UserStory": "As an operator running triage:queue, I want all-invisible-unicode issue titles quarantined so attacker-controlled bytes never reach agent context."
+    },
+    "items": [
+      {
+        "title": "Fix sanitizeQueueTitle empty-strip branch",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Returns QUARANTINED_TITLE_PLACEHOLDER when stripped length is 0."
+        }
+      },
+      {
+        "title": "Add regression test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "cache-branches.test.ts covers all-invisible-unicode title."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_pr": "#2435"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/pull/2435",
+        "type": "x-xbrief/github-pull-request",
+        "title": "PR #2435: fix(triage): fail closed on quarantined titles in triage:queue"
+      }
+    ],
+    "updated": "2026-07-12T20:14:29Z"
+  }
+}
