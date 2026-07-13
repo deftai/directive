@@ -140,19 +140,16 @@ describe("resolveAgentsMdBudget", () => {
   });
 
   it("resolves optional absoluteMaxBytes when present", () => {
-    const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({
-          policy: {
-            agentsMdBudget: {
-              managedMaxLines: 1,
-              unmanagedMaxLines: 2,
-              absoluteMaxBytes: 16843,
-            },
-          },
-        }),
-      ),
-    );
+    const raw = withPlan({
+      policy: {
+        agentsMdBudget: {
+          managedMaxLines: 1,
+          unmanagedMaxLines: 2,
+          absoluteMaxBytes: 16843,
+        },
+      },
+    });
+    const result = resolveAgentsMdBudget(makeRepo(raw));
     expect(result.source).toBe("typed");
     expect(result.budget).toEqual({
       managedMaxLines: 1,

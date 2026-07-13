@@ -36,6 +36,10 @@ export interface EvaluateResult {
   /** North-star distance note (#2452); may accompany success or failure paths. */
   readonly northStarMessage?: string;
   readonly northStarStream?: OutputStream;
+  /** @deprecated Use northStarMessage — retained for one release of CLI compat. */
+  readonly advisoryMessage?: string;
+  /** @deprecated Use northStarStream — retained for one release of CLI compat. */
+  readonly advisoryStream?: OutputStream;
 }
 
 export interface EvaluateOptions {
@@ -246,12 +250,17 @@ function attachNorthStarNote<T extends EvaluateResult>(
       ...result,
       northStarMessage: formatAbsoluteAdvisory(measure),
       northStarStream: "stderr",
+      advisoryMessage: formatAbsoluteAdvisory(measure),
+      advisoryStream: "stderr",
     };
   }
+  const distance = formatNorthStarDistance(measure);
   return {
     ...result,
-    northStarMessage: formatNorthStarDistance(measure),
+    northStarMessage: distance,
     northStarStream: "stderr",
+    advisoryMessage: distance,
+    advisoryStream: "stderr",
   };
 }
 
