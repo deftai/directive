@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **OpenPackage tiered skill package for cross-harness install.** Maintainer tree ships `packaging/openpackage/deft-directive-skills/` (daily-core / standard / advanced tiers) for Cursor, Codex CLI, and OpenCode via `opkg install`, documented beside `npm i -g @deftai/directive` — distribution-layer only, no runtime skill router. Closes #2462. Refs #2369.
+- **OpenPackage tiered skill package for cross-harness install.** Ships a tiered OpenPackage skill manifest (daily-core / standard / advanced) for Cursor, Codex CLI, and OpenCode via `opkg install`, documented alongside the npm engine — distribution-layer only, no runtime skill router. Closes #2462. Refs #2369.
 
 - **Cross-harness packaging spike recommends OpenPackage distribution.** Wave 3 research (#2370) measured always-on bootstrap across Cursor (native skills) and Codex/OpenCode-style harnesses, chose distribution-layer (A) over runtime-router (B), and recorded go for an OpenPackage-based tiered skill package as the Wave 3 packaging action. Closes #2370. Refs #2369.
 

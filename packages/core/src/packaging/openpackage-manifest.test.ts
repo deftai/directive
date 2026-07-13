@@ -46,9 +46,11 @@ describe("OpenPackage tier manifest (#2462)", () => {
     expect(manifest.tiers.advanced.skills).toHaveLength(4);
   });
 
-  it("openpackage.yml exists beside the package README", () => {
+  it("openpackage.yml points at deft-tiers.json without duplicating tier lists", () => {
     const yml = join(PACKAGING, "deft-directive-skills", "openpackage.yml");
-    expect(readFileSync(yml, "utf8")).toContain('name: "@deftai/deft-directive-skills"');
-    expect(readFileSync(yml, "utf8")).toContain("daily-core:");
+    const text = readFileSync(yml, "utf8");
+    expect(text).toContain('name: "@deftai/deft-directive-skills"');
+    expect(text).toContain("tierManifest: ../deft-tiers.json");
+    expect(text).not.toContain("deft-directive-setup");
   });
 });
