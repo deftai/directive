@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Release Step 5 no longer poisons the TypeScript check lane with branch-bypass and release-preflight environment variables, so production cuts can run a full `task check` on master without false vitest failures or `--skip-ci`. Closes #2434. Closes #2469.
+
 ### Removed
 
 ## [0.75.0] - 2026-07-13

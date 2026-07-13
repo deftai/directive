@@ -20,6 +20,10 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { posix, win32 } from "node:path";
+import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/constants.js";
+
+/** Release Step-5 vars that must not leak into vitest via inherited pnpm env (#2434). */
+const TS_LANE_POISON_ENV_KEYS = [BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV] as const;
 
 /**
  * Run order is deliberate: lint (cheapest, catches the biome class first),
@@ -45,6 +49,18 @@ export interface RunnerResult {
 
 export type LaneRunner = (argv: readonly string[], cwd: string) => RunnerResult;
 
+/**
+ * Strip release preflight bypass vars before spawning pnpm/vitest so nested unit
+ * tests observe fail-closed branch and cache gates (#2434 / #1553 recurrence).
+ */
+export function sanitizeTsLaneEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const env = { ...base };
+  for (const key of TS_LANE_POISON_ENV_KEYS) {
+    delete env[key];
+  }
+  return env;
+}
+
 export interface RunTsLaneOptions {
   /** Resolved pnpm executable path, or null when not installed. */
   readonly pnpm: string | null;
@@ -68,6 +84,7 @@ function defaultRunner(argv: readonly string[], cwd: string): RunnerResult {
   const commandPath = command ?? "";
   const result = spawnSync(commandPath, rest, {
     cwd,
+    env: sanitizeTsLaneEnv(process.env),
     stdio: "inherit",
     shell: shouldUseShellForCommand(commandPath),
   });

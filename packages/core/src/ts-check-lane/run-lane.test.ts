@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/constants.js";
 import {
   LANE_COMMANDS,
   resolvePnpm,
   runTsLane,
   SKIP_NOTICE,
+  sanitizeTsLaneEnv,
   shouldUseShellForCommand,
 } from "./run-lane.js";
 
@@ -22,6 +24,36 @@ class Runner {
     return { status: code };
   };
 }
+
+describe("sanitizeTsLaneEnv", () => {
+  it("removes release Step-5 bypass vars while preserving other env", () => {
+    const base = {
+      PATH: "/usr/bin",
+      HOME: "/home/user",
+      [BRANCH_GATE_BYPASS_ENV]: "1",
+      [RELEASE_PREFLIGHT_ENV]: "1",
+    };
+
+    const sanitized = sanitizeTsLaneEnv(base);
+
+    expect(sanitized.PATH).toBe("/usr/bin");
+    expect(sanitized.HOME).toBe("/home/user");
+    expect(sanitized[BRANCH_GATE_BYPASS_ENV]).toBeUndefined();
+    expect(sanitized[RELEASE_PREFLIGHT_ENV]).toBeUndefined();
+  });
+
+  it("does not mutate the input env object", () => {
+    const base = {
+      [BRANCH_GATE_BYPASS_ENV]: "1",
+      [RELEASE_PREFLIGHT_ENV]: "1",
+    };
+
+    sanitizeTsLaneEnv(base);
+
+    expect(base[BRANCH_GATE_BYPASS_ENV]).toBe("1");
+    expect(base[RELEASE_PREFLIGHT_ENV]).toBe("1");
+  });
+});
 
 describe("runTsLane", () => {
   it("skips with a notice when pnpm is absent", () => {
