@@ -1,0 +1,126 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "refactor(agents-md): shrink maintainer AGENTS.md unmanaged header with consumer-parity mechanisms",
+    "created": "2026-07-13T21:04:30.410Z",
+    "updated": "2026-07-13T21:04:30.410Z"
+  },
+  "plan": {
+    "id": "2490-maintainer-header-shrink",
+    "title": "refactor(agents-md): shrink maintainer AGENTS.md unmanaged header with consumer-parity mechanisms",
+    "status": "running",
+    "narratives": {
+      "Description": "Shrink the maintainer AGENTS.md unmanaged header (~25 KB) using the same pointer-sufficient / lazy-home mechanisms as the consumer managed section. Eliminate full-text restatements of managed rules; keep #1309 propagation and #2065 unmanaged-header contract. Low priority under #2491 — does not change consumer delivered load and must not block #2492–#2494.",
+      "UserStory": "As a framework maintainer, I want the directive-repo AGENTS.md header to stop restating the managed section, so that maintainer sessions pay less always-on cost without forking consumer SoT.",
+      "ImplementationPlan": "1) Compress AGENTS.md unmanaged header (bytes above managed markers) to pointer-sufficient one-liners; no full-text managed restatement. 2) Avoid rewriting content/templates/agents-entry.md managed Commands body (sibling #2492 owns that); only touch agents-entry if #1309 propagation strictly requires it. 3) Optional unmanaged-header meter in packages/core/src/agents-md-budget/evaluate.ts if cheap. 4) Keep agents_entry_contract green. 5) CHANGELOG.md Closes #2490. Verify: task verify:agents-md-budget; task check --allow-over-cap.",
+      "Origin": "Enriched from #2490 under epic #2491 (low priority)",
+      "Overview": "Target ≥50% header cut stretch; out of scope: consumer agents-entry north-star (other children)."
+    },
+    "items": [
+      {
+        "id": "2490-a1",
+        "title": "No full-text managed restatement",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the unmanaged header, when reviewed, then it does not full-text restate managed-section rules.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2490-a2",
+        "title": "Pointer-sufficient maintainer-unique rules",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given remaining maintainer-unique rules, when kept always-on, then they use one-line + canonical home shape.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2490-a3",
+        "title": "#1309 preserved",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given edits, when consumer-relevant rules change, then agents-entry propagation discipline and gates still hold.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2490-a4",
+        "title": "Budget/check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given optional header meter, when task check runs, then master stays green at seeded budgets.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2490-a5",
+        "title": "CHANGELOG + close",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given merge, when PR lands, then CHANGELOG cites Closes #2490 and #2491 current-shape can mark this child done.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "context-engineering",
+      "agent-experience",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2490",
+        "type": "x-xbrief/github-issue",
+        "title": "#2490"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2491",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #2491"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1309",
+        "type": "x-xbrief/refs",
+        "title": "#1309"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2065",
+        "type": "x-xbrief/refs",
+        "title": "#2065"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2183",
+        "type": "x-xbrief/refs",
+        "title": "#2183"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "size": "medium",
+        "verify_commands": [
+          "task check --allow-over-cap",
+          "task verify:agents-md-budget"
+        ],
+        "depends_on": [],
+        "expected_outputs": [
+          "smaller maintainer unmanaged header",
+          "PR Closes #2490"
+        ],
+        "conflict_group": "maintainer-agents-header-2490",
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "priority": "low"
+      }
+    },
+    "updated": "2026-07-13T22:13:37Z"
+  }
+}
