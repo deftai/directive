@@ -1,0 +1,48 @@
+name: "@deftai/deft-directive-skills"
+version: "0.1.0"
+description: >-
+  Tiered Deft Directive consumer skills for cross-harness install via OpenPackage.
+  Distribution-layer (A) only — no runtime skill router. Sync skills from
+  content/skills/ before install (see packaging/openpackage/sync-skills.mjs).
+author: deftai
+license: MIT
+keywords:
+  - deft
+  - directive
+  - skills
+  - cursor
+  - codex
+  - opencode
+x-deft:
+  tierManifest: ../deft-tiers.json
+  installPlatforms:
+    - cursor
+    - codex
+    - opencode
+  tiers:
+    daily-core:
+      skills:
+        - deft-directive-setup
+        - deft-directive-sync
+        - deft-directive-build
+        - deft-directive-pre-pr
+        - deft-directive-review-cycle
+        - deft-directive-triage
+    standard:
+      skills:
+        - deft-directive-decompose
+        - deft-directive-feedback
+        - deft-directive-cost
+        - deft-directive-glossary
+        - deft-directive-gh-arch
+        - deft-directive-gh-slice
+        - deft-directive-interview
+        - deft-directive-probe
+        - deft-directive-refinement
+        - deft-directive-write-skill
+    advanced:
+      skills:
+        - deft-directive-article-review
+        - deft-directive-debug
+        - deft-directive-release
+        - deft-directive-swarm

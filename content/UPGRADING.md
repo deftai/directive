@@ -68,6 +68,27 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
 
 Start a **new agent session** after steps 2–3 so the refreshed AGENTS.md and skills load from a clean context.
 
+## OpenPackage tiered skills (optional, #2462)
+
+The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime handler for gates, lifecycle, and `.deft/core/` refresh. **OpenPackage** is an optional cross-harness distribution path for placing tiered consumer skills into Cursor, Codex CLI, and OpenCode native directories — without a Directive-owned skill router.
+
+1. Install OpenPackage CLI: `npm i -g opkg`
+2. From a maintainer checkout (or release tree), sync skills into the package:
+
+   ```bash
+   node packaging/openpackage/sync-skills.mjs
+   ```
+
+3. From your **project root** (after `directive init`):
+
+   ```bash
+   opkg install /path/to/directive/packaging/openpackage/deft-directive-skills --platforms cursor codex opencode
+   ```
+
+**Tiers:** **daily-core** (setup, sync, build, pre-pr, review-cycle, triage) for session bootstrap; **standard** for operational workflows; **advanced** (release, swarm, debug, article-review) for deferred install. Full lists: `packaging/openpackage/deft-tiers.json`. Detail: [`packaging/openpackage/deft-directive-skills/README.md`](../packaging/openpackage/deft-directive-skills/README.md).
+
+Consumer AGENTS.md stays pointer-thin — scan `.deft/core/REFERENCES.md` Skills Index; do not enumerate skills in the managed section.
+
 ## xBRIEF layout migration (#2034 / #2110)
 
 After upgrading to a release that ships the xbrief rename, convert legacy on-disk layout if `deft doctor` reports a `vbrief/` tree or `x-vbrief/` reference tokens:

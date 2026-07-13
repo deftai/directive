@@ -1,0 +1,106 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "feat(packaging): OpenPackage distribution manifest for deft-directive tiered skills",
+    "created": "2026-07-13T01:07:42.365Z",
+    "updated": "2026-07-13T01:07:42.365Z"
+  },
+  "plan": {
+    "id": "2462-openpackage-tiered-manifest",
+    "title": "feat(packaging): OpenPackage distribution manifest for deft-directive tiered skills",
+    "status": "running",
+    "narratives": {
+      "Description": "Add an OpenPackage package (openpackage.yml + skills tree) that tier-delivers deft-directive consumer skills as daily-core, standard, and advanced for Cursor, Codex CLI, and OpenCode. Keep distribution-layer (A) only with no runtime skill router, document install beside npm @deftai/directive, and keep AGENTS.md pointer-thin without skill enumeration.",
+      "UserStory": "As a framework maintainer, I want an OpenPackage tiered skill manifest for deft-directive, so that consumers can install daily-core skills without paying always-on frontmatter for deferred workflows.",
+      "ImplementationPlan": "1) Create packaging/openpackage/ (or content/openpackage/) package dir with openpackage.yml per https://openpackage.dev/docs structure (skills/, optional root/, README). 2) Tier skills from content/skills/: daily-core = deft-directive-setup, sync, build, pre-pr, review-cycle, triage; advanced = release, swarm, debug, article-review (+ similar); remaining operational skills = standard. Document tiers in package README. 3) Wire platform targets for Cursor + Codex CLI + OpenCode minimum (OpenPackage platforms mapping); do not build runtime router (B). 4) Document install path in UPGRADING.md and README.md alongside npm i -g @deftai/directive (opkg install path or local package path). 5) Ensure AGENTS.md stays pointer-thin — no skill enumeration (Q1). Optional thin pointer template under package root/ if needed. 6) Add a smoke check or doc-verified acceptance note that daily-core Cursor frontmatter stays ~<=2080 B (spike measurement); CHANGELOG [Unreleased] brief entry Closes #2462. Verify: task check --allow-over-cap; optional opkg list/smoke if CLI available.",
+      "Origin": "Enriched for swarm from #2462 under epic #2369 Wave 3 action"
+    },
+    "items": [
+      {
+        "id": "2462-a1",
+        "title": "Add openpackage.yml + package layout",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the new package dir, when openpackage.yml is present with skill tiers, then opkg-compatible structure exists for deft-directive consumer content.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2462-a2",
+        "title": "Map daily-core / standard / advanced tiers",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given content/skills, when tiers are declared, then daily-core is the six spike skills and advanced includes release/swarm/debug/article-review.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2462-a3",
+        "title": "Document Cursor+Codex+OpenCode install",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given UPGRADING.md/README.md updates, when an operator follows them, then OpenPackage install is documented next to npm engine install without a runtime router.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2462-a4",
+        "title": "CHANGELOG + PR Closes #2462",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the package lands, when PR merges, then CHANGELOG cites Closes #2462 and task check is green.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "skills",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2462",
+        "type": "x-xbrief/github-issue",
+        "title": "#2462"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2370",
+        "type": "x-xbrief/refs",
+        "title": "#2370"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2369",
+        "type": "x-xbrief/refs",
+        "title": "#2369"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packaging/openpackage/",
+          "UPGRADING.md",
+          "README.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "size": "medium",
+        "verify_commands": [
+          "task check --allow-over-cap"
+        ],
+        "expected_outputs": [
+          "openpackage.yml with tiers",
+          "install docs",
+          "PR merged Closes #2462"
+        ],
+        "depends_on": [],
+        "conflict_group": "openpackage-2462"
+      }
+    },
+    "updated": "2026-07-13T01:07:42.365Z"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "platforms": ["cursor", "codex", "opencode"],
+  "dailyCoreFrontmatterBudgetBytes": 2080,
+  "tiers": {
+    "daily-core": {
+      "description": "Always-on entrypoints — orient, configure, scope, build, review (spike #2370 prototype).",
+      "skills": [
+        "deft-directive-setup",
+        "deft-directive-sync",
+        "deft-directive-build",
+        "deft-directive-pre-pr",
+        "deft-directive-review-cycle",
+        "deft-directive-triage"
+      ]
+    },
+    "standard": {
+      "description": "Operational workflows — install on demand; not injected into Cursor session bootstrap by default.",
+      "skills": [
+        "deft-directive-decompose",
+        "deft-directive-feedback",
+        "deft-directive-cost",
+        "deft-directive-glossary",
+        "deft-directive-gh-arch",
+        "deft-directive-gh-slice",
+        "deft-directive-interview",
+        "deft-directive-probe",
+        "deft-directive-refinement",
+        "deft-directive-write-skill"
+      ]
+    },
+    "advanced": {
+      "description": "Heavy frontmatter workflows — deferred install (release, swarm, debug, article-review).",
+      "skills": [
+        "deft-directive-article-review",
+        "deft-directive-debug",
+        "deft-directive-release",
+        "deft-directive-swarm"
+      ]
+    }
+  }
+}

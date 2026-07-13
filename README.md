@@ -82,6 +82,18 @@ directive doctor    # confirm the install and print your one next step
 
 `directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` (npm) or `pnpm dlx @deftai/directive <verb>` (pnpm) runs one without a global install.
 
+#### OpenPackage tiered skills (optional, Cursor / Codex / OpenCode)
+
+Directive's npm engine deposits `.deft/core/` and the managed `AGENTS.md`. For **harness-native skill paths** with tiered install (daily-core vs deferred workflows), use [OpenPackage](https://openpackage.dev/docs) alongside the engine:
+
+```bash
+npm i -g opkg
+node /path/to/directive/packaging/openpackage/sync-skills.mjs
+opkg install /path/to/directive/packaging/openpackage/deft-directive-skills --platforms cursor codex opencode
+```
+
+Install **daily-core** only on Cursor to keep injected skill frontmatter lean — see [`packaging/openpackage/deft-directive-skills/README.md`](./packaging/openpackage/deft-directive-skills/README.md). This is distribution-layer (A) only; there is no runtime skill router.
+
 **Where your project lands (honest scope):** the global install above is location-independent, but `directive init` acts on the **current working directory** — it inspects that directory and dispatches, so `cd` into the folder you want the project to live in first (create it if it doesn't exist yet). init does not reach outside the directory you run it in. When an engine is already installed, Directive reconciles it against your committed `package.json` pin: a **matched** engine (same version as the pin) proceeds; a **mismatched** engine (ahead of or behind the pin) prints the exact `npm i -g` / `directive update` step to take rather than silently running against the wrong version.
 
 **What gets tracked vs ignored:** `init` and `update` add Directive's local-only artifacts to your `.gitignore` — the reconstitutable deposit `.deft/core/`, the per-platform engine cache `.deft/.cli/`, session/ritual state such as `.deft/ritual-state.json`, and the `.deft-cache/` content cache. Your committed `package.json` pin is **never** ignored: it is the anchor that lets `directive init` / `directive update` reconstitute `.deft/core/` on a fresh clone, so it stays tracked in version control.
