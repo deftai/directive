@@ -73,27 +73,32 @@ describe("test_500_discoverability", () => {
 
   it("agents_entry_template_has_pre_cutover_branch", () => {
     const text = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    expect(text.includes("Pre-Cutover Check") || text.includes("Pre-Cutover")).toBe(true);
-    const preCutoverPos = text.indexOf("Pre-Cutover");
-    const firstSessionPos = text.indexOf("## First Session");
-    const returningPos = text.indexOf("## Returning Sessions");
-    expect(preCutoverPos).not.toBe(-1);
-    expect(firstSessionPos).not.toBe(-1);
-    expect(returningPos).not.toBe(-1);
-    expect(preCutoverPos).toBeLessThan(firstSessionPos);
-    expect(preCutoverPos).toBeLessThan(returningPos);
+    // #2493: Pre-Cutover / First / Returning collapse into Session routing (#2176).
+    expect(text).toContain("## Session routing (#2176)");
+    expect(text).toContain("Pre-Cutover Detection Guard");
+    expect(text).toContain("Cold-start bootstrap");
+    expect(text).toContain("USER.md missing");
+    expect(text.indexOf("## First Session")).toBe(-1);
+    expect(text.indexOf("## Returning Sessions")).toBe(-1);
   });
 
   it("agents_entry_template_references_deprecated_redirect_sentinel", () => {
-    const text = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    expect(text).toContain("deft:deprecated-redirect");
+    // Full pre-cutover detection criteria live in setup SKILL; agents-entry is pointer-thin (#2493).
+    const setup = readRepoFile(SETUP_SKILL);
+    expect(setup).toContain("deft:deprecated-redirect");
+    const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
+    expect(entry).toContain("Pre-Cutover Detection Guard");
+    expect(entry).toContain("deft-directive-setup/SKILL.md");
   });
 
   it("agents_entry_template_references_lifecycle_folders", () => {
-    const text = readRepoFile(AGENTS_ENTRY_TEMPLATE);
+    // Lifecycle folder enumeration lives in setup SKILL Pre-Cutover Guard (#2493).
+    const setup = readRepoFile(SETUP_SKILL);
     for (const folder of LIFECYCLE_FOLDERS) {
-      expect(text).toContain(folder);
+      expect(setup).toContain(folder);
     }
+    const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
+    expect(entry).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
   });
 
   it("agents_entry_template_routes_to_setup_skill", () => {
@@ -107,13 +112,16 @@ describe("test_500_discoverability", () => {
     expect(setupGoContent).toContain("templates.AgentsEntry");
     expect(setupGoContent).not.toContain("agentsMDEntry = `");
     const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    expect(entry).toContain("Pre-Cutover Check");
-    expect(entry).toContain("deft:deprecated-redirect");
+    expect(entry).toContain("## Session routing (#2176)");
+    expect(entry).toContain("Pre-Cutover Detection Guard");
+    expect(entry).toContain("deft-directive-setup/SKILL.md");
+    const setup = readRepoFile(SETUP_SKILL);
+    expect(setup).toContain("deft:deprecated-redirect");
     for (const folder of LIFECYCLE_FOLDERS) {
-      expect(entry).toContain(folder);
+      expect(setup).toContain(folder);
     }
     expect(entry.split(".deft/core/main.md").length - 1).toBe(1);
-    expect(entry).toContain("Migrating from pre-v0.20");
+    expect(readRepoFile(MAIN_MD)).toContain("Migrating from pre-v0.20");
   });
 
   it("main_md_has_migration_section", () => {
