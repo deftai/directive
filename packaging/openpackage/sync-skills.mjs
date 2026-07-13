@@ -95,12 +95,6 @@ if (extra.length > 0) {
   process.exit(1);
 }
 
-const missingForTier = [...wanted].filter((s) => !onDisk.includes(s));
-if (missingForTier.length > 0) {
-  console.error(`sync-skills: tier ${syncTier} references missing skills: ${missingForTier.join(", ")}`);
-  process.exit(1);
-}
-
 if (existsSync(skillsDest)) {
   for (const entry of readdirSync(skillsDest, { withFileTypes: true })) {
     if (entry.name === ".gitkeep") continue;

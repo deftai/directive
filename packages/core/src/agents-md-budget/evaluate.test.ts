@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -409,6 +409,24 @@ description: ${description}
       if ("error" in bootstrap) return;
       expect(bootstrap.skillFrontmatter.skillCount).toBe(1);
       expect(bootstrap.skillFrontmatter.tier).toBe("daily-core");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
+      else process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER = prev;
+    }
+  });
+
+  it("defaults skill frontmatter tier to daily-core from OpenPackage manifest (#2494)", () => {
+    const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
+    const agentsPath = join(repoRoot, "AGENTS.md");
+    const text = readFileSync(agentsPath, "utf8");
+    const prev = process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
+    delete process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
+    try {
+      const bootstrap = measureBootstrapSurface(repoRoot, text, null);
+      expect("error" in bootstrap).toBe(false);
+      if ("error" in bootstrap) return;
+      expect(bootstrap.skillFrontmatter.tier).toBe("daily-core");
+      expect(bootstrap.skillFrontmatter.skillCount).toBe(6);
     } finally {
       if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
       else process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER = prev;

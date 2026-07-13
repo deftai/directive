@@ -18,9 +18,11 @@ describe("openpackage-tiers (#2494)", () => {
     expect(dailyCore).not.toContain("deft-directive-release");
   });
 
-  it("resolveTierSkills all returns every mapped skill", () => {
+  it("resolveTierSkills all returns every mapped skill without duplicates", () => {
     const manifest = loadOpenPackageTierManifest(REPO_ROOT);
-    expect(resolveTierSkills(manifest, "all")).toHaveLength(20);
+    const all = resolveTierSkills(manifest, "all");
+    expect(all).toHaveLength(20);
+    expect(new Set(all).size).toBe(20);
   });
 
   it("isOpenPackageTierName rejects unknown tiers", () => {

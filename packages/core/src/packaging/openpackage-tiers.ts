@@ -52,7 +52,7 @@ export function resolveTierSkills(
   tier: OpenPackageTierName | "all",
 ): string[] {
   if (tier === "all") {
-    return TIER_NAMES.flatMap((name) => manifest.tiers[name].skills);
+    return [...new Set(TIER_NAMES.flatMap((name) => manifest.tiers[name].skills))];
   }
   return [...manifest.tiers[tier].skills];
 }
