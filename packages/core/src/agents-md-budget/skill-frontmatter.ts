@@ -21,17 +21,31 @@ export function extractSkillDescription(text: string): string {
   if (!text.startsWith("---")) {
     return "";
   }
-  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (match === null || match[1] === undefined) {
+  const closing = text.indexOf("\n---", 3);
+  if (closing === -1) {
     return "";
   }
-  const frontmatter = match[1];
-  const folded = frontmatter.match(/^description:\s*>-?\s*\r?\n((?:[ \t].*\r?\n?)+)/m);
-  if (folded !== null && folded[1] !== undefined) {
-    return folded[1].replace(/^[ \t]+/gm, "").trim();
+  const frontmatter = text.slice(3, closing).replace(/^\r?\n/, "");
+  const lines = frontmatter.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^description:\s*>(-)?\s*$/.test(line)) {
+      const descLines: string[] = [];
+      for (let j = i + 1; j < lines.length; j += 1) {
+        const next = lines[j];
+        if (!/^[ \t]/.test(next)) {
+          break;
+        }
+        descLines.push(next.replace(/^[ \t]+/, ""));
+      }
+      return descLines.join("\n").trim();
+    }
+    const single = line.match(/^description:\s*(.+)$/);
+    if (single !== null && single[1] !== undefined) {
+      return single[1].trim();
+    }
   }
-  const single = frontmatter.match(/^description:\s*(.+)$/m);
-  return single !== null && single[1] !== undefined ? single[1].trim() : "";
+  return "";
 }
 
 /**
