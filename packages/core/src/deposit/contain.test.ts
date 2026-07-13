@@ -2,13 +2,13 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { runInitDeposit } from "../init-deposit/init-deposit.js";
+import { runRefreshDeposit } from "../init-deposit/refresh.js";
+import { assertDepositContained, DepositContainmentError } from "./contain.js";
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
 const itSymlink = it.skipIf(process.platform === "win32");
 const describeSymlink = describe.skipIf(process.platform === "win32");
-import { runInitDeposit } from "../init-deposit/init-deposit.js";
-import { runRefreshDeposit } from "../init-deposit/refresh.js";
-import { assertDepositContained, DepositContainmentError } from "./contain.js";
 
 const temps: string[] = [];
 afterEach(() => {
