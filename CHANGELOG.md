@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Release Step 5 no longer poisons the TypeScript check lane with branch-bypass and release-preflight environment variables, so production cuts can run a full `task check` on master without false vitest failures or `--skip-ci`. Closes #2434. Closes #2469.
+- **The documented `xbrief:preflight` gate works again.** `task xbrief:preflight` and `deft xbrief:preflight` now resolve to the same #810 implementation-intent check as the legacy `vbrief:preflight` verb, accept `xbrief/active/` paths, and print clearer usage hints on failure. Closes #2449.
 
 ### Removed
 

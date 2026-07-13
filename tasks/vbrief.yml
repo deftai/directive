@@ -68,7 +68,7 @@ tasks:
     # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
     # because the vBRIEF path is a user-facing argument forwarded via
     # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
-    desc: "Preflight an implementation-intent gate (#810): exits 0 only when vBRIEF is in vbrief/active/ AND plan.status == 'running'. Fails closed (#1046 PR-C / #1047) if the wrapped script cannot be resolved."
+    desc: "Preflight an implementation-intent gate (#810): exits 0 only when the scope xBRIEF is in xbrief/active/ (or legacy vbrief/active/) AND plan.status == 'running'. Prefer `task xbrief:preflight -- <path>`; this task remains for backward compatibility."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

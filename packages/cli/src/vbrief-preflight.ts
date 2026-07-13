@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { emitJson, evaluate } from "@deftai/directive-core/preflight";
+import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -8,7 +8,19 @@ interface ParsedArgs {
   error?: string;
 }
 
-/** Parse vbrief-preflight CLI args, mirroring the Python argparse surface (#810). */
+const PATH_FLAG_NAMES = ["--vbrief-path", "--brief-path", "--xbrief-path"] as const;
+
+function assignPathFlag(parsed: ParsedArgs, value: string | undefined): ParsedArgs | null {
+  if (value === undefined || value.length === 0) {
+    return { ...parsed, error: "argument --vbrief-path: expected one argument" };
+  }
+  if (parsed.vbriefPath !== null) {
+    return { ...parsed, error: "multiple path arguments are not allowed" };
+  }
+  return { ...parsed, vbriefPath: value };
+}
+
+/** Parse vbrief-preflight / xbrief:preflight CLI args (#810 / #2449). */
 export function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     vbriefPath: null,
@@ -18,21 +30,41 @@ export function parseArgs(argv: string[]): ParsedArgs {
     const arg = argv[i];
     if (arg === "--json") {
       parsed.emitJson = true;
-    } else if (arg === "--vbrief-path") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return { ...parsed, error: "argument --vbrief-path: expected one argument" };
-      }
-      parsed.vbriefPath = value;
+      continue;
+    }
+    if (arg === "--help" || arg === "-h") {
+      return parsed;
+    }
+    if (PATH_FLAG_NAMES.includes(arg as (typeof PATH_FLAG_NAMES)[number])) {
+      const next = assignPathFlag(parsed, argv[i + 1]);
+      if (next?.error !== undefined) return next;
+      parsed.vbriefPath = next?.vbriefPath ?? null;
       i += 1;
-    } else if (arg?.startsWith("--vbrief-path=")) {
-      parsed.vbriefPath = arg.slice("--vbrief-path=".length);
-    } else {
+      continue;
+    }
+    let matchedEqualsForm = false;
+    for (const flag of PATH_FLAG_NAMES) {
+      if (arg?.startsWith(`${flag}=`)) {
+        const next = assignPathFlag(parsed, arg.slice(flag.length + 1));
+        if (next?.error !== undefined) return next;
+        parsed.vbriefPath = next?.vbriefPath ?? null;
+        matchedEqualsForm = true;
+        break;
+      }
+    }
+    if (matchedEqualsForm) continue;
+    if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
+    const next = assignPathFlag(parsed, arg);
+    if (next?.error !== undefined) return next;
+    parsed.vbriefPath = next?.vbriefPath ?? null;
   }
   if (parsed.vbriefPath === null) {
-    return { ...parsed, error: "the following arguments are required: --vbrief-path" };
+    return {
+      ...parsed,
+      error: `the following arguments are required: --vbrief-path (or positional path). ${PREFLIGHT_USAGE_HINT}`,
+    };
   }
   return parsed;
 }

@@ -7,9 +7,15 @@ export const ACTIVE_FOLDER = "active";
 /** Canonical eligibility status — only `running` signals an active handoff. */
 export const ELIGIBLE_STATUS = "running";
 
-/** Actionable redirect appended to every reject path (#810). */
+/** Actionable redirect appended to every reject path (#810 / #2449). */
 export const ACTIVATE_HINT =
-  "Run `task vbrief:activate {path}` before spawning an implementation agent.";
+  "Run `task scope:activate -- {path}` (or legacy `task vbrief:activate -- {path}`) before spawning an implementation agent.";
+
+/** Lifecycle folder names eligible for implementation (#810). */
+export const ELIGIBLE_LIFECYCLE_DIRS = ["xbrief/active", "vbrief/active"] as const;
+
+export const PREFLIGHT_USAGE_HINT =
+  "Expected: `task xbrief:preflight -- xbrief/active/<story>.xbrief.json` (legacy: `task vbrief:preflight -- <path>`).";
 
 /** Result of a vBRIEF preflight evaluation; mirrors the Python `evaluate` tuple. */
 export interface EvaluateResult {
@@ -23,7 +29,7 @@ export function formatActivateHint(path: string): string {
 }
 
 function buildReject(path: string, reason: string): string {
-  return `${reason}\n  ${formatActivateHint(path)}`;
+  return `${reason}\n  ${PREFLIGHT_USAGE_HINT}\n  ${formatActivateHint(path)}`;
 }
 
 /** Map Node `JSON.parse` errors to CPython `json.JSONDecodeError.msg` for parity (#1721). */
@@ -112,12 +118,14 @@ export function evaluate(vbriefPath: string): EvaluateResult {
   }
 
   const folder = basename(dirname(vbriefPath));
+  const parent = basename(dirname(dirname(vbriefPath)));
+  const lifecycleDir = `${parent}/${folder}`;
   if (folder !== ACTIVE_FOLDER) {
     return {
       exitCode: 1,
       message: buildReject(
         path,
-        `vBRIEF is in ${folder}/ -- only vbrief/active/ is eligible for implementation.`,
+        `xBRIEF is in ${lifecycleDir}/ -- only xbrief/active/ (or legacy vbrief/active/) is eligible for implementation.`,
       ),
     };
   }

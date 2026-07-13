@@ -33,14 +33,23 @@ function silentRun(argv: string[]): number {
 }
 
 describe("parseArgs", () => {
-  it("requires --vbrief-path", () => {
+  it("requires --vbrief-path or positional path", () => {
     expect(parseArgs([]).error).toContain("--vbrief-path");
+    expect(parseArgs([]).error).toContain("xbrief:preflight");
   });
   it("parses --vbrief-path and --json", () => {
     expect(parseArgs(["--vbrief-path", "/x", "--json"])).toMatchObject({
       vbriefPath: "/x",
       emitJson: true,
     });
+  });
+  it("parses --brief-path alias", () => {
+    expect(parseArgs(["--brief-path", "/x"]).vbriefPath).toBe("/x");
+  });
+  it("parses positional path", () => {
+    expect(parseArgs(["xbrief/active/story.xbrief.json"]).vbriefPath).toBe(
+      "xbrief/active/story.xbrief.json",
+    );
   });
   it("parses --vbrief-path= form", () => {
     expect(parseArgs(["--vbrief-path=/y"]).vbriefPath).toBe("/y");

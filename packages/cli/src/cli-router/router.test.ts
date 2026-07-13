@@ -64,6 +64,13 @@ describe("routeArgv", () => {
     expect(routeArgv(["vbrief", "validate"]).argv).toEqual(["vbrief:validate"]);
   });
 
+  it("maps xbrief preflight to xbrief:preflight", () => {
+    expect(routeArgv(["xbrief", "preflight", "xbrief/active/story.xbrief.json"]).argv).toEqual([
+      "xbrief:preflight",
+      "xbrief/active/story.xbrief.json",
+    ]);
+  });
+
   it("maps pr merge-ready to pr-merge-readiness", () => {
     expect(routeArgv(["pr", "merge-ready", "--repo", "deftai/directive"]).argv).toEqual([
       "pr-merge-readiness",
@@ -135,6 +142,7 @@ describe("taskKeyToDispatchArgv", () => {
       "x.xbrief.json",
     ]);
     expect(taskKeyToDispatchArgv("vbrief:preflight")).toEqual(["vbrief:preflight"]);
+    expect(taskKeyToDispatchArgv("xbrief:preflight")).toEqual(["xbrief:preflight"]);
     expect(taskKeyToDispatchArgv("triage:welcome")).toEqual(["triage:welcome"]);
     expect(taskKeyToDispatchArgv("triage:reset", ["--issue", "1"])).toEqual([
       "triage-actions",

@@ -420,6 +420,15 @@ describe("test_taskfile_cli_args.py", () => {
     }
     expect(matches).toEqual([]);
   });
+  it("test_no_double_quoted_cli_args[xbrief.yml]", () => {
+    const text = readFileSync(join(repoRoot(), "tasks", "xbrief.yml"), { encoding: "utf8" });
+    const matches: string[] = [];
+    for (const line of text.split("\n")) {
+      if (line.trimStart().startsWith("#")) continue;
+      if (DOUBLE_QUOTED_CLI_ARGS.test(line)) matches.push(line.trim());
+    }
+    expect(matches).toEqual([]);
+  });
   it("test_no_double_quoted_cli_args[verify.yml]", () => {
     const text = readFileSync(join(repoRoot(), "tasks", "verify.yml"), { encoding: "utf8" });
     const matches: string[] = [];

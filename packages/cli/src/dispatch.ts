@@ -243,6 +243,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:no-task-runtime": "verify-no-task-runtime",
   "vbrief:validate": "vbrief-validate",
   "vbrief:preflight": "vbrief-preflight",
+  "xbrief:preflight": "vbrief-preflight",
   "vbrief:activate": "vbrief-activate",
   "verify:story-ready": "verify-story-ready",
   "verify:tools": "verify-tools",

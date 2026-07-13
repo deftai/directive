@@ -2,8 +2,10 @@ export type { EvaluateResult } from "./evaluate.js";
 export {
   ACTIVATE_HINT,
   ACTIVE_FOLDER,
+  ELIGIBLE_LIFECYCLE_DIRS,
   ELIGIBLE_STATUS,
   emitJson,
   evaluate,
   formatActivateHint,
+  PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";

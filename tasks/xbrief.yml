@@ -1,0 +1,20 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+
+  preflight:
+    # Canonical #810 implementation-intent gate for the xBRIEF lifecycle (#2449).
+    # Mirrors tasks/vbrief.yml preflight; callers use:
+    #   task xbrief:preflight -- xbrief/active/<story>.xbrief.json
+    # Legacy `task vbrief:preflight -- <path>` remains accepted for the same gate.
+    desc: "Preflight an implementation-intent gate (#810): exits 0 only when the xBRIEF is in xbrief/active/ AND plan.status == 'running'. Alias of vbrief:preflight with xbrief-first help."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'xbrief:preflight --vbrief-path {{.CLI_ARGS}}'

@@ -30,6 +30,7 @@ function writePendingVbrief(root: string, status = "pending"): string {
 describe("deft-ts vbrief lifecycle verbs (#1838 s3)", () => {
   it("resolves task-style vbrief aliases to canonical verbs", () => {
     expect(resolveCanonicalVerb("vbrief:preflight")).toBe("vbrief-preflight");
+    expect(resolveCanonicalVerb("xbrief:preflight")).toBe("vbrief-preflight");
     expect(resolveCanonicalVerb("vbrief:validate")).toBe("vbrief-validate");
     expect(resolveCanonicalVerb("vbrief:activate")).toBe("vbrief-activate");
   });
@@ -47,6 +48,15 @@ describe("deft-ts vbrief lifecycle verbs (#1838 s3)", () => {
     const alias = await runDispatch(["vbrief:preflight", "--vbrief-path", path]);
     expect(alias.exitCode).toBe(canonical.exitCode);
     expect(canonical.exitCode).toBe(1);
+  });
+
+  it("xbrief:preflight alias resolves and matches vbrief:preflight", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-lc-xpf-"));
+    temps.push(root);
+    const path = writePendingVbrief(root);
+    const legacy = await runDispatch(["vbrief:preflight", "--vbrief-path", path]);
+    const canonical = await runDispatch(["xbrief:preflight", "--vbrief-path", path]);
+    expect(canonical.exitCode).toBe(legacy.exitCode);
   });
 
   it("vbrief-activate requires a positional vbrief path", async () => {

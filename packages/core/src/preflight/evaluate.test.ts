@@ -6,7 +6,13 @@ import { afterAll, describe, expect, it } from "vitest";
 // chmodSync does not reliably block file reads on Windows; skip chmod-dependent tests there.
 const itChmod = it.skipIf(process.platform === "win32");
 
-import { ELIGIBLE_STATUS, emitJson, evaluate, formatActivateHint } from "./evaluate.js";
+import {
+  ELIGIBLE_STATUS,
+  emitJson,
+  evaluate,
+  formatActivateHint,
+  PREFLIGHT_USAGE_HINT,
+} from "./evaluate.js";
 import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
 
 const temps: string[] = [];
@@ -38,6 +44,17 @@ describe("evaluate", () => {
     expect(result.message).toBe(`OK ${path} -- ready for implementation.`);
   });
 
+  it("returns exit 0 for xbrief/active/ layout path", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-xbrief-"));
+    temps.push(root);
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
+    const result = evaluate(path);
+    expect(result.exitCode).toBe(0);
+  });
+
   it("rejects pending/ folder", () => {
     const path = writeVbrief(
       "pending",
@@ -47,6 +64,8 @@ describe("evaluate", () => {
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("pending/");
+    expect(result.message).toContain("xbrief/active/");
+    expect(result.message).toContain(PREFLIGHT_USAGE_HINT);
     expect(result.message).toContain(formatActivateHint(path));
   });
 
