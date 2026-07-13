@@ -12,7 +12,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 **Bootstrap card** (before answering):
 - `deft` / `directive` won't run → README.md § Cold-start bootstrap (#2273); ⊗ never `.deft/core/`
 - Pre-cutover artifacts → `.deft/core/.agents/skills/deft-directive-setup/SKILL.md` § Pre-Cutover Detection Guard (#2068)
-- Missing USER.md → setup SKILL Phase 1; missing `xbrief/PROJECT-DEFINITION.xbrief.json` → setup SKILL Phase 2 (#1813); ⊗ respond before phase completes
+- USER.md missing → setup SKILL Phase 1; `xbrief/PROJECT-DEFINITION.xbrief.json` missing → setup SKILL Phase 2 (#1813); ⊗ respond before phase completes
 - Config complete → read main.md → USER.md → PROJECT-DEFINITION (USER.md wins on conflicts); ~ `deft-directive-sync` on return
 
 **Mutation boundary:** code-writing, scope lifecycle, `start_agent`, commits, push, or release → `deft session:start` then `deft verify:session-ritual -- --tier=gated` per `.deft/core/commands.md` § Session-start ritual (#1149).

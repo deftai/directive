@@ -159,7 +159,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=d84faa6ed959 refreshed=2026-07-13T22:51:09Z session=3e411932237e -->
+<!-- deft:managed-section v3 sha=cd248a4b6da7 refreshed=2026-07-13T22:54:13Z session=296a12950982 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -173,7 +173,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 **Bootstrap card** (before answering):
 - `deft` / `directive` won't run → README.md § Cold-start bootstrap (#2273); ⊗ never `.deft/core/`
 - Pre-cutover artifacts → `.deft/core/.agents/skills/deft-directive-setup/SKILL.md` § Pre-Cutover Detection Guard (#2068)
-- Missing USER.md → setup SKILL Phase 1; missing `xbrief/PROJECT-DEFINITION.xbrief.json` → setup SKILL Phase 2 (#1813); ⊗ respond before phase completes
+- USER.md missing → setup SKILL Phase 1; `xbrief/PROJECT-DEFINITION.xbrief.json` missing → setup SKILL Phase 2 (#1813); ⊗ respond before phase completes
 - Config complete → read main.md → USER.md → PROJECT-DEFINITION (USER.md wins on conflicts); ~ `deft-directive-sync` on return
 
 **Mutation boundary:** code-writing, scope lifecycle, `start_agent`, commits, push, or release → `deft session:start` then `deft verify:session-ritual -- --tier=gated` per `.deft/core/commands.md` § Session-start ritual (#1149).
