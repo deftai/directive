@@ -519,14 +519,17 @@ function ensureEvalReadme(options: EnsureEvalReadmeOptions): StepOutcome {
 
 /** Ensure the #1144 hybrid policy is encoded in the repo (idempotent). */
 export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome {
-  // Layout-aware (#2109): resolve the README under the active lifecycle `.eval`
-  // dir (xbrief/ when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
-  const readmePath = resolveTriageCachePath(projectRoot, "README.md");
+  const stepName = "ensure_gitignore_eval_entries";
+  let readmePath: string;
+  try {
+    readmePath = resolveTriageCachePath(projectRoot, "README.md");
+  } catch (err) {
+    return containmentFailure(stepName, err);
+  }
   const readmeRel = evalRelDisplay(projectRoot, readmePath);
   const entries = gitignoreTriageCacheEntries(projectRoot);
   const glob = gitattributesTriageCacheGlob(projectRoot);
   const ruleLine = `${glob}  merge=union`;
-  const stepName = "ensure_gitignore_eval_entries";
   const details: Record<string, unknown> = {};
 
   const giResult = ensureGitignoreSelectiveEntries(projectRoot, stepName, entries);

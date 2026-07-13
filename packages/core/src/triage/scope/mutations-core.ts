@@ -93,23 +93,23 @@ export function recordSubscriptionChange(
     extra?: Record<string, unknown>;
   },
 ): void {
-  const historyPath = resolveTriageCachePath(projectRoot, "subscription-history.jsonl");
-  const record: Record<string, unknown> = {
-    schema: SUBSCRIPTION_HISTORY_SCHEMA,
-    change_id: randomUUID(),
-    timestamp: utcIso(),
-    actor: resolveActor(options.actor),
-    op: options.op,
-    label: options.label ?? null,
-    milestone: options.milestone ?? null,
-    issue: options.issue ?? null,
-    author: options.author ?? null,
-    before: options.before ?? [],
-    after: options.after ?? [],
-  };
-  if (options.extra) record.extra = options.extra;
-  const line = JSON.stringify(record, Object.keys(record).sort());
   try {
+    const historyPath = resolveTriageCachePath(projectRoot, "subscription-history.jsonl");
+    const record: Record<string, unknown> = {
+      schema: SUBSCRIPTION_HISTORY_SCHEMA,
+      change_id: randomUUID(),
+      timestamp: utcIso(),
+      actor: resolveActor(options.actor),
+      op: options.op,
+      label: options.label ?? null,
+      milestone: options.milestone ?? null,
+      issue: options.issue ?? null,
+      author: options.author ?? null,
+      before: options.before ?? [],
+      after: options.after ?? [],
+    };
+    if (options.extra) record.extra = options.extra;
+    const line = JSON.stringify(record, Object.keys(record).sort());
     mkdirSync(dirname(historyPath), { recursive: true });
     appendFileSync(historyPath, `${line}\n`, "utf8");
   } catch {

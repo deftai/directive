@@ -131,9 +131,7 @@ describe("init-deposit projection containment (#2446)", () => {
       writeFileSync(join(deftDir, ".githooks", "pre-commit"), "#!/bin/sh\n", "utf8");
       chmodSync(join(deftDir, ".githooks", "pre-commit"), 0o755);
 
-      await expect(writeAgentsSkills(project, captureIo().io)).rejects.toThrow(
-        ProjectionContainmentError,
-      );
+      expect(() => writeAgentsSkills(project, captureIo().io)).toThrow(ProjectionContainmentError);
       expect(existsSync(join(escapeDir, "skills"))).toBe(false);
     },
   );

@@ -296,7 +296,7 @@ describe("triage cache-path symlink containment (#2446)", () => {
   itSymlink("migrateLegacyTriageCacheFromEval refuses without out-of-tree mkdir", () => {
     seedXbrief();
     const escapeDir = freshEscape("triage-migrate-escape-");
-    const legacyDir = resolveEvalDir(root);
+    const legacyDir = join(escapeDir, ".eval");
     mkdirSync(legacyDir, { recursive: true });
     writeFileSync(join(legacyDir, "candidates.jsonl"), "legacy\n", "utf8");
     rmSync(join(root, "xbrief"), { recursive: true, force: true });
