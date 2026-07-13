@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ProjectionContainmentError } from "../../fs/projection-containment.js";
 import { parseCliArgs, runCliCapture } from "./cli.js";
 import {
   addLabelToScope,
@@ -111,7 +112,9 @@ describe("mutations-core branch coverage", () => {
     process.env.DEFT_TRIAGE_ACTOR = "ci:bot";
     recordSubscriptionChange(root, { op: "test", label: "x" });
     delete process.env.DEFT_TRIAGE_ACTOR;
-    recordSubscriptionChange("/\0invalid", { op: "test" });
+    expect(() => recordSubscriptionChange("/\0invalid", { op: "test" })).toThrow(
+      ProjectionContainmentError,
+    );
   });
 });
 

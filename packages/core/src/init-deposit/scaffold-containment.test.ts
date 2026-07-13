@@ -118,6 +118,33 @@ describe("init-deposit projection containment (#2446)", () => {
     },
   );
 
+  itSymlink(
+    "writeAgentsSkills refuses symlinked .agents even when all skills already exist outside the project",
+    () => {
+      const project = freshRoot("scaffold-agentsdir-prepop-");
+      const escapeDir = freshEscape("scaffold-agentsdir-prepop-escape-");
+      const skillDirs = [
+        "deft",
+        "deft-directive-setup",
+        "deft-directive-build",
+        "deft-directive-review-cycle",
+        "deft-directive-refinement",
+        "deft-directive-swarm",
+        "deft-directive-interview",
+        "deft-directive-pre-pr",
+        "deft-directive-sync",
+      ];
+      for (const dir of skillDirs) {
+        const skillDir = join(escapeDir, "skills", dir);
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(join(skillDir, "SKILL.md"), `# ${dir}\n`, "utf8");
+      }
+      symlinkSync(escapeDir, join(project, ".agents"), "dir");
+
+      expect(() => writeAgentsSkills(project, captureIo().io)).toThrow(ProjectionContainmentError);
+    },
+  );
+
   itSymlink("writeAgentsSkills refuses when .agents is a symlink outside the project", () => {
     const project = freshRoot("scaffold-agentsdir-symlink-");
     const escapeDir = freshEscape("scaffold-agentsdir-escape-");

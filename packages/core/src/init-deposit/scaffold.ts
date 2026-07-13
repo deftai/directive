@@ -442,6 +442,8 @@ export async function writeConsumerVbrief(
 }
 
 export function writeAgentsSkills(projectDir: string, io: InitDepositIo): boolean {
+  projectionTarget(projectDir, ".agents");
+
   const allExist = AGENTS_SKILLS.every((skill) =>
     existsSync(join(projectDir, ".agents", "skills", skill.dir, "SKILL.md")),
   );
