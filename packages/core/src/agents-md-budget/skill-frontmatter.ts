@@ -28,11 +28,11 @@ export function extractSkillDescription(text: string): string {
   const frontmatter = text.slice(3, closing).replace(/^\r?\n/, "");
   const lines = frontmatter.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
+    const line = lines[i] ?? "";
     if (/^description:\s*>(-)?\s*$/.test(line)) {
       const descLines: string[] = [];
       for (let j = i + 1; j < lines.length; j += 1) {
-        const next = lines[j];
+        const next = lines[j] ?? "";
         if (!/^[ \t]/.test(next)) {
           break;
         }
