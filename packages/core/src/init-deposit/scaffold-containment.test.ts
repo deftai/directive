@@ -118,21 +118,18 @@ describe("init-deposit projection containment (#2446)", () => {
     },
   );
 
-  itSymlink(
-    "depositNeutralization fails closed when .agents is a symlink outside the project",
-    async () => {
-      const project = freshRoot("scaffold-agentsdir-symlink-");
-      const escapeDir = freshEscape("scaffold-agentsdir-escape-");
-      mkdirSync(escapeDir, { recursive: true });
-      symlinkSync(escapeDir, join(project, ".agents"), "dir");
+  itSymlink("writeAgentsSkills refuses when .agents is a symlink outside the project", () => {
+    const project = freshRoot("scaffold-agentsdir-symlink-");
+    const escapeDir = freshEscape("scaffold-agentsdir-escape-");
+    mkdirSync(escapeDir, { recursive: true });
+    symlinkSync(escapeDir, join(project, ".agents"), "dir");
 
-      const deftDir = join(project, ".deft", "core");
-      mkdirSync(join(deftDir, ".githooks"), { recursive: true });
-      writeFileSync(join(deftDir, ".githooks", "pre-commit"), "#!/bin/sh\n", "utf8");
-      chmodSync(join(deftDir, ".githooks", "pre-commit"), 0o755);
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, ".githooks"), { recursive: true });
+    writeFileSync(join(deftDir, ".githooks", "pre-commit"), "#!/bin/sh\n", "utf8");
+    chmodSync(join(deftDir, ".githooks", "pre-commit"), 0o755);
 
-      expect(() => writeAgentsSkills(project, captureIo().io)).toThrow(ProjectionContainmentError);
-      expect(existsSync(join(escapeDir, "skills"))).toBe(false);
-    },
-  );
+    expect(() => writeAgentsSkills(project, captureIo().io)).toThrow(ProjectionContainmentError);
+    expect(existsSync(join(escapeDir, "skills"))).toBe(false);
+  });
 });

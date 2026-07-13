@@ -97,8 +97,7 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
       removedLegacyFiles: [],
     };
   }
-  assertWritableTriageCachePath(projectRoot);
-  const targetDir = triageCacheDirPath(projectRoot);
+  const targetDir = resolveTriageCacheDir(projectRoot);
   const migratedFiles: string[] = [];
   const skippedFiles: string[] = [];
   const migratedDirs: string[] = [];
@@ -176,9 +175,8 @@ export function resolveCandidatesLogPath(projectRoot: string): string {
 
 /** Ensure the triage cache directory exists (post-migration). */
 export function ensureTriageCacheDir(projectRoot: string): string {
-  assertWritableTriageCachePath(projectRoot);
   migrateLegacyTriageCacheFromEval(projectRoot);
-  const dir = triageCacheDirPath(projectRoot);
+  const dir = resolveTriageCacheDir(projectRoot);
   mkdirSync(dir, { recursive: true });
   return dir;
 }
