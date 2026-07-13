@@ -73,11 +73,13 @@ Start a **new agent session** after steps 2–3 so the refreshed AGENTS.md and s
 The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime handler for gates, lifecycle, and `.deft/core/` refresh. **OpenPackage** is an optional cross-harness distribution path for placing tiered consumer skills into Cursor, Codex CLI, and OpenCode native directories — without a Directive-owned skill router.
 
 1. Install OpenPackage CLI: `npm i -g opkg`
-2. From a maintainer checkout (or release tree), sync skills into the package:
+2. From a maintainer checkout (or release tree), sync skills into the package (default: **daily-core** only):
 
    ```bash
    node packaging/openpackage/sync-skills.mjs
    ```
+
+   For all tiers on disk (maintainer release prep): `node packaging/openpackage/sync-skills.mjs --tier all`
 
 3. From your **project root** (after `directive init`):
 
@@ -85,7 +87,7 @@ The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime hand
    opkg install /path/to/directive/packaging/openpackage/deft-directive-skills --platforms cursor codex opencode
    ```
 
-**Tiers:** **daily-core** (setup, sync, build, pre-pr, review-cycle, triage) for session bootstrap; **standard** for operational workflows; **advanced** (release, swarm, debug, article-review) for deferred install. Full lists: `packaging/openpackage/deft-tiers.json`. Detail: [`packaging/openpackage/deft-directive-skills/README.md`](../packaging/openpackage/deft-directive-skills/README.md).
+**Default install tier:** **daily-core** (setup, sync, build, pre-pr, review-cycle, triage) — the sync script and `deft-tiers.json` `defaultInstallTier` select this unless you override with `--tier all`, `--tier standard`, or `--tier advanced`. **Standard** covers operational workflows; **advanced** (release, swarm, debug, article-review) stays deferred. Full lists: `packaging/openpackage/deft-tiers.json`. Detail: [`packaging/openpackage/deft-directive-skills/README.md`](../packaging/openpackage/deft-directive-skills/README.md).
 
 Consumer AGENTS.md stays pointer-thin — scan `.deft/core/REFERENCES.md` Skills Index; do not enumerate skills in the managed section.
 

@@ -15,6 +15,7 @@ keywords:
   - opencode
 x-deft:
   tierManifest: ../deft-tiers.json
+  defaultInstallTier: daily-core
   installPlatforms:
     - cursor
     - codex

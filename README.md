@@ -92,7 +92,7 @@ node /path/to/directive/packaging/openpackage/sync-skills.mjs
 opkg install /path/to/directive/packaging/openpackage/deft-directive-skills --platforms cursor codex opencode
 ```
 
-Install **daily-core** only on Cursor to keep injected skill frontmatter lean — see [`packaging/openpackage/deft-directive-skills/README.md`](./packaging/openpackage/deft-directive-skills/README.md). This is distribution-layer (A) only; there is no runtime skill router.
+**Default install is daily-core** (six session-bootstrap skills) so Cursor injected frontmatter stays ~2 KB class. Sync copies only daily-core unless you pass `--tier all` or `--tier standard` / `--tier advanced` — see [`packaging/openpackage/deft-directive-skills/README.md`](./packaging/openpackage/deft-directive-skills/README.md). This is distribution-layer (A) only; there is no runtime skill router.
 
 **Where your project lands (honest scope):** the global install above is location-independent, but `directive init` acts on the **current working directory** — it inspects that directory and dispatches, so `cd` into the folder you want the project to live in first (create it if it doesn't exist yet). init does not reach outside the directory you run it in. When an engine is already installed, Directive reconciles it against your committed `package.json` pin: a **matched** engine (same version as the pin) proceeds; a **mismatched** engine (ahead of or behind the pin) prints the exact `npm i -g` / `directive update` step to take rather than silently running against the wrong version.
 

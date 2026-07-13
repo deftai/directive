@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenPackage consumer installs default to daily-core skills.** The tier manifest and sync script now select the six session-bootstrap skills unless you pass `--tier all`, `--tier standard`, or `--tier advanced`; README and UPGRADING document how to expand tiers. Closes #2494. Refs #2491, #2462, #2463, #2370.
 - **Read-only Directive session posture defers ceremony until you start changing things.** Questions, Plan Mode, and ticket-shaping now default to alignment-only context loads without writing `.deft/ritual-state.json`, triage welcome, branch-policy dumps, or install side effects; the full mutable ritual still runs at mutation boundaries. Use `deft session:start -- --read-only` for explicit alignment-only mode. Closes #2176. Refs #2491.
 
 ### Changed

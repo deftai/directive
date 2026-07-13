@@ -1,0 +1,120 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "feat(packaging): Phase 2 daily-core install default for consumer always-on (DD-3)",
+    "created": "2026-07-13T21:04:30.410Z",
+    "updated": "2026-07-13T21:04:30.410Z"
+  },
+  "plan": {
+    "id": "2494-daily-core-default",
+    "title": "feat(packaging): Phase 2 daily-core install default for consumer always-on (DD-3)",
+    "status": "running",
+    "narratives": {
+      "Description": "Make daily-core the default skill tier for consumer installs (Cursor + documented OpenPackage path) so DD-3 frontmatter stays ~2 KB class instead of all-skills ~7.7 KB. Phase-2 success with managed ≤8192 B; hard combined ≤8192 remains Phase-3 prep on #2491. Builds on #2462/#2463; does not require #2176.",
+      "UserStory": "As a consumer operator, I want new installs to default to daily-core skills, so that Cursor always-on frontmatter cost stays low unless I opt into broader tiers.",
+      "ImplementationPlan": "1) Edit packaging/openpackage/deft-tiers.json and packaging/openpackage/deft-directive-skills/openpackage.yml so default install selects daily-core. 2) Update packaging/openpackage/sync-skills.mjs and packaging/openpackage/deft-directive-skills/README.md for default-tier behavior. 3) Document in README.md and content/UPGRADING.md beside npm i -g @deftai/directive. 4) Extend packages/core/src/packaging/openpackage-manifest.test.ts (or add packaging/openpackage tests) for default=daily-core; run node packaging/openpackage/measure-daily-core-frontmatter.mjs. 5) CHANGELOG.md [Unreleased] Closes #2494. Verify: node packaging/openpackage/measure-daily-core-frontmatter.mjs; pnpm exec vitest run packages/core/src/packaging; task check --allow-over-cap.",
+      "Origin": "Enriched from #2494 under epic #2491",
+      "Overview": "Out of scope: hard combined ≤8192; runtime router."
+    },
+    "items": [
+      {
+        "id": "2494-a1",
+        "title": "Default install is daily-core",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer install via documented OpenPackage path, when no tier override is set, then daily-core skills are what get installed/synced by default.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2494-a2",
+        "title": "Meter can show daily-core tier",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given verify:agents-md-budget or packaging smoke, when daily-core tier is selected, then frontmatter reporting reflects the daily-core skill set.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2494-a3",
+        "title": "Docs for expanding tiers",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given README/UPGRADING, when an operator wants standard/advanced, then expansion steps are documented.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2494-a4",
+        "title": "CHANGELOG + close",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given merge, when PR lands, then CHANGELOG cites Closes #2494.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "context-engineering",
+      "agent-experience",
+      "skills",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2494",
+        "type": "x-xbrief/github-issue",
+        "title": "#2494"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2491",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #2491"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2462",
+        "type": "x-xbrief/refs",
+        "title": "#2462"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2463",
+        "type": "x-xbrief/refs",
+        "title": "#2463"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2370",
+        "type": "x-xbrief/refs",
+        "title": "#2370"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packaging/openpackage/",
+          "README.md",
+          "content/UPGRADING.md",
+          "packages/core/src/packaging/",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "size": "medium",
+        "verify_commands": [
+          "node packaging/openpackage/measure-daily-core-frontmatter.mjs",
+          "task check --allow-over-cap"
+        ],
+        "expected_outputs": [
+          "daily-core default install path",
+          "PR Closes #2494"
+        ],
+        "depends_on": [],
+        "conflict_group": "openpackage-daily-core-2494",
+        "priority": "phase2-shrink"
+      }
+    },
+    "updated": "2026-07-13T21:22:59Z"
+  }
+}

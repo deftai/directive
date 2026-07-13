@@ -6,7 +6,7 @@ Tiered consumer skills for **Cursor**, **Codex CLI**, and **OpenCode**. This pac
 
 | Tier | Purpose | Install when |
 | --- | --- | --- |
-| **daily-core** | setup, sync, build, pre-pr, review-cycle, triage | Every session bootstrap (Cursor native skill injection) |
+| **daily-core** (default) | setup, sync, build, pre-pr, review-cycle, triage | Every session bootstrap (Cursor native skill injection) |
 | **standard** | decompose, feedback, gh-slice, interview, … | On-demand operational workflows |
 | **advanced** | release, swarm, debug, article-review | Maintainer / heavy workflows (deferred frontmatter) |
 
@@ -21,7 +21,11 @@ Full skill lists: [`../deft-tiers.json`](../deft-tiers.json).
 3. **Sync skills** from `content/skills/` (maintainer checkout or release prep):
 
    ```bash
+   # Default: daily-core only (recommended consumer path)
    node packaging/openpackage/sync-skills.mjs
+
+   # Maintainer / all tiers on disk before release
+   node packaging/openpackage/sync-skills.mjs --tier all
    ```
 
 ## Install (project)
@@ -29,11 +33,12 @@ Full skill lists: [`../deft-tiers.json`](../deft-tiers.json).
 From your **project root** (after `directive init`):
 
 ```bash
-# All tiers, Cursor + Codex CLI + OpenCode
+# Default — daily-core tier only (lean Cursor frontmatter)
+node /path/to/directive/packaging/openpackage/sync-skills.mjs
 opkg install /path/to/directive/packaging/openpackage/deft-directive-skills \
   --platforms cursor codex opencode
 
-# Daily-core only (recommended first pass on Cursor)
+# Explicit daily-core on Cursor only (same skill set as default sync)
 opkg install /path/to/directive/packaging/openpackage/deft-directive-skills \
   --skills deft-directive-setup deft-directive-sync deft-directive-build \
             deft-directive-pre-pr deft-directive-review-cycle deft-directive-triage \
@@ -41,6 +46,24 @@ opkg install /path/to/directive/packaging/openpackage/deft-directive-skills \
 ```
 
 Replace `/path/to/directive` with a clone path, or use a published registry snapshot when available.
+
+### Expanding tiers
+
+After the default daily-core install, add deferred workflows by syncing the broader tier and re-running `opkg install`:
+
+```bash
+# All tiers (standard + advanced on disk)
+node /path/to/directive/packaging/openpackage/sync-skills.mjs --tier all
+opkg install /path/to/directive/packaging/openpackage/deft-directive-skills \
+  --platforms cursor codex opencode
+
+# Standard tier only (operational workflows, no advanced)
+node /path/to/directive/packaging/openpackage/sync-skills.mjs --tier standard
+opkg install /path/to/directive/packaging/openpackage/deft-directive-skills \
+  --platforms cursor
+```
+
+For DD-3 budget reporting aligned with daily-core, set `plan.policy.agentsMdBudget.skillFrontmatterTier` to `daily-core` or export `DEFT_AGENTS_MD_BUDGET_SKILL_TIER=daily-core` (see UPGRADING.md § Always-on bootstrap budget).
 
 ## Uninstall
 

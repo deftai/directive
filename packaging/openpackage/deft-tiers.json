@@ -1,6 +1,7 @@
 {
   "version": 1,
   "platforms": ["cursor", "codex", "opencode"],
+  "defaultInstallTier": "daily-core",
   "dailyCoreFrontmatterBudgetBytes": 2080,
   "tiers": {
     "daily-core": {
