@@ -6,8 +6,7 @@ export const EMITTED_VBRIEF_VERSION = VBRIEF_VERSION;
 /** Migrator provenance namespace under ``plan.metadata`` (#616). */
 export const MIGRATOR_METADATA_KEY = "x-migrator";
 
-/** Canonical PROJECT-DEFINITION relative path on migrated xbrief/ trees (#2302). */
-export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
+/** Layout-aware PROJECT-DEFINITION paths live in ``project-definition-io.ts`` / ``policy/resolve.ts`` (#2302). */
 
 export const DEPRECATION_SENTINEL = "<!-- deft:deprecated-redirect -->";
 

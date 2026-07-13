@@ -15,7 +15,6 @@ export {
   INTERNAL_REFERENCE_TYPES,
   LIFECYCLE_FOLDERS,
   MIGRATOR_METADATA_KEY,
-  PROJECT_DEFINITION_REL_PATH,
   STATUS_TO_FOLDER,
 } from "./constants.js";
 export { pythonJsonPretty } from "./json.js";
