@@ -1,22 +1,52 @@
-import { resolve } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   canonicalRelpath,
   collectChildUris,
   collectPlanRefs,
   relativeToVbrief,
+  rejectEscapingLifecycleRel,
   resolveVbriefRef,
   scopeIdsForFilename,
 } from "./vbrief-ref.js";
 
 describe("vbrief-ref branches", () => {
   it("resolves and rejects uri forms", () => {
-    const vbrief = "/proj/vbrief";
-    expect(resolveVbriefRef("file://active/x.xbrief.json", vbrief)).toContain("active");
-    expect(resolveVbriefRef("https://example.com/x", vbrief)).toBeNull();
-    expect(resolveVbriefRef("#anchor", vbrief)).toBeNull();
-    expect(collectPlanRefs({ planRef: "", items: [{ planRef: "a" }, null] })).toEqual(["a"]);
-    expect(collectChildUris({ references: [{ type: "x-vbrief/plan", uri: "" }] })).toEqual([]);
+    const vbrief = mkdtempSync(join(tmpdir(), "vbrief-uri-"));
+    mkdirSync(join(vbrief, "active"), { recursive: true });
+    try {
+      expect(resolveVbriefRef("file://active/x.xbrief.json", vbrief)).toContain("active");
+      expect(resolveVbriefRef("https://example.com/x", vbrief)).toBeNull();
+      expect(resolveVbriefRef("#anchor", vbrief)).toBeNull();
+      expect(collectPlanRefs({ planRef: "", items: [{ planRef: "a" }, null] })).toEqual(["a"]);
+      expect(collectChildUris({ references: [{ type: "x-vbrief/plan", uri: "" }] })).toEqual([]);
+    } finally {
+      rmSync(vbrief, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects escaping and absolute lifecycle refs (#2470)", () => {
+    const vbrief = mkdtempSync(join(tmpdir(), "vbrief-ref-root-"));
+    mkdirSync(join(vbrief, "active"), { recursive: true });
+    try {
+      expect(() => rejectEscapingLifecycleRel("../outside.xbrief.json")).toThrow(
+        ProjectionContainmentError,
+      );
+      expect(() => rejectEscapingLifecycleRel(resolve("/outside/story.xbrief.json"))).toThrow(
+        /absolute path/,
+      );
+      expect(() => resolveVbriefRef("../outside.xbrief.json", vbrief)).toThrow(
+        /lifecycle ref refused/,
+      );
+      expect(() => resolveVbriefRef("active/../../outside.xbrief.json", vbrief)).toThrow(
+        /parent traversal/,
+      );
+    } finally {
+      rmSync(vbrief, { recursive: true, force: true });
+    }
   });
 
   it("scopeIdsForFilename handles non-vbrief extensions", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseReleaseFlags } from "./flags.js";
 import { checkGitClean, commitReleaseArtifacts } from "./git.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { runPipeline } from "./pipeline.js";
 import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -81,7 +82,7 @@ describe("pipeline branches extra", () => {
       version: "0.21.0",
       repo: "deftai/directive",
       baseBranch: "master",
-      projectRoot: "/proj",
+      projectRoot: seedReleaseProjectDir(CHANGELOG),
       dryRun: false,
       skipTag: true,
       skipRelease: true,

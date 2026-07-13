@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { promoteChangelog } from "./changelog.js";
 import { cmdRelease } from "./main.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { runPipeline } from "./pipeline.js";
 import { defaultWhich } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -16,11 +17,12 @@ describe("spawn helpers", () => {
 });
 
 describe("pipeline write path", () => {
+  const projectRoot = seedReleaseProjectDir(CHANGELOG);
   const config: ReleaseConfig = {
     version: "0.21.0",
     repo: "deftai/directive",
     baseBranch: "master",
-    projectRoot: "/proj",
+    projectRoot,
     dryRun: false,
     skipTag: true,
     skipRelease: true,
@@ -50,7 +52,7 @@ describe("pipeline write path", () => {
       todayIso: () => "2026-04-28",
     };
     expect(runPipeline(config, seams)).toBe(0);
-    expect(writes[join("/proj", "CHANGELOG.md")]).toContain("## [0.21.0]");
+    expect(writes[join(projectRoot, "CHANGELOG.md")]).toContain("## [0.21.0]");
   });
 });
 

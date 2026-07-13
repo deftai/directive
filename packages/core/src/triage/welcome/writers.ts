@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { assertProjectionContained } from "../../fs/projection-containment.js";
 import {
   hasArtifactSuffix,
   resolveLifecycleFolder,
@@ -34,6 +35,7 @@ function utcIso(): string {
 
 export function appendAuditEntry(projectRoot: string, entry: string): string {
   const logPath = join(resolve(projectRoot), AUDIT_LOG_REL_PATH);
+  assertProjectionContained(projectRoot, logPath);
   mkdirSync(dirname(logPath), { recursive: true });
   const line = `${utcIso()} ${entry}\n`;
   if (!existsSync(logPath)) {

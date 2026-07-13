@@ -1,10 +1,41 @@
-import { resolve, sep } from "node:path";
+import { isAbsolute, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import {
   type ResolveLifecycleArtifactRefOptions,
   resolveLifecycleArtifactRef,
 } from "../layout/lifecycle-ref.js";
 import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
+
+export { ProjectionContainmentError as LifecycleRefContainmentError };
+
+/** Reject absolute or `..`-escaping lifecycle refs before path resolution (#2470). */
+export function rejectEscapingLifecycleRel(rel: string): void {
+  if (isAbsolute(rel)) {
+    throw new ProjectionContainmentError(
+      `lifecycle ref refused: absolute path ${rel} is not allowed under the lifecycle root`,
+      { projectDir: "", targetPath: rel, offendingPath: rel },
+    );
+  }
+  const segments = rel.split(/[/\\]+/).filter((segment) => segment.length > 0);
+  if (segments.includes("..")) {
+    throw new ProjectionContainmentError(
+      `lifecycle ref refused: path ${rel} contains parent traversal (..)`,
+      { projectDir: "", targetPath: rel, offendingPath: rel },
+    );
+  }
+}
+
+/** Assert a resolved lifecycle artifact path stays under the lifecycle root (#2470). */
+export function assertLifecycleArtifactContained(
+  lifecycleRoot: string,
+  resolvedPath: string,
+): void {
+  assertProjectionContained(lifecycleRoot, resolvedPath);
+}
 
 /** Resolve a vBRIEF reference URI to an absolute path, or null. */
 export function resolveVbriefRef(
@@ -23,7 +54,10 @@ export function resolveVbriefRef(
   } else {
     rel = uri;
   }
-  return resolveLifecycleArtifactRef(rel, vbriefDir, options);
+  rejectEscapingLifecycleRel(rel);
+  const resolved = resolveLifecycleArtifactRef(rel, vbriefDir, options);
+  assertLifecycleArtifactContained(vbriefDir, resolved);
+  return resolved;
 }
 
 /** Collect planRef values from the plan root and top-level items. */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createGithubRelease, verifyReleaseDraft } from "./gh.js";
 import { checkGitClean, commitReleaseArtifacts, createTag, pushRelease } from "./git.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { runPipeline } from "./pipeline.js";
 import { spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -31,7 +32,7 @@ const baseConfig: ReleaseConfig = {
   version: "0.21.0",
   repo: "deftai/directive",
   baseBranch: "master",
-  projectRoot: "/proj",
+  projectRoot: seedReleaseProjectDir(),
   dryRun: false,
   skipTag: false,
   skipRelease: false,

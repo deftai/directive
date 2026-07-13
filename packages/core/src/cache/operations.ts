@@ -1,5 +1,9 @@
 import { existsSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { pyRepr } from "../scm/py-format.js";
 import { ALLOWED_SOURCES, REPO_RE, SOURCE_TTL_SECONDS } from "./constants.js";
 import {
@@ -22,6 +26,17 @@ import { flagsForMeta, SCANNER_VERSION, scan } from "./scanner.js";
 import { addSeconds, type Clock, parseIso, systemClock, utcIso } from "./time.js";
 import type { CacheGetOptions, CachePutOptions, GetResult, PutResult } from "./types.js";
 import { validateMeta } from "./validate.js";
+
+export { ProjectionContainmentError as CacheContainmentError };
+
+/** Refuse symlink-escaping `.deft-cache` before mkdir/read/write (#2470). */
+function assertWritableCachePath(cacheRoot: string, ...segments: string[]): string {
+  const cacheAbs = resolve(cacheRoot);
+  const projectDir = dirname(cacheAbs);
+  const target = segments.length > 0 ? join(cacheAbs, ...segments) : cacheAbs;
+  assertProjectionContained(projectDir, target);
+  return target;
+}
 
 function renderContent(source: string, raw: Record<string, unknown>): string {
   if (source === "github-issue") {
@@ -119,6 +134,7 @@ export function cachePut(
   }
   const expires = addSeconds(fetched, ttl);
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
+  assertWritableCachePath(cacheRoot);
   const edir = entryDir(source, key, cacheRoot);
 
   const rawText = pythonJsonDump(raw);
@@ -235,6 +251,7 @@ export function cachePut(
 export function cacheGet(source: string, key: string, options: CacheGetOptions = {}): GetResult {
   const clock = options.clock ?? systemClock;
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
+  assertWritableCachePath(cacheRoot);
   const allowStale = options.allowStale ?? true;
   const edir = entryDir(source, key, cacheRoot);
   const metaRelPath = `${source}/${key}/meta.json`;
@@ -283,6 +300,7 @@ export function cacheInvalidate(
   const clock = options.clock ?? systemClock;
   validateKey(source, key);
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
+  assertWritableCachePath(cacheRoot);
   const edir = entryDir(source, key, cacheRoot);
   const existed = existsSync(edir);
   if (existed) removeEntryDir(edir);
@@ -327,6 +345,7 @@ export function cachePrune(
     throw new CacheError(`--older-than-days must be >= 0 (got ${JSON.stringify(olderThanDays)})`);
   }
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
+  assertWritableCachePath(cacheRoot);
   if (!existsSync(cacheRoot)) return [];
 
   const cutoff = addSeconds(clock.now(), -olderThanDays * 24 * 60 * 60);
@@ -391,6 +410,7 @@ export function cachePruneToCap(
 ): EntryUsage[] {
   const clock = options.clock ?? systemClock;
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
+  assertWritableCachePath(cacheRoot);
   const resolved = options.caps ?? resolveCaps();
   if (!resolved.maxBytes && !resolved.maxEntries) return [];
   if (options.dryRun) {

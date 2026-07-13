@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cmdRelease } from "./main.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { runPipeline } from "./pipeline.js";
 import type { ReleaseSeams } from "./types.js";
 
@@ -50,7 +51,7 @@ describe("pipeline verify flip failure", () => {
       version: "0.21.0",
       repo: "deftai/directive",
       baseBranch: "master",
-      projectRoot: "/proj",
+      projectRoot: seedReleaseProjectDir(CHANGELOG),
       dryRun: false,
       skipTag: true,
       skipRelease: false,

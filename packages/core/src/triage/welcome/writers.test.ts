@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../../fs/projection-containment.js";
 import { DEFAULT_WIP_CAP } from "./constants.js";
 import {
   appendAuditEntry,
@@ -90,5 +91,25 @@ describe("welcome writers", () => {
 
   it("subscriptionPreset throws on unknown key", () => {
     expect(() => subscriptionPreset("nope")).toThrow();
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("welcome audit containment (#2470)", () => {
+  itSymlink("refuses audit append when policy-changes.log is a symlink outside the project", () => {
+    const projectDir = mkdtempSync(join(tmpdir(), "writers-contain-proj-"));
+    const escapeTarget = mkdtempSync(join(tmpdir(), "writers-contain-escape-"));
+    const escapeFile = join(escapeTarget, "stolen-audit.log");
+    try {
+      mkdirSync(join(projectDir, "meta"), { recursive: true });
+      writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+      symlinkSync(escapeFile, join(projectDir, "meta", "policy-changes.log"));
+      expect(() => appendAuditEntry(projectDir, "injected")).toThrow(ProjectionContainmentError);
+      expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true });
+      rmSync(escapeTarget, { recursive: true, force: true });
+    }
   });
 });

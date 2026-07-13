@@ -1,9 +1,12 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { cacheGet, cacheInvalidate, cachePrune, cachePut, isFresh } from "./operations.js";
 import { FixedClock } from "./test-helpers.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function goodRaw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -120,6 +123,27 @@ describe("audit log", () => {
       expect(audit).toContain('"event":"cache:put"');
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("cache containment (#2470)", () => {
+  itSymlink("refuses cache put when .deft-cache is a symlink outside the project", () => {
+    const projectDir = mkdtempSync(join(tmpdir(), "cache-contain-proj-"));
+    const escapeTarget = mkdtempSync(join(tmpdir(), "cache-contain-escape-"));
+    const escapeFile = join(escapeTarget, "stolen-cache");
+    try {
+      writeFileSync(escapeFile, "", { encoding: "utf8" });
+      symlinkSync(escapeFile, join(projectDir, ".deft-cache"));
+      expect(() =>
+        cachePut("github-issue", "deftai/directive/900", goodRaw({ number: 900 }), {
+          cacheRoot: join(projectDir, ".deft-cache"),
+        }),
+      ).toThrow(ProjectionContainmentError);
+      expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("");
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true });
+      rmSync(escapeTarget, { recursive: true, force: true });
     }
   });
 });

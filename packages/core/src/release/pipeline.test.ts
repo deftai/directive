@@ -1,8 +1,13 @@
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { prependUpgradeBanner } from "./changelog.js";
 import { formatReleaseHelp } from "./flags.js";
 import { checkTagAvailable } from "./gh.js";
 import { cmdRelease } from "./main.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { emit, runPipeline } from "./pipeline.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 
@@ -90,11 +95,13 @@ describe("runPipeline dry-run", () => {
   });
 
   it("Step-5 invokes the native TypeScript task check seam (not ci_local.py)", () => {
+    const projectDir = seedReleaseProjectDir();
     const orig = process.stderr.write.bind(process.stderr);
     process.stderr.write = (() => true) as typeof process.stderr.write;
     let runCiInvoked = false;
     const config: ReleaseConfig = {
       ...baseConfig,
+      projectRoot: projectDir,
       dryRun: false,
       skipCi: false,
       skipBuild: true,
@@ -112,7 +119,7 @@ describe("runPipeline dry-run", () => {
         runCiInvoked = true;
         return [true, "ran native TypeScript task check"];
       },
-      fileExists: (p) => p.endsWith("CHANGELOG.md"),
+      fileExists: (p) => p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md"),
       readFile: () => `## [Unreleased]\n\n### Added\n`,
       writeFile: () => undefined,
       refreshRoadmap: () => [true, "ok"],
@@ -122,6 +129,7 @@ describe("runPipeline dry-run", () => {
       expect(runCiInvoked).toBe(true);
     } finally {
       process.stderr.write = orig;
+      rmSync(projectDir, { recursive: true, force: true });
     }
   });
 
@@ -130,6 +138,53 @@ describe("runPipeline dry-run", () => {
       fileExists: () => false,
     };
     expect(runPipeline(baseConfig, seams)).toBe(2);
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("release markdown containment (#2470)", () => {
+  itSymlink("refuses CHANGELOG promotion when CHANGELOG.md is a symlink outside the project", () => {
+    const projectDir = mkdtempSync(join(tmpdir(), "release-cl-proj-"));
+    const escapeTarget = mkdtempSync(join(tmpdir(), "release-cl-escape-"));
+    const escapeFile = join(escapeTarget, "stolen-changelog.md");
+    try {
+      writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+      symlinkSync(escapeFile, join(projectDir, "CHANGELOG.md"));
+
+      const config: ReleaseConfig = {
+        version: "0.21.0",
+        repo: "deftai/directive",
+        baseBranch: "master",
+        projectRoot: projectDir,
+        dryRun: false,
+        skipTag: true,
+        skipRelease: true,
+        allowDirty: true,
+        draft: true,
+        skipCi: true,
+        skipBuild: true,
+        summary: null,
+        allowVbriefDrift: true,
+      };
+      const seams: ReleaseSeams = {
+        todayIso: () => "2026-04-28",
+        spawnText: (_c, a) => {
+          if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
+          if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };
+          return { status: 0, stdout: "", stderr: "" };
+        },
+        checkTagAvailable: () => [true, "ok"],
+        fileExists: (p) => p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md"),
+        readFile: () => "## [Unreleased]\n\n### Added\n",
+      };
+
+      expect(() => runPipeline(config, seams)).toThrow(ProjectionContainmentError);
+      expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
+    } finally {
+      rmSync(projectDir, { recursive: true, force: true });
+      rmSync(escapeTarget, { recursive: true, force: true });
+    }
   });
 });
 

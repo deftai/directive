@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertProjectionContained } from "../fs/projection-containment.js";
 import { prependUpgradeBanner, promoteChangelog, sectionForVersion } from "./changelog.js";
 import {
   EXIT_CONFIG_ERROR,
@@ -38,6 +39,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   const version = config.version;
   const today = (seams.todayIso ?? todayIso)();
   const changelogPath = join(projectRoot, "CHANGELOG.md");
+  const roadmapPath = join(projectRoot, "ROADMAP.md");
   const readFile = seams.readFile ?? ((p: string) => readFileSync(p, "utf8"));
   const writeFile = seams.writeFile ?? ((p: string, c: string) => writeFileSync(p, c, "utf8"));
   const fileExists = seams.fileExists ?? ((p: string) => existsSync(p));
@@ -184,6 +186,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       `DRYRUN (would rewrite CHANGELOG.md: ## [Unreleased] -> ## [${version}] - ${today}; new compare link added;${summaryNote})`,
     );
   } else {
+    assertProjectionContained(projectRoot, changelogPath);
     writeFile(changelogPath, promotedChangelog);
     emit(6, label, `OK (## [${version}] - ${today};${summaryNote})`);
   }
@@ -193,6 +196,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   if (config.dryRun) {
     emit(7, label, "DRYRUN (would run task roadmap:render)");
   } else {
+    assertProjectionContained(projectRoot, roadmapPath);
     const [ok, reason] = refreshRoadmapFn(projectRoot);
     if (ok) {
       emit(7, label, `OK (${reason})`);
