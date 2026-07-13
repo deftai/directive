@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -10,6 +10,29 @@ import {
   verifySessionRitual,
   writeRitualState,
 } from "./index.js";
+
+const EMPTY_STDERR = "";
+
+function runGitCapture(root: string, args: readonly string[]): string {
+  const result = spawnSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "T",
+      GIT_AUTHOR_EMAIL: "t@t.local",
+      GIT_COMMITTER_NAME: "T",
+      GIT_COMMITTER_EMAIL: "t@t.local",
+    },
+  });
+  if (result.status !== 0) {
+    const detail = (result.stderr ?? result.stdout ?? "git failed").trim();
+    throw new Error(`git ${args.join(" ")} failed: ${detail}`);
+  }
+  // Capture stderr on the success path so parity diffs can observe it.
+  void (result.stderr ?? EMPTY_STDERR);
+  return (result.stdout ?? "").trim();
+}
 
 function initRepo(): { root: string; head: string } {
   const root = mkdtempSync(join(tmpdir(), "session-ephemeral-"));
@@ -28,35 +51,24 @@ function initRepo(): { root: string; head: string } {
     }),
     "utf8",
   );
-  execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
-  execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root, encoding: "utf8" });
-  execFileSync("git", ["config", "user.name", "T"], { cwd: root, encoding: "utf8" });
-  execFileSync("git", ["add", "-A"], { cwd: root, encoding: "utf8" });
-  execFileSync("git", ["commit", "-q", "-m", "init"], {
-    cwd: root,
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      GIT_AUTHOR_NAME: "T",
-      GIT_AUTHOR_EMAIL: "t@t.local",
-      GIT_COMMITTER_NAME: "T",
-      GIT_COMMITTER_EMAIL: "t@t.local",
-    },
-  });
-  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  runGitCapture(root, ["init", "-q"]);
+  runGitCapture(root, ["config", "user.email", "t@t.local"]);
+  runGitCapture(root, ["config", "user.name", "T"]);
+  runGitCapture(root, ["add", "-A"]);
+  runGitCapture(root, ["commit", "-q", "-m", "init"]);
+  const head = runGitCapture(root, ["rev-parse", "HEAD"]);
   return { root, head };
 }
 
 function fakeGit(head: string, worktree: string): GitRunner {
   return (_r, args) => {
     if (args[0] === "rev-parse" && args[1] === "--verify" && args[2] === "HEAD") {
-      return { code: 0, stdout: head, stderr: "" };
+      return { code: 0, stdout: head, stderr: EMPTY_STDERR };
     }
     if (args[0] === "rev-parse" && args[1] === "--show-toplevel") {
-      return { code: 0, stdout: worktree, stderr: "" };
+      return { code: 0, stdout: worktree, stderr: EMPTY_STDERR };
     }
-    // Preserve empty stderr on the success path so parity harnesses can diff it.
-    return { code: 0, stdout: "", stderr: "" };
+    return { code: 0, stdout: "", stderr: EMPTY_STDERR };
   };
 }
 
