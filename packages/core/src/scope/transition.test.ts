@@ -138,9 +138,9 @@ describe("scope lifecycle projection containment (#2447)", () => {
       root = mkdtempSync(join(tmpdir(), "scope-symlink-dest-"));
       escapeDir = mkdtempSync(join(tmpdir(), "scope-symlink-escape-"));
       mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-      const escapeTarget = join(escapeDir, "completed");
-      mkdirSync(escapeTarget, { recursive: true });
-      symlinkSync(escapeTarget, join(root, "xbrief", "completed"));
+      const escapePending = join(escapeDir, "pending");
+      mkdirSync(escapePending, { recursive: true });
+      symlinkSync(escapePending, join(root, "xbrief", "pending"));
 
       const file = writeVbrief(root, "proposed", "proposed");
       const result = runTransition("promote", file);
@@ -154,21 +154,23 @@ describe("scope lifecycle projection containment (#2447)", () => {
   );
 
   itSymlink(
-    "refuses promote when a parent lifecycle folder is a symlink outside the project",
+    "refuses complete when the destination lifecycle folder is a symlink outside the project",
     () => {
-      root = mkdtempSync(join(tmpdir(), "scope-symlink-parent-"));
-      escapeDir = mkdtempSync(join(tmpdir(), "scope-symlink-parent-escape-"));
-      mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-      const escapePending = join(escapeDir, "pending");
-      mkdirSync(escapePending, { recursive: true });
-      symlinkSync(escapePending, join(root, "xbrief", "pending"));
+      root = mkdtempSync(join(tmpdir(), "scope-symlink-complete-"));
+      escapeDir = mkdtempSync(join(tmpdir(), "scope-symlink-complete-escape-"));
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      const escapeCompleted = join(escapeDir, "completed");
+      mkdirSync(escapeCompleted, { recursive: true });
+      symlinkSync(escapeCompleted, join(root, "xbrief", "completed"));
 
-      const file = writeVbrief(root, "proposed", "proposed", "parent-story.xbrief.json");
-      const result = runTransition("promote", file);
+      const file = writeVbrief(root, "active", "running", "complete-story.xbrief.json");
+      const result = runTransition("complete", file);
       expect(result.ok).toBe(false);
       expect(result.message).toContain("projection write refused");
       expect(existsSync(file)).toBe(true);
-      expect(existsSync(join(escapeDir, "parent-story.xbrief.json"))).toBe(false);
+      expect(existsSync(join(escapeDir, "complete-story.xbrief.json"))).toBe(false);
+      const unchanged = JSON.parse(readFileSync(file, "utf8")) as { plan: { status: string } };
+      expect(unchanged.plan.status).toBe("running");
     },
   );
 });
