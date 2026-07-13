@@ -391,6 +391,19 @@ export function issueCommentsAlreadyFetched(issue: Record<string, unknown>): boo
   return Object.hasOwn(issue, ISSUE_COMMENT_THREAD_KEY);
 }
 
+/**
+ * Run quarantine `scan()` on untrusted ingest text (#2447). Fail closed on a
+ * credential hard-fail; return the fenced/quarantined transform for soft signals.
+ */
+function scanUntrustedIngestText(issueNumber: number, text: string): string {
+  const scanResult = scan(text);
+  const hardFails = scanResult.flags.filter((f) => f.severity === "hard-fail");
+  if (hardFails.length > 0) {
+    throw new ScannerHardFailError(issueNumber, scanResult.flags);
+  }
+  return scanResult.transformed_content;
+}
+
 export function buildIssueVbrief(
   issue: Record<string, unknown>,
   status: IngestStatus,
@@ -401,10 +414,12 @@ export function buildIssueVbrief(
   } = {},
 ): [Record<string, unknown>, string] {
   const number = Number(issue.number);
-  const title =
+  const titleRaw =
     (typeof issue.title === "string" && issue.title.length > 0
       ? issue.title
       : `Issue #${number}`) || `Issue #${number}`;
+  // #2447: quarantine-scan issue title before it lands in agent-authoritative fields.
+  const title = scanUntrustedIngestText(number, titleRaw);
   const url =
     (typeof issue.url === "string" && issue.url.length > 0 ? issue.url : "") ||
     (repoUrl.length > 0 ? `${repoUrl}/issues/${number}` : "");
@@ -448,7 +463,12 @@ export function buildIssueVbrief(
     narratives.Labels = labelNames.join(", ");
   }
 
-  const planItems = bodyStr.length > 0 ? extractPlanItems(bodyStr) : [];
+  const planItemsRaw = bodyStr.length > 0 ? extractPlanItems(bodyStr) : [];
+  // #2447: scan each derived plan-item title (empty-body issues still scan title above).
+  const planItems = planItemsRaw.map((item) => ({
+    ...item,
+    title: scanUntrustedIngestText(number, String(item.title ?? "")),
+  }));
   const plan: Record<string, unknown> = {
     title,
     status: planStatus,

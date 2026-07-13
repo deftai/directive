@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New scope xBRIEFs now stamp the current v0.8 schema version.** Emit paths (`scope:decompose`, issue ingest, speckit, and project render) were still writing `vBRIEFInfo.version = "0.6"`; they now follow `@deftai/directive-types` `VBRIEF_VERSION` so freshly generated artifacts match the declared current schema. Closes #2318.
 - **Triage cache and init/update writers refuse symlink escapes.** Routine commands such as doctor, triage summary, and directive init/update no longer follow repo-controlled symlinks on `xbrief`, `.triage-cache`, or installer-managed projection paths — they fail closed instead of writing outside the checkout. Closes #2446.
 - **Scope, cache, welcome, and release writers refuse path escapes.** Lifecycle planRef resolution, issue cache, policy audit, and release markdown writes now use the shared projection-containment guard so crafted refs and repo-controlled symlinks cannot steer routine commands into out-of-tree writes. Closes #2470.
+- **Issue ingest and scope lifecycle moves refuse unscanned or escaping content.** `issue:ingest` and `triage:accept` now quarantine-scan issue titles and checkbox acceptance-criteria item titles (not only Overview), and scope promote/activate/complete refuse when a lifecycle folder symlink would relocate story xBRIEFs outside the checkout. Closes #2447.
 
 ### Removed
 

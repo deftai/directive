@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
@@ -107,12 +111,26 @@ export function runTransition(
     };
   }
 
+  const vbriefRoot = dirname(dirname(resolvedPath));
+  const projectRoot = dirname(vbriefRoot);
+
+  if (targetFolder !== null) {
+    const destDir = join(vbriefRoot, targetFolder);
+    try {
+      // #2447: refuse lifecycle moves when the destination folder escapes the checkout.
+      // Run before mutating the source file so a refusal leaves lifecycle state intact.
+      assertProjectionContained(projectRoot, destDir);
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        return { ok: false, message: err.message };
+      }
+      throw err;
+    }
+  }
+
   const nowIso = utcNowIso(now);
   planObj.status = targetStatus;
   planObj.updated = nowIso;
-
-  const vbriefRoot = dirname(dirname(resolvedPath));
-  const projectRoot = dirname(vbriefRoot);
 
   if (act === "complete") {
     stampCompletionMetadata(planObj, projectRoot, nowIso);
