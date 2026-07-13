@@ -79,9 +79,11 @@ describe("test_agents_md", () => {
     const text = readAgentsMd();
     const lowered = text.toLowerCase();
     expect(lowered).toContain("addressing-name");
-    expect(lowered).toContain("addressing you as");
+    const managedStart = text.indexOf("<!-- deft:managed-section");
+    expect(managedStart).toBeGreaterThanOrEqual(0);
+    expect(text.slice(managedStart).toLowerCase()).toContain("addressing-name");
     expect(text).toContain("\u2297");
-    expect(lowered).toContain("presence");
+    expect(lowered).toContain("test-path");
   });
 
   it("agents_md_external_context_precedence_documented", () => {

@@ -159,7 +159,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=c315e2f0aaed refreshed=2026-07-13T22:28:34Z session=f018e88c7dcb -->
+<!-- deft:managed-section v3 sha=d84faa6ed959 refreshed=2026-07-13T22:51:09Z session=3e411932237e -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -168,7 +168,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session routing (#2176)
 
-! **Read-only default** until mutation intent (Q&A, Plan Mode, ticket-shaping): load AGENTS.md, main.md, USER.md, `xbrief/PROJECT-DEFINITION.xbrief.json`; confirm Deft alignment with addressing-name from USER.md; ⊗ do not run mutable `deft session:start`, triage welcome, sync, or branch-policy ceremony unless the operator asks or the task is implementation-ready (#2176). Full contract: `.deft/core/commands.md` § Session routing.
+! **Read-only default** until mutation intent (Q&A, Plan Mode, ticket-shaping): load AGENTS.md, main.md, USER.md, `xbrief/PROJECT-DEFINITION.xbrief.json`; confirm Deft alignment ("Deft Directive active" + addressing-name from USER.md); ⊗ do not run mutable `deft session:start`, triage welcome, sync, or branch-policy ceremony unless the operator asks or the task is implementation-ready (#2176). Full contract: `.deft/core/commands.md` § Session routing.
 
 **Bootstrap card** (before answering):
 - `deft` / `directive` won't run → README.md § Cold-start bootstrap (#2273); ⊗ never `.deft/core/`

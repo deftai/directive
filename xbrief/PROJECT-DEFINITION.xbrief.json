@@ -16784,7 +16784,7 @@
       "agentsMdBudget": {
         "managedMaxLines": 184,
         "unmanagedMaxLines": 161,
-        "absoluteMaxBytes": 11376
+        "absoluteMaxBytes": 11399
       }
     },
     "updated": "2026-07-02T14:32:31Z"

@@ -40,12 +40,14 @@ describe("test_agents_md_session_start", () => {
   it("session_routing_read_only_posture_present", () => {
     const entrySection = extractSection(agentsEntryText, "Session routing \\(#2176\\)");
     expect(entrySection).toBeTruthy();
-    expect(entrySection).toContain("read-only posture");
+    expect(entrySection.toLowerCase()).toContain("read-only");
     expect(entrySection).toContain("deft session:start -- --read-only");
-    expect(entrySection).toContain(".deft/ritual-state.json");
-    expect(entrySection).toContain("Mutation boundaries");
+    expect(entrySection).toContain("addressing-name");
+    expect(entrySection).toContain("Mutation boundary");
     const commandsSection = extractSection(commandsText, "Session-start ritual \\(#1149\\)");
     expect(commandsSection).toContain("Session routing (#2176)");
+    expect(commandsSection).toContain("read-only posture");
+    expect(commandsSection).toContain(".deft/ritual-state.json");
     expect(commandsSection).toContain("deft session:start -- --read-only");
   });
 
