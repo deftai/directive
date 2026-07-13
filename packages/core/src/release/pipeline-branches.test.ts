@@ -45,7 +45,8 @@ const baseConfig: ReleaseConfig = {
 
 describe("spawnText", () => {
   it("returns status from spawnSync", () => {
-    const r = spawnText("echo", ["hello"], { timeoutMs: 5000 });
+    // Use `node` as a cross-platform command; `echo` is a shell built-in on Windows.
+    const r = spawnText("node", ["-e", "process.stdout.write('hello')"], { timeoutMs: 5000 });
     expect(r.status).toBe(0);
     expect(r.stdout.trim()).toBe("hello");
   });

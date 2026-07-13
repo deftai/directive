@@ -1,4 +1,5 @@
 import * as initDeposit from "@deftai/directive-core/init-deposit";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { routeAndDispatch } from "../cli-router/index.js";
 import type { DispatchIo } from "../dispatch.js";
@@ -42,7 +43,7 @@ describe("runMigrate handler", () => {
     expect(code).toBe(0);
     expect(spy).toHaveBeenCalledOnce();
     const call = spy.mock.calls[0]?.[0];
-    expect(call?.projectDir).toBe("/tmp/custom-deposit");
+    expect(call?.projectDir).toBe(resolve("/tmp/custom-deposit"));
     expect(call?.jsonOut).toBe(false);
   });
 
@@ -105,7 +106,7 @@ describe("migrate --untrack-core dispatch (#2269)", () => {
     runMigrate(["--untrack-core", "--repo-root", "/tmp/untrack-target", "--json"], io);
 
     const call = untrack.mock.calls[0]?.[0];
-    expect(call?.projectDir).toBe("/tmp/untrack-target");
+    expect(call?.projectDir).toBe(resolve("/tmp/untrack-target"));
     expect(call?.jsonOut).toBe(true);
   });
 

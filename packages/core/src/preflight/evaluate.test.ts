@@ -2,6 +2,9 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+
+// chmodSync does not reliably block file reads on Windows; skip chmod-dependent tests there.
+const itChmod = it.skipIf(process.platform === "win32");
 import { ELIGIBLE_STATUS, emitJson, evaluate, formatActivateHint } from "./evaluate.js";
 import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
 
@@ -134,7 +137,7 @@ describe("preflight index barrel", () => {
 });
 
 describe("evaluate edge branches", () => {
-  it("handles unreadable vBRIEF files", () => {
+  itChmod("handles unreadable vBRIEF files", () => {
     const path = writeVbrief(
       "active",
       "locked.xbrief.json",

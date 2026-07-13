@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { pythonJsonPretty } from "./json.js";
 import {
@@ -45,7 +45,9 @@ describe("projectDefinitionIO", () => {
   it("resolves the xbrief path on a migrated tree, vbrief otherwise (#2302)", () => {
     const legacyRoot = mkdtempSync(join(tmpdir(), "vb-pd-legacy-"));
     expect(
-      projectDefinitionPath(legacyRoot).endsWith("xbrief/PROJECT-DEFINITION.xbrief.json"),
+      projectDefinitionPath(legacyRoot).endsWith(
+        `xbrief${sep}PROJECT-DEFINITION.xbrief.json`,
+      ),
     ).toBe(true);
     rmSync(legacyRoot, { recursive: true, force: true });
 
@@ -53,7 +55,9 @@ describe("projectDefinitionIO", () => {
     mkdirSync(join(migratedRoot, "xbrief", "active"), { recursive: true });
     writeFileSync(join(migratedRoot, "xbrief", "active", "some.xbrief.json"), "{}", "utf8");
     expect(
-      projectDefinitionPath(migratedRoot).endsWith("xbrief/PROJECT-DEFINITION.xbrief.json"),
+      projectDefinitionPath(migratedRoot).endsWith(
+        `xbrief${sep}PROJECT-DEFINITION.xbrief.json`,
+      ),
     ).toBe(true);
     rmSync(migratedRoot, { recursive: true, force: true });
   });
@@ -63,7 +67,7 @@ describe("projectDefinitionIO", () => {
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(join(root, "xbrief", "active", "some.xbrief.json"), "{}", "utf8");
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(
-      /xbrief\/PROJECT-DEFINITION\.xbrief\.json/,
+      /xbrief[/\\]PROJECT-DEFINITION\.xbrief\.json/,
     );
     rmSync(root, { recursive: true, force: true });
   });

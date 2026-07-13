@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import { inferGithubAuthMode } from "../intake/github-auth-modes.js";
 import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
 import {
@@ -227,7 +227,7 @@ function resolveOne(
   issueMap: Map<number, ActiveStory[]>,
 ): { story: ResolvedStory | null; error: string | null } {
   if (looksLikePath(token)) {
-    const candidate = token.startsWith("/") ? token : join(projectRoot, token);
+    const candidate = isAbsolute(token) ? token : join(projectRoot, token);
     if (!existsSync(candidate)) {
       return {
         story: null,

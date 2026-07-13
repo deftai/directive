@@ -2,6 +2,9 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// chmod-based tests don't reliably block access on Windows; skip there.
+const itChmod = it.skipIf(process.platform === "win32");
 import { activate } from "./activate.js";
 import { formatEligibleStatusList } from "./constants.js";
 import { parseArgs, run } from "./main.js";
@@ -51,7 +54,7 @@ describe("vbrief-activate coverage boost", () => {
     expect(result.message).toMatch(/Expecting property name|Expecting value/);
   });
 
-  it("reports write failures", () => {
+  itChmod("reports write failures", () => {
     const root = tempRoot();
     const path = join(root, "xbrief", "pending", "x.xbrief.json");
     const pendingDir = join(root, "xbrief", "pending");
@@ -74,7 +77,7 @@ describe("vbrief-activate coverage boost", () => {
     chmodSync(activeDir, 0o755);
   });
 
-  it("reports unlink failures after successful write", () => {
+  itChmod("reports unlink failures after successful write", () => {
     const root = tempRoot();
     const path = join(root, "xbrief", "pending", "x.xbrief.json");
     const pendingDir = join(root, "xbrief", "pending");
@@ -121,7 +124,7 @@ describe("vbrief-activate coverage boost", () => {
     stderr.mockRestore();
   });
 
-  it("reports read errors from loadVbrief", () => {
+  itChmod("reports read errors from loadVbrief", () => {
     const root = tempRoot();
     const path = join(root, "xbrief", "pending", "x.xbrief.json");
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
@@ -140,7 +143,7 @@ describe("vbrief-activate coverage boost", () => {
     expect(result.message).toContain("Could not read vBRIEF");
   });
 
-  it("reports mkdir failures for active directory", () => {
+  itChmod("reports mkdir failures for active directory", () => {
     const root = tempRoot();
     const path = join(root, "xbrief", "pending", "x.xbrief.json");
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });

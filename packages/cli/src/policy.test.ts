@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, parseShowArgs, run } from "./policy.js";
 import { diffCase, normalizeOutput, PARITY_CASES, renderReport } from "./policy-fixtures.js";
@@ -243,7 +243,7 @@ describe("run show + set integration", () => {
     writeFileSync(join(r, "xbrief", "active", "some.xbrief.json"), "{}", { encoding: "utf8" });
     const { code, err } = captureRun(["show", "--project-root", r]);
     expect(code).toBe(0);
-    expect(err).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(err).toContain(`xbrief${sep}PROJECT-DEFINITION.xbrief.json`);
     expect(err).not.toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
   });
 
@@ -254,7 +254,7 @@ describe("run show + set integration", () => {
     writeFileSync(join(r, "xbrief", "active", "some.xbrief.json"), "{}", { encoding: "utf8" });
     const { code, err } = captureRun(["enforce-branches", "--project-root", r]);
     expect(code).toBe(2);
-    expect(err).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(err).toContain(`xbrief${sep}PROJECT-DEFINITION.xbrief.json`);
     expect(err).not.toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
   });
 

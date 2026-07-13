@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   collectOrphanIssueNumbers,
@@ -45,7 +45,7 @@ function makeTempRoot(): string {
 describe("resolveSlicesLogPath branches", () => {
   it("prefers explicit slicesLogPath override", () => {
     expect(resolveSlicesLogPath({ slicesLogPath: "/custom/slices.jsonl" })).toBe(
-      "/custom/slices.jsonl",
+      resolve("/custom/slices.jsonl"),
     );
   });
 

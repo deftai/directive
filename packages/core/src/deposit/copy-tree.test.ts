@@ -12,6 +12,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+
+// Symlinks require elevated privileges on Windows by default; skip symlink tests there.
+const itSymlink = it.skipIf(process.platform === "win32");
+// chmod mode bits are not reliably preserved by Node on Windows.
+const itChmod = it.skipIf(process.platform === "win32");
 import { copyTree } from "./copy-tree.js";
 
 describe("copyTree (#1477 mode-preserving recursive copy)", () => {
@@ -29,7 +34,7 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
     return root;
   }
 
-  it("copies nested directories and preserves the executable bit", async () => {
+  itChmod("copies nested directories and preserves the executable bit", async () => {
     const workspace = freshRoot("copy-tree-");
     const src = join(workspace, "src");
     const dst = join(workspace, "dst");
@@ -52,7 +57,7 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
     expect(statSync(join(dst, "nested", "bin", "hook")).mode & 0o777).toBe(0o755);
   });
 
-  it("#2305: skips symlinked entries instead of following them", async () => {
+  itSymlink("#2305: skips symlinked entries instead of following them", async () => {
     const workspace = freshRoot("copy-tree-symlink-");
     const src = join(workspace, "src");
     const outside = join(workspace, "outside");
@@ -70,7 +75,7 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
     expect(existsSync(join(dst, "escape"))).toBe(false);
   });
 
-  it("refuses to overwrite a destination file symlink", async () => {
+  itSymlink("refuses to overwrite a destination file symlink", async () => {
     const workspace = freshRoot("copy-tree-dst-file-symlink-");
     const src = join(workspace, "src");
     const dst = join(workspace, "dst");
@@ -85,7 +90,7 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
     expect(readFileSync(outside, "utf-8")).toBe("do not overwrite");
   });
 
-  it("refuses to recurse into a destination directory symlink", async () => {
+  itSymlink("refuses to recurse into a destination directory symlink", async () => {
     const workspace = freshRoot("copy-tree-dst-dir-symlink-");
     const src = join(workspace, "src");
     const dst = join(workspace, "dst");

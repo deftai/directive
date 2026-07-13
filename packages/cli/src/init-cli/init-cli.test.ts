@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DispatchIo } from "../dispatch.js";
@@ -56,7 +56,7 @@ describe("resolveBundledDeftInstallBinary", () => {
     expect(releaseArtifactName("linux", "x64")).toBe("install-linux-amd64");
     const root = "/tmp/pkg";
     expect(bundledBinaryCandidates(root, "linux", "x64")[0]).toBe(
-      "/tmp/pkg/vendor/deft-install/install-linux-amd64",
+      join(root, "vendor", "deft-install", "install-linux-amd64"),
     );
   });
 
@@ -183,7 +183,7 @@ describe("runInit universal adoption dispatcher (#2265)", () => {
     await runInit(["--repo-root", "/tmp/custom"], io, seams);
 
     expect(scaffoldArgs[0]).toMatchObject({
-      projectDir: "/tmp/custom",
+      projectDir: resolve("/tmp/custom"),
       jsonOut: true,
       nonInteractive: true,
     });
@@ -300,7 +300,7 @@ describe("runUpdate TS-native refresh", () => {
 
     expect(refreshSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        projectDir: "/tmp/custom",
+        projectDir: resolve("/tmp/custom"),
         jsonOut: true,
         nonInteractive: true,
         upgrade: true,
@@ -354,6 +354,7 @@ describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
 describe("cliPackageRoot", () => {
   it("resolves two levels above init-cli dist modules", () => {
     const root = cliPackageRoot(new URL("./resolve-binary.ts", import.meta.url).href);
-    expect(root.endsWith("/packages/cli")).toBe(true);
+    // Normalize separators for cross-platform check.
+    expect(root.replace(/\\/g, "/").endsWith("/packages/cli")).toBe(true);
   });
 });

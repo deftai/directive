@@ -10,6 +10,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// chmod-based tests don't reliably block access on Windows; skip there.
+const itChmod = it.skipIf(process.platform === "win32");
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import {
   updateDecomposedChildBackReferences,
@@ -622,7 +625,7 @@ describe("scope coverage ≥88% buffer", () => {
       expect(resolveProjectRoot(null)).toBeNull();
     });
 
-    it("recordWipCapOverride is best-effort when audit append fails", () => {
+    itChmod("recordWipCapOverride is best-effort when audit append fails", () => {
       root = mkdtempSync(join(tmpdir(), "wip-audit-fail-"));
       mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
       chmodSync(join(root, "xbrief", ".triage-cache"), 0o444);

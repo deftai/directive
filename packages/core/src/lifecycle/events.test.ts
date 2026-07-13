@@ -53,7 +53,7 @@ describe("behavioral events registry", () => {
   });
 
   it("default event log is under deft-cache", () => {
-    expect(DEFAULT_EVENT_LOG).toBe(".deft-cache/events.jsonl");
+    expect(DEFAULT_EVENT_LOG).toBe(join(".deft-cache", "events.jsonl"));
   });
 
   it("lazy proxies expose registry helpers", () => {

@@ -8,7 +8,7 @@
  */
 
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   hasArtifactSuffix,
@@ -487,7 +487,7 @@ function vbriefDir(projectRoot: string): string {
 function relToVbrief(vbriefDirPath: string, path: string): string {
   const resolvedPath = resolve(path);
   const resolvedVbrief = resolve(vbriefDirPath);
-  if (resolvedPath.startsWith(`${resolvedVbrief}/`) || resolvedPath === resolvedVbrief) {
+  if (resolvedPath.startsWith(resolvedVbrief + sep) || resolvedPath === resolvedVbrief) {
     return resolvedPath.slice(resolvedVbrief.length + 1).replace(/\\/g, "/");
   }
   throw new DecompositionError(`${path}: path must be inside ${vbriefDirPath}`);
@@ -937,7 +937,8 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   if (!LIFECYCLE_FOLDERS.has(outputFolderName)) {
     throw new DecompositionError("output_dir must be a vbrief lifecycle folder");
   }
-  if (!outputDir.startsWith(`${resolve(vbriefDirPath)}/`) && outputDir !== resolve(vbriefDirPath)) {
+  const resolvedVbriefDir = resolve(vbriefDirPath);
+  if (!outputDir.startsWith(resolvedVbriefDir + sep) && outputDir !== resolvedVbriefDir) {
     throw new DecompositionError("output_dir must be inside vbrief/");
   }
   if (outputFolderName === "active") {

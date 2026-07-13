@@ -2,6 +2,9 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// chmod-based permission tests don't work on Windows; skip there.
+const itChmod = it.skipIf(process.platform === "win32");
 import {
   pendingDecisionsNudgeLine,
   readDecisionEvents,
@@ -72,7 +75,7 @@ describe("validate-content extra branch coverage", () => {
     expect(strict.message).toContain("errors");
   });
 
-  it("validate-links skips unreadable markdown files", () => {
+  itChmod("validate-links skips unreadable markdown files", () => {
     const root = tempRoot();
     mkdirSync(join(root, "locked"), { recursive: true });
     const locked = join(root, "locked", "secret.md");

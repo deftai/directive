@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Test suite now passes on Windows-native Node (win32).** Path-assertion tests
+  now compare against `path.resolve(input)` instead of literal POSIX strings;
+  symlink and `chmod` tests are skipped on Windows via `it.skipIf`; production
+  code that used `startsWith("/")` or `split("/")` for path logic was switched to
+  `path.isAbsolute()` / `path.basename()` / `path.sep`. A `* text=auto eol=lf`
+  rule was added to `.gitattributes` to prevent CRLF drift, and a Windows-native
+  maintainer guide was added to `CONTRIBUTING.md`. Closes #2467.
+
 ### Added
 
 - **OpenPackage tiered skill package for cross-harness install.** Ships a tiered OpenPackage skill manifest (daily-core / standard / advanced) for Cursor, Codex CLI, and OpenCode via `opkg install`, documented alongside the npm engine — distribution-layer only, no runtime skill router. Closes #2462. Refs #2369.

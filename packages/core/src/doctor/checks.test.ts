@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 import {
@@ -156,7 +156,7 @@ describe("checks", () => {
   });
 
   it("checkLegacyLayout skips a canonical .deft/core layout", () => {
-    const result = checkLegacyLayout("/proj", { isDir: (p) => p.endsWith(".deft/core") });
+    const result = checkLegacyLayout("/proj", { isDir: (p) => p.endsWith(`.deft${sep}core`) });
     expect(result.status).toBe("skip");
     expect(result.data?.legacy_layout).toBe(false);
   });
@@ -164,7 +164,7 @@ describe("checks", () => {
   it("checkLegacyLayout fails with a stable-URL signpost on a legacy layout", () => {
     const result = checkLegacyLayout("/proj", {
       isDir: () => false,
-      isFile: (p) => p.endsWith(".deft/VERSION"),
+      isFile: (p) => p.endsWith(`.deft${sep}VERSION`),
     });
     expect(result.status).toBe("fail");
     expect(result.detail).toContain("Legacy Deft layout detected");

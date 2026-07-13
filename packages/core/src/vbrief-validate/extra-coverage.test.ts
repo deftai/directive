@@ -1,8 +1,11 @@
 import { execSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+
+// chmod-based tests don't reliably block access on Windows; skip there.
+const itChmod = it.skipIf(process.platform === "win32");
 import { evaluateConformance, renderFinding, scanVbrief } from "./conformance.js";
 import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
@@ -466,7 +469,7 @@ describe("vbrief-validate extra coverage", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("covers validateAll read errors and warnings-as-errors CLI", () => {
+  itChmod("covers validateAll read errors and warnings-as-errors CLI", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-read-err-"));
     const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
@@ -926,9 +929,9 @@ describe("vbrief-validate extra coverage", () => {
   });
 
   it("covers epic forward link missing parent reference listing", () => {
-    const vbrief = "/tmp/epic4";
-    const parent = join(vbrief, "proposed/p.xbrief.json");
-    const child = join(vbrief, "pending/c.xbrief.json");
+    const vbrief = resolve("/tmp/epic4");
+    const parent = join(vbrief, "proposed", "p.xbrief.json");
+    const child = join(vbrief, "pending", "c.xbrief.json");
     const all = new Map<string, Record<string, unknown>>([
       [
         child,
@@ -1010,9 +1013,9 @@ describe("vbrief-validate extra coverage", () => {
   });
 
   it("covers epic item planRef back-link resolution", () => {
-    const vbrief = "/tmp/epic5";
-    const parent = join(vbrief, "proposed/p.xbrief.json");
-    const child = join(vbrief, "pending/c.xbrief.json");
+    const vbrief = resolve("/tmp/epic5");
+    const parent = join(vbrief, "proposed", "p.xbrief.json");
+    const child = join(vbrief, "pending", "c.xbrief.json");
     const all = new Map<string, Record<string, unknown>>([
       [parent, { plan: { references: [{ type: "x-vbrief/plan", uri: "pending/c.xbrief.json" }] } }],
       [
@@ -1086,9 +1089,11 @@ describe("vbrief-validate extra coverage", () => {
 
     const vbrief = join(root, "xbrief");
     writeFileSync(join(root, "PROJECT.md"), "legacy", "utf8");
-    chmodSync(join(root, "PROJECT.md"), 0o000);
-    expect(validateDeprecatedPlaceholders(vbrief)).toEqual([]);
-    chmodSync(join(root, "PROJECT.md"), 0o644);
+    if (process.platform !== "win32") {
+      chmodSync(join(root, "PROJECT.md"), 0o000);
+      expect(validateDeprecatedPlaceholders(vbrief)).toEqual([]);
+      chmodSync(join(root, "PROJECT.md"), 0o644);
+    }
     rmSync(root, { recursive: true, force: true });
   });
 

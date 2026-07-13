@@ -2,6 +2,9 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
@@ -169,7 +172,7 @@ describe("detectXbriefConvergence (#2270)", () => {
     expect(detectXbriefConvergence(root).state).toBe("legacy-only");
   });
 
-  it("does not treat a vbrief/ holding only a symlink as empty (never wipes symlinked content)", () => {
+  itSymlink("does not treat a vbrief/ holding only a symlink as empty (never wipes symlinked content)", () => {
     writeXbriefStory(root);
     const target = join(root, "target.txt");
     writeFileSync(target, "real content\n", "utf8");

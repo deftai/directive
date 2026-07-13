@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import {
@@ -52,14 +52,14 @@ describe("parseInitArgv", () => {
     );
     expect(parsed.nonInteractive).toBe(true);
     expect(parsed.jsonOut).toBe(true);
-    expect(parsed.projectDir).toBe("/tmp/proj");
+    expect(parsed.projectDir).toBe(resolve("/tmp/proj"));
   });
 
   it("accepts Windows-style aliases", () => {
     const parsed = parseInitArgv([], ["/yes", "/json", "/repo-root", "/tmp/win"]);
     expect(parsed.nonInteractive).toBe(true);
     expect(parsed.jsonOut).toBe(true);
-    expect(parsed.projectDir).toBe("/tmp/win");
+    expect(parsed.projectDir).toBe(resolve("/tmp/win"));
   });
 
   it("honors DEFT_USER_PATH for the config directory", () => {

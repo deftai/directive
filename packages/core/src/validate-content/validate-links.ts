@@ -1,5 +1,5 @@
 import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { extractLinkTargets, shouldSkipLinkTarget } from "./link-parser.js";
 import type { EvaluateResult } from "./types.js";
 
@@ -69,7 +69,7 @@ function findBrokenLinks(cwd: string): BrokenLink[] {
     } catch {
       continue;
     }
-    const rel = md.startsWith(`${root}/`) ? md.slice(root.length + 1) : md;
+    const rel = md.startsWith(root + sep) ? relative(root, md) : md;
     const lines = text.split("\n");
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i] ?? "";

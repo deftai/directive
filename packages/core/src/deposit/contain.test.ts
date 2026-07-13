@@ -2,6 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
+const describeSymlink = describe.skipIf(process.platform === "win32");
 import { runInitDeposit } from "../init-deposit/init-deposit.js";
 import { runRefreshDeposit } from "../init-deposit/refresh.js";
 import { assertDepositContained, DepositContainmentError } from "./contain.js";
@@ -59,21 +63,21 @@ describe("assertDepositContained (#2305)", () => {
     ).not.toThrow();
   });
 
-  it("throws when .deft is a symlink escaping the tree", () => {
+  itSymlink("throws when .deft is a symlink escaping the tree", () => {
     const { projectDir } = escapingSymlinkProject(".deft");
     expect(() => assertDepositContained(projectDir, join(projectDir, ".deft", "core"))).toThrow(
       DepositContainmentError,
     );
   });
 
-  it("throws when .deft/core is a symlink escaping the tree", () => {
+  itSymlink("throws when .deft/core is a symlink escaping the tree", () => {
     const { projectDir } = escapingSymlinkProject(".deft/core");
     expect(() => assertDepositContained(projectDir, join(projectDir, ".deft", "core"))).toThrow(
       /symlink escaping the project tree/,
     );
   });
 
-  it("throws when .deft is a broken/dangling symlink on the deposit path", () => {
+  itSymlink("throws when .deft is a broken/dangling symlink on the deposit path", () => {
     const projectDir = freshDir("deft-contain-dangling-");
     // Point .deft at a target that does not exist -> realpath fails.
     symlinkSync(join(projectDir, "nonexistent-target"), join(projectDir, ".deft"), "dir");
@@ -82,7 +86,7 @@ describe("assertDepositContained (#2305)", () => {
     );
   });
 
-  it("allows a .deft symlink that stays within the project tree", () => {
+  itSymlink("allows a .deft symlink that stays within the project tree", () => {
     const projectDir = freshDir("deft-contain-intree-");
     const inTree = join(projectDir, "actual-deft");
     mkdirSync(inTree, { recursive: true });
@@ -120,7 +124,7 @@ const runners: Record<"init" | "update", DepositRunner> = {
     ),
 };
 
-describe.each([
+describeSymlink.each([
   "init",
   "update",
 ] as const)("deposit refuses a symlink-escaping boundary (%s, #2305)", (verb) => {

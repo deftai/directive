@@ -1,6 +1,6 @@
 import { globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -304,7 +304,7 @@ export function expandPatterns(patterns: string[], root: string | null = null): 
   const seen = new Set<string>();
   const out: string[] = [];
   for (const pattern of patterns) {
-    const candidate = root !== null && !pattern.startsWith("/") ? join(root, pattern) : pattern;
+    const candidate = root !== null && !isAbsolute(pattern) ? join(root, pattern) : pattern;
     let matches = globSync(candidate).sort();
     if (matches.length === 0) {
       try {

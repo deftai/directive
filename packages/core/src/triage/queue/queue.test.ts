@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readAuditEntries, resolveAuditLogPath } from "./audit.js";
 import { buildQueue } from "./build-queue.js";
@@ -342,7 +342,9 @@ describe("loadCachedIssues", () => {
 
 describe("resolveAuditLogPath", () => {
   it("uses explicit audit log override", () => {
-    expect(resolveAuditLogPath({ auditLogPath: "/tmp/custom.jsonl" })).toBe("/tmp/custom.jsonl");
+    expect(resolveAuditLogPath({ auditLogPath: "/tmp/custom.jsonl" })).toBe(
+      resolve("/tmp/custom.jsonl"),
+    );
   });
 
   it("uses frameworkRoot when no override is provided", () => {

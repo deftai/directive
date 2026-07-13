@@ -3,12 +3,16 @@ import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import type { SpawnResult } from "./types.js";
 
 export function defaultWhich(name: string): string | null {
-  const result = spawnSync("which", [name], { encoding: "utf8" });
+  const locator = process.platform === "win32" ? "where" : "which";
+  const result = spawnSync(locator, [name], { encoding: "utf8" });
   if (result.status !== 0) {
     return null;
   }
-  const path = (result.stdout ?? "").trim();
-  return path || null;
+  // `where` on Windows may return multiple lines; take the first non-empty match.
+  const first = (result.stdout ?? "")
+    .split(/\r?\n/)
+    .find((line) => line.trim().length > 0);
+  return first ? first.trim() : null;
 }
 
 export function spawnText(

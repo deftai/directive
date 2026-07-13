@@ -60,6 +60,34 @@ If `winget` is unavailable on your host, install each tool from its official sou
 
 After each install, dot-source `scripts\refresh-path.ps1` to pick up the new entries without restarting your shell.
 
+### Windows-native Node / pnpm notes (#2467)
+
+When running tests with Windows-native Node (not WSL), a few extra steps help:
+
+1. **pnpm user-prefix** — ensure pnpm's bin dir is on `PATH` so `pnpm` and
+   `directive` are found:
+
+   ```powershell
+   pnpm setup       # writes %APPDATA%\npm to PATH (user-level)
+   # restart PowerShell, or:
+   $env:PATH = "$env:APPDATA\npm;" + $env:PATH
+   ```
+
+2. **LF line endings** — the repo ships `.gitattributes` with `* text=auto eol=lf`.
+   If you cloned before this was added, re-normalize with:
+
+   ```powershell
+   git rm --cached -r .
+   git reset --hard
+   ```
+
+3. **Symlink tests** — a handful of tests that exercise `symlinkSync` require
+   Developer Mode or an elevated shell. They are automatically skipped on Windows
+   via `it.skipIf(process.platform === "win32")` so a standard shell is fine.
+
+4. **`chmod`-based tests** — Windows does not honour POSIX `chmod` semantics;
+   those tests are likewise skipped automatically.
+
 ## Dev Environment Setup
 
 1. Clone the repository:

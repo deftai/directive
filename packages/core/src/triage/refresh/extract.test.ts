@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { extractIssueRefs, iterActiveVbriefs } from "./extract.js";
 
@@ -25,7 +25,7 @@ describe("iterActiveVbriefs", () => {
     writeFileSync(join(active, "a.xbrief.json"), "{}", "utf8");
     writeFileSync(join(active, "skip.txt"), "x", "utf8");
     const paths = iterActiveVbriefs(active);
-    expect(paths.map((p) => p.split("/").pop())).toEqual(["a.xbrief.json", "b.xbrief.json"]);
+    expect(paths.map((p) => basename(p))).toEqual(["a.xbrief.json", "b.xbrief.json"]);
   });
 });
 

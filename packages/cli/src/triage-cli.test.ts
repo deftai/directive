@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildFixtureRepo,
@@ -207,7 +207,7 @@ describe("triage-aux-a parity helpers", () => {
   it("resolveDeftRoot honors DEFT_ROOT", () => {
     const prev = process.env.DEFT_ROOT;
     process.env.DEFT_ROOT = "/custom/deft";
-    expect(resolveDeftRoot()).toBe("/custom/deft");
+    expect(resolveDeftRoot()).toBe(resolve("/custom/deft"));
     delete process.env.DEFT_ROOT;
     if (prev !== undefined) process.env.DEFT_ROOT = prev;
   });

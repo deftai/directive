@@ -84,7 +84,7 @@ describe("resolution/integrity", () => {
     );
     expect(result.present).toBe(false);
     expect(result.usable).toBe(false);
-    // default platform dir resolves to .deft/.cli/<os-platform>
-    expect(result.platformDir).toContain(LOCAL_ENGINE_ROOT);
+    // default platform dir resolves to .deft/.cli/<os-platform> (normalize separators for cross-platform check)
+    expect(result.platformDir.replace(/\\/g, "/")).toContain(LOCAL_ENGINE_ROOT);
   });
 });

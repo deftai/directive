@@ -1,3 +1,4 @@
+import { sep } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({
@@ -33,7 +34,7 @@ describe("taskfile re-entry", () => {
 describe("install path manifest root", () => {
   it("prefers manifest install_root field", () => {
     const result = checkInstallPathConsistency("/tmp", ".deft/core", {
-      isDir: (p) => p.endsWith("custom/core"),
+      isDir: (p) => p.endsWith(`custom${sep}core`),
       readText: () => "install_root: custom/core\n",
     });
     expect(result.status).toBe("pass");

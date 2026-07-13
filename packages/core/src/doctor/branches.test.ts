@@ -1,3 +1,4 @@
+import { resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { pythonJsonDump } from "./json.js";
@@ -46,9 +47,8 @@ describe("manifest helpers", () => {
   });
 
   it("locateManifest canonical-first", () => {
-    expect(locateManifest("/a", ".deft/core", (p) => p.endsWith(".deft/VERSION"))).toContain(
-      ".deft/VERSION",
-    );
+    const result = locateManifest("/a", ".deft/core", (p) => p.endsWith(`.deft${sep}VERSION`));
+    expect(result?.replace(/\\/g, "/")).toContain(".deft/VERSION");
   });
 });
 
@@ -121,7 +121,7 @@ describe("payload staleness", () => {
 
 describe("paths", () => {
   it("resolvePath expands relative", () => {
-    expect(resolvePath(".", "/tmp")).toBe("/tmp");
+    expect(resolvePath(".", "/tmp")).toBe(resolve("/tmp"));
   });
 
   it("runningInsideDeftRepo heuristic", () => {

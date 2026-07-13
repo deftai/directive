@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canonicalRelpath,
@@ -25,7 +26,9 @@ describe("vbrief-ref branches", () => {
 
   it("relative and canonical paths", () => {
     expect(relativeToVbrief("/outside", "/proj/vbrief")).toBeNull();
-    expect(canonicalRelpath("/outside/x.xbrief.json", "/proj")).toBe("/outside/x.xbrief.json");
+    expect(canonicalRelpath("/outside/x.xbrief.json", "/proj")).toBe(
+      resolve("/outside/x.xbrief.json").replace(/\\/g, "/"),
+    );
     expect(canonicalRelpath("/proj/xbrief/active/x.xbrief.json", "/proj")).toBe(
       "xbrief/active/x.xbrief.json",
     );

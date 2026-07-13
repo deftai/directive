@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   type ResolveLifecycleArtifactRefOptions,
@@ -98,7 +98,7 @@ export function scopeIdsForFilename(filename: string): Set<string> {
 export function relativeToVbrief(path: string, vbriefRoot: string): string | null {
   const resolved = resolve(path);
   const root = resolve(vbriefRoot);
-  if (!resolved.startsWith(`${root}/`) && resolved !== root) {
+  if (!resolved.startsWith(root + sep) && resolved !== root) {
     return null;
   }
   return resolved.slice(root.length + 1).replace(/\\/g, "/");
@@ -107,7 +107,7 @@ export function relativeToVbrief(path: string, vbriefRoot: string): string | nul
 export function canonicalRelpath(filePath: string, projectRoot: string): string {
   const resolved = resolve(filePath);
   const root = resolve(projectRoot);
-  if (resolved.startsWith(`${root}/`) || resolved === root) {
+  if (resolved.startsWith(root + sep) || resolved === root) {
     return resolved.slice(root.length + (resolved === root ? 0 : 1)).replace(/\\/g, "/");
   }
   return resolved.replace(/\\/g, "/");

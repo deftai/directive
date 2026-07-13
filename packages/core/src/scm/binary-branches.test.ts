@@ -13,8 +13,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Skip the `which` test on Windows — the production code calls `where` there,
+// and the existing "uses where on win32" test covers the Windows path.
+const itNotWin32 = it.skipIf(process.platform === "win32");
+
 describe("defaultWhich branches", () => {
-  it("returns first non-empty line from which output", () => {
+  itNotWin32("returns first non-empty line from which output", () => {
     execFileSyncMock.mockReturnValue("/usr/bin/gh\n");
     expect(defaultWhich("gh")).toBe("/usr/bin/gh");
     expect(execFileSyncMock).toHaveBeenCalledWith("which", ["gh"], expect.any(Object));

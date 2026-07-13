@@ -1,0 +1,40 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "fix(windows): native path portability for task check / release preflight",
+    "created": "2026-07-13T03:30:00.000Z",
+    "updated": "2026-07-13T03:30:00.000Z"
+  },
+  "plan": {
+    "id": "2467-windows-path-portability",
+    "title": "fix(windows): native path portability for task check / release preflight",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Make pnpm run test and task check pass on Windows-native Node by fixing POSIX-only path assumptions in tests and a few production helpers, plus LF/.gitattributes and CONTRIBUTING hardening so pack-drift and maintainer setup do not false-fail.",
+      "UserStory": "As a maintainer on Windows-native Node, I want task check to pass so I can cut releases without switching to WSL.",
+      "ImplementationPlan": "1) Platform-aware test assertions (resolve/join/basename). 2) Production isAbsolute/basename/sep/where fixes. 3) .gitattributes eol=lf + CONTRIBUTING Windows notes. 4) CHANGELOG Closes #2467. 5) PR through merge.",
+      "Origin": "https://github.com/deftai/directive/issues/2467"
+    },
+    "items": [
+      {
+        "id": "2467-a1",
+        "title": "Windows-native path test + production portability",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a Windows-native checkout with pnpm on PATH, when pnpm run test runs, then path.resolve and basename-related failures introduced by win32 semantics are gone.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2467-a2",
+        "title": "Hardening: LF attributes + CONTRIBUTING",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a Windows checkout with autocrlf=true historically, when content projections are checked out under the new .gitattributes, then pack-drift does not false-fail on CRLF alone; CONTRIBUTING documents pnpm and LF notes.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "references": ["#2467"]
+  }
+}

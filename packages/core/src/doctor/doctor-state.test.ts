@@ -27,7 +27,7 @@ describe("doctor-state", () => {
     const prev = process.env.DEFT_DOCTOR_STATE_PATH;
     const home = process.env.HOME ?? "/home/test";
     process.env.DEFT_DOCTOR_STATE_PATH = "~/doctor-state.json";
-    expect(statePath("/proj")).toBe(`${home}/doctor-state.json`);
+    expect(statePath("/proj")).toBe(join(home, "doctor-state.json"));
     if (prev === undefined) {
       delete process.env.DEFT_DOCTOR_STATE_PATH;
     } else {

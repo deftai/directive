@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   cmdCoreLint,
@@ -56,7 +56,7 @@ describe("framework-commands branch coverage", () => {
     const previous = process.env.DEFT_ROOT;
     process.env.DEFT_ROOT = "/tmp/custom-deft-root";
     try {
-      expect(resolveFrameworkRoot()).toBe("/tmp/custom-deft-root");
+      expect(resolveFrameworkRoot()).toBe(resolve("/tmp/custom-deft-root"));
     } finally {
       if (previous === undefined) delete process.env.DEFT_ROOT;
       else process.env.DEFT_ROOT = previous;

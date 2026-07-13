@@ -1,4 +1,4 @@
-import { join, resolve } from "node:path";
+import { join, resolve, sep } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { describe, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ import {
   UPDATE_DELEGATION_DISCLOSURE,
 } from "./init-dispatch.js";
 
-const CWD = "/proj";
+const CWD = resolve("/proj");
 
 interface VirtualFs {
   dirs: Set<string>;

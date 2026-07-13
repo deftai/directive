@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { detectLifecycleFolder } from "../scope/decomposed-refs.js";
 import { runTransition } from "../scope/transition.js";
@@ -49,13 +49,13 @@ function rel(path: string, projectRoot: string): string {
 }
 
 function globResolve(pattern: string, projectRoot: string): string[] {
-  const absPattern = pattern.startsWith("/") ? pattern : join(projectRoot, pattern);
+  const absPattern = isAbsolute(pattern) ? pattern : join(projectRoot, pattern);
   if (!absPattern.includes("*")) {
     return existsSync(absPattern) ? [resolve(absPattern)] : [];
   }
-  const slash = absPattern.lastIndexOf("/");
-  const dir = slash >= 0 ? absPattern.slice(0, slash) : projectRoot;
-  const glob = slash >= 0 ? absPattern.slice(slash + 1) : absPattern;
+  // Use path module to split directory/glob parts — platform-safe on both POSIX and Windows.
+  const dir = dirname(absPattern);
+  const glob = basename(absPattern);
   if (!existsSync(dir)) {
     return [];
   }
@@ -84,7 +84,7 @@ export function resolveCohortPaths(
   };
 
   for (const raw of positional) {
-    const candidate = raw.startsWith("/") ? raw : join(projectRoot, raw);
+    const candidate = isAbsolute(raw) ? raw : join(projectRoot, raw);
     if (!existsSync(candidate)) {
       errors.push(`path does not exist: ${raw}`);
       continue;

@@ -1,16 +1,17 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 
 describe("paths", () => {
   it("resolveProjectRoot honours explicit path", () => {
-    expect(resolveProjectRoot("/tmp/x")).toBe("/tmp/x");
+    expect(resolveProjectRoot("/tmp/x")).toBe(resolve("/tmp/x"));
   });
 
   it("resolveProjectRoot honours DEFT_PROJECT_ROOT", () => {
     const prev = process.env.DEFT_PROJECT_ROOT;
     process.env.DEFT_PROJECT_ROOT = "/env/root";
     try {
-      expect(resolveProjectRoot(null)).toBe("/env/root");
+      expect(resolveProjectRoot(null)).toBe(resolve("/env/root"));
     } finally {
       if (prev === undefined) delete process.env.DEFT_PROJECT_ROOT;
       else process.env.DEFT_PROJECT_ROOT = prev;

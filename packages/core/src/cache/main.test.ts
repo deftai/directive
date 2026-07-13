@@ -90,7 +90,7 @@ describe("fetch-all", () => {
           body: "b",
           labels: [],
         }),
-        isFreshFn: (metaPath) => metaPath.includes("/1/"),
+        isFreshFn: (metaPath) => metaPath.replace(/\\/g, "/").includes("/1/"),
       });
       expect(drift.stateDriftNumbers).toEqual([2]);
       expect(drift.contentDriftNumbers).toEqual([1]);

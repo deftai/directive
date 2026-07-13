@@ -240,7 +240,9 @@ describe("vbrief-validate coverage boost", () => {
       const found = discoverVbriefs(variant);
       expect(found.length).toBe(1);
       // No doubled or trailing slash leaks into the display path.
-      expect(found[0]?.display).toBe(`${vbrief}/active/2026-01-01-slug.xbrief.json`);
+      // Production code normalizes to forward slashes in display paths.
+      const vbriefFwd = vbrief.replace(/\\/g, "/");
+      expect(found[0]?.display).toBe(`${vbriefFwd}/active/2026-01-01-slug.xbrief.json`);
       expect(found[0]?.display.includes("//")).toBe(false);
     }
     rmSync(root, { recursive: true, force: true });

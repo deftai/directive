@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { runText } from "./subprocess.js";
 
@@ -21,8 +22,9 @@ describe("swarm subprocess", () => {
   });
 
   it("honors cwd option", () => {
-    const result = runText(["node", "-p", "process.cwd()"], { cwd: "/tmp" });
-    expect(result.stdout).toContain("/tmp");
+    const cwd = tmpdir();
+    const result = runText(["node", "-p", "process.cwd()"], { cwd });
+    expect(result.stdout.replace(/\\/g, "/")).toContain(cwd.replace(/\\/g, "/"));
   });
 
   it("handles missing binary", () => {

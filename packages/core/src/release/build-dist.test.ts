@@ -22,8 +22,8 @@ describe("build-dist helpers", () => {
   });
 
   it("outputPath uses version and format suffix", () => {
-    expect(outputPath("/root", "1.2.3", "zip")).toBe("/root/dist/deft-1.2.3.zip");
-    expect(outputPath("/root", "1.2.3", "tar")).toBe("/root/dist/deft-1.2.3.tar.gz");
+    expect(outputPath("/root", "1.2.3", "zip")).toBe(join("/root", "dist", "deft-1.2.3.zip"));
+    expect(outputPath("/root", "1.2.3", "tar")).toBe(join("/root", "dist", "deft-1.2.3.tar.gz"));
   });
 
   it("parseExtraExcludes splits and trims", () => {

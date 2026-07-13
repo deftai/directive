@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { checkLayout } from "@deftai/directive-core/migrate-preflight";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs } from "./migrate-preflight.js";
@@ -29,6 +29,6 @@ describe("migrate-preflight CLI (#2146)", () => {
 
   it("honors an explicit --deft-root override", () => {
     const args = parseArgs(["--deft-root", "/tmp/custom-deft"]);
-    expect(args.deftRoot).toBe("/tmp/custom-deft");
+    expect(args.deftRoot).toBe(resolve("/tmp/custom-deft"));
   });
 });

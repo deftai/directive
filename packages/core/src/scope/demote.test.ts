@@ -56,7 +56,8 @@ describe("demote", () => {
   it("resolveFilePath handles relative paths", () => {
     root = makeRepo();
     const [resolved] = resolveFilePath("xbrief/pending/x.xbrief.json", root);
-    expect(resolved).toContain("xbrief/pending/x.xbrief.json");
+    // Normalize to forward slashes for cross-platform comparison.
+    expect(resolved.replace(/\\/g, "/")).toContain("xbrief/pending/x.xbrief.json");
   });
 });
 

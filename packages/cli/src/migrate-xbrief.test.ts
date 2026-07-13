@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./migrate-xbrief.js";
 
@@ -23,7 +23,7 @@ describe("migrate-xbrief CLI", () => {
     ]);
     expect(args.error).toBeUndefined();
     expect(args.projectRoot).toBe("/tmp/project");
-    expect(args.frameworkRoot).toBe("/tmp/deft");
+    expect(args.frameworkRoot).toBe(resolve("/tmp/deft"));
     expect(args.force).toBe(true);
     expect(args.keepLegacy).toBe(false);
   });

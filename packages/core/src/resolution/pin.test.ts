@@ -13,9 +13,17 @@ import {
 } from "./pin.js";
 
 function seams(files: Record<string, string>) {
+  // Normalize both the stored keys and the lookup key to forward slashes so that
+  // `join("/proj", "package.json")` on Windows (→ `\proj\package.json`) still
+  // matches a key stored as `/proj/package.json`.
+  const fwd = (p: string) => p.replace(/\\/g, "/");
+  const normalizedFiles: Record<string, string> = {};
+  for (const [k, v] of Object.entries(files)) {
+    normalizedFiles[fwd(k)] = v;
+  }
   return {
-    isFile: (p: string) => p in files,
-    readText: (p: string) => (p in files ? (files[p] ?? null) : null),
+    isFile: (p: string) => fwd(p) in normalizedFiles,
+    readText: (p: string) => (fwd(p) in normalizedFiles ? (normalizedFiles[fwd(p)] ?? null) : null),
   };
 }
 

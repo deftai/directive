@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { TextCaptureResult } from "./subprocess.js";
 import {
@@ -26,8 +26,8 @@ describe("swarm worktrees", () => {
   it("parses porcelain output", () => {
     const text = "worktree /repo\nbranch refs/heads/master\n\nworktree /wt\n";
     const parsed = parseWorktreePorcelain(text);
-    expect(parsed.get(compareKey("/repo"))).toBe("master");
-    expect(parsed.get(compareKey("/wt"))).toBeNull();
+    expect(parsed.get(compareKey(resolve("/repo")))).toBe("master");
+    expect(parsed.get(compareKey(resolve("/wt")))).toBeNull();
   });
 
   it("rejects same-path collision", () => {

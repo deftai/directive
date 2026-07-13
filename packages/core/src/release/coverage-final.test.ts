@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { promoteChangelog } from "./changelog.js";
 import { cmdRelease } from "./main.js";
@@ -49,7 +50,7 @@ describe("pipeline write path", () => {
       todayIso: () => "2026-04-28",
     };
     expect(runPipeline(config, seams)).toBe(0);
-    expect(writes["/proj/CHANGELOG.md"]).toContain("## [0.21.0]");
+    expect(writes[join("/proj", "CHANGELOG.md")]).toContain("## [0.21.0]");
   });
 });
 

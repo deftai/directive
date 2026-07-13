@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   dispatchTaskCheck,
@@ -102,7 +102,7 @@ describe("dispatchTaskCheck", () => {
 
     const root = "/home/user/deft";
     dispatchTaskCheck(root, root, { spawnFn });
-    expect(calls[0]?.cwd).toBe(root);
+    expect(calls[0]?.cwd).toBe(resolve(root));
   });
 
   it("uses projectRoot as cwd for consumer context", () => {
@@ -115,7 +115,7 @@ describe("dispatchTaskCheck", () => {
     const framework = "/home/user/deft";
     const project = "/home/user/consumer";
     dispatchTaskCheck(framework, project, { spawnFn });
-    expect(calls[0]?.cwd).toBe(project);
+    expect(calls[0]?.cwd).toBe(resolve(project));
   });
 
   it("uses a custom task binary when provided via seams", () => {
@@ -160,7 +160,7 @@ describe("dispatchTaskCheck", () => {
     const taskfileIdx = calls[0]?.args.indexOf("--taskfile") ?? -1;
     expect(taskfileIdx).toBeGreaterThan(-1);
     const taskfilePath = calls[0]?.args[taskfileIdx + 1];
-    expect(taskfilePath).toBe("/my/framework/Taskfile.yml");
+    expect(taskfilePath).toBe(join(resolve("/my/framework"), "Taskfile.yml"));
   });
 
   it("forwards non-zero exit code from task subprocess", () => {

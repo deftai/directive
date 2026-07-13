@@ -19,7 +19,7 @@ describe("paths", () => {
   it("validates github-issue keys", () => {
     expect(() => validateKey("github-issue", "bad")).toThrow(CacheError);
     expect(entryDir("github-issue", "deftai/directive/1", "/tmp/c")).toContain("deftai");
-    expect(auditPath("/tmp/c")).toBe("/tmp/c/quarantine-audit.jsonl");
+    expect(auditPath("/tmp/c")).toBe(join("/tmp/c", "quarantine-audit.jsonl"));
     expect(() => entryDir("unknown", "a/b/1", "/tmp")).toThrow(/unknown source/);
   });
 });

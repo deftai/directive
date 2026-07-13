@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   dirtyTreeRefusalMessage,
@@ -14,7 +14,7 @@ import {
 describe("safety", () => {
   it("premigrateSibling preserves suffix chain", () => {
     expect(premigrateSibling("/tmp/specification.xbrief.json")).toBe(
-      "/tmp/specification.premigrate.xbrief.json",
+      normalize("/tmp/specification.premigrate.xbrief.json"),
     );
   });
 

@@ -195,9 +195,10 @@ describe("packRender.collectTargets", () => {
   it("includes rules markdown projections", () => {
     const targets = collectTargets("rules");
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(([name, path]) => name === "rules" && path.includes("coding/"))).toBe(
-      true,
-    );
+    // Normalize separators for cross-platform path inclusion check.
+    expect(
+      targets.every(([name, path]) => name === "rules" && path.replace(/\\/g, "/").includes("coding/")),
+    ).toBe(true);
   });
 });
 
