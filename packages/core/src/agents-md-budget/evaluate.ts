@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { loadOpenPackageTierManifest } from "../packaging/openpackage-tiers.js";
+import { loadOpenPackageTierManifest, resolveTierSkills } from "../packaging/openpackage-tiers.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import {
   type AgentsMdBudget,
@@ -224,10 +224,18 @@ export function measureBootstrapSurface(
   }
   const harnessProfile = resolveHarnessProfile(budget, projectRoot);
   const tier = resolveSkillFrontmatterTier(budget, projectRoot);
+  let dailyCoreSkills: readonly string[] | undefined;
+  try {
+    const manifest = loadOpenPackageTierManifest(projectRoot);
+    dailyCoreSkills = resolveTierSkills(manifest, "daily-core");
+  } catch {
+    // Maintainer trees without packaging/openpackage fall back to hardcoded daily-core.
+  }
   const skillFrontmatter = measureSkillFrontmatter(projectRoot, {
     harnessProfile,
     tier,
     bytesPerToken: ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE,
+    dailyCoreSkills,
   });
   const totalBytes = managedResult.bytes + skillFrontmatter.bytes + BOOTSTRAP_HOOK_BYTES;
   return {

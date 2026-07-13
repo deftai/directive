@@ -77,6 +77,8 @@ export interface MeasureSkillFrontmatterOptions {
   readonly tier?: SkillFrontmatterTier;
   readonly harnessProfile?: HarnessProfile;
   readonly bytesPerToken?: number;
+  /** Override daily-core skill names (from OpenPackage resolveTierSkills). */
+  readonly dailyCoreSkills?: readonly string[];
 }
 
 function defaultSkillsRoot(projectRoot: string): string {
@@ -93,14 +95,18 @@ function listSkillDirs(skillsRoot: string): string[] {
     .sort();
 }
 
-function skillMatchesTier(skillName: string, tier: SkillFrontmatterTier): boolean {
+function skillMatchesTier(
+  skillName: string,
+  tier: SkillFrontmatterTier,
+  dailyCore: ReadonlySet<string>,
+): boolean {
   if (tier === "none") {
     return false;
   }
   if (tier === "all") {
     return true;
   }
-  return DAILY_CORE_SET.has(skillName);
+  return dailyCore.has(skillName);
 }
 
 /** Measure harness-injected skill frontmatter bytes for the configured profile/tier. */
@@ -112,6 +118,8 @@ export function measureSkillFrontmatter(
   const tier = options.tier ?? "all";
   const bytesPerToken = options.bytesPerToken ?? 4;
   const skillsRoot = options.skillsRoot ?? defaultSkillsRoot(projectRoot);
+  const dailyCore =
+    options.dailyCoreSkills !== undefined ? new Set(options.dailyCoreSkills) : DAILY_CORE_SET;
 
   if (harnessProfile === "none" || tier === "none") {
     return {
@@ -126,7 +134,7 @@ export function measureSkillFrontmatter(
 
   const entries: SkillFrontmatterEntry[] = [];
   for (const skillName of listSkillDirs(skillsRoot)) {
-    if (!skillMatchesTier(skillName, tier)) {
+    if (!skillMatchesTier(skillName, tier, dailyCore)) {
       continue;
     }
     const skillPath = join(skillsRoot, skillName, "SKILL.md");

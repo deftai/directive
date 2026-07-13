@@ -6,19 +6,21 @@
  * Default (--tier omitted): sync defaultInstallTier from deft-tiers.json (daily-core).
  * Use --tier all for maintainer release prep with every tier on disk.
  */
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  isOpenPackageTierName,
+  loadOpenPackageTierManifest,
+  resolveTierSkills,
+} from "./openpackage-tiers.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../..");
-const tiersPath = join(here, "deft-tiers.json");
 const packageRoot = join(here, "deft-directive-skills");
 const skillsDest = join(packageRoot, "skills");
 const skillsSource = join(repoRoot, "content/skills");
 const gitkeepPath = join(skillsDest, ".gitkeep");
-
-const TIER_NAMES = ["daily-core", "standard", "advanced"];
 
 function parseArgs(argv) {
   let tier = null;
@@ -36,48 +38,33 @@ function parseArgs(argv) {
   return { tier };
 }
 
-function loadTiers() {
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync(tiersPath, "utf8"));
-  } catch (err) {
-    console.error(`sync-skills: invalid JSON in ${tiersPath}: ${err}`);
-    process.exit(1);
-  }
-  if (parsed === null || typeof parsed !== "object" || !parsed.tiers) {
-    console.error(`sync-skills: ${tiersPath} must be an object with a tiers field`);
-    process.exit(1);
-  }
-  return parsed;
-}
-
-function resolveSyncTier(tiersDoc, cliTier) {
-  const selected = cliTier ?? tiersDoc.defaultInstallTier ?? "daily-core";
+function resolveSyncTier(manifest, cliTier) {
+  const selected = cliTier ?? manifest.defaultInstallTier;
   if (selected === "all") {
     return "all";
   }
-  if (!TIER_NAMES.includes(selected)) {
+  if (!isOpenPackageTierName(selected)) {
     console.error(
-      `sync-skills: --tier must be one of ${[...TIER_NAMES, "all"].join(", ")}; got ${selected}`,
+      `sync-skills: --tier must be one of daily-core, standard, advanced, all; got ${selected}`,
     );
     process.exit(1);
   }
   return selected;
 }
 
-function skillsForTier(tiersDoc, tier) {
-  if (tier === "all") {
-    return new Set(TIER_NAMES.flatMap((name) => tiersDoc.tiers[name].skills));
-  }
-  return new Set(tiersDoc.tiers[tier].skills);
+const { tier: cliTier } = parseArgs(process.argv.slice(2));
+
+let manifest;
+try {
+  manifest = loadOpenPackageTierManifest(repoRoot);
+} catch (err) {
+  console.error(`sync-skills: ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
 }
 
-const { tier: cliTier } = parseArgs(process.argv.slice(2));
-const tiers = loadTiers();
-const syncTier = resolveSyncTier(tiers, cliTier);
-const wanted = skillsForTier(tiers, syncTier);
-
-const allMapped = new Set(Object.values(tiers.tiers).flatMap((t) => t.skills));
+const syncTier = resolveSyncTier(manifest, cliTier);
+const wanted = new Set(resolveTierSkills(manifest, syncTier));
+const allMapped = new Set(resolveTierSkills(manifest, "all"));
 
 const onDisk = readdirSync(skillsSource, { withFileTypes: true })
   .filter((d) => d.isDirectory())
