@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Session routing in AGENTS.md is now a thin bootstrap card.** First-session, returning-session, pre-cutover, and cold-start procedures collapse into one pointer-thin routing section that defaults to read-only posture and defers mutable ceremony until mutation intent, trimming always-loaded bootstrap text. Closes #2493. Refs #2491, #2176.
+
 - **Always-on AGENTS.md no longer ships a full slash-command catalog.** The managed section now points to `commands.md` for `/deft:directive:*` and cross-product aliases, trimming always-loaded bootstrap text toward the 8 KB north-star. Closes #2492. Refs #2491.
 - **Maintainer AGENTS.md header is pointer-thin.** The directive-repo unmanaged header above the managed section collapses restated managed rules to one-line pointers (keeping gated #954 / #1387 / #1152 rule bodies), cutting always-on maintainer session cost while preserving #1309 propagation discipline. Closes #2490. Refs #2491.
 

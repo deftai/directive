@@ -1,0 +1,116 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "refactor(agents-md): Phase 2 session-routing compression aligned with read-only posture (#2176)",
+    "created": "2026-07-13T21:04:30.410Z",
+    "updated": "2026-07-13T21:04:30.410Z"
+  },
+  "plan": {
+    "id": "2493-session-routing-compression",
+    "title": "refactor(agents-md): Phase 2 session-routing compression aligned with read-only posture (#2176)",
+    "status": "running",
+    "narratives": {
+      "Description": "Compress First Session / Returning Sessions / Pre-Cutover / Cold-start in agents-entry into a thin routing card aligned with #2176 read-only posture (now shipped). Largest remaining managed-byte cut under epic #2491.",
+      "UserStory": "As a framework maintainer, I want always-on session routing to be a thin posture card instead of multi-KB procedure, so that consumers load less text and agents default to read-only until mutation.",
+      "ImplementationPlan": "1) HARD GATE satisfied: #2176 closed (PR #2496). 2) Rewrite First/Returning/Pre-Cutover/Cold-start in content/templates/agents-entry.md into thin routing card encoding read-only→mutation (#2176). 3) Update packages/core/src/content-contracts/skills/agents_entry_contract.test.ts markers. 4) task agents:refresh; re-seed absoluteMaxBytes in xbrief/PROJECT-DEFINITION.xbrief.json. 5) CHANGELOG.md Closes #2493 Refs #2491 #2176. Verify: pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts; task verify:agents-md-budget; task check --allow-over-cap.",
+      "Origin": "Wave 2b after #2492 catalog eviction; epic #2491",
+      "Overview": "Conflict group agents-entry-phase2 — serialize with #2492 if both in flight."
+    },
+    "items": [
+      {
+        "id": "2493-a1",
+        "title": "Thin routing card encodes #2176 posture",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given agents-entry, when session-routing sections are read, then they are pointer-thin and encode read-only until mutation.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2493-a2",
+        "title": "No always-on mutable session:start obligation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the thin card, when agents follow it, then read-only turns are not obligated to run mutable session:start.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2493-a3",
+        "title": "Contracts and budget green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given edits, when contract tests and verify:agents-md-budget run, then they pass (re-seed ratchet if needed).",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2493-a4",
+        "title": "CHANGELOG + close",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given merge, when PR lands, then CHANGELOG cites Closes #2493.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "context-engineering",
+      "agent-experience",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2493",
+        "type": "x-xbrief/github-issue",
+        "title": "#2493"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2491",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #2491"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2176",
+        "type": "x-xbrief/refs",
+        "title": "Wave 0 gate #2176"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2180",
+        "type": "x-xbrief/refs",
+        "title": "#2180 parallel"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "size": "medium",
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "CHANGELOG.md",
+          "AGENTS.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "task verify:agents-md-budget",
+          "task check --allow-over-cap"
+        ],
+        "expected_outputs": [
+          "thin session-routing card",
+          "PR merged Closes #2493"
+        ],
+        "depends_on": [
+          "2176-read-only-session-posture"
+        ],
+        "conflict_group": "agents-entry-phase2"
+      }
+    },
+    "updated": "2026-07-13T22:26:22Z"
+  }
+}
