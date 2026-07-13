@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Always-on AGENTS.md no longer ships a full slash-command catalog.** The managed section now points to `commands.md` for `/deft:directive:*` and cross-product aliases, trimming always-loaded bootstrap text toward the 8 KB north-star. Closes #2492. Refs #2491.
-- **Maintainer AGENTS.md header is pointer-thin.** The directive-repo unmanaged header above the managed section no longer restates managed rules in full prose — one-line pointers to skills, gates, and analysis docs cut always-on maintainer session cost by roughly half while preserving #1309 propagation discipline. Closes #2490. Refs #2491.
+- **Maintainer AGENTS.md header is pointer-thin.** The directive-repo unmanaged header above the managed section collapses restated managed rules to one-line pointers (keeping gated #954 / #1387 / #1152 rule bodies), cutting always-on maintainer session cost while preserving #1309 propagation discipline. Closes #2490. Refs #2491.
 
 - **Session posture is ephemeral — ceremony runs only at mutation boundaries.** Cleared or fresh agent contexts default to read-only; `verify:session-ritual` no longer treats `.deft/ritual-state.json` as proof of mutation intent, and gated checks still run fresh when you actually start mutating work. Closes #2180. Refs #2491 #2176.
 

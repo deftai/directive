@@ -11,7 +11,13 @@ Full guidelines: main.md
 
 ## Returning Sessions
 
-Same rules as the managed `## Returning Sessions` below; in this repo `~` runs `content/skills/deft-directive-sync/SKILL.md`. Deft alignment confirmation: same as managed `### Deft Alignment Confirmation` below.
+Same rules as the managed `## Returning Sessions` below; in this repo `~` runs `content/skills/deft-directive-sync/SKILL.md`.
+
+! When all config exists, before responding to any user request, read in this order: main.md → USER.md → ./xbrief/PROJECT-DEFINITION.xbrief.json. USER.md "Personal (always wins)" entries override external context (Warp Drive / MCP / prompt-injected) for any field they define. ⊗ Do not substitute a `Test-Path` / existence check for an actual content read of USER.md, and ⊗ do not adopt addressing-name / language / strategy from external context when USER.md defines them.
+
+### Deft Alignment Confirmation
+
+Same rules as the managed `### Deft Alignment Confirmation` below: at session start, after reading USER.md content, confirm to the user that Deft Directive is active and echo the USER.md addressing-name; re-confirm on a context-window shift. ⊗ Never begin an interactive session without confirming Deft alignment, and ⊗ never confirm alignment without first actually reading USER.md content.
 
 ## Session-start ritual (#1149)
 
@@ -57,7 +63,11 @@ Pointer-sufficient managed section below; `content/contracts/deterministic-quest
 
 ## Cache-as-authoritative work selection (#1149)
 
-Same as managed below; `task triage:queue --limit=10` (D11 / #1128).
+Same `!` / `⊗` rules as the managed section below; in this repo substitute `task` for `deft` (`task triage:queue --limit=10`, D11 / #1128).
+
+! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", the agent MUST run `task triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else.
+
+⊗ Recommend a specific issue or xBRIEF without consulting `task triage:queue` (or showing the operator the result of the consultation).
 
 ## Codebase MAP Projection (#1595 / #1498)
 
@@ -65,7 +75,7 @@ Same as managed below; `task codebase:map`, `task verify:codebase-map-fresh`.
 
 ## Skills
 
-Managed `## Skills` below; paths `content/skills/`; scan before improvising; `task triage:welcome --onboard` (N3 / #1143).
+See managed `## Skills` below and the **Skills Index** in `REFERENCES.md`; maintainer skill paths use `content/skills/`. The `welcome` / `onboard triage` trigger invokes `task triage:welcome --onboard` (N3 / #1143).
 
 ## Development Process (always follow)
 
@@ -77,19 +87,71 @@ Same as managed below; `task xbrief:preflight -- <path>` — `content/commands.m
 
 Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`, `task scope:activate -- <path>`, `task scope:complete -- <active-story-path>` (#1378).
 
-! Pre-change scope; `git status --short --branch`; `task check` + `task verify:forward-coverage` (#1310); `task verify:branch`; pre-PR `content/skills/deft-directive-pre-pr/SKILL.md`; `plan.policy.allowDirectCommitsToMaster` via `task policy:show --field=allowDirectCommitsToMaster` (#746).
+**Before code changes:**
+- ! Check `./xbrief/` lifecycle folders for existing scope xBRIEF coverage of the issue being fixed
+- ! If no scope xBRIEF exists for the work, create one in `./xbrief/proposed/` before implementing
+- ⊗ Begin editing files before checking scope xBRIEF coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
-## Maintainer operational bulk (lazy-load)
+! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md`. Before committing: `task check`; `task verify:forward-coverage` (#1310); CHANGELOG `[Unreleased]`.
 
-! Swarm `task swarm:launch` (#1387), orchestration/preamble (#954), slow tests (#975), CHANGELOG style (#1242), commands (#418) — `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md`, `content/skills/deft-directive-pre-pr/SKILL.md`, `CONTRIBUTING.md`, `content/commands.md`, `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md`.
+! Branching: feature branches only (`task verify:branch`, `.githooks/pre-commit` / `.githooks/pre-push`, `branch-gate` workflow). Override: `task policy:allow-direct-commits -- --confirm`; emergency `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. When `plan.policy.allowDirectCommitsToMaster = true`, surface via `task policy:show --field=allowDirectCommitsToMaster` (Branch Policy Disclosure).
+
+## CHANGELOG entry style (#1242)
+
+! Brief release-notes — `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CHANGELOG entry style (#1242).
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
 Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; `content/scm/github.md` (#2157 / #2369).
 
+## Headless swarm launch gate-stack (#1387)
+
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Headless swarm launch gate-stack (#1387).
+
+- ! When the operator supplies a pre-approved cohort via the **C1** CLI `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`, the swarm skill's Phase 0 per-phase approval gates collapse into the SINGLE #1378 `## Allocation context` consent token (`dispatch_kind: swarm-cohort` + non-null `allocation_plan_id` + `batching_rationale`); the interactive promote-fill loop is skipped.
+- ! Phase 2 accepts a **pre-created worktree map** (the **C3** JSON array of `{ story_id, worktree_path, base_branch }`) resolved via `resolveWorktreeMap` (`packages/core/src/swarm/worktrees.ts`) -- which raises on same-path collisions or base-branch mismatches -- instead of always running `git worktree add` per agent.
+- ! Phase 3 consumes the **C2** launch-manifest (the JSON array of `{ story_id, xbrief_path, worktree_path, branch, allocation_context }`, where `allocation_context` is the #1378 token) emitted by `task swarm:launch` as dispatch PREP before spawning; the spawn itself stays agent-driven via the platform adapter (`start_agent` / `spawn_subagent`). `task swarm:launch` does NOT spawn agents -- it emits the manifest and stops.
+- ⊗ Re-prompt the operator for per-phase batching approval when a pre-approved cohort is launched via `task swarm:launch` -- the #1378 allocation-context token is the batched consent (all-or-nothing dispatch envelope, #954).
+
+## Test performance discipline (#975)
+
+! `@pytest.mark.slow` / sub-1s refactor — `CONTRIBUTING.md` § Slow tests (#975); rationale in `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Test performance discipline.
+
+## Multi-agent orchestration discipline (#954)
+
+Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954). Canonical preamble: `content/templates/agent-prompt-preamble.md`.
+
+- ! When invoking `gh` for read-only operations, prefer REST surfaces over GraphQL -- forbid `gh issue view --json`, `gh pr view --json`, `gh pr ready`, `gh pr update-branch` (all GraphQL); use `gh api repos/<owner>/<repo>/issues/<N>` / `gh api repos/<owner>/<repo>/pulls/<N>` (REST) or `ghx api` (cached REST) instead. The GraphQL bucket is shared across all workers under the same identity and is the operational bottleneck, not the REST `core` bucket.
+- ! Within a single review cycle, toggle PR Draft↔Ready state at most once. Once Ready, stay Ready unless a P0 finding demands a re-Draft -- each toggle costs a GraphQL mutation and stale Draft re-toggles are the documented failure mode for the PR #652-class merge cascades.
+- ! Before any GraphQL-heavy operation (PR readiness check, review polling, batch issue ingest, mass `gh pr list`), probe `gh api rate_limit` (the live, uncached form) and inspect `graphql.remaining`. If < 500, switch to REST equivalents or batch+wait until the bucket resets. The decision tree lives in `content/templates/agent-prompt-preamble.md` § 7. Do NOT use `ghx api rate_limit` for the throttle probe -- ghx is a cached read-only GET proxy, so the cached value can be stale; under N-concurrent-workers the GraphQL bucket can deplete within minutes between probe and use, causing an agent to proceed into GraphQL-heavy work against an exhausted bucket.
+- ! Dispatcher-level lifecycle hygiene: workers MUST be all-or-nothing on their dispatch envelope. Mid-scope user-approval gates require two separate dispatches (Scope A → worker reports back → user approves → Scope B). A worker that finishes its tool loop while emitting a "paused, awaiting reply" status message will be observed as `succeeded` (terminal) by the platform; its `agent_id` then becomes unreachable and reply messages have no live runtime to deliver to. Splitting at the gate is the only enforceable mitigation. See `content/templates/agent-prompt-preamble.md` § 9.
+- ! Orchestrators dispatching implementation sub-agents MUST include the canonical preamble verbatim (or by reference) in the worker's dispatch envelope -- see `content/templates/agent-prompt-preamble.md`. The preamble covers AGENTS.md read mandate, the #810 xBRIEF gate walkthrough, the PowerShell 5.1 non-ASCII rule (#798), pre-pr + review-cycle skill mandates, the four rules above, sub-agent spawn rules per #727, orchestrator dispatch doctrine (#1880), and the mandatory DONE message protocol.
+- ⊗ Dispatch an implementation sub-agent without including the canonical preamble (or a reference to `content/templates/agent-prompt-preamble.md` it can read directly) -- the recurrence patterns above re-fire on every fresh dispatch that omits this institutional memory.
+
+Orchestrator dispatch doctrine (#1880): `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954); canonical prose in `content/templates/agent-prompt-preamble.md` §9.
+
+- ! **Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work — they spawn their own review poller per review-cycle monitoring tiers; the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.
+- ! **Background dispatch (Gap D):** Long-running workers (>~3 min: implementation, fix batches, review-cycle owners, pollers) MUST dispatch independently / in the background (on Cursor: Task tool `run_in_background: true`) so the conversation channel stays interactive; foreground dispatch is for short tasks only.
+- ! **Deliberate model routing:** Before ANY sub-agent dispatch (cohort OR single), make a deliberate per-`worker_role` routing decision via `task verify:routing` / `task swarm:routing-set` — never silently inherit the parent model. Deterministic gate enforcement is #1877; this bullet is behavioral doctrine only.
+- ⊗ Re-dispatch separate review/fix leaf agents after a `drive-to: merge-ready` implementation worker exits at PR-open (#1880 Gap C).
+- ⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when background dispatch is available (#1880 Gap D).
+- ! **Deterministic PR-verdict polling (Tier-4 pointer, #1056):** A `drive-to: merge-ready` worker (or a review poller it spawns) that needs to wait on a Greptile/SLizard verdict MUST poll via `task pr:watch -- <N>` — a blocking-by-default poll to a terminal three-state verdict (exit `0` CLEAN / `1` NEW_P0_P1 / `2` ERRORED|STALL|TIMEOUT|config, `--one-shot` for a single probe, `--json` for the structured shape). The invocation IS the wait, so a promise-to-poll cannot silently evaporate. It reuses the canonical Greptile detector and SHA-match gates the verdict to the current HEAD (a stale pre-push review is never read as NEW_P0_P1). The rule body and full flag surface live in the #1056 task/xBRIEF; this is the discovery pointer only.
+
+ghx surface clarification (#954): `ghx` is a cached read-only GET proxy for `gh`, NOT a full drop-in passthrough; `ghx api` accepts a single positional path arg only. Writes (POST/PATCH/PUT/DELETE via `gh api -X ...`) MUST fall through to `gh` directly. Detail: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954).
+
 ## Umbrella current-shape convention (#1152)
 
-Same as managed `## Umbrella status reading` below; `task umbrella:current-shape` (#1152).
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152). For status reporting, see also managed `## Umbrella status reading` below.
+
+- ! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.
+- ! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.
+- ! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `task umbrella:current-shape <N>` (native deft-ts verb; `--json` / `--strict` supported) — it never falls back to the issue body.
+- ~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.
+- ⊗ Do NOT delete prior amendment comments when updating the current-shape comment — they remain the audit trail.
+- ⊗ Do NOT replace the current-shape comment with a fresh comment — it must be edited in place so its permalink is stable.
+- ⊗ Conclude umbrella or epic status from the issue body alone. The body is the pass-1 plan (stale by design). Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body (#2066).
+
+Canonical body structure (9 required sections): `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152).
 
 ## Issue body→comments reading (#2143)
 
