@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 const itSymlink = it.skipIf(process.platform === "win32");
 // chmod mode bits are not reliably preserved by Node on Windows.
 const itChmod = it.skipIf(process.platform === "win32");
+
 import { copyTree } from "./copy-tree.js";
 
 describe("copyTree (#1477 mode-preserving recursive copy)", () => {

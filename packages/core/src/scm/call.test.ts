@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 // /bin/true is Unix-only; on Windows use `where` (always present) as a no-op binary.
 const itNotWin32 = it.skipIf(process.platform === "win32");
+
 import { call } from "./call.js";
 import { ScmStubError } from "./errors.js";
 

@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 // chmodSync does not reliably block file reads on Windows; skip chmod-dependent tests there.
 const itChmod = it.skipIf(process.platform === "win32");
+
 import { ELIGIBLE_STATUS, emitJson, evaluate, formatActivateHint } from "./evaluate.js";
 import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
 

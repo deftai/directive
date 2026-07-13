@@ -197,7 +197,9 @@ describe("packRender.collectTargets", () => {
     expect(targets.length).toBeGreaterThan(0);
     // Normalize separators for cross-platform path inclusion check.
     expect(
-      targets.every(([name, path]) => name === "rules" && path.replace(/\\/g, "/").includes("coding/")),
+      targets.every(
+        ([name, path]) => name === "rules" && path.replace(/\\/g, "/").includes("coding/"),
+      ),
     ).toBe(true);
   });
 });

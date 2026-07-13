@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
 const itSymlink = it.skipIf(process.platform === "win32");
+
 import { runCodebaseMapCli } from "../codebase/map.js";
 import {
   stepEnsureGitignoreEntry,
@@ -109,47 +110,56 @@ describe("projection writers refuse symlink escapes (#2413)", () => {
     expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
   });
 
-  itSymlink("triage:bootstrap fails closed when .gitignore is a symlink outside the project", () => {
-    const projectDir = freshDir("proj-gi-symlink-");
-    const escapeTarget = freshDir("proj-gi-escape-");
-    const escapeFile = join(escapeTarget, "stolen.gitignore");
-    writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
-    symlinkSync(escapeFile, join(projectDir, ".gitignore"));
+  itSymlink(
+    "triage:bootstrap fails closed when .gitignore is a symlink outside the project",
+    () => {
+      const projectDir = freshDir("proj-gi-symlink-");
+      const escapeTarget = freshDir("proj-gi-escape-");
+      const escapeFile = join(escapeTarget, "stolen.gitignore");
+      writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+      symlinkSync(escapeFile, join(projectDir, ".gitignore"));
 
-    const outcome = stepEnsureGitignoreEntry(projectDir);
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
-    expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
-  });
+      const outcome = stepEnsureGitignoreEntry(projectDir);
+      expect(outcome.ok).toBe(false);
+      expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
+      expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
+    },
+  );
 
-  itSymlink("triage:bootstrap fails closed when .gitattributes is a symlink outside the project", () => {
-    const projectDir = freshDir("proj-ga-symlink-");
-    const escapeTarget = freshDir("proj-ga-escape-");
-    const escapeFile = join(escapeTarget, "stolen.gitattributes");
-    writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
-    writeGitignore(projectDir);
-    symlinkSync(escapeFile, join(projectDir, ".gitattributes"));
+  itSymlink(
+    "triage:bootstrap fails closed when .gitattributes is a symlink outside the project",
+    () => {
+      const projectDir = freshDir("proj-ga-symlink-");
+      const escapeTarget = freshDir("proj-ga-escape-");
+      const escapeFile = join(escapeTarget, "stolen.gitattributes");
+      writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+      writeGitignore(projectDir);
+      symlinkSync(escapeFile, join(projectDir, ".gitattributes"));
 
-    const outcome = stepEnsureGitignoreEvalEntries(projectDir);
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
-    expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
-  });
+      const outcome = stepEnsureGitignoreEvalEntries(projectDir);
+      expect(outcome.ok).toBe(false);
+      expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
+      expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
+    },
+  );
 
-  itSymlink("triage:bootstrap fails closed when triage-cache README is a symlink outside the project", () => {
-    const projectDir = freshDir("proj-readme-symlink-");
-    const escapeTarget = freshDir("proj-readme-escape-");
-    const escapeFile = join(escapeTarget, "stolen-readme.md");
-    writeGitignore(projectDir);
-    mkdirSync(join(projectDir, "xbrief", ".triage-cache"), { recursive: true });
-    writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
-    symlinkSync(escapeFile, join(projectDir, "xbrief", ".triage-cache", "README.md"));
+  itSymlink(
+    "triage:bootstrap fails closed when triage-cache README is a symlink outside the project",
+    () => {
+      const projectDir = freshDir("proj-readme-symlink-");
+      const escapeTarget = freshDir("proj-readme-escape-");
+      const escapeFile = join(escapeTarget, "stolen-readme.md");
+      writeGitignore(projectDir);
+      mkdirSync(join(projectDir, "xbrief", ".triage-cache"), { recursive: true });
+      writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
+      symlinkSync(escapeFile, join(projectDir, "xbrief", ".triage-cache", "README.md"));
 
-    const outcome = stepEnsureGitignoreEvalEntries(projectDir);
-    expect(outcome.ok).toBe(false);
-    expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
-    expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
-  });
+      const outcome = stepEnsureGitignoreEvalEntries(projectDir);
+      expect(outcome.ok).toBe(false);
+      expect(outcome.message).toMatch(/projection write refused|symlink escaping/);
+      expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
+    },
+  );
 });
 
 function writeGitignore(projectDir: string): void {

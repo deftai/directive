@@ -124,24 +124,24 @@ const runners: Record<"init" | "update", DepositRunner> = {
     ),
 };
 
-describeSymlink.each([
-  "init",
-  "update",
-] as const)("deposit refuses a symlink-escaping boundary (%s, #2305)", (verb) => {
-  it("throws and copies nothing when .deft escapes the tree", async () => {
-    const { projectDir } = escapingSymlinkProject(".deft");
-    const copyContent = vi.fn(async () => {});
-    await expect(runners[verb](projectDir, copyContent)).rejects.toThrow(DepositContainmentError);
-    expect(copyContent).not.toHaveBeenCalled();
-  });
-
-  it("throws and copies nothing when .deft/core escapes the tree", async () => {
-    const { projectDir, escapeTarget } = escapingSymlinkProject(".deft/core");
-    const copyContent = vi.fn(async () => {
-      // If the guard failed, the deposit would write through the symlink.
-      writeFileSync(join(escapeTarget, "SHOULD-NOT-EXIST"), "x", "utf8");
+describeSymlink.each(["init", "update"] as const)(
+  "deposit refuses a symlink-escaping boundary (%s, #2305)",
+  (verb) => {
+    it("throws and copies nothing when .deft escapes the tree", async () => {
+      const { projectDir } = escapingSymlinkProject(".deft");
+      const copyContent = vi.fn(async () => {});
+      await expect(runners[verb](projectDir, copyContent)).rejects.toThrow(DepositContainmentError);
+      expect(copyContent).not.toHaveBeenCalled();
     });
-    await expect(runners[verb](projectDir, copyContent)).rejects.toThrow(DepositContainmentError);
-    expect(copyContent).not.toHaveBeenCalled();
-  });
-});
+
+    it("throws and copies nothing when .deft/core escapes the tree", async () => {
+      const { projectDir, escapeTarget } = escapingSymlinkProject(".deft/core");
+      const copyContent = vi.fn(async () => {
+        // If the guard failed, the deposit would write through the symlink.
+        writeFileSync(join(escapeTarget, "SHOULD-NOT-EXIST"), "x", "utf8");
+      });
+      await expect(runners[verb](projectDir, copyContent)).rejects.toThrow(DepositContainmentError);
+      expect(copyContent).not.toHaveBeenCalled();
+    });
+  },
+);

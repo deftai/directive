@@ -45,9 +45,7 @@ describe("projectDefinitionIO", () => {
   it("resolves the xbrief path on a migrated tree, vbrief otherwise (#2302)", () => {
     const legacyRoot = mkdtempSync(join(tmpdir(), "vb-pd-legacy-"));
     expect(
-      projectDefinitionPath(legacyRoot).endsWith(
-        `xbrief${sep}PROJECT-DEFINITION.xbrief.json`,
-      ),
+      projectDefinitionPath(legacyRoot).endsWith(`xbrief${sep}PROJECT-DEFINITION.xbrief.json`),
     ).toBe(true);
     rmSync(legacyRoot, { recursive: true, force: true });
 
@@ -55,9 +53,7 @@ describe("projectDefinitionIO", () => {
     mkdirSync(join(migratedRoot, "xbrief", "active"), { recursive: true });
     writeFileSync(join(migratedRoot, "xbrief", "active", "some.xbrief.json"), "{}", "utf8");
     expect(
-      projectDefinitionPath(migratedRoot).endsWith(
-        `xbrief${sep}PROJECT-DEFINITION.xbrief.json`,
-      ),
+      projectDefinitionPath(migratedRoot).endsWith(`xbrief${sep}PROJECT-DEFINITION.xbrief.json`),
     ).toBe(true);
     rmSync(migratedRoot, { recursive: true, force: true });
   });
