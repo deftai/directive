@@ -397,7 +397,8 @@ export function issueCommentsAlreadyFetched(issue: Record<string, unknown>): boo
  */
 function scanUntrustedIngestText(issueNumber: number, text: string): string {
   const scanResult = scan(text);
-  if (!scanResult.passed) {
+  const hardFails = scanResult.flags.filter((f) => f.severity === "hard-fail");
+  if (hardFails.length > 0) {
     throw new ScannerHardFailError(issueNumber, scanResult.flags);
   }
   return scanResult.transformed_content;

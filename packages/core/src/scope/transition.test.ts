@@ -148,6 +148,8 @@ describe("scope lifecycle projection containment (#2447)", () => {
       expect(result.message).toContain("projection write refused");
       expect(existsSync(file)).toBe(true);
       expect(existsSync(join(escapeDir, "story.xbrief.json"))).toBe(false);
+      const unchanged = JSON.parse(readFileSync(file, "utf8")) as { plan: { status: string } };
+      expect(unchanged.plan.status).toBe("proposed");
     },
   );
 
