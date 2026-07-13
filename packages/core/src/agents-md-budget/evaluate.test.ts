@@ -193,7 +193,11 @@ describe("absolute managed-section budget", () => {
 
   it("fail-closes when absoluteMaxBytes is set and the managed section grows past it", () => {
     const root = makeRepo({
-      plan: { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500, absoluteMaxBytes: 8000 } } },
+      plan: {
+        policy: {
+          agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500, absoluteMaxBytes: 8000 },
+        },
+      },
       agents: agentsOverAbsolute(5, 9000),
     });
     const result = evaluate(root);

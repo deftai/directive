@@ -430,9 +430,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   }
 
   const absoluteSummary =
-    absoluteMaxBytes !== undefined
-      ? `; ${formatAbsoluteSummary(measure, absoluteMaxBytes)}`
-      : "";
+    absoluteMaxBytes !== undefined ? `; ${formatAbsoluteSummary(measure, absoluteMaxBytes)}` : "";
 
   if (quiet) {
     return attachNorthStarNote({ code: 0, message: "", stream: "none" }, text, { advisoryOnly });
