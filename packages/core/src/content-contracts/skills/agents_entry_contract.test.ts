@@ -299,6 +299,21 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     ],
   },
   {
+    id: "commands-catalog-2492",
+    shape: "doc",
+    header: "Commands",
+    canonicalHome: "commands.md",
+    pointerHints: ["/deft:directive:*", "commands.md", "#418", "#1670"],
+    canonicalBodyMarkers: ["/deft:directive:change", "/deft:continue", "Slash Command"],
+    retiredFullTextMarkers: [
+      "/deft:directive:change <name>",
+      "/deft:directive:run:interview",
+      "/deft:continue — Resume",
+      "/deft:checkpoint — Save",
+      "legacy Python `.deft/core/run` CLI is deprecated",
+    ],
+  },
+  {
     id: "contextual-guardrails-2454",
     shape: "doc",
     header: "Contextual guardrails (runtime-detect lazy-load)",

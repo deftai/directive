@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Always-on AGENTS.md no longer ships a full slash-command catalog.** The managed section now points to `commands.md` for `/deft:directive:*` and cross-product aliases, trimming always-loaded bootstrap text toward the 8 KB north-star. Closes #2492. Refs #2491.
+
 - **Session posture is ephemeral — ceremony runs only at mutation boundaries.** Cleared or fresh agent contexts default to read-only; `verify:session-ritual` no longer treats `.deft/ritual-state.json` as proof of mutation intent, and gated checks still run fresh when you actually start mutating work. Closes #2180. Refs #2491 #2176.
 
 - **Security docs clarify LLM trust-tier framing for informational AppSec findings.** Guidance in REFERENCES, security taxonomy, context engineering, llm-app patterns, and coding rules now states that provider/SDK mentions are framework guidance for consumer projects, not runtime surfaces in the directive repo. Closes #2414.

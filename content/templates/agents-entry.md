@@ -180,23 +180,5 @@ Contextual / platform-specific rules lazy-load from `.deft/core/scm/github.md` �
 
 ## Commands
 
-Directive product commands use the `/deft:directive:*` namespace (#418 / #1670). Prior `/deft:*` product forms remain as deprecation-warning aliases — see `.deft/core/commands.md` for the full alias table. Cross-product session commands stay at the umbrella `/deft:*` level.
-
-**Directive product (`/deft:directive:*`):**
-
-- /deft:directive:change <name>        — Propose a scoped change (alias: `/deft:change`, deprecated)
-- /deft:directive:run:interview        — Structured spec interview (alias: `/deft:run:interview`, deprecated)
-- /deft:directive:run:speckit          — Five-phase spec workflow (alias: `/deft:run:speckit`, deprecated)
-- /deft:directive:run:discuss <topic>  — Feynman-style alignment (alias: `/deft:run:discuss`, deprecated)
-- /deft:directive:run:research <topic> — Research before planning (alias: `/deft:run:research`, deprecated)
-- /deft:directive:run:map              — Map an existing codebase (alias: `/deft:run:map`, deprecated)
-
-**Cross-product (umbrella `/deft:*`):**
-
-- /deft:continue — Resume from continue checkpoint
-- /deft:checkpoint — Save session state to `./xbrief/continue.xbrief.json`
-
-**CLI compatibility:**
-
-The legacy Python `.deft/core/run` CLI is deprecated and is no longer a load-bearing operator path (#1933 Option 1, deprecate-by-disuse). Use the agent-driven setup skill for first-time setup and project/spec generation; if `deft` or `directive` will not run, follow the payload-independent recovery ladder in the `## Cold-start bootstrap (#2273)` section above (top of the project's `README.md`), not a path inside `.deft/core/`.
+! Directive product commands use the `/deft:directive:*` namespace (#418 / #1670); the full command and alias table lives in `.deft/core/commands.md` — load on demand, not rendered here.
 <!-- /deft:managed-section -->
