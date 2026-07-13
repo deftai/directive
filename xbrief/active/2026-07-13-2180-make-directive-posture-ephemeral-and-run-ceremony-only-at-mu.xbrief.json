@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Make Directive posture ephemeral and run ceremony only at mutation boundaries",
+    "created": "2026-07-13T21:04:30.410Z",
+    "updated": "2026-07-13T21:04:30.410Z"
+  },
+  "plan": {
+    "id": "2180-ephemeral-posture",
+    "title": "Make Directive posture ephemeral and run ceremony only at mutation boundaries",
+    "status": "running",
+    "narratives": {
+      "Description": "Treat conversational posture as ephemeral agent-context state, not authority derived from .deft/ritual-state.json. Fresh or cleared contexts default to read-only until explicit mutation intent; gates run fresh at mutation boundaries. Builds on #2176 UX; under #2491 this is Phase-2 parallel hardening, not a gate for #2492/#2494.",
+      "UserStory": "As a framework maintainer, I want posture to follow live intent and handoffs rather than ritual-state files, so that cleared contexts do not rehydrate into false ceremony or skip fresh mutation checks.",
+      "ImplementationPlan": "1) Narrow .deft/ritual-state.json contract in packages/core ritual/session modules and docs so the file is diagnostic only. 2) Ensure packages/cli session:start and verify:session-ritual do not treat ritual-state as proof of mutation posture after context clear. 3) Prefer avoiding content/templates/agents-entry.md edits if #2176 owns that file in this wave — coordinate or rebase. 4) Tests for cleared context, handoff, stale ritual-state under packages/core/src/. 5) CHANGELOG.md Closes #2180; Refs #2491 #2176. Verify: pnpm exec vitest run <touched>; task check --allow-over-cap.",
+      "Origin": "Enriched from #2180 under epic #2491 (parallel)",
+      "Overview": "Non-goals: remove mutation gates; weaken branch/xBRIEF/start_agent checks; require host to preserve context across manual clear."
+    },
+    "items": [
+      {
+        "id": "2180-a1",
+        "title": "Cleared context starts read-only",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a manually cleared context with no structured handoff, when the agent starts, then it does not run task session:start solely to refresh ritual-state.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2180-a2",
+        "title": "Ritual-state not posture authority",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a fresh context, when prior ritual-state exists, then it is not used as proof of mutation posture or to skip fresh checks.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2180-a3",
+        "title": "Read-only work skips ritual-state updates",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Q&A / research / Plan Mode / ticket-shaping, when posture is read-only, then ritual-state is not required or updated.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2180-a4",
+        "title": "Mutation transition is context-local",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given explicit mutation intent, when posture transitions, then relevant gates run fresh against current repo state in this agent context.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2180-a7",
+        "title": "Handoff tests",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the implementation, when tests run, then reset, plan handoff, compaction handoff, and stale ritual-state cases are covered.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2180",
+        "type": "x-xbrief/github-issue",
+        "title": "#2180"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2491",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #2491"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2176",
+        "type": "x-xbrief/refs",
+        "title": "#2176"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1348",
+        "type": "x-xbrief/refs",
+        "title": "#1348"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/",
+          "packages/cli/src/",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "size": "medium",
+        "verify_commands": [
+          "task check --allow-over-cap"
+        ],
+        "expected_outputs": [
+          "ephemeral posture contract",
+          "PR Closes #2180"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-posture-2180",
+        "priority": "phase2-parallel"
+      }
+    },
+    "updated": "2026-07-13T21:22:53Z"
+  }
+}

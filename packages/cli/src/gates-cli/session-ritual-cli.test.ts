@@ -103,16 +103,31 @@ describe("deft-ts session:start dispatcher smoke", () => {
 });
 
 describe("verify session ritual TS module (maps tests/cli/test_verify_session_ritual.py)", () => {
-  it("fails closed when ritual state is missing", () => {
+  it("fails closed when ritual state is missing at gated mutation boundary", () => {
     const root = seedProject();
     roots.push(root);
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
     const result = verifySessionRitual(root, {
+      tier: "gated",
       bypass: false,
       runGit: fakeGit(head, resolve(root)),
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("deft session:start");
+  });
+
+  it("passes without ritual state in read-only quick posture (#2180)", () => {
+    const root = seedProject();
+    roots.push(root);
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+    const result = verifySessionRitual(root, {
+      tier: "quick",
+      posture: "read-only",
+      bypass: false,
+      runGit: fakeGit(head, resolve(root)),
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("read-only posture");
   });
 });
 

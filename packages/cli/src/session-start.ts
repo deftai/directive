@@ -128,7 +128,9 @@ export function run(argv: readonly string[]): number {
     if (posture === READ_ONLY_POSTURE) {
       process.stdout.write(`[deft] ${String(result.payload.message)}\n`);
     } else {
-      process.stdout.write(`[deft] session ritual recorded at ${ritualStatePath(projectRoot)}\n`);
+      process.stdout.write(
+        `[deft] session ritual recorded at ${ritualStatePath(projectRoot)} (diagnostic-only; not posture authority)\n`,
+      );
     }
   }
   return result.code;

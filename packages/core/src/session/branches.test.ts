@@ -122,6 +122,7 @@ describe("session branches", () => {
     );
     const headDrift = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       now,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -144,6 +145,7 @@ describe("session branches", () => {
     );
     const wtDrift = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       now,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -168,7 +170,12 @@ describe("session branches", () => {
       }),
     );
     expect(
-      verifySessionRitual(root, { bypass: false, now, runGit: fakeGit(head, resolve(root)) }).code,
+      verifySessionRitual(root, {
+        bypass: false,
+        posture: "mutation",
+        now,
+        runGit: fakeGit(head, resolve(root)),
+      }).code,
     ).toBe(1);
 
     writeRitualState(

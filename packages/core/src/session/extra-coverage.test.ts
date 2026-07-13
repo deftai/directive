@@ -199,6 +199,7 @@ describe("session extra coverage", () => {
     expect(
       verifySessionRitual(badPolicy.root, {
         bypass: false,
+        posture: "mutation",
         now,
         runGit: (_r, a) =>
           a[2] === "HEAD"
@@ -225,6 +226,7 @@ describe("session extra coverage", () => {
     expect(
       verifySessionRitual(root, {
         bypass: false,
+        posture: "mutation",
         now,
         runGit: () => ({ code: 1, stdout: "", stderr: "no git" }),
       }).code,

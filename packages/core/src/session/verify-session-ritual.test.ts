@@ -62,14 +62,28 @@ function fakeGit(head: string, worktree: string): GitRunner {
 }
 
 describe("verify session ritual", () => {
-  it("missing state fails closed", () => {
+  it("missing state fails closed at gated mutation boundary", () => {
     const { root, head } = initRepo();
     const result = verifySessionRitual(root, {
+      tier: "gated",
       runGit: fakeGit(head, resolve(root)),
       bypass: false,
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("deft session:start");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("missing state passes in read-only quick posture (#2180)", () => {
+    const { root, head } = initRepo();
+    const result = verifySessionRitual(root, {
+      tier: "quick",
+      posture: "read-only",
+      runGit: fakeGit(head, resolve(root)),
+      bypass: false,
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("read-only posture");
     rmSync(root, { recursive: true, force: true });
   });
 

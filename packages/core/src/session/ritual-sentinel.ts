@@ -17,10 +17,12 @@ import {
   MIGRATED_ARTIFACT_DIR,
 } from "../layout/resolve.js";
 import { stableJson } from "./json.js";
+import { RITUAL_STATE_CONTRACT } from "./posture.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
 export const SCHEMA_VERSION = 1;
 export const RITUAL_STATE_SCHEMA_VERSION = 1;
+export { RITUAL_STATE_CONTRACT } from "./posture.js";
 export const SENTINEL_RELPATH = [".deft", "last-session.json"] as const;
 export const RITUAL_STATE_RELPATH = [".deft", "ritual-state.json"] as const;
 export const MIN_RESUME_AGE_MS = 2 * 60 * 60 * 1000;
@@ -34,6 +36,7 @@ export interface Sentinel {
   readonly lastBranch: string;
 }
 
+/** Parsed `.deft/ritual-state.json` — diagnostic gate outcomes only (#2180). */
 export interface RitualState {
   readonly schemaVersion: number;
   readonly sessionId: string;
@@ -92,6 +95,7 @@ export function newRitualStatePayload(input: {
 }): Record<string, unknown> {
   return {
     schemaVersion: RITUAL_STATE_SCHEMA_VERSION,
+    contract: RITUAL_STATE_CONTRACT,
     session_id: input.sessionId,
     git_head: input.gitHead,
     worktree_path: input.worktreePath,

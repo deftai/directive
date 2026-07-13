@@ -2,6 +2,13 @@ import { existsSync } from "node:fs";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
 import { defaultGitRunner, type GitRunner, gitHead, worktreePath } from "./git.js";
 import { pythonJsonDump } from "./json.js";
+import {
+  type DirectivePosture,
+  ENV_SESSION_POSTURE,
+  readOnlyPostureMessage,
+  resolveSessionPosture,
+  ritualStateIsPostureAuthority,
+} from "./posture.js";
 import { defaultRitualRunner } from "./ritual-entrypoint.js";
 import {
   type RitualState,
@@ -31,6 +38,8 @@ export interface VerifyResult {
   readonly statePath: string;
   readonly bypassed: boolean;
   readonly wouldFailCode: number | null;
+  readonly posture: DirectivePosture;
+  readonly ritualStateRequired: boolean;
 }
 
 export type RitualRunner = (
@@ -158,6 +167,9 @@ export interface VerifySessionRitualOptions {
   readonly bypass?: boolean;
   readonly envSkip?: string | undefined;
   readonly runGit?: GitRunner;
+  readonly posture?: DirectivePosture;
+  readonly envPosture?: string | undefined;
+  readonly handoffText?: string | null;
 }
 
 export function verifySessionRitual(
@@ -165,6 +177,15 @@ export function verifySessionRitual(
   options: VerifySessionRitualOptions = {},
 ): VerifyResult {
   const tier = options.tier ?? "quick";
+  const posture = resolveSessionPosture({
+    explicitPosture: options.posture ?? null,
+    envPosture: options.envPosture ?? process.env.DEFT_SESSION_POSTURE,
+    handoffText: options.handoffText,
+    tier,
+  });
+  // Satisfy static analysis / keep ENV_SESSION_POSTURE as the public constant name.
+  void ENV_SESSION_POSTURE;
+  const ritualStateRequired = posture === "mutation" && !ritualStateIsPostureAuthority();
   if (tier !== "quick" && tier !== "gated") {
     return {
       code: 2,
@@ -173,13 +194,31 @@ export function verifySessionRitual(
       statePath: ritualStatePath(projectRoot),
       bypassed: false,
       wouldFailCode: null,
+      posture,
+      ritualStateRequired,
     };
   }
   const instant = options.now ?? new Date();
-  const envSkip = options.envSkip ?? process.env[ENV_SKIP];
+  const envSkip = options.envSkip ?? process.env.DEFT_SESSION_RITUAL_SKIP;
   const isBypassed = options.bypass ?? truthy(envSkip);
   const statePath = ritualStatePath(projectRoot);
   const missingStateFile = !existsSync(statePath);
+
+  // Read-only posture never treats ritual-state as authority — including when
+  // DEFT_SESSION_RITUAL_SKIP is set. Skip is only for mutation-boundary gates.
+  if (posture === "read-only") {
+    return {
+      code: 0,
+      message: readOnlyPostureMessage(tier),
+      tier,
+      statePath,
+      bypassed: false,
+      wouldFailCode: null,
+      posture,
+      ritualStateRequired: false,
+    };
+  }
+
   let [state, err] = readRitualState(projectRoot);
   if (state === null) {
     const code = missingStateFile ? 1 : 2;
@@ -189,9 +228,27 @@ export function verifySessionRitual(
         ? `${err}. Run \`${startCommand}\` before implementation dispatch.`
         : (err ?? "ritual state invalid");
     if (isBypassed) {
-      return { code: 0, message, tier, statePath, bypassed: true, wouldFailCode: code };
+      return {
+        code: 0,
+        message,
+        tier,
+        statePath,
+        bypassed: true,
+        wouldFailCode: code,
+        posture,
+        ritualStateRequired,
+      };
     }
-    return { code, message, tier, statePath, bypassed: false, wouldFailCode: null };
+    return {
+      code,
+      message,
+      tier,
+      statePath,
+      bypassed: false,
+      wouldFailCode: null,
+      posture,
+      ritualStateRequired,
+    };
   }
 
   if (tier === "gated" && !isBypassed) {
@@ -208,6 +265,8 @@ export function verifySessionRitual(
         statePath,
         bypassed: false,
         wouldFailCode: null,
+        posture,
+        ritualStateRequired,
       };
     }
 
@@ -228,6 +287,8 @@ export function verifySessionRitual(
           statePath,
           bypassed: false,
           wouldFailCode: null,
+          posture,
+          ritualStateRequired,
         };
       }
     }
@@ -242,6 +303,8 @@ export function verifySessionRitual(
         statePath,
         bypassed: false,
         wouldFailCode: null,
+        posture,
+        ritualStateRequired,
       };
     }
   }
@@ -259,9 +322,20 @@ export function verifySessionRitual(
       statePath,
       bypassed: true,
       wouldFailCode: code === 0 ? null : code,
+      posture,
+      ritualStateRequired,
     };
   }
-  return { code, message, tier, statePath, bypassed: false, wouldFailCode: null };
+  return {
+    code,
+    message,
+    tier,
+    statePath,
+    bypassed: false,
+    wouldFailCode: null,
+    posture,
+    ritualStateRequired,
+  };
 }
 
 export function emitVerifyJson(result: VerifyResult): string {
@@ -273,6 +347,8 @@ export function emitVerifyJson(result: VerifyResult): string {
     state_path: result.statePath,
     bypassed: result.bypassed,
     would_fail_code: result.wouldFailCode,
+    posture: result.posture,
+    ritual_state_required: result.ritualStateRequired,
   });
 }
 

@@ -59,6 +59,7 @@ describe("verify-session-ritual failed-step messaging", () => {
     );
     const result = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       now: NOW,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -85,6 +86,7 @@ describe("verify-session-ritual failed-step messaging", () => {
     );
     const result = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       now: NOW,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -110,6 +112,7 @@ describe("verify-session-ritual failed-step messaging", () => {
     );
     const result = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       now: NOW,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -195,6 +198,7 @@ describe("verify-session-ritual failed-step messaging", () => {
     );
     const result = verifySessionRitual(root, {
       envSkip: "1",
+      posture: "mutation",
       now: NOW,
       runGit: fakeGit(head, resolve(root)),
     });

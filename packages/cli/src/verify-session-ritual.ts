@@ -2,6 +2,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  type DirectivePosture,
   emitBypassWarning,
   emitVerifyJson,
   verifySessionRitual,
@@ -10,13 +11,25 @@ import {
 interface ParsedArgs {
   projectRoot: string;
   tier: "quick" | "gated";
+  posture: DirectivePosture | null;
   emitJson: boolean;
   error?: string;
 }
 
+function parsePosture(value: string): DirectivePosture | null {
+  if (value === "read-only") return "read-only";
+  if (value === "mutation" || value === "mutating") return "mutation";
+  return null;
+}
+
 /** Parse verify-session-ritual CLI args, mirroring scripts/verify_session_ritual.py. */
 export function parseArgs(argv: string[]): ParsedArgs {
-  const parsed: ParsedArgs = { projectRoot: ".", tier: "quick", emitJson: false };
+  const parsed: ParsedArgs = {
+    projectRoot: ".",
+    tier: "quick",
+    posture: null,
+    emitJson: false,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--json") {
@@ -46,6 +59,30 @@ export function parseArgs(argv: string[]): ParsedArgs {
         return { ...parsed, error: `argument --tier: invalid choice: '${value}'` };
       }
       parsed.tier = value;
+    } else if (arg === "--posture") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --posture: expected one argument" };
+      }
+      const posture = parsePosture(value);
+      if (posture === null) {
+        return {
+          ...parsed,
+          error: `argument --posture: invalid choice: '${value}' (expected read-only|mutation)`,
+        };
+      }
+      parsed.posture = posture;
+      i += 1;
+    } else if (arg?.startsWith("--posture=")) {
+      const value = arg.slice("--posture=".length);
+      const posture = parsePosture(value);
+      if (posture === null) {
+        return {
+          ...parsed,
+          error: `argument --posture: invalid choice: '${value}' (expected read-only|mutation)`,
+        };
+      }
+      parsed.posture = posture;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -61,7 +98,10 @@ export function run(argv: string[]): number {
     return 2;
   }
   const projectRoot = resolve(args.projectRoot);
-  const result = verifySessionRitual(projectRoot, { tier: args.tier });
+  const result = verifySessionRitual(projectRoot, {
+    tier: args.tier,
+    posture: args.posture ?? undefined,
+  });
   const warning = emitBypassWarning(result);
   const warningNeeded = result.bypassed && result.wouldFailCode !== null;
 

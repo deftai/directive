@@ -56,6 +56,7 @@ describe("verify-session-ritual branches", () => {
     writeFileSync(join(root, ".deft", "ritual-state.json"), "{", "utf8");
     const result = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       runGit: (_r, a) =>
         a[2] === "HEAD"
           ? { code: 0, stdout: head, stderr: "" }
@@ -83,6 +84,7 @@ describe("verify-session-ritual branches", () => {
     );
     const result = verifySessionRitual(root, {
       bypass: false,
+      posture: "mutation",
       now: new Date("2026-06-09T01:00:00Z"),
       runGit: (_r, a) =>
         a[2] === "HEAD"
@@ -102,6 +104,8 @@ describe("verify-session-ritual branches", () => {
         statePath: "/x",
         bypassed: true,
         wouldFailCode: null,
+        posture: "read-only",
+        ritualStateRequired: false,
       }),
     ).toBe("");
   });
