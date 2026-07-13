@@ -10,12 +10,11 @@ export interface OpenPackageTierManifest {
 
 const TIER_NAMES: readonly OpenPackageTierName[] = ["daily-core", "standard", "advanced"];
 
-export function isOpenPackageTierName(value: string): value is OpenPackageTierName {
+function isOpenPackageTierName(value: string): value is OpenPackageTierName {
   return (TIER_NAMES as readonly string[]).includes(value);
 }
 
-/** Load packaging/openpackage/deft-tiers.json from a repo root. */
-export function loadOpenPackageTierManifest(repoRoot: string): OpenPackageTierManifest {
+function loadOpenPackageTierManifest(repoRoot: string): OpenPackageTierManifest {
   const path = join(repoRoot, "packaging", "openpackage", "deft-tiers.json");
   const parsed = JSON.parse(readFileSync(path, "utf8")) as {
     defaultInstallTier?: string;
@@ -46,8 +45,7 @@ export function loadOpenPackageTierManifest(repoRoot: string): OpenPackageTierMa
   };
 }
 
-/** Resolve skill names to sync/install for a tier selection (`all` = every tier). */
-export function resolveTierSkills(
+function resolveTierSkills(
   manifest: OpenPackageTierManifest,
   tier: OpenPackageTierName | "all",
 ): string[] {
@@ -55,4 +53,22 @@ export function resolveTierSkills(
     return [...new Set(TIER_NAMES.flatMap((name) => manifest.tiers[name].skills))];
   }
   return [...manifest.tiers[tier].skills];
+}
+
+/** Default OpenPackage install tier from deft-tiers.json (#2494). */
+export function getOpenPackageDefaultInstallTier(repoRoot: string): OpenPackageTierName {
+  return loadOpenPackageTierManifest(repoRoot).defaultInstallTier;
+}
+
+/** Skill names for an OpenPackage tier selection (`all` = every mapped skill). */
+export function resolveOpenPackageTierSkills(
+  repoRoot: string,
+  tier: OpenPackageTierName | "all",
+): string[] {
+  return resolveTierSkills(loadOpenPackageTierManifest(repoRoot), tier);
+}
+
+/** Full typed manifest (tests + callers that need tier tables). */
+export function readOpenPackageTierManifest(repoRoot: string): OpenPackageTierManifest {
+  return loadOpenPackageTierManifest(repoRoot);
 }

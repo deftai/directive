@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadOpenPackageTierManifest, resolveTierSkills } from "./openpackage-tiers.js";
+import {
+  getOpenPackageDefaultInstallTier,
+  readOpenPackageTierManifest,
+  resolveOpenPackageTierSkills,
+} from "./openpackage-tiers.js";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
 const PACKAGING = join(REPO_ROOT, "packaging", "openpackage");
@@ -17,7 +21,7 @@ function listContentSkills(): string[] {
 
 describe("OpenPackage tier manifest (#2462)", () => {
   it("partitions every content/skills directory across exactly one tier", () => {
-    const manifest = loadOpenPackageTierManifest(REPO_ROOT);
+    const manifest = readOpenPackageTierManifest(REPO_ROOT);
     const onDisk = listContentSkills();
     const seen = new Map<string, string>();
 
@@ -33,17 +37,16 @@ describe("OpenPackage tier manifest (#2462)", () => {
   });
 
   it("declares daily-core, standard, and advanced tiers with expected counts", () => {
-    const manifest = loadOpenPackageTierManifest(REPO_ROOT);
+    const manifest = readOpenPackageTierManifest(REPO_ROOT);
     expect(manifest.tiers["daily-core"].skills).toHaveLength(6);
     expect(manifest.tiers.standard.skills).toHaveLength(10);
     expect(manifest.tiers.advanced.skills).toHaveLength(4);
   });
 
   it("defaults consumer install to daily-core (#2494)", () => {
-    const manifest = loadOpenPackageTierManifest(REPO_ROOT);
-    expect(manifest.defaultInstallTier).toBe("daily-core");
-    expect(resolveTierSkills(manifest, manifest.defaultInstallTier)).toHaveLength(6);
-    expect(resolveTierSkills(manifest, "all")).toHaveLength(20);
+    expect(getOpenPackageDefaultInstallTier(REPO_ROOT)).toBe("daily-core");
+    expect(resolveOpenPackageTierSkills(REPO_ROOT, "daily-core")).toHaveLength(6);
+    expect(resolveOpenPackageTierSkills(REPO_ROOT, "all")).toHaveLength(20);
   });
 
   it("openpackage.yml points at deft-tiers.json and declares defaultInstallTier", () => {

@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { loadOpenPackageTierManifest, resolveTierSkills } from "../packaging/openpackage-tiers.js";
+import {
+  getOpenPackageDefaultInstallTier,
+  resolveOpenPackageTierSkills,
+} from "../packaging/openpackage-tiers.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import {
   type AgentsMdBudget,
@@ -202,8 +205,7 @@ function resolveSkillFrontmatterTier(
     return budget.skillFrontmatterTier;
   }
   try {
-    const manifest = loadOpenPackageTierManifest(projectRoot);
-    if (manifest.defaultInstallTier === "daily-core") {
+    if (getOpenPackageDefaultInstallTier(projectRoot) === "daily-core") {
       return "daily-core";
     }
   } catch {
@@ -226,8 +228,7 @@ export function measureBootstrapSurface(
   const tier = resolveSkillFrontmatterTier(budget, projectRoot);
   let dailyCoreSkills: readonly string[] | undefined;
   try {
-    const manifest = loadOpenPackageTierManifest(projectRoot);
-    dailyCoreSkills = resolveTierSkills(manifest, "daily-core");
+    dailyCoreSkills = resolveOpenPackageTierSkills(projectRoot, "daily-core");
   } catch {
     // Maintainer trees without packaging/openpackage fall back to hardcoded daily-core.
   }
