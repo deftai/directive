@@ -7,8 +7,8 @@ import {
   canonicalRelpath,
   collectChildUris,
   collectPlanRefs,
-  relativeToVbrief,
   rejectEscapingLifecycleRel,
+  relativeToVbrief,
   resolveVbriefRef,
   scopeIdsForFilename,
 } from "./vbrief-ref.js";

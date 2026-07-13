@@ -2,8 +2,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { promoteChangelog } from "./changelog.js";
 import { cmdRelease } from "./main.js";
-import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { runPipeline } from "./pipeline.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { defaultWhich } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 

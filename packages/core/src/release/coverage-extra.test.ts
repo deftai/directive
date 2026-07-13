@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseReleaseFlags } from "./flags.js";
 import { checkGitClean, commitReleaseArtifacts } from "./git.js";
-import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { runPipeline } from "./pipeline.js";
+import { seedReleaseProjectDir } from "./pipeline-fixture.js";
 import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPublishable } from "./version.js";
