@@ -1,7 +1,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
-import { resolveAgentsMdBudget } from "../policy/agents-md-budget.js";
+import {
+  type AgentsMdBudget,
+  type HarnessProfile,
+  type SkillFrontmatterTier,
+  resolveAgentsMdBudget,
+} from "../policy/agents-md-budget.js";
+import {
+  measureSkillFrontmatter,
+  type SkillFrontmatterMeasure,
+} from "./skill-frontmatter.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -14,11 +23,15 @@ export type OutputStream = "stdout" | "stderr" | "none";
  * north-star enforcement: DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR=1 (waiver:
  * DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1).
  *
- * DD-3 (harness-injected skill frontmatter in the meter) is deferred — this measure
- * covers the rendered managed section only.
+ * DD-3 (harness-injected skill frontmatter) is measured and itemized (#2463).
+ * Managed `absoluteMaxBytes` remains the fail-closed ratchet for the rendered
+ * managed section; skill-frontmatter caps are advisory unless
+ * `skillFrontmatterMaxBytes` is set (or enforced via env).
  */
 export const ABSOLUTE_MANAGED_MAX_BYTES = 8192;
 export const ABSOLUTE_MANAGED_MAX_TOKENS = 2000;
+/** Bootstrap host hooks are 0 B until #2438 ships. */
+export const BOOTSTRAP_HOOK_BYTES = 0;
 /** Rough UTF-8 bytes-per-token estimate for advisory reporting (~8192 B ≈ ~2048 tok). */
 export const ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE = 4;
 
@@ -26,6 +39,15 @@ export const ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE = 4;
 export interface ManagedSectionMeasure {
   readonly bytes: number;
   readonly estimatedTokens: number;
+}
+
+/** Itemized always-on bootstrap surface (managed + DD-3 + hooks). */
+export interface BootstrapMeasure {
+  readonly managed: ManagedSectionMeasure;
+  readonly skillFrontmatter: SkillFrontmatterMeasure;
+  readonly bootstrapHookBytes: number;
+  readonly totalBytes: number;
+  readonly totalEstimatedTokens: number;
 }
 
 /** Result of verify:agents-md-budget evaluation; three-state exit contract. */
@@ -155,10 +177,61 @@ export function measureManagedSection(text: string): ManagedSectionMeasure | { e
   };
 }
 
-function formatNorthStarOverage(measure: ManagedSectionMeasure): string {
+function resolveHarnessProfile(
+  budget: AgentsMdBudget | null,
+  projectRoot: string,
+): HarnessProfile {
+  const env = process.env.DEFT_AGENTS_MD_BUDGET_HARNESS_PROFILE?.trim();
+  if (env === "cursor" || env === "none") {
+    return env;
+  }
+  if (budget?.harnessProfile !== undefined) {
+    return budget.harnessProfile;
+  }
+  const skillsRoot = join(projectRoot, "content", "skills");
+  if (existsSync(skillsRoot)) {
+    return "cursor";
+  }
+  return "none";
+}
+
+function resolveSkillFrontmatterTier(budget: AgentsMdBudget | null): SkillFrontmatterTier {
+  const env = process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER?.trim();
+  if (env === "daily-core" || env === "all" || env === "none") {
+    return env;
+  }
+  return budget?.skillFrontmatterTier ?? "all";
+}
+
+/** Measure managed + DD-3 skill frontmatter + bootstrap hooks. */
+export function measureBootstrapSurface(
+  projectRoot: string,
+  managedText: string,
+  budget: AgentsMdBudget | null,
+): BootstrapMeasure | { error: string } {
+  const managedResult = measureManagedSection(managedText);
+  if ("error" in managedResult) {
+    return managedResult;
+  }
+  const harnessProfile = resolveHarnessProfile(budget, projectRoot);
+  const tier = resolveSkillFrontmatterTier(budget);
+  const skillFrontmatter = measureSkillFrontmatter(projectRoot, {
+    harnessProfile,
+    tier,
+    bytesPerToken: ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE,
+  });
+  const totalBytes = managedResult.bytes + skillFrontmatter.bytes + BOOTSTRAP_HOOK_BYTES;
+  return {
+    managed: managedResult,
+    skillFrontmatter,
+    bootstrapHookBytes: BOOTSTRAP_HOOK_BYTES,
+    totalBytes,
+    totalEstimatedTokens: Math.ceil(totalBytes / ABSOLUTE_BYTES_PER_TOKEN_ESTIMATE),
+  };
+}
+
+function formatNorthStarOverageBytes(overBytes: number, overTokens: number): string {
   const parts: string[] = [];
-  const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
-  const overTokens = measure.estimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
   if (overBytes > 0) {
     parts.push(`${overBytes} bytes over`);
   }
@@ -168,45 +241,101 @@ function formatNorthStarOverage(measure: ManagedSectionMeasure): string {
   return parts.join(", ");
 }
 
+function formatNorthStarOverage(measure: ManagedSectionMeasure): string {
+  return formatNorthStarOverageBytes(
+    measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES,
+    measure.estimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS,
+  );
+}
+
+function formatCombinedNorthStarOverage(bootstrap: BootstrapMeasure): string {
+  return formatNorthStarOverageBytes(
+    bootstrap.totalBytes - ABSOLUTE_MANAGED_MAX_BYTES,
+    bootstrap.totalEstimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS,
+  );
+}
+
 function formatNorthStarDistance(measure: ManagedSectionMeasure): string {
   const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
   const overTokens = measure.estimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
   if (overBytes <= 0 && overTokens <= 0) {
     return (
-      `north-star: ${measure.bytes} bytes (~${measure.estimatedTokens} tok) within ` +
+      `north-star: managed ${measure.bytes} bytes (~${measure.estimatedTokens} tok) within ` +
       `≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok target.`
     );
   }
   return (
-    `north-star: ≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
+    `north-star: managed ≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
     `(current ${measure.bytes} bytes / ~${measure.estimatedTokens} tok — ` +
     `${formatNorthStarOverage(measure)}).`
   );
 }
 
-function formatAbsoluteAdvisory(measure: ManagedSectionMeasure): string {
+function formatCombinedNorthStarDistance(bootstrap: BootstrapMeasure): string {
+  const overBytes = bootstrap.totalBytes - ABSOLUTE_MANAGED_MAX_BYTES;
+  const overTokens = bootstrap.totalEstimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
+  if (overBytes <= 0 && overTokens <= 0) {
+    return (
+      `north-star: combined always-on ${bootstrap.totalBytes} bytes ` +
+      `(~${bootstrap.totalEstimatedTokens} tok) within ` +
+      `≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok target.`
+    );
+  }
   return (
-    `⚠ verify:agents-md-budget: managed section absolute budget advisory — ` +
-    `${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the north-star ` +
+    `north-star: combined always-on ≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
+    `(current ${bootstrap.totalBytes} bytes / ~${bootstrap.totalEstimatedTokens} tok — ` +
+    `${formatCombinedNorthStarOverage(bootstrap)}).`
+  );
+}
+
+function formatBootstrapItemization(bootstrap: BootstrapMeasure): string {
+  const { managed, skillFrontmatter, bootstrapHookBytes } = bootstrap;
+  const tierLabel =
+    skillFrontmatter.harnessProfile === "none"
+      ? "none"
+      : `${skillFrontmatter.harnessProfile}/${skillFrontmatter.tier}`;
+  const skillPart =
+    skillFrontmatter.bytes > 0
+      ? `skill-frontmatter ${skillFrontmatter.bytes} B (${tierLabel}, ${skillFrontmatter.skillCount} skills)`
+      : `skill-frontmatter 0 B (${tierLabel})`;
+  return (
+    `bootstrap: managed ${managed.bytes} B, ${skillPart}, hooks ${bootstrapHookBytes} B; ` +
+    `combined ${bootstrap.totalBytes} B (~${bootstrap.totalEstimatedTokens} tok)`
+  );
+}
+
+function formatAbsoluteAdvisory(bootstrap: BootstrapMeasure): string {
+  const measure = bootstrap.managed;
+  return (
+    `⚠ verify:agents-md-budget: always-on bootstrap advisory — ` +
+    `${formatBootstrapItemization(bootstrap)}.\n` +
+    `  Managed section alone: ${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the north-star ` +
     `of ${ABSOLUTE_MANAGED_MAX_BYTES} bytes / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
-    `(OVER: ${formatNorthStarOverage(measure)}). Advisory only — set ` +
-    "plan.policy.agentsMdBudget.absoluteMaxBytes to enable fail-closed growth ratchet (#2452).\n" +
-    "  The relative line ratchet (#645) remains fail-closed.\n" +
-    "  DD-3 harness skill frontmatter is not yet included in this meter."
+    `(OVER: ${formatNorthStarOverage(measure)}).\n` +
+    `  ${formatCombinedNorthStarDistance(bootstrap)}\n` +
+    "  Advisory only — set plan.policy.agentsMdBudget.absoluteMaxBytes to enable " +
+    "fail-closed managed growth ratchet (#2452).\n" +
+    "  Optional DD-3 ratchet: plan.policy.agentsMdBudget.skillFrontmatterMaxBytes (#2463).\n" +
+    "  Tier daily-core skills via OpenPackage or plan.policy.agentsMdBudget.skillFrontmatterTier.\n" +
+    "  Remediation: UPGRADING.md § Always-on bootstrap budget (DD-3).\n" +
+    "  The relative line ratchet (#645) remains fail-closed."
   );
 }
 
 function formatAbsoluteRefusal(
-  measure: ManagedSectionMeasure,
+  bootstrap: BootstrapMeasure,
   absoluteMaxBytes: number,
   projectRoot: string,
 ): string {
+  const measure = bootstrap.managed;
   const overBytes = measure.bytes - absoluteMaxBytes;
   return (
     `❌ verify:agents-md-budget: managed section grew past its absolute byte ratchet ` +
     `(project_root=${projectRoot}).\n` +
     `   managed section: ${measure.bytes}/${absoluteMaxBytes} bytes (OVER by ${overBytes})\n` +
+    `   ${formatBootstrapItemization(bootstrap)}\n` +
     `   ${formatNorthStarDistance(measure)}\n` +
+    `   ${formatCombinedNorthStarDistance(bootstrap)}\n` +
     "   AGENTS.md is a map, not a manual (#1882): push detail into a\n" +
     "   reference doc (main.md / a pack / docs/) and leave a pointer,\n" +
     "   rather than expanding AGENTS.md. See REFERENCES.md.\n" +
@@ -215,15 +344,38 @@ function formatAbsoluteRefusal(
   );
 }
 
-function formatNorthStarRefusal(measure: ManagedSectionMeasure, projectRoot: string): string {
-  const overBytes = measure.bytes - ABSOLUTE_MANAGED_MAX_BYTES;
+function formatSkillFrontmatterRefusal(
+  bootstrap: BootstrapMeasure,
+  skillFrontmatterMaxBytes: number,
+  projectRoot: string,
+): string {
+  const { skillFrontmatter } = bootstrap;
+  const overBytes = skillFrontmatter.bytes - skillFrontmatterMaxBytes;
   return (
-    `❌ verify:agents-md-budget: managed section exceeds the north-star ceiling ` +
+    `❌ verify:agents-md-budget: skill frontmatter grew past its DD-3 byte ratchet ` +
+    `(project_root=${projectRoot}).\n` +
+    `   skill-frontmatter: ${skillFrontmatter.bytes}/${skillFrontmatterMaxBytes} bytes ` +
+    `(OVER by ${overBytes}; tier ${skillFrontmatter.tier}, ${skillFrontmatter.skillCount} skills)\n` +
+    `   ${formatBootstrapItemization(bootstrap)}\n` +
+    `   ${formatCombinedNorthStarDistance(bootstrap)}\n` +
+    "   Tier deferred skills via OpenPackage (daily-core vs advanced) or shorten\n" +
+    "   SKILL.md descriptions. See UPGRADING.md § Always-on bootstrap budget (DD-3).\n" +
+    "   If the growth is deliberate, raise skillFrontmatterMaxBytes in\n" +
+    "   plan.policy.agentsMdBudget in PROJECT-DEFINITION (a reviewed diff). (#2463)"
+  );
+}
+
+function formatNorthStarRefusal(bootstrap: BootstrapMeasure, projectRoot: string): string {
+  const measure = bootstrap.managed;
+  const overBytes = bootstrap.totalBytes - ABSOLUTE_MANAGED_MAX_BYTES;
+  return (
+    `❌ verify:agents-md-budget: combined always-on surface exceeds the north-star ceiling ` +
     `(project_root=${projectRoot}, release-gate mode).\n` +
-    `   managed section: ${measure.bytes}/${ABSOLUTE_MANAGED_MAX_BYTES} bytes ` +
-    `(OVER by ${overBytes})\n` +
-    "   Thin the managed section toward the <=8192 B / ~2k tok north-star, or set\n" +
-    "   DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1 for a time-boxed operator waiver (#2452)."
+    `   ${formatBootstrapItemization(bootstrap)}\n` +
+    `   managed section: ${measure.bytes}/${ABSOLUTE_MANAGED_MAX_BYTES} bytes\n` +
+    `   combined OVER by ${overBytes} bytes vs north-star\n` +
+    "   Thin the managed section and/or tier DD-3 skills toward the <=8192 B target,\n" +
+    "   or set DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1 for a time-boxed operator waiver (#2452)."
   );
 }
 
@@ -237,24 +389,27 @@ function northStarWaiverActive(): boolean {
 
 function attachNorthStarNote<T extends EvaluateResult>(
   result: T,
-  measure: ManagedSectionMeasure,
+  bootstrap: BootstrapMeasure,
   options: { advisoryOnly: boolean },
 ): T {
-  const overBytes = measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES;
-  const overTokens = measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  const measure = bootstrap.managed;
+  const overManagedBytes = measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES;
+  const overManagedTokens = measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  const overCombinedBytes = bootstrap.totalBytes > ABSOLUTE_MANAGED_MAX_BYTES;
+  const overCombinedTokens = bootstrap.totalEstimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
   if (options.advisoryOnly) {
-    if (!overBytes && !overTokens) {
+    if (!overManagedBytes && !overManagedTokens && !overCombinedBytes && !overCombinedTokens) {
       return result;
     }
     return {
       ...result,
-      northStarMessage: formatAbsoluteAdvisory(measure),
+      northStarMessage: formatAbsoluteAdvisory(bootstrap),
       northStarStream: "stderr",
-      advisoryMessage: formatAbsoluteAdvisory(measure),
+      advisoryMessage: formatAbsoluteAdvisory(bootstrap),
       advisoryStream: "stderr",
     };
   }
-  const distance = formatNorthStarDistance(measure);
+  const distance = `${formatNorthStarDistance(measure)}\n   ${formatCombinedNorthStarDistance(bootstrap)}`;
   return {
     ...result,
     northStarMessage: distance,
@@ -264,8 +419,12 @@ function attachNorthStarNote<T extends EvaluateResult>(
   };
 }
 
-function formatAbsoluteSummary(measure: ManagedSectionMeasure, absoluteMaxBytes: number): string {
-  return `absolute ${measure.bytes}/${absoluteMaxBytes} bytes (~${measure.estimatedTokens} tok)`;
+function formatAbsoluteSummary(bootstrap: BootstrapMeasure, absoluteMaxBytes: number): string {
+  const measure = bootstrap.managed;
+  return (
+    `absolute managed ${measure.bytes}/${absoluteMaxBytes} bytes (~${measure.estimatedTokens} tok); ` +
+    `${formatBootstrapItemization(bootstrap)}`
+  );
 }
 
 function formatRefusal(
@@ -347,21 +506,23 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     };
   }
   const counts = regionResult.counts;
-  const measureResult = measureManagedSection(text);
-  if ("error" in measureResult) {
+  const bootstrapResult = measureBootstrapSurface(root, text, budgetResult.budget);
+  if ("error" in bootstrapResult) {
     return {
       code: 2,
-      message: `❌ verify:agents-md-budget: ${measureResult.error}`,
+      message: `❌ verify:agents-md-budget: ${bootstrapResult.error}`,
       stream: "stderr",
     };
   }
-  const measure = measureResult;
+  const bootstrap = bootstrapResult;
+  const measure = bootstrap.managed;
   const absoluteMaxBytes = budgetResult.budget?.absoluteMaxBytes;
   const advisoryOnly = absoluteMaxBytes === undefined;
+  const skillFrontmatterMaxBytes = budgetResult.budget?.skillFrontmatterMaxBytes;
 
   if (budgetResult.source === "unset") {
     if (quiet) {
-      return attachNorthStarNote({ code: 0, message: "", stream: "none" }, measure, {
+      return attachNorthStarNote({ code: 0, message: "", stream: "none" }, bootstrap, {
         advisoryOnly,
       });
     }
@@ -371,12 +532,13 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         message:
           "⚠ verify:agents-md-budget: no plan.policy.agentsMdBudget configured " +
           `(managed=${counts.managed}, unmanaged=${counts.unmanaged} lines).\n` +
+          `  ${formatBootstrapItemization(bootstrap)}.\n` +
           "  Seed a ratchet at current size to freeze growth (#645): set\n" +
           "  plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} in " +
           "PROJECT-DEFINITION.",
         stream: "stderr",
       },
-      measure,
+      bootstrap,
       { advisoryOnly },
     );
   }
@@ -401,7 +563,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         message: formatRefusal(counts, budget.managedMaxLines, budget.unmanagedMaxLines, root),
         stream: "stderr",
       },
-      measure,
+      bootstrap,
       { advisoryOnly },
     );
   }
@@ -410,34 +572,60 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     return attachNorthStarNote(
       {
         code: 1,
-        message: formatAbsoluteRefusal(measure, absoluteMaxBytes, root),
+        message: formatAbsoluteRefusal(bootstrap, absoluteMaxBytes, root),
         stream: "stderr",
       },
-      measure,
+      bootstrap,
       { advisoryOnly: false },
     );
   }
 
-  const overNorthStar =
-    measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES ||
-    measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
-  if (enforceNorthStarEnabled() && overNorthStar && !northStarWaiverActive()) {
+  if (
+    skillFrontmatterMaxBytes !== undefined &&
+    bootstrap.skillFrontmatter.bytes > skillFrontmatterMaxBytes
+  ) {
     return attachNorthStarNote(
       {
         code: 1,
-        message: formatNorthStarRefusal(measure, root),
+        message: formatSkillFrontmatterRefusal(bootstrap, skillFrontmatterMaxBytes, root),
         stream: "stderr",
       },
-      measure,
+      bootstrap,
+      { advisoryOnly: false },
+    );
+  }
+
+  const overNorthStarManaged =
+    measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES ||
+    measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  const overNorthStarCombined =
+    bootstrap.totalBytes > ABSOLUTE_MANAGED_MAX_BYTES ||
+    bootstrap.totalEstimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  if (
+    enforceNorthStarEnabled() &&
+    (overNorthStarManaged || overNorthStarCombined) &&
+    !northStarWaiverActive()
+  ) {
+    return attachNorthStarNote(
+      {
+        code: 1,
+        message: formatNorthStarRefusal(bootstrap, root),
+        stream: "stderr",
+      },
+      bootstrap,
       { advisoryOnly: false },
     );
   }
 
   const absoluteSummary =
-    absoluteMaxBytes !== undefined ? `; ${formatAbsoluteSummary(measure, absoluteMaxBytes)}` : "";
+    absoluteMaxBytes !== undefined ? `; ${formatAbsoluteSummary(bootstrap, absoluteMaxBytes)}` : "";
+  const bootstrapSummary =
+    absoluteMaxBytes === undefined ? `; ${formatBootstrapItemization(bootstrap)}` : "";
 
   if (quiet) {
-    return attachNorthStarNote({ code: 0, message: "", stream: "none" }, measure, { advisoryOnly });
+    return attachNorthStarNote({ code: 0, message: "", stream: "none" }, bootstrap, {
+      advisoryOnly,
+    });
   }
   return attachNorthStarNote(
     {
@@ -445,10 +633,10 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       message:
         `✓ verify:agents-md-budget: managed ${counts.managed}/${budget.managedMaxLines}, ` +
         `unmanaged ${counts.unmanaged}/${budget.unmanagedMaxLines} lines (within ratchet)` +
-        `${absoluteSummary}.`,
+        `${absoluteSummary}${bootstrapSummary}.`,
       stream: "stdout",
     },
-    measure,
+    bootstrap,
     { advisoryOnly },
   );
 }

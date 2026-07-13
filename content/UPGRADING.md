@@ -89,6 +89,23 @@ The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime hand
 
 Consumer AGENTS.md stays pointer-thin — scan `.deft/core/REFERENCES.md` Skills Index; do not enumerate skills in the managed section.
 
+### Always-on bootstrap budget (DD-3, #2463)
+
+`verify:agents-md-budget` now itemizes the always-on bootstrap surface:
+
+- **Managed AGENTS.md** bytes (fail-closed ratchet via `plan.policy.agentsMdBudget.absoluteMaxBytes`)
+- **Harness skill frontmatter** bytes (Cursor `<agent_skill>` shape; advisory unless `skillFrontmatterMaxBytes` is set)
+- **Bootstrap hooks** bytes (0 until #2438 ships)
+
+The north-star target is **≤8192 B / ~2k tok combined**. On Cursor with all skills injected, managed AGENTS.md (~16.8 KB) plus skill frontmatter (~7.7 KB) still exceeds that target — remediation paths:
+
+1. **Tier skills** — install only the daily-core six (`setup`, `sync`, `build`, `pre-pr`, `review-cycle`, `triage`) via OpenPackage; set `plan.policy.agentsMdBudget.skillFrontmatterTier` to `daily-core` or export `DEFT_AGENTS_MD_BUDGET_SKILL_TIER=daily-core`.
+2. **Thin managed AGENTS.md** — continue epic #2369 relocation; push bulk to `commands.md`, `scm/github.md`, and skills.
+3. **Shorten SKILL.md descriptions** — advanced-tier skills (`release`, `swarm`, `debug`, `article-review`, …) are the largest frontmatter offenders.
+4. **Optional ratchet** — seed `plan.policy.agentsMdBudget.skillFrontmatterMaxBytes` at the measured tier size when you want fail-closed DD-3 growth control.
+
+Non-native-skill harnesses (Codex CLI, OpenCode) report 0 B frontmatter; set `harnessProfile: none` in policy when appropriate.
+
 ## xBRIEF layout migration (#2034 / #2110)
 
 After upgrading to a release that ships the xbrief rename, convert legacy on-disk layout if `deft doctor` reports a `vbrief/` tree or `x-vbrief/` reference tokens:

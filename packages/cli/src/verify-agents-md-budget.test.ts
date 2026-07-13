@@ -127,7 +127,7 @@ describe("run", () => {
     try {
       expect(run(["--project-root", root])).toBe(0);
       const stderrText = err.mock.calls.map((c) => String(c[0])).join("");
-      expect(stderrText).toContain("absolute budget advisory");
+      expect(stderrText).toContain("always-on bootstrap advisory");
     } finally {
       out.mockRestore();
       err.mockRestore();

@@ -1,0 +1,108 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "feat(gate): DD-3 harness skill frontmatter in verify:agents-md-budget",
+    "created": "2026-07-13T01:07:42.365Z",
+    "updated": "2026-07-13T01:07:42.365Z"
+  },
+  "plan": {
+    "id": "2463-dd3-budget-meter",
+    "title": "feat(gate): DD-3 harness skill frontmatter in verify:agents-md-budget",
+    "status": "running",
+    "narratives": {
+      "Description": "Extend verify:agents-md-budget so gate output itemizes managed AGENTS.md bytes plus harness-injected skill frontmatter (Cursor agent_skill shape) and bootstrap-hook bytes (0 until #2438). Support tier-aware caps for daily-core versus all skills, keep task check green at the seeded absoluteMaxBytes ratchet, and document remediation when the combined always-on surface exceeds the 8192 B north-star.",
+      "UserStory": "As a framework maintainer, I want verify:agents-md-budget to count DD-3 skill frontmatter bytes, so that always-on bootstrap cost is visible and ratchetable against the north-star.",
+      "ImplementationPlan": "1) Extend packages/core/src/agents-md-budget/evaluate.ts (and index.ts) to measure skill frontmatter for configured harness profiles; Cursor <agent_skill> shape minimum; remove/update the DD-3 deferred comment. 2) Itemize gate output: managed bytes + skill-frontmatter bytes + bootstrap-hook bytes (0 until #2438). Support tier-aware caps (daily-core vs all) via plan.policy.agentsMdBudget and/or env; align daily-core skill list with #2462 / spike docs/analysis/2026-07-13-2370-packaging-cross-harness-spike.md. 3) Update packages/core/src/policy/agents-md-budget.ts (+ tests) for any new typed policy fields. 4) Tests in packages/core/src/agents-md-budget/evaluate.test.ts covering itemization, tier caps, and master green at current seeded budgets. 5) Document remediation when DD-3 + managed exceeds north-star (gate message and/or UPGRADING/docs pointer). CHANGELOG [Unreleased] Closes #2463. Verify: pnpm exec vitest run packages/core/src/agents-md-budget packages/core/src/policy/agents-md-budget.test.ts; task check --allow-over-cap; task verify:agents-md-budget.",
+      "Origin": "Enriched for swarm from #2463 under epic #2369 Wave 3 action"
+    },
+    "items": [
+      {
+        "id": "2463-a1",
+        "title": "Itemize managed + frontmatter + hooks in evaluate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Cursor skill frontmatter fixtures, when verify:agents-md-budget runs, then output itemizes managed + skill-frontmatter + bootstrap-hook bytes.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2463-a2",
+        "title": "Tier-aware caps daily-core vs all",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a daily-core tier config, when the gate evaluates, then frontmatter cap can use the daily-core skill set without requiring all skills.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2463-a3",
+        "title": "Tests + task check green on seeded budgets",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given current absoluteMaxBytes seed, when task check runs on master-equivalent tree, then the gate stays green and new tests pass.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2463-a4",
+        "title": "CHANGELOG + PR Closes #2463",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the meter lands, when PR merges, then CHANGELOG cites Closes #2463 and remediation guidance exists.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "context-engineering",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2463",
+        "type": "x-xbrief/github-issue",
+        "title": "#2463"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2370",
+        "type": "x-xbrief/refs",
+        "title": "#2370"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2452",
+        "type": "x-xbrief/refs",
+        "title": "#2452"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/agents-md-budget/",
+          "packages/core/src/policy/agents-md-budget.ts",
+          "packages/core/src/policy/agents-md-budget.test.ts",
+          "CHANGELOG.md",
+          "UPGRADING.md"
+        ],
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "size": "medium",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/agents-md-budget",
+          "task verify:agents-md-budget",
+          "task check --allow-over-cap"
+        ],
+        "expected_outputs": [
+          "DD-3 itemized gate output",
+          "tests green",
+          "PR merged Closes #2463"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-budget-2463"
+      }
+    },
+    "updated": "2026-07-13T01:07:42.365Z"
+  }
+}

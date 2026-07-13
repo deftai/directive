@@ -5,9 +5,11 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   ABSOLUTE_MANAGED_MAX_BYTES,
   ABSOLUTE_MANAGED_MAX_TOKENS,
+  BOOTSTRAP_HOOK_BYTES,
   countRegions,
   evaluate,
   extractManagedSection,
+  measureBootstrapSurface,
   measureManagedSection,
 } from "./evaluate.js";
 
@@ -188,8 +190,9 @@ describe("absolute managed-section budget", () => {
     const root = makeRepo({ plan: budgetPlan, agents: agentsOverAbsolute(5, 9000) });
     const result = evaluate(root);
     expect(result.code).toBe(0);
-    expect(result.northStarMessage).toContain("absolute budget advisory");
+    expect(result.northStarMessage).toContain("always-on bootstrap advisory");
     expect(result.northStarMessage).toContain("Advisory only");
+    expect(result.northStarMessage).toContain("DD-3");
     expect(result.northStarStream).toBe("stderr");
   });
 
@@ -227,7 +230,9 @@ describe("absolute managed-section budget", () => {
     });
     const result = evaluate(root);
     expect(result.code).toBe(0);
-    expect(result.message).toContain(`absolute ${measure.bytes}/${measure.bytes} bytes`);
+    expect(result.message).toContain(`absolute managed ${measure.bytes}/${measure.bytes} bytes`);
+    expect(result.message).toContain("skill-frontmatter");
+    expect(result.message).toContain(`hooks ${BOOTSTRAP_HOOK_BYTES} B`);
     expect(result.northStarMessage).toContain("north-star");
     expect(result.northStarMessage).toContain("tok over");
   });
@@ -272,6 +277,7 @@ describe("absolute managed-section budget", () => {
       const result = evaluate(root);
       expect(result.code).toBe(1);
       expect(result.message).toContain("north-star ceiling");
+      expect(result.message).toContain("combined always-on");
     } finally {
       if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR;
       else process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR = prev;
@@ -317,6 +323,97 @@ describe("absolute managed-section budget", () => {
     expect(result.code).toBe(0);
     expect(result.message).toBe("");
     expect(result.northStarMessage).toContain("north-star");
+  });
+});
+
+describe("DD-3 skill frontmatter itemization", () => {
+  const skillBody = (name: string, description: string) => `---
+name: ${name}
+description: ${description}
+---
+# Skill`;
+
+  function makeRepoWithSkills(options: {
+    plan: Record<string, unknown>;
+    agents: string;
+    skills?: Record<string, string>;
+  }): string {
+    const root = makeRepo({ plan: options.plan, agents: options.agents });
+    if (options.skills !== undefined) {
+      for (const [skillName, body] of Object.entries(options.skills)) {
+        const dir = join(root, "content", "skills", skillName);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, "SKILL.md"), body, "utf8");
+      }
+    }
+    return root;
+  }
+
+  it("itemizes managed + skill-frontmatter + hooks in gate output", () => {
+    const root = makeRepoWithSkills({
+      plan: { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } } },
+      agents: agentsWith(5, 5),
+      skills: {
+        "deft-directive-setup": skillBody("deft-directive-setup", "Setup blurb."),
+        "deft-directive-release": skillBody("deft-directive-release", "Release blurb."),
+      },
+    });
+    const result = evaluate(root);
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("skill-frontmatter");
+    expect(result.message).toContain("hooks 0 B");
+    expect(result.message).toContain("combined");
+  });
+
+  it("fail-closes when skillFrontmatterMaxBytes ratchet is exceeded", () => {
+    const root = makeRepoWithSkills({
+      plan: {
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 500,
+            unmanagedMaxLines: 500,
+            skillFrontmatterMaxBytes: 10,
+          },
+        },
+      },
+      agents: agentsWith(5, 5),
+      skills: {
+        "deft-directive-setup": skillBody(
+          "deft-directive-setup",
+          "A sufficiently long setup description for ratchet failure.",
+        ),
+      },
+    });
+    const result = evaluate(root);
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("skill frontmatter grew past its DD-3 byte ratchet");
+  });
+
+  it("uses daily-core tier from env without counting advanced skills", () => {
+    const root = makeRepoWithSkills({
+      plan: { policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } } },
+      agents: agentsWith(5, 5),
+      skills: {
+        "deft-directive-setup": skillBody("deft-directive-setup", "Setup."),
+        "deft-directive-release": skillBody("deft-directive-release", "Release."),
+      },
+    });
+    const prev = process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
+    process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER = "daily-core";
+    try {
+      const bootstrap = measureBootstrapSurface(
+        root,
+        agentsWith(5, 5),
+        { managedMaxLines: 500, unmanagedMaxLines: 500 },
+      );
+      expect("error" in bootstrap).toBe(false);
+      if ("error" in bootstrap) return;
+      expect(bootstrap.skillFrontmatter.skillCount).toBe(1);
+      expect(bootstrap.skillFrontmatter.tier).toBe("daily-core");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
+      else process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER = prev;
+    }
   });
 });
 

@@ -12,6 +12,9 @@ import { loadProjectDefinition } from "./resolve.js";
  * it is an explicit, reviewed diff to this typed field -- that diff IS the
  * "was this growth deliberate?" checkpoint.
  */
+export type HarnessProfile = "cursor" | "none";
+export type SkillFrontmatterTier = "daily-core" | "all" | "none";
+
 export interface AgentsMdBudget {
   readonly managedMaxLines: number;
   readonly unmanagedMaxLines: number;
@@ -21,6 +24,21 @@ export interface AgentsMdBudget {
    * this ceiling fails. The <=8192 B north-star is reported separately.
    */
   readonly absoluteMaxBytes?: number;
+  /**
+   * Harness profile for DD-3 skill-frontmatter measurement (#2463).
+   * When unset, the gate auto-detects `cursor` when `content/skills/` exists.
+   */
+  readonly harnessProfile?: HarnessProfile;
+  /**
+   * Skill tier for DD-3 frontmatter caps (`daily-core` vs `all` vs `none`).
+   * Defaults to `all` for reporting when unset.
+   */
+  readonly skillFrontmatterTier?: SkillFrontmatterTier;
+  /**
+   * Optional fail-closed ratchet for DD-3 skill-frontmatter bytes (#2463).
+   * Advisory when unset; growth past this ceiling fails when set.
+   */
+  readonly skillFrontmatterMaxBytes?: number;
 }
 
 export type AgentsMdBudgetSource = "typed" | "unset" | "default-on-error";
@@ -133,21 +151,81 @@ export function resolveAgentsMdBudget(projectRoot: string): AgentsMdBudgetResult
     return { budget: null, source: "default-on-error", error: absolute.error };
   }
 
+  const skillFrontmatterMax = readOptionalRegion(block, "skillFrontmatterMaxBytes");
+  if (skillFrontmatterMax.error !== null) {
+    return { budget: null, source: "default-on-error", error: skillFrontmatterMax.error };
+  }
+
+  const harnessProfile = readOptionalHarnessProfile(block, "harnessProfile");
+  if (harnessProfile.error !== null) {
+    return { budget: null, source: "default-on-error", error: harnessProfile.error };
+  }
+
+  const skillFrontmatterTier = readOptionalSkillTier(block, "skillFrontmatterTier");
+  if (skillFrontmatterTier.error !== null) {
+    return { budget: null, source: "default-on-error", error: skillFrontmatterTier.error };
+  }
+
   const budget: AgentsMdBudget = {
     managedMaxLines: managed.value as number,
     unmanagedMaxLines: unmanaged.value as number,
   };
-  if (absolute.value !== undefined) {
-    return {
-      budget: { ...budget, absoluteMaxBytes: absolute.value },
-      source: "typed",
-      error: null,
-    };
-  }
+  const withOptional: AgentsMdBudget = {
+    ...budget,
+    ...(absolute.value !== undefined ? { absoluteMaxBytes: absolute.value } : {}),
+    ...(skillFrontmatterMax.value !== undefined
+      ? { skillFrontmatterMaxBytes: skillFrontmatterMax.value }
+      : {}),
+    ...(harnessProfile.value !== undefined ? { harnessProfile: harnessProfile.value } : {}),
+    ...(skillFrontmatterTier.value !== undefined
+      ? { skillFrontmatterTier: skillFrontmatterTier.value }
+      : {}),
+  };
 
   return {
-    budget,
+    budget: withOptional,
     source: "typed",
     error: null,
   };
+}
+
+const HARNESS_PROFILES = new Set<HarnessProfile>(["cursor", "none"]);
+const SKILL_FRONTMATTER_TIERS = new Set<SkillFrontmatterTier>(["daily-core", "all", "none"]);
+
+function readOptionalHarnessProfile(
+  block: Record<string, unknown>,
+  key: string,
+): { value: HarnessProfile | undefined; error: string | null } {
+  if (!(key in block)) {
+    return { value: undefined, error: null };
+  }
+  const raw = block[key];
+  if (typeof raw !== "string" || !HARNESS_PROFILES.has(raw as HarnessProfile)) {
+    return {
+      value: undefined,
+      error:
+        `plan.policy.agentsMdBudget.${key} must be one of ${[...HARNESS_PROFILES].join(", ")}; ` +
+        `got ${pythonTypeName(raw)} (${pythonRepr(raw)})`,
+    };
+  }
+  return { value: raw as HarnessProfile, error: null };
+}
+
+function readOptionalSkillTier(
+  block: Record<string, unknown>,
+  key: string,
+): { value: SkillFrontmatterTier | undefined; error: string | null } {
+  if (!(key in block)) {
+    return { value: undefined, error: null };
+  }
+  const raw = block[key];
+  if (typeof raw !== "string" || !SKILL_FRONTMATTER_TIERS.has(raw as SkillFrontmatterTier)) {
+    return {
+      value: undefined,
+      error:
+        `plan.policy.agentsMdBudget.${key} must be one of ${[...SKILL_FRONTMATTER_TIERS].join(", ")}; ` +
+        `got ${pythonTypeName(raw)} (${pythonRepr(raw)})`,
+    };
+  }
+  return { value: raw as SkillFrontmatterTier, error: null };
 }

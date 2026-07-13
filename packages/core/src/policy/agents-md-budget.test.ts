@@ -180,6 +180,62 @@ describe("resolveAgentsMdBudget", () => {
     expect(result.error).toContain("absoluteMaxBytes");
   });
 
+  it("resolves optional DD-3 harness and tier fields", () => {
+    const result = resolveAgentsMdBudget(
+      makeRepoWithPlan({
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 1,
+            unmanagedMaxLines: 2,
+            harnessProfile: "cursor",
+            skillFrontmatterTier: "daily-core",
+            skillFrontmatterMaxBytes: 2080,
+          },
+        },
+      }),
+    );
+    expect(result.source).toBe("typed");
+    expect(result.budget).toEqual({
+      managedMaxLines: 1,
+      unmanagedMaxLines: 2,
+      harnessProfile: "cursor",
+      skillFrontmatterTier: "daily-core",
+      skillFrontmatterMaxBytes: 2080,
+    });
+  });
+
+  it("returns default-on-error when harnessProfile is invalid", () => {
+    const result = resolveAgentsMdBudget(
+      makeRepoWithPlan({
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 1,
+            unmanagedMaxLines: 2,
+            harnessProfile: "warp",
+          },
+        },
+      }),
+    );
+    expect(result.source).toBe("default-on-error");
+    expect(result.error).toContain("harnessProfile");
+  });
+
+  it("returns default-on-error when skillFrontmatterTier is invalid", () => {
+    const result = resolveAgentsMdBudget(
+      makeRepoWithPlan({
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 1,
+            unmanagedMaxLines: 2,
+            skillFrontmatterTier: "premium",
+          },
+        },
+      }),
+    );
+    expect(result.source).toBe("default-on-error");
+    expect(result.error).toContain("skillFrontmatterTier");
+  });
+
   it("reads the namespaced x-directive/policy block", () => {
     const result = resolveAgentsMdBudget(
       makeRepoWithPlan({

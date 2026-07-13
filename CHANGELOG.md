@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **OpenPackage tiered skill package for cross-harness install.** Ships a tiered OpenPackage skill manifest (daily-core / standard / advanced) for Cursor, Codex CLI, and OpenCode via `opkg install`, documented alongside the npm engine — distribution-layer only, no runtime skill router. Closes #2462. Refs #2369.
 
+- **Agents-md budget gate now counts harness skill frontmatter (DD-3).** `verify:agents-md-budget` itemizes managed AGENTS.md bytes, Cursor-injected skill frontmatter, and bootstrap hooks (0 until #2438), supports daily-core vs all skill tiers, and documents remediation when the combined always-on surface exceeds the 8192 B north-star. Managed `absoluteMaxBytes` ratchet stays fail-closed; DD-3 caps are advisory unless `skillFrontmatterMaxBytes` is seeded. Closes #2463. Refs #2370, #2369.
+
 - **Cross-harness packaging spike recommends OpenPackage distribution.** Wave 3 research (#2370) measured always-on bootstrap across Cursor (native skills) and Codex/OpenCode-style harnesses, chose distribution-layer (A) over runtime-router (B), and recorded go for an OpenPackage-based tiered skill package as the Wave 3 packaging action. Closes #2370. Refs #2369.
 
 - **Rule-relocation PRs now require eval:health no-regression.** `verify:eval-health-relocation` classifies diffs touching AGENTS.md, agents-entry, skills, or packs and fail-closed blocks when framework health drops against the committed baseline — the acceptance gate epic #2369 Wave 2 relocation slices need before merge. Closes #2373.
