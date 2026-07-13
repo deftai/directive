@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
@@ -16,9 +16,8 @@ import { defaultWhich } from "./which.js";
 describe("doctor coverage final", () => {
   it("statePath expands home in override", () => {
     const prev = process.env.DEFT_DOCTOR_STATE_PATH;
-    const home = process.env.HOME ?? "/tmp";
     process.env.DEFT_DOCTOR_STATE_PATH = "~/doctor-state-test.json";
-    expect(statePath("/p")).toBe(join(home, "doctor-state-test.json"));
+    expect(statePath("/p")).toBe(join(homedir(), "doctor-state-test.json"));
     if (prev === undefined) delete process.env.DEFT_DOCTOR_STATE_PATH;
     else process.env.DEFT_DOCTOR_STATE_PATH = prev;
   });

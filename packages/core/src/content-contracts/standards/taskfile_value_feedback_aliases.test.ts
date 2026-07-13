@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { repoRoot } from "./_helpers.js";
-import { iterTaskBlocks, readRoot } from "./_taskfile-helpers.js";
+import { iterTaskBlocks, readRoot, readTaskfile } from "./_taskfile-helpers.js";
 
 /** Documented value-feedback / metrics `task` forms that must resolve (#2337). */
 const REQUIRED_VALUE_TASK_ALIASES = [
@@ -18,7 +18,7 @@ const TASKFILE_LINE = /^\s{4}taskfile:\s+\.\/tasks\/([\w-]+\.ya?ml)\s*$/;
 
 function parseIncludes(text: string): Map<string, string> {
   const includes = new Map<string, string>();
-  const lines = text.split("\n");
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   let inIncludes = false;
   let currentKey: string | null = null;
   for (const line of lines) {
@@ -55,7 +55,7 @@ function collectTaskSurface(): Set<string> {
   const includes = parseIncludes(rootText);
   for (const [namespace, fileName] of includes) {
     const fragmentPath = join(repoRoot(), "tasks", fileName);
-    const fragmentText = readFileSync(fragmentPath, { encoding: "utf8" });
+    const fragmentText = readFileSync(fragmentPath, { encoding: "utf8" }).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     for (const { name, start, end } of iterTaskBlocks(fragmentText)) {
       const body = fragmentText.split("\n").slice(start, end).join("\n");
       if (/^\s+internal:\s*true\s*$/m.test(body)) {
@@ -91,7 +91,7 @@ describe("taskfile value-feedback aliases (#2337)", () => {
   });
 
   it("policy.yml forwards enable-value-feedback via engine:invoke", () => {
-    const text = readFileSync(join(repoRoot(), "tasks", "policy.yml"), { encoding: "utf8" });
+    const text = readTaskfile("policy.yml");
     const block = iterTaskBlocks(text).find((b) => b.name === "enable-value-feedback");
     expect(block).toBeDefined();
     const body = text.split("\n").slice(block?.start, block?.end).join("\n");
@@ -101,7 +101,7 @@ describe("taskfile value-feedback aliases (#2337)", () => {
 
   it("value.yml and triage-metrics.yml forward CLI_ARGS without caching keys", () => {
     for (const file of ["value.yml", "triage-metrics.yml"]) {
-      const text = readFileSync(join(repoRoot(), "tasks", file), { encoding: "utf8" });
+      const text = readTaskfile(file);
       expect(text).toContain("{{.CLI_ARGS}}");
       expect(text).not.toMatch(/^\s{4}(sources|generates)\s*:/m);
     }

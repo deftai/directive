@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -25,9 +25,8 @@ describe("doctor-state", () => {
 
   it("statePath expands tilde override", () => {
     const prev = process.env.DEFT_DOCTOR_STATE_PATH;
-    const home = process.env.HOME ?? "/home/test";
     process.env.DEFT_DOCTOR_STATE_PATH = "~/doctor-state.json";
-    expect(statePath("/proj")).toBe(join(home, "doctor-state.json"));
+    expect(statePath("/proj")).toBe(join(homedir(), "doctor-state.json"));
     if (prev === undefined) {
       delete process.env.DEFT_DOCTOR_STATE_PATH;
     } else {

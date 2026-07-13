@@ -13,8 +13,13 @@ export function taskYamlFiles(): string[] {
     .sort();
 }
 
+/** Normalize CRLF so Taskfile parsers do not treat lone `\r` lines as section exits (#2467). */
+export function normalizeYamlNewlines(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
 export function iterTaskBlocks(text: string): Array<{ name: string; start: number; end: number }> {
-  const lines = text.split("\n");
+  const lines = normalizeYamlNewlines(text).split("\n");
   const taskPositions: Array<{ name: string; start: number }> = [];
   let inTasksSection = false;
   for (let idx = 0; idx < lines.length; idx += 1) {
@@ -47,11 +52,13 @@ export function iterTaskBlocks(text: string): Array<{ name: string; start: numbe
 }
 
 export function blockBody(text: string, start: number, end: number): string {
-  return text.split("\n").slice(start, end).join("\n");
+  return normalizeYamlNewlines(text).split("\n").slice(start, end).join("\n");
 }
 
 export function nonCommentLines(block: string): string[] {
-  return block.split("\n").filter((ln) => !ln.trimStart().startsWith("#"));
+  return normalizeYamlNewlines(block)
+    .split("\n")
+    .filter((ln) => !ln.trimStart().startsWith("#"));
 }
 
 export function cachingKeyOnLine(line: string): string | null {
@@ -60,9 +67,11 @@ export function cachingKeyOnLine(line: string): string | null {
 }
 
 export function readTaskfile(name: string): string {
-  return readFileSync(join(repoRoot(), "tasks", name), { encoding: "utf8" });
+  return normalizeYamlNewlines(readFileSync(join(repoRoot(), "tasks", name), { encoding: "utf8" }));
 }
 
 export function readRoot(name: string): string {
-  return readFileSync(join(repoRoot(), "tasks", "..", name), { encoding: "utf8" });
+  return normalizeYamlNewlines(
+    readFileSync(join(repoRoot(), "tasks", "..", name), { encoding: "utf8" }),
+  );
 }

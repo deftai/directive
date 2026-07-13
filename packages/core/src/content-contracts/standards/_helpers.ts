@@ -30,11 +30,15 @@ export function resolveContentPath(relPath: string): string {
 }
 
 export function readText(relPath: string): string {
-  return readFileSync(resolveContentPath(relPath), { encoding: "utf8" });
+  return readFileSync(resolveContentPath(relPath), { encoding: "utf8" })
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 }
 
 export function readAbs(absPath: string): string {
-  return readFileSync(absPath, { encoding: "utf8" });
+  return readFileSync(absPath, { encoding: "utf8" })
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 }
 
 export function pathExists(relPath: string): boolean {

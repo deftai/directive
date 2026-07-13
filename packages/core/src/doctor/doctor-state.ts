@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { CLEAN_WINDOW_HOURS, DIRTY_WINDOW_HOURS, ENV_STATE_PATH } from "./constants.js";
@@ -10,7 +11,7 @@ export function statePath(projectRoot: string): string {
   const override = process.env[ENV_STATE_PATH]?.trim();
   if (override) {
     return override.startsWith("~")
-      ? join(process.env.HOME ?? projectRoot, override.slice(1))
+      ? join(homedir(), override.slice(1).replace(/^[\\/]/, ""))
       : override;
   }
   return resolveTriageCachePath(projectRoot, STATE_FILENAME);

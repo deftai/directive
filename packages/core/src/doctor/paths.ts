@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFT_REPO_POSITIVE_MARKERS } from "./constants.js";
@@ -9,7 +10,7 @@ export function resolvePath(pathStr: string, cwd = process.cwd()): string {
     return cwd;
   }
   const expanded = pathStr.startsWith("~")
-    ? join(process.env.HOME ?? cwd, pathStr.slice(1))
+    ? join(homedir(), pathStr.slice(1).replace(/^[\\/]/, ""))
     : pathStr;
   return resolve(cwd, expanded);
 }

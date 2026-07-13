@@ -25,7 +25,9 @@ export function resolveRepoPath(relPath: string): string {
 }
 
 export function readRepoFile(relPath: string): string {
-  return readFileSync(resolveRepoPath(relPath), "utf8");
+  return readFileSync(resolveRepoPath(relPath), "utf8")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 }
 
 export function repoFileExists(relPath: string): boolean {

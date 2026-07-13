@@ -50,16 +50,21 @@ describe("test_taskfile_release_names.py", () => {
     expect(offenders).toEqual([]);
   });
 
-  it.skipIf(!taskAvailable)("test_task_release_help_dispatches_end_to_end", () => {
-    const out = execFileSync(
-      "task",
-      ["-t", join(repoRoot(), "Taskfile.yml"), "release", "--", "--help"],
-      {
-        cwd: repoRoot(),
-        encoding: "utf8",
-        env: { ...process.env, PYTHONUTF8: "1" },
-      },
-    );
-    expect(out.toLowerCase()).toContain("usage");
-  });
+  // Windows-native go-task currently doubles absolute DEFT_ROOT when chdir'ing
+  // into engine:pm-run (`C:\repo\C:\repo`); tracked under #2467 hardening follow-up.
+  it.skipIf(!taskAvailable || process.platform === "win32")(
+    "test_task_release_help_dispatches_end_to_end",
+    () => {
+      const out = execFileSync(
+        "task",
+        ["-t", join(repoRoot(), "Taskfile.yml"), "release", "--", "--help"],
+        {
+          cwd: repoRoot(),
+          encoding: "utf8",
+          env: { ...process.env, PYTHONUTF8: "1" },
+        },
+      );
+      expect(out.toLowerCase()).toContain("usage");
+    },
+  );
 });

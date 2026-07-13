@@ -16,13 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Test suite now passes on Windows-native Node (win32).** Path-assertion tests
-  now compare against `path.resolve(input)` instead of literal POSIX strings;
-  symlink and `chmod` tests are skipped on Windows via `it.skipIf`; production
-  code that used `startsWith("/")` or `split("/")` for path logic was switched to
-  `path.isAbsolute()` / `path.basename()` / `path.sep`. A `* text=auto eol=lf`
-  rule was added to `.gitattributes` to prevent CRLF drift, and a Windows-native
-  maintainer guide was added to `CONTRIBUTING.md`. Closes #2467.
+- **Windows-native maintainers can run the test suite without WSL.** Path helpers and content-contract readers now honor win32 path and CRLF semantics, with LF checkout hardening and a short CONTRIBUTING setup note. Closes #2467.
 
 ### Added
 
