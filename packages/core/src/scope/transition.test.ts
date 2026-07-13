@@ -1,9 +1,19 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { detectLifecycleFolder, runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function makeRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "scope-test-"));
@@ -105,4 +115,58 @@ describe("runTransition", () => {
     expect(detectLifecycleFolder("/tmp/xbrief/pending/foo.xbrief.json")).toBe("pending");
     expect(detectLifecycleFolder("/tmp/other/foo.xbrief.json")).toBeNull();
   });
+});
+
+describe("scope lifecycle projection containment (#2447)", () => {
+  let root = "";
+  let escapeDir = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+    if (escapeDir.length > 0) {
+      rmSync(escapeDir, { recursive: true, force: true });
+      escapeDir = "";
+    }
+  });
+
+  itSymlink(
+    "refuses promote when the destination lifecycle folder is a symlink outside the project",
+    () => {
+      root = mkdtempSync(join(tmpdir(), "scope-symlink-dest-"));
+      escapeDir = mkdtempSync(join(tmpdir(), "scope-symlink-escape-"));
+      mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+      const escapeTarget = join(escapeDir, "completed");
+      mkdirSync(escapeTarget, { recursive: true });
+      symlinkSync(escapeTarget, join(root, "xbrief", "completed"));
+
+      const file = writeVbrief(root, "proposed", "proposed");
+      const result = runTransition("promote", file);
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("projection write refused");
+      expect(existsSync(file)).toBe(true);
+      expect(existsSync(join(escapeDir, "story.xbrief.json"))).toBe(false);
+    },
+  );
+
+  itSymlink(
+    "refuses promote when a parent lifecycle folder is a symlink outside the project",
+    () => {
+      root = mkdtempSync(join(tmpdir(), "scope-symlink-parent-"));
+      escapeDir = mkdtempSync(join(tmpdir(), "scope-symlink-parent-escape-"));
+      mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+      const escapePending = join(escapeDir, "pending");
+      mkdirSync(escapePending, { recursive: true });
+      symlinkSync(escapePending, join(root, "xbrief", "pending"));
+
+      const file = writeVbrief(root, "proposed", "proposed", "parent-story.xbrief.json");
+      const result = runTransition("promote", file);
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("projection write refused");
+      expect(existsSync(file)).toBe(true);
+      expect(existsSync(join(escapeDir, "parent-story.xbrief.json"))).toBe(false);
+    },
+  );
 });
