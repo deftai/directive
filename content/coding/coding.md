@@ -131,7 +131,7 @@ The rule applies to agent completion claims during task execution. It applies eq
 
 ## Calling LLM APIs (#481)
 
-When the project calls LLM APIs (OpenAI, Anthropic, Cohere, local models, etc.) or builds agentic functionality, the architectural standards in `patterns/llm-app.md` apply alongside the coding rules above. The short form:
+When the project calls LLM APIs (OpenAI, Anthropic, Cohere, local models, etc.) or builds agentic functionality, the architectural standards in `patterns/llm-app.md` apply alongside the coding rules above. In the directive maintainer repo this section is **guidance for consumer projects** — provider names are illustrative labels under the framework instruction hierarchy, not runtime SDK surfaces (#2414; see `meta/security.md` `## Informational AppSec findings`). The short form:
 
 - ! User input is NEVER placed in the system prompt; the system prompt is the trust boundary
 - ! External content is ALWAYS wrapped in explicit delimiters (`<user_input>`, `<document>`, `<tool_result>`) and surfaces its trust tier

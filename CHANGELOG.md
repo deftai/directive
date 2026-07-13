@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Security docs clarify LLM trust-tier framing for informational AppSec findings.** Guidance in REFERENCES, security taxonomy, context engineering, llm-app patterns, and coding rules now states that provider/SDK mentions are framework guidance for consumer projects, not runtime surfaces in the directive repo. Closes #2414.
+
 ### Fixed
 
 ### Removed

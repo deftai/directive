@@ -13,6 +13,13 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 local models, etc.), builds agentic functionality, or implements
 retrieval-augmented generation (RAG).
 
+**Scope (#2414):** This file describes architectural standards for **consumer
+applications** that call LLM APIs. In the directive maintainer repository these
+patterns are published framework guidance (`internal` trust tier), not live SDK
+integration surfaces. Informational AppSec scans that match provider names here
+are dispositioned as non-issues when trust-tier separation is explicit — see
+`meta/security.md` `## Informational AppSec findings`.
+
 **Source material:** AI Agent Traps paper (`docs/ssrn-6372438.pdf`; see
 also #480 for the framework-side defenses against the same trap classes).
 
