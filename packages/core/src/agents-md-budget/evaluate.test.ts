@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  ABSOLUTE_MANAGED_MAX_BYTES,
+  ABSOLUTE_MANAGED_MAX_TOKENS,
   countRegions,
   evaluate,
   extractManagedSection,
@@ -227,7 +229,7 @@ describe("absolute managed-section budget", () => {
     expect(result.code).toBe(0);
     expect(result.message).toContain(`absolute ${measure.bytes}/${measure.bytes} bytes`);
     expect(result.northStarMessage).toContain("north-star");
-    expect(result.northStarMessage).toContain("over target");
+    expect(result.northStarMessage).toContain("tok over");
   });
 
   it("stays quiet on north-star note when the managed section is under budget", () => {
@@ -276,6 +278,37 @@ describe("absolute managed-section budget", () => {
       if (prevWaiver === undefined) delete process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
       else process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER = prevWaiver;
     }
+  });
+
+  it("reports token-only north-star overage without negative byte deltas", () => {
+    const markerOpen = "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->";
+    const markerClose = "<!-- /deft:managed-section -->";
+    const overhead = Buffer.byteLength(`${markerOpen}\n${markerClose}`, "utf8");
+    const targetBytes = 8001;
+    const fillLen = targetBytes - overhead;
+    const agents = ["", markerOpen, "x".repeat(fillLen), markerClose].join("\n");
+    const measure = measureManagedSection(agents);
+    expect("bytes" in measure).toBe(true);
+    if (!("bytes" in measure)) return;
+    expect(measure.bytes).toBeLessThanOrEqual(ABSOLUTE_MANAGED_MAX_BYTES);
+    expect(measure.estimatedTokens).toBeGreaterThan(ABSOLUTE_MANAGED_MAX_TOKENS);
+
+    const root = makeRepo({
+      plan: {
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 500,
+            unmanagedMaxLines: 500,
+            absoluteMaxBytes: measure.bytes,
+          },
+        },
+      },
+      agents,
+    });
+    const result = evaluate(root);
+    expect(result.code).toBe(0);
+    expect(result.northStarMessage).toMatch(/~\d+ tok over/);
+    expect(result.northStarMessage).not.toContain("bytes over");
   });
 
   it("emits north-star note even when --quiet suppresses the success banner", () => {
