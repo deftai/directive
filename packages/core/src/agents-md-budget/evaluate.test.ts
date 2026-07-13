@@ -401,11 +401,10 @@ description: ${description}
     const prev = process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER;
     process.env.DEFT_AGENTS_MD_BUDGET_SKILL_TIER = "daily-core";
     try {
-      const bootstrap = measureBootstrapSurface(
-        root,
-        agentsWith(5, 5),
-        { managedMaxLines: 500, unmanagedMaxLines: 500 },
-      );
+      const bootstrap = measureBootstrapSurface(root, agentsWith(5, 5), {
+        managedMaxLines: 500,
+        unmanagedMaxLines: 500,
+      });
       expect("error" in bootstrap).toBe(false);
       if ("error" in bootstrap) return;
       expect(bootstrap.skillFrontmatter.skillCount).toBe(1);

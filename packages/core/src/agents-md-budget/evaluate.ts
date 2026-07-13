@@ -4,13 +4,10 @@ import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import {
   type AgentsMdBudget,
   type HarnessProfile,
-  type SkillFrontmatterTier,
   resolveAgentsMdBudget,
+  type SkillFrontmatterTier,
 } from "../policy/agents-md-budget.js";
-import {
-  measureSkillFrontmatter,
-  type SkillFrontmatterMeasure,
-} from "./skill-frontmatter.js";
+import { measureSkillFrontmatter, type SkillFrontmatterMeasure } from "./skill-frontmatter.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -177,10 +174,7 @@ export function measureManagedSection(text: string): ManagedSectionMeasure | { e
   };
 }
 
-function resolveHarnessProfile(
-  budget: AgentsMdBudget | null,
-  projectRoot: string,
-): HarnessProfile {
+function resolveHarnessProfile(budget: AgentsMdBudget | null, projectRoot: string): HarnessProfile {
   const env = process.env.DEFT_AGENTS_MD_BUDGET_HARNESS_PROFILE?.trim();
   if (env === "cursor" || env === "none") {
     return env;
