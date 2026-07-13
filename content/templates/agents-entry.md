@@ -62,9 +62,24 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ⊗ Confirm Deft alignment without first reading USER.md content -- a presence / `Test-Path` existence check is insufficient; the confirmation MUST echo the addressing-name read from inside USER.md.
 
+## Session routing (#2176)
+
+! Default interactive sessions to **read-only posture** until mutation or implementation intent: questions, research, Plan Mode, ticket-shaping, and issue filing that does not depend on fresh local repo state. Read required context (AGENTS.md, main.md, USER.md, PROJECT-DEFINITION when present); confirm Deft alignment with addressing-name; ⊗ do not run mutable ceremony or emit branch/triage/sync/lifecycle noise unless the operator asks or the task is implementation-ready.
+
+**Read-only posture (default for Q&A / Plan Mode):**
+- ! Load accurate project/user context; confirm alignment with USER.md addressing-name.
+- ⊗ Run `deft session:start` when it would write `.deft/ritual-state.json`, install/build dependencies, or emit triage welcome, branch-policy, default-branch sync, sync-skill lifecycle checks, or eval/value readback writes.
+- ~ Operators MAY explicitly request `deft session:start`, `deft triage:welcome`, sync, or doctor output in read-only sessions.
+
+**Mutation boundaries** (lazy full ritual before proceeding):
+- ! At the first code-writing tool call, scope lifecycle mutation, `start_agent` / implementation dispatch, commits, pushes, PR-from-local-changes, or release work: run the mutable quick tier (`deft session:start`) then gated tier (`deft verify:session-ritual -- --tier=gated`) per `.deft/core/commands.md` § Session-start ritual before continuing.
+- ⊗ Proceed to mutation without running the gated ritual stack first.
+
+**Explicit read-only CLI:** `deft session:start -- --read-only` records alignment only and writes no ritual-state (#2176).
+
 ## Session-start ritual (#1149)
 
-! On every interactive session start run `deft session:start`; before any code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft agents:refresh` / `npm i -g @deftai/directive@latest` entrypoints; #1149 / #1348) — full quick/gated tiers, defer steps, and headless bypass in `.deft/core/commands.md` § Session-start ritual.
+! On **mutation** session start (implementation intent or explicit operator request), run `deft session:start`; before any code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft agents:refresh` / `npm i -g @deftai/directive@latest` entrypoints; #1149 / #1348) — full quick/gated tiers, defer steps, headless bypass, and read-only default in `.deft/core/commands.md` § Session-start ritual.
 
 ## WIP cap
 

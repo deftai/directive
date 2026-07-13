@@ -183,9 +183,18 @@ Use `task --list` for the exact current verify namespace.
 
 ## Session-start ritual (#1149)
 
-Full always-on contract for the interactive session-start ritual and its gated verifier (#1149 / #1348).
+Full always-on contract for the interactive session-start ritual and its gated verifier (#1149 / #1348). Read-only posture (#2176) defers this ceremony until mutation intent — see `.deft/core/commands.md` § Session routing.
 
-- ! On every interactive session start, run `deft session:start` (or `task session:start` in framework source) after loading AGENTS.md. Records quick-tier ritual in `.deft/ritual-state.json`: alignment confirmation, branch-policy disclosure, `deft verify:tools` guidance, default-branch sync warnings, and `deft triage:welcome` one-liner. State is worktree- and HEAD-bound; stale after `plan.policy.sessionRitualStalenessHours` hours (default 4).
+### Session routing (#2176)
+
+- ! Default interactive sessions to **read-only posture** until mutation or implementation intent (questions, research, Plan Mode, ticket-shaping). Load AGENTS.md / main.md / USER.md / PROJECT-DEFINITION; confirm alignment with addressing-name; ⊗ do not write `.deft/ritual-state.json`, run install/build side effects, or emit triage welcome, branch-policy, default-branch sync, sync-skill lifecycle checks, or eval/value readback writes unless the operator asks or the task is implementation-ready.
+- ! At mutation boundaries (code-writing, scope lifecycle moves, `start_agent`, commits, pushes, PR-from-local-changes, release work): run the mutable quick tier then gated verifier below before proceeding.
+- ? Explicit read-only alignment only: `deft session:start -- --read-only` (no ritual-state write).
+- ~ Operators MAY still explicitly request full `deft session:start`, `deft triage:welcome`, sync, or doctor in read-only sessions.
+
+### Mutable ritual (mutation posture)
+
+- ! On **mutation** session start, run `deft session:start` (or `task session:start` in framework source) after loading AGENTS.md. Records quick-tier ritual in `.deft/ritual-state.json`: alignment confirmation, branch-policy disclosure, `deft verify:tools` guidance, default-branch sync warnings, and `deft triage:welcome` one-liner. State is worktree- and HEAD-bound; stale after `plan.policy.sessionRitualStalenessHours` hours (default 4).
 - ! Before any code-writing tool call or `start_agent` implementation dispatch, run `deft verify:session-ritual -- --tier=gated`. Gated tier fails closed unless quick-tier state is fresh; lazily records `deft doctor` and `deft verify:cache-fresh` entrypoints. Step 0 of the pre-`start_agent` gate stack.
 - ? Postpone with `deft session:start -- --defer step=reason` (`alignment`, `branch_policy`, `triage_welcome`, `doctor`, `cache_fresh`).
 - Headless workers / CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; verifier exits 0 but warns when bypass hides failure.

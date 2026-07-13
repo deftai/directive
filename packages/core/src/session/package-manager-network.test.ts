@@ -98,6 +98,16 @@ describe("package-manager network scope (#2182)", () => {
     temps.length = 0;
   });
 
+  it("session:start (read-only) invokes no npm/pnpm even with a private-scope registry present", () => {
+    const { root } = initPrivateScopeRepo();
+    temps.push(root);
+
+    const result = runSessionStart(root, { writeHistory: false, posture: "read-only" });
+
+    expect(result.code).toBe(0);
+    expect(packageManagerCalls(spawnSyncMock)).toEqual([]);
+  });
+
   it("session:start (quick tier) invokes no npm/pnpm even with a private-scope registry present", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);

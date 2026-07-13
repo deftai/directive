@@ -17,6 +17,14 @@ import {
   writeRitualState,
 } from "./ritual-sentinel.js";
 
+export const SESSION_POSTURES = ["read-only", "mutation"] as const;
+export type SessionPosture = (typeof SESSION_POSTURES)[number];
+export const READ_ONLY_POSTURE: SessionPosture = "read-only";
+export const MUTATION_POSTURE: SessionPosture = "mutation";
+export const READ_ONLY_ALIGNMENT_MESSAGE = "Deft Directive active -- AGENTS.md loaded.";
+export const READ_ONLY_RESULT_MESSAGE =
+  "read-only session posture (alignment only; no ritual-state write)";
+
 export const QUICK_STEPS = ["alignment", "branch_policy", "triage_welcome"] as const;
 export const GATED_STEPS = ["doctor", "cache_fresh"] as const;
 
@@ -44,6 +52,8 @@ export interface SessionStartResult {
 }
 
 export interface SessionStartOptions {
+  /** #2176: read-only records alignment only; mutation runs the full quick tier. */
+  readonly posture?: SessionPosture;
   readonly deferrals?: Readonly<Record<string, string>>;
   readonly now?: Date;
   readonly writeHistory?: boolean;
@@ -236,13 +246,58 @@ export function defaultBranchSync(
   return { branch, upstream, ahead, behind, warning };
 }
 
+function runReadOnlySessionStart(
+  projectRoot: string,
+  options: SessionStartOptions,
+  instant: Date,
+): SessionStartResult {
+  const lines: string[] = [];
+  const resolveUserMd =
+    options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
+  const userMd = resolveUserMd(projectRoot);
+  const safePath = userMd.path.replace(/\r?\n/g, " ");
+  const safeDiagnostic = userMd.diagnostic.replace(/\r?\n/g, " ");
+  const userMdLine = userMd.found
+    ? `USER.md resolved (${userMd.rung}): ${safePath}`
+    : safeDiagnostic;
+  lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
+  lines.push(userMdLine);
+  const resultPayload = {
+    ready: true,
+    exit_code: 0,
+    posture: READ_ONLY_POSTURE,
+    state_path: null,
+    quick_steps: {
+      alignment: ritualStep({
+        ok: true,
+        ts: instant,
+        message: `${READ_ONLY_ALIGNMENT_MESSAGE} ${userMdLine}`,
+      }),
+    },
+    gated_steps: {},
+    user_md: {
+      path: userMd.path,
+      rung: userMd.rung,
+      found: userMd.found,
+      diagnostic: userMd.diagnostic,
+    },
+    message: READ_ONLY_RESULT_MESSAGE,
+  };
+  return { code: 0, payload: resultPayload, lines };
+}
+
 export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
 ): SessionStartResult {
+  const posture = options.posture ?? MUTATION_POSTURE;
   const instant = options.now ?? new Date();
   const deferrals = options.deferrals ?? {};
   const runGit = options.runGit ?? defaultGitRunner;
+
+  if (posture === READ_ONLY_POSTURE) {
+    return runReadOnlySessionStart(projectRoot, options, instant);
+  }
   const { head: gitHeadValue, error: gitError } = gitHead(projectRoot, runGit);
   if (gitHeadValue === null) {
     const payload = {

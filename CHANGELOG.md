@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Read-only Directive session posture defers ceremony until you start changing things.** Questions, Plan Mode, and ticket-shaping now default to alignment-only context loads without writing `.deft/ritual-state.json`, triage welcome, branch-policy dumps, or install side effects; the full mutable ritual still runs at mutation boundaries. Use `deft session:start -- --read-only` for explicit alignment-only mode. Closes #2176. Refs #2491.
+
 ### Changed
 
 - **Security docs clarify LLM trust-tier framing for informational AppSec findings.** Guidance in REFERENCES, security taxonomy, context engineering, llm-app patterns, and coding rules now states that provider/SDK mentions are framework guidance for consumer projects, not runtime surfaces in the directive repo. Closes #2414.

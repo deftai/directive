@@ -16,6 +16,7 @@ describe("session-start parseArgs", () => {
       deferValues: [],
       emitJson: false,
       noHistory: false,
+      readOnly: false,
     });
   });
 
@@ -34,6 +35,7 @@ describe("session-start parseArgs", () => {
       deferValues: ["doctor=postponed"],
       emitJson: true,
       noHistory: true,
+      readOnly: false,
     });
   });
 
@@ -43,6 +45,17 @@ describe("session-start parseArgs", () => {
       deferValues: ["cache_fresh=later"],
       emitJson: false,
       noHistory: false,
+      readOnly: false,
+    });
+  });
+
+  it("parses --read-only", () => {
+    expect(parseArgs(["--read-only", "--project-root", "/x"])).toEqual({
+      projectRoot: "/x",
+      deferValues: [],
+      emitJson: false,
+      noHistory: false,
+      readOnly: true,
     });
   });
 
@@ -81,6 +94,34 @@ describe("session-start run", () => {
       expect(run(["--defer", "not-a-valid-step"])).toBe(2);
       expect(err.length).toBeGreaterThan(0);
     } finally {
+      process.stderr.write = prevStderr;
+    }
+  });
+
+  it("writes read-only footer without ritual-state on --read-only", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-session-start-ro-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    const prevStdout = process.stdout.write.bind(process.stdout);
+    const prevStderr = process.stderr.write.bind(process.stderr);
+    let out = "";
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      out += String(chunk);
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = (() => true) as typeof process.stderr.write;
+    try {
+      const code = run(["--project-root", root, "--read-only", "--no-history"]);
+      expect(code).toBe(0);
+      expect(out).toContain("read-only session posture");
+      expect(out).not.toContain("session ritual recorded");
+    } finally {
+      process.stdout.write = prevStdout;
       process.stderr.write = prevStderr;
     }
   });

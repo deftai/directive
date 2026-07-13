@@ -34,6 +34,19 @@ describe("test_agents_md_session_start", () => {
   it("session_start_ritual_header_present", () => {
     expect(/^##\s+Session-start ritual\s+\(#1149\)\s*$/m.test(agentsMdText)).toBe(true);
     expect(/^##\s+Session-start ritual\s+\(#1149\)\s*$/m.test(agentsEntryText)).toBe(true);
+    expect(/^##\s+Session routing\s+\(#2176\)\s*$/m.test(agentsEntryText)).toBe(true);
+  });
+
+  it("session_routing_read_only_posture_present", () => {
+    const entrySection = extractSection(agentsEntryText, "Session routing \\(#2176\\)");
+    expect(entrySection).toBeTruthy();
+    expect(entrySection).toContain("read-only posture");
+    expect(entrySection).toContain("deft session:start -- --read-only");
+    expect(entrySection).toContain(".deft/ritual-state.json");
+    expect(entrySection).toContain("Mutation boundaries");
+    const commandsSection = extractSection(commandsText, "Session-start ritual \\(#1149\\)");
+    expect(commandsSection).toContain("Session routing (#2176)");
+    expect(commandsSection).toContain("deft session:start -- --read-only");
   });
 
   it("session_start_ritual_pointer_surface_in_managed_section", () => {

@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseDeferrals, ritualStatePath, runSessionStart } from "@deftai/directive-core/session";
+import {
+  parseDeferrals,
+  READ_ONLY_POSTURE,
+  ritualStatePath,
+  runSessionStart,
+} from "@deftai/directive-core/session";
 
 export interface ParsedSessionStartArgs {
   projectRoot: string;
   deferValues: string[];
   emitJson: boolean;
   noHistory: boolean;
+  readOnly: boolean;
   error?: string;
 }
 
@@ -18,6 +24,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     deferValues: [],
     emitJson: false,
     noHistory: false,
+    readOnly: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -25,6 +32,8 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
       parsed.emitJson = true;
     } else if (arg === "--no-history") {
       parsed.noHistory = true;
+    } else if (arg === "--read-only") {
+      parsed.readOnly = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -87,6 +96,7 @@ export function run(argv: readonly string[]): number {
     result = runSessionStart(projectRoot, {
       deferrals,
       writeHistory: !args.noHistory,
+      posture: args.readOnly ? READ_ONLY_POSTURE : undefined,
     });
   } finally {
     process.stdout.write = prevWrite;
@@ -114,7 +124,12 @@ export function run(argv: readonly string[]): number {
     sink.write(`${line}\n`);
   }
   if (result.code === 0) {
-    process.stdout.write(`[deft] session ritual recorded at ${ritualStatePath(projectRoot)}\n`);
+    const posture = result.payload.posture;
+    if (posture === READ_ONLY_POSTURE) {
+      process.stdout.write(`[deft] ${String(result.payload.message)}\n`);
+    } else {
+      process.stdout.write(`[deft] session ritual recorded at ${ritualStatePath(projectRoot)}\n`);
+    }
   }
   return result.code;
 }

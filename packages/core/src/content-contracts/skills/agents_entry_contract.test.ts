@@ -95,6 +95,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
 ] as const;
 
 const PROPAGATION_HEADER_MARKERS = [
+  "## Session routing (#2176)",
   "## Session-start ritual (#1149)",
   "## Unmanaged project header (#2065)",
   "## Cache-as-authoritative work selection (#1149)",

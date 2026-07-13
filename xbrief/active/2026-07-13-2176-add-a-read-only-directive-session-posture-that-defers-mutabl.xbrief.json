@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Add a read-only Directive session posture that defers mutable ceremony until implementation intent",
+    "created": "2026-07-13T21:04:30.410Z",
+    "updated": "2026-07-13T21:04:30.410Z"
+  },
+  "plan": {
+    "id": "2176-read-only-session-posture",
+    "title": "Add a read-only Directive session posture that defers mutable ceremony until implementation intent",
+    "status": "running",
+    "narratives": {
+      "Description": "Add a true read-only Directive posture for questions, research, Plan Mode, and ticket-shaping so agents do not run mutable session:start ceremony, triage welcome, sync validation, or branch-policy dumps until mutation or implementation intent. Alignment confirmation and accurate context reads remain. This is Wave 0 under epic #2491 and the hard gate for #2493 session-routing compression. Tier-1 host hooks (#2437/#2438) may enforce later; this story targets Tier-0 prose/policy/CLI behavior.",
+      "UserStory": "As an operator, I want to open a Directive repo and ask questions without session ceremony or local mutations, so that Directive feels light to adopt while remaining strict when I start changing the tree.",
+      "ImplementationPlan": "1) Encode read-only posture in content/templates/agents-entry.md session-routing sections and content/commands.md ritual pointers. 2) Implement no-mutate / deferred path in packages/cli session:start (and packages/core ritual-state writers) so read-only sessions need not write .deft/ritual-state.json or trigger pnpm install side effects. 3) Gate triage welcome / branch-policy / sync dumps behind mutation posture in the CLI surfaces that emit them. 4) Add tests under packages/core/src/ and/or packages/cli for read-only vs mutation transition. 5) CHANGELOG.md Closes #2176; Refs #2491. Verify: pnpm exec vitest run <new-or-touched-tests>; task check --allow-over-cap.",
+      "Origin": "Enriched from #2176 under epic #2491 Wave 0",
+      "Overview": "Non-goals: remove ritual for implementation; weaken branch/xBRIEF gates; block explicit session:start requests."
+    },
+    "items": [
+      {
+        "id": "2176-a1",
+        "title": "No ritual-state write in read-only / Plan Mode",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a read-only or Plan Mode session, when the agent answers questions, then .deft/ritual-state.json is not written.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2176-a2",
+        "title": "No install/build side effects in read-only",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given read-only posture, when ceremony is deferred, then no dependency install/build leaves artifacts such as .pnpm-store/.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2176-a3",
+        "title": "Concise alignment without ceremony dumps",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Q&A or ticket-shaping, when the session starts, then alignment confirms without triage/branch/sync/lifecycle ceremony.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2176-a7",
+        "title": "Full gated ritual at mutation",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given mutation or implementation intent, when the agent proceeds, then the mutable/gated ritual still runs before code changes, dispatch, scope mutation, commits, pushes, and release work.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2176-a8",
+        "title": "Tests for posture transition",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the implementation, when tests run, then read-only, Plan Mode, and lazy read-only→mutable transition are covered.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2176",
+        "type": "x-xbrief/github-issue",
+        "title": "#2176"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2491",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #2491"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2493",
+        "type": "x-xbrief/refs",
+        "title": "Gates #2493"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2180",
+        "type": "x-xbrief/refs",
+        "title": "Parallel #2180"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2437",
+        "type": "x-xbrief/refs",
+        "title": "Hooks epic #2437"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "content/commands.md",
+          "packages/cli/src/",
+          "packages/core/src/",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "size": "medium",
+        "verify_commands": [
+          "task check --allow-over-cap"
+        ],
+        "expected_outputs": [
+          "read-only posture documented + enforced for ceremony deferral",
+          "PR Closes #2176"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-posture-2176",
+        "priority": "wave-0"
+      }
+    },
+    "updated": "2026-07-13T21:22:46Z"
+  }
+}
