@@ -2,9 +2,6 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
-const itSymlink = it.skipIf(process.platform === "win32");
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
@@ -13,6 +10,9 @@ import {
   VBRIEF_DEPRECATION_MARKER_FILENAME,
 } from "./constants.js";
 import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
+
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function writeXbriefStory(root: string): void {
   mkdirSync(join(root, MIGRATED_ARTIFACT_DIR, "active"), { recursive: true });

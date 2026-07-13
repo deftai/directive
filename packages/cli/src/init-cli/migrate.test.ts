@@ -1,5 +1,5 @@
-import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { resolve } from "node:path";
+import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { routeAndDispatch } from "../cli-router/index.js";
 import type { DispatchIo } from "../dispatch.js";

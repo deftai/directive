@@ -3,9 +3,6 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync 
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-
-// chmod-based tests don't reliably block access on Windows; skip there.
-const itChmod = it.skipIf(process.platform === "win32");
 import { evaluateConformance, renderFinding, scanVbrief } from "./conformance.js";
 import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
@@ -35,6 +32,9 @@ import {
 } from "./schema.js";
 import { checkRenderStaleness } from "./staleness.js";
 import { validateAll, validateAllMigration } from "./validate-all.js";
+
+// chmod-based tests don't reliably block access on Windows; skip there.
+const itChmod = it.skipIf(process.platform === "win32");
 
 function writeScope(
   vbrief: string,
