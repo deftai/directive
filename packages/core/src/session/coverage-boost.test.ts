@@ -252,6 +252,7 @@ describe("session coverage boost", () => {
     expect(gated.code).toBe(0);
     const bypass = verifySessionRitual(root, {
       bypass: true,
+      posture: "mutation",
       runGit: fakeGit("other", resolve(root)),
     });
     expect(bypass.bypassed).toBe(true);

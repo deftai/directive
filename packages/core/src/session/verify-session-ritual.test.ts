@@ -117,6 +117,7 @@ describe("verify session ritual", () => {
     const { root, head } = initRepo();
     const result = verifySessionRitual(root, {
       bypass: true,
+      posture: "mutation",
       runGit: fakeGit(head, resolve(root)),
     });
     expect(result.code).toBe(0);

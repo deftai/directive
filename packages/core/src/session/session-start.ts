@@ -455,7 +455,6 @@ export function runSessionStart(
   const resultPayload = {
     ready: code === 0,
     exit_code: code,
-    posture: MUTATION_POSTURE,
     state_path: statePath,
     quick_steps: quickSteps,
     gated_steps: gatedSteps,

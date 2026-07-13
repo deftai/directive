@@ -77,7 +77,7 @@ Next: commit the staged fix and open PR.
 
   it("respects env posture override", () => {
     expect(resolveSessionPosture({ envPosture: "mutation" })).toBe("mutation");
-    expect(resolveSessionPosture({ envposture: "mutation" })).toBe("mutation");
+    expect(resolveSessionPosture({ envPosture: "mutating" })).toBe("mutation");
     expect(resolveSessionPosture({ envPosture: "read-only" })).toBe("read-only");
   });
 
