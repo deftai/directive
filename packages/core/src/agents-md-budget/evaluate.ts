@@ -193,7 +193,7 @@ function resolveHarnessProfile(budget: AgentsMdBudget | null, projectRoot: strin
   return "none";
 }
 
-function resolveSkillFrontmatterTier(
+function resolveBootstrapSkillTier(
   budget: AgentsMdBudget | null,
   projectRoot: string,
 ): SkillFrontmatterTier {
@@ -225,7 +225,7 @@ export function measureBootstrapSurface(
     return managedResult;
   }
   const harnessProfile = resolveHarnessProfile(budget, projectRoot);
-  const tier = resolveSkillFrontmatterTier(budget, projectRoot);
+  const tier = resolveBootstrapSkillTier(budget, projectRoot);
   let dailyCoreSkills: readonly string[] | undefined;
   try {
     dailyCoreSkills = resolveOpenPackageTierSkills(projectRoot, "daily-core");

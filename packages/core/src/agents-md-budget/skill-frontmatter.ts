@@ -95,7 +95,7 @@ function listSkillDirs(skillsRoot: string): string[] {
     .sort();
 }
 
-function skillMatchesTier(
+function skillInSelectedTier(
   skillName: string,
   tier: SkillFrontmatterTier,
   dailyCore: ReadonlySet<string>,
@@ -134,7 +134,7 @@ export function measureSkillFrontmatter(
 
   const entries: SkillFrontmatterEntry[] = [];
   for (const skillName of listSkillDirs(skillsRoot)) {
-    if (!skillMatchesTier(skillName, tier, dailyCore)) {
+    if (!skillInSelectedTier(skillName, tier, dailyCore)) {
       continue;
     }
     const skillPath = join(skillsRoot, skillName, "SKILL.md");
