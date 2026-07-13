@@ -3,8 +3,7 @@
  * Mirrors packages/core/src/packaging/openpackage-tiers.ts for node-runnable sync without a prior tsc build.
  */
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 const TIER_NAMES = ["daily-core", "standard", "advanced"];
 
@@ -55,9 +54,4 @@ export function resolveTierSkills(manifest, tier) {
     throw new Error(`unknown tier ${tier}; expected one of ${[...TIER_NAMES, "all"].join(", ")}`);
   }
   return [...manifest.tiers[tier].skills];
-}
-
-/** Resolve the packaging/openpackage directory that contains this module. */
-export function packagingOpenPackageDir() {
-  return dirname(fileURLToPath(import.meta.url));
 }

@@ -2,7 +2,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getOpenPackageDefaultInstallTier,
-  readOpenPackageTierManifest,
   resolveOpenPackageTierSkills,
 } from "./openpackage-tiers.js";
 
@@ -21,11 +20,5 @@ describe("openpackage-tiers (#2494)", () => {
     const all = resolveOpenPackageTierSkills(REPO_ROOT, "all");
     expect(all).toHaveLength(20);
     expect(new Set(all).size).toBe(20);
-  });
-
-  it("readOpenPackageTierManifest exposes tier tables", () => {
-    const manifest = readOpenPackageTierManifest(REPO_ROOT);
-    expect(manifest.tiers["daily-core"].skills).toHaveLength(6);
-    expect(manifest.defaultInstallTier).toBe("daily-core");
   });
 });

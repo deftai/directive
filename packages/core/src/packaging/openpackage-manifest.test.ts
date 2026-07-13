@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getOpenPackageDefaultInstallTier,
-  readOpenPackageTierManifest,
+  type OpenPackageTierManifest,
   resolveOpenPackageTierSkills,
 } from "./openpackage-tiers.js";
 
@@ -19,9 +19,13 @@ function listContentSkills(): string[] {
     .sort();
 }
 
+function loadTiersJson(): OpenPackageTierManifest {
+  return JSON.parse(readFileSync(TIERS_PATH, "utf8")) as OpenPackageTierManifest;
+}
+
 describe("OpenPackage tier manifest (#2462)", () => {
   it("partitions every content/skills directory across exactly one tier", () => {
-    const manifest = readOpenPackageTierManifest(REPO_ROOT);
+    const manifest = loadTiersJson();
     const onDisk = listContentSkills();
     const seen = new Map<string, string>();
 
@@ -37,7 +41,7 @@ describe("OpenPackage tier manifest (#2462)", () => {
   });
 
   it("declares daily-core, standard, and advanced tiers with expected counts", () => {
-    const manifest = readOpenPackageTierManifest(REPO_ROOT);
+    const manifest = loadTiersJson();
     expect(manifest.tiers["daily-core"].skills).toHaveLength(6);
     expect(manifest.tiers.standard.skills).toHaveLength(10);
     expect(manifest.tiers.advanced.skills).toHaveLength(4);

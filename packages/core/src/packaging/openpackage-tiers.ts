@@ -67,8 +67,3 @@ export function resolveOpenPackageTierSkills(
 ): string[] {
   return resolveTierSkills(loadOpenPackageTierManifest(repoRoot), tier);
 }
-
-/** Full typed manifest (tests + callers that need tier tables). */
-export function readOpenPackageTierManifest(repoRoot: string): OpenPackageTierManifest {
-  return loadOpenPackageTierManifest(repoRoot);
-}
