@@ -86,7 +86,7 @@ describe("issue-ingest layout-aware emission parity", () => {
       const parsed = readJsonObject(path as string);
       expect(parsed.vBRIEFInfo).toEqual(
         expect.objectContaining({
-          version: "0.6",
+          version: "0.8",
         }),
       );
       expect(parsed.xBRIEFInfo).toBeUndefined();

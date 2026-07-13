@@ -11,7 +11,7 @@ import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import {
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
-  LEGACY_VBRIEF_VERSION,
+  VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
@@ -132,7 +132,7 @@ function resolveIngestEmissionLayout(vbriefDir: string): IngestEmissionLayout {
     return {
       artifactSuffix: LEGACY_ARTIFACT_SUFFIX,
       infoRootKey: LEGACY_INFO_ROOT_KEY,
-      infoVersion: LEGACY_VBRIEF_VERSION,
+      infoVersion: EMITTED_VBRIEF_VERSION,
     };
   }
   return {

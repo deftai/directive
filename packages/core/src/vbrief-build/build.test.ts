@@ -26,7 +26,7 @@ describe("createScopeVbrief", () => {
       "https://github.com/owner/repo",
     );
     expect(result.vBRIEFInfo).toEqual({
-      version: "0.6",
+      version: "0.8",
       description: "Scope vBRIEF for #99: Test feature",
     });
     const refs = (result.plan as Record<string, unknown>).references as Record<string, unknown>[];

@@ -1,10 +1,13 @@
-/** Canonical ``vBRIEFInfo.version`` emitted on scope vBRIEFs (#533). */
-export const EMITTED_VBRIEF_VERSION = "0.6";
+import { VBRIEF_VERSION } from "@deftai/directive-types";
+
+/** Canonical envelope version emitted on new scope xBRIEFs (#533, #2318). */
+export const EMITTED_VBRIEF_VERSION = VBRIEF_VERSION;
 
 /** Migrator provenance namespace under ``plan.metadata`` (#616). */
 export const MIGRATOR_METADATA_KEY = "x-migrator";
 
-export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
+/** Canonical PROJECT-DEFINITION relative path on migrated xbrief/ trees (#2302). */
+export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
 export const DEPRECATION_SENTINEL = "<!-- deft:deprecated-redirect -->";
 
