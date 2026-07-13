@@ -1,11 +1,21 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { writeState } from "../doctor/doctor-state.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { append } from "../intake/candidates-log.js";
 import { resolveEvalDir } from "../layout/resolve.js";
 import {
+  ensureTriageCacheDir,
   migrateLegacyTriageCacheFromEval,
   resolveCandidatesLogPath,
   resolveTriageCacheDir,
@@ -13,6 +23,8 @@ import {
   TRIAGE_CACHE_DIR_NAME,
   triageCacheRelPath,
 } from "./cache-path.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 describe("triage cache-path (#1703)", () => {
   let root: string;
@@ -222,5 +234,76 @@ describe("triage cache-path (#1703)", () => {
     const canonical = join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "candidates.jsonl");
     expect(existsSync(canonical)).toBe(true);
     expect(existsSync(join(legacyDir, "candidates.jsonl"))).toBe(false);
+  });
+});
+
+describe("triage cache-path symlink containment (#2446)", () => {
+  let root: string;
+  const temps: string[] = [];
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "triage-cache-contain-"));
+    temps.push(root);
+  });
+
+  afterEach(() => {
+    for (const t of temps.splice(0)) {
+      if (t !== root) rmSync(t, { recursive: true, force: true });
+    }
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  function seedXbrief(): void {
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "s.xbrief.json"),
+      JSON.stringify({ plan: { id: "s", status: "running", items: [] } }),
+      "utf8",
+    );
+  }
+
+  function freshEscape(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    temps.push(dir);
+    return dir;
+  }
+
+  itSymlink("refuses when xbrief is a symlink escaping the project tree", () => {
+    seedXbrief();
+    const escapeDir = freshEscape("triage-xbrief-escape-");
+    rmSync(join(root, "xbrief"), { recursive: true, force: true });
+    symlinkSync(escapeDir, join(root, "xbrief"), "dir");
+
+    expect(() => resolveTriageCacheDir(root)).toThrow(ProjectionContainmentError);
+    expect(() => ensureTriageCacheDir(root)).toThrow(/symlink escaping/);
+    expect(existsSync(join(escapeDir, TRIAGE_CACHE_DIR_NAME))).toBe(false);
+  });
+
+  itSymlink("refuses when .triage-cache is a symlink escaping the project tree", () => {
+    seedXbrief();
+    const escapeDir = freshEscape("triage-cache-escape-");
+    const escapeFile = join(escapeDir, "stolen.jsonl");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(escapeFile, "victim\n", "utf8");
+    symlinkSync(escapeFile, join(root, "xbrief", TRIAGE_CACHE_DIR_NAME));
+
+    expect(() => resolveTriageCachePath(root, "candidates.jsonl")).toThrow(
+      ProjectionContainmentError,
+    );
+    expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
+  });
+
+  itSymlink("migrateLegacyTriageCacheFromEval refuses without out-of-tree mkdir", () => {
+    seedXbrief();
+    const escapeDir = freshEscape("triage-migrate-escape-");
+    const legacyDir = resolveEvalDir(root);
+    mkdirSync(legacyDir, { recursive: true });
+    writeFileSync(join(legacyDir, "candidates.jsonl"), "legacy\n", "utf8");
+    rmSync(join(root, "xbrief"), { recursive: true, force: true });
+    symlinkSync(escapeDir, join(root, "xbrief"), "dir");
+
+    expect(() => migrateLegacyTriageCacheFromEval(root)).toThrow(/symlink escaping/);
+    expect(existsSync(join(escapeDir, TRIAGE_CACHE_DIR_NAME))).toBe(false);
+    expect(readFileSync(join(legacyDir, "candidates.jsonl"), "utf8")).toBe("legacy\n");
   });
 });

@@ -19,6 +19,10 @@ import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { platform } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
@@ -27,6 +31,13 @@ import { installerManagedGuardEre } from "./hygiene.js";
 export type { InitDepositIo };
 export { CANONICAL_INSTALL_ROOT };
 export const CORE_GLOB = ".deft/core/**";
+
+/** Refuse init/update projection writes that escape via repo-controlled symlinks (#2446). */
+function projectionTarget(projectDir: string, ...relSegments: string[]): string {
+  const target = join(projectDir, ...relSegments);
+  assertProjectionContained(projectDir, target);
+  return target;
+}
 
 const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
 const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
@@ -293,7 +304,7 @@ export function ensurePackageJsonPin(
   io: InitDepositIo,
 ): EnsurePackageJsonPinResult {
   const pinVersion = version.trim().replace(/^v/i, "");
-  const path = join(projectDir, "package.json");
+  const path = projectionTarget(projectDir, "package.json");
   const existed = existsSync(path);
 
   let pkg: Record<string, unknown> = {};
@@ -351,7 +362,7 @@ export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepos
   if (typeof newContent !== "string") {
     throw new Error("AGENTS.md render produced no content");
   }
-  const path = join(projectDir, "AGENTS.md");
+  const path = projectionTarget(projectDir, "AGENTS.md");
   writeFileSync(path, newContent, "utf8");
   if (state === "absent") {
     io.printf("AGENTS.md created.\n");
@@ -361,9 +372,9 @@ export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepos
   return true;
 }
 
-async function ensureVbriefLifecycleDirs(consumerVbrief: string): Promise<void> {
+async function ensureVbriefLifecycleDirs(projectDir: string): Promise<void> {
   for (const sub of VBRIEF_LIFECYCLE_DIRS) {
-    const dir = join(consumerVbrief, sub);
+    const dir = projectionTarget(projectDir, MIGRATED_ARTIFACT_DIR, sub);
     await mkdir(dir, { recursive: true, mode: 0o755 });
     const gitkeep = join(dir, ".gitkeep");
     try {
@@ -393,9 +404,9 @@ export async function writeConsumerVbrief(
   deftDir: string,
   io: InitDepositIo,
 ): Promise<boolean> {
-  const consumerVbrief = join(projectDir, MIGRATED_ARTIFACT_DIR);
-  const schemasDst = join(consumerVbrief, "schemas");
-  const vbriefMdDst = join(consumerVbrief, "vbrief.md");
+  const consumerVbrief = projectionTarget(projectDir, MIGRATED_ARTIFACT_DIR);
+  const schemasDst = projectionTarget(projectDir, MIGRATED_ARTIFACT_DIR, "schemas");
+  const vbriefMdDst = projectionTarget(projectDir, MIGRATED_ARTIFACT_DIR, "vbrief.md");
 
   const schemasPresent = existsSync(schemasDst) && statSync(schemasDst).isDirectory();
   const vbriefMdPresent = existsSync(vbriefMdDst) && statSync(vbriefMdDst).isFile();
@@ -425,7 +436,7 @@ export async function writeConsumerVbrief(
     }
   }
 
-  await ensureVbriefLifecycleDirs(consumerVbrief);
+  await ensureVbriefLifecycleDirs(projectDir);
   io.printf("vbrief/ deposited at project root (schemas + vbrief.md + lifecycle dirs).\n");
   return true;
 }
@@ -440,9 +451,9 @@ export function writeAgentsSkills(projectDir: string, io: InitDepositIo): boolea
   }
 
   for (const skill of AGENTS_SKILLS) {
-    const dir = join(projectDir, ".agents", "skills", skill.dir);
+    const dir = projectionTarget(projectDir, ".agents", "skills", skill.dir);
     mkdirSync(dir, { recursive: true });
-    const path = join(dir, "SKILL.md");
+    const path = projectionTarget(projectDir, ".agents", "skills", skill.dir, "SKILL.md");
     if (existsSync(path)) continue;
     writeFileSync(path, skill.content, "utf8");
   }
@@ -489,7 +500,7 @@ function insertDeftIncludeAfterIncludesLine(content: string): { content: string;
 }
 
 export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
-  const path = join(projectDir, "Taskfile.yml");
+  const path = projectionTarget(projectDir, "Taskfile.yml");
   let existing = "";
   if (existsSync(path)) {
     existing = readFileSync(path, "utf8");
@@ -560,7 +571,7 @@ export function writeConsumerGitHooks(
     return false;
   }
 
-  const dstDir = join(projectDir, ".githooks");
+  const dstDir = projectionTarget(projectDir, ".githooks");
   mkdirSync(dstDir, { recursive: true });
 
   let filesDeposited = false;
@@ -568,7 +579,7 @@ export function writeConsumerGitHooks(
     const src = join(srcDir, name);
     if (!existsSync(src)) continue;
     const data = readFileSync(src);
-    const dst = join(dstDir, name);
+    const dst = projectionTarget(projectDir, ".githooks", name);
     const existing = existsSync(dst) ? readFileSync(dst) : null;
     const isHookScript = HOOK_FILENAMES.includes(name as (typeof HOOK_FILENAMES)[number]);
     if (!existing?.equals(data)) {
@@ -763,7 +774,7 @@ function coreGuardWorkflowContent(): string {
 }
 
 export function ensureGitattributes(projectDir: string, io: InitDepositIo): boolean {
-  const path = join(projectDir, ".gitattributes");
+  const path = projectionTarget(projectDir, ".gitattributes");
   const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
   const present = new Set(existing.split("\n").map((line) => line.trim()));
   const additions = CORE_GITATTRIBUTES_LINES.filter((line) => !present.has(line));
@@ -799,7 +810,7 @@ function appendGreptilePattern(patterns: string, glob: string): string {
 }
 
 export function ensureGreptileIgnore(projectDir: string, io: InitDepositIo): boolean {
-  const path = join(projectDir, "greptile.json");
+  const path = projectionTarget(projectDir, "greptile.json");
   const fileExisted = existsSync(path);
   let raw = fileExisted ? readFileSync(path, "utf8") : "";
   if (!raw.trim()) raw = "{}";
@@ -878,7 +889,7 @@ function insertCodeqlPathsIgnore(content: string, glob: string): { content: stri
 }
 
 export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): boolean {
-  const path = join(projectDir, CODEQL_CONFIG_REL);
+  const path = projectionTarget(projectDir, CODEQL_CONFIG_REL);
   if (!existsSync(path)) {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, codeqlConfigDefault(), "utf8");
@@ -900,7 +911,7 @@ export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): 
 }
 
 export function ensureCoreGuardWorkflow(projectDir: string, io: InitDepositIo): boolean {
-  const path = join(projectDir, CORE_GUARD_WORKFLOW_REL);
+  const path = projectionTarget(projectDir, CORE_GUARD_WORKFLOW_REL);
   const desired = coreGuardWorkflowContent();
   if (existsSync(path)) {
     const existing = readFileSync(path, "utf8");
@@ -1000,6 +1011,9 @@ export async function depositNeutralization(
     try {
       await step();
     } catch (cause) {
+      if (cause instanceof ProjectionContainmentError) {
+        throw cause;
+      }
       io.printf(`Warning: neutralization step failed: ${String(cause)}\n`);
     }
   }
