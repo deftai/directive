@@ -27,6 +27,11 @@ function withPlan(plan: unknown): string {
   return JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan });
 }
 
+/** Create a temp project root with a typed PROJECT-DEFINITION plan object. */
+function makeRepoWithPlan(plan: unknown): string {
+  return makeRepo(withPlan(plan));
+}
+
 describe("resolveAgentsMdBudget", () => {
   it("returns default-on-error when PROJECT-DEFINITION is absent", () => {
     const result = resolveAgentsMdBudget(makeRepo());
@@ -99,9 +104,9 @@ describe("resolveAgentsMdBudget", () => {
 
   it("returns default-on-error when a region value is a non-integer float", () => {
     const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({ policy: { agentsMdBudget: { managedMaxLines: 5.5, unmanagedMaxLines: 10 } } }),
-      ),
+      makeRepoWithPlan({
+        policy: { agentsMdBudget: { managedMaxLines: 5.5, unmanagedMaxLines: 10 } },
+      }),
     );
     expect(result.source).toBe("default-on-error");
     expect(result.error).toContain("must be a non-negative integer");
@@ -110,9 +115,9 @@ describe("resolveAgentsMdBudget", () => {
 
   it("returns default-on-error when a region value is a string (reports str type)", () => {
     const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({ policy: { agentsMdBudget: { managedMaxLines: "5", unmanagedMaxLines: 10 } } }),
-      ),
+      makeRepoWithPlan({
+        policy: { agentsMdBudget: { managedMaxLines: "5", unmanagedMaxLines: 10 } },
+      }),
     );
     expect(result.source).toBe("default-on-error");
     expect(result.error).toContain("got str ('5')");
@@ -120,9 +125,9 @@ describe("resolveAgentsMdBudget", () => {
 
   it("returns default-on-error when a region value is negative", () => {
     const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({ policy: { agentsMdBudget: { managedMaxLines: 5, unmanagedMaxLines: -1 } } }),
-      ),
+      makeRepoWithPlan({
+        policy: { agentsMdBudget: { managedMaxLines: 5, unmanagedMaxLines: -1 } },
+      }),
     );
     expect(result.source).toBe("default-on-error");
     expect(result.error).toContain("must be a non-negative integer");
@@ -130,9 +135,9 @@ describe("resolveAgentsMdBudget", () => {
 
   it("resolves a typed budget when both regions are valid non-negative integers", () => {
     const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({ policy: { agentsMdBudget: { managedMaxLines: 223, unmanagedMaxLines: 347 } } }),
-      ),
+      makeRepoWithPlan({
+        policy: { agentsMdBudget: { managedMaxLines: 223, unmanagedMaxLines: 347 } },
+      }),
     );
     expect(result.source).toBe("typed");
     expect(result.error).toBeNull();
@@ -140,16 +145,17 @@ describe("resolveAgentsMdBudget", () => {
   });
 
   it("resolves optional absoluteMaxBytes when present", () => {
-    const raw = withPlan({
-      policy: {
-        agentsMdBudget: {
-          managedMaxLines: 1,
-          unmanagedMaxLines: 2,
-          absoluteMaxBytes: 16843,
+    const result = resolveAgentsMdBudget(
+      makeRepoWithPlan({
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 1,
+            unmanagedMaxLines: 2,
+            absoluteMaxBytes: 16843,
+          },
         },
-      },
-    });
-    const result = resolveAgentsMdBudget(makeRepo(raw));
+      }),
+    );
     expect(result.source).toBe("typed");
     expect(result.budget).toEqual({
       managedMaxLines: 1,
@@ -160,17 +166,15 @@ describe("resolveAgentsMdBudget", () => {
 
   it("returns default-on-error when absoluteMaxBytes is invalid", () => {
     const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({
-          policy: {
-            agentsMdBudget: {
-              managedMaxLines: 1,
-              unmanagedMaxLines: 2,
-              absoluteMaxBytes: -1,
-            },
+      makeRepoWithPlan({
+        policy: {
+          agentsMdBudget: {
+            managedMaxLines: 1,
+            unmanagedMaxLines: 2,
+            absoluteMaxBytes: -1,
           },
-        }),
-      ),
+        },
+      }),
     );
     expect(result.source).toBe("default-on-error");
     expect(result.error).toContain("absoluteMaxBytes");
@@ -178,11 +182,9 @@ describe("resolveAgentsMdBudget", () => {
 
   it("reads the namespaced x-directive/policy block", () => {
     const result = resolveAgentsMdBudget(
-      makeRepo(
-        withPlan({
-          "x-directive/policy": { agentsMdBudget: { managedMaxLines: 1, unmanagedMaxLines: 2 } },
-        }),
-      ),
+      makeRepoWithPlan({
+        "x-directive/policy": { agentsMdBudget: { managedMaxLines: 1, unmanagedMaxLines: 2 } },
+      }),
     );
     expect(result.source).toBe("typed");
     expect(result.budget).toEqual({ managedMaxLines: 1, unmanagedMaxLines: 2 });
