@@ -55,7 +55,9 @@ function collectTaskSurface(): Set<string> {
   const includes = parseIncludes(rootText);
   for (const [namespace, fileName] of includes) {
     const fragmentPath = join(repoRoot(), "tasks", fileName);
-    const fragmentText = readFileSync(fragmentPath, { encoding: "utf8" }).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const fragmentText = readFileSync(fragmentPath, { encoding: "utf8" })
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
     for (const { name, start, end } of iterTaskBlocks(fragmentText)) {
       const body = fragmentText.split("\n").slice(start, end).join("\n");
       if (/^\s+internal:\s*true\s*$/m.test(body)) {

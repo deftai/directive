@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 // chmod-based tests don't reliably block access on Windows; skip there.
 const itChmod = it.skipIf(process.platform === "win32");
+
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import {
   updateDecomposedChildBackReferences,

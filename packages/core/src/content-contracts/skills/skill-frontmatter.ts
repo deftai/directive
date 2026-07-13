@@ -7,7 +7,14 @@ export { REQUIRED_OSES };
 const OS_LINE = /^os\s*:\s*\[(?<body>[^\]]*)\]\s*$/m;
 const OS_TOKEN = /['"]([^'"]+)['"]/g;
 
-const EXCLUDED_PARTS = new Set([".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"]);
+const EXCLUDED_PARTS = new Set([
+  ".git",
+  ".venv",
+  "venv",
+  "node_modules",
+  "__pycache__",
+  ".pytest_cache",
+]);
 
 function frontmatter(text: string): string | null {
   if (!text.startsWith("---")) {

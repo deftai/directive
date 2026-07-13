@@ -36,9 +36,7 @@ export function readText(relPath: string): string {
 }
 
 export function readAbs(absPath: string): string {
-  return readFileSync(absPath, { encoding: "utf8" })
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n");
+  return readFileSync(absPath, { encoding: "utf8" }).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
 export function pathExists(relPath: string): boolean {

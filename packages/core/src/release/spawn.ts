@@ -9,9 +9,7 @@ export function defaultWhich(name: string): string | null {
     return null;
   }
   // `where` on Windows may return multiple lines; take the first non-empty match.
-  const first = (result.stdout ?? "")
-    .split(/\r?\n/)
-    .find((line) => line.trim().length > 0);
+  const first = (result.stdout ?? "").split(/\r?\n/).find((line) => line.trim().length > 0);
   return first ? first.trim() : null;
 }
 
