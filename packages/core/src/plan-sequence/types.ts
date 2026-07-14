@@ -57,7 +57,10 @@ export type PlanSequenceVerifyResult =
 
 export type ContinuationResolution =
   | { readonly action: "advance"; readonly entry: PlanSequenceEntry; readonly index: number }
-  | { readonly action: "queue"; readonly reason: "no-active-sequence" }
+  | {
+      readonly action: "queue";
+      readonly reason: "no-active-sequence" | "explicit-queue-override" | "not-plan-first-phrase";
+    }
   | {
       readonly action: "ask";
       readonly reason: "exhausted" | "ambiguous-sequences";
@@ -89,6 +92,7 @@ export const PLAN_FIRST_PHRASES = [
   "move on",
   "proceed",
   "resume",
+  "next",
 ] as const;
 
 export const EXHAUSTED_FAIL_CLOSED_MESSAGE =
@@ -134,9 +138,9 @@ export function resolveContinuation(
   text: string,
   sequence: PlanSequence | null,
 ): ContinuationResolution {
-  // Explicit backlog/cohort asks always select from the queue.
+  // Explicit backlog/cohort asks always select from the queue, even mid-plan.
   if (isExplicitQueueAsk(text)) {
-    return { action: "queue", reason: "no-active-sequence" };
+    return { action: "queue", reason: "explicit-queue-override" };
   }
   // No active sequence → queue (same as today's #1149 path).
   if (sequence === null) {
@@ -144,7 +148,7 @@ export function resolveContinuation(
   }
   // Active sequence + plan-first / continuation phrase → bind to current entry.
   if (!isPlanFirstPhrase(text)) {
-    return { action: "queue", reason: "no-active-sequence" };
+    return { action: "queue", reason: "not-plan-first-phrase" };
   }
   if (sequence.exhausted || sequence.current_index >= sequence.entries.length) {
     if (sequence.continuation_past_final) {

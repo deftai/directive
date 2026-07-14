@@ -9,7 +9,7 @@
     "id": "2402-ordered-plan-continuation",
     "title": "bug: continuation language can escape an approved ordered plan",
     "status": "running",
-    "kind": "story",
+    "x-directive/kind": "story",
     "narratives": {
       "Description": "Add a deterministic ordered-plan continuation boundary so words like next/resume/proceed advance only within the narrowest operator-approved sequence and fail closed when exhausted. AGENTS.md stays pointer-thin (amend #1149 only); bulk lives in preamble, skills, and plan-sequence CLI/gate. Do not reuse triage queue continuation* fields.",
       "UserStory": "As an operator, when I approve a two-PR delivery sequence and say move on to the next task/pr, I want the agent to open only the next approved entry and stop after the last one, so continuation language cannot widen into the triage queue or adjacent backlog.",

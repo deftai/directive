@@ -5,7 +5,6 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  EXHAUSTED_FAIL_CLOSED_MESSAGE,
   type PlanTargetKind,
   readPlanSequence,
   verifyPlanTarget,
@@ -108,9 +107,6 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     );
   } else {
     process.stderr.write(`${result.message}\n`);
-    if (result.code === "exhausted") {
-      process.stderr.write(`${EXHAUSTED_FAIL_CLOSED_MESSAGE}\n`);
-    }
   }
   return result.ok ? 0 : 1;
 }

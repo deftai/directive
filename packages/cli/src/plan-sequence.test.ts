@@ -55,4 +55,15 @@ describe("plan-sequence CLI (#2402)", () => {
       verifyPlanSequenceMain(["--project-root", root, "--target-kind", "pr", "--target", "x"]),
     ).toBe(0);
   });
+
+  it("set rejects a JSON payload that is not an object (null/array/primitive)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-non-object-"));
+    roots.push(root);
+    const nullFile = join(root, "null.json");
+    writeFileSync(nullFile, "null");
+    expect(planSequenceMain(["set", "--project-root", root, "--file", nullFile])).toBe(1);
+    const arrayFile = join(root, "array.json");
+    writeFileSync(arrayFile, "[1,2,3]");
+    expect(planSequenceMain(["set", "--project-root", root, "--file", arrayFile])).toBe(1);
+  });
 });

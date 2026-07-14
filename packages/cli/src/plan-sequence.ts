@@ -85,7 +85,11 @@ function loadSetPayload(parsed: Parsed, root: string): PlanSequence {
   if (text === null || text === undefined) {
     throw new Error("plan-sequence set requires --file <path> or --from-json <json>");
   }
-  const raw = JSON.parse(text) as Record<string, unknown>;
+  const payload: unknown = JSON.parse(text);
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    throw new Error("plan-sequence set: --file/--from-json must contain a JSON object");
+  }
+  const raw = payload as Record<string, unknown>;
   if (typeof raw.current_index === "number" || raw.exhausted === true) {
     return parsePlanSequence(raw);
   }

@@ -83,10 +83,10 @@ describe("plan-sequence (#2402)", () => {
     expect(result).toEqual({ action: "queue", reason: "no-active-sequence" });
   });
 
-  it("explicit queue ask stays queue-driven even mid-plan", () => {
+  it("explicit queue ask stays queue-driven even mid-plan with a distinct reason", () => {
     const seq = twoPrPlan();
     const result = resolveContinuation("what's the queue?", seq);
-    expect(result.action).toBe("queue");
+    expect(result).toEqual({ action: "queue", reason: "explicit-queue-override" });
   });
 
   it("verify matches current entry only", () => {
@@ -119,8 +119,11 @@ describe("plan-sequence (#2402)", () => {
     expect(resolveContinuation("what's next?", seq).action).toBe("queue");
   });
 
-  it("non-plan-first text with active sequence does not bind", () => {
-    expect(resolveContinuation("hello world", twoPrPlan()).action).toBe("queue");
+  it("non-plan-first text with active sequence does not bind, with a distinct reason", () => {
+    expect(resolveContinuation("hello world", twoPrPlan())).toEqual({
+      action: "queue",
+      reason: "not-plan-first-phrase",
+    });
   });
 
   it("verify reports kind-mismatch and missing sequence", () => {
@@ -147,6 +150,12 @@ describe("plan-sequence (#2402)", () => {
     expect(isExplicitQueueAsk("build a cohort please")).toBe(true);
     expect(isPlanFirstPhrase("please proceed")).toBe(true);
     expect(isPlanFirstPhrase("unrelated")).toBe(false);
+  });
+
+  it("bare 'next' binds to the ordered plan per preamble § 2.55", () => {
+    expect(isPlanFirstPhrase("okay, next")).toBe(true);
+    const result = resolveContinuation("okay, next", twoPrPlan());
+    expect(result.action).toBe("advance");
   });
 
   it("parsePlanSequence accepts exhausted and status variants", () => {
