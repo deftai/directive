@@ -485,10 +485,11 @@ func TestWriteAgentsMD_CreateNew(t *testing.T) {
 	if strings.Contains(string(data), "Skills: deft/SKILL.md") {
 		t.Error("AGENTS.md should not contain Skills line — .agents/skills/ handles discovery")
 	}
-	// Verify deft-directive-setup references (not legacy deft-setup).
+	// #2535: Session routing no longer embeds setup-skill path; another runtime
+	// `.agents/skills/` reference proves the template uses modern paths (not legacy deft-setup).
 	content := string(data)
-	if !strings.Contains(content, "deft-directive-setup") {
-		t.Error("AGENTS.md should reference deft-directive-setup")
+	if !strings.Contains(content, ".deft/core/.agents/skills/") {
+		t.Error("AGENTS.md should reference a runtime .agents/skills/ path")
 	}
 	if strings.Contains(content, "deft/skills/deft-setup/") {
 		t.Error("AGENTS.md should not reference legacy deft-setup path")

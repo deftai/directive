@@ -73,22 +73,22 @@ describe("test_500_discoverability", () => {
 
   it("agents_entry_template_has_pre_cutover_branch", () => {
     const text = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    // #2493: Pre-Cutover / First / Returning collapse into Session routing (#2176).
+    // #2535: Session routing is one pointer-thin bootstrap line (#2176).
     expect(text).toContain("## Session routing (#2176)");
-    expect(text).toContain("Pre-Cutover Detection Guard");
-    expect(text).toContain("Cold-start bootstrap");
-    expect(text).toContain("USER.md missing");
+    expect(text).toContain("Pre-Cutover (#2068)");
+    expect(text).toContain("Cold-start (#2273)");
+    expect(text).toContain("missing USER.md / PROJECT-DEFINITION");
     expect(text.indexOf("## First Session")).toBe(-1);
     expect(text.indexOf("## Returning Sessions")).toBe(-1);
   });
 
   it("agents_entry_template_references_deprecated_redirect_sentinel", () => {
-    // Full pre-cutover detection criteria live in setup SKILL; agents-entry is pointer-thin (#2493).
+    // Full pre-cutover detection criteria live in setup SKILL; agents-entry is pointer-thin (#2535).
     const setup = readRepoFile(SETUP_SKILL);
     expect(setup).toContain("deft:deprecated-redirect");
     const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    expect(entry).toContain("Pre-Cutover Detection Guard");
-    expect(entry).toContain("deft-directive-setup/SKILL.md");
+    expect(entry).toContain("Pre-Cutover (#2068)");
+    expect(entry).toContain("commands.md");
   });
 
   it("agents_entry_template_references_lifecycle_folders", () => {
@@ -103,8 +103,9 @@ describe("test_500_discoverability", () => {
 
   it("agents_entry_template_routes_to_setup_skill", () => {
     const text = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    expect(text).toContain(".deft/core/.agents/skills/deft-directive-setup/SKILL.md");
-    expect(text).toContain("Pre-Cutover Detection Guard");
+    // #2535: setup skill path lives in setup SKILL; entry routes via Pre-Cutover pointer (#2068).
+    expect(text).toContain("setup Pre-Cutover (#2068)");
+    expect(text).toContain("commands.md");
   });
 
   it("setup_go_mirrors_pre_cutover_branch", () => {
@@ -113,8 +114,8 @@ describe("test_500_discoverability", () => {
     expect(setupGoContent).not.toContain("agentsMDEntry = `");
     const entry = readRepoFile(AGENTS_ENTRY_TEMPLATE);
     expect(entry).toContain("## Session routing (#2176)");
-    expect(entry).toContain("Pre-Cutover Detection Guard");
-    expect(entry).toContain("deft-directive-setup/SKILL.md");
+    expect(entry).toContain("Pre-Cutover (#2068)");
+    expect(entry).toContain("commands.md");
     const setup = readRepoFile(SETUP_SKILL);
     expect(setup).toContain("deft:deprecated-redirect");
     for (const folder of LIFECYCLE_FOLDERS) {

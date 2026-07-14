@@ -12,7 +12,8 @@ describe("test_agents_md", () => {
   it("agents_md_headless_bypass_before_user_md_check", () => {
     const text = readAgentsMd();
     const bypassPos = text.toLowerCase().indexOf("headless bypass");
-    const userMdPos = text.indexOf("USER.md missing");
+    // #2535: USER.md missing prose collapsed to "missing USER.md / PROJECT-DEFINITION".
+    const userMdPos = text.indexOf("missing USER.md / PROJECT-DEFINITION");
     expect(bypassPos).not.toBe(-1);
     expect(userMdPos).not.toBe(-1);
     expect(bypassPos).toBeLessThan(userMdPos);
@@ -36,7 +37,7 @@ describe("test_agents_md", () => {
 
   it("agents_md_deft_alignment_confirmation_rule", () => {
     const text = readAgentsMd();
-    expect(text.toLowerCase()).toContain("deft directive active");
+    expect(text.toLowerCase()).toContain("deft directive is active");
   });
 
   it("agents_md_deft_alignment_context_reset_recovery", () => {
