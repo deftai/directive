@@ -89,11 +89,19 @@ function main() {
   }
 
   const result = spawnSync(execPath, execArgv, {
-    stdio: "inherit",
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
     env: process.env,
     // Global deft/directive on Windows are .cmd shims; shell:false cannot spawn them (#2415).
     shell: mode === "global" && process.platform === "win32",
+    maxBuffer: 16 * 1024 * 1024,
   });
+  if (result.stdout) {
+    process.stdout.write(result.stdout);
+  }
+  if (result.stderr) {
+    process.stderr.write(result.stderr);
+  }
   const code = result.status;
   process.exit(code === null ? 1 : code);
 }
