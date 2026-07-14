@@ -188,6 +188,7 @@ Full always-on contract for the interactive session-start ritual and its gated v
 ### Session routing (#2176)
 
 - ! Default interactive sessions to **read-only posture** until mutation or implementation intent (questions, research, Plan Mode, ticket-shaping). Load AGENTS.md / main.md / USER.md / PROJECT-DEFINITION; confirm alignment with addressing-name; ⊗ do not write `.deft/ritual-state.json`, run install/build side effects, or emit triage welcome, branch-policy, default-branch sync, sync-skill lifecycle checks, or eval/value readback writes unless the operator asks or the task is implementation-ready.
+- ! **USER.md path (#2544):** resolve via `deft session:start` output (`USER.md resolved …`); default platform paths: Windows `%APPDATA%\deft\USER.md`, Unix `~/.config/deft/USER.md`; override `$DEFT_USER_PATH`; workspace `<project>/.deft/USER.md`. ⊗ Invent or search `~/.config/deft` on Windows — AppData Roaming is canonical.
 - ! At mutation boundaries (code-writing, scope lifecycle moves, `start_agent`, commits, pushes, PR-from-local-changes, release work): run the mutable quick tier then gated verifier below before proceeding.
 - ? Explicit read-only alignment only: `deft session:start -- --read-only` (no ritual-state write).
 - ~ Operators MAY still explicitly request full `deft session:start`, `deft triage:welcome`, sync, or doctor in read-only sessions.

@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2544"
+  },
+  "plan": {
+    "title": "docs(agents): surface Windows %APPDATA%\\\\deft\\\\USER.md in always-on session bootstrap",
+    "status": "running",
+    "narratives": {
+      "Description": "Always-on AGENTS session routing omits the Windows USER.md path, so agents invent ~/.config/deft and report USER.md missing. This story surfaces the platform default (and a resolve-verb mandate) without changing the onboarding write location.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2544",
+      "Overview": "## Problem\n\nSession bootstrap tells agents to read `USER.md` and confirm alignment, but the always-on surface (`AGENTS.md` / managed Session routing) does **not** name the platform path. Agents then guess Unix XDG (`~/.config/deft/USER.md` / `C:\\Users\\<user>\\.config\\deft\\USER.md`) and report USER.md missing on native Windows even when the file is present at the correct location.\n\n## Evidence (this session)\n\n1. Agent searched `./USER.md` and `C:\\Users\\msada\\.config\\deft\\USER.md` — both missing.\n2. Operator pointed at the real file: `C:\\Users\\msada\\AppData\\Roaming\\deft\\USER.md` (`%APPDATA%\\deft\\USER.md`).\n3. That is exactly where setup / Platform Detection put it (`content/skills/deft-directive-setup/SKILL.md`, `resolveUserMdPath` rung 3).\n4. Runtime resolution is fine (`packages/core/src/user-config/resolve-user-md.ts`); the gap is **agent discovery**, not the resolver.\n\n## Why this bites\n\n- `#2271` fixed programmatic first-hit-wins resolution for CLI/session-start code paths.\n- Interactive agents still follow prose: \"read USER.md\" without a path table, so they invent `~/.config/deft` on Windows.\n- Alignment confirmation then fails or skips Personal (always wins) addressing-name until the human corrects the path.\n\n## Expected\n\nAlways-on or near-always-on guidance (AGENTS.md Session routing / session-start ritual / a one-line `task` diagnostic) should make the platform default unmistakable:\n\n| Platform | Default USER.md |\n|---|---|\n| Windows | `%APPDATA%\\deft\\USER.md` |\n| Unix | `~/.config/deft/USER.md` |\n| Override | `$DEFT_USER_PATH` |\n| Workspace bridge | `<project>/.deft/USER.md` |\n\nConcrete options (pick one or combine):\n\n1. **Pointer in managed Session routing** — one compact line: resolve via `task session:start` / shared order; on win32 prefer `%APPDATA%\\deft`, not `~/.config`.\n2. **Agent-facing resolve verb** — e.g. `task user:show-path` / session-start already prints `USER.md resolved (platform-config): …` — mandate agents use that output instead of filesystem guessing.\n3. **⊗ anti-pattern** — do not treat `~\\.config\\deft` as canonical on Windows.\n\n## Non-goals\n\n- Changing the Windows onboarding write location (Roaming is correct).\n- Replacing `#2271` search order.\n\n## Acceptance\n\n- A fresh Windows interactive session finds `%APPDATA%\\deft\\USER.md` without the operator supplying the path.\n- Agents no longer conclude \"USER.md missing\" solely because `~\\.config\\deft` is absent on win32.\n\n## Related\n\n- #2271 / PR #2290 (resolver search order — code path OK)\n- Setup skill already documents the table; always-on AGENTS path does not",
+      "Labels": "bug, docs, agent-experience, runtime-portability, urgent",
+      "UserStory": "As a Windows maintainer, I want always-on session bootstrap to name %APPDATA%\\deft\\USER.md, so that agents find Personal preferences without guessing XDG paths.",
+      "ImplementationPlan": "1. Update the managed Session routing pointer in content/templates/agents-entry.md (and refresh AGENTS.md) so win32 agents are told to read %APPDATA%\\\\deft\\\\USER.md rather than inventing ~/.config/deft.\n2. Add a content/unit contract or packages/core/src/user-config test that asserts the documented resolve order and fails if the Windows AppData path disappears from always-on bootstrap text.\n3. Verify with task agents:refresh plus the focused user-config test module so evidence shows agents can locate USER.md without operator paste.",
+      "Acceptance": "1. Always-on bootstrap names Windows AppData USER.md\n2. Resolver path remains authoritative\n3. Regression test guards the pointer"
+    },
+    "items": [
+      {
+        "title": "Always-on bootstrap names Windows AppData USER.md",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a native Windows session bootstrap, when an agent reads the managed Session routing card, then it shows %APPDATA%\\\\deft\\\\USER.md as the default path and rejects inventing ~/.config/deft."
+        }
+      },
+      {
+        "title": "Resolver path remains authoritative",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given DEFT_USER_PATH is unset, when resolveUserMdPath runs on win32, then it returns the Roaming AppData deft USER.md path and the bootstrap prose matches that order."
+        }
+      },
+      {
+        "title": "Regression test guards the pointer",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the content contract or user-config test suite, when the Windows path pointer is removed, then the focused test fails before merge."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "docs",
+      "agent-experience",
+      "runtime-portability",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2544",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2544: docs(agents): surface Windows %APPDATA%\\\\deft\\\\USER.md in always-on session bootstrap"
+      }
+    ],
+    "updated": "2026-07-14T22:24:21Z",
+    "id": "windows-user-md-appdata-discovery",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "packages/core/src/user-config/"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "pnpm --filter @deftai/directive-core test -- user-config"
+        ],
+        "expected_outputs": [
+          "Always-on bootstrap names %APPDATA%\\deft\\USER.md",
+          "Anti-pattern against inventing ~/.config/deft on Windows",
+          "Tests or content contract covering the pointer"
+        ],
+        "depends_on": [],
+        "conflict_group": "windows-user-md",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2544 documents agent discovery gap; resolver code already correct (#2271). No specification.xbrief.json section owns always-on bootstrap path tables."
+      }
+    }
+  }
+}

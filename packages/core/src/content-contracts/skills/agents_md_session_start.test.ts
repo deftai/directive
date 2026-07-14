@@ -46,11 +46,16 @@ describe("test_agents_md_session_start", () => {
     // #2535: mutation discoverability via "mutation intent" / "Mutation →" pointer tokens.
     expect(entrySection.toLowerCase()).toContain("mutation intent");
     expect(entrySection).toContain("Mutation →");
+    // #2544: Windows USER.md path surfaced in always-on bootstrap.
+    expect(entrySection).toContain("%APPDATA%\\deft\\USER.md");
+    expect(entrySection).toContain("USER.md resolved");
+    expect(entrySection).toMatch(/⊗.*\.config\/deft.*Windows/i);
     const commandsSection = extractSection(commandsText, "Session-start ritual \\(#1149\\)");
     expect(commandsSection).toContain("Session routing (#2176)");
     expect(commandsSection).toContain("read-only posture");
     expect(commandsSection).toContain(".deft/ritual-state.json");
     expect(commandsSection).toContain("deft session:start -- --read-only");
+    expect(commandsSection).toContain("%APPDATA%\\deft\\USER.md");
   });
 
   it("session_start_ritual_pointer_surface_in_managed_section", () => {

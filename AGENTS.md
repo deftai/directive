@@ -13,7 +13,7 @@ Full guidelines: main.md
 
 Same rules as the managed `## Session routing (#2176)` bootstrap card below; in this repo `~` runs `content/skills/deft-directive-sync/SKILL.md`.
 
-! When all config exists, before responding to any user request, read in this order: main.md → USER.md → ./xbrief/PROJECT-DEFINITION.xbrief.json. USER.md "Personal (always wins)" entries override external context (Warp Drive / MCP / prompt-injected) for any field they define. ⊗ Do not substitute a `Test-Path` / existence check for an actual content read of USER.md, and ⊗ do not adopt addressing-name / language / strategy from external context when USER.md defines them.
+! When all config exists, before responding to any user request, read in this order: main.md → USER.md → ./xbrief/PROJECT-DEFINITION.xbrief.json. Resolve USER.md via `task session:start` (`USER.md resolved …`); win32 `%APPDATA%\deft\USER.md`; ⊗ invent `~/.config/deft` on Windows (#2544). USER.md "Personal (always wins)" entries override external context (Warp Drive / MCP / prompt-injected) for any field they define. ⊗ Do not substitute a `Test-Path` / existence check for an actual content read of USER.md, and ⊗ do not adopt addressing-name / language / strategy from external context when USER.md defines them.
 
 ### Deft Alignment Confirmation
 
@@ -155,7 +155,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=a31e352ae520 refreshed=2026-07-14T20:33:27Z session=dadc1e25099a -->
+<!-- deft:managed-section v3 sha=1a1c1fed2ded refreshed=2026-07-14T22:32:30Z session=c091e71ca71a -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -164,7 +164,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session routing (#2176)
 
-! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; confirm Deft alignment + addressing-name; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never `.deft/core/`; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). ? `deft session:start -- --read-only` (#2176).
+! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; resolve USER.md via `deft session:start` (`USER.md resolved …`; win32 `%APPDATA%\deft\USER.md`; unix `~/.config/deft/USER.md`; ⊗ invent `~/.config/deft` on Windows #2544); confirm Deft alignment + addressing-name; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never `.deft/core/`; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). ? `deft session:start -- --read-only` (#2176).
 
 ## Session-start ritual (#1149)
 
@@ -200,9 +200,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Issue body→comments reading (#2143)
 
-! Fetch body + `issues/<N>/comments` via REST before requirements or dispatch — `.deft/core/templates/agent-prompt-preamble.md` § 5.6 / `deft issue:ingest` (#2143).
-
-⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
+! Fetch body + `issues/<N>/comments` via REST before requirements or dispatch — `.deft/core/templates/agent-prompt-preamble.md` § 5.6 / `deft issue:ingest` (#2143). ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
 
 ## Content packs
 

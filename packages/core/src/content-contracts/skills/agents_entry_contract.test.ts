@@ -329,11 +329,16 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "addressing-name",
       "#2176",
       "mutation",
+      "%APPDATA%\\deft\\USER.md",
+      "USER.md resolved",
+      "#2544",
     ],
     canonicalBodyMarkers: [
       "read-only posture",
       "mutation intent",
       "deft session:start -- --read-only",
+      "%APPDATA%\\deft\\USER.md",
+      "USER.md resolved",
     ],
     retiredFullTextMarkers: [
       "Global-first ladder (prose",
