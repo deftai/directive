@@ -28,6 +28,7 @@ export * as intake from "./intake/index.js";
 export * as layout from "./layout/index.js";
 export * as legacyBridge from "./legacy-bridge/index.js";
 export * as lifecycle from "./lifecycle/index.js";
+export * as metrics from "./metrics/index.js";
 export * as orchestration from "./orchestration/index.js";
 export * as packs from "./packs/index.js";
 export * as platform from "./platform/index.js";

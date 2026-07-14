@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Helped and health metrics persist outside the project tree.** `crud-metrics.jsonl` and `health-history.jsonl` now append under the resolved user-data metrics home (`helped/` and `health/` subdirs) via `DEFT_METRICS_HOME` / platform AppData or XDG defaults; no fallback to `xbrief/.eval/results/`. Closes #2545. Refs #2544.
+
 ### Added
 
 - **Network-enabled doctor detects newer stable framework releases.** `deft doctor --network` now compares release-tag installs with the npm `latest` version even when the immutable pinned tag SHA still matches, preserves moved-ref priority, and does not nudge stable installs toward prereleases. Default doctor and session-ritual flows remain offline. Closes #1692. Refs #2488.

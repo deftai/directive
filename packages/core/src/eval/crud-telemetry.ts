@@ -8,11 +8,12 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
-import { resolveEvalPath } from "../layout/resolve.js";
+import { helpedMetricsHistoryPath } from "../metrics/resolve-metrics-home.js";
 import { scanVbrief } from "../vbrief-validate/conformance.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 
-export const CRUD_METRICS_HISTORY_REL = "results/crud-metrics.jsonl";
+/** Relative path under the resolved metrics home for helped / value telemetry (#2545). */
+export const CRUD_METRICS_HISTORY_REL = "helped/crud-metrics.jsonl";
 
 export type CrudOperation = "create" | "read" | "update" | "delete";
 
@@ -142,12 +143,12 @@ function ensureParentDir(path: string): void {
   mkdirSync(dirname(path), { recursive: true });
 }
 
-/** Absolute path to the versioned CRUD metrics ledger (#1703 Tier 1). */
-export function crudMetricsHistoryPath(projectRoot: string): string {
-  return resolveEvalPath(projectRoot, CRUD_METRICS_HISTORY_REL);
+/** Absolute path to the versioned CRUD metrics ledger (#1703 Tier 1 / #2545). */
+export function crudMetricsHistoryPath(projectRoot: string): string | null {
+  return helpedMetricsHistoryPath(projectRoot);
 }
 
-/** Append CRUD operation metrics to the versioned ledger (#1703 Tier 1). */
+/** Append CRUD operation metrics to the versioned ledger (#1703 Tier 1 / #2545). */
 export function persistCrudMetrics(
   projectRoot: string,
   metrics: readonly CrudOperationMetric[],
@@ -156,6 +157,9 @@ export function persistCrudMetrics(
     return;
   }
   const path = crudMetricsHistoryPath(projectRoot);
+  if (path === null) {
+    return;
+  }
   mkdirSync(dirname(path), { recursive: true });
   for (const metric of metrics) {
     appendFileSync(path, `${JSON.stringify(metric)}\n`, "utf8");

@@ -12,6 +12,30 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Helped + health metrics relocation (#2545)
+
+- **Applies when:** any project that upgraded to a release shipping #2545 and still has append logs under `<lifecycle-root>/.eval/results/crud-metrics.jsonl` or `health-history.jsonl` inside the git worktree.
+- **Safe to auto-run:** Yes. New runs write to the resolved user-data metrics root; no manual migration of historical rows is required (lost worktree copies are acceptable).
+- **Restart required:** No for the filesystem change. Start a **new agent session** after upgrade if agents still cite the old `xbrief/.eval/results/` paths.
+- **Commands:**
+  - `deft eval:health` (persists to the resolved metrics home on success)
+  - Inspect platform default: `%APPDATA%\deft\metrics\` (Windows) or `~/.config/deft/metrics/` (Unix)
+  - Headless / CI: set `DEFT_METRICS_HOME` (or `DEFT_EVAL_HOME`) to a job artifact directory
+
+### What changed
+
+- **Helped + health ledgers moved out of the project tree.** `crud-metrics.jsonl` (value / "how we helped") and `health-history.jsonl` (`eval:health` history) now resolve under a shared metrics home with `helped/` and `health/` subdirectories.
+- **Resolve ladder:** `DEFT_METRICS_HOME` / `DEFT_EVAL_HOME` override → optional workspace-local `<project>/.deft/metrics/` when `DEFT_METRICS_PROJECT_LOCAL=1` → platform user-data (`%APPDATA%\deft\metrics` / `~/.config/deft/metrics`). No fallback to `xbrief/.eval/results/`.
+- **Soft-disable:** when no writable metrics home exists, persistence is skipped (metrics-disabled) instead of dirtying the worktree.
+- **Golden-run eval artifacts** (`golden-runs.jsonl`, committed `eval-health-baseline.json`) remain under `<lifecycle-root>/.eval/results/`.
+
+### References
+
+- [#2545](https://github.com/deftai/directive/issues/2545) — metrics relocation.
+- [`packages/core/src/metrics/resolve-metrics-home.ts`](../packages/core/src/metrics/resolve-metrics-home.ts) — shared resolver.
+
+---
+
 ## Which command do I run? (three-command model)
 
 Directive is driven by three commands, and upgrading is one of them. Route by situation to exactly one:

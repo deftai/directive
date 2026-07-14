@@ -37,13 +37,8 @@ function parseJsonObjectOrNull(text: string): Record<string, unknown> | null {
 }
 
 function readHealthHistoryRows(projectRoot: string): HealthReport[] {
-  let path: string;
-  try {
-    path = healthHistoryPath(projectRoot);
-  } catch {
-    return []; // No xbrief/ layout; no health history.
-  }
-  if (!existsSync(path)) {
+  const path = healthHistoryPath(projectRoot);
+  if (path === null || !existsSync(path)) {
     return [];
   }
   let text: string;

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { DEFT_METRICS_HOME_ENV } from "../metrics/resolve-metrics-home.js";
 import {
   BYTE_DIFF_WHOLE_FILE_THRESHOLD,
   classifyByteDiffMinimality,
@@ -104,8 +105,14 @@ describe("classifyByteDiffMinimality", () => {
 
 describe("InstrumentedVbriefCrud", () => {
   let tempDir = "";
+  let metricsHome = "";
 
   afterEach(() => {
+    delete process.env[DEFT_METRICS_HOME_ENV];
+    if (metricsHome) {
+      rmSync(metricsHome, { recursive: true, force: true });
+      metricsHome = "";
+    }
     if (tempDir) {
       rmSync(tempDir, { recursive: true, force: true });
       tempDir = "";
@@ -114,6 +121,8 @@ describe("InstrumentedVbriefCrud", () => {
 
   function makeCrud(version = "9.9.9-test") {
     tempDir = mkdtempSync(join(tmpdir(), "crud-telemetry-"));
+    metricsHome = mkdtempSync(join(tmpdir(), "crud-metrics-home-"));
+    process.env[DEFT_METRICS_HOME_ENV] = metricsHome;
     const crud = new InstrumentedVbriefCrud({
       directiveVersion: version,
       now: () => new Date("2026-07-05T18:00:00.000Z"),
@@ -210,8 +219,10 @@ describe("InstrumentedVbriefCrud", () => {
     expect(metric?.byteDiffChangedRatio).toBeNull();
   });
 
-  it("appends metrics to the versioned CRUD ledger", () => {
+  it("appends metrics to the versioned CRUD ledger under the resolved metrics home", () => {
     tempDir = mkdtempSync(join(tmpdir(), "crud-telemetry-"));
+    metricsHome = mkdtempSync(join(tmpdir(), "crud-metrics-home-"));
+    process.env[DEFT_METRICS_HOME_ENV] = metricsHome;
     const filePath = join(tempDir, "xbrief", "active", "fixture.xbrief.json");
     mkdirSync(dirname(filePath), { recursive: true });
     const crud = new InstrumentedVbriefCrud({ directiveVersion: "ledger-test" });
@@ -220,7 +231,8 @@ describe("InstrumentedVbriefCrud", () => {
     persistCrudMetrics(tempDir, crud.getMetrics());
 
     const ledgerPath = crudMetricsHistoryPath(tempDir);
-    expect(existsSync(ledgerPath)).toBe(true);
+    expect(ledgerPath).toBe(join(metricsHome, "helped", "crud-metrics.jsonl"));
+    expect(existsSync(ledgerPath!)).toBe(true);
     const lines = readFileSync(ledgerPath, "utf8").trim().split("\n");
     expect(lines).toHaveLength(1);
     const parsed: unknown = JSON.parse(lines[0] ?? "{}");

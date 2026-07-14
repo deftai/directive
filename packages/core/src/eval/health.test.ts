@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { DEFT_METRICS_HOME_ENV } from "../metrics/resolve-metrics-home.js";
 import {
   computeHealthScore,
   detectWipCapUnsatisfiableNudge,
@@ -13,7 +14,12 @@ import {
 } from "./health.js";
 
 const temps: string[] = [];
+const metricsHomes: string[] = [];
 afterEach(() => {
+  delete process.env[DEFT_METRICS_HOME_ENV];
+  for (const dir of metricsHomes.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
   for (const dir of temps.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -22,6 +28,9 @@ afterEach(() => {
 function seedRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-eval-health-"));
   temps.push(root);
+  const metricsHome = mkdtempSync(join(tmpdir(), "deft-health-metrics-"));
+  metricsHomes.push(metricsHome);
+  process.env[DEFT_METRICS_HOME_ENV] = metricsHome;
   mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
     join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
@@ -108,7 +117,7 @@ describe("detectWipCapUnsatisfiableNudge", () => {
 });
 
 describe("persistHealthRun", () => {
-  it("appends versioned records to xbrief/.eval/results/health-history.jsonl", () => {
+  it("appends versioned records to the resolved metrics home health ledger", () => {
     const root = seedRepo();
     const report: HealthReport = {
       schemaVersion: 1,
@@ -120,7 +129,8 @@ describe("persistHealthRun", () => {
     };
     persistHealthRun(root, report);
     const path = healthHistoryPath(root);
-    expect(existsSync(path)).toBe(true);
+    expect(path).not.toBeNull();
+    expect(existsSync(path!)).toBe(true);
     const lines = readFileSync(path, "utf8").trim().split("\n");
     expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({ version: "0.70.0-test", score: 85 });
   });
@@ -153,8 +163,10 @@ describe("evaluateHealth", () => {
       "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
       "utf8",
     );
-    rmSync(join(root, "xbrief", ".eval"), { recursive: true, force: true });
-    writeFileSync(join(root, "xbrief", ".eval"), "not-a-directory", "utf8");
+    const path = healthHistoryPath(root);
+    expect(path).not.toBeNull();
+    rmSync(join(path!, ".."), { recursive: true, force: true });
+    writeFileSync(join(path!, ".."), "not-a-directory", "utf8");
     const result = evaluateHealth({
       projectRoot: root,
       frameworkSource: false,

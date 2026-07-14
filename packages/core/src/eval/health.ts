@@ -3,7 +3,8 @@ import { dirname, resolve } from "node:path";
 import { agentsRefreshPlan } from "../doctor/agents-md.js";
 import { evaluate as evaluateEncoding } from "../encoding/evaluate.js";
 import { readCorePackageVersion } from "../engine-version.js";
-import { resolveEvalPath, resolveProjectDefinitionPath } from "../layout/resolve.js";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
+import { healthMetricsHistoryPath } from "../metrics/resolve-metrics-home.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { classifyOnboarding, detectPriorState } from "../triage/welcome/prior-state.js";
 import { validateLinks } from "../validate-content/index.js";
@@ -12,7 +13,8 @@ import { validateWipCapOnPlan } from "../vbrief-validate/plan-hooks.js";
 import { evaluateContentManifest } from "../verify-source/content-manifest.js";
 
 export const HEALTH_SCHEMA_VERSION = 1 as const;
-export const HEALTH_HISTORY_REL = "results/health-history.jsonl";
+/** Relative path under the resolved metrics home for eval:health history (#2545). */
+export const HEALTH_HISTORY_REL = "health/health-history.jsonl";
 
 /** One static Tier-0 gate probe aggregated into the health score. */
 export interface GateProbeResult {
@@ -149,9 +151,9 @@ function probeContentManifest(projectRoot: string): GateProbeResult {
   };
 }
 
-/** Absolute path to the versioned health history ledger. */
-export function healthHistoryPath(projectRoot: string): string {
-  return resolveEvalPath(projectRoot, HEALTH_HISTORY_REL);
+/** Absolute path to the versioned health history ledger (#2545). */
+export function healthHistoryPath(projectRoot: string): string | null {
+  return healthMetricsHistoryPath(projectRoot);
 }
 
 /** Detect the canonical wipCap unsatisfiable-nudge contradiction (#1694). */
@@ -216,9 +218,12 @@ export function computeHealthScore(
   return Math.max(0, base - penalty);
 }
 
-/** Append one health run to the versioned ledger (#1703 Tier 0). */
+/** Append one health run to the versioned ledger (#1703 Tier 0 / #2545). */
 export function persistHealthRun(projectRoot: string, report: HealthReport): void {
   const path = healthHistoryPath(projectRoot);
+  if (path === null) {
+    return;
+  }
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, `${JSON.stringify(report)}\n`, "utf8");
 }
@@ -291,16 +296,19 @@ export function evaluateHealth(options: EvaluateHealthOptions = {}): EvaluateHea
   };
 
   if (persist) {
-    try {
-      persistHealthRun(projectRoot, report);
-    } catch (err: unknown) {
-      const persistError = `eval:health: failed to persist health history: ${String(err)}`;
-      const healthy = score === 100 && contradictions.length === 0;
-      return {
-        code: healthy ? 0 : 1,
-        report,
-        message: `${formatHumanReport(report)}\n${persistError}`,
-      };
+    const ledgerPath = healthHistoryPath(projectRoot);
+    if (ledgerPath !== null) {
+      try {
+        persistHealthRun(projectRoot, report);
+      } catch (err: unknown) {
+        const persistError = `eval:health: failed to persist health history: ${String(err)}`;
+        const healthy = score === 100 && contradictions.length === 0;
+        return {
+          code: healthy ? 0 : 1,
+          report,
+          message: `${formatHumanReport(report)}\n${persistError}`,
+        };
+      }
     }
   }
 
