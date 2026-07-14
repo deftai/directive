@@ -1,7 +1,8 @@
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { DEFT_METRICS_HOME_ENV } from "../metrics/resolve-metrics-home.js";
 import type { HealthReport } from "./health.js";
 import {
   EVAL_READBACK_SUPPRESSION_HOURS,
@@ -14,7 +15,19 @@ import {
 } from "./readback.js";
 
 const temps: string[] = [];
+const metricsHomes: string[] = [];
+
+beforeEach(() => {
+  const metricsHome = mkdtempSync(join(tmpdir(), "eval-readback-metrics-"));
+  metricsHomes.push(metricsHome);
+  process.env[DEFT_METRICS_HOME_ENV] = metricsHome;
+});
+
 afterEach(() => {
+  delete process.env[DEFT_METRICS_HOME_ENV];
+  for (const dir of metricsHomes.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
   for (const dir of temps.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }

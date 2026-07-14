@@ -32,7 +32,7 @@ describe("platformMetricsDir", () => {
   it("uses APPDATA/deft/metrics on win32 when APPDATA is set", () => {
     expect(
       platformMetricsDir("win32", { APPDATA: "C:\\Users\\t\\AppData\\Roaming" }, "C:\\Users\\t"),
-    ).toBe("C:\\Users\\t\\AppData\\Roaming\\deft\\metrics");
+    ).toBe(join("C:\\Users\\t\\AppData\\Roaming", "deft", "metrics"));
   });
 
   it("uses ~/.config/deft/metrics elsewhere", () => {
