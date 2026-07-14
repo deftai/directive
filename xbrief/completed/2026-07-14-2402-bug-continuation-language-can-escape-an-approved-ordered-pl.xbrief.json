@@ -8,7 +8,7 @@
   "plan": {
     "id": "2402-ordered-plan-continuation",
     "title": "bug: continuation language can escape an approved ordered plan",
-    "status": "running",
+    "status": "completed",
     "x-directive/kind": "story",
     "narratives": {
       "Description": "Add a deterministic ordered-plan continuation boundary so words like next/resume/proceed advance only within the narrowest operator-approved sequence and fail closed when exhausted. AGENTS.md stays pointer-thin (amend #1149 only); bulk lives in preamble, skills, and plan-sequence CLI/gate. Do not reuse triage queue continuation* fields.",
@@ -69,6 +69,10 @@
         "title": "#1149 cache-as-authoritative (amend precedence)"
       }
     ],
-    "updated": "2026-07-14T14:10:44Z"
+    "updated": "2026-07-14T15:04:52Z",
+    "metadata": {
+      "completedAt": "2026-07-14T15:04:52Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
