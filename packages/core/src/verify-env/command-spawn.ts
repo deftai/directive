@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { posix, win32 } from "node:path";
-import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import type { SpawnResult } from "../release/types.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export interface ResolveCommandOnPathOptions {
   readonly env?: NodeJS.ProcessEnv;

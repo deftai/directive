@@ -16,13 +16,13 @@ import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runInitDeposit } from "../init-deposit/init-deposit.js";
 import { runRefreshDeposit } from "../init-deposit/refresh.js";
 import type { SpawnResult } from "../release/types.js";
+import * as commandSpawn from "../verify-env/command-spawn.js";
 import {
   alignNpmPackageVersions,
   rehearseNpmInstallAndRun,
   rehearseNpmPublish,
   resolvePnpm,
 } from "./npm-ops.js";
-import * as commandSpawn from "../verify-env/command-spawn.js";
 import type { E2ESeams } from "./types.js";
 
 function installFakeContentPackage(projectRoot: string, version = "0.53.0"): string {
