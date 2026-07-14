@@ -283,7 +283,7 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "Workflow-shape vocabulary is NOT authorization",
       "Broad approval is not a substitute",
       "pre-`start_agent` gate stack (#1149/#1348)",
-      "plan.status == \"running\"",
+      'plan.status == "running"',
       "deft verify:cache-fresh` is gate-stack step 3",
     ],
   },
@@ -476,12 +476,7 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Issue body→comments reading (#2143)",
     canonicalHome: "templates/agent-prompt-preamble.md",
-    pointerHints: [
-      "agent-prompt-preamble.md",
-      "deft issue:ingest",
-      "issues/<N>/comments",
-      "#2143",
-    ],
+    pointerHints: ["agent-prompt-preamble.md", "deft issue:ingest", "issues/<N>/comments", "#2143"],
     canonicalBodyMarkers: [
       "body first, then the comment thread",
       "repos/<owner>/<repo>/issues/<N>/comments",
