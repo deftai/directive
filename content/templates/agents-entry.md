@@ -20,7 +20,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session-start ritual (#1149)
 
-! On **mutation** session start (implementation intent or explicit operator request), run `deft session:start`; before any code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft agents:refresh` / `npm i -g @deftai/directive@latest` entrypoints; #1149 / #1348) — full quick/gated tiers, defer steps, headless bypass, and read-only default in `.deft/core/commands.md` § Session-start ritual.
+! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual.
 
 ## WIP cap
 
@@ -28,7 +28,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## xBRIEF layout (#2034 / #2110)
 
-Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate:xbrief` to convert safely to `xbrief/` with semantic v0.6→v0.8 transforms. Legacy `x-vbrief/` reference tokens remain read-accepted until you migrate.
+Projects on legacy `vbrief/` still read-accepted; run `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8). `x-vbrief/` tokens read-accepted until migrated.
 
 ## Unmanaged project header (#2065)
 
@@ -36,14 +36,15 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Cache-as-authoritative work selection (#1149)
 
-! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", run `deft triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else. The agent MUST NOT recommend work from memory or open-GitHub-issue intuition. This is the consumer-side mirror of the maintainer rule of the same name; the triage queue is the source of truth for what to work on next.
+! "what next?" / cohort / queue → `deft triage:queue --limit=10` (D11 / #1128); present ranked list first — `.deft/core/commands.md` § Backlog Triage.
 
-⊗ Recommend a specific issue or xBRIEF without consulting `deft triage:queue` (or showing the operator the result of the consultation).
+⊗ Recommend issue or xBRIEF without `deft triage:queue` (or showing its result).
 
 ## Umbrella status reading (#1152 / #2066)
 
-- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
-- ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
+! `issues/<N>/comments` via REST → `## Current shape (as of pass-N)` + linked context (claim-cites-state-surface, #2066); body → shape → amendments. Prefer `deft umbrella:current-shape <N>` — full contract: `.deft/core/templates/agent-prompt-preamble.md` § 5.6.
+
+⊗ Conclude umbrella or epic status from the issue body alone — cite current-shape or another state artifact (#2066).
 
 ## Deterministic questions runtime obligation (#1470)
 
@@ -51,11 +52,9 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Issue body→comments reading (#2143)
 
-Rationale + cross-references: preamble § 5.6 in `.deft/core/templates/agent-prompt-preamble.md` (#2143).
+! Fetch body + `issues/<N>/comments` via REST before requirements or dispatch — `.deft/core/templates/agent-prompt-preamble.md` § 5.6 / `deft issue:ingest` (#2143).
 
-- ! Fetch both the issue body and `repos/<owner>/<repo>/issues/<N>/comments` via REST before concluding what the issue asks for or building a worker dispatch envelope. Read body first, then the comment thread in chronological order.
-- ! `deft issue:ingest` / `task issue:ingest` fetches `/comments` by default and folds the thread into the ingested overview (#2143).
-- ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
+⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
 
 ## Content packs
 
@@ -71,11 +70,11 @@ Rationale + cross-references: preamble § 5.6 in `.deft/core/templates/agent-pro
 
 ## Review-surface precedence (#2308)
 
-! Route review work through `deft-directive-review-cycle` — full workflow in `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host review tools (`bugbot`, `security-review`, `review-*` skills) are advisory-only inputs, not the review of record (#2308 / #1862 / #2261 / #2019).
+! Route review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host tools (`bugbot`, `security-review`, `review-*` skills) advisory-only (#2308).
 
 ## Value feedback and attribution (#1709)
 
-! `plan.policy.valueFeedback.enabled` defaults OFF — opt-in via `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; pull-based detail via `deft value:show`; full rules in `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709). Trusted-org auto-enable uses `source=org-auto` (#2376); gap escalation via `deft feedback:file` is confirmation-gated.
+! `plan.policy.valueFeedback.enabled` defaults OFF — opt-in via `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; detail via `deft value:show`; gaps via `deft feedback:file`; rules in `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
 
 ## Eval and framework health (#1703)
 
@@ -91,22 +90,17 @@ Rationale + cross-references: preamble § 5.6 in `.deft/core/templates/agent-pro
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
-Contextual / platform-specific rules lazy-load from `.deft/core/scm/github.md` — load the matching section **before** the risky operation when your session matches a trigger (#2157 / #2369):
-
-- ! **PowerShell / Windows** → § PowerShell platform-conditional rules (#798 / #1353); encoding gate: `deft verify:encoding`.
-- ! **TS subprocess capture** → § Safe subprocess capture (#1366).
-- ! **Cascade / batch merge** → § Cascade automation surface (#1369); canonical `deft pr:wait-mergeable-and-merge`.
-- ! **GitHub CLI / SCM shim** → § SCM tooling (#884 / #1145); boundary gate: `deft verify:scm-boundary`.
+! Lazy-load `.deft/core/scm/github.md` sections before risky ops (#2157 / #2369): PowerShell → `deft verify:encoding` (#798); TS capture (#1366); cascade → `deft pr:wait-mergeable-and-merge` (#1369); SCM → `deft verify:scm-boundary` (#884).
 
 ## Development Process
 
 ### Implementation Intent Gate (#810)
 
-! Run `deft xbrief:preflight -- <path>` before code-writing (`xbrief/active/` + `plan.status == "running"`); require explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — full rules in `.deft/core/commands.md` § Scope xBRIEF Lifecycle; `deft verify:cache-fresh` is gate-stack step 3 in `.deft/core/commands.md` § Session-start ritual.
+! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — `.deft/core/commands.md` § Scope xBRIEF Lifecycle.
 
 ### Story Start Gate
 
-! Before starting stories run `git status --short --branch` and Gate 0 `deft verify:story-ready`; lifecycle via `deft scope:promote -- <path>` / `deft scope:activate -- <path>` / `deft scope:complete -- <active-story-path>` (#1378) — full workflow in `.deft/core/commands.md` § Scope xBRIEF Lifecycle.
+! `git status --short --branch` + `deft verify:story-ready`; lifecycle via `deft scope:promote -- <path>` / `deft scope:activate -- <path>` / `deft scope:complete -- <active-story-path>` (#1378) — `.deft/core/commands.md` § Scope xBRIEF Lifecycle.
 
 ## Commands
 

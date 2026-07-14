@@ -283,6 +283,8 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "Workflow-shape vocabulary is NOT authorization",
       "Broad approval is not a substitute",
       "pre-`start_agent` gate stack (#1149/#1348)",
+      "plan.status == \"running\"",
+      "deft verify:cache-fresh` is gate-stack step 3",
     ],
   },
   {
@@ -296,6 +298,8 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "A `swarm-cohort` section is ready only when",
       "checkpoint-commit it and proceed",
       "Ask the operator to choose one path",
+      "Gate 0",
+      "full workflow in",
     ],
   },
   {
@@ -372,6 +376,12 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "Raw `gh` calls outside the TS SCM shim",
       "authoritatively enforced at commit",
       "lazy-loaded, not rendered here",
+      "platform-specific rules lazy-load",
+      "load the matching section **before**",
+      "PowerShell / Windows",
+      "TS subprocess capture",
+      "Cascade / batch merge",
+      "GitHub CLI / SCM shim",
     ],
   },
   {
@@ -421,6 +431,68 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "Skill routing (which skill answers which trigger) is not a table",
       "unified with the framework doc routing so you consult one place",
       "skills are versioned and tested",
+    ],
+  },
+  {
+    id: "cache-triage-1149",
+    shape: "doc",
+    header: "Cache-as-authoritative work selection (#1149)",
+    canonicalHome: "commands.md",
+    pointerHints: ["deft triage:queue", "commands.md", "#1149", "D11"],
+    canonicalBodyMarkers: ["triage:queue --limit=10", "ranked candidate work"],
+    retiredFullTextMarkers: [
+      "consumer-side mirror of the maintainer rule",
+      "open-GitHub-issue intuition",
+      "source of truth for what to work on next",
+      "what should I work on next",
+    ],
+  },
+  {
+    id: "umbrella-status-1152",
+    shape: "doc",
+    header: "Umbrella status reading (#1152 / #2066)",
+    canonicalHome: "templates/agent-prompt-preamble.md",
+    pointerHints: [
+      "deft umbrella:current-shape",
+      "issues/<N>/comments",
+      "agent-prompt-preamble.md",
+      "#1152",
+    ],
+    canonicalBodyMarkers: [
+      "Current shape (as of pass-N)",
+      "umbrella:current-shape",
+      "amendment comments",
+    ],
+    retiredFullTextMarkers: [
+      "LockedDecisions",
+      "never falls back to the issue body",
+      "validates #1152 sections",
+      "gh api repos/<owner>/<repo>/issues",
+      "task umbrella:current-shape",
+    ],
+  },
+  {
+    id: "issue-body-comments-2143",
+    shape: "doc",
+    header: "Issue body→comments reading (#2143)",
+    canonicalHome: "templates/agent-prompt-preamble.md",
+    pointerHints: [
+      "agent-prompt-preamble.md",
+      "deft issue:ingest",
+      "issues/<N>/comments",
+      "#2143",
+    ],
+    canonicalBodyMarkers: [
+      "body first, then the comment thread",
+      "repos/<owner>/<repo>/issues/<N>/comments",
+      "issue-ingest",
+    ],
+    retiredFullTextMarkers: [
+      "Rationale + cross-references: preamble § 5.6",
+      "repos/<owner>/<repo>/issues/<N>/comments",
+      "folds the thread into the ingested overview",
+      "chronological order",
+      "task issue:ingest",
     ],
   },
 ] as const;
@@ -498,7 +570,7 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   }
   if (
     spec.shape === "doc" &&
-    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\/|REFERENCES\.md/.test(
+    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\/|REFERENCES\.md|templates\/agent-prompt-preamble\.md/.test(
       section,
     )
   ) {
