@@ -171,6 +171,11 @@ tasks:
     # Run from the operator project root so deft verbs resolve USER_WORKING_DIR
     # correctly; without this, included engine.yml defaults cwd to tasks/ (#2022).
     dir: '{{.USER_WORKING_DIR}}'
+    # Operator free-text (e.g. release --summary with apostrophes) must not be
+    # interpolated into the shell script body — pass via env and argv-spawn in
+    # scripts/engine-invoke.cjs (#2547).
+    env:
+      DEFT_ENGINE_CMD: '{{.ENGINE_CMD}}'
     cmds:
       - |
         set -eu
@@ -197,10 +202,9 @@ tasks:
               }
             " "$root_pkg" || exit $?
           fi
-          node "$bin" {{.ENGINE_CMD}}
+          node "{{.DEFT_ROOT}}/scripts/engine-invoke.cjs" vendored "$bin"
         elif [ "$is_buildable_source" = 1 ]; then
-          engine_cmd='{{.ENGINE_CMD}}'
-          first_token="${engine_cmd%% *}"
+          first_token="${DEFT_ENGINE_CMD%% *}"
           is_runtime_verb=0
           case " ${first_token} " in
             " session:start "|" session-start "|\
@@ -245,7 +249,7 @@ tasks:
                 console.error('deft: using global '+cli+' ('+gv+'); source checkout is v'+srcVer+' — run task build for a local engine match.');
               }
             " "{{.DEFT_ROOT}}" "$global_cli" >&2 || true
-            "$global_cli" {{.ENGINE_CMD}}
+            node "{{.DEFT_ROOT}}/scripts/engine-invoke.cjs" global "$global_cli"
           else
             echo "deft: CLI artifact missing at {{.DEFT_ROOT}}/packages/cli/dist/bin.js" >&2
             if [ "$is_runtime_verb" = 1 ]; then
@@ -257,9 +261,9 @@ tasks:
             exit 2
           fi
         elif command -v deft >/dev/null 2>&1; then
-          deft {{.ENGINE_CMD}}
+          node "{{.DEFT_ROOT}}/scripts/engine-invoke.cjs" global deft
         elif command -v directive >/dev/null 2>&1; then
-          directive {{.ENGINE_CMD}}
+          node "{{.DEFT_ROOT}}/scripts/engine-invoke.cjs" global directive
         else
           echo "deft: neither {{.DEFT_ROOT}}/packages/cli/dist/bin.js nor a global deft command is available." >&2
           echo "  Install with: npm i -g @deftai/directive" >&2

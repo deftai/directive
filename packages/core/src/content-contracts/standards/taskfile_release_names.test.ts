@@ -1,4 +1,4 @@
-import { execFileSync, execSync } from "node:child_process";
+import { execFileSync, execSync, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { repoRoot } from "./_helpers.js";
@@ -65,6 +65,36 @@ describe("test_taskfile_release_names.py", () => {
         },
       );
       expect(out.toLowerCase()).toContain("usage");
+    },
+  );
+
+  it.skipIf(!taskAvailable)(
+    "test_task_release_summary_with_apostrophe_does_not_shell_parse_fail (#2547)",
+    () => {
+      const result = spawnSync(
+        "task",
+        [
+          "-t",
+          join(repoRoot(), "Taskfile.yml"),
+          "release",
+          "--",
+          "0.0.0",
+          "--dry-run",
+          "--skip-tag",
+          "--skip-release",
+          "--summary",
+          "test what's next",
+        ],
+        {
+          cwd: repoRoot(),
+          encoding: "utf8",
+          env: { ...process.env, PYTHONUTF8: "1" },
+          maxBuffer: 10 * 1024 * 1024,
+        },
+      );
+      expect(result.status).toBe(0);
+      const combined = `${result.stdout ?? ""}${result.stderr ?? ""}`.toLowerCase();
+      expect(combined).toMatch(/dry-run|changelog|release/);
     },
   );
 });

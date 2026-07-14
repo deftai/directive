@@ -1,0 +1,84 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2547"
+  },
+  "plan": {
+    "title": "fix(taskfile): release --summary with apostrophes breaks ENGINE_CMD single-quote interpolation",
+    "status": "running",
+    "narratives": {
+      "Description": "task release forwards CLI_ARGS inside a single-quoted ENGINE_CMD string, so apostrophes in --summary break go-task parsing. Fix arg forwarding for release and sibling ENGINE_CMD sites so free-text flags are shell-safe.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2547",
+      "Overview": "## Problem\n\n`task release -- <version> --dry-run --skip-tag --skip-release --summary \"...\"` failed during the v0.77.0 cut when the summary contained an apostrophe (`what's next?`):\n\n```\ntask: Failed to run task \"release\": task: Failed to run task \"engine:invoke\": 52:35: a command can only contain words and redirects; encountered `(`\n```\n\nInvoking the engine directly succeeded:\n\n```\nnode packages/cli/dist/bin.js release 0.77.0 --dry-run --skip-tag --skip-release --summary \"...\"\n```\n\n## Root cause (likely)\n\nRoot `Taskfile.yml` forwards release args as:\n\n```yaml\nENGINE_CMD: 'release {{.CLI_ARGS}}'\n```\n\n`CLI_ARGS` is interpolated **inside a single-quoted** Task/mvdan-sh string. Any `'` in `--summary` (or other free-text flags) terminates that quote early; the shell parser then errors on the broken remainder (here: `encountered (`).\n\nSame pattern exists for `release:publish` / `release:rollback` / `release:e2e` and other `ENGINE_CMD: '... {{.CLI_ARGS}}'` call sites.\n\n## Why it matters\n\n- Release skill Phase 2 **requires** `task release -- ... --summary \"...\"`\n- Operator-authored summaries routinely use apostrophes / quotes\n- Failure mode looks like a Task/engine bug rather than bad summary text\n- Workaround (call `node packages/cli/dist/bin.js release ...`) bypasses the documented `task release` surface and is easy to forget mid-cut\n\n## Expected\n\n- `task release -- 0.77.0 --dry-run --skip-tag --skip-release --summary \"Combined ... what's next? ...\"` works on Windows and Unix\n- Free-text `--summary` does not depend on single-quote-safe content\n- Prefer argv-array / env-file / `--summary-file` forwarding over shell-string interpolation of operator text\n\n## Acceptance\n\n- [ ] Repro with apostrophe in `--summary` via `task release` fails today; passes after fix\n- [ ] Documented release skill path keeps using `task release` (or skill is updated to a safe invocation)\n- [ ] Audit sibling `ENGINE_CMD: '... {{.CLI_ARGS}}'` sites for the same quote-break class\n- [ ] Windows-native maintainer path covered (PowerShell + go-task)\n\n## Workaround (current)\n\n```\nnode packages/cli/dist/bin.js release <version> --dry-run --skip-tag --skip-release --summary \"...\"\n```\n\n## Related\n\n- Observed during v0.77.0 Phase 2 dry-run\n- Refs release skill deft-directive-release Phase 2\n- Adjacent Windows maintainer friction: #2546 (vitest), #2544 (USER.md path discovery)\r\n\n",
+      "Labels": "bug, runtime-portability, urgent, area:release",
+      "UserStory": "As a Windows maintainer, I want task release --summary with apostrophes to work, so that the documented release skill path does not require calling bin.js directly.",
+      "ImplementationPlan": "1. Change Taskfile.yml ENGINE_CMD forwarding for release (and sibling release:* tasks) so operator --summary text is not interpolated inside a single-quoted shell string; prefer argv-safe forwarding into packages/cli / packages/core/src/release/.\n2. Add a regression test under packages/core/src/release/ (or CLI) that feeds a summary containing an apostrophe and asserts the engine receives the intact string.\n3. Verify with task release -- 0.0.0 --dry-run --skip-tag --skip-release --summary \"test what's next\" and keep the release skill pointing at task release.",
+      "Acceptance": "1. Apostrophe summary survives task release\n2. Sibling release tasks audited\n3. Regression test locks the behavior"
+    },
+    "items": [
+      {
+        "title": "Apostrophe summary survives task release",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given task release is invoked with --summary containing what's, when the dry-run starts, then go-task does not fail with a shell parse error and the engine shows the summary in CHANGELOG promotion dry-run output."
+        }
+      },
+      {
+        "title": "Sibling release tasks audited",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given release:publish, release:rollback, and release:e2e ENGINE_CMD sites, when free-text CLI args are forwarded, then none of them interpolate operator text inside breaking single quotes."
+        }
+      },
+      {
+        "title": "Regression test locks the behavior",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the release forwarding regression test, when an apostrophe summary is supplied, then the test passes and fails if single-quote interpolation returns."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "runtime-portability",
+      "urgent",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2547",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2547: fix(taskfile): release --summary with apostrophes breaks ENGINE_CMD single-quote interpolation"
+      }
+    ],
+    "updated": "2026-07-14T22:24:21Z",
+    "id": "taskfile-release-summary-quoting",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "Taskfile.yml",
+          "packages/core/src/release/",
+          "content/skills/deft-directive-release/"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- release",
+          "task release -- 0.0.0 --dry-run --skip-tag --skip-release --summary \"test what's next\""
+        ],
+        "expected_outputs": [
+          "task release accepts apostrophe in --summary",
+          "Sibling ENGINE_CMD sites audited/fixed",
+          "Skill keeps task release as the path"
+        ],
+        "depends_on": [],
+        "conflict_group": "taskfile-release-args",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "Issue #2547 from v0.77.0 Phase 2. Taskfile arg forwarding is framework-internal."
+      }
+    }
+  }
+}
