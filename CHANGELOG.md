@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Session routing in AGENTS.md collapses to one pointer-thin bootstrap line.** Cold-start, pre-cutover, USER.md/PROJECT-DEFINITION missing, and mutation-boundary hops stay discoverable as one-hop pointers while managed always-on drops (~600 B); further cut stopped at the Phase-3 capability escape hatch (short of the −800 B stretch target). Re-seeds `absoluteMaxBytes` / `managedMaxLines`. Closes #2535. Refs #2531, #2176.
 
+- **Medium AGENTS.md cards are pointer-thinner (Phase-3 Wave A2).** Development Process, MAP, Skills, value/eval/branch/guardrail cards compress further while keeping contract markers and one-hop destinations — managed ~7209→6479 B (−730). Combined still ~367 B over ≤8192; remaining gap is escape-hatch / optional Wave B territory. Closes #2536. Refs #2531.
+
 ### Fixed
 
 - **macOS test runs use canonical temporary paths and a portable Unix no-op binary.** Vitest normalizes the `/var` alias before workers spawn, preventing cwd/git fixture mismatches, and the SCM binary-override fixture now uses `/usr/bin/true`, which exists on both macOS and common Linux hosts. Closes #2526, #2527.

@@ -1,0 +1,46 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Phase 3 Wave A2 — medium-card pointer batch for combined budget",
+    "created": "2026-07-14T20:20:00.000Z",
+    "updated": "2026-07-14T20:20:00.000Z"
+  },
+  "plan": {
+    "id": "2536-medium-card-batch",
+    "title": "refactor(agents-md): Phase 3 Wave A2 — medium-card pointer batch (~850 B)",
+    "status": "running",
+    "narratives": {
+      "Description": "Further pointer-thin medium managed cards after A1 to clear remaining ~1097 B combined gap (capability hatch armed). Prefer Development Process, Session-start ritual, Umbrella, MAP, Value feedback, Contextual guardrails, body→comments, Cache.",
+      "ImplementationPlan": "1) Thin selected cards in agents-entry.md. 2) agents-refresh. 3) Re-seed absoluteMaxBytes/managedMaxLines. 4) Fix contract tests. 5) CHANGELOG. 6) PR + update #2531.",
+      "UserStory": "As a maintainer, I want medium AGENTS cards pointer-thin so combined always-on approaches <=8192 without losing one-hop discoverability.",
+      "Origin": "Child of #2531; Wave A2 after #2535"
+    },
+    "items": [
+      {
+        "id": "2536-a1",
+        "title": "Medium-card pointer batch",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Managed cut toward combined <=8192 or hatch documented; contracts green; ratchet re-seeded.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_epic": "#2531",
+        "origin_issue": "#2536"
+      },
+      "capacityBucket": "agentic-debt"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2536",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2536"
+      }
+    ],
+    "updated": "2026-07-14T20:15:45Z"
+  }
+}

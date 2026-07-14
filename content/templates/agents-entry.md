@@ -15,11 +15,11 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## WIP cap
 
-! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP workflow: `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`.
+! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP: `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`.
 
 ## xBRIEF layout (#2034 / #2110)
 
-Projects on legacy `vbrief/` still read-accepted; run `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8). `x-vbrief/` tokens read-accepted until migrated.
+Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8). `x-vbrief/` tokens read-accepted until migrated.
 
 ## Unmanaged project header (#2065)
 
@@ -39,7 +39,7 @@ Projects on legacy `vbrief/` still read-accepted; run `deft migrate:xbrief` for 
 
 ## Deterministic questions runtime obligation (#1470)
 
-! Any agent-initiated structured question MUST include `Discuss` and `Back` as the final two options — full Discuss-pause semantic in `.deft/core/contracts/deterministic-questions.md` (#1470 / #767).
+! Structured questions MUST end with `Discuss` and `Back` — `contracts/deterministic-questions.md` (#1470 / #767).
 
 ## Issue body→comments reading (#2143)
 
@@ -49,51 +49,51 @@ Projects on legacy `vbrief/` still read-accepted; run `deft migrate:xbrief` for 
 
 ## Content packs
 
-! Before improvising, discover packs with `deft packs:slice --list-packs`, then load via `deft packs:slice <pack> --list` / `deft packs:slice <pack> <slice>` — full pack surface in `.deft/core/commands.md` (§ packs); never enumerate pack or slice names here.
+! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `<slice>` — `commands.md` (§ packs); never enumerate names here.
 
 ## Codebase MAP Projection (#1595 / #1498)
 
-! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated orientation — use `deft codebase:map` / `deft verify:codebase-map-fresh` (`.deft/core/commands.md` § Project And Architecture). ⊗ Do not hand-edit the MAP, block unrelated work on stale/absent MAP, or treat the projection as more authoritative than the xBRIEF metadata (#1595 / #1498).
+! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated — `deft codebase:map` / `deft verify:codebase-map-fresh` (`commands.md`). ⊗ Do not hand-edit MAP, block on stale/absent MAP, or elevate projection above xBRIEF (#1595 / #1498).
 
 ## Skills
 
-! Skill routing lives in the **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan it before improvising; read a `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); `lessons` / `prior art` → Content packs `packs:slice` above.
+! **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan before improvising; read `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); lessons → packs:slice.
 
 ## Review-surface precedence (#2308)
 
-! Route review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host tools (`bugbot`, `security-review`, `review-*` skills) advisory-only (#2308).
+! Route review through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `bugbot` / `security-review` / `review-*` advisory-only (#2308).
 
 ## Value feedback and attribution (#1709)
 
-! `plan.policy.valueFeedback.enabled` defaults OFF — opt-in via `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; detail via `deft value:show`; gaps via `deft feedback:file`; rules in `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
+! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
 
 ## Eval and framework health (#1703)
 
-! Run `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Maintainer release eval: `deft eval:run` / `deft eval:report` (#1703).
+! `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Release: `deft eval:run` / `deft eval:report` (#1703).
 
 ## Branch policy & branch verification
 
-! Work on feature branches — `deft verify:branch`, `deft verify:forward-coverage`, hooks, and `deft check` enforce default-branch protection (#746 / #747); full surfaces in `.deft/core/scm/github.md` § Branch policy.
+! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
 
 ## Branch Policy Disclosure (#746)
 
-! When `plan.policy.allowDirectCommitsToMaster = true`, surface policy at session start via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — full phrasing and override paths in `.deft/core/scm/github.md` § Branch policy.
+! When `plan.policy.allowDirectCommitsToMaster = true`, surface via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — `.deft/core/scm/github.md` § Branch policy.
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
-! Lazy-load `.deft/core/scm/github.md` sections before risky ops (#2157 / #2369): PowerShell → `deft verify:encoding` (#798); TS capture (#1366); cascade → `deft pr:wait-mergeable-and-merge` (#1369); SCM → `deft verify:scm-boundary` (#884).
+! Lazy-load `.deft/core/scm/github.md` before risky ops (#2157 / #2369): PowerShell → `deft verify:encoding` (#798); TS capture (#1366); cascade → `deft pr:wait-mergeable-and-merge` (#1369); SCM → `deft verify:scm-boundary` (#884).
 
 ## Development Process
 
 ### Implementation Intent Gate (#810)
 
-! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — `.deft/core/commands.md` § Scope xBRIEF Lifecycle.
+! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — `commands.md` § Scope xBRIEF Lifecycle.
 
 ### Story Start Gate
 
-! `git status --short --branch` + `deft verify:story-ready`; lifecycle via `deft scope:promote -- <path>` / `deft scope:activate -- <path>` / `deft scope:complete -- <active-story-path>` (#1378) — `.deft/core/commands.md` § Scope xBRIEF Lifecycle.
+! `git status --short --branch` + `deft verify:story-ready`; `deft scope:promote -- <path>` / `deft scope:activate -- <path>` / `deft scope:complete -- <active-story-path>` (#1378) — `commands.md` § Scope xBRIEF Lifecycle.
 
 ## Commands
 
-! Directive product commands use the `/deft:directive:*` namespace (#418 / #1670); the full command and alias table lives in `.deft/core/commands.md` — load on demand, not rendered here.
+! `/deft:directive:*` namespace (#418 / #1670); full table in `.deft/core/commands.md` — load on demand.
 <!-- /deft:managed-section -->
