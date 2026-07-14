@@ -84,7 +84,7 @@ describe("runtime/session task dispatch (#2181)", () => {
     expect(engine).toMatch(
       /if \[ -f "\$bin" \]; then[\s\S]*node "\{\{\.TASKFILE_DIR\}\}\/engine-invoke\.cjs" vendored "\$bin"/m,
     );
-    expect(engine).toMatch(/DEFT_ENGINE_CMD/);
+    expect(engine).toMatch(/DEFT_ENGINE_CMD_JSON/);
   });
 
   it("engine:invoke checks Node via process.versions.node, not pnpm engine warnings", () => {

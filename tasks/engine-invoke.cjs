@@ -53,7 +53,18 @@ function shellSplit(input) {
 function main() {
   const mode = process.argv[2];
   const target = process.argv[3];
-  const cmdLine = String(process.env.DEFT_ENGINE_CMD || "").trim();
+  let cmdLine = "";
+  if (process.env.DEFT_ENGINE_CMD_JSON) {
+    try {
+      cmdLine = JSON.parse(process.env.DEFT_ENGINE_CMD_JSON);
+    } catch {
+      console.error("deft: DEFT_ENGINE_CMD_JSON is not valid JSON");
+      process.exit(2);
+    }
+  } else {
+    cmdLine = String(process.env.DEFT_ENGINE_CMD || "");
+  }
+  cmdLine = cmdLine.trim();
   const argv = shellSplit(cmdLine);
   if (argv.length === 0) {
     console.error("deft: DEFT_ENGINE_CMD is empty");

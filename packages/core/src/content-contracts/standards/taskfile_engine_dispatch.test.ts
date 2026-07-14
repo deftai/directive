@@ -119,7 +119,7 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
     expect(engine).toMatch(/command -v directive/);
-    expect(engine).toMatch(/DEFT_ENGINE_CMD/);
+    expect(engine).toMatch(/DEFT_ENGINE_CMD_JSON/);
     expect(engine).toMatch(/engine-invoke\.cjs/);
     expect(engine).not.toMatch(/deft \{\{\.ENGINE_CMD\}\}/);
     // #2409: runtime verbs may fall back to global deft; build-gated verbs fail closed.

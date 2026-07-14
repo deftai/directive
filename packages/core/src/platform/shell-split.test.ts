@@ -22,4 +22,16 @@ describe("shellSplit (engine-invoke #2547)", () => {
       "test what's next",
     ]);
   });
+
+  it("preserves Windows paths inside double-quoted segments (#2547)", () => {
+    const cmd =
+      'migrate-preflight --project-root "D:\\a\\consumer\\proj" --deft-root "D:\\a\\directive\\directive"';
+    expect(shellSplit(cmd)).toEqual([
+      "migrate-preflight",
+      "--project-root",
+      "D:\\a\\consumer\\proj",
+      "--deft-root",
+      "D:\\a\\directive\\directive",
+    ]);
+  });
 });
