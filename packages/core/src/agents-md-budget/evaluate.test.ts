@@ -6,6 +6,7 @@ import {
   ABSOLUTE_MANAGED_MAX_BYTES,
   ABSOLUTE_MANAGED_MAX_TOKENS,
   BOOTSTRAP_HOOK_BYTES,
+  COMBINED_ALWAYS_ON_MAX_BYTES,
   countRegions,
   evaluate,
   extractManagedSection,
@@ -276,8 +277,92 @@ describe("absolute managed-section budget", () => {
     try {
       const result = evaluate(root);
       expect(result.code).toBe(1);
-      expect(result.message).toContain("north-star ceiling");
-      expect(result.message).toContain("combined always-on");
+      expect(result.message).toContain("managed section exceeds the north-star ceiling");
+      expect(result.message).toContain("bytes over");
+      expect(result.message).not.toMatch(/OVER by -\d+/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR;
+      else process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR = prev;
+      if (prevWaiver === undefined) delete process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
+      else process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER = prevWaiver;
+    }
+  });
+
+  it("emits combined-only advisory when managed is within budget but combined exceeds 9 KB", () => {
+    const skillBody = (name: string, description: string) => `---
+name: ${name}
+description: ${description}
+---
+# Skill`;
+    const root = mkdtempSync(join(tmpdir(), "deft-agents-budget-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+    writeProjectDefinition(root, {
+      policy: { agentsMdBudget: { managedMaxLines: 500, unmanagedMaxLines: 500 } },
+    });
+    writeFileSync(join(root, "AGENTS.md"), agentsWith(5, 5), "utf8");
+    const skillDir = join(root, "content", "skills", "deft-directive-setup");
+    mkdirSync(skillDir, { recursive: true });
+    const padding = "y".repeat(COMBINED_ALWAYS_ON_MAX_BYTES);
+    writeFileSync(join(skillDir, "SKILL.md"), skillBody("deft-directive-setup", padding), "utf8");
+    const bootstrap = measureBootstrapSurface(root, agentsWith(5, 5), {
+      managedMaxLines: 500,
+      unmanagedMaxLines: 500,
+    });
+    expect("error" in bootstrap).toBe(false);
+    if ("error" in bootstrap) return;
+    expect(bootstrap.managed.bytes).toBeLessThanOrEqual(ABSOLUTE_MANAGED_MAX_BYTES);
+    expect(bootstrap.totalBytes).toBeGreaterThan(COMBINED_ALWAYS_ON_MAX_BYTES);
+
+    const result = evaluate(root);
+    expect(result.code).toBe(0);
+    expect(result.northStarMessage).toContain("Combined always-on");
+    expect(result.northStarMessage).toContain("bytes over");
+    expect(result.northStarMessage).not.toContain("Managed section alone");
+  });
+
+  it("fail-closes on combined-only north-star in release-gate mode", () => {
+    const skillBody = (name: string, description: string) => `---
+name: ${name}
+description: ${description}
+---
+# Skill`;
+    const root = mkdtempSync(join(tmpdir(), "deft-agents-budget-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+    const agents = agentsWith(5, 5);
+    const measure = measureManagedSection(agents);
+    expect("bytes" in measure).toBe(true);
+    if (!("bytes" in measure)) return;
+    writeProjectDefinition(root, {
+      policy: {
+        agentsMdBudget: {
+          managedMaxLines: 500,
+          unmanagedMaxLines: 500,
+          absoluteMaxBytes: measure.bytes,
+        },
+      },
+    });
+    writeFileSync(join(root, "AGENTS.md"), agents, "utf8");
+    const skillDir = join(root, "content", "skills", "deft-directive-setup");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      skillBody("deft-directive-setup", "z".repeat(COMBINED_ALWAYS_ON_MAX_BYTES)),
+      "utf8",
+    );
+    const prev = process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR;
+    const prevWaiver = process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
+    process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR = "1";
+    delete process.env.DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER;
+    try {
+      const result = evaluate(root);
+      expect(result.code).toBe(1);
+      expect(result.message).toContain("combined always-on surface exceeds the north-star ceiling");
+      expect(result.message).toContain("bytes over");
+      expect(result.message).not.toContain("managed section exceeds");
     } finally {
       if (prev === undefined) delete process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR;
       else process.env.DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR = prev;

@@ -331,13 +331,29 @@ function formatBootstrapItemization(bootstrap: BootstrapMeasure): string {
 
 function formatAbsoluteAdvisory(bootstrap: BootstrapMeasure): string {
   const measure = bootstrap.managed;
+  const overManagedBytes = measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES;
+  const overManagedTokens = measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  const overCombinedBytes = bootstrap.totalBytes > COMBINED_ALWAYS_ON_MAX_BYTES;
+  const overCombinedTokens = bootstrap.totalEstimatedTokens > COMBINED_ALWAYS_ON_MAX_TOKENS;
+  const violationLines: string[] = [];
+  if (overManagedBytes || overManagedTokens) {
+    violationLines.push(
+      `  Managed section alone: ${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the north-star ` +
+        `of ${ABSOLUTE_MANAGED_MAX_BYTES} bytes / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
+        `(OVER: ${formatNorthStarOverage(measure)}).`,
+    );
+  }
+  if (overCombinedBytes || overCombinedTokens) {
+    violationLines.push(
+      `  Combined always-on: ${bootstrap.totalBytes} bytes (~${bootstrap.totalEstimatedTokens} tok) exceeds the north-star ` +
+        `of ${COMBINED_ALWAYS_ON_MAX_BYTES} bytes / ~${COMBINED_ALWAYS_ON_MAX_TOKENS} tok ` +
+        `(OVER: ${formatCombinedNorthStarOverage(bootstrap)}).`,
+    );
+  }
   return (
     `⚠ verify:agents-md-budget: always-on bootstrap advisory — ` +
     `${formatBootstrapItemization(bootstrap)}.\n` +
-    `  Managed section alone: ${measure.bytes} bytes (~${measure.estimatedTokens} tok) exceeds the north-star ` +
-    `of ${ABSOLUTE_MANAGED_MAX_BYTES} bytes / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
-    `(OVER: ${formatNorthStarOverage(measure)}).\n` +
-    `  ${formatCombinedNorthStarDistance(bootstrap)}\n` +
+    `${violationLines.join("\n")}\n` +
     "  Advisory only — set plan.policy.agentsMdBudget.absoluteMaxBytes to enable " +
     "fail-closed managed growth ratchet (#2452).\n" +
     "  Optional DD-3 ratchet: plan.policy.agentsMdBudget.skillFrontmatterMaxBytes (#2463).\n" +
@@ -392,13 +408,36 @@ function formatSkillFrontmatterRefusal(
 
 function formatNorthStarRefusal(bootstrap: BootstrapMeasure, projectRoot: string): string {
   const measure = bootstrap.managed;
-  const overBytes = bootstrap.totalBytes - COMBINED_ALWAYS_ON_MAX_BYTES;
+  const overNorthStarManaged =
+    measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES ||
+    measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  const overNorthStarCombined =
+    bootstrap.totalBytes > COMBINED_ALWAYS_ON_MAX_BYTES ||
+    bootstrap.totalEstimatedTokens > COMBINED_ALWAYS_ON_MAX_TOKENS;
+  const headline =
+    overNorthStarManaged && overNorthStarCombined
+      ? "managed and combined always-on surfaces exceed the north-star ceiling"
+      : overNorthStarManaged
+        ? "managed section exceeds the north-star ceiling"
+        : "combined always-on surface exceeds the north-star ceiling";
+  const detailLines: string[] = [];
+  if (overNorthStarManaged) {
+    detailLines.push(
+      `   managed section: ${measure.bytes}/${ABSOLUTE_MANAGED_MAX_BYTES} bytes ` +
+        `(OVER: ${formatNorthStarOverage(measure)})`,
+    );
+  }
+  if (overNorthStarCombined) {
+    detailLines.push(
+      `   combined always-on: ${bootstrap.totalBytes}/${COMBINED_ALWAYS_ON_MAX_BYTES} bytes ` +
+        `(OVER: ${formatCombinedNorthStarOverage(bootstrap)})`,
+    );
+  }
   return (
-    `❌ verify:agents-md-budget: combined always-on surface exceeds the north-star ceiling ` +
+    `❌ verify:agents-md-budget: ${headline} ` +
     `(project_root=${projectRoot}, release-gate mode).\n` +
     `   ${formatBootstrapItemization(bootstrap)}\n` +
-    `   managed section: ${measure.bytes}/${ABSOLUTE_MANAGED_MAX_BYTES} bytes\n` +
-    `   combined OVER by ${overBytes} bytes vs north-star ≤${COMBINED_ALWAYS_ON_MAX_BYTES} B\n` +
+    `${detailLines.join("\n")}\n` +
     "   Thin the managed section and/or tier DD-3 skills toward the combined ≤9 KB target,\n" +
     "   or set DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1 for a time-boxed operator waiver (#2452)."
   );
