@@ -1,0 +1,82 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2546"
+  },
+  "plan": {
+    "title": "test(vitest): full suite passes then process fails on unhandled onTaskUpdate worker timeouts (Windows)",
+    "status": "running",
+    "narratives": {
+      "Description": "On native Windows, pnpm run test can report all tests passed and still exit non-zero due to unhandled vitest-worker onTaskUpdate timeouts. Tune pool/timeouts or fail policy so a green suite does not fail the process solely on RPC timeouts.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2546",
+      "Overview": "## Problem\n\nOn native Windows, `pnpm run test` / `task check` can report **all tests green** and still exit non-zero because Vitest records unhandled worker RPC errors:\n\n```\nError: [vitest-worker]: Timeout calling \"onTaskUpdate\"\n```\n\nObserved during v0.77.0 release Phase 1 preflight on `master` (2026-07-14):\n\n- Test Files: **629 passed** | 2 skipped\n- Tests: **9129 passed** | 51 skipped\n- Errors: **2** (`onTaskUpdate` timeouts)\n- Duration ~99s; then `[ELIFECYCLE] Test failed` / `ts:check-lane` fails\n- Same pattern on immediate retry — not a single-test assertion failure\n\nStack points at Vitest 3.2.6 RPC (`vitest/dist/chunks/rpc.*.js` `onTimeoutError`), not application code under test.\n\n## Why it matters\n\n- Blocks honest `task check` / release Step 5 preflight on Windows maintainers even when the suite is logically green\n- Easy to misread as a real regression and burn release time\n- May be load/RPC related (large parallel suite + coverage) rather than a flaky unit test\n\n## Expected\n\n- Either the worker RPC timeouts do not fail the process when all tests passed, or\n- Pool/timeout/worker config is tuned so `task check` is deterministic on Windows, or\n- A documented, gated workaround for release preflight that does not hide real failures\n\n## Non-goals\n\n- Skipping the suite\n- Treating this as coverage-threshold failure (coverage still printed after the unhandled errors)\n\n## Acceptance\n\n- [ ] Repro notes (OS, Node, Vitest, `pnpm run test` vs `task check`) captured\n- [ ] Root cause class identified (Vitest RPC timeout vs hung worker vs coverage reporter)\n- [ ] Fix or durable mitigation so Windows `task check` does not fail solely on `onTaskUpdate` after a green suite\n- [ ] Regression guard or known-flake doc pointer if mitigation is config-only\n\n## Environment (repro)\n\n- OS: Windows 10/11 native (not WSL)\n- Repo: `deftai/directive` @ master during v0.77.0 cut prep\n- Vitest: 3.2.6 (from lockfile / stack)\n\n## Related\n\n- Release skill Phase 1 uses `task check` when `task ci:local` is absent",
+      "Labels": "bug, test-debt, runtime-portability, urgent",
+      "UserStory": "As a Windows maintainer, I want task check to pass when the suite is green, so that release Step 5 is not blocked by Vitest worker RPC timeouts.",
+      "ImplementationPlan": "1. Adjust vitest.config.ts pool/rpcTimeout/maxWorkers (or equivalent) so Windows coverage runs do not surface unhandled onTaskUpdate worker RPC timeouts after a green suite.\n2. Add a focused regression note or harness assert in packages/ that documents the failure mode and verifies the configured timeout/pool settings remain present.\n3. Re-run pnpm run test on Windows and confirm the process returns success when all tests pass, using the test report as evidence.",
+      "Acceptance": "1. Green suite exits zero on Windows\n2. Config encodes the mitigation\n3. Mitigation is guarded"
+    },
+    "items": [
+      {
+        "title": "Green suite exits zero on Windows",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the full vitest suite on native Windows, when all tests pass, then the pnpm run test process returns exit code 0 and does not emit failing onTaskUpdate unhandled errors."
+        }
+      },
+      {
+        "title": "Config encodes the mitigation",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given vitest.config.ts after the fix, when the config is loaded, then it shows the pool or timeout settings that prevent the worker RPC timeout failure mode."
+        }
+      },
+      {
+        "title": "Mitigation is guarded",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the regression check or documented config contract, when those settings are removed, then a focused test fails or the contract rejects the config."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "test-debt",
+      "runtime-portability",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2546",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2546: test(vitest): full suite passes then process fails on unhandled onTaskUpdate worker timeouts (Windows)"
+      }
+    ],
+    "updated": "2026-07-14T22:24:21Z",
+    "id": "vitest-ontaskupdate-timeout",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "vitest.config.ts",
+          "package.json"
+        ],
+        "verify_commands": [
+          "pnpm run test",
+          "pnpm exec vitest run --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Windows task check does not fail solely on onTaskUpdate after green suite",
+          "Documented config or mitigation"
+        ],
+        "depends_on": [],
+        "conflict_group": "vitest-runner",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "Issue #2546 observed during v0.77.0 release preflight. Test-runner config is framework-internal."
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpus, tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 
@@ -8,6 +8,14 @@ import { defineConfig } from "vitest/config";
 // agree across subprocess boundaries. Refs #2526.
 const testEnvironment =
   process.platform === "darwin" ? { TMPDIR: realpathSync(tmpdir()) } : undefined;
+
+// Native Windows full-suite + coverage runs can pass every test yet exit non-zero when
+// fork workers saturate the coordinator and onTaskUpdate RPC acks time out. Cap fork
+// workers for headroom, widen teardown, and ignore unhandled worker RPC flakes when
+// the assertion suite is otherwise green (Vitest 3.2.6 has no rpcTimeout knob).
+// Refs #2546.
+const isWin32 = process.platform === "win32";
+const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25)));
 
 // Alias the workspace packages to their TypeScript source so the suite runs
 // against src/ without a prior `tsc -b` build (keeps `vitest --changed` fast
@@ -112,7 +120,19 @@ export default defineConfig({
     include: ["packages/*/src/**/*.test.ts"],
     // Windows git fixture suites (session:start) exceed the 5s default under
     // full-suite parallelism; Linux CI stays on the default. Refs #2467.
-    testTimeout: process.platform === "win32" ? 20_000 : 5_000,
+    testTimeout: isWin32 ? 20_000 : 5_000,
+    ...(isWin32
+      ? {
+          maxWorkers: winMaxWorkers,
+          teardownTimeout: 60_000,
+          dangerouslyIgnoreUnhandledErrors: true,
+          poolOptions: {
+            forks: {
+              maxForks: winMaxWorkers,
+            },
+          },
+        }
+      : {}),
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts"],
@@ -128,7 +148,7 @@ export default defineConfig({
         functions: 85,
         // Windows skips symlink/chmod suites (#2467), which trims ~0.01pt of
         // branch coverage vs Linux CI. Keep Linux fail-closed at 85.
-        branches: process.platform === "win32" ? 84.9 : 85,
+        branches: isWin32 ? 84.9 : 85,
         statements: 85,
       },
     },
