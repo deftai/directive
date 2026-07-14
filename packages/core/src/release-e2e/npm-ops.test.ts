@@ -22,6 +22,7 @@ import {
   rehearseNpmPublish,
   resolvePnpm,
 } from "./npm-ops.js";
+import * as commandSpawn from "../verify-env/command-spawn.js";
 import type { E2ESeams } from "./types.js";
 
 function installFakeContentPackage(projectRoot: string, version = "0.53.0"): string {
@@ -212,6 +213,15 @@ describe("resolvePnpm", () => {
 
   it("returns null when neither is available", () => {
     expect(resolvePnpm({ which: () => null })).toBeNull();
+  });
+
+  it("uses PATHEXT-aware PATH resolution when no which seam is injected (#2548)", () => {
+    const spy = vi.spyOn(commandSpawn, "resolveCommandOnPath").mockImplementation((name) => {
+      if (name === "pnpm") return "C:\\bin\\pnpm.CMD";
+      return null;
+    });
+    expect(resolvePnpm()).toEqual(["C:\\bin\\pnpm.CMD"]);
+    spy.mockRestore();
   });
 });
 

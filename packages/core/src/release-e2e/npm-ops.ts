@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { defaultWhich, spawnText } from "../release/spawn.js";
+import { defaultWhich } from "../release/spawn.js";
+import { resolveCommandOnPath, spawnCommandText } from "../verify-env/command-spawn.js";
 import {
   MODULE_NOT_FOUND_MARKERS,
   NPM_BUILD_TIMEOUT_SECONDS,
@@ -31,12 +32,25 @@ function resolveWhich(seams: E2ESeams): (name: string) => string | null {
  * available.
  */
 export function resolvePnpm(seams: E2ESeams = {}): string[] | null {
-  const which = resolveWhich(seams);
-  const pnpm = which("pnpm");
+  // Injected which seam wins for unit tests; production uses PATHEXT-aware PATH scan
+  // so `where pnpm` extensionless shims do not ENOENT under spawnSync (#2548 / #2467).
+  if (seams.which ?? seams.whichGh) {
+    const which = resolveWhich(seams);
+    const pnpm = which("pnpm");
+    if (pnpm) {
+      return [pnpm];
+    }
+    const corepack = which("corepack");
+    if (corepack) {
+      return [corepack, "pnpm"];
+    }
+    return null;
+  }
+  const pnpm = resolveCommandOnPath("pnpm");
   if (pnpm) {
     return [pnpm];
   }
-  const corepack = which("corepack");
+  const corepack = resolveCommandOnPath("corepack");
   if (corepack) {
     return [corepack, "pnpm"];
   }
@@ -51,7 +65,7 @@ function runNpmStep(
   timeoutSeconds: number,
   seams: E2ESeams,
 ): [boolean, string] {
-  const spawn = seams.spawnText ?? spawnText;
+  const spawn = seams.spawnText ?? spawnCommandText;
   const head = cmd[0] ?? "";
   const result = spawn(head, cmd.slice(1), {
     cwd,
@@ -310,7 +324,7 @@ export function rehearseNpmInstallAndRun(
   );
   if (!ok) return [false, reason];
 
-  const spawn = seams.spawnText ?? spawnText;
+  const spawn = seams.spawnText ?? spawnCommandText;
   const cliBin = join(consumerDir, "node_modules", "@deftai", "directive", "dist", "bin.js");
 
   // Liveness probe (#2010): `--version` loads the cli + core engine via

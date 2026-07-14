@@ -1,0 +1,88 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2548"
+  },
+  "plan": {
+    "title": "fix(release-e2e): Windows npm dry-run fails spawnSync pnpm ENOENT (PATHEXT / .cmd)",
+    "status": "running",
+    "narratives": {
+      "Description": "release:e2e npm publish dry-run uses spawnSync on a bare pnpm path and ENOENTs on Windows despite pnpm.cmd on PATH. Use the shared win32 PATHEXT-aware spawn helper (same class as #2467) or soft-skip with a clear diagnostic.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2548",
+      "Overview": "## Problem\n\n`task release:e2e` on native Windows completed the GitHub release rehearsal cleanly, then failed the npm publish dry-run leg:\n\n```\n[e2e]   rehearsal step: npm publish dry-run... FAIL (pnpm install failed (exit 2): spawnSync C:\\Users\\msada\\AppData\\Roaming\\npm\\pnpm ENOENT)\n```\n\n`pnpm` is installed and resolvable from PowerShell (`pnpm.ps1` / `pnpm.cmd` under `%APPDATA%\\Roaming\\npm`). `where.exe pnpm` finds both the extensionless shim and `pnpm.cmd`. `spawnSync` without `shell: true` does not apply PATHEXT, so the bare `pnpm` path ENOENTs.\n\n## Evidence (v0.77.0 Phase 3)\n\n- clone / set-origin / push-mirror / task release / verify draft / verify tag: **OK**\n- npm publish dry-run: **FAIL** (pnpm ENOENT)\n- Temp repo destroy: WARN (token lacks `delete_repo`) — leftover `deftai/deftai-release-test-20260714221141-bc7550`\n\n## Expected\n\n- release-e2e npm leg resolves `pnpm` on win32 the same way #2467 / toolchain probes do (prefer `.cmd` / `shell: true` / Corepack)\n- Or soft-skip with a clear Windows diagnostic instead of hard-failing a green GitHub rehearsal\n\n## Acceptance\n\n- [ ] `task release:e2e` npm dry-run succeeds on Windows when pnpm.cmd is on PATH\n- [ ] Regression test or shared spawn helper covers win32 PATHEXT for pnpm\n- [ ] Document `--skip-npm` as GitHub-shape-only escape when npm leg is env-blocked\n\n## Related\n\n- Observed during v0.77.0 Phase 3\n- Same class as #2467 (Windows pnpm.cmd / PATHEXT)\n- Refs #2547 (Taskfile quoting), #2546 (vitest flake)\r\n\n",
+      "Labels": "bug, runtime-portability, urgent, area:release",
+      "UserStory": "As a Windows maintainer, I want release:e2e npm dry-run to find pnpm.cmd, so that Phase 3 does not hard-fail after a green GitHub rehearsal.",
+      "ImplementationPlan": "1. Update the release-e2e npm dry-run spawn in packages/core/src/release-e2e/ to resolve pnpm via win32 PATHEXT/.cmd/shell:true using the shared verify-env toolchain helper.\n2. Add a vitest unit test that asserts Windows pnpm resolution prefers pnpm.cmd and does not spawn a bare extensionless path that returns ENOENT.\n3. Verify with the focused release-e2e test module and a release:e2e --skip-npm smoke when full npm leg remains blocked.",
+      "Acceptance": "1. Windows pnpm spawn succeeds\n2. Shared resolution helper used\n3. Unit test covers PATHEXT"
+    },
+    "items": [
+      {
+        "title": "Windows pnpm spawn succeeds",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given pnpm.cmd on PATH, when release-e2e runs the npm dry-run install step on win32, then spawn returns without ENOENT and the step proceeds or soft-skips with an explicit diagnostic."
+        }
+      },
+      {
+        "title": "Shared resolution helper used",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the release-e2e npm leg, when it locates pnpm, then it uses the shared win32-aware resolver rather than spawnSync on a bare pnpm path."
+        }
+      },
+      {
+        "title": "Unit test covers PATHEXT",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the new release-e2e unit test, when executed on the win32 branch of the resolver, then it passes for pnpm.cmd resolution and fails if the bare-path ENOENT regresses."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "runtime-portability",
+      "urgent",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2548",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2548: fix(release-e2e): Windows npm dry-run fails spawnSync pnpm ENOENT (PATHEXT / .cmd)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2547",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2547"
+      }
+    ],
+    "updated": "2026-07-14T22:24:21Z",
+    "id": "release-e2e-pnpm-pathext",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-e2e/",
+          "packages/core/src/verify-env/"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- release-e2e",
+          "pnpm --filter @deftai/directive-core test -- verify-env"
+        ],
+        "expected_outputs": [
+          "Windows pnpm resolution succeeds for release-e2e npm leg",
+          "Regression test for win32 spawn",
+          "Clear diagnostic if soft-skip remains"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-e2e-npm",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2548; same PATHEXT class as #2467. Release e2e harness is framework-internal."
+      }
+    }
+  }
+}

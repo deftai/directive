@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows release:e2e npm dry-run resolves pnpm.cmd instead of ENOENTing.** The npm publish rehearsal now uses PATHEXT-aware PATH lookup and win32 shell spawn for `.cmd` shims, matching the #2467 toolchain class. Closes #2548.
+
 - **macOS test runs use canonical temporary paths and a portable Unix no-op binary.** Vitest normalizes the `/var` alias before workers spawn, preventing cwd/git fixture mismatches, and the SCM binary-override fixture now uses `/usr/bin/true`, which exists on both macOS and common Linux hosts. Closes #2526, #2527.
 
 ### Removed
