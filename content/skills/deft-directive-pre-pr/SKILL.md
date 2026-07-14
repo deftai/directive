@@ -35,6 +35,20 @@ or invoke `task verify:branch`. Pre-PR is the last gate before push, so a stale 
 
 ! Every numbered-menu prompt rendered in this skill (per-finding decision menus in Phase 4 Diff, the Phase 5 Loop restart-vs-exit gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- implicit resumption is forbidden.
 
+
+## Ordered-plan target gate (#2402)
+
+! Before opening or pushing a PR, when an ordered-plan sequence may be active, verify the PR target matches the current authorized entry:
+
+```
+task verify:plan-sequence -- --target-kind pr --target <issue-or-entry-id>
+```
+
+- ! Exit non-zero → fail closed; do not open an unauthorized PR.
+- ! Exit 0 with "skipped (no active ordered-plan sequence)" → proceed under normal pre-PR rules.
+- ! After the PR's review cycle completes successfully, run `task plan-sequence:advance` so "next" resolves to the following entry (or exhausted).
+- ⊗ Treat skill-chaining or "what's next?" as permission to open a PR outside the current sequence entry.
+
 ## When to Use
 
 - ! Before pushing a branch for PR creation

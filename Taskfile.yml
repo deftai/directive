@@ -152,6 +152,9 @@ includes:
   session:
     taskfile: ./tasks/session.yml
     optional: true
+  plan-sequence:
+    taskfile: ./tasks/plan-sequence.yml
+    optional: true
   # #883 Story 1 stub include. The fragment exposes its inner tasks
   # (`issue:list` / `issue:view` / `issue:close` / `issue:edit`) under the
   # `scm` namespace key, producing the canonical `scm:issue:*` surface in

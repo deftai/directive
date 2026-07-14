@@ -242,6 +242,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-session-ritual --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  plan-sequence:
+    desc: "Fail-closed ordered-plan target check (#2402). Flags: --target-kind <kind> --target <id> / --json. Skips (exit 0) when no active sequence."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-plan-sequence --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   tools:
     desc: "Detect required Deft host tools and print install or manual guidance (#1187). Flags: --install / --yes / --json"
     dir: '{{.USER_WORKING_DIR}}'

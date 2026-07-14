@@ -25,6 +25,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/scm": sub("core", "scm"),
   "@deftai/directive-core/scope": sub("core", "scope"),
   "@deftai/directive-core/session": sub("core", "session"),
+  "@deftai/directive-core/plan-sequence": sub("core", "plan-sequence"),
   "@deftai/directive-core/slice": sub("core", "slice"),
   "@deftai/directive-core/cache": sub("core", "cache"),
   "@deftai/directive-core/doctor": sub("core", "doctor"),

@@ -1,0 +1,74 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Ordered-plan continuation boundary so \"next\" cannot escape an approved sequence",
+    "created": "2026-07-14T14:15:00.000Z",
+    "updated": "2026-07-14T14:15:00.000Z"
+  },
+  "plan": {
+    "id": "2402-ordered-plan-continuation",
+    "title": "bug: continuation language can escape an approved ordered plan",
+    "status": "running",
+    "kind": "story",
+    "narratives": {
+      "Description": "Add a deterministic ordered-plan continuation boundary so words like next/resume/proceed advance only within the narrowest operator-approved sequence and fail closed when exhausted. AGENTS.md stays pointer-thin (amend #1149 only); bulk lives in preamble, skills, and plan-sequence CLI/gate. Do not reuse triage queue continuation* fields.",
+      "UserStory": "As an operator, when I approve a two-PR delivery sequence and say move on to the next task/pr, I want the agent to open only the next approved entry and stop after the last one, so continuation language cannot widen into the triage queue or adjacent backlog.",
+      "ImplementationPlan": "1) packages/core/src/plan-sequence — token schema, store under .deft/plan-sequence.json, resolve/verify/advance/exhaust (separate from triage continuation*). 2) CLI: plan-sequence:set|current|clear|advance + verify:plan-sequence --target-kind/--target; wire route-argv + dispatch + tasks. 3) Amend agents-entry #1149 with 1–3 line ordered-plan precedence; expand commands.md Backlog Triage; add preamble ordered-plan section. 4) Pack/skill updates: triage (what's next plan-first), pre-pr target check, review-cycle exit/advance/stop, swarm/build cohort exhaustion; packs:render. 5) Content-contract + unit tests for two-PR next, exhausted fail-closed, no-plan→queue, AGENTS pointer-only. 6) CHANGELOG Closes #2402; agents:refresh; task check. Refs addenda on #2402 (phrase ambiguity, AGENTS budget).",
+      "Origin": "https://github.com/deftai/directive/issues/2402",
+      "Overview": "Non-goals: raising agentsMdBudget.absoluteMaxBytes; collapsing into #2180 posture token; reusing triage continuationNumbers/continuationOrder; new multi-paragraph AGENTS section."
+    },
+    "items": [
+      {
+        "id": "2402-a1",
+        "title": "Deterministic plan-sequence module + CLI",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an ordered plan JSON, when plan-sequence:set/current and verify:plan-sequence run, then current entry, advance, and exhausted fail-closed behave deterministically without reusing triage continuation fields.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2402-a2",
+        "title": "Pointer-thin #1149 precedence + preamble/skills",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given agents-entry #1149, when an ordered-plan context is active, then what's next binds to the plan first; triage:queue only on explicit queue/cohort ask or no active sequence; AGENTS delta is precedence-pointer only; preamble and affected skills encode full semantics.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2402-a3",
+        "title": "Incident-shape tests + budget green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a two-entry plan, when next after entry 1 resolves to entry 2 only and next after entry 2 fails closed; verify:agents-md-budget stays green without raising absoluteMaxBytes.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "process",
+      "agent-experience",
+      "triage"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2402",
+        "type": "x-xbrief/github-issue",
+        "title": "#2402"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2180",
+        "type": "x-xbrief/refs",
+        "title": "#2180 related intent-token vocabulary"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1149",
+        "type": "x-xbrief/refs",
+        "title": "#1149 cache-as-authoritative (amend precedence)"
+      }
+    ],
+    "updated": "2026-07-14T14:10:44Z"
+  }
+}

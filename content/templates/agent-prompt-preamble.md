@@ -49,6 +49,28 @@ Worked example (a swarm-cohort member):
 
 A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `batching_rationale` null, and lists only its own xBRIEF in `cohort_vbriefs`; such a section does NOT by itself satisfy the consent token, so the Story Start Gate falls through to the #1371 prose carve-out for a lone interactive dispatch.
 
+## 2.55 Ordered-plan continuation boundary (#2402)
+
+When the operator supplies an ordered plan (delivery sequence, cohort, checklist, review batch, or phase list), continuation language is bounded by that sequence — not by the triage queue, skill chaining, or adjacent backlog memory.
+
+! Record the active sequence with `task plan-sequence:set -- --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `task plan-sequence:current`; advance with `task plan-sequence:advance`; clear with `task plan-sequence:clear`.
+
+! Before creating or dispatching a new external work unit (PR, branch, story activation, sub-agent implementation task), when a sequence is active run `task verify:plan-sequence -- --target-kind <kind> --target <id-or-title>`. Exit non-zero means fail closed.
+
+! "next" / "what's next?" / "proceed" / "resume" / "move on" means **exactly one** next unit in the **narrowest active** ordered sequence. Unit type is inherited from that sequence.
+
+! When the sequence is exhausted (`continuation_past_final` defaults false), stop and ask. Do not open PR 3 after an approved two-PR plan. Do not consult `task triage:queue`, open-issue intuition, or skill-chaining instructions to invent the next unit.
+
+! Explicit queue/backlog asks ("what's the queue?", "build a cohort") remain queue-driven even mid-plan. Bare "what's next?" is **not** such an ask while a sequence is active.
+
+! Skill-exit chaining instructions are advisory entrypoints only — they do not authorize adjacent work unless it matches the current ordered-plan entry or a fresh operator directive.
+
+! Review-cycle exit returns to the ordered-plan context and authorizes at most the next sequence entry (after `plan-sequence:advance` for the completed PR). Cohort/build flows stop after the final approved entry.
+
+⊗ Reuse triage queue `continuationNumbers` / `continuationOrder` for ordered-plan state — those fields are for `[RESUME]` / stale-defer ordering only.
+
+⊗ Treat affirmative continuation ("yes", "proceed") as permission to widen past the approved sequence.
+
 ## 2.6 Provider-neutral worker metadata (#1531)
 
 Heterogeneous swarm dispatch (#1531) assigns each worker a **dispatch provider** (the runtime primitive that launched the agent), a **worker role** (what the agent is allowed to do), and a **selected backend** or **routing policy** (how the harness maps that role to a concrete agent). These fields are provider-neutral: Composer-class coding agents, Grok Build (`spawn_subagent`), Cursor/cloud agents, and future adapters share the same contract.

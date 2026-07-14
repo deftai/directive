@@ -438,8 +438,13 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Cache-as-authoritative work selection (#1149)",
     canonicalHome: "commands.md",
-    pointerHints: ["deft triage:queue", "commands.md", "#1149", "D11"],
-    canonicalBodyMarkers: ["triage:queue --limit=10", "ranked candidate work"],
+    pointerHints: ["deft triage:queue", "commands.md", "#1149", "D11", "#2402", "plan-sequence"],
+    canonicalBodyMarkers: [
+      "triage:queue --limit=10",
+      "ranked candidate work",
+      "Ordered-plan",
+      "plan-sequence",
+    ],
     retiredFullTextMarkers: [
       "consumer-side mirror of the maintainer rule",
       "open-GitHub-issue intuition",

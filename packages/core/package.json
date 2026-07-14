@@ -62,6 +62,10 @@
       "types": "./dist/session/index.d.ts",
       "default": "./dist/session/index.js"
     },
+    "./plan-sequence": {
+      "types": "./dist/plan-sequence/index.d.ts",
+      "default": "./dist/plan-sequence/index.js"
+    },
     "./slice": {
       "types": "./dist/slice/index.d.ts",
       "default": "./dist/slice/index.js"

@@ -90,6 +90,10 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "github-body:comment-create": ["github-body", "comment-create"],
   "github-body:comment-edit": ["github-body", "comment-edit"],
   "github-body:pr-edit": ["github-body", "pr-edit"],
+  "plan-sequence:set": ["plan-sequence", "set"],
+  "plan-sequence:current": ["plan-sequence", "current"],
+  "plan-sequence:clear": ["plan-sequence", "clear"],
+  "plan-sequence:advance": ["plan-sequence", "advance"],
 };
 
 export type RouteKind = "dispatch" | "stub";

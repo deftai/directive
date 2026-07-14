@@ -222,6 +222,7 @@ User-facing surface for the Phase 0 triage workflow and the unified content cach
 
 - `task triage:bootstrap -- [--repo OWNER/NAME] [--limit N] [--state {open|closed|all}] [--batch-size N] [--delay-ms N]` -- seed the local triage cache and audit layer.
 - `task triage:queue --limit=10` -- show ranked candidate work from cache-backed state.
+- **Ordered-plan precedence (#2402):** when `.deft/plan-sequence.json` is active, bare "what's next?" / "next PR" / "proceed" bind to the current sequence entry via `task plan-sequence:current` — they do **not** authorize `triage:queue` or adjacent backlog picks. Use `task verify:plan-sequence -- --target-kind <kind> --target <id>` before opening a PR/branch/story/sub-agent. Sequence exhaustion fails closed until the operator names a new target or explicitly asks for queue/backlog selection ("what's the queue?", "build a cohort"). Set a sequence with `task plan-sequence:set -- --file <json>`; advance with `task plan-sequence:advance`; clear with `task plan-sequence:clear`. Do not reuse triage queue `continuationNumbers` / `continuationOrder` for this state.
 - `task triage:accept -- <issue>` -- accept a candidate and ingest it as a proposed scope xBRIEF.
 - `task triage:reject -- <issue> [--reason "why"]` -- reject a candidate, audit the decision, and update upstream issue state.
 - `task triage:defer -- <issue>` -- defer a candidate without terminal rejection.

@@ -103,6 +103,7 @@ export const CLI_MODULE_VERBS = [
   "release-rollback",
   "scope-lifecycle",
   "session-start",
+  "plan-sequence",
   "slice",
   "subagent-monitor",
   "toolchain-check",
@@ -145,6 +146,7 @@ export const CLI_MODULE_VERBS = [
   "verify-go-freeze",
   "verify-scm-boundary",
   "verify-session-ritual",
+  "verify-plan-sequence",
   "verify-stubs",
   "verify-xbrief-drift",
   "rule-ownership-lint",
@@ -229,6 +231,18 @@ const POLICY_ACTION_COLON_ALIASES = Object.fromEntries(
   Object.keys(POLICY_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "policy"]),
 ) as Record<string, string>;
 
+/** Colon aliases for plan-sequence subcommands (#2402). */
+export const PLAN_SEQUENCE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "plan-sequence:set": "set",
+  "plan-sequence:current": "current",
+  "plan-sequence:clear": "clear",
+  "plan-sequence:advance": "advance",
+};
+
+const PLAN_SEQUENCE_COLON_ALIASES = Object.fromEntries(
+  Object.keys(PLAN_SEQUENCE_ALIAS_SUBCOMMANDS).map((alias) => [alias, "plan-sequence"]),
+) as Record<string, string>;
+
 /** Task-style aliases (framework_commands / Taskfile names). */
 export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:encoding": "verify-encoding",
@@ -264,6 +278,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:xbrief-drift": "verify-xbrief-drift",
   "verify:capacity": "verify-capacity",
   "verify:session-ritual": "verify-session-ritual",
+  "verify:plan-sequence": "verify-plan-sequence",
+  ...PLAN_SEQUENCE_COLON_ALIASES,
   "verify-strategy-output": "validate-strategy-output",
   "validate:strategy-output": "validate-strategy-output",
   "verify:codebase-map-fresh": "codebase-map-fresh",
@@ -2916,6 +2932,8 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const handler = await loadHandler(canonical, io);
     const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const planSequenceSubcommand =
+      verb !== undefined ? PLAN_SEQUENCE_ALIAS_SUBCOMMANDS[verb] : undefined;
     const handlerArgv =
       canonical === "framework-commands" && verb !== undefined && verb !== canonical
         ? [verb, ...rest]
@@ -2923,7 +2941,9 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
           ? [triageSubcommand, ...rest]
           : policySubcommand !== undefined && canonical === "policy"
             ? [policySubcommand, ...rest]
-            : rest;
+            : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
+              ? [planSequenceSubcommand, ...rest]
+              : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

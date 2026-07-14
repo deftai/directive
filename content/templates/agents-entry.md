@@ -36,9 +36,9 @@ Projects on legacy `vbrief/` still read-accepted; run `deft migrate:xbrief` for 
 
 ## Cache-as-authoritative work selection (#1149)
 
-! "what next?" / cohort / queue → `deft triage:queue --limit=10` (D11 / #1128); present ranked list first — `.deft/core/commands.md` § Backlog Triage.
+! "what next?" → ordered-plan first (#2402 / `deft plan-sequence:*`); else `deft triage:queue --limit=10` (D11) — `commands.md` § Backlog Triage.
 
-⊗ Recommend issue or xBRIEF without `deft triage:queue` (or showing its result).
+⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan.
 
 ## Umbrella status reading (#1152 / #2066)
 

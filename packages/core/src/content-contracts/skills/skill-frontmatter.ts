@@ -14,6 +14,10 @@ const EXCLUDED_PARTS = new Set([
   "node_modules",
   "__pycache__",
   ".pytest_cache",
+  ".deft-scratch",
+  ".deft-cache",
+  "coverage",
+  "dist",
 ]);
 
 function frontmatter(text: string): string | null {

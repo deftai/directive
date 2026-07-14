@@ -25,6 +25,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - User says "build this", "implement the spec", or "start building"
 - Resuming a partially-built project that has story xBRIEFs in `xbrief/active/`
 
+## Ordered-plan / cohort exhaustion (#2402)
+
+! When processing an approved multi-story cohort or an active ordered-plan sequence, stop after the final approved entry. Do not promote or dispatch adjacent stories from queue intuition. Continuation language advances only within the approved order; skill-chaining is non-authorizing.
+
 ## Step 0 -- Implementation Preflight (#810)
 
 - ! Before starting any new implementation story or switching from one story to another, MUST run `git status --short --branch`.

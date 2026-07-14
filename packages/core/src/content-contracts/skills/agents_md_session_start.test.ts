@@ -87,27 +87,28 @@ describe("test_agents_md_session_start", () => {
   });
 
   it("cache_as_authoritative_must_rule_present", () => {
-    const required =
-      'When the operator asks "what should I work on next?" / "build a cohort" / ' +
-      '"what\'s the queue?", the agent MUST run `task triage:queue --limit=10`';
-    expect(agentsMdText).toContain(required);
-    expect(agentsMdText).toContain("(D11 / #1128)");
+    // #2402: ordered-plan precedence amends #1149 — plan-first when active, else queue.
+    expect(agentsMdText).toContain("ordered-plan first");
+    expect(agentsMdText).toContain("#2402");
+    expect(agentsMdText).toContain("deft triage:queue --limit=10");
+    expect(agentsMdText).toContain("(D11)");
+    expect(agentsMdText).toContain("task triage:queue");
+    expect(agentsMdText).toContain("task plan-sequence:current");
   });
 
   it("cache_as_authoritative_anti_pattern_present", () => {
-    expect(agentsMdText).toContain(
-      "Recommend a specific issue or xBRIEF without consulting `task triage:queue`",
-    );
+    expect(agentsMdText).toContain("Recommend work without queue/plan consult");
+    expect(agentsMdText).toContain("widen past an exhausted plan");
   });
 
   it("cache_as_authoritative_uses_canonical_markers", () => {
-    const section = extractSection(
-      agentsMdText,
-      "Cache-as-authoritative work selection \\(#1149\\)",
-    );
+    // Managed section (consumer template shape) carries the ! / ⊗ markers.
+    const managedStart = agentsMdText.indexOf("<!-- deft:managed-section");
+    const managed = managedStart >= 0 ? agentsMdText.slice(managedStart) : agentsMdText;
+    const section = extractSection(managed, "Cache-as-authoritative work selection \\(#1149\\)");
     expect(section).toBeTruthy();
-    expect(/^!\s+When the operator asks/m.test(section)).toBe(true);
-    expect(/^\u2297\s+Recommend/m.test(section)).toBe(true);
+    expect(/^!\s+"what next\?"/m.test(section)).toBe(true);
+    expect(/^\u2297\s+Recommend work without queue\/plan consult/m.test(section)).toBe(true);
   });
 
   // #838: the `## Skill Routing` keyword->path table moved to the REFERENCES.md

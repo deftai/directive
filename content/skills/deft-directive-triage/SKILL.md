@@ -59,9 +59,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 5. ⊗ Re-classify items already terminally decided (accept / reject / mark-duplicate) without explicit operator approval -- the audit log is append-only and supersession runs through Layer 5 (`task triage:reset <N>`), not through silent re-walks.
 6. ⊗ Block issue creation solely because no label was selected, or invent ad hoc labels outside the repository's existing label set.
 
+
+## Ordered-plan precedence (#2402)
+
+! Before queue selection on bare "what's next?", run `task plan-sequence:current`. Active sequence → that entry only; exhausted → fail closed and ask. Explicit "what's the queue?" / "build a cohort" still use Phase 2. Chaining is non-authorizing. ⊗ Reuse triage `continuationNumbers`/`continuationOrder` for ordered-plan state.
+
 ## Phase 2 -- Present
 
-! Render the ranked queue before suggesting any specific issue. The cache-as-authoritative rule in AGENTS.md (`## Cache-as-authoritative work selection (#1149)`) is binding: the agent ! MUST consult `task triage:queue` and surface the result before proposing work from memory.
+! When no ordered-plan is active, render `task triage:queue` before suggesting work (#1149). Active sequence yields to the ordered-plan entry (#2402).
 
 1. ! Run `task triage:queue --limit=N` (D11 / #1128) -- default `N=10` per the umbrella Current Shape v3 WIP cap. Output is grouped `[RESUME]` -> `[URGENT]` -> untriaged -> other; within-group ordering follows the consumer-supplied `plan.policy.triageRankingLabels[]` (framework default empty per §12 boundary), tiebroken by `updated_at` descending.
 2. ! For per-item detail, run `task triage:show <N>` -- prints the cached upstream payload, the latest triage decision, the audit timeline, and the active-xBRIEF reference flag. Exit 0 on hit, 1 on cache miss (re-sync per Phase 0).

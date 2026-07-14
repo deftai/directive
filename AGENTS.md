@@ -63,11 +63,7 @@ Pointer-sufficient managed section below; `content/contracts/deterministic-quest
 
 ## Cache-as-authoritative work selection (#1149)
 
-Same `!` / `⊗` rules as the managed section below; in this repo substitute `task` for `deft` (`task triage:queue --limit=10`, D11 / #1128).
-
-! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", the agent MUST run `task triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else.
-
-⊗ Recommend a specific issue or xBRIEF without consulting `task triage:queue` (or showing the operator the result of the consultation).
+Same managed `#1149` / `#2402` rules below (`task` for `deft`; `task triage:queue`, `task plan-sequence:current`). Detail: preamble § 2.55 + `commands.md` § Backlog Triage.
 
 ## Codebase MAP Projection (#1595 / #1498)
 
@@ -159,7 +155,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=2d37b23afdc7 refreshed=2026-07-14T02:23:46Z session=d8b403d4ba5c -->
+<!-- deft:managed-section v3 sha=38e4871278ce refreshed=2026-07-14T14:16:20Z session=49c5d1308f74 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -197,9 +193,9 @@ Projects on legacy `vbrief/` still read-accepted; run `deft migrate:xbrief` for 
 
 ## Cache-as-authoritative work selection (#1149)
 
-! "what next?" / cohort / queue → `deft triage:queue --limit=10` (D11 / #1128); present ranked list first — `.deft/core/commands.md` § Backlog Triage.
+! "what next?" → ordered-plan first (#2402 / `deft plan-sequence:*`); else `deft triage:queue --limit=10` (D11) — `commands.md` § Backlog Triage.
 
-⊗ Recommend issue or xBRIEF without `deft triage:queue` (or showing its result).
+⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan.
 
 ## Umbrella status reading (#1152 / #2066)
 

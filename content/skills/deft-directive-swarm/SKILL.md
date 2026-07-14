@@ -76,6 +76,13 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 ⊗ Re-prompt the operator for per-phase batching approval, or run the interactive promote-fill loop (Step 0a -- 0d), when a pre-approved cohort is supplied via `task swarm:launch` -- the headless path's single #1378 consent already authorizes the batch, and re-prompting mid-cohort violates the all-or-nothing dispatch-envelope rule (#954).
 ? The interactive queue-driven path (Step 0 below) remains the DEFAULT when no pre-approved cohort is supplied; the headless fast-path is the opt-in low-ceremony route for a cohort the operator has already curated and approved upstream.
 
+
+### Ordered-plan / cohort exhaustion (#2402)
+
+! When the approved cohort (or an active `plan-sequence` of kind `swarm`/`cohort`/`delivery`) is exhausted, stop. Do not promote, queue, open, or dispatch adjacent work after the final approved entry unless the operator explicitly authorizes a new cohort or queue-driven selection.
+
+! Continuation language ("next", "proceed") advances only within the approved cohort order — not into triage-queue remainder.
+
 ### Step 0: Queue-driven cohort selection (#1142 / N2)
 
 ! Phase 0 is queue-driven: consult the triage cache (D2 / #1122 + D11 / #1128) for the ranked promotion candidates, then fill the WIP cap. Do NOT pick the cohort by hand from `xbrief/pending/` or `xbrief/active/` -- the queue is the canonical record of "what's next?" per AGENTS.md `## Cache-as-authoritative work selection (#1149)`. The four sub-phases below run in canonical order; existing Step 0.5 (lifecycle bridge) and Steps 1-5 (readiness / blockers / allocation / present / approval) proceed unchanged after Phase 0d.

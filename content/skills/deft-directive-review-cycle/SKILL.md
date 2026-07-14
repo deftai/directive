@@ -21,6 +21,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. PR comment fetching, check-run queries, and review submission all depend on `gh`.
 
+
+## Ordered-plan exit / advance (#2402)
+
+! When the review-cycle exit condition is met (no P0/P1 remaining / CLEAN verdict):
+
+1. Return control to the caller — do **not** discover adjacent backlog work.
+2. If an ordered-plan sequence is active and this PR matched the current entry, run `task plan-sequence:advance`.
+3. If another entry remains, the caller may continue **only** to that entry (one unit).
+4. If the sequence is exhausted, stop and ask. Do not open another PR from queue intuition or chaining text.
+
+⊗ Exit the review cycle into `task triage:queue` or an unrelated PR without fresh operator approval.
+
 ## When to Use
 
 - User says "review cycle", "check reviews", or "run review cycle" on a PR

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Ordered-plan continuation stops "next" from escaping an approved sequence.** Agents bind bare "what's next?" / "proceed" to the narrowest operator-approved plan via `plan-sequence:*` and `verify:plan-sequence`; exhausted plans fail closed instead of pulling the triage queue. AGENTS keeps a pointer-thin #1149 precedence line; full rules live in the preamble and skills. Closes #2402.
+
 ### Changed
 
 ### Fixed

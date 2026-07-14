@@ -1,0 +1,47 @@
+version: '3'
+
+# tasks/plan-sequence.yml -- ordered-plan continuation boundary (#2402)
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  set:
+    desc: "Set the active ordered-plan sequence from --file JSON (#2402)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'plan-sequence set --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  current:
+    desc: "Show the current ordered-plan entry (#2402)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'plan-sequence current --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  clear:
+    desc: "Clear the active ordered-plan sequence (#2402)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'plan-sequence clear --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  advance:
+    desc: "Mark current entry complete and advance the ordered-plan index (#2402)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'plan-sequence advance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
