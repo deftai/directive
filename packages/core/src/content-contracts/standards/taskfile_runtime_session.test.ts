@@ -81,7 +81,10 @@ describe("runtime/session task dispatch (#2181)", () => {
   });
 
   it("engine:invoke runs vendored bin.js when the artifact is present", () => {
-    expect(engine).toMatch(/if \[ -f "\$bin" \]; then[\s\S]*node "\$bin" \{\{\.ENGINE_CMD\}\}/m);
+    expect(engine).toMatch(
+      /if \[ -f "\$bin" \]; then[\s\S]*node "\{\{\.TASKFILE_DIR\}\}\/engine-invoke\.cjs" vendored "\$bin"/m,
+    );
+    expect(engine).toMatch(/DEFT_ENGINE_CMD/);
   });
 
   it("engine:invoke checks Node via process.versions.node, not pnpm engine warnings", () => {

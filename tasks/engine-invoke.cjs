@@ -80,7 +80,8 @@ function main() {
   const result = spawnSync(execPath, execArgv, {
     stdio: "inherit",
     env: process.env,
-    shell: false,
+    // Global deft/directive on Windows are .cmd shims; shell:false cannot spawn them (#2415).
+    shell: mode === "global" && process.platform === "win32",
   });
   const code = result.status;
   process.exit(code === null ? 1 : code);
