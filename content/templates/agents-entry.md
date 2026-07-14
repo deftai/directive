@@ -7,16 +7,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session routing (#2176)
 
-! **Read-only default** until mutation intent (Q&A, Plan Mode, ticket-shaping): load AGENTS.md, main.md, USER.md, `xbrief/PROJECT-DEFINITION.xbrief.json`; confirm Deft alignment ("Deft Directive active" + addressing-name from USER.md); ⊗ do not run mutable `deft session:start`, triage welcome, sync, or branch-policy ceremony unless the operator asks or the task is implementation-ready (#2176). Full contract: `.deft/core/commands.md` § Session routing.
-
-**Bootstrap card** (before answering):
-- `deft` / `directive` won't run → README.md § Cold-start bootstrap (#2273); ⊗ never `.deft/core/`
-- Pre-cutover artifacts → `.deft/core/.agents/skills/deft-directive-setup/SKILL.md` § Pre-Cutover Detection Guard (#2068)
-- USER.md missing → setup SKILL Phase 1; `xbrief/PROJECT-DEFINITION.xbrief.json` missing → setup SKILL Phase 2 (#1813); ⊗ respond before phase completes
-- Config complete → read main.md → USER.md → PROJECT-DEFINITION (USER.md wins on conflicts); ~ `deft-directive-sync` on return
-
-**Mutation boundary:** code-writing, scope lifecycle, `start_agent`, commits, push, or release → `deft session:start` then `deft verify:session-ritual -- --tier=gated` per `.deft/core/commands.md` § Session-start ritual (#1149).
-- ? `deft session:start -- --read-only` — alignment only, no ritual-state (#2176)
+! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; confirm Deft alignment + addressing-name; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never `.deft/core/`; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). ? `deft session:start -- --read-only` (#2176).
 
 ## Session-start ritual (#1149)
 

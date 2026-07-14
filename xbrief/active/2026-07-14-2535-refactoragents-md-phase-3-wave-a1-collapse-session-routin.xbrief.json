@@ -1,0 +1,46 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Phase 3 Wave A1 — collapse Session routing bootstrap in managed AGENTS",
+    "created": "2026-07-14T19:55:00.000Z",
+    "updated": "2026-07-14T19:55:00.000Z"
+  },
+  "plan": {
+    "id": "2535-session-routing-collapse",
+    "title": "refactor(agents-md): Phase 3 Wave A1 — collapse Session routing bootstrap (~850 B)",
+    "status": "running",
+    "narratives": {
+      "Description": "Collapse ## Session routing (#2176) in content/templates/agents-entry.md into pointer-thin !/⊗/? lines while preserving cold-start / pre-cutover / USER.md / mutation discoverability (capability escape hatch). Target -800 to -900 B managed; re-seed absoluteMaxBytes; agents:refresh.",
+      "ImplementationPlan": "1) Thin Session routing section only in agents-entry.md. 2) task agents:refresh. 3) Re-seed absoluteMaxBytes to new measure. 4) CHANGELOG. 5) task verify:agents-md-budget + agents_entry_contract tests. 6) Update #2531 current-shape.",
+      "UserStory": "As a maintainer, I want Session routing always-on text collapsed without losing bootstrap/mutation discoverability, so Phase-3 combined budget moves toward <=8192 without capability loss.",
+      "Origin": "Child of #2531 Phase-3; Wave A1"
+    },
+    "items": [
+      {
+        "id": "2535-a1",
+        "title": "Collapse Session routing card",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given agents-entry Session routing, when measured, then section is pointer-thin, managed drops >=800 B (or hatch documented), contracts green, absoluteMaxBytes re-seeded.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_epic": "#2531",
+        "origin_issue": "#2535"
+      },
+      "capacityBucket": "agentic-debt"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2535",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2535"
+      }
+    ],
+    "updated": "2026-07-14T19:54:05Z"
+  }
+}

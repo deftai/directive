@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **DD-3 skill frontmatter budget is now fail-closed on the framework tree.** `plan.policy.agentsMdBudget` seeds `skillFrontmatterMaxBytes` at the measured daily-core size (2080 B) and pins `skillFrontmatterTier` to `daily-core`, so longer Cursor skill descriptions cannot silently grow the combined always-on surface while Phase-3 (#2531) chases ≤8192 B combined. Managed `absoluteMaxBytes` (7815) stays fail-closed. Closes #2532. Refs #2531, #2463, #2494.
 
+- **Session routing in AGENTS.md collapses to one pointer-thin bootstrap line.** Cold-start, pre-cutover, USER.md/PROJECT-DEFINITION missing, and mutation-boundary hops stay discoverable as one-hop pointers while managed always-on drops (~600 B); further cut stopped at the Phase-3 capability escape hatch (short of the −800 B stretch target). Re-seeds `absoluteMaxBytes` / `managedMaxLines`. Closes #2535. Refs #2531, #2176.
+
 ### Fixed
 
 - **macOS test runs use canonical temporary paths and a portable Unix no-op binary.** Vitest normalizes the `/var` alias before workers spawn, preventing cwd/git fixture mismatches, and the SCM binary-override fixture now uses `/usr/bin/true`, which exists on both macOS and common Linux hosts. Closes #2526, #2527.
