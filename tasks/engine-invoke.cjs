@@ -5,6 +5,9 @@
  * Spawn the deft CLI from DEFT_ENGINE_CMD without shell-interpolating operator
  * text (#2547). go-task forwards user args into ENGINE_CMD; apostrophes in
  * --summary and similar free-text flags must not break mvdan/sh parsing.
+ *
+ * Lives under tasks/ (not repo-root scripts/) so @deftai/directive-content
+ * prepack ships it beside tasks/engine.yml (#2022 Phase 3).
  */
 
 const { spawnSync } = require("node:child_process");

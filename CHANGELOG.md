@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Windows release:e2e npm dry-run resolves pnpm.cmd instead of ENOENTing.** The npm publish rehearsal now uses PATHEXT-aware PATH lookup and win32 shell spawn for `.cmd` shims, matching the #2467 toolchain class. Closes #2548.
 - **Windows task check no longer fails on Vitest onTaskUpdate RPC timeouts after a green suite.** Native Windows coverage runs cap fork worker parallelism, widen teardown timeout, and ignore unhandled worker RPC flakes when assertions are otherwise green so `pnpm run test` / `task check` exit zero. Closes #2546.
-- **`task release --summary` with apostrophes no longer breaks go-task.** `engine:invoke` forwards `ENGINE_CMD` via env and argv-spawns through `scripts/engine-invoke.cjs` so free-text flags (release summaries, reject reasons, etc.) are not shell-interpolated. Closes #2547.
+- **`task release --summary` with apostrophes no longer breaks go-task.** `engine:invoke` forwards `ENGINE_CMD` via env and argv-spawns through `tasks/engine-invoke.cjs` (shipped in consumer content prepack) so free-text flags are not shell-interpolated. Closes #2547.
 
 - **macOS test runs use canonical temporary paths and a portable Unix no-op binary.** Vitest normalizes the `/var` alias before workers spawn, preventing cwd/git fixture mismatches, and the SCM binary-override fixture now uses `/usr/bin/true`, which exists on both macOS and common Linux hosts. Closes #2526, #2527.
 
