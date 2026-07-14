@@ -128,4 +128,41 @@ describe("payload-staleness offline-by-default gating (#2182)", () => {
     expect(rendered).toMatch(/npm registry/i);
     expect(rendered).toContain("registry.npmjs.org");
   });
+
+  it("emits newer-release details through the JSON contract", () => {
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      stdout.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      cmdDoctor(["--full", "--network", "--json", "--project-root", root], {
+        frameworkRoot: framework,
+        whichFn: () => "/bin/x",
+        agentsRefreshPlan: () => ({ state: "current" }),
+        runGitLsRemote: () => ({
+          ok: true,
+          stdout: `${"a".repeat(40)}\trefs/tags/v0.1.0\n`,
+        }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.2.0" }),
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+
+    const payload = JSON.parse(stdout.join("")) as {
+      findings: Array<Record<string, unknown>>;
+    };
+    expect(
+      payload.findings.find(
+        (finding) => finding.check === "payload-staleness" && finding.status === "stale",
+      ),
+    ).toMatchObject({
+      staleness_kind: "newer-release",
+      installed_version: "0.1.0",
+      latest_version: "0.2.0",
+      resolver: "npm-view",
+    });
+  });
 });

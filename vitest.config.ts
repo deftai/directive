@@ -1,5 +1,13 @@
+import { realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
+
+// macOS exposes the same temporary directory through /var and /private/var.
+// Give test workers the canonical spelling so cwd/git comparisons and cleanup
+// agree across subprocess boundaries. Refs #2526.
+const testEnvironment =
+  process.platform === "darwin" ? { TMPDIR: realpathSync(tmpdir()) } : undefined;
 
 // Alias the workspace packages to their TypeScript source so the suite runs
 // against src/ without a prior `tsc -b` build (keeps `vitest --changed` fast
@@ -100,6 +108,7 @@ export default defineConfig({
     ],
   },
   test: {
+    env: testEnvironment,
     include: ["packages/*/src/**/*.test.ts"],
     // Windows git fixture suites (session:start) exceed the 5s default under
     // full-suite parallelism; Linux CI stays on the default. Refs #2467.

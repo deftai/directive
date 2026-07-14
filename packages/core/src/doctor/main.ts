@@ -221,7 +221,8 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     sink.blank();
   }
   // #2182: payload-staleness is the only doctor check that can reach a
-  // registry (git remote, then npm as a fallback). It stays in the OFFLINE
+  // registry (git verifies the pin; npm compares stable release availability).
+  // It stays in the OFFLINE
   // tier (skipped) unless the operator explicitly opts into the NETWORK tier
   // via `--network`, and the tool + registry class is disclosed BEFORE the
   // check runs -- never silently, never as a side effect of a read-only

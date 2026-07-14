@@ -20,13 +20,20 @@ describe("payload-staleness (#2003 / #2004)", () => {
       seedManifest(root, "1".repeat(40));
       const findings: Finding[] = [];
       const sink = createPlainSink();
+      let npmCalls = 0;
       runPayloadStalenessCheck(root, sink, (f) => findings.push(f), {
         isFile: (p) => p.endsWith("VERSION") || p.endsWith("AGENTS.md"),
         readText: (p) => (p.endsWith("VERSION") ? `sha: ${"1".repeat(40)}\nref: v0.56.0\n` : null),
         runGitLsRemote: () => ({ ok: true, stdout: `${"2".repeat(40)}\trefs/tags/v0.56.0\n` }),
+        runNpmViewVersion: () => {
+          npmCalls += 1;
+          return { ok: true, version: "9.9.9" };
+        },
       });
       const stale = findings.find((f) => f.status === "stale");
       expect(stale?.suggestion).toBe(CANONICAL_UPGRADE_COMMAND);
+      expect(stale?.staleness_kind).toBe("pinned-ref-moved");
+      expect(npmCalls).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -51,7 +58,7 @@ describe("payload-staleness (#2003 / #2004)", () => {
     }
   });
 
-  it("falls back to npm view when ls-remote yields no sha", () => {
+  it("compares published releases when ls-remote yields no sha", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
     try {
       seedManifest(root, "a".repeat(40), "v0.56.0");
@@ -66,6 +73,8 @@ describe("payload-staleness (#2003 / #2004)", () => {
       });
       const stale = findings.find((f) => f.status === "stale");
       expect(stale?.resolver).toBe("npm-view");
+      expect(stale?.staleness_kind).toBe("newer-release");
+      expect(stale?.latest_version).toBe("0.56.2");
       expect(stale?.suggestion).toBe(CANONICAL_UPGRADE_COMMAND);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -131,6 +140,181 @@ describe("payload-staleness (#2003 / #2004)", () => {
       const unverified = findings.find((f) => f.status === "unverified");
       expect(unverified?.severity).toBe("warning");
       expect(String(unverified?.message)).toContain("UNVERIFIED");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps registry lookup exceptions nonfatal", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "6".repeat(40);
+      const findings: Finding[] = [];
+      expect(() =>
+        runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+          isFile: (p) => p.includes("VERSION"),
+          readText: (p) =>
+            p.includes("VERSION") ? `sha: ${sha}\nref: v0.56.0\ntag: v0.56.0\n` : null,
+          runGitLsRemote: () => ({
+            ok: true,
+            stdout: `${sha}\trefs/tags/v0.56.0\n`,
+          }),
+          runNpmViewVersion: () => {
+            throw new Error("offline");
+          },
+        }),
+      ).not.toThrow();
+      expect(findings.find((f) => f.status === "unverified")).toMatchObject({
+        check: "payload-staleness",
+        severity: "warning",
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("checks for a newer release even when the pinned tag sha still matches", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "e".repeat(40);
+      seedManifest(root, sha, "v0.56.0");
+      const findings: Finding[] = [];
+      const sink = createPlainSink();
+      runPayloadStalenessCheck(root, sink, (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${sha}\nref: v0.56.0\ntag: v0.56.0\n` : null,
+        runGitLsRemote: () => ({ ok: true, stdout: `${sha}\trefs/tags/v0.56.0\n` }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.57.0" }),
+      });
+
+      const stale = findings.find((f) => f.status === "stale");
+      expect(stale).toMatchObject({
+        check: "payload-staleness",
+        status: "stale",
+        staleness_kind: "newer-release",
+        installed_version: "0.56.0",
+        latest_version: "0.57.0",
+        resolver: "npm-view",
+        suggestion: CANONICAL_UPGRADE_COMMAND,
+      });
+      expect(String(stale?.message)).toContain("Newer framework release available");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "0.56.0",
+    "0.55.9",
+  ])("does not nudge when npm latest is not newer: %s", (latestVersion) => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "f".repeat(40);
+      seedManifest(root, sha, "v0.56.0");
+      const findings: Finding[] = [];
+      runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${sha}\nref: v0.56.0\ntag: v0.56.0\n` : null,
+        runGitLsRemote: () => ({ ok: true, stdout: `${sha}\trefs/tags/v0.56.0\n` }),
+        runNpmViewVersion: () => ({ ok: true, version: latestVersion }),
+      });
+      expect(findings.find((f) => f.status === "stale")).toBeUndefined();
+      expect(findings.find((f) => f.status === "unverified")).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not nudge a stable install toward a prerelease", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "7".repeat(40);
+      const findings: Finding[] = [];
+      runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${sha}\nref: v0.56.0\ntag: v0.56.0\n` : null,
+        runGitLsRemote: () => ({ ok: true, stdout: `${sha}\trefs/tags/v0.56.0\n` }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.57.0-rc.1" }),
+      });
+      expect(findings.find((f) => f.status === "stale")).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("nudges a prerelease install toward the corresponding stable release", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "8".repeat(40);
+      const findings: Finding[] = [];
+      runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${sha}\nref: v0.57.0-rc.1\ntag: v0.57.0-rc.1\n` : null,
+        runGitLsRemote: () => ({
+          ok: true,
+          stdout: `${sha}\trefs/tags/v0.57.0-rc.1\n`,
+        }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.57.0" }),
+      });
+      expect(findings.find((f) => f.status === "stale")).toMatchObject({
+        staleness_kind: "newer-release",
+        installed_version: "0.57.0-rc.1",
+        latest_version: "0.57.0",
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("labels a newer prerelease as the latest release without calling it stable", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "a".repeat(40);
+      const findings: Finding[] = [];
+      runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${sha}\nref: v0.57.0-rc.1\ntag: v0.57.0-rc.1\n` : null,
+        runGitLsRemote: () => ({
+          ok: true,
+          stdout: `${sha}\trefs/tags/v0.57.0-rc.1\n`,
+        }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.57.0-rc.2" }),
+      });
+
+      const stale = findings.find((f) => f.status === "stale");
+      expect(stale).toMatchObject({
+        installed_version: "0.57.0-rc.1",
+        latest_version: "0.57.0-rc.2",
+      });
+      expect(String(stale?.message)).toContain("latest v0.57.0-rc.2");
+      expect(String(stale?.message)).not.toContain("latest stable");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not query npm for a branch pin whose sha matches", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "9".repeat(40);
+      let npmCalls = 0;
+      const findings: Finding[] = [];
+      runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) => (p.includes("VERSION") ? `sha: ${sha}\nref: master\n` : null),
+        runGitLsRemote: () => ({ ok: true, stdout: `${sha}\trefs/heads/master\n` }),
+        runNpmViewVersion: () => {
+          npmCalls += 1;
+          return { ok: true, version: "99.0.0" };
+        },
+      });
+      expect(npmCalls).toBe(0);
+      expect(findings).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

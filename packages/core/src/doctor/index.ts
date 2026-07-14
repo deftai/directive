@@ -8,6 +8,7 @@ export * from "./main.js";
 export * from "./manifest.js";
 export * from "./paths.js";
 export * from "./payload-staleness.js";
+export * from "./release-availability.js";
 export * from "./taskfile.js";
 export * from "./types.js";
 export * from "./which.js";

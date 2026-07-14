@@ -1,0 +1,37 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "release-availability-detection",
+    "status": "approved",
+    "narratives": {
+      "Problem": "An immutable installed release tag keeps the same remote SHA forever, so payload-staleness reports current even after a newer stable release is published.",
+      "Change": "Add a reusable stable-release comparison and invoke it from the explicit network doctor tier after pinned-ref verification.",
+      "Scope": "In scope: release comparison, prerelease policy, doctor findings/output, regression tests, network disclosure, documentation, and the minimal macOS test-harness portability repairs required for a green repository gate. Out of scope: interactive upgrade prompting or automatic network access during session start.",
+      "Impact": "Touches the TypeScript release-version and doctor modules, their tests, the doctor network contract, Vitest temporary-path setup, one SCM fixture binary path, Taskfile description, and changelog.",
+      "Risks": "Incorrect ordering could create false upgrade nudges; accidental network reachability could violate the offline session contract.",
+      "Approach": "Use the #425 release-version contract for strict stable/alpha/beta/rc ordering, preserve moved-ref priority, and expose a typed availability result for #2488 reuse.",
+      "Alternatives": "Listing every remote git tag would add more parsing and network variance. The npm latest dist-tag is already the published stable package source used by the upgrade command.",
+      "Dependencies": "Requires the existing payload-staleness --network gate and install manifest ref/tag provenance.",
+      "Confirmation": "Flynn explicitly confirmed this change with 'yes' on 2026-07-14."
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1692",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1692: detect newer published releases"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2526",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2526: normalize macOS temporary directory paths"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2527",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2527: use a portable Unix true binary path"
+      }
+    ]
+  }
+}

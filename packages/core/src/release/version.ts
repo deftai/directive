@@ -9,6 +9,13 @@ const PRE_KIND_MAP: Record<string, string> = {
 
 const NON_PUBLISHABLE_KINDS = new Set(["test"]);
 
+const PRERELEASE_RANK: Record<string, number> = {
+  alpha: 0,
+  beta: 1,
+  rc: 2,
+  "": 3,
+};
+
 export class NonPublishableVersionError extends Error {
   constructor(message: string) {
     super(message);
@@ -85,4 +92,46 @@ export function isPublishable(version: string): boolean {
   } catch {
     return false;
   }
+}
+
+function publishableVersionSortKey(
+  version: string,
+): readonly [number, number, number, number, number] {
+  const candidate = version.trim();
+  const match = PEP440_TAG_RE.exec(candidate);
+  if (match?.groups === undefined) {
+    throw new Error(
+      `Cannot compare '${candidate}': expected ` + "[v]X.Y.Z or [v]X.Y.Z-(rc|alpha|beta).N",
+    );
+  }
+  const kind = match.groups.kind ?? "";
+  if (NON_PUBLISHABLE_KINDS.has(kind)) {
+    throw new NonPublishableVersionError(
+      `Version '${candidate}' carries non-publishable pre-release tag '${kind}'.${match.groups.num}.`,
+    );
+  }
+  const rank = PRERELEASE_RANK[kind];
+  if (rank === undefined) {
+    throw new Error(`Cannot compare '${candidate}': unsupported pre-release kind '${kind}'.`);
+  }
+  return [
+    Number(match.groups.major),
+    Number(match.groups.minor),
+    Number(match.groups.patch),
+    rank,
+    Number(match.groups.num ?? 0),
+  ];
+}
+
+/** Compare two publishable Deft release versions using stable/prerelease ordering. */
+export function comparePublishableVersions(left: string, right: string): -1 | 0 | 1 {
+  const leftKey = publishableVersionSortKey(left);
+  const rightKey = publishableVersionSortKey(right);
+  for (let index = 0; index < leftKey.length; index += 1) {
+    const leftPart = leftKey[index] ?? 0;
+    const rightPart = rightKey[index] ?? 0;
+    if (leftPart < rightPart) return -1;
+    if (leftPart > rightPart) return 1;
+  }
+  return 0;
 }

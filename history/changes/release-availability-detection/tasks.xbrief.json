@@ -1,0 +1,36 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "release-availability-detection",
+    "status": "completed",
+    "items": [
+      {
+        "title": "Define and test strict stable/prerelease comparison",
+        "status": "completed"
+      },
+      {
+        "title": "Detect newer stable releases after pinned-ref verification",
+        "status": "completed"
+      },
+      {
+        "title": "Update doctor network disclosure and release notes",
+        "status": "completed"
+      },
+      {
+        "title": "Stabilize macOS test temporary paths and no-op binary fixture",
+        "status": "completed"
+      },
+      {
+        "title": "Run focused, coverage, and full repository quality gates",
+        "status": "completed"
+      },
+      {
+        "title": "Prepare the single PR for the required review cycle",
+        "status": "completed"
+      }
+    ],
+    "edges": []
+  }
+}

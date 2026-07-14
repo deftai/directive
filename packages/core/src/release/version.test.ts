@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  comparePublishableVersions,
   isPrereleaseTag,
   NonPublishableVersionError,
   toPep440,
@@ -52,5 +53,26 @@ describe("toPep440", () => {
   it("rejects garbage input", () => {
     expect(() => toPep440("")).toThrow(/non-empty/);
     expect(() => toPep440("not-a-version")).toThrow(/Cannot normalize/);
+  });
+});
+
+describe("comparePublishableVersions", () => {
+  it.each([
+    ["1.2.3", "1.2.4", -1],
+    ["v2.0.0", "2.0.0", 0],
+    ["2.1.0", "2.0.9", 1],
+    ["1.2.3-alpha.1", "1.2.3-beta.1", -1],
+    ["1.2.3-beta.1", "1.2.3-rc.1", -1],
+    ["1.2.3-rc.1", "1.2.3", -1],
+    ["1.2.3-rc.10", "1.2.3-rc.2", 1],
+  ])("compares %s with %s", (left, right, expected) => {
+    expect(comparePublishableVersions(left, right)).toBe(expected);
+  });
+
+  it("rejects invalid and non-publishable versions", () => {
+    expect(() => comparePublishableVersions("master", "1.0.0")).toThrow(/Cannot compare/);
+    expect(() => comparePublishableVersions("1.0.0-test.1", "1.0.0")).toThrow(
+      NonPublishableVersionError,
+    );
   });
 });

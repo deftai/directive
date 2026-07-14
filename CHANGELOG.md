@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Network-enabled doctor detects newer stable framework releases.** `deft doctor --network` now compares release-tag installs with the npm `latest` version even when the immutable pinned tag SHA still matches, preserves moved-ref priority, and does not nudge stable installs toward prereleases. Default doctor and session-ritual flows remain offline. Closes #1692. Refs #2488.
 - **Ordered-plan continuation stops "next" from escaping an approved sequence.** Agents bind bare "what's next?" / "proceed" to the narrowest operator-approved plan via `plan-sequence:*` and `verify:plan-sequence`; exhausted plans fail closed instead of pulling the triage queue. AGENTS keeps a pointer-thin #1149 precedence line; full rules live in the preamble and skills. Closes #2402.
 
 ### Changed
@@ -23,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **DD-3 skill frontmatter budget is now fail-closed on the framework tree.** `plan.policy.agentsMdBudget` seeds `skillFrontmatterMaxBytes` at the measured daily-core size (2080 B) and pins `skillFrontmatterTier` to `daily-core`, so longer Cursor skill descriptions cannot silently grow the combined always-on surface while Phase-3 (#2531) chases ≤8192 B combined. Managed `absoluteMaxBytes` (7815) stays fail-closed. Closes #2532. Refs #2531, #2463, #2494.
 
 ### Fixed
+
+- **macOS test runs use canonical temporary paths and a portable Unix no-op binary.** Vitest normalizes the `/var` alias before workers spawn, preventing cwd/git fixture mismatches, and the SCM binary-override fixture now uses `/usr/bin/true`, which exists on both macOS and common Linux hosts. Closes #2526, #2527.
 
 ### Removed
 

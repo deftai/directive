@@ -1,0 +1,67 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1692"
+  },
+  "plan": {
+    "title": "feat(doctor,ritual): detect when a newer published release is available at session start (latest-release comparison, not just pinned-ref movement)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(doctor,ritual): detect when a newer published release is available at session start (latest-release comparison, not just pinned-ref movement)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1692",
+      "Overview": "## Summary\n\nAt consumer session-start, Deft should tell the operator when a **newer published release** of the framework is available. Today the `payload-staleness` check in `scripts/doctor.py` only detects when the **pinned ref has moved** -- it does **not** detect that a newer release/tag exists. A consumer pinned to an immutable release tag is never told a newer version shipped.\n\n## Current state (what already works)\n\n`scripts/doctor.py` `payload-staleness` check (#1339 / #1409 / #1384 / #1427):\n\n- Reads the install `VERSION` manifest's pinned `ref`/`tag` + `sha`.\n- Resolves the **remote** sha via `git ls-remote origin <ref>` (no fetch, best-effort, 15s timeout).\n- If installed sha != remote sha, emits a warning + the canonical headless upgrader `deft-install --yes --upgrade --repo-root . --json`.\n\nThis is already wired into the session-start ritual (the gated tier `task verify:session-ritual --tier=gated` lazily records `task doctor`; the installer also runs `doctor.py --session --json` at the end of every run).\n\n## The gap\n\nThe comparison is against the remote sha **of the ref the install is pinned to**. If the manifest pins an immutable release tag (e.g. `v0.50.0`), `git ls-remote origin v0.50.0` returns the same sha forever, so the check reports **\"current\"** even after `v0.51.0` ships.\n\nIt answers *\"has my pinned branch moved?\"* -- not *\"is there a newer version available?\"*. The latter is what a normal consumer actually wants at startup.\n\n## Proposed approach\n\n- Add a check (extend `payload-staleness` or add a sibling `release-available` check) that compares the installed version against the **latest published release**:\n  - Resolve latest via `git ls-remote --tags --refs origin` (highest SemVer tag) or `gh api repos/deftai/directive/releases/latest` (`tagName`) when `gh` is available.\n  - Compare against the installed version/tag from the `VERSION` manifest.\n  - When the latest release is newer, emit an informational nudge + the canonical upgrade command (reuse the existing #1409 one-liner).\n- Keep it **best-effort / non-fatal**: skip cleanly on no network, no `gh`, no origin, or inside the framework repo itself (mirror the existing skip ladder).\n- Respect SemVer pre-release tags (do not nudge a stable install toward an `-rc`/`-beta`/`-alpha` tag) -- ties into #425's pre-release flagging.\n- Surface through the same session-ritual / `task doctor --session` path so consumers see it at startup without a new step.\n\n## Acceptance\n\n- [ ] On a consumer pinned to release tag `vX.Y.Z`, when `vX.Y.(Z+1)` (or higher) is published, `task doctor` / session ritual surfaces a \"newer release available\" nudge with the upgrade command.\n- [ ] When the install is already on the latest release, no nudge is emitted.\n- [ ] Pre-release tags do not trigger a nudge for stable installs.\n- [ ] Check is non-fatal and skips cleanly with no network / no `gh` / no origin / inside the framework repo.\n- [ ] Regression test covering: newer-release-available, already-latest, pre-release-skip, and offline-skip.\n\n## Related\n\n- #1604 -- Upgrade workflow should carry framework updates through default-branch release handoff (upgrade mechanics)\n- #1411 -- \"Stuck on an old Deft version?\" (support/triage)\n- #1157 -- greenfield / migrate:vbrief path leaves .deft-version unstamped (version provenance)\n- #425 -- flag SemVer pre-release tags (pre-release detection logic to reuse)\n\n## Source\n\nDiscovered while auditing the session-start ritual's version-awareness on 2026-06-17. The existing `payload-staleness` check covers pinned-ref movement but not latest-release availability.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-06-17T12:50:20Z)\n\nLabeled **Upgrade Blocker** in the *adoption* sense: the upgrade mechanism itself works, but consumers pinned to an immutable release tag get no signal that a newer version exists, so they never initiate the upgrade. Silent staleness is the most common real-world reason a consumer stays behind -- distinct from the mechanical upgrade-path breakages (#1425, #1433, #1437, #1440, #1441, #1604) that also carry this label.\n\n### Comment by @rockbox37 (2026-07-13T19:11:59Z)\n\nFollow-on filed: #2488 — `feat(triage,doctor): staleness \"tickler\" — offer Directive + xBRIEF upgrade at safe idle points before drift compounds`.\n\n#2488 is designed to **consume** this issue's detection substrate rather than reimplement it. Where #1692 answers *\"is a newer release available?\"* and surfaces a passive line at session start, #2488 adds:\n\n- an **interactive, opt-in prompt** (\"upgrade now?\") instead of only an informational notice;\n- **timing for work-stopped/idle points** (clean tree, no `running` story, never mid-swarm) rather than session start only;\n- a second staleness axis for the **xBRIEF schema version** (offering `deft migrate:xbrief`), not just the Directive payload;\n- **escalation as drift compounds**, to fight the deferral doom-loop.\n\nIf this lands first, #2488 builds directly on the `release-available` comparison here.",
+      "Labels": "enhancement, installer, doctor, Upgrade Blocker",
+      "BuildScopeExpansion": "Flynn requested one PR where possible and a fully green result. Full validation exposed two pre-existing macOS test-harness portability defects, tracked as #2526 and #2527; this story includes only their minimal test configuration/fixture repairs and does not change shipped doctor behavior."
+    },
+    "items": [
+      {
+        "title": "On a consumer pinned to release tag `vX.Y.Z`, when `vX.Y.(Z+1)` (or higher) is published, `task doctor` / session ritual surfaces a \"newer release available\" nudge with the upgrade command.",
+        "status": "completed"
+      },
+      {
+        "title": "When the install is already on the latest release, no nudge is emitted.",
+        "status": "completed"
+      },
+      {
+        "title": "Pre-release tags do not trigger a nudge for stable installs.",
+        "status": "completed"
+      },
+      {
+        "title": "Check is non-fatal and skips cleanly with no network / no `gh` / no origin / inside the framework repo.",
+        "status": "completed"
+      },
+      {
+        "title": "Regression test covering: newer-release-available, already-latest, pre-release-skip, and offline-skip.",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "installer",
+      "doctor",
+      "Upgrade Blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1692",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1692: feat(doctor,ritual): detect when a newer published release is available at session start (latest-release comparison, not just pinned-ref movement)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2526",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2526: normalize macOS temporary directory paths"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2527",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2527: use a portable Unix true binary path"
+      }
+    ],
+    "updated": "2026-07-14T15:24:22Z",
+    "metadata": {
+      "completedAt": "2026-07-14T15:24:22Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

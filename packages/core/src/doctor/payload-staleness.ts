@@ -11,6 +11,7 @@ import {
 import { locateManifest, parseInstallManifest } from "./manifest.js";
 import type { OutputSink } from "./output.js";
 import { readTextSafe, resolveDefaultFrameworkRoot } from "./paths.js";
+import { evaluateReleaseAvailability } from "./release-availability.js";
 import type { Finding } from "./types.js";
 
 export interface PayloadStalenessSeams {
@@ -62,45 +63,6 @@ function parseRemoteSha(stdout: string): string {
   return firstLine.trim().split(/\s+/)[0] ?? "";
 }
 
-function parseSemver(version: string): number[] {
-  const normalized = version.trim().replace(/^v/i, "");
-  const parts: number[] = [];
-  for (const segment of normalized.split(".")) {
-    const numeric = Number.parseInt(segment.split("-")[0] ?? "", 10);
-    if (Number.isNaN(numeric)) {
-      break;
-    }
-    parts.push(numeric);
-  }
-  return parts.length > 0 ? parts : [0];
-}
-
-function semverLessThan(left: string, right: string): boolean {
-  const a = parseSemver(left);
-  const b = parseSemver(right);
-  const len = Math.max(a.length, b.length);
-  for (let i = 0; i < len; i += 1) {
-    const av = a[i] ?? 0;
-    const bv = b[i] ?? 0;
-    if (av < bv) {
-      return true;
-    }
-    if (av > bv) {
-      return false;
-    }
-  }
-  return false;
-}
-
-function manifestVersion(ref: string, tag: string): string {
-  const candidate = (tag || ref).trim().replace(/^refs\/tags\//, "");
-  const normalized = candidate.replace(/^v/i, "");
-  if (!/^\d+(?:\.\d+)*/.test(normalized)) {
-    return "";
-  }
-  return normalized;
-}
-
 function defaultNpmViewVersion(): { ok: boolean; version: string } {
   const proc = spawnSync("npm", ["view", NPM_PACKAGE_NAME, "version"], {
     encoding: "utf8",
@@ -108,6 +70,35 @@ function defaultNpmViewVersion(): { ok: boolean; version: string } {
   });
   const version = (proc.stdout ?? "").trim().split("\n")[0]?.trim() ?? "";
   return { ok: proc.status === 0 && version.length > 0, version };
+}
+
+function emitReleaseAvailable(
+  checkName: string,
+  installedVersion: string,
+  latestVersion: string,
+  ref: string,
+  upgradeCommand: string,
+  sink: OutputSink,
+  addFinding: (finding: Finding) => void,
+): void {
+  const msg =
+    `Newer framework release available (installed v${installedVersion}; ` +
+    `latest v${latestVersion} from npm registry). ` +
+    `Recommendation: run \`${upgradeCommand}\`.`;
+  sink.warn(msg);
+  addFinding({
+    severity: "warning",
+    message: msg,
+    check: checkName,
+    status: "stale",
+    staleness_kind: "newer-release",
+    ref,
+    installed_version: installedVersion,
+    latest_version: latestVersion,
+    remote_version: latestVersion,
+    resolver: "npm-view",
+    suggestion: upgradeCommand,
+  });
 }
 
 function emitUnverified(
@@ -151,10 +142,9 @@ function emitStale(
   sink: OutputSink,
   addFinding: (finding: Finding) => void,
   extras: Record<string, unknown> = {},
-  behindWord: "remote" | "npm registry" = "remote",
 ): void {
   const msg =
-    `Framework payload is stale (installed ${installedLabel} behind ${behindWord} ${remoteLabel} for ref '${ref}'). ` +
+    `Framework payload is stale (installed ${installedLabel} behind remote ${remoteLabel} for ref '${ref}'). ` +
     `Recommendation: run \`${upgradeCommand}\` from any shell with Node ≥ 20.`;
   sink.warn(msg);
   addFinding({
@@ -274,58 +264,74 @@ export function runPayloadStalenessCheck(
     remoteResult = { ok: false, stdout: "" };
   }
 
-  if (remoteResult.ok) {
-    const remoteSha = parseRemoteSha(remoteResult.stdout);
-    if (remoteSha) {
-      if (installedSha === remoteSha) {
-        sink.info(`${checkName}: current (sha matches remote)`);
-        return;
-      }
-      emitStale(
-        checkName,
-        `sha ${installedSha.slice(0, 8)}...`,
-        `sha ${remoteSha.slice(0, 8)}...`,
-        ref,
-        upgradeCommand,
-        sink,
-        addFinding,
-        { installed_sha: installedSha, remote_sha: remoteSha, resolver: "git-ls-remote" },
-      );
-      return;
-    }
+  const remoteSha = remoteResult.ok ? parseRemoteSha(remoteResult.stdout) : "";
+  if (remoteSha && installedSha !== remoteSha) {
+    emitStale(
+      checkName,
+      `sha ${installedSha.slice(0, 8)}...`,
+      `sha ${remoteSha.slice(0, 8)}...`,
+      ref,
+      upgradeCommand,
+      sink,
+      addFinding,
+      {
+        installed_sha: installedSha,
+        remote_sha: remoteSha,
+        resolver: "git-ls-remote",
+        staleness_kind: "pinned-ref-moved",
+      },
+    );
+    return;
   }
 
-  const npmResult = runNpmView();
-  const installedVersion = manifestVersion(ref, tag);
-  if (npmResult.ok && installedVersion) {
-    if (semverLessThan(installedVersion, npmResult.version)) {
-      emitStale(
-        checkName,
-        `v${installedVersion}`,
-        `v${npmResult.version}`,
-        ref,
-        upgradeCommand,
-        sink,
-        addFinding,
-        {
-          installed_version: installedVersion,
-          remote_version: npmResult.version,
-          resolver: "npm-view",
-        },
-        "npm registry",
-      );
+  const installedCandidate = (tag || ref).trim().replace(/^refs\/tags\//, "");
+  const applicability = evaluateReleaseAvailability(installedCandidate, null);
+  if (applicability.status === "not-applicable") {
+    if (remoteSha && installedSha === remoteSha) {
+      sink.info(`${checkName}: current (sha matches remote; ref is not a release tag)`);
       return;
     }
-    if (installedVersion === npmResult.version.replace(/^v/i, "")) {
-      sink.info(`${checkName}: current (version matches npm registry)`);
-      return;
-    }
-    sink.info(`${checkName}: current (installed version >= npm registry)`);
+    const reason = remoteResult.ok
+      ? "ls-remote produced no sha; ref is not a release tag"
+      : "could not reach remote; ref is not a release tag";
+    sink.info(`${checkName}: skip -- ${reason}`);
+    emitUnverified(checkName, reason, sink, addFinding);
+    return;
+  }
+
+  let npmResult: { ok: boolean; version: string };
+  try {
+    npmResult = runNpmView();
+  } catch {
+    npmResult = { ok: false, version: "" };
+  }
+  const availability = evaluateReleaseAvailability(
+    installedCandidate,
+    npmResult.ok ? npmResult.version : null,
+  );
+  if (availability.status === "available") {
+    emitReleaseAvailable(
+      checkName,
+      availability.installedVersion,
+      availability.latestVersion,
+      ref,
+      upgradeCommand,
+      sink,
+      addFinding,
+    );
+    return;
+  }
+  if (availability.status === "current") {
+    sink.info(`${checkName}: current (installed release >= npm latest)`);
+    return;
+  }
+  if (availability.status === "prerelease-ignored") {
+    sink.info(`${checkName}: current (npm candidate is a prerelease; stable install retained)`);
     return;
   }
 
   const reason = remoteResult.ok
-    ? "ls-remote produced no sha and npm registry fallback unavailable"
+    ? "npm registry release lookup unavailable or returned a non-publishable version"
     : "could not reach remote (git ls-remote / npm view both unavailable)";
   sink.info(`${checkName}: skip -- ${reason}`);
   emitUnverified(checkName, reason, sink, addFinding);

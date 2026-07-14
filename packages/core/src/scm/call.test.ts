@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-// /bin/true is Unix-only; on Windows use `where` (always present) as a no-op binary.
+// The explicit no-op fixture is Unix-only; skip this assertion on Windows.
 const itNotWin32 = it.skipIf(process.platform === "win32");
 
 import { call } from "./call.js";
@@ -22,10 +22,10 @@ describe("call", () => {
 
   itNotWin32("uses explicit binary override without PATH lookup", () => {
     const result = call("github-issue", "auth", [], {
-      binary: "/bin/true",
+      binary: "/usr/bin/true",
       captureOutput: true,
     });
-    expect(result.args).toEqual(["/bin/true", "auth"]);
+    expect(result.args).toEqual(["/usr/bin/true", "auth"]);
     expect(result.returncode).toBe(0);
   });
 });

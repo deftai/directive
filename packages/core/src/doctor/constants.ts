@@ -43,14 +43,14 @@ export const DOCTOR_ALLOWED_FLAGS = [
 export const NPM_PACKAGE_NAME = "@deftai/directive";
 
 // #2182: payload-staleness is the only doctor check that can reach a network
-// endpoint (git ls-remote against the framework's git remote, falling back to
-// `npm view` against the npm registry). It is OFF by default (offline tier)
+// endpoint (git ls-remote verifies the pinned ref and `npm view` compares a
+// release-tag install with the latest stable package). It is OFF by default (offline tier)
 // and requires the explicit `--network` flag; this line discloses exactly
 // which tool + registry class it may contact BEFORE the check runs, and the
 // skip line tells an offline run how to opt in.
 export const NETWORK_DISCLOSURE_LINE =
   "[deft doctor] --network: this run may contact your git remote (framework " +
-  "repo host) and, as a fallback, the npm registry (registry.npmjs.org) to " +
+  "repo host) and the npm registry (registry.npmjs.org) to " +
   `look up the latest ${NPM_PACKAGE_NAME} version.`;
 
 export const PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE =

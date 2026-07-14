@@ -520,7 +520,7 @@ tasks:
   # in ``tasks/framework.yml`` now prints a redaction notice pointing
   # the operator at this surface.
   doctor:
-    desc: "Canonical doctor surface (#1272) -- task doctor [-- --session | --fix | --json | --quiet | --network]. Uses vendored bin.js in source checkouts or global deft on npm consumer deposits (#2022 Phase 3). --network is required to run the payload-staleness check (git remote, then npm registry fallback); it is offline (skipped) by default and discloses the tool + registry class before contacting either (#2182)."
+    desc: "Canonical doctor surface (#1272) -- task doctor [-- --session | --fix | --json | --quiet | --network]. Uses vendored bin.js in source checkouts or global deft on npm consumer deposits (#2022 Phase 3). --network is required to run the payload-staleness check (git verifies the pin; npm compares stable release availability); it is offline (skipped) by default and discloses the tool + registry class before contacting either (#2182)."
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: engine:invoke
