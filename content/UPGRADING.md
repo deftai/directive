@@ -104,7 +104,7 @@ The north-star target is **≤8192 B / ~2k tok combined**. On Cursor with all sk
 1. **Tier skills** — install only the daily-core six (`setup`, `sync`, `build`, `pre-pr`, `review-cycle`, `triage`) via OpenPackage; set `plan.policy.agentsMdBudget.skillFrontmatterTier` to `daily-core` or export `DEFT_AGENTS_MD_BUDGET_SKILL_TIER=daily-core`.
 2. **Thin managed AGENTS.md** — continue epic #2369 relocation; push bulk to `commands.md`, `scm/github.md`, and skills.
 3. **Shorten SKILL.md descriptions** — advanced-tier skills (`release`, `swarm`, `debug`, `article-review`, …) are the largest frontmatter offenders.
-4. **Optional ratchet** — seed `plan.policy.agentsMdBudget.skillFrontmatterMaxBytes` at the measured tier size when you want fail-closed DD-3 growth control.
+4. **Optional ratchet** — seed `plan.policy.agentsMdBudget.skillFrontmatterMaxBytes` at the measured tier size when you want fail-closed DD-3 growth control. The directive framework tree itself seeds this at daily-core **2080 B** (with `skillFrontmatterTier: daily-core`) as Phase-3 insurance (#2532 / #2531); consumers remain advisory until they opt in.
 
 Non-native-skill harnesses (Codex CLI, OpenCode) report 0 B frontmatter; set `harnessProfile: none` in policy when appropriate.
 

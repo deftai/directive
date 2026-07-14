@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **DD-3 skill frontmatter budget is now fail-closed on the framework tree.** `plan.policy.agentsMdBudget` seeds `skillFrontmatterMaxBytes` at the measured daily-core size (2080 B) and pins `skillFrontmatterTier` to `daily-core`, so longer Cursor skill descriptions cannot silently grow the combined always-on surface while Phase-3 (#2531) chases ≤8192 B combined. Managed `absoluteMaxBytes` (7815) stays fail-closed. Closes #2532. Refs #2531, #2463, #2494.
+
 ### Fixed
 
 ### Removed

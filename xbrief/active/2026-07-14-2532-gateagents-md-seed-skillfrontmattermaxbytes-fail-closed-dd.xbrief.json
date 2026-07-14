@@ -1,0 +1,60 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Seed skillFrontmatterMaxBytes fail-closed DD-3 ratchet at daily-core 2080 B",
+    "created": "2026-07-14T18:10:00.000Z",
+    "updated": "2026-07-14T18:10:00.000Z"
+  },
+  "plan": {
+    "id": "2532-seed-dd3-frontmatter-ratchet",
+    "title": "gate(agents-md): seed skillFrontmatterMaxBytes fail-closed DD-3 ratchet (daily-core 2080 B)",
+    "status": "running",
+    "narratives": {
+      "Description": "Phase-3 insurance under #2531: seed plan.policy.agentsMdBudget.skillFrontmatterMaxBytes at the measured daily-core size (2080 B) and pin skillFrontmatterTier to daily-core so DD-3 frontmatter growth fails closed while the combined ≤8192 chase continues. Managed absoluteMaxBytes=7815 already fail-closed; this closes the advisory gap on skill frontmatter.",
+      "ImplementationPlan": "1) Set plan.policy.agentsMdBudget.skillFrontmatterMaxBytes=2080 and skillFrontmatterTier=daily-core in xbrief/PROJECT-DEFINITION.xbrief.json. 2) CHANGELOG [Unreleased] Changed entry. 3) UPGRADING always-on budget note: framework tree now seeds the optional DD-3 ratchet. 4) Verify: task verify:agents-md-budget exits 0 and reports skill-frontmatter 2080/2080. No engine code changes — evaluate path already fail-closes when the field is set (#2463).",
+      "UserStory": "As a framework maintainer, I want DD-3 skill frontmatter growth to fail closed at the current daily-core size, so Phase-3 combined-budget work cannot be silently undone by longer skill descriptions.",
+      "Origin": "Operator spinout from closed #2491; parent epic #2531"
+    },
+    "items": [
+      {
+        "id": "2532-a1",
+        "title": "Seed policy fields",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given PROJECT-DEFINITION agentsMdBudget, when read, then skillFrontmatterMaxBytes is 2080 and skillFrontmatterTier is daily-core.",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "2532-a2",
+        "title": "Gate green at seed",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given task verify:agents-md-budget, when run on the directive tree, then exit 0 and skill-frontmatter reports 2080/2080 bytes.",
+          "Traces": "FR-1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_epic": "#2531",
+        "origin_issue": "#2532"
+      },
+      "capacityBucket": "agentic-debt"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2532",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2532"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2531",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2531"
+      }
+    ],
+    "updated": "2026-07-14T17:58:32Z"
+  }
+}
