@@ -374,6 +374,55 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "lazy-loaded, not rendered here",
     ],
   },
+  {
+    id: "content-packs-2501",
+    shape: "doc",
+    header: "Content packs",
+    canonicalHome: "commands.md",
+    pointerHints: ["packs:slice --list-packs", "commands.md", "<pack> --list"],
+    canonicalBodyMarkers: ["task packs:*", "content packs"],
+    retiredFullTextMarkers: [
+      "Deft ships versioned content packs",
+      "Registry-driven, so new packs appear automatically",
+      "short-name + version + one-line description",
+    ],
+  },
+  {
+    id: "codebase-map-2501",
+    shape: "doc",
+    header: "Codebase MAP Projection (#1595 / #1498)",
+    canonicalHome: "commands.md",
+    pointerHints: [
+      "plan.architecture.codeStructure",
+      "codebase:map",
+      "verify:codebase-map-fresh",
+      "commands.md",
+      "#1595",
+    ],
+    canonicalBodyMarkers: [
+      "codebase:map",
+      "plan.architecture.codeStructure",
+      ".planning/codebase/MAP.md",
+    ],
+    retiredFullTextMarkers: [
+      "read it as orientation before broad codebase scanning",
+      "provider/code-derived facts",
+      "unless the current task edits `plan.architecture.codeStructure`",
+    ],
+  },
+  {
+    id: "skills-index-2501",
+    shape: "doc",
+    header: "Skills",
+    canonicalHome: "REFERENCES.md",
+    pointerHints: ["Skills Index", "REFERENCES.md", "SKILL.md", "Level-0"],
+    canonicalBodyMarkers: ["Skills Index", "Level 0", "SKILL.md"],
+    retiredFullTextMarkers: [
+      "Skill routing (which skill answers which trigger) is not a table",
+      "unified with the framework doc routing so you consult one place",
+      "skills are versioned and tested",
+    ],
+  },
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -449,7 +498,9 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   }
   if (
     spec.shape === "doc" &&
-    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\//.test(section)
+    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\/|REFERENCES\.md/.test(
+      section,
+    )
   ) {
     errors.push(`${spec.id}: doc pointer shape not detected`);
   }
@@ -573,6 +624,7 @@ describe("test_agents_entry_contract", () => {
   it("content_packs_note_references_discovery_commands", () => {
     expect(templateManaged).toContain("--list-packs");
     expect(templateManaged).toContain("<pack> --list");
+    expect(templateManaged).not.toContain("Deft ships versioned content packs");
   });
 });
 

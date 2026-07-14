@@ -159,7 +159,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=cd248a4b6da7 refreshed=2026-07-13T22:54:13Z session=296a12950982 -->
+<!-- deft:managed-section v3 sha=680de731aec9 refreshed=2026-07-14T02:08:51Z session=a8e1c54fa8c4 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -220,26 +220,15 @@ Rationale + cross-references: preamble § 5.6 in `.deft/core/templates/agent-pro
 
 ## Content packs
 
-Deft ships versioned content packs (e.g. lessons learned from prior work) under `.deft/core/packs/`. Discover and LOAD pack content via the slice surface instead of reading whole pack files into context:
-
-- `deft packs:slice --list-packs` -- discover which packs exist (short-name + version + one-line description). Registry-driven, so new packs appear automatically with no edit here.
-- `deft packs:slice <pack> --list` -- discover the named slices a pack exposes.
-- `deft packs:slice <pack> <slice> [-- <filters>]` -- load just the slice you need; read the slice, not the whole file.
-
-! Before improvising on a problem, discover packs with `deft packs:slice --list-packs`, then load the relevant slice. This wiring references the discovery commands on purpose -- it never enumerates pack or slice names, so new packs/slices need no change here.
+! Before improvising, discover packs with `deft packs:slice --list-packs`, then load via `deft packs:slice <pack> --list` / `deft packs:slice <pack> <slice>` — full pack surface in `.deft/core/commands.md` (§ packs); never enumerate pack or slice names here.
 
 ## Codebase MAP Projection (#1595 / #1498)
 
-`xbrief/PROJECT-DEFINITION.xbrief.json` `plan.architecture.codeStructure` is the durable codebase-structure source. `.planning/codebase/MAP.md` is a generated orientation projection from that metadata plus provider/code-derived facts.
-
-- ~ If `.planning/codebase/MAP.md` exists, read it as orientation before broad codebase scanning.
-- ~ If it is absent or may be stale, run `deft codebase:map` and `deft verify:codebase-map-fresh` when those commands resolve; treat the result as advisory unless the current task edits `plan.architecture.codeStructure`, a configured provider artifact, or the generated MAP itself.
-- ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
-- ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the xBRIEF metadata.
+! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated orientation — use `deft codebase:map` / `deft verify:codebase-map-fresh` (`.deft/core/commands.md` § Project And Architecture). ⊗ Do not hand-edit the MAP, block unrelated work on stale/absent MAP, or treat the projection as more authoritative than the xBRIEF metadata (#1595 / #1498).
 
 ## Skills
 
-Skill routing (which skill answers which trigger) is not a table in this policy section. To pick a skill, scan the **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — it lists every skill under `.deft/core/.agents/skills/` with a one-sentence description and trigger keywords, unified with the framework doc routing so you consult one place to decide what to load. Read a `SKILL.md` (Level-1) only when the index indicates a match. Before improvising a multi-step workflow, scan the skills catalog first — skills are versioned and tested. The `welcome` / `onboard triage` trigger invokes `deft triage:welcome --onboard` (N3 / #1143); for `lessons` / `prior art`, discover packs with `deft packs:slice --list-packs` then load the relevant slice (see Content packs above).
+! Skill routing lives in the **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan it before improvising; read a `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); `lessons` / `prior art` → Content packs `packs:slice` above.
 
 ## Review-surface precedence (#2308)
 

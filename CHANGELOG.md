@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Always-on AGENTS.md discovery cards are pointer-thin.** Content packs, Skills, and Codebase MAP collapse to one-line `!` / `⊗` pointers at `packs:slice`, the REFERENCES.md Skills Index, and `codebase:map` / `codeStructure`, so agents load less bootstrap text while still finding discovery surfaces on demand. Closes #2501. Refs #2491.
+
 - **Session routing in AGENTS.md is now a thin bootstrap card.** First-session, returning-session, pre-cutover, and cold-start procedures collapse into one pointer-thin routing section that defaults to read-only posture and defers mutable ceremony until mutation intent, trimming always-loaded bootstrap text. Closes #2493. Refs #2491, #2176.
 
 - **Always-on AGENTS.md no longer ships a full slash-command catalog.** The managed section now points to `commands.md` for `/deft:directive:*` and cross-product aliases, trimming always-loaded bootstrap text toward the 8 KB north-star. Closes #2492. Refs #2491.
