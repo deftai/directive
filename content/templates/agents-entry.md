@@ -39,7 +39,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Deterministic questions runtime obligation (#1470)
 
-! Structured questions MUST end with `Discuss` and `Back` — `contracts/deterministic-questions.md` (#1470 / #767).
+! Structured questions MUST end with `Discuss` and `Back` — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767).
 
 ## Issue body→comments reading (#2143)
 
@@ -49,7 +49,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Content packs
 
-! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `<slice>` — `commands.md` (§ packs); never enumerate names here.
+! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `deft packs:slice <pack> <slice>` — `commands.md` (§ packs); never enumerate names here.
 
 ## Codebase MAP Projection (#1595 / #1498)
 

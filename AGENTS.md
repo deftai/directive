@@ -155,7 +155,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=cd30e1d4374a refreshed=2026-07-14T20:17:28Z session=1a71f7dee436 -->
+<!-- deft:managed-section v3 sha=a31e352ae520 refreshed=2026-07-14T20:33:27Z session=dadc1e25099a -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -196,7 +196,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Deterministic questions runtime obligation (#1470)
 
-! Structured questions MUST end with `Discuss` and `Back` — `contracts/deterministic-questions.md` (#1470 / #767).
+! Structured questions MUST end with `Discuss` and `Back` — `.deft/core/contracts/deterministic-questions.md` (#1470 / #767).
 
 ## Issue body→comments reading (#2143)
 
@@ -206,7 +206,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Content packs
 
-! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `<slice>` — `commands.md` (§ packs); never enumerate names here.
+! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `deft packs:slice <pack> <slice>` — `commands.md` (§ packs); never enumerate names here.
 
 ## Codebase MAP Projection (#1595 / #1498)
 
