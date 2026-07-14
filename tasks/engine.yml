@@ -175,7 +175,7 @@ tasks:
     # interpolated into the shell script body — JSON env transport + argv-spawn in
     # tasks/engine-invoke.cjs (#2547). Avoids shell parse breaks for `'` and `\`.
     env:
-      DEFT_ENGINE_CMD_JSON: '{{.ENGINE_CMD | toJson}}'
+      DEFT_ENGINE_CMD_JSON: '{{ .ENGINE_CMD | toSlash | toJson }}'
     cmds:
       - |
         set -eu
