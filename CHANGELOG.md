@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Medium AGENTS.md cards are pointer-thinner (Phase-3 Wave A2).** Development Process, MAP, Skills, value/eval/branch/guardrail cards compress further while keeping contract markers and one-hop destinations — managed ~7209→6479 B (−730). Combined still ~367 B over ≤8192; remaining gap is escape-hatch / optional Wave B territory. Closes #2536. Refs #2531.
 
+- **Combined always-on north-star raised to 9 KB.** After Wave A thinning, further cuts hit diminishing returns vs capability/discoverability; `verify:agents-md-budget` now treats combined (managed + DD-3 + hooks) ≤**9216 B** as the Phase-3 north-star while managed stays ≤8192. Current combined ~8594 is within bar. Closes #2531. Cancels #2537.
+
 ### Fixed
 
 - **macOS test runs use canonical temporary paths and a portable Unix no-op binary.** Vitest normalizes the `/var` alias before workers spawn, preventing cwd/git fixture mismatches, and the SCM binary-override fixture now uses `/usr/bin/true`, which exists on both macOS and common Linux hosts. Closes #2526, #2527.

@@ -18,7 +18,11 @@ export type OutputStream = "stdout" | "stderr" | "none";
 /**
  * Layered absolute north-star for the always-on managed surface (#2372 / #2450 / #2452).
  *
- * `ABSOLUTE_MANAGED_MAX_BYTES` is the relocation north-star (<=8192 B / ~2k tok).
+ * `ABSOLUTE_MANAGED_MAX_BYTES` is the managed-section relocation north-star (<=8192 B / ~2k tok)
+ * — Phase-2 success bar. `COMBINED_ALWAYS_ON_MAX_BYTES` is the Phase-3 combined always-on
+ * north-star (managed + DD-3 + hooks), raised to 9 KB after diminishing returns on further
+ * thinning (#2531 closeout).
+ *
  * When `plan.policy.agentsMdBudget.absoluteMaxBytes` is set, growth past that seeded
  * ratchet fails closed; distance-to-north-star is always reported. Optional release-gate
  * north-star enforcement: DEFT_AGENTS_MD_BUDGET_ENFORCE_NORTH_STAR=1 (waiver:
@@ -31,6 +35,9 @@ export type OutputStream = "stdout" | "stderr" | "none";
  */
 export const ABSOLUTE_MANAGED_MAX_BYTES = 8192;
 export const ABSOLUTE_MANAGED_MAX_TOKENS = 2000;
+/** Phase-3 combined always-on north-star (managed + DD-3 + hooks) — 9 KB (#2531). */
+export const COMBINED_ALWAYS_ON_MAX_BYTES = 9216;
+export const COMBINED_ALWAYS_ON_MAX_TOKENS = 2304;
 /** Bootstrap host hooks are 0 B until #2438 ships. */
 export const BOOTSTRAP_HOOK_BYTES = 0;
 /** Rough UTF-8 bytes-per-token estimate for advisory reporting (~8192 B ≈ ~2048 tok). */
@@ -268,8 +275,8 @@ function formatNorthStarOverage(measure: ManagedSectionMeasure): string {
 
 function formatCombinedNorthStarOverage(bootstrap: BootstrapMeasure): string {
   return formatNorthStarOverageBytes(
-    bootstrap.totalBytes - ABSOLUTE_MANAGED_MAX_BYTES,
-    bootstrap.totalEstimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS,
+    bootstrap.totalBytes - COMBINED_ALWAYS_ON_MAX_BYTES,
+    bootstrap.totalEstimatedTokens - COMBINED_ALWAYS_ON_MAX_TOKENS,
   );
 }
 
@@ -290,17 +297,17 @@ function formatNorthStarDistance(measure: ManagedSectionMeasure): string {
 }
 
 function formatCombinedNorthStarDistance(bootstrap: BootstrapMeasure): string {
-  const overBytes = bootstrap.totalBytes - ABSOLUTE_MANAGED_MAX_BYTES;
-  const overTokens = bootstrap.totalEstimatedTokens - ABSOLUTE_MANAGED_MAX_TOKENS;
+  const overBytes = bootstrap.totalBytes - COMBINED_ALWAYS_ON_MAX_BYTES;
+  const overTokens = bootstrap.totalEstimatedTokens - COMBINED_ALWAYS_ON_MAX_TOKENS;
   if (overBytes <= 0 && overTokens <= 0) {
     return (
       `north-star: combined always-on ${bootstrap.totalBytes} bytes ` +
       `(~${bootstrap.totalEstimatedTokens} tok) within ` +
-      `≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok target.`
+      `≤${COMBINED_ALWAYS_ON_MAX_BYTES} B / ~${COMBINED_ALWAYS_ON_MAX_TOKENS} tok target.`
     );
   }
   return (
-    `north-star: combined always-on ≤${ABSOLUTE_MANAGED_MAX_BYTES} B / ~${ABSOLUTE_MANAGED_MAX_TOKENS} tok ` +
+    `north-star: combined always-on ≤${COMBINED_ALWAYS_ON_MAX_BYTES} B / ~${COMBINED_ALWAYS_ON_MAX_TOKENS} tok ` +
     `(current ${bootstrap.totalBytes} bytes / ~${bootstrap.totalEstimatedTokens} tok — ` +
     `${formatCombinedNorthStarOverage(bootstrap)}).`
   );
@@ -385,14 +392,14 @@ function formatSkillFrontmatterRefusal(
 
 function formatNorthStarRefusal(bootstrap: BootstrapMeasure, projectRoot: string): string {
   const measure = bootstrap.managed;
-  const overBytes = bootstrap.totalBytes - ABSOLUTE_MANAGED_MAX_BYTES;
+  const overBytes = bootstrap.totalBytes - COMBINED_ALWAYS_ON_MAX_BYTES;
   return (
     `❌ verify:agents-md-budget: combined always-on surface exceeds the north-star ceiling ` +
     `(project_root=${projectRoot}, release-gate mode).\n` +
     `   ${formatBootstrapItemization(bootstrap)}\n` +
     `   managed section: ${measure.bytes}/${ABSOLUTE_MANAGED_MAX_BYTES} bytes\n` +
-    `   combined OVER by ${overBytes} bytes vs north-star\n` +
-    "   Thin the managed section and/or tier DD-3 skills toward the <=8192 B target,\n" +
+    `   combined OVER by ${overBytes} bytes vs north-star ≤${COMBINED_ALWAYS_ON_MAX_BYTES} B\n` +
+    "   Thin the managed section and/or tier DD-3 skills toward the combined ≤9 KB target,\n" +
     "   or set DEFT_ALLOW_ABSOLUTE_BUDGET_WAIVER=1 for a time-boxed operator waiver (#2452)."
   );
 }
@@ -413,8 +420,8 @@ function attachNorthStarNote<T extends EvaluateResult>(
   const measure = bootstrap.managed;
   const overManagedBytes = measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES;
   const overManagedTokens = measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
-  const overCombinedBytes = bootstrap.totalBytes > ABSOLUTE_MANAGED_MAX_BYTES;
-  const overCombinedTokens = bootstrap.totalEstimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+  const overCombinedBytes = bootstrap.totalBytes > COMBINED_ALWAYS_ON_MAX_BYTES;
+  const overCombinedTokens = bootstrap.totalEstimatedTokens > COMBINED_ALWAYS_ON_MAX_TOKENS;
   if (options.advisoryOnly) {
     if (!overManagedBytes && !overManagedTokens && !overCombinedBytes && !overCombinedTokens) {
       return result;
@@ -617,8 +624,8 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     measure.bytes > ABSOLUTE_MANAGED_MAX_BYTES ||
     measure.estimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
   const overNorthStarCombined =
-    bootstrap.totalBytes > ABSOLUTE_MANAGED_MAX_BYTES ||
-    bootstrap.totalEstimatedTokens > ABSOLUTE_MANAGED_MAX_TOKENS;
+    bootstrap.totalBytes > COMBINED_ALWAYS_ON_MAX_BYTES ||
+    bootstrap.totalEstimatedTokens > COMBINED_ALWAYS_ON_MAX_TOKENS;
   if (
     enforceNorthStarEnabled() &&
     (overNorthStarManaged || overNorthStarCombined) &&
