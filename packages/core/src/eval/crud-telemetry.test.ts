@@ -232,7 +232,10 @@ describe("InstrumentedVbriefCrud", () => {
 
     const ledgerPath = crudMetricsHistoryPath(tempDir);
     expect(ledgerPath).toBe(join(metricsHome, "helped", "crud-metrics.jsonl"));
-    expect(existsSync(ledgerPath!)).toBe(true);
+    if (ledgerPath === null) {
+      throw new Error("expected CRUD metrics ledger path");
+    }
+    expect(existsSync(ledgerPath)).toBe(true);
     const lines = readFileSync(ledgerPath, "utf8").trim().split("\n");
     expect(lines).toHaveLength(1);
     const parsed: unknown = JSON.parse(lines[0] ?? "{}");

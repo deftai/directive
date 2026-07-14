@@ -130,7 +130,10 @@ describe("persistHealthRun", () => {
     persistHealthRun(root, report);
     const path = healthHistoryPath(root);
     expect(path).not.toBeNull();
-    expect(existsSync(path!)).toBe(true);
+    if (path === null) {
+      throw new Error("expected health history path");
+    }
+    expect(existsSync(path)).toBe(true);
     const lines = readFileSync(path, "utf8").trim().split("\n");
     expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({ version: "0.70.0-test", score: 85 });
   });
@@ -165,8 +168,11 @@ describe("evaluateHealth", () => {
     );
     const path = healthHistoryPath(root);
     expect(path).not.toBeNull();
-    rmSync(join(path!, ".."), { recursive: true, force: true });
-    writeFileSync(join(path!, ".."), "not-a-directory", "utf8");
+    if (path === null) {
+      throw new Error("expected health history path");
+    }
+    rmSync(join(path, ".."), { recursive: true, force: true });
+    writeFileSync(join(path, ".."), "not-a-directory", "utf8");
     const result = evaluateHealth({
       projectRoot: root,
       frameworkSource: false,

@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFT_EVAL_HOME_ENV,
@@ -9,9 +8,9 @@ import {
   DEFT_METRICS_PROJECT_LOCAL_ENV,
   HEALTH_METRICS_FILENAME,
   HELPED_METRICS_FILENAME,
-  METRICS_DISABLED_DIAGNOSTIC,
   healthMetricsHistoryPath,
   helpedMetricsHistoryPath,
+  METRICS_DISABLED_DIAGNOSTIC,
   platformMetricsDir,
   resolveMetricsHome,
 } from "./resolve-metrics-home.js";
@@ -119,18 +118,24 @@ describe("resolveMetricsHome", () => {
     expect(helped).not.toBeNull();
     expect(health).not.toBeNull();
 
-    mkdirSync(join(helped!, ".."), { recursive: true });
-    mkdirSync(join(health!, ".."), { recursive: true });
-    writeFileSync(helped!, '{"operation":"create"}\n', "utf8");
-    writeFileSync(health!, '{"score":100}\n', "utf8");
+    const helpedPath = helped;
+    const healthPath = health;
+    if (helpedPath === null || healthPath === null) {
+      throw new Error("expected resolved metrics paths");
+    }
 
-    expect(existsSync(join(projectRoot, "xbrief", ".eval", "results", HELPED_METRICS_FILENAME))).toBe(
-      false,
-    );
-    expect(existsSync(join(projectRoot, "xbrief", ".eval", "results", HEALTH_METRICS_FILENAME))).toBe(
-      false,
-    );
-    expect(readFileSync(helped!, "utf8")).toContain("create");
-    expect(readFileSync(health!, "utf8")).toContain("score");
+    mkdirSync(join(helpedPath, ".."), { recursive: true });
+    mkdirSync(join(healthPath, ".."), { recursive: true });
+    writeFileSync(helpedPath, '{"operation":"create"}\n', "utf8");
+    writeFileSync(healthPath, '{"score":100}\n', "utf8");
+
+    expect(
+      existsSync(join(projectRoot, "xbrief", ".eval", "results", HELPED_METRICS_FILENAME)),
+    ).toBe(false);
+    expect(
+      existsSync(join(projectRoot, "xbrief", ".eval", "results", HEALTH_METRICS_FILENAME)),
+    ).toBe(false);
+    expect(readFileSync(helpedPath, "utf8")).toContain("create");
+    expect(readFileSync(healthPath, "utf8")).toContain("score");
   });
 });
