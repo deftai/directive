@@ -390,7 +390,36 @@ describe("completed/ status drift (#2578)", () => {
     expect(failures.some((f) => f.includes("failed to parse"))).toBe(true);
   });
 
-  it("attachCompletedStatusDrift adds summary count", () => {
+  it("scanCompletedStatusDrift ignores terminal and empty statuses", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-skip-scan-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    writeFileSync(
+      join(xbrief, "completed", "done.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "Done", status: "completed" } }, null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(xbrief, "completed", "empty.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "Empty" } }, null, 2)}\n`,
+      "utf8",
+    );
+    expect(scanCompletedStatusDrift(xbrief)).toEqual([]);
+  });
+
+  it("formatMarkdown sanitizes embedded newlines in drift status", () => {
+    const md = formatMarkdown(
+      attachCompletedStatusDrift(
+        {
+          linked: [],
+          no_open_issue: [],
+          summary: { linked_count: 0, vbriefs_no_open_issue_count: 0 },
+        },
+        [{ rel_path: "completed/drift.xbrief.json", status: "run\nning" }],
+      ),
+    );
+    expect(md).toContain("plan.status='run ning'");
+  });
     const report = attachCompletedStatusDrift(
       {
         linked: [],
