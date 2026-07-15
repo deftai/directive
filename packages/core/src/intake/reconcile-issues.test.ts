@@ -373,4 +373,33 @@ describe("completed/ status drift (#2578)", () => {
     expect(skipped).toBe(1);
     expect(failures).toEqual([]);
   });
+
+  it("repairCompletedStatusDrift reports malformed paths and missing files", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-fail-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    writeFileSync(join(xbrief, "completed", "bad-json.xbrief.json"), "{not json", "utf8");
+
+    const [, , failures] = repairCompletedStatusDrift(xbrief, [
+      { rel_path: "no-folder.xbrief.json", status: "running" },
+      { rel_path: "completed/missing.xbrief.json", status: "running" },
+      { rel_path: "completed/bad-json.xbrief.json", status: "running" },
+    ]);
+    expect(failures.some((f) => f.includes("no folder"))).toBe(true);
+    expect(failures.some((f) => f.includes("missing"))).toBe(true);
+    expect(failures.some((f) => f.includes("failed to parse"))).toBe(true);
+  });
+
+  it("attachCompletedStatusDrift adds summary count", () => {
+    const report = attachCompletedStatusDrift(
+      {
+        linked: [],
+        no_open_issue: [],
+        summary: { linked_count: 0, vbriefs_no_open_issue_count: 0 },
+      },
+      [{ rel_path: "completed/a.xbrief.json", status: "running" }],
+    );
+    expect(report.summary.completed_status_drift_count).toBe(1);
+    expect(report.completed_status_drift).toHaveLength(1);
+  });
 });
