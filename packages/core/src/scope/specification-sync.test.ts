@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runTransition } from "./transition.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
+import { runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 
 describe("specification-sync branches", () => {
