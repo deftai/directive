@@ -11,11 +11,15 @@ import { type CheckOrchestratorSeams, dispatchTaskCheck } from "../check/orchest
 import { COVERAGE_DEBT_ENV, RELEASE_PREFLIGHT_ENV } from "./constants.js";
 import { releaseSubprocessEnv } from "./git.js";
 
+export interface ReleaseCheckEnvOptions {
+  readonly base?: NodeJS.ProcessEnv;
+  readonly allowCoverageDebtIssue?: number | null;
+}
+
 /** Step-5-only env: branch bypass plus release pre-flight cache staleness tolerance (#2386). */
-export function releaseCheckEnv(
-  base: NodeJS.ProcessEnv = process.env,
-  allowCoverageDebtIssue: number | null = null,
-): NodeJS.ProcessEnv {
+export function releaseCheckEnv(options: ReleaseCheckEnvOptions = {}): NodeJS.ProcessEnv {
+  const base = options.base ?? process.env;
+  const allowCoverageDebtIssue = options.allowCoverageDebtIssue ?? null;
   const env: NodeJS.ProcessEnv = {
     ...releaseSubprocessEnv(base),
     [RELEASE_PREFLIGHT_ENV]: "1",
@@ -54,7 +58,10 @@ export function runReleaseCheck(
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
   const checkSeams: CheckOrchestratorSeams = {
     ...seams.checkSeams,
-    env: releaseCheckEnv(seams.checkSeams?.env ?? process.env, allowCoverageDebtIssue),
+    env: releaseCheckEnv({
+      base: seams.checkSeams?.env ?? process.env,
+      allowCoverageDebtIssue,
+    }),
   };
   const code = dispatch(projectRoot, projectRoot, checkSeams);
   if (code === 0) {

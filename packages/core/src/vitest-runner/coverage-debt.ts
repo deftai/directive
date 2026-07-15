@@ -135,11 +135,15 @@ export function summarizeCoverageFinal(
   const functions = pct(fnCovered, fnTotal);
   const branches = pct(branchCovered, branchTotal);
 
+  // Istanbul coverage-final.json does not carry pre-aggregated line hit counts —
+  // `l` (line map) is optional and its format differs from `s`/`f`/`b`. Using
+  // statements as a proxy may overstate line coverage when multiple statements
+  // share a single uncovered line.
   return {
     statements,
     functions,
     branches,
-    lines: statements,
+    lines: statements, // approximation: actual line coverage may differ
   };
 }
 
@@ -164,11 +168,13 @@ export function metricsBelowGoal(totals: CoverageTotals): CoverageMetric[] {
   return missed;
 }
 
+const sanitizeMetric = (value: string | number): string => String(value).replace(/\r?\n/g, " ");
+
 export function formatCoverageAttribution(issue: number, totals: CoverageTotals): string {
   const lines = [
     `coverage-debt: soft-pass acknowledged for issue #${issue}`,
-    `  measured: branches ${totals.branches.toFixed(2)}% | lines ${totals.lines.toFixed(2)}% | functions ${totals.functions.toFixed(2)}% | statements ${totals.statements.toFixed(2)}%`,
-    `  goal:     branches ${COVERAGE_GOAL.branches}% | lines ${COVERAGE_GOAL.lines}% | functions ${COVERAGE_GOAL.functions}% | statements ${COVERAGE_GOAL.statements}%`,
+    `  measured: branches ${sanitizeMetric(totals.branches.toFixed(2))}% | lines ${sanitizeMetric(totals.lines.toFixed(2))}% | functions ${sanitizeMetric(totals.functions.toFixed(2))}% | statements ${sanitizeMetric(totals.statements.toFixed(2))}%`,
+    `  goal:     branches ${sanitizeMetric(COVERAGE_GOAL.branches)}% | lines ${sanitizeMetric(COVERAGE_GOAL.lines)}% | functions ${sanitizeMetric(COVERAGE_GOAL.functions)}% | statements ${sanitizeMetric(COVERAGE_GOAL.statements)}%`,
   ];
   return lines.join("\n");
 }
@@ -177,7 +183,7 @@ export function formatCoverageAttribution(issue: number, totals: CoverageTotals)
 export function countRecentCoverageDebtMentions(changelog: string, maxSections = 5): number {
   const versionHeader = /^## \[(?!Unreleased)/m;
   const sections = changelog.split(versionHeader).slice(1, maxSections + 1);
-  const pattern = /coverage[- ]debt|allow-coverage-debt/i;
+  const pattern = /coverage[- ]debt soft[- ]pass|allow-coverage-debt=#?\d/i;
   return sections.filter((section) => pattern.test(section)).length;
 }
 

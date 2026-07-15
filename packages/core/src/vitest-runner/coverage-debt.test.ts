@@ -105,8 +105,13 @@ describe("attribution + overuse warning", () => {
 
   it("warns when multiple recent releases cite coverage debt", () => {
     const changelog =
-      "## [Unreleased]\n\n## [0.2.0]\ncoverage-debt soft-pass\n\n## [0.1.0]\nallow-coverage-debt\n";
+      "## [Unreleased]\n\n## [0.2.0]\ncoverage-debt soft-pass\n\n## [0.1.0]\nallow-coverage-debt=#1234\n";
     expect(countRecentCoverageDebtMentions(changelog)).toBe(2);
     expect(formatOveruseWarning(2)).toMatch(/WARN/);
+  });
+
+  it("does not count feature documentation without a debt acknowledgment", () => {
+    const changelog = "## [0.1.0]\nAdded allow-coverage-debt flag for release pipeline\n";
+    expect(countRecentCoverageDebtMentions(changelog)).toBe(0);
   });
 });
