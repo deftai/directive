@@ -18,6 +18,7 @@ import { isTriageCacheEmpty, maybeAutoPopulateEmptyCache } from "../cache/empty-
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
+
 export { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
 
 import { readPlanPolicy } from "../policy/plan-extensions.js";

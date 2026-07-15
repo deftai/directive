@@ -20,7 +20,10 @@ import {
 import { GATED_STEPS, QUICK_STEPS } from "./session-start.js";
 import { resolveSessionRitualStalenessHours } from "./staleness.js";
 
-export { formatCacheFetchAllRecoveryCommand, recoveryHintForStaleFailure } from "./cache-recovery.js";
+export {
+  formatCacheFetchAllRecoveryCommand,
+  recoveryHintForStaleFailure,
+} from "./cache-recovery.js";
 export const ENV_SKIP = "DEFT_SESSION_RITUAL_SKIP";
 export {
   ENTRYPOINT_TIMEOUT_EXIT_CODE,

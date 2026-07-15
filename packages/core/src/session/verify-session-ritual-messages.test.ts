@@ -2,11 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  CACHE_DIR_NAME,
-  CANDIDATES_RELPATH,
-  DEFAULT_SOURCE,
-} from "../preflight-cache/evaluate.js";
+import { CACHE_DIR_NAME, CANDIDATES_RELPATH, DEFAULT_SOURCE } from "../preflight-cache/evaluate.js";
 import type { GitRunner } from "./git.js";
 import { newRitualStatePayload, ritualStep, writeRitualState } from "./ritual-sentinel.js";
 import { verifySessionRitual } from "./verify-session-ritual.js";

@@ -205,7 +205,9 @@ describe("evaluate -- fresh cache", () => {
     expect(result.message).toContain("❌");
     expect(result.message).toContain("25.0h old");
     expect(result.message).toContain("oldest in-scope entry");
-    expect(result.message).toContain("cache fetch-all --source github-issue --repo owner/repo --force");
+    expect(result.message).toContain(
+      "cache fetch-all --source github-issue --repo owner/repo --force",
+    );
     expect(result.message).not.toContain("cache:fetch-all");
   });
 
@@ -376,10 +378,7 @@ describe("recoveryHintForStaleFailure -- branch-aware (#1953 / #2574)", () => {
   });
 
   it("mixed age+drift prefers cache fetch-all --force", () => {
-    const hint = recoveryHintForStaleFailure(
-      { ageStale: true, driftDetected: true },
-      "owner/repo",
-    );
+    const hint = recoveryHintForStaleFailure({ ageStale: true, driftDetected: true }, "owner/repo");
     expect(hint).toContain("cache fetch-all --source github-issue --repo owner/repo --force");
     expect(hint).not.toContain("cache:fetch-all");
   });
