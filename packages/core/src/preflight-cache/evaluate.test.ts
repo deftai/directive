@@ -205,7 +205,8 @@ describe("evaluate -- fresh cache", () => {
     expect(result.message).toContain("❌");
     expect(result.message).toContain("25.0h old");
     expect(result.message).toContain("oldest in-scope entry");
-    expect(result.message).toContain("cache:fetch-all --force");
+    expect(result.message).toContain("cache fetch-all --source github-issue --repo owner/repo --force");
+    expect(result.message).not.toContain("cache:fetch-all");
   });
 
   it("uses oldest in-scope entry age when newer entries exist", () => {
@@ -244,8 +245,9 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("stale-by-drift");
-    expect(result.message).toContain("cache:fetch-all");
-    expect(result.message).not.toContain("cache:fetch-all --force");
+    expect(result.message).toContain("cache fetch-all --source github-issue --repo owner/repo");
+    expect(result.message).not.toContain("cache:fetch-all");
+    expect(result.message).not.toContain("--force");
   });
 
   it("returns stale-by-drift for TTL-fresh content drift only", () => {
@@ -266,8 +268,9 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("TTL-fresh issue(s) with upstream content drift");
-    expect(result.message).toContain("cache:fetch-all");
-    expect(result.message).not.toContain("cache:fetch-all --force");
+    expect(result.message).toContain("cache fetch-all --source github-issue --repo owner/repo");
+    expect(result.message).not.toContain("cache:fetch-all");
+    expect(result.message).not.toContain("--force");
   });
 
   it("allows stale cache with drift when allowStale=true", () => {
@@ -352,21 +355,33 @@ describe("evaluate -- fresh cache", () => {
   });
 });
 
-describe("recoveryHintForStaleFailure -- branch-aware (#1953)", () => {
-  it("age-only failure names cache:fetch-all --force", () => {
-    const hint = recoveryHintForStaleFailure({ ageStale: true, driftDetected: false });
-    expect(hint).toContain("cache:fetch-all --force");
+describe("recoveryHintForStaleFailure -- branch-aware (#1953 / #2574)", () => {
+  it("age-only failure names cache fetch-all --force", () => {
+    const hint = recoveryHintForStaleFailure(
+      { ageStale: true, driftDetected: false },
+      "owner/repo",
+    );
+    expect(hint).toContain("cache fetch-all --source github-issue --repo owner/repo --force");
+    expect(hint).not.toContain("cache:fetch-all");
   });
 
-  it("drift-only failure names plain cache:fetch-all", () => {
-    const hint = recoveryHintForStaleFailure({ ageStale: false, driftDetected: true });
-    expect(hint).toContain("cache:fetch-all");
-    expect(hint).not.toContain("cache:fetch-all --force");
+  it("drift-only failure names plain cache fetch-all", () => {
+    const hint = recoveryHintForStaleFailure(
+      { ageStale: false, driftDetected: true },
+      "owner/repo",
+    );
+    expect(hint).toContain("cache fetch-all --source github-issue --repo owner/repo");
+    expect(hint).not.toContain("--force");
+    expect(hint).not.toContain("cache:fetch-all");
   });
 
-  it("mixed age+drift prefers cache:fetch-all --force", () => {
-    const hint = recoveryHintForStaleFailure({ ageStale: true, driftDetected: true });
-    expect(hint).toContain("cache:fetch-all --force");
+  it("mixed age+drift prefers cache fetch-all --force", () => {
+    const hint = recoveryHintForStaleFailure(
+      { ageStale: true, driftDetected: true },
+      "owner/repo",
+    );
+    expect(hint).toContain("cache fetch-all --source github-issue --repo owner/repo --force");
+    expect(hint).not.toContain("cache:fetch-all");
   });
 });
 

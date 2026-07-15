@@ -17,6 +17,9 @@ import { join, relative } from "node:path";
 import { isTriageCacheEmpty, maybeAutoPopulateEmptyCache } from "../cache/empty-populate.js";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
+import { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
+export { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
+
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
 import { resolveCandidatesLogPath } from "../triage/cache-path.js";
@@ -322,27 +325,6 @@ const REMEDIATION_NO_CACHE = ["  Recovery: run `deft triage:bootstrap` to seed t
   "\n",
 );
 
-const REMEDIATION_STALE_FORCE = [
-  "  Recovery: run `deft cache:fetch-all --force` to refresh and reconcile upstream state.",
-].join("\n");
-
-const REMEDIATION_STALE_PLAIN = [
-  "  Recovery: run `deft cache:fetch-all` to refresh and reconcile upstream state.",
-].join("\n");
-
-/**
- * Branch-aware recovery hint (#1953 Option 3).
- * Age-stale (or age+drift mixed) → --force bypasses TTL; drift-only → plain refetch.
- */
-export function recoveryHintForStaleFailure(
-  causes: Readonly<{ ageStale: boolean; driftDetected: boolean }>,
-): string {
-  if (causes.ageStale) {
-    return REMEDIATION_STALE_FORCE;
-  }
-  return REMEDIATION_STALE_PLAIN;
-}
-
 function formatDriftFailure(repo: string, drift: CacheDriftProbeResult): GateResult {
   const parts: string[] = [];
   if (drift.stateDriftNumbers.length > 0) {
@@ -357,7 +339,7 @@ function formatDriftFailure(repo: string, drift: CacheDriftProbeResult): GateRes
     code: 1,
     message: [
       `❌ deft cache-fresh: stale-by-drift -- ${parts.join("; ")} (${repo}).`,
-      recoveryHintForStaleFailure({ ageStale: false, driftDetected: true }),
+      recoveryHintForStaleFailure({ ageStale: false, driftDetected: true }, repo),
     ].join("\n"),
   };
 }
@@ -553,7 +535,7 @@ function evaluateWithContext(
       code: 1,
       message: [
         `❌ deft cache-fresh: cache is ${ageH.toFixed(1)}h old (max-age=${maxAgeHours}h); oldest in-scope entry ${display}.`,
-        recoveryHintForStaleFailure({ ageStale: true, driftDetected: false }),
+        recoveryHintForStaleFailure({ ageStale: true, driftDetected: false }, resolvedRepo),
       ].join("\n"),
     };
   }

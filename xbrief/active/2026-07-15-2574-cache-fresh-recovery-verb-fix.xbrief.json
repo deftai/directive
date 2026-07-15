@@ -1,0 +1,48 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2574 — cache-fresh recovery verb fix"
+  },
+  "plan": {
+    "id": "2574-cache-fresh-recovery-verb-fix",
+    "title": "bug(cache,session): gated ritual recovery prints working cache fetch-all command",
+    "status": "running",
+    "narratives": {
+      "Description": "Gated session ritual cache_fresh failures print `deft cache:fetch-all --force`, which is unknown on the npm CLI and omits required --source/--repo flags. Recovery text must use the space-separated `deft cache fetch-all --source github-issue --repo OWNER/NAME` surface.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2574",
+      "Overview": "Fix prescriptive recovery strings emitted when verify:cache-fresh fails during gated session ritual. Contract-test against the broken colon alias.",
+      "UserStory": "As an operator with a stale cache, I want the gated ritual failure to print a recovery command I can run literally, so I do not have to defer cache_fresh or guess argv shape.",
+      "ImplementationPlan": "1. Add formatCacheFetchAllRecoveryCommand in packages/core/src/session/cache-recovery.ts. 2. Route preflight-cache recovery hints through it with resolved repo. 3. Add verify-session-ritual-messages contract test. 4. CHANGELOG [Unreleased].",
+      "Labels": "bug, agent-experience, area:session"
+    },
+    "items": [
+      {
+        "id": "2574-working-recovery-text",
+        "title": "Recovery text uses runnable deft cache fetch-all with --source and --repo",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a stale cache_fresh gated failure, when the recovery hint is printed, then it names `deft cache fetch-all --source github-issue --repo <slug>` (with --force when age-stale) and never the unknown `cache:fetch-all` colon alias."
+        }
+      }
+    ],
+    "tags": ["bug", "agent-experience", "area:session"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2574",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2574: gated ritual recovery prints unknown cache:fetch-all verb"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/",
+          "packages/core/src/preflight-cache/evaluate.ts"
+        ]
+      }
+    }
+  }
+}

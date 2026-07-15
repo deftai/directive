@@ -2,6 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  CACHE_DIR_NAME,
+  CANDIDATES_RELPATH,
+  DEFAULT_SOURCE,
+} from "../preflight-cache/evaluate.js";
 import type { GitRunner } from "./git.js";
 import { newRitualStatePayload, ritualStep, writeRitualState } from "./ritual-sentinel.js";
 import { verifySessionRitual } from "./verify-session-ritual.js";
@@ -178,6 +183,62 @@ describe("verify-session-ritual failed-step messaging", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("doctor");
+  });
+
+  it("reports gated cache_fresh stale recovery with runnable cache fetch-all (#2574)", () => {
+    const { root, head } = initRoot();
+    const repo = "deftai/cartograph";
+    const fetchedAt = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    const [owner, name] = repo.split("/") as [string, string];
+    const entryDir = join(root, CACHE_DIR_NAME, DEFAULT_SOURCE, owner, name, "62");
+    mkdirSync(entryDir, { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(entryDir, "meta.json"), JSON.stringify({ fetched_at: fetchedAt }), "utf8");
+    writeFileSync(
+      join(entryDir, "raw.json"),
+      JSON.stringify({ number: 62, state: "open" }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, CANDIDATES_RELPATH),
+      JSON.stringify({
+        issue: 62,
+        repo,
+        decision: "accept",
+        ts: new Date().toISOString(),
+      }),
+      "utf8",
+    );
+    writeRitualState(
+      root,
+      newRitualStatePayload({
+        sessionId: "s",
+        gitHead: head,
+        worktreePath: resolve(root),
+        startedAt: NOW,
+        quickSteps: {
+          alignment: ritualStep({ ok: true, ts: NOW }),
+          branch_policy: ritualStep({ ok: true, ts: NOW }),
+          triage_welcome: ritualStep({ ok: true, ts: NOW }),
+        },
+        gatedSteps: {
+          doctor: ritualStep({ ok: true, ts: NOW }),
+        },
+      }),
+    );
+    const result = verifySessionRitual(root, {
+      bypass: false,
+      tier: "gated",
+      posture: "mutation",
+      now: NOW,
+      runGit: fakeGit(head, resolve(root)),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("cache_fresh");
+    expect(result.message).toContain(
+      "cache fetch-all --source github-issue --repo deftai/cartograph --force",
+    );
+    expect(result.message).not.toContain("cache:fetch-all");
   });
 
   it("honours an explicit envSkip bypass that records a would-fail code", () => {
