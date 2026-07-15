@@ -48,6 +48,7 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft value:show", "task value:show"],
   ["deft eval:health", "task eval:health"],
   ["deft eval:run", "task eval:run"],
+  ["deft eval:triggers", "task eval:triggers"],
   ["deft eval:report", "task eval:report"],
   ["deft feedback:file", "task feedback:file"],
   ["deft migrate:xbrief", "deft migrate:xbrief"],

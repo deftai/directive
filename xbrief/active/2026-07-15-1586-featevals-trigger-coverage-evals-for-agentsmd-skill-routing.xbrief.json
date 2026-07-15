@@ -1,0 +1,65 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1586"
+  },
+  "plan": {
+    "title": "feat(evals): trigger coverage evals for AGENTS.md skill routing — skill-pi-trigger-eval integration",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(evals): trigger coverage evals for AGENTS.md skill routing — skill-pi-trigger-eval integration",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1586",
+      "Overview": "feat(evals): trigger coverage evals for AGENTS.md skill routing using skill-pi-trigger-eval\n\n## Summary\n\nAGENTS.md defines explicit skill-routing triggers (17 rules mapping keyword phrases to skills: \"review cycle\" -> deft-directive-review-cycle, \"swarm\" -> deft-directive-swarm, \"triage\" -> deft-directive-gh-triage, etc.). These routing rules have no automated test coverage. A false positive (wrong skill fires for an unrelated context) or false negative (correct skill does not fire when it should) is a silent correctness failure. skill-eval-harness includes skill-pi-trigger-eval for exactly this: smoke evals that check trigger keyword routing without forcing the skill flag.\n\n## The gap\n\nCurrently:\n- No test covers \"does the agent correctly route to deft-directive-review-cycle when the user says run review cycle?\"\n- No test covers \"does the agent NOT trigger deft-directive-swarm when the user says something that contains the word swarm in an unrelated context?\"\n- A AGENTS.md change that breaks a routing trigger is undetectable before shipping\n\n## What trigger coverage looks like\n\nA trigger-cases.jsonl file with entries per skill:\n\nFor deft-directive-review-cycle:\n- Positive: \"run review cycle on this PR\" -> should trigger deft-directive-review-cycle\n- Positive: \"check reviews\" -> should trigger\n- Negative: \"I want to review this design document\" -> should NOT trigger (review without cycle context)\n\nFor deft-directive-swarm:\n- Positive: \"run agents in parallel on these three vBRIEFs\" -> should trigger\n- Positive: \"swarm these stories\" -> should trigger\n- Negative: \"there was a swarm of bees outside\" -> should NOT trigger\n\n## Proposed files\n\n- evals/trigger-cases.jsonl -- trigger test cases per skill in the format expected by skill-pi-trigger-eval\n- Taskfile.yml -- new task eval:triggers: runs skill-pi-trigger-eval against AGENTS.md\n\n## Acceptance criteria\n\n- evals/trigger-cases.jsonl has at least 2 positive and 1 negative case per trigger rule in AGENTS.md\n- task eval:triggers runs skill-pi-trigger-eval and passes\n- All positive cases pass (correct skill fires)\n- All negative cases pass (no false positives)\n- task check or CI runs task eval:triggers on AGENTS.md changes\n\n## Related\n\n- Depends on #1584 (base eval infrastructure -- trigger evals are a companion to the benchmark manifest)\n- Related to #635 (skill-system maturity -- trigger correctness is part of skill quality)\n- Related to #1532 (skill validation in task check -- trigger coverage is a runtime validation complement to the static validation)\n\n## Source\n\nhttps://github.com/adewale/skill-eval-harness: \"Trigger checks -- run Pi skill-trigger smoke evals without forcing --skill\" feature; skill-pi-trigger-eval CLI.\n\n## Parent / tracker\n\nParent epic: #1862. Eval companion — intent-paraphrase / trigger coverage for review-cycle routing (incl. \"use sub-agents for reviews\").\n\n",
+      "Labels": "enhancement, skills, determinism, test-debt, agent-experience, review-cycle, evals"
+    },
+    "items": [
+      {
+        "title": "evals/trigger-cases.jsonl has at least 2 positive and 1 negative case per trigger rule in AGENTS.md",
+        "status": "proposed"
+      },
+      {
+        "title": "task eval:triggers runs skill-pi-trigger-eval and passes",
+        "status": "proposed"
+      },
+      {
+        "title": "All positive cases pass (correct skill fires)",
+        "status": "proposed"
+      },
+      {
+        "title": "All negative cases pass (no false positives)",
+        "status": "proposed"
+      },
+      {
+        "title": "task check or CI runs task eval:triggers on AGENTS.md changes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "skills",
+      "determinism",
+      "test-debt",
+      "agent-experience",
+      "review-cycle",
+      "evals"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1586",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1586: feat(evals): trigger coverage evals for AGENTS.md skill routing — skill-pi-trigger-eval integration"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-xbrief/refs",
+        "title": "Issue #635"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1532",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1532"
+      }
+    ],
+    "updated": "2026-07-15T14:32:19Z"
+  }
+}

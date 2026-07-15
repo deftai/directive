@@ -415,6 +415,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:eval-health-relocation --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  eval-triggers-relocation:
+    desc: "Fail-closed eval:triggers gate when AGENTS.md / REFERENCES.md / trigger cases change (#1586). Skips (exit 0) when the diff does not touch trigger-routing homes. -- task verify:eval-triggers-relocation [-- --base-ref <ref> | --staged] [--quiet]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:eval-triggers-relocation --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   agents-md-advisory:
     desc: "ADVISORY (never fail-closing) consumer AGENTS.md legibility signal (#2155). Counts the UNMANAGED (project-authored) region only -- the framework-owned managed section is excluded -- and compares it against the SOFT, operator-adjustable budget plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines (generous default when unset). Consumer companion to the maintainer-only #645 ratchet; deliberately NOT a check:consumer dependency (advise->observe->enforce per #1419). Default posture ALWAYS exits 0; the opt-in --enforce flag promotes an over-budget region to a hard cap (exit 1). Raising the field is the documented, no-friction way to accept growth and silence the nudge."
     dir: '{{.USER_WORKING_DIR}}'

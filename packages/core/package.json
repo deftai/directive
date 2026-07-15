@@ -42,6 +42,10 @@
       "types": "./dist/eval-health-relocation/index.d.ts",
       "default": "./dist/eval-health-relocation/index.js"
     },
+    "./eval-triggers-relocation": {
+      "types": "./dist/eval-triggers-relocation/index.d.ts",
+      "default": "./dist/eval-triggers-relocation/index.js"
+    },
     "./xbrief-migrate": {
       "types": "./dist/xbrief-migrate/index.d.ts",
       "default": "./dist/xbrief-migrate/index.js"
@@ -109,6 +113,10 @@
     "./eval/run": {
       "types": "./dist/eval/run.d.ts",
       "default": "./dist/eval/run.js"
+    },
+    "./eval/triggers": {
+      "types": "./dist/eval/triggers.d.ts",
+      "default": "./dist/eval/triggers.js"
     },
     "./eval/report": {
       "types": "./dist/eval/report.d.ts",

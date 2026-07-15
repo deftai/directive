@@ -157,9 +157,11 @@ export const CLI_MODULE_VERBS = [
   "verify-agents-md-budget",
   "verify-agents-md-advisory",
   "verify-eval-health-relocation",
+  "verify-eval-triggers-relocation",
   "eval-health",
   "eval-run",
   "eval-report",
+  "eval-triggers",
 ] as const;
 
 /** Core-only CLI entrypoints without a packages/cli wrapper. */
@@ -255,6 +257,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:agents-md-budget": "verify-agents-md-budget",
   "verify:agents-md-advisory": "verify-agents-md-advisory",
   "verify:eval-health-relocation": "verify-eval-health-relocation",
+  "verify:eval-triggers-relocation": "verify-eval-triggers-relocation",
   "verify:hooks-installed": "verify-hooks-installed",
   "verify:no-task-runtime": "verify-no-task-runtime",
   "vbrief:validate": "vbrief-validate",
@@ -314,6 +317,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "value:show": "value-readback",
   "triage:metrics": "value-readback",
   "eval:run": "eval-run",
+  "eval:triggers": "eval-triggers",
   "eval:report": "eval-report",
   build: "framework-commands",
   "setup:ghx": "setup-ghx",

@@ -30,3 +30,12 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'eval:report --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  triggers:
+    desc: "Trigger routing coverage for AGENTS.md / Skills Index (#1586). Offline skill-pi-trigger-eval compatible eval over evals/trigger-cases.jsonl vs REFERENCES.md. -- task eval:triggers [-- --json] [--project-root PATH]"
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'eval:triggers --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

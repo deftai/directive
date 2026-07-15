@@ -67,6 +67,12 @@ jobs:
           git fetch origin "${{ github.base_ref }}" --depth=1
           node packages/cli/dist/bin.js verify:eval-health-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
 
+      - name: Trigger-routing eval:triggers gate (#1586)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          node packages/cli/dist/bin.js verify:eval-triggers-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

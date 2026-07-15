@@ -38,6 +38,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/agents-md-budget": sub("core", "agents-md-budget"),
   "@deftai/directive-core/agents-md-advisory": sub("core", "agents-md-advisory"),
   "@deftai/directive-core/eval-health-relocation": sub("core", "eval-health-relocation"),
+  "@deftai/directive-core/eval-triggers-relocation": sub("core", "eval-triggers-relocation"),
   "@deftai/directive-core/scm": sub("core", "scm"),
   "@deftai/directive-core/scope": sub("core", "scope"),
   "@deftai/directive-core/session": sub("core", "session"),
@@ -55,6 +56,10 @@ const subpathAliases: Record<string, string> = {
     "packages/core/src/eval/crud-telemetry.ts",
   ),
   "@deftai/directive-core/eval/run": resolve(import.meta.dirname, "packages/core/src/eval/run.ts"),
+  "@deftai/directive-core/eval/triggers": resolve(
+    import.meta.dirname,
+    "packages/core/src/eval/triggers.ts",
+  ),
   "@deftai/directive-core/eval/report": resolve(
     import.meta.dirname,
     "packages/core/src/eval/report.ts",

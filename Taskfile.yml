@@ -390,6 +390,7 @@ tasks:
       - verify-wip-cap-framework-self-check
       - verify:agents-md-budget
       - verify-eval-health-relocation-framework-check
+      - verify-eval-triggers-relocation-framework-check
       - vbrief:validate
       - codebase:validate-structure
       - verify:codebase-map-fresh
@@ -435,6 +436,15 @@ tasks:
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: verify:eval-health-relocation
+        vars:
+          CLI_ARGS: "--base-ref origin/master"
+
+  verify-eval-triggers-relocation-framework-check:
+    internal: true
+    desc: "Framework self-check shim for verify:eval-triggers-relocation (#1586)."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: verify:eval-triggers-relocation
         vars:
           CLI_ARGS: "--base-ref origin/master"
 

@@ -590,6 +590,25 @@ export const registryData = {
       see_also: ["task eval:run", "task eval:report", "#1703"],
       placeholder: false,
     },
+    "task eval:triggers": {
+      name: "task eval:triggers",
+      summary: "Trigger routing coverage for Skills Index rules",
+      refs: "(#1586)",
+      description:
+        "Offline skill-pi-trigger-eval compatible routing check: grades evals/trigger-cases.jsonl against REFERENCES.md Skills Index triggers (should-fire / should-not-fire per skill).",
+      usage: "task eval:triggers [-- --json] [--project-root PATH]",
+      flags: [
+        ["--json", "(off)", "Emit the TriggerEvalReport JSON."],
+        [
+          "--project-root PATH",
+          "(cwd)",
+          "Project root override (Taskfile threads USER_WORKING_DIR).",
+        ],
+      ],
+      examples: ["task eval:triggers", "task eval:triggers -- --json"],
+      see_also: ["task eval:health", "task verify:eval-triggers-relocation", "#1862"],
+      placeholder: false,
+    },
     "task eval:run": {
       name: "task eval:run",
       summary: "Tier 2 golden corpus eval for a model",
@@ -888,7 +907,10 @@ export const registryData = {
         "task triage:metrics",
       ],
     ],
-    ["Framework eval (#1703)", ["task eval:health", "task eval:run", "task eval:report"]],
+    [
+      "Framework eval (#1703)",
+      ["task eval:health", "task eval:triggers", "task eval:run", "task eval:report"],
+    ],
   ],
   categoriesScope: [
     ["Promote / demote", ["task scope:promote", "task scope:demote"]],

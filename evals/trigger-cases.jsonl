@@ -1,0 +1,62 @@
+{"id":"setup-pos-1","query":"help me setup this new deft project","skill":"deft-directive-setup","should_trigger":true}
+{"id":"setup-pos-2","query":"bootstrap directive for this repository","skill":"deft-directive-setup","should_trigger":true}
+{"id":"setup-neg-1","query":"list open issues in the directive backlog","skill":"deft-directive-setup","should_trigger":false}
+{"id":"cost-pos-1","query":"how much will this cost to implement the feature","skill":"deft-directive-cost","should_trigger":true}
+{"id":"cost-pos-2","query":"run a pre-build cost estimate before we commit","skill":"deft-directive-cost","should_trigger":true}
+{"id":"cost-neg-1","query":"summarize the project architecture overview","skill":"deft-directive-cost","should_trigger":false}
+{"id":"build-pos-1","query":"build the feature from the active xBRIEF","skill":"deft-directive-build","should_trigger":true}
+{"id":"build-pos-2","query":"implement spec phase two with quality gates","skill":"deft-directive-build","should_trigger":true}
+{"id":"build-neg-1","query":"list the open issues in the backlog","skill":"deft-directive-build","should_trigger":false}
+{"id":"pre-pr-pos-1","query":"run the pre-pr quality loop on this branch","skill":"deft-directive-pre-pr","should_trigger":true}
+{"id":"pre-pr-pos-2","query":"rwldl before I push this branch","skill":"deft-directive-pre-pr","should_trigger":true}
+{"id":"pre-pr-neg-1","query":"show the current git branch status","skill":"deft-directive-pre-pr","should_trigger":false}
+{"id":"review-cycle-pos-1","query":"run review cycle on this PR","skill":"deft-directive-review-cycle","should_trigger":true}
+{"id":"review-cycle-pos-2","query":"use sub-agents for reviews on PR 2569","skill":"deft-directive-review-cycle","should_trigger":true}
+{"id":"review-cycle-pos-3","query":"babysit this PR until merge-ready","skill":"deft-directive-review-cycle","should_trigger":true}
+{"id":"review-cycle-pos-4","query":"shepherd the PR through Greptile review","skill":"deft-directive-review-cycle","should_trigger":true}
+{"id":"review-cycle-neg-1","query":"merge this documentation typo fix","skill":"deft-directive-review-cycle","should_trigger":false}
+{"id":"swarm-pos-1","query":"swarm these three stories in parallel","skill":"deft-directive-swarm","should_trigger":true}
+{"id":"swarm-pos-2","query":"run agents on the cohort xBRIEFs","skill":"deft-directive-swarm","should_trigger":true}
+{"id":"swarm-neg-1","query":"what is the current WIP cap policy","skill":"deft-directive-swarm","should_trigger":false}
+{"id":"decompose-pos-1","query":"decompose this epic into story xBRIEFs","skill":"deft-directive-decompose","should_trigger":true}
+{"id":"decompose-pos-2","query":"check swarm readiness for the umbrella cohort","skill":"deft-directive-decompose","should_trigger":true}
+{"id":"decompose-neg-1","query":"validate xbrief conformance in task check","skill":"deft-directive-decompose","should_trigger":false}
+{"id":"refinement-pos-1","query":"refine the proposed backlog priorities","skill":"deft-directive-refinement","should_trigger":true}
+{"id":"refinement-pos-2","query":"triage issue 1586 into xbrief proposed","skill":"deft-directive-refinement","should_trigger":true}
+{"id":"refinement-neg-1","query":"run eval health on this checkout","skill":"deft-directive-refinement","should_trigger":false}
+{"id":"triage-pos-1","query":"what's next in the queue","skill":"deft-directive-triage","should_trigger":true}
+{"id":"triage-pos-2","query":"run triage hygiene on the cache","skill":"deft-directive-triage","should_trigger":true}
+{"id":"triage-neg-1","query":"implement the payment module from spec","skill":"deft-directive-triage","should_trigger":false}
+{"id":"sync-pos-1","query":"good morning, sync deft for this session","skill":"deft-directive-sync","should_trigger":true}
+{"id":"sync-pos-2","query":"update xbrief lifecycle structure now","skill":"deft-directive-sync","should_trigger":true}
+{"id":"sync-neg-1","query":"run task check on this branch","skill":"deft-directive-sync","should_trigger":false}
+{"id":"interview-pos-1","query":"run interview loop for the scope narratives","skill":"deft-directive-interview","should_trigger":true}
+{"id":"interview-pos-2","query":"start a q&a loop to fill requirement gaps","skill":"deft-directive-interview","should_trigger":true}
+{"id":"interview-neg-1","query":"promote the active story to running","skill":"deft-directive-interview","should_trigger":false}
+{"id":"probe-pos-1","query":"run probe on this architecture plan","skill":"deft-directive-probe","should_trigger":true}
+{"id":"probe-pos-2","query":"use /deft:run:probe before we write xBRIEFs","skill":"deft-directive-probe","should_trigger":true}
+{"id":"probe-neg-1","query":"open a pull request for the fix","skill":"deft-directive-probe","should_trigger":false}
+{"id":"debug-pos-1","query":"debug why task check fails on Windows","skill":"deft-directive-debug","should_trigger":true}
+{"id":"debug-pos-2","query":"investigate root cause of the stale cache","skill":"deft-directive-debug","should_trigger":true}
+{"id":"debug-neg-1","query":"show policy for allowDirectCommitsToMaster","skill":"deft-directive-debug","should_trigger":false}
+{"id":"glossary-pos-1","query":"create a ubiquitous language glossary for payments","skill":"deft-directive-glossary","should_trigger":true}
+{"id":"glossary-pos-2","query":"define terms for this domain using DDD","skill":"deft-directive-glossary","should_trigger":true}
+{"id":"glossary-neg-1","query":"render the project specification markdown","skill":"deft-directive-glossary","should_trigger":false}
+{"id":"gh-arch-pos-1","query":"improve architecture with deep modules analysis","skill":"deft-directive-gh-arch","should_trigger":true}
+{"id":"gh-arch-pos-2","query":"file a refactor RFC for the coupling hotspot","skill":"deft-directive-gh-arch","should_trigger":true}
+{"id":"gh-arch-neg-1","query":"run task check on this branch","skill":"deft-directive-gh-arch","should_trigger":false}
+{"id":"gh-slice-pos-1","query":"gh slice this specification into vertical slices","skill":"deft-directive-gh-slice","should_trigger":true}
+{"id":"gh-slice-pos-2","query":"break into issues as tracer-bullet tickets","skill":"deft-directive-gh-slice","should_trigger":true}
+{"id":"gh-slice-neg-1","query":"fetch umbrella current shape for epic 1862","skill":"deft-directive-gh-slice","should_trigger":false}
+{"id":"release-pos-1","query":"cut release v0.78.0 today","skill":"deft-directive-release","should_trigger":true}
+{"id":"release-pos-2","query":"run the publish release workflow","skill":"deft-directive-release","should_trigger":true}
+{"id":"release-neg-1","query":"validate xbrief conformance in task check","skill":"deft-directive-release","should_trigger":false}
+{"id":"write-skill-pos-1","query":"write skill for the new workflow gate","skill":"deft-directive-write-skill","should_trigger":true}
+{"id":"write-skill-pos-2","query":"create skill with RFC2119 triggers and progressive disclosure","skill":"deft-directive-write-skill","should_trigger":true}
+{"id":"write-skill-neg-1","query":"refresh agents md managed section","skill":"deft-directive-write-skill","should_trigger":false}
+{"id":"article-review-pos-1","query":"analyze this article for directive lessons","skill":"deft-directive-article-review","should_trigger":true}
+{"id":"article-review-pos-2","query":"what can we learn from this paper on agent routing","skill":"deft-directive-article-review","should_trigger":true}
+{"id":"article-review-neg-1","query":"show the triage queue limit ten","skill":"deft-directive-article-review","should_trigger":false}
+{"id":"feedback-pos-1","query":"file upstream feedback about framework gaps","skill":"deft-directive-feedback","should_trigger":true}
+{"id":"feedback-pos-2","query":"directive feedback: session ritual too noisy","skill":"deft-directive-feedback","should_trigger":true}
+{"id":"feedback-neg-1","query":"run eval health check on master","skill":"deft-directive-feedback","should_trigger":false}

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Trigger routing evals for AGENTS.md skill discovery (#1586).** `evals/trigger-cases.jsonl` holds skill-pi-trigger-eval compatible should-fire / should-not-fire rows for every Skills Index rule in `REFERENCES.md` (including review-cycle babysit/shepherd and sub-agent paraphrases from #2261). `task eval:triggers` runs deterministic offline routing; `verify:eval-triggers-relocation` and CI run it when AGENTS.md or routing artifacts change. Closes #1586. Refs #1862, #1703.
+
 - **Agent-host hooks enforce Directive's mutation boundary for direct writes.** `directive init` / `deft update` now merge project `SessionStart` and `PreToolUse` registrations for Claude Code, Grok Build, and Cursor into their native hook files. The shared `deft hook:dispatch` bridge denies direct edit/write tools until the existing gated session ritual is fresh and an active/running xBRIEF passes canonical preflight; `deft verify:hooks-installed --scope=agent` and `doctor --full` report registration health. Shell/MCP policy, compact re-arm, and plugin packaging remain in their separate follow-ups. Closes #2438. Refs #2437, #2113, #1394, #2369.
 - **Always-on skill pin policy reduces false negatives on process gates.** AGENTS.md and the consumer template now document three pin tiers (always-pin / on-demand / reference-only), a default always-pin set for build / pre-PR / review-cycle / swarm skills, and an explicit anti-pattern against pinning entire language or deployment packs. Canonical policy: `content/docs/skill-pin-policy.md`; Skills Index and setup skill carry consumer guidance. Closes #2508. Refs #1862, #2484.
 
