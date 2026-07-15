@@ -479,10 +479,14 @@ describe("runE2e orchestration", () => {
 
   it("dry-run with destroy-repo emits destroy plan only", () => {
     expect(
-      runE2e(config({ dryRun: true, destroyRepo: true, repoSlug: "deftai-release-test-fixed-abcdef" })),
+      runE2e(
+        config({ dryRun: true, destroyRepo: true, repoSlug: "deftai-release-test-fixed-abcdef" }),
+      ),
     ).toBe(EXIT_OK);
     const err = errLines.join("");
-    expect(err).toContain("DRYRUN (would run `gh repo delete deftai/deftai-release-test-fixed-abcdef --yes`)");
+    expect(err).toContain(
+      "DRYRUN (would run `gh repo delete deftai/deftai-release-test-fixed-abcdef --yes`)",
+    );
     expect(err).not.toContain("would keep");
   });
 
