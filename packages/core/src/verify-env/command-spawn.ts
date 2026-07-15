@@ -86,8 +86,7 @@ export function spawnCommandText(
   options: SpawnCommandTextOptions = {},
 ): SpawnResult {
   const trySpawn = (shell: boolean) => {
-    const spawnCmd =
-      shell && process.platform === "win32" ? quoteWin32CommandForShell(cmd) : cmd;
+    const spawnCmd = shell && process.platform === "win32" ? quoteWin32CommandForShell(cmd) : cmd;
     return spawnSync(spawnCmd, [...args], {
       cwd: options.cwd,
       env: options.env ?? process.env,
