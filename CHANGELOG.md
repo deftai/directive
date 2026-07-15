@@ -29,15 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **completed/ lifecycle moves stamp terminal plan.status atomically (#2578).** `scope:complete` and `scope:fail` now write `plan.status=completed|failed` directly at the destination path instead of pre-stamping the source file before rename, so xBRIEFs never appear under `completed/` with non-terminal status. `task reconcile:issues` reports `completed/` D2 drift and `--apply-lifecycle-fixes` repairs in-place. Closes #2578.
 - **pr-wait-mergeable unit tests no longer inherit parent-shell `GH_REPO`.** `main.test.ts` clears `GH_REPO` in `beforeEach` so config-error cases stay deterministic when maintainers or release Step 5 run `task check` with orchestration env set. Closes #2579.
 - **Windows Vitest coverage no longer ENOENTs on `coverage/.tmp` mid-suite (#2580).** Native Windows `task check` coverage runs now pre-create and keep `coverage/.tmp` via globalSetup, serialize v8 `processingConcurrency`, and cap fork workers when `--coverage` is active so green suites are not blocked by temp-directory races; coverage thresholds still fail closed. Closes #2580.
-<<<<<<< HEAD
 - **Release Step 3 retries once when GitHub REST core rate limit is exhausted (#2577).** `task release` Step 3 (`Pre-flight vBRIEF lifecycle sync`) now sleeps once (capped at 120s) and retries issue-state fetch on HTTP 403 rate-limit errors instead of failing immediately. Persistent exhaustion emits actionable stderr with `gh api rate_limit` probe output and documents that `--allow-vbrief-drift` is appropriate after local `task vbrief:validate` is green. Closes #2577.
-<<<<<<< HEAD
 - **fix(release-e2e): default to keep+report temp repo instead of gh repo delete (#2572).** Agent-driven releases typically lack `delete_repo` permission (#1019); attempting destroy produced noisy failures and stalled Phase 3. `task release:e2e` now keeps the rehearsal repo by default and always emits `owner/slug` plus a copy-paste `gh repo delete` cleanup hint. Privileged environments may pass `--destroy-repo`; destroy failure still emits WARN and does not block Phase 4 when the rehearsal succeeded. Release skill Phase 3 documents the keep+report contract.
-=======
-=======
 - **Merge cascade no longer goes silent after update-branch.** `pr:wait-mergeable-and-merge` keeps emitting wait heartbeats when cadence tiers jump (no >2× prior-cadence gap without escalation), runs until the cap instead of stopping after a fixed poll budget, and preserves distinguishable Greptile/HEAD SHA prefixes in blocked-on heartbeats during update-branch races. Closes #2581. Refs #2260.
->>>>>>> 7ba57705 (fix(cascade): keep merge-monitor heartbeats alive after update-branch (#2581))
->>>>>>> 097b55c5 (fix(cascade): keep merge-monitor heartbeats alive after update-branch (#2581))
 
 ### Removed
 

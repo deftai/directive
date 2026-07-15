@@ -23,8 +23,7 @@ function defaultSleep(seconds: number): void {
   }
 }
 
-const GREPTILE_STALE_SHA_RE =
-  /^Greptile last reviewed ([0-9a-f]+) but PR HEAD is ([0-9a-f]+)\./i;
+const GREPTILE_STALE_SHA_RE = /^Greptile last reviewed ([0-9a-f]+) but PR HEAD is ([0-9a-f]+)\./i;
 
 /**
  * Truncate blocked-on text for one-line heartbeats while preserving

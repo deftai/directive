@@ -2,7 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 import { DEFAULT_CADENCE, EXIT_CAP_REACHED, EXIT_CLEAN, EXIT_PR_TERMINAL } from "./constants.js";
-import { formatPollStatus, isTerminalPrState, mergeStateFromPayload, monitor, sleepWithCadenceHeartbeats, truncateBlockedOn } from "./monitor.js";
+import {
+  formatPollStatus,
+  isTerminalPrState,
+  mergeStateFromPayload,
+  monitor,
+  sleepWithCadenceHeartbeats,
+  truncateBlockedOn,
+} from "./monitor.js";
 import type { PollResult } from "./types.js";
 
 const HEAD_SHA = "abc1234567890def1234567890abcdef12345678";
@@ -412,7 +419,10 @@ describe("monitor loop", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const result = monitor(2571, "deftai/directive", {
       capMinutes: 120,
-      cadence: [[1, 3], [2, 2]],
+      cadence: [
+        [1, 3],
+        [2, 2],
+      ],
       sleepFn: advancingSleep,
       clockFn: clock,
       callReadinessFn: makeCallLog(
