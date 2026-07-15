@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows Vitest coverage no longer ENOENTs on `coverage/.tmp` mid-suite (#2580).** Native Windows `task check` coverage runs now pre-create and keep `coverage/.tmp` via globalSetup, serialize v8 `processingConcurrency`, and cap fork workers when `--coverage` is active so green suites are not blocked by temp-directory races; coverage thresholds still fail closed. Closes #2580.
+
 ### Removed
 
 ## [0.78.0] - 2026-07-15

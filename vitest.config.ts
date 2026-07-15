@@ -17,6 +17,20 @@ const testEnvironment =
 const isWin32 = process.platform === "win32";
 const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25)));
 
+// Coverage chunk writes land in coverage/.tmp; on win32 parallel forks can race the
+// directory away mid-suite (ENOENT after a green run). Serialize coverage processing,
+// tighten fork caps when --coverage is on, and globalSetup keeps .tmp present.
+// Refs #2580.
+const coverageEnabled = process.argv.some(
+  (arg) => arg === "--coverage" || arg.startsWith("--coverage."),
+);
+const winActiveMaxWorkers =
+  isWin32 && coverageEnabled ? Math.max(1, Math.min(4, winMaxWorkers)) : winMaxWorkers;
+const win32CoverageTmpSetup = resolve(
+  import.meta.dirname,
+  "packages/core/src/vitest-runner/win32-coverage-tmp-setup.ts",
+);
+
 // Alias the workspace packages to their TypeScript source so the suite runs
 // against src/ without a prior `tsc -b` build (keeps `vitest --changed` fast
 // and decoupled from build order). `tsc -b` remains the type-check + emit
@@ -129,12 +143,18 @@ export default defineConfig({
     testTimeout: isWin32 ? 20_000 : 5_000,
     ...(isWin32
       ? {
-          maxWorkers: winMaxWorkers,
+          maxWorkers: winActiveMaxWorkers,
           teardownTimeout: 60_000,
           dangerouslyIgnoreUnhandledErrors: true,
+          ...(coverageEnabled
+            ? {
+                globalSetup: [win32CoverageTmpSetup],
+                fileParallelism: false,
+              }
+            : {}),
           poolOptions: {
             forks: {
-              maxForks: winMaxWorkers,
+              maxForks: winActiveMaxWorkers,
             },
           },
         }
@@ -149,6 +169,7 @@ export default defineConfig({
         "packages/cli/src/*-fixtures.ts",
       ],
       reporter: ["text", "text-summary"],
+      ...(isWin32 && coverageEnabled ? { processingConcurrency: 1 } : {}),
       thresholds: {
         lines: 85,
         functions: 85,
