@@ -39,6 +39,10 @@ These are the specific blocks the study measured *hurting* agent quality — tre
 - ⊗ Do **not** accumulate 15+ unpaired warnings. Past that threshold the agent over-explores instead of acting.
 - ≉ Avoid stacking dozens of domain-specific gotchas. Domain rules help when specific and enforceable; they stop helping when piled up. Prefer a deterministic gate over prose where one exists (the gate is platform-correct by construction and travels with the repo).
 
+## Skill pins for process-critical workflows (#2508)
+
+When a workflow skill must not be skipped on trigger miss (implementation, pre-PR, review-cycle, swarm), name it in AGENTS.md as an **always-pin** — not by pasting the skill body. Tier definitions, default pin list, and anti-patterns (do not pin entire language packs): [`skill-pin-policy.md`](./skill-pin-policy.md).
+
 ## Relationship to directive's own dogfooding
 
 Directive holds its own AGENTS.md to this bar via the `verify:agents-md-budget` ratchet (#645) and the consumer-side advisory signal (`agentsMdAdvisory`, #2155). The doc-sprawl awareness step in the `deft-directive-sync` skill (#647) surfaces reachable-doc-volume drift before it silently degrades agent quality. This doc is the "how to structure it well" companion to those "keep it from bloating" guards.

@@ -101,6 +101,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Cache-as-authoritative work selection (#1149)",
   "## Deterministic questions runtime obligation (#1470)",
   "## Skills",
+  "## Skill pin policy (#2508)",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",
@@ -140,6 +141,18 @@ const INDEXED_SKILL_IDS = [
   "deft-directive-write-skill",
   "deft-directive-article-review",
   "deft-directive-feedback",
+] as const;
+
+const DEFAULT_ALWAYS_PIN_SKILL_IDS = [
+  "deft-directive-build",
+  "deft-directive-pre-pr",
+  "deft-directive-review-cycle",
+  "deft-directive-swarm",
+] as const;
+
+const SKILL_PIN_ANTI_PATTERN_MARKERS = [
+  "Pin entire language packs",
+  "false-negative-sensitive process gates",
 ] as const;
 
 const UNMANAGED_HEADER_MARKERS = [
@@ -500,6 +513,21 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "task issue:ingest",
     ],
   },
+  {
+    id: "skill-pin-2508",
+    shape: "doc",
+    header: "Skill pin policy (#2508)",
+    canonicalHome: "docs/skill-pin-policy.md",
+    pointerHints: ["always-pin", "skill-pin-policy.md", "deft-directive-review-cycle", "#2508"],
+    canonicalBodyMarkers: [
+      "always-pin",
+      "on-demand",
+      "reference-only",
+      "deft-directive-pre-pr",
+      "false-negative",
+    ],
+    retiredFullTextMarkers: [],
+  },
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -575,7 +603,7 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   }
   if (
     spec.shape === "doc" &&
-    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|\.deft\/core\/contracts\/|REFERENCES\.md|templates\/agent-prompt-preamble\.md/.test(
+    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|docs\/[\w.-]+\.md|\.deft\/core\/contracts\/|\.deft\/core\/docs\/|REFERENCES\.md|templates\/agent-prompt-preamble\.md/.test(
       section,
     )
   ) {
@@ -702,6 +730,24 @@ describe("test_agents_entry_contract", () => {
     expect(templateManaged).toContain("--list-packs");
     expect(templateManaged).toContain("<pack> --list");
     expect(templateManaged).not.toContain("Deft ships versioned content packs");
+  });
+
+  it("skill_pin_policy_default_pins_present_in_both_files", () => {
+    expect(missingMarkers(template, DEFAULT_ALWAYS_PIN_SKILL_IDS)).toEqual([]);
+    expect(missingMarkers(agents, DEFAULT_ALWAYS_PIN_SKILL_IDS)).toEqual([]);
+  });
+
+  it("skill_pin_policy_anti_pattern_present_in_both_files", () => {
+    expect(missingMarkers(template, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, SKILL_PIN_ANTI_PATTERN_MARKERS)).toEqual([]);
+  });
+
+  it("references_md_documents_pin_tiers", () => {
+    const references = readRepoFile("REFERENCES.md");
+    expect(references).toContain("Pin tiers (#2508)");
+    expect(references).toContain("skill-pin-policy.md");
+    expect(references).toContain("always-pin");
+    expect(missingMarkers(references, DEFAULT_ALWAYS_PIN_SKILL_IDS)).toEqual([]);
   });
 });
 

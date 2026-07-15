@@ -94,6 +94,8 @@ Skills live under [`content/skills/`](./content/skills/) (installed as `.deft/co
 | [deft-directive-article-review](./content/skills/deft-directive-article-review/SKILL.md) | Evaluate an article, paper, or post for lessons that could improve directive, and optionally file GitHub issues. | `analyze this article`, `evaluate this article`, `what can we learn from this` |
 | [deft-directive-feedback](./content/skills/deft-directive-feedback/SKILL.md) | Batched session-end gap escalation: draft deduped framework-gap issues against deftai/directive and file upstream only after explicit confirmation. | `feedback`, `framework gap`, `file upstream`, `gap escalation`, `directive feedback` |
 
+**Pin tiers (#2508):** **always-pin** — named in AGENTS.md for matching work types; **on-demand** — Skills Index triggers above; **reference-only** — explicit pointer only. Full policy: [`content/docs/skill-pin-policy.md`](./content/docs/skill-pin-policy.md). Default always-pins: `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm`.
+
 The `welcome` / `onboard triage` phrase invokes `task triage:welcome --onboard` (N3 / #1143) rather than routing to a skill. The framework doc routing (which framework `.md` file to load for a given task) lives in the Task-Based Loading sections below.
 
 ## 📋 Task-Based Loading

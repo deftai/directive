@@ -482,7 +482,11 @@ omit = [
 
 - ~ After Phase 2 writes `PROJECT-DEFINITION.xbrief.json`, recommend `task triage:welcome` to the user as the single chained command for picking up the v0.27 triage surface. The N3 ritual (#1143) is the consolidating onboarding step for the #1119 governance swarm verbs (`task triage:bootstrap` / `task triage:scope` / `plan.policy.wipCap` writes / `task scope:demote --batch` relief / `task triage:summary`); without it consumers must learn each verb individually from the v0.27 release notes.
 - ~ `task triage:welcome` is idempotent and detection-bound -- each phase emits an informational stderr line and skips when its precondition is already satisfied, so a re-run after a partial completion resumes cleanly. The destructive phases (subscription / `wipCap` writes, optional WIP-relief invocation) are gated by numbered-menu prompts per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md). See [`../../UPGRADING.md`](../../UPGRADING.md) `## From v0.26.x -> v0.27` for the full walkthrough.
-- ? The recommendation is informational, not a hard gate -- consumers who plan to wire triage manually MAY skip the ritual and call the individual verbs in any order; the framework defaults stay fail-open per the umbrella `#1119 §12 framework-vs-consumer-config boundary`.
+### Consumer AGENTS always-pin recommendations (#2508)
+
+! After Phase 2 completes (or when closing a greenfield bootstrap), tell the consumer that process-critical directive skills should be named in their project's AGENTS.md **unmanaged header** when false-negative risk matters — full tier definitions: [`../../docs/skill-pin-policy.md`](../../docs/skill-pin-policy.md).
+~ Recommend the default consumer pin set for lifecycle work: `deft-directive-build` (implementation), `deft-directive-pre-pr` (before PR), `deft-directive-review-cycle` (bot review loop), and `deft-directive-swarm` when they plan parallel agents. Each is referenced by skill id + `.deft/core/.agents/skills/<id>/SKILL.md` path — not by pasting skill bodies.
+⊗ Recommend pinning entire `languages/`, `deployments/`, or other framework doc packs into AGENTS.md (#2508 anti-pattern).
 
 ---
 

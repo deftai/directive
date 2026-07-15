@@ -71,7 +71,7 @@ Same as managed below; `task codebase:map`, `task verify:codebase-map-fresh`.
 
 ## Skills
 
-See managed `## Skills` below and the **Skills Index** in `REFERENCES.md`; maintainer skill paths use `content/skills/`. The `welcome` / `onboard triage` trigger invokes `task triage:welcome --onboard` (N3 / #1143).
+See managed `## Skills` below and the **Skills Index** in `REFERENCES.md`; maintainer skill paths use `content/skills/`. The `welcome` / `onboard triage` trigger invokes `task triage:welcome --onboard` (N3 / #1143). Pin policy: `content/docs/skill-pin-policy.md` (#2508).
 
 ## Development Process (always follow)
 
@@ -155,7 +155,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=1a1c1fed2ded refreshed=2026-07-14T22:32:30Z session=c091e71ca71a -->
+<!-- deft:managed-section v3 sha=1cb3b2de10e6 refreshed=2026-07-15T14:49:13Z session=451a9fa40f03 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -213,6 +213,12 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Skills
 
 ! **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan before improvising; read `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); lessons → packs:slice.
+
+## Skill pin policy (#2508)
+
+! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
+! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
+⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 
 ## Review-surface precedence (#2308)
 

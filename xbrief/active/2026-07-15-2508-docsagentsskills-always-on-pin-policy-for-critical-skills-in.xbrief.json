@@ -1,0 +1,52 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2508"
+  },
+  "plan": {
+    "title": "docs(agents,skills): always-on pin policy for critical skills in AGENTS.md",
+    "status": "running",
+    "narratives": {
+      "Description": "docs(agents,skills): always-on pin policy for critical skills in AGENTS.md",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2508",
+      "Overview": "docs(agents,skills): always-on pin policy — critical skills referenced from AGENTS.md to reduce false negatives\n\n## Summary\n\nantfu notes AGENTS.md can outperform skills because it always loads, while on-demand skills have false negatives. Mitigation: reference must-apply skills from AGENTS.md. Directive routes many skills via triggers but lacks an explicit tier: always-pin vs on-demand vs never-pin.\n\n## The gap\n\nProcess-critical skills (implementation intent / pre-pr / review-cycle / swarm gates) may not load if the agent fails to match triggers. No documented pin list or criteria for what must be always-on.\n\n## Proposed approach\n\n1. Define tiers:\n   - always-pin: named in AGENTS.md (or consumer AGENTS) as required load for matching work types\n   - on-demand: trigger keywords only\n   - reference-only: external or rare\n2. Publish default pin set for directive development and for consumer installs\n3. Document that pins are for false-negative-sensitive process, not for entire language docs (those stay on-demand)\n4. Optional: catalog field alwaysPin: true\n\n## Proposed changes\n\n- AGENTS.md / templates/agents-entry.md pin section\n- skills catalog or conventions\n- setup skill: consumer AGENTS gets recommended pins\n\n## Acceptance criteria\n\n- Pin tiers documented\n- Default pin list for directive process skills exists\n- Explicit anti-pattern: pinning entire framework/doc skill packs into AGENTS.md\n\n## Related\n\n- Related to skill routing and #1535 catalog\n- Related to #1586-class trigger coverage (pins vs triggers)\n- Complements progressive disclosure (#2484)\n\n## Source\n\nhttps://github.com/antfu/skills README FAQ — Skills vs llms.txt vs AGENTS.md; pin skills in AGENTS.md when always-on is required.\n\n## Parent / tracker\n\nParent epic: #1862. Always-on pin policy is wave-1 mitigation so review-cycle cannot be skipped on trigger miss.\n\n",
+      "Labels": "enhancement, docs, skills, determinism, agent-experience, review-cycle, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Pin tiers documented",
+        "status": "proposed"
+      },
+      {
+        "title": "Default pin list for directive process skills exists",
+        "status": "proposed"
+      },
+      {
+        "title": "Explicit anti-pattern: pinning entire framework/doc skill packs into AGENTS.md",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "docs",
+      "skills",
+      "determinism",
+      "agent-experience",
+      "review-cycle",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2508",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2508: docs(agents,skills): always-on pin policy for critical skills in AGENTS.md"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1586",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1586"
+      }
+    ],
+    "updated": "2026-07-15T14:32:03Z"
+  }
+}
