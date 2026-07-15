@@ -128,6 +128,14 @@ describe("specification-sync branches", () => {
       vbrief,
       "completed",
     );
+    writeFileSync(join(vbrief, "specification.xbrief.json"), "null", "utf8");
+    syncSpecificationAfterScopeMove(
+      data,
+      active,
+      join(vbrief, "completed", "x.xbrief.json"),
+      vbrief,
+      "completed",
+    );
     writeFileSync(join(vbrief, "specification.xbrief.json"), formatVbriefJson({ plan: [] }));
     syncSpecificationAfterScopeMove(
       data,

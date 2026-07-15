@@ -129,7 +129,11 @@ export function syncRegistryArtifactAfterScopeMove(
     return;
   }
   try {
-    const registry = JSON.parse(readFileSync(registryPath, "utf8")) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return;
+    }
+    const registry = parsed as Record<string, unknown>;
     const plan = registry.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       return;
