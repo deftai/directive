@@ -11,6 +11,7 @@ export const TRIGGER_ROUTING_PATH_PATTERNS = [
   "REFERENCES.md",
   "evals/trigger-cases.jsonl",
   "content/templates/agents-entry.md",
+  "packages/core/src/eval/triggers.ts",
 ] as const;
 
 export interface EvaluateResult {
@@ -71,11 +72,10 @@ export function collectChangedPaths(
   return [];
 }
 
-function formatSkipMessage(matchedPaths: readonly string[]): string {
+function formatSkipMessage(): string {
   return (
     "✓ verify:eval-triggers-relocation: no trigger-routing paths in diff " +
-    `(checked ${TRIGGER_ROUTING_PATH_PATTERNS.length} patterns; ` +
-    `diff had ${matchedPaths.length} routing match${matchedPaths.length === 1 ? "" : "es"}).`
+    `(checked ${TRIGGER_ROUTING_PATH_PATTERNS.length} patterns).`
   );
 }
 
@@ -123,7 +123,7 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
     }
     return {
       code: 0,
-      message: formatSkipMessage(matchedPaths),
+      message: formatSkipMessage(),
       stream: "stdout",
       skipped: true,
     };

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   loadTriggerCases,
@@ -9,6 +9,7 @@ import {
   resolveTriggerWinner,
   runTriggerEval,
   SKILLS_INDEX_REL,
+  sanitizeTriggerLogLine,
   TRIGGER_CASES_REL,
   validateTriggerCoverage,
   wouldRouteToSkill,
@@ -65,5 +66,32 @@ describe("eval triggers (#1586)", () => {
     const result = runTriggerEval({ projectRoot: repoRoot });
     expect(result.code).toBe(0);
     expect(result.report?.failed).toBe(0);
+  });
+
+  it("runTriggerEval fails when trigger cases file is missing", () => {
+    const result = runTriggerEval({
+      projectRoot: repoRoot,
+      casesPath: join(repoRoot, "evals", "missing-trigger-cases.jsonl"),
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("missing trigger cases");
+  });
+
+  it("runTriggerEval fails when Skills Index parses empty", () => {
+    const loaded = loadTriggerCases(join(repoRoot, TRIGGER_CASES_REL));
+    if ("error" in loaded) {
+      throw new Error(loaded.error);
+    }
+    const result = runTriggerEval({
+      projectRoot: repoRoot,
+      cases: loaded,
+      indexText: "# no skills table\n",
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("no Skills Index rows");
+  });
+
+  it("sanitizeTriggerLogLine collapses embedded newlines", () => {
+    expect(sanitizeTriggerLogLine("a\nb")).toBe("a b");
   });
 });

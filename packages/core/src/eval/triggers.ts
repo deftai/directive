@@ -7,12 +7,6 @@ export const TRIGGER_CASES_REL = "evals/trigger-cases.jsonl";
 /** Default Skills Index source for AGENTS.md skill routing (#1586). */
 export const SKILLS_INDEX_REL = "REFERENCES.md";
 
-/** One trigger phrase extracted from the Skills Index table. */
-export interface SkillTriggerRule {
-  readonly skillId: string;
-  readonly trigger: string;
-}
-
 /** Parsed Skills Index row. */
 export interface SkillsIndexEntry {
   readonly skillId: string;
@@ -68,6 +62,11 @@ export function normalizeTriggerText(text: string): string {
   return text.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+/** Collapse embedded newlines before interpolating user/data into log lines. */
+export function sanitizeTriggerLogLine(text: string): string {
+  return text.replace(/\r?\n/g, " ").trim();
+}
+
 /** Extract backtick trigger phrases from a Skills Index triggers cell. */
 export function parseTriggerCell(cell: string): string[] {
   const triggers: string[] = [];
@@ -104,18 +103,6 @@ export function parseSkillsIndex(markdown: string): SkillsIndexEntry[] {
     entries.push({ skillId: skillMatch[1], triggers });
   }
   return entries;
-}
-
-/** Expand index rows into flat trigger rules sorted longest-first per skill. */
-export function flattenTriggerRules(index: readonly SkillsIndexEntry[]): SkillTriggerRule[] {
-  const rules: SkillTriggerRule[] = [];
-  for (const entry of index) {
-    const sorted = [...entry.triggers].sort((a, b) => b.length - a.length);
-    for (const trigger of sorted) {
-      rules.push({ skillId: entry.skillId, trigger });
-    }
-  }
-  return rules;
 }
 
 interface TriggerMatch {
@@ -290,7 +277,7 @@ export function runTriggerEval(options: RunTriggerEvalOptions = {}): RunTriggerE
   const results: TriggerCaseResult[] = [];
   for (const row of cases) {
     const winner = resolveTriggerWinner(row.query, index);
-    const actual = winner !== null && winner.skillId === row.skill;
+    const actual = wouldRouteToSkill(row.query, row.skill, index);
     results.push({
       id: row.id,
       query: row.query,
@@ -315,7 +302,7 @@ export function runTriggerEval(options: RunTriggerEvalOptions = {}): RunTriggerE
   };
 
   if (coverageErrors.length > 0) {
-    const detail = coverageErrors.map((err) => `   - ${err}`).join("\n");
+    const detail = coverageErrors.map((err) => `   - ${sanitizeTriggerLogLine(err)}`).join("\n");
     return {
       code: 1,
       report,
@@ -329,8 +316,8 @@ export function runTriggerEval(options: RunTriggerEvalOptions = {}): RunTriggerE
       .slice(0, 8)
       .map(
         (result) =>
-          `   - ${result.id}: expected ${result.should_trigger ? "trigger" : "no-trigger"} ` +
-          `for ${result.skill}; winner=${result.winnerSkill ?? "none"}`,
+          `   - ${sanitizeTriggerLogLine(result.id)}: expected ${result.should_trigger ? "trigger" : "no-trigger"} ` +
+          `for ${sanitizeTriggerLogLine(result.skill)}; winner=${sanitizeTriggerLogLine(result.winnerSkill ?? "none")}`,
       )
       .join("\n");
     return {
