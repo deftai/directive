@@ -22,6 +22,7 @@ import {
   updateDecomposedParentBackReferences,
 } from "./decomposed-refs.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
+import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { formatVbriefJson, utcNowIso } from "./vbrief-json.js";
 import type { WipCapCheck } from "./wip-cap-check.js";
 
@@ -174,6 +175,7 @@ export function runTransition(
     updateDecomposedParentBackReferences(data, resolvedPath, destPath, vbriefRoot);
     updateDecomposedChildBackReferences(data, resolvedPath, destPath, vbriefRoot);
     syncProjectDefinitionAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
+    syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
     const actionLabel = MOVE_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
     return {
       ok: true,

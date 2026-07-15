@@ -1,0 +1,63 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope xBRIEF from GitHub issue #2566 (swarm cohort afk-wave2-2566-2581)"
+  },
+  "plan": {
+    "title": "scope:complete syncs specification.xbrief.json item statuses",
+    "status": "running",
+    "narratives": {
+      "Description": "Mirror #1527 PROJECT-DEFINITION sync for specification.xbrief.json roadmap/registry items on scope terminal transitions.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2566",
+      "Overview": "When scope lifecycle tooling completes, fails, or cancels a scope, matching plan.items entries in xbrief/specification.xbrief.json must receive the same terminal status and lifecycle metadata as PROJECT-DEFINITION sync (#1527).",
+      "ImplementationPlan": "1. Add specification-sync.ts parallel to project-definition-sync.ts.\n2. Wire syncSpecificationAfterScopeMove from transition.ts after folder moves.\n3. Add unit and integration tests with multiple proposed items plus completed scopes.\n4. CHANGELOG [Unreleased].",
+      "UserStory": "As a Deft operator, I want specification roadmap item statuses to agree with completed scope files, so agents do not see contradictory [proposed] labels on shipped work."
+    },
+    "items": [
+      {
+        "id": "2566-a1",
+        "title": "Matching spec items flip to completed on scope:complete",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given specification.xbrief.json contains a matching plan.items entry, when task scope:complete runs, then the item status becomes completed with updated metadata."
+        }
+      },
+      {
+        "id": "2566-a2",
+        "title": "fail/cancel update matching specification statuses",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a matching specification item, when task scope:fail or scope:cancel runs, then the item status becomes failed or cancelled respectively."
+        }
+      }
+    ],
+    "tags": ["bug"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2566",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2566: scope:complete leaves specification.xbrief.json roadmap item statuses stale"
+      }
+    ],
+    "id": "2566-specification-sync-on-scope-complete",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/specification-sync.ts",
+          "packages/core/src/scope/specification-sync.test.ts",
+          "packages/core/src/scope/transition.ts"
+        ],
+        "verify_commands": ["pnpm exec vitest run packages/core/src/scope/specification-sync.test.ts"],
+        "expected_outputs": [
+          "specification item statuses sync on scope:complete, scope:fail, and scope:cancel"
+        ],
+        "depends_on": ["2578"],
+        "conflict_group": "specification-registry-sync",
+        "size": "medium"
+      }
+    }
+  }
+}
