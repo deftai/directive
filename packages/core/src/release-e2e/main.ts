@@ -32,10 +32,7 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
       `DRYRUN (would keep ${owner}/${slug}; manual cleanup: ${formatTempRepoCleanupHint(owner, slug)})`,
     );
     if (config.destroyRepo) {
-      emit(
-        "Destroy temp repo",
-        `DRYRUN (would run \`${formatTempRepoCleanupHint(owner, slug)}\`)`,
-      );
+      emit("Destroy temp repo", `DRYRUN (would run \`${formatTempRepoCleanupHint(owner, slug)}\`)`);
     }
     return EXIT_OK;
   }
@@ -81,16 +78,10 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
       if (destroyOk) {
         emit(`Destroy ${owner}/${slug}`, `OK (${destroyReason})`);
       } else {
-        emit(
-          `Destroy ${owner}/${slug}`,
-          `WARN (${destroyReason}); manual cleanup: ${cleanupHint}`,
-        );
+        emit(`Destroy ${owner}/${slug}`, `WARN (${destroyReason}); manual cleanup: ${cleanupHint}`);
       }
     } else {
-      emit(
-        `Temp repo ${owner}/${slug}`,
-        `KEEP (manual cleanup: ${cleanupHint})`,
-      );
+      emit(`Temp repo ${owner}/${slug}`, `KEEP (manual cleanup: ${cleanupHint})`);
     }
   }
 
