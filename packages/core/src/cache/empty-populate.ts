@@ -6,7 +6,7 @@
  */
 
 import { join, resolve } from "node:path";
-import { ENV_TRIAGE_REPO } from "../preflight-cache/evaluate.js";
+import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { stepSeedCandidatesLog } from "../triage/bootstrap/gitignore.js";
 import { inferRepoFromGit, stepBackfillAuditLog } from "../triage/bootstrap/index.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE, iterCachedIssues } from "../triage/summary/index.js";
@@ -112,7 +112,29 @@ export function maybeAutoPopulateEmptyCache(
   }
 
   const backfill = options.backfillFn ?? stepBackfillAuditLog;
-  backfill(root, repo);
+  try {
+    const backfillOutcome = backfill(root, repo);
+    if (!backfillOutcome.ok) {
+      return {
+        skipped: true,
+        skipReason: "backfill-failed",
+        repo,
+        populated: false,
+        succeeded: report.issuesWritten,
+        message: "audit log backfill failed after fetch-all",
+      };
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      skipped: true,
+      skipReason: "backfill-failed",
+      repo,
+      populated: false,
+      succeeded: report.issuesWritten,
+      message,
+    };
+  }
 
   return {
     skipped: false,

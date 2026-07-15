@@ -64,8 +64,10 @@ export interface EvaluateOptions {
   probeDriftFn?: (repo: string, cacheRoot: string, source: string) => CacheDriftProbeResult | null;
   /** When true (default), empty cache triggers one GitHub fetch-all before failing (#2575). */
   autoPopulateEmpty?: boolean;
-  /** Internal guard against populate→evaluate recursion. */
-  _afterEmptyPopulate?: boolean;
+}
+
+interface EvaluateContext {
+  readonly afterEmptyPopulate: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -386,18 +388,26 @@ const REMEDIATION_NO_CANDIDATES = [
  * Faithful port of scripts/preflight_cache.py::evaluate().
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): GateResult {
+  return evaluateWithContext(projectRoot, options, { afterEmptyPopulate: false });
+}
+
+function evaluateWithContext(
+  projectRoot: string,
+  options: EvaluateOptions,
+  ctx: EvaluateContext,
+): GateResult {
   const allowMissingBootstrap = options.allowMissingBootstrap ?? false;
   const autoPopulateEmpty = options.autoPopulateEmpty !== false;
 
   if (
     !allowMissingBootstrap &&
     autoPopulateEmpty &&
-    !options._afterEmptyPopulate &&
+    !ctx.afterEmptyPopulate &&
     isTriageCacheEmpty(projectRoot)
   ) {
     const populated = maybeAutoPopulateEmptyCache(projectRoot, { repo: options.repo ?? null });
     if (populated.populated) {
-      return evaluate(projectRoot, { ...options, _afterEmptyPopulate: true });
+      return evaluateWithContext(projectRoot, options, { afterEmptyPopulate: true });
     }
   }
 

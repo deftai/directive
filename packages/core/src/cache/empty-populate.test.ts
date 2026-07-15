@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +34,9 @@ function writeCacheEntry(root: string, repo: string, issueNum: number): void {
 }
 
 afterEach(() => {
+  for (const dir of tmpDirs) {
+    rmSync(dir, { recursive: true, force: true });
+  }
   tmpDirs.length = 0;
 });
 
@@ -115,6 +118,39 @@ describe("maybeAutoPopulateEmptyCache", () => {
     );
     expect(seedFn).toHaveBeenCalled();
     expect(backfillFn).toHaveBeenCalledWith(root, "deftai/directive");
+  });
+
+  it("returns skip when backfill throws", () => {
+    const root = makeRoot();
+    const fetchFn = vi.fn(() => ({
+      issuesWritten: 2,
+      alreadyFresh: 0,
+      issuesFailed: 0,
+      failures: [],
+      toJson: () => "{}",
+      summaryLine: () => "ok",
+    }));
+    const seedFn = vi.fn(() => ({
+      ok: true,
+      name: "seed",
+      message: "seeded",
+      details: {},
+      error: null,
+    }));
+    const backfillFn = vi.fn(() => {
+      throw new Error("permission denied");
+    });
+
+    const result = maybeAutoPopulateEmptyCache(root, {
+      repo: "deftai/directive",
+      fetchFn: fetchFn as never,
+      seedFn: seedFn as never,
+      backfillFn: backfillFn as never,
+    });
+
+    expect(result.skipped).toBe(true);
+    expect(result.skipReason).toBe("backfill-failed");
+    expect(result.message).toContain("permission denied");
   });
 
   it("ensureTriageCacheHydrated delegates to maybeAutoPopulateEmptyCache", () => {
