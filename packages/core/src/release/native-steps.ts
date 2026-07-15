@@ -7,11 +7,11 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  fetchIssueStates,
   isTerminalLifecyclePath,
   reconcile,
   scanVbriefDir,
 } from "../intake/reconcile-issues.js";
+import { fetchIssueStatesForRelease } from "./issue-state-fetch.js";
 import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
@@ -53,12 +53,13 @@ export function checkVbriefLifecycleSyncNative(
   }
   try {
     const issueToVbriefs = scanVbriefDir(vbriefDir);
-    const issueStateMap = fetchIssueStates(repo, new Set(issueToVbriefs.keys()), {
+    const fetchResult = fetchIssueStatesForRelease(repo, new Set(issueToVbriefs.keys()), {
       cwd: projectRoot,
     });
-    if (issueStateMap === null) {
-      return [false, -1, "failed to fetch issue states from gh"];
+    if (!fetchResult.ok) {
+      return [false, -1, fetchResult.reason];
     }
+    const issueStateMap = fetchResult.states;
     const report = reconcile(issueToVbriefs, issueStateMap);
     const mismatches: string[] = [];
     for (const entry of report.no_open_issue) {
