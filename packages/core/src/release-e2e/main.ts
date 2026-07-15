@@ -1,6 +1,6 @@
 import { resolveProjectRoot } from "../release/paths.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION, RELEASE_E2E_HELP } from "./constants.js";
-import { emit, generateRepoSlug, parseE2EFlags } from "./flags.js";
+import { emit, formatTempRepoCleanupHint, generateRepoSlug, parseE2EFlags } from "./flags.js";
 import { destroyTempRepo, provisionTempRepo } from "./gh-ops.js";
 import { type LegacyBridgeLegSeams, runLegacyBridgeLeg } from "./legacy-bridge-leg.js";
 import { runRehearsal } from "./rehearsal.js";
@@ -27,7 +27,15 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
           "Tier-0 SoT lastGoInstaller(), pending-pin while null)",
       );
     }
-    emit("Destroy temp repo", `DRYRUN (would run \`gh repo delete ${owner}/${slug} --yes\`)`);
+    const cleanupHint = formatTempRepoCleanupHint(owner, slug);
+    if (config.destroyRepo) {
+      emit("Destroy temp repo", `DRYRUN (would run \`${cleanupHint}\`)`);
+    } else {
+      emit(
+        "Temp repo cleanup",
+        `DRYRUN (would keep ${owner}/${slug}; manual cleanup: ${cleanupHint})`,
+      );
+    }
     return EXIT_OK;
   }
 
@@ -66,22 +74,16 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
       rehearsalRc = EXIT_VIOLATION;
     }
   } finally {
-    if (config.keepRepo) {
-      emit(
-        `Destroy ${owner}/${slug}`,
-        "SKIP (--keep-repo set; manual cleanup required: " +
-          `gh repo delete ${owner}/${slug} --yes)`,
-      );
-    } else {
+    const cleanupHint = formatTempRepoCleanupHint(owner, slug);
+    if (config.destroyRepo) {
       const [destroyOk, destroyReason] = destroyTempRepo(owner, slug, seams);
       if (destroyOk) {
         emit(`Destroy ${owner}/${slug}`, `OK (${destroyReason})`);
       } else {
-        emit(
-          `Destroy ${owner}/${slug}`,
-          `WARN (${destroyReason}); manual cleanup hint: gh repo delete ${owner}/${slug} --yes`,
-        );
+        emit(`Destroy ${owner}/${slug}`, `WARN (${destroyReason}); manual cleanup: ${cleanupHint}`);
       }
+    } else {
+      emit(`Temp repo ${owner}/${slug}`, `KEEP (manual cleanup: ${cleanupHint})`);
     }
   }
 
@@ -114,7 +116,7 @@ export function cmdReleaseE2e(args: readonly string[], seams: E2ESeams = {}): nu
     owner: flags.owner,
     projectRoot,
     dryRun: flags.dryRun,
-    keepRepo: flags.keepRepo,
+    destroyRepo: flags.destroyRepo,
     skipNpm: flags.skipNpm,
     legacyBridge: flags.legacyBridge,
     repoSlug: null,

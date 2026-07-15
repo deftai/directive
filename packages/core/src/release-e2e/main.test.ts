@@ -34,7 +34,7 @@ function config(overrides: Partial<E2EConfig> = {}): E2EConfig {
     owner: "deftai",
     projectRoot: ".",
     dryRun: false,
-    keepRepo: false,
+    destroyRepo: false,
     skipNpm: false,
     repoSlug: "deftai-release-test-20260428190000-abcdef",
     ...overrides,
@@ -477,6 +477,19 @@ describe("runE2e orchestration", () => {
     process.stderr.write = origErr;
   });
 
+  it("dry-run with destroy-repo emits destroy plan only", () => {
+    expect(
+      runE2e(
+        config({ dryRun: true, destroyRepo: true, repoSlug: "deftai-release-test-fixed-abcdef" }),
+      ),
+    ).toBe(EXIT_OK);
+    const err = errLines.join("");
+    expect(err).toContain(
+      "DRYRUN (would run `gh repo delete deftai/deftai-release-test-fixed-abcdef --yes`)",
+    );
+    expect(err).not.toContain("would keep");
+  });
+
   it("dry-run emits DRYRUN lines", () => {
     expect(runE2e(config({ dryRun: true, repoSlug: "deftai-release-test-fixed-abcdef" }))).toBe(
       EXIT_OK,
@@ -484,9 +497,11 @@ describe("runE2e orchestration", () => {
     const err = errLines.join("");
     expect(err).toContain("DRYRUN");
     expect(err).toContain("pipeline-mirror");
+    expect(err).toContain("would keep deftai/deftai-release-test-fixed-abcdef");
+    expect(err).toContain("gh repo delete deftai/deftai-release-test-fixed-abcdef --yes");
   });
 
-  it("happy path provision rehearse destroy", () => {
+  it("happy path provision rehearse keep", () => {
     const order: string[] = [];
     vi.spyOn(ghOps, "provisionTempRepo").mockImplementation(() => {
       order.push("provision");
@@ -496,12 +511,12 @@ describe("runE2e orchestration", () => {
       order.push("rehearsal");
       return [true, "ok"];
     });
-    vi.spyOn(ghOps, "destroyTempRepo").mockImplementation(() => {
-      order.push("destroy");
-      return [true, "deleted"];
-    });
+    const destroySpy = vi.spyOn(ghOps, "destroyTempRepo");
     expect(runE2e(config())).toBe(EXIT_OK);
-    expect(order).toEqual(["provision", "rehearsal", "destroy"]);
+    expect(order).toEqual(["provision", "rehearsal"]);
+    expect(destroySpy).not.toHaveBeenCalled();
+    expect(errLines.join("")).toContain("KEEP (manual cleanup:");
+    expect(errLines.join("")).toContain("deftai/deftai-release-test-20260428190000-abcdef");
   });
 
   it("provision failure skips rehearsal", () => {
@@ -510,49 +525,61 @@ describe("runE2e orchestration", () => {
     expect(errLines.join("")).toContain("quota exceeded");
   });
 
-  it("rehearsal failure still destroys", () => {
+  it("rehearsal failure still reports keep cleanup", () => {
     const order: string[] = [];
     vi.spyOn(ghOps, "provisionTempRepo").mockReturnValue([true, "created"]);
     vi.spyOn(rehearsalModule, "runRehearsal").mockImplementation(() => {
       order.push("rehearsal");
       return [false, "task release failed"];
     });
-    vi.spyOn(ghOps, "destroyTempRepo").mockImplementation(() => {
-      order.push("destroy");
-      return [true, "deleted"];
-    });
+    const destroySpy = vi.spyOn(ghOps, "destroyTempRepo");
     expect(runE2e(config())).toBe(EXIT_VIOLATION);
-    expect(order).toEqual(["rehearsal", "destroy"]);
+    expect(order).toEqual(["rehearsal"]);
+    expect(destroySpy).not.toHaveBeenCalled();
+    expect(errLines.join("")).toContain("KEEP (manual cleanup:");
   });
 
-  it("rehearsal exception still destroys", () => {
+  it("rehearsal exception still reports keep cleanup", () => {
     const order: string[] = [];
     vi.spyOn(ghOps, "provisionTempRepo").mockReturnValue([true, "created"]);
     vi.spyOn(rehearsalModule, "runRehearsal").mockImplementation(() => {
       order.push("rehearsal");
       throw new Error("network blew up mid-clone");
     });
-    vi.spyOn(ghOps, "destroyTempRepo").mockImplementation(() => {
-      order.push("destroy");
-      return [true, "deleted"];
-    });
+    const destroySpy = vi.spyOn(ghOps, "destroyTempRepo");
     expect(() => runE2e(config())).toThrow(/network blew up/);
-    expect(order).toEqual(["rehearsal", "destroy"]);
+    expect(order).toEqual(["rehearsal"]);
+    expect(destroySpy).not.toHaveBeenCalled();
+    expect(errLines.join("")).toContain("KEEP (manual cleanup:");
   });
 
   it("destroy failure warns but preserves success exit", () => {
     vi.spyOn(ghOps, "provisionTempRepo").mockReturnValue([true, "created"]);
     vi.spyOn(rehearsalModule, "runRehearsal").mockReturnValue([true, "ok"]);
     vi.spyOn(ghOps, "destroyTempRepo").mockReturnValue([false, "transient API"]);
-    expect(runE2e(config())).toBe(EXIT_OK);
+    expect(runE2e(config({ destroyRepo: true }))).toBe(EXIT_OK);
     expect(errLines.join("")).toContain("WARN");
   });
 
-  it("keep-repo skips destroy", () => {
+  it("destroy-repo attempts delete", () => {
+    const order: string[] = [];
     vi.spyOn(ghOps, "provisionTempRepo").mockReturnValue([true, "created"]);
     vi.spyOn(rehearsalModule, "runRehearsal").mockReturnValue([true, "ok"]);
-    expect(runE2e(config({ keepRepo: true }))).toBe(EXIT_OK);
-    expect(errLines.join("")).toContain("SKIP (--keep-repo set");
+    vi.spyOn(ghOps, "destroyTempRepo").mockImplementation(() => {
+      order.push("destroy");
+      return [true, "deleted"];
+    });
+    expect(runE2e(config({ destroyRepo: true }))).toBe(EXIT_OK);
+    expect(order).toEqual(["destroy"]);
+  });
+
+  it("default keep skips destroy", () => {
+    vi.spyOn(ghOps, "provisionTempRepo").mockReturnValue([true, "created"]);
+    vi.spyOn(rehearsalModule, "runRehearsal").mockReturnValue([true, "ok"]);
+    const destroySpy = vi.spyOn(ghOps, "destroyTempRepo");
+    expect(runE2e(config())).toBe(EXIT_OK);
+    expect(destroySpy).not.toHaveBeenCalled();
+    expect(errLines.join("")).toContain("KEEP (manual cleanup:");
   });
 });
 
@@ -586,12 +613,12 @@ describe("cmdReleaseE2e", () => {
   it("parseE2EFlags reads flags", () => {
     const flags = parseE2EFlags([
       "--dry-run",
-      "--keep-repo",
+      "--destroy-repo",
       "--owner=acme",
       "--project-root=/tmp/x",
     ]);
     expect(flags.dryRun).toBe(true);
-    expect(flags.keepRepo).toBe(true);
+    expect(flags.destroyRepo).toBe(true);
     expect(flags.owner).toBe("acme");
     expect(flags.projectRoot).toBe("/tmp/x");
   });

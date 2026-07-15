@@ -95,7 +95,7 @@ describe("release-e2e branch coverage boost", () => {
         owner: "deftai",
         projectRoot: ".",
         dryRun: false,
-        keepRepo: false,
+        destroyRepo: false,
         skipNpm: false,
         repoSlug: "fixed-slug",
       }),

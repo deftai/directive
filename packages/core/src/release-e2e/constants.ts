@@ -34,20 +34,20 @@ export const ENTRYPOINT_TIMEOUT_EXIT_CODE = 124;
 
 /** Byte-identical --help from scripts/release_e2e.py (Python 3.12 argparse). */
 export const RELEASE_E2E_HELP =
-  "usage: release_e2e [-h] [--owner OWNER] [--dry-run] [--keep-repo]\n" +
+  "usage: release_e2e [-h] [--owner OWNER] [--dry-run] [--destroy-repo]\n" +
   "                   [--project-root PATH] [--skip-npm]\n" +
   "\n" +
-  "End-to-end release rehearsal against an auto-created+destroyed temp GitHub\n" +
-  "repo (#716 safety hardening Q1).\n" +
+  "End-to-end release rehearsal against an auto-created temp GitHub repo\n" +
+  "(#716 safety hardening Q1; #2572 defaults to keep+report cleanup).\n" +
   "\n" +
   "options:\n" +
   "  -h, --help           show this help message and exit\n" +
   "  --owner OWNER        GitHub owner under which to create the temp repo\n" +
   "                       (default: deftai).\n" +
   "  --dry-run            Print the pipeline plan without invoking gh.\n" +
-  "  --keep-repo          Skip destroying the temp repo at the end (use only when\n" +
-  "                       manually debugging a failed rehearsal; remember to\n" +
-  "                       clean up by hand).\n" +
+  "  --destroy-repo       Attempt gh repo delete after rehearsal (privileged\n" +
+  "                       environments with delete_repo permission only; default\n" +
+  "                       keeps the temp repo and reports manual cleanup).\n" +
   "  --project-root PATH  Repository root (default: $DEFT_PROJECT_ROOT or\n" +
   "                       scripts/.. ).\n" +
   "  --skip-npm           Skip the npm publish dry-run rehearsal step (#1910).\n" +

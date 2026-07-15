@@ -6,6 +6,11 @@ export function emit(label: string, status: string): void {
   process.stderr.write(`[e2e] ${label}... ${status}\n`);
 }
 
+/** Copy-paste cleanup hint for leftover release-e2e temp repos (#2572). */
+export function formatTempRepoCleanupHint(owner: string, slug: string): string {
+  return `gh repo delete ${owner}/${slug} --yes`;
+}
+
 export function generateRepoSlug(seams: E2ESeams = {}): string {
   if (seams.generateRepoSlug) {
     return seams.generateRepoSlug();
@@ -27,7 +32,7 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
   let help = false;
   let owner = "deftai";
   let dryRun = false;
-  let keepRepo = false;
+  let destroyRepo = false;
   let projectRoot: string | null = null;
   let skipNpm = false;
   let legacyBridge = false;
@@ -40,8 +45,8 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
       help = true;
     } else if (arg === "--dry-run") {
       dryRun = true;
-    } else if (arg === "--keep-repo") {
-      keepRepo = true;
+    } else if (arg === "--destroy-repo") {
+      destroyRepo = true;
     } else if (arg === "--skip-npm") {
       skipNpm = true;
     } else if (arg === "--legacy-bridge") {
@@ -73,5 +78,5 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
     }
   }
 
-  return { help, owner, dryRun, keepRepo, projectRoot, skipNpm, legacyBridge, unknown };
+  return { help, owner, dryRun, destroyRepo, projectRoot, skipNpm, legacyBridge, unknown };
 }
