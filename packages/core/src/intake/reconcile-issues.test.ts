@@ -404,7 +404,42 @@ describe("completed/ status drift (#2578)", () => {
       `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "Empty" } }, null, 2)}\n`,
       "utf8",
     );
+    writeFileSync(join(xbrief, "completed", "bad-json.xbrief.json"), "not-json", "utf8");
+    writeFileSync(
+      join(xbrief, "completed", "no-plan.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" } }, null, 2)}\n`,
+      "utf8",
+    );
     expect(scanCompletedStatusDrift(xbrief)).toEqual([]);
+  });
+
+  it("repairCompletedStatusDrift stamps legacy vBRIEFInfo envelope", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-legacy-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "legacy.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.6" },
+          plan: { title: "Legacy", status: "running", items: [{ title: "x", status: "running" }] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const [repaired] = repairCompletedStatusDrift(xbrief, scanCompletedStatusDrift(xbrief));
+    expect(repaired).toBe(1);
+    const data = JSON.parse(readFileSync(join(xbrief, "completed", name), "utf8")) as {
+      vBRIEFInfo: { updated: string };
+      plan: { status: string; items: { status: string }[] };
+    };
+    expect(data.plan.status).toBe("completed");
+    expect(data.vBRIEFInfo.updated).toMatch(/Z$/);
+    expect(data.plan.items[0]?.status).toBe("completed");
   });
 
   it("formatMarkdown sanitizes embedded newlines in drift status", () => {
