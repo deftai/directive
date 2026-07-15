@@ -1,0 +1,53 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2554"
+  },
+  "plan": {
+    "title": "ci(smoke): greenfield-python-free-smoke exits 143 (SIGTERM) with no stdout after engine-invoke",
+    "status": "running",
+    "narratives": {
+      "Description": "ci(smoke): greenfield-python-free-smoke exits 143 (SIGTERM) with no stdout after engine-invoke",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2554",
+      "Overview": "## Problem\n\n`greenfield-python-free-smoke` (`node packages/core/dist/release-e2e/greenfield-python-free-smoke-cli.js`) fails on PRs that touch `engine:invoke` / Taskfile dispatch with **exit code 143** (SIGTERM) and **no stdout**.\n\nObserved on PR #2551 (`fix(taskfile): argv-safe ENGINE_CMD forwarding` / #2547) both before and after rebase onto master:\n\n- Job runs ~48–80s then dies: `Process completed with exit code 143`\n- No smoke CLI output in the failed-log snippet\n- Re-run of the failed job reproduced the same 143\n\nOther CI on that PR was green (TypeScript, Windows task dispatch, Greptile, Go).\n\n## Why it matters\n\n- Soft-blocks merge confidence for Taskfile / engine-invoke changes even when smoke is not in `master` required status checks\n- May indicate a hang (then runner SIGTERM) in the consumer deposit `task` path after `tasks/engine-invoke.cjs` landed\n- Windows release cohort (#2544–#2548) merged despite this; the gate is still unreliable for future cuts\n\n## Suspected area\n\n- `tasks/engine.yml` + `tasks/engine-invoke.cjs` (#2547 / PR #2551)\n- Greenfield smoke path that invokes `task` / `deft` in a consumer deposit after content prepack\n- Possible hang waiting on shell/spawn rather than an assertion failure\n\n## Expected\n\n- Smoke either passes with clear logs or fails with a diagnostic (timeout message, last step, stderr)\n- No silent 143 when the suite is otherwise healthy\n- If the job is over budget, fail closed with an explicit timeout rather than SIGTERM with empty output\n\n## Acceptance\n\n- [ ] Reproduce greenfield-python-free-smoke 143 on a minimal engine-invoke / Taskfile change (or document as flake with rate)\n- [ ] Root cause: hang vs OOM vs runner timeout vs spawn deadlock\n- [ ] Fix or harden: progress logs, bounded timeout, and/or repair engine-invoke consumer path\n- [ ] Smoke green on a PR that exercises `task release` / `engine:invoke` on Linux CI\n\n## Related\n\n- Refs #2547 / PR #2551 (engine-invoke JSON env + argv spawn)\n- Adjacent Windows maintainer friction: #2546 (vitest), #2548 (pnpm PATHEXT)\n- Observed during v0.77.0 Windows release cohort merge\r\n\n",
+      "Labels": "bug, ci-cd, urgent, area:release"
+    },
+    "items": [
+      {
+        "title": "Reproduce greenfield-python-free-smoke 143 on a minimal engine-invoke / Taskfile change (or document as flake with rate)",
+        "status": "proposed"
+      },
+      {
+        "title": "Root cause: hang vs OOM vs runner timeout vs spawn deadlock",
+        "status": "proposed"
+      },
+      {
+        "title": "Fix or harden: progress logs, bounded timeout, and/or repair engine-invoke consumer path",
+        "status": "proposed"
+      },
+      {
+        "title": "Smoke green on a PR that exercises `task release` / `engine:invoke` on Linux CI",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "urgent",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2554",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2554: ci(smoke): greenfield-python-free-smoke exits 143 (SIGTERM) with no stdout after engine-invoke"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2547",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2547"
+      }
+    ],
+    "updated": "2026-07-15T12:15:08Z"
+  }
+}

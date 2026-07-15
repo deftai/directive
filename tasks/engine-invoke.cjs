@@ -88,10 +88,16 @@ function main() {
     process.exit(2);
   }
 
+  // Command transport is one-hop: a spawned CLI may invoke Task again with a
+  // different ENGINE_CMD, which must not be shadowed by this inherited value.
+  const childEnv = { ...process.env };
+  delete childEnv.DEFT_ENGINE_CMD_JSON;
+  delete childEnv.DEFT_ENGINE_CMD;
+
   const result = spawnSync(execPath, execArgv, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    env: process.env,
+    env: childEnv,
     // Global deft/directive on Windows are .cmd shims; shell:false cannot spawn them (#2415).
     shell: mode === "global" && process.platform === "win32",
     maxBuffer: 16 * 1024 * 1024,

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Nested Task commands no longer inherit stale engine transport.** `engine-invoke` now scrubs both current and legacy command variables before spawning the CLI, preventing recursive `check` dispatch in consumer smoke runs. Closes #2554.
+
 ### Removed
 
 ## [0.77.0] - 2026-07-15
