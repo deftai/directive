@@ -32,6 +32,8 @@ jobs:
         run: pnpm run build
 
       - name: Greenfield Python-free smoke (#2022 Phase 3)
+        timeout-minutes: 15
         env:
           DEFT_GREENFIELD_SKIP_PREP: "1"
+          DEFT_GREENFIELD_OVERALL_TIMEOUT_MS: "840000"
         run: node packages/core/dist/release-e2e/greenfield-python-free-smoke-cli.js

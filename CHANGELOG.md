@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Greenfield Python-free smoke no longer hangs with silent SIGTERM on engine-invoke PRs.** `tasks/engine-invoke.cjs` forwards child stdio with `inherit` instead of piped buffers (pipe deadlock on verbose `task deft:check`), and the smoke CLI emits step progress plus an overall budget timeout so CI failures are diagnostic. Closes #2554.
 - Release Step 3 vBRIEF lifecycle sync no longer hard-fails when a referenced number is a pull request mistaken for an issue; issue-state fetch now uses REST instead of GraphQL (#2557).
 - **Windows release:e2e npm dry-run spawns npm under spaced Program Files paths.** `spawnCommandText` now quotes win32 `.cmd` executables that contain spaces before `shell: true` spawn, so `'C:\Program' is not recognized` no longer fails Phase 3 after a green pnpm install. Closes #2555.
 - **Release build-dist excludes Vitest `coverage/` from archive walk (#2556).** `DEFAULT_EXCLUDES` now skips the Vitest `coverage/` tree alongside pytest `.coverage`, so concurrent or leftover `coverage/.tmp` files no longer race the Windows archiver with ENOENT during release Step 8.

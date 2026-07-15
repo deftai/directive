@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -33,5 +34,11 @@ describe("shellSplit (engine-invoke #2547)", () => {
       "--deft-root",
       "D:/a/directive/directive",
     ]);
+  });
+
+  it("uses stdio inherit to avoid pipe-buffer deadlock on verbose consumer deft:check (#2554)", () => {
+    const src = readFileSync(join(repoRoot(), "tasks/engine-invoke.cjs"), "utf8");
+    expect(src).toMatch(/stdio:\s*["']inherit["']/);
+    expect(src).not.toMatch(/stdio:\s*\["ignore",\s*"pipe",\s*"pipe"\]/);
   });
 });

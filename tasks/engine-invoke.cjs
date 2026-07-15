@@ -88,20 +88,15 @@ function main() {
     process.exit(2);
   }
 
+  // stdio inherit (not pipe): piped stdout/stderr deadlocks when the child emits
+  // more than the OS pipe buffer before exit — observed as greenfield smoke
+  // hanging then CI SIGTERM exit 143 with no output (#2554 / #2547).
   const result = spawnSync(execPath, execArgv, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: "inherit",
     env: process.env,
     // Global deft/directive on Windows are .cmd shims; shell:false cannot spawn them (#2415).
     shell: mode === "global" && process.platform === "win32",
-    maxBuffer: 16 * 1024 * 1024,
   });
-  if (result.stdout) {
-    process.stdout.write(result.stdout);
-  }
-  if (result.stderr) {
-    process.stderr.write(result.stderr);
-  }
   const code = result.status;
   process.exit(code === null ? 1 : code);
 }

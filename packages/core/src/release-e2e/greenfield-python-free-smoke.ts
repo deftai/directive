@@ -69,12 +69,27 @@ function runStep(
   cmd: string,
   args: string[],
   options: { cwd?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number } = {},
+  onProgress?: (message: string) => void,
 ): [boolean, string] {
+  onProgress?.(`greenfield smoke: ${label} — starting`);
+  const startedMs = Date.now();
   const result = spawn(cmd, args, options);
+  const elapsedMs = Date.now() - startedMs;
   if (result.status !== 0) {
     const detail = (result.stderr || result.stdout || "").trim();
-    return [false, `${label} failed (exit ${result.status}): ${detail.slice(-800)}`];
+    const timeoutHint =
+      options.timeoutMs !== undefined && result.status === 128
+        ? `; subprocess killed after ${elapsedMs}ms (spawn budget ${options.timeoutMs}ms — likely hang or timeout)`
+        : "";
+    onProgress?.(
+      `greenfield smoke: ${label} — failed (exit ${result.status}) after ${elapsedMs}ms`,
+    );
+    return [
+      false,
+      `${label} failed (exit ${result.status})${timeoutHint}: ${detail.slice(-800) || "(no captured output)"}`,
+    ];
   }
+  onProgress?.(`greenfield smoke: ${label} — OK (${elapsedMs}ms)`);
   return [true, `${label} OK`];
 }
 
@@ -82,6 +97,8 @@ export interface GreenfieldSmokeSeams extends E2ESeams {}
 
 export interface GreenfieldSmokeOptions {
   skipWorkspacePrep?: boolean;
+  /** Emits step progress immediately (stderr in CLI) so CI logs are never empty on hang (#2554). */
+  onProgress?: (message: string) => void;
 }
 
 /**
@@ -112,6 +129,8 @@ export function rehearseGreenfieldPythonFreeSmoke(
   }
 
   const spawn = seams.spawnText ?? spawnText;
+  const onProgress = options.onProgress;
+  onProgress?.("greenfield smoke: workspace prep starting");
 
   const work = mkdtempSync(join(tmpdir(), "deft-greenfield-smoke-"));
   const packDir = join(work, "packs");
@@ -142,17 +161,28 @@ export function rehearseGreenfieldPythonFreeSmoke(
           env: envBase,
           timeoutMs: 120_000,
         },
+        onProgress,
       );
       if (!ok) return [false, `greenfield smoke: ${reason}`];
 
-      [ok, reason] = runStep(spawn, "pnpm build", pnpmCmd, [...pnpmArgs, "run", "build"], {
-        cwd: repoRoot,
-        env: envBase,
-        timeoutMs: 120_000,
-      });
+      [ok, reason] = runStep(
+        spawn,
+        "pnpm build",
+        pnpmCmd,
+        [...pnpmArgs, "run", "build"],
+        {
+          cwd: repoRoot,
+          env: envBase,
+          timeoutMs: 120_000,
+        },
+        onProgress,
+      );
       if (!ok) return [false, `greenfield smoke: ${reason}`];
+    } else {
+      onProgress?.("greenfield smoke: skipping workspace prep (DEFT_GREENFIELD_SKIP_PREP=1)");
     }
 
+    onProgress?.("greenfield smoke: aligning npm package versions");
     [ok, reason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
@@ -165,6 +195,7 @@ export function rehearseGreenfieldPythonFreeSmoke(
         npm,
         ["pack", "--pack-destination", packDir],
         { cwd: pkgDir, env: envBase, timeoutMs: 120_000 },
+        onProgress,
       );
       if (!ok) return [false, `greenfield smoke: ${reason}`];
       const tgz = packTarballPath(packDir, pkgDir);
@@ -174,10 +205,17 @@ export function rehearseGreenfieldPythonFreeSmoke(
       packed.push(tgz);
     }
 
-    [ok, reason] = runStep(spawn, "npm install -g", npm, ["install", "-g", ...packed], {
-      env: envBase,
-      timeoutMs: 120_000,
-    });
+    [ok, reason] = runStep(
+      spawn,
+      "npm install -g",
+      npm,
+      ["install", "-g", ...packed],
+      {
+        env: envBase,
+        timeoutMs: 120_000,
+      },
+      onProgress,
+    );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     const deft = join(npmPrefix, "bin", "deft");
@@ -196,9 +234,11 @@ export function rehearseGreenfieldPythonFreeSmoke(
         env: pyFree,
         timeoutMs: 120_000,
       },
+      onProgress,
     );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
+    onProgress?.("greenfield smoke: seeding fixture PROJECT-DEFINITION");
     seedMinimalProjectDefinition(projectDir);
 
     const depositDir = join(projectDir, ".deft", "core");
@@ -219,13 +259,22 @@ export function rehearseGreenfieldPythonFreeSmoke(
       DEFT_SESSION_RITUAL_SKIP: "1",
     };
 
-    [ok, reason] = runStep(spawn, "task deft:check", task, ["deft:check"], {
-      cwd: projectDir,
-      env: checkEnv,
-      timeoutMs: 180_000,
-    });
+    onProgress?.("greenfield smoke: running consumer task deft:check (engine-invoke path)");
+    [ok, reason] = runStep(
+      spawn,
+      "task deft:check",
+      task,
+      ["deft:check"],
+      {
+        cwd: projectDir,
+        env: checkEnv,
+        timeoutMs: 180_000,
+      },
+      onProgress,
+    );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
+    onProgress?.("greenfield smoke: all steps passed");
     return [
       true,
       "greenfield-python-free-smoke: directive init + task deft:check passed with Python absent from PATH",

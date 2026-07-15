@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2554 (manual ingest; issue:ingest scm wrapper failed)",
+    "updated": "2026-07-15T03:00:00Z"
+  },
+  "plan": {
+    "title": "ci(smoke): greenfield-python-free-smoke exits 143 (SIGTERM) with no stdout after engine-invoke",
+    "status": "running",
+    "narratives": {
+      "Description": "greenfield-python-free-smoke dies with exit 143 and empty stdout on PRs that touch engine-invoke / Taskfile dispatch. Reproduce, root-cause hang vs timeout, then harden with progress logs and bounded timeout so the smoke fails closed with diagnostics.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2554",
+      "Overview": "## Problem\n\n`greenfield-python-free-smoke` fails on PRs that touch `engine:invoke` / Taskfile dispatch with exit code 143 (SIGTERM) and no stdout. Observed on PR #2551 both before and after rebase onto master (~48-80s then SIGTERM).\n\n## Expected\n\n- Smoke passes with clear logs or fails with a diagnostic (timeout message, last step, stderr)\n- No silent 143 when the suite is otherwise healthy\n- If over budget, fail closed with an explicit timeout rather than empty SIGTERM\n\n## Acceptance\n\n- Reproduce or document flake rate\n- Root cause hang vs OOM vs runner timeout vs spawn deadlock\n- Fix/harden: progress logs, bounded timeout, and/or repair engine-invoke consumer path\n- Smoke green on a PR that exercises `task release` / `engine:invoke` on Linux CI\n",
+      "Labels": "bug, ci-cd, urgent, area:release",
+      "UserStory": "As a maintainer merging Taskfile/engine-invoke changes, I want greenfield-python-free-smoke to pass or fail with clear diagnostics, so that silent 143 SIGTERM does not soft-block merge confidence.",
+      "ImplementationPlan": "1. Reproduce greenfield-python-free-smoke 143 against a minimal engine-invoke change and capture whether hang, OOM, or runner timeout.\n2. Harden the smoke CLI / consumer task path with progress logs and a bounded explicit timeout that fails closed with stderr.\n3. Verify smoke green on Linux CI for a PR that exercises engine:invoke.",
+      "Acceptance": "1. Root cause identified\n2. Silent 143 eliminated or converted to diagnostic timeout\n3. Smoke green on engine-invoke PR in Linux CI"
+    },
+    "items": [
+      {
+        "title": "Reproduce and identify root cause",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a PR that touches engine-invoke/Taskfile, when greenfield-python-free-smoke runs, then the failure mode is classified as hang, OOM, runner timeout, or spawn deadlock (or documented flake rate)."
+        }
+      },
+      {
+        "title": "Harden smoke with logs and bounded timeout",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the smoke path, when it exceeds budget or hangs, then it fails closed with progress logs and an explicit timeout diagnostic instead of empty exit 143."
+        }
+      },
+      {
+        "title": "Smoke green on engine-invoke PR",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a PR that exercises task release / engine:invoke on Linux CI, when greenfield-python-free-smoke runs, then it exits 0 with visible stdout or a clear soft-skip."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "urgent",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2554",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2554: ci(smoke): greenfield-python-free-smoke exits 143 (SIGTERM) with no stdout after engine-invoke"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2547",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2547"
+      }
+    ],
+    "updated": "2026-07-15T03:03:08Z",
+    "id": "smoke-greenfield-143",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-e2e/greenfield-python-free-smoke.ts",
+          "packages/core/src/release-e2e/greenfield-python-free-smoke-cli.ts",
+          "packages/core/src/release-e2e/greenfield-python-free-smoke.test.ts",
+          "tasks/engine-invoke.cjs",
+          "tasks/engine.yml",
+          ".github/workflows/"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- greenfield-python-free-smoke"
+        ],
+        "expected_outputs": [
+          "Root cause for exit 143 documented or fixed",
+          "Bounded timeout + progress logs",
+          "Smoke green or clear diagnostic on engine-invoke PRs"
+        ],
+        "depends_on": [],
+        "conflict_group": "greenfield-smoke",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2554; CI hang diagnosis may touch workflow timeout knobs and engine-invoke consumer path."
+      }
+    }
+  }
+}
