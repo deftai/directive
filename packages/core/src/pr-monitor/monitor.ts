@@ -33,12 +33,15 @@ const GREPTILE_STALE_SHA_RE =
 export function truncateBlockedOn(failure: string, maxLen = 80): string {
   const match = GREPTILE_STALE_SHA_RE.exec(failure);
   if (match !== null) {
-    const [, reviewedSha, headSha] = match;
-    const compact =
-      `Greptile last reviewed ${reviewedSha.slice(0, 12)}... ` +
-      `but PR HEAD is ${headSha.slice(0, 12)}...`;
-    if (compact.length <= maxLen) {
-      return compact;
+    const reviewedSha = match[1];
+    const headSha = match[2];
+    if (reviewedSha !== undefined && headSha !== undefined) {
+      const compact =
+        `Greptile last reviewed ${reviewedSha.slice(0, 12)}... ` +
+        `but PR HEAD is ${headSha.slice(0, 12)}...`;
+      if (compact.length <= maxLen) {
+        return compact;
+      }
     }
   }
   return failure.slice(0, maxLen);
