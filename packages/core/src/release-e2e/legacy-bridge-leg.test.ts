@@ -503,7 +503,7 @@ describe("runE2e --legacy-bridge wiring", () => {
       owner: "deftai",
       projectRoot: process.cwd(),
       dryRun: false,
-      keepRepo: false,
+      destroyRepo: false,
       skipNpm: false,
       legacyBridge: true,
       repoSlug: "deftai-release-test-20260624000000-abcdef",

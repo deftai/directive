@@ -1,0 +1,71 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2572 (swarm cohort afk-wave1-2566-2581)",
+    "updated": "2026-07-15T18:30:00Z"
+  },
+  "plan": {
+    "title": "release-e2e: do not attempt temp-repo delete during agent release; report for manual cleanup",
+    "status": "running",
+    "narratives": {
+      "Description": "Default release-e2e to keep+report temp repos instead of attempting gh repo delete. Agents lack delete_repo permission; failed deletes stall releases. Optional --destroy-repo for privileged environments.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2572",
+      "Overview": "## Problem\n\nPhase 3 (`task release:e2e`) provisions a throwaway repo but agents typically lack `delete_repo` permission (#1019). The harness still attempts destroy in try/finally, producing noisy failures.\n\n## Desired behavior\n\n1. Default: no `gh repo delete`; report owner/slug + cleanup command.\n2. Optional `--destroy-repo` for CI/operator with delete rights.\n3. Skipped/failed delete must not block Phase 4 when rehearsal succeeded.\n4. Summary always includes full owner/slug and copy-paste cleanup hint.\n",
+      "Labels": "bug, release",
+      "UserStory": "As a release agent without delete_repo permission, I want release:e2e to keep the temp repo and report cleanup, so Phase 3 does not stall the release flow.",
+      "ImplementationPlan": "1. Invert default in packages/core/src/release-e2e: replace --keep-repo with --destroy-repo (opt-in delete).\n2. Update finally-block emits to always surface owner/slug + manual cleanup hint.\n3. Update content/skills/deft-directive-release/SKILL.md Phase 3 prose.\n4. Update tests and CHANGELOG [Unreleased].",
+      "Acceptance": "1. No default delete\n2. Summary cleanup hint with owner/slug\n3. Skill docs updated\n4. Tests pass\n5. CHANGELOG entry"
+    },
+    "items": [
+      {
+        "title": "Default keep+report in release-e2e harness",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given default flags, when rehearsal completes, then destroyTempRepo is not called and stderr includes owner/slug plus gh repo delete cleanup hint."
+        }
+      },
+      {
+        "title": "Optional --destroy-repo privileged mode",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given --destroy-repo, when rehearsal completes, then destroyTempRepo runs; failure emits WARN but does not change rehearsal exit code."
+        }
+      },
+      {
+        "title": "Release skill Phase 3 documentation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given deft-directive-release SKILL.md Phase 3, when an agent reads it, then it documents keep+report default, no retry of deletion, and summary cleanup requirement."
+        }
+      }
+    ],
+    "tags": ["bug", "release"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2572",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2572: release-e2e temp-repo keep+report"
+      }
+    ],
+    "updated": "2026-07-15T18:30:00Z",
+    "id": "release-e2e-keep-report",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-e2e/",
+          "content/skills/deft-directive-release/SKILL.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- main.test"
+        ],
+        "expected_outputs": [
+          "Default path skips gh repo delete",
+          "Phase 3 skill documents keep+report"
+        ]
+      }
+    }
+  }
+}
