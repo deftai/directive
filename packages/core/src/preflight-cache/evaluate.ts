@@ -14,6 +14,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { isTriageCacheEmpty, maybeAutoPopulateEmptyCache } from "../cache/empty-populate.js";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -61,6 +62,10 @@ export interface EvaluateOptions {
   nowFn?: () => Date;
   /** Injectable drift probe for tests. */
   probeDriftFn?: (repo: string, cacheRoot: string, source: string) => CacheDriftProbeResult | null;
+  /** When true (default), empty cache triggers one GitHub fetch-all before failing (#2575). */
+  autoPopulateEmpty?: boolean;
+  /** Internal guard against populate→evaluate recursion. */
+  _afterEmptyPopulate?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -381,10 +386,24 @@ const REMEDIATION_NO_CANDIDATES = [
  * Faithful port of scripts/preflight_cache.py::evaluate().
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): GateResult {
+  const allowMissingBootstrap = options.allowMissingBootstrap ?? false;
+  const autoPopulateEmpty = options.autoPopulateEmpty !== false;
+
+  if (
+    !allowMissingBootstrap &&
+    autoPopulateEmpty &&
+    !options._afterEmptyPopulate &&
+    isTriageCacheEmpty(projectRoot)
+  ) {
+    const populated = maybeAutoPopulateEmptyCache(projectRoot, { repo: options.repo ?? null });
+    if (populated.populated) {
+      return evaluate(projectRoot, { ...options, _afterEmptyPopulate: true });
+    }
+  }
+
   const source = options.source ?? DEFAULT_SOURCE;
   const allowStale = options.allowStale ?? false;
   const releasePreflightStaleBypass = releasePreflightBypassActive();
-  const allowMissingBootstrap = options.allowMissingBootstrap ?? false;
   const nowFn = options.nowFn ?? (() => new Date());
 
   const envMaxAge = process.env[ENV_MAX_AGE_HOURS];

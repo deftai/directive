@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { ensureTriageCacheHydrated } from "../../cache/empty-populate.js";
 import { maybeSelfHealCache } from "../../cache/fetch.js";
 import { FIRST_TIME_NUDGE, INCOMPLETE_NUDGE_TEMPLATE } from "./constants.js";
 import { classifyOnboarding, detectPriorState } from "./prior-state.js";
@@ -58,6 +59,7 @@ export function runDefaultMode(
   const heal =
     options.selfHealFn ??
     ((root: string) => {
+      ensureTriageCacheHydrated(resolve(root));
       maybeSelfHealCache(resolve(root));
     });
   heal(projectRoot);

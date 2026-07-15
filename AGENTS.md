@@ -155,7 +155,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=dd1b24050b41 refreshed=2026-07-15T17:51:23Z session=a0659753661b -->
+<!-- deft:managed-section v3 sha=dfeca5d8faea refreshed=2026-07-15T20:02:51Z session=bd8aac6f6282 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -184,9 +184,9 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Cache-as-authoritative work selection (#1149)
 
-! "what next?" → ordered-plan first (#2402 / `deft plan-sequence:*`); else `deft triage:queue --limit=10` (D11) — `commands.md` § Backlog Triage.
+! "what next?" → ordered-plan first (#2402 / `deft plan-sequence:*`); else enter `deft-directive-triage` and run `deft triage:queue --limit=10` (D11) — `commands.md` § Backlog Triage. Empty cache auto-populates from GitHub before queue render (#2575).
 
-⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan.
+⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan; ⊗ conclude "nothing to do" from `xbrief/{pending,active}` folder scans or GitHub-only reads without `deft triage:queue` (#2576).
 
 ## Umbrella status reading (#1152 / #2066)
 

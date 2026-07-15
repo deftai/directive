@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Empty triage cache auto-populates from GitHub before queue reads (#2575).** `verify:cache-fresh`, `triage:queue`, `triage:summary`, and `triage:welcome` now run an idempotent fetch-all when `.deft-cache/github-issue/` has zero entries (repo inferred from git/`$DEFT_TRIAGE_REPO`), then proceed — without weakening the 24h freshness gate for non-empty caches. Closes #2575.
+
 ### Changed
+
+- **Agents must route bare "what's next?" through `triage:queue`, not xBRIEF- or GitHub-only scans (#2576).** AGENTS.md, the triage skill, and `commands.md` anti-patterns forbid concluding an empty backlog from lifecycle folder walks or live issue lists without the cache-backed ranked queue. Closes #2576.
 
 ### Fixed
 

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { ensureTriageCacheHydrated } from "../../cache/empty-populate.js";
 import { maybeSelfHealCache } from "../../cache/fetch.js";
 import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { DEFAULT_WIP_CAP, SUBSCRIPTION_PRESETS, TRIAGE_SKILL_PATH } from "./constants.js";
@@ -91,6 +92,7 @@ export function runOnboardMode(projectRoot: string, options: OnboardOptions = {}
   const heal =
     options.selfHealFn ??
     ((root: string) => {
+      ensureTriageCacheHydrated(resolve(root));
       maybeSelfHealCache(resolve(root));
     });
   heal(projectRoot);

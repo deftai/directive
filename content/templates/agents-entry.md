@@ -27,9 +27,9 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Cache-as-authoritative work selection (#1149)
 
-! "what next?" → ordered-plan first (#2402 / `deft plan-sequence:*`); else `deft triage:queue --limit=10` (D11) — `commands.md` § Backlog Triage.
+! "what next?" → ordered-plan first (#2402 / `deft plan-sequence:*`); else enter `deft-directive-triage` and run `deft triage:queue --limit=10` (D11) — `commands.md` § Backlog Triage. Empty cache auto-populates from GitHub before queue render (#2575).
 
-⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan.
+⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan; ⊗ conclude "nothing to do" from `xbrief/{pending,active}` folder scans or GitHub-only reads without `deft triage:queue` (#2576).
 
 ## Umbrella status reading (#1152 / #2066)
 

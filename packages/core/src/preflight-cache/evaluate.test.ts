@@ -1,7 +1,8 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as emptyPopulate from "../cache/empty-populate.js";
 import {
   CACHE_DIR_NAME,
   CANDIDATES_RELPATH,
@@ -603,5 +604,49 @@ describe("normaliseRepoUrl (CodeQL #51 host anchoring)", () => {
   it("returns null on empty or malformed input", () => {
     expect(normaliseRepoUrl("")).toBeNull();
     expect(normaliseRepoUrl("https://github.com/only-owner")).toBeNull();
+  });
+});
+
+describe("evaluate -- empty cache auto-populate (#2575)", () => {
+  it("auto-populates then returns fresh when cache was empty", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, []);
+
+    const populateSpy = vi
+      .spyOn(emptyPopulate, "maybeAutoPopulateEmptyCache")
+      .mockImplementation((projectRoot) => {
+        writeCacheEntry(projectRoot, "owner/repo", 99, nowMinus(1).toISOString(), {
+          state: "open",
+        });
+        return {
+          skipped: false,
+          skipReason: null,
+          repo: "owner/repo",
+          populated: true,
+          succeeded: 1,
+          message: "ok",
+        };
+      });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: false,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+
+    expect(populateSpy).toHaveBeenCalled();
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("✓");
+    populateSpy.mockRestore();
+  });
+
+  it("does not auto-populate when allowMissingBootstrap is set", () => {
+    const root = setupProjectRoot();
+    const populateSpy = vi.spyOn(emptyPopulate, "maybeAutoPopulateEmptyCache");
+
+    evaluate(root, { allowMissingBootstrap: true });
+    expect(populateSpy).not.toHaveBeenCalled();
+    populateSpy.mockRestore();
   });
 });

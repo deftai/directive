@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureTriageCacheHydrated } from "@deftai/directive-core/dist/cache/empty-populate.js";
 import { resolveTriageCachePath } from "@deftai/directive-core/dist/triage/cache-path.js";
 import {
   appendHistory,
@@ -68,6 +69,11 @@ export function run(argv: string[]): number {
 
   const projectRoot = resolve(args.projectRoot);
   const cacheRoot = args.cacheRoot !== null ? resolve(args.cacheRoot) : undefined;
+
+  ensureTriageCacheHydrated(projectRoot, {
+    cacheRoot,
+    repo: process.env.DEFT_TRIAGE_REPO ?? null,
+  });
 
   const result = computeSummary(projectRoot, { cacheRoot });
   const line = formatSummary(result);

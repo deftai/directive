@@ -42,7 +42,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Probe cache freshness before doing any classification or selection. Stale cache reads produce stale decisions; the gate is the contract.
 
-1. ! Run `task verify:cache-fresh` (D5 / #1127). Exit 0 -> proceed to Phase 1. Exit 1 (stale or blocked) -> refresh per the printed remediation. Exit 2 (no bootstrap) -> run `task triage:bootstrap` first.
+1. ! Run `task verify:cache-fresh` (D5 / #1127). Exit 0 -> proceed to Phase 1. Exit 1 (stale or blocked) -> refresh per the printed remediation. Exit 2 (no bootstrap) -> run `task triage:bootstrap` first. When the cache has zero entries, read paths auto-fetch from GitHub first (#2575).
 2. ~ Refresh path: `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` for an already-bootstrapped project (idempotent, TTL-aware, re-applies the #883 scanner v2 quarantine rules); `task triage:bootstrap` for a first-time seed.
 3. ~ If `xbrief/active/*.xbrief.json` references are in play, run `task triage:refresh-active` to compare cached `meta.json.fetched_at` against live upstream `updatedAt` and surface drift before the queue is rendered.
 4. ~ When the one-liner emitted by the session-start ritual carries a `[scope-drift] N` segment (D14 / #1133), run `task triage:scope-drift` to see the per-label / per-milestone breakdown of upstream signals on cached open issues that fall outside the active `plan.policy.triageScope[]` subscription. The output documents both opt-in (`task triage:subscribe -- --label=<L>`) and opt-out (`task triage:scope-drift -- --ignore-label=<L>`) paths -- pick one before walking the queue so the cohort reflects the operator's current intent rather than a stale subscription.
@@ -118,6 +118,7 @@ What would you like to do with this candidate?
 ## Anti-Patterns
 
 - ⊗ Recommend a specific issue without first consulting `task triage:queue` (binding under AGENTS.md `## Cache-as-authoritative work selection (#1149)`).
+- ⊗ Conclude "nothing to do" from `xbrief/{pending,active}` scans or live GitHub reads alone — `task triage:queue` is the ranked superset (#2576).
 - ⊗ Walk the queue against a stale cache (Phase 0 gate skipped).
 - ⊗ Reimplement audit-log append / `proposed/` write inline -- the `task triage:*` verbs own those surfaces (#845, #883).
 - ⊗ Treat `defer` / `needs-ac` as terminal -- they intentionally resurface on the next pass.

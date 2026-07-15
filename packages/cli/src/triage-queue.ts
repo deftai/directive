@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureTriageCacheHydrated } from "@deftai/directive-core/dist/cache/empty-populate.js";
 import { resolveTriageCachePath } from "@deftai/directive-core/dist/triage/cache-path.js";
 import {
   activeReferencedIssueNumbers,
@@ -169,6 +170,8 @@ export function run(argv: string[], options: RunOptions = {}): number {
     process.stderr.write("triage:queue: --repo OWNER/NAME (or $DEFT_TRIAGE_REPO) is required.\n");
     return 2;
   }
+
+  ensureTriageCacheHydrated(projectRoot, { repo });
 
   const cachedForQueue = loadCachedIssues(repo, { projectRoot });
   // Reconcile the cached candidate set against live open/closed state so a

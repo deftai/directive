@@ -1,0 +1,32 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Combined scope xBRIEF for GitHub issues #2575 and #2576"
+  },
+  "plan": {
+    "title": "Empty cache auto-refresh and triage:queue routing for what's next",
+    "status": "running",
+    "narratives": {
+      "Description": "Empty triage cache should auto-fetch from GitHub; agents must not conclude false-empty from xBRIEF-only or GitHub-only reads.",
+      "Origin": "Swarm cohort afk-wave1-2566-2581; combines https://github.com/deftai/directive/issues/2575 and https://github.com/deftai/directive/issues/2576",
+      "AcceptanceCriteria": "AC1. Empty cache auto-fetches immediately. AC2. Healthy non-empty fresh cache still skips live list. AC3. AGENTS/skills/triage guidance mandates triage:queue after ordered-plan (#2402); forbid concluding empty from xBRIEF-only or GH-only. AC4. Tests + CHANGELOG; Closes #2575 and #2576.",
+      "ImplementationPlan": "Add maybeAutoPopulateEmptyCache in packages/core/src/cache/; hook verify:cache-fresh, triage:queue, triage:summary, triage:welcome; update agents-entry, triage skill, commands.md; tests and CHANGELOG."
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2575",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2575: empty cache should auto-refresh from GitHub"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2576",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2576: what's next false-empty when agent skips triage:queue"
+      }
+    ],
+    "updated": "2026-07-15T20:05:00Z",
+    "metadata": {
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
