@@ -17,10 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Empty triage cache auto-populates from GitHub before queue reads (#2575).** `verify:cache-fresh`, `triage:queue`, `triage:summary`, and `triage:welcome` now run an idempotent fetch-all when `.deft-cache/github-issue/` has zero entries (repo inferred from git/`$DEFT_TRIAGE_REPO`), then proceed — without weakening the 24h freshness gate for non-empty caches. Closes #2575.
+- **Explicit coverage-debt escape hatch for release preflight (#2573).** `task release … --allow-coverage-debt=#N` is the only soft-pass path when Vitest metrics sit below the 85% goal; the pipeline emits loud attribution (measured vs goal, issue `#N`) and warns when recent releases overuse the flag. Raw env bypass is scoped to release Step 5 only — no auto near-miss band, no open-debt oracle.
 
 ### Changed
 
 - **Agents must route bare "what's next?" through `triage:queue`, not xBRIEF- or GitHub-only scans (#2576).** AGENTS.md, the triage skill, and `commands.md` anti-patterns forbid concluding an empty backlog from lifecycle folder walks or live issue lists without the cache-backed ranked queue. Closes #2576.
+- **Branch-coverage floor is 85% on every platform.** Removed the Windows-only `84.85` branches carve in `vitest.config.ts`; hairline win32 misses are operator-owned via `--allow-coverage-debt=#N`, not config nibble.
 
 ### Fixed
 

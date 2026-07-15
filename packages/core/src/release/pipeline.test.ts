@@ -62,6 +62,7 @@ describe("runPipeline dry-run", () => {
     skipBuild: false,
     summary: null,
     allowVbriefDrift: true,
+    allowCoverageDebtIssue: null,
   };
 
   it("emits DRYRUN steps and returns 0", () => {
@@ -106,6 +107,7 @@ describe("runPipeline dry-run", () => {
       skipCi: false,
       skipBuild: true,
       allowVbriefDrift: true,
+      allowCoverageDebtIssue: null,
     };
     const seams: ReleaseSeams = {
       todayIso: () => "2026-04-28",
@@ -115,7 +117,7 @@ describe("runPipeline dry-run", () => {
         return { status: 0, stdout: "", stderr: "" };
       },
       checkTagAvailable: () => [true, "ok"],
-      runCi: () => {
+      runCi: (_root, _debt) => {
         runCiInvoked = true;
         return [true, "ran native TypeScript task check"];
       },
@@ -168,6 +170,7 @@ describe("release markdown containment (#2470)", () => {
           skipBuild: true,
           summary: null,
           allowVbriefDrift: true,
+          allowCoverageDebtIssue: null,
         };
         const seams: ReleaseSeams = {
           todayIso: () => "2026-04-28",

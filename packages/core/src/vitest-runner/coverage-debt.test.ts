@@ -1,0 +1,112 @@
+import { describe, expect, it } from "vitest";
+import {
+  COVERAGE_GOAL,
+  countRecentCoverageDebtMentions,
+  formatCoverageAttribution,
+  formatOveruseWarning,
+  metricsBelowGoal,
+  parseCoverageDebtArgv,
+  parseCoverageDebtIssueNumber,
+  resolveCoverageDebtIssue,
+  summarizeCoverageFinal,
+} from "./coverage-debt.js";
+
+describe("parseCoverageDebtIssueNumber", () => {
+  it("accepts #N and bare N", () => {
+    expect(parseCoverageDebtIssueNumber("#2573")).toBe(2573);
+    expect(parseCoverageDebtIssueNumber("2573")).toBe(2573);
+  });
+
+  it("rejects malformed values", () => {
+    expect(parseCoverageDebtIssueNumber("")).toBeNull();
+    expect(parseCoverageDebtIssueNumber("#")).toBeNull();
+    expect(parseCoverageDebtIssueNumber("abc")).toBeNull();
+    expect(parseCoverageDebtIssueNumber("0")).toBeNull();
+  });
+});
+
+describe("parseCoverageDebtArgv", () => {
+  it("parses equals and spaced forms", () => {
+    expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt=#2573"])).toEqual({
+      kind: "valid",
+      issue: 2573,
+    });
+    expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt", "2573"])).toEqual({
+      kind: "valid",
+      issue: 2573,
+    });
+  });
+
+  it("fails closed on missing or malformed flag values", () => {
+    expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt"])).toEqual({
+      kind: "invalid",
+      reason: "--allow-coverage-debt requires an issue number (#N)",
+    });
+    expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt=#"])).toEqual({
+      kind: "invalid",
+      reason: "--allow-coverage-debt= value must be #N or N",
+    });
+  });
+});
+
+describe("resolveCoverageDebtIssue env scoping (#1553)", () => {
+  it("ignores raw env without release preflight", () => {
+    expect(resolveCoverageDebtIssue(["vitest"], { DEFT_ALLOW_COVERAGE_DEBT: "2573" })).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("accepts env only during release preflight", () => {
+    expect(
+      resolveCoverageDebtIssue(["vitest"], {
+        DEFT_ALLOW_COVERAGE_DEBT: "2573",
+        DEFT_RELEASE_PREFLIGHT: "1",
+      }),
+    ).toEqual({ kind: "valid", issue: 2573 });
+  });
+});
+
+describe("summarizeCoverageFinal + metricsBelowGoal", () => {
+  it("detects metrics below the 85% goal", () => {
+    const totals = summarizeCoverageFinal({
+      "a.ts": {
+        s: { "0": 1, "1": 0 },
+        f: { "0": 1 },
+        b: { "0": [1, 0] },
+      },
+    });
+    expect(metricsBelowGoal(totals)).toContain("statements");
+    expect(metricsBelowGoal(totals)).toContain("branches");
+  });
+
+  it("passes when all metrics meet goal", () => {
+    const totals = {
+      lines: 90,
+      functions: 90,
+      branches: 90,
+      statements: 90,
+    };
+    expect(metricsBelowGoal(totals)).toEqual([]);
+  });
+});
+
+describe("attribution + overuse warning", () => {
+  it("formats measured vs goal with issue number", () => {
+    const text = formatCoverageAttribution(2573, {
+      lines: 84.5,
+      branches: 84.9,
+      functions: 86,
+      statements: 84.5,
+    });
+    expect(text).toContain("#2573");
+    expect(text).toContain("84.90%");
+    expect(text).toContain(`${COVERAGE_GOAL.branches}%`);
+  });
+
+  it("warns when multiple recent releases cite coverage debt", () => {
+    const changelog =
+      "## [Unreleased]\n\n## [0.2.0]\ncoverage-debt soft-pass\n\n## [0.1.0]\nallow-coverage-debt\n";
+    expect(countRecentCoverageDebtMentions(changelog)).toBe(2);
+    expect(formatOveruseWarning(2)).toMatch(/WARN/);
+  });
+});

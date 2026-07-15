@@ -44,7 +44,9 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   const writeFile = seams.writeFile ?? ((p: string, c: string) => writeFileSync(p, c, "utf8"));
   const fileExists = seams.fileExists ?? ((p: string) => existsSync(p));
 
-  const runCiFn = seams.runCi ?? ((root: string) => runReleaseCheck(root));
+  const runCiFn =
+    seams.runCi ??
+    ((root: string, debtIssue: number | null) => runReleaseCheck(root, {}, debtIssue));
   const refreshRoadmapFn = seams.refreshRoadmap ?? ((root: string) => refreshRoadmapNative(root));
   const checkVbriefFn =
     seams.checkVbriefLifecycleSync ??
@@ -137,13 +139,25 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   if (config.skipCi) {
     emit(5, label, "SKIP (--skip-ci)");
   } else if (config.dryRun) {
-    emit(5, label, "DRYRUN (would run task ci:local with task check fallback)");
+    const debtNote =
+      config.allowCoverageDebtIssue !== null
+        ? `; would pass --allow-coverage-debt=#${config.allowCoverageDebtIssue} to task check`
+        : "";
+    emit(5, label, `DRYRUN (would run task ci:local with task check fallback${debtNote})`);
   } else {
-    const [ok, reason] = runCiFn(projectRoot);
+    const [ok, reason] = runCiFn(projectRoot, config.allowCoverageDebtIssue);
     if (ok) {
-      emit(5, label, `OK (${reason})`);
+      const debtNote =
+        config.allowCoverageDebtIssue !== null
+          ? ` (coverage-debt acknowledged #${config.allowCoverageDebtIssue})`
+          : "";
+      emit(5, label, `OK (${reason}${debtNote})`);
     } else {
-      emit(5, label, `FAIL (${reason})`);
+      const debtHint =
+        config.allowCoverageDebtIssue === null
+          ? "; pass --allow-coverage-debt=#N only after operator review"
+          : "";
+      emit(5, label, `FAIL (${reason}${debtHint})`);
       return EXIT_VIOLATION;
     }
   }

@@ -92,6 +92,7 @@ describe("pipeline branches extra", () => {
       skipBuild: true,
       summary: null,
       allowVbriefDrift: false,
+      allowCoverageDebtIssue: null,
     };
     const seams: ReleaseSeams = {
       spawnText: (_c, a) => {
@@ -125,6 +126,7 @@ describe("pipeline branches extra", () => {
       skipBuild: true,
       summary: null,
       allowVbriefDrift: true,
+      allowCoverageDebtIssue: null,
     };
     const seams: ReleaseSeams = {
       spawnText: (_c, a) => {
@@ -133,7 +135,7 @@ describe("pipeline branches extra", () => {
         return { status: 0, stdout: "", stderr: "" };
       },
       checkTagAvailable: () => [true, "ok"],
-      runCi: () => [false, "ci:local failed (exit 1)"],
+      runCi: (_root, _debt) => [false, "ci:local failed (exit 1)"],
     };
     expect(runPipeline(config, seams)).toBe(1);
   });

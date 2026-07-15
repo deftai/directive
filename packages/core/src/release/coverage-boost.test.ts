@@ -279,6 +279,7 @@ describe("runPipeline additional branches", () => {
     skipBuild: true,
     summary: "Hello",
     allowVbriefDrift: false,
+    allowCoverageDebtIssue: null,
   };
 
   it("runs vbrief drift failure path", () => {
@@ -345,6 +346,7 @@ describe("runPipeline violation branches", () => {
     skipBuild: true,
     summary: null,
     allowVbriefDrift: true,
+    allowCoverageDebtIssue: null,
   };
 
   it("fails on dirty tree", () => {

@@ -1,3 +1,4 @@
+import { parseCoverageDebtIssueNumber } from "../vitest-runner/coverage-debt.js";
 import { DEFAULT_BASE_BRANCH, RELEASE_HELP } from "./constants.js";
 import type { ReleaseFlags } from "./types.js";
 
@@ -8,6 +9,7 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
   let skipRelease = false;
   let allowDirty = false;
   let allowVbriefDrift = false;
+  let allowCoverageDebtIssue: number | null = null;
   let skipCi = false;
   let skipBuild = false;
   let draft = true;
@@ -41,6 +43,25 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
       allowDirty = true;
     } else if (token === "--allow-vbrief-drift") {
       allowVbriefDrift = true;
+    } else if (token === "--allow-coverage-debt") {
+      const value = takeValue(token, i);
+      if (value !== null) {
+        const issue = parseCoverageDebtIssueNumber(value);
+        if (issue === null) {
+          unknown.push(`${token} (malformed issue number)`);
+        } else {
+          allowCoverageDebtIssue = issue;
+        }
+        i += 1;
+      }
+    } else if (token.startsWith("--allow-coverage-debt=")) {
+      const value = token.slice("--allow-coverage-debt=".length);
+      const issue = parseCoverageDebtIssueNumber(value);
+      if (issue === null) {
+        unknown.push("--allow-coverage-debt= (malformed issue number)");
+      } else {
+        allowCoverageDebtIssue = issue;
+      }
     } else if (token === "--skip-ci") {
       skipCi = true;
     } else if (token === "--skip-build") {
@@ -96,6 +117,7 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
     skipRelease,
     allowDirty,
     allowVbriefDrift,
+    allowCoverageDebtIssue,
     skipCi,
     skipBuild,
     draft,

@@ -1,0 +1,49 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2573 — coverage debt flag + restore branches 85"
+  },
+  "plan": {
+    "id": "allow-coverage-debt-flag-restore-85",
+    "title": "Release coverage soft-pass only via --allow-coverage-debt=#N; restore win32 branches floor to 85",
+    "status": "running",
+    "narratives": {
+      "Description": "Hard fail coverage by default at 85%. Soft-pass only with explicit task release --allow-coverage-debt=#N (loud, attributable). Remove isWin32 branches carve; thresholds.branches = 85 on all platforms. Warn when debt flag is overused.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2573",
+      "Overview": "Operator locks: no auto near-miss; no open-debt oracle. #2580 shipped win32 coverage/.tmp fixes — only change thresholds + debt flag surface.",
+      "UserStory": "As a release operator, I want an explicit --allow-coverage-debt=#N escape hatch so hairline coverage misses do not require threshold nibble or admin merge.",
+      "ImplementationPlan": "1. Restore vitest thresholds.branches to 85 on all platforms.\n2. Add coverage-debt parser + vitest globalTeardown gate (scoped env via release preflight only).\n3. Wire --allow-coverage-debt=#N through release flags → Step 5 env.\n4. Emit attribution + overuse warning.\n5. Tests + CHANGELOG.",
+      "Acceptance": "Under threshold without flag fails; malformed flag fails; flag+#N under threshold passes with attribution; at/above threshold succeeds; branches=85 everywhere."
+    },
+    "items": [
+      {
+        "id": "2573-a1",
+        "title": "branches threshold is 85 on all platforms",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "vitest.config.ts thresholds.branches = 85 with no isWin32 carve."
+        }
+      },
+      {
+        "id": "2573-a2",
+        "title": "coverage debt flag contract",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Under threshold + no flag fails; flag+#N soft-passes with attribution; malformed flag fails closed."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2573",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2573: Release coverage soft-pass via --allow-coverage-debt=#N"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-07-15T20:20:00Z"
+  }
+}

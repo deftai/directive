@@ -2,6 +2,7 @@ import { realpathSync } from "node:fs";
 import { cpus, tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
+import { resolveCoverageDebtIssue } from "./packages/core/src/vitest-runner/coverage-debt.ts";
 
 // macOS exposes the same temporary directory through /var and /private/var.
 // Give test workers the canonical spelling so cwd/git comparisons and cleanup
@@ -24,6 +25,22 @@ const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25))
 const coverageEnabled = process.argv.some(
   (arg) => arg === "--coverage" || arg.startsWith("--coverage."),
 );
+const coverageDebt = resolveCoverageDebtIssue(process.argv, process.env);
+if (coverageDebt.kind === "invalid") {
+  throw new Error(`coverage-debt: ${coverageDebt.reason}`);
+}
+const coverageDebtIssue = coverageDebt.kind === "valid" ? coverageDebt.issue : null;
+const coverageDebtTeardown = resolve(
+  import.meta.dirname,
+  "packages/core/src/vitest-runner/coverage-debt-teardown.ts",
+);
+const coverageThresholds = {
+  lines: 85,
+  functions: 85,
+  // Fail-closed at 85 on all platforms; hairline misses use --allow-coverage-debt=#N (#2573).
+  branches: 85,
+  statements: 85,
+} as const;
 const winActiveMaxWorkers =
   isWin32 && coverageEnabled ? Math.max(1, Math.min(4, winMaxWorkers)) : winMaxWorkers;
 const win32CoverageTmpSetup = resolve(
@@ -159,6 +176,9 @@ export default defineConfig({
           },
         }
       : {}),
+    ...(coverageEnabled && coverageDebtIssue !== null
+      ? { globalTeardown: [coverageDebtTeardown] }
+      : {}),
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts"],
@@ -170,14 +190,10 @@ export default defineConfig({
       ],
       reporter: ["text", "text-summary"],
       ...(isWin32 && coverageEnabled ? { processingConcurrency: 1 } : {}),
-      thresholds: {
-        lines: 85,
-        functions: 85,
-        // Windows skips symlink/chmod suites (#2467), which trims ~0.01–0.05pt
-        // of branch coverage vs Linux CI. Keep Linux fail-closed at 85.
-        branches: isWin32 ? 84.85 : 85,
-        statements: 85,
-      },
+      thresholds:
+        coverageDebtIssue !== null
+          ? { lines: 0, functions: 0, branches: 0, statements: 0 }
+          : coverageThresholds,
     },
   },
 });

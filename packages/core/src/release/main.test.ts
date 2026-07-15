@@ -61,6 +61,7 @@ describe("pipeline verify flip failure", () => {
       skipBuild: true,
       summary: null,
       allowVbriefDrift: true,
+      allowCoverageDebtIssue: null,
     };
     const seams: ReleaseSeams = {
       spawnText: (_c, a) => {

@@ -36,13 +36,16 @@ export const BRANCH_GATE_BYPASS_ENV = "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT";
 export const DESTRUCTIVE_GH_GATE_BYPASS_ENV = "DEFT_ALLOW_DESTRUCTIVE_GH_VERBS";
 /** Set by releaseSubprocessEnv() so Step-5 pre-flight skips triage-cache staleness (#2386). */
 export const RELEASE_PREFLIGHT_ENV = "DEFT_RELEASE_PREFLIGHT";
+/** Set only by release Step-5 preflight when --allow-coverage-debt=#N is supplied (#2573). */
+export const COVERAGE_DEBT_ENV = "DEFT_ALLOW_COVERAGE_DEBT";
 
 export const PYPROJECT_VERSION_LINE_RE = /version\s*=\s*"[^"]*"/;
 
 /** Byte-identical argparse --help from scripts/release.py (Python 3.12). */
 export const RELEASE_HELP =
   "usage: release [-h] [--dry-run] [--skip-tag] [--skip-release] [--allow-dirty]\n" +
-  "               [--allow-vbrief-drift] [--skip-ci] [--skip-build] [--no-draft]\n" +
+  "               [--allow-vbrief-drift] [--allow-coverage-debt #N]\n" +
+  "               [--skip-ci] [--skip-build] [--no-draft]\n" +
   "               [--repo OWNER/REPO] [--base-branch BRANCH]\n" +
   "               [--project-root PATH] [--summary TEXT]\n" +
   "               version\n" +
@@ -70,6 +73,10 @@ export const RELEASE_HELP =
   "                        may still live in non-terminal folders. The clean path\n" +
   "                        is to run `task reconcile:issues -- --apply-lifecycle-\n" +
   "                        fixes` first.\n" +
+  "  --allow-coverage-debt #N\n" +
+  "                        Acknowledge a hairline coverage miss: Step 5 passes\n" +
+  "                        only when metrics sit below the 85% goal and this\n" +
+  "                        flag cites an operator-owned issue number (#2573).\n" +
   "  --skip-ci             Skip Step 3 (task ci:local / task check fallback).\n" +
   "                        Used by `task release:e2e` to keep wall-clock\n" +
   "                        manageable inside the auto-created temp repo (CI\n" +

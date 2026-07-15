@@ -54,3 +54,18 @@ describe("vitest.config.ts Windows coverage tmp contract (#2580)", () => {
     expect(setupSource).toMatch(/ensureCoverageTmpDir/);
   });
 });
+
+describe("vitest.config.ts coverage threshold contract (#2573)", () => {
+  const source = readFileSync(configPath, "utf8");
+
+  it("sets branches threshold to 85 on all platforms (no win32 carve)", () => {
+    expect(source).toContain("#2573");
+    expect(source).toMatch(/branches:\s*85/);
+    expect(source).not.toMatch(/isWin32\s*\?\s*84\.85/);
+  });
+
+  it("documents coverage-debt soft-pass gate", () => {
+    expect(source).toMatch(/coverage-debt-teardown/);
+    expect(source).toMatch(/resolveCoverageDebtIssue/);
+  });
+});

@@ -58,6 +58,21 @@ describe("parseReleaseFlags", () => {
     expect(flags.unknown.length).toBeGreaterThan(0);
   });
 
+  it("parses --allow-coverage-debt issue number", () => {
+    expect(
+      parseReleaseFlags(["0.21.0", "--allow-coverage-debt=#2573"]).allowCoverageDebtIssue,
+    ).toBe(2573);
+    expect(parseReleaseFlags(["0.21.0", "--allow-coverage-debt=2573"]).allowCoverageDebtIssue).toBe(
+      2573,
+    );
+  });
+
+  it("records malformed --allow-coverage-debt values as unknown", () => {
+    const flags = parseReleaseFlags(["0.21.0", "--allow-coverage-debt=#"]);
+    expect(flags.allowCoverageDebtIssue).toBeNull();
+    expect(flags.unknown.some((u) => u.includes("allow-coverage-debt"))).toBe(true);
+  });
+
   it("sets help flag", () => {
     expect(parseReleaseFlags(["--help"]).help).toBe(true);
     expect(parseReleaseFlags(["-h"]).help).toBe(true);

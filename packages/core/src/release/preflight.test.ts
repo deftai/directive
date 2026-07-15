@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "./constants.js";
+import { BRANCH_GATE_BYPASS_ENV, COVERAGE_DEBT_ENV, RELEASE_PREFLIGHT_ENV } from "./constants.js";
 import { runReleaseCheck } from "./preflight.js";
 
 describe("runReleaseCheck (#2022 Phase 1 native Step-5 pre-flight)", () => {
@@ -61,5 +61,23 @@ describe("runReleaseCheck (#2022 Phase 1 native Step-5 pre-flight)", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.env?.[BRANCH_GATE_BYPASS_ENV]).toBe("1");
     expect(calls[0]?.env?.[RELEASE_PREFLIGHT_ENV]).toBe("1");
+    expect(calls[0]?.env?.[COVERAGE_DEBT_ENV]).toBeUndefined();
+  });
+
+  it("passes allowCoverageDebtIssue into releaseCheckEnv (#2573)", () => {
+    const calls: Array<{ env?: NodeJS.ProcessEnv }> = [];
+    runReleaseCheck(
+      "/proj",
+      {
+        dispatchCheck: (_fw, _pr, checkSeams) => {
+          calls.push({ env: checkSeams?.env });
+          return 0;
+        },
+      },
+      2573,
+    );
+    expect(calls[0]?.env?.[COVERAGE_DEBT_ENV]).toBe("2573");
+    expect(calls[0]?.env?.[RELEASE_PREFLIGHT_ENV]).toBe("1");
+    expect(calls[0]?.env?.[BRANCH_GATE_BYPASS_ENV]).toBe("1");
   });
 });

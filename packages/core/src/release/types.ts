@@ -13,6 +13,7 @@ export interface ReleaseConfig {
   readonly skipBuild: boolean;
   readonly summary: string | null;
   readonly allowVbriefDrift: boolean;
+  readonly allowCoverageDebtIssue: number | null;
 }
 
 export interface ReleaseFlags {
@@ -30,6 +31,7 @@ export interface ReleaseFlags {
   readonly skipBuild: boolean;
   readonly draft: boolean;
   readonly summary: string | null;
+  readonly allowCoverageDebtIssue: number | null;
   readonly unknown: readonly string[];
 }
 
@@ -56,7 +58,10 @@ export interface ReleaseSeams {
   readonly writeFile?: (path: string, content: string) => void;
   readonly readFile?: (path: string) => string;
   readonly fileExists?: (path: string) => boolean;
-  readonly runCi?: (projectRoot: string) => [boolean, string];
+  readonly runCi?: (
+    projectRoot: string,
+    allowCoverageDebtIssue: number | null,
+  ) => [boolean, string];
   readonly refreshRoadmap?: (projectRoot: string) => [boolean, string];
   readonly checkVbriefLifecycleSync?: (
     projectRoot: string,

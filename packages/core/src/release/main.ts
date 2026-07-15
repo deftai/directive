@@ -48,6 +48,7 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
     skipBuild: flags.skipBuild,
     summary: flags.summary,
     allowVbriefDrift: flags.allowVbriefDrift,
+    allowCoverageDebtIssue: flags.allowCoverageDebtIssue,
   };
 
   return runPipeline(config, seams);
