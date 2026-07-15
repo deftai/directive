@@ -227,9 +227,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     );
     vi.spyOn(scmCall, "call").mockReturnValue({
       returncode: 0,
-      stdout: JSON.stringify({
-        data: { repository: { i42: { state: "OPEN", stateReason: null } } },
-      }),
+      stdout: JSON.stringify({ state: "open", state_reason: null }),
       stderr: "",
     });
 
@@ -241,7 +239,8 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     expect(rc).toBe(0);
     expect(scmCall.call).toHaveBeenCalled();
     const firstCall = vi.mocked(scmCall.call).mock.calls[0];
-    expect(firstCall?.[2]).toEqual(expect.arrayContaining(["graphql"]));
+    // #2557: fetchIssueStates prefers REST per-issue (not GraphQL batch)
+    expect(firstCall?.[2]).toEqual(["repos/owner/consumer/issues/42"]);
     expect(firstCall?.[3]?.cwd).toBe(consumer);
   });
 
