@@ -346,11 +346,7 @@ describe("intake cli and branch coverage", () => {
           expect(verb).toBe("api");
           const path = args?.[0];
           if (path === "repos/o/r/issues/9") {
-            return completed(
-              JSON.stringify({ state: "closed", state_reason: "completed" }),
-              "",
-              0,
-            );
+            return completed(JSON.stringify({ state: "closed", state_reason: "completed" }), "", 0);
           }
           if (path === "repos/o/r/issues/401") {
             return completed(
@@ -416,11 +412,7 @@ describe("intake cli and branch coverage", () => {
 
       const callSpy = vi.spyOn(scm, "call").mockImplementation((_src, _verb, args) => {
         if (args[0] === "repos/o/r/issues/55") {
-          return completed(
-            JSON.stringify({ state: "closed", state_reason: "completed" }),
-            "",
-            0,
-          );
+          return completed(JSON.stringify({ state: "closed", state_reason: "completed" }), "", 0);
         }
         return completed("[]", "", 0);
       });
