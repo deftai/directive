@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **pr-wait-mergeable unit tests no longer inherit parent-shell `GH_REPO`.** `main.test.ts` clears `GH_REPO` in `beforeEach` so config-error cases stay deterministic when maintainers or release Step 5 run `task check` with orchestration env set. Closes #2579.
 - **Windows Vitest coverage no longer ENOENTs on `coverage/.tmp` mid-suite (#2580).** Native Windows `task check` coverage runs now pre-create and keep `coverage/.tmp` via globalSetup, serialize v8 `processingConcurrency`, and cap fork workers when `--coverage` is active so green suites are not blocked by temp-directory races; coverage thresholds still fail closed. Closes #2580.
 
 ### Removed
