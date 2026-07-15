@@ -92,15 +92,21 @@ export function parseSkillsIndex(markdown: string): SkillsIndexEntry[] {
     }
     const linkCell = columns[1] ?? "";
     const triggersCell = columns[3] ?? "";
-    const skillMatch = linkCell.match(/\[([^\]]+)\]/);
-    if (skillMatch === null || skillMatch[1] === undefined) {
+    // Avoid nested character-class regex (CodeQL js/polynomial-redos on \[([^\]]+)\]).
+    const open = linkCell.indexOf("[");
+    const close = open === -1 ? -1 : linkCell.indexOf("]", open + 1);
+    if (open === -1 || close === -1) {
+      continue;
+    }
+    const skillId = linkCell.slice(open + 1, close).trim();
+    if (skillId.length === 0) {
       continue;
     }
     const triggers = parseTriggerCell(triggersCell);
     if (triggers.length === 0) {
       continue;
     }
-    entries.push({ skillId: skillMatch[1], triggers });
+    entries.push({ skillId, triggers });
   }
   return entries;
 }
