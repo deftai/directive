@@ -80,10 +80,24 @@ describe("runTransition", () => {
     const result = runTransition("complete", file);
     expect(result.ok).toBe(true);
     const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    expect(existsSync(file)).toBe(false);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
-      plan: { metadata: { completedAt: string } };
+      plan: { status: string; metadata: { completedAt: string } };
     };
+    expect(data.plan.status).toBe("completed");
     expect(data.plan.metadata.completedAt).toMatch(/Z$/);
+  });
+
+  it("does not leave non-terminal status in active/ during complete (#2578)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running", "atomic-complete.xbrief.json");
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(true);
+    expect(existsSync(file)).toBe(false);
+    expect(existsSync(join(root, "xbrief", "active", "atomic-complete.xbrief.json"))).toBe(false);
+    const dest = join(root, "xbrief", "completed", "atomic-complete.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { status: string } };
+    expect(data.plan.status).toBe("completed");
   });
 
   it("fails active to completed with failed status", () => {
@@ -91,6 +105,7 @@ describe("runTransition", () => {
     const file = writeVbrief(root, "active", "running");
     const result = runTransition("fail", file);
     expect(result.ok).toBe(true);
+    expect(existsSync(file)).toBe(false);
     const dest = join(root, "xbrief", "completed", "story.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { status: string } };
     expect(data.plan.status).toBe("failed");

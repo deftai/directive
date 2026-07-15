@@ -1,0 +1,80 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2578 — atomic plan.status stamp on completed/ move",
+    "updated": "2026-07-15T20:00:00Z"
+  },
+  "plan": {
+    "title": "bug(scope): completed/ xBRIEFs must stamp plan.status completed|failed atomically with the folder move",
+    "status": "running",
+    "narratives": {
+      "Description": "During v0.78.0 release, D2 validate failed because six files under xbrief/completed/ retained non-terminal plan.status (proposed/running). Lifecycle folder and JSON status drift blocks release/CI.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2578",
+      "Overview": "## Problem\n\nFiles can land in `completed/` while `plan.status` remains `proposed` or `running`. Release Step 5 (`vbrief:validate` D2) then fails late even though work shipped.\n\n## Fix\n\n1. `scope:complete` / `scope:fail` write terminal status directly at the destination path (same write as folder placement)\n2. `reconcile:issues` reports and repairs `completed/` + non-terminal status\n3. Regression tests + CHANGELOG\n",
+      "Acceptance": "1. completed/ move stamps plan.status=completed|failed in same write\n2. reconcile/report for completed/+non-terminal\n3. regression tests + CHANGELOG [Unreleased]"
+    },
+    "items": [
+      {
+        "title": "Atomic status stamp on completed/ move",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given an active xBRIEF, when scope:complete or scope:fail runs, then plan.status is written at the destination path in the same operation as the folder move (never left non-terminal in completed/)."
+        }
+      },
+      {
+        "title": "Reconcile/report completed/+non-terminal drift",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given xBRIEFs already in completed/ with non-terminal plan.status, when reconcile:issues runs, then they are reported; with --apply-lifecycle-fixes they are stamped to completed in place."
+        }
+      },
+      {
+        "title": "Regression tests and CHANGELOG",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Transition and reconcile tests cover atomic move and drift repair; CHANGELOG [Unreleased] documents the fix."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "blocks-release-tag",
+      "process",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2578",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2578: completed/ xBRIEFs must stamp plan.status atomically with folder move"
+      }
+    ],
+    "updated": "2026-07-15T20:00:00Z",
+    "id": "completed-xbriefs-stamp-plan-status",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/intake/reconcile-issues.ts",
+          "packages/core/src/intake/reconcile-issues.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- transition",
+          "pnpm --filter @deftai/directive-core test -- reconcile-issues"
+        ],
+        "expected_outputs": [
+          "completed/ moves stamp terminal plan.status atomically",
+          "reconcile reports and repairs completed/+non-terminal drift",
+          "Regression tests pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-lifecycle",
+        "size": "S"
+      }
+    }
+  }
+}

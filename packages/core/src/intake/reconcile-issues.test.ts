@@ -6,6 +6,7 @@ import type { CompletedProcess } from "../scm/call.js";
 import { validateEpicStoryLinks } from "../vbrief-validate/epic-links.js";
 import {
   applyLifecycleFixes,
+  attachCompletedStatusDrift,
   buildLifecycleReport,
   extractReferencesFromVbrief,
   fetchIssueStates,
@@ -14,7 +15,9 @@ import {
   isTerminalLifecyclePath,
   parseIssueNumber,
   reconcile,
+  repairCompletedStatusDrift,
   resolveLifecycleAnchor,
+  scanCompletedStatusDrift,
   scanLifecycleAnchors,
 } from "./reconcile-issues.js";
 
@@ -258,5 +261,83 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
     // ...and no stray, version-less vBRIEFInfo block is appended (the #2346 bug
     // that failed vbrief:validate with "'vBRIEFInfo.version' ... got 'undefined'").
     expect("vBRIEFInfo" in data).toBe(false);
+  });
+});
+
+describe("completed/ status drift (#2578)", () => {
+  let root = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("scanCompletedStatusDrift finds non-terminal status in completed/", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    writeFileSync(
+      join(xbrief, "completed", "drift.xbrief.json"),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Drift", status: "running", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    expect(scanCompletedStatusDrift(xbrief)).toEqual([
+      { rel_path: "completed/drift.xbrief.json", status: "running" },
+    ]);
+  });
+
+  it("repairCompletedStatusDrift stamps completed in place", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-repair-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "drift.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Drift", status: "proposed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const drift = scanCompletedStatusDrift(xbrief);
+    const [repaired, skipped, failures] = repairCompletedStatusDrift(xbrief, drift);
+    expect(repaired).toBe(1);
+    expect(skipped).toBe(0);
+    expect(failures).toEqual([]);
+
+    const data = JSON.parse(readFileSync(join(xbrief, "completed", name), "utf8")) as {
+      plan: { status: string };
+    };
+    expect(data.plan.status).toBe("completed");
+  });
+
+  it("formatMarkdown reports completed/ drift section", () => {
+    const md = formatMarkdown(
+      attachCompletedStatusDrift(
+        {
+          linked: [],
+          no_open_issue: [],
+          summary: { linked_count: 0, vbriefs_no_open_issue_count: 0 },
+        },
+        [{ rel_path: "completed/drift.xbrief.json", status: "running" }],
+      ),
+    );
+    expect(md).toContain("(d) completed/ xBRIEFs with non-terminal plan.status");
+    expect(md).toContain("completed/drift.xbrief.json");
   });
 });
