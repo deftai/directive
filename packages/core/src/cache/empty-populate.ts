@@ -6,9 +6,9 @@
  */
 
 import { join, resolve } from "node:path";
-import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { stepSeedCandidatesLog } from "../triage/bootstrap/gitignore.js";
 import { inferRepoFromGit, stepBackfillAuditLog } from "../triage/bootstrap/index.js";
+import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE, iterCachedIssues } from "../triage/summary/index.js";
 import type { FetchAllReportImpl } from "./fetch.js";
 import { cacheFetchAll } from "./fetch.js";
