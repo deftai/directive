@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows release:e2e npm dry-run spawns npm under spaced Program Files paths.** `spawnCommandText` now quotes win32 `.cmd` executables that contain spaces before `shell: true` spawn, so `'C:\Program' is not recognized` no longer fails Phase 3 after a green pnpm install. Closes #2555.
 - **Release build-dist excludes Vitest `coverage/` from archive walk (#2556).** `DEFAULT_EXCLUDES` now skips the Vitest `coverage/` tree alongside pytest `.coverage`, so concurrent or leftover `coverage/.tmp` files no longer race the Windows archiver with ENOENT during release Step 8.
 
 ### Removed

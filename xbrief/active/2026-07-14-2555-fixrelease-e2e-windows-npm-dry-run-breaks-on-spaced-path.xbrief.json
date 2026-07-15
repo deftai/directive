@@ -1,0 +1,91 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2555 (manual ingest; issue:ingest scm wrapper failed)",
+    "updated": "2026-07-15T03:00:00Z"
+  },
+  "plan": {
+    "title": "fix(release-e2e): Windows npm dry-run breaks on spaced path (C:\\Program Files)",
+    "status": "running",
+    "narratives": {
+      "Description": "After #2548, release:e2e npm dry-run still fails on Windows when npm lives under a spaced path because spawnCommandText/shell:true splits C:\\Program Files. Quote or argv-spawn npm/pnpm safely and add a Program Files regression test.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2555",
+      "Overview": "## Problem\n\n`task release:e2e` on native Windows gets past pnpm install (#2548) but fails npm publish dry-run with `'C:\\Program' is not recognized`.\n\n## Root cause (likely)\n\n`spawnCommandText` / shell:true on win32 splits paths containing spaces without adequate quoting.\n\n## Expected\n\n- Quote executable paths with spaces on win32, or spawn via argv without shell\n- Regression test covering Program Files-style paths\n- No regression of #2548 pnpm.cmd PATHEXT resolution\n",
+      "Labels": "bug, runtime-portability, urgent, area:release",
+      "UserStory": "As a Windows maintainer, I want release:e2e npm dry-run to spawn npm when it lives under Program Files, so that Phase 3 does not fail after a green GitHub rehearsal.",
+      "ImplementationPlan": "1. Update the packages/core/src/verify-env/command-spawn.ts module so spawnCommandText quotes win32 executable file paths that contain spaces (or argv-spawns without shell) before packages/core/src/release-e2e/npm-ops.ts runs npm publish dry-run.\n2. Add a focused unit test in packages/core/src/verify-env/command-spawn.test.ts (and npm-ops test module if needed) that asserts a Program Files-style npm.cmd path is quoted/spawned correctly and that #2548 pnpm.cmd PATHEXT resolution still verifies.",
+      "Acceptance": "1. npm dry-run succeeds with spaced npm path\n2. Unit coverage for quoted win32 spawn\n3. No #2548 regression"
+    },
+    "items": [
+      {
+        "title": "Quote or argv-spawn spaced win32 paths",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given npm under C:\\Program Files\\nodejs\\npm.cmd, when release-e2e runs npm publish dry-run on win32, then spawn succeeds without treating C:\\Program as the command."
+        }
+      },
+      {
+        "title": "Unit coverage for Program Files paths",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a unit test with a Program Files-style executable path, when spawnCommandText (or the npm-ops wrapper) runs, then the command line is correctly quoted or argv-based."
+        }
+      },
+      {
+        "title": "No #2548 PATHEXT regression",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given pnpm.cmd on PATH, when the win32 resolver runs, then #2548 PATHEXT resolution still prefers pnpm.cmd and does not ENOENT on a bare path."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "runtime-portability",
+      "urgent",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2555",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2555: fix(release-e2e): Windows npm dry-run breaks on spaced path (C:\\Program Files)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2548",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2548"
+      }
+    ],
+    "updated": "2026-07-15T03:03:27Z",
+    "id": "release-e2e-npm-spaced-path",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/verify-env/command-spawn.ts",
+          "packages/core/src/verify-env/command-spawn.test.ts",
+          "packages/core/src/release-e2e/npm-ops.ts",
+          "packages/core/src/release-e2e/npm-ops.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- command-spawn",
+          "pnpm --filter @deftai/directive-core test -- npm-ops"
+        ],
+        "expected_outputs": [
+          "Spaced-path npm spawn succeeds on win32",
+          "Regression test for Program Files paths",
+          "#2548 PATHEXT behavior preserved"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-e2e-npm-spawn",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2555; follows #2548 PATHEXT fix into quoting layer."
+      }
+    }
+  }
+}

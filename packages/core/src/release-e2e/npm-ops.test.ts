@@ -308,6 +308,26 @@ describe("rehearseNpmPublish", () => {
     expect(types.version).toBe("0.0.1");
   });
 
+  it("passes Program Files npm paths to spawnCommandText for publish dry-run (#2555)", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-pub-spaced-"));
+    scaffoldPackages(clone);
+    const npmPath = "C:\\Program Files\\nodejs\\npm.cmd";
+    const spawnSpy = vi.spyOn(commandSpawn, "spawnCommandText").mockReturnValue(ok());
+    const seams: E2ESeams = {
+      which: (n) => {
+        if (n === "npm") return npmPath;
+        if (n === "pnpm") return "C:\\bin\\pnpm.CMD";
+        return null;
+      },
+    };
+    const [okFlag, reason] = rehearseNpmPublish(clone, "0.0.1", seams);
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("npm publish --dry-run clean");
+    const publishCall = spawnSpy.mock.calls.find((call) => call[1]?.includes("publish"));
+    expect(publishCall?.[0]).toBe(npmPath);
+    spawnSpy.mockRestore();
+  });
+
   it("short-circuits before publish when the build fails", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-build-fail-"));
     scaffoldPackages(clone);

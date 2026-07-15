@@ -19,6 +19,26 @@ export function shouldUseShellForCommand(
 }
 
 /**
+ * Quote a win32 executable path for `shell: true` spawns when it contains spaces.
+ * Without quoting, cmd.exe treats `C:\Program` as the command (#2555).
+ */
+export function quoteWin32CommandForShell(
+  command: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  if (platform !== "win32" || !command.includes(" ")) {
+    return command;
+  }
+  if (
+    (command.startsWith('"') && command.endsWith('"')) ||
+    (command.startsWith("'") && command.endsWith("'"))
+  ) {
+    return command;
+  }
+  return `"${command}"`;
+}
+
+/**
  * Resolve an executable on PATH with PATHEXT / Path awareness (#2467 / #2548).
  * Mirrors ts-check-lane `resolvePnpm` and verify-tools `defaultProbe`.
  */
@@ -65,8 +85,10 @@ export function spawnCommandText(
   args: readonly string[],
   options: SpawnCommandTextOptions = {},
 ): SpawnResult {
-  const trySpawn = (shell: boolean) =>
-    spawnSync(cmd, [...args], {
+  const trySpawn = (shell: boolean) => {
+    const spawnCmd =
+      shell && process.platform === "win32" ? quoteWin32CommandForShell(cmd) : cmd;
+    return spawnSync(spawnCmd, [...args], {
       cwd: options.cwd,
       env: options.env ?? process.env,
       encoding: "utf8",
@@ -75,6 +97,7 @@ export function spawnCommandText(
       stdio: ["ignore", "pipe", "pipe"],
       shell,
     });
+  };
 
   let result = trySpawn(shouldUseShellForCommand(cmd));
   const spawnErr = result.error as NodeJS.ErrnoException | undefined;

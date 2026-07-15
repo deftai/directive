@@ -1,9 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return { ...actual, spawnSync: vi.fn(actual.spawnSync) };
+});
+
+import { spawnSync } from "node:child_process";
 import {
+  quoteWin32CommandForShell,
   resolveCommandOnPath,
   shouldUseShellForCommand,
   spawnCommandText,
 } from "./command-spawn.js";
+
+const mockSpawnSync = vi.mocked(spawnSync);
+
+beforeEach(() => {
+  mockSpawnSync.mockClear();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("shouldUseShellForCommand (#2548)", () => {
   it("uses a shell for Windows command shims", () => {
@@ -50,10 +68,73 @@ describe("resolveCommandOnPath (#2548)", () => {
   });
 });
 
-describe("spawnCommandText (#2548)", () => {
+describe("quoteWin32CommandForShell (#2555)", () => {
+  it("quotes spaced paths on win32", () => {
+    expect(quoteWin32CommandForShell("C:\\Program Files\\nodejs\\npm.cmd", "win32")).toBe(
+      '"C:\\Program Files\\nodejs\\npm.cmd"',
+    );
+  });
+
+  it("leaves unspaced paths and non-win32 platforms unchanged", () => {
+    expect(quoteWin32CommandForShell("C:\\bin\\pnpm.CMD", "win32")).toBe("C:\\bin\\pnpm.CMD");
+    expect(quoteWin32CommandForShell("/usr/bin/npm", "linux")).toBe("/usr/bin/npm");
+  });
+
+  it("does not double-quote already quoted paths", () => {
+    expect(quoteWin32CommandForShell('"C:\\Program Files\\npm.cmd"', "win32")).toBe(
+      '"C:\\Program Files\\npm.cmd"',
+    );
+  });
+});
+
+describe("spawnCommandText (#2548 / #2555)", () => {
   it("surfaces a non-empty stderr when the spawn itself errors", () => {
     const result = spawnCommandText("deft-nonexistent-binary-xyz-2548", ["api"]);
     expect(result.status).not.toBe(0);
     expect(result.stderr.trim().length).toBeGreaterThan(0);
+  });
+
+  it("quotes Program Files-style .cmd paths when shell is required (#2555)", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    mockSpawnSync.mockReturnValueOnce({
+      status: 0,
+      stdout: "",
+      stderr: "",
+      pid: 1,
+      output: [null, "", ""] as [null, string, string],
+      signal: null,
+      error: undefined,
+    });
+
+    const npmCmd = "C:\\Program Files\\nodejs\\npm.cmd";
+    spawnCommandText(npmCmd, ["publish", "--dry-run"]);
+
+    expect(mockSpawnSync).toHaveBeenCalledWith(
+      `"${npmCmd}"`,
+      ["publish", "--dry-run"],
+      expect.objectContaining({ shell: true }),
+    );
+  });
+
+  it("does not quote unspaced pnpm.cmd paths (#2548 / #2555)", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    mockSpawnSync.mockReturnValueOnce({
+      status: 0,
+      stdout: "",
+      stderr: "",
+      pid: 1,
+      output: [null, "", ""] as [null, string, string],
+      signal: null,
+      error: undefined,
+    });
+
+    const pnpmCmd = "C:\\bin\\pnpm.CMD";
+    spawnCommandText(pnpmCmd, ["install"]);
+
+    expect(mockSpawnSync).toHaveBeenCalledWith(
+      pnpmCmd,
+      ["install"],
+      expect.objectContaining({ shell: true }),
+    );
   });
 });
