@@ -63,7 +63,7 @@ The managed AGENTS.md section `## Skill pin policy (#2508)` carries the framewor
 - ⊗ **Pin entire language or deployment packs** (`languages/`, `deployments/`, full `coding/` tree) into AGENTS.md — those corpora are thousands of lines and defeat the #645 budget / #644 reference-chain gating.
 - ⊗ **Paste full SKILL.md bodies** into AGENTS.md instead of id + path pointers.
 - ⊗ **Always-pin convenience skills** (glossary, article-review, gh-slice) that are not lifecycle gates — triggers are enough.
-- ⊗ **Rely on triggers alone** for review-cycle or pre-PR when dispatch envelopes use action verbs without review keywords (the #1862 / #2508 recurrence class).
+- ⊗ **Rely on triggers alone** for review-cycle or pre-PR when dispatch envelopes use action verbs without review keywords (the #1862 / #2508 recurrence class) -- includes Cursor product actions such as **babysit-pull-request-in-cloud** that share the babysit name with the global host skill (#2261).
 
 ## Catalog convention (optional)
 

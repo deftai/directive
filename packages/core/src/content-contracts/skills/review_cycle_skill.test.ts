@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readSkill } from "./helpers.js";
+import { readRepoFile, readSkill } from "./helpers.js";
 
 /** Port of tests/content/test_review_cycle_skill.py (#1838 #1530) */
 
@@ -137,6 +137,30 @@ describe("test_review_cycle_skill", () => {
 
   it("step6_confidence_alone_anti_pattern_present", () => {
     expect(/^\u2297 Exit the loop on a confidence number alone/m.test(step6Section())).toBe(true);
+  });
+
+  it("babysit_intent_triggers_present_in_references_index", () => {
+    const references = readRepoFile("REFERENCES.md");
+    for (const trigger of [
+      "babysit-pull-request-in-cloud",
+      "babysit",
+      "shepherd",
+      "watch the PR",
+    ]) {
+      expect(references).toContain(trigger);
+    }
+  });
+
+  it("cursor_global_babysit_supersession_section_present", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Cursor global babysit supersession (#2261)");
+    expect(text).toContain("babysit-pull-request-in-cloud");
+    expect(text).toContain("skills-cursor/babysit");
+  });
+
+  it("ad_hoc_slizard_fix_not_exit_predicate_anti_pattern_present", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("ad hoc fix commit as the review-cycle exit predicate");
   });
 
   it("pre_merge_re_poll_gate_present", () => {

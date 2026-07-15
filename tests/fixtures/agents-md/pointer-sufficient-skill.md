@@ -3,5 +3,5 @@
 
 ## Review-surface precedence (#2308)
 
-! Route review work through `deft-directive-review-cycle` — full workflow in `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host review tools are advisory-only inputs, not the review of record (#2308).
+! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
 <!-- /deft:managed-section -->

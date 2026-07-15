@@ -237,8 +237,55 @@ Anti-pattern: pushing without pre-pr and relying on Greptile to find issues. Tha
 The active host harness may expose its own review-labeled surfaces. On Cursor these are the `bugbot` and `security-review` Task **subagent types** and the `review-bugbot` / `review-security` **skills**; other harnesses may ship equivalents. A generic operator request to "review" / "get this reviewed" / "use sub-agents for reviews" must NOT be routed to those host-native tools as the review of record.
 
 - ! Route ALL review work through the canonical `skills/deft-directive-review-cycle/SKILL.md` surface. Map a generic review request to the review cycle **by intent**, not by literal keyword -- "review this", "get this reviewed", and "use sub-agents for reviews" all mean run `deft-directive-review-cycle` (extends the #1862 / #2261 intent-routing fix).
-- ~ Host review tools (Cursor `bugbot` / `security-review` subagent types, `review-bugbot` / `review-security` skills, or any future host equivalent) MAY be folded in as *advisory* finding sources INSIDE the review cycle -- the #2019 harness-aware-reviewer path -- with their findings batched alongside the Greptile / bot findings the cycle already processes.
-- ⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface. The host tools are advisory inputs folded into the cycle, never a replacement for it. Reaching for them on a bare "review" request is the 3rd recurrence of the #1862 / #2261 wrong-review-surface class (see also #2019, #2018).
+- ! Map **PR shepherding intent** the same way: `babysit`, `babysit this PR`, `shepherd`, `watch the PR`, and the Cursor product action **babysit-pull-request-in-cloud** all mean run `deft-directive-review-cycle` on Deft-managed repos (`.deft/core/` installed) -- NOT the Cursor-global `babysit` skill (`~/.cursor/skills-cursor/babysit/SKILL.md`) (#2261).
+- ~ Host review tools (Cursor `babysit` / `bugbot` / `security-review` subagent types, `review-bugbot` / `review-security` skills, or any future host equivalent) MAY be folded in as *advisory* finding sources INSIDE the review cycle -- the #2019 harness-aware-reviewer path -- with their findings batched alongside the Greptile / bot findings the cycle already processes.
+- ⊗ Substitute a host-native review subagent type, Cursor global `babysit`, or `review-*` skill for `deft-directive-review-cycle` as the review surface. The host tools are advisory inputs folded into the cycle, never a replacement for it. Reaching for them on a bare "review" or "babysit" request is the #1862 / #2261 wrong-review-surface class (see also #2019, #2018).
+
+## 4.6 Cloud PR-shepherd dispatch -- review-monitor worked example (#2261)
+
+When an operator triggers **babysit-pull-request-in-cloud** (or equivalent PR-shepherding intent) on a Deft-managed repo, the orchestrator MUST dispatch a **review-monitor** worker with this preamble (or a reference to `templates/agent-prompt-preamble.md`) and an explicit mandate to read `skills/deft-directive-review-cycle/SKILL.md` before any PR mutation.
+
+Worked example (cloud background review-monitor on PR #1037):
+
+```markdown
+## Allocation context
+
+- dispatch_kind: solo
+- allocation_plan_id: null
+- batching_rationale: null
+- cohort_vbriefs: []
+- operator_approval_evidence: operator selected babysit-pull-request-in-cloud 2026-07-03
+
+## Worker metadata
+
+- dispatch_provider: cursor-cloud-agent
+- worker_role: review-monitor
+- selected_backend: cursor-cloud
+- routing_policy: null
+- resolved_model: null
+- model_source: harness-default explicit
+
+## Runtime and GitHub auth mode
+
+- runtime_mode: cloud-headless
+- github_auth_mode: injected-token
+
+## Unit of work
+
+drive-to: merge-ready on PR #1037 (repo: deftai/deftvisage, branch: fix/visage-repo-org-scoping)
+
+## Mandates
+
+1. First tool call: read AGENTS.md; confirm Deft alignment.
+2. Read `templates/agent-prompt-preamble.md` (binding) and `skills/deft-directive-review-cycle/SKILL.md` end-to-end -- NOT `~/.cursor/skills-cursor/babysit/SKILL.md`.
+3. Run review-cycle Phase 1 process audit before the fix loop; batch Phase 1 + Phase 2 fixes per review-cycle discipline.
+4. Poll terminal verdict via `task pr:watch -- <N>` when waiting on Greptile/SLizard (#1056).
+5. Exit only on review-cycle Step 6 fail-closed all-of (#1259) -- ad hoc SLizard P2 fixes without the exit predicate are insufficient.
+
+DONE: include PR URL, role review-monitor, and whether Step 6 CLEAN was reached.
+```
+
+Anti-pattern: dispatching `Task(environment=cloud)` with only the Cursor global babysit skill attached and no preamble / `deft-directive-review-cycle` path -- that is the #2261 recurrence class.
 
 ## 5. REST-by-default for read-only gh calls
 

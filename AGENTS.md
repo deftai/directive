@@ -51,7 +51,7 @@ Pointer-sufficient managed section below; `content/contracts/deterministic-quest
 
 ## Review-surface precedence (#2308)
 
-! `content/skills/deft-directive-review-cycle/SKILL.md`; host tools advisory-only (#2308).
+! Route PR shepherding / review work through `deft-directive-review-cycle` (`content/skills/deft-directive-review-cycle/SKILL.md`); host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
 
 ## Value feedback and attribution (#1709)
 
@@ -222,7 +222,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Review-surface precedence (#2308)
 
-! Route review through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `bugbot` / `security-review` / `review-*` advisory-only (#2308).
+! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
 
 ## Value feedback and attribution (#1709)
 

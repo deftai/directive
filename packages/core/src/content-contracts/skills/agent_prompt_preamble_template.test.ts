@@ -113,6 +113,18 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("host-gh");
     expect(templateText).toContain("injected-token");
   });
+  it("template_cloud_pr_shepherd_review_monitor_worked_example_present", () => {
+    expect(templateText).toContain("Cloud PR-shepherd dispatch");
+    expect(templateText).toContain("review-monitor");
+    expect(templateText).toContain("babysit-pull-request-in-cloud");
+    expect(templateText).toContain("deft-directive-review-cycle/SKILL.md");
+    expect(templateText).toContain("skills-cursor/babysit");
+  });
+  it("template_babysit_intent_routes_to_review_cycle", () => {
+    expect(templateText).toContain("babysit-pull-request-in-cloud");
+    expect(templateText).toContain("#2261");
+    expect(templateText).toContain("PR shepherding intent");
+  });
   it("template_identity_section_forbids_host_gh_only_for_wrong_mode", () => {
     expect(templateText).toContain("mode-aware GitHub credential rules");
     expect(templateText).toContain("github_auth_mode: injected-token");

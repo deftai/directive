@@ -188,7 +188,14 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "skill",
     header: "Review-surface precedence (#2308)",
     canonicalHome: "skills/deft-directive-review-cycle/SKILL.md",
-    pointerHints: ["deft-directive-review-cycle", "SKILL.md", "advisory", "#2308"],
+    pointerHints: [
+      "deft-directive-review-cycle",
+      "SKILL.md",
+      "advisory",
+      "#2308",
+      "#2261",
+      "babysit",
+    ],
     canonicalBodyMarkers: ["deft-directive-review-cycle", "Greptile", "review cycle"],
     retiredFullTextMarkers: [
       "wrong-review-surface class",
