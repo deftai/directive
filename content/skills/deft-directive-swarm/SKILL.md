@@ -57,6 +57,8 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ~ **Windows + Grok Build (#1353):** When issuing shell commands via `run_terminal_command` on this platform, avoid `|`, `>`, or `2>&1` in the command string — use Python `pathlib`/`subprocess` or plain `task` targets instead to avoid wrapper leakage. See `templates/agent-prompt-preamble.md` §3.5 for the full escape hatch list.
 
+! **Windows + Cursor Task-tool console storm (#2563):** Local Cursor Task subagents on Windows have frozen the host by flooding visible `cmd.exe` / `conhost` windows (observed with both parallel and serial Task agents; in-parent work stayed stable). Prefer one of: (1) in-parent / serial monitor-owned implementation, (2) cloud workers, or (3) after the #2563 mitigations (`windowsHide` + warm-dist skip in `engine:_ts-build`) are on the branch under test, keep local Task concurrency at **1** and prefer `pnpm exec` / warm `dist/bin.js` over repeated cold `task` rebuilds. See `templates/agent-prompt-preamble.md` §3.8. ⊗ Launch a wide parallel local Cursor Task cohort on Windows without that mitigation or an explicit operator acceptance of host-freeze risk.
+
 ## Prerequisites
 
 - ! `xbrief/active/` contains one or more story-level xBRIEFs with status `running`

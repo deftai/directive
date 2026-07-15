@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows Cursor Task swarms no longer force a full rebuild (and visible cmd windows) on every `task` verb.** `engine:_ts-build` writes `packages/cli/dist/.deft-ts-build-stamp` and skips rebuild when that stamp is newer than package sources (`tasks/ts-build-fresh.cjs`; override with `DEFT_FORCE_TS_BUILD=1` / `DEFT_SKIP_TS_BUILD=1`), and engine / `spawnCommandText` spawns set `windowsHide: true` (CREATE_NO_WINDOW). Swarm skill + preamble warn Windows operators to keep local Task concurrency at 1 until mitigated. Closes #2563.
 - **Greenfield Python-free smoke no longer hangs with silent SIGTERM on engine-invoke PRs.** `tasks/engine-invoke.cjs` forwards child stdio with `inherit` instead of piped buffers (pipe deadlock on verbose `task deft:check`), and the smoke CLI emits step progress plus an overall budget timeout so CI failures are diagnostic. Closes #2554.
 - **Nested Task commands no longer inherit stale engine transport.** `engine-invoke` scrubs `DEFT_ENGINE_CMD` / `DEFT_ENGINE_CMD_JSON` from the child env before spawn so nested `task` invocations cannot recurse on the outer transport. Complements inherit stdio (#2554). Refs #2438.
 - Release Step 3 vBRIEF lifecycle sync no longer hard-fails when a referenced number is a pull request mistaken for an issue; issue-state fetch now uses REST instead of GraphQL (#2557).

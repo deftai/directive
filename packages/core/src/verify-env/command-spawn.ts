@@ -95,6 +95,8 @@ export function spawnCommandText(
       maxBuffer: SUBPROCESS_MAX_BUFFER,
       stdio: ["ignore", "pipe", "pipe"],
       shell,
+      // CREATE_NO_WINDOW on win32; harmless elsewhere (#2563).
+      windowsHide: true,
     });
   };
 

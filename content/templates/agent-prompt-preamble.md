@@ -211,6 +211,18 @@ PYTEST_ADDOPTS="--basetemp=$(mktemp -d)/pt" task check
 
 A clean result under an isolated basetemp is attributable to your change, not to the ambient shared-`/tmp` race. Do NOT point `--basetemp` at a static path shared across workers -- that re-introduces the collision. Solo / single-run invocations on a private worktree do not require this, but it is harmless to apply unconditionally.
 
+## 3.8 Windows Cursor Task-tool console storm (#2563)
+
+On Windows, Cursor Task-tool local subagents can open a visible `cmd.exe` / `conhost` window per shell turn. Framework source checkouts amplify this: many `task <verb>` calls run `engine:_ts-build` → `pnpm`/`tsc` via `shell: true`. Parallel (and even serial) Task agents have frozen the maintainer host; completing the same stories in-parent (no Task subagent) stayed stable.
+
+**Directive rule for orchestrators on Windows:**
+
+- ! Prefer in-parent implementation or cloud workers for Cursor Task cohorts until the branch under test includes the #2563 mitigations (`windowsHide` on engine spawns + warm-dist skip via `tasks/ts-build-fresh.cjs`).
+- ! When local Task agents are required, keep concurrency at **1**, reuse a warm `packages/cli/dist/bin.js` (set `DEFT_SKIP_TS_BUILD=1` only when dist is known current), and avoid spawning nested Task agents from workers.
+- ⊗ Launch a multi-agent local Cursor Task swarm on Windows that multiplies cold `task` rebuilds without operator acceptance of host-freeze risk.
+
+Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inherit for nested Task recursion (#2554 / #2438) are necessary but not sufficient alone.
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:

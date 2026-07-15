@@ -1,0 +1,43 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2563"
+  },
+  "plan": {
+    "title": "swarm(windows): Cursor Task-tool agents flood cmd.exe windows and freeze host",
+    "status": "running",
+    "narratives": {
+      "Description": "swarm(windows): Cursor Task-tool agents flood cmd.exe windows and freeze host",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2563",
+      "Overview": "## Problem\n\nCursor Task-tool swarm workers on Windows flood visible `cmd.exe` / `conhost` windows and can freeze the host. Observed twice on deftai/directive maintainer machine during cohort #2554–#2557:\n\n1. **4 parallel** local Task subagents → host crash / stall\n2. **1 serial** local Task subagent → host crash / stall again\n\nIn-parent (no Task subagent) completion of #2556/#2555/#2557 stayed stable.\n\n## Suspected root cause\n\nEvery `task <verb>` in a worktree source checkout runs `engine:_ts-build` → `tsc -b` via `shell: true` (and often multiple nested shells). Cursor Task agents also spawn many short shell turns. Visible console windows accumulate; parallel agents multiply the storm.\n\nBreadcrumb trail from the recovery pass: `.deft-scratch/swarm/BREADCRUMB-2554-2557.md` (local scratch; not necessarily committed).\n\nNotable observation from breadcrumbs:\n- A single `task xbrief:preflight` alone triggered full `engine:_ts-build` + `tsc -b`\n- Using `pnpm exec vitest` / global `deft` when `dist/bin.js` exists avoids some rebuilds\n- `strict: true` required status checks also forced rebases between serial merges\n\n## Expected\n\n- Swarm on Windows does not open a cascade of visible cmd windows\n- Documented safe launch posture for Cursor Windows (CREATE_NO_WINDOW / shell:false / reuse warm dist / cloud workers)\n- Optional: Taskfile engine invoke should not force a full rebuild for read-only verbs like `xbrief:preflight` when dist is fresh\n\n## Acceptance\n\n- [ ] Root cause confirmed (Task-tool console creation vs engine:_ts-build shell:true vs both)\n- [ ] Mitigation shipped or documented for Windows Cursor swarms\n- [ ] Swarm skill / preamble warns Windows operators about parallel local Task agents until fixed\n\n## Related\n\n- Cohort: #2554 #2555 #2556 #2557\n- Merged via in-parent recovery: #2560 #2561 (and #2562 if landed)\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-15T14:06:55Z)\n\n## Refinement (2026-07-15)\n\nTwo distinct `engine-invoke` failure modes can both surface as exit **143** / host overload. Do not collapse them:\n\n| Mechanism | Fix | Status |\n|-----------|-----|--------|\n| Piped stdout/stderr deadlock (child fills pipe; empty CI logs) | `stdio: inherit` + smoke progress/timeout | Landed on master via PR #2564 (#2554) |\n| Nested Task reuses inherited `DEFT_ENGINE_CMD_*` → recursive dispatch / process-tree explosion | Scrub transport env before spawn | Landing via PR #2558 (standalone PR #2559 closed as duplicate of that path) |\n\n### What still remains for *this* issue (#2563)\n\nEnv scrub **helps** (cuts recursive Task fan-out that multiplies consoles) but is **not sufficient** for Windows Cursor swarm freezes. Remaining drivers to confirm/mitigate:\n\n1. **Cursor Task-tool** opening a visible `cmd`/`conhost` per shell turn (even without recursion)\n2. **Every `task` verb** in a source worktree running `engine:_ts-build` → `tsc -b` with `shell: true` (observed: a single `task xbrief:preflight` alone triggered a full rebuild)\n3. **Agent multiplicity** — parallel or serial Task subagents multiplying (1)+(2)\n\n### Acceptance additions\n\n- [ ] Rebase/merge #2558 preserves **both** inherit (#2564) **and** env scrub (no pipe regression)\n- [ ] After scrub is on master, re-test whether a single local Task subagent still storms; if yes, pursue CREATE_NO_WINDOW / shell:false / warm-dist skip-rebuild / swarm skill Windows warning (original acceptance bullets)\n\n### Related\n\n- PR #2558 (hooks P0 + scrub) — keep; rebase onto master before merge\n- PR #2559 — closed; scrub owned by #2558\n- PR #2564 — inherit already merged",
+      "Labels": "bug, agent-experience, runtime-portability"
+    },
+    "items": [
+      {
+        "title": "Root cause confirmed (Task-tool console creation vs engine:_ts-build shell:true vs both)",
+        "status": "proposed"
+      },
+      {
+        "title": "Mitigation shipped or documented for Windows Cursor swarms",
+        "status": "proposed"
+      },
+      {
+        "title": "Swarm skill / preamble warns Windows operators about parallel local Task agents until fixed",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "runtime-portability"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2563",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2563: swarm(windows): Cursor Task-tool agents flood cmd.exe windows and freeze host"
+      }
+    ],
+    "updated": "2026-07-15T14:31:55Z"
+  }
+}

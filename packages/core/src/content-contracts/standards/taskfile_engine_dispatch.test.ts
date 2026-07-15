@@ -1,5 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -215,10 +222,10 @@ writeFileSync(process.env.TEST_ENGINE_OUTER_OUT, JSON.stringify({
     // Windows-native Task often has no `sh` on PATH; #2411's probe never saw Corepack.cmd.
     expect(engine).not.toMatch(/execFileSync\('sh',\s*\['-c',\s*'command -v/);
     // Direct --version first (POSIX); shell:true fallback resolves .cmd/.exe on win32.
-    expect(engine).toMatch(/execFileSync\(name,\s*\['--version'\],\s*\{stdio:'ignore'\}/);
-    expect(engine).toMatch(
-      /execFileSync\(name,\s*\['--version'\],\s*\{stdio:'ignore',shell:true\}/,
-    );
+    // #2563: probes go through spawnOpts() with windowsHide (not bare {stdio:'ignore'}).
+    expect(engine).toMatch(/execFileSync\(name,\s*\['--version'\],\s*spawnOpts\(\)/);
+    expect(engine).toMatch(/execFileSync\(name,\s*\['--version'\],\s*spawnOpts\(\{shell:true\}\)/);
+    expect(engine).toMatch(/windowsHide:\s*true/);
     // #2411 step order preserved: bare pnpm → corepack@pin → corepack → fail.
     const pmRun = engine.slice(engine.indexOf("pm-run:"), engine.indexOf("_ts-build:"));
     const pnpmIdx = pmRun.indexOf("hasCmd('pnpm')");
@@ -227,6 +234,14 @@ writeFileSync(process.env.TEST_ENGINE_OUTER_OUT, JSON.stringify({
     expect(pnpmIdx).toBeGreaterThan(-1);
     expect(pinIdx).toBeGreaterThan(pnpmIdx);
     expect(bareCorepackIdx).toBeGreaterThan(pinIdx);
+  });
+
+  it("_ts-build skips rebuild when dist is warm (#2563)", () => {
+    const engine = readTask(ENGINE_FILE);
+    expect(engine).toMatch(/ts-build-fresh\.cjs/);
+    expect(engine).toMatch(/DEFT_FORCE_TS_BUILD/);
+    expect(engine).toMatch(/DEFT_SKIP_TS_BUILD/);
+    expect(existsSync(join(repoRoot(), "tasks", "ts-build-fresh.cjs"))).toBe(true);
   });
 
   it("_ts-build guard no-ops on stray packages/ without root build script (#2142)", () => {

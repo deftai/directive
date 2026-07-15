@@ -102,6 +102,8 @@ function main() {
     env: childEnv,
     // Global deft/directive on Windows are .cmd shims; shell:false cannot spawn them (#2415).
     shell: mode === "global" && process.platform === "win32",
+    // CREATE_NO_WINDOW: hide console windows from Cursor Task / nested shells (#2563).
+    windowsHide: true,
   });
   const code = result.status;
   process.exit(code === null ? 1 : code);

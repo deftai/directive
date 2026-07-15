@@ -112,7 +112,7 @@ describe("spawnCommandText (#2548 / #2555)", () => {
     expect(mockSpawnSync).toHaveBeenCalledWith(
       `"${npmCmd}"`,
       ["publish", "--dry-run"],
-      expect.objectContaining({ shell: true }),
+      expect.objectContaining({ shell: true, windowsHide: true }),
     );
   });
 
@@ -134,7 +134,7 @@ describe("spawnCommandText (#2548 / #2555)", () => {
     expect(mockSpawnSync).toHaveBeenCalledWith(
       pnpmCmd,
       ["install"],
-      expect.objectContaining({ shell: true }),
+      expect.objectContaining({ shell: true, windowsHide: true }),
     );
   });
 });
