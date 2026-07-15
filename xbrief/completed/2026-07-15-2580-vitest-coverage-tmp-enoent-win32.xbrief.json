@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(test,windows): Vitest coverage ENOENT on coverage/.tmp mid-suite fails task check after green tests",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On native Windows, Vitest coverage runs can fail with ENOENT on coverage/.tmp/coverage-N.json after a green suite. Ensure the tmp dir exists, serialize coverage processing on win32, and tolerate late ENOENT without soft-failing real coverage gate failures.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2580",
@@ -58,7 +58,7 @@
         "title": "Issue #2580: Vitest coverage ENOENT on coverage/.tmp mid-suite"
       }
     ],
-    "updated": "2026-07-15T20:01:09Z",
+    "updated": "2026-07-15T20:09:20Z",
     "id": "vitest-coverage-tmp-enoent-win32",
     "metadata": {
       "kind": "story",
@@ -82,7 +82,9 @@
         "size": "S",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-07-15T20:09:20Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
