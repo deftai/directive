@@ -420,6 +420,8 @@ describe("completed/ status drift (#2578)", () => {
     );
     expect(md).toContain("plan.status='run ning'");
   });
+
+  it("attachCompletedStatusDrift adds summary count", () => {
     const report = attachCompletedStatusDrift(
       {
         linked: [],
