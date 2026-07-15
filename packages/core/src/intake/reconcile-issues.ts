@@ -286,12 +286,10 @@ function fetchOneIssueStateRest(
 ): IssueState | null | "CLI_MISSING" {
   let result: CompletedProcess;
   try {
-    result = scmCall(
-      "github-issue",
-      "api",
-      [`repos/${owner}/${name}/issues/${issueNumber}`],
-      { timeout: 30, cwd },
-    );
+    result = scmCall("github-issue", "api", [`repos/${owner}/${name}/issues/${issueNumber}`], {
+      timeout: 30,
+      cwd,
+    });
   } catch {
     return "CLI_MISSING";
   }
