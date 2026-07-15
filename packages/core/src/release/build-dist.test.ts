@@ -57,6 +57,35 @@ describe("build-dist helpers", () => {
     expect(rels).not.toContain("node_modules/pkg/index.js");
   });
 
+  it("DEFAULT_EXCLUDES includes Vitest coverage alongside pytest .coverage", () => {
+    expect(DEFAULT_EXCLUDES.has("coverage")).toBe(true);
+    expect(DEFAULT_EXCLUDES.has(".coverage")).toBe(true);
+  });
+
+  it("iterSourceFiles excludes coverage/.tmp Vitest artifacts", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-coverage-"));
+    mkdirSync(join(root, "coverage", ".tmp"), { recursive: true });
+    writeFileSync(join(root, "coverage", ".tmp", "coverage-1.json"), "{}\n");
+    writeFileSync(join(root, "README.md"), "# hi\n");
+
+    const entries = iterSourceFiles(root);
+    const rels = entries.map((e) => e.archiveRel);
+    expect(rels).toContain("README.md");
+    expect(rels).not.toContain("coverage/.tmp/coverage-1.json");
+  });
+
+  it("buildArchive succeeds when coverage/.tmp is present", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-coverage-archive-"));
+    mkdirSync(join(root, "content"), { recursive: true });
+    mkdirSync(join(root, "coverage", ".tmp"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "# fixture\n");
+    writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    writeFileSync(join(root, "coverage", ".tmp", "coverage-2.json"), "{}\n");
+
+    const out = await buildArchive(root, "9.9.9", "zip");
+    expect(statSync(out).size).toBeGreaterThan(0);
+  });
+
   it("iterSourceFiles honors extra excludes and empty prefix list", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-build-dist-extra-"));
     mkdirSync(join(root, "backup"), { recursive: true });

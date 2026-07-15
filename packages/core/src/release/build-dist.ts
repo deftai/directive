@@ -39,6 +39,7 @@ export const DEFAULT_EXCLUDES = new Set([
   ".mypy_cache",
   ".ruff_cache",
   ".coverage",
+  "coverage",
 ]);
 
 export const DEFAULT_EXCLUDED_PATH_PREFIXES = [

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Release build-dist excludes Vitest `coverage/` from archive walk (#2556).** `DEFAULT_EXCLUDES` now skips the Vitest `coverage/` tree alongside pytest `.coverage`, so concurrent or leftover `coverage/.tmp` files no longer race the Windows archiver with ENOENT during release Step 8.
+
 ### Removed
 
 ## [0.77.0] - 2026-07-15

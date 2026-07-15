@@ -1,0 +1,82 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2556 (manual ingest; issue:ingest scm wrapper failed)",
+    "updated": "2026-07-15T03:00:00Z"
+  },
+  "plan": {
+    "title": "fix(build-dist): exclude vitest coverage/ from archive walk (Windows ENOENT race)",
+    "status": "running",
+    "narratives": {
+      "Description": "build-dist DEFAULT_EXCLUDES omits Vitest coverage/, so concurrent coverage/.tmp files race the archiver on Windows (ENOENT). Add coverage to DEFAULT_EXCLUDES and assert coverage/.tmp is not archived.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2556",
+      "Overview": "## Problem\n\n`task build` / build-dist-runner archives everything except DEFAULT_EXCLUDES. That set includes pytest `.coverage` but not Vitest `coverage/`. On Windows, concurrent Vitest coverage runs create/delete `coverage/.tmp/coverage-N.json` while archiver opens paths collected earlier → ENOENT.\n\n## Expected\n\n`coverage` in DEFAULT_EXCLUDES alongside `.coverage` so release Step 8 never races Vitest instrumentation.\n",
+      "Labels": "bug, runtime-portability, urgent",
+      "UserStory": "As a Windows maintainer cutting a release, I want build-dist to ignore Vitest coverage artifacts, so that concurrent or leftover coverage/.tmp files do not ENOENT the archive walk.",
+      "ImplementationPlan": "1. Add `coverage` to DEFAULT_EXCLUDES in build-dist.ts.\n2. Add a focused test asserting coverage/.tmp files are not archived.\n3. Smoke task build / build-dist-runner on a tree with coverage/.tmp present.",
+      "Acceptance": "1. DEFAULT_EXCLUDES includes coverage\n2. Focused test for coverage/.tmp exclusion\n3. build succeeds with stale/active coverage/.tmp"
+    },
+    "items": [
+      {
+        "title": "Add coverage to DEFAULT_EXCLUDES",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given DEFAULT_EXCLUDES in build-dist.ts, when inspected, then it includes `coverage` alongside `.coverage`."
+        }
+      },
+      {
+        "title": "Test coverage/.tmp is not archived",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fixture tree with coverage/.tmp/coverage-N.json, when iterSourceFiles / build-dist runs, then those paths are excluded from the archive set."
+        }
+      },
+      {
+        "title": "build succeeds with coverage/.tmp present",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an active or stale coverage/.tmp directory, when task build / build-dist-runner runs, then it completes without ENOENT on coverage temp files."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "runtime-portability",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2556",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2556: fix(build-dist): exclude vitest coverage/ from archive walk (Windows ENOENT race)"
+      }
+    ],
+    "updated": "2026-07-15T03:03:46Z",
+    "id": "build-dist-exclude-coverage",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/build-dist.ts",
+          "packages/core/src/release/build-dist.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- build-dist"
+        ],
+        "expected_outputs": [
+          "coverage in DEFAULT_EXCLUDES",
+          "Unit test for coverage/.tmp exclusion",
+          "No ENOENT race on Windows build-dist"
+        ],
+        "depends_on": [],
+        "conflict_group": "build-dist-excludes",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2556; localized DEFAULT_EXCLUDES change."
+      }
+    }
+  }
+}
