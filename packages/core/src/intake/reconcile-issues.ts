@@ -6,6 +6,7 @@ import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
+import { FOLDER_ALLOWED_STATUSES } from "../vbrief-validate/constants.js";
 import { LEGACY_INFO_ROOT_KEY, MIGRATED_INFO_ROOT_KEY } from "../xbrief-migrate/constants.js";
 
 export const LIFECYCLE_FOLDERS = [
@@ -345,10 +346,16 @@ export function fetchIssueStates(
   return states;
 }
 
+export interface CompletedStatusDriftEntry {
+  readonly rel_path: string;
+  readonly status: string;
+}
+
 export interface ReconcileReport {
   linked: Record<string, unknown>[];
   no_open_issue: Record<string, unknown>[];
   unlinked?: Record<string, unknown>[];
+  completed_status_drift?: CompletedStatusDriftEntry[];
   summary: Record<string, number>;
 }
 
@@ -549,6 +556,61 @@ export function scanLifecycleAnchors(vbriefDir: string): Record<string, unknown>
   return anchors;
 }
 
+const COMPLETED_TERMINAL_STATUSES =
+  FOLDER_ALLOWED_STATUSES.completed ?? new Set(["completed", "failed"]);
+
+/** Scan completed/ for xBRIEFs whose plan.status is not terminal (D2 drift, #2578). */
+export function scanCompletedStatusDrift(vbriefDir: string): CompletedStatusDriftEntry[] {
+  const completedDir = join(vbriefDir, "completed");
+  const drift: CompletedStatusDriftEntry[] = [];
+  try {
+    if (!statSync(completedDir).isDirectory()) {
+      return drift;
+    }
+  } catch {
+    return drift;
+  }
+
+  for (const filename of readdirSync(completedDir)
+    .filter((f) => hasArtifactSuffix(f))
+    .sort()) {
+    const relPath = `completed/${filename}`;
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(readFileSync(join(completedDir, filename), "utf8")) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      continue;
+    }
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      continue;
+    }
+    const status = String((plan as Record<string, unknown>).status ?? "");
+    if (status.length === 0 || COMPLETED_TERMINAL_STATUSES.has(status)) {
+      continue;
+    }
+    drift.push({ rel_path: relPath, status });
+  }
+  return drift;
+}
+
+export function attachCompletedStatusDrift(
+  report: ReconcileReport,
+  drift: CompletedStatusDriftEntry[],
+): ReconcileReport {
+  return {
+    ...report,
+    completed_status_drift: drift,
+    summary: {
+      ...report.summary,
+      completed_status_drift_count: drift.length,
+    },
+  };
+}
+
 export function buildLifecycleReport(
   anchors: Record<string, unknown>[],
   issueStateMap: Map<number, IssueState | string>,
@@ -653,6 +715,18 @@ export function formatMarkdown(report: ReconcileReport): string {
     for (const entry of report.no_open_issue) {
       const files = ((entry.vbrief_files as string[]) ?? []).map((f) => `\`${f}\``).join(", ");
       lines.push(`- #${entry.issue_number} -- ${files} (${entry.note})`);
+    }
+  } else {
+    lines.push("None.");
+  }
+  lines.push("");
+
+  lines.push("## (d) completed/ xBRIEFs with non-terminal plan.status (D2 drift)", "");
+  const drift = report.completed_status_drift ?? [];
+  if (drift.length > 0) {
+    for (const entry of drift) {
+      const safeStatus = entry.status.replace(/\r?\n/g, " ");
+      lines.push(`- \`${entry.rel_path}\` -- plan.status='${safeStatus}'`);
     }
   } else {
     lines.push("None.");
@@ -809,6 +883,62 @@ export function applyLifecycleFixes(
   return [moved, skipped, failures];
 }
 
+/** Repair completed/ files whose plan.status is not terminal (#2578). */
+export function repairCompletedStatusDrift(
+  vbriefDir: string,
+  drift: readonly CompletedStatusDriftEntry[],
+): [number, number, string[]] {
+  let repaired = 0;
+  let skipped = 0;
+  const failures: string[] = [];
+  const completedDir = join(vbriefDir, "completed");
+
+  for (const entry of drift) {
+    const slash = entry.rel_path.indexOf("/");
+    if (slash < 0) {
+      failures.push(`unexpected vBRIEF path shape (no folder): ${JSON.stringify(entry.rel_path)}`);
+      continue;
+    }
+    const filename = entry.rel_path.slice(slash + 1);
+    const src = join(completedDir, filename);
+
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(readFileSync(src, "utf8")) as Record<string, unknown>;
+    } catch (exc) {
+      failures.push(`failed to parse ${entry.rel_path}: ${String(exc)}`);
+      continue;
+    }
+
+    const plan = (data.plan ?? {}) as Record<string, unknown>;
+    data.plan = plan;
+    const currentStatus = String(plan.status ?? "");
+    if (COMPLETED_TERMINAL_STATUSES.has(currentStatus)) {
+      skipped += 1;
+      continue;
+    }
+
+    const stamp = utcNowIso();
+    plan.status = "completed";
+    plan.updated = stamp;
+    const infoKey = MIGRATED_INFO_ROOT_KEY in data ? MIGRATED_INFO_ROOT_KEY : LEGACY_INFO_ROOT_KEY;
+    const info = (data[infoKey] ?? {}) as Record<string, unknown>;
+    data[infoKey] = info;
+    info.updated = stamp;
+    propagateItemStatus(plan.items, "completed", stamp);
+
+    try {
+      writeFileSync(src, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+    } catch (exc) {
+      failures.push(`failed to write ${entry.rel_path}: ${String(exc)}`);
+      continue;
+    }
+    repaired += 1;
+  }
+
+  return [repaired, skipped, failures];
+}
+
 export function detectRepo(): string | null {
   try {
     const stdout = execFileSync("git", ["remote", "get-url", "origin"], {
@@ -908,6 +1038,8 @@ export function reconcileMain(args: ReconcileCliArgs): number {
   }
 
   const fmt = args.format ?? "markdown";
+  const completedDrift = scanCompletedStatusDrift(vbriefDir);
+  report = attachCompletedStatusDrift(report, completedDrift);
   if (fmt === "json") {
     process.stdout.write(formatJson(report));
   } else {
@@ -925,13 +1057,22 @@ export function reconcileMain(args: ReconcileCliArgs): number {
       return acc;
     }, 0);
     const [moved, skipped, failures] = applyLifecycleFixes(vbriefDir, applyReport, projectRoot);
+    const driftAfterMove = scanCompletedStatusDrift(vbriefDir);
+    const [driftRepaired, driftSkipped, driftFailures] = repairCompletedStatusDrift(
+      vbriefDir,
+      driftAfterMove,
+    );
+    const allFailures = [...failures, ...driftFailures];
     process.stderr.write(
       `[${moved}/${candidates}] vBRIEFs reconciled (moved=${moved}, already-terminal=${skipped}, failures=${failures.length})\n`,
     );
-    for (const f of failures) {
+    process.stderr.write(
+      `[${driftRepaired}/${completedDrift.length}] completed/ status drift repaired (repaired=${driftRepaired}, already-terminal=${driftSkipped}, failures=${driftFailures.length})\n`,
+    );
+    for (const f of allFailures) {
       process.stderr.write(`  -- FAIL: ${f}\n`);
     }
-    if (failures.length > 0) {
+    if (allFailures.length > 0) {
       return 1;
     }
   }

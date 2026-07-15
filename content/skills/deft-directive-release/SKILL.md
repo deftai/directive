@@ -113,13 +113,15 @@ The dry-run prints `[N/13] <step>... DRYRUN (would <action>)` for every pipeline
 
 ## Phase 3 — E2E sanity
 
-! Invoke `task release:e2e` against an auto-created+destroyed temp repo to verify the full pipeline shape works end-to-end before touching the real repo.
+! Invoke `task release:e2e` against an auto-created temp repo to verify the full pipeline shape works end-to-end before touching the real repo.
 
 ```
 task release:e2e
 ```
 
-The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke-test rehearsal, and destroys the temp repo in a `try/finally` clause. Cleanup runs even if the rehearsal fails. If `gh repo delete` fails, surface the manual-cleanup hint to the user and continue.
+The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke-test rehearsal, and **by default keeps** the temp repo (#2572). Stderr always includes the full `owner/slug` and a copy-pasteable manual-cleanup command (`gh repo delete <owner>/<slug> --yes`). Privileged environments (CI or an operator with `delete_repo`) MAY pass `task release:e2e -- --destroy-repo` to attempt auto-delete; destroy failure emits a WARN and does **not** block Phase 4 when the rehearsal succeeded.
+
+! After Phase 3, the agent MUST NOT retry or escalate temp-repo deletion. Include any leftover temp repo(s) in the phase summary for the operator to clean up manually.
 
 ! Treat a non-zero exit from `task release:e2e` as a hard refusal to proceed to Phase 4. Surface the diagnostic and ask whether to debug (return to Phase 1) or abort (`quit`).
 

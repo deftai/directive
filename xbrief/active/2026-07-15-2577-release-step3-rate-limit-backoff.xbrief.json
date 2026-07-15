@@ -1,0 +1,76 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2577 (swarm cohort afk-wave1-2566-2581)",
+    "updated": "2026-07-15T20:00:00Z"
+  },
+  "plan": {
+    "title": "release: Step 3 lifecycle sync hard-fails when GitHub REST core rate limit is exhausted",
+    "status": "running",
+    "narratives": {
+      "Description": "Add capped sleep+retry on HTTP 403 rate-limit during release Step 3 issue-state fetch, actionable FAIL text with rate_limit probe, and document --allow-vbrief-drift escape after local vbrief:validate is green.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2577",
+      "Overview": "## Problem\n\n`task release` Step 3 (`Pre-flight vBRIEF lifecycle sync`) hard-failed during the v0.78.0 cut when gh REST returned HTTP 403 API rate limit exceeded while `core.remaining: 0`.\n\n## Expected\n\n- One capped sleep+retry on HTTP 403 rate-limit during issue-state fetch\n- Actionable FAIL text with remaining/reset + `gh api rate_limit` probe\n- `--allow-vbrief-drift` documented as escape after local `vbrief:validate` is green\n",
+      "Labels": "bug, blocks-release-tag, operational, scm, github, area:release, release",
+      "UserStory": "As a release operator, I want Step 3 lifecycle sync to retry once on REST core rate-limit exhaustion and emit actionable recovery guidance, so that a transient bucket stall does not force a multi-hour cut with no in-pipeline backoff.",
+      "ImplementationPlan": "1. Add release/issue-state-fetch.ts with capped rate-limit retry and actionable failure formatting.\n2. Wire checkVbriefLifecycleSyncNative to use the release fetch wrapper.\n3. Document --allow-vbrief-drift rate-limit escape in content/commands.md.\n4. Add unit tests and CHANGELOG entry.",
+      "Acceptance": "1. Capped retry on HTTP 403 rate-limit during Step 3 issue-state fetch\n2. Actionable FAIL text with rate_limit probe guidance\n3. Drift escape documented in commands.md\n4. Tests and CHANGELOG"
+    },
+    "items": [
+      {
+        "title": "Capped rate-limit retry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given REST core rate-limit exhaustion (HTTP 403), when Step 3 fetches issue states, then it sleeps once (capped) and retries before failing."
+        }
+      },
+      {
+        "title": "Actionable FAIL text",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given retry still fails, when Step 3 emits FAIL, then stderr includes core remaining/reset from gh api rate_limit and recovery guidance including --allow-vbrief-drift after vbrief:validate green."
+        }
+      },
+      {
+        "title": "Docs and regression tests",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given commands.md and unit tests, when operators read release docs or CI runs, then drift escape and retry behavior are covered."
+        }
+      }
+    ],
+    "tags": ["bug", "blocks-release-tag", "operational", "scm", "github", "area:release", "release"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2577",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2577: release Step 3 lifecycle sync hard-fails when GitHub REST core rate limit is exhausted"
+      }
+    ],
+    "updated": "2026-07-15T20:00:00Z",
+    "id": "release-step3-rate-limit-backoff",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/",
+          "content/commands.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- issue-state-fetch",
+          "pnpm --filter @deftai/directive-core test -- native-steps"
+        ],
+        "expected_outputs": [
+          "Capped retry on REST 403 rate-limit",
+          "Actionable FAIL with rate_limit probe",
+          "commands.md drift escape docs"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-step3",
+        "size": "S"
+      }
+    }
+  }
+}

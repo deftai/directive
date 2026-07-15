@@ -4,7 +4,8 @@ export interface E2EConfig {
   owner: string;
   projectRoot: string;
   dryRun: boolean;
-  keepRepo: boolean;
+  /** When true, attempt gh repo delete after rehearsal (#2572 opt-in privileged mode). */
+  destroyRepo: boolean;
   /** When true, skip the npm publish dry-run rehearsal step (#1910). */
   skipNpm: boolean;
   /**
@@ -22,7 +23,8 @@ export interface ParsedE2EFlags {
   help: boolean;
   owner: string;
   dryRun: boolean;
-  keepRepo: boolean;
+  /** When true, attempt gh repo delete after rehearsal (#2572 opt-in privileged mode). */
+  destroyRepo: boolean;
   projectRoot: string | null;
   skipNpm: boolean;
   /** Opt-in: run the pinned legacy->bridge->npm-hybrid migration leg (#1912). */

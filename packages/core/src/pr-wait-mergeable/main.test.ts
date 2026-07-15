@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED } from "./constants.js";
 import { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
@@ -60,16 +60,28 @@ describe("parseWaitMergeableArgs", () => {
 });
 
 describe("runWaitMergeable", () => {
-  it("main without repo exits two", () => {
-    const prev = process.env.GH_REPO;
+  let savedGhRepo: string | undefined;
+
+  beforeEach(() => {
+    savedGhRepo = process.env.GH_REPO;
     delete process.env.GH_REPO;
+  });
+
+  afterEach(() => {
+    if (savedGhRepo === undefined) {
+      delete process.env.GH_REPO;
+    } else {
+      process.env.GH_REPO = savedGhRepo;
+    }
+  });
+
+  it("main without repo exits two", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     expect(runWaitMergeable(["1370"])).toBe(EXIT_CONFIG_ERROR);
     expect(stderr.mock.calls[0]?.[0]).toContain("--repo");
     stderr.mockRestore();
     stdout.mockRestore();
-    if (prev !== undefined) process.env.GH_REPO = prev;
   });
 
   it("malformed protected token exits two", () => {
@@ -108,13 +120,10 @@ describe("runWaitMergeable", () => {
   });
 
   it("cmdPrWaitMergeable delegates to runWaitMergeable", () => {
-    const prev = process.env.GH_REPO;
-    delete process.env.GH_REPO;
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     expect(cmdPrWaitMergeable(["1370"])).toBe(EXIT_CONFIG_ERROR);
     stderr.mockRestore();
     stdout.mockRestore();
-    if (prev !== undefined) process.env.GH_REPO = prev;
   });
 });

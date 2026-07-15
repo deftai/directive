@@ -29,7 +29,7 @@ export interface ParityResult {
 export const PARITY_SCENARIOS: readonly ParityScenario[] = [
   { name: "help", argv: ["--help"], compareStdout: true },
   { name: "dry-run", argv: ["--dry-run"] },
-  { name: "dry-run-keep-repo", argv: ["--dry-run", "--keep-repo"] },
+  { name: "dry-run-destroy-repo", argv: ["--dry-run", "--destroy-repo"] },
   {
     name: "dry-run-project-root",
     argv: ["--dry-run", "--owner", "deftai", "--project-root", "/tmp/deft-e2e-parity-root"],

@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRenderRoadmap = vi.fn();
 const mockScanVbriefDir = vi.fn();
-const mockFetchIssueStates = vi.fn();
 const mockReconcile = vi.fn();
 const mockIsTerminalLifecyclePath = vi.fn();
 
@@ -16,9 +15,14 @@ vi.mock("../render/roadmap-render.js", () => ({
 
 vi.mock("../intake/reconcile-issues.js", () => ({
   scanVbriefDir: (...args: unknown[]) => mockScanVbriefDir(...args),
-  fetchIssueStates: (...args: unknown[]) => mockFetchIssueStates(...args),
   reconcile: (...args: unknown[]) => mockReconcile(...args),
   isTerminalLifecyclePath: (...args: unknown[]) => mockIsTerminalLifecyclePath(...args),
+}));
+
+const mockFetchIssueStatesForRelease = vi.fn();
+
+vi.mock("./issue-state-fetch.js", () => ({
+  fetchIssueStatesForRelease: (...args: unknown[]) => mockFetchIssueStatesForRelease(...args),
 }));
 
 vi.mock("node:child_process", async (importOriginal) => {
@@ -53,7 +57,7 @@ describe("native release steps", () => {
 
   it("checkVbriefLifecycleSyncNative reports no mismatches", () => {
     mockScanVbriefDir.mockReturnValue(new Map());
-    mockFetchIssueStates.mockReturnValue({});
+    mockFetchIssueStatesForRelease.mockReturnValue({ ok: true, states: new Map() });
     mockReconcile.mockReturnValue({ no_open_issue: [] });
     const [ok, count, msg] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
     expect(ok).toBe(true);
@@ -76,16 +80,31 @@ describe("native release steps", () => {
 
   it("checkVbriefLifecycleSyncNative fails when gh fetch returns null", () => {
     mockScanVbriefDir.mockReturnValue(new Map([[1, []]]));
-    mockFetchIssueStates.mockReturnValue(null);
+    mockFetchIssueStatesForRelease.mockReturnValue({
+      ok: false,
+      reason: "failed to fetch issue states from gh",
+    });
     const [ok, count, msg] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
     expect(ok).toBe(false);
     expect(count).toBe(-1);
     expect(msg).toContain("failed to fetch issue states");
   });
 
+  it("checkVbriefLifecycleSyncNative surfaces rate-limit failure reason", () => {
+    mockScanVbriefDir.mockReturnValue(new Map([[1, []]]));
+    mockFetchIssueStatesForRelease.mockReturnValue({
+      ok: false,
+      reason: "GitHub REST rate limit exhausted (see stderr for recovery steps)",
+    });
+    const [ok, count, msg] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
+    expect(ok).toBe(false);
+    expect(count).toBe(-1);
+    expect(msg).toContain("rate limit exhausted");
+  });
+
   it("checkVbriefLifecycleSyncNative reports lifecycle mismatches", () => {
     mockScanVbriefDir.mockReturnValue(new Map());
-    mockFetchIssueStates.mockReturnValue({});
+    mockFetchIssueStatesForRelease.mockReturnValue({ ok: true, states: new Map() });
     mockReconcile.mockReturnValue({
       no_open_issue: [{ vbrief_files: ["xbrief/active/a.xbrief.json"] }],
     });
@@ -99,7 +118,7 @@ describe("native release steps", () => {
   it("checkVbriefLifecycleSyncNative truncates mismatch preview beyond five", () => {
     const files = Array.from({ length: 6 }, (_, i) => `xbrief/active/story-${i}.xbrief.json`);
     mockScanVbriefDir.mockReturnValue(new Map());
-    mockFetchIssueStates.mockReturnValue({});
+    mockFetchIssueStatesForRelease.mockReturnValue({ ok: true, states: new Map() });
     mockReconcile.mockReturnValue({ no_open_issue: [{ vbrief_files: files }] });
     mockIsTerminalLifecyclePath.mockReturnValue(false);
     const [ok, count, msg] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
@@ -118,16 +137,6 @@ describe("native release steps", () => {
     expect(msg).toContain("scan boom");
   });
 
-  it("checkVbriefLifecycleSyncNative handles entry without vbrief_files", () => {
-    // Entry with undefined vbrief_files — exercises the `?? []` branch
-    mockScanVbriefDir.mockReturnValue(new Map());
-    mockFetchIssueStates.mockReturnValue({});
-    mockReconcile.mockReturnValue({ no_open_issue: [{}] });
-    const [ok, count] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
-    expect(ok).toBe(true);
-    expect(count).toBe(0);
-  });
-
   it("checkVbriefLifecycleSyncNative catches non-Error throws", () => {
     // Exercises the String(err) branch in catch (err instanceof Error = false)
     mockScanVbriefDir.mockImplementation(() => {
@@ -142,7 +151,7 @@ describe("native release steps", () => {
   it("checkVbriefLifecycleSyncNative handles entry without vbrief_files", () => {
     // Entry with undefined vbrief_files — exercises the `?? []` branch
     mockScanVbriefDir.mockReturnValue(new Map());
-    mockFetchIssueStates.mockReturnValue({});
+    mockFetchIssueStatesForRelease.mockReturnValue({ ok: true, states: new Map() });
     mockReconcile.mockReturnValue({ no_open_issue: [{}] });
     const [ok, count] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
     expect(ok).toBe(true);

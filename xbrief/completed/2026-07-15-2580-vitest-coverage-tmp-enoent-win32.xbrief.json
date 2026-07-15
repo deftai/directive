@@ -1,0 +1,90 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2580"
+  },
+  "plan": {
+    "title": "bug(test,windows): Vitest coverage ENOENT on coverage/.tmp mid-suite fails task check after green tests",
+    "status": "completed",
+    "narratives": {
+      "Description": "On native Windows, Vitest coverage runs can fail with ENOENT on coverage/.tmp/coverage-N.json after a green suite. Ensure the tmp dir exists, serialize coverage processing on win32, and tolerate late ENOENT without soft-failing real coverage gate failures.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2580",
+      "Overview": "## Problem\n\nDuring release `task check` on Windows, Vitest can report tests green then exit non-zero:\n\n```\nUnhandled Rejection\nError: ENOENT: no such file or directory, open '...\\\\coverage\\\\.tmp\\\\coverage-0.json'\n```\n\nAdjacent to #2546 (onTaskUpdate RPC) and #2556 (build-dist archiver race) but distinct: the coverage reporter/worker loses `coverage/.tmp` mid-suite under parallel load.\n\n## Operator-locked decision (c)\n\nBOTH ensure `coverage/.tmp` exists + tolerate late ENOENT AND reduce/serialize coverage workers on win32. Do NOT soft-fail the coverage gate when the suite is green.\n\n## Expected\n\n- `coverage/.tmp` is created before workers write chunks\n- win32 coverage runs serialize processing workers\n- Green suite + valid coverage thresholds exit zero\n- Coverage threshold failures still fail closed\n",
+      "Labels": "bug, test-debt, runtime-portability, blocks-release-tag, ci-cd, area:release",
+      "UserStory": "As a Windows maintainer, I want task check coverage runs to finish when tests are green, so that release Step 5 is not blocked by coverage/.tmp ENOENT races.",
+      "ImplementationPlan": "1. Extend vitest.config.ts: win32 coverage processingConcurrency=1, tighter worker caps when --coverage, globalSetup to mkdir coverage/.tmp.\n2. Add win32-coverage-tmp-setup globalSetup module that keeps .tmp present and swallows late ENOENT on coverage chunk paths only.\n3. Extend vitest-config-contract.test.ts with #2580 regression guards.\n4. CHANGELOG [Unreleased] entry.",
+      "Acceptance": "1. coverage/.tmp exists before coverage workers write\n2. win32 serializes/reduces coverage workers\n3. No coverage soft-fail when suite is green\n4. Contract tests guard the mitigation\n5. CHANGELOG updated"
+    },
+    "items": [
+      {
+        "title": "coverage/.tmp exists before workers write",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a win32 coverage run, when workers start, then coverage/.tmp already exists via globalSetup."
+        }
+      },
+      {
+        "title": "win32 serializes coverage workers",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given vitest.config.ts on win32 with --coverage, when loaded, then coverage.processingConcurrency is 1 and worker caps are reduced."
+        }
+      },
+      {
+        "title": "No coverage soft-fail on green suite",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a green suite with passing thresholds, when coverage completes, then exit code is zero; threshold failures still exit non-zero."
+        }
+      },
+      {
+        "title": "Contract tests guard mitigation",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given vitest-config-contract.test.ts, when #2580 settings are removed, then focused tests fail."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "test-debt",
+      "runtime-portability",
+      "blocks-release-tag"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2580",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2580: Vitest coverage ENOENT on coverage/.tmp mid-suite"
+      }
+    ],
+    "updated": "2026-07-15T20:09:20Z",
+    "id": "vitest-coverage-tmp-enoent-win32",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "vitest.config.ts",
+          "packages/core/src/vitest-runner/"
+        ],
+        "verify_commands": [
+          "pnpm run test",
+          "pnpm exec vitest run packages/core/src/vitest-runner/vitest-config-contract.test.ts"
+        ],
+        "expected_outputs": [
+          "Windows coverage runs do not ENOENT on coverage/.tmp after green suite",
+          "Contract tests document win32 coverage tmp mitigation"
+        ],
+        "depends_on": [],
+        "conflict_group": "vitest-runner",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-15T20:09:20Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

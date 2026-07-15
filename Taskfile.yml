@@ -632,7 +632,7 @@ tasks:
   # Per `conventions/task-caching.md` (#574): tasks that accept user-facing recovery flags
   # via {{.CLI_ARGS}} (here: --dry-run / --skip-tag / --skip-release / --allow-dirty /
   # --repo / --no-draft / --allow-low-downloads / --allow-data-loss / --force-strict-0 /
-  # --owner / --keep-repo) MUST NOT declare `sources:` / `generates:` -- the cached `cmds:`
+  # --owner / --destroy-repo) MUST NOT declare `sources:` / `generates:` -- the cached `cmds:`
   # skip would silently discard the recovery flag.
   #
   # Path resolution uses `{{.TASKFILE_DIR}}/scripts/<script>.py` directly because these
@@ -675,7 +675,7 @@ tasks:
           ENGINE_CMD: 'release-rollback {{.CLI_ARGS}}'
 
   release:e2e:
-    desc: "End-to-end release rehearsal against an auto-created+destroyed temp repo (#716) -- task release:e2e [-- --dry-run] [--owner OWNER] [--keep-repo]"
+    desc: "End-to-end release rehearsal against an auto-created temp repo (#716, #2572 keep+report default) -- task release:e2e [-- --dry-run] [--owner OWNER] [--destroy-repo]"
     deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:

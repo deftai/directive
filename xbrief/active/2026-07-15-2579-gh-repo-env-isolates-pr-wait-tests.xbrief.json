@@ -1,0 +1,33 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2579"
+  },
+  "plan": {
+    "title": "GH_REPO in parent shell breaks pr-wait-mergeable tests during task check / release",
+    "status": "running",
+    "narratives": {
+      "Description": "GH_REPO in parent shell breaks pr-wait-mergeable tests during task check / release",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2579",
+      "Overview": "## Summary\n\nFirst v0.78.0 production `task release` Step 5 failed `task check` in part because `packages/core/src/pr-wait-mergeable/main.test.ts` failed when the parent shell had `GH_REPO` set. Clearing `GH_REPO` made the targeted re-run pass.\n\n## Fix\n\nClear `GH_REPO` in `beforeEach` of `main.test.ts` (or pin fixtures via args that win). Exclusive file: `main.test.ts` — do not edit `main.ts` (owned by #2581).\n\n## Acceptance\n\n- Tests pass with `GH_REPO` set in parent shell\n- Sibling audit documented\n- CHANGELOG entry",
+      "Labels": "bug, ci-cd, test-debt, scm, github, area:release"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "test-debt",
+      "scm",
+      "github",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2579",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2579: GH_REPO in parent shell breaks pr-wait-mergeable tests during task check / release"
+      }
+    ],
+    "updated": "2026-07-15T20:00:43Z"
+  }
+}

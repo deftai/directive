@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
@@ -138,21 +138,39 @@ export function runTransition(
 
   const formatted = formatVbriefJson(data);
   const crud = new InstrumentedVbriefCrud({ now: () => now });
-  const writeResult = crud.update(resolvedPath, formatted, { trustedWrite: true });
-  if (!writeResult.ok) {
-    return { ok: false, message: writeResult.error ?? `CRUD update failed for ${resolvedPath}` };
-  }
-  try {
-    persistCrudMetrics(projectRoot, crud.getMetrics());
-  } catch {
-    /* best-effort telemetry persistence */
-  }
 
   if (targetFolder !== null) {
     const destDir = join(vbriefRoot, targetFolder);
     mkdirSync(destDir, { recursive: true });
     const destPath = join(destDir, basename);
-    renameSync(resolvedPath, destPath);
+    if (existsSync(destPath)) {
+      return { ok: false, message: `Target already exists: ${destPath}` };
+    }
+
+    // #2578: stamp terminal status at the destination path in the same write as
+    // folder placement — never leave a non-terminal status under completed/.
+    const writeResult = crud.update(destPath, formatted, { trustedWrite: true });
+    if (!writeResult.ok) {
+      return { ok: false, message: writeResult.error ?? `CRUD update failed for ${destPath}` };
+    }
+
+    try {
+      unlinkSync(resolvedPath);
+    } catch (err: unknown) {
+      try {
+        unlinkSync(destPath);
+      } catch {
+        /* best-effort rollback */
+      }
+      return { ok: false, message: `Failed to remove source after move: ${String(err)}` };
+    }
+
+    try {
+      persistCrudMetrics(projectRoot, crud.getMetrics());
+    } catch {
+      /* best-effort telemetry persistence */
+    }
+
     updateDecomposedParentBackReferences(data, resolvedPath, destPath, vbriefRoot);
     updateDecomposedChildBackReferences(data, resolvedPath, destPath, vbriefRoot);
     syncProjectDefinitionAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
@@ -161,6 +179,16 @@ export function runTransition(
       ok: true,
       message: `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})`,
     };
+  }
+
+  const writeResult = crud.update(resolvedPath, formatted, { trustedWrite: true });
+  if (!writeResult.ok) {
+    return { ok: false, message: writeResult.error ?? `CRUD update failed for ${resolvedPath}` };
+  }
+  try {
+    persistCrudMetrics(projectRoot, crud.getMetrics());
+  } catch {
+    /* best-effort telemetry persistence */
   }
 
   const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);

@@ -6,6 +6,7 @@ import type { CompletedProcess } from "../scm/call.js";
 import { validateEpicStoryLinks } from "../vbrief-validate/epic-links.js";
 import {
   applyLifecycleFixes,
+  attachCompletedStatusDrift,
   buildLifecycleReport,
   extractReferencesFromVbrief,
   fetchIssueStates,
@@ -14,7 +15,9 @@ import {
   isTerminalLifecyclePath,
   parseIssueNumber,
   reconcile,
+  repairCompletedStatusDrift,
   resolveLifecycleAnchor,
+  scanCompletedStatusDrift,
   scanLifecycleAnchors,
 } from "./reconcile-issues.js";
 
@@ -258,5 +261,211 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
     // ...and no stray, version-less vBRIEFInfo block is appended (the #2346 bug
     // that failed vbrief:validate with "'vBRIEFInfo.version' ... got 'undefined'").
     expect("vBRIEFInfo" in data).toBe(false);
+  });
+});
+
+describe("completed/ status drift (#2578)", () => {
+  let root = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("scanCompletedStatusDrift finds non-terminal status in completed/", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    writeFileSync(
+      join(xbrief, "completed", "drift.xbrief.json"),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Drift", status: "running", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    expect(scanCompletedStatusDrift(xbrief)).toEqual([
+      { rel_path: "completed/drift.xbrief.json", status: "running" },
+    ]);
+  });
+
+  it("repairCompletedStatusDrift stamps completed in place", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-repair-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "drift.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Drift", status: "proposed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const drift = scanCompletedStatusDrift(xbrief);
+    const [repaired, skipped, failures] = repairCompletedStatusDrift(xbrief, drift);
+    expect(repaired).toBe(1);
+    expect(skipped).toBe(0);
+    expect(failures).toEqual([]);
+
+    const data = JSON.parse(readFileSync(join(xbrief, "completed", name), "utf8")) as {
+      plan: { status: string };
+    };
+    expect(data.plan.status).toBe("completed");
+  });
+
+  it("formatMarkdown reports completed/ drift section", () => {
+    const md = formatMarkdown(
+      attachCompletedStatusDrift(
+        {
+          linked: [],
+          no_open_issue: [],
+          summary: { linked_count: 0, vbriefs_no_open_issue_count: 0 },
+        },
+        [{ rel_path: "completed/drift.xbrief.json", status: "running" }],
+      ),
+    );
+    expect(md).toContain("(d) completed/ xBRIEFs with non-terminal plan.status");
+    expect(md).toContain("completed/drift.xbrief.json");
+  });
+
+  it("scanCompletedStatusDrift returns empty when completed/ is absent", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-no-completed-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    expect(scanCompletedStatusDrift(xbrief)).toEqual([]);
+  });
+
+  it("repairCompletedStatusDrift skips already-terminal files", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-skip-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "ok.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Done", status: "failed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const [repaired, skipped, failures] = repairCompletedStatusDrift(xbrief, [
+      { rel_path: `completed/${name}`, status: "running" },
+    ]);
+    expect(repaired).toBe(0);
+    expect(skipped).toBe(1);
+    expect(failures).toEqual([]);
+  });
+
+  it("repairCompletedStatusDrift reports malformed paths and missing files", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-fail-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    writeFileSync(join(xbrief, "completed", "bad-json.xbrief.json"), "{not json", "utf8");
+
+    const [, , failures] = repairCompletedStatusDrift(xbrief, [
+      { rel_path: "no-folder.xbrief.json", status: "running" },
+      { rel_path: "completed/missing.xbrief.json", status: "running" },
+      { rel_path: "completed/bad-json.xbrief.json", status: "running" },
+    ]);
+    expect(failures.some((f) => f.includes("no folder"))).toBe(true);
+    expect(failures.some((f) => f.includes("missing"))).toBe(true);
+    expect(failures.some((f) => f.includes("failed to parse"))).toBe(true);
+  });
+
+  it("scanCompletedStatusDrift ignores terminal and empty statuses", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-skip-scan-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    writeFileSync(
+      join(xbrief, "completed", "done.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "Done", status: "completed" } }, null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(xbrief, "completed", "empty.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "Empty" } }, null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(join(xbrief, "completed", "bad-json.xbrief.json"), "not-json", "utf8");
+    writeFileSync(
+      join(xbrief, "completed", "no-plan.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" } }, null, 2)}\n`,
+      "utf8",
+    );
+    expect(scanCompletedStatusDrift(xbrief)).toEqual([]);
+  });
+
+  it("repairCompletedStatusDrift stamps legacy vBRIEFInfo envelope", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-legacy-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "legacy.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.6" },
+          plan: { title: "Legacy", status: "running", items: [{ title: "x", status: "running" }] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const [repaired] = repairCompletedStatusDrift(xbrief, scanCompletedStatusDrift(xbrief));
+    expect(repaired).toBe(1);
+    const data = JSON.parse(readFileSync(join(xbrief, "completed", name), "utf8")) as {
+      vBRIEFInfo: { updated: string };
+      plan: { status: string; items: { status: string }[] };
+    };
+    expect(data.plan.status).toBe("completed");
+    expect(data.vBRIEFInfo.updated).toMatch(/Z$/);
+    expect(data.plan.items[0]?.status).toBe("completed");
+  });
+
+  it("formatMarkdown sanitizes embedded newlines in drift status", () => {
+    const md = formatMarkdown(
+      attachCompletedStatusDrift(
+        {
+          linked: [],
+          no_open_issue: [],
+          summary: { linked_count: 0, vbriefs_no_open_issue_count: 0 },
+        },
+        [{ rel_path: "completed/drift.xbrief.json", status: "run\nning" }],
+      ),
+    );
+    expect(md).toContain("plan.status='run ning'");
+  });
+
+  it("attachCompletedStatusDrift adds summary count", () => {
+    const report = attachCompletedStatusDrift(
+      {
+        linked: [],
+        no_open_issue: [],
+        summary: { linked_count: 0, vbriefs_no_open_issue_count: 0 },
+      },
+      [{ rel_path: "completed/a.xbrief.json", status: "running" }],
+    );
+    expect(report.summary.completed_status_drift_count).toBe(1);
+    expect(report.completed_status_drift).toHaveLength(1);
   });
 });
