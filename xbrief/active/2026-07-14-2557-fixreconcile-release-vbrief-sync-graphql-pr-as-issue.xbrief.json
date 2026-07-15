@@ -1,0 +1,84 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2557 (manual ingest; issue:ingest scm wrapper failed)",
+    "updated": "2026-07-15T03:00:00Z"
+  },
+  "plan": {
+    "title": "fix(reconcile): release vBRIEF sync hard-fails when GraphQL cannot resolve a PR number as an Issue",
+    "status": "running",
+    "narratives": {
+      "Description": "Release Step 3 fetchIssueStates hard-fails when gh GraphQL returns partial errors for PR numbers queried as Issues. Prefer REST or treat unresolvable PR-as-Issue partials as skippable so real issues still sync.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2557",
+      "Overview": "## Problem\n\n`task release` Step 3 (checkVbriefLifecycleSyncNative → fetchIssueStates) fails the entire cut when gh GraphQL returns partial errors like `Could not resolve to an Issue with the number of 401` (a PR number). REST was healthy; workaround was `--allow-vbrief-drift`.\n\n## Expected\n\n- Prefer REST for issue-state fetch (per #954), or\n- Treat \"Could not resolve … as Issue\" partial errors as skippable for that number and continue for real issues.\n",
+      "Labels": "bug, agent-experience",
+      "UserStory": "As a release operator, I want vBRIEF lifecycle sync to tolerate PR numbers mistaken for issues, so that a GraphQL partial error does not force --allow-vbrief-drift for an otherwise healthy cut.",
+      "ImplementationPlan": "1. Update the packages/core/src/intake/reconcile-issues.ts module (fetchIssueStates) and packages/core/src/release/native-steps.ts release Step 3 caller to prefer REST issue-state fetch per #954, or soft-skip GraphQL partial errors that cannot resolve a PR number as an Issue file state.\n2. Add a focused unit test in packages/core/src/intake/reconcile-issues.test.ts covering a mixed set of real issues plus a PR-number-as-issue GraphQL partial, verifying Step 3 continues for resolvable issues instead of hard-failing.",
+      "Acceptance": "1. Step 3 does not hard-fail solely on PR-as-Issue GraphQL partials\n2. Prefer REST over GraphQL when practical"
+    },
+    "items": [
+      {
+        "title": "Soft-skip or REST-fetch issue states",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a cohort that includes a PR number referenced as an issue, when fetchIssueStates runs, then it continues for resolvable issues and does not hard-fail the whole map solely on a GraphQL \"Could not resolve … as Issue\" partial."
+        }
+      },
+      {
+        "title": "Prefer REST when practical",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the release Step 3 preflight, when fetching issue states, then the implementation prefers REST (per #954) or documents why a soft-skip GraphQL path remains."
+        }
+      },
+      {
+        "title": "Regression coverage for PR-as-Issue partial",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a unit test that injects a GraphQL partial for an unresolvable PR number mixed with valid issues, when fetchIssueStates / checkVbriefLifecycleSyncNative runs, then valid issues sync and the cut does not hard-fail."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2557",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2557: fix(reconcile): release vBRIEF sync hard-fails when GraphQL cannot resolve a PR number as an Issue"
+      }
+    ],
+    "updated": "2026-07-15T03:04:08Z",
+    "id": "reconcile-vbrief-sync-pr-as-issue",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/reconcile-issues.ts",
+          "packages/core/src/intake/reconcile-issues.test.ts",
+          "packages/core/src/release/native-steps.ts",
+          "packages/core/src/release/native-steps.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- reconcile-issues",
+          "pnpm --filter @deftai/directive-core test -- native-steps"
+        ],
+        "expected_outputs": [
+          "PR-as-Issue GraphQL partials no longer hard-fail Step 3",
+          "REST preference or documented soft-skip",
+          "Regression test for mixed issue+PR number set"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-vbrief-sync",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2557; GraphQL hygiene per #954."
+      }
+    }
+  }
+}

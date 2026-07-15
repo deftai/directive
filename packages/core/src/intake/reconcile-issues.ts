@@ -243,7 +243,74 @@ function splitRepoSlug(repo: string): [string, string] | null {
 }
 
 export interface FetchIssueStatesOptions extends FetchIssuesOptions {
+  /** @deprecated REST fetch is per-issue; batch size is ignored (#2557 / #954). */
   readonly batchSize?: number;
+}
+
+function normalizeRestIssueState(raw: unknown): string {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return "NOT_FOUND";
+  }
+  return raw.toUpperCase();
+}
+
+function normalizeRestStateReason(raw: unknown): string | null {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return null;
+  }
+  return raw.toUpperCase();
+}
+
+function isRestNotFoundResult(result: CompletedProcess): boolean {
+  const stderr = result.stderr.trim();
+  return (
+    stderr.includes("404") ||
+    stderr.includes("Not Found") ||
+    stderr.includes("Could not resolve to an Issue")
+  );
+}
+
+function issueStateFromRestPayload(payload: Record<string, unknown>): IssueState {
+  return new IssueState(
+    normalizeRestIssueState(payload.state),
+    normalizeRestStateReason(payload.state_reason),
+  );
+}
+
+function fetchOneIssueStateRest(
+  owner: string,
+  name: string,
+  issueNumber: number,
+  scmCall: ScmCallFn,
+  cwd?: string,
+): IssueState | null | "CLI_MISSING" {
+  let result: CompletedProcess;
+  try {
+    result = scmCall(
+      "github-issue",
+      "api",
+      [`repos/${owner}/${name}/issues/${issueNumber}`],
+      { timeout: 30, cwd },
+    );
+  } catch {
+    return "CLI_MISSING";
+  }
+
+  if (result.returncode !== 0) {
+    if (isRestNotFoundResult(result)) {
+      return new IssueState("NOT_FOUND", null);
+    }
+    process.stderr.write(
+      `Error: gh REST failed fetching issue #${issueNumber}: ${result.stderr.trim()}\n`,
+    );
+    return null;
+  }
+
+  try {
+    return issueStateFromRestPayload(JSON.parse(result.stdout) as Record<string, unknown>);
+  } catch {
+    return null;
+  }
 }
 
 export function fetchIssueStates(
@@ -262,70 +329,20 @@ export function fetchIssueStates(
     return null;
   }
   const [owner, name] = parsed;
-  const batchSize = options.batchSize ?? GRAPHQL_BATCH_SIZE;
   const sortedNumbers = [...issueNumbers].sort((a, b) => a - b);
   const states = new Map<number, IssueState>();
   const scmCall = options.scmCall ?? call;
 
-  for (let start = 0; start < sortedNumbers.length; start += batchSize) {
-    const batch = sortedNumbers.slice(start, start + batchSize);
-    const aliases = batch
-      .map((n) => `i${n}: issue(number: ${n}) { state stateReason }`)
-      .join("\n    ");
-    const query = `query {\n  repository(owner: "${owner}", name: "${name}") {\n    ${aliases}\n  }\n}\n`;
-
-    let result: CompletedProcess;
-    try {
-      result = scmCall("github-issue", "api", ["graphql", "-f", `query=${query}`], {
-        timeout: 60,
-        cwd: options.cwd ?? undefined,
-      });
-    } catch {
+  for (const n of sortedNumbers) {
+    const fetched = fetchOneIssueStateRest(owner, name, n, scmCall, options.cwd ?? undefined);
+    if (fetched === "CLI_MISSING") {
       process.stderr.write("Error: gh CLI not found. Install GitHub CLI.\n");
       return null;
     }
-
-    let payload: Record<string, unknown> | null = null;
-    try {
-      payload = result.stdout ? (JSON.parse(result.stdout) as Record<string, unknown>) : null;
-    } catch {
-      payload = null;
-    }
-
-    if (result.returncode !== 0) {
-      if (payload === null || typeof payload.data !== "object" || payload.data === null) {
-        process.stderr.write(`Error: gh CLI failed: ${result.stderr.trim()}\n`);
-        return null;
-      }
-      const firstLine = result.stderr.trim().split("\n")[0] ?? "";
-      process.stderr.write(
-        `Warning: gh GraphQL returned partial errors (likely PR numbers referenced as issues): ${firstLine}\n`,
-      );
-    }
-
-    if (payload === null) {
-      process.stderr.write("Error: failed to parse gh CLI graphql output.\n");
+    if (fetched === null) {
       return null;
     }
-
-    const repoData = (payload.data as Record<string, unknown> | undefined)?.repository;
-    if (repoData === null || typeof repoData !== "object" || Array.isArray(repoData)) {
-      process.stderr.write("Error: gh CLI graphql response missing repository payload.\n");
-      return null;
-    }
-
-    for (const n of batch) {
-      const node = (repoData as Record<string, unknown>)[`i${n}`];
-      if (node !== null && typeof node === "object" && !Array.isArray(node)) {
-        const nodeObj = node as Record<string, unknown>;
-        if (typeof nodeObj.state === "string") {
-          const reason = typeof nodeObj.stateReason === "string" ? nodeObj.stateReason : null;
-          states.set(n, new IssueState(nodeObj.state, reason));
-          continue;
-        }
-      }
-      states.set(n, new IssueState("NOT_FOUND", null));
-    }
+    states.set(n, fetched);
   }
   return states;
 }

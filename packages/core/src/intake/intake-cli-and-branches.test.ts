@@ -309,14 +309,8 @@ describe("intake cli and branch coverage", () => {
         },
       ]);
       const callSpy = vi.spyOn(scm, "call").mockImplementation((_src, _verb, args) => {
-        if (args[0] === "graphql") {
-          return completed(
-            JSON.stringify({
-              data: { repository: { i7: { state: "OPEN", stateReason: null } } },
-            }),
-            "",
-            0,
-          );
+        if (args[0] === "repos/o/r/issues/7") {
+          return completed(JSON.stringify({ state: "open", state_reason: null }), "", 0);
         }
         return completed("[]", "", 0);
       });
@@ -346,20 +340,34 @@ describe("intake cli and branch coverage", () => {
       expect(all?.[0]?.number).toBe(1);
     });
 
-    it("fetchIssueStates handles graphql partial errors", () => {
-      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      const states = fetchIssueStates("o/r", new Set([9]), {
-        scmCall: () =>
-          completed(
-            JSON.stringify({
-              data: { repository: { i9: { state: "CLOSED", stateReason: "COMPLETED" } } },
-            }),
-            "partial error line",
-            1,
-          ),
+    it("fetchIssueStates continues when REST resolves PR numbers as issues", () => {
+      const states = fetchIssueStates("o/r", new Set([9, 401]), {
+        scmCall: (_src, verb, args) => {
+          expect(verb).toBe("api");
+          const path = args?.[0];
+          if (path === "repos/o/r/issues/9") {
+            return completed(
+              JSON.stringify({ state: "closed", state_reason: "completed" }),
+              "",
+              0,
+            );
+          }
+          if (path === "repos/o/r/issues/401") {
+            return completed(
+              JSON.stringify({
+                state: "open",
+                state_reason: null,
+                pull_request: { url: "https://github.com/o/r/pull/401" },
+              }),
+              "",
+              0,
+            );
+          }
+          throw new Error(`unexpected REST path: ${String(path)}`);
+        },
       });
       expect(states?.get(9)?.value).toBe("CLOSED");
-      stderr.mockRestore();
+      expect(states?.get(401)?.value).toBe("OPEN");
     });
 
     it("reconcileCliMain report-unlinked path", () => {
@@ -369,8 +377,8 @@ describe("intake cli and branch coverage", () => {
         if (verb === "issue") {
           return completed("[]", "", 0);
         }
-        if (args[0] === "graphql") {
-          return completed(JSON.stringify({ data: { repository: {} } }), "", 0);
+        if (args[0]?.startsWith("repos/o/r/issues/")) {
+          return completed(JSON.stringify({ state: "open", state_reason: null }), "", 0);
         }
         return completed("{}", "", 0);
       });
@@ -407,15 +415,9 @@ describe("intake cli and branch coverage", () => {
       writeFileSync(join(root, "xbrief", "completed", name), "{}", "utf8");
 
       const callSpy = vi.spyOn(scm, "call").mockImplementation((_src, _verb, args) => {
-        if (args[0] === "graphql") {
+        if (args[0] === "repos/o/r/issues/55") {
           return completed(
-            JSON.stringify({
-              data: {
-                repository: {
-                  i55: { state: "CLOSED", stateReason: "COMPLETED" },
-                },
-              },
-            }),
+            JSON.stringify({ state: "closed", state_reason: "completed" }),
             "",
             0,
           );

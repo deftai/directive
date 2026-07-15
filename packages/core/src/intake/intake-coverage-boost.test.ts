@@ -333,17 +333,19 @@ describe("intake coverage boost", () => {
   });
 
   describe("reconcile-issues", () => {
-    it("fetchIssueStates handles graphql success and not-found", () => {
-      const payload = {
-        data: {
-          repository: {
-            i1: { state: "OPEN", stateReason: null },
-            i2: null,
-          },
-        },
-      };
+    it("fetchIssueStates handles REST success and not-found", () => {
       const states = fetchIssueStates("o/r", new Set([1, 2]), {
-        scmCall: () => completed(JSON.stringify(payload), "", 0),
+        scmCall: (_src, verb, args) => {
+          expect(verb).toBe("api");
+          const path = args?.[0];
+          if (path === "repos/o/r/issues/1") {
+            return completed(JSON.stringify({ state: "open", state_reason: null }), "", 0);
+          }
+          if (path === "repos/o/r/issues/2") {
+            return completed("", "gh: Not Found (HTTP 404)", 1);
+          }
+          throw new Error(`unexpected REST path: ${String(path)}`);
+        },
       });
       expect(states?.get(1)?.value).toBe("OPEN");
       expect(states?.get(2)?.value).toBe("NOT_FOUND");

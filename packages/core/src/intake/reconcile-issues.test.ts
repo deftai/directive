@@ -2,11 +2,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { CompletedProcess } from "../scm/call.js";
 import { validateEpicStoryLinks } from "../vbrief-validate/epic-links.js";
 import {
   applyLifecycleFixes,
   buildLifecycleReport,
   extractReferencesFromVbrief,
+  fetchIssueStates,
   formatMarkdown,
   IssueState,
   isTerminalLifecyclePath,
@@ -15,6 +17,10 @@ import {
   resolveLifecycleAnchor,
   scanLifecycleAnchors,
 } from "./reconcile-issues.js";
+
+function completed(stdout = "", stderr = "", returncode = 0): CompletedProcess {
+  return { args: [], returncode, stdout, stderr };
+}
 
 describe("reconcile-issues", () => {
   it("parses issue numbers from references", () => {
@@ -79,6 +85,38 @@ describe("reconcile-issues", () => {
   it("detects terminal lifecycle paths", () => {
     expect(isTerminalLifecyclePath("completed/foo.xbrief.json")).toBe(true);
     expect(isTerminalLifecyclePath("active/foo.xbrief.json")).toBe(false);
+  });
+
+  it("fetchIssueStates uses REST and tolerates PR numbers mixed with issues (#2557)", () => {
+    const states = fetchIssueStates("o/r", new Set([100, 401, 999]), {
+      scmCall: (_src, verb, args) => {
+        expect(verb).toBe("api");
+        const path = args?.[0];
+        if (path === "repos/o/r/issues/100") {
+          return completed(JSON.stringify({ state: "open", state_reason: null }), "", 0);
+        }
+        if (path === "repos/o/r/issues/401") {
+          return completed(
+            JSON.stringify({
+              state: "closed",
+              state_reason: "completed",
+              pull_request: { url: "https://github.com/o/r/pull/401" },
+            }),
+            "",
+            0,
+          );
+        }
+        if (path === "repos/o/r/issues/999") {
+          return completed("", "gh: Not Found (HTTP 404)", 1);
+        }
+        throw new Error(`unexpected REST path: ${String(path)}`);
+      },
+    });
+    expect(states).not.toBeNull();
+    expect(states?.get(100)?.value).toBe("OPEN");
+    expect(states?.get(401)?.value).toBe("CLOSED");
+    expect(states?.get(401)?.stateReason).toBe("COMPLETED");
+    expect(states?.get(999)?.value).toBe("NOT_FOUND");
   });
 });
 
