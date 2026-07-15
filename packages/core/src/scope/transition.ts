@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
@@ -149,19 +149,8 @@ export function runTransition(
 
     // #2578: stamp terminal status at the destination path in the same write as
     // folder placement — never leave a non-terminal status under completed/.
-    try {
-      writeFileSync(destPath, formatted, "utf8");
-    } catch (err: unknown) {
-      return { ok: false, message: `Failed to write ${destPath}: ${String(err)}` };
-    }
-
     const writeResult = crud.update(destPath, formatted, { trustedWrite: true });
     if (!writeResult.ok) {
-      try {
-        unlinkSync(destPath);
-      } catch {
-        /* best-effort rollback */
-      }
       return { ok: false, message: writeResult.error ?? `CRUD update failed for ${destPath}` };
     }
 

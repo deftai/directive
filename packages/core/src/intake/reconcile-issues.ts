@@ -725,7 +725,8 @@ export function formatMarkdown(report: ReconcileReport): string {
   const drift = report.completed_status_drift ?? [];
   if (drift.length > 0) {
     for (const entry of drift) {
-      lines.push(`- \`${entry.rel_path}\` -- plan.status='${entry.status}'`);
+      const safeStatus = entry.status.replace(/\r?\n/g, " ");
+      lines.push(`- \`${entry.rel_path}\` -- plan.status='${safeStatus}'`);
     }
   } else {
     lines.push("None.");
@@ -1056,9 +1057,10 @@ export function reconcileMain(args: ReconcileCliArgs): number {
       return acc;
     }, 0);
     const [moved, skipped, failures] = applyLifecycleFixes(vbriefDir, applyReport, projectRoot);
+    const driftAfterMove = scanCompletedStatusDrift(vbriefDir);
     const [driftRepaired, driftSkipped, driftFailures] = repairCompletedStatusDrift(
       vbriefDir,
-      completedDrift,
+      driftAfterMove,
     );
     const allFailures = [...failures, ...driftFailures];
     process.stderr.write(
