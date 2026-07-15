@@ -1,4 +1,4 @@
-export { cadenceIntervals } from "./cadence.js";
+export { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 export {
   DEFAULT_CADENCE,
   EXIT_CAP_REACHED,

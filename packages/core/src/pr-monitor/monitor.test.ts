@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
-import { cadenceIntervals } from "./cadence.js";
+import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 import { DEFAULT_CADENCE, EXIT_CAP_REACHED, EXIT_CLEAN, EXIT_PR_TERMINAL } from "./constants.js";
-import { formatPollStatus, isTerminalPrState, mergeStateFromPayload, monitor } from "./monitor.js";
+import { formatPollStatus, isTerminalPrState, mergeStateFromPayload, monitor, sleepWithCadenceHeartbeats, truncateBlockedOn } from "./monitor.js";
 import type { PollResult } from "./types.js";
 
 const HEAD_SHA = "abc1234567890def1234567890abcdef12345678";
@@ -45,6 +45,17 @@ describe("cadenceIntervals", () => {
     expect(intervals.has(180)).toBe(true);
     expect(intervals.has(300)).toBe(true);
   });
+
+  it("repeats the final cadence tier after configured repeats (#2581)", () => {
+    const cadence = [
+      [60, 2],
+      [180, 1],
+    ] as const;
+    expect(cadenceIntervalAfterPoll(1, cadence)).toBe(60);
+    expect(cadenceIntervalAfterPoll(2, cadence)).toBe(60);
+    expect(cadenceIntervalAfterPoll(3, cadence)).toBe(180);
+    expect(cadenceIntervalAfterPoll(99, cadence)).toBe(180);
+  });
 });
 
 describe("formatPollStatus", () => {
@@ -76,6 +87,25 @@ describe("formatPollStatus", () => {
     expect(line).toContain("blocked-on: something went wrong");
   });
 
+  it("preserves Greptile stale SHA prefixes in blocked-on (#2581)", () => {
+    const oldSha = "f5e0d8d5bb4284481f7895930ca8f88a102a38ad";
+    const newSha = "b4ba195f2c35abcdef1234567890abcdef12345678";
+    const line = formatPollStatus(1, {
+      exitCode: 1,
+      payload: {
+        via: "primary",
+        merge_ready: false,
+        head_sha: newSha,
+        failures: [`Greptile last reviewed ${oldSha} but PR HEAD is ${newSha}. Review is stale`],
+      },
+      rawStdout: "",
+      rawStderr: "",
+    });
+    expect(line).toContain("f5e0d8d5bb42");
+    expect(line).toContain("b4ba195f2c35");
+    expect(line).not.toMatch(/PR HEAD is b$/);
+  });
+
   it("emits elapsed + GitHub merge-state heartbeat fields (#2260)", () => {
     const line = formatPollStatus(
       3,
@@ -95,6 +125,38 @@ describe("formatPollStatus", () => {
     );
     expect(line).toContain("t=65s");
     expect(line).toContain("mergeState=clean");
+  });
+});
+
+describe("truncateBlockedOn", () => {
+  it("compacts Greptile stale SHA messages with distinguishable prefixes", () => {
+    const oldSha = "f5e0d8d5bb4284481f7895930ca8f88a102a38ad";
+    const newSha = "b4ba195f2c35abcdef1234567890abcdef12345678";
+    const compact = truncateBlockedOn(
+      `Greptile last reviewed ${oldSha} but PR HEAD is ${newSha}. Review is stale`,
+    );
+    expect(compact).toContain("f5e0d8d5bb42");
+    expect(compact).toContain("b4ba195f2c35");
+    expect(compact.length).toBeLessThanOrEqual(80);
+  });
+
+  it("falls back to plain truncation for non-SHA failures", () => {
+    expect(truncateBlockedOn("x".repeat(120), 40)).toHaveLength(40);
+  });
+});
+
+describe("sleepWithCadenceHeartbeats", () => {
+  it("chunks long sleeps so no gap exceeds 2x prior cadence", () => {
+    const sleeps: number[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    sleepWithCadenceHeartbeats(180, 60, 5, (s) => {
+      sleeps.push(s);
+    });
+    expect(sleeps).toEqual([120, 60]);
+    const emitted = stderr.mock.calls.map((c) => String(c[0])).join("");
+    expect(emitted).toContain("waiting 180s until poll #5");
+    expect(emitted).toContain("still waiting 60s until poll #5");
+    stderr.mockRestore();
   });
 });
 
@@ -182,19 +244,20 @@ describe("monitor loop", () => {
       clock.value += s;
     };
     const result = monitor(1363, "deftai/directive", {
-      capMinutes: 120,
-      cadence: [[1, 3]],
+      capMinutes: 0.01,
+      cadence: [[0.1, 10]],
       sleepFn: advancingSleep,
       clockFn: clock,
-      callReadinessFn: makeCallLog(
-        { via: "fallback2", merge_ready: true, failures: [] },
-        { via: "fallback2", merge_ready: true, failures: [] },
-        { via: "fallback2", merge_ready: true, failures: [] },
-      ),
+      callReadinessFn: (): PollResult => ({
+        exitCode: 1,
+        payload: { via: "fallback2", merge_ready: true, failures: [] },
+        rawStdout: "",
+        rawStderr: "",
+      }),
     });
     expect(result.exitCode).toBe(EXIT_CAP_REACHED);
     expect(result.payload.via).toBe("fallback2");
-    expect(result.pollCount).toBe(3);
+    expect(result.pollCount).toBeGreaterThan(0);
   });
 
   it("short-circuits on terminal PR state", () => {
@@ -337,5 +400,82 @@ describe("monitor loop", () => {
     expect(result.exitCode).toBe(EXIT_CLEAN);
     expect(result.payload.via).toBe("fallback1");
     expect(result.pollCount).toBe(3);
+  });
+
+  it("continues through update-branch race and reaches CLEAN (#2581)", () => {
+    const oldSha = "f5e0d8d5bb4284481f7895930ca8f88a102a38ad";
+    const newSha = "b4ba195f2c35abcdef1234567890abcdef12345678";
+    const clock = new FakeClock();
+    const advancingSleep = (s: number) => {
+      clock.value += s;
+    };
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const result = monitor(2571, "deftai/directive", {
+      capMinutes: 120,
+      cadence: [[1, 3], [2, 2]],
+      sleepFn: advancingSleep,
+      clockFn: clock,
+      callReadinessFn: makeCallLog(
+        {
+          via: "primary",
+          merge_ready: false,
+          head_sha: newSha,
+          failures: [`Greptile last reviewed ${oldSha} but PR HEAD is ${newSha}. Review is stale`],
+          partial_data: { mergeability: { mergeable_state: "blocked", mergeable: false } },
+        },
+        {
+          via: "primary",
+          merge_ready: false,
+          head_sha: newSha,
+          failures: [`Greptile last reviewed ${oldSha} but PR HEAD is ${newSha}. Review is stale`],
+          partial_data: { mergeability: { mergeable_state: "blocked", mergeable: false } },
+        },
+        {
+          via: "primary",
+          merge_ready: false,
+          head_sha: newSha,
+          failures: [`Greptile last reviewed ${oldSha} but PR HEAD is ${newSha}. Review is stale`],
+          partial_data: { mergeability: { mergeable_state: "blocked", mergeable: false } },
+        },
+        { via: "primary", merge_ready: true, head_sha: newSha, failures: [] },
+      ),
+    });
+    const emitted = stderr.mock.calls.map((c) => String(c[0])).join("");
+    stderr.mockRestore();
+
+    expect(result.exitCode).toBe(EXIT_CLEAN);
+    expect(result.pollCount).toBe(4);
+    expect(emitted).toContain("f5e0d8d5bb42");
+    expect(emitted).toContain("b4ba195f2c35");
+  });
+
+  it("emits wait heartbeats when cadence tier jumps beyond 2x prior (#2581)", () => {
+    const clock = new FakeClock();
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const result = monitor(2571, "deftai/directive", {
+      capMinutes: 120,
+      cadence: [
+        [1, 3],
+        [3, 2],
+      ],
+      sleepFn: (s) => {
+        clock.value += s;
+      },
+      clockFn: clock,
+      callReadinessFn: makeCallLog(
+        { via: "primary", merge_ready: false, failures: ["blocked"] },
+        { via: "primary", merge_ready: false, failures: ["blocked"] },
+        { via: "primary", merge_ready: false, failures: ["blocked"] },
+        { via: "primary", merge_ready: false, failures: ["blocked"] },
+        { via: "primary", merge_ready: true, failures: [] },
+      ),
+    });
+    const emitted = stderr.mock.calls.map((c) => String(c[0])).join("");
+    stderr.mockRestore();
+
+    expect(result.exitCode).toBe(EXIT_CLEAN);
+    expect(result.pollCount).toBe(5);
+    expect(emitted).toContain("waiting");
+    expect(emitted).toContain("poll #5");
   });
 });

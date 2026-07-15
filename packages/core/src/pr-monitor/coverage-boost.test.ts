@@ -20,10 +20,17 @@ describe("coverage boost", () => {
 
   it("forwards readiness stderr after poll status", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let reads = 0;
+    const clockFn = {
+      now(): number {
+        reads += 1;
+        return reads <= 2 ? 0 : 1000;
+      },
+    };
     monitor(1, "deftai/directive", {
-      capMinutes: 10,
+      capMinutes: 0.001,
       sleepFn: () => undefined,
-      clockFn: { now: () => 0 },
+      clockFn,
       callReadinessFn: (): PollResult => ({
         exitCode: 1,
         payload: { via: "error", merge_ready: false, failures: ["x"] },
@@ -63,12 +70,19 @@ describe("coverage boost", () => {
     expect(result.pollCount).toBe(1);
   });
 
-  it("returns CONFIG_ERROR when loop exhausts with config exit", () => {
+  it("returns CONFIG_ERROR when cap expires after config-error poll (#2581)", () => {
+    let reads = 0;
+    const clockFn = {
+      now(): number {
+        reads += 1;
+        return reads <= 2 ? 0 : 1;
+      },
+    };
     const result = monitor(1, "deftai/directive", {
-      capMinutes: 120,
+      capMinutes: 0.001,
       cadence: [[1, 1]],
       sleepFn: () => undefined,
-      clockFn: { now: () => 0 },
+      clockFn,
       callReadinessFn: (): PollResult => ({
         exitCode: EXIT_CONFIG_ERROR,
         payload: { via: "error", merge_ready: false },

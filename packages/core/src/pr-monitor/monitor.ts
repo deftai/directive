@@ -1,4 +1,4 @@
-import { cadenceIntervals } from "./cadence.js";
+import { cadenceIntervalAfterPoll } from "./cadence.js";
 import {
   DEFAULT_CADENCE,
   EXIT_CAP_REACHED,
@@ -20,6 +20,63 @@ function defaultSleep(seconds: number): void {
   const target = start + seconds * 1000;
   while (Date.now() < target) {
     // busy-wait fallback when no injectable sleep in production CLI path
+  }
+}
+
+const GREPTILE_STALE_SHA_RE =
+  /^Greptile last reviewed ([0-9a-f]+) but PR HEAD is ([0-9a-f]+)\./i;
+
+/**
+ * Truncate blocked-on text for one-line heartbeats while preserving
+ * distinguishable SHA prefixes during update-branch races (#2581).
+ */
+export function truncateBlockedOn(failure: string, maxLen = 80): string {
+  const match = GREPTILE_STALE_SHA_RE.exec(failure);
+  if (match !== null) {
+    const [, reviewedSha, headSha] = match;
+    const compact =
+      `Greptile last reviewed ${reviewedSha.slice(0, 12)}... ` +
+      `but PR HEAD is ${headSha.slice(0, 12)}...`;
+    if (compact.length <= maxLen) {
+      return compact;
+    }
+  }
+  return failure.slice(0, maxLen);
+}
+
+/** Emit interim stderr heartbeats during long sleeps (#2581 / #2260). */
+export function sleepWithCadenceHeartbeats(
+  totalSeconds: number,
+  priorCadenceSeconds: number,
+  nextPollIndex: number,
+  sleepFn: (seconds: number) => void,
+): void {
+  if (totalSeconds <= 0) {
+    return;
+  }
+  const maxSilentGap = Math.max(1, priorCadenceSeconds * 2);
+  if (totalSeconds <= maxSilentGap) {
+    sleepFn(totalSeconds);
+    return;
+  }
+
+  let remaining = totalSeconds;
+  let emittedWait = false;
+  while (remaining > 0) {
+    const chunk = Math.min(remaining, maxSilentGap);
+    if (!emittedWait) {
+      process.stderr.write(
+        `[monitor_pr] waiting ${Math.ceil(remaining)}s until poll #${nextPollIndex} ` +
+          `(heartbeat cap ${maxSilentGap}s)\n`,
+      );
+      emittedWait = true;
+    } else {
+      process.stderr.write(
+        `[monitor_pr] still waiting ${Math.ceil(remaining)}s until poll #${nextPollIndex}\n`,
+      );
+    }
+    sleepFn(chunk);
+    remaining -= chunk;
   }
 }
 
@@ -80,7 +137,7 @@ export function formatPollStatus(
     `[monitor_pr] poll #${pollIndex} t=${elapsed}s via=${via} head=${headDisplay} ` +
     `mergeState=${mergeState} ${label} (${failures.length} failures)`;
   if (firstFailure.length > 0) {
-    line += ` -- blocked-on: ${firstFailure.slice(0, 80)}`;
+    line += ` -- blocked-on: ${truncateBlockedOn(firstFailure)}`;
   }
   return line;
 }
@@ -101,7 +158,7 @@ export function monitor(
   repo: string,
   options: MonitorOptions = {},
 ): MonitorRunResult {
-  const intervals = cadenceIntervals(options.cadence ?? DEFAULT_CADENCE);
+  const cadence = options.cadence ?? DEFAULT_CADENCE;
   const capSeconds = (options.capMinutes ?? 60) * 60;
   const clockFn = options.clockFn ?? systemMonotonicClock;
   const sleepFn = options.sleepFn ?? defaultSleep;
@@ -112,8 +169,9 @@ export function monitor(
   let pollIndex = 0;
   let lastPayload: Record<string, unknown> = {};
   let lastExit = EXIT_CAP_REACHED;
+  let priorCadenceSeconds = cadenceIntervalAfterPoll(1, cadence);
 
-  for (const interval of intervals) {
+  while (true) {
     pollIndex += 1;
     const elapsed = clockFn.now() - startedAt;
     if (elapsed > capSeconds) {
@@ -141,18 +199,20 @@ export function monitor(
       return { exitCode: EXIT_PR_TERMINAL, payload: lastPayload, pollCount: pollIndex };
     }
 
-    if (pollIndex < intervals.length) {
-      const elapsedAfterPoll = clockFn.now() - startedAt;
-      const remaining = capSeconds - elapsedAfterPoll;
-      if (remaining <= 0) {
-        return { exitCode: EXIT_CAP_REACHED, payload: lastPayload, pollCount: pollIndex };
-      }
-      sleepFn(Math.min(interval, Math.max(1, Math.trunc(remaining))));
+    const elapsedAfterPoll = clockFn.now() - startedAt;
+    const remaining = capSeconds - elapsedAfterPoll;
+    if (remaining <= 0) {
+      const finalExit = lastExit === EXIT_CONFIG_ERROR ? EXIT_CONFIG_ERROR : EXIT_CAP_REACHED;
+      return { exitCode: finalExit, payload: lastPayload, pollCount: pollIndex };
     }
-  }
 
-  const finalExit = lastExit === EXIT_CONFIG_ERROR ? EXIT_CONFIG_ERROR : EXIT_CAP_REACHED;
-  return { exitCode: finalExit, payload: lastPayload, pollCount: pollIndex };
+    const sleepSeconds = Math.min(
+      cadenceIntervalAfterPoll(pollIndex, cadence),
+      Math.max(1, Math.trunc(remaining)),
+    );
+    sleepWithCadenceHeartbeats(sleepSeconds, priorCadenceSeconds, pollIndex + 1, sleepFn);
+    priorCadenceSeconds = sleepSeconds;
+  }
 }
 
 export const summaryLabelForExit = (exitCode: number): string => {
