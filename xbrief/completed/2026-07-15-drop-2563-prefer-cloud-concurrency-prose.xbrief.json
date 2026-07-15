@@ -1,0 +1,68 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Remove prefer-cloud / concurrency-1 Windows swarm prose; keep #2563 mitigations"
+  },
+  "plan": {
+    "id": "story-drop-2563-prefer-cloud-prose",
+    "title": "docs(swarm): drop prefer-cloud and concurrency-1 Windows guidance (#2563 follow-up)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Agents were routing Windows swarms to cloud because preamble §3.8 and the swarm skill told them to prefer cloud or concurrency=1. Remove that prose only. Keep windowsHide and warm-dist mitigations.",
+      "UserStory": "As a Windows maintainer, I want local parallel Cursor Task swarms to be the default guidance, so that agents do not silently switch to cloud and hit PR-create 403s.",
+      "ImplementationPlan": "1. Rewrite content/templates/agent-prompt-preamble.md §3.8 to document shipped mitigations and affirm local parallel swarm.\n2. Rewrite the #2563 bullet in content/packs/skills/skills-pack-0.1.json deft-directive-swarm body; run task packs:render.\n3. CHANGELOG [Unreleased].\n4. Optional content-contract assertion that prefer-cloud / concurrency-1 anti-patterns are absent.",
+      "Acceptance": "1. No prefer-cloud or concurrency-1 MUST/anti-pattern in preamble or swarm skill\n2. Mitigations (windowsHide, warm-dist) still documented as shipped\n3. packs rendered; CHANGELOG updated"
+    },
+    "items": [
+      {
+        "title": "Rewrite preamble §3.8",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given agent-prompt-preamble.md §3.8, when read, then it does not prefer cloud or require concurrency=1, and it documents windowsHide + warm-dist as shipped mitigations."
+        }
+      },
+      {
+        "title": "Rewrite swarm skill #2563 bullet",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given deft-directive-swarm skill (pack source + rendered), when read, then it does not prefer cloud or concurrency=1."
+        }
+      }
+    ],
+    "tags": [
+      "docs",
+      "swarm",
+      "windows"
+    ],
+    "updated": "2026-07-15T22:46:56Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agent-prompt-preamble.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-swarm/SKILL.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- agent_prompt_preamble",
+          "task packs:render"
+        ],
+        "expected_outputs": [
+          "Prefer-cloud / concurrency-1 prose removed",
+          "Mitigations still documented",
+          "CHANGELOG entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-2563-prose",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Operator-directed docs cleanup after AFK cohort cloud mis-route."
+      },
+      "completedAt": "2026-07-15T22:46:56Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

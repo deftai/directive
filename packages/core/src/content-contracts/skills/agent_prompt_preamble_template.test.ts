@@ -113,6 +113,16 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("host-gh");
     expect(templateText).toContain("injected-token");
   });
+  it("template_windows_2563_does_not_prefer_cloud_or_concurrency_one", () => {
+    // Follow-up to #2563: mitigations stay; prefer-cloud / concurrency=1 prose must not return.
+    expect(templateText).toContain("Windows Cursor Task-tool console windows (#2563)");
+    expect(templateText).toContain("windowsHide");
+    expect(templateText).toContain("ts-build-fresh");
+    expect(templateText).not.toMatch(/Prefer in-parent implementation or cloud workers/i);
+    expect(templateText).not.toMatch(/keep concurrency at \*\*1\*\*/i);
+    expect(templateText).toContain("Do not route to cloud solely because the host is Windows");
+    expect(templateText).toContain("do not force concurrency=1 because of #2563");
+  });
   it("template_cloud_pr_shepherd_review_monitor_worked_example_present", () => {
     expect(templateText).toContain("Cloud PR-shepherd dispatch");
     expect(templateText).toContain("review-monitor");

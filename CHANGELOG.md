@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Windows swarm guidance no longer prefers cloud or concurrency=1 (#2563 follow-up).** Preamble §3.8 and the swarm skill now treat local parallel Cursor Task cohorts as first-class on Windows; they document the shipped `windowsHide` + warm-dist mitigations and forbid regressing them, instead of steering agents to cloud or a single worker.
+
 ### Added
 
 - **Empty triage cache auto-populates from GitHub before queue reads (#2575).** `verify:cache-fresh`, `triage:queue`, `triage:summary`, and `triage:welcome` now run an idempotent fetch-all when `.deft-cache/github-issue/` has zero entries (repo inferred from git/`$DEFT_TRIAGE_REPO`), then proceed — without weakening the 24h freshness gate for non-empty caches. Closes #2575.
