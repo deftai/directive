@@ -340,4 +340,37 @@ describe("completed/ status drift (#2578)", () => {
     expect(md).toContain("(d) completed/ xBRIEFs with non-terminal plan.status");
     expect(md).toContain("completed/drift.xbrief.json");
   });
+
+  it("scanCompletedStatusDrift returns empty when completed/ is absent", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-no-completed-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    expect(scanCompletedStatusDrift(xbrief)).toEqual([]);
+  });
+
+  it("repairCompletedStatusDrift skips already-terminal files", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-drift-skip-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "ok.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Done", status: "failed", items: [] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const [repaired, skipped, failures] = repairCompletedStatusDrift(xbrief, [
+      { rel_path: `completed/${name}`, status: "running" },
+    ]);
+    expect(repaired).toBe(0);
+    expect(skipped).toBe(1);
+    expect(failures).toEqual([]);
+  });
 });

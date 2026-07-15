@@ -126,6 +126,16 @@ describe("runTransition", () => {
     expect(result.message).toContain("Invalid transition");
   });
 
+  it("rejects move when destination already exists (#2578)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running", "dup.xbrief.json");
+    writeVbrief(root, "completed", "completed", "dup.xbrief.json");
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Target already exists");
+    expect(existsSync(file)).toBe(true);
+  });
+
   it("detects lifecycle folder", () => {
     expect(detectLifecycleFolder("/tmp/xbrief/pending/foo.xbrief.json")).toBe("pending");
     expect(detectLifecycleFolder("/tmp/other/foo.xbrief.json")).toBeNull();
