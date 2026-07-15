@@ -556,7 +556,8 @@ export function scanLifecycleAnchors(vbriefDir: string): Record<string, unknown>
   return anchors;
 }
 
-const COMPLETED_TERMINAL_STATUSES = FOLDER_ALLOWED_STATUSES.completed ?? new Set(["completed", "failed"]);
+const COMPLETED_TERMINAL_STATUSES =
+  FOLDER_ALLOWED_STATUSES.completed ?? new Set(["completed", "failed"]);
 
 /** Scan completed/ for xBRIEFs whose plan.status is not terminal (D2 drift, #2578). */
 export function scanCompletedStatusDrift(vbriefDir: string): CompletedStatusDriftEntry[] {
@@ -570,7 +571,9 @@ export function scanCompletedStatusDrift(vbriefDir: string): CompletedStatusDrif
     return drift;
   }
 
-  for (const filename of readdirSync(completedDir).filter((f) => hasArtifactSuffix(f)).sort()) {
+  for (const filename of readdirSync(completedDir)
+    .filter((f) => hasArtifactSuffix(f))
+    .sort()) {
     const relPath = `completed/${filename}`;
     let data: Record<string, unknown>;
     try {
