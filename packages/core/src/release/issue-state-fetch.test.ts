@@ -135,6 +135,22 @@ describe("issue-state-fetch", () => {
     stderrSpy.mockRestore();
   });
 
+  it("fetchIssueStatesForRelease does not probe rate_limit on non-rate-limit failures", () => {
+    const sleep = vi.fn();
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const scmCall = vi.fn().mockReturnValue(completed("", "auth failed", 1));
+    const result = fetchIssueStatesForRelease("deftai/directive", new Set([1]), {
+      scmCall,
+      sleep,
+    });
+    expect(result.ok).toBe(false);
+    expect(scmCall).toHaveBeenCalledTimes(1);
+    const stderrText = stderrSpy.mock.calls.map((c) => String(c[0])).join("");
+    expect(stderrText).not.toContain("rate limit probe");
+    expect(stderrText).not.toContain("--allow-vbrief-drift");
+    stderrSpy.mockRestore();
+  });
+
   it("fetchIssueStatesForRelease does not retry on non-rate-limit failures", () => {
     const sleep = vi.fn();
     const scmCall = vi.fn().mockReturnValue(completed("", "auth failed", 1));

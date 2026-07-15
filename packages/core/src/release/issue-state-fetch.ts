@@ -192,11 +192,14 @@ export function fetchIssueStatesForRelease(
   }
 
   const rateLimitRelated = sawRateLimit || lastRateLimitStderr.length > 0;
-  const probe = probeGithubRateLimit(baseScmCall, cwd);
-  const details = formatRateLimitFailureDetails(probe, rateLimitRelated);
-  process.stderr.write(`${details}\n`);
-  const reason = rateLimitRelated
-    ? "GitHub REST rate limit exhausted (see stderr for recovery steps)"
-    : "failed to fetch issue states from gh";
-  return { ok: false, reason };
+  if (rateLimitRelated) {
+    const probe = probeGithubRateLimit(baseScmCall, cwd);
+    const details = formatRateLimitFailureDetails(probe, true);
+    process.stderr.write(`${details}\n`);
+    return {
+      ok: false,
+      reason: "GitHub REST rate limit exhausted (see stderr for recovery steps)",
+    };
+  }
+  return { ok: false, reason: "failed to fetch issue states from gh" };
 }

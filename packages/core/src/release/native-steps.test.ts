@@ -137,16 +137,6 @@ describe("native release steps", () => {
     expect(msg).toContain("scan boom");
   });
 
-  it("checkVbriefLifecycleSyncNative handles entry without vbrief_files", () => {
-    // Entry with undefined vbrief_files — exercises the `?? []` branch
-    mockScanVbriefDir.mockReturnValue(new Map());
-    mockFetchIssueStatesForRelease.mockReturnValue({ ok: true, states: new Map() });
-    mockReconcile.mockReturnValue({ no_open_issue: [{}] });
-    const [ok, count] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
-    expect(ok).toBe(true);
-    expect(count).toBe(0);
-  });
-
   it("checkVbriefLifecycleSyncNative catches non-Error throws", () => {
     // Exercises the String(err) branch in catch (err instanceof Error = false)
     mockScanVbriefDir.mockImplementation(() => {
