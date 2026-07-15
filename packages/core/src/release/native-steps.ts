@@ -6,12 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  isTerminalLifecyclePath,
-  reconcile,
-  scanVbriefDir,
-} from "../intake/reconcile-issues.js";
-import { fetchIssueStatesForRelease } from "./issue-state-fetch.js";
+import { isTerminalLifecyclePath, reconcile, scanVbriefDir } from "../intake/reconcile-issues.js";
 import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
@@ -19,6 +14,7 @@ import {
   resolveLifecycleRoot,
 } from "../layout/resolve.js";
 import { renderRoadmap } from "../render/roadmap-render.js";
+import { fetchIssueStatesForRelease } from "./issue-state-fetch.js";
 import type { ReleaseSeams } from "./types.js";
 
 const BUILD_DIST_RUNNER = join(dirname(fileURLToPath(import.meta.url)), "build-dist-runner.js");

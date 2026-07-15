@@ -2,11 +2,8 @@
  * Release Step 3 issue-state fetch with capped rate-limit retry (#2577).
  */
 import { detectRateLimit } from "../cache/fetch.js";
-import {
-  fetchIssueStates,
-  type FetchIssueStatesOptions,
-} from "../intake/reconcile-issues.js";
-import { call, type CallOptions, type CompletedProcess } from "../scm/call.js";
+import { type FetchIssueStatesOptions, fetchIssueStates } from "../intake/reconcile-issues.js";
+import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 
 export type ScmCallFn = (
   source: string,
@@ -34,7 +31,10 @@ export interface FetchIssueStatesForReleaseOptions extends FetchIssueStatesOptio
 }
 
 export type FetchIssueStatesForReleaseResult =
-  | { readonly ok: true; readonly states: Map<number, import("../intake/reconcile-issues.js").IssueState> }
+  | {
+      readonly ok: true;
+      readonly states: Map<number, import("../intake/reconcile-issues.js").IssueState>;
+    }
   | { readonly ok: false; readonly reason: string };
 
 function defaultSleep(seconds: number): void {
@@ -76,9 +76,7 @@ function parseRateLimitProbe(stdout: string): RateLimitProbe | null {
     const coreResetUnix =
       coreResetRaw === undefined ? null : Number.parseInt(String(coreResetRaw), 10);
     const graphqlRemaining =
-      graphqlRemainingRaw === undefined
-        ? null
-        : Number.parseInt(String(graphqlRemainingRaw), 10);
+      graphqlRemainingRaw === undefined ? null : Number.parseInt(String(graphqlRemainingRaw), 10);
     if (
       (coreRemaining !== null && Number.isNaN(coreRemaining)) ||
       (coreResetUnix !== null && Number.isNaN(coreResetUnix)) ||
@@ -92,10 +90,7 @@ function parseRateLimitProbe(stdout: string): RateLimitProbe | null {
   }
 }
 
-export function probeGithubRateLimit(
-  scmCall: ScmCallFn,
-  cwd?: string,
-): RateLimitProbe | null {
+export function probeGithubRateLimit(scmCall: ScmCallFn, cwd?: string): RateLimitProbe | null {
   let result: CompletedProcess;
   try {
     result = scmCall("github-issue", "api", ["rate_limit"], { timeout: 30, cwd });
@@ -147,9 +142,7 @@ export function formatRateLimitFailureDetails(
     lines.push("Probe `gh api rate_limit` for core.remaining and reset time.");
   }
   if (rateLimitRelated) {
-    lines.push(
-      "Recovery: wait for the REST core bucket to reset, then re-run `task release`.",
-    );
+    lines.push("Recovery: wait for the REST core bucket to reset, then re-run `task release`.");
     lines.push(
       "If local lifecycle validation is clean (`task vbrief:validate` exits 0), you may pass `--allow-vbrief-drift` to skip Step 3 for this cut.",
     );

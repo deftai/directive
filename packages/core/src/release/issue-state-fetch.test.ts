@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CompletedProcess } from "../scm/call.js";
 import { IssueState } from "../intake/reconcile-issues.js";
+import type { CompletedProcess } from "../scm/call.js";
 import {
   computeRateLimitSleepSeconds,
   fetchIssueStatesForRelease,
@@ -69,7 +69,7 @@ describe("issue-state-fetch", () => {
     const sleep = vi.fn();
     const now = vi.fn().mockReturnValue(2_000_000_000);
     let issueCalls = 0;
-    const scmCall = vi.fn((source: string, verb: string, args: readonly string[] | null) => {
+    const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[] | null) => {
       if (args?.[0] === "rate_limit") {
         return completed(
           JSON.stringify({
@@ -104,7 +104,7 @@ describe("issue-state-fetch", () => {
   it("fetchIssueStatesForRelease emits actionable failure after retry still rate-limited", () => {
     const sleep = vi.fn();
     const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const scmCall = vi.fn((source: string, verb: string, args: readonly string[] | null) => {
+    const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[] | null) => {
       if (args?.[0] === "rate_limit") {
         return completed(
           JSON.stringify({
@@ -154,7 +154,10 @@ describe("issue-state-fetch", () => {
     const scmCall = vi
       .fn()
       .mockReturnValue(completed(JSON.stringify({ state: "closed", state_reason: "completed" })));
-    const result = fetchIssueStatesForRelease("deftai/directive", new Set([11]), { scmCall, sleep });
+    const result = fetchIssueStatesForRelease("deftai/directive", new Set([11]), {
+      scmCall,
+      sleep,
+    });
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.states.get(11)).toEqual(new IssueState("CLOSED", "COMPLETED"));
