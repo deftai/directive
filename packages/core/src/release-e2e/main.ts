@@ -27,12 +27,14 @@ export function runE2e(config: E2EConfig, seams: E2ESeams & LegacyBridgeLegSeams
           "Tier-0 SoT lastGoInstaller(), pending-pin while null)",
       );
     }
-    emit(
-      "Temp repo cleanup",
-      `DRYRUN (would keep ${owner}/${slug}; manual cleanup: ${formatTempRepoCleanupHint(owner, slug)})`,
-    );
+    const cleanupHint = formatTempRepoCleanupHint(owner, slug);
     if (config.destroyRepo) {
-      emit("Destroy temp repo", `DRYRUN (would run \`${formatTempRepoCleanupHint(owner, slug)}\`)`);
+      emit("Destroy temp repo", `DRYRUN (would run \`${cleanupHint}\`)`);
+    } else {
+      emit(
+        "Temp repo cleanup",
+        `DRYRUN (would keep ${owner}/${slug}; manual cleanup: ${cleanupHint})`,
+      );
     }
     return EXIT_OK;
   }
