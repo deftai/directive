@@ -150,6 +150,15 @@ describe("truncateBlockedOn", () => {
   it("falls back to plain truncation for non-SHA failures", () => {
     expect(truncateBlockedOn("x".repeat(120), 40)).toHaveLength(40);
   });
+
+  it("falls back when compact SHA message still exceeds maxLen", () => {
+    const oldSha = "a".repeat(40);
+    const newSha = "b".repeat(40);
+    const failure = `Greptile last reviewed ${oldSha} but PR HEAD is ${newSha}.`;
+    const out = truncateBlockedOn(failure, 30);
+    expect(out).toHaveLength(30);
+    expect(out).toBe(failure.slice(0, 30));
+  });
 });
 
 describe("sleepWithCadenceHeartbeats", () => {
