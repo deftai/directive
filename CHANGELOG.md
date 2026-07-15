@@ -20,15 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-<<<<<<< HEAD
 - **pr-wait-mergeable unit tests no longer inherit parent-shell `GH_REPO`.** `main.test.ts` clears `GH_REPO` in `beforeEach` so config-error cases stay deterministic when maintainers or release Step 5 run `task check` with orchestration env set. Closes #2579.
-=======
-<<<<<<< HEAD
->>>>>>> 962e48e2 (fix(release): Step 3 rate-limit retry and actionable FAIL (#2577))
 - **Windows Vitest coverage no longer ENOENTs on `coverage/.tmp` mid-suite (#2580).** Native Windows `task check` coverage runs now pre-create and keep `coverage/.tmp` via globalSetup, serialize v8 `processingConcurrency`, and cap fork workers when `--coverage` is active so green suites are not blocked by temp-directory races; coverage thresholds still fail closed. Closes #2580.
-=======
 - **Release Step 3 retries once when GitHub REST core rate limit is exhausted (#2577).** `task release` Step 3 (`Pre-flight vBRIEF lifecycle sync`) now sleeps once (capped at 120s) and retries issue-state fetch on HTTP 403 rate-limit errors instead of failing immediately. Persistent exhaustion emits actionable stderr with `gh api rate_limit` probe output and documents that `--allow-vbrief-drift` is appropriate after local `task vbrief:validate` is green. Closes #2577.
->>>>>>> c21d301f (fix(release): Step 3 rate-limit retry and actionable FAIL (#2577))
 
 ### Removed
 
