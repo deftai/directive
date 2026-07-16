@@ -433,6 +433,13 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		return 1
 	}
 
+	// Phase 4b1 (#2534): .prettierignore upkeep so consumer `prettier --check .`
+	// does not fail on the vendored .deft/core payload.
+	if _, err := EnsurePrettierIgnoreLines(w, result.ProjectDir, result.LegacyLayout); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
 	// Phase 4b2 (#1430): deposit the neutralization so the vendored framework
 	// payload at .deft/core/** is treated as packaged framework assets -- not
 	// consumer source -- by linguist (language stats), bot reviewers

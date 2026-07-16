@@ -26,6 +26,7 @@ import {
   LegacyLayoutRefusedError,
 } from "./legacy-detect.js";
 import { printMigrateNudgeIfNeeded } from "./migrate.js";
+import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
@@ -204,6 +205,7 @@ export async function runInitDeposit(
   await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
   await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
   ensureInitGitignoreLines(projectDir, io);
+  ensurePrettierIgnoreLines(projectDir, io);
 
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const version = readContentVersion(

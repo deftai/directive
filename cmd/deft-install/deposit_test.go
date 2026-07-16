@@ -115,6 +115,90 @@ func TestEnsureGitattributes_RepairsMissingLfPin(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// EnsurePrettierIgnoreLines (#2534)
+// ---------------------------------------------------------------------------
+
+func TestEnsurePrettierIgnoreLines_CreatesNew(t *testing.T) {
+	tmp := t.TempDir()
+	changed, err := EnsurePrettierIgnoreLines(newDepositWizard(), tmp, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on greenfield consumer")
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".prettierignore"))
+	if err != nil {
+		t.Fatalf("missing .prettierignore: %v", err)
+	}
+	if !strings.Contains(string(data), canonicalPrettierIgnoreCoreLine) {
+		t.Errorf(".prettierignore missing %q", canonicalPrettierIgnoreCoreLine)
+	}
+}
+
+func TestEnsurePrettierIgnoreLines_AppendsPreservesExisting(t *testing.T) {
+	tmp := t.TempDir()
+	pre := "# consumer pre-existing\nnode_modules/\n"
+	if err := os.WriteFile(filepath.Join(tmp, ".prettierignore"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EnsurePrettierIgnoreLines(newDepositWizard(), tmp, false); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".prettierignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, pre) {
+		t.Errorf(".prettierignore preamble lost; got:\n%s", content)
+	}
+	if !strings.Contains(content, canonicalPrettierIgnoreCoreLine) {
+		t.Errorf(".prettierignore missing %q after augment", canonicalPrettierIgnoreCoreLine)
+	}
+}
+
+func TestEnsurePrettierIgnoreLines_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	w := newDepositWizard()
+	if _, err := EnsurePrettierIgnoreLines(w, tmp, false); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := EnsurePrettierIgnoreLines(w, tmp, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Error("expected changed=false on second invocation")
+	}
+	data, _ := os.ReadFile(filepath.Join(tmp, ".prettierignore"))
+	if got := strings.Count(string(data), canonicalPrettierIgnoreCoreLine); got != 1 {
+		t.Errorf("expected exactly one %q line, got %d", canonicalPrettierIgnoreCoreLine, got)
+	}
+}
+
+func TestEnsurePrettierIgnoreLines_LegacyLayout(t *testing.T) {
+	tmp := t.TempDir()
+	changed, err := EnsurePrettierIgnoreLines(newDepositWizard(), tmp, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on greenfield consumer")
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".prettierignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	for _, want := range []string{canonicalPrettierIgnoreCoreLine, legacyPrettierIgnoreLine} {
+		if !strings.Contains(content, want) {
+			t.Errorf(".prettierignore missing %q for legacy layout", want)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
 // EnsureGreptileIgnore (#1430)
 // ---------------------------------------------------------------------------
 

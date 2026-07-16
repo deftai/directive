@@ -52,6 +52,7 @@ import {
   LegacyLayoutRefusedError,
 } from "./legacy-detect.js";
 import { printMigrateNudgeIfNeeded } from "./migrate.js";
+import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
@@ -655,6 +656,7 @@ export async function runRefreshDeposit(
   // destructive `git rm --cached .deft/core` un-track is the deliberate
   // `migrate --untrack-core` step (#2269), not `update`.
   ensureInitGitignoreLines(projectDir, io, { gitLsFiles: seams.gitLsFiles });
+  ensurePrettierIgnoreLines(projectDir, io);
 
   let taskfileWired = false;
   if (args.nonInteractive) {

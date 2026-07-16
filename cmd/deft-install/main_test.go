@@ -780,6 +780,9 @@ func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
 	if _, err := EnsureGitignoreLines(w, result.ProjectDir); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := EnsurePrettierIgnoreLines(w, result.ProjectDir, false); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := WriteConsumerVbrief(w, result.ProjectDir, result.DeftDir); err != nil {
 		t.Fatal(err)
 	}
@@ -790,11 +793,12 @@ func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
 	}
 
 	allowed := map[string]bool{
-		".deft":      true, // canonical framework parent
-		"AGENTS.md":  true,
-		".agents":    true,
-		".gitignore": true, // #1015 F2 baseline
-		"vbrief":     true, // consumer-root scope vBRIEF workspace
+		".deft":           true, // canonical framework parent
+		"AGENTS.md":       true,
+		".agents":         true,
+		".gitignore":      true, // #1015 F2 baseline
+		".prettierignore": true, // #2534 Prettier gate exclusion
+		"vbrief":          true, // consumer-root scope vBRIEF workspace
 	}
 	for _, e := range entries {
 		if !allowed[e.Name()] {

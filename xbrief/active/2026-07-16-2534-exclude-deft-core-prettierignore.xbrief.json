@@ -1,0 +1,91 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2534 (swarm-of-1 worktree cohort)",
+    "updated": "2026-07-16T15:01:04.443Z"
+  },
+  "plan": {
+    "title": "Exclude managed .deft/core from consumer Prettier / format gates",
+    "status": "running",
+    "narratives": {
+      "Description": "Install and npm-managed update must deposit/heal a .prettierignore entry for managed .deft/core (and legacy deft/ when present) so consumer prettier --check . does not fail on the vendored payload. Do not try to make the deposit Prettier-clean for every consumer config.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2534 (converted 2026-07-16 from deposit-format-cleanliness framing)",
+      "Overview": "## Problem\n\nv0.76.0 vendored deposit fails consumer `prettier --check .` (~207 files under `.deft/core/`), blocking upgrades (e.g. BestiMax PR 100). Byte-matching every consumer Prettier version/config is not viable (#670 class).\n\n## Product contract\n\nManaged `.deft/core/` is outside the consumer format gate. Official install/update must ensure durable `.prettierignore` coverage (idempotent heal). Docs name the contract. Deposit-wide prettier --write is optional hygiene only, not acceptance.\n\n## Non-goals\n\n- Reformatting the content deposit as the primary fix\n- Gitignoring `.deft/core` (committed payload remains #11)\n- Every non-Prettier formatter in v1\n",
+      "Labels": "bug, adoption-blocker",
+      "UserStory": "As a consumer upgrading Directive with a root Prettier gate, I want install/update to exclude managed .deft/core from Prettier automatically, so that task check passes without reformatting upstream content.",
+      "ImplementationPlan": "1. Add EnsurePrettierIgnoreLines (or equivalent) in cmd/deft-install mirroring EnsureGitignoreLines: deposit `.deft/core/` and legacy `deft/` when applicable; idempotent; preserve consumer preamble.\n2. Wire the same upkeep into the TS npm-managed path (packages/core/src/init-deposit refresh / directive-update) so updates heal ignores too.\n3. Document the contract briefly in content/UPGRADING.md (and install guidance if needed).\n4. Go + TS regression tests for create/append/idempotent heal.\n5. CHANGELOG [Unreleased] entry. Closes #2534.",
+      "Acceptance": "1. Fresh install and official update leave root prettier --check . free of .deft/core failures\n2. Idempotent second install/update\n3. Docs name the contract\n4. Tests cover deposit/heal\n5. CHANGELOG entry"
+    },
+    "items": [
+      {
+        "title": "Go installer .prettierignore upkeep",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a consumer project without .prettierignore (or missing the entry), when deft-install / upgrade runs, then `.prettierignore` contains `.deft/core/` (and legacy `deft/` when that layout is active), without duplicating on a second run."
+        }
+      },
+      {
+        "title": "TS npm-managed update .prettierignore upkeep",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an npm-managed deposit refresh/update (directive-update / init-deposit refresh), when the update completes, then consumer `.prettierignore` is healed with the managed-core ignore entry idempotently."
+        }
+      },
+      {
+        "title": "Docs + CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given UPGRADING (and/or install guidance), when a consumer reads it, then it states managed `.deft/core` is outside the consumer Prettier gate and install/update deposits the ignore; CHANGELOG [Unreleased] names the user-visible fix and closes #2534."
+        }
+      },
+      {
+        "title": "Regression tests",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the Go installer and TS init-deposit test suites, when they run, then create/append/idempotent cases for `.prettierignore` pass."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2534",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2534: Exclude managed .deft/core from consumer Prettier / format gates"
+      }
+    ],
+    "updated": "2026-07-16T15:01:04.443Z",
+    "id": "2534-exclude-deft-core-prettierignore",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/",
+          "packages/core/src/init-deposit/",
+          "content/UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/...",
+          "pnpm --filter @deftai/directive-core test -- init-deposit"
+        ],
+        "expected_outputs": [
+          "EnsurePrettierIgnoreLines (or equivalent) on install and update",
+          "Docs + CHANGELOG for #2534"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-prettierignore",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bug fix ingested from GitHub issue #2534; no spec-section requirement trace applies. Deposit-wide prettier --write is intentionally out of scope."
+      }
+    }
+  }
+}

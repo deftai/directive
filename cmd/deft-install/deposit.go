@@ -441,6 +441,101 @@ func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
 	return true, nil
 }
 
+// canonicalPrettierIgnoreCoreLine excludes the vendored framework payload from
+// the consumer's Prettier format gate (#2534). The deposit is packaged upstream
+// content — byte-matching every consumer Prettier version/config is not viable.
+const canonicalPrettierIgnoreCoreLine = ".deft/core/"
+
+// legacyPrettierIgnoreLine excludes the pre-v0.27 legacy install layout when
+// --legacy-layout is active.
+const legacyPrettierIgnoreLine = "deft/"
+
+// prettierIgnoreCoveringLines lists alternate spellings that already exclude a
+// canonical prettierignore entry.
+var prettierIgnoreCoveringLines = map[string][]string{
+	canonicalPrettierIgnoreCoreLine: {".deft/core/", ".deft/core", ".deft/core/**"},
+	legacyPrettierIgnoreLine:        {"deft/", "deft", "deft/**"},
+}
+
+func resolvePrettierIgnoreTargetLines(legacyLayout bool) []string {
+	lines := []string{canonicalPrettierIgnoreCoreLine}
+	if legacyLayout {
+		lines = append(lines, legacyPrettierIgnoreLine)
+	}
+	return lines
+}
+
+func prettierIgnoreCoversLine(present map[string]bool, line string) bool {
+	if present[line] {
+		return true
+	}
+	for _, alt := range prettierIgnoreCoveringLines[line] {
+		if present[alt] {
+			return true
+		}
+	}
+	return false
+}
+
+// EnsurePrettierIgnoreLines ensures the consumer's .prettierignore excludes the
+// managed framework deposit from Prettier checks (#2534). The file is created
+// when absent; pre-existing lines are preserved verbatim. Idempotent: a second
+// run makes no change. Returns true when the file was modified.
+func EnsurePrettierIgnoreLines(w *Wizard, projectDir string, legacyLayout bool) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, ".prettierignore"); err != nil {
+		return false, err
+	}
+	path := filepath.Join(projectDir, ".prettierignore")
+	data, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return false, fmt.Errorf("could not read .prettierignore: %w", err)
+	}
+	existing := ""
+	if err == nil {
+		existing = string(data)
+	}
+
+	present := map[string]bool{}
+	for _, raw := range strings.Split(existing, "\n") {
+		stripped := stripGitignoreInlineComment(raw)
+		if stripped != "" {
+			present[stripped] = true
+		}
+	}
+
+	targetLines := resolvePrettierIgnoreTargetLines(legacyLayout)
+	var additions []string
+	for _, line := range targetLines {
+		if !prettierIgnoreCoversLine(present, line) {
+			additions = append(additions, line)
+		}
+	}
+	if len(additions) == 0 {
+		w.printf(".prettierignore already excludes the managed deft framework deposit — skipping.\n")
+		return false, nil
+	}
+
+	var body strings.Builder
+	body.WriteString(existing)
+	if existing != "" && !strings.HasSuffix(existing, "\n") {
+		body.WriteString("\n")
+	}
+	if existing != "" && !strings.HasSuffix(existing, "\n\n") {
+		body.WriteString("\n")
+	}
+	body.WriteString("# Deft framework: the vendored payload is outside the consumer Prettier gate (#2534).\n")
+	for _, add := range additions {
+		body.WriteString(add)
+		body.WriteString("\n")
+	}
+
+	if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
+		return false, fmt.Errorf("could not write .prettierignore: %w", err)
+	}
+	w.printf(".prettierignore updated with Deft framework exclusions: %s\n", strings.Join(additions, ", "))
+	return true, nil
+}
+
 // EnsureGreptileIgnore ensures the consumer's greptile.json ignores
 // .deft/core/** during bot review (#1430). The file is created when absent. When
 // present, only the newline-separated `ignorePatterns` string is touched --

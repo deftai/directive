@@ -74,6 +74,8 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
 
    This re-copies the vendored `.deft/core/` payload and refreshes project-root `.githooks/` (#2049).
 
+   **Prettier / format gate (#2534):** managed `.deft/core/` is outside your consumer Prettier gate. `directive init` and `directive update` idempotently deposit or heal a root `.prettierignore` entry for `.deft/core/` so `prettier --check .` (and `task check` when Prettier is wired) does not fail on the vendored framework payload. You do not need to reformat `.deft/core/` after upgrade.
+
    > **`deft update` is the single canonical upgrade verb (#2064).** The older `deft install-upgrade` (and its `task upgrade` maintainer alias) now print a one-line notice and delegate to this exact `deft update` path — they no longer have their own semantics. Previously `install-upgrade` only rewrote the marker/manifest without swapping the payload, so on a stale deposit it reported a false "Project already at X. Nothing to do." Use `deft update`; there is nothing `install-upgrade` does that `deft update` does not.
 
 3. **Stamp npm provenance (one-time, idempotent):**
