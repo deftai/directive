@@ -1,13 +1,15 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { parseArgs } from "./sync-from-xbrief-cli.js";
 import {
   buildSyncComment,
   extractSyncSnapshot,
   fingerprintSyncSnapshot,
   hasMaterialChanges,
   resolveOriginIssue,
+  sanitizeMarkdownInline,
   SYNC_COMMENT_HEADER,
   syncFromXbrief,
 } from "./sync-from-xbrief.js";
@@ -110,6 +112,34 @@ describe("issue-sync buildSyncComment", () => {
     expect(body).toContain("issue:sync-from-xbrief verb");
     expect(body).toContain("Sync posts a comment");
   });
+
+  it("sanitizes embedded newlines in inline markdown fields", () => {
+    const body = buildSyncComment(
+      {
+        plan: {
+          title: "Broken\nTitle",
+          status: "running",
+          items: [{ title: "Item\nOne", status: "pending" }],
+        },
+      },
+      "xbrief/active/example.xbrief.json",
+    );
+    expect(body).toContain("**Scope:** Broken Title");
+    expect(body).toContain("Item One");
+    expect(body).not.toMatch(/\*\*Scope:\*\* Broken\nTitle/);
+  });
+});
+
+describe("issue-sync sanitizeMarkdownInline", () => {
+  it("collapses newlines to spaces", () => {
+    expect(sanitizeMarkdownInline("a\nb")).toBe("a b");
+  });
+});
+
+describe("issue-sync cli parseArgs", () => {
+  it("errors when --repo is missing its value", () => {
+    expect(parseArgs(["--repo"]).error).toContain("--repo");
+  });
 });
 
 describe("issue-sync dry-run and missing origin", () => {
@@ -143,6 +173,66 @@ describe("issue-sync dry-run and missing origin", () => {
     });
     expect(code).toBe(1);
     expect(err.join("\n")).toContain("no linked GitHub issue origin");
+  });
+
+  it("skips posting when fingerprint matches stored metadata", () => {
+    const snapshot = extractSyncSnapshot(ORIGIN_XBRIEF);
+    const path = writeTempXbrief({
+      ...ORIGIN_XBRIEF,
+      plan: {
+        ...ORIGIN_XBRIEF.plan,
+        metadata: {
+          issueSync: { fingerprint: fingerprintSyncSnapshot(snapshot) },
+        },
+      },
+    });
+    const out: string[] = [];
+    const runFn = vi.fn();
+    const code = syncFromXbrief({
+      xbriefPath: path,
+      repo: "deftai/directive",
+      writeOut: (line) => out.push(line),
+      runFn,
+    });
+    expect(code).toBe(0);
+    expect(out.join("\n")).toContain("nothing to post");
+    expect(runFn).not.toHaveBeenCalled();
+  });
+
+  it("posts comment and persists fingerprint on happy path", () => {
+    const path = writeTempXbrief(ORIGIN_XBRIEF);
+    const runFn = vi.fn(() => ({ id: 999 }));
+    const code = syncFromXbrief({
+      xbriefPath: path,
+      repo: "deftai/directive",
+      runFn,
+    });
+    expect(code).toBe(0);
+    expect(runFn).toHaveBeenCalled();
+    const saved = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const plan = saved.plan as Record<string, unknown>;
+    const metadata = plan.metadata as Record<string, unknown>;
+    const issueSync = metadata.issueSync as Record<string, unknown>;
+    expect(issueSync.fingerprint).toMatch(/^[a-f0-9]{16}$/);
+    expect(issueSync.issueNumber).toBe(2540);
+  });
+
+  it("reports fingerprint persistence failure separately after posting", () => {
+    const path = writeTempXbrief(ORIGIN_XBRIEF);
+    const err: string[] = [];
+    const code = syncFromXbrief({
+      xbriefPath: path,
+      repo: "deftai/directive",
+      runFn: () => ({ id: 1001 }),
+      writeFingerprint: () => {
+        throw new Error("read-only");
+      },
+      writeErr: (line) => err.push(line),
+    });
+    expect(code).toBe(1);
+    expect(err.join("\n")).toContain("comment posted (id: 1001)");
+    expect(err.join("\n")).toContain("failed to persist sync fingerprint");
+    expect(err.join("\n")).not.toContain("failed to post comment");
   });
 });
 

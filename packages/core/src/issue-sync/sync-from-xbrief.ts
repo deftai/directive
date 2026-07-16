@@ -139,20 +139,27 @@ export function hasMaterialChanges(data: Record<string, unknown>): boolean {
   return stored === null || stored !== current;
 }
 
+export function sanitizeMarkdownInline(text: string): string {
+  return text.replace(/\r?\n/g, " ");
+}
+
 export function buildSyncComment(data: Record<string, unknown>, xbriefPath: string): string {
   const snapshot = extractSyncSnapshot(data);
+  const safeTitle = sanitizeMarkdownInline(snapshot.title);
   const lines: string[] = [
     SYNC_COMMENT_HEADER,
     "",
-    `**Scope:** ${snapshot.title}`,
-    `**Status:** \`${snapshot.status}\``,
+    `**Scope:** ${safeTitle}`,
+    `**Status:** \`${sanitizeMarkdownInline(snapshot.status)}\``,
     `**xBRIEF:** \`${xbriefPath}\``,
   ];
 
   if (snapshot.items.length > 0) {
     lines.push("", "### Plan items", "");
     for (const item of snapshot.items) {
-      lines.push(`- **${item.status}** — ${item.title}`);
+      lines.push(
+        `- **${sanitizeMarkdownInline(item.status)}** — ${sanitizeMarkdownInline(item.title)}`,
+      );
     }
   }
 
@@ -172,6 +179,23 @@ export interface SyncFromXbriefOptions {
   readonly runFn?: RunGhApiFn;
   readonly writeErr?: (message: string) => void;
   readonly writeOut?: (message: string) => void;
+  readonly writeFingerprint?: (absPath: string, data: Record<string, unknown>) => void;
+}
+
+export function stampIssueSyncFingerprint(
+  data: Record<string, unknown>,
+  origin: OriginIssueTarget,
+): Record<string, unknown> {
+  const plan = (data.plan ?? {}) as Record<string, unknown>;
+  const metadata = { ...((plan.metadata as Record<string, unknown> | undefined) ?? {}) };
+  metadata.issueSync = {
+    fingerprint: fingerprintSyncSnapshot(extractSyncSnapshot(data)),
+    syncedAt: new Date().toISOString(),
+    issueNumber: origin.number,
+    repo: origin.repo,
+  };
+  plan.metadata = metadata;
+  return { ...data, plan };
 }
 
 export function syncFromXbrief(options: SyncFromXbriefOptions): number {
@@ -217,33 +241,38 @@ export function syncFromXbrief(options: SyncFromXbriefOptions): number {
     return 0;
   }
 
+  let commentResult: Record<string, unknown>;
   try {
-    const result = createIssueComment(origin.repo, origin.number, {
+    commentResult = createIssueComment(origin.repo, origin.number, {
       body: comment,
       runFn: options.runFn,
     });
-    writeOut(
-      `issue:sync-from-xbrief: posted comment to ${origin.repo}#${origin.number} (id: ${result.id}).`,
-    );
-
-    const plan = (data.plan ?? {}) as Record<string, unknown>;
-    const metadata = { ...((plan.metadata as Record<string, unknown> | undefined) ?? {}) };
-    metadata.issueSync = {
-      fingerprint: fingerprintSyncSnapshot(extractSyncSnapshot(data)),
-      syncedAt: new Date().toISOString(),
-      issueNumber: origin.number,
-      repo: origin.repo,
-    };
-    plan.metadata = metadata;
-    data.plan = plan;
-    writeFileSync(absPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-    return 0;
   } catch (exc) {
     writeErr(
       `issue:sync-from-xbrief: failed to post comment: ${exc instanceof Error ? exc.message : String(exc)}`,
     );
     return 1;
   }
+
+  writeOut(
+    `issue:sync-from-xbrief: posted comment to ${origin.repo}#${origin.number} (id: ${commentResult.id}).`,
+  );
+
+  const writeFingerprint =
+    options.writeFingerprint ??
+    ((targetPath, stamped) => {
+      writeFileSync(targetPath, `${JSON.stringify(stamped, null, 2)}\n`, "utf8");
+    });
+
+  try {
+    writeFingerprint(absPath, stampIssueSyncFingerprint(data, origin));
+  } catch (exc) {
+    writeErr(
+      `issue:sync-from-xbrief: comment posted (id: ${commentResult.id}) but failed to persist sync fingerprint in ${options.xbriefPath}: ${exc instanceof Error ? exc.message : String(exc)}`,
+    );
+    return 1;
+  }
+  return 0;
 }
 
 export interface SyncFromXbriefCliArgs {
