@@ -198,6 +198,20 @@ export function reconcileLabels(
           : {};
       const desired = computeDesiredLabels(plan, hasUnresolvedDeps(swarm, knownIds));
 
+      // Guard before any SCM read so cross-repo refusal is explicit (#2601 / Greptile P1).
+      const mutateGate = isRepoMutationAllowed(effectiveRepo, root, {
+        allowCrossRepo: options.allowCrossRepo,
+        allowlist: options.repoAllowlist,
+        explicitRepo: options.repo ?? null,
+      });
+      if (!mutateGate.allowed) {
+        outcome.errors.push({
+          story_id: storyId,
+          message: mutateGate.reason ?? `refusing cross-repo mutation on ${effectiveRepo}`,
+        });
+        continue;
+      }
+
       let current: string[];
       try {
         current = client.fetchLabels(effectiveRepo, number);
@@ -222,18 +236,6 @@ export function reconcileLabels(
 
       if (add.length === 0 && remove.length === 0) {
         outcome.unchanged.push(change);
-        continue;
-      }
-      const mutateGate = isRepoMutationAllowed(effectiveRepo, root, {
-        allowCrossRepo: options.allowCrossRepo,
-        allowlist: options.repoAllowlist,
-        explicitRepo: options.repo ?? null,
-      });
-      if (!mutateGate.allowed) {
-        outcome.errors.push({
-          story_id: storyId,
-          message: mutateGate.reason ?? `refusing cross-repo mutation on ${effectiveRepo}`,
-        });
         continue;
       }
       if (options.dryRun) {
