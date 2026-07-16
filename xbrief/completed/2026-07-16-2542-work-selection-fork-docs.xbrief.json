@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "docs: teach consumers the work-selection fork (ordered plan vs ranked queue)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Document the two work-selection paths after #2402: operator-ordered plan (plan-sequence:*) vs ranked triage queue. Expand AGENTS/#1149 pointer, add commands.md Two paths subsection, open triage skill with the fork, and add one triage:welcome/consumer-header orientation line. Optional authoring skill is out of scope.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2542",
@@ -58,7 +58,7 @@
         "title": "Issue #2542: docs work-selection fork"
       }
     ],
-    "updated": "2026-07-16T15:55:18.378Z",
+    "updated": "2026-07-16T16:46:59Z",
     "id": "2542-work-selection-fork-docs",
     "metadata": {
       "kind": "story",
@@ -87,7 +87,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Docs discoverability slice ingested from GitHub issue #2542; no spec-section requirement trace applies. Optional plan-sequence authoring skill deferred per issue MAY split."
-      }
+      },
+      "completedAt": "2026-07-16T16:46:59Z",
+      "capacityBucket": "new-capability"
     }
   }
 }
