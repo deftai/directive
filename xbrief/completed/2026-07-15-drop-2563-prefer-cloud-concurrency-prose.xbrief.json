@@ -16,14 +16,14 @@
     "items": [
       {
         "title": "Rewrite preamble §3.8",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given agent-prompt-preamble.md §3.8, when read, then it does not prefer cloud or require concurrency=1, and it documents windowsHide + warm-dist as shipped mitigations."
         }
       },
       {
         "title": "Rewrite swarm skill #2563 bullet",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given deft-directive-swarm skill (pack source + rendered), when read, then it does not prefer cloud or concurrency=1."
         }
