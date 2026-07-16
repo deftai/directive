@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "scope:complete syncs specification.xbrief.json item statuses",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Mirror #1527 PROJECT-DEFINITION sync for specification.xbrief.json roadmap/registry items on scope terminal transitions.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2566",
@@ -31,7 +31,9 @@
         }
       }
     ],
-    "tags": ["bug"],
+    "tags": [
+      "bug"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2566",
@@ -50,14 +52,21 @@
           "packages/core/src/scope/specification-sync.test.ts",
           "packages/core/src/scope/transition.ts"
         ],
-        "verify_commands": ["pnpm exec vitest run packages/core/src/scope/specification-sync.test.ts"],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/specification-sync.test.ts"
+        ],
         "expected_outputs": [
           "specification item statuses sync on scope:complete, scope:fail, and scope:cancel"
         ],
-        "depends_on": ["2578"],
+        "depends_on": [
+          "2578"
+        ],
         "conflict_group": "specification-registry-sync",
         "size": "medium"
-      }
-    }
+      },
+      "completedAt": "2026-07-16T16:54:13Z",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-07-16T16:54:13Z"
   }
 }

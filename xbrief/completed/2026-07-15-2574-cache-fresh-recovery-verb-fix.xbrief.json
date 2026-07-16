@@ -6,7 +6,7 @@
   "plan": {
     "id": "2574-cache-fresh-recovery-verb-fix",
     "title": "bug(cache,session): gated ritual recovery prints working cache fetch-all command",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Gated session ritual cache_fresh failures print `deft cache:fetch-all --force`, which is unknown on the npm CLI and omits required --source/--repo flags. Recovery text must use the space-separated `deft cache fetch-all --source github-issue --repo OWNER/NAME` surface.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2574",
@@ -25,7 +25,11 @@
         }
       }
     ],
-    "tags": ["bug", "agent-experience", "area:session"],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:session"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2574",
@@ -42,7 +46,10 @@
           "packages/core/src/session/",
           "packages/core/src/preflight-cache/evaluate.ts"
         ]
-      }
-    }
+      },
+      "completedAt": "2026-07-16T16:54:48Z",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-07-16T16:54:48Z"
   }
 }

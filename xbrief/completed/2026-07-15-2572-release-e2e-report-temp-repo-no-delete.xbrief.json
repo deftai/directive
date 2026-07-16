@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "release-e2e: do not attempt temp-repo delete during agent release; report for manual cleanup",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Default release-e2e to keep+report temp repos instead of attempting gh repo delete. Agents lack delete_repo permission; failed deletes stall releases. Optional --destroy-repo for privileged environments.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2572",
@@ -39,7 +39,10 @@
         }
       }
     ],
-    "tags": ["bug", "release"],
+    "tags": [
+      "bug",
+      "release"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2572",
@@ -47,7 +50,7 @@
         "title": "Issue #2572: release-e2e temp-repo keep+report"
       }
     ],
-    "updated": "2026-07-15T18:30:00Z",
+    "updated": "2026-07-16T16:54:44Z",
     "id": "release-e2e-keep-report",
     "metadata": {
       "kind": "story",
@@ -65,7 +68,9 @@
           "Default path skips gh repo delete",
           "Phase 3 skill documents keep+report"
         ]
-      }
+      },
+      "completedAt": "2026-07-16T16:54:44Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }

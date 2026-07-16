@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "GH_REPO in parent shell breaks pr-wait-mergeable tests during task check / release",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "GH_REPO in parent shell breaks pr-wait-mergeable tests during task check / release",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2579",
@@ -28,6 +28,10 @@
         "title": "Issue #2579: GH_REPO in parent shell breaks pr-wait-mergeable tests during task check / release"
       }
     ],
-    "updated": "2026-07-15T20:00:43Z"
+    "updated": "2026-07-16T16:54:53Z",
+    "metadata": {
+      "completedAt": "2026-07-16T16:54:53Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "release: Step 3 lifecycle sync hard-fails when GitHub REST core rate limit is exhausted",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add capped sleep+retry on HTTP 403 rate-limit during release Step 3 issue-state fetch, actionable FAIL text with rate_limit probe, and document --allow-vbrief-drift escape after local vbrief:validate is green.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2577",
@@ -39,7 +39,15 @@
         }
       }
     ],
-    "tags": ["bug", "blocks-release-tag", "operational", "scm", "github", "area:release", "release"],
+    "tags": [
+      "bug",
+      "blocks-release-tag",
+      "operational",
+      "scm",
+      "github",
+      "area:release",
+      "release"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2577",
@@ -47,7 +55,7 @@
         "title": "Issue #2577: release Step 3 lifecycle sync hard-fails when GitHub REST core rate limit is exhausted"
       }
     ],
-    "updated": "2026-07-15T20:00:00Z",
+    "updated": "2026-07-16T16:54:49Z",
     "id": "release-step3-rate-limit-backoff",
     "metadata": {
       "kind": "story",
@@ -70,7 +78,9 @@
         "depends_on": [],
         "conflict_group": "release-step3",
         "size": "S"
-      }
+      },
+      "completedAt": "2026-07-16T16:54:49Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }

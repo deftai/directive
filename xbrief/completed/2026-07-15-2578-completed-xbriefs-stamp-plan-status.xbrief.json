@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(scope): completed/ xBRIEFs must stamp plan.status completed|failed atomically with the folder move",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "During v0.78.0 release, D2 validate failed because six files under xbrief/completed/ retained non-terminal plan.status (proposed/running). Lifecycle folder and JSON status drift blocks release/CI.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2578",
@@ -49,7 +49,7 @@
         "title": "Issue #2578: completed/ xBRIEFs must stamp plan.status atomically with folder move"
       }
     ],
-    "updated": "2026-07-15T20:00:00Z",
+    "updated": "2026-07-16T16:54:51Z",
     "id": "completed-xbriefs-stamp-plan-status",
     "metadata": {
       "kind": "story",
@@ -74,7 +74,9 @@
         "depends_on": [],
         "conflict_group": "scope-lifecycle",
         "size": "S"
-      }
+      },
+      "completedAt": "2026-07-16T16:54:51Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
