@@ -235,6 +235,21 @@ flowchart TD
 
 User-facing surface for the Phase 0 triage workflow and the unified content cache. These commands let agents work an existing backlog locally without repeatedly draining shared GitHub rate limits.
 
+### Two paths (#2542)
+
+Directive does not guess your mix. Either you name the next units in order (**ordered plan**), or you let the ranked backlog suggest (**queue**). Labels bias the queue; they do not override an active plan.
+
+| Path | When | Who sets it | Bare "what's next?" means |
+|---|---|---|---|
+| **Ordered plan** | You know the next few units (A then B then stop) | `task plan-sequence:set -- --file <json>` | Current sequence entry only; exhaustion fails closed |
+| **Ranked queue** | Picking from backlog, mixing types, or exploring | Labels + `task triage:queue` | Top of ranked cache (after the plan-sequence gate) |
+
+**Ordered plan verbs:** `plan-sequence:set`, `plan-sequence:current`, `plan-sequence:advance`, `plan-sequence:clear`, `task verify:plan-sequence -- --target-kind <kind> --target <id>`. When the sequence is exhausted, stop until the operator names a new target or explicitly asks for queue/backlog selection ("what's the queue?", "build a cohort"). Do not reuse triage queue `continuationNumbers` / `continuationOrder` for ordered-plan state.
+
+**Queue escape:** Same session can use both paths — finish a short plan, then fall back to the queue; or say "what's the queue?" / "build a cohort" mid-plan to switch explicitly.
+
+**Mix / balance:** Portfolio mix (tech debt vs features, etc.) is set at authoring time via sequence contents or queue ranking labels — not runtime auto-balance.
+
 ### Triage Tasks
 
 - `task triage:bootstrap -- [--repo OWNER/NAME] [--limit N] [--state {open|closed|all}] [--batch-size N] [--delay-ms N]` -- seed the local triage cache and audit layer.

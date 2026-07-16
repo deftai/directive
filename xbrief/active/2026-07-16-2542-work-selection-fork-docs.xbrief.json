@@ -1,0 +1,93 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2542 (swarm-of-1 docs cohort)",
+    "updated": "2026-07-16T15:55:18.378Z"
+  },
+  "plan": {
+    "title": "docs: teach consumers the work-selection fork (ordered plan vs ranked queue)",
+    "status": "running",
+    "narratives": {
+      "Description": "Document the two work-selection paths after #2402: operator-ordered plan (plan-sequence:*) vs ranked triage queue. Expand AGENTS/#1149 pointer, add commands.md Two paths subsection, open triage skill with the fork, and add one triage:welcome/consumer-header orientation line. Optional authoring skill is out of scope.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2542",
+      "Overview": "## Problem\n\nOrdered-plan is implemented and agent-enforced but discoverability is thin; consumers mostly see queue-only surfaces.\n\n## Contract one-liner\n\nDirective does not guess your mix. Either you name the next units in order (ordered plan), or you let the ranked backlog suggest (queue). Labels bias the queue; they do not override an active plan.\n\n## Non-goals\n\nNo new label taxonomy; no auto portfolio balancer; no AGENTS bulk dump of full #2402 semantics; optional plan-sequence authoring skill deferred.",
+      "Labels": "enhancement, docs, agent-experience",
+      "UserStory": "As a consumer operator or agent, I want an explicit work-selection fork (ordered plan vs ranked queue), so that \"what's next?\" does not silently widen past a bounded plan or leave plan-sequence as maintainer lore.",
+      "ImplementationPlan": "1. Edit content/templates/agents-entry.md Cache-as-authoritative work selection (#1149) pointer: add ~1 sentence naming ordered plan (plan-sequence:*) vs ranked triage queue and pointing to commands.md section Backlog Triage; run task agents:refresh so AGENTS.md managed section updates (#1309).\n2. Edit content/commands.md section Backlog Triage: add a short Two paths subsection covering when to use which path, plan-sequence:set/current/advance/clear/verify, exhaustion fail-closed, explicit queue escape phrases (what is the queue / build a cohort), and that mix/balance is authoring-time not runtime auto-balance.\n3. Edit the triage skill source (content/packs/skills/skills-pack-0.1.json slice for deft-directive-triage, then task packs:render OR edit content/skills/deft-directive-triage/SKILL.md if that is the editable surface): open with the fork before Phase 2; ensure what-next triggers are not queue-only; keep plan-sequence:current check as the first gate.\n4. Add one orientation line to triage:welcome output path and/or consumer header template (content/templates/agents-entry.md unmanaged/onboarding surface as applicable): default is ranked queue; lock a short ordered plan for bounded delivery.\n5. Add CHANGELOG.md [Unreleased] brief docs entry closing #2542.\nVerification: task agents:refresh; task check (or docs/content gates that apply); spot-read AGENTS.md managed section + commands.md + triage skill for the fork.",
+      "Acceptance": "1. AGENTS pointer names two modes + commands.md pointer; agents:refresh clean\n2. commands.md Two paths subsection\n3. triage skill opens with fork\n4. welcome/header orientation line\n5. CHANGELOG closes #2542"
+    },
+    "items": [
+      {
+        "title": "AGENTS / agents-entry work-selection pointer",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given AGENTS managed section / agents-entry, when a consumer reads the #1149/#2402 work-selection line, then it names ordered plan vs ranked queue and points to commands.md § Backlog Triage; task agents:refresh succeeds."
+        }
+      },
+      {
+        "title": "commands.md Two paths subsection",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content/commands.md § Backlog Triage, when an operator reads Two paths, then it covers when to use which, set/current/advance/clear/verify, exhaustion fail-closed, queue escape phrases, and authoring-time mix (not runtime auto-balance)."
+        }
+      },
+      {
+        "title": "triage skill fork + welcome/header line",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given deft-directive-triage and triage:welcome/consumer header, when an agent starts triage or onboarding, then the fork is stated before Phase 2 and onboarding has one ranked-queue-default / ordered-plan-for-bounded-delivery line."
+        }
+      },
+      {
+        "title": "CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG [Unreleased], when released, then a brief user-facing docs entry closes #2542."
+        }
+      }
+    ],
+    "tags": [
+      "docs",
+      "enhancement",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2542",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2542: docs work-selection fork"
+      }
+    ],
+    "updated": "2026-07-16T15:55:18.378Z",
+    "id": "2542-work-selection-fork-docs",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "content/commands.md",
+          "content/skills/deft-directive-triage/SKILL.md",
+          "content/packs/skills/",
+          "CHANGELOG.md",
+          "AGENTS.md"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Two-path work-selection framing in AGENTS pointer + commands.md + triage skill + welcome/header",
+          "CHANGELOG closes #2542"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-work-selection",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Docs discoverability slice ingested from GitHub issue #2542; no spec-section requirement trace applies. Optional plan-sequence authoring skill deferred per issue MAY split."
+      }
+    }
+  }
+}
