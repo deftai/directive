@@ -234,7 +234,9 @@ describe("coverage branches round 2", () => {
           id: "m",
           status: "running",
           metadata: { kind: "story", swarm: null },
-          references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/7" }],
+          references: [
+            { type: "x-vbrief/github-issue", uri: "https://github.com/deftai/directive/issues/7" },
+          ],
         },
       })}\n`,
     );
@@ -514,7 +516,9 @@ describe("coverage branches round 2", () => {
         plan: {
           status: "running",
           metadata: 1,
-          references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/8" }],
+          references: [
+            { type: "x-vbrief/github-issue", uri: "https://github.com/deftai/directive/issues/8" },
+          ],
         },
       })}\n`,
     );
