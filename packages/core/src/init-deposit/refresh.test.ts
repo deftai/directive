@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -18,6 +19,7 @@ import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runChecksImpl } from "../doctor/checks.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import type { ClassifySeams } from "../resolution/index.js";
+import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
@@ -295,6 +297,60 @@ describe("runRefreshDeposit", () => {
     expect(out).toContain("Windows line-ending note (#2118)");
     expect(out).not.toContain("Commit hygiene");
     expect(out).not.toContain("framework deposit commit");
+  });
+
+  function seedDepositGithooks(deftDir: string): void {
+    mkdirSync(join(deftDir, ".githooks"), { recursive: true });
+    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+      copyFileSync(join(process.cwd(), ".githooks", name), join(deftDir, ".githooks", name));
+      if (name !== "_deft-run.sh") {
+        chmodSync(join(deftDir, ".githooks", name), 0o755);
+      }
+    }
+  }
+
+  it("repairs missing project-root git hooks on an already-current hybrid deposit (#2530)", async () => {
+    const project = freshRoot("refresh-current-hooks-");
+    const contentRoot = installFakeContentPackage(project, "0.78.0");
+    initGitRepo(project);
+    const io = { printf: vi.fn() };
+    const args = {
+      projectDir: project,
+      jsonOut: false,
+      nonInteractive: true,
+      upgrade: true,
+    };
+    const seams = {
+      resolveContentRoot: async () => contentRoot,
+      readEngineVersion: () => "0.78.0",
+      nowIso: () => "2026-07-16T12:00:00Z",
+      gitPorcelain: () => "",
+      gitHooks: {
+        getHooksPath: () => "",
+        setHooksPath: () => true,
+      },
+    };
+
+    await runRefreshDeposit(args, io, seams);
+    seedDepositGithooks(join(project, ".deft", "core"));
+    rmSync(join(project, ".githooks"), { recursive: true, force: true });
+
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run for an already-current refresh");
+    });
+    const repaired = await runRefreshDeposit(args, io, { ...seams, copyContent });
+
+    expect(repaired.alreadyCurrent).toBe(true);
+    expect(copyContent).not.toHaveBeenCalled();
+    expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
+    expect(existsSync(join(project, ".githooks", "pre-push"))).toBe(true);
+    expect(existsSync(join(project, ".githooks", "_deft-run.sh"))).toBe(true);
+
+    const hooksCheck = evaluateHooksInstalled(project, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+      platform: "win32",
+    });
+    expect(hooksCheck.code).toBe(0);
   });
 
   it("repairs stale xbrief derivatives without copying an already-current payload (#2595)", async () => {

@@ -550,6 +550,18 @@ tasks:
       # detect the no-op so the task prints a friendly message rather than
       # silently re-asserting on every invocation.
       - |
+        missing=0
+        for f in pre-commit pre-push _deft-run.sh; do
+          if [ ! -f ".githooks/$f" ]; then
+            missing=1
+            break
+          fi
+        done
+        if [ "$missing" = 1 ]; then
+          echo "❌ deft setup refused: project-root .githooks/ is missing hook files (#2530)."
+          echo "  Recovery: run \`deft update\` (or \`deft init\` on a greenfield tree) to deposit hooks first."
+          exit 1
+        fi
         configured=$(git config --get core.hooksPath || true)
         if [ "$configured" = ".githooks" ]; then
           echo "✓ core.hooksPath already set to .githooks (no change)."

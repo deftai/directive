@@ -177,7 +177,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       code: 1,
       message:
         "❌ deft hooks not installed: core.hooksPath is unset.\n" +
-        "  Recovery: run `task setup` (or re-run the deft installer).",
+        "  Recovery: run `deft update` to deposit project-root `.githooks/`, then `task setup` to wire core.hooksPath.",
       stream: "stderr",
     };
   }
@@ -193,7 +193,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       message:
         `❌ deft hooks wired but NON-FUNCTIONAL: core.hooksPath=${hooksPath} ` +
         `but the directory ${hooksDir} does not exist (#1463 false-green).\n` +
-        "  Recovery: re-run the deft installer / `task setup` to deposit the hooks.",
+        "  Recovery: run `deft update` to deposit project-root `.githooks/`, then `task setup` to wire core.hooksPath.",
       stream: "stderr",
     };
   }
@@ -205,7 +205,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       message:
         `❌ deft hooks wired but NON-FUNCTIONAL: ${hooksDir} is missing ` +
         `${missingHooks.join(", ")} (#1463 false-green).\n` +
-        "  Recovery: re-run the deft installer / `task setup`.",
+        "  Recovery: run `deft update` to deposit project-root `.githooks/`, then `task setup` to wire core.hooksPath.",
       stream: "stderr",
     };
   }
@@ -219,7 +219,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
           `❌ deft hooks wired but NON-FUNCTIONAL: ${hooksDir} hook(s) ` +
           `${nonExec.join(", ")} are not executable (git mode is not ` +
           "100755); git silently skips non-executable hooks on Unix (#1477).\n" +
-          "  Recovery: re-run the deft installer / `task setup`, or " +
+          "  Recovery: run `deft update` to refresh `.githooks/`, or " +
           "`chmod +x .githooks/pre-commit .githooks/pre-push`.",
         stream: "stderr",
       };
@@ -261,7 +261,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         "❌ deft hooks wired but NON-FUNCTIONAL:\n" +
         contentIssues.map((issue) => `  - ${issue.replace(/\r?\n/g, " ")}`).join("\n") +
         "\n" +
-        "  Recovery: re-run the deft installer / `task setup` to refresh .githooks/.",
+        "  Recovery: run `deft update` to refresh project-root `.githooks/`.",
       stream: "stderr",
     };
   }

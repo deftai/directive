@@ -309,7 +309,7 @@ Phrasing from `deft policy:show --field=allowDirectCommitsToMaster`. When OFF (d
 
 ## Local git hooks (#747 / #2049)
 
-Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). Hooks are installed idempotently via `deft setup` (`git config core.hooksPath .githooks`).
+Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). `deft init` and `deft update` deposit hook files; `deft setup` / `task setup` wires `core.hooksPath=.githooks` and refuses when the directory is missing (#2530).
 
 | Hook | Dispatches | Purpose |
 |------|------------|---------|
@@ -318,7 +318,7 @@ Project-root `.githooks/` enforce branch policy and encoding gates through the *
 
 - ! Verify wiring after install or framework upgrade: `deft verify:hooks-installed` (also wired into `deft check`).
 - ! After upgrading the framework payload, run `deft update` from the project root to refresh `.githooks/` to the current TS-native templates (#2049). Stale hooks that still invoke `python scripts/preflight_branch.py` or other legacy paths fail `deft verify:hooks-installed`.
-- ~ Recovery when hooks are stale or broken: `deft setup` (re-installs hooks path) or `deft update` (refreshes hook files from the deposited payload).
+- ~ Recovery when hooks are stale or broken: `deft update` (deposits/refreshes hook files from the framework payload, including on an already-current deposit) then `deft setup` / `task setup` (wires `core.hooksPath` when files are present).
 
 ## Destructive gh verbs (#1019)
 

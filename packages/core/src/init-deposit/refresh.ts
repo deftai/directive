@@ -57,9 +57,11 @@ import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
   ensureTaskfile,
+  type GitHooksSeams,
   type InitDepositIo,
   type InstallManifestFields,
   writeAgentsMd,
+  writeConsumerGitHooks,
   writeInstallManifest,
 } from "./scaffold.js";
 import {
@@ -112,6 +114,8 @@ export interface RefreshDepositSeams {
    * upkeep so the refresh never invokes a destructive `git rm --cached` path.
    */
   gitLsFiles?: GitLsFiles;
+  /** #2530: injected git config seams for {@link writeConsumerGitHooks}. */
+  gitHooks?: GitHooksSeams;
 }
 
 /**
@@ -640,6 +644,9 @@ export async function runRefreshDeposit(
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
   writeAgentHookDeposit(projectDir, io);
+  // #2530: root `.githooks/` is a consumer derivative like #2595 marker/schemas —
+  // repair on every refresh, including the already-current no-op path.
+  writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
 
   // #2148: the deft-core-guard CI workflow is only meaningful when the deposit
   // is git-tracked (committed vendor layout). On an npm-managed (gitignored)

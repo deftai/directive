@@ -378,7 +378,7 @@ Run those from your project root after any bucket-specific hops (`deft update` r
   - `deft verify:hooks-installed` (confirm pre-commit/pre-push dispatch via `deft verify:branch`, `deft verify:encoding`, `deft preflight-gh`)
   - `deft doctor` (install integrity + managed-section freshness)
 
-If `deft update` is unavailable (older deposit), fall back to `deft setup` to re-install the hooks path and copy current hook templates.
+If `deft update` is unavailable (older deposit), run `deft init` on a greenfield tree or upgrade the global CLI first — `task setup` / `deft setup` only wires `core.hooksPath` and refuses when project-root `.githooks/` is missing (#2530).
 
 ---
 
