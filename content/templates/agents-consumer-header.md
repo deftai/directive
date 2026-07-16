@@ -10,7 +10,7 @@ Scoped work, ranked queue, and tracked bugs live in authoritative sources — no
 
 - Project identity → `xbrief/PROJECT-DEFINITION.xbrief.json`
 - Scoped work → `xbrief/` lifecycle folders
-- Work selection → default ranked queue (`deft triage:queue`); lock a short ordered plan (`deft plan-sequence:set`) when you want bounded delivery — see `.deft/core/commands.md` § Backlog Triage → Two paths
+- Work selection → default ranked queue (`deft triage:queue`); lock a short ordered plan (`deft plan-sequence:set`) when you want bounded delivery — see `deft/commands.md` § Backlog Triage → Two paths
 - Ranked queue → `deft triage:queue` / `deft triage:welcome`
 - Tracked bugs → GitHub issues
 
