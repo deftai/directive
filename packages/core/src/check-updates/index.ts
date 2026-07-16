@@ -101,20 +101,22 @@ export function isPrivateOrLinkLocalUpstreamHost(hostname: string): boolean {
   return false;
 }
 
-/** True when a manifest-controlled upstream URL is safe to probe (#2601). */
-export function isAllowlistedUpstreamUrl(url: string): boolean {
-  const safe = sanitizeGitLsRemoteTarget(url);
-  if (!safe) {
+/** True when a sanitized upstream URL is on the canonical allowlist (#2601). */
+export function isAllowlistedSafeUpstreamUrl(safeUrl: string): boolean {
+  if (!ALLOWED_UPSTREAM_URLS.has(safeUrl)) {
     return false;
   }
-  if (!ALLOWED_UPSTREAM_URLS.has(safe)) {
-    return false;
-  }
-  const hostname = extractUpstreamHostname(safe);
+  const hostname = extractUpstreamHostname(safeUrl);
   if (hostname === null || isPrivateOrLinkLocalUpstreamHost(hostname)) {
     return false;
   }
   return true;
+}
+
+/** True when a manifest-controlled upstream URL is safe to probe (#2601). */
+export function isAllowlistedUpstreamUrl(url: string): boolean {
+  const safe = sanitizeGitLsRemoteTarget(url);
+  return safe !== null && isAllowlistedSafeUpstreamUrl(safe);
 }
 
 function normalizePrereleaseForSort(pre: string): string {
@@ -240,11 +242,9 @@ export function resolveUpstreamUrl(projectRoot: string): string {
     for (const key of MANIFEST_UPSTREAM_URL_KEYS) {
       const value = manifest[key];
       if (typeof value === "string" && value.trim()) {
-        if (isAllowlistedUpstreamUrl(value)) {
-          const safe = sanitizeGitLsRemoteTarget(value);
-          if (safe) {
-            return safe;
-          }
+        const safe = sanitizeGitLsRemoteTarget(value);
+        if (safe && isAllowlistedSafeUpstreamUrl(safe)) {
+          return safe;
         }
       }
     }

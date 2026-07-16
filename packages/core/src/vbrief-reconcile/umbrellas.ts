@@ -326,16 +326,15 @@ function reconcileOneEpic(
     explicitRepo?: string | null;
   },
 ): UmbrellaChange {
-  const requireMutateAllowed = (): void => {
-    const gate = isRepoMutationAllowed(options.repo, options.projectRoot, {
-      allowCrossRepo: options.allowCrossRepo,
-      allowlist: options.repoAllowlist,
-      explicitRepo: options.explicitRepo ?? null,
-    });
-    if (!gate.allowed) {
-      throw new Error(gate.reason ?? `refusing cross-repo mutation on ${options.repo}`);
-    }
-  };
+  const mutateGate = isRepoMutationAllowed(options.repo, options.projectRoot, {
+    allowCrossRepo: options.allowCrossRepo,
+    allowlist: options.repoAllowlist,
+    explicitRepo: options.explicitRepo ?? null,
+  });
+  if (!mutateGate.allowed) {
+    throw new Error(mutateGate.reason ?? `refusing cross-repo mutation on ${options.repo}`);
+  }
+
   const [openChildren, closedChildren, waves] = planShape(epicData, index);
   const total = openChildren.length + closedChildren.length;
 
@@ -352,12 +351,7 @@ function reconcileOneEpic(
       waves,
       history: [[1, total]],
     });
-    if (!options.dryRun) {
-      requireMutateAllowed();
-      options.client.createComment(options.repo, options.number, body);
-    } else {
-      requireMutateAllowed();
-    }
+    if (!options.dryRun) options.client.createComment(options.repo, options.number, body);
     return {
       story_id: options.storyId,
       repo: options.repo,
@@ -404,12 +398,7 @@ function reconcileOneEpic(
     waves,
     history: [...parsed.history, [passN, total]],
   });
-  if (!options.dryRun) {
-    requireMutateAllowed();
-    options.client.editComment(options.repo, existing.id, body);
-  } else {
-    requireMutateAllowed();
-  }
+  if (!options.dryRun) options.client.editComment(options.repo, existing.id, body);
   return {
     story_id: options.storyId,
     repo: options.repo,
@@ -526,7 +515,10 @@ export function reconcileUmbrellas(
         if (change.action === "unchanged") outcome.unchanged.push(change);
         else outcome.changed.push(change);
       } catch (exc) {
-        outcome.errors.push({ story_id: storyId, message: String(exc) });
+        outcome.errors.push({
+          story_id: storyId,
+          message: exc instanceof Error ? exc.message : String(exc),
+        });
       }
     }
   }
