@@ -21,6 +21,7 @@ import {
 } from "./constants.js";
 import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
 import { hasVbriefDeprecationMarker, isDirectory, isEffectivelyEmptyDir } from "./fs-helpers.js";
+import { assertMigrationSourceSafe } from "./migration-containment.js";
 import { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 import type { JsonObject } from "./transforms.js";
 import { rewriteEmbeddedTokens, transformArtifactV06ToV08Transactional } from "./transforms.js";
@@ -134,6 +135,7 @@ function migrateLegacyTree(
     );
   }
 
+  assertMigrationSourceSafe(projectRoot, legacyDir);
   const backupDir = backupMigrationInputs(projectRoot, legacyDir, migratedDir);
   const stagedDir = join(projectRoot, `.${MIGRATED_ARTIFACT_DIR}.migrate-staging`);
   if (existsSync(stagedDir)) {

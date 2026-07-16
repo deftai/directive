@@ -120,7 +120,16 @@ describe("main CLI runners", () => {
       stdout: JSON.stringify({ labels: [] }),
       stderr: "",
     });
-    expect(cmdVbriefReconcile(["labels", "--project-root", root, "--dry-run"])).toBe(0);
+    expect(
+      cmdVbriefReconcile([
+        "labels",
+        "--project-root",
+        root,
+        "--dry-run",
+        "--repo",
+        "deftai/directive",
+      ]),
+    ).toBe(0);
     vi.spyOn(scm, "call").mockReturnValue({ args: [], returncode: 0, stdout: "[]", stderr: "" });
     writeFileSync(
       join(active, "e.xbrief.json"),
@@ -137,9 +146,17 @@ describe("main CLI runners", () => {
         },
       })}\n`,
     );
-    expect(cmdVbriefReconcile(["umbrellas", "--project-root", root, "--dry-run", "--json"])).toBe(
-      0,
-    );
+    expect(
+      cmdVbriefReconcile([
+        "umbrellas",
+        "--project-root",
+        root,
+        "--dry-run",
+        "--json",
+        "--repo",
+        "deftai/directive",
+      ]),
+    ).toBe(0);
   });
 
   it("runParityMode --all", () => {
@@ -282,7 +299,7 @@ describe("labels SCM client", () => {
     );
     const client = new FakeLabelClient();
     client.labels.set("deftai/directive:20", []);
-    const [code, outcome] = reconcileLabels(root, { client });
+    const [code, outcome] = reconcileLabels(root, { client, repo: "deftai/directive" });
     expect(code).toBe(0);
     expect(outcome.unchanged.length).toBe(1);
     expect(outcome.skipped_no_ref).toContain("noref");
@@ -312,7 +329,7 @@ describe("labels SCM client", () => {
         throw new ScmLabelError("apply failed");
       },
     };
-    const [code, outcome] = reconcileLabels(root, { client });
+    const [code, outcome] = reconcileLabels(root, { client, repo: "deftai/directive" });
     expect(code).toBe(1);
     expect(outcome.errors.length).toBe(1);
     rmSync(root, { recursive: true, force: true });
@@ -414,7 +431,11 @@ describe("umbrellas SCM client", () => {
         },
       })}\n`,
     );
-    const [code, outcome] = reconcileUmbrellas(root, { client, now: "2026-06-14T20:00:00Z" });
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-06-14T20:00:00Z",
+      repo: "deftai/directive",
+    });
     expect(code).toBe(0);
     expect(outcome.changed[0]?.action).toBe("edited");
     rmSync(root, { recursive: true, force: true });

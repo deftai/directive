@@ -62,9 +62,67 @@ describe("reconcileLabels", () => {
       "utf8",
     );
     const client = new FakeLabelClient();
-    const [code, outcome] = reconcileLabels(root, { client });
+    const [code, outcome] = reconcileLabels(root, { client, repo: "deftai/directive" });
     expect(code).toBe(0);
     expect(client.applyCalls[0]?.[2]).toEqual(["status:blocked"]);
+    expect(outcome.changed.length).toBe(1);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses cross-repo label mutation without allowCrossRepo (#2601)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-labels-cross-"));
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "story.xbrief.json"),
+      `${JSON.stringify({
+        plan: {
+          id: "foreign",
+          status: "blocked",
+          metadata: { kind: "story", swarm: { depends_on: [] } },
+          references: [
+            { type: "x-vbrief/github-issue", uri: "https://github.com/other/victim/issues/99" },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    const client = new FakeLabelClient();
+    client.labels.set("other/victim:99", []);
+    const [code, outcome] = reconcileLabels(root, { client, repo: "deftai/directive" });
+    expect(code).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    expect(outcome.errors[0]?.message).toMatch(/refusing cross-repo mutation/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("allows cross-repo label mutation when allowCrossRepo is set (#2601)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-labels-cross-allow-"));
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "story.xbrief.json"),
+      `${JSON.stringify({
+        plan: {
+          id: "foreign",
+          status: "blocked",
+          metadata: { kind: "story", swarm: { depends_on: [] } },
+          references: [
+            { type: "x-vbrief/github-issue", uri: "https://github.com/other/victim/issues/99" },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    const client = new FakeLabelClient();
+    client.labels.set("other/victim:99", []);
+    const [code, outcome] = reconcileLabels(root, {
+      client,
+      repo: "deftai/directive",
+      allowCrossRepo: true,
+    });
+    expect(code).toBe(0);
+    expect(client.applyCalls).toHaveLength(1);
     expect(outcome.changed.length).toBe(1);
     rmSync(root, { recursive: true, force: true });
   });

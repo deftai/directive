@@ -5,7 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFT_UPSTREAM_URL,
   emitCheckUpdates,
+  extractUpstreamHostname,
   type GitRunner,
+  isAllowlistedUpstreamUrl,
+  isPrivateOrLinkLocalUpstreamHost,
   isSafeGitLsRemoteTarget,
   maxSemverTag,
   parseLsRemoteTags,
@@ -194,7 +197,7 @@ describe("runRemoteProbe", () => {
     expect(result.upstream_url).toBe(DEFT_UPSTREAM_URL);
   });
 
-  it("uses manifest upstream url when present", () => {
+  it("ignores non-allowlisted manifest upstream urls (#2601)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-check-updates-"));
     temps.push(root);
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
@@ -203,7 +206,28 @@ describe("runRemoteProbe", () => {
       "url: https://example.com/framework.git\ntag: v1.0.0\n",
       "utf8",
     );
-    expect(resolveUpstreamUrl(root)).toBe("https://example.com/framework.git");
+    expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
+  });
+
+  it("rejects private and link-local manifest upstream hosts (#2601)", () => {
+    expect(isPrivateOrLinkLocalUpstreamHost("localhost")).toBe(true);
+    expect(isPrivateOrLinkLocalUpstreamHost("127.0.0.1")).toBe(true);
+    expect(isPrivateOrLinkLocalUpstreamHost("10.0.0.5")).toBe(true);
+    expect(isPrivateOrLinkLocalUpstreamHost("192.168.1.1")).toBe(true);
+    expect(isPrivateOrLinkLocalUpstreamHost("169.254.169.254")).toBe(true);
+    expect(isPrivateOrLinkLocalUpstreamHost("github.com")).toBe(false);
+
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-private-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "url: http://127.0.0.1/evil.git\ntag: v1.0.0\n",
+      "utf8",
+    );
+    expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
+    expect(isAllowlistedUpstreamUrl("http://127.0.0.1/evil.git")).toBe(false);
+    expect(extractUpstreamHostname("git@github.com:deftai/directive.git")).toBe("github.com");
   });
 
   it("reports timeout as ERROR with exit-friendly shape", () => {
@@ -379,16 +403,16 @@ describe("emitCheckUpdates text mode", () => {
     expect(resolveProbeTimeout({})).toBe(5);
   });
 
-  it("reads upstream_url from alternate manifest keys", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-keys-"));
+  it("accepts canonical manifest upstream url when present (#2601)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-canonical-"));
     temps.push(root);
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     writeFileSync(
       join(root, ".deft", "core", "VERSION"),
-      "source_url: https://example.com/from-source.git\ntag: v1.0.0\n",
+      `url: ${DEFT_UPSTREAM_URL}\ntag: v1.0.0\n`,
       "utf8",
     );
-    expect(resolveUpstreamUrl(root)).toBe("https://example.com/from-source.git");
+    expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
   });
 
   it("reads vendored manifest from .deft/VERSION when core manifest is absent", () => {
@@ -397,11 +421,11 @@ describe("emitCheckUpdates text mode", () => {
     mkdirSync(join(root, ".deft"), { recursive: true });
     writeFileSync(
       join(root, ".deft", "VERSION"),
-      "tag: v0.9.0\nurl: https://example.com/deft-version.git\n",
+      `tag: v0.9.0\nurl: ${DEFT_UPSTREAM_URL}\n`,
       "utf8",
     );
     expect(resolveProbeCurrentVersion(root)).toBe("0.9.0");
-    expect(resolveUpstreamUrl(root)).toBe("https://example.com/deft-version.git");
+    expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
   });
 
   it("reads vendored manifest from legacy deft/VERSION path", () => {

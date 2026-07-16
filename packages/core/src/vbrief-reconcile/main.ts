@@ -17,6 +17,7 @@ export interface CliOptions {
   scenario?: string | null;
   all?: boolean;
   fixtureRoot?: string | null;
+  allowCrossRepo?: boolean;
 }
 
 function parseCommon(argv: string[]): { verb: string | null; rest: string[] } {
@@ -40,6 +41,7 @@ function parseOptions(rest: string[]): CliOptions {
       opts.repo = rest[i + 1] ?? null;
       i += 1;
     } else if (arg === "--force") opts.force = true;
+    else if (arg === "--allow-cross-repo") opts.allowCrossRepo = true;
     else if (arg === "--dry-run") opts.dryRun = true;
     else if (arg === "--json") opts.json = true;
     else if (arg === "--scenario") {
@@ -56,7 +58,7 @@ function parseOptions(rest: string[]): CliOptions {
 
 export function usage(): void {
   process.stderr.write(
-    "usage: vbrief-reconcile <graph|labels|umbrellas> [--project-root PATH] [--dry-run] [--json] [--force] [--repo OWNER/NAME]\n" +
+    "usage: vbrief-reconcile <graph|labels|umbrellas> [--project-root PATH] [--dry-run] [--json] [--force] [--repo OWNER/NAME] [--allow-cross-repo]\n" +
       "       vbrief-reconcile parity --scenario NAME [--fixture-root PATH]\n" +
       "       vbrief-reconcile parity --all [--fixture-root PATH]\n",
   );
@@ -80,7 +82,11 @@ export function runGraph(opts: CliOptions): number {
 
 export function runLabels(opts: CliOptions): number {
   const root = resolve(opts.projectRoot ?? ".");
-  const [code, outcome] = reconcileLabels(root, { repo: opts.repo, dryRun: opts.dryRun });
+  const [code, outcome] = reconcileLabels(root, {
+    repo: opts.repo,
+    dryRun: opts.dryRun,
+    allowCrossRepo: opts.allowCrossRepo,
+  });
   if (code === 2) {
     if (opts.json) {
       process.stdout.write(`${JSON.stringify({ error: "no vbrief/ directory found" })}\n`);
@@ -96,7 +102,11 @@ export function runLabels(opts: CliOptions): number {
 
 export function runUmbrellas(opts: CliOptions): number {
   const root = resolve(opts.projectRoot ?? ".");
-  const [code, outcome] = reconcileUmbrellas(root, { repo: opts.repo, dryRun: opts.dryRun });
+  const [code, outcome] = reconcileUmbrellas(root, {
+    repo: opts.repo,
+    dryRun: opts.dryRun,
+    allowCrossRepo: opts.allowCrossRepo,
+  });
   if (code === 2) {
     if (opts.json) {
       process.stdout.write(`${JSON.stringify({ error: "no vbrief/ directory found" })}\n`);

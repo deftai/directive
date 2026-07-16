@@ -9,6 +9,7 @@ import {
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
+import { isRepoMutationAllowed } from "./repo-guard.js";
 import type { Child, ReconcileUmbrellasOutcome, UmbrellaChange, UmbrellaClient } from "./types.js";
 
 export const OPEN_FOLDERS = ["proposed", "pending", "active"] as const;
@@ -319,8 +320,22 @@ function reconcileOneEpic(
     client: UmbrellaClient;
     dryRun: boolean;
     now: string;
+    projectRoot: string;
+    allowCrossRepo: boolean;
+    repoAllowlist?: readonly string[];
+    explicitRepo?: string | null;
   },
 ): UmbrellaChange {
+  const requireMutateAllowed = (): void => {
+    const gate = isRepoMutationAllowed(options.repo, options.projectRoot, {
+      allowCrossRepo: options.allowCrossRepo,
+      allowlist: options.repoAllowlist,
+      explicitRepo: options.explicitRepo ?? null,
+    });
+    if (!gate.allowed) {
+      throw new Error(gate.reason ?? `refusing cross-repo mutation on ${options.repo}`);
+    }
+  };
   const [openChildren, closedChildren, waves] = planShape(epicData, index);
   const total = openChildren.length + closedChildren.length;
 
@@ -337,7 +352,12 @@ function reconcileOneEpic(
       waves,
       history: [[1, total]],
     });
-    if (!options.dryRun) options.client.createComment(options.repo, options.number, body);
+    if (!options.dryRun) {
+      requireMutateAllowed();
+      options.client.createComment(options.repo, options.number, body);
+    } else {
+      requireMutateAllowed();
+    }
     return {
       story_id: options.storyId,
       repo: options.repo,
@@ -384,7 +404,12 @@ function reconcileOneEpic(
     waves,
     history: [...parsed.history, [passN, total]],
   });
-  if (!options.dryRun) options.client.editComment(options.repo, existing.id, body);
+  if (!options.dryRun) {
+    requireMutateAllowed();
+    options.client.editComment(options.repo, existing.id, body);
+  } else {
+    requireMutateAllowed();
+  }
   return {
     story_id: options.storyId,
     repo: options.repo,
@@ -404,6 +429,9 @@ export interface ReconcileUmbrellasOptions {
   readonly dryRun?: boolean;
   readonly client?: UmbrellaClient;
   readonly now?: string;
+  /** Opt in to mutating comments on issues outside the resolved project repo (#2601). */
+  readonly allowCrossRepo?: boolean;
+  readonly repoAllowlist?: readonly string[];
 }
 
 export function reconcileUmbrellas(
@@ -490,6 +518,10 @@ export function reconcileUmbrellas(
           client,
           dryRun: options.dryRun ?? false,
           now,
+          projectRoot: root,
+          allowCrossRepo: options.allowCrossRepo ?? false,
+          repoAllowlist: options.repoAllowlist,
+          explicitRepo: options.repo ?? null,
         });
         if (change.action === "unchanged") outcome.unchanged.push(change);
         else outcome.changed.push(change);

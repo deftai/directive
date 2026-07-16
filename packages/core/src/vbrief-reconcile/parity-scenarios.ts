@@ -332,7 +332,11 @@ export function runParityScenario(
         ],
       });
       const client = options.labelClient ?? new MemoryLabelClient();
-      const [code, outcome] = reconcileLabels(root, { client, dryRun: true });
+      const [code, outcome] = reconcileLabels(root, {
+        client,
+        dryRun: true,
+        repo: "deftai/directive",
+      });
       return {
         scenario: name,
         ok: true,
@@ -355,7 +359,11 @@ export function runParityScenario(
         ],
       });
       const client = options.labelClient ?? new MemoryLabelClient();
-      const [code, outcome] = reconcileLabels(root, { client, dryRun: true });
+      const [code, outcome] = reconcileLabels(root, {
+        client,
+        dryRun: true,
+        repo: "deftai/directive",
+      });
       return {
         scenario: name,
         ok: true,
@@ -383,6 +391,7 @@ export function runParityScenario(
         client,
         dryRun: true,
         now: FIXED_NOW.toISOString().replace(/\.\d{3}Z$/, "Z"),
+        repo: "deftai/directive",
       });
       return {
         scenario: name,
@@ -408,8 +417,13 @@ export function runParityScenario(
       });
       const client = options.umbrellaClient ?? SHARED_UMBRELLA_CLIENT;
       const now = FIXED_NOW.toISOString().replace(/\.\d{3}Z$/, "Z");
-      reconcileUmbrellas(root, { client, dryRun: false, now });
-      const [code, outcome] = reconcileUmbrellas(root, { client, dryRun: true, now });
+      reconcileUmbrellas(root, { client, dryRun: false, now, repo: "deftai/directive" });
+      const [code, outcome] = reconcileUmbrellas(root, {
+        client,
+        dryRun: true,
+        now,
+        repo: "deftai/directive",
+      });
       return {
         scenario: name,
         ok: true,

@@ -10,6 +10,11 @@ export const REMOTE_PROBE_DEFAULT_TIMEOUT = 5.0;
 /** Baked-in canonical upstream (#1320). Never probe consumer origin. */
 export const DEFT_UPSTREAM_URL = "https://github.com/deftai/directive.git";
 
+/** SSH form of the canonical upstream — allowlisted alongside HTTPS (#2601). */
+export const DEFT_UPSTREAM_SSH_URL = "git@github.com:deftai/directive.git";
+
+const ALLOWED_UPSTREAM_URLS = new Set([DEFT_UPSTREAM_URL, DEFT_UPSTREAM_SSH_URL]);
+
 const MANIFEST_UPSTREAM_URL_KEYS = [
   "source_url",
   "url",
@@ -36,6 +41,80 @@ export function sanitizeGitLsRemoteTarget(url: string): string | null {
     return trimmed;
   }
   return null;
+}
+
+/** Extract hostname from an https or git@ upstream URL. */
+export function extractUpstreamHostname(url: string): string | null {
+  const trimmed = url.trim();
+  const httpsMatch = /^https?:\/\/([^/:?#]+)/i.exec(trimmed);
+  if (httpsMatch?.[1]) {
+    return httpsMatch[1].toLowerCase();
+  }
+  const sshMatch = /^git@([^:/]+):/i.exec(trimmed);
+  if (sshMatch?.[1]) {
+    return sshMatch[1].toLowerCase();
+  }
+  return null;
+}
+
+function parseIpv4Octets(hostname: string): number[] | null {
+  const parts = hostname.split(".");
+  if (parts.length !== 4) {
+    return null;
+  }
+  const octets: number[] = [];
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) {
+      return null;
+    }
+    const value = Number(part);
+    if (value > 255) {
+      return null;
+    }
+    octets.push(value);
+  }
+  return octets;
+}
+
+/** Reject localhost, link-local, and RFC1918 targets for blind SSRF hardening (#2601). */
+export function isPrivateOrLinkLocalUpstreamHost(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  if (host.length === 0) {
+    return true;
+  }
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) {
+    return true;
+  }
+  if (host === "::1" || host === "[::1]") {
+    return true;
+  }
+  const octets = parseIpv4Octets(host);
+  if (octets !== null) {
+    const [a, b] = octets;
+    if (a === 127) return true;
+    if (a === 10) return true;
+    if (a === 172 && b !== undefined && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 0) return true;
+  }
+  return false;
+}
+
+/** True when a manifest-controlled upstream URL is safe to probe (#2601). */
+export function isAllowlistedUpstreamUrl(url: string): boolean {
+  const safe = sanitizeGitLsRemoteTarget(url);
+  if (!safe) {
+    return false;
+  }
+  if (!ALLOWED_UPSTREAM_URLS.has(safe)) {
+    return false;
+  }
+  const hostname = extractUpstreamHostname(safe);
+  if (hostname === null || isPrivateOrLinkLocalUpstreamHost(hostname)) {
+    return false;
+  }
+  return true;
 }
 
 function normalizePrereleaseForSort(pre: string): string {
@@ -161,9 +240,11 @@ export function resolveUpstreamUrl(projectRoot: string): string {
     for (const key of MANIFEST_UPSTREAM_URL_KEYS) {
       const value = manifest[key];
       if (typeof value === "string" && value.trim()) {
-        const safe = sanitizeGitLsRemoteTarget(value);
-        if (safe) {
-          return safe;
+        if (isAllowlistedUpstreamUrl(value)) {
+          const safe = sanitizeGitLsRemoteTarget(value);
+          if (safe) {
+            return safe;
+          }
         }
       }
     }

@@ -133,7 +133,11 @@ describe("branch coverage boost", () => {
       editComment: () => {},
       createComment: () => 1,
     };
-    const [, outcome] = reconcileUmbrellas(root, { client, now: "2026-06-14T20:00:00Z" });
+    const [, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-06-14T20:00:00Z",
+      repo: "deftai/directive",
+    });
     expect(outcome.changed.length).toBe(1);
   });
 

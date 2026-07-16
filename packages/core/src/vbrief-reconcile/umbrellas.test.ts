@@ -191,9 +191,40 @@ describe("reconcileUmbrellas", () => {
     const [code, outcome] = reconcileUmbrellas(root, {
       client,
       now: "2026-06-14T20:00:00Z",
+      repo: "deftai/directive",
     });
     expect(code).toBe(0);
     expect(outcome.changed[0]?.action).toBe("created");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses cross-repo comment mutation without allowCrossRepo (#2601)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-cross-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "epic.xbrief.json"),
+      `${JSON.stringify({
+        plan: {
+          id: "epic-foreign",
+          metadata: { kind: "epic", swarm: { depends_on: [] } },
+          references: [
+            {
+              type: "x-vbrief/github-issue",
+              uri: "https://github.com/other/victim/issues/42",
+            },
+          ],
+        },
+      })}\n`,
+    );
+    const client = new FakeUmbrellaClient();
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(1);
+    expect(outcome.errors[0]?.message).toMatch(/refusing cross-repo mutation/);
+    expect(client.comments.size).toBe(0);
     rmSync(root, { recursive: true, force: true });
   });
 });

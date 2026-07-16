@@ -6,6 +6,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,6 +25,8 @@ import {
   runXbriefMigration,
   runXbriefMigrationCli,
 } from "./migrate-project.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 const SAMPLE_V06 = {
   xBRIEFInfo: {
@@ -96,6 +99,25 @@ describe("runXbriefMigration", () => {
     );
     expect(migrated.xBRIEFInfo.version).toBe("0.8");
     expect(migrated.plan.references[0].uri).toBe("xbrief/active/child.xbrief.json");
+  });
+
+  itSymlink("refuses migration when vbrief/ is a symlink outside the project (#2601)", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-symlink-"));
+    temps.push(base);
+    const escapeDir = mkdtempSync(join(tmpdir(), "xbrief-migrate-escape-"));
+    temps.push(escapeDir);
+    writeFileSync(join(escapeDir, "secret.txt"), "ssh-rsa TOPSECRET\n", "utf8");
+    const project = scaffoldLegacyProject(base);
+    rmSync(join(project, LEGACY_ARTIFACT_DIR), { recursive: true, force: true });
+    symlinkSync(escapeDir, join(project, LEGACY_ARTIFACT_DIR), "dir");
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("config");
+    expect(outcome.message).toMatch(/symlink escaping|symlink on migration path/);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "secret.txt"))).toBe(false);
   });
 
   it("refuses a dirty tree unless force is passed", () => {
