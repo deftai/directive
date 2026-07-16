@@ -2,17 +2,17 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { parseArgs } from "./sync-from-xbrief-cli.js";
 import {
   buildSyncComment,
   extractSyncSnapshot,
   fingerprintSyncSnapshot,
   hasMaterialChanges,
   resolveOriginIssue,
-  sanitizeMarkdownInline,
   SYNC_COMMENT_HEADER,
+  sanitizeMarkdownInline,
   syncFromXbrief,
 } from "./sync-from-xbrief.js";
+import { parseArgs } from "./sync-from-xbrief-cli.js";
 
 const ORIGIN_XBRIEF = {
   xBRIEFInfo: { version: "0.8" },
