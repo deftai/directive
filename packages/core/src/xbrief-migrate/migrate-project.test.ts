@@ -116,6 +116,7 @@ describe("runXbriefMigration", () => {
       { writeOut: () => {}, writeErr: () => {} },
     );
     expect(outcome.kind).toBe("config");
+    if (outcome.kind !== "config") return;
     expect(outcome.message).toMatch(/symlink escaping|symlink on migration path/);
     expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "secret.txt"))).toBe(false);
   });

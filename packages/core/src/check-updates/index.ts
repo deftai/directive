@@ -241,9 +241,9 @@ export function resolveUpstreamUrl(projectRoot: string): string {
   if (manifest) {
     for (const key of MANIFEST_UPSTREAM_URL_KEYS) {
       const value = manifest[key];
-      if (typeof value === "string" && value.trim()) {
+      if (typeof value === "string" && value.trim() && isAllowlistedUpstreamUrl(value)) {
         const safe = sanitizeGitLsRemoteTarget(value);
-        if (safe && isAllowlistedSafeUpstreamUrl(safe)) {
+        if (safe) {
           return safe;
         }
       }
