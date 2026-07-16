@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Exclude managed .deft/core from consumer Prettier / format gates",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Install and npm-managed update must deposit/heal a .prettierignore entry for managed .deft/core (and legacy deft/ when present) so consumer prettier --check . does not fail on the vendored payload. Do not try to make the deposit Prettier-clean for every consumer config.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2534 (converted 2026-07-16 from deposit-format-cleanliness framing)",
@@ -58,7 +58,7 @@
         "title": "Issue #2534: Exclude managed .deft/core from consumer Prettier / format gates"
       }
     ],
-    "updated": "2026-07-16T15:01:04.443Z",
+    "updated": "2026-07-16T15:23:02Z",
     "id": "2534-exclude-deft-core-prettierignore",
     "metadata": {
       "kind": "story",
@@ -85,7 +85,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Bug fix ingested from GitHub issue #2534; no spec-section requirement trace applies. Deposit-wide prettier --write is intentionally out of scope."
-      }
+      },
+      "completedAt": "2026-07-16T15:23:02Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
