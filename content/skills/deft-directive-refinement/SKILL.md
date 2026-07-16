@@ -254,6 +254,14 @@ The task scans every xBRIEF with a GitHub-backed reference (whether the referenc
 ⊗ Auto-update xBRIEFs based on origin changes without user approval
 ⊗ Overwrite intentional divergence -- if a xBRIEF has been refined beyond the original issue, preserve the refinement
 
+### Origin sync after material xBRIEF edits (#2540)
+
+! When this refinement pass **materially updates** an origin-linked scope xBRIEF (AC, `plan.status`, or `plan.items` statuses/titles), run `task issue:sync-from-xbrief -- <path>` to post a sync comment on the linked GitHub issue so the human-facing tracker stays current. Use `--dry-run` to preview the comment without posting.
+
+! If sync is intentionally skipped (offline, issue frozen, divergence is deliberate), document the skip reason in the session notes or PR body — do not silently leave the origin stale.
+
+⊗ Materially edit an origin-linked xBRIEF without running `issue:sync-from-xbrief` or documenting why it was skipped
+
 ## Phase 4 -- Promote/Demote
 
 ! Move xBRIEFs between lifecycle folders using deterministic task commands. The status values below align with the canonical v0.6 Status enum (`draft | proposed | approved | pending | running | completed | blocked | failed | cancelled`) — note that `failed` is also a valid terminal transition for active work that could not complete.

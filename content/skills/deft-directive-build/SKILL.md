@@ -217,7 +217,8 @@ For each phase:
 2. ! **Test first** — write tests before implementation (TDD)
 3. ! **Implement** — make tests pass, following deft coding standards
 4. ! **Verify** — run `task check`, fix any issues
-5. ! **Checkpoint** — tell user what's done, what's next
+5. ! **Origin sync** — when this phase materially changed an origin-linked scope xBRIEF (`plan.references` includes `x-xbrief/github-issue`), run `task issue:sync-from-xbrief -- <path>` (or `--dry-run` to preview) so the linked GitHub issue receives a sync comment; if skipped, document why in the PR or session notes (#2540)
+6. ! **Checkpoint** — tell user what's done, what's next
 
 - ⊗ Move to next phase until current phase passes all checks
 

@@ -171,6 +171,7 @@ export const CORE_MODULE_VERBS = [
   "github-body",
   "issue-emit",
   "issue-ingest",
+  "issue-sync-from-xbrief",
   "reconcile-issues",
   "swarm-launch",
   "swarm-complete-cohort",
@@ -302,6 +303,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "migrate:category-b": "migrate-category-b",
   "framework:check-updates": "framework-check-updates",
   "umbrella:current-shape": "umbrella-current-shape",
+  "issue:sync-from-xbrief": "issue-sync-from-xbrief",
   upgrade: "install-upgrade",
   "session:start": "session-start",
   "toolchain:check": "toolchain-check",
@@ -2553,6 +2555,12 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     }
     case "issue-ingest": {
       const { mainEntry } = await import("@deftai/directive-core/dist/intake/issue-ingest-cli.js");
+      return mainEntry;
+    }
+    case "issue-sync-from-xbrief": {
+      const { mainEntry } = await import(
+        "@deftai/directive-core/dist/issue-sync/sync-from-xbrief-cli.js"
+      );
       return mainEntry;
     }
     case "reconcile-issues": {

@@ -191,6 +191,9 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
   if (ns === "issue" && verb === "emit") {
     return { kind: "dispatch", argv: ["issue-emit", ...rest] };
   }
+  if (ns === "issue" && verb === "sync-from-xbrief") {
+    return { kind: "dispatch", argv: ["issue-sync-from-xbrief", ...rest] };
+  }
 
   if (ns === "triage" && verb.startsWith("bulk-")) {
     return { kind: "dispatch", argv: ["triage-bulk", verb.slice("bulk-".length), ...rest] };

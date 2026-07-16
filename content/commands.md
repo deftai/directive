@@ -95,6 +95,9 @@ Common commands:
 - `task scope:fail -- xbrief/active/<file>.xbrief.json` -- mark running work failed when the scope cannot complete.
 - `task scope:cancel -- <path>` -- move a scope to `cancelled/`.
 - `task scope:restore`, `task scope:block`, `task scope:unblock`, `task scope:demote`, and `task scope:undo:*` -- repair or reverse lifecycle transitions.
+- `task issue:sync-from-xbrief -- <path>` -- post a GitHub issue comment summarizing material AC/status changes for an origin-linked scope xBRIEF (`plan.references` with `x-xbrief/github-issue`). Supports `--dry-run` (print without posting) and `--repo OWNER/NAME` when the reference URI lacks a repo slug. Skips when no material changes since the last successful sync. Closes the reverse-sync gap after `task issue:ingest` (#2540).
+- `task issue:ingest -- <N>` / `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` -- ingest GitHub issues as scope xBRIEFs (deduplicates via existing references).
+- `task reconcile:issues [-- --apply-lifecycle-fixes]` -- scan origin-linked xBRIEFs for stale or closed GitHub issues.
 
 Before implementation work, use:
 

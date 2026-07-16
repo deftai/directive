@@ -278,6 +278,10 @@
       "types": "./dist/umbrella-current-shape/index.d.ts",
       "default": "./dist/umbrella-current-shape/index.js"
     },
+    "./issue-sync": {
+      "types": "./dist/issue-sync/index.d.ts",
+      "default": "./dist/issue-sync/index.js"
+    },
     "./task-surface": {
       "types": "./dist/task-surface/index.d.ts",
       "default": "./dist/task-surface/index.js"
