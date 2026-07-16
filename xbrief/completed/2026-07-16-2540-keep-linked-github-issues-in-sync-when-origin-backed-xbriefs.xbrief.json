@@ -1,0 +1,88 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2540 (swarm cohort fix-2606-2601-2530-2538-2540) — MVP: comment sync + skill gate",
+    "updated": "2026-07-16T18:35:00Z"
+  },
+  "plan": {
+    "title": "MVP: sync origin-linked GitHub issues after xBRIEF material updates",
+    "status": "completed",
+    "narratives": {
+      "Description": "Issue-to-xBRIEF ingest exists, but material xBRIEF edits do not push narrative or AC changes back to the linked GitHub issue. Operators and agents then diverge on current shape because the human-facing tracker goes stale. This MVP adds a sync comment verb and skill obligation.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2540",
+      "Overview": "Issue→xBRIEF ingest exists; reverse sync is missing. Ship MVP: task issue:sync-from-xbrief that posts a comment summarizing material AC/status changes for the linked origin issue, plus skill prose in refinement/build so agents must run it after editing origin-backed xBRIEFs. Body rewrite is optional/best-effort when a marked checklist region exists; non-goal: auto-close or rewrite discussion.",
+      "Labels": "enhancement, skills, operational",
+      "UserStory": "As an operator who edits an origin-linked xBRIEF, I want a deterministic way to post a sync comment to the linked GitHub issue, so that the human-facing tracker stays truthful after scope changes.",
+      "ImplementationPlan": "1. Add packages/core/src/issue-sync/ implementing task issue:sync-from-xbrief -- <path> that resolves plan.references github-issue and posts a REST comment (--dry-run supported).\n2. Wire packages/cli/src/dispatch.ts and content/commands.md.\n3. Add skill prose in deft-directive-refinement and deft-directive-build requiring sync after material origin-linked edits; refresh agents-entry if consumer-relevant.\n4. Unit tests for detection and dry-run; CHANGELOG. Closes #2540.",
+      "Acceptance": "issue:sync-from-xbrief posts a comment for origin-linked xBRIEFs; dry-run available; skills require the step; tests cover happy path + missing origin."
+    },
+    "items": [
+      {
+        "title": "issue:sync-from-xbrief verb (comment MVP)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an xBRIEF with x-xbrief/github-issue reference, when task issue:sync-from-xbrief -- <path> runs, then it posts a GitHub issue comment summarizing material AC/status changes (REST; --dry-run prints without posting)."
+        }
+      },
+      {
+        "title": "Skill/gate prose for origin-linked edits",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given refinement/build skill guidance, when an agent materially updates an origin-linked xBRIEF, then the skill requires running issue:sync-from-xbrief (or documenting why skipped)."
+        }
+      },
+      {
+        "title": "Unit/integration coverage",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given missing origin vs valid origin fixtures, when the suite runs, then sync-from-xbrief detection and dry-run paths are covered."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "skills",
+      "operational"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2540",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2540: keep linked GitHub issues in sync"
+      }
+    ],
+    "updated": "2026-07-16T20:25:17Z",
+    "id": "fix-2540-issue-sync-from-xbrief-mvp",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/issue-sync/",
+          "packages/cli/src/dispatch.ts",
+          "content/skills/deft-directive-refinement/SKILL.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/commands.md",
+          "content/templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- issue-sync",
+          "pnpm --filter @deftai/directive-core test -- issue-ingest"
+        ],
+        "expected_outputs": [
+          "issue:sync-from-xbrief verb",
+          "skill obligation for origin-linked edits"
+        ],
+        "depends_on": [],
+        "conflict_group": "fix-cohort-2540-issue-sync",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Enhancement MVP from #2540; reverse sync path missing after triage ingest."
+      },
+      "completedAt": "2026-07-16T20:25:17Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

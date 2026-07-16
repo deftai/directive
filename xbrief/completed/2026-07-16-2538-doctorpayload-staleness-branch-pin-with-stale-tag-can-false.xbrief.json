@@ -1,0 +1,83 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2538 (swarm cohort fix-2606-2601-2530-2538-2540)",
+    "updated": "2026-07-16T18:35:00Z"
+  },
+  "plan": {
+    "title": "doctor(payload-staleness): branch pin with stale tag must not false-nudge newer-release",
+    "status": "completed",
+    "narratives": {
+      "Description": "When VERSION ref is a moving branch but tag still holds a prior semver, payload-staleness under --network uses (tag || ref) for release applicability while git ls-remote verifies ref. A matching branch SHA no longer short-circuits, so npm comparison can emit a false newer-release finding.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2538",
+      "Overview": "Under --network, (tag || ref) for release applicability + git ls-remote on ref can false-nudge npm newer-release when install tracks a branch. Prefer ref when ref is not a publishable tag; ignore stale tag for branch pins.",
+      "Labels": "bug, operational, installer, doctor, area:installer",
+      "UserStory": "As an operator on a branch-pinned install, I want doctor payload-staleness not to suggest latest solely because of a stale tag field, so that branch-tracking installs are not falsely nudged to upgrade.",
+      "ImplementationPlan": "1. Adjust packages/core/src/doctor/payload-staleness.ts applicability to prefer non-tag ref / skip release-availability when ref is a branch.\n2. Add regression fixture in doctor tests: branch ref + stale tag must not emit false newer-release.\n3. CHANGELOG entry. Closes #2538.",
+      "Acceptance": "Branch pin + stale tag does not emit false newer-release; tag pins still work; tests cover the case."
+    },
+    "items": [
+      {
+        "title": "Prefer ref for applicability when ref is not a publishable tag",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given VERSION with ref=main|master and tag=stale semver, when payload-staleness runs with network, then it does not emit a false newer-release finding based on the stale tag."
+        }
+      },
+      {
+        "title": "Regression test for branch pin + stale tag",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fixture with branch ref and stale tag, when the doctor payload-staleness suite runs, then the false-nudge case is asserted."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "operational",
+      "installer",
+      "doctor",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2538",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2538: payload-staleness branch pin false-nudge"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2529",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2529"
+      }
+    ],
+    "updated": "2026-07-16T20:25:17Z",
+    "id": "fix-2538-payload-staleness-branch-pin",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/payload-staleness.ts",
+          "packages/core/src/doctor/main-branches.test.ts",
+          "packages/core/src/doctor/"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- payload-staleness"
+        ],
+        "expected_outputs": [
+          "No false newer-release for branch pins with stale tag"
+        ],
+        "depends_on": [],
+        "conflict_group": "fix-cohort-2538-staleness",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Doctor false-nudge from Bugbot on #2529; tracked as #2538."
+      },
+      "completedAt": "2026-07-16T20:25:17Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

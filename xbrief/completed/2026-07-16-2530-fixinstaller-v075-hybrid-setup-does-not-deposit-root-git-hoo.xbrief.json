@@ -1,0 +1,97 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2530 (swarm cohort fix-2606-2601-2530-2538-2540)",
+    "updated": "2026-07-16T18:35:00Z"
+  },
+  "plan": {
+    "title": "fix(installer): hybrid update/setup must deposit root git hooks",
+    "status": "completed",
+    "narratives": {
+      "Description": "Hybrid deposits can lack project-root .githooks/; task setup only sets core.hooksPath and update skips writeConsumerGitHooks even on alreadyCurrent. Consumers end up with a nonfunctional hooksPath and verify:hooks-installed fails with no self-heal path.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2530",
+      "Overview": "Hybrid deposits can lack project-root .githooks/; setup only sets core.hooksPath; update skips writeConsumerGitHooks. Follow maintainer recommended fix on the issue comment: call writeConsumerGitHooks from runRefreshDeposit (incl. alreadyCurrent), transactional setup, docs + regression.",
+      "Labels": "bug, adoption-blocker, installer, vendored-deposit, area:installer",
+      "UserStory": "As a hybrid consumer missing root githooks, I want directive update to deposit hooks and setup to refuse pointing Git at a missing directory, so that verify hooks-installed can pass after a supported repair flow.",
+      "ImplementationPlan": "1. packages/core/src/init-deposit/refresh.ts: call writeConsumerGitHooks from runRefreshDeposit including alreadyCurrent path (#2595-style).\n2. Make setup/deft:setup transactional: deposit hooks or refuse hooksPath when files missing.\n3. Align content/UPGRADING.md and verify:hooks-installed recovery prose.\n4. Regression test for already-current hybrid + missing root hooks. Closes #2530.",
+      "Acceptance": "Update deposits root hooks even when payload current; setup never configures missing hooks dir; verify:hooks-installed passes after supported flow; docs accurate; regression test green."
+    },
+    "items": [
+      {
+        "title": "update always-repair root hooks via writeConsumerGitHooks",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given already-current hybrid deposit with missing project-root .githooks/, when runRefreshDeposit runs, then pre-commit/pre-push/_deft-run.sh are deposited and hooksPath is correctly set."
+        }
+      },
+      {
+        "title": "setup transactional fail-safe",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given missing project-root .githooks files, when task setup / deft:setup runs, then it either deposits hooks first or refuses to set core.hooksPath=.githooks."
+        }
+      },
+      {
+        "title": "Docs + recovery prose alignment",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given UPGRADING.md and verify:hooks-installed recovery text, when an agent reads them, then they name update as the heal path and do not claim setup alone deposits hooks."
+        }
+      },
+      {
+        "title": "Regression: current hybrid + missing root .githooks/",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fixture with already-current payload and absent root hooks, when the refresh suite runs, then hooks are repaired."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer",
+      "vendored-deposit",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2530",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2530: hybrid setup does not deposit root git hooks"
+      }
+    ],
+    "updated": "2026-07-16T20:25:17Z",
+    "id": "fix-2530-hybrid-root-githooks",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/",
+          "packages/core/src/verify-env/verify-hooks-installed.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.test.ts",
+          "content/UPGRADING.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- refresh",
+          "pnpm --filter @deftai/directive-core test -- verify-hooks"
+        ],
+        "expected_outputs": [
+          "update deposits root .githooks on alreadyCurrent",
+          "setup fail-safe for missing hooks dir"
+        ],
+        "depends_on": [],
+        "conflict_group": "fix-cohort-2530-hooks",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Installer deposit bug from #2530 with maintainer recommended fix on the issue comment."
+      },
+      "completedAt": "2026-07-16T20:25:17Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

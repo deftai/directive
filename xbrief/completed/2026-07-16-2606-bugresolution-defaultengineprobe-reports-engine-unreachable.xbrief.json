@@ -1,0 +1,83 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2606 (swarm cohort fix-2606-2601-2530-2538-2540)",
+    "updated": "2026-07-16T18:35:00Z"
+  },
+  "plan": {
+    "title": "bug(resolution): defaultEngineProbe reports engine unreachable on Windows despite global npm install",
+    "status": "completed",
+    "narratives": {
+      "Description": "Windows npm global bins are .cmd shims; defaultEngineProbe uses bare execFileSync without shell/PATHEXT and reports unreachable even when directive/deft work interactively. Doctor Resolution and update self-heal ladder both consume this false-negative and block or print global: absent.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2606",
+      "Overview": "On Windows, execFileSync('directive'|'deft') without shell/PATHEXT fails on npm global .cmd shims, so classify/defaultEngineProbe returns unreachable even when the global engine works interactively. Fix probe resolution; cover with regression test.",
+      "Labels": "bug, agent-experience, runtime-portability",
+      "UserStory": "As a Windows consumer with a global npm engine, I want doctor and update to detect that engine, so that they do not block on a false unreachable diagnosis.",
+      "ImplementationPlan": "1. Fix probeEngineVersion/defaultEngineProbe in packages/core/src/resolution/classify.ts for Windows PATH/.cmd resolution and prefer in-process identity when already inside the CLI.\n2. Add regression coverage in packages/core/src/resolution/classify.test.ts for the Windows npm-shim case.\n3. Run vitest on classify tests; add CHANGELOG [Unreleased] entry. Closes #2606.",
+      "Acceptance": "1. defaultEngineProbe reports reachable+version when global directive/deft is on PATH via npm .cmd\n2. doctor Resolution is not blocked solely by the false unreachable probe\n3. update ladder does not print global: absent when the engine is present\n4. Tests pass; CHANGELOG updated"
+    },
+    "items": [
+      {
+        "title": "Windows-safe engine PATH probe",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given win32 with npm global .cmd shims for directive/deft on PATH, when defaultEngineProbe runs, then reachable is true and engineVersion parses from the banner."
+        }
+      },
+      {
+        "title": "In-process identity preferred when already in CLI",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given doctor/update already executing inside @deftai/directive, when classify needs engine version, then it prefers in-process identity over a failing bare-name subprocess probe."
+        }
+      },
+      {
+        "title": "Regression test for Windows npm-shim probe",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given classify.test.ts, when the suite runs, then it covers the Windows shim / shell:true (or equivalent) resolution path so Linux CI cannot green-wash the bug."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "runtime-portability"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2606",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2606: defaultEngineProbe Windows unreachable false-negative"
+      }
+    ],
+    "updated": "2026-07-16T20:25:19Z",
+    "id": "fix-2606-windows-engine-probe",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/resolution/classify.ts",
+          "packages/core/src/resolution/classify.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- classify"
+        ],
+        "expected_outputs": [
+          "Windows PATH/.cmd probe succeeds",
+          "doctor/update no longer false-block on probe"
+        ],
+        "depends_on": [],
+        "conflict_group": "fix-cohort-2606-probe",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bugfix from #2606 Windows npm-shim probe evidence; no spec-section trace."
+      },
+      "completedAt": "2026-07-16T20:25:19Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
