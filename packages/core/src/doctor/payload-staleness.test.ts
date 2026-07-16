@@ -298,6 +298,30 @@ describe("payload-staleness (#2003 / #2004)", () => {
     }
   });
 
+  it("does not false-nudge newer-release when branch ref has stale tag (#2538)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      const sha = "d".repeat(40);
+      let npmCalls = 0;
+      const findings: Finding[] = [];
+      runPayloadStalenessCheck(root, createPlainSink(), (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${sha}\nref: master\ntag: v0.56.0\n` : null,
+        runGitLsRemote: () => ({ ok: true, stdout: `${sha}\trefs/heads/master\n` }),
+        runNpmViewVersion: () => {
+          npmCalls += 1;
+          return { ok: true, version: "0.99.0" };
+        },
+      });
+      expect(npmCalls).toBe(0);
+      expect(findings.find((f) => f.status === "stale")).toBeUndefined();
+      expect(findings.find((f) => f.staleness_kind === "newer-release")).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("does not query npm for a branch pin whose sha matches", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
     try {

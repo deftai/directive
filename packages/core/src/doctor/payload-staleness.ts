@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { detectCanonicalVendoredManifest, isNpmManaged } from "../init-deposit/migrate.js";
+import { isPublishable } from "../release/version.js";
 import type { PackageManager } from "../resolution/package-manager.js";
 import {
   CANONICAL_UPGRADE_COMMAND,
@@ -284,7 +285,12 @@ export function runPayloadStalenessCheck(
     return;
   }
 
-  const installedCandidate = (tag || ref).trim().replace(/^refs\/tags\//, "");
+  const normalizedRef = ref.trim().replace(/^refs\/tags\//, "");
+  const normalizedTag = tag.trim().replace(/^refs\/tags\//, "");
+  // Branch pins (ref not a publishable tag) must not fall through to npm via a stale tag (#2538).
+  const installedCandidate = isPublishable(normalizedRef)
+    ? normalizedTag || normalizedRef
+    : normalizedRef;
   const applicability = evaluateReleaseAvailability(installedCandidate, null);
   if (applicability.status === "not-applicable") {
     if (remoteSha && installedSha === remoteSha) {
