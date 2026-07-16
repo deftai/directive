@@ -1,7 +1,31 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const readCorePackageVersionMock = vi.hoisted(() => vi.fn(() => "0.78.0"));
+const existsSyncMock = vi.hoisted(() =>
+  vi.fn<(path: Parameters<typeof import("node:fs").existsSync>[0]) => boolean>(),
+);
+const actualExistsSync = vi.hoisted(() => ({
+  fn: null as typeof import("node:fs").existsSync | null,
+}));
+
+vi.mock("../engine-version.js", () => ({
+  readCorePackageVersion: readCorePackageVersionMock,
+}));
+
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  actualExistsSync.fn = actual.existsSync;
+  existsSyncMock.mockImplementation(actual.existsSync);
+  return {
+    ...actual,
+    existsSync: (path: Parameters<typeof actual.existsSync>[0]) => existsSyncMock(path),
+  };
+});
+
+import * as commandSpawn from "../verify-env/command-spawn.js";
 import { type ClassifySeams, classify, defaultEngineProbe } from "./classify.js";
 
 const CWD = "/proj";
@@ -123,6 +147,123 @@ describe("resolution/classify orthogonal fact-set (#2264 a1)", () => {
     const result = defaultEngineProbe();
     expect(typeof result.reachable).toBe("boolean");
     expect(result.version === null || typeof result.version === "string").toBe(true);
+  });
+});
+
+describe("resolution/classify defaultEngineProbe (#2606)", () => {
+  const resolveSpy = vi.spyOn(commandSpawn, "resolveCommandOnPath");
+  const spawnSpy = vi.spyOn(commandSpawn, "spawnCommandText");
+
+  beforeEach(() => {
+    resolveSpy.mockReset();
+    spawnSpy.mockReset();
+    readCorePackageVersionMock.mockReset();
+    readCorePackageVersionMock.mockReturnValue("0.78.0");
+    existsSyncMock.mockReset();
+    if (actualExistsSync.fn) {
+      existsSyncMock.mockImplementation(actualExistsSync.fn);
+    }
+    delete process.env.DEFT_RELEASE_VERSION;
+  });
+
+  afterEach(() => {
+    delete process.env.DEFT_RELEASE_VERSION;
+  });
+
+  it("prefers in-process core identity when already inside the CLI", () => {
+    readCorePackageVersionMock.mockReturnValue("0.78.0");
+
+    const result = defaultEngineProbe();
+
+    expect(result).toEqual({ reachable: true, version: "0.78.0" });
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts dev-checkout 0.0.0 in-process without subprocess probing", () => {
+    readCorePackageVersionMock.mockReturnValue("0.0.0");
+
+    const result = defaultEngineProbe();
+
+    expect(result).toEqual({ reachable: true, version: "0.0.0" });
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("prefers DEFT_RELEASE_VERSION over subprocess probing", () => {
+    process.env.DEFT_RELEASE_VERSION = "9.9.9";
+    readCorePackageVersionMock.mockReturnValue("0.78.0");
+
+    const result = defaultEngineProbe();
+
+    expect(result).toEqual({ reachable: true, version: "9.9.9" });
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("resolves Windows npm .cmd shims via PATHEXT before shell fallback", () => {
+    existsSyncMock.mockImplementation((path) => {
+      const normalized = String(path).replace(/\\/g, "/");
+      if (normalized.endsWith("/packages/core/package.json")) {
+        return false;
+      }
+      return actualExistsSync.fn?.(path) ?? false;
+    });
+    readCorePackageVersionMock.mockReturnValue("0.0.0");
+    const shim = "C:\\Users\\test\\AppData\\Roaming\\npm\\directive.CMD";
+    resolveSpy.mockImplementation((cmd) => (cmd === "directive" ? shim : null));
+    spawnSpy.mockReturnValueOnce({
+      status: 0,
+      stdout: "@deftai/directive (engine: @deftai/directive-core@0.78.0)\n",
+      stderr: "",
+    });
+
+    const result = defaultEngineProbe();
+
+    expect(result).toEqual({ reachable: true, version: "0.78.0" });
+    expect(resolveSpy).toHaveBeenCalledWith("directive");
+    expect(spawnSpy).toHaveBeenCalledWith(shim, ["--version"], { timeoutMs: 5000 });
+  });
+
+  it("falls back to shell:true bare-name probe when PATH resolution misses", () => {
+    existsSyncMock.mockImplementation((path) => {
+      const normalized = String(path).replace(/\\/g, "/");
+      if (normalized.endsWith("/packages/core/package.json")) {
+        return false;
+      }
+      return actualExistsSync.fn?.(path) ?? false;
+    });
+    readCorePackageVersionMock.mockReturnValue("0.0.0");
+    resolveSpy.mockReturnValue(null);
+    spawnSpy.mockReturnValueOnce({ status: 1, stdout: "", stderr: "ENOENT" }).mockReturnValueOnce({
+      status: 0,
+      stdout: "@deftai/directive (engine: @deftai/directive-core@0.78.0)\n",
+      stderr: "",
+    });
+
+    const result = defaultEngineProbe();
+
+    expect(result).toEqual({ reachable: true, version: "0.78.0" });
+    expect(spawnSpy).toHaveBeenNthCalledWith(1, "directive", ["--version"], { timeoutMs: 5000 });
+    expect(spawnSpy).toHaveBeenNthCalledWith(2, "deft", ["--version"], { timeoutMs: 5000 });
+  });
+
+  it("reports unreachable when in-process and subprocess probes both fail", () => {
+    existsSyncMock.mockImplementation((path) => {
+      const normalized = String(path).replace(/\\/g, "/");
+      if (normalized.endsWith("/packages/core/package.json")) {
+        return false;
+      }
+      return actualExistsSync.fn?.(path) ?? false;
+    });
+    readCorePackageVersionMock.mockReturnValue("0.0.0");
+    resolveSpy.mockReturnValue(null);
+    spawnSpy.mockReturnValue({ status: 1, stdout: "", stderr: "ENOENT" });
+
+    const result = defaultEngineProbe();
+
+    expect(result).toEqual({ reachable: false, version: null });
+    expect(spawnSpy).toHaveBeenCalledTimes(2);
   });
 });
 

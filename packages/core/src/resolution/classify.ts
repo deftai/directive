@@ -12,14 +12,17 @@
  *  - committed pin            -> `./pin.ts`
  */
 
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ResolutionFacts } from "@deftai/directive-types";
 import { locateManifest, manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
+import { readCorePackageVersion } from "../engine-version.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import { extractManagedSection, parseManagedSectionAttrs } from "../platform/agents-md.js";
+import { ENV_VAR } from "../platform/constants.js";
 import { detectPreCutover } from "../vbrief-validate/precutover.js";
+import { resolveCommandOnPath, spawnCommandText } from "../verify-env/command-spawn.js";
 import { readPin } from "./pin.js";
 
 /** Result of probing whether an engine is reachable in the execution environment. */
@@ -81,22 +84,46 @@ function defaultReadText(p: string): string | null {
   }
 }
 
-function probeEngineVersion(binary: string): string | null {
+function parseVersionFromOutput(out: string): string | null {
+  const match = SEMVER_IN_TEXT_RE.exec(out);
+  return match?.[1] ?? null;
+}
+
+/**
+ * Prefer the engine version from the already-loaded core package when doctor /
+ * update are executing inside `@deftai/directive` (#2606).
+ */
+function readInProcessEngineVersion(): string | null {
+  const envVersion = process.env[ENV_VAR]?.trim();
+  if (envVersion) {
+    return parseVersionFromOutput(envVersion) ?? envVersion;
+  }
   try {
-    const out = execFileSync(binary, ["--version"], {
-      encoding: "utf8",
-      timeout: 5000,
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    const match = SEMVER_IN_TEXT_RE.exec(out);
-    return match?.[1] ?? null;
+    const pkgPath = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json");
+    if (!existsSync(pkgPath)) {
+      return null;
+    }
+    return readCorePackageVersion();
   } catch {
     return null;
   }
 }
 
-/** Default engine probe: try `directive --version`, then `deft --version`. */
+function probeEngineVersion(binary: string): string | null {
+  const resolved = resolveCommandOnPath(binary);
+  const result = spawnCommandText(resolved ?? binary, ["--version"], { timeoutMs: 5000 });
+  if (result.status !== 0) {
+    return null;
+  }
+  return parseVersionFromOutput(result.stdout);
+}
+
+/** Default engine probe: in-process identity, then `directive` / `deft` on PATH. */
 export function defaultEngineProbe(): EngineProbeResult {
+  const inProcess = readInProcessEngineVersion();
+  if (inProcess !== null) {
+    return { reachable: true, version: inProcess };
+  }
   for (const binary of ["directive", "deft"]) {
     const version = probeEngineVersion(binary);
     if (version !== null) {
