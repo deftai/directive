@@ -78,7 +78,7 @@ export const RELEASE_HELP =
   "                        only when metrics sit below the 85% goal and this\n" +
   "                        flag cites an operator-owned issue number (#2573).\n" +
   "                        PowerShell: use --allow-coverage-debt=N (no bare #)\n" +
-  "                        or quote \"#N\"; unquoted # starts a comment (#2621).\n" +
+  '                        or quote "#N"; unquoted # starts a comment (#2621).\n' +
   "  --skip-ci             Skip Step 3 (task ci:local / task check fallback).\n" +
   "                        Used by `task release:e2e` to keep wall-clock\n" +
   "                        manageable inside the auto-created temp repo (CI\n" +
