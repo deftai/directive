@@ -15,14 +15,22 @@ Releases run on the configured base branch (default `master`). The branch-protec
 ```bash
 task policy:allow-direct-commits -- --confirm
 # ... run the release workflow ...
-task policy:enforce-branches   # restore after the cut (or on abort)
+task policy:enforce-branches
+# enforce flips the typed flag to false — commit+push the restore with a
+# scoped env bypass on these commands only (#2623); do not leave dirty under
+# protection ON (v0.79.0 / #2619 failure mode):
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git add xbrief/PROJECT-DEFINITION.xbrief.json meta/policy-changes.log
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git commit -m "chore(policy): restore branch protection after vX.Y.Z"
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push origin HEAD
 ```
 
-This writes `plan.policy.allowDirectCommitsToMaster = true` on `vbrief/PROJECT-DEFINITION.vbrief.json` with an audited capability-cost disclosure. It does not leak into child processes the way the emergency env-var bypass does.
+This writes `plan.policy.allowDirectCommitsToMaster = true` on `xbrief/PROJECT-DEFINITION.xbrief.json` with an audited capability-cost disclosure. It does not leak into child processes the way the emergency env-var bypass does.
 
 **Do not wrap `task release` or `task ci:local` in `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.** That env var is process-wide: every subprocess, nested test, and temporary repository spawned from the same shell inherits it. During the v0.43.0 release attempt this caused the Step 5 `task ci:local` preflight to fail (`TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit`) because a vendored test repo inherited the bypass and allowed a direct `master` commit the test expected the hook to block.
 
-If the env-var bypass is unavoidable, scope it to a **single** branch-guard probe only (for example `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 task verify:branch`) and do not export it for the release session. The release pipeline passes the bypass only in scoped subprocess `env=` for its authorised commit/tag/push mutations (#867); operators must not mirror that pattern at the shell level.
+If the env-var bypass is unavoidable outside the enforce closeout above, scope it to a **single** branch-guard probe only (for example `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 task verify:branch`) and do not export it for the release session. The release pipeline passes the bypass only in scoped subprocess `env=` for its authorised commit/tag/push mutations (#867); operators must not mirror that pattern at the shell level.
+
+**PowerShell coverage-debt tip (#2621):** pass `--allow-coverage-debt=N` (no bare `#`) or quote `"#N"`. Unquoted `#N` is a PowerShell comment and silently drops the issue number.
 
 See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard for the full operator workflow.
 

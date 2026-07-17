@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveBinary } from "../scm/binary.js";
@@ -68,9 +70,36 @@ export function captureExec(
   };
 }
 
-function cliScriptPath(name: string): string {
+/**
+ * Resolve a CLI entry script for subprocess spawn (#2615).
+ *
+ * Published npm layout nests `@deftai/directive-core` under `@deftai/directive`,
+ * so the old `../../../cli/dist` relative path resolved to a non-existent
+ * `@deftai/cli` sibling. Prefer the published package root, then monorepo path,
+ * then nested `@deftai/directive/dist`.
+ */
+export function cliScriptPath(name: string): string {
+  const script = `${name}.js`;
   const here = dirname(fileURLToPath(import.meta.url));
-  return resolve(here, "../../../cli/dist", `${name}.js`);
+  const candidates: string[] = [];
+
+  try {
+    const require = createRequire(import.meta.url);
+    const pkgJson = require.resolve("@deftai/directive/package.json");
+    candidates.push(resolve(dirname(pkgJson), "dist", script));
+  } catch {
+    // Core does not declare a runtime dependency on the CLI package; ignore.
+  }
+
+  // Monorepo: packages/core/dist/pr-wait-mergeable -> packages/cli/dist
+  candidates.push(resolve(here, "../../../cli/dist", script));
+  // npm nested: .../directive/node_modules/@deftai/directive-core/dist/... -> .../directive/dist
+  candidates.push(resolve(here, "../../../../dist", script));
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return candidates[0] ?? resolve(here, "../../../cli/dist", script);
 }
 
 export interface RunProtectedCheckOptions {

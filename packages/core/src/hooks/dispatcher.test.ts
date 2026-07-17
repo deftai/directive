@@ -5,9 +5,11 @@ import {
   decideHook,
   type HookPolicySeams,
   hookToolName,
+  hookWriteTargetPath,
   isDirectWriteTool,
   isHookEvent,
   isHookHost,
+  isProposedLifecycleWrite,
   projectRootFromHookPayload,
   renderHostDecision,
 } from "./index.js";
@@ -95,7 +97,56 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(decision.message).toContain("deft scope:activate -- <path>");
+    expect(decision.message).toContain("deft scope:activate");
+  });
+
+  it("allows Write of xbrief/proposed/*.xbrief.json with no active scope (#2625)", () => {
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: {
+            file_path: "/project/xbrief/proposed/2026-07-17-story.xbrief.json",
+          },
+        },
+      },
+      readySeams({ inspectScope }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("allows Write of legacy vbrief/proposed/*.vbrief.json with no active scope (#2625)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "vbrief/proposed/legacy.vbrief.json" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF",
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
   });
 
   it("allows a direct write only when both canonical predicates pass", () => {
@@ -339,5 +390,25 @@ describe("provider input normalization", () => {
     expect(isHookHost("opencode")).toBe(false);
     expect(isHookEvent("session.start")).toBe(true);
     expect(isHookEvent("tool.after")).toBe(false);
+  });
+
+  it("extracts write target paths from host payload shapes (#2625)", () => {
+    expect(
+      hookWriteTargetPath({ tool_input: { file_path: "/p/xbrief/proposed/a.xbrief.json" } }),
+    ).toBe("/p/xbrief/proposed/a.xbrief.json");
+    expect(hookWriteTargetPath({ filePath: "xbrief/proposed/b.xbrief.json" })).toBe(
+      "xbrief/proposed/b.xbrief.json",
+    );
+    expect(hookWriteTargetPath({ tool_name: "Write" })).toBeNull();
+  });
+
+  it("classifies proposed lifecycle writes (#2625)", () => {
+    expect(
+      isProposedLifecycleWrite("/project", "xbrief/proposed/2026-07-17-story.xbrief.json"),
+    ).toBe(true);
+    expect(isProposedLifecycleWrite("/project", "vbrief/proposed/legacy.vbrief.json")).toBe(true);
+    expect(isProposedLifecycleWrite("/project", "xbrief/active/story.xbrief.json")).toBe(false);
+    expect(isProposedLifecycleWrite("/project", "src/index.ts")).toBe(false);
+    expect(isProposedLifecycleWrite("/project", null)).toBe(false);
   });
 });

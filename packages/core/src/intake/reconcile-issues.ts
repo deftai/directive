@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
@@ -842,7 +850,19 @@ export function applyLifecycleFixes(
     mkdirSync(join(vbriefDir, destFolder), { recursive: true });
     try {
       statSync(dst);
-      failures.push(`target already exists in ${destFolder}/: ${filename}`);
+      // Destination already holds this basename (#2622). Treat as already-terminal:
+      // drop the non-canonical source duplicate and continue the sweep.
+      try {
+        unlinkSync(src);
+        process.stderr.write(
+          `reconcile: skipped ${relPath} — already present in ${destFolder}/; removed duplicate source (#2622)\n`,
+        );
+        skipped += 1;
+      } catch (exc) {
+        failures.push(
+          `target already exists in ${destFolder}/: ${filename} (failed to remove duplicate source: ${String(exc)})`,
+        );
+      }
       continue;
     } catch {
       // destination free

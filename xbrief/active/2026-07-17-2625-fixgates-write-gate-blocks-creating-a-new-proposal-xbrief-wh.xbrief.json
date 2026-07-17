@@ -1,0 +1,113 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Emergency patch cohort for v0.79.1 — adoption-blocker Write gate + release-smoothness fixes"
+  },
+  "plan": {
+    "id": "emergency-patch-0.79.1",
+    "title": "Emergency patch 0.79.1: Write-gate propose exemption + release cohort",
+    "status": "running",
+    "narratives": {
+      "Description": "Ship a patch release fixing the Write-gate chicken-and-egg adoption blocker (#2625) plus the v0.79.0 cut friction bugs (#2622, #2623, #2621, #2615) and clear coverage debt (#2618) without a second soft-pass.",
+      "Origin": "Operator-approved cohort: /deft:change emergency-patch-0.79.1",
+      "Overview": "Primary: exempt xbrief/proposed (and legacy vbrief/proposed) lifecycle artifact writes from the active-scope Write gate, and fix circular recovery text. Secondary: reconcile duplicate completed basename skip, release skill closeout that commits enforce-branches while opt-in is still on, PowerShell-safe coverage-debt docs, resolve pr-monitor.js via @deftai/directive package on npm installs, lift branch coverage >= 85%.",
+      "UserStory": "As a consumer agent between milestones, I can Write a new proposed xBRIEF without an active scope. As a maintainer, the next patch cut does not stall on reconcile collisions, uncommitted policy restore, PowerShell # stripping, or missing pr-monitor paths — and does not reuse coverage-debt soft-pass.",
+      "ImplementationPlan": "1. Hook dispatcher: extract write target path; allow proposed lifecycle artifact writes when ritual is ready; improve deny recovery when target is proposed/.\n2. applyLifecycleFixes: on target-exists in completed/ for closed issue, skip (already-terminal) instead of fail.\n3. Release skill: document/enforce closeout order — commit enforce flip before protection is relied on as dirty-tree blocker.\n4. Docs/help: PowerShell-safe --allow-coverage-debt=N examples.\n5. cliScriptPath: resolve via createRequire('@deftai/directive') with monorepo fallback.\n6. Tests covering each fix; confirm branch coverage >= 85% (close #2618).\n7. CHANGELOG [Unreleased]; pre-PR; patch release 0.79.1.",
+      "Acceptance": "Write of xbrief/proposed/*.xbrief.json allowed with empty active/ when ritual fresh; other writes still gated. Reconcile apply exits 0 on proposed+completed same basename. Release skill closeout commits enforce. Docs show =N form. wait-mergeable finds pr-monitor under published @deftai/directive. Branch coverage >= 85% without debt flag."
+    },
+    "items": [
+      {
+        "id": "2625",
+        "title": "Exempt proposed/ lifecycle writes from active-scope Write gate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "decideHook allows Write targeting xbrief/proposed/*.xbrief.json (and vbrief/proposed) with no active scope when ritual is ready; recovery text for proposed/ targets is non-circular."
+        }
+      },
+      {
+        "id": "2622",
+        "title": "Reconcile skip when completed/ already has basename",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "applyLifecycleFixes treats target-already-exists in completed/ as skip, not failure; regression test."
+        }
+      },
+      {
+        "id": "2623",
+        "title": "Release closeout commits policy:enforce while opt-in still allows push",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Release skill documents and sequences commit of enforce-branches before leaving dirty under protection ON."
+        }
+      },
+      {
+        "id": "2621",
+        "title": "PowerShell-safe --allow-coverage-debt docs",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Release skill, flag help, commands.md show =N / quoted forms; prefer no bare # on Windows."
+        }
+      },
+      {
+        "id": "2615",
+        "title": "Resolve pr-monitor.js from published @deftai/directive",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "cliScriptPath finds packages/cli dist scripts via @deftai/directive package root on npm layout; actionable error if missing."
+        }
+      },
+      {
+        "id": "2618",
+        "title": "Lift branch coverage to >= 85%",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "pnpm test with coverage meets branches 85% without --allow-coverage-debt; close #2618."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "release",
+      "emergency-patch"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2625",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2625: Write gate chicken-and-egg"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2622",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2622: reconcile proposed+completed basename"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2623",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2623: policy enforce closeout"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2621",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2621: PowerShell coverage-debt #"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2615",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2615: pr-monitor MODULE_NOT_FOUND"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2618",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2618: coverage debt clear"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "changeName": "emergency-patch-0.79.1"
+    },
+    "updated": "2026-07-17T23:04:52Z"
+  }
+}

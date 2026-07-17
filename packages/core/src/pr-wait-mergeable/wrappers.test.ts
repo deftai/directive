@@ -86,6 +86,13 @@ describe("runProtectedCheck", () => {
   });
 });
 
+describe("cliScriptPath (#2615)", () => {
+  it("resolves a monorepo packages/cli/dist script when present", () => {
+    const path = wrappers.cliScriptPath("pr-monitor");
+    expect(path.replace(/\\/g, "/")).toMatch(/\/(cli\/dist\/pr-monitor\.js|dist\/pr-monitor\.js)$/);
+  });
+});
+
 describe("runMonitor", () => {
   it("invokes monitor cli and returns triple", () => {
     const [rc, stdout] = wrappers.runMonitor(1370, "deftai/directive", 0);

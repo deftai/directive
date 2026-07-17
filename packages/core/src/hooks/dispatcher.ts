@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import { relative, resolve, sep } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
@@ -20,6 +21,7 @@ export type HookDecisionCode =
   | "invalid-input"
   | "ritual-not-ready"
   | "scope-not-ready"
+  | "write-propose-ready"
   | "write-ready";
 
 export interface HookDecision {
@@ -63,6 +65,44 @@ export function hookToolName(payload: unknown): string | null {
   const input = record(payload);
   if (input === null) return null;
   return firstString(input.tool_name, input.toolName, input.tool);
+}
+
+/**
+ * Best-effort write-target path from host PreToolUse payloads (#2625).
+ * Hosts disagree on nesting (`tool_input.file_path` vs top-level `path`).
+ */
+export function hookWriteTargetPath(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = record(input.tool_input) ?? record(input.toolInput) ?? record(input.input);
+  return firstString(
+    toolInput?.file_path,
+    toolInput?.filePath,
+    toolInput?.path,
+    input.file_path,
+    input.filePath,
+    input.path,
+  );
+}
+
+/** POSIX-ish project-relative path for lifecycle matching. */
+export function toProjectRelativePosix(projectRoot: string, targetPath: string): string {
+  const abs = resolve(projectRoot, targetPath);
+  const rel = relative(resolve(projectRoot), abs);
+  return rel.split(sep).join("/");
+}
+
+/**
+ * Proposing a scope under xbrief/proposed/ (or legacy vbrief/proposed/) is
+ * planning, not implementation dispatch — exempt from the active-scope gate (#2625).
+ */
+export function isProposedLifecycleWrite(projectRoot: string, targetPath: string | null): boolean {
+  if (targetPath === null || targetPath.trim().length === 0) return false;
+  const posix = toProjectRelativePosix(projectRoot, targetPath);
+  if (posix.startsWith("..") || posix.includes("/../")) return false;
+  const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
+  if (!hasArtifactSuffix(base)) return false;
+  return posix.startsWith("xbrief/proposed/") || posix.startsWith("vbrief/proposed/");
 }
 
 export function projectRootFromHookPayload(payload: unknown, fallback: string): string {
@@ -198,6 +238,22 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     );
   }
 
+  const writeTarget = hookWriteTargetPath(input.payload);
+  if (isProposedLifecycleWrite(projectRoot, writeTarget)) {
+    return {
+      verdict: "allow",
+      code: "write-propose-ready",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message:
+        `Directive write gate allowed ${toolName} for a proposed lifecycle xBRIEF ` +
+        "(planning write; active scope not required).",
+      scopePath: null,
+    };
+  }
+
   let scope: ActiveScopeInspection;
   try {
     scope = (seams.inspectScope ?? inspectActiveScope)(projectRoot);
@@ -205,12 +261,19 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     scope = { ready: false, path: null, message: String(cause) };
   }
   if (!scope.ready) {
+    const proposedHint =
+      writeTarget !== null &&
+      (toProjectRelativePosix(projectRoot, writeTarget).includes("/proposed/") ||
+        /[/\\]proposed[/\\]/.test(writeTarget))
+        ? " For a new proposal under xbrief/proposed/, include the target path in the " +
+          "Write/Edit payload (file_path) so the gate can exempt planning writes (#2625)."
+        : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
+          "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption).";
     return deny(
       input,
       "scope-not-ready",
       toolName,
-      `Directive denied ${toolName}: ${scope.message} ` +
-        "Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF.",
+      `Directive denied ${toolName}: ${scope.message}${proposedHint}`,
     );
   }
 

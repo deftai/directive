@@ -1,4 +1,11 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -395,7 +402,7 @@ describe("intake cli and branch coverage", () => {
       rmSync(root, { recursive: true, force: true });
     });
 
-    it("reconcileCliMain apply-lifecycle-fixes fails when target exists", () => {
+    it("reconcileCliMain apply-lifecycle-fixes skips when target exists in completed (#2622)", () => {
       const root = mkdtempSync(join(tmpdir(), "reconcile-fail-"));
       const name = "child.xbrief.json";
       const data = {
@@ -428,7 +435,10 @@ describe("intake cli and branch coverage", () => {
           root,
           "--apply-lifecycle-fixes",
         ]),
-      ).toBe(1);
+      ).toBe(0);
+      expect(existsSync(join(root, "xbrief", "active", name))).toBe(false);
+      expect(existsSync(join(root, "xbrief", "completed", name))).toBe(true);
+      expect(stderr.mock.calls.some((c) => String(c[0]).includes("already present"))).toBe(true);
       callSpy.mockRestore();
       stderr.mockRestore();
       stdout.mockRestore();

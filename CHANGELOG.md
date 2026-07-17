@@ -18,7 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Release closeout commits `policy:enforce-branches` with a scoped push (#2623).** The release skill now requires committing the typed-flag restore in the same closeout (scoped `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` on those git commands only) so origin does not stay opted-in or leave a dirty enforce under protection ON.
+- **PowerShell-safe coverage-debt flag examples (#2621).** Release help and the release skill document `--allow-coverage-debt=N` (no bare `#`) so Windows shells do not strip the issue number.
+
 ### Fixed
+
+- **Write gate allows creating `xbrief/proposed/*.xbrief.json` with no active scope (#2625).** Planning writes to proposed lifecycle artifacts are exempt from the active-scope implementation gate after a fresh session ritual; recovery text no longer loops on `scope:activate` for that case. Closes #2625.
+- **Lifecycle reconcile no longer hard-fails when `completed/` already has the basename (#2622).** `apply-lifecycle-fixes` treats the collision as already-terminal, removes the duplicate source, and continues. Closes #2622.
+- **`pr:wait-mergeable-and-merge` finds `pr-monitor.js` on npm consumer installs (#2615).** CLI script resolution prefers the published `@deftai/directive` package root (and nested `dist/`) instead of a non-existent `@deftai/cli` sibling path. Closes #2615.
+- **Branch coverage debt from the v0.79.0 cut is cleared (#2618).** Patch tests restore the 85% branches floor without a second `--allow-coverage-debt` soft-pass. Closes #2618.
 
 ### Removed
 

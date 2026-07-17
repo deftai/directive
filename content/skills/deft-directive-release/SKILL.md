@@ -37,11 +37,19 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 task policy:allow-direct-commits -- --confirm
 ```
 
-This writes `plan.policy.allowDirectCommitsToMaster = true` on `xbrief/PROJECT-DEFINITION.xbrief.json` with a capability-cost disclosure. After the release completes (or if the session aborts), restore enforcement:
+This writes `plan.policy.allowDirectCommitsToMaster = true` on `xbrief/PROJECT-DEFINITION.xbrief.json` with a capability-cost disclosure. After the release completes (or if the session aborts), restore enforcement **and commit the restore in the same closeout** (#2623):
 
 ```
 task policy:enforce-branches
+# enforce flips the typed flag to false locally — the commit that lands that
+# flip cannot use the typed opt-in anymore. Scope the emergency env bypass to
+# ONLY this closeout commit+push (do NOT export it for the whole session):
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git add xbrief/PROJECT-DEFINITION.xbrief.json meta/policy-changes.log
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git commit -m "chore(policy): restore branch protection after vX.Y.Z"
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push origin HEAD
 ```
+
+⊗ Leave `allowDirectCommitsToMaster=true` on origin after publish. ⊗ Run `policy:enforce-branches` and leave the dirty restore under protection ON without committing (forces a follow-up PR — the v0.79.0 / #2619 failure mode).
 
 **Branch-guard probe (either path).** Regardless of which opt-out path you chose, confirm the guard passes before Phase 1 mutates state:
 
@@ -283,4 +291,6 @@ Where `<one-line guidance>` is one of:
 - ⊗ Hardcode `master` as the base branch -- delegate to the configured base branch from `task release --base-branch <branch>`
 - ⊗ Skip the post-create verify-isDraft gate (#724) -- a successful `gh release create` exit code does NOT prove the release actually landed in draft state; the 5-second poll-and-flip gate in `scripts/release.py` Step 11 is the only safety net against operator-error variants and partial-success races, and any manual recovery path that bypasses `scripts/release.py` MUST run `gh release view --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` before handing off to Phase 5
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
-- ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut
+- ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** env prefix on those three git commands only — see Branch-Protection Policy Guard, #2623)
+- ⊗ Pass `--allow-coverage-debt=#N` unquoted on Windows PowerShell (#2621) -- `#` starts a comment and silently drops the issue number. Use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"`
+- ⊗ Soft-pass coverage debt on consecutive releases when the prior cut already cited debt (#2618 / #2573) -- restore real branch coverage >= 85% instead of reusing the escape hatch
