@@ -478,7 +478,7 @@ describe("intake coverage boost", () => {
       expect(moved).toBe(0);
       expect(skipped).toBe(1);
       expect(failures).toHaveLength(0);
-      expect(existsSync(join(root, "xbrief", "proposed", name))).toBe(false);
+      expect(existsSync(join(root, "xbrief", "proposed", name))).toBe(true);
       expect(existsSync(join(root, "xbrief", "completed", name))).toBe(true);
       stderr.mockRestore();
       rmSync(root, { recursive: true, force: true });

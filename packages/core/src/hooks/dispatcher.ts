@@ -99,7 +99,8 @@ export function toProjectRelativePosix(projectRoot: string, targetPath: string):
 export function isProposedLifecycleWrite(projectRoot: string, targetPath: string | null): boolean {
   if (targetPath === null || targetPath.trim().length === 0) return false;
   const posix = toProjectRelativePosix(projectRoot, targetPath);
-  if (posix.startsWith("..") || posix.includes("/../")) return false;
+  // resolve()+relative() collapses mid-path `..`; only outside-root `..` remains.
+  if (posix.startsWith("..")) return false;
   const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
   if (!hasArtifactSuffix(base)) return false;
   return posix.startsWith("xbrief/proposed/") || posix.startsWith("vbrief/proposed/");
@@ -261,19 +262,21 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     scope = { ready: false, path: null, message: String(cause) };
   }
   if (!scope.ready) {
-    const proposedHint =
-      writeTarget !== null &&
-      (toProjectRelativePosix(projectRoot, writeTarget).includes("/proposed/") ||
-        /[/\\]proposed[/\\]/.test(writeTarget))
-        ? " For a new proposal under xbrief/proposed/, include the target path in the " +
-          "Write/Edit payload (file_path) so the gate can exempt planning writes (#2625)."
+    const relTarget =
+      writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+    const proposedPathHint =
+      relTarget !== null &&
+      (relTarget.startsWith("xbrief/proposed/") || relTarget.startsWith("vbrief/proposed/"))
+        ? " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
+          "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
+          "planning writes (#2625)."
         : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
           "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption).";
     return deny(
       input,
       "scope-not-ready",
       toolName,
-      `Directive denied ${toolName}: ${scope.message}${proposedHint}`,
+      `Directive denied ${toolName}: ${scope.message}${proposedPathHint}`,
     );
   }
 

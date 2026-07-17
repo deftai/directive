@@ -1,13 +1,5 @@
 import { execFileSync } from "node:child_process";
-import {
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  statSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
@@ -850,19 +842,14 @@ export function applyLifecycleFixes(
     mkdirSync(join(vbriefDir, destFolder), { recursive: true });
     try {
       statSync(dst);
-      // Destination already holds this basename (#2622). Treat as already-terminal:
-      // drop the non-canonical source duplicate and continue the sweep.
-      try {
-        unlinkSync(src);
-        process.stderr.write(
-          `reconcile: skipped ${relPath} — already present in ${destFolder}/; removed duplicate source (#2622)\n`,
-        );
-        skipped += 1;
-      } catch (exc) {
-        failures.push(
-          `target already exists in ${destFolder}/: ${filename} (failed to remove duplicate source: ${String(exc)})`,
-        );
-      }
+      // Destination already holds this basename (#2622). Treat as already-terminal
+      // and continue the sweep. Do not unlink the source — a same-basename collision
+      // can be a non-identical artifact; leave removal to the operator / git.
+      process.stderr.write(
+        `reconcile: skipped ${relPath} — already present in ${destFolder}/ (#2622); ` +
+          "left source in place for manual cleanup\n",
+      );
+      skipped += 1;
       continue;
     } catch {
       // destination free

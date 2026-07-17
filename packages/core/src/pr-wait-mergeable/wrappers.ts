@@ -99,7 +99,8 @@ export function cliScriptPath(name: string): string {
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
-  return candidates[0] ?? resolve(here, "../../../cli/dist", script);
+  // ENOENT path for actionable errors — monorepo layout is the stable fallback.
+  return resolve(here, "../../../cli/dist", script);
 }
 
 export interface RunProtectedCheckOptions {

@@ -450,6 +450,6 @@ describe("provider input normalization", () => {
       }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(decision.message).toContain("include the target path");
+    expect(decision.message).toContain("lifecycle artifact");
   });
 });

@@ -429,7 +429,7 @@ describe("intake cli and branch coverage", () => {
           "--apply-lifecycle-fixes",
         ]),
       ).toBe(0);
-      expect(existsSync(join(root, "xbrief", "active", name))).toBe(false);
+      expect(existsSync(join(root, "xbrief", "active", name))).toBe(true);
       expect(existsSync(join(root, "xbrief", "completed", name))).toBe(true);
       expect(stderr.mock.calls.some((c) => String(c[0]).includes("already present"))).toBe(true);
       callSpy.mockRestore();

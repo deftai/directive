@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Write gate allows creating `xbrief/proposed/*.xbrief.json` with no active scope (#2625).** Planning writes to proposed lifecycle artifacts are exempt from the active-scope implementation gate after a fresh session ritual; recovery text no longer loops on `scope:activate` for that case. Closes #2625.
-- **Lifecycle reconcile no longer hard-fails when `completed/` already has the basename (#2622).** `apply-lifecycle-fixes` treats the collision as already-terminal, removes the duplicate source, and continues. Closes #2622.
+- **Lifecycle reconcile no longer hard-fails when `completed/` already has the basename (#2622).** `apply-lifecycle-fixes` treats the collision as already-terminal, logs a skip, and continues (source left in place for manual cleanup). Closes #2622.
 - **`pr:wait-mergeable-and-merge` finds `pr-monitor.js` on npm consumer installs (#2615).** CLI script resolution prefers the published `@deftai/directive` package root (and nested `dist/`) instead of a non-existent `@deftai/cli` sibling path. Closes #2615.
 - **Branch coverage debt from the v0.79.0 cut is cleared (#2618).** Patch tests restore the 85% branches floor without a second `--allow-coverage-debt` soft-pass. Closes #2618.
 
