@@ -400,6 +400,17 @@ describe("provider input normalization", () => {
       "xbrief/proposed/b.xbrief.json",
     );
     expect(hookWriteTargetPath({ tool_name: "Write" })).toBeNull();
+    expect(hookWriteTargetPath({ toolInput: { path: "xbrief/proposed/c.xbrief.json" } })).toBe(
+      "xbrief/proposed/c.xbrief.json",
+    );
+    expect(hookWriteTargetPath({ input: { filePath: "xbrief/proposed/d.xbrief.json" } })).toBe(
+      "xbrief/proposed/d.xbrief.json",
+    );
+    expect(hookWriteTargetPath({ path: "xbrief/proposed/e.xbrief.json" })).toBe(
+      "xbrief/proposed/e.xbrief.json",
+    );
+    expect(hookWriteTargetPath(null)).toBeNull();
+    expect(hookWriteTargetPath("Write")).toBeNull();
   });
 
   it("classifies proposed lifecycle writes (#2625)", () => {
@@ -410,5 +421,35 @@ describe("provider input normalization", () => {
     expect(isProposedLifecycleWrite("/project", "xbrief/active/story.xbrief.json")).toBe(false);
     expect(isProposedLifecycleWrite("/project", "src/index.ts")).toBe(false);
     expect(isProposedLifecycleWrite("/project", null)).toBe(false);
+    expect(isProposedLifecycleWrite("/project", "   ")).toBe(false);
+    expect(isProposedLifecycleWrite("/project", "")).toBe(false);
+    expect(isProposedLifecycleWrite("/project", "../outside/xbrief/proposed/x.xbrief.json")).toBe(
+      false,
+    );
+    expect(isProposedLifecycleWrite("/project", "xbrief/proposed/README.md")).toBe(false);
+    expect(isProposedLifecycleWrite("/project", "xbrief/pending/story.xbrief.json")).toBe(false);
+  });
+
+  it("hints when proposed path is present but not a lifecycle artifact (#2625)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "xbrief/proposed/notes.md" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("include the target path");
   });
 });

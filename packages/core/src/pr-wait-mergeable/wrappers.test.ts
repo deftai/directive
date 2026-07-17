@@ -91,6 +91,19 @@ describe("cliScriptPath (#2615)", () => {
     const path = wrappers.cliScriptPath("pr-monitor");
     expect(path.replace(/\\/g, "/")).toMatch(/\/(cli\/dist\/pr-monitor\.js|dist\/pr-monitor\.js)$/);
   });
+
+  it("returns a candidate path even when the script file is absent", () => {
+    const path = wrappers.cliScriptPath("definitely-missing-cli-entry-2615");
+    expect(path.replace(/\\/g, "/")).toMatch(/\.js$/);
+    expect(path).toContain("definitely-missing-cli-entry-2615");
+  });
+
+  it("resolves pr-protected-issues and pr-wait-mergeable the same way", () => {
+    for (const name of ["pr-protected-issues", "pr-wait-mergeable", "pr-monitor"] as const) {
+      const path = wrappers.cliScriptPath(name);
+      expect(path.replace(/\\/g, "/")).toContain(`${name}.js`);
+    }
+  });
 });
 
 describe("runMonitor", () => {

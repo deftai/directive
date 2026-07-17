@@ -445,6 +445,45 @@ describe("intake coverage boost", () => {
       rmSync(root, { recursive: true, force: true });
     });
 
+    it("applyLifecycleFixes skips when completed already has basename (#2622)", () => {
+      const root = mkdtempSync(join(tmpdir(), "reconcile-dup-"));
+      const name = "dup.xbrief.json";
+      mkVbriefTree(root, [
+        {
+          folder: "proposed",
+          name,
+          data: {
+            plan: {
+              status: "proposed",
+              references: [
+                { type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/77" },
+              ],
+            },
+          },
+        },
+      ]);
+      mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+      writeFileSync(join(root, "xbrief", "completed", name), "{}\n", "utf8");
+      const anchors = scanLifecycleAnchors(join(root, "xbrief"));
+      const applyReport = buildLifecycleReport(
+        anchors,
+        new Map([[77, new IssueState("CLOSED", "COMPLETED")]]),
+      );
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const [moved, skipped, failures] = applyLifecycleFixes(
+        join(root, "xbrief"),
+        applyReport,
+        root,
+      );
+      expect(moved).toBe(0);
+      expect(skipped).toBe(1);
+      expect(failures).toHaveLength(0);
+      expect(existsSync(join(root, "xbrief", "proposed", name))).toBe(false);
+      expect(existsSync(join(root, "xbrief", "completed", name))).toBe(true);
+      stderr.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    });
+
     it("scanVbriefDir indexes references", () => {
       const root = mkdtempSync(join(tmpdir(), "scan-vbrief-"));
       mkVbriefTree(root, [
