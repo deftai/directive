@@ -236,7 +236,7 @@ export function syncFromXbrief(options: SyncFromXbriefOptions): number {
   const mutateGate = isRepoMutationAllowed(origin.repo, projectRoot, {
     allowCrossRepo: options.allowCrossRepo,
     allowlist: options.repoAllowlist,
-    explicitRepo: options.repo ?? null,
+    explicitRepo: fallbackRepo,
   });
   if (!mutateGate.allowed) {
     writeErr(

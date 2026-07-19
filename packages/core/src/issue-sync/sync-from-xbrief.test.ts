@@ -303,6 +303,18 @@ describe("issue-sync dry-run and missing origin", () => {
     expect(err.join("\n")).toMatch(/refusing cross-repo mutation/);
     expect(runFn).not.toHaveBeenCalled();
   });
+
+  it("allows same-repo sync when --repo is a full GitHub URL (#2633)", () => {
+    const path = writeTempXbrief(ORIGIN_XBRIEF);
+    const runFn = vi.fn(() => ({ id: 1004 }));
+    const code = syncFromXbrief({
+      xbriefPath: path,
+      repo: "https://github.com/deftai/directive",
+      runFn,
+    });
+    expect(code).toBe(0);
+    expect(runFn).toHaveBeenCalled();
+  });
 });
 
 function writeTempXbrief(data: Record<string, unknown>): string {
