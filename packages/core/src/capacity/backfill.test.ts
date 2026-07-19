@@ -78,7 +78,7 @@ describe("capacity backfill", () => {
       const result = await backfill(root, { dryRun: false });
       expect(result.exit_code).toBe(1);
       expect(result.error).toMatch(/projection write refused|symlink/);
-      expect(readFileSync(victim, "utf8")).toContain('"title": "Story"');
+      expect(readFileSync(victim, "utf8")).toContain('"title":"Story"');
     },
   );
 });
