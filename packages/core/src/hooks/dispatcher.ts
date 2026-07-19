@@ -87,7 +87,8 @@ export function hookWriteTargetPath(payload: unknown): string | null {
 
 /** POSIX-ish project-relative path for lifecycle matching. */
 export function toProjectRelativePosix(projectRoot: string, targetPath: string): string {
-  const abs = resolve(projectRoot, targetPath);
+  const normalized = targetPath.replace(/\\/g, "/");
+  const abs = resolve(projectRoot, normalized);
   const rel = relative(resolve(projectRoot), abs);
   return rel.split(sep).join("/");
 }
