@@ -390,6 +390,9 @@ func pruneVendoredTSTests(w *Wizard, projectDir string) (int, error) {
 // when absent; pre-existing lines are preserved byte-for-byte. Mirrors
 // EnsureGitignoreLines (#1430, #2118). Returns true if the file was modified.
 func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, ".gitattributes"); err != nil {
+		return false, err
+	}
 	path := filepath.Join(projectDir, ".gitattributes")
 	data, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -545,6 +548,9 @@ func EnsurePrettierIgnoreLines(w *Wizard, projectDir string, legacyLayout bool) 
 // the installer never corrupts a config it does not understand. Returns true if
 // the file was created or modified.
 func EnsureGreptileIgnore(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, "greptile.json"); err != nil {
+		return false, err
+	}
 	path := filepath.Join(projectDir, "greptile.json")
 	data, readErr := os.ReadFile(path)
 	exists := true
@@ -733,6 +739,9 @@ func marshalObjectOrdered(obj map[string]json.RawMessage, keys []string) ([]byte
 // `paths-ignore:` block is appended when none exists. Returns true if the file
 // was created or modified.
 func EnsureCodeQLPathsIgnore(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, codeqlConfigRelPath); err != nil {
+		return false, err
+	}
 	path := filepath.Join(projectDir, filepath.FromSlash(codeqlConfigRelPath))
 	data, readErr := os.ReadFile(path)
 	if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
@@ -919,6 +928,9 @@ const coreGuardWorkflowMarker = "name: deft-core-guard"
 //
 // Returns true if the file was created or refreshed.
 func EnsureCoreGuardWorkflow(w *Wizard, projectDir string) (bool, error) {
+	if err := assertConsumerProjectionContained(projectDir, coreGuardWorkflowRelPath); err != nil {
+		return false, err
+	}
 	path := filepath.Join(projectDir, filepath.FromSlash(coreGuardWorkflowRelPath))
 	desired := coreGuardWorkflowContent()
 

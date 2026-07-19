@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { sortedStringifyCompact } from "../codebase/json.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import {
   classifyBucket,
@@ -188,12 +189,14 @@ function inWindow(completedAt: string | null | undefined, windowDays: number, no
 }
 
 function writeMetadata(
+  projectRoot: string,
   path: string,
   data: Record<string, unknown>,
   plan: Record<string, unknown>,
   metadata: Record<string, unknown>,
   options: { bucket?: string; source?: string; completedAt?: string },
 ): void {
+  assertWriteTargetSafe(projectRoot, path);
   if (typeof plan.metadata !== "object" || plan.metadata === null || Array.isArray(plan.metadata)) {
     plan.metadata = metadata;
   }
@@ -352,7 +355,7 @@ export async function backfill(
 
     if (!result.dry_run && (setBucket || setCompletedAt)) {
       try {
-        writeMetadata(path, data, planRec, metadata, {
+        writeMetadata(projectRoot, path, data, planRec, metadata, {
           bucket: setBucket ? bucket : undefined,
           source: setBucket ? source : undefined,
           completedAt: setCompletedAt ? (gitCompletedAt ?? undefined) : undefined,

@@ -1,8 +1,9 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { agentsRefreshPlan } from "../doctor/agents-md.js";
 import { evaluate as evaluateEncoding } from "../encoding/evaluate.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { healthMetricsHistoryPath } from "../metrics/resolve-metrics-home.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -223,6 +224,12 @@ export function persistHealthRun(projectRoot: string, report: HealthReport): voi
   const path = healthHistoryPath(projectRoot);
   if (path === null) {
     return;
+  }
+  const projectAbs = resolve(projectRoot);
+  const targetAbs = resolve(path);
+  const rel = relative(projectAbs, targetAbs);
+  if (rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel)) {
+    assertWriteTargetSafe(projectRoot, path);
   }
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, `${JSON.stringify(report)}\n`, "utf8");

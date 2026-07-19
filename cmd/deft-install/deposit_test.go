@@ -1079,3 +1079,63 @@ func TestCoreGuard_GithooksClassifyInstallerManaged(t *testing.T) {
 		t.Error("guard must PASS a framework-deposit PR mixing .deft/core/** with .githooks/* (#1478)")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Deposit projection containment (#2521)
+// ---------------------------------------------------------------------------
+
+func TestEnsureGitattributes_SymlinkOutside_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	outside := seedOutsideSymlinkTarget(t)
+	symlinkOrSkip(t, outside, filepath.Join(proj, ".gitattributes"))
+
+	_, err := EnsureGitattributes(newDepositWizard(), proj)
+	if err == nil {
+		t.Fatal("expected EnsureGitattributes to refuse symlink .gitattributes, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+}
+
+func TestEnsureGreptileIgnore_SymlinkOutside_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	outside := seedOutsideSymlinkTarget(t)
+	symlinkOrSkip(t, outside, filepath.Join(proj, "greptile.json"))
+
+	_, err := EnsureGreptileIgnore(newDepositWizard(), proj)
+	if err == nil {
+		t.Fatal("expected EnsureGreptileIgnore to refuse symlink greptile.json, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+}
+
+func TestEnsureCodeQLPathsIgnore_SymlinkOutside_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	outside := seedOutsideSymlinkTarget(t)
+	symlinkOrSkip(t, outside, filepath.Join(proj, filepath.FromSlash(codeqlConfigRelPath)))
+
+	_, err := EnsureCodeQLPathsIgnore(newDepositWizard(), proj)
+	if err == nil {
+		t.Fatal("expected EnsureCodeQLPathsIgnore to refuse symlink CodeQL config, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+}
+
+func TestEnsureCoreGuardWorkflow_SymlinkOutside_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	outside := seedOutsideSymlinkTarget(t)
+	symlinkOrSkip(t, outside, filepath.Join(proj, filepath.FromSlash(coreGuardWorkflowRelPath)))
+
+	_, err := EnsureCoreGuardWorkflow(newDepositWizard(), proj)
+	if err == nil {
+		t.Fatal("expected EnsureCoreGuardWorkflow to refuse symlink workflow, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+}

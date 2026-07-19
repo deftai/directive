@@ -1,8 +1,19 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { DEFT_METRICS_HOME_ENV } from "../metrics/resolve-metrics-home.js";
+import {
+  DEFT_METRICS_HOME_ENV,
+  DEFT_METRICS_PROJECT_LOCAL_ENV,
+} from "../metrics/resolve-metrics-home.js";
 import {
   computeHealthScore,
   detectWipCapUnsatisfiableNudge,
@@ -13,10 +24,13 @@ import {
   persistHealthRun,
 } from "./health.js";
 
+const itSymlink = it.skipIf(process.platform === "win32");
+
 const temps: string[] = [];
 const metricsHomes: string[] = [];
 afterEach(() => {
   delete process.env[DEFT_METRICS_HOME_ENV];
+  delete process.env[DEFT_METRICS_PROJECT_LOCAL_ENV];
   for (const dir of metricsHomes.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -137,6 +151,33 @@ describe("persistHealthRun", () => {
     const lines = readFileSync(path, "utf8").trim().split("\n");
     expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({ version: "0.70.0-test", score: 85 });
   });
+
+  itSymlink(
+    "refuses append when the project-local health ledger is a symlink outside the project (#2521)",
+    () => {
+      const root = seedRepo();
+      delete process.env[DEFT_METRICS_HOME_ENV];
+      process.env[DEFT_METRICS_PROJECT_LOCAL_ENV] = "1";
+      const escapeDir = mkdtempSync(join(tmpdir(), "deft-health-ledger-escape-"));
+      temps.push(escapeDir);
+      const escapeLedger = join(escapeDir, "health-history.jsonl");
+      writeFileSync(escapeLedger, "victim\n", "utf8");
+      mkdirSync(join(root, ".deft", "metrics", "health"), { recursive: true });
+      symlinkSync(escapeLedger, healthHistoryPath(root) as string);
+
+      expect(() =>
+        persistHealthRun(root, {
+          schemaVersion: 1,
+          version: "0.70.0-test",
+          recordedAt: "2026-07-05T18:00:00Z",
+          score: 85,
+          gates: [],
+          contradictions: [],
+        }),
+      ).toThrow(/projection write refused|symlink escaping/);
+      expect(readFileSync(escapeLedger, "utf8")).toBe("victim\n");
+    },
+  );
 });
 
 describe("evaluateHealth", () => {

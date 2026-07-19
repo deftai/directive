@@ -11,6 +11,7 @@ import {
   resolveWorktreeMap,
   WorktreeCollisionError,
   WorktreeMapConfigError,
+  WorktreePathEscapeError,
 } from "./worktrees.js";
 
 function gitInit(repo: string): void {
@@ -127,5 +128,31 @@ describe("swarm worktrees", () => {
     const parsed = parseWorktreePorcelain(text);
     expect(parsed.size).toBeGreaterThan(0);
     expect(compareKey("/Repo/Main")).toBe("/repo/main");
+  });
+
+  it("rejects absolute worktree_path values outside the repository root", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-abs-"));
+    gitInit(repo);
+    const outside = join(tmpdir(), "evil-wt-outside");
+    expect(() =>
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: outside }], "master", false, {
+        repoRoot: repo,
+      }),
+    ).toThrow(WorktreePathEscapeError);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("rejects ..-escaping worktree_path values", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-dotdot-"));
+    gitInit(repo);
+    expect(() =>
+      resolveWorktreeMap(
+        [{ story_id: "s1", worktree_path: "../../../tmp/evil-wt" }],
+        "master",
+        false,
+        { repoRoot: repo },
+      ),
+    ).toThrow(WorktreePathEscapeError);
+    rmSync(repo, { recursive: true, force: true });
   });
 });

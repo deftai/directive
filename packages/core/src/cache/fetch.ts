@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { assertProjectionContained } from "../fs/projection-containment.js";
 import {
   GhRestError,
   InvalidRepoError,
@@ -724,7 +725,10 @@ function readSelfHealState(cacheRoot: string): Date | null {
 }
 
 function writeSelfHealState(cacheRoot: string, when: Date): void {
-  const path = join(cacheRoot, SELF_HEAL_STATE_FILENAME);
+  const cacheAbs = resolve(cacheRoot);
+  const projectDir = dirname(cacheAbs);
+  const path = join(cacheAbs, SELF_HEAL_STATE_FILENAME);
+  assertProjectionContained(projectDir, path);
   writeFileSync(path, `${JSON.stringify({ last_reconcile_at: when.toISOString() })}\n`, "utf8");
 }
 

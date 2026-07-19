@@ -1,5 +1,9 @@
 import { mkdirSync, readFileSync } from "node:fs";
-import { resolve as pathResolve } from "node:path";
+import { isAbsolute, resolve as pathResolve } from "node:path";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { C3_FIELDS } from "./constants.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
 
@@ -27,13 +31,30 @@ export class WorktreeMapConfigError extends Error {
   override name = "WorktreeMapConfigError";
 }
 
+export class WorktreePathEscapeError extends WorktreeMapError {
+  override name = "WorktreePathEscapeError";
+}
+
 export type GitRunner = (args: readonly string[], cwd: string) => TextCaptureResult;
 
 export const defaultGitRunner: GitRunner = (args, cwd) => runText(["git", ...args], { cwd });
 
 function resolvePath(raw: string, repoRoot: string): string {
-  const candidate = raw.startsWith("/") ? raw : pathResolve(repoRoot, raw);
+  const candidate = isAbsolute(raw) ? raw : pathResolve(repoRoot, raw);
   return pathResolve(candidate);
+}
+
+function assertWorktreePathContained(repoRoot: string, worktreePath: string): void {
+  try {
+    assertProjectionContained(repoRoot, worktreePath);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw new WorktreePathEscapeError(
+        `worktree_path must stay under the repository root: ${err.message}`,
+      );
+    }
+    throw err;
+  }
 }
 
 /** Case-normalized comparison key for worktree-path equality. */
@@ -175,6 +196,7 @@ export function resolveWorktreeMap(
     }
 
     const worktreePath = resolvePath(rawPath.trim(), root);
+    assertWorktreePathContained(root, worktreePath);
     const key = compareKey(worktreePath);
     const posixPath = worktreePath.replace(/\\/g, "/");
 

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -449,6 +449,39 @@ describe("fetch-all", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it.skipIf(process.platform === "win32")(
+    "maybeSelfHealCache refuses self-heal state writes through escaping .deft-cache symlinks (#2521)",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-heal-cache-symlink-"));
+      const escapeDir = mkdtempSync(join(tmpdir(), "deft-heal-cache-escape-"));
+      const victim = join(escapeDir, "self-heal-state.json");
+      writeFileSync(victim, "victim\n", "utf8");
+      symlinkSync(escapeDir, join(root, ".deft-cache"), "dir");
+      const cacheRoot = join(root, ".deft-cache");
+      const base = join(cacheRoot, "github-issue/deftai/directive/15");
+      mkdirSync(base, { recursive: true });
+      writeFileSync(
+        join(base, "raw.json"),
+        JSON.stringify({ number: 15, state: "open", title: "t", body: "b" }),
+        "utf8",
+      );
+      try {
+        const result = maybeSelfHealCache(root, {
+          repo: "deftai/directive",
+          cacheRoot,
+          listOpenFn: () => new Set([15]),
+          refreshFn: () => new StateRefreshReportImpl(),
+        });
+        expect(result.skipped).toBe(true);
+        expect(result.skipReason).toBe("refresh-failed");
+        expect(readFileSync(victim, "utf8")).toBe("victim\n");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+        rmSync(escapeDir, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
 describe("main CLI", () => {
