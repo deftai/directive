@@ -366,6 +366,11 @@ tasks:
         vars:
           ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"'
 
+  test:coverage:
+    desc: "Run tests with coverage (alias for ts:test; canonical coverage path used by task check, #2528)"
+    cmds:
+      - task: ts:test
+
   check:framework-source:
     desc: "Run all framework source-repo pre-commit checks (TS-only after #1860). Sole wired consumer of maintainer-only core:build / core:clean."
     deps:

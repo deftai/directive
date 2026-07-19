@@ -1,0 +1,89 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Swarm-ready scope xBRIEF for GitHub issue #2528",
+    "updated": "2026-07-19T16:14:50Z"
+  },
+  "plan": {
+    "title": "bug(build-skill): replace missing task test:coverage gate",
+    "status": "running",
+    "narratives": {
+      "Description": "content/skills/deft-directive-build/SKILL.md requires task test:coverage after every phase, but the Taskfile exposes no test:coverage task and the command exits 200. The skill must alias the task or point at the canonical coverage command already used by task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2528",
+      "Overview": "## Summary\n\n`content/skills/deft-directive-build/SKILL.md` requires `task test:coverage` after every phase, but the current Taskfile exposes no `test:coverage` task. The command exits 200 and prints the task catalog.\n\n## Reproduction\n\n```text\ntask test:coverage\n```\n\n## Expected\n\nEither provide the documented task alias or update the build skill to invoke the canonical TypeScript coverage command (`pnpm test`) that `task check` already runs.\n\n## Context\n\nDiscovered while validating #1692 on current upstream/master after a successful full `task check`.",
+      "Labels": "bug, skills, agent-experience, area:skills",
+      "UserStory": "As an agent following the build skill, I want the documented coverage gate command to exist or be replaced with the canonical coverage command, so that post-phase coverage checks do not exit 200 with a missing task.",
+      "ImplementationPlan": "1. Decide between adding a task test:coverage alias that runs the canonical TypeScript coverage command used by task check, or updating content/skills/deft-directive-build/SKILL.md (and pack source if projected) to invoke that canonical command.\n2. Align any commands.md / Taskfile help text with the chosen spelling.\n3. Add a contract test that fails if the build skill references a missing task; CHANGELOG [Unreleased]."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Documented coverage gate works",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the build skill coverage gate, when an agent runs the documented command after a phase, then it invokes a real Taskfile/CLI coverage path and does not exit 200 for a missing task."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Consistent spelling",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given skill text, Taskfile, and commands reference, when compared, then they use the same coverage command spelling."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Contract test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a content contract test, when the build skill references a coverage task, then the test fails if that task is absent from the Taskfile surface."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "skills",
+      "agent-experience",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2528",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2528: bug(build-skill): replace missing task test:coverage gate"
+      }
+    ],
+    "id": "build-skill-test-coverage-gate",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-build/SKILL.md",
+          "tasks/",
+          "Taskfile.yml",
+          "packages/core/src/content-contracts/"
+        ],
+        "verify_commands": [
+          "task --list-all",
+          "pnpm --filter @deftai/directive-core test -- content-contracts"
+        ],
+        "expected_outputs": [
+          "working coverage gate",
+          "contract test",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "build-skill-coverage-gate",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Bug-fix from GitHub issue #2528; no FR trace registry for hotfix cohort."
+      }
+    },
+    "updated": "2026-07-19T16:14:57Z"
+  }
+}
