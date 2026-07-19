@@ -220,6 +220,21 @@ describe("evaluateGates", () => {
       failures.some((f) => f.includes("Could not verify Greptile inline review comments")),
     ).toBe(true);
   });
+
+  it("blocks excluded-author PRs when unresolved inline P1 remains (#2620)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({ excludedAuthor: true, lastReviewedSha: null, confidence: null }),
+      {
+        p0Count: 0,
+        p1Count: 1,
+        unresolvedThreadCount: 1,
+        error: null,
+      },
+    );
+    expect(failures.some((f) => f.includes("unresolved inline P1"))).toBe(true);
+  });
 });
 
 describe("computeGateResult layered fallbacks", () => {

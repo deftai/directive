@@ -238,7 +238,9 @@ export function fetchUnresolvedGreptileInlineFindings(
 
   const allThreads: InlineReviewThread[] = [];
   let after: string | null = null;
-  for (let page = 0; page < 10; page += 1) {
+  const maxPages = 10;
+  let hasNextPage = true;
+  for (let page = 0; hasNextPage && page < maxPages; page += 1) {
     const cmd = [
       "gh",
       "api",
@@ -267,7 +269,8 @@ export function fetchUnresolvedGreptileInlineFindings(
       return { ...EMPTY_INLINE, error: pageResult.error };
     }
     allThreads.push(...pageResult.threads);
-    if (!pageResult.hasNextPage) {
+    hasNextPage = pageResult.hasNextPage;
+    if (!hasNextPage) {
       break;
     }
     if (pageResult.endCursor === null) {
@@ -277,6 +280,13 @@ export function fetchUnresolvedGreptileInlineFindings(
       };
     }
     after = pageResult.endCursor;
+  }
+
+  if (hasNextPage) {
+    return {
+      ...EMPTY_INLINE,
+      error: `graphql reviewThreads pagination exceeded ${maxPages} pages`,
+    };
   }
 
   return evaluateInlineReviewThreads(allThreads, headSha);
