@@ -1,8 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CategoryBConflictError, migrateCategoryBCorpus, namespaceCategoryBPlan } from "./index.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 describe("namespaceCategoryBPlan (#1650)", () => {
   it("renames bare policy + completedNote to the x-directive/ namespace", () => {
@@ -106,5 +108,38 @@ describe("migrateCategoryBCorpus (#1650)", () => {
     expect(result.conflicts).toHaveLength(1);
     expect(result.conflicts[0]?.path).toBe("xbrief/active/conflict.xbrief.json");
     expect(result.changed).toEqual([]);
+  });
+
+  itSymlink("rejects a symlinked lifecycle root without rewriting files (#2626)", () => {
+    rmSync(join(root, "xbrief"), { recursive: true, force: true });
+    const escapeDir = mkdtempSync(join(tmpdir(), "catb-escape-"));
+    const outsideFile = join(escapeDir, "outside.xbrief.json");
+    writeFileSync(outsideFile, `${JSON.stringify({ plan: { policy: { wipCap: 9 } } })}\n`, "utf8");
+    symlinkSync(escapeDir, join(root, "xbrief"), "dir");
+
+    const result = migrateCategoryBCorpus(root);
+    expect(result.scanned).toBe(0);
+    expect(result.changed).toEqual([]);
+    expect(result.conflicts).toHaveLength(1);
+    expect(result.conflicts[0]?.message).toMatch(/must not be a symlink|symlink escaping/);
+    expect(JSON.parse(readFileSync(outsideFile, "utf8"))).toEqual({
+      plan: { policy: { wipCap: 9 } },
+    });
+  });
+
+  itSymlink("skips symlink entries during traversal (#2626)", () => {
+    write("xbrief/active/real.xbrief.json", {
+      plan: { id: "real", policy: { wipCap: 3 } },
+    });
+    const escapeDir = mkdtempSync(join(tmpdir(), "catb-entry-escape-"));
+    const outsideFile = join(escapeDir, "linked.xbrief.json");
+    writeFileSync(outsideFile, `${JSON.stringify({ plan: { policy: { wipCap: 99 } } })}\n`, "utf8");
+    symlinkSync(outsideFile, join(root, "xbrief", "active", "linked.xbrief.json"));
+
+    const result = migrateCategoryBCorpus(root);
+    expect(result.changed).toEqual(["xbrief/active/real.xbrief.json"]);
+    expect(JSON.parse(readFileSync(outsideFile, "utf8"))).toEqual({
+      plan: { policy: { wipCap: 99 } },
+    });
   });
 });

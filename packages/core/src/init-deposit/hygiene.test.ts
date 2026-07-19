@@ -59,6 +59,13 @@ describe("installer-managed allowlist (#1576)", () => {
   });
 });
 
+describe(".prettierignore allowlist (#2629)", () => {
+  it("treats installer-deposited .prettierignore as installer-managed", () => {
+    expect(isInstallerManagedPath(".prettierignore")).toBe(true);
+    expect(installerManagedGuardEre()).toContain("\\.prettierignore$");
+  });
+});
+
 describe("xbrief/ allowlist parity (#2277)", () => {
   const xbriefLifecycleDirs = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 

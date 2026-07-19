@@ -14,7 +14,7 @@
  * Refs #2413.
  */
 
-import { lstatSync, realpathSync } from "node:fs";
+import { type Dirent, lstatSync, readdirSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
 /** Non-zero exit code for a projection-containment refusal (needs-action). */
@@ -142,5 +142,81 @@ export function assertProjectionContained(projectDir: string, targetPath: string
         `(${deepestExistingReal} is outside ${projectReal})`,
       { projectDir: projectAbs, targetPath: targetAbs, offendingPath: deepestExistingReal },
     );
+  }
+}
+
+/**
+ * Refuse writes when the resolved target already exists as a symlink (#2626 / #2632).
+ * Pair with {@link assertProjectionContained} before read/write/mkdir/append.
+ */
+export function assertWriteTargetSafe(projectDir: string, targetPath: string): void {
+  assertProjectionContained(projectDir, targetPath);
+  const targetAbs = resolve(targetPath);
+  let info: ReturnType<typeof lstatSync>;
+  try {
+    info = lstatSync(targetAbs);
+  } catch {
+    return;
+  }
+  if (info.isSymbolicLink()) {
+    throw new ProjectionContainmentError(
+      `projection write refused: ${targetAbs} is a symlink on the write path`,
+      { projectDir: resolve(projectDir), targetPath: targetAbs, offendingPath: targetAbs },
+    );
+  }
+}
+
+/**
+ * Refuse when a lifecycle corpus root is itself a symlink (#2626 category-b).
+ */
+export function assertDirectoryNotSymlink(
+  projectDir: string,
+  dirPath: string,
+  label: string,
+): void {
+  assertProjectionContained(projectDir, dirPath);
+  const dirAbs = resolve(dirPath);
+  let info: ReturnType<typeof lstatSync>;
+  try {
+    info = lstatSync(dirAbs);
+  } catch {
+    throw new ProjectionContainmentError(
+      `projection write refused: ${label} ${dirAbs} does not exist`,
+      { projectDir: resolve(projectDir), targetPath: dirAbs, offendingPath: dirAbs },
+    );
+  }
+  if (info.isSymbolicLink()) {
+    throw new ProjectionContainmentError(
+      `projection write refused: ${label} ${dirAbs} must not be a symlink`,
+      { projectDir: resolve(projectDir), targetPath: dirAbs, offendingPath: dirAbs },
+    );
+  }
+}
+
+/** Walk a directory tree and refuse any symlink entry (#2601 / #2626). */
+export function walkDirectoryRejectSymlinks(root: string): void {
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(root, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const full = join(root, entry.name);
+    let info: ReturnType<typeof lstatSync>;
+    try {
+      info = lstatSync(full);
+    } catch {
+      continue;
+    }
+    if (info.isSymbolicLink()) {
+      throw new ProjectionContainmentError(
+        `projection write refused: symlink on traversal path: ${full}`,
+        { projectDir: resolve(root), targetPath: full, offendingPath: full },
+      );
+    }
+    if (info.isDirectory()) {
+      walkDirectoryRejectSymlinks(full);
+    }
   }
 }

@@ -1,27 +1,60 @@
-import { mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { promises as fsPromises, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
-const COVERAGE_TMP = resolve(process.cwd(), "coverage", ".tmp");
+/** Matches Vitest v8 chunk paths such as coverage/.tmp/coverage-0.json (#2580 / #2634). */
+export const COVERAGE_TMP_CHUNK_RE = /[/\\]coverage[/\\]\.tmp[/\\]coverage-\d+\.json$/;
 
-function ensureCoverageTmpDir(): void {
-  mkdirSync(COVERAGE_TMP, { recursive: true });
+const defaultCoverageTmp = resolve(process.cwd(), "coverage", ".tmp");
+
+export function isCoverageTmpChunkPath(filePath: string): boolean {
+  return COVERAGE_TMP_CHUNK_RE.test(filePath.replace(/\\/g, "/"));
+}
+
+export function ensureCoverageTmpDir(coverageTmpDir: string = defaultCoverageTmp): void {
+  mkdirSync(coverageTmpDir, { recursive: true });
 }
 
 /**
- * Win32 globalSetup for coverage runs (#2580).
- *
- * Vitest's v8 provider writes per-suite JSON under coverage/.tmp without always
- * re-mkdir'ing before writeFile. Under parallel fork load the directory can
- * disappear mid-suite, surfacing as ENOENT after an otherwise green run.
- * Keep the directory present for the coordinator process; late ENOENT flakes
- * are tolerated via vitest dangerouslyIgnoreUnhandledErrors (#2546) without
- * soft-failing real coverage threshold failures.
+ * Vitest 3.2.x writes coverage chunks without mkdir'ing the parent directory
+ * (fixed upstream in vitest 4.x — vitest-dev/vitest#10117). On Windows the
+ * directory can disappear between clean() and writeFile under release-scale
+ * load; mkdir immediately before chunk writes closes that race without
+ * soft-failing real threshold failures (#2634).
  */
-export default function setup(): void {
-  if (process.platform !== "win32") return;
+export function installCoverageTmpWriteGuard(): () => void {
+  const originalWriteFile = fsPromises.writeFile.bind(fsPromises);
+
+  const patchedWriteFile: typeof fsPromises.writeFile = async (path, ...args) => {
+    const target = typeof path === "string" ? path : String(path);
+    if (isCoverageTmpChunkPath(target)) {
+      mkdirSync(dirname(target), { recursive: true });
+    }
+    return originalWriteFile(path, ...args);
+  };
+  fsPromises.writeFile = patchedWriteFile;
+
+  return () => {
+    fsPromises.writeFile = originalWriteFile;
+  };
+}
+
+/**
+ * Win32 globalSetup for coverage runs (#2580, hardened #2634).
+ *
+ * Keepalive mkdir plus a writeFile guard mirror vitest 4's defensive mkdir until
+ * directive upgrades past vitest@3 (see vitest.config.ts #2634 upgrade note).
+ */
+export default function setup(): () => void {
+  if (process.platform !== "win32") return () => {};
 
   ensureCoverageTmpDir();
+  const uninstallWriteGuard = installCoverageTmpWriteGuard();
 
-  const keepalive = setInterval(ensureCoverageTmpDir, 100);
+  const keepalive = setInterval(() => ensureCoverageTmpDir(), 50);
   keepalive.unref?.();
+
+  return () => {
+    clearInterval(keepalive);
+    uninstallWriteGuard();
+  };
 }

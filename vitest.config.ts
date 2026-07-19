@@ -20,8 +20,10 @@ const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25))
 
 // Coverage chunk writes land in coverage/.tmp; on win32 parallel forks can race the
 // directory away mid-suite (ENOENT after a green run). Serialize coverage processing,
-// tighten fork caps when --coverage is on, and globalSetup keeps .tmp present.
-// Refs #2580.
+// tighten fork caps when --coverage is on, and globalSetup keeps .tmp present plus
+// mkdir-before-chunk-write (vitest 3.2.x gap; upstream fix vitest-dev/vitest#10117
+// in vitest 4.x — upgrade path tracked in #2634).
+// Refs #2580, #2634.
 const coverageEnabled = process.argv.some(
   (arg) => arg === "--coverage" || arg.startsWith("--coverage."),
 );

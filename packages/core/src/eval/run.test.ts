@@ -1,4 +1,12 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,9 +14,12 @@ import {
   GOLDEN_CORPUS,
   goldenRunsHistoryPath,
   holdoutRotationIndex,
+  persistGoldenRun,
   runGoldenEval,
   selectRotatingHoldoutTask,
 } from "./run.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 const temps: string[] = [];
 afterEach(() => {
@@ -79,5 +90,61 @@ describe("runGoldenEval", () => {
   it("returns config error when model is missing", () => {
     const result = runGoldenEval({ projectRoot: seedProject(), model: "  " });
     expect(result.code).toBe(2);
+  });
+
+  itSymlink("refuses to persist when xbrief/.eval is a symlink outside the project (#2626)", () => {
+    const root = seedProject();
+    const escapeDir = mkdtempSync(join(tmpdir(), "deft-golden-escape-"));
+    temps.push(escapeDir);
+    const escapeLedger = join(escapeDir, "golden-runs.jsonl");
+    writeFileSync(escapeLedger, "victim\n", "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    symlinkSync(escapeDir, join(root, "xbrief", ".eval"), "dir");
+
+    const result = runGoldenEval({
+      projectRoot: root,
+      model: "composer-fixture",
+      seeds: [1],
+      directiveVersion: "0.70.0-golden-test",
+      persist: true,
+    });
+
+    expect(result.code).toBe(2);
+    expect(result.message).toMatch(/projection write refused|symlink escaping/);
+    expect(readFileSync(escapeLedger, "utf8")).toBe("victim\n");
+  });
+});
+
+describe("persistGoldenRun containment (#2626)", () => {
+  itSymlink("refuses append when the golden-run ledger is a symlink outside the project", () => {
+    const root = seedProject();
+    const escapeDir = mkdtempSync(join(tmpdir(), "deft-golden-ledger-escape-"));
+    temps.push(escapeDir);
+    const escapeLedger = join(escapeDir, "golden-runs.jsonl");
+    writeFileSync(escapeLedger, "victim\n", "utf8");
+    mkdirSync(join(root, "xbrief", ".eval", "results"), { recursive: true });
+    symlinkSync(escapeLedger, goldenRunsHistoryPath(root));
+
+    expect(() =>
+      persistGoldenRun(root, {
+        schemaVersion: 1,
+        runId: "x",
+        directiveVersion: "0.70.0",
+        model: "m",
+        harness: "h",
+        seeds: [1],
+        corpusVersion: "c",
+        recordedAt: "2026-07-05T00:00:00Z",
+        results: [],
+        summary: {
+          primaryPassRate: 0,
+          holdoutPassRate: 0,
+          passRate: 0,
+          primaryTotal: 0,
+          holdoutTotal: 0,
+        },
+      }),
+    ).toThrow(/projection write refused|symlink escaping/);
+    expect(readFileSync(escapeLedger, "utf8")).toBe("victim\n");
   });
 });

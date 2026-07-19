@@ -3,6 +3,7 @@ import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { resolveEvalPath } from "../layout/resolve.js";
 import { BYTE_DIFF_WHOLE_FILE_THRESHOLD, InstrumentedVbriefCrud } from "./crud-telemetry.js";
 import { evaluateHealth } from "./health.js";
@@ -293,6 +294,7 @@ export function goldenRunsHistoryPath(projectRoot: string): string {
 /** Append one golden run to the versioned ledger (#1703 Tier 2). */
 export function persistGoldenRun(projectRoot: string, record: GoldenRunRecord): void {
   const path = goldenRunsHistoryPath(projectRoot);
+  assertWriteTargetSafe(projectRoot, path);
   mkdirSync(dirname(path), { recursive: true });
   appendFileSync(path, `${JSON.stringify(record)}\n`, "utf8");
 }

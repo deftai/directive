@@ -12,12 +12,13 @@
 import {
   type Dirent,
   existsSync,
+  lstatSync,
   readdirSync,
   readFileSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { assertDirectoryNotSymlink, assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   LEGACY_PLAN_COMPLETED_NOTE_KEY,
@@ -114,9 +115,18 @@ function collectVbriefFiles(dir: string, acc: string[] = []): string[] {
   }
   for (const entry of entries) {
     const full = join(dir, entry.name);
-    if (entry.isDirectory()) {
+    let info: ReturnType<typeof lstatSync>;
+    try {
+      info = lstatSync(full);
+    } catch {
+      continue;
+    }
+    if (info.isSymbolicLink()) {
+      continue;
+    }
+    if (info.isDirectory()) {
       collectVbriefFiles(full, acc);
-    } else if (entry.isFile() && hasArtifactSuffix(entry.name)) {
+    } else if (info.isFile() && hasArtifactSuffix(entry.name)) {
       acc.push(full);
     }
   }
@@ -143,14 +153,18 @@ export function migrateCategoryBCorpus(projectRoot: string): CorpusMigrationResu
       return { scanned: 0, changed: [], conflicts: [] };
     }
   }
+  try {
+    assertDirectoryNotSymlink(root, vbriefDir, "lifecycle root");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { scanned: 0, changed: [], conflicts: [{ path: relative(root, vbriefDir), message }] };
+  }
+
   let scanned = 0;
   const changed: string[] = [];
   const conflicts: CorpusMigrationConflict[] = [];
 
   for (const file of collectVbriefFiles(vbriefDir)) {
-    if (!statSync(file).isFile()) {
-      continue;
-    }
     scanned += 1;
     let parsed: unknown;
     try {
@@ -167,6 +181,15 @@ export function migrateCategoryBCorpus(projectRoot: string): CorpusMigrationResu
       continue;
     }
     if (result.changed) {
+      try {
+        assertWriteTargetSafe(root, file);
+      } catch (err) {
+        conflicts.push({
+          path: relPath,
+          message: err instanceof Error ? err.message : String(err),
+        });
+        continue;
+      }
       writeFileSync(file, `${JSON.stringify(result.doc, null, 2)}\n`, "utf8");
       changed.push(relPath);
     }

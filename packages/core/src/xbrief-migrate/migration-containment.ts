@@ -1,6 +1,8 @@
-import { type Dirent, lstatSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import { assertProjectionContained } from "../fs/projection-containment.js";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+  walkDirectoryRejectSymlinks,
+} from "../fs/projection-containment.js";
 
 /**
  * Refuse migrate:xbrief when legacy `vbrief/` (or any traversed entry) escapes
@@ -8,29 +10,15 @@ import { assertProjectionContained } from "../fs/projection-containment.js";
  */
 export function assertMigrationSourceSafe(projectRoot: string, legacyDir: string): void {
   assertProjectionContained(projectRoot, legacyDir);
-  walkMigrationTreeRejectSymlinks(legacyDir);
-}
-
-function walkMigrationTreeRejectSymlinks(root: string): void {
-  let entries: Dirent[];
   try {
-    entries = readdirSync(root, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const full = join(root, entry.name);
-    let info: ReturnType<typeof lstatSync>;
-    try {
-      info = lstatSync(full);
-    } catch {
-      continue;
+    walkDirectoryRejectSymlinks(legacyDir);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      const nested = err.message.match(/symlink on traversal path: (.+)$/);
+      if (nested) {
+        throw new Error(`refusing to migrate: symlink on migration path: ${nested[1]}`);
+      }
     }
-    if (info.isSymbolicLink()) {
-      throw new Error(`refusing to migrate: symlink on migration path: ${full}`);
-    }
-    if (info.isDirectory()) {
-      walkMigrationTreeRejectSymlinks(full);
-    }
+    throw err;
   }
 }
