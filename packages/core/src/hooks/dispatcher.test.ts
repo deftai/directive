@@ -167,6 +167,67 @@ describe("direct-write hook policy", () => {
   it("fails closed when a matched tool event omits its tool name", () => {
     const decision = decideHook(
       {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "invalid-input" });
+    expect(decision.message).toContain("omitted its tool name");
+    expect(decision.message).not.toContain("host-integration");
+  });
+
+  it("maps Cursor write payloads that omit tool_name from tool_input shape (#2628)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_input: {
+            path: "/project/src/index.ts",
+            contents: "export {}",
+          },
+          workspace_roots: ["/project"],
+        },
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready", toolName: "Write" });
+  });
+
+  it("maps Cursor StrReplace payloads that omit tool_name (#2628)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_input: {
+            path: "/project/src/index.ts",
+            old_string: "foo",
+            new_string: "bar",
+          },
+          workspace_roots: ["/project"],
+        },
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      code: "write-ready",
+      toolName: "StrReplace",
+    });
+  });
+
+  it("surfaces a Cursor host-integration deny when tool identity cannot be mapped (#2628)", () => {
+    const decision = decideHook(
+      {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
@@ -176,6 +237,8 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "invalid-input" });
+    expect(decision.message).toContain("host-integration mismatch");
+    expect(decision.message).not.toContain("deft session:start");
   });
 
   it("surfaces a failed SessionStart result without blocking the session", () => {
@@ -369,6 +432,28 @@ describe("provider input normalization", () => {
     expect(hookToolName({ tool: "Delete" })).toBe("Delete");
     expect(hookToolName(null)).toBeNull();
     expect(hookToolName({ tool_name: "  " })).toBeNull();
+  });
+
+  it("infers Cursor direct-write tools when tool_name is omitted (#2628)", () => {
+    expect(
+      hookToolName(
+        {
+          tool_input: { path: "src/a.ts", contents: "x" },
+        },
+        "cursor",
+      ),
+    ).toBe("Write");
+    expect(
+      hookToolName(
+        {
+          toolInput: { file_path: "src/a.ts", old_string: "a", new_string: "b" },
+        },
+        "cursor",
+      ),
+    ).toBe("StrReplace");
+    expect(hookToolName({ tool_input: { path: "src/a.ts" } }, "cursor")).toBe("Write");
+    expect(hookToolName({}, "cursor")).toBeNull();
+    expect(hookToolName({ tool_input: { path: "src/a.ts" } })).toBeNull();
   });
 
   it("resolves supported workspace-root spellings with a fallback", () => {

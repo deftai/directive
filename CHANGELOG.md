@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor preToolUse write payloads without `tool_name` no longer fail as generic invalid-input (#2628).** The hook dispatcher infers direct-write tool identity from Cursor `tool_input` shapes when the host omits `tool_name`/`toolName`/`tool`, and host-integration denials distinguish that mismatch from ritual/scope failures. Closes #2628.
+
 ### Removed
 
 ## [0.79.1] - 2026-07-18

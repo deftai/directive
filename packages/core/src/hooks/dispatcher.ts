@@ -61,10 +61,60 @@ function firstString(...values: unknown[]): string | null {
   return null;
 }
 
-export function hookToolName(payload: unknown): string | null {
+function toolInputRecord(payload: Record<string, unknown>): Record<string, unknown> | null {
+  return record(payload.tool_input) ?? record(payload.toolInput) ?? record(payload.input);
+}
+
+/**
+ * Cursor preToolUse payloads sometimes omit `tool_name` even when the hook matcher
+ * fired for a direct-write tool (#2628). Infer from nested tool input when possible.
+ */
+function inferCursorDirectWriteToolName(payload: Record<string, unknown>): string | null {
+  const toolInput = toolInputRecord(payload);
+  if (toolInput !== null) {
+    const hasOldNew =
+      firstString(toolInput.old_string, toolInput.oldString) !== null &&
+      firstString(toolInput.new_string, toolInput.newString) !== null;
+    if (hasOldNew) return "StrReplace";
+
+    if (firstString(toolInput.contents, toolInput.content, toolInput.text) !== null) {
+      return "Write";
+    }
+
+    if (firstString(toolInput.patch, toolInput.unified_diff, toolInput.diff) !== null) {
+      return "ApplyPatch";
+    }
+
+    if (Array.isArray(toolInput.edits)) return "MultiEdit";
+    if (Array.isArray(toolInput.cells) || toolInput.cell_id !== undefined) {
+      return "NotebookEdit";
+    }
+  }
+
+  // Cursor maps Claude Edit → Write; a write target without contents is still a direct write.
+  if (hookWriteTargetPath(payload) !== null) return "Write";
+
+  return null;
+}
+
+export function hookToolName(payload: unknown, host?: HookHost): string | null {
   const input = record(payload);
   if (input === null) return null;
-  return firstString(input.tool_name, input.toolName, input.tool);
+  const direct = firstString(input.tool_name, input.toolName, input.tool);
+  if (direct !== null) return direct;
+  if (host === "cursor") return inferCursorDirectWriteToolName(input);
+  return null;
+}
+
+function missingToolNameMessage(host: HookHost): string {
+  if (host === "cursor") {
+    return (
+      "Directive denied this Cursor preToolUse event because the host payload omitted a " +
+      "recognizable tool name (host-integration mismatch — not a session ritual or scope failure). " +
+      "If write tools should pass, update Directive or report the payload shape from Cursor."
+    );
+  }
+  return "Directive denied this matched write event because the host payload omitted its tool name.";
 }
 
 /**
@@ -74,7 +124,7 @@ export function hookToolName(payload: unknown): string | null {
 export function hookWriteTargetPath(payload: unknown): string | null {
   const input = record(payload);
   if (input === null) return null;
-  const toolInput = record(input.tool_input) ?? record(input.toolInput) ?? record(input.input);
+  const toolInput = toolInputRecord(input);
   return firstString(
     toolInput?.file_path,
     toolInput?.filePath,
@@ -191,14 +241,9 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     };
   }
 
-  const toolName = hookToolName(input.payload);
+  const toolName = hookToolName(input.payload, input.host);
   if (toolName === null) {
-    return deny(
-      input,
-      "invalid-input",
-      null,
-      "Directive denied this matched write event because the host payload omitted its tool name.",
-    );
+    return deny(input, "invalid-input", null, missingToolNameMessage(input.host));
   }
   if (!isDirectWriteTool(toolName)) {
     return {
