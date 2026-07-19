@@ -111,6 +111,7 @@ describe("migrateCategoryBCorpus (#1650)", () => {
   });
 
   itSymlink("rejects a symlinked lifecycle root without rewriting files (#2626)", () => {
+    rmSync(join(root, "xbrief"), { recursive: true, force: true });
     const escapeDir = mkdtempSync(join(tmpdir(), "catb-escape-"));
     const outsideFile = join(escapeDir, "outside.xbrief.json");
     writeFileSync(outsideFile, `${JSON.stringify({ plan: { policy: { wipCap: 9 } } })}\n`, "utf8");
