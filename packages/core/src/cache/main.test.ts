@@ -474,7 +474,7 @@ describe("fetch-all", () => {
           refreshFn: () => new StateRefreshReportImpl(),
         });
         expect(result.skipped).toBe(true);
-        expect(result.skipReason).toBe("refresh-failed");
+        expect(result.skipReason).toBe("containment-refused");
         expect(readFileSync(victim, "utf8")).toBe("victim\n");
       } finally {
         rmSync(root, { recursive: true, force: true });

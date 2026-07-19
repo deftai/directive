@@ -1114,6 +1114,9 @@ func TestEnsureGreptileIgnore_SymlinkOutside_RejectsProjection(t *testing.T) {
 
 func TestEnsureCodeQLPathsIgnore_SymlinkOutside_RejectsProjection(t *testing.T) {
 	proj := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(proj, filepath.Dir(filepath.FromSlash(codeqlConfigRelPath))), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	outside := seedOutsideSymlinkTarget(t)
 	symlinkOrSkip(t, outside, filepath.Join(proj, filepath.FromSlash(codeqlConfigRelPath)))
 
@@ -1128,6 +1131,9 @@ func TestEnsureCodeQLPathsIgnore_SymlinkOutside_RejectsProjection(t *testing.T) 
 
 func TestEnsureCoreGuardWorkflow_SymlinkOutside_RejectsProjection(t *testing.T) {
 	proj := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(proj, filepath.Dir(filepath.FromSlash(coreGuardWorkflowRelPath))), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	outside := seedOutsideSymlinkTarget(t)
 	symlinkOrSkip(t, outside, filepath.Join(proj, filepath.FromSlash(coreGuardWorkflowRelPath)))
 

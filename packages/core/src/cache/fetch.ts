@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { assertProjectionContained } from "../fs/projection-containment.js";
+import { assertProjectionContained, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   GhRestError,
   InvalidRepoError,
@@ -807,7 +807,14 @@ export function maybeSelfHealCache(
   try {
     const refresh = refreshFn({ source, repo, cacheRoot, openNumbers });
     if (options.writeState !== false && refresh.refreshFailed === 0) {
-      writeSelfHealState(cacheRoot, now);
+      try {
+        writeSelfHealState(cacheRoot, now);
+      } catch (err) {
+        if (err instanceof ProjectionContainmentError) {
+          return { skipped: true, skipReason: "containment-refused", drift, refresh: null };
+        }
+        throw err;
+      }
     }
     return { skipped: false, skipReason: null, drift, refresh };
   } catch {
