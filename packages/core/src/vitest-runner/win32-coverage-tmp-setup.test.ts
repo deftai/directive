@@ -19,9 +19,7 @@ describe("win32-coverage-tmp-setup (#2634)", () => {
 
   it("recognizes Vitest coverage chunk paths on posix and win32 spellings", () => {
     expect(isCoverageTmpChunkPath("/repo/coverage/.tmp/coverage-0.json")).toBe(true);
-    expect(isCoverageTmpChunkPath("C:\\repo\\coverage\\.tmp\\coverage-12.json")).toBe(
-      true,
-    );
+    expect(isCoverageTmpChunkPath("C:\\repo\\coverage\\.tmp\\coverage-12.json")).toBe(true);
     expect(isCoverageTmpChunkPath("/repo/coverage/coverage-final.json")).toBe(false);
     expect(isCoverageTmpChunkPath("/repo/coverage/.tmp/other.json")).toBe(false);
   });

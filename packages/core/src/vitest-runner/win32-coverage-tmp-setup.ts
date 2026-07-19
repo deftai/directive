@@ -1,9 +1,8 @@
-import { mkdirSync, promises as fsPromises } from "node:fs";
+import { promises as fsPromises, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 /** Matches Vitest v8 chunk paths such as coverage/.tmp/coverage-0.json (#2580 / #2634). */
-export const COVERAGE_TMP_CHUNK_RE =
-  /[/\\]coverage[/\\]\.tmp[/\\]coverage-\d+\.json$/;
+export const COVERAGE_TMP_CHUNK_RE = /[/\\]coverage[/\\]\.tmp[/\\]coverage-\d+\.json$/;
 
 const defaultCoverageTmp = resolve(process.cwd(), "coverage", ".tmp");
 
@@ -11,9 +10,7 @@ export function isCoverageTmpChunkPath(filePath: string): boolean {
   return COVERAGE_TMP_CHUNK_RE.test(filePath.replace(/\\/g, "/"));
 }
 
-export function ensureCoverageTmpDir(
-  coverageTmpDir: string = defaultCoverageTmp,
-): void {
+export function ensureCoverageTmpDir(coverageTmpDir: string = defaultCoverageTmp): void {
   mkdirSync(coverageTmpDir, { recursive: true });
 }
 
