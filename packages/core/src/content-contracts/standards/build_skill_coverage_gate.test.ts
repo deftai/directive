@@ -91,7 +91,9 @@ function extractBuildSkillCoverageRefs(text: string): string[] {
 describe("build skill coverage gate (#2528)", () => {
   it("registers test:coverage on the Taskfile surface", () => {
     const surface = collectTaskSurface();
-    expect(surface.has(REQUIRED_COVERAGE_TASK), `missing task ${REQUIRED_COVERAGE_TASK}`).toBe(true);
+    expect(surface.has(REQUIRED_COVERAGE_TASK), `missing task ${REQUIRED_COVERAGE_TASK}`).toBe(
+      true,
+    );
   });
 
   it("test:coverage aliases ts:test (canonical coverage path in task check)", () => {
