@@ -91,6 +91,37 @@ describe("demote", () => {
     });
     rmSync(escapeDir, { recursive: true, force: true });
   });
+
+  itSymlink(
+    "refuses batchDemote when pending xBRIEF is a symlink outside the project (#2632)",
+    () => {
+      root = makeRepo();
+      const escapeDir = mkdtempSync(join(tmpdir(), "demote-batch-symlink-escape-"));
+      const victim = join(escapeDir, "victim.xbrief.json");
+      writeFileSync(
+        victim,
+        formatVbriefJson({
+          plan: { title: "T", status: "pending", updated: "2026-01-01T00:00:00Z", items: [] },
+        }),
+        "utf8",
+      );
+      symlinkSync(victim, join(root, "xbrief", "pending", "old.xbrief.json"));
+
+      const now = new Date("2026-06-01T00:00:00.000Z");
+      const [count, , skipped] = batchDemote(root, 30, { now });
+      expect(count).toBe(0);
+      expect(
+        skipped.some(
+          (line) =>
+            line.includes("old.xbrief.json") && /projection write refused|symlink/.test(line),
+        ),
+      ).toBe(true);
+      expect(JSON.parse(readFileSync(victim, "utf8"))).toMatchObject({
+        plan: { status: "pending" },
+      });
+      rmSync(escapeDir, { recursive: true, force: true });
+    },
+  );
 });
 
 describe("promote then demote undo path", () => {

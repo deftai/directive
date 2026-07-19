@@ -186,6 +186,15 @@ export function batchDemote(
 
   for (const name of files) {
     const candidate = join(pendingDir, name);
+    try {
+      assertWriteTargetSafe(projectRoot, candidate);
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        skipped.push(`${name}: ${err.message}`);
+        continue;
+      }
+      throw err;
+    }
     let data: Record<string, unknown>;
     try {
       data = JSON.parse(readFileSync(candidate, "utf8")) as Record<string, unknown>;
