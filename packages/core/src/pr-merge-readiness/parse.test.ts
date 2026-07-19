@@ -198,14 +198,50 @@ describe("evaluateGates", () => {
       ),
     ).toEqual([]);
   });
+
+  it("fails when unresolved inline P1 remains on current HEAD (#2620)", () => {
+    const failures = evaluateGates(1, HEAD, verdict(), {
+      p0Count: 0,
+      p1Count: 1,
+      unresolvedThreadCount: 1,
+      error: null,
+    });
+    expect(failures.some((f) => f.includes("unresolved inline P1"))).toBe(true);
+  });
+
+  it("fails closed when inline review comments cannot be verified", () => {
+    const failures = evaluateGates(1, HEAD, verdict(), {
+      p0Count: 0,
+      p1Count: 0,
+      unresolvedThreadCount: 0,
+      error: "graphql reviewThreads failed: rate limit",
+    });
+    expect(
+      failures.some((f) => f.includes("Could not verify Greptile inline review comments")),
+    ).toBe(true);
+  });
 });
 
 describe("computeGateResult layered fallbacks", () => {
+  const EMPTY_THREADS = JSON.stringify({
+    data: {
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: [],
+          },
+        },
+      },
+    },
+  });
+
   function installFakeGh(
     responses: Record<string, { returncode: number; stdout?: string; stderr?: string }>,
   ): RunGhFn {
     const classify = (cmd: readonly string[]): string => {
       const joined = cmd.join(" ");
+      if (joined.includes("graphql")) return "graphql";
       if (joined.includes("nameWithOwner")) return "repo-view";
       if (joined.includes("headRefOid")) return "head-sha";
       if (joined.includes("/check-runs")) return "check-runs";
@@ -219,20 +255,22 @@ describe("computeGateResult layered fallbacks", () => {
       const label = classify(cmd);
       const resp =
         responses[label] ??
-        (label === "check-runs"
-          ? {
-              returncode: 0,
-              stdout: JSON.stringify({
-                check_runs: [
-                  {
-                    name: "TypeScript (build + lint + test)",
-                    status: "completed",
-                    conclusion: "success",
-                  },
-                ],
-              }),
-            }
-          : { returncode: 1, stderr: `unexpected ${label}` });
+        (label === "graphql"
+          ? { returncode: 0, stdout: EMPTY_THREADS }
+          : label === "check-runs"
+            ? {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  check_runs: [
+                    {
+                      name: "TypeScript (build + lint + test)",
+                      status: "completed",
+                      conclusion: "success",
+                    },
+                  ],
+                }),
+              }
+            : { returncode: 1, stderr: `unexpected ${label}` });
       return {
         returncode: resp.returncode,
         stdout: resp.stdout ?? "",

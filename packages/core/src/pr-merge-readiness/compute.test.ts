@@ -18,17 +18,35 @@ function cleanGreptileBody(sha: string): string {
   );
 }
 
+const GREEN_THREADS = JSON.stringify({
+  data: {
+    repository: {
+      pullRequest: {
+        reviewThreads: {
+          pageInfo: { hasNextPage: false, endCursor: null },
+          nodes: [],
+        },
+      },
+    },
+  },
+});
+
 interface FakeOpts {
   readonly commentBody?: string;
   readonly mergeableState?: string;
   readonly mergeable?: boolean | null;
   readonly checks?: string;
+  readonly reviewThreads?: string;
 }
 
 function fakeRunGh(opts: FakeOpts): RunGhFn {
   const checks = opts.checks ?? GREEN_CHECKS;
+  const reviewThreads = opts.reviewThreads ?? GREEN_THREADS;
   return (cmd) => {
     const joined = cmd.join(" ");
+    if (joined.includes("graphql")) {
+      return { returncode: 0, stdout: reviewThreads, stderr: "" };
+    }
     if (joined.includes("headRefOid")) {
       return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
     }
@@ -182,5 +200,50 @@ describe("computeGateResult #2260 reconciliation", () => {
     );
     expect(called).toBe(true);
     expect(result.failures).toEqual([]);
+  });
+
+  it("blocks merge-ready when summary is clean but unresolved inline P1 remains (#2620)", () => {
+    const inlineP1Body =
+      '<img alt="P1" src="https://greptile-static-assets.s3.amazonaws.com/badges/p1.svg?v=9" align="top"> ' +
+      "**Path traversal via `..` in owner/repo segments**";
+    const reviewThreads = JSON.stringify({
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: false,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps[bot]" },
+                        body: inlineP1Body,
+                        path: "server/src/register/github.ts",
+                        commit: { oid: HEAD },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const result = computeGateResult(
+      120,
+      "deftai/statusreport",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "clean",
+        mergeable: true,
+        reviewThreads,
+      }),
+    );
+    expect(result.failures.some((f) => f.includes("unresolved inline P1"))).toBe(true);
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
   });
 });

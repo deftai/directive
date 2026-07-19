@@ -1,4 +1,5 @@
 import { INFORMAL_CLEAN_DIAGNOSTIC } from "./constants.js";
+import type { InlineGreptileFindings } from "./greptile-inline.js";
 import type { GreptileVerdict } from "./types.js";
 
 /** Return failure messages (empty list == merge-ready). */
@@ -6,6 +7,7 @@ export function evaluateGates(
   _prNumber: number,
   headSha: string | null,
   verdict: GreptileVerdict,
+  inline: InlineGreptileFindings | null = null,
 ): string[] {
   const failures: string[] = [];
 
@@ -69,6 +71,22 @@ export function evaluateGates(
         "on the current HEAD. All P0 / P1 findings MUST be addressed before merge " +
         "(P2 findings are non-blocking).",
     );
+  }
+
+  if (inline !== null) {
+    if (inline.error !== null) {
+      failures.push(
+        "Could not verify Greptile inline review comments on the current HEAD (#2620). " +
+          `Root cause: ${inline.error}`,
+      );
+    } else if (inline.p0Count > 0 || inline.p1Count > 0) {
+      failures.push(
+        `Greptile has ${inline.p0Count} unresolved inline P0 and ${inline.p1Count} unresolved inline P1 ` +
+          `review comment(s) on the current HEAD across ${inline.unresolvedThreadCount} open thread(s). ` +
+          "Resolve or address all blocking inline threads before merge -- rolling-summary badge counts alone " +
+          "are insufficient (#2620).",
+      );
+    }
   }
 
   return failures;

@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **issue:sync-from-xbrief cross-repo confused deputy (#2633).** `task issue:sync-from-xbrief` now gates comment POSTs with `isRepoMutationAllowed` (same cross-repo mutation gate as #2601 reconcile writers); cross-repo targets are refused unless `--allow-cross-repo` or an allowlist entry permits them. Closes #2633.
 - **Hook write-gate hints normalize Windows-style proposed paths on Linux CI (#2625).** Backslash `xbrief\proposed\...` targets now receive the lifecycle-artifact planning hint instead of the generic recovery message.
 - **Branch coverage meets the 85% floor on native Windows without coverage-debt (#2630).** Targeted tests for `capacity/show`, `story-quality`, and doctor-state branches lift win32 branch coverage above the release gate; `vitest.config.ts` documents that win32 runner caps affect timing only — the branch threshold matches Linux CI. Skill discovery uses repo-relative exclusion so `.deft-scratch` worktrees still find `content/skills`. Closes #2630.
+- **`task pr:merge-ready` fails closed on unresolved Greptile inline P0/P1 (#2620).** Merge-ready now hard-blocks when Greptile has unresolved inline P0/P1 review threads on the current HEAD, even when rolling-summary badge counts are zero. Closes #2620.
 
 ### Removed
 

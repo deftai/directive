@@ -1,3 +1,4 @@
+import type { InlineGreptileFindings } from "./greptile-inline.js";
 import type { GreptileVerdict, RunGhFn } from "./types.js";
 
 /**
@@ -100,7 +101,15 @@ export function verdictShaIsStale(verdict: GreptileVerdict, headSha: string | nu
  * regardless of GitHub mergeability (guardrail: do not merge a PR with a real
  * P0/P1 review finding).
  */
-export function verdictBlockIsSoftOnly(verdict: GreptileVerdict, headSha: string | null): boolean {
+export function verdictBlockIsSoftOnly(
+  verdict: GreptileVerdict,
+  headSha: string | null,
+  inline: InlineGreptileFindings | null = null,
+): boolean {
+  if (inline !== null && inline.error === null && (inline.p0Count > 0 || inline.p1Count > 0)) {
+    return false;
+  }
+
   // Absent: no Greptile rolling-summary comment at all.
   if (!verdict.found) {
     return true;

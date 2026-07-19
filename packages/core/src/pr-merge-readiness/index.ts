@@ -3,6 +3,15 @@ export { type ComputeGateOptions, computeGateResult, type FetchMergeabilityFn } 
 export * from "./constants.js";
 export { evaluateGates, isMergeReady } from "./evaluate.js";
 export { defaultRunGh } from "./gh.js";
+export {
+  evaluateInlineReviewThreads,
+  fetchUnresolvedGreptileInlineFindings,
+  headShaMatches,
+  type InlineGreptileFindings,
+  type InlineReviewComment,
+  type InlineReviewThread,
+  inlineFindingsToDict,
+} from "./greptile-inline.js";
 export { cmdPrMergeReadiness, parseArgs, run } from "./main.js";
 export {
   fetchMergeability,

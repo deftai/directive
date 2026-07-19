@@ -175,4 +175,15 @@ describe("verdictBlockIsSoftOnly", () => {
       true,
     );
   });
+
+  it("unresolved inline P0/P1 is a HARD block (#2620)", () => {
+    expect(
+      verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: HEAD, confidence: 5 }), HEAD, {
+        p0Count: 0,
+        p1Count: 1,
+        unresolvedThreadCount: 1,
+        error: null,
+      }),
+    ).toBe(false);
+  });
 });
