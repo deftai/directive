@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows CI retries transient Install Task flakes (#2624).** The task-dispatch regression job pins an exact Task release and automatically retries `arduino/setup-task` once before failing; operator rerun-failed-jobs recovery is documented in the workflow. Closes #2624.
+
 ### Removed
 
 ## [0.79.1] - 2026-07-18
