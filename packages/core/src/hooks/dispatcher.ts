@@ -139,7 +139,7 @@ export function hookWriteTargetPath(payload: unknown): string | null {
 export function toProjectRelativePosix(projectRoot: string, targetPath: string): string {
   const abs = resolve(projectRoot, targetPath);
   const rel = relative(resolve(projectRoot), abs);
-  return rel.split(sep).join("/");
+  return rel.split(sep).join("/").replace(/\\/g, "/");
 }
 
 /**
