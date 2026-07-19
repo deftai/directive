@@ -121,7 +121,9 @@ describe("migrateCategoryBCorpus (#1650)", () => {
     expect(result.changed).toEqual([]);
     expect(result.conflicts).toHaveLength(1);
     expect(result.conflicts[0]?.message).toMatch(/must not be a symlink|symlink escaping/);
-    expect(JSON.parse(readFileSync(outsideFile, "utf8"))).toEqual({ plan: { policy: { wipCap: 9 } } });
+    expect(JSON.parse(readFileSync(outsideFile, "utf8"))).toEqual({
+      plan: { policy: { wipCap: 9 } },
+    });
   });
 
   itSymlink("skips symlink entries during traversal (#2626)", () => {
@@ -130,15 +132,13 @@ describe("migrateCategoryBCorpus (#1650)", () => {
     });
     const escapeDir = mkdtempSync(join(tmpdir(), "catb-entry-escape-"));
     const outsideFile = join(escapeDir, "linked.xbrief.json");
-    writeFileSync(
-      outsideFile,
-      `${JSON.stringify({ plan: { policy: { wipCap: 99 } } })}\n`,
-      "utf8",
-    );
+    writeFileSync(outsideFile, `${JSON.stringify({ plan: { policy: { wipCap: 99 } } })}\n`, "utf8");
     symlinkSync(outsideFile, join(root, "xbrief", "active", "linked.xbrief.json"));
 
     const result = migrateCategoryBCorpus(root);
     expect(result.changed).toEqual(["xbrief/active/real.xbrief.json"]);
-    expect(JSON.parse(readFileSync(outsideFile, "utf8"))).toEqual({ plan: { policy: { wipCap: 99 } } });
+    expect(JSON.parse(readFileSync(outsideFile, "utf8"))).toEqual({
+      plan: { policy: { wipCap: 99 } },
+    });
   });
 });

@@ -9,12 +9,16 @@
  * order-preserving (the namespaced key takes the legacy key's slot, keeping
  * artifact diffs minimal).
  */
-import { type Dirent, existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
 import {
-  assertDirectoryNotSymlink,
-  assertWriteTargetSafe,
-} from "../fs/projection-containment.js";
+  type Dirent,
+  existsSync,
+  lstatSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { join, relative, resolve } from "node:path";
+import { assertDirectoryNotSymlink, assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   LEGACY_PLAN_COMPLETED_NOTE_KEY,
