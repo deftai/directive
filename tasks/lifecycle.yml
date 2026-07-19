@@ -1,6 +1,7 @@
 version: '3'
 
 # tasks/lifecycle.yml -- behavioral framework event recorder (#2631 / #635).
+# Consumer npm deposits invoke via engine:invoke without a local build (#2181).
 #
 # Review-cycle merge-gate approval uses `task lifecycle:event -- emit plan:approved ...`.
 # Per conventions/task-caching.md: no sources/generates because the task forwards
