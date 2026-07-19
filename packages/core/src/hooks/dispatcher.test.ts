@@ -452,6 +452,9 @@ describe("provider input normalization", () => {
       ),
     ).toBe("StrReplace");
     expect(hookToolName({ tool_input: { path: "src/a.ts" } }, "cursor")).toBe("Write");
+    expect(
+      hookToolName({ tool_input: { path: "src/a.ts", new_string: "prepend" } }, "cursor"),
+    ).toBe("StrReplace");
     expect(hookToolName({}, "cursor")).toBeNull();
     expect(hookToolName({ tool_input: { path: "src/a.ts" } })).toBeNull();
   });

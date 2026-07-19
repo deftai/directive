@@ -61,6 +61,18 @@ function firstString(...values: unknown[]): string | null {
   return null;
 }
 
+function fieldPresent(input: Record<string, unknown>, ...keys: readonly string[]): boolean {
+  return keys.some((key) => key in input);
+}
+
+function fieldString(input: Record<string, unknown>, ...keys: readonly string[]): string | null {
+  for (const key of keys) {
+    const value = input[key];
+    if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  }
+  return null;
+}
+
 function toolInputRecord(payload: Record<string, unknown>): Record<string, unknown> | null {
   return record(payload.tool_input) ?? record(payload.toolInput) ?? record(payload.input);
 }
@@ -72,21 +84,20 @@ function toolInputRecord(payload: Record<string, unknown>): Record<string, unkno
 function inferCursorDirectWriteToolName(payload: Record<string, unknown>): string | null {
   const toolInput = toolInputRecord(payload);
   if (toolInput !== null) {
-    const hasOldNew =
-      firstString(toolInput.old_string, toolInput.oldString) !== null &&
-      firstString(toolInput.new_string, toolInput.newString) !== null;
-    if (hasOldNew) return "StrReplace";
+    if (fieldPresent(toolInput, "new_string", "newString", "old_string", "oldString")) {
+      return "StrReplace";
+    }
 
-    if (firstString(toolInput.contents, toolInput.content, toolInput.text) !== null) {
+    if (fieldString(toolInput, "contents", "content", "text") !== null) {
       return "Write";
     }
 
-    if (firstString(toolInput.patch, toolInput.unified_diff, toolInput.diff) !== null) {
+    if (fieldString(toolInput, "patch", "unified_diff", "diff") !== null) {
       return "ApplyPatch";
     }
 
     if (Array.isArray(toolInput.edits)) return "MultiEdit";
-    if (Array.isArray(toolInput.cells) || toolInput.cell_id !== undefined) {
+    if (Array.isArray(toolInput.cells) || toolInput.cell_id != null) {
       return "NotebookEdit";
     }
   }
