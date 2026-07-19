@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -20,6 +20,8 @@ import {
   scanCompletedStatusDrift,
   scanLifecycleAnchors,
 } from "./reconcile-issues.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function completed(stdout = "", stderr = "", returncode = 0): CompletedProcess {
   return { args: [], returncode, stdout, stderr };
@@ -467,5 +469,86 @@ describe("completed/ status drift (#2578)", () => {
     );
     expect(report.summary.completed_status_drift_count).toBe(1);
     expect(report.completed_status_drift).toHaveLength(1);
+  });
+});
+
+describe("reconcile lifecycle apply symlink containment (#2632)", () => {
+  let root = "";
+  let escapeDir = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+    if (escapeDir.length > 0) {
+      rmSync(escapeDir, { recursive: true, force: true });
+      escapeDir = "";
+    }
+  });
+
+  itSymlink("applyLifecycleFixes refuses symlinked lifecycle xBRIEF writes", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-symlink-apply-"));
+    escapeDir = mkdtempSync(join(tmpdir(), "reconcile-symlink-escape-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const victim = join(escapeDir, "victim.xbrief.json");
+    writeFileSync(
+      victim,
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    const relPath = "active/story.xbrief.json";
+    symlinkSync(victim, join(xbrief, "active", "story.xbrief.json"));
+
+    const report = {
+      linked: [],
+      no_open_issue: [
+        {
+          issue: 1,
+          state_reason: "COMPLETED",
+          vbrief_files: [relPath],
+        },
+      ],
+      summary: { linked_count: 0, vbriefs_no_open_issue_count: 1 },
+    };
+    const [moved, skipped, failures] = applyLifecycleFixes(xbrief, report, root);
+    expect(moved).toBe(0);
+    expect(skipped).toBe(0);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatch(/projection write refused|symlink/);
+    expect(JSON.parse(readFileSync(victim, "utf8"))).toEqual({
+      xBRIEFInfo: { version: "0.8" },
+      plan: { status: "running", items: [] },
+    });
+  });
+
+  itSymlink("repairCompletedStatusDrift refuses symlinked completed xBRIEF writes", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-symlink-drift-"));
+    escapeDir = mkdtempSync(join(tmpdir(), "reconcile-symlink-drift-escape-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const victim = join(escapeDir, "victim.xbrief.json");
+    writeFileSync(
+      victim,
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    symlinkSync(victim, join(xbrief, "completed", "story.xbrief.json"));
+
+    const [repaired, skipped, failures] = repairCompletedStatusDrift(
+      xbrief,
+      [{ rel_path: "completed/story.xbrief.json", status: "running" }],
+      root,
+    );
+    expect(repaired).toBe(0);
+    expect(skipped).toBe(0);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatch(/projection write refused|symlink/);
+    expect(JSON.parse(readFileSync(victim, "utf8"))).toEqual({
+      xBRIEFInfo: { version: "0.8" },
+      plan: { status: "running", items: [] },
+    });
   });
 });

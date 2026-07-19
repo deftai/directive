@@ -1,6 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  assertProjectionContained,
+  assertWriteTargetSafe,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
@@ -831,6 +836,17 @@ export function applyLifecycleFixes(
       continue;
     }
 
+    try {
+      assertWriteTargetSafe(cwd, src);
+      assertProjectionContained(cwd, join(vbriefDir, destFolder));
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        failures.push(`${relPath}: ${err.message}`);
+        continue;
+      }
+      throw err;
+    }
+
     let data: Record<string, unknown>;
     try {
       data = JSON.parse(readFileSync(src, "utf8")) as Record<string, unknown>;
@@ -894,11 +910,13 @@ export function applyLifecycleFixes(
 export function repairCompletedStatusDrift(
   vbriefDir: string,
   drift: readonly CompletedStatusDriftEntry[],
+  projectRoot: string | null = null,
 ): [number, number, string[]] {
   let repaired = 0;
   let skipped = 0;
   const failures: string[] = [];
   const completedDir = join(vbriefDir, "completed");
+  const cwd = projectRoot ?? resolve(vbriefDir, "..");
 
   for (const entry of drift) {
     const slash = entry.rel_path.indexOf("/");
@@ -908,6 +926,16 @@ export function repairCompletedStatusDrift(
     }
     const filename = entry.rel_path.slice(slash + 1);
     const src = join(completedDir, filename);
+
+    try {
+      assertWriteTargetSafe(cwd, src);
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        failures.push(`${entry.rel_path}: ${err.message}`);
+        continue;
+      }
+      throw err;
+    }
 
     let data: Record<string, unknown>;
     try {
@@ -1068,6 +1096,7 @@ export function reconcileMain(args: ReconcileCliArgs): number {
     const [driftRepaired, driftSkipped, driftFailures] = repairCompletedStatusDrift(
       vbriefDir,
       driftAfterMove,
+      projectRoot,
     );
     const allFailures = [...failures, ...driftFailures];
     process.stderr.write(

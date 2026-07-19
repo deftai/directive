@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
 import { append, canonicalLogPath, latestForPath, newDecisionId } from "./audit-log.js";
@@ -107,6 +108,15 @@ export function demoteOne(
   const priorPromote = latestForPath(canonicalPath, "promote", logPath);
   const originalPromotionDecisionId =
     priorPromote !== null ? (priorPromote.decision_id as string | null) : null;
+
+  try {
+    assertWriteTargetSafe(projectRoot, resolved);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      return { ok: false, message: err.message, auditEntry: null };
+    }
+    throw err;
+  }
 
   const timestamp = utcNowIso(now);
   planObj.status = TARGET_STATUS;

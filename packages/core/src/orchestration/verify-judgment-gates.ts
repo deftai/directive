@@ -4,8 +4,13 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  assertProjectionContained,
+  assertWriteTargetSafe,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { resolveAuditDir } from "../layout/resolve.js";
 import { type JudgmentGatesPolicy, resolveJudgmentGates } from "./judgment-policy.js";
 import { matchAny } from "./pathspec.js";
@@ -214,7 +219,24 @@ export function recordClearance(
   },
 ): Record<string, unknown> {
   const path = options.log_path ?? clearanceLogPath(projectRoot);
-  mkdirSync(resolveAuditDir(projectRoot), { recursive: true });
+  const auditDir = resolveAuditDir(projectRoot);
+  assertProjectionContained(projectRoot, auditDir);
+  assertWriteTargetSafe(projectRoot, path);
+  try {
+    const info = lstatSync(auditDir);
+    if (info.isSymbolicLink()) {
+      throw new ProjectionContainmentError(
+        `projection write refused: audit directory ${auditDir} must not be a symlink`,
+        { projectDir: resolve(projectRoot), targetPath: auditDir, offendingPath: auditDir },
+      );
+    }
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw err;
+    }
+    // Audit dir does not exist yet; mkdirSync below will create it under containment.
+  }
+  mkdirSync(auditDir, { recursive: true });
   const entry: Record<string, unknown> = {
     clearance_id: randomUUID(),
     timestamp: utcNowIso(options.now),

@@ -1,10 +1,20 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
 import { runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function makeRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "demote-test-"));
@@ -58,6 +68,28 @@ describe("demote", () => {
     const [resolved] = resolveFilePath("xbrief/pending/x.xbrief.json", root);
     // Normalize to forward slashes for cross-platform comparison.
     expect(resolved.replace(/\\/g, "/")).toContain("xbrief/pending/x.xbrief.json");
+  });
+
+  itSymlink("refuses demote when pending xBRIEF is a symlink outside the project (#2632)", () => {
+    root = makeRepo();
+    const escapeDir = mkdtempSync(join(tmpdir(), "demote-symlink-escape-"));
+    const victim = join(escapeDir, "victim.xbrief.json");
+    writeFileSync(
+      victim,
+      formatVbriefJson({
+        plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
+      }),
+      "utf8",
+    );
+    symlinkSync(victim, join(root, "xbrief", "pending", "x.xbrief.json"));
+
+    const result = demoteOne(join(root, "xbrief", "pending", "x.xbrief.json"), root, "test");
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/projection write refused|symlink/);
+    expect(JSON.parse(readFileSync(victim, "utf8"))).toMatchObject({
+      plan: { status: "pending" },
+    });
+    rmSync(escapeDir, { recursive: true, force: true });
   });
 });
 
