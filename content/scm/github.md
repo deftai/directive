@@ -149,6 +149,43 @@ PowerShell 5.x (Windows default) uses UTF-16LE internally and may inject a BOM o
 
 - ! Never paste multi-line PowerShell string literals (here-strings `@" ... "@`) directly into the Warp agent input box -- Warp splits multi-line input across separate command blocks, causing syntax errors or silent truncation. Always write multi-line PS content to a temp file first (e.g. `[System.IO.File]::WriteAllText($tmpFile, $content, [System.Text.UTF8Encoding]::new($false))`), then use the temp file path in subsequent commands
 
+### Windows PowerShell: safe multi-line git/gh bodies (#2646 / #1417)
+
+On Windows PowerShell (5.1 and often `pwsh` when commands are not routed through bash), multi-line git and gh payloads MUST NOT be authored inline in agent shell commands. Bash-style heredocs, POSIX here-document redirection (including `<<<`), inline multi-line `--body` flags, and multi-line PS here-strings pasted into the agent command box all fail or corrupt the payload before git/gh receives it. Related but distinct failure modes: #240 (Warp splits PS here-strings across command blocks) and #798 (PS 5.1 encoding corruption on read/write round-trips -- use the safe write path when creating temp files).
+
+**Canonical pattern (Windows PowerShell agents):**
+
+1. Write the multi-line payload to a UTF-8 (no BOM) temp file in the OS temp directory (`$env:TEMP` / `[System.IO.Path]::GetTempFileName()`), not the worktree.
+2. Prefer creating that file **outside the shell** (editor/Write tool, Node script on disk) so host/agent shell wrappers cannot rewrite strings that look like git commit or gh body invocations.
+3. Pass the file to git/gh: `git commit -F <file>`, `gh pr create --body-file <file>`, `gh issue create --body-file <file>`, `gh issue comment --body-file <file>`, or `gh api ... --input <file>` (JSON bodies for PATCH/POST).
+
+**PowerShell example (commit message + PR body):**
+
+```powershell
+$bodyFile = [System.IO.Path]::GetTempFileName()
+[System.IO.File]::WriteAllText($bodyFile, $prBody, [System.Text.UTF8Encoding]::new($false))
+git commit -F $bodyFile
+gh pr create --title "feat: example" --body-file $bodyFile
+```
+
+**Recovery pattern for issue/PR PATCH (when wrappers corrupt inline payloads):** write a Node (or other) script to disk with the editor/Write tool, have it emit JSON to a temp file, then `gh api -X PATCH ... --input <file>` via `execFileSync` / equivalent. Verify the posted body afterward for injected Co-authored-by or Made-with markers.
+
+**Dogfood failure modes (Cursor on win32, 2026-07-19, #2646):**
+
+1. Bash `<<<` in a PowerShell script -- parse abort (`Missing file specification after redirection operator`); the whole script never runs.
+2. Host wrapper rewrote `git commit ...` prose inside an issue-body PATCH -- injected angle brackets made PowerShell treat `<...>` as operators (`The '<' operator is reserved for future use`).
+3. Host wrapper rewrote inline `--body "..."` prose -- corrupted failure-mode examples mid-PATCH.
+4. File-staged `gh api --input <file>` (payload written outside the shell) succeeded.
+
+- ! Under Windows PowerShell, MUST use temp-file delivery for all multi-line git commit messages (`git commit -F`) and gh bodies (`--body-file` / `gh api --input`) -- never bash heredocs, `<<<`, or inline multi-line `--body` flags
+- ! For `gh issue create`, `gh issue comment`, and `gh pr create`, long bodies MUST use `--body-file` (temp file), not an inline `--body` flag (#1417)
+- ! Create temp payload files via a safe UTF-8 write path (#798) -- prefer editor/Write/Node on disk over PS here-strings in the agent command box (#240)
+- ⊗ Use bash-style heredocs or `<<<` redirection under Windows PowerShell -- not valid; payloads never reach git/gh intact
+- ⊗ Embed multi-line markdown inside a PowerShell agent shell string for git/gh -- quoting splits arguments, angle brackets parse as operators, and host wrappers may rewrite the text
+- ⊗ Build multi-line gh/git PATCH JSON inside an instrumented agent shell one-liner -- stage the file first, then `gh api --input`
+
+Refs #240, #798, #1417, #2646.
+
 ## PowerShell platform-conditional rules for agents (#798 / #1353)
 
 These runtime-specific rules are lazy-loaded here rather than shipped in the always-loaded AGENTS.md, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). Load this section **before** the risky operation when your session matches one of the triggers below.

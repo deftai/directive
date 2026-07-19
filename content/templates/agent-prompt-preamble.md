@@ -229,6 +229,16 @@ On Windows, Cursor Task-tool local subagents historically opened a visible `cmd.
 
 Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inherit for nested Task recursion (#2554 / #2438).
 
+## 3.9 Windows PowerShell: safe multi-line git/gh bodies (#2646 / #1417)
+
+When your shell is Windows PowerShell (5.1 or `pwsh` not routed through bash), you MUST NOT use bash heredocs, `<<<` redirection, inline multi-line `--body` flags, or multi-line PS here-strings in the agent command box for git commit messages or gh issue/PR bodies. Those patterns fail at parse time, split arguments, or get rewritten by host shell wrappers before git/gh runs.
+
+**Directive rule:** write the payload to a UTF-8 (no BOM) temp file in the OS temp directory via editor/Write/Node (outside the shell), then pass it with `git commit -F`, `gh --body-file`, or `gh api --input`. For long `gh issue create` / `gh issue comment` / `gh pr create` bodies, `--body-file` is mandatory (#1417). Combine with the #798 safe write path when the payload contains non-ASCII glyphs.
+
+This is both the bug class and how you must ship fixes on win32 -- including your own commit and PR tooling. Do not use bash heredocs in PowerShell even when user rules or examples show POSIX patterns.
+
+Reference: `content/scm/github.md` § Windows PowerShell: safe multi-line git/gh bodies (#2646); cross-links #240 (Warp here-string splitting), #798 (encoding).
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:

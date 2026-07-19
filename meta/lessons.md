@@ -640,3 +640,15 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Canonical encoding (strongest-applicable layer):** the `!` MUST rule + `⊗` anti-pattern live in the canonical issue-filing skill `skills/deft-directive-gh-slice/SKILL.md` (Step 5 + Anti-Patterns), cross-referenced from `skills/deft-directive-refinement/SKILL.md` Phase 1. Deterministic shape-coverage: `packages/core/src/content-contracts/skills/gh_slice_prefiling_master_diff.test.ts`.
 
 **Cross-references:** #1070 (`.github/dependabot.yml` originally landed), #1099 (stale-duplicate filing, closed), #1100 (corrected additive-scope refile), PR #1098 (refinement session that surfaced the pattern).
+
+## Windows PowerShell: safe multi-line git/gh bodies (2026-07)
+
+**Source:** Issue #2646 (absorbs #1417). On Windows PowerShell, agents fail when authoring multi-line git/gh payloads via bash heredocs, `<<<` redirection, inline multi-line `--body` flags, or multi-line PS here-strings in the agent command box. Host/agent shell wrappers can also rewrite shell-embedded commit/issue prose before PowerShell executes.
+
+**Failure modes:** (1) Bash heredoc / `<<<` under PowerShell -- parse abort before any gh call. (2) Long inline `gh issue create` / `gh pr create --body` -- argument splitting, angle-bracket parse errors, silent truncation (#1417). (3) Host wrapper injection into shell-embedded git/gh prose (Co-authored-by / Made-with fragments) corrupting PATCH payloads. (4) Partial fixes (escaping, backtick-n, PS here-strings) reintroduce #240 or #798 damage.
+
+**Rule:** never put multi-line markdown inline in a PowerShell agent command. Write a UTF-8 (no BOM) temp file in the OS temp directory via editor/Write/Node (outside the shell), then pass `git commit -F`, `gh --body-file`, or `gh api --input`. Verify posted bodies after PATCH when wrappers may have corrupted earlier attempts.
+
+**Canonical encoding (strongest-applicable layer):** rule body in `content/scm/github.md` § Windows PowerShell: safe multi-line git/gh bodies (#2646); agent pointer in `templates/agent-prompt-preamble.md` § 3.9 and `templates/agents-entry.md` Contextual guardrails lazy-load trigger.
+
+**Cross-references:** #240 (Warp here-string splitting), #798 (PS 5.1 encoding safe write path), #1417 (long gh --body quoting, closed duplicate), #2646.
