@@ -24,10 +24,12 @@ export interface CheckOrchestratorSeams {
   readonly spawnFn?: (
     cmd: string,
     args: string[],
-    opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv },
-  ) => { status: number | null; error?: Error };
+    opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv; timeoutMs?: number },
+  ) => { status: number | null; signal?: NodeJS.Signals | null; error?: Error };
   /** Child-process environment (default: process.env). */
   readonly env?: NodeJS.ProcessEnv;
+  /** Wall-clock spawn timeout in milliseconds (default: none). */
+  readonly timeoutMs?: number;
 }
 
 /**
@@ -105,11 +107,19 @@ export function dispatchTaskCheck(
     cwd,
     stdio: "inherit",
     env: seams.env,
+    timeoutMs: seams.timeoutMs,
   });
 
   if (result.error !== undefined) {
     process.stderr.write(`check: failed to invoke task: ${result.error.message}\n`);
     return 2;
+  }
+
+  if (result.signal === "SIGTERM" && result.status === null && seams.timeoutMs !== undefined) {
+    process.stderr.write(
+      `check: timed out after ${seams.timeoutMs / 60_000}m (Step 5 vitest coverage budget; #2652)\n`,
+    );
+    return 124;
   }
 
   return result.status ?? 1;
@@ -118,12 +128,15 @@ export function dispatchTaskCheck(
 function defaultSpawn(
   cmd: string,
   args: string[],
-  opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv },
-): { status: number | null; error?: Error } {
+  opts: { cwd: string; stdio: string; env?: NodeJS.ProcessEnv; timeoutMs?: number },
+): { status: number | null; signal?: NodeJS.Signals | null; error?: Error } {
   const result = spawnSync(cmd, args, {
     cwd: opts.cwd,
     stdio: opts.stdio as "inherit",
     env: opts.env ?? process.env,
+    ...(opts.timeoutMs !== undefined
+      ? { timeout: opts.timeoutMs, killSignal: "SIGTERM" as const }
+      : {}),
   });
-  return { status: result.status, error: result.error };
+  return { status: result.status, signal: result.signal, error: result.error };
 }

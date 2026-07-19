@@ -2,6 +2,7 @@ import { EXIT_CONFIG_ERROR } from "./constants.js";
 import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
+import { validateSkipCiIncident } from "./skip-ci-incident.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { validateVersion } from "./version.js";
 
@@ -34,6 +35,12 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
   const projectRoot = resolveProjectRoot(flags.projectRoot);
   const repo = resolveRepo(flags.repo, projectRoot, seams);
 
+  const skipCiGate = validateSkipCiIncident(flags.skipCi, flags.allowSkipCiIssue, process.env);
+  if (skipCiGate.kind === "invalid") {
+    process.stderr.write(`release: error: ${skipCiGate.reason}\n`);
+    return EXIT_CONFIG_ERROR;
+  }
+
   const config: ReleaseConfig = {
     version: flags.version,
     repo,
@@ -49,6 +56,7 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
     summary: flags.summary,
     allowVbriefDrift: flags.allowVbriefDrift,
     allowCoverageDebtIssue: flags.allowCoverageDebtIssue,
+    allowSkipCiIssue: flags.allowSkipCiIssue,
   };
 
   return runPipeline(config, seams);

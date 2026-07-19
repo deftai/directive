@@ -143,7 +143,9 @@ The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke
 
 ! **Last human gate before npm (#1972, #2002).** Immediately before invoking `task release`, re-state that the tag push in this step will irrevocably publish all four `@deftai/directive*` packages to npm via `.github/workflows/npm-publish.yml`. There is no undo on npm; only forward recovery (deprecate / dist-tag / patch). Proceed only when the operator explicitly confirms.
 
-! Invoke `task release -- <version>` (NO `--dry-run`, NO `--skip-tag`, NO `--skip-release`). If Phase 1 collected an operator summary, pass `--summary "<text>"` so the production cut writes the same blockquote the dry-run previewed.
+! Invoke `task release -- <version>` (NO `--dry-run`, NO `--skip-tag`, NO `--skip-release`, NO `--skip-ci`). If Phase 1 collected an operator summary, pass `--summary "<text>"` so the production cut writes the same blockquote the dry-run previewed.
+
+⊗ Use `--skip-ci` on a production cut except under explicit operator incident review — it skips Step 5 vitest coverage and ships untested npm builds (#2652). When unavoidable, pass `--allow-skip-ci=#N` citing the tracked issue; Step 5 emits a loud WARN. See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Vitest coverage hang recovery. The next patch after the hang fix must cut without `--skip-ci`.
 
 ```
 task release -- <version> --summary "<text>"

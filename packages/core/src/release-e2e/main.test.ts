@@ -197,6 +197,7 @@ describe("rehearsal step helpers", () => {
     };
     expect(dispatchTaskRelease("/clone", "0.0.1", "deftai/temp-x", seams)[0]).toBe(true);
     expect(captured).toContain("--skip-ci");
+    expect(captured).toContain("--allow-skip-ci=716");
     expect(captured).toContain("--skip-build");
     expect(captured).toContain("--allow-vbrief-drift");
   });

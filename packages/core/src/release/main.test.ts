@@ -7,6 +7,21 @@ import type { ReleaseSeams } from "./types.js";
 const CHANGELOG = `## [Unreleased]\n\n### Added\n- x\n`;
 
 describe("cmdRelease integration", () => {
+  it("rejects production --skip-ci without incident citation", () => {
+    const err: string[] = [];
+    const origErr = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((c: string | Uint8Array) => {
+      err.push(String(c));
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      expect(cmdRelease(["0.21.0", "--skip-ci", "--dry-run"])).toBe(2);
+      expect(err.join("")).toContain("--allow-skip-ci");
+    } finally {
+      process.stderr.write = origErr;
+    }
+  });
+
   it("runs dry-run pipeline end-to-end via seams", () => {
     const err: string[] = [];
     const origErr = process.stderr.write.bind(process.stderr);
@@ -34,6 +49,7 @@ describe("cmdRelease integration", () => {
           "/tmp/proj",
           "--allow-vbrief-drift",
           "--skip-ci",
+          "--allow-skip-ci=716",
         ],
         seams,
       );
@@ -62,6 +78,7 @@ describe("pipeline verify flip failure", () => {
       summary: null,
       allowVbriefDrift: true,
       allowCoverageDebtIssue: null,
+      allowSkipCiIssue: 716,
     };
     const seams: ReleaseSeams = {
       spawnText: (_c, a) => {

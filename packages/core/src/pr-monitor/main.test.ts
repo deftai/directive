@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.js";
 import { EXIT_CLEAN, EXIT_CONFIG_ERROR } from "./constants.js";
 import { cmdPrMonitor, parseMonitorArgs, runMonitor } from "./main.js";
 import { monitor } from "./monitor.js";
@@ -7,44 +7,15 @@ import { callReadiness } from "./readiness.js";
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
 
-function fakeRunGh(responses?: { headOk?: boolean; commentsOk?: boolean }): RunGhFn {
-  const headOk = responses?.headOk ?? true;
-  const commentsOk = responses?.commentsOk ?? true;
-  return (cmd) => {
-    const joined = cmd.join(" ");
-    if (joined.includes("headRefOid")) {
-      return headOk
-        ? { returncode: 0, stdout: `${HEAD}\n`, stderr: "" }
-        : { returncode: 1, stdout: "", stderr: "all-down" };
-    }
-    if (joined.includes("/comments")) {
-      return commentsOk
-        ? {
-            returncode: 0,
-            stdout:
-              "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
-              `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${HEAD})\n`,
-            stderr: "",
-          }
-        : { returncode: 1, stdout: "", stderr: "boom" };
-    }
-    if (joined.includes("check-runs")) {
-      return {
-        returncode: 0,
-        stdout: JSON.stringify({
-          check_runs: [
-            {
-              name: "TypeScript (build + lint + test)",
-              status: "completed",
-              conclusion: "success",
-            },
-          ],
-        }),
-        stderr: "",
-      };
-    }
-    return { returncode: 1, stdout: "", stderr: "unexpected" };
-  };
+function fakeRunGh(responses?: { headOk?: boolean; commentsOk?: boolean }) {
+  return fakeRunGhForMonitor({
+    headSha: HEAD,
+    headOk: responses?.headOk,
+    commentsOk: responses?.commentsOk,
+    commentsBody:
+      "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
+      `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${HEAD})\n`,
+  });
 }
 
 describe("parseMonitorArgs", () => {

@@ -194,6 +194,19 @@ describe("dispatchTaskCheck", () => {
     expect(calls[0]?.env?.DEFT_RELEASE_PREFLIGHT).toBe("1");
   });
 
+  it("returns 124 when the spawn hits the configured timeout (#2652)", () => {
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const spawnFn = (
+      _cmd: string,
+      _args: string[],
+      _opts: { cwd: string; stdio: string; timeoutMs?: number },
+    ) => ({ status: null, signal: "SIGTERM" as const });
+
+    const code = dispatchTaskCheck("/root", "/root", { spawnFn, timeoutMs: 60_000 });
+    expect(code).toBe(124);
+    errWrite.mockRestore();
+  });
+
   it("uses the real defaultSpawn path when no spawnFn is provided (taskBin not found = error path)", () => {
     // When no spawnFn seam is given, dispatchTaskCheck calls the internal
     // defaultSpawn which wraps spawnSync. Using a non-existent binary causes

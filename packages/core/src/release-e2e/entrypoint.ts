@@ -284,7 +284,15 @@ export function dispatchTaskRelease(
   repo: string,
   seams: E2ESeams = {},
 ): [boolean, string] {
-  const argv = [version, "--repo", repo, "--skip-ci", "--skip-build", "--allow-vbrief-drift"];
+  const argv = [
+    version,
+    "--repo",
+    repo,
+    "--skip-ci",
+    "--skip-build",
+    "--allow-vbrief-drift",
+    "--allow-skip-ci=716",
+  ];
   if (seams.releaseEntrypoint) {
     const code = seams.releaseEntrypoint(argv);
     if (code !== 0) {

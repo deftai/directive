@@ -1,0 +1,52 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2652"
+  },
+  "plan": {
+    "title": "P0: release Step 5 / vitest coverage hangs force --skip-ci (untested npm publishes)",
+    "status": "running",
+    "narratives": {
+      "Description": "P0: release Step 5 / vitest coverage hangs force --skip-ci (untested npm publishes)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2652",
+      "Overview": "## Summary\n\n**Urgent / adoption blocker:** `task release` Step 5 (`task ci:local` → fallback `task check` → `vitest run --coverage`) can hang indefinitely on Windows **and** on GitHub Actions Linux (`TypeScript (build + lint + test)` → “Test with coverage (vitest)”). That forces maintainers to cut with `--skip-ci`, which ships **untested builds** to npm.\n\nThis is how **v0.79.2** landed: local Step 5 hung ~2h; master CI vitest coverage hung ~2h on the same HEAD; the cut used `--skip-ci --allow-vbrief-drift` under AFK authorization so the tag/npm publish could proceed.\n\n## Why this blocks adoption\n\n- Release preflight is the last local gate before an irrevocable `v*` tag → npm publish (`npm-publish.yml`).\n- When that gate hangs, the only practical escape hatch is `--skip-ci` — which **disables** the gate rather than proving green.\n- Consumers and maintainers cannot trust that a published patch was validated by the suite the release pipeline claims to run.\n- Concurrent CI runners also stick on the same vitest coverage step, so “wait for master CI” is not a reliable substitute.\n\n## Evidence (2026-07-19, v0.79.2 cut)\n\n| Surface | Observation |\n|---|---|\n| Local `task release -- 0.79.2` | Stuck in Step 5 child `vitest run --coverage` from ~14:05 CDT; process tree still alive after ~2h; AFK release agent idle awaiting it |\n| GHA `CI` on `master` @ `437bce29` | Run [29700013685](https://github.com/deftai/directive/actions/runs/29700013685): TypeScript job stuck on **Test with coverage (vitest)** from ~19:08 UTC; cancelled after ~2h |\n| GHA older prep commit | Run [29696886985](https://github.com/deftai/directive/actions/runs/29696886985) also stuck `in_progress` on vitest coverage; cancelled |\n| Workaround used | `task release -- 0.79.2 --skip-ci --allow-vbrief-drift` then publish; npm `@deftai/directive@0.79.2` shipped |\n\nRelated prior work (ENOENT races, not this hang): #2580 / #2634 / #2556 — those address coverage `.tmp` ENOENT after green runs; this issue is **non-terminating hang** of `vitest run --coverage` (local + CI).\n\n## Acceptance criteria\n\n1. **Reproduce** a bounded hang (or prove timeout) for `vitest run --coverage` / `task check` on Windows and on GHA Linux TypeScript job; capture which suite/file/process stalls (CPU idle vs spinning).\n2. **Hard timeout** for release Step 5 and for the GHA “Test with coverage (vitest)” step — fail closed with actionable diagnostics; never hang the runner/agent for hours.\n3. **`--skip-ci` on production cuts is treated as an incident** — release skill / `task release` MUST emit a loud WARN (and optional required issue citation, similar to `--allow-coverage-debt=#N`) when `--skip-ci` is used outside `release:e2e`.\n4. **Next patch after fix** is cut **without** `--skip-ci` (Step 5 green locally or via `ci:local`), restoring the tested-release contract.\n5. Document recovery: when to cancel stuck GHA runs, how to diagnose hung vitest, and that AFK release monitors must not Await unbounded CI.\n\n## Non-goals\n\n- Rewriting coverage thresholds or dropping the 85% floor.\n- Making `--skip-ci` the normal production path.\n\n## Labels / priority\n\n- `urgent`, `adoption-blocker`, `bug`, `ci-cd`\n- Priority: **P0** — every release while this hangs is an untested publish risk.\n\n## Refs\n\n- Release skill Step 5 / `--skip-ci` (intended for `release:e2e`, not production)\n- v0.79.2: https://github.com/deftai/directive/releases/tag/v0.79.2\n- CHANGELOG note context: coverage-debt / Step 5 env hardening (#2434, #2573) — orthogonal to hang\n\n",
+      "Labels": "bug, ci-cd, adoption-blocker, urgent"
+    },
+    "items": [
+      {
+        "title": "**Reproduce** a bounded hang (or prove timeout) for `vitest run --coverage` / `task check` on Windows and on GHA Linux TypeScript job; capture which suite/file/process stalls (CPU idle vs spinning).",
+        "status": "proposed"
+      },
+      {
+        "title": "**Hard timeout** for release Step 5 and for the GHA “Test with coverage (vitest)” step — fail closed with actionable diagnostics; never hang the runner/agent for hours.",
+        "status": "proposed"
+      },
+      {
+        "title": "**`--skip-ci` on production cuts is treated as an incident** — release skill / `task release` MUST emit a loud WARN (and optional required issue citation, similar to `--allow-coverage-debt=#N`) when `--skip-ci` is used outside `release:e2e`.",
+        "status": "proposed"
+      },
+      {
+        "title": "**Next patch after fix** is cut **without** `--skip-ci` (Step 5 green locally or via `ci:local`), restoring the tested-release contract.",
+        "status": "proposed"
+      },
+      {
+        "title": "Document recovery: when to cancel stuck GHA runs, how to diagnose hung vitest, and that AFK release monitors must not Await unbounded CI.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "adoption-blocker",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2652",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2652: P0: release Step 5 / vitest coverage hangs force --skip-ci (untested npm publishes)"
+      }
+    ],
+    "updated": "2026-07-19T21:37:21Z"
+  }
+}

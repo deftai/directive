@@ -14,6 +14,7 @@ export interface ReleaseConfig {
   readonly summary: string | null;
   readonly allowVbriefDrift: boolean;
   readonly allowCoverageDebtIssue: number | null;
+  readonly allowSkipCiIssue: number | null;
 }
 
 export interface ReleaseFlags {
@@ -32,6 +33,7 @@ export interface ReleaseFlags {
   readonly draft: boolean;
   readonly summary: string | null;
   readonly allowCoverageDebtIssue: number | null;
+  readonly allowSkipCiIssue: number | null;
   readonly unknown: readonly string[];
 }
 

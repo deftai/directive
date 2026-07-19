@@ -8,7 +8,7 @@
  * dispatches `check:framework-source`.
  */
 import { type CheckOrchestratorSeams, dispatchTaskCheck } from "../check/orchestrator.js";
-import { COVERAGE_DEBT_ENV, RELEASE_PREFLIGHT_ENV } from "./constants.js";
+import { COVERAGE_DEBT_ENV, RELEASE_CHECK_TIMEOUT_MS, RELEASE_PREFLIGHT_ENV } from "./constants.js";
 import { releaseSubprocessEnv } from "./git.js";
 
 export interface ReleaseCheckEnvOptions {
@@ -62,6 +62,7 @@ export function runReleaseCheck(
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
   const checkSeams: CheckOrchestratorSeams = {
     ...seams.checkSeams,
+    timeoutMs: seams.checkSeams?.timeoutMs ?? RELEASE_CHECK_TIMEOUT_MS,
     env: releaseCheckEnv({
       base: seams.checkSeams?.env ?? process.env,
       allowCoverageDebtIssue,
@@ -70,6 +71,12 @@ export function runReleaseCheck(
   const code = dispatch(projectRoot, projectRoot, checkSeams);
   if (code === 0) {
     return [true, "ran native TypeScript task check"];
+  }
+  if (code === 124) {
+    return [
+      false,
+      `task check timed out after ${RELEASE_CHECK_TIMEOUT_MS / 60_000}m (vitest coverage hang — see docs/RELEASING.md)`,
+    ];
   }
   return [false, `task check failed (exit ${code})`];
 }

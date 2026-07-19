@@ -63,6 +63,7 @@ describe("runPipeline dry-run", () => {
     summary: null,
     allowVbriefDrift: true,
     allowCoverageDebtIssue: null,
+    allowSkipCiIssue: 716,
   };
 
   it("emits DRYRUN steps and returns 0", () => {
@@ -108,6 +109,7 @@ describe("runPipeline dry-run", () => {
       skipBuild: true,
       allowVbriefDrift: true,
       allowCoverageDebtIssue: null,
+      allowSkipCiIssue: null,
     };
     const seams: ReleaseSeams = {
       todayIso: () => "2026-04-28",
@@ -171,6 +173,7 @@ describe("release markdown containment (#2470)", () => {
           summary: null,
           allowVbriefDrift: true,
           allowCoverageDebtIssue: null,
+          allowSkipCiIssue: 716,
         };
         const seams: ReleaseSeams = {
           todayIso: () => "2026-04-28",

@@ -3,6 +3,7 @@ import { computeGateResult } from "./compute.js";
 import { VIA_ERROR, VIA_FALLBACK2 } from "./constants.js";
 import { emitJson, exitCodeFor, gateResultToDict, printHuman } from "./output.js";
 import { emptyVerdict } from "./parse.js";
+import { EMPTY_REVIEW_THREADS_GRAPHQL } from "./test-gh-fixtures.js";
 import type { GateResult, RunGhFn } from "./types.js";
 
 const baseResult: GateResult = {
@@ -121,6 +122,7 @@ describe("compute branches", () => {
   ): RunGhFn {
     const classify = (cmd: readonly string[]): string => {
       const joined = cmd.join(" ");
+      if (joined.includes("graphql")) return "graphql";
       if (joined.includes("headRefOid")) return "head-sha";
       if (joined.includes("/check-runs")) return "check-runs";
       if (joined.includes("/pulls/") && !joined.includes("/comments")) return "pr-view-rest";
@@ -133,20 +135,22 @@ describe("compute branches", () => {
       const label = classify(cmd);
       const resp =
         responses[label] ??
-        (label === "check-runs"
-          ? {
-              returncode: 0,
-              stdout: JSON.stringify({
-                check_runs: [
-                  {
-                    name: "TypeScript (build + lint + test)",
-                    status: "completed",
-                    conclusion: "success",
-                  },
-                ],
-              }),
-            }
-          : { returncode: 1, stderr: label });
+        (label === "graphql"
+          ? { returncode: 0, stdout: EMPTY_REVIEW_THREADS_GRAPHQL }
+          : label === "check-runs"
+            ? {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  check_runs: [
+                    {
+                      name: "TypeScript (build + lint + test)",
+                      status: "completed",
+                      conclusion: "success",
+                    },
+                  ],
+                }),
+              }
+            : { returncode: 1, stderr: label });
       return { returncode: resp.returncode, stdout: resp.stdout ?? "", stderr: resp.stderr ?? "" };
     };
   }

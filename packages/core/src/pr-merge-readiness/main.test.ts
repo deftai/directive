@@ -1,41 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { cmdPrMergeReadiness, parseArgs, run } from "./main.js";
+import { fakeRunGhForMonitor } from "./test-gh-fixtures.js";
 import type { RunGhFn } from "./types.js";
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
 
 function fakeRunGh(): RunGhFn {
-  return (cmd) => {
-    const joined = cmd.join(" ");
-    if (joined.includes("headRefOid")) {
-      return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
-    }
-    if (joined.includes("/comments")) {
-      return {
-        returncode: 0,
-        stdout:
-          "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
-          `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${HEAD})\n`,
-        stderr: "",
-      };
-    }
-    if (joined.includes("/check-runs")) {
-      return {
-        returncode: 0,
-        stdout: JSON.stringify({
-          check_runs: [
-            {
-              name: "TypeScript (build + lint + test)",
-              status: "completed",
-              conclusion: "success",
-            },
-          ],
-        }),
-        stderr: "",
-      };
-    }
-    return { returncode: 1, stdout: "", stderr: "unexpected" };
-  };
+  return fakeRunGhForMonitor({
+    headSha: HEAD,
+    commentsBody:
+      "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
+      `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${HEAD})\n`,
+  });
 }
 
 describe("parseArgs", () => {

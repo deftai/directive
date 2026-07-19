@@ -7,6 +7,7 @@ import {
   EXIT_OK,
   EXIT_VIOLATION,
   RELEASE_ARTIFACTS,
+  RELEASE_CHECK_TIMEOUT_MINUTES,
   TOTAL_STEPS,
   VERIFY_DRAFT_INTERVAL_SECONDS,
   VERIFY_DRAFT_MAX_ATTEMPTS,
@@ -27,6 +28,7 @@ import {
 } from "./native-steps.js";
 import { todayIso } from "./paths.js";
 import { runReleaseCheck } from "./preflight.js";
+import { formatSkipCiIncidentWarning } from "./skip-ci-incident.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPrereleaseTag } from "./version.js";
 
@@ -137,13 +139,20 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   // golden-diff release-parity gate stays green until the oracle is retired.
   label = "Pre-flight CI (task ci:local | fallback task check)";
   if (config.skipCi) {
+    if (config.allowSkipCiIssue !== null && config.allowSkipCiIssue > 0) {
+      process.stderr.write(formatSkipCiIncidentWarning(config.allowSkipCiIssue));
+    }
     emit(5, label, "SKIP (--skip-ci)");
   } else if (config.dryRun) {
     const debtNote =
       config.allowCoverageDebtIssue !== null
         ? `; would pass --allow-coverage-debt=#${config.allowCoverageDebtIssue} to task check`
         : "";
-    emit(5, label, `DRYRUN (would run task ci:local with task check fallback${debtNote})`);
+    emit(
+      5,
+      label,
+      `DRYRUN (would run task ci:local with task check fallback${debtNote}; hard timeout ${RELEASE_CHECK_TIMEOUT_MINUTES}m)`,
+    );
   } else {
     const [ok, reason] = runCiFn(projectRoot, config.allowCoverageDebtIssue);
     if (ok) {
@@ -157,7 +166,11 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         config.allowCoverageDebtIssue === null
           ? "; pass --allow-coverage-debt=#N only after operator review"
           : "";
-      emit(5, label, `FAIL (${reason}${debtHint})`);
+      emit(
+        5,
+        label,
+        `FAIL (${reason}${debtHint}; Step 5 hard timeout is ${RELEASE_CHECK_TIMEOUT_MINUTES}m — cancel hung vitest and see docs/RELEASING.md § Vitest coverage hang recovery)`,
+      );
       return EXIT_VIOLATION;
     }
   }

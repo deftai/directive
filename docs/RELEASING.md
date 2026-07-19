@@ -34,6 +34,19 @@ If the env-var bypass is unavoidable outside the enforce closeout above, scope i
 
 See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard for the full operator workflow.
 
+## Vitest coverage hang recovery (#2652)
+
+Release Step 5 runs `task check` → vitest coverage with a **20-minute hard timeout**. GHA `CI` → “Test with coverage (vitest)” uses the same wall-clock budget (`timeout-minutes: 20` on that step).
+
+**When Step 5 or CI appears stuck**
+
+1. **Do not** leave AFK agents in unbounded `Await` loops on CI — use one-shot probes (`gh run view`, `task pr:watch --one-shot`) or cancel after the timeout.
+2. **Local:** if vitest shows no progress for several minutes, stop the process (`Ctrl+C`). Re-run a bounded probe: `pnpm exec vitest run --coverage packages/core/src/pr-monitor --reporter=verbose` (suspect suites first), then `task check` once the suite completes within the timeout.
+3. **GHA:** cancel the stuck run (`gh run cancel <run_id>`) after the step exceeds ~20 minutes; inspect logs for the last file printed before the stall. Re-run failed jobs only after a fix lands (`gh run rerun <run_id> --failed`).
+4. **Production `--skip-ci` is an incident**, not a normal path: it skips vitest coverage and ships **untested** npm builds. Requires `--allow-skip-ci=#N` citing the tracked issue; Step 5 emits a loud WARN. Use only under operator review; the next patch after a hang fix must cut **without** `--skip-ci`.
+
+Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-link).
+
 ## What the Smoke Tests Verify
 
 Every build is tested on its native platform (including `macos-latest` and `ubuntu-24.04-arm`):

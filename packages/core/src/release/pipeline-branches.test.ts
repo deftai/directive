@@ -43,6 +43,7 @@ const baseConfig: ReleaseConfig = {
   summary: null,
   allowVbriefDrift: true,
   allowCoverageDebtIssue: null,
+  allowSkipCiIssue: 716,
 };
 
 describe("spawnText", () => {

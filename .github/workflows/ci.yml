@@ -59,6 +59,7 @@ jobs:
         run: pnpm run lint
 
       - name: Test with coverage (vitest)
+        timeout-minutes: 20
         run: pnpm run test
 
       - name: Rule-relocation eval:health gate (#2373)

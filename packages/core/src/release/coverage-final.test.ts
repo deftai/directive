@@ -33,6 +33,7 @@ describe("pipeline write path", () => {
     summary: null,
     allowVbriefDrift: true,
     allowCoverageDebtIssue: null,
+    allowSkipCiIssue: 716,
   };
 
   it("writes changelog on happy path", () => {

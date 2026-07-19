@@ -163,6 +163,12 @@ export default defineConfig({
     // Windows git fixture suites (session:start) exceed the 5s default under
     // full-suite parallelism; Linux CI stays on the default. Refs #2467.
     testTimeout: isWin32 ? 20_000 : 5_000,
+    ...(coverageEnabled
+      ? {
+          teardownTimeout: 120_000,
+          hookTimeout: 30_000,
+        }
+      : {}),
     ...(isWin32
       ? {
           maxWorkers: winActiveMaxWorkers,
@@ -192,6 +198,7 @@ export default defineConfig({
         "packages/cli/src/bin.ts",
         // Test-support fixture modules extracted from retired parity harnesses (#2083).
         "packages/cli/src/*-fixtures.ts",
+        "packages/core/src/**/test-gh-fixtures.ts",
       ],
       reporter: ["text", "text-summary"],
       ...(isWin32 && coverageEnabled ? { processingConcurrency: 1 } : {}),

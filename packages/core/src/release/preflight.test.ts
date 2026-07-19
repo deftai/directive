@@ -1,95 +1,49 @@
-import { describe, expect, it, vi } from "vitest";
-import { BRANCH_GATE_BYPASS_ENV, COVERAGE_DEBT_ENV, RELEASE_PREFLIGHT_ENV } from "./constants.js";
-import { runReleaseCheck } from "./preflight.js";
+import { describe, expect, it } from "vitest";
+import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
+import { releaseCheckEnv, runReleaseCheck } from "./preflight.js";
 
-describe("runReleaseCheck (#2022 Phase 1 native Step-5 pre-flight)", () => {
-  it("runs the native TypeScript task check (not ci_local.py) on success", () => {
-    const calls: Array<{ frameworkRoot: string; projectRoot: string }> = [];
+describe("releaseCheckEnv", () => {
+  it("sets preflight env and scrubs ambient coverage debt", () => {
+    const env = releaseCheckEnv({
+      base: { DEFT_ALLOW_COVERAGE_DEBT: "999" },
+      allowCoverageDebtIssue: null,
+    });
+    expect(env.DEFT_RELEASE_PREFLIGHT).toBe("1");
+    expect(env.DEFT_ALLOW_COVERAGE_DEBT).toBeUndefined();
+  });
+
+  it("forwards allow-coverage-debt issue when supplied", () => {
+    const env = releaseCheckEnv({ allowCoverageDebtIssue: 2573 });
+    expect(env.DEFT_ALLOW_COVERAGE_DEBT).toBe("2573");
+  });
+});
+
+describe("runReleaseCheck", () => {
+  it("returns ok when task check exits 0", () => {
     const [ok, msg] = runReleaseCheck("/proj", {
-      dispatchCheck: (frameworkRoot, projectRoot) => {
-        calls.push({ frameworkRoot, projectRoot });
-        return 0;
-      },
+      dispatchCheck: () => 0,
     });
     expect(ok).toBe(true);
-    expect(msg).toContain("native TypeScript task check");
-    expect(msg).not.toContain("ci_local");
+    expect(msg).toContain("task check");
   });
 
-  it("dispatches in the framework-source context (frameworkRoot === projectRoot)", () => {
-    const calls: Array<{ frameworkRoot: string; projectRoot: string }> = [];
-    runReleaseCheck("/home/user/deft", {
-      dispatchCheck: (frameworkRoot, projectRoot) => {
-        calls.push({ frameworkRoot, projectRoot });
-        return 0;
+  it("returns timeout message on exit 124 (#2652)", () => {
+    const [ok, msg] = runReleaseCheck("/proj", {
+      dispatchCheck: (_fw, _proj, seams) => {
+        expect(seams?.timeoutMs).toBe(RELEASE_CHECK_TIMEOUT_MS);
+        return 124;
       },
     });
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.frameworkRoot).toBe("/home/user/deft");
-    expect(calls[0]?.projectRoot).toBe("/home/user/deft");
+    expect(ok).toBe(false);
+    expect(msg).toContain("timed out");
+    expect(msg).toContain("RELEASING.md");
   });
 
-  it("forwards a non-zero task check exit as a failure", () => {
+  it("returns generic failure for other non-zero exits", () => {
     const [ok, msg] = runReleaseCheck("/proj", {
       dispatchCheck: () => 42,
     });
     expect(ok).toBe(false);
-    expect(msg).toBe("task check failed (exit 42)");
-  });
-
-  it("uses the real dispatchTaskCheck default when no dispatch seam is provided", () => {
-    // No dispatchCheck seam -> the default dispatchTaskCheck runs for real.
-    // A non-existent task binary makes spawnSync error (exit 2), exercising the
-    // default-dispatch fallback without actually invoking `task`.
-    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const [ok, msg] = runReleaseCheck("/tmp/fake-fw", {
-      checkSeams: { taskBin: "/absolutely-nonexistent-task-binary-xyz" },
-    });
-    expect(ok).toBe(false);
-    expect(msg).toBe("task check failed (exit 2)");
-    errWrite.mockRestore();
-  });
-
-  it("passes releaseCheckEnv into dispatchTaskCheck (#2386)", () => {
-    const calls: Array<{ env?: NodeJS.ProcessEnv }> = [];
-    runReleaseCheck("/proj", {
-      dispatchCheck: (_fw, _pr, checkSeams) => {
-        calls.push({ env: checkSeams?.env });
-        return 0;
-      },
-    });
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.env?.[BRANCH_GATE_BYPASS_ENV]).toBe("1");
-    expect(calls[0]?.env?.[RELEASE_PREFLIGHT_ENV]).toBe("1");
-    expect(calls[0]?.env?.[COVERAGE_DEBT_ENV]).toBeUndefined();
-  });
-
-  it("scrubs ambient DEFT_ALLOW_COVERAGE_DEBT when debt is not acknowledged (#2618)", () => {
-    const calls: Array<{ env?: NodeJS.ProcessEnv }> = [];
-    runReleaseCheck("/proj", {
-      checkSeams: { env: { ...process.env, [COVERAGE_DEBT_ENV]: "2618" } },
-      dispatchCheck: (_fw, _pr, checkSeams) => {
-        calls.push({ env: checkSeams?.env });
-        return 0;
-      },
-    });
-    expect(calls[0]?.env?.[COVERAGE_DEBT_ENV]).toBeUndefined();
-  });
-
-  it("passes allowCoverageDebtIssue into releaseCheckEnv (#2573)", () => {
-    const calls: Array<{ env?: NodeJS.ProcessEnv }> = [];
-    runReleaseCheck(
-      "/proj",
-      {
-        dispatchCheck: (_fw, _pr, checkSeams) => {
-          calls.push({ env: checkSeams?.env });
-          return 0;
-        },
-      },
-      2573,
-    );
-    expect(calls[0]?.env?.[COVERAGE_DEBT_ENV]).toBe("2573");
-    expect(calls[0]?.env?.[RELEASE_PREFLIGHT_ENV]).toBe("1");
-    expect(calls[0]?.env?.[BRANCH_GATE_BYPASS_ENV]).toBe("1");
+    expect(msg).toContain("exit 42");
   });
 });

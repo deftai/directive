@@ -93,6 +93,7 @@ describe("pipeline branches extra", () => {
       summary: null,
       allowVbriefDrift: false,
       allowCoverageDebtIssue: null,
+      allowSkipCiIssue: null,
     };
     const seams: ReleaseSeams = {
       spawnText: (_c, a) => {
@@ -127,6 +128,7 @@ describe("pipeline branches extra", () => {
       summary: null,
       allowVbriefDrift: true,
       allowCoverageDebtIssue: null,
+      allowSkipCiIssue: null,
     };
     const seams: ReleaseSeams = {
       spawnText: (_c, a) => {

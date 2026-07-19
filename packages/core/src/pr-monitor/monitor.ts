@@ -1,4 +1,4 @@
-import { cadenceIntervalAfterPoll } from "./cadence.js";
+import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 import {
   DEFAULT_CADENCE,
   EXIT_CAP_REACHED,
@@ -168,6 +168,16 @@ export function monitor(
     options.callReadinessFn ?? ((n, r) => callReadiness(n, r, { runGh: options.runGh }));
 
   const startedAt = clockFn.now();
+  const intervalSchedule = cadenceIntervals(cadence);
+  const minCadenceSec =
+    intervalSchedule.length > 0
+      ? Math.min(...intervalSchedule)
+      : cadenceIntervalAfterPoll(1, cadence);
+  // Fail closed when an injected clock never advances (infinite poll loop; #2652).
+  const maxPolls = Math.min(
+    10_000,
+    Math.ceil(capSeconds / Math.max(minCadenceSec, 1)) + intervalSchedule.length + 2,
+  );
   let pollIndex = 0;
   let lastPayload: Record<string, unknown> = {};
   let lastExit = EXIT_CAP_REACHED;
@@ -175,6 +185,9 @@ export function monitor(
 
   while (true) {
     pollIndex += 1;
+    if (pollIndex > maxPolls) {
+      return { exitCode: EXIT_CAP_REACHED, payload: lastPayload, pollCount: pollIndex - 1 };
+    }
     const elapsed = clockFn.now() - startedAt;
     if (elapsed > capSeconds) {
       return { exitCode: EXIT_CAP_REACHED, payload: lastPayload, pollCount: pollIndex - 1 };

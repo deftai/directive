@@ -39,12 +39,20 @@ export const RELEASE_PREFLIGHT_ENV = "DEFT_RELEASE_PREFLIGHT";
 /** Set only by release Step-5 preflight when --allow-coverage-debt=#N is supplied (#2573). */
 export const COVERAGE_DEBT_ENV = "DEFT_ALLOW_COVERAGE_DEBT";
 
+/** Hard wall-clock cap for release Step 5 `task check` / vitest coverage (#2652). */
+export const RELEASE_CHECK_TIMEOUT_MS = 20 * 60 * 1000;
+export const RELEASE_CHECK_TIMEOUT_MINUTES = 20;
+
+/** Vitest coverage step cap in GHA CI (mirrors release Step 5 budget, #2652). */
+export const CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20;
+
 export const PYPROJECT_VERSION_LINE_RE = /version\s*=\s*"[^"]*"/;
 
 /** Byte-identical argparse --help from scripts/release.py (Python 3.12). */
 export const RELEASE_HELP =
   "usage: release [-h] [--dry-run] [--skip-tag] [--skip-release] [--allow-dirty]\n" +
   "               [--allow-vbrief-drift] [--allow-coverage-debt #N]\n" +
+  "               [--allow-skip-ci #N]\n" +
   "               [--skip-ci] [--skip-build] [--no-draft]\n" +
   "               [--repo OWNER/REPO] [--base-branch BRANCH]\n" +
   "               [--project-root PATH] [--summary TEXT]\n" +
@@ -79,11 +87,17 @@ export const RELEASE_HELP =
   "                        flag cites an operator-owned issue number (#2573).\n" +
   "                        PowerShell: use --allow-coverage-debt=N (no bare #)\n" +
   '                        or quote "#N"; unquoted # starts a comment (#2621).\n' +
-  "  --skip-ci             Skip Step 3 (task ci:local / task check fallback).\n" +
+  "  --skip-ci             Skip Step 5 (task ci:local / task check fallback).\n" +
   "                        Used by `task release:e2e` to keep wall-clock\n" +
   "                        manageable inside the auto-created temp repo (CI\n" +
   "                        semantics are covered by the unit-test suite, not the\n" +
-  "                        e2e rehearsal).\n" +
+  "                        e2e rehearsal). Production cuts MUST pass\n" +
+  "                        --allow-skip-ci=#N citing the tracked incident (#2652);\n" +
+  "                        otherwise Step 5 runs with a hard timeout.\n" +
+  "  --allow-skip-ci #N    Acknowledge skipping Step 5 on a production cut (#2652).\n" +
+  "                        Emits a loud WARN — npm ships without vitest coverage.\n" +
+  "                        PowerShell: use --allow-skip-ci=N (no bare #) or quote\n" +
+  '                        "#N"; unquoted # starts a comment (#2621).\n' +
   "  --skip-build          Skip Step 6 (task build). Used by `task release:e2e`\n" +
   "                        to keep wall-clock manageable; build artefacts are not\n" +
   "                        needed for the draft-release verification step.\n" +

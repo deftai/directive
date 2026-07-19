@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.js";
 import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 import { DEFAULT_CADENCE, EXIT_CAP_REACHED, EXIT_CLEAN, EXIT_PR_TERMINAL } from "./constants.js";
 import {
@@ -339,38 +339,7 @@ describe("monitor loop", () => {
 
   it("promptly merges a GitHub-CLEAN PR whose review verdict is absent (#2260)", () => {
     const HEAD = "abc1234567890def1234567890abcdef12345678";
-    const fakeRunGh: RunGhFn = (cmd) => {
-      const joined = cmd.join(" ");
-      if (joined.includes("headRefOid")) {
-        return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
-      }
-      if (joined.includes("/comments")) {
-        return { returncode: 0, stdout: "", stderr: "" };
-      }
-      if (joined.includes("/check-runs")) {
-        return {
-          returncode: 0,
-          stdout: JSON.stringify({
-            check_runs: [{ name: "TS", status: "completed", conclusion: "success" }],
-          }),
-          stderr: "",
-        };
-      }
-      if (joined.includes("/pulls/")) {
-        return {
-          returncode: 0,
-          stdout: JSON.stringify({
-            state: "open",
-            merged: false,
-            mergeable: true,
-            mergeable_state: "clean",
-            head: { sha: HEAD },
-          }),
-          stderr: "",
-        };
-      }
-      return { returncode: 1, stdout: "", stderr: `unexpected: ${joined}` };
-    };
+    const fakeRunGh = fakeRunGhForMonitor({ headSha: HEAD, commentsBody: "" });
 
     const clock = new FakeClock();
     const sleeps: number[] = [];
@@ -496,5 +465,22 @@ describe("monitor loop", () => {
     expect(result.pollCount).toBe(5);
     expect(emitted).toContain("waiting");
     expect(emitted).toContain("poll #5");
+  });
+
+  it("fails closed via maxPolls when clock never advances (#2652)", () => {
+    const clock = new FakeClock();
+    const result = monitor(2652, "deftai/directive", {
+      capMinutes: 120,
+      sleepFn: () => {},
+      clockFn: clock,
+      callReadinessFn: () => ({
+        exitCode: 1,
+        payload: { via: "primary", merge_ready: false, failures: ["blocked"] },
+        rawStderr: "",
+      }),
+    });
+    expect(result.exitCode).toBe(EXIT_CAP_REACHED);
+    expect(result.pollCount).toBeGreaterThan(0);
+    expect(result.pollCount).toBeLessThan(500);
   });
 });

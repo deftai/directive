@@ -13,6 +13,7 @@ import {
 import { run } from "./main.js";
 import { printHuman } from "./output.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
+import { withGraphqlInlineStub } from "./test-gh-fixtures.js";
 import type { RunGhFn } from "./types.js";
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
@@ -203,7 +204,7 @@ describe("coverage boost branches", () => {
 
   it("run prints human output when not json", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    const runGh: RunGhFn = (cmd) => {
+    const runGh: RunGhFn = withGraphqlInlineStub((cmd) => {
       const j = cmd.join(" ");
       if (j.includes("headRefOid")) return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
       if (j.includes("/comments")) {
@@ -231,7 +232,7 @@ describe("coverage boost branches", () => {
         };
       }
       return { returncode: 1, stdout: "", stderr: "" };
-    };
+    });
     expect(run(["5", "--repo", "deftai/directive"], { runGh })).toBe(0);
     expect(String(stdout.mock.calls[0]?.[0])).toContain("MERGE-READY");
     stdout.mockRestore();
@@ -255,7 +256,7 @@ describe("coverage boost branches", () => {
   });
 
   it("computeGateResult returns primary path when gh succeeds", () => {
-    const runGh: RunGhFn = (cmd) => {
+    const runGh: RunGhFn = withGraphqlInlineStub((cmd) => {
       const j = cmd.join(" ");
       if (j.includes("headRefOid")) {
         return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
@@ -285,20 +286,20 @@ describe("coverage boost branches", () => {
         };
       }
       return { returncode: 1, stdout: "", stderr: "" };
-    };
+    });
     const result = computeGateResult(5, "deftai/directive", runGh);
     expect(result.via).toBe("primary");
     expect(result.failures).toEqual([]);
   });
 
   it("computeGateResult uses fallback when comments fetch fails", () => {
-    const runGh: RunGhFn = (cmd) => {
+    const runGh: RunGhFn = withGraphqlInlineStub((cmd) => {
       const j = cmd.join(" ");
       if (j.includes("headRefOid")) {
         return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
       }
       return { returncode: 1, stdout: "", stderr: "comments failed" };
-    };
+    });
     const result = computeGateResult(6, "deftai/directive", runGh);
     expect(result.via).not.toBe("primary");
   });
@@ -383,7 +384,7 @@ describe("coverage boost branches", () => {
     const cleanBody =
       "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
       `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${HEAD})\n`;
-    const runGh: RunGhFn = (cmd) => {
+    const runGh: RunGhFn = withGraphqlInlineStub((cmd) => {
       const j = cmd.join(" ");
       if (j.includes("headRefOid")) {
         return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
@@ -421,7 +422,7 @@ describe("coverage boost branches", () => {
         };
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
-    };
+    });
     const result = computeGateResult(10, "deftai/directive", runGh);
     expect(result.via).toBe("fallback1");
     expect(result.failures).toEqual([]);

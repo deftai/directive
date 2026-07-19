@@ -12,6 +12,7 @@ describe("parseReleaseFlags", () => {
       "--allow-dirty",
       "--allow-vbrief-drift",
       "--skip-ci",
+      "--allow-skip-ci=716",
       "--skip-build",
       "--no-draft",
       "--repo",
@@ -30,6 +31,7 @@ describe("parseReleaseFlags", () => {
     expect(flags.allowDirty).toBe(true);
     expect(flags.allowVbriefDrift).toBe(true);
     expect(flags.skipCi).toBe(true);
+    expect(flags.allowSkipCiIssue).toBe(716);
     expect(flags.skipBuild).toBe(true);
     expect(flags.draft).toBe(false);
     expect(flags.repo).toBe("org/repo");
@@ -71,6 +73,13 @@ describe("parseReleaseFlags", () => {
     const flags = parseReleaseFlags(["0.21.0", "--allow-coverage-debt=#"]);
     expect(flags.allowCoverageDebtIssue).toBeNull();
     expect(flags.unknown.some((u) => u.includes("allow-coverage-debt"))).toBe(true);
+  });
+
+  it("records malformed --allow-skip-ci values as unknown (#2652)", () => {
+    const flags = parseReleaseFlags(["0.21.0", "--allow-skip-ci=#"]);
+    expect(flags.allowSkipCiIssue).toBeNull();
+    expect(flags.unknown.some((u) => u.includes("allow-skip-ci"))).toBe(true);
+    expect(parseReleaseFlags(["0.21.0", "--allow-skip-ci=0"]).allowSkipCiIssue).toBeNull();
   });
 
   it("sets help flag", () => {

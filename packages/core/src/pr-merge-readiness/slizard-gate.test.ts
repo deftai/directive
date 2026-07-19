@@ -7,6 +7,7 @@ import {
   parseSlizardVerdict,
   SLIZARD_CHECK_NAME,
 } from "./slizard-gate.js";
+import { withGraphqlInlineStub } from "./test-gh-fixtures.js";
 import type { RunGhFn } from "./types.js";
 
 const BLOCKING_SUMMARY = [
@@ -115,7 +116,7 @@ describe("evaluateSlizardGate", () => {
 const HEAD = "abc1234567890def1234567890abcdef12345678";
 
 function fakeRunGh(slizardSummary: string, slizardConclusion = "failure"): RunGhFn {
-  return (cmd) => {
+  return withGraphqlInlineStub((cmd) => {
     const joined = cmd.join(" ");
     if (joined.includes("headRefOid")) {
       return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
@@ -151,7 +152,7 @@ function fakeRunGh(slizardSummary: string, slizardConclusion = "failure"): RunGh
       };
     }
     return { returncode: 1, stdout: "", stderr: "unexpected" };
-  };
+  });
 }
 
 describe("computeGateResult SLizard integration", () => {
