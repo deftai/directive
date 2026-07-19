@@ -61,15 +61,13 @@ function firstString(...values: unknown[]): string | null {
   return null;
 }
 
-function fieldPresent(input: Record<string, unknown>, ...keys: readonly string[]): boolean {
-  return keys.some((key) => key in input);
+function fieldPresent(input: Record<string, unknown>, key: string): boolean {
+  return key in input;
 }
 
-function fieldString(input: Record<string, unknown>, ...keys: readonly string[]): string | null {
-  for (const key of keys) {
-    const value = input[key];
-    if (typeof value === "string" && value.trim().length > 0) return value.trim();
-  }
+function fieldString(input: Record<string, unknown>, key: string): string | null {
+  const value = input[key];
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
   return null;
 }
 
@@ -84,15 +82,28 @@ function toolInputRecord(payload: Record<string, unknown>): Record<string, unkno
 function inferCursorDirectWriteToolName(payload: Record<string, unknown>): string | null {
   const toolInput = toolInputRecord(payload);
   if (toolInput !== null) {
-    if (fieldPresent(toolInput, "new_string", "newString", "old_string", "oldString")) {
+    if (
+      fieldPresent(toolInput, "new_string") ||
+      fieldPresent(toolInput, "newString") ||
+      fieldPresent(toolInput, "old_string") ||
+      fieldPresent(toolInput, "oldString")
+    ) {
       return "StrReplace";
     }
 
-    if (fieldString(toolInput, "contents", "content", "text") !== null) {
+    if (
+      fieldString(toolInput, "contents") !== null ||
+      fieldString(toolInput, "content") !== null ||
+      fieldString(toolInput, "text") !== null
+    ) {
       return "Write";
     }
 
-    if (fieldString(toolInput, "patch", "unified_diff", "diff") !== null) {
+    if (
+      fieldString(toolInput, "patch") !== null ||
+      fieldString(toolInput, "unified_diff") !== null ||
+      fieldString(toolInput, "diff") !== null
+    ) {
       return "ApplyPatch";
     }
 
@@ -111,7 +122,10 @@ function inferCursorDirectWriteToolName(payload: Record<string, unknown>): strin
 export function hookToolName(payload: unknown, host?: HookHost): string | null {
   const input = record(payload);
   if (input === null) return null;
-  const direct = firstString(input.tool_name, input.toolName, input.tool);
+  const direct =
+    fieldString(input, "tool_name") ??
+    fieldString(input, "toolName") ??
+    fieldString(input, "tool");
   if (direct !== null) return direct;
   if (host === "cursor") return inferCursorDirectWriteToolName(input);
   return null;
