@@ -82,6 +82,15 @@ export function demoteOne(
     };
   }
 
+  try {
+    assertWriteTargetSafe(projectRoot, resolved);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      return { ok: false, message: err.message, auditEntry: null };
+    }
+    throw err;
+  }
+
   let data: Record<string, unknown>;
   try {
     data = JSON.parse(readFileSync(resolved, "utf8")) as Record<string, unknown>;
@@ -108,15 +117,6 @@ export function demoteOne(
   const priorPromote = latestForPath(canonicalPath, "promote", logPath);
   const originalPromotionDecisionId =
     priorPromote !== null ? (priorPromote.decision_id as string | null) : null;
-
-  try {
-    assertWriteTargetSafe(projectRoot, resolved);
-  } catch (err) {
-    if (err instanceof ProjectionContainmentError) {
-      return { ok: false, message: err.message, auditEntry: null };
-    }
-    throw err;
-  }
 
   const timestamp = utcNowIso(now);
   planObj.status = TARGET_STATUS;
