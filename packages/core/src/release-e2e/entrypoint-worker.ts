@@ -16,6 +16,7 @@ export interface WorkerEntrypointResult {
 
 export function runWorkerEntrypoint(data: WorkerEntrypointData): WorkerEntrypointResult {
   process.env.DEFT_PROJECT_ROOT = data.cloneDir;
+  process.env.DEFT_RELEASE_E2E = "1";
 
   const stdoutChunks: string[] = [];
   const stderrChunks: string[] = [];

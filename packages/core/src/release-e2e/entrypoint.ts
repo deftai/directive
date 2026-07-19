@@ -3,6 +3,7 @@ import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 import { cmdRelease } from "../release/main.js";
+import { RELEASE_E2E_ENV } from "../release/skip-ci-incident.js";
 import {
   ENTRYPOINT_TIMEOUT_EXIT_CODE,
   EXIT_VIOLATION,
@@ -13,6 +14,7 @@ import { rollbackMain } from "./rollback-bridge.js";
 import type { E2ESeams, EntrypointFn } from "./types.js";
 
 let activeRestoreOwner: symbol | null = null;
+let priorReleaseE2eEnv: string | undefined;
 
 /** @internal Test hook for restore-owner branch coverage. */
 export function restoreProcessStateForTest(
@@ -38,10 +40,18 @@ function restoreProcessState(
   } else {
     process.env.DEFT_PROJECT_ROOT = oldProjectRoot;
   }
+  if (priorReleaseE2eEnv === undefined) {
+    delete process.env[RELEASE_E2E_ENV];
+  } else {
+    process.env[RELEASE_E2E_ENV] = priorReleaseE2eEnv;
+  }
+  priorReleaseE2eEnv = undefined;
 }
 
 function activateProcessState(restoreOwner: symbol, cloneDir: string): boolean {
   activeRestoreOwner = restoreOwner;
+  priorReleaseE2eEnv = process.env[RELEASE_E2E_ENV];
+  process.env[RELEASE_E2E_ENV] = "1";
   process.env.DEFT_PROJECT_ROOT = cloneDir;
   mkdirSync(cloneDir, { recursive: true });
   process.chdir(cloneDir);
@@ -284,15 +294,9 @@ export function dispatchTaskRelease(
   repo: string,
   seams: E2ESeams = {},
 ): [boolean, string] {
-  const argv = [
-    version,
-    "--repo",
-    repo,
-    "--skip-ci",
-    "--skip-build",
-    "--allow-vbrief-drift",
-    "--allow-skip-ci=716",
-  ];
+  // Rehearsal --skip-ci is permitted via DEFT_RELEASE_E2E (set in activateProcessState /
+  // worker), not a fake production --allow-skip-ci citation (#2652 Greptile).
+  const argv = [version, "--repo", repo, "--skip-ci", "--skip-build", "--allow-vbrief-drift"];
   if (seams.releaseEntrypoint) {
     const code = seams.releaseEntrypoint(argv);
     if (code !== 0) {

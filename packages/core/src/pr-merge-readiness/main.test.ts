@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { cmdPrMergeReadiness, parseArgs, run } from "./main.js";
-import { fakeRunGhForMonitor } from "./test-gh-fixtures.js";
+import { fakeRunGhForMonitor } from "./test-gh-fixtures.test.js";
 import type { RunGhFn } from "./types.js";
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";

@@ -1,6 +1,6 @@
 import { parseCoverageDebtIssueNumber } from "../vitest-runner/coverage-debt.js";
 import { DEFAULT_BASE_BRANCH, RELEASE_HELP } from "./constants.js";
-import { parseSkipCiIncidentIssueNumber } from "./skip-ci-incident.js";
+import { parseSkipCiIncidentArgv } from "./skip-ci-incident.js";
 import type { ReleaseFlags } from "./types.js";
 
 export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
@@ -11,7 +11,9 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
   let allowDirty = false;
   let allowVbriefDrift = false;
   let allowCoverageDebtIssue: number | null = null;
-  let allowSkipCiIssue: number | null = null;
+  const skipCiIncident = parseSkipCiIncidentArgv(args);
+  const allowSkipCiIssue: number | null =
+    skipCiIncident.kind === "valid" ? skipCiIncident.issue : null;
   let skipCi = false;
   let skipBuild = false;
   let draft = true;
@@ -67,24 +69,11 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
     } else if (token === "--skip-ci") {
       skipCi = true;
     } else if (token === "--allow-skip-ci") {
+      // Value consumed by parseSkipCiIncidentArgv above; advance past it here.
       const value = takeValue(token, i);
-      if (value !== null) {
-        const issue = parseSkipCiIncidentIssueNumber(value);
-        if (issue === null) {
-          unknown.push(`${token} (malformed issue number)`);
-        } else {
-          allowSkipCiIssue = issue;
-        }
-        i += 1;
-      }
+      if (value !== null) i += 1;
     } else if (token.startsWith("--allow-skip-ci=")) {
-      const value = token.slice("--allow-skip-ci=".length);
-      const issue = parseSkipCiIncidentIssueNumber(value);
-      if (issue === null) {
-        unknown.push("--allow-skip-ci= (malformed issue number)");
-      } else {
-        allowSkipCiIssue = issue;
-      }
+      // Value consumed by parseSkipCiIncidentArgv above.
     } else if (token === "--skip-build") {
       skipBuild = true;
     } else if (token === "--no-draft") {
@@ -125,6 +114,10 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
       unknown.push(token);
     }
     i += 1;
+  }
+
+  if (skipCiIncident.kind === "invalid") {
+    unknown.push(`--allow-skip-ci (${skipCiIncident.reason})`);
   }
 
   return {

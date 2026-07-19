@@ -150,6 +150,15 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
   const subcommand = routeSubcommandKey(ns, verb, rest);
   if (subcommand !== null) return subcommand;
 
+  // PR stems (watch → pr-watch) must win over colon aliases like pr:watch (#2652),
+  // otherwise `directive pr watch` would dispatch the colon token and break PR_VERB_MAP.
+  if (ns === "pr") {
+    const prStem = PR_VERB_MAP[verb];
+    if (prStem !== undefined) {
+      return { kind: "dispatch", argv: [prStem, ...rest] };
+    }
+  }
+
   if (resolveCanonicalVerb(colonKey) !== null) {
     return { kind: "dispatch", argv: [colonKey, ...rest] };
   }
@@ -169,13 +178,6 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
     if (verb === "demote") return { kind: "dispatch", argv: ["scope-demote", ...rest] };
     if (verb === "decompose") return { kind: "dispatch", argv: ["scope-decompose", ...rest] };
     if (verb === "undo") return { kind: "dispatch", argv: ["scope-undo", ...rest] };
-  }
-
-  if (ns === "pr") {
-    const prStem = PR_VERB_MAP[verb];
-    if (prStem !== undefined) {
-      return { kind: "dispatch", argv: [prStem, ...rest] };
-    }
   }
 
   if (ns === "verify") {

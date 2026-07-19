@@ -3,7 +3,7 @@ import { computeGateResult } from "./compute.js";
 import { VIA_ERROR, VIA_FALLBACK2 } from "./constants.js";
 import { emitJson, exitCodeFor, gateResultToDict, printHuman } from "./output.js";
 import { emptyVerdict } from "./parse.js";
-import { EMPTY_REVIEW_THREADS_GRAPHQL } from "./test-gh-fixtures.js";
+import { EMPTY_REVIEW_THREADS_GRAPHQL } from "./test-gh-fixtures.test.js";
 import type { GateResult, RunGhFn } from "./types.js";
 
 const baseResult: GateResult = {

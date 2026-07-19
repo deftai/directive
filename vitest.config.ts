@@ -198,7 +198,7 @@ export default defineConfig({
         "packages/cli/src/bin.ts",
         // Test-support fixture modules extracted from retired parity harnesses (#2083).
         "packages/cli/src/*-fixtures.ts",
-        "packages/core/src/**/test-gh-fixtures.ts",
+        "packages/core/src/**/test-gh-fixtures.test.ts",
       ],
       reporter: ["text", "text-summary"],
       ...(isWin32 && coverageEnabled ? { processingConcurrency: 1 } : {}),

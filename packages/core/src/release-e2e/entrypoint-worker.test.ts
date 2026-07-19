@@ -26,7 +26,6 @@ describe("runWorkerEntrypoint", () => {
         "0.0.1",
         "--dry-run",
         "--skip-ci",
-        "--allow-skip-ci=716",
         "--skip-build",
         "--repo",
         "deftai/x",

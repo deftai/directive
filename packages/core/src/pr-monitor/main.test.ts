@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.js";
+import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.test.js";
 import { EXIT_CLEAN, EXIT_CONFIG_ERROR } from "./constants.js";
 import { cmdPrMonitor, parseMonitorArgs, runMonitor } from "./main.js";
 import { monitor } from "./monitor.js";

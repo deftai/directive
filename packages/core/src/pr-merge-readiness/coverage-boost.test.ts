@@ -13,7 +13,7 @@ import {
 import { run } from "./main.js";
 import { printHuman } from "./output.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
-import { withGraphqlInlineStub } from "./test-gh-fixtures.js";
+import { withGraphqlInlineStub } from "./test-gh-fixtures.test.js";
 import type { RunGhFn } from "./types.js";
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
