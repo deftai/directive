@@ -26,6 +26,35 @@ export const VERDICT_CONFIG = "CONFIG";
 
 export const DEFAULT_MAX_WAIT_MINUTES = 30;
 export const DEFAULT_POLL_SECONDS = 90;
+
+/**
+ * Usage for `task pr:watch -- --help` / `-h` (#2652 / #1056).
+ * Canonical surface is the Task verb; engine stem is `pr-watch`.
+ */
+export const WATCH_HELP =
+  "usage: task pr:watch -- <pr_number> [options]\n" +
+  "\n" +
+  "Blocking poll of a PR Greptile/SLizard review to a terminal three-state\n" +
+  "verdict (#1056). The invocation IS the wait — an orchestrator that promises\n" +
+  "to poll cannot silently forget. Canonical: `task pr:watch -- <N>`.\n" +
+  "Engine / CLI stem: `pr-watch` (also `directive pr watch` / `directive pr:watch`).\n" +
+  "\n" +
+  "positional arguments:\n" +
+  "  pr_number             GitHub pull request number (required unless --help)\n" +
+  "\n" +
+  "options:\n" +
+  "  -h, --help            Show this help and exit 0\n" +
+  "  --one-shot            Single probe (PENDING with no terminal verdict → exit 2)\n" +
+  "  --json                Emit the AC-4 JSON shape on stdout\n" +
+  "  --max-wait-minutes N  Cap for the blocking poll (default: 30)\n" +
+  "  --poll-seconds N      Seconds between probes (default: 90)\n" +
+  "  --repo OWNER/REPO     Override repository (default: GH_REPO / origin)\n" +
+  "  --project-root PATH   Chdir before probing (optional)\n" +
+  "\n" +
+  "exit codes:\n" +
+  "  0  CLEAN       SHA-matched review, confidence > 3, no P0/P1, CI green\n" +
+  "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
+  "  2  ERRORED | STALL | TIMEOUT | config / usage error\n";
 /**
  * Consecutive polls with a review PRESENT but stuck on a stale (non-HEAD)
  * commit before the loop surfaces STALL instead of waiting the full cap. Keeps

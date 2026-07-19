@@ -315,6 +315,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "prd:render": "prd-render",
   "project:render": "project-render",
   "project:export-spec": "export-spec",
+  "pr:watch": "pr-watch",
   doctor: "doctor",
   "eval:health": "eval-health",
   "feedback:file": "feedback-file",
@@ -2947,6 +2948,12 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   const canonical = resolveCanonicalVerb(verb ?? "");
   if (canonical === null) {
     io.writeErr(`directive: unknown verb '${verb}'\n`);
+    if (verb?.includes(":")) {
+      io.writeErr(
+        `hint: prefer \`task ${verb}\` (Taskfile) or the hyphen stem ` +
+          `(e.g. pr:watch → pr-watch / \`task pr:watch\`)\n`,
+      );
+    }
     return 1;
   }
 

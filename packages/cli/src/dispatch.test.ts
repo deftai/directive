@@ -342,6 +342,23 @@ describe("dispatch", () => {
     expect(err.join("")).toBe("directive: unknown verb 'not-a-real-verb'\n");
   });
 
+  it("hints task/hyphen stem when an unknown colon verb is used (#2652)", async () => {
+    const err: string[] = [];
+    const code = await dispatch(["notreal:verb"], {
+      writeOut: () => {},
+      writeErr: (text) => {
+        err.push(text);
+      },
+    });
+    expect(code).toBe(1);
+    expect(err.join("")).toContain("unknown verb 'notreal:verb'");
+    expect(err.join("")).toContain("task notreal:verb");
+  });
+
+  it("resolves pr:watch colon alias to pr-watch (#2652)", () => {
+    expect(resolveCanonicalVerb("pr:watch")).toBe("pr-watch");
+  });
+
   it("routes a known verb through its handler and propagates the exit code", async () => {
     const handler = vi.fn(async (argv: string[]) => {
       expect(argv).toEqual(["--quiet", "--project-root", "/tmp/x"]);

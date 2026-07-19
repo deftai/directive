@@ -4,7 +4,9 @@ import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
+  EXIT_CLEAN,
   EXIT_TERMINAL_ERROR,
+  WATCH_HELP,
 } from "./constants.js";
 import type { WatchOptions, WatchResult } from "./types.js";
 import { watch } from "./watch.js";
@@ -17,6 +19,7 @@ export interface ParsedWatchArgs {
   readonly oneShot: boolean;
   readonly emitJson: boolean;
   readonly projectRoot: string | null;
+  readonly help: boolean;
   readonly error?: string;
 }
 
@@ -33,6 +36,7 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     oneShot: false,
     emitJson: false,
     projectRoot: null,
+    help: false,
   };
   let prNumber: number | null = null;
   let repo: string | null = null;
@@ -41,6 +45,7 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
   let oneShot = false;
   let emitJson = false;
   let projectRoot: string | null = null;
+  let help = false;
 
   const takePositive = (
     label: string,
@@ -58,7 +63,9 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--json") {
+    if (arg === "--help" || arg === "-h") {
+      help = true;
+    } else if (arg === "--json") {
       emitJson = true;
     } else if (arg === "--one-shot") {
       oneShot = true;
@@ -111,10 +118,27 @@ export function parseWatchArgs(argv: readonly string[]): ParsedWatchArgs {
     }
   }
 
+  if (help) {
+    return { prNumber, repo, maxWaitMinutes, pollSeconds, oneShot, emitJson, projectRoot, help };
+  }
   if (prNumber === null) {
     return fail(acc, "the following arguments are required: pr_number");
   }
-  return { prNumber, repo, maxWaitMinutes, pollSeconds, oneShot, emitJson, projectRoot };
+  return {
+    prNumber,
+    repo,
+    maxWaitMinutes,
+    pollSeconds,
+    oneShot,
+    emitJson,
+    projectRoot,
+    help,
+  };
+}
+
+/** Canonical help text for `task pr:watch -- --help` (#2652). */
+export function formatWatchHelp(): string {
+  return WATCH_HELP;
 }
 
 /** Match Python json.dumps(..., indent=2) default ensure_ascii=True. */
@@ -178,8 +202,13 @@ export interface RunWatchOptions extends WatchOptions {}
 
 export function runWatch(argv: readonly string[], options: RunWatchOptions = {}): number {
   const args = parseWatchArgs(argv);
+  if (args.help) {
+    process.stdout.write(formatWatchHelp());
+    return EXIT_CLEAN;
+  }
   if (args.error !== undefined) {
     process.stderr.write(`pr_watch: ${args.error}\n`);
+    process.stderr.write(`Try: task pr:watch -- --help\n`);
     return EXIT_TERMINAL_ERROR;
   }
 

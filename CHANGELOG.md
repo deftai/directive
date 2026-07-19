@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Vitest coverage / release Step 5 no longer hangs indefinitely (#2652).** Fixed an infinite `pr-monitor` poll loop when Greptile inline GraphQL was unmocked in unit tests; added Step 5 and GHA vitest hard timeouts (20m), production `--skip-ci` incident citation (`--allow-skip-ci=#N`), and recovery docs. Closes #2652.
+- **Vitest coverage / release Step 5 no longer hangs indefinitely (#2652).** Fixed an infinite `pr-monitor` poll loop when Greptile inline GraphQL was unmocked in unit tests; added Step 5 and GHA vitest hard timeouts (20m), production `--skip-ci` incident citation (`--allow-skip-ci=#N`), and recovery docs. Also: `task pr:watch -- --help` / `-h` print usage (flags + exits 0/1/2); `directive pr:watch` alias; swarm skill aligned to the #1056 three-state contract. Closes #2652.
 
 ### Removed
 

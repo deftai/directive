@@ -2,6 +2,7 @@ export * from "./constants.js";
 export {
   cmdPrWatch,
   emitWatchJson,
+  formatWatchHelp,
   type ParsedWatchArgs,
   parseWatchArgs,
   printWatchHuman,

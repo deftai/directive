@@ -5,8 +5,15 @@ import {
   EXIT_CLEAN,
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
+  WATCH_HELP,
 } from "./constants.js";
-import { emitWatchJson, parseWatchArgs, runWatch, watchResultToJson } from "./main.js";
+import {
+  emitWatchJson,
+  formatWatchHelp,
+  parseWatchArgs,
+  runWatch,
+  watchResultToJson,
+} from "./main.js";
 import type { WatchProbe, WatchResult } from "./types.js";
 
 const HEAD = "abcdef1234567890abcdef1234567890abcdef12";
@@ -79,6 +86,30 @@ describe("parseWatchArgs", () => {
 
   it("rejects unknown flags", () => {
     expect(parseWatchArgs(["1", "--nope"]).error).toContain("unrecognized");
+  });
+
+  it("accepts --help / -h without a PR number (#2652)", () => {
+    expect(parseWatchArgs(["--help"]).help).toBe(true);
+    expect(parseWatchArgs(["--help"]).error).toBeUndefined();
+    expect(parseWatchArgs(["-h"]).help).toBe(true);
+    expect(parseWatchArgs(["1056", "--help"]).help).toBe(true);
+  });
+});
+
+describe("formatWatchHelp (#2652)", () => {
+  it("names task pr:watch as canonical and documents exits 0/1/2", () => {
+    const help = formatWatchHelp();
+    expect(help).toBe(WATCH_HELP);
+    expect(help).toContain("task pr:watch -- <pr_number>");
+    expect(help).toContain("--one-shot");
+    expect(help).toContain("--json");
+    expect(help).toContain("--max-wait-minutes");
+    expect(help).toContain("--poll-seconds");
+    expect(help).toContain("--repo");
+    expect(help).toContain("--project-root");
+    expect(help).toContain("0  CLEAN");
+    expect(help).toContain("1  NEW_P0_P1");
+    expect(help).toContain("2  ERRORED");
   });
 });
 
@@ -168,6 +199,20 @@ describe("runWatch (exit-code passthrough + JSON)", () => {
     const code = runWatch(["1056", "--one-shot", "--repo", "deftai/directive"], { probeFn });
     expect(code).toBe(EXIT_NEW_P0_P1);
     expect(stdout).toContain("NEW_P0_P1");
+  });
+
+  it("returns exit 0 and prints usage for --help (#2652)", () => {
+    spyStdout();
+    const code = runWatch(["--help"], {});
+    expect(code).toBe(EXIT_CLEAN);
+    expect(stdout).toContain("task pr:watch -- <pr_number>");
+    expect(stdout).toContain("exit codes:");
+  });
+
+  it("returns exit 0 for -h (#2652)", () => {
+    spyStdout();
+    expect(runWatch(["-h"], {})).toBe(EXIT_CLEAN);
+    expect(stdout).toContain("task pr:watch");
   });
 
   it("returns exit 2 on a parse error", () => {
