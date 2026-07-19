@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`lifecycle:event` approval recorder on the consumer Taskfile/CLI surface (#2631).** Review-cycle merge-gate approval now records `plan:approved` via `task lifecycle:event` / `deft lifecycle:event`, with idempotent dedupe for repeated approvals on the same PR and HEAD SHA. Closes #2631.
+
 ### Changed
 
 ### Fixed

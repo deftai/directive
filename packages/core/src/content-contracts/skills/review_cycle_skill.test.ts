@@ -183,4 +183,14 @@ describe("test_review_cycle_skill", () => {
   it("phase2_step1_no_cp1252_mojibake", () => {
     expect(phase2Step1Section()).not.toContain("\u0393\u00E8\u00F9");
   });
+
+  it("plan_approved_lifecycle_event_command_documented", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("task lifecycle:event");
+    expect(text).toContain("emit plan:approved");
+    expect(text).toContain("--plan-ref");
+    expect(text).toContain("--approver");
+    expect(text).toContain("--approval-phrase");
+    expect(text).toContain("--pr-number");
+  });
 });

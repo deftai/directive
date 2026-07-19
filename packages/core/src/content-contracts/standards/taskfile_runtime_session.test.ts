@@ -27,6 +27,8 @@ const RUNTIME_SESSION_TASKFILES: Readonly<
 const RUNTIME_VERB_TOKENS = [
   "session:start",
   "session-start",
+  "lifecycle:event",
+  "lifecycle-event",
   "verify:session-ritual",
   "verify-session-ritual",
   "verify:tools",

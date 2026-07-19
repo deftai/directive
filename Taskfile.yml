@@ -152,6 +152,9 @@ includes:
   session:
     taskfile: ./tasks/session.yml
     optional: true
+  lifecycle:
+    taskfile: ./tasks/lifecycle.yml
+    optional: true
   plan-sequence:
     taskfile: ./tasks/plan-sequence.yml
     optional: true

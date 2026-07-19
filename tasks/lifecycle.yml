@@ -1,0 +1,22 @@
+version: '3'
+
+# tasks/lifecycle.yml -- behavioral framework event recorder (#2631 / #635).
+#
+# Review-cycle merge-gate approval uses `task lifecycle:event -- emit plan:approved ...`.
+# Per conventions/task-caching.md: no sources/generates because the task forwards
+# user-facing flags via CLI_ARGS.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  event:
+    desc: "Emit behavioral framework events (review-cycle plan:approved recorder). -- task lifecycle:event -- emit plan:approved --plan-ref <url> --approver <login> --approval-phrase <yes|confirmed|approve> --pr-number <N> [--head-sha <sha>]"
+    dir: '{{.USER_WORKING_DIR}}'
+    # Runtime dispatch: no engine:_ts-build / pnpm build (#2181 / consumer npm deposit).
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'lifecycle:event {{.CLI_ARGS}}'
