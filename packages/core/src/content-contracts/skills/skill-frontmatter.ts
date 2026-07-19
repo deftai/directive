@@ -40,8 +40,12 @@ function parseOsArray(fm: string): string[] | null {
   return [...body.matchAll(OS_TOKEN)].map((m) => m[1] ?? "");
 }
 
-function pathHasExcludedPart(filePath: string): boolean {
-  const parts = filePath.split(/[/\\]/);
+function pathHasExcludedPart(filePath: string, repoRoot: string = REPO_ROOT): boolean {
+  const rel = relative(repoRoot, filePath).replace(/\\/g, "/");
+  if (rel.startsWith("..") || rel.length === 0) {
+    return true;
+  }
+  const parts = rel.split("/");
   return parts.some((part) => EXCLUDED_PARTS.has(part));
 }
 

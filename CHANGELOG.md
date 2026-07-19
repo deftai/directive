@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **deft-core-guard allowlists installer-deposited `.prettierignore` (#2629).** Framework-only deposit PRs that include the #2534 Prettier gate exclusion no longer fail `no-mixed-core-and-app`. Closes #2629.
 - **issue:sync-from-xbrief cross-repo confused deputy (#2633).** `task issue:sync-from-xbrief` now gates comment POSTs with `isRepoMutationAllowed` (same cross-repo mutation gate as #2601 reconcile writers); cross-repo targets are refused unless `--allow-cross-repo` or an allowlist entry permits them. Closes #2633.
 - **Hook write-gate hints normalize Windows-style proposed paths on Linux CI (#2625).** Backslash `xbrief\proposed\...` targets now receive the lifecycle-artifact planning hint instead of the generic recovery message.
+- **Branch coverage meets the 85% floor on native Windows without coverage-debt (#2630).** Targeted tests for `capacity/show`, `story-quality`, and doctor-state branches lift win32 branch coverage above the release gate; `vitest.config.ts` documents that win32 runner caps affect timing only — the branch threshold matches Linux CI. Skill discovery uses repo-relative exclusion so `.deft-scratch` worktrees still find `content/skills`. Closes #2630.
 
 ### Removed
 

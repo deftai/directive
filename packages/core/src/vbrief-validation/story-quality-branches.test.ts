@@ -139,4 +139,45 @@ describe("story-quality branch matrix", () => {
       }).some((i) => i.includes("file_scope_confidence above low")),
     ).toBe(true);
   });
+
+  it("covers userStory, acceptance count, and non-concurrent readiness skips", () => {
+    expect(
+      storyQualityIssues({ ...BASE, userStory: "Bad format" }).some((i) =>
+        i.includes("UserStory must match"),
+      ),
+    ).toBe(true);
+    expect(
+      storyQualityIssues({
+        ...BASE,
+        acceptanceTexts: [BASE.acceptanceTexts[0] ?? ""],
+        acceptanceCountJustification: "",
+      }),
+    ).toContain("2-5 acceptance criteria required unless justified");
+    expect(
+      storyQualityIssues({
+        ...BASE,
+        concurrentReady: false,
+        swarm: { ...BASE.swarm, parallel_safe: false, file_scope_confidence: "low" },
+      }).some((i) => i.includes("parallel_safe=true")),
+    ).toBe(false);
+  });
+
+  it("covers nested helpers and missing swarm fields", () => {
+    expect(asStrList(null)).toEqual([]);
+    expect(asStrList("  only  ")).toEqual(["only"]);
+    expect(
+      acceptanceTextsFromItems([
+        null,
+        { narrative: { Acceptance: " nested " } },
+        { items: [{ narrative: { Acceptance: "child" } }] },
+      ]),
+    ).toEqual(["nested", "child"]);
+    expect(itemHasTraces({ items: [{ narrative: { Traces: "FR-2" } }] })).toBe(true);
+    expect(missingRequiredSwarmFields({ file_scope: ["a"] })).toContain(
+      "plan.metadata.swarm.verify_commands",
+    );
+    expect(
+      deprecatedSubitemsIssues([{ subItems: [{ narrative: { Acceptance: "x" } }] }]),
+    ).toContain("plan.items[0].subItems is deprecated; use items");
+  });
 });

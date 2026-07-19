@@ -40,6 +40,9 @@ const coverageThresholds = {
   lines: 85,
   functions: 85,
   // Fail-closed at 85 on all platforms; hairline misses use --allow-coverage-debt=#N (#2573).
+  // Win32 uses capped workers under --coverage (#2546/#2634) for coordinator headroom, but the
+  // floor is identical to Linux CI — a local 84.91% vs CI-green gap was uncovered branches, not
+  // threshold asymmetry (#2630).
   branches: 85,
   statements: 85,
 } as const;

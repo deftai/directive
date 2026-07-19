@@ -94,3 +94,19 @@ describe("vitest.config.ts coverage threshold contract (#2573)", () => {
     expect(source).toMatch(/resolveCoverageDebtIssue/);
   });
 });
+
+describe("vitest.config.ts Windows vs CI branch parity (#2630)", () => {
+  const source = readFileSync(configPath, "utf8");
+
+  it("uses the same 85% branch threshold on win32 and Linux CI", () => {
+    expect(source).toContain("#2630");
+    expect(source).toMatch(/branches:\s*85/);
+    expect(source).not.toMatch(/isWin32\s*\?\s*84\.85/);
+  });
+
+  it("documents that win32 runner caps affect timing only, not the coverage floor", () => {
+    expect(source).toMatch(/Native Windows full-suite \+ coverage/);
+    expect(source).toMatch(/coverageEnabled/);
+    expect(source).toMatch(/coverageThresholds/);
+  });
+});
