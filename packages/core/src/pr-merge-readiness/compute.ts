@@ -173,10 +173,16 @@ function loadInlineGreptileFindings(
   repo: string | null,
   headSha: string,
   runGh: RunGhFn,
-): InlineGreptileFindings | null {
+): InlineGreptileFindings {
   const resolved = resolveRepo(repo, runGh);
   if (resolved.repo === null) {
-    return null;
+    return {
+      p0Count: 0,
+      p1Count: 0,
+      unresolvedThreadCount: 0,
+      error:
+        resolved.error || "repo unresolved for inline reviewThreads lookup; pass --repo OWNER/REPO",
+    };
   }
   return fetchUnresolvedGreptileInlineFindings(prNumber, resolved.repo, headSha, runGh);
 }
@@ -190,12 +196,10 @@ function finalizeVerdictGate(
   options: ComputeGateOptions,
 ): { failures: string[]; partialData: Record<string, unknown> } {
   const partialData: Record<string, unknown> = {};
-  const inline = loadInlineGreptileFindings(prNumber, repo, headSha, runGh);
-  if (inline !== null) {
-    partialData.greptile_inline = inlineFindingsToDict(inline);
-  }
-  const failures = evaluateGates(prNumber, headSha, verdict, inline);
   const resolved = resolveRepo(repo, runGh);
+  const inline = loadInlineGreptileFindings(prNumber, repo, headSha, runGh);
+  partialData.greptile_inline = inlineFindingsToDict(inline);
+  const failures = evaluateGates(prNumber, headSha, verdict, inline);
 
   if (failures.length === 0) {
     const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
@@ -260,6 +264,9 @@ function computePrimary(
   }
   partial.head_sha = headSha;
 
+  const resolved = resolveRepo(repo, runGh);
+  const effectiveRepo = resolved.repo ?? repo;
+
   const body = fetchGreptileCommentBody(prNumber, repo, runGh);
   if (body === null) {
     partial.primary_error = "gh api /issues/<N>/comments --jq returned non-zero";
@@ -269,7 +276,7 @@ function computePrimary(
   const verdict = parseGreptileBody(body);
   const { failures, partialData } = finalizeVerdictGate(
     prNumber,
-    repo,
+    effectiveRepo,
     headSha,
     verdict,
     runGh,
@@ -278,7 +285,7 @@ function computePrimary(
   return {
     result: {
       prNumber,
-      repo,
+      repo: effectiveRepo,
       headSha,
       verdict,
       failures,

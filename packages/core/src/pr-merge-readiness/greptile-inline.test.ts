@@ -184,4 +184,22 @@ describe("fetchUnresolvedGreptileInlineFindings", () => {
     const findings = fetchUnresolvedGreptileInlineFindings(120, "deftai/statusreport", HEAD, runGh);
     expect(findings.error).toContain("graphql reviewThreads failed");
   });
+
+  it("fails closed when pagination reports hasNextPage without endCursor", () => {
+    const payload = {
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: true, endCursor: null },
+              nodes: [],
+            },
+          },
+        },
+      },
+    };
+    const runGh: RunGhFn = () => ({ returncode: 0, stdout: JSON.stringify(payload), stderr: "" });
+    const findings = fetchUnresolvedGreptileInlineFindings(120, "deftai/statusreport", HEAD, runGh);
+    expect(findings.error).toContain("missing endCursor");
+  });
 });

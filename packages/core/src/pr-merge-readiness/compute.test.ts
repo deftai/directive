@@ -45,6 +45,9 @@ function fakeRunGh(opts: FakeOpts): RunGhFn {
   return (cmd) => {
     const joined = cmd.join(" ");
     if (joined.includes("graphql")) {
+      if (opts.reviewThreads === "") {
+        return { returncode: 1, stdout: "", stderr: "graphql unavailable" };
+      }
       return { returncode: 0, stdout: reviewThreads, stderr: "" };
     }
     if (joined.includes("headRefOid")) {
@@ -244,6 +247,21 @@ describe("computeGateResult #2260 reconciliation", () => {
       }),
     );
     expect(result.failures.some((f) => f.includes("unresolved inline P1"))).toBe(true);
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+  });
+
+  it("fails closed when inline reviewThreads fetch errors on a clean summary (#2620)", () => {
+    const result = computeGateResult(
+      120,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        reviewThreads: "",
+      }),
+    );
+    expect(
+      result.failures.some((f) => f.includes("Could not verify Greptile inline review comments")),
+    ).toBe(true);
     expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
   });
 });

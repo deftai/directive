@@ -270,6 +270,12 @@ export function fetchUnresolvedGreptileInlineFindings(
     if (!pageResult.hasNextPage) {
       break;
     }
+    if (pageResult.endCursor === null) {
+      return {
+        ...EMPTY_INLINE,
+        error: "graphql reviewThreads pagination missing endCursor while hasNextPage=true",
+      };
+    }
     after = pageResult.endCursor;
   }
 

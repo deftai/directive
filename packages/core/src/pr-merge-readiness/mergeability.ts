@@ -106,6 +106,9 @@ export function verdictBlockIsSoftOnly(
   headSha: string | null,
   inline: InlineGreptileFindings | null = null,
 ): boolean {
+  if (inline !== null && inline.error !== null) {
+    return false;
+  }
   if (inline !== null && inline.error === null && (inline.p0Count > 0 || inline.p1Count > 0)) {
     return false;
   }
