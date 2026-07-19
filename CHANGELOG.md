@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Symlink write sinks in eval:run golden-run ledger and migrate:category-b (#2626).** `persistGoldenRun` and Category B corpus writers now call shared projection-containment helpers (`assertWriteTargetSafe`, lifecycle-root checks) before append/write; symlink lifecycle roots are rejected and symlink entries are skipped during traversal. Closes #2626.
+
 ### Removed
 
 ## [0.79.1] - 2026-07-18
