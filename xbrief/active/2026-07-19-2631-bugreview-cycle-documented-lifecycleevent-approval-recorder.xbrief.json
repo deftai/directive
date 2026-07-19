@@ -1,0 +1,89 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Swarm-ready scope xBRIEF for GitHub issue #2631",
+    "updated": "2026-07-19T14:44:06Z"
+  },
+  "plan": {
+    "title": "bug(review-cycle): documented lifecycle:event approval recorder is absent from consumer surface",
+    "status": "running",
+    "narratives": {
+      "Description": "Review-cycle documents a lifecycle:event approval recorder that is absent from the consumer Taskfile/CLI surface. Real merge-gate approval after operator consent fails when the mandatory command is missing.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2631",
+      "Overview": "## Summary\n\nThe shipped `deft-directive-review-cycle` skill mandates a structural approval event through `task lifecycle:event`, but the 0.79.0 npm consumer deposit exposes neither that Task target nor a corresponding CLI verb. An agent following the mandatory Phase 5 to Phase 6 gate cannot record `plan:approved` as instructed.\n\n## Environment\n\n- `@deftai/directive` / `@deftai/directive-core` 0.79.0\n- canonical npm consumer deposit under `.deft/core/`\n- macOS, Node 24.18.0, Task 3.50.0\n\n## Shipped contract\n\n`.deft/core/skills/deft-directive-review-cycle/SKILL.md` says:\n\n```text\nWhen the user replies yes / confirmed / approve on a ready-to-merge PR thread,\nemit a plan:approved framework event via task lifecycle:event so the approval is\ncaptured as a structural artifact rather than prose-only.\n```\n\nIt then prescribes:\n\n```text\ntask lifecycle:event -- emit plan:approved ...\n```\n\nThis is a mandatory review-cycle step, not optional guidance.\n\n## Reproduction\n\n```text\n$ task --list-all | rg 'lifecycle:event'\n# no result\n\n$ task lifecycle:event -- --help\ntask: Task \"lifecycle:event\" does not exist\n```\n\nThe global 0.79.0 CLI dispatch registry likewise has no `lifecycle:event` verb.\n\n## Expected\n\nOne authoritative, npm-consumer-safe surface must exist and match the skill exactly. Either:\n\n1. ship `task lifecycle:event` plus the corresponding Directive CLI handler for `emit plan:approved`; or\n2. update the skill to name an existing structural event recorder that is present in the consumer deposit.\n\nThe command should be idempotent for a repeated approval of the same PR and HEAD SHA, write to the documented structural artifact, and fail before any merge when its payload is invalid.\n\n## Acceptance criteria\n\n- [ ] A clean 0.79+ consumer install can execute the approval-recording command named by the review-cycle skill.\n- [ ] `task --list-all` exposes the documented target and `directive --help` exposes the corresponding verb.\n- [ ] The command records `plan:approved` with repository, PR, approved HEAD SHA, actor, and timestamp.\n- [ ] Repeating the same event is idempotent or deterministically deduplicated.\n- [ ] Review-cycle contract tests fail if the mandatory command disappears from the deposited Taskfile/CLI surface.\n- [ ] The skill, commands reference, task description, and CLI help use the same spelling and argument shape.\n\n## Related\n\n- #1670 owns the unified Directive verb vocabulary.\n- The defect surfaced during a real consumer PR merge gate after the operator explicitly approved the merge.\n\n",
+      "Labels": "bug",
+      "UserStory": "As a consumer agent running review-cycle, I want the documented lifecycle:event approval recorder available on the deposited Taskfile/CLI surface, so that merge-gate approval recording does not fail as a missing command.",
+      "ImplementationPlan": "1. Locate the documented lifecycle:event approval recorder in review-cycle skill/docs and reconcile with the deposited Taskfile/CLI.\n2. Expose or rename the command so skill, commands.md, task description, and CLI help share one spelling/argument shape.\n3. Add a contract test that fails if the mandatory command disappears from the deposited surface.\n4. CHANGELOG [Unreleased]."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Command on consumer surface",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a consumer .deft/core deposit, when the documented approval recorder is invoked, then the command exists on Taskfile/CLI."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Consistent spelling",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given skill, commands reference, task description, and CLI help, when compared, then they use the same spelling and argument shape."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Contract test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the deposited surface, when contract tests run, then they fail if the mandatory command disappears."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2631",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2631: bug(review-cycle): documented lifecycle:event approval recorder is absent from consumer surface"
+      }
+    ],
+    "updated": "2026-07-19T14:44:06Z",
+    "id": "lifecycle-event-approval-recorder-surface",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/commands.md",
+          "tasks/lifecycle.yml",
+          "packages/core/src/lifecycle/event.ts",
+          "packages/core/src/lifecycle/event.test.ts",
+          "packages/cli/src/commands/"
+        ],
+        "verify_commands": [
+          "task --list",
+          "pnpm --filter @deftai/directive-core test -- lifecycle"
+        ],
+        "expected_outputs": [
+          "approval recorder on consumer surface",
+          "consistent docs",
+          "contract test",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-cycle-lifecycle-event",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Bug-fix / security remediation from GitHub issue #2631; no FR trace registry for hotfix cohort."
+      }
+    }
+  }
+}

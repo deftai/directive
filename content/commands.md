@@ -234,6 +234,17 @@ flowchart TD
 
 ---
 
+## Framework behavioral events (#635 / #2631)
+
+Review-cycle merge-gate approval is recorded as a structural artifact, not prose-only.
+
+- `task lifecycle:event -- emit plan:approved --plan-ref <pr-url> --approver <login> --approval-phrase <yes|confirmed|approve> --pr-number <N> [--head-sha <sha>]`
+- `deft lifecycle:event emit plan:approved --plan-ref <pr-url> --approver <login> --approval-phrase <yes|confirmed|approve> --pr-number <N> [--head-sha <sha>]`
+
+Writes a `plan:approved` record to `.deft-cache/events.jsonl` with repository (derived from the PR URL when available), approver, optional PR number and approved HEAD SHA, and a timestamp envelope. Repeating the same approval for the same PR/approver/HEAD SHA is idempotent.
+
+---
+
 ## Backlog Triage And Cache Tasks
 
 User-facing surface for the Phase 0 triage workflow and the unified content cache. These commands let agents work an existing backlog locally without repeatedly draining shared GitHub rate limits.

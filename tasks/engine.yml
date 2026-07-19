@@ -230,6 +230,7 @@ tasks:
           is_runtime_verb=0
           case " ${first_token} " in
             " session:start "|" session-start "|\
+            " lifecycle:event "|" lifecycle-event "|\
             " verify:session-ritual "|" verify-session-ritual "|\
             " verify:tools "|" verify-tools "|\
             " triage:summary "|" triage-summary "|\
