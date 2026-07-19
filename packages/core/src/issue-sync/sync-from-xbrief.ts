@@ -10,6 +10,7 @@ import {
 } from "../intake/reconcile-issues.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
+import { isRepoMutationAllowed } from "../vbrief-reconcile/repo-guard.js";
 
 export const SYNC_COMMENT_HEADER = "## xBRIEF sync (deft issue:sync-from-xbrief)";
 
@@ -176,6 +177,8 @@ export interface SyncFromXbriefOptions {
   readonly dryRun?: boolean;
   readonly projectRoot?: string;
   readonly repo?: string;
+  readonly allowCrossRepo?: boolean;
+  readonly repoAllowlist?: readonly string[];
   readonly runFn?: RunGhApiFn;
   readonly writeErr?: (message: string) => void;
   readonly writeOut?: (message: string) => void;
@@ -230,6 +233,18 @@ export function syncFromXbrief(options: SyncFromXbriefOptions): number {
     return 0;
   }
 
+  const mutateGate = isRepoMutationAllowed(origin.repo, projectRoot, {
+    allowCrossRepo: options.allowCrossRepo,
+    allowlist: options.repoAllowlist,
+    explicitRepo: options.repo ?? null,
+  });
+  if (!mutateGate.allowed) {
+    writeErr(
+      `issue:sync-from-xbrief: ${mutateGate.reason ?? `refusing cross-repo mutation on ${origin.repo}`}`,
+    );
+    return 1;
+  }
+
   const relPath = options.xbriefPath.replace(/\\/g, "/");
   const comment = buildSyncComment(data, relPath);
 
@@ -280,6 +295,8 @@ export interface SyncFromXbriefCliArgs {
   readonly dryRun?: boolean;
   readonly projectRoot?: string;
   readonly repo?: string;
+  readonly allowCrossRepo?: boolean;
+  readonly repoAllowlist?: readonly string[];
 }
 
 export function syncFromXbriefMain(args: SyncFromXbriefCliArgs): number {
@@ -292,5 +309,7 @@ export function syncFromXbriefMain(args: SyncFromXbriefCliArgs): number {
     dryRun: args.dryRun,
     projectRoot: args.projectRoot,
     repo: args.repo,
+    allowCrossRepo: args.allowCrossRepo,
+    repoAllowlist: args.repoAllowlist,
   });
 }

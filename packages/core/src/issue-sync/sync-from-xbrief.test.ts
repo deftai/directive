@@ -37,6 +37,20 @@ const ORIGIN_XBRIEF = {
   },
 };
 
+const CROSS_REPO_XBRIEF = {
+  ...ORIGIN_XBRIEF,
+  plan: {
+    ...ORIGIN_XBRIEF.plan,
+    references: [
+      {
+        uri: "https://github.com/other/victim/issues/99",
+        type: "x-xbrief/github-issue",
+        title: "Issue #99",
+      },
+    ],
+  },
+};
+
 describe("issue-sync resolveOriginIssue", () => {
   it("resolves github-issue origin from references", () => {
     const origin = resolveOriginIssue(ORIGIN_XBRIEF);
@@ -233,6 +247,61 @@ describe("issue-sync dry-run and missing origin", () => {
     expect(err.join("\n")).toContain("comment posted (id: 1001)");
     expect(err.join("\n")).toContain("failed to persist sync fingerprint");
     expect(err.join("\n")).not.toContain("failed to post comment");
+  });
+
+  it("refuses cross-repo comment mutation without allowCrossRepo (#2633)", () => {
+    const err: string[] = [];
+    const runFn = vi.fn();
+    const code = syncFromXbrief({
+      xbriefPath: writeTempXbrief(CROSS_REPO_XBRIEF),
+      repo: "deftai/directive",
+      writeErr: (line) => err.push(line),
+      runFn,
+    });
+    expect(code).toBe(1);
+    expect(err.join("\n")).toMatch(/refusing cross-repo mutation/);
+    expect(runFn).not.toHaveBeenCalled();
+  });
+
+  it("allows cross-repo comment mutation when allowCrossRepo is set (#2633)", () => {
+    const path = writeTempXbrief(CROSS_REPO_XBRIEF);
+    const runFn = vi.fn(() => ({ id: 1002 }));
+    const code = syncFromXbrief({
+      xbriefPath: path,
+      repo: "deftai/directive",
+      allowCrossRepo: true,
+      runFn,
+    });
+    expect(code).toBe(0);
+    expect(runFn).toHaveBeenCalled();
+  });
+
+  it("allows cross-repo comment mutation when target is allowlisted (#2633)", () => {
+    const path = writeTempXbrief(CROSS_REPO_XBRIEF);
+    const runFn = vi.fn(() => ({ id: 1003 }));
+    const code = syncFromXbrief({
+      xbriefPath: path,
+      repo: "deftai/directive",
+      repoAllowlist: ["other/victim"],
+      runFn,
+    });
+    expect(code).toBe(0);
+    expect(runFn).toHaveBeenCalled();
+  });
+
+  it("refuses cross-repo dry-run without allowCrossRepo (#2633)", () => {
+    const err: string[] = [];
+    const runFn = vi.fn();
+    const code = syncFromXbrief({
+      xbriefPath: writeTempXbrief(CROSS_REPO_XBRIEF),
+      dryRun: true,
+      repo: "deftai/directive",
+      writeErr: (line) => err.push(line),
+      runFn,
+    });
+    expect(code).toBe(1);
+    expect(err.join("\n")).toMatch(/refusing cross-repo mutation/);
+    expect(runFn).not.toHaveBeenCalled();
   });
 });
 

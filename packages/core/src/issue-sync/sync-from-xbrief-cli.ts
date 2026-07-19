@@ -7,6 +7,7 @@ export interface ParsedSyncFromXbriefCliArgs {
   dryRun?: boolean;
   projectRoot?: string;
   repo?: string;
+  allowCrossRepo?: boolean;
   error?: string;
 }
 
@@ -16,6 +17,8 @@ export function parseArgs(argv: readonly string[]): ParsedSyncFromXbriefCliArgs 
     const arg = argv[i] as string;
     if (arg === "--dry-run") {
       out.dryRun = true;
+    } else if (arg === "--allow-cross-repo") {
+      out.allowCrossRepo = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
