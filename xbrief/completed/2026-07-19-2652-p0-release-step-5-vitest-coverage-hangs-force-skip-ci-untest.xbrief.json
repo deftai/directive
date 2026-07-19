@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "P0: release Step 5 / vitest coverage hangs force --skip-ci (untested npm publishes)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "P0: release Step 5 / vitest coverage hangs force --skip-ci (untested npm publishes)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2652",
@@ -47,6 +47,10 @@
         "title": "Issue #2652: P0: release Step 5 / vitest coverage hangs force --skip-ci (untested npm publishes)"
       }
     ],
-    "updated": "2026-07-19T21:37:21Z"
+    "updated": "2026-07-19T23:20:55Z",
+    "metadata": {
+      "completedAt": "2026-07-19T23:20:55Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
