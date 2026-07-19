@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { assertProjectionContained, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { join, resolve } from "node:path";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   GhRestError,
   InvalidRepoError,
@@ -724,11 +724,9 @@ function readSelfHealState(cacheRoot: string): Date | null {
   }
 }
 
-function writeSelfHealState(cacheRoot: string, when: Date): void {
-  const cacheAbs = resolve(cacheRoot);
-  const projectDir = dirname(cacheAbs);
-  const path = join(cacheAbs, SELF_HEAL_STATE_FILENAME);
-  assertProjectionContained(projectDir, path);
+function writeSelfHealState(projectRoot: string, cacheRoot: string, when: Date): void {
+  const path = join(resolve(cacheRoot), SELF_HEAL_STATE_FILENAME);
+  assertWriteTargetSafe(projectRoot, path);
   writeFileSync(path, `${JSON.stringify({ last_reconcile_at: when.toISOString() })}\n`, "utf8");
 }
 
@@ -808,7 +806,7 @@ export function maybeSelfHealCache(
     const refresh = refreshFn({ source, repo, cacheRoot, openNumbers });
     if (options.writeState !== false && refresh.refreshFailed === 0) {
       try {
-        writeSelfHealState(cacheRoot, now);
+        writeSelfHealState(projectRoot, cacheRoot, now);
       } catch (err) {
         if (err instanceof ProjectionContainmentError) {
           return { skipped: true, skipReason: "containment-refused", drift, refresh: null };

@@ -451,6 +451,70 @@ describe("fetch-all", () => {
   });
 
   it.skipIf(process.platform === "win32")(
+    "maybeSelfHealCache refuses self-heal state writes when the state file is an in-project symlink (#2521)",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-heal-state-symlink-"));
+      const cacheRoot = join(root, ".deft-cache");
+      mkdirSync(cacheRoot, { recursive: true });
+      const victim = join(root, "victim-self-heal.json");
+      writeFileSync(victim, "victim\n", "utf8");
+      symlinkSync(victim, join(cacheRoot, "self-heal-state.json"));
+      const base = join(cacheRoot, "github-issue/deftai/directive/15");
+      mkdirSync(base, { recursive: true });
+      writeFileSync(
+        join(base, "raw.json"),
+        JSON.stringify({ number: 15, state: "open", title: "t", body: "b" }),
+        "utf8",
+      );
+      try {
+        const result = maybeSelfHealCache(root, {
+          repo: "deftai/directive",
+          cacheRoot,
+          listOpenFn: () => new Set([15]),
+          refreshFn: () => new StateRefreshReportImpl(),
+        });
+        expect(result.skipped).toBe(true);
+        expect(result.skipReason).toBe("containment-refused");
+        expect(readFileSync(victim, "utf8")).toBe("victim\n");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "maybeSelfHealCache refuses self-heal state writes when the state file is an in-project symlink (#2521)",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-heal-state-symlink-"));
+      const cacheRoot = join(root, ".deft-cache");
+      mkdirSync(cacheRoot, { recursive: true });
+      const victim = join(root, "victim-self-heal.json");
+      writeFileSync(victim, "victim\n", "utf8");
+      symlinkSync(victim, join(cacheRoot, "self-heal-state.json"));
+      const base = join(cacheRoot, "github-issue/deftai/directive/15");
+      mkdirSync(base, { recursive: true });
+      writeFileSync(
+        join(base, "raw.json"),
+        JSON.stringify({ number: 15, state: "open", title: "t", body: "b" }),
+        "utf8",
+      );
+      try {
+        const result = maybeSelfHealCache(root, {
+          repo: "deftai/directive",
+          cacheRoot,
+          listOpenFn: () => new Set([15]),
+          refreshFn: () => new StateRefreshReportImpl(),
+        });
+        expect(result.skipped).toBe(true);
+        expect(result.skipReason).toBe("containment-refused");
+        expect(readFileSync(victim, "utf8")).toBe("victim\n");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
     "maybeSelfHealCache refuses self-heal state writes through escaping .deft-cache symlinks (#2521)",
     () => {
       const root = mkdtempSync(join(tmpdir(), "deft-heal-cache-symlink-"));
