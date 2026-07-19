@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Windows CI retries transient Install Task flakes (#2624).** The task-dispatch regression job pins an exact Task release and automatically retries `arduino/setup-task` once before failing; operator rerun-failed-jobs recovery is documented in the workflow. Closes #2624.
 - **Windows Vitest coverage no longer ENOENTs on `coverage/.tmp` after green full-suite runs (#2634).** Hardens the #2580 keepalive with a globalSetup write guard that mkdirs before Vitest 3.2.x chunk writes (upstream fix: vitest-dev/vitest#10117 in vitest 4.x); coverage thresholds still fail closed. Closes #2634.
+- **deft-core-guard allowlists installer-deposited `.prettierignore` (#2629).** Framework-only deposit PRs that include the #2534 Prettier gate exclusion no longer fail `no-mixed-core-and-app`. Closes #2629.
 
 ### Removed
 

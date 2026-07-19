@@ -36,6 +36,9 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: ".codex/hooks.json" },
     { exact: ".gitattributes" },
     { exact: ".gitignore" },
+    // Installer-deposited Prettier gate exclusion (#2534); must be allowlisted or
+    // framework-only deposit PRs trip no-mixed-core-and-app (#2629).
+    { exact: ".prettierignore" },
     { exact: "greptile.json" },
     { exact: CODEQL_CONFIG_REL },
     { exact: CORE_GUARD_WORKFLOW_REL },
