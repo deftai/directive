@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.test.js";
+import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.helpers.js";
 import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 import { DEFAULT_CADENCE, EXIT_CAP_REACHED, EXIT_CLEAN, EXIT_PR_TERMINAL } from "./constants.js";
 import {

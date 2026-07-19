@@ -7,7 +7,7 @@ import {
   parseSlizardVerdict,
   SLIZARD_CHECK_NAME,
 } from "./slizard-gate.js";
-import { withGraphqlInlineStub } from "./test-gh-fixtures.test.js";
+import { withGraphqlInlineStub } from "./test-gh-fixtures.helpers.js";
 import type { RunGhFn } from "./types.js";
 
 const BLOCKING_SUMMARY = [

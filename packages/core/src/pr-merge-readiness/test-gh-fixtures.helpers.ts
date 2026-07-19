@@ -1,3 +1,7 @@
+/**
+ * Test-only gh doubles for pr-monitor / merge-readiness suites (#2652).
+ * Not part of the production CLI surface; excluded from coverage via `*.helpers.ts`.
+ */
 import type { RunGhFn } from "./types.js";
 
 /** Empty GraphQL reviewThreads page for inline Greptile findings (#2620 / #2652). */
