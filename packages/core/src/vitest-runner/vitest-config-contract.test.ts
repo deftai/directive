@@ -55,6 +55,31 @@ describe("vitest.config.ts Windows coverage tmp contract (#2580)", () => {
   });
 });
 
+describe("vitest.config.ts Windows coverage tmp regression (#2634)", () => {
+  const source = readFileSync(configPath, "utf8");
+
+  it("documents vitest 4 upgrade path for upstream mkdir fix", () => {
+    expect(source).toContain("#2634");
+    expect(source).toMatch(/vitest-dev\/vitest#10117/);
+  });
+
+  it("win32-coverage-tmp-setup guards chunk writes before mkdir", () => {
+    const setupPath = join(repoRoot, "packages/core/src/vitest-runner/win32-coverage-tmp-setup.ts");
+    const setupSource = readFileSync(setupPath, "utf8");
+    expect(setupSource).toContain("#2634");
+    expect(setupSource).toMatch(/installCoverageTmpWriteGuard/);
+    expect(setupSource).toMatch(/isCoverageTmpChunkPath/);
+  });
+
+  it("has focused regression tests for coverage tmp hardening", () => {
+    const testPath = join(
+      repoRoot,
+      "packages/core/src/vitest-runner/win32-coverage-tmp-setup.test.ts",
+    );
+    expect(readFileSync(testPath, "utf8")).toContain("#2634");
+  });
+});
+
 describe("vitest.config.ts coverage threshold contract (#2573)", () => {
   const source = readFileSync(configPath, "utf8");
 
