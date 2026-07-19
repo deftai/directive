@@ -1,0 +1,88 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Swarm-ready scope xBRIEF for GitHub issue #2524",
+    "updated": "2026-07-19T16:14:50Z"
+  },
+  "plan": {
+    "title": "bug(change-init): scaffold current vBRIEF version instead of 0.5",
+    "status": "running",
+    "narratives": {
+      "Description": "task change:change:init still scaffolds proposal.xbrief.json and tasks.xbrief.json with vBRIEFInfo.version 0.5 while content/commands.md requires 0.6 for history/changes artifacts. The generator contradicts its consuming workflow.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2524",
+      "Overview": "## Summary\n\nThe canonical `task change:change:init -- <name>` command still creates `proposal.xbrief.json` and `tasks.xbrief.json` with `vBRIEFInfo.version` set to `0.5`.\n\nCurrent `content/commands.md` says history/changes artifacts must use `0.6`, and the build/review skills require a valid proposal for changes spanning 3+ files. The generated scaffold therefore contradicts its consuming workflow.\n\n## Reproduction\n\n1. Run `task change:change:init -- release-availability-detection` on current `upstream/master`.\n2. Inspect both generated JSON files under `history/changes/release-availability-detection/`.\n\n## Actual\n\nBoth files declare version `0.5`.\n\n## Expected\n\nThe generator emits the current supported version required by the historical change-workflow contract, or derives it from one canonical version constant.\n\n## Source\n\nDiscovered while preparing issue #1692 on 2026-07-14. Kept out of that implementation PR to avoid unrelated scope expansion.",
+      "Labels": "bug, determinism, agent-experience, area:vbrief",
+      "UserStory": "As an agent running task change:change:init, I want scaffolded proposal and tasks xBRIEFs to declare the current supported vBRIEF version, so that history/changes artifacts match commands.md and build/review skill validation.",
+      "ImplementationPlan": "1. Update the change-init scaffold under packages/core/src/change/ (or the module that writes history/changes proposal.xbrief.json and tasks.xbrief.json) so vBRIEFInfo.version comes from the canonical 0.6 constant used by history/changes validation, not a hardcoded 0.5.\n2. Add a focused unit test under packages/core/src/change/*.test.ts that runs the scaffold and asserts both generated JSON files declare version 0.6.\n3. CHANGELOG [Unreleased]; confirm content/commands.md history/changes 0.6 requirement still matches."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Scaffold emits current version",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task change:change:init -- <name>, when the generator writes proposal.xbrief.json and tasks.xbrief.json, then vBRIEFInfo.version is the current supported history/changes version (0.6), not 0.5."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Canonical constant",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the generator source, when version is selected, then it derives from one canonical version constant rather than a bare 0.5 literal."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Regression test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a unit test for change-init scaffold, when it runs, then both generated JSON files assert the required version."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2524",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2524: bug(change-init): scaffold current vBRIEF version instead of 0.5"
+      }
+    ],
+    "id": "change-init-scaffold-current-vbrief-version",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/change/init.ts",
+          "packages/core/src/change/init.test.ts",
+          "packages/core/src/change/"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- change",
+          "task change:change:init -- --help"
+        ],
+        "expected_outputs": [
+          "scaffold uses 0.6",
+          "regression test",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "change-init-version",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Bug-fix from GitHub issue #2524; no FR trace registry for hotfix cohort."
+      }
+    },
+    "updated": "2026-07-19T16:14:54Z"
+  }
+}

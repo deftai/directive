@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
 
 export interface TaskSurfaceIo {
   writeOut: (text: string) => void;
@@ -14,7 +15,7 @@ const COMMIT_SUBJECT_RE = new RegExp(`^(${COMMIT_TYPES})(\\(.+\\))?!?: .+`);
 
 function proposalTemplate(name: string): unknown {
   return {
-    vBRIEFInfo: { version: "0.5" },
+    vBRIEFInfo: { version: LEGACY_VBRIEF_VERSION },
     plan: {
       title: name,
       status: "draft",
@@ -34,7 +35,7 @@ function proposalTemplate(name: string): unknown {
 
 function tasksTemplate(name: string): unknown {
   return {
-    vBRIEFInfo: { version: "0.5" },
+    vBRIEFInfo: { version: LEGACY_VBRIEF_VERSION },
     plan: { title: name, status: "draft", items: [], edges: [] },
   };
 }

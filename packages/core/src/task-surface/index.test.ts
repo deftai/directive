@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it } from "vitest";
 import { runChangeInit, runChangelogCheck, runCommitLint, runInstallUninstall } from "./index.js";
 
@@ -92,6 +93,21 @@ describe("task-surface", () => {
       existsSync(join(project, "history", "changes", "my-change", "proposal.xbrief.json")),
     ).toBe(true);
     expect(lines.join("")).toContain("OK: Created change proposal");
+  });
+
+  it("change-init scaffolds proposal and tasks at current history/changes vBRIEF version (#2524)", () => {
+    const project = makeProject();
+    const { io } = captureIo();
+    expect(runChangeInit(project, "version-check", io)).toBe(0);
+    const base = join(project, "history", "changes", "version-check");
+    const proposal = JSON.parse(readFileSync(join(base, "proposal.xbrief.json"), "utf8")) as {
+      vBRIEFInfo: { version: string };
+    };
+    const tasks = JSON.parse(readFileSync(join(base, "tasks.xbrief.json"), "utf8")) as {
+      vBRIEFInfo: { version: string };
+    };
+    expect(proposal.vBRIEFInfo.version).toBe(LEGACY_VBRIEF_VERSION);
+    expect(tasks.vBRIEFInfo.version).toBe(LEGACY_VBRIEF_VERSION);
   });
 
   it("change-init rejects invalid names", () => {
