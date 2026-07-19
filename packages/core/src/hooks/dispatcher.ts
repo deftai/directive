@@ -123,9 +123,7 @@ export function hookToolName(payload: unknown, host?: HookHost): string | null {
   const input = record(payload);
   if (input === null) return null;
   const direct =
-    fieldString(input, "tool_name") ??
-    fieldString(input, "toolName") ??
-    fieldString(input, "tool");
+    fieldString(input, "tool_name") ?? fieldString(input, "toolName") ?? fieldString(input, "tool");
   if (direct !== null) return direct;
   if (host === "cursor") return inferCursorDirectWriteToolName(input);
   return null;
