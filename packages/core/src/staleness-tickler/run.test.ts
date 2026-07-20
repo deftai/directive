@@ -44,6 +44,8 @@ function makeRepo(options?: {
   return root;
 }
 
+const testEnv: NodeJS.ProcessEnv = { ...process.env, DEFT_SESSION_RITUAL_SKIP: "" };
+
 const idleSeams = {
   idle: {
     readPorcelain: () => "",
@@ -56,6 +58,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("prompts for stale-directive-only", () => {
     const root = makeRepo();
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       probeDirective: {
         isFile: (path) => path.endsWith("VERSION"),
@@ -73,6 +76,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("prompts for stale-xbrief-only", () => {
     const root = makeRepo({ schemaVersion: "0.6" });
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       probeDirective: {
         isFile: (path) => path.endsWith("VERSION"),
@@ -90,6 +94,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("prompts when both dimensions are stale", () => {
     const root = makeRepo({ schemaVersion: "0.6" });
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       probeDirective: {
         isFile: (path) => path.endsWith("VERSION"),
@@ -106,6 +111,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("does not prompt when already current", () => {
     const root = makeRepo();
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       probeDirective: {
         isFile: (path) => path.endsWith("VERSION"),
@@ -122,6 +128,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("suppresses on dirty tree", () => {
     const root = makeRepo({ schemaVersion: "0.6" });
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       idle: {
         readPorcelain: () => " M dirty\n",
@@ -136,6 +143,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("suppresses mid-story", () => {
     const root = makeRepo({ schemaVersion: "0.6" });
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       idle: { readPorcelain: () => "", countInFlight: () => 1, insideDeftRepo: () => false },
     });
@@ -155,6 +163,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
       "utf8",
     );
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       now,
       isInteractive: false,
       probeDirective: {
@@ -171,7 +180,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("skips offline directive probe without blocking xbrief-only when current", () => {
     const root = makeRepo();
     const result = maybeRunStalenessTickler(root, {
-      env: { DEFT_NO_NETWORK: "1" },
+      env: { ...testEnv, DEFT_NO_NETWORK: "1" },
       isInteractive: false,
       ...idleSeams,
     });
@@ -184,6 +193,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
       policy: { stalenessTickler: { optOut: true } },
     });
     const result = maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       ...idleSeams,
     });
@@ -193,6 +203,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
   it("records state after headless advisory", () => {
     const root = makeRepo({ schemaVersion: "0.6" });
     maybeRunStalenessTickler(root, {
+      env: testEnv,
       isInteractive: false,
       now: new Date("2026-07-20T12:00:00Z"),
       probeDirective: {
