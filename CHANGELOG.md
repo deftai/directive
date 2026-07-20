@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Pre-PR ordered-plan gate uses the current entry kind (#2662).** `deft-directive-pre-pr` no longer hardcodes `--target-kind pr`; agents resolve `kind` and `id` via `task plan-sequence:current` before `task verify:plan-sequence`, so story-backed PRs pass the gate when the target id matches. Closes #2662.
+
 ### Removed
 
 ## [0.79.3] - 2026-07-20

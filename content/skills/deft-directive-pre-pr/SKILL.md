@@ -38,14 +38,25 @@ or invoke `task verify:branch`. Pre-PR is the last gate before push, so a stale 
 
 ## Ordered-plan target gate (#2402)
 
-! Before opening or pushing a PR, when an ordered-plan sequence may be active, verify the PR target matches the current authorized entry:
+! Before opening or pushing a PR, when an ordered-plan sequence may be active, verify the work unit matches the current authorized entry:
+
+1. Resolve the current entry kind and id:
 
 ```
-task verify:plan-sequence -- --target-kind pr --target <issue-or-entry-id>
+task plan-sequence:current
+```
+
+   Use `task plan-sequence:current -- --json` when you need machine-readable `kind` / `id` fields from the current entry.
+
+2. Verify with the **entry kind** (not hardcoded `pr` — `story` / `issue` entries are common):
+
+```
+task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 ```
 
 - ! Exit non-zero → fail closed; do not open an unauthorized PR.
 - ! Exit 0 with "skipped (no active ordered-plan sequence)" → proceed under normal pre-PR rules.
+- ⊗ Hardcode `--target-kind pr` when the current entry is `kind=story` or `kind=issue` — the verifier matches entry kind exactly (#2662).
 - ! After the PR's review cycle completes successfully, run `task plan-sequence:advance` so "next" resolves to the following entry (or exhausted).
 - ⊗ Treat skill-chaining or "what's next?" as permission to open a PR outside the current sequence entry.
 
