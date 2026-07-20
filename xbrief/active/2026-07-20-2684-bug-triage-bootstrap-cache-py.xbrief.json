@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2684"
+  },
+  "plan": {
+    "title": "Bootstrap cache populate via TypeScript cacheFetchAll (drop scripts/cache.py gate)",
+    "status": "running",
+    "narratives": {
+      "Description": "triage:bootstrap defers cache population when scripts/cache.py is absent and tells operators to rebase. npm consumers never have that Python script. Default loadDefaultCacheModule to the existing TypeScript cacheFetchAll path (same pattern as empty-populate #2575), forward bootstrap kwargs, remove the rebase defer message, update tests.",
+      "Origin": "https://github.com/deftai/directive/issues/2684",
+      "Overview": "Adoption blocker: empty triage queue after triage:bootstrap on @deftai/directive 0.79.3 consumers.",
+      "Labels": "bug, adoption-blocker, triage, agent-experience, area:cli",
+      "ImplementationPlan": "1. Add triage/bootstrap cache-module adapter wrapping cacheFetchAll with full kwargs. 2. loadDefaultCacheModule always returns TS module (optional Python fallback only if cache.py exists). 3. Remove rebase defer message path for missing Python. 4. Update index.test.ts. 5. CHANGELOG Fixed entry citing #2684.",
+      "UserStory": "As an npm consumer, I want triage:bootstrap to populate the GitHub issue cache without requiring scripts/cache.py, so triage:queue returns ranked work."
+    },
+    "items": [
+      {
+        "title": "AC1",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "stepPopulateCache without injected cacheModule and without scripts/cache.py invokes TypeScript cacheFetchAll (or an injected adapter) and does not return deferred=cache-module-missing."
+        }
+      },
+      {
+        "title": "AC2",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "No user-facing bootstrap message tells operators to rebase to recover scripts/cache.py."
+        }
+      },
+      {
+        "title": "AC3",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Regression tests + CHANGELOG [Unreleased] Fixed cite #2684."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "triage",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2684",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2684: bootstrap recovery references removed scripts/cache.py"
+      }
+    ],
+    "updated": "2026-07-20T19:25:16Z",
+    "id": "2684-bootstrap-ts-cache",
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2684"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/bootstrap/index.ts",
+          "packages/core/src/triage/bootstrap/cache-module.ts",
+          "packages/core/src/triage/bootstrap/index.test.ts",
+          "packages/core/src/integration-e2e/bootstrap-cache-module.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check -- --filter triage/bootstrap"
+        ],
+        "expected_outputs": [
+          "Default cache module uses TS cacheFetchAll",
+          "No rebase/scripts/cache.py defer message"
+        ],
+        "depends_on": [],
+        "conflict_group": "2684-bootstrap-cache",
+        "size": "S",
+        "file_scope_confidence": "high"
+      }
+    }
+  }
+}
