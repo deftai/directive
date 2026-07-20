@@ -50,7 +50,7 @@
         "title": "Issue #2680: bug(ritual): documented -- separator rejects --tier flag"
       }
     ],
-    "updated": "2026-07-20T15:17:38Z",
+    "updated": "2026-07-20T18:39:01Z",
     "id": "2680-session-ritual-double-dash",
     "metadata": {
       "kind": "story",
@@ -79,7 +79,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf",
         "missing_traces_justification": "Bug-fix from GitHub issue #2680; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-20T18:39:01Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
