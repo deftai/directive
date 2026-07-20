@@ -35,7 +35,9 @@ env:
 jobs:
   ts:
     name: TypeScript (build + lint + test)
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    # GitHub-hosted: Blacksmith `blacksmith-4vcpu-ubuntu-2404` left required CI
+    # queued for hours with nothing in_progress (2026-07-19 cohort #2658–#2660).
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -76,7 +78,8 @@ jobs:
 
   go:
     name: Go (test + build)
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    # See ts job: GitHub-hosted until Blacksmith capacity is reliable again.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 

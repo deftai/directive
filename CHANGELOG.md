@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **CI TypeScript and Go jobs run on GitHub-hosted `ubuntu-latest`.** Required `CI` had been stuck `queued` for hours on Blacksmith `blacksmith-4vcpu-ubuntu-2404` with nothing `in_progress`; Windows already used `windows-latest`. Unblocks PR CI when Blacksmith capacity stalls.
 - **Release-tag parsing lives in one module (#2525).** `packages/core/src/release/version.ts` now owns parse, publishability, PEP 440 normalization, and prerelease ordering; platform latest-tag selection and doctor release checks consume that contract instead of a duplicate parser in `resolve-version.ts`. Closes #2525.
 
 ### Fixed
