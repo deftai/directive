@@ -50,6 +50,13 @@ describe("detectEnvironmentContext", () => {
     });
   });
 
+  it("uses os.userInfo when neither userShell nor readUserShell is supplied (#2666)", () => {
+    const context = detectEnvironmentContext({ environ: {}, platform: "linux" });
+    expect(
+      context.shell.source === "os.userInfo().shell" || context.shell.source === "unknown",
+    ).toBe(true);
+  });
+
   it("reads the POSIX account shell through the injectable platform seam", () => {
     expect(
       detectEnvironmentContext({

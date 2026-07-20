@@ -136,6 +136,17 @@ describe("runTsLane", () => {
     expect(messages.some((m) => m.includes("killed by SIGTERM"))).toBe(true);
   });
 
+  it("treats a null status without a signal name as a generic kill", () => {
+    const messages: string[] = [];
+    const rc = runTsLane("/repo", {
+      pnpm: "pnpm",
+      runner: () => ({ status: null }),
+      out: (m) => messages.push(m),
+    });
+    expect(rc).toBe(1);
+    expect(messages.some((m) => m.includes("killed by a signal"))).toBe(true);
+  });
+
   it("reports subprocess start errors separately from signal kills", () => {
     const messages: string[] = [];
     const rc = runTsLane("/repo", {

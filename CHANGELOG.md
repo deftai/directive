@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Branch coverage clears the 85% release floor again (#2666).** Targeted unit tests for review-monitor gate branches, mergeability JSON parse failures, ts-check-lane signal-kill messaging, and shell-context account-shell detection lift measured branch coverage above the global threshold without `--allow-coverage-debt`. Closes #2666.
 - **`scope:undo` and `migrate:xbrief` AGENTS.md header patch refuse symlink escape writes (#2668).** `scope:undo` now calls `assertWriteTargetSafe` before lifecycle xBRIEF writes (parity with `scope:demote`); the migrate header patch resolves `AGENTS.md` via projection containment before write (parity with init-deposit `writeAgentsMd`). Closes #2668.
 - **Cursor Write/StrReplace hooks infer tool identity from more payload shapes (#2669).** `hookToolName` now recognizes OpenAI-style `arguments`, `tool_call.name`, and object `tool.name` nestings that still returned `null` on 0.79.3; empty stdin, invalid JSON, and unknown-shape denies emit distinct host-integration messages, with top-level payload keys logged on Cursor `invalid-input`. Closes #2669.
 - **`deft verify:session-ritual -- --tier=gated` accepts the documented separator (#2680).** `parseArgs` now skips a lone `--` so the task-style invocation matches direct `--tier=gated`. Closes #2680.

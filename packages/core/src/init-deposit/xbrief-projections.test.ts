@@ -99,6 +99,13 @@ describe("xbrief consumer projections (#2595)", () => {
     );
   });
 
+  it("assertProjectedSchemaDescriptionsRooted no-ops when destination is not a directory (#2666)", () => {
+    const { project } = fixture();
+    const file = join(project, "not-a-schema-dir");
+    writeFileSync(file, "plain file\n", "utf8");
+    expect(() => assertProjectedSchemaDescriptionsRooted(project, file)).not.toThrow();
+  });
+
   it("self-check runs after obsolete vbrief-core.schema.json is removed", () => {
     const { project, deftDir } = fixture();
     const consumerSchemas = join(project, "xbrief", "schemas");

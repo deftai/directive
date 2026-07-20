@@ -34,4 +34,13 @@ describe("validateMeta", () => {
     (meta.scan_result as Record<string, unknown>).scanner_version = "bad";
     expect(() => validateMeta(meta)).toThrow(/SemVer/);
   });
+
+  it("rejects non-string etag when present (#2666)", () => {
+    expect(() => validateMeta({ ...goodMeta(), etag: 42 })).toThrow(/\.etag/);
+  });
+
+  it("rejects non-object meta root (#2666)", () => {
+    expect(() => validateMeta(null)).toThrow(/expected object/);
+    expect(() => validateMeta([])).toThrow(/array/);
+  });
 });
