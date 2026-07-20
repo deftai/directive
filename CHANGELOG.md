@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Pre-PR ordered-plan gate uses the current entry kind (#2662).** `deft-directive-pre-pr` no longer hardcodes `--target-kind pr`; agents resolve `kind` and `id` via `task plan-sequence:current` before `task verify:plan-sequence`, so story-backed PRs pass the gate when the target id matches. Closes #2662.
+- **AGENTS always-loads the #2646 body-file recipe (#2671).** Multi-line git/gh bodies on Windows PowerShell are now an inline MUST/⊗ rule in the managed AGENTS section (not a lazy index pointer to `scm/github.md`). Closes #2671.
 
 ### Removed
 
