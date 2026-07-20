@@ -145,6 +145,18 @@ describe("cliScriptPath (#2615)", () => {
       expect(normalized).toMatch(/pr-protected-issues\.js$/);
     }
   });
+
+  it("resolves pr-monitor under directive/dist or cli/dist (#2673)", () => {
+    const path = wrappers.cliScriptPath("pr-monitor");
+    const normalized = path.replace(/\\/g, "/");
+    if (existsSync(path)) {
+      expect(normalized).toMatch(
+        /\/(@deftai\/)?directive\/dist\/pr-monitor\.js$|\/cli\/dist\/pr-monitor\.js$/,
+      );
+    } else {
+      expect(normalized).toMatch(/pr-monitor\.js$/);
+    }
+  });
 });
 
 describe("runMonitor", () => {

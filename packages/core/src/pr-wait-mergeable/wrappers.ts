@@ -150,10 +150,14 @@ export function runMonitor(
   capMinutes: number,
   options: RunMonitorOptions = {},
 ): SubprocessTriple {
+  const scriptPath = cliScriptPath("pr-monitor");
+  if (!existsSync(scriptPath)) {
+    return [2, "", `monitor script not found: ${scriptPath}`];
+  }
   const node = options.nodeExecutable ?? process.execPath;
   const timeoutSec = options.timeout ?? capMinutes * 60 + 60;
   const cmd: string[] = [
-    cliScriptPath("pr-monitor"),
+    scriptPath,
     String(prNumber),
     "--repo",
     repo,
