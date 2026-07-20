@@ -165,6 +165,11 @@ describe("undo", () => {
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "pending", "seed.xbrief.json"),
+      formatVbriefJson({ plan: { title: "seed", status: "pending", items: [] } }),
+      "utf8",
+    );
     const escapeDir = mkdtempSync(join(tmpdir(), "undo-symlink-escape-"));
     const victim = join(escapeDir, "victim.xbrief.json");
     writeFileSync(
