@@ -69,6 +69,7 @@ jobs:
       ts_failover: ${{ steps.poll.outputs.ts_failover }}
       go_failover: ${{ steps.poll.outputs.go_failover }}
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Poll Blacksmith primary queue state
         id: poll
         env:
@@ -83,40 +84,12 @@ jobs:
           go_failover=false
           echo "Stall budget=${STALL_BUDGET_SECONDS}s poll=${POLL_SECONDS}s run=${RUN_ID}"
 
-          classify_job() {
-            local needle="$1"
-            local jobs_json="$2"
-            python3 -c '
-import json, sys
-needle = sys.argv[1].lower()
-payload = json.loads(sys.argv[2])
-jobs = payload.get("jobs") or []
-match = next((j for j in jobs if needle in str(j.get("name") or "").lower()), None)
-if match is None:
-    print("missing")
-    raise SystemExit(0)
-status = str(match.get("status") or "")
-started = match.get("started_at")
-runner = match.get("runner_name")
-if status == "completed":
-    print("done")
-elif status == "in_progress" or started or runner:
-    print("started")
-elif status == "queued":
-    print("queued")
-else:
-    print("started" if started or runner else "queued")
-' "$needle" "$jobs_json"
-          }
-
           while true; do
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
-            ts_state="$(classify_job "typescript (blacksmith primary)" "$jobs_json")"
-            go_state="$(classify_job "go (blacksmith primary)" "$jobs_json")"
+            ts_state="$(python3 .github/scripts/classify-ci-job-state.py "typescript (blacksmith primary)" "$jobs_json")"
+            go_state="$(python3 .github/scripts/classify-ci-job-state.py "go (blacksmith primary)" "$jobs_json")"
             echo "state ts=${ts_state} go=${go_state} elapsed=${SECONDS}s"
 
-            # missing == not yet visible in the jobs API; treat like queued for
-            # budget purposes so we do not early-exit before primaries appear.
             if [[ ( "$ts_state" == "queued" || "$ts_state" == "missing" ) && "$SECONDS" -ge "$STALL_BUDGET_SECONDS" ]]; then
               ts_failover=true
             fi
@@ -135,38 +108,13 @@ else:
             sleep "$POLL_SECONDS"
           done
 
-          cancel_queued_primary() {
-            local needle="$1"
-            local jobs_json="$2"
-            python3 -c '
-import json, sys, subprocess, os
-needle = sys.argv[1].lower()
-payload = json.loads(sys.argv[2])
-repo = os.environ["REPO"]
-for j in payload.get("jobs") or []:
-    name = str(j.get("name") or "").lower()
-    if needle not in name:
-        continue
-    if j.get("status") != "queued":
-        continue
-    jid = j.get("id")
-    if not jid:
-        continue
-    print(f"canceling queued primary job id={jid} name={j.get('name')}")
-    subprocess.run(
-        ["gh", "api", "-X", "POST", f"repos/{repo}/actions/jobs/{jid}/cancel"],
-        check=False,
-    )
-' "$needle" "$jobs_json"
-          }
-
           if [[ "$ts_failover" == "true" || "$go_failover" == "true" ]]; then
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
             if [[ "$ts_failover" == "true" ]]; then
-              cancel_queued_primary "typescript (blacksmith primary)" "$jobs_json"
+              python3 .github/scripts/cancel-queued-ci-primary.py "typescript (blacksmith primary)" "$jobs_json"
             fi
             if [[ "$go_failover" == "true" ]]; then
-              cancel_queued_primary "go (blacksmith primary)" "$jobs_json"
+              python3 .github/scripts/cancel-queued-ci-primary.py "go (blacksmith primary)" "$jobs_json"
             fi
           fi
 
