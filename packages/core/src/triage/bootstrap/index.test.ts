@@ -167,11 +167,48 @@ describe("stepPopulateCache", () => {
     expect(outcome.message).toContain("succeeded=1");
   });
 
-  it("defers when cache module missing", async () => {
+  it("defers only when cache module explicitly disabled", async () => {
     const root = makeRoot();
-    const outcome = await stepPopulateCache(root, "deftai/directive", { deftRoot: root });
+    const outcome = await stepPopulateCache(root, "deftai/directive", {
+      cacheModule: null,
+      deftRoot: root,
+    });
     expect(outcome.ok).toBe(true);
-    expect(outcome.details.deferred).toBe("cache-module-missing");
+    expect(outcome.details.deferred).toBe("cache-module-disabled");
+    expect(String(outcome.message)).not.toContain("scripts/cache.py");
+    expect(String(outcome.message)).not.toContain("rebase");
+  });
+
+  it("defaults to TypeScript cacheFetchAll without scripts/cache.py (#2684)", async () => {
+    const root = makeRoot();
+    const seen: Array<Record<string, unknown>> = [];
+    const { bootstrapCacheModule } = await import("./cache-module.js");
+    const cacheModule = bootstrapCacheModule((options) => {
+      seen.push({ ...options });
+      return {
+        issuesWritten: 2,
+        issuesFailed: 0,
+        alreadyFresh: 1,
+        summaryLine: (source: string, repo: string) =>
+          `cache:fetch-all source=${source} repo=${repo} succeeded=2 failed=0 skipped=1`,
+      } as ReturnType<typeof import("../../cache/fetch.js").cacheFetchAll>;
+    });
+    const outcome = await stepPopulateCache(root, "deftai/directive", {
+      cacheModule,
+      state: "open",
+      limit: 10,
+      labels: ["bug"],
+      author: "alice",
+    });
+    expect(outcome.ok).toBe(true);
+    expect(outcome.details.deferred).toBeUndefined();
+    expect(outcome.message).toContain("succeeded=2");
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.force).toBe(true);
+    expect(seen[0]?.state).toBe("open");
+    expect(seen[0]?.limit).toBe(10);
+    expect(seen[0]?.labels).toEqual(["bug"]);
+    expect(seen[0]?.author).toBe("alice");
   });
 });
 

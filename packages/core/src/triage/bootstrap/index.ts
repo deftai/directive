@@ -1,11 +1,10 @@
-import { execFile, execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { promisify } from "node:util";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
-import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
+import { loadDefaultCacheModule } from "./cache-module.js";
 import {
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
@@ -22,6 +21,7 @@ import type {
 } from "./types.js";
 import { PROGRESS_DEFAULT } from "./types.js";
 
+export * from "./cache-module.js";
 export * from "./gitignore.js";
 export * from "./types.js";
 
@@ -40,8 +40,6 @@ const GIT_ORIGIN_RE =
 const REPO_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 const RUNNER_UNSET = Symbol("runner-unset");
-
-const execFileAsync = promisify(execFile);
 
 function defaultWhich(name: string): string | null {
   const locator = process.platform === "win32" ? "where" : "which";
@@ -156,91 +154,6 @@ export async function runWithTimeout<T>(
   };
 }
 
-function resolveDeftRoot(explicit?: string): string {
-  if (explicit !== undefined && explicit.length > 0) return resolve(explicit);
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(process.cwd());
-}
-
-function cacheModulePresent(deftRoot: string): boolean {
-  return existsSync(join(deftRoot, "scripts", "cache.py"));
-}
-
-async function invokePythonCacheFetchAll(
-  deftRoot: string,
-  kwargs: CacheFetchAllKwargs,
-): Promise<FetchAllReport> {
-  const payload = JSON.stringify({
-    source: kwargs.source,
-    repo: kwargs.repo,
-    cache_root: kwargs.cacheRoot,
-    batch_size: kwargs.batchSize ?? null,
-    delay_ms: kwargs.delayMs ?? null,
-    state: kwargs.state ?? null,
-    limit: kwargs.limit ?? null,
-    labels: kwargs.labels ?? null,
-    author: kwargs.author ?? null,
-  });
-  const script = `
-import json, sys
-sys.path.insert(0, ${JSON.stringify(join(deftRoot, "scripts"))})
-from cache import cache_fetch_all
-raw = json.loads(sys.argv[1])
-kwargs = {
-    "source": raw["source"],
-    "repo": raw["repo"],
-    "cache_root": raw["cache_root"],
-}
-for key in ("batch_size", "delay_ms", "state", "limit", "author"):
-    if raw[key] is not None:
-        kwargs[key] = raw[key]
-if raw["labels"]:
-    kwargs["labels"] = tuple(raw["labels"])
-report = cache_fetch_all(**kwargs)
-out = {
-    "succeeded": getattr(report, "succeeded", None),
-    "failed": getattr(report, "failed", None),
-    "skipped": getattr(report, "skipped", None),
-}
-summary_line = getattr(report, "summary_line", None)
-if callable(summary_line):
-    try:
-        out["summary_message"] = summary_line(source=raw["source"], repo=raw["repo"])
-    except TypeError:
-        pass
-print(json.dumps(out))
-`;
-  const { stdout } = await execFileAsync("uv", ["run", "python", "-c", script, payload], {
-    cwd: deftRoot,
-    encoding: "utf8",
-    maxBuffer: SUBPROCESS_MAX_BUFFER,
-  });
-  const parsed = JSON.parse(String(stdout).trim()) as {
-    succeeded?: number | null;
-    failed?: number | null;
-    skipped?: number | null;
-    summary_message?: string;
-  };
-  const summaryMessage = parsed.summary_message;
-  return {
-    succeeded: parsed.succeeded,
-    failed: parsed.failed,
-    skipped: parsed.skipped,
-    summaryLine: typeof summaryMessage === "string" ? () => summaryMessage : null,
-  };
-}
-
-function loadDefaultCacheModule(deftRoot: string): CacheModule | null {
-  if (!cacheModulePresent(deftRoot)) return null;
-  return {
-    cacheFetchAll(kwargs: CacheFetchAllKwargs): Promise<FetchAllReport> {
-      return invokePythonCacheFetchAll(deftRoot, kwargs);
-    },
-  };
-}
-
 function nowIsoDefault(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
@@ -294,14 +207,16 @@ export async function stepPopulateCache(
     );
   }
 
-  const deftRoot = resolveDeftRoot(options.deftRoot);
-  const cacheMod = options.cacheModule ?? loadDefaultCacheModule(deftRoot);
+  // #2684: default is TypeScript cacheFetchAll — never gate on scripts/cache.py.
+  // Explicit null still skips populate (tests / callers that inject empty cache).
+  const cacheMod =
+    options.cacheModule !== undefined ? options.cacheModule : loadDefaultCacheModule();
   if (cacheMod === null) {
     return stepOutcome(
       "populate_cache",
       true,
-      "deferred (scripts/cache.py not present on this branch; re-run after rebase to populate via task cache:fetch-all)",
-      { deferred: "cache-module-missing", repo: effectiveRepo },
+      "deferred (cache module explicitly disabled; pass a cacheModule or omit the override to populate via cache:fetch-all)",
+      { deferred: "cache-module-disabled", repo: effectiveRepo },
     );
   }
 
