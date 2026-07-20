@@ -110,6 +110,11 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
 
   it("does not prompt when already current", () => {
     const root = makeRepo();
+    writeFileSync(
+      join(root, STATE_RELATIVE_PATH),
+      JSON.stringify({ firstDetectedAt: "2026-01-01T00:00:00Z", deferralCount: 3 }),
+      "utf8",
+    );
     const result = maybeRunStalenessTickler(root, {
       env: testEnv,
       isInteractive: false,
@@ -123,6 +128,7 @@ describe("maybeRunStalenessTickler (#2488/#2489)", () => {
     });
     expect(result.prompted).toBe(false);
     expect(result.skippedReason).toBe("current");
+    expect(readFileSync(join(root, STATE_RELATIVE_PATH), "utf8").trim()).toBe("{}");
   });
 
   it("suppresses on dirty tree", () => {

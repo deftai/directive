@@ -133,7 +133,7 @@ export function shouldPromptDespiteSnooze(
   if (state.remindAfterNextRelease) {
     return false;
   }
-  return (state.deferralCount ?? 0) >= 0;
+  return true;
 }
 
 export function mergeHeldXbriefDistance(

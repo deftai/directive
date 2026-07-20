@@ -38,6 +38,7 @@ describe("probeDirectiveStaleness", () => {
 
   it("computes major/minor distance", () => {
     expect(computeDirectiveDistance("1.0.0", "2.1.3").majorBehind).toBe(true);
+    expect(computeDirectiveDistance("1.0.0", "2.1.3").minorDistance).toBe(0);
     expect(computeDirectiveDistance("1.0.0", "1.2.0").minorDistance).toBe(2);
   });
 });

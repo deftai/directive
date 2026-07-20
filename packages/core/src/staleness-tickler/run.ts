@@ -115,7 +115,12 @@ export function probeStalenessDimensions(
         stale: false,
       };
   const anyStale = directive.stale || xbrief.stale;
-  return { directive, xbrief, anyStale };
+  return {
+    directive,
+    xbrief,
+    anyStale,
+    directiveRegistryDisclosure: directiveProbe?.registryDisclosure,
+  };
 }
 
 function formatDimensionLines(probe: StalenessProbeResult): string[] {
@@ -212,10 +217,21 @@ export function maybeRunStalenessTickler(
   const state = loadStalenessTicklerState(projectRoot);
   const probe = probeStalenessDimensions(projectRoot, options);
   if (!probe.anyStale) {
+    if (
+      state.firstDetectedAt !== undefined ||
+      state.lastTier !== undefined ||
+      state.snoozedUntil !== undefined
+    ) {
+      saveStalenessTicklerState(projectRoot, {});
+    }
     return { lines: [], prompted: false, skippedReason: "current" };
   }
 
   const directiveUnverified = probe.directive.availability.status === "unverified";
+  const xbriefDistance =
+    directiveUnverified && state.heldXbriefDistance !== undefined
+      ? mergeHeldXbriefDistance(probe.xbrief.distance, state.heldXbriefDistance)
+      : probe.xbrief.distance;
   const ageMs =
     state.firstDetectedAt !== undefined
       ? Math.max(0, now.getTime() - Date.parse(state.firstDetectedAt))
@@ -224,8 +240,8 @@ export function maybeRunStalenessTickler(
     directive: probe.directive,
     xbrief: {
       ...probe.xbrief,
-      distance: mergeHeldXbriefDistance(probe.xbrief.distance, state.heldXbriefDistance),
-      stale: mergeHeldXbriefDistance(probe.xbrief.distance, state.heldXbriefDistance) !== "current",
+      distance: xbriefDistance,
+      stale: xbriefDistance !== "current",
     },
     ageMs,
     deferralCount: state.deferralCount ?? 0,
@@ -244,12 +260,8 @@ export function maybeRunStalenessTickler(
   }
 
   const lines: string[] = [];
-  const directiveProbe = probeDirectiveStaleness(projectRoot, {
-    env,
-    ...options.probeDirective,
-  });
-  if (directiveProbe?.registryDisclosure) {
-    lines.push(directiveProbe.registryDisclosure);
+  if (probe.directiveRegistryDisclosure) {
+    lines.push(probe.directiveRegistryDisclosure);
   }
   lines.push(...formatDimensionLines(probe));
   lines.push(buildPromptLine(tier, probe));

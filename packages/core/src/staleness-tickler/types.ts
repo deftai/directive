@@ -88,6 +88,7 @@ export interface StalenessProbeResult {
   readonly directive: DirectiveDrift;
   readonly xbrief: XbriefDrift;
   readonly anyStale: boolean;
+  readonly directiveRegistryDisclosure?: string;
 }
 
 export interface StalenessTicklerRunResult {

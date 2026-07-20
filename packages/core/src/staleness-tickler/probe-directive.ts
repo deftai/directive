@@ -69,8 +69,8 @@ export function computeDirectiveDistance(
   if (latest.major > installed.major) {
     return {
       majorBehind: true,
-      minorDistance: Math.max(0, latest.minor - installed.minor),
-      patchDistance: Math.max(0, latest.patch - installed.patch),
+      minorDistance: 0,
+      patchDistance: 0,
     };
   }
   if (latest.major < installed.major) {

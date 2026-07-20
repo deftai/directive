@@ -1,4 +1,5 @@
 import { readPlanPolicy } from "../policy/plan-extensions.js";
+import { validateStalenessTickler } from "../policy/staleness-tickler.js";
 import {
   validateTriageAutoClassifyOnPlan,
   validateTriageHoldMarkersOnPlan,
@@ -122,6 +123,25 @@ export function validateTriageRankingLabelsOnPlan(plan: unknown, filepath: strin
   return errors.map((err) => `${filepath}: ${err} (#1128)`);
 }
 
+/** vbrief_validate hook: validate ``plan.policy.stalenessTickler`` (#2489). */
+export function validateStalenessTicklerOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("stalenessTickler" in (policy as JsonObject))) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const err of validateStalenessTickler((policy as JsonObject).stalenessTickler)) {
+    out.push(`${filepath}: ${err} (#2489)`);
+  }
+  return out;
+}
+
 /** Run all PROJECT-DEFINITION policy hooks (mirrors lazy-import block in Python). */
 export function runProjectDefinitionHooks(plan: unknown, filepath: string): string[] {
   const errors: string[] = [];
@@ -153,6 +173,11 @@ export function runProjectDefinitionHooks(plan: unknown, filepath: string): stri
   }
   try {
     errors.push(...validateSessionRitualStalenessHoursOnPlan(plan, filepath));
+  } catch {
+    /* hook must not break validation */
+  }
+  try {
+    errors.push(...validateStalenessTicklerOnPlan(plan, filepath));
   } catch {
     /* hook must not break validation */
   }
