@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Review-cycle: Greptile CLEAN + ci_failures forces CI fix (no idle-poll)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "drive-to:merge-ready workers idle-poll when Greptile is CLEAN and clean_gate_holdout=ci_failures. Add review-cycle skill doctrine (CI annotation fetch + fix batch; checkboxes != merge-ready; review-monitor carve-out). Optionally surface failing check names in pr:watch JSON and fail-loud (CI_BLOCKED/STALL) instead of burning max-wait.",
       "Origin": "https://github.com/deftai/directive/issues/2688",
@@ -49,7 +49,7 @@
         "title": "Issue #2688: Greptile CLEAN + ci_failures idle-poll"
       }
     ],
-    "updated": "2026-07-20T19:29:22Z",
+    "updated": "2026-07-20T19:54:09Z",
     "id": "2688-review-cycle-ci-holdout",
     "metadata": {
       "kind": "story",
@@ -78,7 +78,9 @@
         "conflict_group": "2688-review-ci",
         "size": "M",
         "file_scope_confidence": "high"
-      }
+      },
+      "completedAt": "2026-07-20T19:54:09Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }

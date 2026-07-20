@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Bootstrap cache populate via TypeScript cacheFetchAll (drop scripts/cache.py gate)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "triage:bootstrap defers cache population when scripts/cache.py is absent and tells operators to rebase. npm consumers never have that Python script. Default loadDefaultCacheModule to the existing TypeScript cacheFetchAll path (same pattern as empty-populate #2575), forward bootstrap kwargs, remove the rebase defer message, update tests.",
       "Origin": "https://github.com/deftai/directive/issues/2684",
@@ -51,7 +51,7 @@
         "title": "Issue #2684: bootstrap recovery references removed scripts/cache.py"
       }
     ],
-    "updated": "2026-07-20T19:25:16Z",
+    "updated": "2026-07-20T19:54:15Z",
     "id": "2684-bootstrap-ts-cache",
     "metadata": {
       "kind": "story",
@@ -79,7 +79,9 @@
         "conflict_group": "2684-bootstrap-cache",
         "size": "S",
         "file_scope_confidence": "high"
-      }
+      },
+      "completedAt": "2026-07-20T19:54:15Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
