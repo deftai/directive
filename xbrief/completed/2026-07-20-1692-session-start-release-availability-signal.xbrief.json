@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(session): show a throttled newer-release advisory at mutable session start",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add a bounded npm release-availability probe to mutable session:start. The probe is separate from doctor so bare doctor and the gated ritual doctor remain offline by default (#2182). It discloses registry access, skips DEFT_NO_NETWORK=1, framework repositories, non-release refs, and read-only session starts, and persists a 24-hour once-per-version notification throttle.",
       "Origin": "Remaining implementation slice of https://github.com/deftai/directive/issues/1692",
@@ -41,6 +41,10 @@
         "title": "Follow-up tickler UI (out of scope)"
       }
     ],
-    "updated": "2026-07-20T20:28:46Z"
+    "updated": "2026-07-20T22:08:18Z",
+    "metadata": {
+      "completedAt": "2026-07-20T22:08:18Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

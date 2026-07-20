@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "CI: Blacksmith primary + timed GH-hosted failover on runner capacity stall",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "CI: Blacksmith primary + timed GH-hosted failover on runner capacity stall",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2672",
@@ -51,6 +51,10 @@
         "title": "Issue #2672: CI: Blacksmith primary + timed GH-hosted failover on runner capacity stall"
       }
     ],
-    "updated": "2026-07-20T20:36:49Z"
+    "updated": "2026-07-20T22:08:49Z",
+    "metadata": {
+      "completedAt": "2026-07-20T22:08:49Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

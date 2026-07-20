@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(release): Phase 1 long steps foreground-block the operator chat (#1880 Gap D)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Pin #1880 Gap D onto deft-directive-release Phase 1 long prep and Phase 3 release:e2e so the operator chat stays interactive during release cuts.",
       "Origin": "https://github.com/deftai/directive/issues/2692",
@@ -41,8 +41,9 @@
     ],
     "metadata": {
       "kind": "story",
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-20T22:08:50Z"
     },
-    "updated": "2026-07-20T20:27:30Z"
+    "updated": "2026-07-20T22:08:50Z"
   }
 }
