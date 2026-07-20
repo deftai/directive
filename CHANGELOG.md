@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor Write/StrReplace hooks infer tool identity from more payload shapes (#2669).** `hookToolName` now recognizes OpenAI-style `arguments`, `tool_call.name`, and object `tool.name` nestings that still returned `null` on 0.79.3; empty stdin, invalid JSON, and unknown-shape denies emit distinct host-integration messages, with top-level payload keys logged on Cursor `invalid-input`. Closes #2669.
+
 ### Removed
 
 ## [0.79.3] - 2026-07-20
