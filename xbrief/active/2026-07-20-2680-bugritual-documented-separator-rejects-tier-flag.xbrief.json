@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2680"
+  },
+  "plan": {
+    "title": "Accept documented -- separator in verify:session-ritual",
+    "status": "completed",
+    "narratives": {
+      "Description": "Documented form `deft verify:session-ritual -- --tier=gated` fails with unrecognized argument: -- while the direct flag form works. Task strips -- so task invocations pass. Always-loaded AGENTS/commands/hook copy prescribe the separator form for deft as well. This story closes GitHub issue #2680 with a narrowly scoped CLI parse fix and regression coverage.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2680",
+      "Overview": "## Reproduction\n\nOn macOS with `@deftai/directive` engine `0.79.3`:\n\n```sh\ndeft verify:session-ritual -- --tier=gated\n```\n\nResult:\n\n```text\nverify_session_ritual: unrecognized argument: --\n```\n\nThe direct option form succeeds:\n\n```sh\ndeft verify:session-ritual --tier=gated\n```\n\n```text\nOK session ritual gated tier is fresh.\n```\n\n## Expected\n\nEither the documented task-style separator form should be accepted, or the managed `AGENTS.md` / command documentation should prescribe the direct CLI syntax.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-20T15:19:55Z)\n\n## Triage analysis (accuracy)\n\n**Verdict: confirmed accurate.**\n\n### Reproduced (local `packages/cli/dist/bin.js` + docs on master)\n\n| Invocation | Result |\n| --- | --- |\n| `deft verify:session-ritual -- --tier=gated` | `verify_session_ritual: unrecognized argument: --` |\n| `deft verify:session-ritual --tier=gated` | accepted (flag parsed) |\n| `task verify:session-ritual -- --tier=gated` | accepted (`task` strips `--` before `CLI_ARGS`) |\n\n### Why docs look \"wrong\" but aren't accidental\n\nAlways-loaded surfaces prescribe the separator form for **both** `task` and `deft`:\n\n- `AGENTS.md` / `content/templates/agents-entry.md`: `deft verify:session-ritual -- --tier=gated`\n- `content/commands.md` pre-`start_agent` stack\n- Hook deny copy in `packages/core/src/hooks/dispatcher.ts` (and its test) embeds the same string\n\n`packages/cli/src/verify-session-ritual.ts` `parseArgs` has no `arg === \"--\"` skip, so a lone `--` falls through to `unrecognized argument`.\n\n### Preferred fix\n\nAccept and skip a lone `--` in `parseArgs` (and any sibling ritual parsers that share the documented form). Keep documenting the separator form so `task … -- --tier=gated` and `deft … -- --tier=gated` stay interchangeable. Add a regression test that `verify-session-ritual -- --tier=gated` exits the same path as without the separator.\n\n**Cohort:** folding into `bugs-2662-2671` swarm as an additive leaf.",
+      "Labels": "bug, adoption-blocker, agent-experience, area:cli",
+      "ImplementationPlan": "1. Edit packages/cli/src/verify-session-ritual.ts parseArgs to skip a lone -- separator (continue). 2. Add a unit/integration test file asserting `-- --tier=gated` parses the same as `--tier=gated`. 3. Verify with task check filter session-ritual and note #2680 in CHANGELOG.",
+      "UserStory": "As a directive agent following AGENTS.md, I want `deft verify:session-ritual -- --tier=gated` to be accepted, so that documented ritual commands do not fail closed on a bare separator."
+    },
+    "items": [
+      {
+        "title": "AC1",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "parseArgs skips a lone -- and returns tier=gated for argv [--, --tier=gated] the same as [--tier=gated]."
+        }
+      },
+      {
+        "title": "AC2",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Running deft verify:session-ritual -- --tier=gated no longer emits unrecognized argument: -- and fails closed only on real ritual-state problems."
+        }
+      },
+      {
+        "title": "AC3",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CHANGELOG Unreleased records the separator acceptance for issue 2680."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2680",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2680: bug(ritual): documented -- separator rejects --tier flag"
+      }
+    ],
+    "updated": "2026-07-20T15:17:38Z",
+    "id": "2680-session-ritual-double-dash",
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2680"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/verify-session-ritual.ts",
+          "packages/cli/src/gates-cli/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive test -- session-ritual"
+        ],
+        "expected_outputs": [
+          "lone -- accepted in parseArgs",
+          "regression test for -- --tier=gated",
+          "CHANGELOG notes #2680"
+        ],
+        "depends_on": [],
+        "conflict_group": "2680-ritual-double-dash",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf",
+        "missing_traces_justification": "Bug-fix from GitHub issue #2680; no FR trace registry for hotfix cohort."
+      }
+    }
+  }
+}
