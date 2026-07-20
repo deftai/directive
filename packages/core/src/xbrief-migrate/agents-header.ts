@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertProjectionContained } from "../fs/projection-containment.js";
 import { iterManagedSections } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "./constants.js";
 import { isDirectory } from "./fs-helpers.js";
@@ -15,6 +16,13 @@ import { isDirectory } from "./fs-helpers.js";
  * uses a colon, `vbrief/` requires a slash), so replacement order does not
  * change the result and a second pass is a guaranteed no-op (idempotent).
  */
+/** Refuse migrate header writes that escape via repo-controlled symlinks (#2668). */
+function projectionTarget(projectDir: string, ...relSegments: string[]): string {
+  const target = join(projectDir, ...relSegments);
+  assertProjectionContained(projectDir, target);
+  return target;
+}
+
 export const LEGACY_HEADER_TOKENS: ReadonlyArray<{
   readonly legacy: string;
   readonly migrated: string;
@@ -130,6 +138,7 @@ export function patchAgentsMdHeader(
     });
   const writeText =
     seams.writeText ?? ((path: string, text: string) => writeFileSync(path, text, "utf8"));
+  const usingWriteSeam = seams.writeText !== undefined;
 
   const existing = readText(agentsPath);
   if (existing === null) {
@@ -142,7 +151,8 @@ export function patchAgentsMdHeader(
   }
 
   try {
-    writeText(agentsPath, result.content);
+    const writePath = usingWriteSeam ? agentsPath : projectionTarget(projectRoot, "AGENTS.md");
+    writeText(writePath, result.content);
   } catch (err) {
     return {
       kind: "failed",

@@ -1,7 +1,9 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as projectionContainment from "../fs/projection-containment.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   detectStaleUnmanagedHeader,
   patchAgentsMdHeader,
@@ -39,6 +41,7 @@ const STALE_HEADER = [
 ].join("\n");
 
 const temps: string[] = [];
+const itSymlink = it.skipIf(process.platform === "win32");
 afterEach(() => {
   for (const dir of temps.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
@@ -149,6 +152,44 @@ describe("patchAgentsMdHeader", () => {
     expect(outcome.error).toContain("EACCES");
     expect(renderHeaderPatchSummary(outcome)).toContain("patch failed");
     expect(renderHeaderPatchSummary(outcome)).toContain("migrate:xbrief");
+  });
+
+  itSymlink("refuses patch when AGENTS.md is a symlink outside the project (#2668)", () => {
+    const root = mkdtempSync(join(tmpdir(), "header-patch-symlink-"));
+    temps.push(root);
+    const escapeDir = mkdtempSync(join(tmpdir(), "header-patch-escape-"));
+    temps.push(escapeDir);
+    const escapeFile = join(escapeDir, "stolen-agents.md");
+    writeFileSync(escapeFile, STALE_HEADER, "utf8");
+    symlinkSync(escapeFile, join(root, "AGENTS.md"));
+
+    const outcome = patchAgentsMdHeader(root);
+    expect(outcome.kind).toBe("failed");
+    expect(outcome.error).toMatch(/projection write refused|symlink escaping/);
+    expect(readFileSync(escapeFile, "utf8")).toBe(STALE_HEADER);
+  });
+
+  it("refuses patch when AGENTS.md fails projection containment (#2668)", () => {
+    const root = mkdtempSync(join(tmpdir(), "header-patch-contain-"));
+    temps.push(root);
+    writeFileSync(join(root, "AGENTS.md"), "see vbrief/ here\n", "utf8");
+    const spy = vi
+      .spyOn(projectionContainment, "assertProjectionContained")
+      .mockImplementation(() => {
+        throw new ProjectionContainmentError("projection write refused: mock symlink escape", {
+          projectDir: root,
+          targetPath: join(root, "AGENTS.md"),
+          offendingPath: join(tmpdir(), "escape"),
+        });
+      });
+    try {
+      const outcome = patchAgentsMdHeader(root);
+      expect(outcome.kind).toBe("failed");
+      expect(outcome.error).toMatch(/projection write refused/);
+      expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe("see vbrief/ here\n");
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

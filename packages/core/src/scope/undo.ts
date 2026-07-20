@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { REVERSIBLE_ACTIONS, TERMINAL_ACTIONS } from "./constants.js";
@@ -197,6 +198,7 @@ function moveAndFlip(
   destFolder: string,
   newStatus: string,
   timestamp: string,
+  projectRoot: string,
 ): [boolean, string, string | null] {
   if (!existsSync(srcFile)) {
     return [false, `File not found: ${srcFile}`, null];
@@ -210,6 +212,14 @@ function moveAndFlip(
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return [false, `Missing or invalid 'plan' object in ${srcFile}`, null];
+  }
+  try {
+    assertWriteTargetSafe(projectRoot, srcFile);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      return [false, err.message, null];
+    }
+    throw err;
   }
   const planObj = plan as Record<string, unknown>;
   planObj.status = newStatus;
@@ -329,7 +339,13 @@ export function undoOne(
     return { ok: true, message: msg, auditEntry: preview };
   }
 
-  const [ok, fsMsg, destPath] = moveAndFlip(srcPath, destFolderPath, plan.newStatus, timestamp);
+  const [ok, fsMsg, destPath] = moveAndFlip(
+    srcPath,
+    destFolderPath,
+    plan.newStatus,
+    timestamp,
+    projectRoot,
+  );
   if (!ok || destPath === null) {
     return { ok: false, message: fsMsg, auditEntry: null };
   }

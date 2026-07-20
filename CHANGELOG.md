@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`scope:undo` and `migrate:xbrief` AGENTS.md header patch refuse symlink escape writes (#2668).** `scope:undo` now calls `assertWriteTargetSafe` before lifecycle xBRIEF writes (parity with `scope:demote`); the migrate header patch resolves `AGENTS.md` via projection containment before write (parity with init-deposit `writeAgentsMd`). Closes #2668.
+
 ### Removed
 
 ## [0.79.3] - 2026-07-20

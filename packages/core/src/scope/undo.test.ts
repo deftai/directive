@@ -1,11 +1,23 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as projectionContainment from "../fs/projection-containment.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { demoteOne } from "./demote.js";
 import { findByBatchId, undoBatch, undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 describe("undo", () => {
   let root: string;
@@ -146,5 +158,95 @@ describe("undo", () => {
     const second = undoOne(entry, root, { logPath, logEntries: logAfter });
     expect(second.ok).toBe(true);
     expect(second.message).toContain("already undone");
+  });
+
+  itSymlink("refuses undo when proposed xBRIEF is a symlink outside the project (#2668)", () => {
+    root = mkdtempSync(join(tmpdir(), "undo-symlink-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const escapeDir = mkdtempSync(join(tmpdir(), "undo-symlink-escape-"));
+    const victim = join(escapeDir, "victim.xbrief.json");
+    writeFileSync(
+      victim,
+      formatVbriefJson({
+        plan: { title: "T", status: "proposed", updated: "2026-05-01T00:00:00Z", items: [] },
+      }),
+      "utf8",
+    );
+    symlinkSync(victim, join(root, "xbrief", "proposed", "x.xbrief.json"));
+
+    const pending = join(root, "xbrief", "pending", "x.xbrief.json");
+    writeFileSync(
+      pending,
+      formatVbriefJson({
+        plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
+      }),
+      "utf8",
+    );
+    const demote = demoteOne(pending, root, "test");
+    expect(demote.ok).toBe(true);
+    const entry = demote.auditEntry as Record<string, unknown>;
+    const undo = undoOne(entry, root);
+    expect(undo.ok).toBe(false);
+    expect(undo.message).toMatch(/projection write refused|symlink/);
+    expect(JSON.parse(readFileSync(victim, "utf8"))).toMatchObject({
+      plan: { status: "proposed" },
+    });
+    rmSync(escapeDir, { recursive: true, force: true });
+  });
+
+  it("refuses undo when write target fails containment check (#2668)", () => {
+    root = mkdtempSync(join(tmpdir(), "undo-contain-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const pending = join(root, "xbrief", "pending", "x.xbrief.json");
+    writeFileSync(
+      pending,
+      formatVbriefJson({
+        plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
+      }),
+      "utf8",
+    );
+    const demote = demoteOne(pending, root, "test");
+    expect(demote.ok).toBe(true);
+    const entry = demote.auditEntry as Record<string, unknown>;
+    const spy = vi.spyOn(projectionContainment, "assertWriteTargetSafe").mockImplementation(() => {
+      throw new ProjectionContainmentError("projection write refused: mock symlink escape", {
+        projectDir: root,
+        targetPath: join(root, "xbrief", "proposed", "x.xbrief.json"),
+        offendingPath: join(tmpdir(), "escape"),
+      });
+    });
+    try {
+      const undo = undoOne(entry, root);
+      expect(undo.ok).toBe(false);
+      expect(undo.message).toMatch(/projection write refused/);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("rethrows unexpected containment helper failures (#2668)", () => {
+    root = mkdtempSync(join(tmpdir(), "undo-contain-throw-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const pending = join(root, "xbrief", "pending", "x.xbrief.json");
+    writeFileSync(
+      pending,
+      formatVbriefJson({
+        plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
+      }),
+      "utf8",
+    );
+    const demote = demoteOne(pending, root, "test");
+    const entry = demote.auditEntry as Record<string, unknown>;
+    const spy = vi.spyOn(projectionContainment, "assertWriteTargetSafe").mockImplementation(() => {
+      throw new Error("unexpected containment failure");
+    });
+    try {
+      expect(() => undoOne(entry, root)).toThrow(/unexpected containment failure/);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
