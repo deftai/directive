@@ -9,7 +9,11 @@ import {
   reviewMonitorPath,
 } from "./record.js";
 import { probeMonitoringTier } from "./tier-detection.js";
-import { evaluateReviewMonitorGate, hasActivePollingHeartbeat } from "./verify.js";
+import {
+  evaluateReviewMonitorGate,
+  hasActivePollingHeartbeat,
+  verifyResultToJson,
+} from "./verify.js";
 
 describe("probeMonitoringTier", () => {
   it("detects Cursor composer as Tier 1 cursor-task", () => {
@@ -99,6 +103,102 @@ describe("evaluateReviewMonitorGate", () => {
       environ: {},
     });
     expect(result.exitCode).toBe(0);
+  });
+
+  it("rejects Approach 3 on Tier 3 without warning ack", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-a3warn-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 1,
+      projectRoot: root,
+      approach3: true,
+      approach3Warned: false,
+      environ: {},
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("approach3-warned");
+  });
+
+  it("exits config error for missing project root", () => {
+    const result = evaluateReviewMonitorGate({
+      pr: 1,
+      projectRoot: join(tmpdir(), "rm-missing-root-does-not-exist"),
+      environ: {},
+    });
+    expect(result.exitCode).toBe(2);
+  });
+
+  it("serializes verifyResultToJson", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-json-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 3,
+      projectRoot: root,
+      environ: {},
+    });
+    const json = verifyResultToJson(result);
+    expect(json.ready).toBe(true);
+    expect(json.exit_code).toBe(0);
+    expect(json.tier).toBe(3);
+  });
+
+  it("fails when monitor head_sha mismatches", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-sha-"));
+    registerReviewMonitor({
+      pr: 8,
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-8",
+      projectRoot: root,
+      headSha: "aaaa",
+    });
+    const result = evaluateReviewMonitorGate({
+      pr: 8,
+      projectRoot: root,
+      headSha: "bbbb",
+      environ: { CURSOR_COMPOSER: "1" },
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
+  it("exits config error when review-monitor file is corrupt", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-corrupt-"));
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "review-monitor.json"), "{bad", "utf8");
+    const result = evaluateReviewMonitorGate({
+      pr: 1,
+      projectRoot: root,
+      environ: { CURSOR_COMPOSER: "1" },
+    });
+    expect(result.exitCode).toBe(2);
+  });
+
+  it("includes solo call-site hint when failing closed", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-solo-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 2,
+      projectRoot: root,
+      callSite: "solo",
+      environ: { CURSOR_COMPOSER: "1" },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("Solo drive-to");
+  });
+
+  it("Tier 2 does not require a monitor record", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-t2-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 3,
+      projectRoot: root,
+      environ: { DEFT_MONITOR_TIER2: "1" },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("Tier 2");
+  });
+
+  it("hasActivePollingHeartbeat ignores missing or non-dir status paths", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-hb-miss-"));
+    expect(hasActivePollingHeartbeat(root, 1)).toBe(false);
+    mkdirSync(join(root, ".deft-scratch"), { recursive: true });
+    writeFileSync(join(root, ".deft-scratch", "subagent-status"), "not-a-dir", "utf8");
+    expect(hasActivePollingHeartbeat(root, 1)).toBe(false);
   });
 
   it("accepts active polling heartbeat as monitor evidence", () => {
