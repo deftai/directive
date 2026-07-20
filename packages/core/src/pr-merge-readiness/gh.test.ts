@@ -120,7 +120,15 @@ describe("fetchCheckRunsRest", () => {
       stderr: "",
     });
     const result = fetchCheckRunsRest("sha", "deftai/directive", runGh);
-    expect(result.checkRuns).toEqual([{ name: "CI", status: "completed", conclusion: "success" }]);
+    expect(result.checkRuns).toEqual([
+      {
+        name: "CI",
+        status: "completed",
+        conclusion: "success",
+        created_at: null,
+        started_at: null,
+      },
+    ]);
   });
 
   it("fails on missing check_runs list", () => {
