@@ -119,7 +119,9 @@ describe("verify-tools branches", () => {
     expect(defaultRun(["definitely-missing-binary-xyz"]).returncode).toBe(1);
   });
 
-  it("covers install path using defaultRun when installer fails", () => {
+  it("covers install path when installer fails (#2666 CI flake)", () => {
+    // Inject a failing runFn so Linux CI never shells out to a real apt-get install
+    // (defaultRun coverage is already exercised by the prior test).
     const result = verifyRequiredTools({
       install: true,
       assumeYes: true,
@@ -127,6 +129,7 @@ describe("verify-tools branches", () => {
       platformId: "linux",
       probe: (c) =>
         ["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null,
+      runFn: () => ({ returncode: 1, stdout: "", stderr: "install failed" }),
     });
     expect(result.exitCode).toBe(1);
   });
