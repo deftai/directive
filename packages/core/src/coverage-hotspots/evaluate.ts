@@ -1,7 +1,6 @@
 import * as childProcess from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { fnmatchCase } from "../encoding/text.js";
 import {
   type CoverageMetric,
   type CoverageTotals,
@@ -177,7 +176,8 @@ function normalizeReportPath(
 
 function pathMatchesFilter(relPath: string, filters: readonly string[]): boolean {
   if (filters.length === 0) return true;
-  return filters.some((pattern) => relPath.includes(pattern) || fnmatchCase(relPath, pattern));
+  // Substring only — do not feed CLI/argv filters into RegExp (CodeQL js/regex-injection).
+  return filters.some((pattern) => relPath.includes(pattern));
 }
 
 function collectUncoveredBranches(

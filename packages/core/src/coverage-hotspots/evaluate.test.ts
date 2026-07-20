@@ -349,7 +349,7 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.report?.lowestModules.some((mod) => mod.path === "src/empty.ts")).toBe(true);
   });
 
-  it("matches path filters by substring and fnmatch patterns", () => {
+  it("matches path filters by substring only (no regex/glob from CLI)", () => {
     const root = makeProject({
       "coverage/coverage-final.json": JSON.stringify({
         "src/feature/a.ts": {
@@ -374,7 +374,7 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.report?.uncoveredBranches[0]?.path).toBe("src/feature/a.ts");
   });
 
-  it("matches fnmatch path filters when substring does not apply", () => {
+  it("treats glob metacharacters in path filters as literal substrings", () => {
     const root = makeProject({
       "coverage/coverage-final.json": JSON.stringify({
         "src/feature/a.ts": {
@@ -394,8 +394,8 @@ describe("evaluateCoverageHotspots", () => {
       useDiffPaths: false,
       pathFilter: ["src/feature/*.ts"],
     });
-    expect(result.report?.uncoveredBranches).toHaveLength(1);
-    expect(result.report?.uncoveredBranches[0]?.path).toBe("src/feature/a.ts");
+    // Literal substring — no RegExp from argv (CodeQL js/regex-injection).
+    expect(result.report?.uncoveredBranches).toHaveLength(0);
   });
 
   it("reports both floor and headroom failures together", () => {
