@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task verify:review-monitor` fail-closed gate when Tier 1 is available (#2655).** Requires a recorded active review-monitor (`.deft/review-monitor.json` or live subagent heartbeat) before a parent may yield, Approach-3 sleep-poll, or claim review ownership; companion `task review-monitor:register`. Three-state exit 0/1/2. Review-cycle + swarm skills name the gate. Closes #2655, #380, #1386.
+
 ### Changed
 
 - **CI TypeScript and Go jobs run on GitHub-hosted `ubuntu-latest`.** Required `CI` had been stuck `queued` for hours on Blacksmith `blacksmith-4vcpu-ubuntu-2404` with nothing `in_progress`; Windows already used `windows-latest`. Unblocks PR CI when Blacksmith capacity stalls.

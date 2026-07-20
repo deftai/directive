@@ -436,3 +436,13 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'verify:agents-md-advisory --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  review-monitor:
+    desc: "Fail-closed review-monitor gate (#2655): when Tier 1 sub-agent primitive is available, require a recorded active review-monitor before yield / Approach 3 / review ownership. Three-state exit (0 ready / 1 not ready / 2 config error)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-review-monitor {{.CLI_ARGS}}'

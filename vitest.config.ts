@@ -130,6 +130,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/legacy-bridge": sub("core", "legacy-bridge"),
   "@deftai/directive-core/lifecycle": sub("core", "lifecycle"),
   "@deftai/directive-core/orchestration": sub("core", "orchestration"),
+  "@deftai/directive-core/review-monitor": sub("core", "review-monitor"),
   "@deftai/directive-core/packs": sub("core", "packs"),
   "@deftai/directive-core/swarm": sub("core", "swarm"),
   "@deftai/directive-core/platform": sub("core", "platform"),

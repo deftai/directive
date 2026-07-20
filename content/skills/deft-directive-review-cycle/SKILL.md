@@ -226,6 +226,8 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
+! **Deterministic review-monitor gate (#2655):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, register with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task`. Exit `0` ready / `1` not ready / `2` config. Approach 3 on Tier 1 is a gate failure — use `--approach3 --approach3-warned` only on Tier 3 after the user warning.
+
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 
 ! **Background dispatch (#1880):** Spawn the review-monitor sub-agent via the matching primitive IN THE BACKGROUND (Cursor: Task `run_in_background: true`; Grok Build: `spawn_subagent` with parent yielding). The parent MUST remain interactive while the poller runs.

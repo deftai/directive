@@ -1,0 +1,15 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  register:
+    desc: "Record an active Approach 1 review-monitor after spawn (#2655). Writes .deft/review-monitor.json at the main worktree root."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'review-monitor-register {{.CLI_ARGS}}'
