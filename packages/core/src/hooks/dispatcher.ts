@@ -323,11 +323,16 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
 
   const toolName = hookToolName(input.payload, input.host);
   if (toolName === null) {
-    return deny(input, "invalid-input", null, missingToolNameMessage({
-      host: input.host,
-      payload: input.payload,
-      context: input.payloadContext,
-    }));
+    return deny(
+      input,
+      "invalid-input",
+      null,
+      missingToolNameMessage({
+        host: input.host,
+        payload: input.payload,
+        context: input.payloadContext,
+      }),
+    );
   }
   if (!isDirectWriteTool(toolName)) {
     return {
