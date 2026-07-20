@@ -146,7 +146,8 @@ describe("coverage boost", () => {
   });
 
   it("classifyMonitorOutcome handles cap-reached and merged-by-sibling", () => {
-    expect(classifyMonitorOutcome(1, {})[0]).toBe("cap-reached");
+    expect(classifyMonitorOutcome(1, { monitor_result: "CAP-REACHED" })[0]).toBe("cap-reached");
+    expect(classifyMonitorOutcome(1, {})[0]).toBe("config-error");
     expect(classifyMonitorOutcome(2, {})[0]).toBe("config-error");
     expect(classifyMonitorOutcome(3, { readiness: { partial_data: { merged: true } } })[0]).toBe(
       "merged-by-sibling",

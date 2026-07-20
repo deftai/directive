@@ -160,6 +160,37 @@ describe("waitMergeableAndMerge", () => {
     expect(result.monitorResult.monitor_result).toBe("CAP-REACHED");
   });
 
+  it("monitor MODULE_NOT_FOUND exit 1 is config-error not cap-reached (#2673)", () => {
+    const mergeFn = makeMergeFn(0);
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      protectedFn: makeProtectedFn(0),
+      monitorFn: makeMonitorFn(1, null, "Error: Cannot find module '/tmp/missing/pr-monitor.js'"),
+      mergeFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("config-error");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect(result.error).toContain("Cannot find module");
+  });
+
+  it("missing monitor script rc 2 is config-error (#2673)", () => {
+    const mergeFn = makeMergeFn(0);
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      protectedFn: makeProtectedFn(0),
+      monitorFn: makeMonitorFn(2, null, "monitor script not found: /tmp/missing/pr-monitor.js"),
+      mergeFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("config-error");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+  });
+
   it("pr closed without merge exits one", () => {
     const mergeFn = makeMergeFn(0);
     const result = waitMergeableAndMerge(1370, "deftai/directive", {
@@ -173,6 +204,74 @@ describe("waitMergeableAndMerge", () => {
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
     expect(result.outcome).toBe("pr-closed");
     expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+  });
+
+  it("module-not-found on protected check is config error not protected-linked (#2667)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload());
+    const mergeFn = makeMergeFn(0);
+    const protectedFn = makeProtectedFn(
+      1,
+      "",
+      "Error: Cannot find module '/tmp/missing/pr-protected-issues.js'",
+    );
+
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [1119],
+      protectedFn,
+      monitorFn,
+      mergeFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("config-error");
+    expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect(result.error).toContain("protected-issue check exited 1");
+  });
+
+  it("MODULE_NOT_FOUND stderr with exit 1 is config error (#2667)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload());
+    const mergeFn = makeMergeFn(0);
+    const protectedFn = makeProtectedFn(
+      1,
+      "",
+      "node:internal/modules/cjs/loader:1143\n  throw err;\n  ^\n\nError: Cannot find module",
+    );
+
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [1119],
+      protectedFn,
+      monitorFn,
+      mergeFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("config-error");
+    expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
+  });
+
+  it("missing protected script rc 2 is config error (#2667)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload());
+    const mergeFn = makeMergeFn(0);
+    const protectedFn = makeProtectedFn(
+      2,
+      "",
+      "protected-check script not found: /tmp/missing/pr-protected-issues.js",
+    );
+
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [1119],
+      protectedFn,
+      monitorFn,
+      mergeFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("config-error");
+    expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
   });
 
   it("protected link exits one before monitor or merge", () => {
