@@ -99,6 +99,20 @@ describe("xbrief consumer projections (#2595)", () => {
     );
   });
 
+  it("self-check runs after obsolete vbrief-core.schema.json is removed", () => {
+    const { project, deftDir } = fixture();
+    const consumerSchemas = join(project, "xbrief", "schemas");
+    mkdirSync(consumerSchemas, { recursive: true });
+    writeFileSync(
+      join(consumerSchemas, "vbrief-core.schema.json"),
+      '{"description":"legacy vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+
+    expect(syncConsumerXbriefSchemas(project, deftDir)).toBe(true);
+    expect(existsSync(join(consumerSchemas, "vbrief-core.schema.json"))).toBe(false);
+  });
+
   it("repairs a stale lifecycle version marker and then performs no second write", () => {
     const { project } = fixture();
     mkdirSync(join(project, "xbrief", "active"), { recursive: true });

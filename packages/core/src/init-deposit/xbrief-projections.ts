@@ -124,14 +124,15 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
     changed = writeFileIfChanged(projectDir, destination, projected) || changed;
   }
 
-  assertProjectedSchemaDescriptionsRooted(projectDir, destinationDir);
-
   const obsoleteDestination = join(destinationDir, OBSOLETE_CORE_SCHEMA);
   assertProjectionContained(projectDir, obsoleteDestination);
   if (existsSync(obsoleteDestination)) {
     rmSync(obsoleteDestination, { force: true });
     changed = true;
   }
+
+  assertProjectedSchemaDescriptionsRooted(projectDir, destinationDir);
+
   return changed;
 }
 
