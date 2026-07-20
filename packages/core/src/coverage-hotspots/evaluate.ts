@@ -1,11 +1,10 @@
-import { execFileSync } from "node:child_process";
+import * as childProcess from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fnmatchCase } from "../encoding/text.js";
 import {
   type CoverageMetric,
   type CoverageTotals,
-  readCoverageTotalsFromReport,
   summarizeCoverageFinal,
 } from "../vitest-runner/coverage-debt.js";
 import { type CoverageThresholds, readProjectCoverageThresholds } from "./thresholds.js";
@@ -79,18 +78,14 @@ class GitCommandError extends Error {}
 
 function runGit(args: string[], projectRoot: string): string {
   try {
-    return execFileSync("git", args, {
+    return childProcess.execFileSync("git", args, {
       cwd: projectRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException & { stderr?: string | Buffer };
-    if (e.code === "ENOENT") {
-      throw new GitCommandError("coverage-hotspots: 'git' executable not found on PATH");
-    }
-    const stderr =
-      typeof e.stderr === "string" ? e.stderr.trim() : String(e.stderr ?? e.message ?? err);
+    const stderr = String(e.stderr ?? e.message ?? err).trim();
     throw new GitCommandError(`coverage-hotspots: git ${args.join(" ")} failed: ${stderr}`);
   }
 }
@@ -104,16 +99,7 @@ function splitLines(stdout: string): string[] {
 
 function resolveBaseRef(projectRoot: string, override: string | null | undefined): string {
   if (override && override.trim().length > 0) return override.trim();
-  try {
-    const originHead = runGit(
-      ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
-      projectRoot,
-    ).trim();
-    if (originHead.length > 0) return originHead.replace(/^refs\/remotes\//, "");
-  } catch {
-    // fall through
-  }
-  for (const candidate of ["origin/master", "origin/main", "master", "main"]) {
+  for (const candidate of ["origin/master", "origin/main", "master", "main", "HEAD~1"]) {
     try {
       runGit(["rev-parse", "--verify", "-q", candidate], projectRoot);
       return candidate;
@@ -125,11 +111,7 @@ function resolveBaseRef(projectRoot: string, override: string | null | undefined
 }
 
 function diffPaths(projectRoot: string, baseRef: string): string[] {
-  try {
-    return splitLines(runGit(["diff", "--name-only", `${baseRef}...HEAD`], projectRoot));
-  } catch {
-    return splitLines(runGit(["diff", "--name-only", baseRef, "HEAD"], projectRoot));
-  }
+  return splitLines(runGit(["diff", "--name-only", baseRef, "HEAD"], projectRoot));
 }
 
 function pct(covered: number, total: number): number {
@@ -195,7 +177,7 @@ function normalizeReportPath(
 
 function pathMatchesFilter(relPath: string, filters: readonly string[]): boolean {
   if (filters.length === 0) return true;
-  return filters.some((pattern) => fnmatchCase(pattern, relPath) || relPath.includes(pattern));
+  return filters.some((pattern) => relPath.includes(pattern) || fnmatchCase(relPath, pattern));
 }
 
 function collectUncoveredBranches(
@@ -281,10 +263,7 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
     );
   }
 
-  const totals = readCoverageTotalsFromReport(coverageDir);
-  if (totals === null) {
-    return configError(`coverage-hotspots: could not summarize coverage report at ${reportPath}`);
-  }
+  const totals = summarizeCoverageFinal(rawReport);
 
   const thresholds = readProjectCoverageThresholds(projectRoot);
   const headroomPp = computeHeadroom(totals, thresholds);
@@ -295,12 +274,11 @@ export function evaluateCoverageHotspots(options: CoverageHotspotsOptions): Cove
       const baseRef = resolveBaseRef(projectRoot, options.baseRef);
       pathFilter = diffPaths(projectRoot, baseRef);
     } catch (err: unknown) {
-      if (err instanceof GitCommandError) {
-        return configError(
-          `${err.message}\n  Recovery: pass explicit --path filters or run inside a git repo.`,
-        );
-      }
-      throw err;
+      const message =
+        err instanceof GitCommandError
+          ? `${err.message}\n  Recovery: pass explicit --path filters or run inside a git repo.`
+          : `coverage-hotspots: ${String((err as Error).message)}`;
+      return configError(message);
     }
   }
 
