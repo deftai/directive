@@ -185,6 +185,13 @@ describe("undo", () => {
       from_status: "pending",
       to_status: "proposed",
       actor: "operator",
+      demote_meta: {
+        was_promoted: true,
+        original_promotion_decision_id: null,
+        days_in_pending: 0,
+        demote_reason: "operator-requested",
+        demoted_from: "pending",
+      },
     };
     append(entry, logPath);
 
