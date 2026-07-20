@@ -1,0 +1,31 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2525"
+  },
+  "plan": {
+    "title": "refactor(version): consolidate duplicate release-tag parsers",
+    "status": "running",
+    "narratives": {
+      "Description": "refactor(version): consolidate duplicate release-tag parsers",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2525",
+      "Overview": "## Summary\n\nRelease-tag parsing and publishability ordering are implemented twice:\n\n- `packages/core/src/release/version.ts` owns #425 prerelease classification and PEP 440 normalization.\n- `packages/core/src/platform/resolve-version.ts` carries a separate private parser, publishability classifier, prerelease rank, and PEP 440 normalization.\n\nThe duplicate contracts can drift on accepted syntax, error behavior, and ordering.\n\n## Proposed direction\n\nMake one low-level release-version module own parsing, publishability, normalization, and comparison. Have platform tag selection and doctor release availability consume that contract without circular imports.\n\n## Acceptance\n\n- One parser defines supported stable/alpha/beta/rc/test syntax.\n- Platform latest-tag selection and release publication keep their current behavior.\n- Existing branch/coverage tests remain green and direct comparison tests cover prerelease ordering.\n\n## Source\n\nDiscovered while implementing #1692. That PR will use the release module cited by #425 and will not broaden into this refactor.",
+      "Labels": "operational, refactor, area:release, release"
+    },
+    "items": [],
+    "tags": [
+      "operational",
+      "refactor",
+      "area:release",
+      "release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2525",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2525: refactor(version): consolidate duplicate release-tag parsers"
+      }
+    ],
+    "updated": "2026-07-20T00:25:13Z"
+  }
+}

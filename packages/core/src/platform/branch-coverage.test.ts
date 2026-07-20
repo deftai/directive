@@ -110,8 +110,26 @@ describe("resolve-version parse + classify branch coverage", () => {
     expect(latestPublishableTag(["v1.2.0-rc.1", "v1.2.0"])).toBe("v1.2.0");
     expect(latestPublishableTag([])).toBeNull();
     expect(latestPublishableTag(["nope", "v0.0.0-test.9"])).toBeNull();
-    // Two identical keys exercise the compareTuple "all equal" (return 0) branch.
+    // Two identical keys exercise the compare "all equal" (return 0) branch.
     expect(latestPublishableTag(["v1.0.0", "v1.0.0"])).toBe("v1.0.0");
+    expect(latestPublishableTag(["v1.0.0-alpha.1", "v1.0.0-beta.1", "v1.0.0-rc.1"])).toBe(
+      "v1.0.0-rc.1",
+    );
+  });
+
+  it("resolveVersion honors DEFT_ROOT when frameworkRoot seam omitted", () => {
+    const prevRoot = process.env.DEFT_ROOT;
+    const prevEnv = process.env[ENV_VAR];
+    delete process.env[ENV_VAR];
+    withTempDir((dir) => {
+      writeFileSync(join(dir, ".deft-version"), "v4.5.6\n", "utf8");
+      process.env.DEFT_ROOT = dir;
+      expect(resolveVersion()).toBe("4.5.6");
+    });
+    if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+    else process.env.DEFT_ROOT = prevRoot;
+    if (prevEnv === undefined) delete process.env[ENV_VAR];
+    else process.env[ENV_VAR] = prevEnv;
   });
 
   it("resolveVersion default seams read manifest / deft-version / env", () => {

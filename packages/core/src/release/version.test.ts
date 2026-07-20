@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   comparePublishableVersions,
   isPrereleaseTag,
+  isPublishable,
   NonPublishableVersionError,
   toPep440,
   validateVersion,
@@ -39,6 +40,7 @@ describe("isPrereleaseTag", () => {
 describe("toPep440", () => {
   it.each([
     ["v0.22.0", "0.22.0"],
+    ["V1.2.3", "1.2.3"],
     ["0.20.0-rc.3", "0.20.0rc3"],
     ["0.20.0-beta.2", "0.20.0b2"],
     ["0.20.0-alpha.1", "0.20.0a1"],
@@ -53,6 +55,31 @@ describe("toPep440", () => {
   it("rejects garbage input", () => {
     expect(() => toPep440("")).toThrow(/non-empty/);
     expect(() => toPep440("not-a-version")).toThrow(/Cannot normalize/);
+    expect(() => toPep440(123 as unknown as string)).toThrow(/must be a string/);
+    for (const bad of [
+      "abc",
+      "1",
+      "1.2",
+      "1.x",
+      "1.2.",
+      "1.2.x",
+      "1.2.3extra",
+      "1.2.3-rcX",
+      "1.2.3-foo.1",
+      "1.2.3-rc.X",
+      "1.2.3-rc.1x",
+    ]) {
+      expect(() => toPep440(bad), bad).toThrow(/Cannot normalize/);
+    }
+  });
+});
+
+describe("isPublishable", () => {
+  it("classifies publishability", () => {
+    expect(isPublishable("1.0.0")).toBe(true);
+    expect(isPublishable("1.3.0-rc.1")).toBe(true);
+    expect(isPublishable("0.0.0-test.1")).toBe(false);
+    expect(isPublishable("bad")).toBe(false);
   });
 });
 
