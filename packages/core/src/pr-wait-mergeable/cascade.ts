@@ -4,6 +4,16 @@ import { makeResult } from "./result.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn, WaitMergeableResult } from "./types.js";
 import { runGhMerge, runMonitor, runProtectedCheck } from "./wrappers.js";
 
+/** Node module-not-found / missing script — not a protected-issue overlap (#2667). */
+function isProtectedCheckConfigFailure(stderr: string): boolean {
+  const tail = stderr.trim();
+  return (
+    tail.includes("MODULE_NOT_FOUND") ||
+    tail.includes("Cannot find module") ||
+    tail.includes("protected-check script not found:")
+  );
+}
+
 export interface WaitMergeableOptions {
   readonly protectedFn?: ProtectedCheckFn;
   readonly monitorFn?: MonitorFn;
@@ -35,7 +45,7 @@ export function waitMergeableAndMerge(
       protected: [...protectedIssues],
     };
 
-    if (prcRc === 1) {
+    if (prcRc === 1 && !isProtectedCheckConfigFailure(prcStderr)) {
       return makeResult({
         prNumber,
         repo,

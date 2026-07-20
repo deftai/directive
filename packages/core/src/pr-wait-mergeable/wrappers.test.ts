@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import * as binary from "../scm/binary.js";
 import * as wrappers from "./wrappers.js";
@@ -130,6 +131,18 @@ describe("cliScriptPath (#2615)", () => {
     for (const name of ["pr-protected-issues", "pr-wait-mergeable", "pr-monitor"] as const) {
       const path = wrappers.cliScriptPath(name);
       expect(path.replace(/\\/g, "/")).toContain(`${name}.js`);
+    }
+  });
+
+  it("prefers @deftai/directive/dist when main export resolves (#2667)", () => {
+    const path = wrappers.cliScriptPath("pr-protected-issues");
+    const normalized = path.replace(/\\/g, "/");
+    if (existsSync(path)) {
+      expect(normalized).toMatch(
+        /\/(@deftai\/)?directive\/dist\/pr-protected-issues\.js$|\/cli\/dist\/pr-protected-issues\.js$/,
+      );
+    } else {
+      expect(normalized).toMatch(/pr-protected-issues\.js$/);
     }
   });
 });

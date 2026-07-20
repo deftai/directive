@@ -85,14 +85,17 @@ export function cliScriptPath(name: string): string {
 
   try {
     const require = createRequire(import.meta.url);
-    const pkgJson = require.resolve("@deftai/directive/package.json");
-    candidates.push(resolve(dirname(pkgJson), "dist", script));
+    // package.json is not an exported subpath under @deftai/directive exports (#2667).
+    const mainEntry = require.resolve("@deftai/directive");
+    candidates.push(resolve(dirname(mainEntry), script));
   } catch {
     // Core does not declare a runtime dependency on the CLI package; ignore.
   }
 
   // Monorepo: packages/core/dist/pr-wait-mergeable -> packages/cli/dist
   candidates.push(resolve(here, "../../../cli/dist", script));
+  // npm hoisted: .../@deftai/directive-core/dist/... -> .../@deftai/directive/dist
+  candidates.push(resolve(here, "../../../directive/dist", script));
   // npm nested: .../directive/node_modules/@deftai/directive-core/dist/... -> .../directive/dist
   candidates.push(resolve(here, "../../../../dist", script));
 
@@ -115,9 +118,13 @@ export function runProtectedCheck(
   protectedIssues: readonly number[],
   options: RunProtectedCheckOptions = {},
 ): SubprocessTriple {
+  const scriptPath = cliScriptPath("pr-protected-issues");
+  if (!existsSync(scriptPath)) {
+    return [2, "", `protected-check script not found: ${scriptPath}`];
+  }
   const node = options.nodeExecutable ?? process.execPath;
   const cmd: string[] = [
-    cliScriptPath("pr-protected-issues"),
+    scriptPath,
     String(prNumber),
     "--protected",
     protectedIssues.map(String).join(","),
