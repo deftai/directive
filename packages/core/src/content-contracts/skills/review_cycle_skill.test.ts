@@ -193,4 +193,20 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("--approval-phrase");
     expect(text).toContain("--pr-number");
   });
+
+  it("ci_failures_holdout_section_present (#2688)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Greptile CLEAN vs CI holdout");
+    expect(text).toContain("clean_gate_holdout=ci_failures");
+    expect(text).toContain("task pr:watch");
+    expect(text).toContain("same ownership");
+    expect(text).toContain("Test plan");
+    expect(text).toContain("CI-holdout carve-out (#2688)");
+  });
+
+  it("ci_failures_must_not_idle_poll (#2688)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toMatch(/MUST NOT.*idle-poll|idle-poll hoping CI heals/i);
+    expect(text).toContain("ci_failed_checks");
+  });
 });

@@ -31,6 +31,7 @@ function errorProbe(headSha: string | null, message: string): WatchProbe {
     hasBlocking: false,
     errored: false,
     ciFailures: 0,
+    ciFailedChecks: [],
     terminalCheckRun: false,
     isClean: false,
     cleanGateHoldout: null,
@@ -92,12 +93,14 @@ export function probeOnce(
   // ci_failures=0 / terminal so the Greptile verdict drives; the merge button
   // still owns the hard CI gate via pr:merge-ready (#796).
   let ciFailures = 0;
+  let ciFailedChecks: readonly string[] = [];
   let terminalCheckRun = true;
   if (repo !== null) {
     const check = fetchCheckRunsRest(headSha, repo, runGh);
     if (check.summary !== null) {
       const ci = evaluateCiGate(check.checkRuns, {});
-      ciFailures = ci.summary.failed_required.length;
+      ciFailedChecks = ci.summary.failed_required;
+      ciFailures = ciFailedChecks.length;
       terminalCheckRun = ci.summary.pending_required.length === 0;
     }
   }
@@ -124,6 +127,7 @@ export function probeOnce(
     hasBlocking: findings.has_blocking,
     errored,
     ciFailures,
+    ciFailedChecks,
     terminalCheckRun,
     isClean,
     cleanGateHoldout,

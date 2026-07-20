@@ -1,0 +1,84 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2688"
+  },
+  "plan": {
+    "title": "Review-cycle: Greptile CLEAN + ci_failures forces CI fix (no idle-poll)",
+    "status": "running",
+    "narratives": {
+      "Description": "drive-to:merge-ready workers idle-poll when Greptile is CLEAN and clean_gate_holdout=ci_failures. Add review-cycle skill doctrine (CI annotation fetch + fix batch; checkboxes != merge-ready; review-monitor carve-out). Optionally surface failing check names in pr:watch JSON and fail-loud (CI_BLOCKED/STALL) instead of burning max-wait.",
+      "Origin": "https://github.com/deftai/directive/issues/2688",
+      "Overview": "Dogfood PR #2687 / #2683 — Greptile CLEAN, CodeQL red, worker parked until interrupt.",
+      "Labels": "bug, agent-experience, area:skills",
+      "ImplementationPlan": "1. Edit skills-pack review-cycle body + packs:render. 2. Contract tests for new MUST lines. 3. pr:watch: expose ci_failed_checks; early CI_BLOCKED when holdout stable. 4. CHANGELOG.",
+      "UserStory": "As a merge-ready worker, when Greptile is CLEAN and CI is red I must fix CI immediately instead of idle-polling."
+    },
+    "items": [
+      {
+        "title": "AC1",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Review-cycle skill mandates exit Greptile wait and fix/escalate on clean_gate_holdout=ci_failures; Greptile CLEAN+CI red has same ownership as Greptile P0; test-plan checkboxes do not authorize idle wait."
+        }
+      },
+      {
+        "title": "AC2",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Review-monitor guidance does not strand workers on spawn-monitor when sole holdout is CI after Greptile CLEAN on HEAD."
+        }
+      },
+      {
+        "title": "AC3",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Content-contract tests assert new markers; CHANGELOG cites #2688; pr:watch JSON includes failing check identities when ci_failures>0."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2688",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2688: Greptile CLEAN + ci_failures idle-poll"
+      }
+    ],
+    "updated": "2026-07-20T19:29:22Z",
+    "id": "2688-review-cycle-ci-holdout",
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2688"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "packages/core/src/content-contracts/skills/review_cycle_skill.test.ts",
+          "packages/core/src/pr-watch/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check -- --filter review_cycle_skill",
+          "task check -- --filter pr-watch"
+        ],
+        "expected_outputs": [
+          "Skill doctrine for ci_failures holdout",
+          "pr:watch JSON ci_failed_checks"
+        ],
+        "depends_on": [],
+        "conflict_group": "2688-review-ci",
+        "size": "M",
+        "file_scope_confidence": "high"
+      }
+    }
+  }
+}

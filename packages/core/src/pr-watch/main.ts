@@ -164,6 +164,7 @@ export function watchResultToJson(result: WatchResult): Record<string, unknown> 
     p1_count: p.p1Count,
     errored: p.errored,
     ci_failures: p.ciFailures,
+    ci_failed_checks: [...p.ciFailedChecks],
     is_clean: p.isClean,
     clean_gate_holdout: p.cleanGateHoldout,
     elapsed_seconds: result.elapsedSeconds,
@@ -188,6 +189,9 @@ export function printWatchHuman(result: WatchResult): string {
   lines.push(`  Findings:           P0=${p.p0Count}  P1=${p.p1Count}`);
   lines.push(`  Errored sentinel:   ${p.errored}`);
   lines.push(`  CI failures:        ${p.ciFailures}`);
+  if (p.ciFailedChecks.length > 0) {
+    lines.push(`  Failed checks:      ${p.ciFailedChecks.join("; ")}`);
+  }
   if (p.cleanGateHoldout !== null) {
     lines.push(`  Clean-gate holdout: ${p.cleanGateHoldout}`);
   }

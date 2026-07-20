@@ -14,6 +14,8 @@ export interface WatchProbe {
   readonly hasBlocking: boolean;
   readonly errored: boolean;
   readonly ciFailures: number;
+  /** Failed required check identities (name + conclusion), when CI was probed. */
+  readonly ciFailedChecks: readonly string[];
   /** All required CI check-runs have a terminal conclusion (none pending). */
   readonly terminalCheckRun: boolean;
   readonly isClean: boolean;

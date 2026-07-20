@@ -19,6 +19,11 @@ export const VERDICT_NEW_P0_P1 = "NEW_P0_P1";
 export const VERDICT_ERRORED = "ERRORED";
 export const VERDICT_STALL = "STALL";
 export const VERDICT_TIMEOUT = "TIMEOUT";
+/**
+ * Greptile side of the clean gate is satisfied on HEAD but required CI is red
+ * (#2688). Exit 2 — fail-loud toward a CI fix loop instead of idle-polling.
+ */
+export const VERDICT_CI_BLOCKED = "CI_BLOCKED";
 /** --one-shot only: a single probe with no terminal verdict yet. */
 export const VERDICT_PENDING = "PENDING";
 /** External/config fault mid-probe (unresolvable repo/HEAD, gh unavailable). */
@@ -54,7 +59,7 @@ export const WATCH_HELP =
   "exit codes:\n" +
   "  0  CLEAN       SHA-matched review, confidence > 3, no P0/P1, CI green\n" +
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
-  "  2  ERRORED | STALL | TIMEOUT | config / usage error\n";
+  "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | config / usage error\n";
 /**
  * Consecutive polls with a review PRESENT but stuck on a stale (non-HEAD)
  * commit before the loop surfaces STALL instead of waiting the full cap. Keeps
@@ -62,3 +67,8 @@ export const WATCH_HELP =
  * whole 30-minute budget (#1039 STALL terminal).
  */
 export const DEFAULT_STALL_THRESHOLD = 3;
+/**
+ * Consecutive polls with clean_gate_holdout=ci_failures (Greptile otherwise
+ * satisfied) before CI_BLOCKED (#2688). Same default as SHA STALL.
+ */
+export const DEFAULT_CI_BLOCKED_THRESHOLD = 3;

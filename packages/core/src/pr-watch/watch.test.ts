@@ -7,6 +7,7 @@ import {
   VERDICT_CONFIG,
   VERDICT_ERRORED,
   VERDICT_NEW_P0_P1,
+  VERDICT_CI_BLOCKED,
   VERDICT_PENDING,
   VERDICT_STALL,
   VERDICT_TIMEOUT,
@@ -29,6 +30,7 @@ function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
     hasBlocking: false,
     errored: false,
     ciFailures: 0,
+    ciFailedChecks: [],
     terminalCheckRun: true,
     isClean: false,
     cleanGateHoldout: null,
@@ -135,6 +137,22 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
     expect(r.pollCount).toBe(1);
   });
+
+  it("ci_failures holdout on one-shot -> CI_BLOCKED exit 2 (#2688)", () => {
+    const r = runOneShot(
+      makeProbe({
+        isClean: false,
+        cleanGateHoldout: "ci_failures",
+        ciFailures: 1,
+        ciFailedChecks: ["CodeQL (failure)"],
+        confidence: 5,
+        shaMatch: true,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_CI_BLOCKED);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+    expect(r.probe.ciFailedChecks).toEqual(["CodeQL (failure)"]);
+  });
 });
 
 describe("watch blocking loop (injected clock + sleep)", () => {
@@ -160,6 +178,32 @@ describe("watch blocking loop (injected clock + sleep)", () => {
     expect(sleep).toHaveBeenCalledTimes(2);
     expect(sleep).toHaveBeenCalledWith(90);
     expect(r.elapsedSeconds).toBe(180);
+  });
+
+  it("CI_BLOCKED after consecutive ci_failures holdouts (#2688)", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const ciRed = makeProbe({
+      isClean: false,
+      cleanGateHoldout: "ci_failures",
+      ciFailures: 2,
+      ciFailedChecks: ["build (failure)", "CodeQL (failure)"],
+      confidence: 5,
+      shaMatch: true,
+    });
+    const { fn } = makeProbeSeq(ciRed);
+
+    const r = watch(8, "deftai/directive", {
+      pollSeconds: 30,
+      maxWaitMinutes: 30,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_CI_BLOCKED);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+    expect(r.pollCount).toBe(3);
   });
 
   it("STALL after stallThreshold consecutive non-HEAD reviews", () => {

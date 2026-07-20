@@ -182,6 +182,22 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ⊗ Push any additional commits — including unrelated fixes, doc updates, or lessons — while waiting for the bot to finish reviewing the current head. Every push re-triggers Greptile and resets the review clock. If you discover additional work while waiting, stage it locally but do NOT push until the current review completes.
 
+
+
+### Greptile CLEAN vs CI holdout (`pr:watch` / #2688)
+
+! When waiting on a Greptile verdict for a `drive-to: merge-ready` worker (or any review-cycle owner), prefer `task pr:watch -- <N>` (or `--one-shot --json`) over ad-hoc sleep loops (#1056). Parse `clean_gate_holdout` on every probe.
+
+! When `clean_gate_holdout=ci_failures` and Greptile otherwise satisfies the probe-side Step 6 fields (SHA match on HEAD, confidence > 3, no P0/P1, not errored): **MUST NOT** idle-poll hoping CI heals. Treat Greptile CLEAN + CI red with the **same ownership** as a Greptile P0 for a merge-ready worker — one fix batch, re-push, re-probe.
+
+! On persistent `ci_failures` holdout: exit the Greptile wait immediately, fetch failing check annotations (`gh pr checks <N>`, CodeQL / required-check details, or `ci_failed_checks` from `pr:watch --json`), fix or escalate with evidence, then re-enter the review loop after CI is green.
+
+! PR body "Test plan" checkboxes being `[x]` do **not** authorize idle wait — merge-ready is `pr:watch` CLEAN / the merge path only.
+
+⊗ Treat `pr:watch` TIMEOUT or long PENDING with `clean_gate_holdout=ci_failures` as "Greptile still reviewing" — it means **CI blocked the clean gate**.
+
+~ Surface the holdout to the user/parent on the first stable `ci_failures` probe (fail-loud), not after burning `max-wait-minutes`. See also [`templates/swarm-greptile-poller-prompt.md`](../../templates/swarm-greptile-poller-prompt.md) CLEAN gate evaluation (#1039).
+
 ### Stall Detection Rubric (#564)
 
 ! Track per poll: `startedAt` (timestamp of the first observation of the IN_PROGRESS check run for the current commit) and `commit.oid` (head SHA being reviewed). Both fields MUST be re-recorded every time the head SHA changes -- the rubric measures elapsed time on a single commit, not across the whole review cycle.
@@ -227,6 +243,9 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
 ! **Deterministic review-monitor gate (#2655):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, register with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task`. Exit `0` ready / `1` not ready / `2` config. Approach 3 on Tier 1 is a gate failure — use `--approach3 --approach3-warned` only on Tier 3 after the user warning.
+
+! **CI-holdout carve-out (#2688):** When `task pr:watch --one-shot --json` reports `clean_gate_holdout=ci_failures` with Greptile fields otherwise satisfied on current HEAD, do **not** freeze on `verify:review-monitor` / spawn-monitor as if Greptile latency were the blocker. Fix CI first (same ownership as Greptile P0). Keep or register a review-monitor only while still waiting on Greptile latency; a `BLOCKED: ci_failures` DONE handback to the implementation owner is correct.
+
 
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 

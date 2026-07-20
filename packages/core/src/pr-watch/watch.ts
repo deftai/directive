@@ -1,11 +1,13 @@
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import {
+  DEFAULT_CI_BLOCKED_THRESHOLD,
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
   DEFAULT_STALL_THRESHOLD,
   EXIT_CLEAN,
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
+  VERDICT_CI_BLOCKED,
   VERDICT_CLEAN,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
@@ -85,6 +87,7 @@ export function watch(
 
   let lastProbe: WatchProbe | null = null;
   let stallStreak = 0;
+  let ciBlockedStreak = 0;
 
   const build = (
     verdict: string,
@@ -119,6 +122,20 @@ export function watch(
     }
     if (probe.errored) {
       return build(VERDICT_ERRORED, EXIT_TERMINAL_ERROR, probe, poll);
+    }
+
+    // #2688: Greptile side satisfied on HEAD but CI red — fail loud toward a
+    // fix loop instead of burning max-wait-minutes on idle Greptile polls.
+    if (probe.cleanGateHoldout === "ci_failures") {
+      ciBlockedStreak += 1;
+    } else {
+      ciBlockedStreak = 0;
+    }
+    if (oneShot && probe.cleanGateHoldout === "ci_failures") {
+      return build(VERDICT_CI_BLOCKED, EXIT_TERMINAL_ERROR, probe, poll);
+    }
+    if (!oneShot && ciBlockedStreak >= DEFAULT_CI_BLOCKED_THRESHOLD) {
+      return build(VERDICT_CI_BLOCKED, EXIT_TERMINAL_ERROR, probe, poll);
     }
 
     // Stall = a review IS present but stuck on a non-HEAD commit; surface it
@@ -156,6 +173,7 @@ export function watch(
     hasBlocking: false,
     errored: false,
     ciFailures: 0,
+    ciFailedChecks: [],
     terminalCheckRun: false,
     isClean: false,
     cleanGateHoldout: null,
