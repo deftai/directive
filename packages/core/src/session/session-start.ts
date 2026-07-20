@@ -10,6 +10,7 @@ import {
 } from "../platform/shell-context.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { resolvePolicy } from "../policy/resolve.js";
+import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { emitSessionValueReadback } from "../value/readback.js";
@@ -80,6 +81,10 @@ export interface SessionStartOptions {
     projectRoot: string,
     options: ReleaseAvailabilityProbeOptions,
   ) => { lines: readonly string[] };
+  readonly runStalenessTickler?: (
+    projectRoot: string,
+    options: { now?: Date },
+  ) => { lines: readonly string[]; prompted: boolean };
 }
 
 function normaliseStepName(name: string): string {
@@ -449,6 +454,15 @@ export function runSessionStart(
     lines.push(...releaseAvailability.lines);
   } catch {
     // Release availability is a best-effort operator advisory, never a session blocker.
+  }
+
+  try {
+    const tickler = (options.runStalenessTickler ?? maybeRunStalenessTickler)(projectRoot, {
+      now: instant,
+    });
+    lines.push(...tickler.lines);
+  } catch {
+    // Staleness tickler is best-effort and must never block session start.
   }
 
   if (!runningInsideDeftRepo(projectRoot) && shouldEmitMigrateNudge(projectRoot)) {

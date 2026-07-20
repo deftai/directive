@@ -1,0 +1,50 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2489 — escalation policy for staleness tickler"
+  },
+  "plan": {
+    "title": "feat(triage): escalation policy for staleness tickler (#2489)",
+    "status": "running",
+    "narratives": {
+      "Overview": "Typed drift score (Directive distance + xBRIEF schema distance + age + deferral) maps to Quiet/Notice/Strong/Assert tiers with monotonic re-prompt cadence and snooze widening up to a cap then re-assert. All knobs under plan.policy.stalenessTickler; hold tier on detection failure; never nagware.",
+      "Origin": "https://github.com/deftai/directive/issues/2489",
+      "Approach": "packages/core/src/staleness-tickler/escalation.ts + policy/staleness-tickler.ts registered in policy:show; unit tests for tier transitions and monotonicity."
+    },
+    "items": [
+      {
+        "title": "Drift score + tier pure functions with typed thresholds",
+        "status": "pending"
+      },
+      {
+        "title": "Snooze window by tier/deferral; re-assert after cap; opt-out",
+        "status": "pending"
+      },
+      {
+        "title": "Hold tier on unverified detection; policy:show field",
+        "status": "pending"
+      },
+      {
+        "title": "Regression tests + CHANGELOG Closes #2489",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "urgent",
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2489",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2489"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2488",
+        "type": "x-xbrief/github-issue",
+        "title": "Parent tickler #2488"
+      }
+    ],
+    "updated": "2026-07-20T22:09:28Z"
+  }
+}

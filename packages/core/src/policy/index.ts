@@ -1,6 +1,11 @@
 import { readPlanPolicy } from "./plan-extensions.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import {
+  FIELD_STALENESS_TICKLER,
+  FIELD_STALENESS_TICKLER_CLI_ALIAS,
+  inspectStalenessTickler,
+} from "./staleness-tickler.js";
+import {
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,
   inspectValueFeedback,
@@ -15,6 +20,7 @@ export * from "./disclosure.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
 export * from "./resolve.js";
+export * from "./staleness-tickler.js";
 export * from "./value-feedback.js";
 export * from "./wip.js";
 
@@ -262,6 +268,16 @@ function inspectValueFeedbackField(
   };
 }
 
+function inspectStalenessTicklerField(data: Record<string, unknown> | null): PolicyField {
+  const field = inspectStalenessTickler(data);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -293,6 +309,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
       emptyIsTyped: true,
     }),
   inspectSwarmSubagentBackend,
+  inspectStalenessTicklerField,
   inspectValueFeedbackField,
 ];
 
@@ -304,7 +321,12 @@ export function inspectAllPolicies(projectRoot: string): PolicyField[] {
 
 /** Look up a single registered field by canonical dotted-path name (or CLI alias). */
 export function inspectOnePolicy(name: string, projectRoot: string): PolicyField | null {
-  const normalized = name === FIELD_VALUE_FEEDBACK_CLI_ALIAS ? FIELD_VALUE_FEEDBACK : name;
+  const normalized =
+    name === FIELD_VALUE_FEEDBACK_CLI_ALIAS
+      ? FIELD_VALUE_FEEDBACK
+      : name === FIELD_STALENESS_TICKLER_CLI_ALIAS
+        ? FIELD_STALENESS_TICKLER
+        : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

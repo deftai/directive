@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2488 — staleness tickler at safe idle points"
+  },
+  "plan": {
+    "title": "feat(triage): staleness tickler — offer Directive + xBRIEF upgrade at safe idle points (#2488)",
+    "status": "running",
+    "narratives": {
+      "Overview": "At safe idle points (clean tree, no running story, not mid-swarm, interactive), probe Directive release availability (reuse evaluateReleaseAvailability / session probe substrate from #1692) and xBRIEF schema distance, then offer opt-in upgrade/migrate with snooze. Never mid-work. Non-fatal skips for offline, framework repo, headless, opt-out. Companion #2489 owns escalation curve; ship both together with typed plan.policy.stalenessTickler defaults.",
+      "Origin": "https://github.com/deftai/directive/issues/2488",
+      "Approach": "New packages/core/src/staleness-tickler/ module; hook after scope:complete and at mutation session-start when idle; persist snooze in xbrief/.triage-cache/staleness-tickler-state.json; register plan.policy.stalenessTickler."
+    },
+    "items": [
+      {
+        "title": "Idle gate: clean tree + no running stories + not swarm/CI/skip env",
+        "status": "pending"
+      },
+      {
+        "title": "Directive + xBRIEF probes with canonical upgrade/migrate commands",
+        "status": "pending"
+      },
+      {
+        "title": "Interactive offer + snooze/opt-out; headless emits lines only",
+        "status": "pending"
+      },
+      {
+        "title": "Wire scope:complete + idle session-start; tests for AC matrix",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG Closes #2488",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "urgent",
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2488",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2488"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2489",
+        "type": "x-xbrief/github-issue",
+        "title": "Companion #2489 escalation"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1692",
+        "type": "x-xbrief/github-issue",
+        "title": "Detection substrate #1692"
+      }
+    ],
+    "updated": "2026-07-20T22:09:27Z"
+  }
+}

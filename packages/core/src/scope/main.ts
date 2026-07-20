@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { TRANSITIONS } from "./constants.js";
@@ -161,6 +162,17 @@ export function lifecycleMain(argv: string[]): number {
         }
       } catch {
         /* best-effort drift warning + reconcile; lifecycle success remains authoritative */
+      }
+      try {
+        const rootForTickler =
+          resolveProjectRoot(projectRoot) ??
+          dirname(dirname(dirname(completedPathForScopeMove(filePath))));
+        const tickler = maybeRunStalenessTickler(rootForTickler);
+        for (const line of tickler.lines) {
+          process.stdout.write(`${line}\n`);
+        }
+      } catch {
+        /* best-effort staleness tickler; lifecycle success remains authoritative */
       }
     }
     return 0;
