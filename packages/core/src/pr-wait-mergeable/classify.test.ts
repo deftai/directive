@@ -28,8 +28,20 @@ describe("classifyMonitorOutcome", () => {
     expect(classifyMonitorOutcome(0, {})).toEqual(["clean", EXIT_MERGED]);
   });
 
-  it("maps cap-reached", () => {
-    expect(classifyMonitorOutcome(1, {})).toEqual(["cap-reached", EXIT_TIMEOUT_OR_ESCALATION]);
+  it("maps cap-reached only with CAP-REACHED envelope (#2673)", () => {
+    expect(classifyMonitorOutcome(1, { monitor_result: "CAP-REACHED" })).toEqual([
+      "cap-reached",
+      EXIT_TIMEOUT_OR_ESCALATION,
+    ]);
+  });
+
+  it("maps exit 1 without CAP-REACHED envelope to config-error (#2673)", () => {
+    expect(classifyMonitorOutcome(1, {})).toEqual(["config-error", EXIT_CONFIG_ERROR]);
+    expect(
+      classifyMonitorOutcome(1, {
+        // MODULE_NOT_FOUND leaves empty/non-CAP stdout
+      }),
+    ).toEqual(["config-error", EXIT_CONFIG_ERROR]);
   });
 
   it("maps config error", () => {

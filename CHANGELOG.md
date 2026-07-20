@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`scope:undo` and `migrate:xbrief` AGENTS.md header patch refuse symlink escape writes (#2668).** `scope:undo` now calls `assertWriteTargetSafe` before lifecycle xBRIEF writes (parity with `scope:demote`); the migrate header patch resolves `AGENTS.md` via projection containment before write (parity with init-deposit `writeAgentsMd`). Closes #2668.
+- **Pre-PR ordered-plan gate uses the current entry kind (#2662).** `deft-directive-pre-pr` no longer hardcodes `--target-kind pr`; agents resolve `kind` and `id` via `task plan-sequence:current` before `task verify:plan-sequence`, so story-backed PRs pass the gate when the target id matches. Closes #2662.
+- **AGENTS always-loads the #2646 body-file recipe (#2671).** Multi-line git/gh bodies on Windows PowerShell are now an inline MUST/⊗ rule in the managed AGENTS section (not a lazy index pointer to `scm/github.md`). Closes #2671.
+- **Deposited `xbrief/schemas/` descriptions no longer regress to `vbrief/.eval/` paths (#2670).** `deft update` now rewrites legacy eval-path references to `xbrief/.eval/` when projecting framework schemas into the consumer tree, and a deposit self-check fails if any projected schema description still cites `vbrief/.eval/`. Upstream `vbrief/schemas/` source copies keep the legacy paths. Closes #2670.
+- **`deft pr-wait-mergeable-and-merge` no longer misreports missing packaged CLI scripts (#2667, #2673).** `cliScriptPath` resolves `@deftai/directive/dist` via the package main export (not the unexported `package.json` subpath) with hoisted and nested npm fallbacks. Missing protected-check script / MODULE_NOT_FOUND maps to `config-error` instead of `protected-linked`; missing monitor script / bare exit 1 without a `CAP-REACHED` envelope maps to `config-error` instead of `cap-reached`. Closes #2667, #2673.
 
 ### Removed
 

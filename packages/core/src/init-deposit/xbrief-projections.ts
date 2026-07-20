@@ -23,6 +23,10 @@ import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 
 const OBSOLETE_CORE_SCHEMA = "vbrief-core.schema.json";
 const CURRENT_CORE_SCHEMA = "xbrief-core-0.8.schema.json";
+/** Legacy lifecycle eval prefix in framework vbrief/schemas source copies. */
+const LEGACY_EVAL_PATH_PREFIX = "vbrief/.eval/";
+/** Consumer xbrief/schemas projection must root description paths here (#2670). */
+const XBRIEF_EVAL_PATH_PREFIX = "xbrief/.eval/";
 
 function normalizeVersion(version: string): string {
   return version.trim().replace(/^v/, "");
@@ -49,6 +53,35 @@ function collectSchemaFiles(root: string, dir = root, files: string[] = []): str
     }
   }
   return files;
+}
+
+/** Rewrite legacy vbrief/.eval description paths for xbrief/schemas projection (#2670). */
+export function rewriteProjectedSchemaContent(content: string): string {
+  return content.includes(LEGACY_EVAL_PATH_PREFIX)
+    ? content.replaceAll(LEGACY_EVAL_PATH_PREFIX, XBRIEF_EVAL_PATH_PREFIX)
+    : content;
+}
+
+/**
+ * Fail closed when a projected xbrief/schemas file still cites vbrief/.eval/.
+ * Upstream vbrief/schemas/ may keep legacy paths; consumer copies must not (#2670).
+ */
+export function assertProjectedSchemaDescriptionsRooted(
+  projectDir: string,
+  destinationDir: string,
+): void {
+  assertProjectionContained(projectDir, destinationDir);
+  if (!isDirectory(destinationDir)) return;
+
+  for (const rel of collectSchemaFiles(destinationDir)) {
+    const full = join(destinationDir, rel);
+    const text = readFileSync(full, "utf8");
+    if (text.includes(LEGACY_EVAL_PATH_PREFIX)) {
+      throw new Error(
+        `projected xbrief schema still cites ${LEGACY_EVAL_PATH_PREFIX}: ${join(MIGRATED_ARTIFACT_DIR, "schemas", rel)}`,
+      );
+    }
+  }
 }
 
 function writeFileIfChanged(projectDir: string, target: string, content: Buffer | string): boolean {
@@ -87,7 +120,8 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
     if (rel === OBSOLETE_CORE_SCHEMA) continue;
     const source = join(sourceDir, rel);
     const destination = join(destinationDir, rel);
-    changed = writeFileIfChanged(projectDir, destination, readFileSync(source)) || changed;
+    const projected = rewriteProjectedSchemaContent(readFileSync(source, "utf8"));
+    changed = writeFileIfChanged(projectDir, destination, projected) || changed;
   }
 
   const obsoleteDestination = join(destinationDir, OBSOLETE_CORE_SCHEMA);
@@ -96,6 +130,9 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
     rmSync(obsoleteDestination, { force: true });
     changed = true;
   }
+
+  assertProjectedSchemaDescriptionsRooted(projectDir, destinationDir);
+
   return changed;
 }
 

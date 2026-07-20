@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
+  assertProjectedSchemaDescriptionsRooted,
+  rewriteProjectedSchemaContent,
   syncBareVersionMarker,
   syncConsumerXbriefSchemas,
   syncExistingBareVersionMarker,
@@ -45,6 +47,11 @@ describe("xbrief consumer projections (#2595)", () => {
     const consumerSchemas = join(project, "xbrief", "schemas");
     mkdirSync(join(schemas, "nested"), { recursive: true });
     writeFileSync(join(schemas, "nested", "child.schema.json"), "child\n", "utf8");
+    writeFileSync(
+      join(schemas, "candidates.schema.json"),
+      '{"description":"one line in vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
     mkdirSync(consumerSchemas, { recursive: true });
     writeFileSync(join(consumerSchemas, "vbrief-core.schema.json"), "stale\n", "utf8");
     writeFileSync(join(consumerSchemas, "shared.schema.json"), "shared-stale\n", "utf8");
@@ -64,7 +71,46 @@ describe("xbrief consumer projections (#2595)", () => {
     expect(readFileSync(join(consumerSchemas, "nested", "child.schema.json"), "utf8")).toBe(
       "child\n",
     );
+    expect(readFileSync(join(consumerSchemas, "candidates.schema.json"), "utf8")).toBe(
+      '{"description":"one line in xbrief/.eval/candidates.jsonl"}\n',
+    );
     expect(syncConsumerXbriefSchemas(project, deftDir)).toBe(false);
+  });
+
+  it("rewriteProjectedSchemaContent rewrites every vbrief/.eval/ mention", () => {
+    const input = "vbrief/.eval/slices.jsonl and vbrief/.eval/README.md per vbrief/.eval/ policy";
+    expect(rewriteProjectedSchemaContent(input)).toBe(
+      "xbrief/.eval/slices.jsonl and xbrief/.eval/README.md per xbrief/.eval/ policy",
+    );
+    expect(rewriteProjectedSchemaContent("no legacy paths here")).toBe("no legacy paths here");
+  });
+
+  it("assertProjectedSchemaDescriptionsRooted rejects leftover vbrief/.eval/ paths", () => {
+    const { project } = fixture();
+    const consumerSchemas = join(project, "xbrief", "schemas");
+    mkdirSync(consumerSchemas, { recursive: true });
+    writeFileSync(
+      join(consumerSchemas, "bad.schema.json"),
+      '{"description":"still vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+    expect(() => assertProjectedSchemaDescriptionsRooted(project, consumerSchemas)).toThrow(
+      /projected xbrief schema still cites vbrief\/\.eval\//,
+    );
+  });
+
+  it("self-check runs after obsolete vbrief-core.schema.json is removed", () => {
+    const { project, deftDir } = fixture();
+    const consumerSchemas = join(project, "xbrief", "schemas");
+    mkdirSync(consumerSchemas, { recursive: true });
+    writeFileSync(
+      join(consumerSchemas, "vbrief-core.schema.json"),
+      '{"description":"legacy vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+
+    expect(syncConsumerXbriefSchemas(project, deftDir)).toBe(true);
+    expect(existsSync(join(consumerSchemas, "vbrief-core.schema.json"))).toBe(false);
   });
 
   it("repairs a stale lifecycle version marker and then performs no second write", () => {

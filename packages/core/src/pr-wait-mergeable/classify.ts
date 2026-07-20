@@ -9,7 +9,11 @@ export function classifyMonitorOutcome(
     return ["clean", EXIT_MERGED] as const;
   }
   if (monitorReturncode === 1) {
-    return ["cap-reached", EXIT_TIMEOUT_OR_ESCALATION] as const;
+    // Bare exit 1 (MODULE_NOT_FOUND / missing script) is not budget exhaustion (#2673).
+    if (monitorPayload.monitor_result === "CAP-REACHED") {
+      return ["cap-reached", EXIT_TIMEOUT_OR_ESCALATION] as const;
+    }
+    return ["config-error", EXIT_CONFIG_ERROR] as const;
   }
   if (monitorReturncode === 2) {
     return ["config-error", EXIT_CONFIG_ERROR] as const;

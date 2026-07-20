@@ -83,9 +83,13 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! When `plan.policy.allowDirectCommitsToMaster = true`, surface via `deft policy:show --field=allowDirectCommitsToMaster` (#746) — `.deft/core/scm/github.md` § Branch policy.
 
+## Windows PowerShell: multi-line git/gh bodies (#2646)
+
+! Multi-line git commit / gh issue|pr|comment bodies: write UTF-8 (no BOM) to OS temp, then `git commit -F` / `gh --body-file` / `deft scm:body:* --body-file`. ⊗ bash heredocs, `<<<`, or inline multi-line `--body` on Windows PowerShell. Detail: `.deft/core/scm/github.md` § #2646. `ghx` is read-only — mutations stay on live `gh`.
+
 ## Contextual guardrails (runtime-detect lazy-load)
 
-! Detect OS/shell; use portable syntax or explicit shell (#2568). `.deft/core/scm/github.md` (#2157/#2369): PS multi-line git/gh bodies→§ Windows PowerShell safe multi-line git/gh bodies (#2646); PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
+! Detect OS/shell; use portable syntax or explicit shell (#2568). `.deft/core/scm/github.md` (#2157/#2369): PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
 
 ## Development Process
 
