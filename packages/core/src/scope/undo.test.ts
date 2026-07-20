@@ -164,6 +164,7 @@ describe("undo", () => {
     root = mkdtempSync(join(tmpdir(), "undo-symlink-"));
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const escapeDir = mkdtempSync(join(tmpdir(), "undo-symlink-escape-"));
     const victim = join(escapeDir, "victim.xbrief.json");
     writeFileSync(
@@ -175,18 +176,19 @@ describe("undo", () => {
     );
     symlinkSync(victim, join(root, "xbrief", "proposed", "x.xbrief.json"));
 
-    const pending = join(root, "xbrief", "pending", "x.xbrief.json");
-    writeFileSync(
-      pending,
-      formatVbriefJson({
-        plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
-      }),
-      "utf8",
-    );
-    const demote = demoteOne(pending, root, "test");
-    expect(demote.ok).toBe(true);
-    const entry = demote.auditEntry as Record<string, unknown>;
-    const undo = undoOne(entry, root);
+    const logPath = canonicalLogPath(root);
+    const entry = {
+      decision_id: newDecisionId(),
+      timestamp: "2026-05-18T19:00:00Z",
+      action: "demote",
+      vbrief_path: "xbrief/proposed/x.xbrief.json",
+      from_status: "pending",
+      to_status: "proposed",
+      actor: "operator",
+    };
+    append(entry, logPath);
+
+    const undo = undoOne(entry, root, { logPath });
     expect(undo.ok).toBe(false);
     expect(undo.message).toMatch(/projection write refused|symlink/);
     expect(JSON.parse(readFileSync(victim, "utf8"))).toMatchObject({
