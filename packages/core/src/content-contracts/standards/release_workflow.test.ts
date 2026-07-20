@@ -98,9 +98,7 @@ describe("test_release_workflow.py", () => {
     expect(releaseSkillText).toContain("run_in_background");
     expect(releaseSkillText).toContain("Phase 1 prep parallelized");
     expect(releaseSkillText).toContain("Select-Object -Last");
-    expect(releaseSkillText).toMatch(
-      /Foreground-block the operator chat[\s\S]*release:e2e/,
-    );
+    expect(releaseSkillText).toMatch(/Foreground-block the operator chat[\s\S]*release:e2e/);
   });
   it("test_releasing_doc_prefers_typed_policy_opt_out", () => {
     expect(releasingDocText).toContain("plan.policy.allowDirectCommitsToMaster");
