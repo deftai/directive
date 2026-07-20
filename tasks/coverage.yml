@@ -1,0 +1,15 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  hotspots:
+    desc: "Coverage hotspots + branch headroom gate (#2683): read coverage/coverage-final.json, compare global metrics to project vitest thresholds, fail closed below floor or below configured headroom (default 0.3pp), and list lowest modules plus uncovered branch samples for git-diff paths (override with --path). Supports --json for agents."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'coverage:hotspots --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

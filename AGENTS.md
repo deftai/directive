@@ -88,7 +88,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 - ! If no scope xBRIEF exists for the work, create one in `./xbrief/proposed/` before implementing
 - ⊗ Begin editing files before checking scope xBRIEF coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
-! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md`. Before committing: `task check`; `task verify:forward-coverage` (#1310); CHANGELOG `[Unreleased]`.
+! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md`. Before committing: `task check`; `task verify:forward-coverage` (#1310); `task coverage:hotspots` for branch headroom steering (#2683); CHANGELOG `[Unreleased]`.
 
 ! Branching: feature branches only (`task verify:branch`, `.githooks/pre-commit` / `.githooks/pre-push`, `branch-gate` workflow). Override: `task policy:allow-direct-commits -- --confirm`; emergency `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. When `plan.policy.allowDirectCommitsToMaster = true`, surface via `task policy:show --field=allowDirectCommitsToMaster` (Branch Policy Disclosure).
 
@@ -235,7 +235,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Branch policy & branch verification
 
-! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
+! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
 
 ## Branch Policy Disclosure (#746)
 

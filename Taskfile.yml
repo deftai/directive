@@ -87,6 +87,9 @@ includes:
   verify:
     taskfile: ./tasks/verify.yml
     optional: true
+  coverage:
+    taskfile: ./tasks/coverage.yml
+    optional: true
   review-monitor:
     taskfile: ./tasks/review-monitor.yml
     optional: true

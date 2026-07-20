@@ -103,6 +103,15 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 
 ~ **Windows + Grok Build (#1353):** Avoid `|`, `>`, or `2>&1` in `run_terminal_command` strings -- use Python `pathlib`/`subprocess` or plain task commands instead.
 
+### Phase 3c -- Coverage headroom (#2683)
+
+! Before the full `task check` coverage gate, run targeted coverage on changed modules and verify headroom above the project floor.
+
+- ! Run targeted coverage first: `vitest run --coverage <changed-paths>` (or language equivalent) — not only full `task check`.
+- ! Exercise both sides of new branches (ternary / early-return / catch / default switch / `||` / `??`).
+- ! Treat barely ≥ floor as insufficient — aim for ≥ floor + 0.3–0.5pp headroom on the branch metric relative to **your project's** vitest/coverage floor (may differ from 85%).
+- ! Run `task coverage:hotspots` / `deft coverage:hotspots` to locate uncovered branches before opening a PR; complements `deft verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573).
+
 ### Phase 3b -- Auto-Render Exports
 
 ! If `xbrief/specification.xbrief.json` exists, refresh rendered exports before the diff check:

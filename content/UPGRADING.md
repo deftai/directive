@@ -422,6 +422,17 @@ All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) no
 
 ---
 
+## Coverage hotspots + pre-PR headroom (#2683)
+
+After `deft update` / deposit, consumer projects gain:
+
+- `deft coverage:hotspots` (and deposited `task coverage:hotspots`) — cheap branch headroom + hotspot report from the latest `coverage/coverage-final.json`; `--json` for agents.
+- Updated `deft-directive-pre-pr` guidance — run targeted coverage on changed modules first, exercise both sides of new branches, aim for ≥ project floor + 0.3–0.5pp headroom, then use `coverage:hotspots` before full `task check`.
+
+This complements (does not replace) `deft verify:forward-coverage` (#1310) or `--allow-coverage-debt=#N` (#2573).
+
+---
+
 ## Node runtime (#1828 / #1530)
 
 After Wave 8, live deft gates run through the TypeScript engine. **Node.js and pnpm are required consumer runtimes** alongside Python (`uv`) — not optional extras for framework contributors only.

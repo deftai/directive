@@ -77,7 +77,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Branch policy & branch verification
 
-! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
+! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
 
 ## Branch Policy Disclosure (#746)
 

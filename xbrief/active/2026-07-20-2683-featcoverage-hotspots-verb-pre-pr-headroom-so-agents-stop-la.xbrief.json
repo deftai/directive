@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2683"
+  },
+  "plan": {
+    "title": "Coverage hotspots verb and pre-PR headroom for consumers",
+    "status": "running",
+    "narratives": {
+      "Description": "Hairline branch-coverage misses (84.9x vs 85%) force full-suite reruns. Add a consumer-facing coverage:hotspots verb plus pre-PR headroom guidance so agents leave buffer before the expensive global gate. Must deposit via CLI + Taskfile + skill sync — not maintainer-only. This story closes GitHub issue #2683 with a narrowly scoped fix and regression coverage.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2683",
+      "Overview": "## Summary\n\nRecurring hairline branch-coverage fails (84.9x% vs 85% floor) force full `task check` / release Step 5 reruns even when the suite is otherwise green. Same class as #1923, #2135, #2618, #2630, #2666. Policy already rejects an automatic near-miss band (#2573) — keep the hard 85% floor and loud `--allow-coverage-debt=#N` escape hatch. What we lack is **steering tools** so agents leave headroom *before* the expensive global gate.\n\n**Consumer requirement (non-negotiable):** this must ship as a **consumer-facing** surface via published CLI + Taskfile deposit + skill/AGENTS sync — not a maintainer-only script in `deftai/directive`. After `deft update` / deposit, consumer agents get the same cheap coverage loop.\n\n## Problem\n\n1. Global vitest thresholds are fail-closed at 85% branches on all platforms (`vitest.config.ts`). Net-new uncovered `if`/`?:`/`||`/`switch` arms nibble the margin until the next unrelated PR or release trips a hairline miss.\n2. Feedback is late: the useful signal only appears at the end of a full coverage run. Agents then guess which modules to patch and rerun the whole suite.\n3. Pre-PR / forward-coverage gates do not require local `--coverage` on changed modules or a measured headroom buffer above 85%.\n4. Consumers hit the same late-feedback pattern once they run deposited `task check` / pre-PR; a repo-private hotspot helper would not reach them.\n\n## Desired outcome\n\n### A) Published `deft coverage:hotspots` + deposited `task coverage:hotspots`\n\nDeterministic **CLI verb** in `@deftai/directive` (wired through `dispatch` / Taskfile deposit), that from the latest coverage report (or a cheap targeted refresh) prints:\n\n- Current global % for lines / branches / functions / statements vs project thresholds (read from consumer vitest/coverage config when present; fall back to framework default 85%)\n- Headroom vs the branch floor (pp)\n- Lowest-covered modules under the project's measured source roots\n- Uncovered branch/line samples for a caller-supplied path filter (default: git diff vs default branch)\n\nExit non-zero when global branches are below floor **or** when headroom is below a configured minimum (default suggestion: **0.3pp**), so agents can fail closed *before* opening a PR / cutting a release. Support `--json` for agents.\n\n⊗ Ship only as a script under this monorepo without CLI export + consumer Taskfile wiring.\n\n### B) Pre-PR / always-pin guidance (propagates to consumers)\n\nTeach `deft-directive-pre-pr` (pack source → render → deposit) and a thin AGENTS/commands pointer to:\n\n1. Run targeted coverage on changed modules first (`vitest run --coverage <paths>` / language equivalent), not only full `task check`.\n2. Require both sides of new branches (ternary / early-return / catch / default switch / `||` `??`).\n3. Treat \"barely ≥ floor\" as insufficient — aim for ~**≥ floor + 0.3–0.5pp** headroom on the branch metric after the change (floor may be project-specific; do not hardcode only directive's 85% in skill prose).\n4. Point at `task coverage:hotspots` / `deft coverage:hotspots` for where to add tests.\n\nKeep dogfood detail in CONTRIBUTING / coding docs; AGENTS stays pointer-thin. Consumers receive this on the next skill/AGENTS refresh after release.\n\n### C) Consumer deposit / sync contract\n\n- [ ] Verb listed in `content/commands.md` and deposited Taskfile namespace consumers already use\n- [ ] `deft update` / init-deposit projects the Taskfile target (or documents the `deft coverage:hotspots` CLI path for vendored consumers)\n- [ ] Pre-PR skill change is in the skills pack so OpenPackage / `.agents` / `.deft/core` sync paths all see it\n- [ ] UPGRADING (or release notes) calls out the new consumer verb + pre-PR habit\n\n## Non-goals\n\n- Lowering the 85% floor in this repo\n- Auto-passing Δ < 0.5pp without `--allow-coverage-debt=#N` (#2573 stands)\n- Reintroducing a win32-only threshold carve-out\n- Replacing attribution via coverage-debt issues when soft-pass is truly needed\n- Changing a consumer's chosen coverage floor (USER.md / project policy may be ≥90%); only teach headroom relative to *their* floor\n- Maintainer-only scratch tooling that never leaves `deftai/directive`\n\n## Acceptance\n\n- [ ] `deft coverage:hotspots` (and deposited `task coverage:hotspots`) surfaces global metrics, pp headroom, lowest modules, and optional path-filtered uncovered branches\n- [ ] Fail-closed when below floor or below configured headroom (default 0.3pp); JSON mode for agents\n- [ ] Works in a fresh consumer install after `npm i -g @deftai/directive@…` + `deft update` (or equivalent deposit) — verified by a consumer-path smoke or contract test\n- [ ] Pre-PR skill instructs targeted `--coverage` + both-sides branch discipline + headroom aim; AGENTS/commands pointer only\n- [ ] Docs state this complements (does not replace) `--allow-coverage-debt=#N` and forward-coverage (#1310)\n- [ ] CHANGELOG + regression tests for the verb's parse/report contract\n- [ ] UPGRADING / release note mentions consumer availability\n\n## Related\n\n- #2666 (current hairline; may still be open)\n- #2573 (coverage-debt escape hatch — do not regress)\n- #2630 / #2618 / #2135 / #1923 (prior clearance / boundary flakes)\n- #975 (prefer small targeted tests over slow full-suite loops)\n\n## Motivation (operator)\n\nAgents repeatedly burn a full Windows coverage run to discover a 0.02–0.1pp miss. A hotspot+headroom gate turns that into a cheap local loop while preserving the hard floor and attributable soft-pass policy — for **both** directive maintainers and consumers after upgrade.\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-20T16:19:15Z)\n\n## Amendment (consumer deposit)\n\nIssue body updated so this is **not** maintainer-only tooling:\n\n- Published `deft coverage:hotspots` + deposited `task coverage:hotspots`\n- Pre-PR skill / AGENTS pointer via pack render + consumer sync\n- Acceptance requires a post-`deft update` consumer-path smoke (or contract test)\n- Headroom is relative to the **project** branch floor (may differ from directive's 85%)",
+      "Labels": "enhancement, agent-experience, area:cli",
+      "ImplementationPlan": "1. Implement deft coverage:hotspots CLI module under packages/core + packages/cli dispatch/Taskfile deposit. 2. Report global metrics, pp headroom vs project branch floor, lowest modules, and path-filtered uncovered branches; fail closed below floor or below 0.3pp headroom; support --json. 3. Update deft-directive-pre-pr pack source + render, thin AGENTS/commands pointer, UPGRADING note; verify with unit tests and a consumer-path smoke/contract test; CHANGELOG.",
+      "UserStory": "As a directive consumer agent, I want coverage:hotspots and pre-PR headroom guidance after deft update, so that I stop discovering 0.02pp misses only after a full task check."
+    },
+    "items": [
+      {
+        "title": "AC1",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "deft coverage:hotspots returns global coverage metrics and fails closed when branch headroom is below 0.3pp or below the project floor."
+        }
+      },
+      {
+        "title": "AC2",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "After deft update, deposited task coverage:hotspots and the pre-PR skill emits targeted-coverage plus headroom guidance that displays in the consumer skill file."
+        }
+      },
+      {
+        "title": "AC3",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Each regression test creates a fixture coverage report and the suite emits passing JSON-contract results; CHANGELOG Unreleased records issue 2683."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2683",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2683: feat(coverage): hotspots verb + pre-PR headroom so agents stop landing on the 85% hairline"
+      }
+    ],
+    "updated": "2026-07-20T16:17:31Z",
+    "id": "2683-coverage-hotspots-headroom",
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2683"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/",
+          "packages/cli/src/",
+          "tasks/",
+          "content/skills/deft-directive-pre-pr/",
+          "content/packs/",
+          "content/commands.md",
+          "content/templates/",
+          "content/UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- coverage-hotspots",
+          "pnpm --filter @deftai/directive test -- coverage-hotspots"
+        ],
+        "expected_outputs": [
+          "coverage:hotspots CLI verb",
+          "Taskfile deposit",
+          "pre-PR headroom guidance",
+          "consumer smoke/contract"
+        ],
+        "depends_on": [],
+        "conflict_group": "2683-coverage-hotspots",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf",
+        "missing_traces_justification": "Enhancement from GitHub issue #2683; no FR trace registry for hotfix cohort."
+      }
+    }
+  }
+}
