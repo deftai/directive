@@ -45,7 +45,7 @@ describe("pr-watch types", () => {
         hasBlocking: false,
         errored: false,
         ciFailures: 0,
-      ciFailedChecks: [],
+        ciFailedChecks: [],
         terminalCheckRun: true,
         isClean: true,
         cleanGateHoldout: null,
