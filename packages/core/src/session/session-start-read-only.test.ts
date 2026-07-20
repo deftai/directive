@@ -37,10 +37,15 @@ function userMdResult(overrides: Partial<ResolveUserMdResult> = {}): ResolveUser
 describe("runSessionStart read-only posture (#2176)", () => {
   it("records alignment only and writes no ritual-state", () => {
     const root = tempRoot();
+    let releaseProbeCalls = 0;
     const result = runSessionStart(root, {
       posture: READ_ONLY_POSTURE,
       resolveUserMd: () => userMdResult({ path: "/opt/USER.md", rung: "env-override" }),
       probeEnvironment: () => environment,
+      probeReleaseAvailability: () => {
+        releaseProbeCalls += 1;
+        return { lines: ["unexpected release probe"] };
+      },
     });
     expect(result.code).toBe(0);
     expect(result.payload.posture).toBe(READ_ONLY_POSTURE);
@@ -52,6 +57,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
     expect(result.lines.join("\n")).toContain("[deft environment] os=darwin; shell=zsh");
     expect(result.lines.join("\n")).not.toContain("[deft policy]");
     expect(result.lines.join("\n")).not.toContain("[welcome]");
+    expect(releaseProbeCalls).toBe(0);
     expect(result.payload.environment).toEqual({
       host_platform: "darwin",
       shell: { name: "zsh", path: "/bin/zsh", kind: "default", source: "SHELL" },
@@ -66,6 +72,9 @@ describe("runSessionStart read-only posture (#2176)", () => {
       verifyTools: () => ({ exitCode: 0 }),
       runTriageWelcome: () => ({ exitCode: 0 }),
       probeEnvironment: () => environment,
+      probeReleaseAvailability: () => ({
+        lines: ["[deft release] Newer Directive release available: v1.0.1"],
+      }),
       runGit: (_r, args) => {
         if (args[0] === "rev-parse" && args.includes("HEAD")) {
           return { code: 0, stdout: "abc123", stderr: "" };
@@ -79,5 +88,6 @@ describe("runSessionStart read-only posture (#2176)", () => {
     expect(result.code).toBe(0);
     expect(result.payload.posture).toBeUndefined();
     expect(existsSync(ritualStatePath(root))).toBe(true);
+    expect(result.lines.join("\n")).toContain("Newer Directive release available");
   });
 });

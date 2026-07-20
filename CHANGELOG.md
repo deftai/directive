@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+<<<<<<< HEAD
 ### Changed
 
 ### Fixed
@@ -28,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+=======
+- **Session start alerts operators when a newer Directive release is available (#1692).** Mutable sessions make a short, disclosed public-npm check and show a once-per-day upgrade recommendation for each latest version. Read-only sessions, framework source checkouts, non-release pins, and `DEFT_NO_NETWORK=1` skip the probe; bare and gated `doctor` remain offline by default. Closes #1692.
+>>>>>>> 6e26a87f (feat(session): surface newer-release advisory at mutable session start)
 - **Consumer `deft coverage:hotspots` / `task coverage:hotspots` surfaces branch headroom before the global gate (#2683).** Reads `coverage/coverage-final.json`, compares global metrics to project vitest thresholds (default 85%), fails closed below the branch floor or below configured headroom (default 0.3pp), lists lowest modules and git-diff uncovered branch samples, and supports `--json`. Pre-PR skill guidance now steers targeted `--coverage` runs and headroom above the project floor; complements `verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573). Closes #2683.
 
 ### Changed

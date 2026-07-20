@@ -108,14 +108,26 @@ describe("package-manager network scope (#2182)", () => {
     expect(packageManagerCalls(spawnSyncMock)).toEqual([]);
   });
 
-  it("session:start (quick tier) invokes no npm/pnpm even with a private-scope registry present", () => {
+  it("session:start probes only the disclosed public npm registry", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 
     const result = runSessionStart(root, { writeHistory: false });
 
     expect(result.code === 0 || result.code === 1).toBe(true);
-    expect(packageManagerCalls(spawnSyncMock)).toEqual([]);
+    expect(packageManagerCalls(spawnSyncMock)).toEqual([
+      [
+        "npm",
+        [
+          "view",
+          "@deftai/directive",
+          "version",
+          "--registry=https://registry.npmjs.org/",
+          "--ignore-scripts",
+        ],
+        expect.objectContaining({ encoding: "utf8", timeout: 5_000 }),
+      ],
+    ]);
   });
 
   it("the gated session-ritual doctor step never requests --network", () => {

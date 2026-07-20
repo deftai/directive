@@ -17,6 +17,10 @@ import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, worktreePath } from "./git.js";
 import {
+  probeSessionReleaseAvailability,
+  type ReleaseAvailabilityProbeOptions,
+} from "./release-availability.js";
+import {
   newRitualStatePayload,
   ritualStatePath,
   ritualStep,
@@ -72,6 +76,10 @@ export interface SessionStartOptions {
   readonly verifyTools?: (output: (line: string) => void) => { exitCode: number };
   readonly resolveUserMd?: (projectRoot: string) => ResolveUserMdResult;
   readonly probeEnvironment?: () => EnvironmentContext;
+  readonly probeReleaseAvailability?: (
+    projectRoot: string,
+    options: ReleaseAvailabilityProbeOptions,
+  ) => { lines: readonly string[] };
 }
 
 function normaliseStepName(name: string): string {
@@ -432,6 +440,15 @@ export function runSessionStart(
       });
       lines.push(message);
     }
+  }
+
+  try {
+    const releaseAvailability = (
+      options.probeReleaseAvailability ?? probeSessionReleaseAvailability
+    )(projectRoot, { now: instant });
+    lines.push(...releaseAvailability.lines);
+  } catch {
+    // Release availability is a best-effort operator advisory, never a session blocker.
   }
 
   if (!runningInsideDeftRepo(projectRoot) && shouldEmitMigrateNudge(projectRoot)) {
