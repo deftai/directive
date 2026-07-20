@@ -6,10 +6,10 @@ import {
   findActiveMonitorForPr,
   isRecordActive,
   parseIso8601Utc,
+  type ReviewMonitorRecord,
   readReviewMonitorFile,
   registerReviewMonitor,
   reviewMonitorPath,
-  type ReviewMonitorRecord,
 } from "./record.js";
 
 function baseRecord(overrides: Partial<ReviewMonitorRecord> = {}): ReviewMonitorRecord {
@@ -130,9 +130,7 @@ describe("review-monitor record", () => {
   it("isRecordActive rejects ended, stale, and sha mismatch", () => {
     const now = new Date("2026-07-20T12:00:00.000Z");
     expect(isRecordActive(baseRecord({ ended_at: now.toISOString() }), { now })).toBe(false);
-    expect(
-      isRecordActive(baseRecord({ started_at: "bad-date" }), { now }),
-    ).toBe(false);
+    expect(isRecordActive(baseRecord({ started_at: "bad-date" }), { now })).toBe(false);
     expect(
       isRecordActive(baseRecord({ started_at: "2026-07-20T10:00:00.000Z" }), {
         now,

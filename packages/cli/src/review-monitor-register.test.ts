@@ -38,7 +38,7 @@ describe("review-monitor-register CLI", () => {
   });
 
   it("run exits 2 when required fields missing", () => {
-    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(run(["--pr", "1"])).toBe(2);
     expect(run(["--pr", "1", "--monitor-agent-id", "x"])).toBe(2);
     expect(run([])).toBe(2);
@@ -53,7 +53,7 @@ describe("review-monitor-register CLI", () => {
   it("run registers a monitor successfully", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-reg-"));
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(
       run([
         "--pr",

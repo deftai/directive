@@ -68,7 +68,7 @@ describe("verify-review-monitor CLI", () => {
   });
 
   it("run exits 2 without --pr", () => {
-    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(run([])).toBe(2);
   });
 
@@ -83,8 +83,8 @@ describe("verify-review-monitor CLI", () => {
     vi.stubEnv("CURSOR_AGENT", "");
     vi.stubEnv("GROK_BUILD", "");
     vi.stubEnv("DEFT_MONITOR_TIER", "3");
-    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(run(["--pr", "9", "--project-root", "."])).toBe(0);
   });
 
@@ -93,23 +93,15 @@ describe("verify-review-monitor CLI", () => {
     vi.stubEnv("DEFT_MONITOR_TIER", "1");
     vi.stubEnv("DEFT_MONITOR_TIER1_PRIMITIVE", "cursor-task");
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(
-      run([
-        "--pr",
-        "55",
-        "--project-root",
-        root,
-        "--call-site",
-        "swarm-phase6-cascade",
-        "--json",
-      ]),
+      run(["--pr", "55", "--project-root", root, "--call-site", "swarm-phase6-cascade", "--json"]),
     ).toBe(1);
     expect(out.mock.calls.join("")).toContain('"ready": false');
   });
 
   it("run exits 2 for parse error", () => {
-    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(run(["--pr"])).toBe(2);
   });
 });
