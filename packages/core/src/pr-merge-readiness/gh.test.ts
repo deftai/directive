@@ -32,6 +32,28 @@ describe("fetchGreptileBodyRest paginate", () => {
     expect(body).toBe("clean summary");
   });
 
+  it("prefers the most recently updated Greptile summary over a later-created stale one", () => {
+    const run: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify([
+        {
+          user: { login: "greptile-apps[bot]" },
+          body: "fresh head review",
+          updated_at: "2026-07-20T03:00:00Z",
+          created_at: "2026-07-20T01:00:00Z",
+        },
+        {
+          user: { login: "greptile-apps[bot]" },
+          body: "stale duplicate",
+          updated_at: "2026-07-20T01:30:00Z",
+          created_at: "2026-07-20T01:30:00Z",
+        },
+      ]),
+      stderr: "",
+    });
+    expect(fetchGreptileBodyRest(1, "deftai/directive", run).body).toBe("fresh head review");
+  });
+
   it("returns empty when no greptile comments", () => {
     const empty: RunGhFn = () => ({ returncode: 0, stdout: "[]", stderr: "" });
     expect(fetchGreptileBodyRest(1, "deftai/directive", empty).body).toBe("");

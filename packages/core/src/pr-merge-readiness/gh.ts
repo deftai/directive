@@ -94,7 +94,10 @@ export function fetchGreptileCommentBody(
     `repos/${resolvedRepo}/issues/${prNumber}/comments`,
     "--paginate",
     "--jq",
-    `[.[] | select(.user.login == "${GREPTILE_LOGIN}")] | last | .body // ""`,
+    // Prefer most recently *updated* Greptile summary. Greptile edits the
+    // primary rolling summary in place; a later-created duplicate can stay
+    // SHA-stale and must not win over the refreshed primary (#1056 / #2658).
+    `[.[] | select(.user.login == "${GREPTILE_LOGIN}")] | sort_by(.updated_at) | last | .body // ""`,
   ];
   const { returncode, stdout, stderr } = runGh(cmd);
   if (returncode !== 0) {
@@ -164,7 +167,8 @@ function parsePaginatedComments(text: string): { body: string | null; error: str
     idx = end;
   }
 
-  const greptileBodies: string[] = [];
+  let bestBody = "";
+  let bestUpdatedAt = "";
   for (const c of comments) {
     if (
       c !== null &&
@@ -179,13 +183,17 @@ function parsePaginatedComments(text: string): { body: string | null; error: str
       "body" in c &&
       typeof c.body === "string"
     ) {
-      greptileBodies.push(c.body);
+      const updatedAt = "updated_at" in c && typeof c.updated_at === "string" ? c.updated_at : "";
+      if (updatedAt >= bestUpdatedAt) {
+        bestUpdatedAt = updatedAt;
+        bestBody = c.body;
+      }
     }
   }
-  if (greptileBodies.length === 0) {
+  if (bestBody.length === 0 && bestUpdatedAt.length === 0) {
     return { body: "", error: "" };
   }
-  return { body: greptileBodies[greptileBodies.length - 1] ?? "", error: "" };
+  return { body: bestBody, error: "" };
 }
 
 /** Mirrors Python json.JSONDecoder.raw_decode for concatenated paginate arrays. */
