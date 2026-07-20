@@ -124,6 +124,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const rendered = renderHostDecision(args.host, decision);
   if (rendered.length > 0) writeOut(`${rendered}\n`);
   if (decision.code === "invalid-input" && args.host === "cursor") {
+    // Keys are already embedded in decision.message; stderr helps operators tailing logs.
     const keys = hookPayloadTopLevelKeys(payload);
     if (keys.length > 0) {
       writeErr(`Directive hook diagnostic: payload top-level keys: ${keys.join(", ")}\n`);

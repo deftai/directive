@@ -144,6 +144,7 @@ export function hookToolName(payload: unknown, host?: HookHost): string | null {
   if (input === null) return null;
   const toolObject = record(input.tool);
   const toolCall = record(input.tool_call) ?? record(input.toolCall);
+  // OpenAI-style nestings are host-agnostic; checked before Cursor-only inference.
   const direct =
     fieldString(input, "tool_name") ??
     fieldString(input, "toolName") ??
@@ -155,11 +156,14 @@ export function hookToolName(payload: unknown, host?: HookHost): string | null {
   return null;
 }
 
-function missingToolNameMessage(
-  host: HookHost,
-  payload: unknown,
-  context?: HookPayloadContext,
-): string {
+interface MissingToolNameInput {
+  readonly host: HookHost;
+  readonly payload: unknown;
+  readonly context?: HookPayloadContext;
+}
+
+function missingToolNameMessage(input: MissingToolNameInput): string {
+  const { host, payload, context } = input;
   if (host === "cursor") {
     if (context?.stdinEmpty) {
       return (
@@ -319,12 +323,11 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
 
   const toolName = hookToolName(input.payload, input.host);
   if (toolName === null) {
-    return deny(
-      input,
-      "invalid-input",
-      null,
-      missingToolNameMessage(input.host, input.payload, input.payloadContext),
-    );
+    return deny(input, "invalid-input", null, missingToolNameMessage({
+      host: input.host,
+      payload: input.payload,
+      context: input.payloadContext,
+    }));
   }
   if (!isDirectWriteTool(toolName)) {
     return {
