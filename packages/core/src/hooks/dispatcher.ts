@@ -35,11 +35,18 @@ export interface HookDecision {
   readonly scopePath: string | null;
 }
 
+/** Stdin parse metadata from hook-dispatch; absent when callers supply payload directly. */
+export interface HookPayloadContext {
+  readonly stdinEmpty?: boolean;
+  readonly parseFailed?: boolean;
+}
+
 export interface HookDispatchInput {
   readonly host: HookHost;
   readonly event: HookEvent;
   readonly projectRoot: string;
   readonly payload: unknown;
+  readonly payloadContext?: HookPayloadContext;
 }
 
 export interface HookPolicySeams {
@@ -72,7 +79,14 @@ function fieldString(input: Record<string, unknown>, key: string): string | null
 }
 
 function toolInputRecord(payload: Record<string, unknown>): Record<string, unknown> | null {
-  return record(payload.tool_input) ?? record(payload.toolInput) ?? record(payload.input);
+  const toolCall = record(payload.tool_call) ?? record(payload.toolCall);
+  return (
+    record(payload.tool_input) ??
+    record(payload.toolInput) ??
+    record(payload.input) ??
+    record(payload.arguments) ??
+    (toolCall !== null ? record(toolCall.arguments) : null)
+  );
 }
 
 /**
@@ -119,18 +133,61 @@ function inferCursorDirectWriteToolName(payload: Record<string, unknown>): strin
   return null;
 }
 
+export function hookPayloadTopLevelKeys(payload: unknown): string[] {
+  const input = record(payload);
+  if (input === null) return [];
+  return Object.keys(input).sort();
+}
+
 export function hookToolName(payload: unknown, host?: HookHost): string | null {
   const input = record(payload);
   if (input === null) return null;
+  const toolObject = record(input.tool);
+  const toolCall = record(input.tool_call) ?? record(input.toolCall);
+  // OpenAI-style nestings are host-agnostic; checked before Cursor-only inference.
   const direct =
-    fieldString(input, "tool_name") ?? fieldString(input, "toolName") ?? fieldString(input, "tool");
+    fieldString(input, "tool_name") ??
+    fieldString(input, "toolName") ??
+    fieldString(input, "tool") ??
+    (toolObject !== null ? fieldString(toolObject, "name") : null) ??
+    (toolCall !== null ? fieldString(toolCall, "name") : null);
   if (direct !== null) return direct;
   if (host === "cursor") return inferCursorDirectWriteToolName(input);
   return null;
 }
 
-function missingToolNameMessage(host: HookHost): string {
+interface MissingToolNameInput {
+  readonly host: HookHost;
+  readonly payload: unknown;
+  readonly context?: HookPayloadContext;
+}
+
+function missingToolNameMessage(input: MissingToolNameInput): string {
+  const { host, payload, context } = input;
   if (host === "cursor") {
+    if (context?.stdinEmpty) {
+      return (
+        "Directive denied this Cursor preToolUse event because the host sent an empty payload " +
+        "(stdin was empty — not a session ritual or scope failure). " +
+        "If write tools should pass, update Directive or report the payload shape from Cursor."
+      );
+    }
+    if (context?.parseFailed) {
+      return (
+        "Directive denied this Cursor preToolUse event because the host payload was not valid JSON " +
+        "(host-integration mismatch — not a session ritual or scope failure). " +
+        "If write tools should pass, update Directive or report the payload shape from Cursor."
+      );
+    }
+    const keys = hookPayloadTopLevelKeys(payload);
+    if (keys.length > 0) {
+      return (
+        "Directive denied this Cursor preToolUse event because the host payload omitted a " +
+        "recognizable tool name (host-integration mismatch — not a session ritual or scope failure). " +
+        `Top-level payload keys: ${keys.join(", ")}. ` +
+        "If write tools should pass, update Directive or report the payload shape from Cursor."
+      );
+    }
     return (
       "Directive denied this Cursor preToolUse event because the host payload omitted a " +
       "recognizable tool name (host-integration mismatch — not a session ritual or scope failure). " +
@@ -266,7 +323,16 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
 
   const toolName = hookToolName(input.payload, input.host);
   if (toolName === null) {
-    return deny(input, "invalid-input", null, missingToolNameMessage(input.host));
+    return deny(
+      input,
+      "invalid-input",
+      null,
+      missingToolNameMessage({
+        host: input.host,
+        payload: input.payload,
+        context: input.payloadContext,
+      }),
+    );
   }
   if (!isDirectWriteTool(toolName)) {
     return {

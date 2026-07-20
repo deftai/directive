@@ -6,6 +6,8 @@ import {
   decideHook,
   type HookEvent,
   type HookHost,
+  type HookPayloadContext,
+  hookPayloadTopLevelKeys,
   isHookEvent,
   isHookHost,
   projectRootFromHookPayload,
@@ -79,14 +81,21 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   return parsed;
 }
 
-function parsePayload(raw: string): unknown {
-  if (raw.trim().length === 0) return {};
+export interface ParsedPayload {
+  readonly payload: unknown;
+  readonly context: HookPayloadContext;
+}
+
+export function parsePayload(raw: string): ParsedPayload {
+  if (raw.trim().length === 0) {
+    return { payload: {}, context: { stdinEmpty: true } };
+  }
   try {
-    return JSON.parse(raw) as unknown;
+    return { payload: JSON.parse(raw) as unknown, context: {} };
   } catch {
     // tool.before is installed only on direct-write matchers, so an unreadable
     // payload becomes a missing-tool denial rather than a fail-open crash.
-    return {};
+    return { payload: {}, context: { parseFailed: true } };
   }
 }
 
@@ -101,7 +110,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
 
   const readStdin = seams.readStdin ?? (() => readFileSync(0, "utf8"));
   const cwd = (seams.cwd ?? process.cwd)();
-  const payload = parsePayload(readStdin());
+  const { payload, context: payloadContext } = parsePayload(readStdin());
   const projectRoot = args.projectRoot
     ? resolve(args.projectRoot)
     : projectRootFromHookPayload(payload, cwd);
@@ -110,9 +119,17 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     event: args.event,
     projectRoot,
     payload,
+    payloadContext,
   });
   const rendered = renderHostDecision(args.host, decision);
   if (rendered.length > 0) writeOut(`${rendered}\n`);
+  if (decision.code === "invalid-input" && args.host === "cursor") {
+    // Keys are already embedded in decision.message; stderr helps operators tailing logs.
+    const keys = hookPayloadTopLevelKeys(payload);
+    if (keys.length > 0) {
+      writeErr(`Directive hook diagnostic: payload top-level keys: ${keys.join(", ")}\n`);
+    }
+  }
   if (decision.code === "session-start-degraded") writeErr(`${decision.message}\n`);
   return 0;
 }

@@ -4,6 +4,7 @@ import {
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
   type HookPolicySeams,
+  hookPayloadTopLevelKeys,
   hookToolName,
   hookWriteTargetPath,
   isDirectWriteTool,
@@ -239,6 +240,79 @@ describe("direct-write hook policy", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "invalid-input" });
     expect(decision.message).toContain("host-integration mismatch");
     expect(decision.message).not.toContain("deft session:start");
+  });
+
+  it("distinguishes empty stdin from unknown-shape Cursor denies (#2669)", () => {
+    const emptyStdin = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {},
+        payloadContext: { stdinEmpty: true },
+      },
+      readySeams(),
+    );
+    expect(emptyStdin.message).toContain("stdin was empty");
+
+    const parseFailed = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {},
+        payloadContext: { parseFailed: true },
+      },
+      readySeams(),
+    );
+    expect(parseFailed.message).toContain("not valid JSON");
+
+    const unknownShape = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { host_version: "1.2.3" },
+      },
+      readySeams(),
+    );
+    expect(unknownShape.message).toContain("Top-level payload keys: host_version");
+    expect(hookPayloadTopLevelKeys({ host_version: "1.2.3" })).toEqual(["host_version"]);
+  });
+
+  it("maps Cursor gap-table payload shapes that omitted tool_name (#2669)", () => {
+    expect(hookToolName({ arguments: { contents: "x", path: "a.py" } }, "cursor")).toBe("Write");
+    expect(
+      hookToolName(
+        {
+          tool_call: { name: "Write", arguments: { contents: "x", path: "a.py" } },
+        },
+        "cursor",
+      ),
+    ).toBe("Write");
+    expect(hookToolName({ tool: { name: "Write" } }, "cursor")).toBe("Write");
+    expect(
+      hookToolName(
+        {
+          tool_call: {
+            name: "StrReplace",
+            arguments: { path: "a.py", old_string: "a", new_string: "b" },
+          },
+        },
+        "cursor",
+      ),
+    ).toBe("StrReplace");
+    expect(
+      decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { arguments: { contents: "x", path: "src/a.py" } },
+        },
+        readySeams(),
+      ),
+    ).toMatchObject({ verdict: "allow", code: "write-ready", toolName: "Write" });
   });
 
   it("surfaces a failed SessionStart result without blocking the session", () => {
