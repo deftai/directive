@@ -46,9 +46,6 @@ jobs:
   # -------------------------------------------------------------------------
   ts-primary:
     name: TypeScript (Blacksmith primary)
-    concurrency:
-      group: directive-ci-ts-${{ github.run_id }}
-      cancel-in-progress: false
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: ts
@@ -56,9 +53,6 @@ jobs:
 
   go-primary:
     name: Go (Blacksmith primary)
-    concurrency:
-      group: directive-ci-go-${{ github.run_id }}
-      cancel-in-progress: false
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: go
@@ -141,20 +135,54 @@ else:
             sleep "$POLL_SECONDS"
           done
 
+          cancel_queued_primary() {
+            local needle="$1"
+            local jobs_json="$2"
+            python3 -c '
+import json, sys, subprocess, os
+needle = sys.argv[1].lower()
+payload = json.loads(sys.argv[2])
+repo = os.environ["REPO"]
+for j in payload.get("jobs") or []:
+    name = str(j.get("name") or "").lower()
+    if needle not in name:
+        continue
+    if j.get("status") != "queued":
+        continue
+    jid = j.get("id")
+    if not jid:
+        continue
+    print(f"canceling queued primary job id={jid} name={j.get('name')}")
+    subprocess.run(
+        ["gh", "api", "-X", "POST", f"repos/{repo}/actions/jobs/{jid}/cancel"],
+        check=False,
+    )
+' "$needle" "$jobs_json"
+          }
+
+          if [[ "$ts_failover" == "true" || "$go_failover" == "true" ]]; then
+            jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
+            if [[ "$ts_failover" == "true" ]]; then
+              cancel_queued_primary "typescript (blacksmith primary)" "$jobs_json"
+            fi
+            if [[ "$go_failover" == "true" ]]; then
+              cancel_queued_primary "go (blacksmith primary)" "$jobs_json"
+            fi
+          fi
+
           echo "ts_failover=${ts_failover}" >> "$GITHUB_OUTPUT"
           echo "go_failover=${go_failover}" >> "$GITHUB_OUTPUT"
 
   # -------------------------------------------------------------------------
-  # GH-hosted failover lanes. Same concurrency group + cancel-in-progress
-  # cancels a still-queued Blacksmith primary when failover starts (#2672).
+  # GH-hosted failover lanes. Watchdog cancels still-queued Blacksmith
+  # primaries via the Jobs API before these start (#2672). Avoid concurrency
+  # on reusable-workflow caller jobs — it can invalidate the whole workflow
+  # graph (0-job failure) when combined with workflow_call.
   # -------------------------------------------------------------------------
   ts-failover:
     name: TypeScript (GH-hosted failover)
     needs: [capacity-watchdog]
     if: needs.capacity-watchdog.outputs.ts_failover == 'true'
-    concurrency:
-      group: directive-ci-ts-${{ github.run_id }}
-      cancel-in-progress: true
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: ts
@@ -164,9 +192,6 @@ else:
     name: Go (GH-hosted failover)
     needs: [capacity-watchdog]
     if: needs.capacity-watchdog.outputs.go_failover == 'true'
-    concurrency:
-      group: directive-ci-go-${{ github.run_id }}
-      cancel-in-progress: true
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: go
