@@ -43,6 +43,35 @@ describe("routeArgv", () => {
     ]);
   });
 
+  it("maps scope:promote colon alias to scope-lifecycle promote (#2654)", () => {
+    expect(routeArgv(["scope:promote", "path.xbrief.json"]).argv).toEqual([
+      "scope-lifecycle",
+      "promote",
+      "path.xbrief.json",
+    ]);
+    expect(routeArgv(["scope:promote"]).argv).toEqual(["scope-lifecycle", "promote"]);
+    expect(routeArgv(["scope:activate", "xbrief/pending/story.xbrief.json"]).argv).toEqual([
+      "scope-lifecycle",
+      "activate",
+      "xbrief/pending/story.xbrief.json",
+    ]);
+    expect(routeArgv(["scope:complete", "xbrief/active/story.xbrief.json"]).argv).toEqual([
+      "scope-lifecycle",
+      "complete",
+      "xbrief/active/story.xbrief.json",
+    ]);
+  });
+
+  it("maps scope-promote dash alias to scope-lifecycle promote (#2654)", () => {
+    expect(routeArgv(["scope-promote", "path.xbrief.json"]).argv).toEqual([
+      "scope-lifecycle",
+      "promote",
+      "path.xbrief.json",
+    ]);
+    expect(routeArgv(["scope-activate"]).argv).toEqual(["scope-lifecycle", "activate"]);
+    expect(routeArgv(["scope-demote"]).argv).toEqual(["scope-demote"]);
+  });
+
   it("maps triage queue to triage:queue", () => {
     expect(routeArgv(["triage", "queue", "--limit", "5"]).argv).toEqual([
       "triage:queue",
@@ -192,6 +221,20 @@ describe("routeAndDispatch", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it("routes scope:promote colon alias to scope-lifecycle handler (#2654)", async () => {
+    const handler = vi.fn(() => 0);
+    vi.doMock("../scope-lifecycle.js", () => ({ run: handler }));
+    resetHandlerCacheForTests();
+
+    await routeAndDispatch(["scope:promote", "--help"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+
+    expect(handler).toHaveBeenCalledOnce();
+    expect(handler.mock.calls[0]?.[0]).toEqual(["promote", "--help"]);
   });
 
   it("routes verify branch to the same handler as verify:branch", async () => {

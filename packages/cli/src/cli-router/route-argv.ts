@@ -209,6 +209,28 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
   return null;
 }
 
+/** Split `namespace:verb` task keys (e.g. scope:promote) for namespace routing (#2654). */
+function tryColonNamespaceRoute(first: string, rest: readonly string[]): RoutedArgv | null {
+  // Registered colon aliases (policy:show, pr:watch, …) stay on the flat path.
+  if (resolveCanonicalVerb(first) !== null) return null;
+  const colon = first.indexOf(":");
+  if (colon <= 0) return null;
+  const ns = first.slice(0, colon);
+  const verb = first.slice(colon + 1);
+  if (verb.length === 0) return null;
+  return routeNamespaceVerb(ns, verb, [...rest]);
+}
+
+/** Split `scope-<verb>` dash aliases (e.g. scope-promote) for namespace routing (#2654). */
+function tryScopeDashRoute(first: string, rest: readonly string[]): RoutedArgv | null {
+  if (resolveCanonicalVerb(first) !== null) return null;
+  const prefix = "scope-";
+  if (!first.startsWith(prefix)) return null;
+  const verb = first.slice(prefix.length);
+  if (verb.length === 0) return null;
+  return routeNamespaceVerb("scope", verb, [...rest]);
+}
+
 function routeThreeToken(
   ns: string,
   verb: string,
@@ -256,6 +278,12 @@ export function routeArgv(argv: readonly string[]): RoutedArgv {
 
   const topLevel = routeTopLevel(first, argv.slice(1));
   if (topLevel !== null) return topLevel;
+
+  const colonRoute = tryColonNamespaceRoute(first, argv.slice(1));
+  if (colonRoute !== null) return colonRoute;
+
+  const scopeDashRoute = tryScopeDashRoute(first, argv.slice(1));
+  if (scopeDashRoute !== null) return scopeDashRoute;
 
   if (argv.length === 1 && resolveCanonicalVerb(first) !== null) {
     return { kind: "dispatch", argv: [first] };
