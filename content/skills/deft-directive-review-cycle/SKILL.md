@@ -198,6 +198,15 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ~ Surface the holdout to the user/parent on the first stable `ci_failures` probe (fail-loud), not after burning `max-wait-minutes`. See also [`templates/swarm-greptile-poller-prompt.md`](../../templates/swarm-greptile-poller-prompt.md) CLEAN gate evaluation (#1039).
 
+
+### Runner capacity stall (`runner_capacity_stall` / #2672)
+
+! Framework CI prefers Blacksmith with a timed GH-hosted failover (~20 minute stall budget). When `task pr:watch --json` / `task pr:merge-ready` reports `ci_ready_state=runner_capacity_stall` (or verdict `RUNNER_CAPACITY_STALL`, exit 2): **wait for auto-failover** to the ubuntu-latest lane and the authoritative aggregator check. Do **not** invent `--skip-ci` or merge with pending required checks.
+
+! `runner_capacity_stall` is distinct from ordinary `not_ready_yet` (under budget / `in_progress`) and from execution hangs (#2652). Capacity stall means required checks stayed `queued` with no runner claimed past the budget.
+
+⊗ Use `--skip-ci` / merge-with-pending because CI is capacity-stalled — the failover path is the unblock; skip-ci is an incident-only release escape hatch (#2652), not a runner-capacity remedy.
+
 ### Stall Detection Rubric (#564)
 
 ! Track per poll: `startedAt` (timestamp of the first observation of the IN_PROGRESS check run for the current commit) and `commit.oid` (head SHA being reviewed). Both fields MUST be re-recorded every time the head SHA changes -- the rubric measures elapsed time on a single commit, not across the whole review cycle.

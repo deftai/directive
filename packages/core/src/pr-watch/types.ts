@@ -16,6 +16,13 @@ export interface WatchProbe {
   readonly ciFailures: number;
   /** Failed required check identities (name + conclusion), when CI was probed. */
   readonly ciFailedChecks: readonly string[];
+  /**
+   * CI gate ready_state from evaluateCiGate (#2169 / #2672).
+   * Includes `runner_capacity_stall` distinct from `not_ready_yet`.
+   */
+  readonly ciReadyState: string | null;
+  /** Required checks classified as capacity-stalled (#2672). */
+  readonly ciCapacityStalledChecks: readonly string[];
   /** All required CI check-runs have a terminal conclusion (none pending). */
   readonly terminalCheckRun: boolean;
   readonly isClean: boolean;

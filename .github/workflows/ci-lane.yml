@@ -1,0 +1,106 @@
+# Reusable CI lane for framework TypeScript / Go suites (#2672).
+# Called from ci.yml as Blacksmith-primary or GH-hosted failover.
+# Job check names here are NOT branch-protection required names — those live
+# exclusively on the aggregators in ci.yml.
+
+name: CI lane
+
+on:
+  workflow_call:
+    inputs:
+      suite:
+        description: "Which suite to run (ts | go)"
+        required: true
+        type: string
+      runner:
+        description: "GitHub Actions runs-on label"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DEFT_SESSION_RITUAL_SKIP: "1"
+
+jobs:
+  run:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Node (ts + go)
+        if: inputs.suite == 'ts' || inputs.suite == 'go'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        if: inputs.suite == 'ts' || inputs.suite == 'go'
+        run: corepack enable
+
+      - name: Install dependencies
+        if: inputs.suite == 'ts' || inputs.suite == 'go'
+        run: pnpm install --frozen-lockfile
+
+      # --- TypeScript suite ---
+      - name: Build (tsc -b project references)
+        if: inputs.suite == 'ts'
+        run: pnpm run build
+
+      - name: Lint + format check (biome)
+        if: inputs.suite == 'ts'
+        run: pnpm run lint
+
+      - name: Test with coverage (vitest)
+        if: inputs.suite == 'ts'
+        timeout-minutes: 20
+        run: pnpm run test
+
+      - name: Rule-relocation eval:health gate (#2373)
+        if: inputs.suite == 'ts' && github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          node packages/cli/dist/bin.js verify:eval-health-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
+
+      - name: Trigger-routing eval:triggers gate (#1586)
+        if: inputs.suite == 'ts' && github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          node packages/cli/dist/bin.js verify:eval-triggers-relocation --project-root . --base-ref "origin/${{ github.base_ref }}"
+
+      # --- Go suite ---
+      - name: Setup Go
+        if: inputs.suite == 'go'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build TypeScript CLI (deft hooks #2049)
+        if: inputs.suite == 'go'
+        run: pnpm run build
+
+      - name: Run Go tests
+        if: inputs.suite == 'go'
+        run: go test ./cmd/deft-install/
+
+      - name: Build linux/amd64
+        if: inputs.suite == 'go'
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -o /dev/null ./cmd/deft-install/
+
+      - name: Build darwin/arm64
+        if: inputs.suite == 'go'
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+        run: go build -o /dev/null ./cmd/deft-install/
+
+      - name: Build windows/amd64
+        if: inputs.suite == 'go'
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -o /dev/null ./cmd/deft-install/

@@ -209,4 +209,13 @@ describe("test_review_cycle_skill", () => {
     expect(text).toMatch(/MUST NOT.*idle-poll|idle-poll hoping CI heals/i);
     expect(text).toContain("ci_failed_checks");
   });
+
+  it("runner_capacity_stall wait for auto-failover (#2672)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("runner_capacity_stall");
+    expect(text).toContain("RUNNER_CAPACITY_STALL");
+    expect(text).toContain("wait for auto-failover");
+    expect(text).toContain("--skip-ci");
+    expect(text).toContain("#2672");
+  });
 });

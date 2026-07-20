@@ -24,6 +24,11 @@ export const VERDICT_TIMEOUT = "TIMEOUT";
  * (#2688). Exit 2 — fail-loud toward a CI fix loop instead of idle-polling.
  */
 export const VERDICT_CI_BLOCKED = "CI_BLOCKED";
+/**
+ * Required CI is still queued past the capacity-stall budget with no runner
+ * claimed (#2672). Exit 2 — wait for auto-failover; never --skip-ci.
+ */
+export const VERDICT_RUNNER_CAPACITY_STALL = "RUNNER_CAPACITY_STALL";
 /** --one-shot only: a single probe with no terminal verdict yet. */
 export const VERDICT_PENDING = "PENDING";
 /** External/config fault mid-probe (unresolvable repo/HEAD, gh unavailable). */
@@ -59,7 +64,7 @@ export const WATCH_HELP =
   "exit codes:\n" +
   "  0  CLEAN       SHA-matched review, confidence > 3, no P0/P1, CI green\n" +
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
-  "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | config / usage error\n";
+  "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | RUNNER_CAPACITY_STALL | config / usage error\n";
 /**
  * Consecutive polls with a review PRESENT but stuck on a stale (non-HEAD)
  * commit before the loop surfaces STALL instead of waiting the full cap. Keeps

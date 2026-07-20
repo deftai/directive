@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Framework CI restores Blacksmith as primary with timed GH-hosted failover (#2672).** TypeScript/Go run on `blacksmith-4vcpu-ubuntu-2404`; a ~20m capacity watchdog fails over only still-`queued` jobs (no runner claimed) to `ubuntu-latest`; aggregators keep the required check names. `pr:merge-ready` / `pr:watch` surface `runner_capacity_stall` (exit 2) distinct from `not_ready_yet`; review-cycle doctrine says wait for auto-failover, never `--skip-ci`. Consumer scaffolds and `npm-publish.yml` stay GH-hosted. Closes #2672.
 - **Session start alerts operators when a newer Directive release is available (#1692).** Mutable sessions make a short, disclosed public-npm check and show a once-per-day upgrade recommendation for each latest version. Read-only sessions, framework source checkouts, non-release pins, and `DEFT_NO_NETWORK=1` skip the probe; bare and gated `doctor` remain offline by default. Closes #1692.
 
 ### Changed

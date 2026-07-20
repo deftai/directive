@@ -1,0 +1,56 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2672"
+  },
+  "plan": {
+    "title": "CI: Blacksmith primary + timed GH-hosted failover on runner capacity stall",
+    "status": "running",
+    "narratives": {
+      "Description": "CI: Blacksmith primary + timed GH-hosted failover on runner capacity stall",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2672",
+      "Overview": "## Summary\n\nRestore **Blacksmith as the primary required-CI runner path** for `deftai/directive` (cheaper), with a **timed failover to GitHub-hosted runners** when capacity stalls leave jobs `queued` with no runner claimed. Pair that with a **runner-agnostic stall signal** so merge-ready / review-cycle agents can diagnose capacity hangs instead of waiting forever or inventing `--skip-ci`.\n\nBlunt unblock that landed in v0.79.3: CI TS/Go jobs pinned to `ubuntu-latest` after Blacksmith `blacksmith-4vcpu-ubuntu-2404` sat `queued` for hours with nothing `in_progress`. That fixed the incident but abandoned the cost preference for the steady state.\n\n## Goals\n\n1. **Framework repo (`deftai/directive`)**: Blacksmith = main path for required CI (and other jobs where Blacksmith is appropriate).\n2. **Failover**: if a required job stays `queued` with no runner claimed beyond a budget (propose 15–30m), re-dispatch / enable the same suite on `ubuntu-latest` (Windows: `windows-latest` as today).\n3. **Authoritative check**: merge gates must know which run counts when both Blacksmith and GH-hosted attempts exist (cancel or demote the stalled attempt; avoid dual-required deadlock).\n4. **Distinct signal**: expose something like `runner_capacity_stall` (JSON / exit reason) from merge-ready / `pr:watch` (or adjacent probe) when required checks are capacity-stalled — fail-closed diagnosis, not soft bypass.\n5. **Consumers unchanged by default**: scaffolds stay `ubuntu-latest`. Do **not** deposit Blacksmith labels into consumer templates. Orgs without Blacksmith must not get permanently queued jobs from Directive defaults.\n6. **npm-publish stays GitHub-hosted** (`--provenance` / OIDC). Never Blacksmith-primary on that workflow.\n\n## Non-goals\n\n- Silent `--skip-ci` / merge-with-pending on runner stall\n- Making Blacksmith a consumer dependency\n- Auto-failover for *execution* hangs (infinite loops / stuck vitest) — those stay timeout + fix + incident citation (`#2652`)\n\n## Acceptance criteria\n\n- [ ] `deftai/directive` required CI prefers Blacksmith again for cost\n- [ ] Documented stall budget + automatic or operator-triggered GH-hosted failover that unblocks merge without dropping the suite\n- [ ] Required-check / merge-ready behavior defined when failover runs (single authoritative green path)\n- [ ] Stall detection surfaces a distinct reason usable by agents (not only human log archaeology)\n- [ ] Consumer init/scaffold workflows remain GH-hosted; docs state Blacksmith is opt-in for consumer orgs\n- [ ] `npm-publish.yml` remains on GitHub-hosted runners\n\n## Context / refs\n\n- v0.79.3 CI runner pin to `ubuntu-latest` (capacity stall incident)\n- `#2652` — execution hang / Step 5 timeouts (separate class; do not conflate)\n- Release workflow may still use Blacksmith today; align policy across CI vs release as part of design\n\n## Labels suggestion\n\n`enhancement`, `ci-cd`, `operational`\r\n\n",
+      "Labels": "enhancement, ci-cd, operational",
+      "ImplementationNotes": "Blacksmith-primary + 20m capacity-watchdog failover + aggregator required-check names; runner_capacity_stall in ci-gate/pr:watch; review-cycle skill + scm/github.md + CHANGELOG."
+    },
+    "items": [
+      {
+        "title": "`deftai/directive` required CI prefers Blacksmith again for cost",
+        "status": "completed"
+      },
+      {
+        "title": "Documented stall budget + automatic or operator-triggered GH-hosted failover that unblocks merge without dropping the suite",
+        "status": "completed"
+      },
+      {
+        "title": "Required-check / merge-ready behavior defined when failover runs (single authoritative green path)",
+        "status": "completed"
+      },
+      {
+        "title": "Stall detection surfaces a distinct reason usable by agents (not only human log archaeology)",
+        "status": "completed"
+      },
+      {
+        "title": "Consumer init/scaffold workflows remain GH-hosted; docs state Blacksmith is opt-in for consumer orgs",
+        "status": "completed"
+      },
+      {
+        "title": "`npm-publish.yml` remains on GitHub-hosted runners",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "operational"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2672",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2672: CI: Blacksmith primary + timed GH-hosted failover on runner capacity stall"
+      }
+    ],
+    "updated": "2026-07-20T20:36:49Z"
+  }
+}

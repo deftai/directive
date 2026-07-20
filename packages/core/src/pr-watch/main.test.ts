@@ -31,6 +31,8 @@ function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
     errored: false,
     ciFailures: 0,
     ciFailedChecks: [],
+    ciReadyState: "ready",
+    ciCapacityStalledChecks: [],
     terminalCheckRun: true,
     isClean: false,
     cleanGateHoldout: null,
@@ -137,6 +139,8 @@ describe("watchResultToJson (AC-4 shape)", () => {
       "errored",
       "ci_failures",
       "ci_failed_checks",
+      "ci_ready_state",
+      "ci_capacity_stalled_checks",
       "is_clean",
       "clean_gate_holdout",
       "elapsed_seconds",
@@ -151,6 +155,8 @@ describe("watchResultToJson (AC-4 shape)", () => {
     expect(json.head_sha).toBe(HEAD);
     expect(json.sha_match).toBe(true);
     expect(json.is_clean).toBe(true);
+    expect(json.ci_ready_state).toBe("ready");
+    expect(json.ci_capacity_stalled_checks).toEqual([]);
     expect(json.elapsed_seconds).toBe(180);
     expect(json.poll_count).toBe(3);
   });

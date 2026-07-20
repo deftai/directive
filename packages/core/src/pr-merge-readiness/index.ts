@@ -1,4 +1,12 @@
-export { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
+export {
+  buildCiSummaryLine,
+  type CiCheckConclusion,
+  type CiGateOptions,
+  type CiGateResult,
+  type CiGateSummary,
+  type CiReadyState,
+  evaluateCiGate,
+} from "./ci-gate.js";
 export { type ComputeGateOptions, computeGateResult, type FetchMergeabilityFn } from "./compute.js";
 export * from "./constants.js";
 export { evaluateGates, isMergeReady } from "./evaluate.js";
@@ -24,6 +32,13 @@ export {
 } from "./mergeability.js";
 export { emitJson, exitCodeFor, gateResultToDict, printHuman } from "./output.js";
 export { emptyVerdict, isInformalCleanMissingCanonicalFields, parseGreptileBody } from "./parse.js";
+export {
+  type CapacityStallOptions,
+  type CapacityStallProbe,
+  classifyCapacityStalledRequired,
+  DEFAULT_CAPACITY_STALL_MS,
+  isRunnerCapacityStalled,
+} from "./runner-capacity-stall.js";
 export type {
   SlizardGateOptions,
   SlizardGateResult,

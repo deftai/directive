@@ -289,6 +289,14 @@ Following a v1.0.0 release, commits:
 - ! Run `task check` for quality gates
 - ~ Upload coverage reports
 
+**Framework CI runners (#2672)**:
+- ! `deftai/directive` required CI prefers Blacksmith (`blacksmith-4vcpu-ubuntu-2404`) for TypeScript and Go cost
+- ! Capacity watchdog (~20 minute budget): if a Blacksmith primary job stays `queued` with `runner_name` null and no `started_at`, cancel that queued attempt (concurrency cancel-in-progress) and run the same suite on `ubuntu-latest`
+- ! Branch-protection required check names (`TypeScript (build + lint + test)`, `Go (test + build)`) live **only** on the aggregator jobs — never on primary/failover lane names
+- ⊗ Fail over `in_progress` jobs (execution hangs) — those stay timeout + fix (#2652); capacity failover is queue-stall only
+- ! Consumer scaffolds and `npm-publish.yml` stay on GitHub-hosted `ubuntu-latest` (Blacksmith is opt-in for consumer orgs; npm `--provenance` requires GH-hosted)
+- ! Agents seeing `runner_capacity_stall` / `RUNNER_CAPACITY_STALL` MUST wait for auto-failover — ⊗ `--skip-ci` as a capacity remedy
+
 **Security**:
 - ! Use GitHub Secrets for CI/CD credentials
 - ⊗ Commit secrets to repo

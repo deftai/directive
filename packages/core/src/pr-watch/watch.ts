@@ -13,6 +13,7 @@ import {
   VERDICT_ERRORED,
   VERDICT_NEW_P0_P1,
   VERDICT_PENDING,
+  VERDICT_RUNNER_CAPACITY_STALL,
   VERDICT_STALL,
   VERDICT_TIMEOUT,
 } from "./constants.js";
@@ -124,6 +125,12 @@ export function watch(
       return build(VERDICT_ERRORED, EXIT_TERMINAL_ERROR, probe, poll);
     }
 
+    // #2672: capacity stall is distinct from ordinary not_ready_yet — surface
+    // immediately (exit 2) so agents wait for auto-failover instead of --skip-ci.
+    if (probe.ciReadyState === "runner_capacity_stall") {
+      return build(VERDICT_RUNNER_CAPACITY_STALL, EXIT_TERMINAL_ERROR, probe, poll);
+    }
+
     // #2688: Greptile side satisfied on HEAD but CI red — fail loud toward a
     // fix loop instead of burning max-wait-minutes on idle Greptile polls.
     if (probe.cleanGateHoldout === "ci_failures") {
@@ -174,6 +181,8 @@ export function watch(
     errored: false,
     ciFailures: 0,
     ciFailedChecks: [],
+    ciReadyState: null,
+    ciCapacityStalledChecks: [],
     terminalCheckRun: false,
     isClean: false,
     cleanGateHoldout: null,

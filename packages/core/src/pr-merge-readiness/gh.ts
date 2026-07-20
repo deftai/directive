@@ -10,6 +10,10 @@ export interface CheckRunRecord {
   readonly conclusion: string;
   /** check-run `output.summary` text, when present (used by the SLizard verdict gate, #2189). */
   readonly summary?: string;
+  /** ISO created_at — capacity-stall budget clock (#2672). */
+  readonly created_at?: string | null;
+  /** ISO started_at — null while still queued with no runner (#2672). */
+  readonly started_at?: string | null;
 }
 
 /** UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366). */
@@ -345,10 +349,16 @@ export function fetchCheckRunsRest(
     const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
     const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
     const runSummary = extractCheckRunSummary(r);
-    const record: CheckRunRecord =
-      runSummary === null
-        ? { name, status, conclusion }
-        : { name, status, conclusion, summary: runSummary };
+    const createdAt = typeof r.created_at === "string" ? r.created_at : null;
+    const startedAt = typeof r.started_at === "string" ? r.started_at : null;
+    const record: CheckRunRecord = {
+      name,
+      status,
+      conclusion,
+      created_at: createdAt,
+      started_at: startedAt,
+      ...(runSummary === null ? {} : { summary: runSummary }),
+    };
     checkRuns.push(record);
     byStatus[status] = (byStatus[status] ?? 0) + 1;
     byConclusion[conclusion] = (byConclusion[conclusion] ?? 0) + 1;

@@ -9,6 +9,7 @@ import {
   VERDICT_ERRORED,
   VERDICT_NEW_P0_P1,
   VERDICT_PENDING,
+  VERDICT_RUNNER_CAPACITY_STALL,
   VERDICT_STALL,
   VERDICT_TIMEOUT,
 } from "./constants.js";
@@ -31,6 +32,8 @@ function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
     errored: false,
     ciFailures: 0,
     ciFailedChecks: [],
+    ciReadyState: "ready",
+    ciCapacityStalledChecks: [],
     terminalCheckRun: true,
     isClean: false,
     cleanGateHoldout: null,
@@ -152,6 +155,23 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
     expect(r.verdict).toBe(VERDICT_CI_BLOCKED);
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
     expect(r.probe.ciFailedChecks).toEqual(["CodeQL (failure)"]);
+  });
+
+  it("runner_capacity_stall -> RUNNER_CAPACITY_STALL exit 2 (#2672)", () => {
+    const r = runOneShot(
+      makeProbe({
+        isClean: false,
+        cleanGateHoldout: "ci_failures",
+        ciReadyState: "runner_capacity_stall",
+        ciCapacityStalledChecks: ["TypeScript (build + lint + test)"],
+        terminalCheckRun: false,
+        confidence: 5,
+        shaMatch: true,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_RUNNER_CAPACITY_STALL);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+    expect(r.probe.ciCapacityStalledChecks).toEqual(["TypeScript (build + lint + test)"]);
   });
 });
 

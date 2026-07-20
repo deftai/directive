@@ -32,6 +32,8 @@ function errorProbe(headSha: string | null, message: string): WatchProbe {
     errored: false,
     ciFailures: 0,
     ciFailedChecks: [],
+    ciReadyState: null,
+    ciCapacityStalledChecks: [],
     terminalCheckRun: false,
     isClean: false,
     cleanGateHoldout: null,
@@ -94,6 +96,8 @@ export function probeOnce(
   // still owns the hard CI gate via pr:merge-ready (#796).
   let ciFailures = 0;
   let ciFailedChecks: readonly string[] = [];
+  let ciReadyState: string | null = null;
+  let ciCapacityStalledChecks: readonly string[] = [];
   let terminalCheckRun = true;
   if (repo !== null) {
     const check = fetchCheckRunsRest(headSha, repo, runGh);
@@ -101,6 +105,8 @@ export function probeOnce(
       const ci = evaluateCiGate(check.checkRuns, {});
       ciFailedChecks = ci.summary.failed_required;
       ciFailures = ciFailedChecks.length;
+      ciReadyState = ci.summary.ready_state;
+      ciCapacityStalledChecks = ci.summary.capacity_stalled_required;
       terminalCheckRun = ci.summary.pending_required.length === 0;
     }
   }
@@ -128,6 +134,8 @@ export function probeOnce(
     errored,
     ciFailures,
     ciFailedChecks,
+    ciReadyState,
+    ciCapacityStalledChecks,
     terminalCheckRun,
     isClean,
     cleanGateHoldout,
