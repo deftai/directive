@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Release skill Phase 1 / Phase 3 long steps must stay off the operator chat (#2692).** `deft-directive-release` now pins #1880 Gap D: background or subagent-dispatch `reconcile:issues`, ritual-stale cache refresh, `ci:local`/`check`, and `release:e2e` when the host supports it; keep version/`--summary`/dry-run gates interactive; avoid PowerShell `Select-Object -Last` buffering. Closes #2692.
+
 ### Fixed
 
 - **Review-cycle workers must fix CI when Greptile is CLEAN and `clean_gate_holdout=ci_failures` (#2688).** Skill doctrine forbids idle-polling / treating test-plan checkboxes as merge-ready; review-monitor has a CI-holdout carve-out. `pr:watch` emits `ci_failed_checks` and returns `CI_BLOCKED` instead of burning the wait cap. Closes #2688.

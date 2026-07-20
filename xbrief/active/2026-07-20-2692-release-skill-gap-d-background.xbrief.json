@@ -1,0 +1,48 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2692 — release skill Gap D background dispatch"
+  },
+  "plan": {
+    "title": "bug(release): Phase 1 long steps foreground-block the operator chat (#1880 Gap D)",
+    "status": "running",
+    "narratives": {
+      "Description": "Pin #1880 Gap D onto deft-directive-release Phase 1 long prep and Phase 3 release:e2e so the operator chat stays interactive during release cuts.",
+      "Origin": "https://github.com/deftai/directive/issues/2692",
+      "Overview": "Release skill Phase 1 long steps and Phase 3 e2e must be backgrounded/subagent-dispatched when the host supports it. Content-contract asserts Gap D language; CHANGELOG notes the skill change. Windows note: do not wrap long task output in Select-Object -Last.",
+      "Acceptance": "Skill names #1880 Gap D for Phase 1 long steps + Phase 3 e2e; content-contract asserts background/subagent language + Select-Object anti-pattern; CHANGELOG [Unreleased] entry; Closes #2692."
+    },
+    "items": [
+      {
+        "title": "Pin Gap D language in release skill pack + render",
+        "status": "completed"
+      },
+      {
+        "title": "Content-contract marker test for #2692",
+        "status": "completed"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry Closes #2692",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2692",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2692: bug(release): Phase 1 long steps foreground-block the operator chat (#1880 Gap D)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bugfix"
+    },
+    "updated": "2026-07-20T20:27:30Z"
+  }
+}

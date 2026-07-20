@@ -92,6 +92,16 @@ describe("test_release_workflow.py", () => {
   it("test_release_skill_warns_env_bypass_is_process_wide", () => {
     expect(releaseSkillText).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
+  it("test_release_skill_pins_gap_d_background_for_phase_1_and_e2e (#2692)", () => {
+    expect(releaseSkillText).toContain("#1880 Gap D");
+    expect(releaseSkillText).toContain("#2692");
+    expect(releaseSkillText).toContain("run_in_background");
+    expect(releaseSkillText).toContain("Phase 1 prep parallelized");
+    expect(releaseSkillText).toContain("Select-Object -Last");
+    expect(releaseSkillText).toMatch(
+      /Foreground-block the operator chat[\s\S]*release:e2e/,
+    );
+  });
   it("test_releasing_doc_prefers_typed_policy_opt_out", () => {
     expect(releasingDocText).toContain("plan.policy.allowDirectCommitsToMaster");
   });

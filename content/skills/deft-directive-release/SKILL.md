@@ -81,6 +81,17 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ! Validate the local + remote state before any irreversible action.
 
+
+### Parallel prep — #1880 Gap D (#2692)
+
+! Phase 1 long steps (`task reconcile:issues -- --apply-lifecycle-fixes`, cache refresh when ritual-stale, `task ci:local` / `task check`) and Phase 3 `task release:e2e` MUST be backgrounded or subagent-dispatched when the host supports it (Cursor: Task tool `run_in_background: true`), with progress surfaced via DONE/heartbeat — same ownership as review-cycle / merge-ready workers (#1880 Gap D). The operator conversation MUST stay interactive for version magnitude confirmation, `--summary`, and the Phase 2 dry-run `yes`/`back`/`quit` gate while prep runs.
+
+! **Checklist:** Phase 1 prep parallelized — long prep started in background before (or while) collecting version magnitude / summary / npm irrevocability disclosure.
+
+! On Windows PowerShell, do NOT wrap long task output in `Select-Object -Last` (it buffers until the process exits); stream to the terminal or log to a file and read incrementally. See `scm/github.md` § #2646 / Windows encoding guidance for related PS pitfalls.
+
+⊗ Foreground-block the operator chat on reconcile / `ci:local` / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
+
 ~ **Frozen Go-installer bridge (#1912 / #1972 / #1987):** by default a release tag *above* the frozen line (the `LAST_GO_INSTALLER` constant in `packages/core/src/legacy-bridge/sot.ts`) will NOT rebuild the 6 Go binaries -- the CI `freeze-gate` job in `.github/workflows/release.yml` skips the build (the run stays green; npm still ships from the separate `npm-publish.yml`). If this release must rebuild the Go installer, follow the runbook in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge: roll `LAST_GO_INSTALLER` forward to the cut tag BEFORE tagging (pinning to the exact cut tag both releases the gate AND re-freezes at the new line), then see that section's "After the release" step for the re-pin.
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
@@ -122,6 +133,8 @@ The dry-run prints `[N/13] <step>... DRYRUN (would <action>)` for every pipeline
 ## Phase 3 — E2E sanity
 
 ! Invoke `task release:e2e` against an auto-created temp repo to verify the full pipeline shape works end-to-end before touching the real repo.
+
+! **#1880 Gap D (#2692):** `task release:e2e` is a long-running step — MUST background / subagent-dispatch it when the host supports it so Phase 2 confirmation and other human gates stay interactive. Do not wrap its output in PowerShell `Select-Object -Last`.
 
 ```
 task release:e2e
@@ -281,6 +294,8 @@ Where `<one-line guidance>` is one of:
 
 ## Anti-Patterns
 
+- ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh, `ci:local` / `check`) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
+- ⊗ Wrap long release-prep task output in PowerShell `Select-Object -Last` — it buffers until exit and makes the session look hung (#2692)
 - ⊗ Run `task release` without a Phase 2 dry-run preview -- the dry-run is the only safe place to catch a bad version, malformed CHANGELOG, or wrong base branch
 - ⊗ Skip Phase 3 (e2e rehearsal) on the assumption that "the dry-run is enough" -- the e2e harness catches gh-CLI auth issues, repo permission gaps, and pipeline-shape regressions that the dry-run cannot detect
 - ⊗ Pass `--no-draft` to `task release` without explicit operator opt-in -- the default-draft contract is the foundation of the safety hardening surface
