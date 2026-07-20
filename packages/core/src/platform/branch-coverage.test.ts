@@ -121,15 +121,18 @@ describe("resolve-version parse + classify branch coverage", () => {
     const prevRoot = process.env.DEFT_ROOT;
     const prevEnv = process.env[ENV_VAR];
     delete process.env[ENV_VAR];
-    withTempDir((dir) => {
-      writeFileSync(join(dir, ".deft-version"), "v4.5.6\n", "utf8");
-      process.env.DEFT_ROOT = dir;
-      expect(resolveVersion()).toBe("4.5.6");
-    });
-    if (prevRoot === undefined) delete process.env.DEFT_ROOT;
-    else process.env.DEFT_ROOT = prevRoot;
-    if (prevEnv === undefined) delete process.env[ENV_VAR];
-    else process.env[ENV_VAR] = prevEnv;
+    try {
+      withTempDir((dir) => {
+        writeFileSync(join(dir, ".deft-version"), "v4.5.6\n", "utf8");
+        process.env.DEFT_ROOT = dir;
+        expect(resolveVersion()).toBe("4.5.6");
+      });
+    } finally {
+      if (prevRoot === undefined) delete process.env.DEFT_ROOT;
+      else process.env.DEFT_ROOT = prevRoot;
+      if (prevEnv === undefined) delete process.env[ENV_VAR];
+      else process.env[ENV_VAR] = prevEnv;
+    }
   });
 
   it("resolveVersion default seams read manifest / deft-version / env", () => {
