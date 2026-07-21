@@ -3,10 +3,20 @@ import { hasArtifactSuffix } from "../layout/resolve.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
+import { isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
-import { isDirectWriteTool } from "./tools.js";
+import { isDirectWriteTool, isSpawnTool } from "./tools.js";
 
-export { DIRECT_WRITE_TOOL_NAMES, isDirectWriteTool } from "./tools.js";
+export { hookReadOnlyFromPayload, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
+export {
+  DIRECT_WRITE_HOOK_MATCHER,
+  DIRECT_WRITE_TOOL_NAMES,
+  isDirectWriteTool,
+  isSpawnTool,
+  READ_ONLY_HOOK_ENV,
+  SPAWN_HOOK_MATCHER,
+  SPAWN_TOOL_NAMES,
+} from "./tools.js";
 
 export const HOOK_HOSTS = ["claude", "grok", "cursor", "codex"] as const;
 export type HookHost = (typeof HOOK_HOSTS)[number];
@@ -33,7 +43,11 @@ export type HookDecisionCode =
   | "ritual-not-ready"
   | "scope-not-ready"
   | "write-propose-ready"
-  | "write-ready";
+  | "write-ready"
+  | "read-only-deny"
+  | "spawn-explore-ready"
+  | "spawn-ready"
+  | "spawn-not-ready";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -58,6 +72,8 @@ export interface HookDispatchInput {
   readonly projectRoot: string;
   readonly payload: unknown;
   readonly payloadContext?: HookPayloadContext;
+  /** Injected for tests; defaults to `process.env`. */
+  readonly environ?: NodeJS.ProcessEnv;
 }
 
 export interface HookPolicySeams {
@@ -279,6 +295,7 @@ function deny(
   code: HookDecisionCode,
   toolName: string | null,
   message: string,
+  scopePath: string | null = null,
 ): HookDecision {
   return {
     verdict: "deny",
@@ -288,7 +305,101 @@ function deny(
     toolName,
     projectRoot: resolve(input.projectRoot),
     message,
-    scopePath: null,
+    scopePath,
+  };
+}
+
+function inspectMutationGates(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+  options: { proposedLifecycleExempt: boolean },
+): HookDecision {
+  const projectRoot = resolve(input.projectRoot);
+  let ritual: VerifyResult;
+  try {
+    ritual = (
+      seams.inspectRitual ??
+      ((root) => inspectSessionRitual(root, { tier: "gated", posture: "mutation" }))
+    )(projectRoot);
+  } catch (cause) {
+    return deny(
+      input,
+      "ritual-not-ready",
+      toolName,
+      `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
+        "Run `deft session:start`, then `deft verify:session-ritual -- --tier=gated`.",
+    );
+  }
+  if (ritual.code !== 0) {
+    return deny(
+      input,
+      "ritual-not-ready",
+      toolName,
+      `Directive denied ${toolName}: ${ritual.message} ` +
+        "Recovery: run `deft session:start`, then " +
+        "`deft verify:session-ritual -- --tier=gated`.",
+    );
+  }
+
+  if (options.proposedLifecycleExempt) {
+    const writeTarget = hookWriteTargetPath(input.payload);
+    if (isProposedLifecycleWrite(projectRoot, writeTarget)) {
+      return {
+        verdict: "allow",
+        code: "write-propose-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message:
+          `Directive write gate allowed ${toolName} for a proposed lifecycle xBRIEF ` +
+          "(planning write; active scope not required).",
+        scopePath: null,
+      };
+    }
+  }
+
+  let scope: ActiveScopeInspection;
+  try {
+    scope = (seams.inspectScope ?? inspectActiveScope)(projectRoot);
+  } catch (cause) {
+    scope = { ready: false, path: null, message: String(cause) };
+  }
+  if (!scope.ready) {
+    const writeTarget = hookWriteTargetPath(input.payload);
+    const relTarget =
+      writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+    const proposedPathHint =
+      options.proposedLifecycleExempt &&
+      relTarget !== null &&
+      (relTarget.startsWith("xbrief/proposed/") || relTarget.startsWith("vbrief/proposed/"))
+        ? " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
+          "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
+          "planning writes (#2625)."
+        : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
+          (options.proposedLifecycleExempt
+            ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption)."
+            : "then re-run the pre-start_agent gate stack.");
+    const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+    return deny(
+      input,
+      denyCode,
+      toolName,
+      `Directive denied ${toolName}: ${scope.message}${proposedPathHint}`,
+    );
+  }
+
+  const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
+  return {
+    verdict: "allow",
+    code: allowCode,
+    event: input.event,
+    host: input.host,
+    toolName,
+    projectRoot,
+    message: `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
+    scopePath: scope.path,
   };
 }
 
@@ -391,6 +502,44 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
       }),
     );
   }
+  const environ = input.environ ?? process.env;
+  const readOnly = isReadOnlyHookContext(input.payload, environ);
+  if (readOnly && isDirectWriteTool(toolName)) {
+    return deny(
+      input,
+      "read-only-deny",
+      toolName,
+      `Directive denied ${toolName}: read-only explore posture blocks direct writes. ` +
+        'Use Grok `default_capability_mode = "read-only"` for role-based explore agents, ' +
+        "or set explore subagent_type / DEFT_HOOK_READ_ONLY=1 when the harness supports it.",
+    );
+  }
+
+  if (isSpawnTool(toolName)) {
+    if (readOnly && !isExploreSpawn(input.payload)) {
+      return deny(
+        input,
+        "read-only-deny",
+        toolName,
+        `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
+          "Use subagent_type explore for read-only research spawns.",
+      );
+    }
+    if (isExploreSpawn(input.payload)) {
+      return {
+        verdict: "allow",
+        code: "spawn-explore-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message: `Directive allowed explore ${toolName} spawn without implementation gates.`,
+        scopePath: null,
+      };
+    }
+    return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: false });
+  }
+
   if (!isDirectWriteTool(toolName)) {
     return {
       verdict: "allow",
@@ -399,88 +548,12 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
       host: input.host,
       toolName,
       projectRoot,
-      message: `${toolName} is outside the P0 direct-write enforcement slice.`,
+      message: `${toolName} is outside the P0 direct-write/spawn enforcement slice.`,
       scopePath: null,
     };
   }
 
-  let ritual: VerifyResult;
-  try {
-    ritual = (
-      seams.inspectRitual ??
-      ((root) => inspectSessionRitual(root, { tier: "gated", posture: "mutation" }))
-    )(projectRoot);
-  } catch (cause) {
-    return deny(
-      input,
-      "ritual-not-ready",
-      toolName,
-      `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
-        "Run `deft session:start`, then `deft verify:session-ritual -- --tier=gated`.",
-    );
-  }
-  if (ritual.code !== 0) {
-    return deny(
-      input,
-      "ritual-not-ready",
-      toolName,
-      `Directive denied ${toolName}: ${ritual.message} ` +
-        "Recovery: run `deft session:start`, then " +
-        "`deft verify:session-ritual -- --tier=gated`.",
-    );
-  }
-
-  const writeTarget = hookWriteTargetPath(input.payload);
-  if (isProposedLifecycleWrite(projectRoot, writeTarget)) {
-    return {
-      verdict: "allow",
-      code: "write-propose-ready",
-      event: input.event,
-      host: input.host,
-      toolName,
-      projectRoot,
-      message:
-        `Directive write gate allowed ${toolName} for a proposed lifecycle xBRIEF ` +
-        "(planning write; active scope not required).",
-      scopePath: null,
-    };
-  }
-
-  let scope: ActiveScopeInspection;
-  try {
-    scope = (seams.inspectScope ?? inspectActiveScope)(projectRoot);
-  } catch (cause) {
-    scope = { ready: false, path: null, message: String(cause) };
-  }
-  if (!scope.ready) {
-    const relTarget =
-      writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
-    const proposedPathHint =
-      relTarget !== null &&
-      (relTarget.startsWith("xbrief/proposed/") || relTarget.startsWith("vbrief/proposed/"))
-        ? " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
-          "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
-          "planning writes (#2625)."
-        : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
-          "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption).";
-    return deny(
-      input,
-      "scope-not-ready",
-      toolName,
-      `Directive denied ${toolName}: ${scope.message}${proposedPathHint}`,
-    );
-  }
-
-  return {
-    verdict: "allow",
-    code: "write-ready",
-    event: input.event,
-    host: input.host,
-    toolName,
-    projectRoot,
-    message: `Directive write gate passed for ${toolName}.`,
-    scopePath: scope.path,
-  };
+  return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: true });
 }
 
 /** Render only authoritative denials; allow preserves the host's own permission flow. */

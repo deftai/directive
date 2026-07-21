@@ -50,9 +50,10 @@ export function evaluateAgentHooks(projectRoot: string): AgentHookHealthResult {
     code: 0,
     message:
       "✓ deft agent hooks registered and structurally valid for Claude, Grok, Cursor, Codex " +
-      "(SessionStart + PreToolUse direct-write tools; compact re-arm deposited for Claude/Grok/Cursor; " +
+      "(SessionStart + PreToolUse direct-write and spawn/Task tools; compact re-arm deposited for Claude/Grok/Cursor; " +
       "Codex has no native compact hook — re-run session ritual manually after compaction). " +
-      "Codex runtime trust is user-controlled and must be reviewed with `/hooks`; shell/MCP policy is deferred.",
+      'Read-only explore: prefer Grok role `default_capability_mode = "read-only"`; hooks also honor ' +
+      "DEFT_HOOK_READ_ONLY=1 and explore subagent_type. Codex runtime trust is user-controlled and must be reviewed with `/hooks`; shell/MCP policy is deferred.",
     stream: "stdout",
     registrations,
   };

@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { dirname, join } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
-import { DIRECT_WRITE_TOOL_NAMES } from "../hooks/tools.js";
+import { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
 import type { InitDepositIo } from "./constants.js";
 
-export const DIRECT_WRITE_HOOK_MATCHER = DIRECT_WRITE_TOOL_NAMES.join("|");
+export { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
 export const DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
 export const AGENT_HOOK_PATHS = [
   ".claude/settings.json",
@@ -97,9 +97,9 @@ function isManagedCursorEntry(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
-function nestedGroup(host: NestedHookHost, event: HookEvent) {
+function nestedGroup(host: NestedHookHost, event: HookEvent, matcher?: string) {
   return {
-    ...(event === "tool.before" ? { matcher: DIRECT_WRITE_HOOK_MATCHER } : {}),
+    ...(event === "tool.before" && matcher !== undefined ? { matcher } : {}),
     hooks: [
       {
         type: "command",
@@ -124,7 +124,11 @@ function mergeNestedConfig(
     (entry) => !isManagedNestedGroup(entry),
   );
   hooks.SessionStart = [...session, nestedGroup(host, "session.start")];
-  hooks.PreToolUse = [...preTool, nestedGroup(host, "tool.before")];
+  hooks.PreToolUse = [
+    ...preTool,
+    nestedGroup(host, "tool.before", DIRECT_WRITE_HOOK_MATCHER),
+    nestedGroup(host, "tool.before", SPAWN_HOOK_MATCHER),
+  ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
       (entry) => !isManagedNestedGroup(entry),
@@ -155,6 +159,12 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
     {
       command: command("cursor", "tool.before"),
       matcher: DIRECT_WRITE_HOOK_MATCHER,
+      failClosed: true,
+      timeout: 5,
+    },
+    {
+      command: command("cursor", "tool.before"),
+      matcher: SPAWN_HOOK_MATCHER,
       failClosed: true,
       timeout: 5,
     },
@@ -237,6 +247,10 @@ function hasNestedRegistration(
       return (
         group?.matcher === DIRECT_WRITE_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand)
       );
+    }) &&
+    preTool.some((entry) => {
+      const group = object(entry);
+      return group?.matcher === SPAWN_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
     });
   if (!base) return false;
   if (!options.compact) return true;
@@ -261,6 +275,14 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
       return (
         hook?.command === command("cursor", "tool.before") &&
         hook.matcher === DIRECT_WRITE_HOOK_MATCHER &&
+        hook.failClosed === true
+      );
+    }) &&
+    preTool.some((entry) => {
+      const hook = object(entry);
+      return (
+        hook?.command === command("cursor", "tool.before") &&
+        hook.matcher === SPAWN_HOOK_MATCHER &&
         hook.failClosed === true
       );
     }) &&
@@ -326,7 +348,7 @@ export function inspectAgentHookDeposit(projectRoot: string): AgentHookInspectio
           status: "healthy",
           compactSupport: definition.compactSupport,
           detail:
-            "SessionStart, direct-write PreToolUse, and compact re-arm registrations are current." +
+            "SessionStart, direct-write + spawn PreToolUse, and compact re-arm registrations are current." +
             (definition.compactSupport === "unsupported" ? compactNote : ""),
         };
       }
@@ -336,7 +358,7 @@ export function inspectAgentHookDeposit(projectRoot: string): AgentHookInspectio
         status: "drifted",
         compactSupport: definition.compactSupport,
         detail:
-          "Directive SessionStart, direct-write PreToolUse, or compact re-arm registration is missing/drifted." +
+          "Directive SessionStart, direct-write/spawn PreToolUse, or compact re-arm registration is missing/drifted." +
           compactNote,
       };
     } catch (cause) {

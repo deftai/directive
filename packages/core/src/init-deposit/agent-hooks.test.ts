@@ -10,7 +10,14 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { DIRECT_WRITE_TOOL_NAMES, isDirectWriteTool } from "../hooks/tools.js";
+import {
+  DIRECT_WRITE_HOOK_MATCHER,
+  DIRECT_WRITE_TOOL_NAMES,
+  SPAWN_HOOK_MATCHER,
+  SPAWN_TOOL_NAMES,
+  isDirectWriteTool,
+  isSpawnTool,
+} from "../hooks/tools.js";
 import {
   AGENT_HOOK_PATHS,
   DIRECT_WRITE_HOOK_MATCHER,
@@ -57,7 +64,10 @@ describe("writeAgentHookDeposit", () => {
     );
     expect(readFileSync(join(root, ".codex/hooks.json"), "utf8")).not.toContain("session.compact");
     expect(DIRECT_WRITE_HOOK_MATCHER.split("|")).toEqual([...DIRECT_WRITE_TOOL_NAMES]);
+    expect(SPAWN_HOOK_MATCHER.split("|")).toEqual([...SPAWN_TOOL_NAMES]);
     expect(DIRECT_WRITE_HOOK_MATCHER.split("|").every(isDirectWriteTool)).toBe(true);
+    expect(SPAWN_HOOK_MATCHER.split("|").every(isSpawnTool)).toBe(true);
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(SPAWN_HOOK_MATCHER);
     expect(lines.join("")).toContain("agent hooks");
     expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "codex")).toMatchObject({
@@ -143,7 +153,7 @@ describe("writeAgentHookDeposit", () => {
     expect(codex).toContain("./resume-check.sh");
     expect(codex).toContain("./custom-codex-check.sh");
     expect(codex).not.toContain("--old");
-    expect(codex.match(/--host codex --event tool\.before/g)).toHaveLength(1);
+    expect(codex.match(/--host codex --event tool\.before/g)).toHaveLength(2);
   });
 
   it("refuses to overwrite malformed user JSON", () => {

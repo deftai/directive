@@ -187,14 +187,16 @@ Use `task --list` for the exact current verify namespace.
 
 ### Agent-host direct-write hooks (#2438, #2596)
 
-`directive init` and `deft update` idempotently merge Directive-owned entries into `.claude/settings.json`, `.grok/hooks/deft.json`, `.cursor/hooks.json`, and `.codex/hooks.json` while preserving unrelated settings. `SessionStart` refreshes resume bookkeeping on a non-blocking path. `PreToolUse` covers direct edit/write tools and denies them until both existing gates pass: a fresh gated session ritual and an active/running xBRIEF accepted by canonical preflight.
+`directive init` and `deft update` idempotently merge Directive-owned entries into `.claude/settings.json`, `.grok/hooks/deft.json`, `.cursor/hooks.json`, and `.codex/hooks.json` while preserving unrelated settings. `SessionStart` refreshes resume bookkeeping on a non-blocking path. `PreToolUse` covers direct edit/write tools and denies them until both existing gates pass: a fresh gated session ritual and an active/running xBRIEF accepted by canonical preflight. A second `PreToolUse` matcher covers spawn/Task tools (`Task`, `SubagentStart`, `spawn_subagent`, `start_agent`, `CreateAgent`) with the same pre-`start_agent` gate stack; explore spawns (`subagent_type: explore`) pass without implementation gates.
+
+- **Read-only explore (#1185):** Prefer Grok role deposit `default_capability_mode = "read-only"` (see [issue #1185](https://github.com/deftai/directive/issues/1185)). Hooks also deny direct writes when `DEFT_HOOK_READ_ONLY=1` or the host payload signals read-only capability. Implementation spawns remain blocked in read-only posture unless explicitly marked explore.
 
 - Verify registration: `deft verify:hooks-installed --scope=agent` (or `--scope=all` for git + agent hooks).
 - Repair missing/drifted entries: `deft update`.
 - **Compact re-arm (#2113):** Cursor `preCompact` and Claude/Grok `PreCompact`/`PostCompact` call `deft hook:dispatch --event session.compact` to mark the gated session ritual stale after context compaction/resume; the existing PreToolUse gate then denies direct writes until `deft session:start` and `deft verify:session-ritual -- --tier=gated`. Codex has no native compact hook — operators must re-run the mutation ritual manually after compaction.
 - Codex project hooks are trust-gated by Codex. Directive verifies only that the registrations are structurally current; after an install or changed hook hash, open `/hooks` in Codex and review/approve the project hook commands. Runtime trust cannot be inferred from the file alone.
 - Directive writes only `.codex/hooks.json`; it does not parse or modify `.codex/config.toml`. Codex can also load inline hooks from `config.toml`, so avoid defining duplicate Directive commands there or they may run more than once. See the [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks).
-- The P0 hook slice does not classify shell-mediated writes, MCP mutations, richer unified-exec calls, WebSearch, or subagent routing; those remain owned by their dedicated follow-up issues.
+- The P0 hook slice does not classify shell-mediated writes, MCP mutations, richer unified-exec calls, or WebSearch; those remain owned by their dedicated follow-up issues. Runtime policy manifest (#1394) extends path/MCP boundaries separately.
 
 ## Session-start ritual (#1149)
 

@@ -11,8 +11,11 @@ import {
   isHookEvent,
   isHookHost,
   isProposedLifecycleWrite,
+  isSpawnTool,
   projectRootFromHookPayload,
+  READ_ONLY_HOOK_ENV,
   renderHostDecision,
+  SPAWN_TOOL_NAMES,
 } from "./index.js";
 
 const READY_RITUAL = {
@@ -478,6 +481,111 @@ describe("direct-write hook policy", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("scope probe failed");
   });
+
+  it("denies implementation Task spawns without mutation gates (#1185)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+        },
+      },
+      readySeams({
+        inspectRitual,
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active/running xBRIEF is available.",
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(inspectRitual).toHaveBeenCalled();
+  });
+
+  it("allows Task spawns when both mutation gates pass (#1185)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+  });
+
+  it("allows explore Task spawns without implementation gates (#1185)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => READY_SCOPE);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "explore" } },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-explore-ready" });
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("denies direct writes in read-only hook context (#1185)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Edit", capability_mode: "read-only" },
+        environ: {},
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
+    expect(decision.message).toContain("read-only explore posture");
+  });
+
+  it("denies implementation spawns in read-only hook context (#1185)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        environ: { [READ_ONLY_HOOK_ENV]: "1" },
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
+    expect(decision.message).toContain("implementation sub-agent spawns");
+  });
+
+  it("allows explore spawns in read-only hook context (#1185)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "explore" } },
+        environ: { [READ_ONLY_HOOK_ENV]: "1" },
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-explore-ready" });
+  });
 });
 
 describe("provider codecs", () => {
@@ -550,10 +658,17 @@ describe("direct-write classifier", () => {
     "Grep",
     "Shell",
     "Bash",
-    "Task",
     "WebSearch",
-  ])("leaves %s outside the P0 direct-write slice", (tool) =>
+  ])("leaves %s outside the P0 direct-write/spawn slice", (tool) =>
     expect(isDirectWriteTool(tool)).toBe(false));
+
+  it.each([...SPAWN_TOOL_NAMES])("classifies %s as a spawn tool (#1185)", (tool) =>
+    expect(isSpawnTool(tool)).toBe(true));
+
+  it("does not classify Task as a direct write", () => {
+    expect(isDirectWriteTool("Task")).toBe(false);
+    expect(isSpawnTool("Task")).toBe(true);
+  });
 });
 
 describe("provider input normalization", () => {
