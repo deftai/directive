@@ -1,7 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { decideHook } from "../hooks/dispatcher.js";
 import {
@@ -124,7 +124,6 @@ describe("markRitualStaleAfterCompact (#2113)", () => {
 describe("session.compact hook dispatch (#2113)", () => {
   it("invalidates ritual then denies subsequent direct writes until refresh", () => {
     const { root, head } = freshRitualRoot();
-    const now = new Date("2026-07-20T13:00:00Z");
     const runGit = fakeGit(head, resolve(root));
 
     const compact = decideHook({
