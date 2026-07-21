@@ -239,7 +239,10 @@ describe("hook-dispatch CLI", () => {
     expect(parsePayload("{bad-json")).toEqual({ payload: {}, context: { parseFailed: true } });
 
     const addFileWithoutBegin = ["*** Add File: only.txt", "+x"].join("\n");
-    expect(parsePayload(addFileWithoutBegin)).toEqual({ payload: {}, context: { parseFailed: true } });
+    expect(parsePayload(addFileWithoutBegin)).toEqual({
+      payload: {},
+      context: { parseFailed: true },
+    });
   });
 
   it("allows Cursor JSON ApplyPatch through hook-dispatch (#2738)", () => {
