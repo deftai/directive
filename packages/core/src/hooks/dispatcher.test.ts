@@ -130,6 +130,32 @@ describe("direct-write hook policy", () => {
     expect(inspectScope).not.toHaveBeenCalled();
   });
 
+  it("allows ApplyPatch of xbrief/proposed/*.xbrief.json with no active scope (#2738)", () => {
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: "xbrief/proposed/2026-07-17-story.xbrief.json",
+            patch: "*** Begin Patch\n*** Add File: x\n+probe\n*** End Patch",
+          },
+        },
+      },
+      readySeams({ inspectScope }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
   it("allows Write of legacy vbrief/proposed/*.vbrief.json with no active scope (#2625)", () => {
     const decision = decideHook(
       {
@@ -305,6 +331,27 @@ describe("direct-write hook policy", () => {
         "cursor",
       ),
     ).toBe("StrReplace");
+    expect(
+      hookToolName(
+        { tool_name: "ApplyPatch", tool_input: { path: "src/a.ts", patch: "*** Begin Patch" } },
+        "cursor",
+      ),
+    ).toBe("ApplyPatch");
+    expect(
+      hookToolName({ tool_input: { path: "src/a.ts", patch: "diff" } }, "cursor"),
+    ).toBe("ApplyPatch");
+    expect(
+      hookToolName({ tool_input: { path: "src/a.ts", unified_diff: "diff" } }, "cursor"),
+    ).toBe("ApplyPatch");
+    expect(hookToolName({ tool_input: { path: "src/a.ts", diff: "diff" } }, "cursor")).toBe(
+      "ApplyPatch",
+    );
+    expect(
+      hookWriteTargetPath({
+        tool_name: "ApplyPatch",
+        tool_input: { path: "xbrief/proposed/a.xbrief.json", patch: "patch" },
+      }),
+    ).toBe("xbrief/proposed/a.xbrief.json");
     expect(
       decideHook(
         {

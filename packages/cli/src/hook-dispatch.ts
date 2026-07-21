@@ -94,30 +94,6 @@ function stripUtf8Bom(raw: string): string {
   return raw.startsWith(UTF8_BOM) ? raw.slice(UTF8_BOM.length) : raw;
 }
 
-function extractSingleApplyPatchFilePath(normalized: string): string | null {
-  if (!normalized.includes(APPLY_PATCH_BEGIN_MARKER)) return null;
-  const paths: string[] = [];
-  for (const match of normalized.matchAll(APPLY_PATCH_FILE_LINE_RE)) {
-    const path = match[1]?.trim();
-    if (path !== undefined && path.length > 0) paths.push(path);
-  }
-  if (paths.length !== 1) return null;
-  const sole = paths[0];
-  return sole ?? null;
-}
-
-function synthesizeFreeFormApplyPatchPayload(normalized: string): Record<string, unknown> | null {
-  const path = extractSingleApplyPatchFilePath(normalized);
-  if (path === null) return null;
-  return {
-    tool_name: "ApplyPatch",
-    tool_input: {
-      path,
-      patch: normalized,
-    },
-  };
-}
-
 export function parsePayload(raw: string): ParsedPayload {
   if (raw.trim().length === 0) {
     return { payload: {}, context: { stdinEmpty: true } };
@@ -129,9 +105,25 @@ export function parsePayload(raw: string): ParsedPayload {
   try {
     return { payload: JSON.parse(normalized) as unknown, context: {} };
   } catch {
-    const synthesized = synthesizeFreeFormApplyPatchPayload(normalized);
-    if (synthesized !== null) {
-      return { payload: synthesized, context: {} };
+    if (normalized.includes(APPLY_PATCH_BEGIN_MARKER)) {
+      const paths: string[] = [];
+      for (const match of normalized.matchAll(APPLY_PATCH_FILE_LINE_RE)) {
+        const path = match[1]?.trim();
+        if (path) paths.push(path);
+      }
+      if (paths.length === 1) {
+        const [targetPath] = paths;
+        return {
+          payload: {
+            tool_name: "ApplyPatch",
+            tool_input: {
+              path: targetPath,
+              patch: normalized,
+            },
+          },
+          context: {},
+        };
+      }
     }
     // tool.before is installed only on direct-write matchers, so an unreadable
     // payload becomes a missing-tool denial rather than a fail-open crash.

@@ -237,6 +237,29 @@ describe("hook-dispatch CLI", () => {
     expect(parsePayload(emptyPath)).toEqual({ payload: {}, context: { parseFailed: true } });
 
     expect(parsePayload("{bad-json")).toEqual({ payload: {}, context: { parseFailed: true } });
+
+    const addFileWithoutBegin = ["*** Add File: only.txt", "+x"].join("\n");
+    expect(parsePayload(addFileWithoutBegin)).toEqual({ payload: {}, context: { parseFailed: true } });
+  });
+
+  it("allows Cursor JSON ApplyPatch through hook-dispatch (#2738)", () => {
+    const payload = {
+      tool_name: "ApplyPatch",
+      tool_input: {
+        path: "xbrief/proposed/_probe-applypatch-only.xbrief.json",
+        patch: "*** Begin Patch\n*** Add File: x\n+probe\n*** End Patch",
+      },
+      workspace_roots: ["/project"],
+    };
+    const out: string[] = [];
+    const code = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => JSON.stringify(payload),
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).not.toContain("not valid JSON");
   });
 
   it("allows Cursor free-form ApplyPatch through hook-dispatch without JSON parse denial (#2738)", () => {
@@ -280,6 +303,18 @@ describe("hook-dispatch CLI", () => {
     const decision = JSON.parse(out.join(""));
     expect(decision.permission).toBe("deny");
     expect(decision.user_message).toContain("not valid JSON");
+  });
+
+  it("writes session.compact bookkeeping to stderr (#2113)", () => {
+    const err: string[] = [];
+    const code = run(["--host=cursor", "--event=session.compact", "--project-root=/project"], {
+      readStdin: () => "{}",
+      writeOut: () => undefined,
+      writeErr: (text) => err.push(text),
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    expect(err.join("")).toMatch(/compaction|ritual/i);
   });
 
   it("logs Cursor payload keys and distinct empty-stdin messaging (#2669)", () => {
