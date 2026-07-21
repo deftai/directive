@@ -1,6 +1,6 @@
 import { resolveProductSignal } from "../policy/product-signal.js";
 import { isProductSignalConsented } from "./consent.js";
-import { isInteractiveSession } from "./headless.js";
+import { isHeadlessSession } from "./headless.js";
 
 export type ProductSignalOutcome =
   | "submitted"
@@ -48,7 +48,7 @@ export function evaluateProductSignalGates(options: EvaluateGatesOptions): GateE
     };
   }
 
-  if (!isInteractiveSession({ env, stdinIsTTY: options.stdinIsTTY })) {
+  if (isHeadlessSession({ env, stdinIsTTY: options.stdinIsTTY })) {
     if (options.requireConsent !== false && !isProductSignalConsented({ env })) {
       return {
         allowed: false,

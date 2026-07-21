@@ -2,12 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { GhRestError } from "../scm/gh-rest.js";
 import { classifySinkError } from "./gates.js";
 import {
-  appendGapComment,
   buildThreadMarker,
   GitHubPrivateSinkAdapter,
   mergeIssueLabels,
 } from "./github-private-sink-adapter.js";
-import { isHeadlessSession, isInteractiveSession } from "./headless.js";
+import { isHeadlessSession } from "./headless.js";
 import type { ProductSignalPayload } from "./payload.js";
 import { bootstrapProductSignalLabels, bootstrapProductSignalSink } from "./sink-bootstrap.js";
 
@@ -49,7 +48,6 @@ describe("classifySinkError", () => {
 describe("headless detection", () => {
   it("detects CI env", () => {
     expect(isHeadlessSession({ env: { CI: "true" }, stdinIsTTY: true })).toBe(true);
-    expect(isInteractiveSession({ env: { CI: "true" }, stdinIsTTY: true })).toBe(false);
   });
 
   it("detects DEFT_HEADLESS", () => {
@@ -252,16 +250,17 @@ describe("GitHubPrivateSinkAdapter", () => {
   });
 });
 
-describe("appendGapComment", () => {
+describe("appendGapCommentOnPulse", () => {
   it("returns unreachable when no pulse thread", () => {
     const runGhApiFn = vi.fn(() => ({ returncode: 0, stdout: "[]", stderr: "" }));
-    const result = appendGapComment({
+    const adapter = new GitHubPrivateSinkAdapter({
       sinkRepo: "deftai/product-signal",
-      installId: "x",
-      actorName: "Alex",
-      gapText: "hook blocked write",
       seams: { runGhApiFn },
     });
+    const result = adapter.appendGapCommentOnPulse(
+      samplePayload({ installId: "x" }),
+      "hook blocked write",
+    );
     expect(result.outcome).toBe("sink-unreachable");
   });
 
@@ -279,14 +278,11 @@ describe("appendGapComment", () => {
       }
       return { returncode: 0, stdout: "{}", stderr: "" };
     });
-    const result = appendGapComment({
+    const adapter = new GitHubPrivateSinkAdapter({
       sinkRepo: "deftai/product-signal",
-      installId: "install-abc",
-      actorName: "Alex",
-      gapText: "blocked hook",
-      collectedAt: "2026-07-21T12:00:00Z",
       seams: { runGhApiFn },
     });
+    const result = adapter.appendGapCommentOnPulse(samplePayload(), "blocked hook");
     expect(result.outcome).toBe("submitted");
     expect(result.message).toContain("gap comment appended");
   });
@@ -308,13 +304,11 @@ describe("appendGapComment", () => {
         payload: null,
       });
     });
-    const result = appendGapComment({
+    const adapter = new GitHubPrivateSinkAdapter({
       sinkRepo: "deftai/product-signal",
-      installId: "install-abc",
-      actorName: "Alex",
-      gapText: "x",
       seams: { runGhApiFn },
     });
+    const result = adapter.appendGapCommentOnPulse(samplePayload(), "x");
     expect(result.outcome).toBe("sink-unreachable");
   });
 
@@ -325,13 +319,11 @@ describe("appendGapComment", () => {
       stdout: JSON.stringify([{ body: marker, html_url: "https://github.com/o/r/issues/x" }]),
       stderr: "",
     }));
-    const result = appendGapComment({
+    const adapter = new GitHubPrivateSinkAdapter({
       sinkRepo: "deftai/product-signal",
-      installId: "install-abc",
-      actorName: "Alex",
-      gapText: "x",
       seams: { runGhApiFn },
     });
+    const result = adapter.appendGapCommentOnPulse(samplePayload(), "x");
     expect(result.outcome).toBe("sink-unreachable");
     expect(result.message).toContain("missing number");
   });
@@ -348,13 +340,11 @@ describe("appendGapComment", () => {
       }
       throw new Error("network");
     });
-    const result = appendGapComment({
+    const adapter = new GitHubPrivateSinkAdapter({
       sinkRepo: "deftai/product-signal",
-      installId: "install-abc",
-      actorName: "Alex",
-      gapText: "x",
       seams: { runGhApiFn },
     });
+    const result = adapter.appendGapCommentOnPulse(samplePayload(), "x");
     expect(result.outcome).toBe("sink-unreachable");
   });
 });

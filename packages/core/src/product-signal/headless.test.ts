@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isHeadlessSession, isInteractiveSession } from "./headless.js";
+import { isHeadlessSession } from "./headless.js";
 
 describe("isHeadlessSession", () => {
   it("detects CI", () => {
@@ -12,7 +12,7 @@ describe("isHeadlessSession", () => {
 
   it("detects non-tty stdin", () => {
     expect(isHeadlessSession({ env: {}, stdinIsTTY: false })).toBe(true);
-    expect(isInteractiveSession({ env: {}, stdinIsTTY: true })).toBe(true);
+    expect(isHeadlessSession({ env: {}, stdinIsTTY: true })).toBe(false);
   });
 
   it("ignores empty CI markers", () => {

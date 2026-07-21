@@ -192,17 +192,31 @@ export class GitHubPrivateSinkAdapter implements SubmitAdapter {
     this.seams = options.seams ?? {};
   }
 
-  async submit(payload: ProductSignalPayload): Promise<SubmitResult> {
+  async submit(
+    payload: ProductSignalPayload,
+    extras?: { readonly gapText?: string | null },
+  ): Promise<SubmitResult> {
     try {
       const labels = [
         SURFACE_LABELS[payload.surface],
         ...npsLabels(payload.human.nps),
         directiveVersionLabel(payload.directiveVersion),
       ];
+      let result: SubmitResult;
       if (payload.surface === "portrait") {
-        return this.submitPortrait(payload, labels);
+        result = this.submitPortrait(payload, labels);
+      } else {
+        result = this.submitPulse(payload, labels);
       }
-      return this.submitPulse(payload, labels);
+      if (
+        result.outcome === "submitted" &&
+        extras?.gapText !== undefined &&
+        extras.gapText !== null &&
+        extras.gapText.trim().length > 0
+      ) {
+        this.appendGapCommentOnPulse(payload, extras.gapText.trim());
+      }
+      return result;
     } catch (err: unknown) {
       if (err instanceof GhRestError) {
         const outcome = classifySinkError(err.stderr, err.exitCode);
@@ -290,60 +304,52 @@ export class GitHubPrivateSinkAdapter implements SubmitAdapter {
       message: `pulse comment appended on #${issueNumber}`,
     };
   }
-}
 
-/** Append a Gap: comment on the standing pulse thread (#2693 D19). */
-export function appendGapComment(
-  options: GitHubPrivateSinkAdapterOptions & {
-    readonly installId: string;
-    readonly actorName: string;
-    readonly gapText: string;
-    readonly collectedAt?: string;
-  },
-): SubmitResult {
-  const seams = options.seams ?? {};
-  try {
-    const existing = findStandingIssue(
-      options.sinkRepo,
-      options.installId,
-      options.actorName,
-      "pulse",
-      seams,
-    );
-    if (existing === null) {
+  /** Append a Gap: comment on the standing pulse thread (#2693 D19). */
+  appendGapCommentOnPulse(payload: ProductSignalPayload, gapText: string): SubmitResult {
+    try {
+      const existing = findStandingIssue(
+        this.repo,
+        payload.installId,
+        payload.actorName,
+        "pulse",
+        this.seams,
+      );
+      if (existing === null) {
+        return {
+          outcome: "sink-unreachable",
+          message: "no standing pulse issue for gap comment",
+        };
+      }
+      const num = issueNumberFromRecord(existing);
+      if (num === null) {
+        return { outcome: "sink-unreachable", message: "pulse issue missing number" };
+      }
+      const date = payload.collectedAt.slice(0, 10);
+      const body = `**Gap ${date}**\n\nGap: ${gapText}\n`;
+      restPostComment(this.repo, num, body, this.seams);
+      restUpdateIssue(
+        this.repo,
+        num,
+        { labels: mergeIssueLabels(existing, [SURFACE_LABELS.pulse, "signal:gap"]) },
+        this.seams,
+      );
       return {
-        outcome: "sink-unreachable",
-        message: "no standing pulse issue for gap comment",
+        outcome: "submitted",
+        issueUrl: issueUrlFromRecord(existing),
+        issueNumber: num,
+        message: `gap comment appended on pulse #${num}`,
       };
+    } catch (err: unknown) {
+      if (err instanceof GhRestError) {
+        const outcome = classifySinkError(err.stderr, err.exitCode);
+        return {
+          outcome,
+          message: `gap comment soft-skip (${outcome}): ${err.stderr || err.message}`,
+        };
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      return { outcome: "sink-unreachable", message };
     }
-    const num = issueNumberFromRecord(existing);
-    if (num === null) {
-      return { outcome: "sink-unreachable", message: "pulse issue missing number" };
-    }
-    const date = (options.collectedAt ?? new Date().toISOString()).slice(0, 10);
-    const body = `**Gap ${date}**\n\nGap: ${options.gapText.trim()}\n`;
-    restPostComment(options.sinkRepo, num, body, seams);
-    restUpdateIssue(
-      options.sinkRepo,
-      num,
-      { labels: mergeIssueLabels(existing, [SURFACE_LABELS.pulse, "signal:gap"]) },
-      seams,
-    );
-    return {
-      outcome: "submitted",
-      issueUrl: issueUrlFromRecord(existing),
-      issueNumber: num,
-      message: `gap comment appended on pulse #${num}`,
-    };
-  } catch (err: unknown) {
-    if (err instanceof GhRestError) {
-      const outcome = classifySinkError(err.stderr, err.exitCode);
-      return {
-        outcome,
-        message: `gap comment soft-skip (${outcome}): ${err.stderr || err.message}`,
-      };
-    }
-    const message = err instanceof Error ? err.message : String(err);
-    return { outcome: "sink-unreachable", message };
   }
 }

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as sinkAdapter from "./github-private-sink-adapter.js";
+import { applyIsolatedConsentEnv } from "./consent-env.test.js";
 import { GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
 import * as headless from "./headless.js";
 import * as payloadModule from "./payload.js";
@@ -17,7 +17,6 @@ import {
   runProductSignalStatus,
   submitProductSignal,
 } from "./submit.js";
-import { applyIsolatedConsentEnv } from "./test-helpers.js";
 
 const roots: string[] = [];
 const envBackup = {
@@ -69,7 +68,7 @@ describe("submitProductSignal", () => {
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
     applyIsolatedConsentEnv(roots, false);
-    vi.spyOn(headless, "isInteractiveSession").mockReturnValue(true);
+    vi.spyOn(headless, "isHeadlessSession").mockReturnValue(false);
     const result = await submitProductSignal({ projectRoot: root, surface: "pulse" });
     expect(result.outcome).toBe("no-consent");
   });
@@ -152,15 +151,11 @@ describe("submitProductSignal", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-submit-gap-"));
     roots.push(root);
     setupEnabledConsented(root);
-    vi.spyOn(GitHubPrivateSinkAdapter.prototype, "submit").mockResolvedValue({
+    const submitSpy = vi.spyOn(GitHubPrivateSinkAdapter.prototype, "submit").mockResolvedValue({
       outcome: "submitted",
       message: "pulse submitted",
       issueUrl: "https://github.com/deftai/product-signal/issues/1",
       issueNumber: 1,
-    });
-    const gapSpy = vi.spyOn(sinkAdapter, "appendGapComment").mockReturnValue({
-      outcome: "submitted",
-      message: "gap comment appended",
     });
     await submitProductSignal({
       projectRoot: root,
@@ -168,7 +163,9 @@ describe("submitProductSignal", () => {
       skipGates: true,
       gapText: "hook blocked write",
     });
-    expect(gapSpy).toHaveBeenCalled();
+    expect(submitSpy).toHaveBeenCalledWith(expect.objectContaining({ surface: "pulse" }), {
+      gapText: "hook blocked write",
+    });
   });
 });
 

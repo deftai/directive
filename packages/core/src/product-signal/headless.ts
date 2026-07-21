@@ -36,8 +36,3 @@ export function isHeadlessSession(options: HeadlessDetectionOptions = {}): boole
   }
   return false;
 }
-
-/** True when interactive consent / interview prompts are allowed. */
-export function isInteractiveSession(options: HeadlessDetectionOptions = {}): boolean {
-  return !isHeadlessSession(options);
-}
