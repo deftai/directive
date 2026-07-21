@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Cursor `preToolUse` stdin for bare `deft hook:dispatch --host cursor --event tool.before` no longer fail-closes on UTF-8 BOM-prefixed JSON — `parsePayload` strips the BOM before `JSON.parse` while preserving empty-stdin and invalid-JSON distinctions. Refs #2734.
+- Cursor free-form `ApplyPatch` stdin (`*** Begin Patch` with a single `Add File` or `Update File` path) is synthesized into a normalized payload in `parsePayload` instead of failing as invalid JSON; multi-file and other unparseable free-form input still fail closed. Closes #2738.
 
 ### Removed
 

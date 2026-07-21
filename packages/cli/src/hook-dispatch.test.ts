@@ -159,6 +159,126 @@ describe("hook-dispatch CLI", () => {
     }
   });
 
+  it("synthesizes Cursor free-form ApplyPatch stdin after JSON.parse fails (#2738)", () => {
+    const freeFormAdd = [
+      "*** Begin Patch",
+      "*** Add File: xbrief/proposed/_probe-applypatch-only.txt",
+      "+probe",
+      "*** End Patch",
+    ].join("\n");
+    expect(parsePayload(freeFormAdd)).toEqual({
+      payload: {
+        tool_name: "ApplyPatch",
+        tool_input: {
+          path: "xbrief/proposed/_probe-applypatch-only.txt",
+          patch: freeFormAdd,
+        },
+      },
+      context: {},
+    });
+
+    const freeFormUpdate = [
+      "*** Begin Patch",
+      "*** Update File: src/example.ts",
+      "@@",
+      "-old",
+      "+new",
+      "*** End Patch",
+    ].join("\n");
+    expect(parsePayload(freeFormUpdate)).toEqual({
+      payload: {
+        tool_name: "ApplyPatch",
+        tool_input: {
+          path: "src/example.ts",
+          patch: freeFormUpdate,
+        },
+      },
+      context: {},
+    });
+
+    const bomFreeForm = `\uFEFF${freeFormAdd}`;
+    expect(parsePayload(bomFreeForm)).toEqual({
+      payload: {
+        tool_name: "ApplyPatch",
+        tool_input: {
+          path: "xbrief/proposed/_probe-applypatch-only.txt",
+          patch: freeFormAdd,
+        },
+      },
+      context: {},
+    });
+  });
+
+  it("keeps multi-file and unparseable free-form ApplyPatch fail-closed (#2738)", () => {
+    const multiFile = [
+      "*** Begin Patch",
+      "*** Add File: a.txt",
+      "+a",
+      "*** Add File: b.txt",
+      "+b",
+      "*** End Patch",
+    ].join("\n");
+    expect(parsePayload(multiFile)).toEqual({ payload: {}, context: { parseFailed: true } });
+
+    const addAndUpdate = [
+      "*** Begin Patch",
+      "*** Add File: a.txt",
+      "+a",
+      "*** Update File: b.txt",
+      "@@",
+      "*** End Patch",
+    ].join("\n");
+    expect(parsePayload(addAndUpdate)).toEqual({ payload: {}, context: { parseFailed: true } });
+
+    const markerOnly = "*** Begin Patch\n*** End Patch";
+    expect(parsePayload(markerOnly)).toEqual({ payload: {}, context: { parseFailed: true } });
+
+    expect(parsePayload("{bad-json")).toEqual({ payload: {}, context: { parseFailed: true } });
+  });
+
+  it("allows Cursor free-form ApplyPatch through hook-dispatch without JSON parse denial (#2738)", () => {
+    const freeForm = [
+      "*** Begin Patch",
+      "*** Add File: xbrief/proposed/_probe-applypatch-only.xbrief.json",
+      "+probe",
+      "*** End Patch",
+    ].join("\n");
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => freeForm,
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    const rendered = out.join("");
+    expect(rendered).not.toContain("not valid JSON");
+    expect(rendered).not.toContain("omitted a recognizable tool name");
+  });
+
+  it("denies Cursor multi-file free-form ApplyPatch as invalid JSON (#2738)", () => {
+    const multiFile = [
+      "*** Begin Patch",
+      "*** Add File: a.txt",
+      "+a",
+      "*** Add File: b.txt",
+      "+b",
+      "*** End Patch",
+    ].join("\n");
+    const out: string[] = [];
+    const code = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => multiFile,
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    const decision = JSON.parse(out.join(""));
+    expect(decision.permission).toBe("deny");
+    expect(decision.user_message).toContain("not valid JSON");
+  });
+
   it("logs Cursor payload keys and distinct empty-stdin messaging (#2669)", () => {
     const emptyOut: string[] = [];
     const emptyErr: string[] = [];
