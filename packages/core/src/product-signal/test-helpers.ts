@@ -3,25 +3,29 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { grantProductSignalConsent } from "./consent.js";
 
+function consentConfigDir(home: string, platform: NodeJS.Platform): string {
+  if (platform === "win32") {
+    return join(home, "deft");
+  }
+  return join(home, ".config", "deft");
+}
+
 /** Isolated platform-config env without consent (for gate tests). */
 export function isolatedConsentEnv(roots: string[], grant = false): NodeJS.ProcessEnv {
   const home = mkdtempSync(join(tmpdir(), "deft-ps-env-"));
   roots.push(home);
+  const platform = process.platform;
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.CI;
   delete env.GITHUB_ACTIONS;
-  if (process.platform === "win32") {
+  if (platform === "win32") {
     env.APPDATA = home;
-    mkdirSync(join(home, "deft"), { recursive: true });
-    if (grant) {
-      grantProductSignalConsent({ platform: "win32", homeDir: home, env });
-    }
   } else {
-    env.XDG_CONFIG_HOME = join(home, "config");
-    mkdirSync(join(home, "config", "deft"), { recursive: true });
-    if (grant) {
-      grantProductSignalConsent({ platform: "linux", homeDir: home, env });
-    }
+    env.HOME = home;
+  }
+  mkdirSync(consentConfigDir(home, platform), { recursive: true });
+  if (grant) {
+    grantProductSignalConsent({ platform, homeDir: home, env });
   }
   return env;
 }
@@ -32,8 +36,8 @@ export function applyIsolatedConsentEnv(roots: string[], grant = true): void {
   if (env.APPDATA !== undefined) {
     process.env.APPDATA = env.APPDATA;
   }
-  if (env.XDG_CONFIG_HOME !== undefined) {
-    process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
+  if (env.HOME !== undefined) {
+    process.env.HOME = env.HOME;
   }
   delete process.env.CI;
   delete process.env.GITHUB_ACTIONS;

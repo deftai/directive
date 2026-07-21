@@ -22,6 +22,7 @@ import { applyIsolatedConsentEnv } from "./test-helpers.js";
 const roots: string[] = [];
 const envBackup = {
   APPDATA: process.env.APPDATA,
+  HOME: process.env.HOME,
   XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
   CI: process.env.CI,
   GITHUB_ACTIONS: process.env.GITHUB_ACTIONS,
@@ -32,6 +33,7 @@ afterEach(() => {
     rmSync(root, { recursive: true, force: true });
   }
   process.env.APPDATA = envBackup.APPDATA;
+  process.env.HOME = envBackup.HOME;
   process.env.XDG_CONFIG_HOME = envBackup.XDG_CONFIG_HOME;
   process.env.CI = envBackup.CI;
   process.env.GITHUB_ACTIONS = envBackup.GITHUB_ACTIONS;
@@ -274,9 +276,7 @@ describe("runProductSignalEnable", () => {
 
 describe("runProductSignalConsent", () => {
   it("grant and revoke paths", () => {
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-consent-cli-"));
-    roots.push(home);
-    process.env.APPDATA = home;
+    applyIsolatedConsentEnv(roots, false);
     const grant = runProductSignalConsent("grant");
     expect(grant.exitCode).toBe(0);
     expect(grant.text).toContain("granted");
@@ -316,17 +316,13 @@ describe("productSignalMain", () => {
   });
 
   it("routes consent grant", async () => {
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-main-consent-"));
-    roots.push(home);
-    process.env.APPDATA = home;
+    applyIsolatedConsentEnv(roots, false);
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     expect(await productSignalMain(["consent", "--grant"])).toBe(0);
   });
 
   it("routes consent revoke", async () => {
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-main-revoke-"));
-    roots.push(home);
-    process.env.APPDATA = home;
+    applyIsolatedConsentEnv(roots, false);
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     expect(await productSignalMain(["consent", "--grant"])).toBe(0);
     expect(await productSignalMain(["consent", "--revoke"])).toBe(0);

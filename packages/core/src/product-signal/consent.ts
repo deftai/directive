@@ -24,11 +24,30 @@ export interface ResolveConsentPathOptions {
   readonly homeDir?: string;
 }
 
+function resolveHomeDirForConsent(options: ResolveConsentPathOptions): string {
+  if (options.homeDir !== undefined) {
+    return options.homeDir;
+  }
+  const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
+  if (platform === "win32") {
+    const userProfile = env.USERPROFILE?.trim();
+    if (userProfile) {
+      return userProfile;
+    }
+  }
+  const home = env.HOME?.trim();
+  if (home) {
+    return home;
+  }
+  return homedir();
+}
+
 /** Platform-config consent path adjacent to USER.md (#2693 D2). */
 export function resolveProductSignalConsentPath(options: ResolveConsentPathOptions = {}): string {
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
-  const homeDir = options.homeDir ?? homedir();
+  const homeDir = resolveHomeDirForConsent(options);
   return join(platformUserConfigDir(platform, env, homeDir), PRODUCT_SIGNAL_CONSENT_FILENAME);
 }
 

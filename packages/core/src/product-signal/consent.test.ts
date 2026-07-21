@@ -86,4 +86,15 @@ describe("consent file", () => {
       "product-signal",
     );
   });
+
+  it("resolves unix consent path from env.HOME", () => {
+    const home = mkdtempSync(join(tmpdir(), "deft-ps-consent-unix-"));
+    roots.push(home);
+    const env = { HOME: home } as NodeJS.ProcessEnv;
+    grantProductSignalConsent({ env, platform: "linux", homeDir: home });
+    expect(isProductSignalConsented({ env, platform: "linux" })).toBe(true);
+    expect(resolveProductSignalConsentPath({ env, platform: "linux" })).toContain(
+      join(".config", "deft"),
+    );
+  });
 });
