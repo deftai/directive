@@ -1,0 +1,68 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story xBRIEF for Proposed ADR-002: forge-provider Azure DevOps adoption gate for epic #2651 (pre-/post-1.0).",
+    "created": "2026-07-21T22:35:00Z",
+    "updated": "2026-07-21T22:50:00Z"
+  },
+  "plan": {
+    "id": "2651-adr-002-forge-azure-adoption",
+    "title": "ADR-002: Forge-provider Azure DevOps adoption gate (proposed)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Record the Proposed ADR that #2651 and children #2715-#2733 must not be implemented until explicit maintainer buy-in; default posture defers the program past 1.0.0. Operational hold (status:blocked + Blocked-by rewrite) is applied on GitHub; this story covers the durable ADR document under docs/decisions/.",
+      "ImplementationPlan": "1) Author docs/decisions/ADR-002-forge-provider-azure-adoption.md (Status: proposed). 2) Cross-link from #2651 (issue comment + body caution). 3) Keep children held until ADR moves to accepted/deferred with a schedule. Do not promote or activate any #2715-#2733 implementation stories under this xBRIEF.",
+      "UserStory": "As a maintainer planning 1.0, I want a citable adoption gate for the Azure forge program so AFK children cannot silently start a GitHub-extraction rewrite without buy-in."
+    },
+    "items": [
+      {
+        "title": "Draft Proposed ADR-002 under docs/decisions/",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "ADR-002 file exists with Status proposed, open questions, and default defer-past-1.0 posture."
+        }
+      },
+      {
+        "title": "Link ADR from #2651 caution surfaces",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Issue #2651 body/comment points at ADR-002; children Blocked-by cite the ADR path."
+        }
+      },
+      {
+        "title": "Maintain operational hold until adoption decision",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Children #2715-#2733 remain status:blocked until ADR status changes and hold is explicitly lifted."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2651",
+        "decomposition_origin": "#2651"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2651",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2651: first-class Azure DevOps support (Boards + Repos)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/881",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #881: scm:* task namespace"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1145",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1145: source-agnostic verb boundary scaffold"
+      }
+    ]
+  }
+}
