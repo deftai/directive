@@ -5,6 +5,7 @@ import {
   appendGapComment,
   buildThreadMarker,
   GitHubPrivateSinkAdapter,
+  mergeIssueLabels,
 } from "./github-private-sink-adapter.js";
 import { isHeadlessSession, isInteractiveSession } from "./headless.js";
 import type { ProductSignalPayload } from "./payload.js";
@@ -355,6 +356,22 @@ describe("appendGapComment", () => {
       seams: { runGhApiFn },
     });
     expect(result.outcome).toBe("sink-unreachable");
+  });
+});
+
+describe("mergeIssueLabels", () => {
+  it("preserves existing labels when adding gap marker", () => {
+    const merged = mergeIssueLabels(
+      { labels: [{ name: "surface:pulse" }, { name: "nps:promoter" }] },
+      ["signal:gap"],
+    );
+    expect(merged).toEqual(expect.arrayContaining(["surface:pulse", "nps:promoter", "signal:gap"]));
+  });
+
+  it("preserves string labels from issue payload", () => {
+    expect(mergeIssueLabels({ labels: ["surface:pulse", "signal:gap"] }, ["nps:none"])).toEqual(
+      expect.arrayContaining(["surface:pulse", "signal:gap", "nps:none"]),
+    );
   });
 });
 

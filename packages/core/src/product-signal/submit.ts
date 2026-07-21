@@ -14,7 +14,7 @@ import {
   revokeProductSignalConsent,
 } from "./consent.js";
 import { evaluateProductSignalGates, type ProductSignalOutcome } from "./gates.js";
-import { GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
+import { GitHubPrivateSinkAdapter, appendGapComment } from "./github-private-sink-adapter.js";
 import { collectInstallContext } from "./install-context.js";
 import { assembleLocalSignalSummary } from "./local-signal-summary.js";
 import {
@@ -36,6 +36,7 @@ export interface ProductSignalSubmitInput {
   readonly surface: ProductSignalSurface;
   readonly human?: Partial<ProductSignalHuman>;
   readonly agentNotes?: string | null;
+  readonly gapText?: string | null;
 }
 
 export interface ProductSignalSubmitOptions extends ProductSignalSubmitInput {
@@ -178,6 +179,15 @@ export async function submitProductSignal(
   const result = await adapter.submit(payload);
   if (result.outcome === "submitted") {
     recordLastSubmit(root, result.outcome, result.issueUrl ?? null);
+    if (options.gapText !== undefined && options.gapText !== null && options.gapText.trim().length > 0) {
+      appendGapComment({
+        sinkRepo: policy.sinkRepo,
+        installId: payload.installId,
+        actorName: payload.actorName,
+        gapText: options.gapText,
+        collectedAt: payload.collectedAt,
+      });
+    }
   }
   const urlLine = result.issueUrl ? ` url=${result.issueUrl}` : "";
   return {

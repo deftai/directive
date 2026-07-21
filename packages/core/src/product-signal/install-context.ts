@@ -1,3 +1,4 @@
+import { release } from "node:os";
 import { readCorePackageVersion } from "../engine-version.js";
 import { resolveInstallId } from "../events/attribution-enrichment.js";
 import { detectEnvironmentContext } from "../platform/shell-context.js";
@@ -48,7 +49,7 @@ export function collectInstallContext(projectRoot: string): InstallContext {
     installId,
     directiveVersion: readCorePackageVersion(),
     os: envCtx.hostPlatform,
-    osVersion: `${process.version}`,
+    osVersion: release(),
     shell: envCtx.shell.name,
     harness,
     harnessVersion,

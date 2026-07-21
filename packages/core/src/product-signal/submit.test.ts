@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { grantProductSignalConsent } from "./consent.js";
+import * as sinkAdapter from "./github-private-sink-adapter.js";
 import { GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
 import * as payloadModule from "./payload.js";
 import {
@@ -18,13 +19,19 @@ import {
 } from "./submit.js";
 
 const roots: string[] = [];
+const envBackup = {
+  APPDATA: process.env.APPDATA,
+  XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+  CI: process.env.CI,
+};
+
 afterEach(() => {
   for (const root of roots.splice(0)) {
     rmSync(root, { recursive: true, force: true });
   }
-  if (process.env.APPDATA?.includes("deft-ps-submit")) {
-    delete process.env.APPDATA;
-  }
+  process.env.APPDATA = envBackup.APPDATA;
+  process.env.XDG_CONFIG_HOME = envBackup.XDG_CONFIG_HOME;
+  process.env.CI = envBackup.CI;
   vi.restoreAllMocks();
 });
 
@@ -42,8 +49,20 @@ function setupEnabledConsented(root: string): void {
   writeProjectDef(root, { productSignal: { enabled: true } });
   const home = mkdtempSync(join(tmpdir(), "deft-ps-submit-home-"));
   roots.push(home);
-  process.env.APPDATA = home;
-  grantProductSignalConsent({ platform: "win32", homeDir: home });
+  delete process.env.CI;
+  if (process.platform === "win32") {
+    process.env.APPDATA = home;
+    mkdirSync(join(home, "deft"), { recursive: true });
+    grantProductSignalConsent({ platform: "win32", homeDir: home, env: process.env });
+  } else {
+    process.env.XDG_CONFIG_HOME = join(home, "config");
+    mkdirSync(join(home, "config", "deft"), { recursive: true });
+    grantProductSignalConsent({
+      platform: "linux",
+      homeDir: home,
+      env: process.env,
+    });
+  }
 }
 
 describe("submitProductSignal", () => {
@@ -59,6 +78,16 @@ describe("submitProductSignal", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-submit-noconsent-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
+    const home = mkdtempSync(join(tmpdir(), "deft-ps-submit-noconsent-home-"));
+    roots.push(home);
+    delete process.env.CI;
+    if (process.platform === "win32") {
+      process.env.APPDATA = home;
+      mkdirSync(join(home, "deft"), { recursive: true });
+    } else {
+      process.env.XDG_CONFIG_HOME = join(home, "config");
+      mkdirSync(join(home, "config", "deft"), { recursive: true });
+    }
     const result = await submitProductSignal({ projectRoot: root, surface: "pulse" });
     expect(result.outcome).toBe("no-consent");
   });
@@ -135,6 +164,29 @@ describe("submitProductSignal", () => {
     const { readFileSync } = await import("node:fs");
     const lastPath = join(root, PRODUCT_SIGNAL_LAST_SUBMIT_REL);
     expect(readFileSync(lastPath, "utf8")).toContain("submitted");
+  });
+
+  it("appends gap comment when gapText provided", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-submit-gap-"));
+    roots.push(root);
+    setupEnabledConsented(root);
+    vi.spyOn(GitHubPrivateSinkAdapter.prototype, "submit").mockResolvedValue({
+      outcome: "submitted",
+      message: "pulse submitted",
+      issueUrl: "https://github.com/deftai/product-signal/issues/1",
+      issueNumber: 1,
+    });
+    const gapSpy = vi.spyOn(sinkAdapter, "appendGapComment").mockReturnValue({
+      outcome: "submitted",
+      message: "gap comment appended",
+    });
+    await submitProductSignal({
+      projectRoot: root,
+      surface: "pulse",
+      skipGates: true,
+      gapText: "hook blocked write",
+    });
+    expect(gapSpy).toHaveBeenCalled();
   });
 });
 

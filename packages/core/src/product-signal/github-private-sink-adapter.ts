@@ -49,6 +49,41 @@ function directiveVersionLabel(version: string): string {
   return `directive:${minor}`;
 }
 
+function labelNamesFromIssue(issue: Record<string, unknown>): string[] {
+  const labels = issue.labels;
+  if (!Array.isArray(labels)) {
+    return [];
+  }
+  const names: string[] = [];
+  for (const label of labels) {
+    if (typeof label === "string" && label.trim().length > 0) {
+      names.push(label.trim());
+      continue;
+    }
+    if (label !== null && typeof label === "object" && !Array.isArray(label)) {
+      const name = (label as Record<string, unknown>).name;
+      if (typeof name === "string" && name.trim().length > 0) {
+        names.push(name.trim());
+      }
+    }
+  }
+  return names;
+}
+
+/** Merge labels for PATCH updates (GitHub replaces the full label set). */
+export function mergeIssueLabels(
+  existing: Record<string, unknown>,
+  next: readonly string[],
+): string[] {
+  const merged = new Set(labelNamesFromIssue(existing));
+  for (const label of next) {
+    if (label.trim().length > 0) {
+      merged.add(label.trim());
+    }
+  }
+  return [...merged];
+}
+
 function formatPayloadBody(payload: ProductSignalPayload): string {
   const marker = buildThreadMarker(payload.installId, payload.actorName, payload.surface);
   const humanLines: string[] = [];
@@ -236,7 +271,12 @@ export class GitHubPrivateSinkAdapter implements SubmitAdapter {
       issueNumber = issueNumberFromRecord(existing);
       issueUrl = issueUrlFromRecord(existing);
       if (issueNumber !== null) {
-        restUpdateIssue(this.repo, issueNumber, { labels: [...labels] }, this.seams);
+        restUpdateIssue(
+          this.repo,
+          issueNumber,
+          { labels: mergeIssueLabels(existing, labels) },
+          this.seams,
+        );
       }
     }
     if (issueNumber === null) {
@@ -283,7 +323,12 @@ export function appendGapComment(
     const date = (options.collectedAt ?? new Date().toISOString()).slice(0, 10);
     const body = `**Gap ${date}**\n\nGap: ${options.gapText.trim()}\n`;
     restPostComment(options.sinkRepo, num, body, seams);
-    restUpdateIssue(options.sinkRepo, num, { labels: ["signal:gap"] }, seams);
+    restUpdateIssue(
+      options.sinkRepo,
+      num,
+      { labels: mergeIssueLabels(existing, [SURFACE_LABELS.pulse, "signal:gap"]) },
+      seams,
+    );
     return {
       outcome: "submitted",
       issueUrl: issueUrlFromRecord(existing),
