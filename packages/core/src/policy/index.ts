@@ -1,6 +1,11 @@
 import { readPlanPolicy } from "./plan-extensions.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import {
+  FIELD_RUNTIME_AUTHORITY,
+  FIELD_RUNTIME_AUTHORITY_CLI_ALIAS,
+  inspectRuntimeAuthority,
+} from "./runtime-authority.js";
+import {
   FIELD_STALENESS_TICKLER,
   FIELD_STALENESS_TICKLER_CLI_ALIAS,
   inspectStalenessTickler,
@@ -20,6 +25,7 @@ export * from "./disclosure.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
 export * from "./resolve.js";
+export * from "./runtime-authority.js";
 export * from "./staleness-tickler.js";
 export * from "./value-feedback.js";
 export * from "./wip.js";
@@ -278,6 +284,16 @@ function inspectStalenessTicklerField(data: Record<string, unknown> | null): Pol
   };
 }
 
+function inspectRuntimeAuthorityField(data: Record<string, unknown> | null): PolicyField {
+  const field = inspectRuntimeAuthority(data);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -310,6 +326,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
     }),
   inspectSwarmSubagentBackend,
   inspectStalenessTicklerField,
+  inspectRuntimeAuthorityField,
   inspectValueFeedbackField,
 ];
 
@@ -326,7 +343,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
       ? FIELD_VALUE_FEEDBACK
       : name === FIELD_STALENESS_TICKLER_CLI_ALIAS
         ? FIELD_STALENESS_TICKLER
-        : name;
+        : name === FIELD_RUNTIME_AUTHORITY_CLI_ALIAS
+          ? FIELD_RUNTIME_AUTHORITY
+          : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

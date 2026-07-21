@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { disclosureLine } from "./disclosure.js";
 import {
   FIELD_ALLOW_DIRECT_COMMITS,
+  FIELD_RUNTIME_AUTHORITY,
   FIELD_SESSION_RITUAL_STALENESS_HOURS,
   FIELD_WIP_CAP,
   inspectAllPolicies,
@@ -383,11 +384,11 @@ describe("inspectAllPolicies", () => {
     for (const r of roots) rmSync(r, { recursive: true, force: true });
   });
 
-  it("returns eleven registered fields by default", () => {
+  it("returns twelve registered fields by default", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    expect(inspectAllPolicies(r)).toHaveLength(11);
+    expect(inspectAllPolicies(r)).toHaveLength(12);
   });
 
   it("surfaces typed allowDirectCommits", () => {
@@ -415,6 +416,17 @@ describe("inspectAllPolicies", () => {
     expect(row?.current).toBe(3);
   });
 
+  it("surfaces typed runtimeAuthority via CLI alias", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
+    roots.push(r);
+    writeProjectDef(r, {
+      policy: { runtimeAuthority: { enabled: true, denyPaths: [".env"] } },
+    });
+    const row = inspectOnePolicy("runtimeAuthority", r);
+    expect(row?.name).toBe(FIELD_RUNTIME_AUTHORITY);
+    expect(row?.current).toMatchObject({ enabled: true, denyPaths: [".env"] });
+  });
+
   it("renderText handles empty changed-only", () => {
     expect(renderText([])).toContain("no fields changed");
   });
@@ -429,6 +441,7 @@ describe("inspectAllPolicies", () => {
 
   it("registeredPolicyNames lists canonical paths", () => {
     expect(registeredPolicyNames()).toContain(FIELD_WIP_CAP);
+    expect(registeredPolicyNames()).toContain(FIELD_RUNTIME_AUTHORITY);
   });
 
   it("python repr helpers match Python style", () => {

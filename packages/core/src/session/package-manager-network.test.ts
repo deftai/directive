@@ -112,7 +112,10 @@ describe("package-manager network scope (#2182)", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 
-    const result = runSessionStart(root, { writeHistory: false });
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
 
     expect(result.code === 0 || result.code === 1).toBe(true);
     expect(packageManagerCalls(spawnSyncMock)).toEqual([

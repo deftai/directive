@@ -588,6 +588,207 @@ describe("direct-write hook policy", () => {
   });
 });
 
+describe("runtime authority policy (#1394)", () => {
+  const ENABLED_POLICY = {
+    enabled: true,
+    allowPaths: ["src/**", "xbrief/**"],
+    denyPaths: [".env", "secrets/**"],
+    scopes: { edits: true, push: false, merge: false },
+  };
+
+  function policySeams(
+    policy: typeof ENABLED_POLICY,
+    overrides: Partial<HookPolicySeams> = {},
+  ): HookPolicySeams {
+    return readySeams({
+      loadRuntimeAuthority: () => policy,
+      ...overrides,
+    });
+  }
+
+  it("allows direct writes when runtime authority is disabled (default)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/docs/readme.md" },
+        },
+      },
+      readySeams({ loadRuntimeAuthority: () => ({ ...ENABLED_POLICY, enabled: false }) }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("denies direct writes outside allowPaths when enabled", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { path: "/project/docs/readme.md", contents: "x" },
+        },
+      },
+      policySeams(ENABLED_POLICY),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision.message).toContain("allowPaths");
+  });
+
+  it("allows direct writes inside allowPaths when enabled", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/index.ts", contents: "x" },
+        },
+      },
+      policySeams(ENABLED_POLICY),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("denies paths on denylist even when allowlist would permit", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/secrets/prod.env" },
+        },
+      },
+      policySeams({ ...ENABLED_POLICY, allowPaths: ["**"] }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision.message).toContain("denyPaths");
+  });
+
+  it("denies when edits scope is false", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Edit", tool_input: { file_path: "/project/src/a.ts" } },
+      },
+      policySeams({ ...ENABLED_POLICY, scopes: { edits: false, push: false, merge: false } }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-scope" });
+  });
+
+  it("ritual-not-ready fires before runtime authority path deny", () => {
+    const loadRuntimeAuthority = vi.fn(() => ENABLED_POLICY);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/docs/outside.md" },
+        },
+      },
+      policySeams(ENABLED_POLICY, {
+        loadRuntimeAuthority,
+        inspectRitual: () => ({ ...READY_RITUAL, code: 1, message: "stale ritual" }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(loadRuntimeAuthority).not.toHaveBeenCalled();
+  });
+
+  it("does not apply runtime authority to spawn tools", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+      },
+      policySeams({ ...ENABLED_POLICY, scopes: { edits: false, push: false, merge: false } }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+  });
+
+  it("does not change read-only deny behavior (#1185)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Edit", capability_mode: "read-only" },
+        environ: {},
+      },
+      policySeams(ENABLED_POLICY),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
+  });
+
+  it("does not change session.compact re-arm (#2113)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "session.compact",
+        projectRoot: "/project",
+        payload: {},
+      },
+      policySeams(ENABLED_POLICY, {
+        markCompactStale: () => ({
+          changed: true,
+          statePath: "/project/.deft/ritual-state.json",
+          message: "stale",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-rearm" });
+  });
+
+  it("fail-opens when runtime authority policy load throws", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/docs/outside.md" },
+        },
+      },
+      policySeams(ENABLED_POLICY, {
+        loadRuntimeAuthority: () => {
+          throw new Error("policy read failed");
+        },
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("applies path policy to proposed lifecycle writes when enabled", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/xbrief/proposed/story.xbrief.json" },
+        },
+      },
+      policySeams({ ...ENABLED_POLICY, allowPaths: ["src/**"] }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+  });
+});
+
 describe("provider codecs", () => {
   const deny = decideHook(
     {

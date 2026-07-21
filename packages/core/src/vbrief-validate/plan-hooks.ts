@@ -1,4 +1,5 @@
 import { readPlanPolicy } from "../policy/plan-extensions.js";
+import { validateRuntimeAuthority } from "../policy/runtime-authority.js";
 import { validateStalenessTickler } from "../policy/staleness-tickler.js";
 import {
   validateTriageAutoClassifyOnPlan,
@@ -123,6 +124,25 @@ export function validateTriageRankingLabelsOnPlan(plan: unknown, filepath: strin
   return errors.map((err) => `${filepath}: ${err} (#1128)`);
 }
 
+/** vbrief_validate hook: validate ``plan.policy.runtimeAuthority`` (#1394). */
+export function validateRuntimeAuthorityOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("runtimeAuthority" in (policy as JsonObject))) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const err of validateRuntimeAuthority((policy as JsonObject).runtimeAuthority)) {
+    out.push(`${filepath}: ${err} (#1394)`);
+  }
+  return out;
+}
+
 /** vbrief_validate hook: validate ``plan.policy.stalenessTickler`` (#2489). */
 export function validateStalenessTicklerOnPlan(plan: unknown, filepath: string): string[] {
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
@@ -178,6 +198,11 @@ export function runProjectDefinitionHooks(plan: unknown, filepath: string): stri
   }
   try {
     errors.push(...validateStalenessTicklerOnPlan(plan, filepath));
+  } catch {
+    /* hook must not break validation */
+  }
+  try {
+    errors.push(...validateRuntimeAuthorityOnPlan(plan, filepath));
   } catch {
     /* hook must not break validation */
   }

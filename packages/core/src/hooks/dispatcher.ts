@@ -1,5 +1,10 @@
 import { relative, resolve, sep } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import {
+  evaluateRuntimeAuthorityDirectWrite,
+  loadRuntimeAuthorityFromProject,
+  type RuntimeAuthorityPolicy,
+} from "../policy/runtime-authority.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
@@ -47,7 +52,9 @@ export type HookDecisionCode =
   | "read-only-deny"
   | "spawn-explore-ready"
   | "spawn-ready"
-  | "spawn-not-ready";
+  | "spawn-not-ready"
+  | "runtime-policy-deny-path"
+  | "runtime-policy-deny-scope";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -85,6 +92,7 @@ export interface HookPolicySeams {
     statePath: string;
     message: string;
   };
+  readonly loadRuntimeAuthority?: (projectRoot: string) => RuntimeAuthorityPolicy;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -309,6 +317,33 @@ function deny(
   };
 }
 
+function runtimeAuthorityForDirectWrite(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+  scopePath: string | null,
+): HookDecision | null {
+  const projectRoot = resolve(input.projectRoot);
+  let policy: RuntimeAuthorityPolicy;
+  try {
+    policy = (seams.loadRuntimeAuthority ?? loadRuntimeAuthorityFromProject)(projectRoot);
+  } catch {
+    // Fail-open on policy load crash — host behavior; ritual/scope gates already passed.
+    return null;
+  }
+  const writeTarget = hookWriteTargetPath(input.payload);
+  const relPath = writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+  const verdict = evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: relPath });
+  if (verdict.allowed) return null;
+  return deny(
+    input,
+    verdict.code ?? "runtime-policy-deny-path",
+    toolName,
+    verdict.reason ?? "Directive denied this direct write under runtime authority policy.",
+    scopePath,
+  );
+}
+
 function inspectMutationGates(
   input: HookDispatchInput,
   toolName: string,
@@ -345,6 +380,8 @@ function inspectMutationGates(
   if (options.proposedLifecycleExempt) {
     const writeTarget = hookWriteTargetPath(input.payload);
     if (isProposedLifecycleWrite(projectRoot, writeTarget)) {
+      const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
+      if (runtimeDeny !== null) return runtimeDeny;
       return {
         verdict: "allow",
         code: "write-propose-ready",
@@ -391,6 +428,10 @@ function inspectMutationGates(
   }
 
   const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
+  if (!isSpawnTool(toolName)) {
+    const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, scope.path);
+    if (runtimeDeny !== null) return runtimeDeny;
+  }
   return {
     verdict: "allow",
     code: allowCode,
