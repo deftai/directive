@@ -330,6 +330,9 @@ includes:
   value:
     taskfile: ./tasks/value.yml
     optional: true
+  product-signal:
+    taskfile: ./tasks/product-signal.yml
+    optional: true
   # Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B). Exposes
   # `task packs:slice` (named-slice API), `task packs:render` (regenerate the
   # meta/lessons.md projection), and `task packs:verify-drift` (the drift gate,

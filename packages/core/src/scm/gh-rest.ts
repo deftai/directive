@@ -229,6 +229,8 @@ export const REST_PAGINATION_MAX_PAGES = 100;
 export const PUBLIC_HELPERS = [
   "restCreateIssue",
   "restPostComment",
+  "restUpdateIssue",
+  "restCreateLabel",
   "restCloseIssue",
   "restOpenPr",
   "restMergePr",
@@ -302,6 +304,39 @@ export function restPostComment(
     endpoint,
     payload: { body },
     hint: "verify repo permissions, that the issue/PR is open or lockable, and core REST bucket quota",
+    ...seams,
+  });
+}
+
+export function restUpdateIssue(
+  repo: string,
+  n: number,
+  patch: Record<string, unknown>,
+  seams: GhRestSeams = {},
+): Record<string, unknown> {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/issues/${n}`;
+  return execMutation([endpoint, "--method", "PATCH"], {
+    endpoint,
+    payload: patch,
+    hint: "verify repo permissions and issue number; check gh auth status",
+    ...seams,
+  });
+}
+
+export function restCreateLabel(
+  repo: string,
+  name: string,
+  color: string,
+  description: string,
+  seams: GhRestSeams = {},
+): Record<string, unknown> {
+  const [owner, repoName] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${repoName}/labels`;
+  return execMutation([endpoint, "--method", "POST"], {
+    endpoint,
+    payload: { name, color, description },
+    hint: "verify repo permissions; label may already exist (422 is acceptable for idempotent bootstrap)",
     ...seams,
   });
 }

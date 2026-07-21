@@ -1,4 +1,9 @@
 import { readPlanPolicy } from "./plan-extensions.js";
+import {
+  FIELD_PRODUCT_SIGNAL,
+  FIELD_PRODUCT_SIGNAL_CLI_ALIAS,
+  inspectProductSignal,
+} from "./product-signal.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import {
   FIELD_RUNTIME_AUTHORITY,
@@ -24,6 +29,7 @@ export * from "./decisions.js";
 export * from "./disclosure.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
+export * from "./product-signal.js";
 export * from "./resolve.js";
 export * from "./runtime-authority.js";
 export * from "./staleness-tickler.js";
@@ -261,6 +267,19 @@ function inspectSwarmSubagentBackend(data: Record<string, unknown> | null): Poli
 
 type Inspector = (data: Record<string, unknown> | null, projectRoot?: string) => PolicyField;
 
+function inspectProductSignalField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectProductSignal(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectValueFeedbackField(
   data: Record<string, unknown> | null,
   projectRoot?: string,
@@ -327,6 +346,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectSwarmSubagentBackend,
   inspectStalenessTicklerField,
   inspectRuntimeAuthorityField,
+  inspectProductSignalField,
   inspectValueFeedbackField,
 ];
 
@@ -341,11 +361,13 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
   const normalized =
     name === FIELD_VALUE_FEEDBACK_CLI_ALIAS
       ? FIELD_VALUE_FEEDBACK
-      : name === FIELD_STALENESS_TICKLER_CLI_ALIAS
-        ? FIELD_STALENESS_TICKLER
-        : name === FIELD_RUNTIME_AUTHORITY_CLI_ALIAS
-          ? FIELD_RUNTIME_AUTHORITY
-          : name;
+      : name === FIELD_PRODUCT_SIGNAL_CLI_ALIAS
+        ? FIELD_PRODUCT_SIGNAL
+        : name === FIELD_STALENESS_TICKLER_CLI_ALIAS
+          ? FIELD_STALENESS_TICKLER
+          : name === FIELD_RUNTIME_AUTHORITY_CLI_ALIAS
+            ? FIELD_RUNTIME_AUTHORITY
+            : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

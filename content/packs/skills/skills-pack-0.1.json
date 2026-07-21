@@ -92,6 +92,20 @@
       "frontmatter_extra": null
     },
     {
+      "id": "deft-directive-product-signal",
+      "description": "Consented agent-driven product check-in (pulse + portrait) with enable and consent gates, minimized local ledger attach, and private GitHub sink submit. Defaults off.",
+      "triggers": [
+        "product check-in",
+        "product pulse",
+        "partner feedback",
+        "product signal"
+      ],
+      "path": "skills/deft-directive-product-signal/SKILL.md",
+      "version": "0.1",
+      "body": "",
+      "frontmatter_extra": null
+    },
+    {
       "id": "deft-directive-gh-arch",
       "description": "Explore a codebase for architectural improvement opportunities -- deepen shallow modules, generate competing interface designs in parallel via sub- agents, and file a refactor RFC as a GitHub Issue. Use when improving architecture, finding refactoring opportunities, or making a codebase more testable and AI-navigable. Requires the GitHub CLI (gh).",
       "triggers": [

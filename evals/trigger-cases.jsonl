@@ -60,3 +60,6 @@
 {"id":"feedback-pos-1","query":"file upstream feedback about framework gaps","skill":"deft-directive-feedback","should_trigger":true}
 {"id":"feedback-pos-2","query":"directive feedback: session ritual too noisy","skill":"deft-directive-feedback","should_trigger":true}
 {"id":"feedback-neg-1","query":"run eval health check on master","skill":"deft-directive-feedback","should_trigger":false}
+{"id":"product-signal-pos-1","query":"run a product check-in pulse for this install","skill":"deft-directive-product-signal","should_trigger":true}
+{"id":"product-signal-pos-2","query":"partner feedback product signal interview","skill":"deft-directive-product-signal","should_trigger":true}
+{"id":"product-signal-neg-1","query":"run eval health check on master","skill":"deft-directive-product-signal","should_trigger":false}

@@ -1,0 +1,88 @@
+---
+name: deft-directive-product-signal
+description: >-
+  Consented agent-driven product check-in (pulse + portrait) with enable and
+  consent gates, minimized local ledger attach, and private GitHub sink submit.
+  Defaults off; no ambient nag when disabled.
+---
+# Deft Directive Product Signal — consented check-in (#2693)
+
+Agent-driven qualitative product-improvement signal for partner/trial installs. Lightweight interview, minimized local summaries (value/health/helped), optional skillsSummary hook — submits to private `deftai/product-signal` when enable + consent gates pass.
+
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+## When to Use
+
+- Operator says `product check-in`, `product pulse`, `partner feedback`, or `product signal`
+- Partner onboarding after ops enables `plan.policy.productSignal`
+- ⊗ Do NOT invoke from session:start or ambient rituals when disabled (#2693 D3)
+
+## Preconditions
+
+- ! `plan.policy.productSignal.enabled` MUST be true (`task policy:show --field=productSignal`)
+- ! Install-level consent MUST be recorded before outbound submit (`task product-signal:status`)
+- ⊗ Prompt or submit when `enabled` is false
+- ⊗ Block story work on sink errors — fail open (#2693 D16/D18)
+
+## Phase 1 — Gate
+
+```bash
+task product-signal:status
+task policy:show -- --field=productSignal
+```
+
+- ! If disabled: soft-skip with one line; exit skill
+- ! If headless/CI: fail open — no consent/interview prompts (#2693 D16)
+
+## Phase 2 — First-time consent (interactive only, D17)
+
+When enabled, interactive, and consent missing/revoked, ask:
+
+> May we collect usage metrics and related session signal from this install to improve Directive? This can include a short check-in plus minimized local summaries (value/health and related ledgers). Nothing is sent while this path is off or without your consent.
+>
+> If you are unsure, please check with your company before saying no — they are a Directive partner and may already expect this signal to be shared.
+>
+> Reply **yes** to consent, or **no** to decline.
+
+- **yes** → `task product-signal:consent -- --grant`; continue
+- **no** → soft-skip; do not badger every turn
+
+## Phase 3 — Interview (≤3 answers + optional NPS)
+
+- ! Ask at most three short questions plus optional NPS (0–10)
+- ~ Target ≤30s human time beyond first-time consent
+- ⊗ Paste secrets, paths, raw logs, or full USER.md into answers
+
+## Phase 4 — Assemble + validate + submit
+
+```bash
+task product-signal:submit -- --surface pulse --dry-run
+task product-signal:submit -- --surface pulse --nps 9
+```
+
+- ! On validation failure: show reason; no partial write
+- ! On sink ACL/network errors: soft-skip with hint; do not fail caller (#2693 D18)
+- ! Report issue URL on success
+
+## Private gaps (D19)
+
+- ! Record bugs/gaps as `Gap:` comments on the standing **pulse** thread (enable+consent sufficient)
+- ! Public promote to `deftai/directive` remains hard-confirm via `deft-directive-feedback` / `task feedback:file`
+
+## Revoke
+
+```bash
+task product-signal:consent -- --revoke
+# and/or disable: set plan.policy.productSignal.enabled false
+```
+
+## Anti-Patterns
+
+- ⊗ Ambient consent nag when disabled
+- ⊗ Fail-closed headless behavior
+- ⊗ Sticky forever-fail when sink is down
+- ⊗ Auto-file public framework-gap issues from pulses
+
+## Exit
+
+deft-directive-product-signal complete — exiting skill.

@@ -209,6 +209,7 @@ export const CORE_MODULE_VERBS = [
   "architecture-preflight-sor",
   "feedback-file",
   "value-readback",
+  "product-signal",
 ] as const;
 
 /** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
@@ -249,6 +250,19 @@ export const PLAN_SEQUENCE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
 
 const PLAN_SEQUENCE_COLON_ALIASES = Object.fromEntries(
   Object.keys(PLAN_SEQUENCE_ALIAS_SUBCOMMANDS).map((alias) => [alias, "plan-sequence"]),
+) as Record<string, string>;
+
+/** Colon aliases for product-signal subcommands (#2693). */
+export const PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "product-signal:status": "status",
+  "product-signal:enable": "enable",
+  "product-signal:consent": "consent",
+  "product-signal:submit": "submit",
+  "product-signal:bootstrap-sink": "bootstrap-sink",
+};
+
+const PRODUCT_SIGNAL_COLON_ALIASES = Object.fromEntries(
+  Object.keys(PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS).map((alias) => [alias, "product-signal"]),
 ) as Record<string, string>;
 
 /** Task-style aliases (framework_commands / Taskfile names). */
@@ -304,6 +318,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:scope": "triage-scope",
   ...TRIAGE_ACTION_COLON_ALIASES,
   ...POLICY_ACTION_COLON_ALIASES,
+  ...PRODUCT_SIGNAL_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
   "migrate:preflight": "migrate-preflight",
   "migrate:xbrief": "migrate-xbrief",
@@ -2720,6 +2735,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       const { mainEntry } = await import("@deftai/directive-core/dist/value/readback.js");
       return mainEntry;
     }
+    case "product-signal": {
+      const { mainEntry } = await import("@deftai/directive-core/dist/product-signal/submit.js");
+      return mainEntry;
+    }
     default:
       throw new Error(`unknown core verb: ${verb}`);
   }
@@ -2969,6 +2988,8 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const planSequenceSubcommand =
       verb !== undefined ? PLAN_SEQUENCE_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const productSignalSubcommand =
+      verb !== undefined ? PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS[verb] : undefined;
     const handlerArgv =
       canonical === "framework-commands" && verb !== undefined && verb !== canonical
         ? [verb, ...rest]
@@ -2978,7 +2999,9 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
             ? [policySubcommand, ...rest]
             : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
               ? [planSequenceSubcommand, ...rest]
-              : rest;
+              : productSignalSubcommand !== undefined && canonical === "product-signal"
+                ? [productSignalSubcommand, ...rest]
+                : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
