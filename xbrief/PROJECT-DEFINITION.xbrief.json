@@ -972,10 +972,10 @@
       {
         "id": "2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de",
         "title": "Consented agent-driven product signal (private deftai sink, defaults off)",
-        "status": "pending",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de.xbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de.xbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/2693",
