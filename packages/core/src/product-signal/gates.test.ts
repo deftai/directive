@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as productSignalPolicy from "../policy/product-signal.js";
-import { grantProductSignalConsent } from "./consent.js";
+import { isolatedConsentEnv } from "./test-helpers.js";
 import { classifySinkError, evaluateProductSignalGates } from "./gates.js";
 
 const roots: string[] = [];
@@ -45,32 +45,28 @@ describe("evaluateProductSignalGates", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-gates-consent-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    expect(evaluateProductSignalGates({ projectRoot: root }).outcome).toBe("no-consent");
+    const env = isolatedConsentEnv(roots, false);
+    expect(evaluateProductSignalGates({ projectRoot: root, env }).outcome).toBe("no-consent");
   });
 
   it("passes when enabled and consented", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-gates-pass-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-gates-home-"));
-    roots.push(home);
-    grantProductSignalConsent({ platform: "win32", homeDir: home, env: { APPDATA: home } });
-    expect(
-      evaluateProductSignalGates({
-        projectRoot: root,
-        env: { APPDATA: home },
-      }).allowed,
-    ).toBe(true);
+    const env = isolatedConsentEnv(roots, true);
+    expect(evaluateProductSignalGates({ projectRoot: root, env }).allowed).toBe(true);
   });
 
   it("soft-skips headless without consent", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-gates-headless-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
+    const env = isolatedConsentEnv(roots, false);
+    env.CI = "true";
     expect(
       evaluateProductSignalGates({
         projectRoot: root,
-        env: { CI: "true" },
+        env,
         stdinIsTTY: false,
       }).outcome,
     ).toBe("non-interactive");
@@ -80,15 +76,9 @@ describe("evaluateProductSignalGates", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-gates-hconsent-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-gates-hhome-"));
-    roots.push(home);
-    grantProductSignalConsent({ platform: "win32", homeDir: home, env: { APPDATA: home } });
-    expect(
-      evaluateProductSignalGates({
-        projectRoot: root,
-        env: { CI: "true", APPDATA: home },
-      }).allowed,
-    ).toBe(true);
+    const env = isolatedConsentEnv(roots, true);
+    env.CI = "true";
+    expect(evaluateProductSignalGates({ projectRoot: root, env }).allowed).toBe(true);
   });
 
   it("allows when requireConsent is false", () => {
@@ -112,9 +102,7 @@ describe("evaluateProductSignalGates", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-gates-err-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-gates-errhome-"));
-    roots.push(home);
-    grantProductSignalConsent({ platform: "win32", homeDir: home, env: { APPDATA: home } });
+    const env = isolatedConsentEnv(roots, true);
     vi.spyOn(productSignalPolicy, "resolveProductSignal").mockReturnValue({
       enabled: true,
       sinkRepo: "deftai/product-signal",
@@ -124,7 +112,7 @@ describe("evaluateProductSignalGates", () => {
     expect(
       evaluateProductSignalGates({
         projectRoot: root,
-        env: { APPDATA: home },
+        env,
       }).outcome,
     ).toBe("error-config");
   });

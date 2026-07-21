@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { grantProductSignalConsent } from "./consent.js";
+import * as headless from "./headless.js";
+import { applyIsolatedConsentEnv } from "./test-helpers.js";
 import * as sinkAdapter from "./github-private-sink-adapter.js";
 import { GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
 import * as payloadModule from "./payload.js";
@@ -23,6 +24,7 @@ const envBackup = {
   APPDATA: process.env.APPDATA,
   XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
   CI: process.env.CI,
+  GITHUB_ACTIONS: process.env.GITHUB_ACTIONS,
 };
 
 afterEach(() => {
@@ -32,6 +34,7 @@ afterEach(() => {
   process.env.APPDATA = envBackup.APPDATA;
   process.env.XDG_CONFIG_HOME = envBackup.XDG_CONFIG_HOME;
   process.env.CI = envBackup.CI;
+  process.env.GITHUB_ACTIONS = envBackup.GITHUB_ACTIONS;
   vi.restoreAllMocks();
 });
 
@@ -47,22 +50,7 @@ function writeProjectDef(root: string, policy: Record<string, unknown>): void {
 
 function setupEnabledConsented(root: string): void {
   writeProjectDef(root, { productSignal: { enabled: true } });
-  const home = mkdtempSync(join(tmpdir(), "deft-ps-submit-home-"));
-  roots.push(home);
-  delete process.env.CI;
-  if (process.platform === "win32") {
-    process.env.APPDATA = home;
-    mkdirSync(join(home, "deft"), { recursive: true });
-    grantProductSignalConsent({ platform: "win32", homeDir: home, env: process.env });
-  } else {
-    process.env.XDG_CONFIG_HOME = join(home, "config");
-    mkdirSync(join(home, "config", "deft"), { recursive: true });
-    grantProductSignalConsent({
-      platform: "linux",
-      homeDir: home,
-      env: process.env,
-    });
-  }
+  applyIsolatedConsentEnv(roots, true);
 }
 
 describe("submitProductSignal", () => {
@@ -78,16 +66,8 @@ describe("submitProductSignal", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-submit-noconsent-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-submit-noconsent-home-"));
-    roots.push(home);
-    delete process.env.CI;
-    if (process.platform === "win32") {
-      process.env.APPDATA = home;
-      mkdirSync(join(home, "deft"), { recursive: true });
-    } else {
-      process.env.XDG_CONFIG_HOME = join(home, "config");
-      mkdirSync(join(home, "config", "deft"), { recursive: true });
-    }
+    applyIsolatedConsentEnv(roots, false);
+    vi.spyOn(headless, "isInteractiveSession").mockReturnValue(true);
     const result = await submitProductSignal({ projectRoot: root, surface: "pulse" });
     expect(result.outcome).toBe("no-consent");
   });
@@ -195,10 +175,7 @@ describe("assembleProductSignalPayload", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-assemble-"));
     roots.push(root);
     writeProjectDef(root, {});
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-assemble-home-"));
-    roots.push(home);
-    process.env.APPDATA = home;
-    grantProductSignalConsent({ platform: "win32", homeDir: home });
+    applyIsolatedConsentEnv(roots, true);
     const payload = assembleProductSignalPayload(root, {
       surface: "portrait",
       human: { nps: 7, answers: [{ q: "q", a: "a" }], freeText: "note" },
