@@ -4,7 +4,9 @@ import { bootstrapProductSignalLabels, bootstrapProductSignalSink } from "./sink
 
 describe("sink-bootstrap", () => {
   it("dry-run bootstrap sink", () => {
-    expect(bootstrapProductSignalSink({ dryRun: true }).stdout).toContain("dry-run");
+    const out = bootstrapProductSignalSink({ dryRun: true }).stdout;
+    expect(out).toContain("dry-run");
+    expect(out).toContain("internal sink");
   });
 
   it("skips existing labels", () => {

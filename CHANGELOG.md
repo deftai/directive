@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Consented product check-in to a private partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to private `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
+- **Consented product check-in to an internal partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to internal `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
 
 ### Changed
+
+- **`product-signal:bootstrap-sink` sets visibility to internal** after create (org-visible, not public). Docs match. Refs #2693.
 
 ### Fixed
 

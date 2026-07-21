@@ -31,13 +31,13 @@ task product-signal:submit -- --surface pulse|portrait [--dry-run] [--json] [--n
 
 ## Sink bootstrap (maintainers)
 
-Private inbox: `deftai/product-signal` (overridable via `plan.policy.productSignal.sinkRepo`).
+Internal (org) inbox: `deftai/product-signal` (overridable via `plan.policy.productSignal.sinkRepo`). Not public.
 
 ```bash
 task product-signal:bootstrap-sink [-- --dry-run]
 ```
 
-Bootstraps D20 labels (`surface:*`, `nps:*`, `signal:gap`). Standing threads keyed by `(installId, actorName)`.
+Creates the repo if needed, sets visibility to **internal**, and bootstraps D20 labels (`surface:*`, `nps:*`, `signal:gap`). Standing threads keyed by `(installId, actorName)`.
 
 ## Skill
 

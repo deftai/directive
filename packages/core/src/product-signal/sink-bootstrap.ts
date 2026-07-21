@@ -19,7 +19,7 @@ export const PRODUCT_SIGNAL_BOOTSTRAP_LABELS: readonly {
 
 export const PRODUCT_SIGNAL_SINK_README = `# deftai/product-signal
 
-Private operator inbox for consented Directive product-improvement signal (Phase 1 under epic #2603).
+Internal (org) operator inbox for consented Directive product-improvement signal (Phase 1 under epic #2603).
 
 ## Standing threads
 
@@ -71,7 +71,10 @@ export function bootstrapProductSignalLabels(
   return { created, skipped, errors };
 }
 
-/** Create private sink repo + README + labels via gh CLI (#2693 D6/D20). */
+/**
+ * Create sink repo + labels via gh CLI (#2693 D6/D20).
+ * Creates as private then sets visibility to **internal** (org-visible, not public).
+ */
 export function bootstrapProductSignalSink(
   options: { repo?: string; dryRun?: boolean; seams?: GhRestSeams } = {},
 ): BootstrapSinkResult {
@@ -79,7 +82,7 @@ export function bootstrapProductSignalSink(
   if (options.dryRun) {
     return {
       exitCode: 0,
-      stdout: `[dry-run] would bootstrap private sink ${repo} with README + ${PRODUCT_SIGNAL_BOOTSTRAP_LABELS.length} labels\n`,
+      stdout: `[dry-run] would bootstrap internal sink ${repo} with README + ${PRODUCT_SIGNAL_BOOTSTRAP_LABELS.length} labels\n`,
       repo,
     };
   }
@@ -91,7 +94,7 @@ export function bootstrapProductSignalSink(
       repo,
       "--private",
       "--description",
-      "Private product-improvement signal inbox for Directive partners (Refs #2693)",
+      "Internal product-improvement signal inbox for Directive partners (Refs #2693)",
       "--add-readme",
     ],
     { encoding: "utf8" },
@@ -103,9 +106,30 @@ export function bootstrapProductSignalSink(
       repo,
     };
   }
+  // Org "internal" visibility: gh create has no --internal; set after create.
+  const visibility = spawnSync(
+    "gh",
+    [
+      "repo",
+      "edit",
+      repo,
+      "--visibility",
+      "internal",
+      "--accept-visibility-change-consequences",
+    ],
+    { encoding: "utf8" },
+  );
+  if (visibility.status !== 0) {
+    return {
+      exitCode: 2,
+      stdout:
+        `sink repo created but failed to set visibility=internal: ${visibility.stderr || visibility.stdout}\n`,
+      repo,
+    };
+  }
   const labelResult = bootstrapProductSignalLabels(repo, options.seams);
   const lines = [
-    `product-signal sink ${repo} ready (or already existed).`,
+    `product-signal sink ${repo} ready (visibility=internal).`,
     `labels: created=${labelResult.created} skipped=${labelResult.skipped}`,
   ];
   if (labelResult.errors.length > 0) {
