@@ -12,6 +12,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## TypeScript 7 side-by-side (pre-7.1) (#2591)
+
+- **Applies when:** a Deft TypeScript project (or agent upgrading its toolchain) needs TypeScript 7 before ~7.1, while `typescript-eslint` and other programmatic consumers still require the TS 6 compiler API. This is **not** a Directive framework-version migration — read [languages/typescript.md](./languages/typescript.md) instead of treating it like a `deft update` step.
+- **Safe to auto-run:** Yes for the alias + Dependabot-ignore edits in the project's own `package.json` / `.github/dependabot.yml` when following the documented pattern.
+- **Restart required:** No. Re-run `task check` / `npm install` (or your package manager equivalent) after changing devDependencies.
+- **Commands:**
+  - Read the full pattern: [languages/typescript.md — TypeScript 7 side-by-side (pre-7.1)](./languages/typescript.md#typescript-7-side-by-side-pre-71)
+  - After edits: `npm install` (or `pnpm install` / `yarn`) then `task check`
+- **References:**
+  - [#2591](https://github.com/deftai/directive/issues/2591) — document side-by-side setup for Deft TypeScript projects.
+  - [deftai/cartograph#111](https://github.com/deftai/cartograph/pull/111) — precedent implementation.
+
+---
+
 ## Helped + health metrics relocation (#2545)
 
 - **Applies when:** any project that upgraded to a release shipping #2545 and still has append logs under `<lifecycle-root>/.eval/results/crud-metrics.jsonl` or `health-history.jsonl` inside the git worktree.

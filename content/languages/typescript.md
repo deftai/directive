@@ -124,6 +124,46 @@ Key settings: `@typescript-eslint/parser`, extends `recommended` + `recommended-
 - ⊗ Empty `catch` blocks or `catch (e) {}` — log or re-throw
 - ⊗ Returning `null`, `undefined`, or a neutral default to mask a thrown error
 
+## TypeScript 7 side-by-side (pre-7.1)
+
+TypeScript 7.0 ships without a stable programmatic compiler API. A direct `typescript` major bump to 7 breaks `typescript-eslint` (for example `ModuleKind.Cjs` is undefined). Until ~7.1, ! run TS 7 side-by-side with a TS 6 alias for tooling that still needs the compiler API — the same pattern as [deftai/cartograph#111](https://github.com/deftai/cartograph/pull/111).
+
+### package.json aliases
+
+Keep `typescript` on the TS 6 API for ESLint, `tsc --noEmit`, and other programmatic consumers. Install TS 7 under `@typescript/native`:
+
+```json
+{
+  "devDependencies": {
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}
+```
+
+Use `@typescript/native` (or `pnpm exec tsgo`) for TS 7-native typechecking when you opt in; keep existing `typescript` / `tsc` scripts on the alias until typescript-eslint and your toolchain support TS 7's programmatic surface.
+
+### Dependabot
+
+Because `typescript` is aliased to `@typescript/typescript6`, ! ignore Dependabot major bumps on the `typescript` dependency name until you intentionally migrate off the side-by-side layout:
+
+```yaml
+ignore:
+  - dependency-name: "typescript"
+    update-types: ["version-update:semver-major"]
+```
+
+### Scaffold and doctor coverage
+
+**Scaffold bake — deferred (#2591):** Directive does not ship a Deft-owned TypeScript `package.json` scaffold to mutate. New TypeScript projects copy the alias snippet from this section into their own `package.json`.
+
+**Doctor / verify hint — deferred (#2591):** This release is docs-only. Reopen a follow-up if consumer Dependabot breakage recurs after this guidance lands.
+
+### References
+
+- [Announcing TypeScript 7.0 — side-by-side install](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#side-by-side-installation) — official TS 7 side-by-side guidance.
+- [typescript-eslint#12518](https://github.com/typescript-eslint/typescript-eslint/issues/12518) — typescript-eslint TS 7 / compiler API tracking.
+
 ## Compliance Checklist
 
 - ! Include TSDoc comments for all exported APIs

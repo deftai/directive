@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **TypeScript 7 side-by-side guidance for Deft TypeScript projects (#2591).** `languages/typescript.md` documents the Cartograph alias pattern (`@typescript/native` → TS 7, `typescript` → `@typescript/typescript6`), Dependabot major-ignore for the alias, and links to the TS 7 announcement + typescript-eslint#12518. `UPGRADING.md` carries a short applies-when pointer. Scaffold bake and doctor hints explicitly deferred (docs-only). Closes #2591.
 - **Consented product check-in to an internal partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to internal `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
 
 ### Changed
