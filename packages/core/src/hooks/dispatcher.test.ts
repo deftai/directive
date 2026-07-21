@@ -346,6 +346,8 @@ describe("direct-write hook policy", () => {
     expect(hookToolName({ tool_input: { path: "src/a.ts", diff: "diff" } }, "cursor")).toBe(
       "ApplyPatch",
     );
+    expect(hookToolName({ tool_input: { path: "a.ts", edits: [] } }, "cursor")).toBe("MultiEdit");
+    expect(hookToolName({ tool_input: { cell_id: "cell-1" } }, "cursor")).toBe("NotebookEdit");
     expect(
       hookWriteTargetPath({
         tool_name: "ApplyPatch",
