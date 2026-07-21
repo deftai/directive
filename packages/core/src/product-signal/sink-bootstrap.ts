@@ -109,21 +109,13 @@ export function bootstrapProductSignalSink(
   // Org "internal" visibility: gh create has no --internal; set after create.
   const visibility = spawnSync(
     "gh",
-    [
-      "repo",
-      "edit",
-      repo,
-      "--visibility",
-      "internal",
-      "--accept-visibility-change-consequences",
-    ],
+    ["repo", "edit", repo, "--visibility", "internal", "--accept-visibility-change-consequences"],
     { encoding: "utf8" },
   );
   if (visibility.status !== 0) {
     return {
       exitCode: 2,
-      stdout:
-        `sink repo created but failed to set visibility=internal: ${visibility.stderr || visibility.stdout}\n`,
+      stdout: `sink repo created but failed to set visibility=internal: ${visibility.stderr || visibility.stdout}\n`,
       repo,
     };
   }
