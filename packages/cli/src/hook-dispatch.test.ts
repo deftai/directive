@@ -121,6 +121,44 @@ describe("hook-dispatch CLI", () => {
     expect(parsePayload("{bad-json")).toEqual({ payload: {}, context: { parseFailed: true } });
   });
 
+  it("strips UTF-8 BOM before JSON.parse (#2734)", () => {
+    const writePayload = {
+      tool_name: "Write",
+      tool_input: { content: "x", file_path: "a.txt" },
+      workspace_roots: ["/p"],
+    };
+    const bomWrite = `\uFEFF${JSON.stringify(writePayload)}`;
+    expect(parsePayload(bomWrite)).toEqual({ payload: writePayload, context: {} });
+    expect(parsePayload("\uFEFF")).toEqual({ payload: {}, context: { stdinEmpty: true } });
+    expect(parsePayload("\uFEFF{bad-json")).toEqual({
+      payload: {},
+      context: { parseFailed: true },
+    });
+  });
+
+  it("allows Cursor Write payloads prefixed with UTF-8 BOM (#2734)", () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const writePayload = {
+      tool_name: "Write",
+      tool_input: { content: "x", file_path: "a.txt" },
+      workspace_roots: ["/project"],
+    };
+    const code = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => `\uFEFF${JSON.stringify(writePayload)}`,
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    const rendered = out.join("");
+    expect(rendered).not.toContain("not valid JSON");
+    expect(rendered).not.toContain("omitted a recognizable tool name");
+    if (rendered.length > 0) {
+      expect(JSON.parse(rendered).user_message).toContain("Write");
+    }
+  });
+
   it("logs Cursor payload keys and distinct empty-stdin messaging (#2669)", () => {
     const emptyOut: string[] = [];
     const emptyErr: string[] = [];

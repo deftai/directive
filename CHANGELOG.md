@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cursor `preToolUse` stdin for bare `deft hook:dispatch --host cursor --event tool.before` no longer fail-closes on UTF-8 BOM-prefixed JSON — `parsePayload` strips the BOM before `JSON.parse` while preserving empty-stdin and invalid-JSON distinctions. Refs #2734.
+
 ### Removed
 
 ## [0.80.0] - 2026-07-21

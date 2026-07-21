@@ -86,12 +86,22 @@ export interface ParsedPayload {
   readonly context: HookPayloadContext;
 }
 
+const UTF8_BOM = "\uFEFF";
+
+function stripUtf8Bom(raw: string): string {
+  return raw.startsWith(UTF8_BOM) ? raw.slice(UTF8_BOM.length) : raw;
+}
+
 export function parsePayload(raw: string): ParsedPayload {
   if (raw.trim().length === 0) {
     return { payload: {}, context: { stdinEmpty: true } };
   }
+  const normalized = stripUtf8Bom(raw);
+  if (normalized.trim().length === 0) {
+    return { payload: {}, context: { stdinEmpty: true } };
+  }
   try {
-    return { payload: JSON.parse(raw) as unknown, context: {} };
+    return { payload: JSON.parse(normalized) as unknown, context: {} };
   } catch {
     // tool.before is installed only on direct-write matchers, so an unreadable
     // payload becomes a missing-tool denial rather than a fail-open crash.
