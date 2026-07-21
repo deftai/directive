@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import type { HookHost } from "../hooks/dispatcher.js";
+import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import { DIRECT_WRITE_TOOL_NAMES } from "../hooks/tools.js";
 import type { InitDepositIo } from "./constants.js";
 
@@ -17,11 +17,15 @@ export const AGENT_HOOK_PATHS = [
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
 export type AgentHookRegistrationStatus = "healthy" | "missing" | "drifted";
 
+/** Whether the host receives a compact/resume hook deposit (#2113). */
+export type AgentHookCompactSupport = "deposited" | "unsupported";
+
 export interface AgentHookInspection {
   readonly host: HookHost;
   readonly path: AgentHookPath;
   readonly status: AgentHookRegistrationStatus;
   readonly detail: string;
+  readonly compactSupport: AgentHookCompactSupport;
 }
 
 export interface AgentHookDepositResult {
@@ -35,7 +39,7 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function command(host: HookHost, event: "session.start" | "tool.before"): string {
+function command(host: HookHost, event: HookEvent): string {
   return `${DEFT_HOOK_COMMAND_MARKER} --host ${host} --event ${event}`;
 }
 
@@ -93,7 +97,7 @@ function isManagedCursorEntry(value: unknown): boolean {
 
 type NestedHookHost = "claude" | "grok" | "codex";
 
-function nestedGroup(host: NestedHookHost, event: "session.start" | "tool.before") {
+function nestedGroup(host: NestedHookHost, event: HookEvent) {
   return {
     ...(event === "tool.before" ? { matcher: DIRECT_WRITE_HOOK_MATCHER } : {}),
     hooks: [
@@ -110,6 +114,7 @@ function mergeNestedConfig(
   config: Record<string, unknown>,
   path: string,
   host: NestedHookHost,
+  options: { compact?: boolean } = {},
 ): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "SessionStart", path).filter(
@@ -120,6 +125,16 @@ function mergeNestedConfig(
   );
   hooks.SessionStart = [...session, nestedGroup(host, "session.start")];
   hooks.PreToolUse = [...preTool, nestedGroup(host, "tool.before")];
+  if (options.compact) {
+    const preCompact = eventArray(hooks, "PreCompact", path).filter(
+      (entry) => !isManagedNestedGroup(entry),
+    );
+    const postCompact = eventArray(hooks, "PostCompact", path).filter(
+      (entry) => !isManagedNestedGroup(entry),
+    );
+    hooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
+    hooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
+  }
   return { ...config, hooks };
 }
 
@@ -129,6 +144,9 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
     (entry) => !isManagedCursorEntry(entry),
   );
   const preTool = eventArray(hooks, "preToolUse", path).filter(
+    (entry) => !isManagedCursorEntry(entry),
+  );
+  const preCompact = eventArray(hooks, "preCompact", path).filter(
     (entry) => !isManagedCursorEntry(entry),
   );
   hooks.sessionStart = [...session, { command: command("cursor", "session.start"), timeout: 5 }];
@@ -141,6 +159,7 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
       timeout: 5,
     },
   ];
+  hooks.preCompact = [...preCompact, { command: command("cursor", "session.compact"), timeout: 5 }];
   return { ...config, version: 1, hooks };
 }
 
@@ -166,16 +185,16 @@ export function writeAgentHookDeposit(
   }> = [
     {
       path: AGENT_HOOK_PATHS[0],
-      merge: (config, path) => mergeNestedConfig(config, path, "claude"),
+      merge: (config, path) => mergeNestedConfig(config, path, "claude", { compact: true }),
     },
     {
       path: AGENT_HOOK_PATHS[1],
-      merge: (config, path) => mergeNestedConfig(config, path, "grok"),
+      merge: (config, path) => mergeNestedConfig(config, path, "grok", { compact: true }),
     },
     { path: AGENT_HOOK_PATHS[2], merge: mergeCursorConfig },
     {
       path: AGENT_HOOK_PATHS[3],
-      merge: (config, path) => mergeNestedConfig(config, path, "codex"),
+      merge: (config, path) => mergeNestedConfig(config, path, "codex", { compact: false }),
     },
   ];
 
@@ -199,21 +218,33 @@ export function writeAgentHookDeposit(
   return { changed: changedPaths.length > 0, changedPaths };
 }
 
-function hasNestedRegistration(config: Record<string, unknown>, host: NestedHookHost): boolean {
+function hasNestedRegistration(
+  config: Record<string, unknown>,
+  host: NestedHookHost,
+  options: { compact?: boolean } = {},
+): boolean {
   const hooks = object(config.hooks);
   if (hooks === null) return false;
   const session = Array.isArray(hooks.SessionStart) ? hooks.SessionStart : [];
   const preTool = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
   const sessionCommand = command(host, "session.start");
   const toolCommand = command(host, "tool.before");
-  return (
+  const compactCommand = command(host, "session.compact");
+  const base =
     session.some((entry) => nestedCommands(entry).includes(sessionCommand)) &&
     preTool.some((entry) => {
       const group = object(entry);
       return (
         group?.matcher === DIRECT_WRITE_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand)
       );
-    })
+    });
+  if (!base) return false;
+  if (!options.compact) return true;
+  const preCompact = Array.isArray(hooks.PreCompact) ? hooks.PreCompact : [];
+  const postCompact = Array.isArray(hooks.PostCompact) ? hooks.PostCompact : [];
+  return (
+    preCompact.some((entry) => nestedCommands(entry).includes(compactCommand)) &&
+    postCompact.some((entry) => nestedCommands(entry).includes(compactCommand))
   );
 }
 
@@ -222,6 +253,7 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
   if (hooks === null || config.version !== 1) return false;
   const session = Array.isArray(hooks.sessionStart) ? hooks.sessionStart : [];
   const preTool = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
+  const preCompact = Array.isArray(hooks.preCompact) ? hooks.preCompact : [];
   return (
     session.some((entry) => object(entry)?.command === command("cursor", "session.start")) &&
     preTool.some((entry) => {
@@ -231,7 +263,8 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
         hook.matcher === DIRECT_WRITE_HOOK_MATCHER &&
         hook.failClosed === true
       );
-    })
+    }) &&
+    preCompact.some((entry) => object(entry)?.command === command("cursor", "session.compact"))
   );
 }
 
@@ -240,34 +273,48 @@ export function inspectAgentHookDeposit(projectRoot: string): AgentHookInspectio
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
+    compactSupport: AgentHookCompactSupport;
     valid: (config: Record<string, unknown>) => boolean;
   }> = [
     {
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
-      valid: (config) => hasNestedRegistration(config, "claude"),
+      compactSupport: "deposited",
+      valid: (config) => hasNestedRegistration(config, "claude", { compact: true }),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
-      valid: (config) => hasNestedRegistration(config, "grok"),
+      compactSupport: "deposited",
+      valid: (config) => hasNestedRegistration(config, "grok", { compact: true }),
     },
-    { host: "cursor", path: AGENT_HOOK_PATHS[2], valid: hasCursorRegistration },
+    {
+      host: "cursor",
+      path: AGENT_HOOK_PATHS[2],
+      compactSupport: "deposited",
+      valid: hasCursorRegistration,
+    },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
-      valid: (config) => hasNestedRegistration(config, "codex"),
+      compactSupport: "unsupported",
+      valid: (config) => hasNestedRegistration(config, "codex", { compact: false }),
     },
   ];
 
   return definitions.map((definition) => {
     const absolute = join(projectRoot, definition.path);
+    const compactNote =
+      definition.compactSupport === "unsupported"
+        ? " Compact re-arm is not deposited for Codex (no native compact hook surface)."
+        : " PreCompact/PostCompact or preCompact compact re-arm is deposited.";
     if (!existsSync(absolute)) {
       return {
         host: definition.host,
         path: definition.path,
         status: "missing",
-        detail: `${definition.path} is missing.`,
+        compactSupport: definition.compactSupport,
+        detail: `${definition.path} is missing.${compactNote}`,
       };
     }
     try {
@@ -277,22 +324,28 @@ export function inspectAgentHookDeposit(projectRoot: string): AgentHookInspectio
           host: definition.host,
           path: definition.path,
           status: "healthy",
-          detail: "SessionStart and direct-write PreToolUse registrations are current.",
+          compactSupport: definition.compactSupport,
+          detail:
+            "SessionStart, direct-write PreToolUse, and compact re-arm registrations are current." +
+            (definition.compactSupport === "unsupported" ? compactNote : ""),
         };
       }
       return {
         host: definition.host,
         path: definition.path,
         status: "drifted",
+        compactSupport: definition.compactSupport,
         detail:
-          "Directive SessionStart or direct-write PreToolUse registration is missing/drifted.",
+          "Directive SessionStart, direct-write PreToolUse, or compact re-arm registration is missing/drifted." +
+          compactNote,
       };
     } catch (cause) {
       return {
         host: definition.host,
         path: definition.path,
         status: "drifted",
-        detail: String(cause),
+        compactSupport: definition.compactSupport,
+        detail: `${String(cause)}${compactNote}`,
       };
     }
   });

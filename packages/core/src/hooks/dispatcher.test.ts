@@ -386,6 +386,63 @@ describe("direct-write hook policy", () => {
     expect(decision.message).toBe("SessionStart bookkeeping completed on a non-blocking path.");
   });
 
+  it("re-arms ritual state on session.compact without blocking the host (#2113)", () => {
+    const markCompactStale = vi.fn(() => ({
+      changed: true,
+      statePath: "/project/.deft/ritual-state.json",
+      message: "Marked session ritual stale after context compaction.",
+    }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "session.compact",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({ markCompactStale }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-rearm" });
+    expect(markCompactStale).toHaveBeenCalledWith(resolve("/project"));
+  });
+
+  it("reports session.compact noop when no ritual state exists (#2113)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "session.compact",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({
+        markCompactStale: () => ({
+          changed: false,
+          statePath: "/project/.deft/ritual-state.json",
+          message: "no ritual state to invalidate after compaction",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-noop" });
+  });
+
+  it("keeps session.compact non-blocking when re-arm throws (#2113)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "session.compact",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({
+        markCompactStale: () => {
+          throw new Error("write failed");
+        },
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-rearm-degraded" });
+    expect(decision.message).toContain("write failed");
+  });
+
   it("fails closed when ritual inspection throws", () => {
     const decision = decideHook(
       {
@@ -551,6 +608,7 @@ describe("provider input normalization", () => {
     expect(isHookHost("codex")).toBe(true);
     expect(isHookHost("opencode")).toBe(false);
     expect(isHookEvent("session.start")).toBe(true);
+    expect(isHookEvent("session.compact")).toBe(true);
     expect(isHookEvent("tool.after")).toBe(false);
   });
 

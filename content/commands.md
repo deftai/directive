@@ -191,9 +191,10 @@ Use `task --list` for the exact current verify namespace.
 
 - Verify registration: `deft verify:hooks-installed --scope=agent` (or `--scope=all` for git + agent hooks).
 - Repair missing/drifted entries: `deft update`.
+- **Compact re-arm (#2113):** Cursor `preCompact` and Claude/Grok `PreCompact`/`PostCompact` call `deft hook:dispatch --event session.compact` to mark the gated session ritual stale after context compaction/resume; the existing PreToolUse gate then denies direct writes until `deft session:start` and `deft verify:session-ritual -- --tier=gated`. Codex has no native compact hook — operators must re-run the mutation ritual manually after compaction.
 - Codex project hooks are trust-gated by Codex. Directive verifies only that the registrations are structurally current; after an install or changed hook hash, open `/hooks` in Codex and review/approve the project hook commands. Runtime trust cannot be inferred from the file alone.
 - Directive writes only `.codex/hooks.json`; it does not parse or modify `.codex/config.toml`. Codex can also load inline hooks from `config.toml`, so avoid defining duplicate Directive commands there or they may run more than once. See the [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks).
-- The P0 hook slice does not classify shell-mediated writes, MCP mutations, richer unified-exec calls, WebSearch, compact re-arm, or subagent routing; those remain owned by their dedicated follow-up issues.
+- The P0 hook slice does not classify shell-mediated writes, MCP mutations, richer unified-exec calls, WebSearch, or subagent routing; those remain owned by their dedicated follow-up issues.
 
 ## Session-start ritual (#1149)
 

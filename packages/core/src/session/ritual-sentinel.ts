@@ -252,6 +252,46 @@ export function writeRitualState(projectRoot: string, payload: Record<string, un
   return stateFile;
 }
 
+/** Instant guaranteed to fail `evaluateLoadedState` age checks on any policy horizon. */
+export const RITUAL_STALE_EPOCH = new Date("1970-01-01T00:00:00Z");
+
+export interface MarkRitualStaleAfterCompactResult {
+  readonly changed: boolean;
+  readonly statePath: string;
+  readonly message: string;
+}
+
+/**
+ * Invalidate an existing mutation ritual after host context compaction/resume (#2113).
+ * Reuses ritual-state age semantics — no parallel policy stack.
+ */
+export function markRitualStaleAfterCompact(
+  projectRoot: string,
+  input: { now?: Date } = {},
+): MarkRitualStaleAfterCompactResult {
+  const now = input.now ?? new Date();
+  const statePath = ritualStatePath(projectRoot);
+  const [state, err] = readRitualState(projectRoot);
+  if (state === null) {
+    return {
+      changed: false,
+      statePath,
+      message: err ?? "no ritual state to invalidate after compaction",
+    };
+  }
+  const payload = { ...state.raw };
+  payload.started_at = timestampIso(RITUAL_STALE_EPOCH);
+  payload.compact_resume_at = timestampIso(now);
+  writeRitualState(projectRoot, payload);
+  return {
+    changed: true,
+    statePath,
+    message:
+      "Marked session ritual stale after context compaction; run session:start and " +
+      "verify:session-ritual -- --tier=gated before direct writes.",
+  };
+}
+
 export function recordRitualStep(
   projectRoot: string,
   input: { tier: "quick" | "gated"; stepName: string; step: Record<string, unknown> },

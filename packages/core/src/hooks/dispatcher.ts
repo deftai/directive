@@ -1,5 +1,6 @@
 import { relative, resolve, sep } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
@@ -10,13 +11,23 @@ export { DIRECT_WRITE_TOOL_NAMES, isDirectWriteTool } from "./tools.js";
 export const HOOK_HOSTS = ["claude", "grok", "cursor", "codex"] as const;
 export type HookHost = (typeof HOOK_HOSTS)[number];
 
-export const HOOK_EVENTS = ["session.start", "tool.before"] as const;
+export const HOOK_EVENTS = ["session.start", "session.compact", "tool.before"] as const;
 export type HookEvent = (typeof HOOK_EVENTS)[number];
+
+/** Hosts that receive compact/resume hook deposits via init/update (#2113). */
+export const COMPACT_HOOK_HOSTS = ["claude", "grok", "cursor"] as const;
+export type CompactHookHost = (typeof COMPACT_HOOK_HOSTS)[number];
+
+/** Hosts without a native compact hook surface — deposit skips cleanly (#2113). */
+export const COMPACT_HOOK_SKIP_HOSTS = ["codex"] as const;
 
 export type HookVerdict = "allow" | "deny";
 export type HookDecisionCode =
   | "session-start"
   | "session-start-degraded"
+  | "session-compact-rearm"
+  | "session-compact-rearm-degraded"
+  | "session-compact-noop"
   | "not-direct-write"
   | "invalid-input"
   | "ritual-not-ready"
@@ -53,6 +64,11 @@ export interface HookPolicySeams {
   readonly inspectRitual?: (projectRoot: string) => VerifyResult;
   readonly inspectScope?: (projectRoot: string) => ActiveScopeInspection;
   readonly sessionStart?: (projectRoot: string) => { code: number; stdout: string; stderr: string };
+  readonly markCompactStale?: (projectRoot: string) => {
+    changed: boolean;
+    statePath: string;
+    message: string;
+  };
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -279,6 +295,47 @@ function deny(
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
   const projectRoot = resolve(input.projectRoot);
+  if (input.event === "session.compact") {
+    try {
+      const result = (seams.markCompactStale ?? markRitualStaleAfterCompact)(projectRoot);
+      if (!result.changed) {
+        return {
+          verdict: "allow",
+          code: "session-compact-noop",
+          event: input.event,
+          host: input.host,
+          toolName: null,
+          projectRoot,
+          message: result.message,
+          scopePath: null,
+        };
+      }
+      return {
+        verdict: "allow",
+        code: "session-compact-rearm",
+        event: input.event,
+        host: input.host,
+        toolName: null,
+        projectRoot,
+        message: result.message,
+        scopePath: null,
+      };
+    } catch (cause) {
+      return {
+        verdict: "allow",
+        code: "session-compact-rearm-degraded",
+        event: input.event,
+        host: input.host,
+        toolName: null,
+        projectRoot,
+        message:
+          "Directive compact re-arm bookkeeping failed on its non-blocking path: " +
+          `${String(cause)}`,
+        scopePath: null,
+      };
+    }
+  }
+
   if (input.event === "session.start") {
     try {
       const result = (seams.sessionStart ?? runSessionStartHookWrite)(projectRoot);

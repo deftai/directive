@@ -131,6 +131,13 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     }
   }
   if (decision.code === "session-start-degraded") writeErr(`${decision.message}\n`);
+  if (
+    decision.code === "session-compact-rearm" ||
+    decision.code === "session-compact-rearm-degraded" ||
+    decision.code === "session-compact-noop"
+  ) {
+    writeErr(`${decision.message}\n`);
+  }
   return 0;
 }
 

@@ -11,6 +11,10 @@ describe("hook-dispatch CLI", () => {
       host: "codex",
       event: "session.start",
     });
+    expect(parseArgs(["--host", "cursor", "--event", "session.compact"])).toEqual({
+      host: "cursor",
+      event: "session.compact",
+    });
   });
 
   it("rejects unsupported providers and events as configuration errors", () => {

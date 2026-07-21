@@ -49,10 +49,20 @@ describe("writeAgentHookDeposit", () => {
     expect(readFileSync(join(root, ".codex/hooks.json"), "utf8")).toContain(
       "--host codex --event tool.before",
     );
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
+      "--host cursor --event session.compact",
+    );
+    expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toContain(
+      "--host claude --event session.compact",
+    );
+    expect(readFileSync(join(root, ".codex/hooks.json"), "utf8")).not.toContain("session.compact");
     expect(DIRECT_WRITE_HOOK_MATCHER.split("|")).toEqual([...DIRECT_WRITE_TOOL_NAMES]);
     expect(DIRECT_WRITE_HOOK_MATCHER.split("|").every(isDirectWriteTool)).toBe(true);
     expect(lines.join("")).toContain("agent hooks");
     expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "codex")).toMatchObject({
+      compactSupport: "unsupported",
+    });
   });
 
   it("preserves unrelated settings and is byte-idempotent", () => {

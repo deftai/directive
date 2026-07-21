@@ -50,8 +50,9 @@ export function evaluateAgentHooks(projectRoot: string): AgentHookHealthResult {
     code: 0,
     message:
       "✓ deft agent hooks registered and structurally valid for Claude, Grok, Cursor, Codex " +
-      "(SessionStart + PreToolUse direct-write tools only; Codex runtime trust is " +
-      "user-controlled and must be reviewed with `/hooks`; shell/MCP policy is deferred).",
+      "(SessionStart + PreToolUse direct-write tools; compact re-arm deposited for Claude/Grok/Cursor; " +
+      "Codex has no native compact hook — re-run session ritual manually after compaction). " +
+      "Codex runtime trust is user-controlled and must be reviewed with `/hooks`; shell/MCP policy is deferred.",
     stream: "stdout",
     registrations,
   };
