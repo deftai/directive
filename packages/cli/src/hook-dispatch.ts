@@ -102,7 +102,8 @@ function extractSingleApplyPatchFilePath(normalized: string): string | null {
     if (path !== undefined && path.length > 0) paths.push(path);
   }
   if (paths.length !== 1) return null;
-  return paths[0];
+  const sole = paths[0];
+  return sole ?? null;
 }
 
 function synthesizeFreeFormApplyPatchPayload(normalized: string): Record<string, unknown> | null {
