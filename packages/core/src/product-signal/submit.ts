@@ -14,7 +14,7 @@ import {
   revokeProductSignalConsent,
 } from "./consent.js";
 import { evaluateProductSignalGates, type ProductSignalOutcome } from "./gates.js";
-import { GitHubPrivateSinkAdapter, appendGapComment } from "./github-private-sink-adapter.js";
+import { appendGapComment, GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
 import { collectInstallContext } from "./install-context.js";
 import { assembleLocalSignalSummary } from "./local-signal-summary.js";
 import {
@@ -179,7 +179,11 @@ export async function submitProductSignal(
   const result = await adapter.submit(payload);
   if (result.outcome === "submitted") {
     recordLastSubmit(root, result.outcome, result.issueUrl ?? null);
-    if (options.gapText !== undefined && options.gapText !== null && options.gapText.trim().length > 0) {
+    if (
+      options.gapText !== undefined &&
+      options.gapText !== null &&
+      options.gapText.trim().length > 0
+    ) {
       appendGapComment({
         sinkRepo: policy.sinkRepo,
         installId: payload.installId,
