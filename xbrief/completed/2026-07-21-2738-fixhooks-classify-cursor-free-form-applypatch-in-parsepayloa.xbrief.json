@@ -1,0 +1,61 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2738 — classify Cursor free-form ApplyPatch in parsePayload"
+  },
+  "plan": {
+    "title": "fix(hooks): classify Cursor free-form ApplyPatch in parsePayload",
+    "status": "completed",
+    "narratives": {
+      "Description": "Normalize Cursor free-form ApplyPatch stdin in parsePayload so stock hook:dispatch does not fail-closed as parseFailed before tool-name inference.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2738; locked decisions from issue body 2026-07-21.",
+      "Overview": "## Why\n\nFree-form `*** Begin Patch` stdin never becomes JSON, so BOM-stripped parse still yields parseFailed. JSON ApplyPatch already works via inferCursorDirectWriteToolName.\n\n## Locked decisions (issue body — do not reopen)\n\n- **D1** In `packages/cli/src/hook-dispatch.ts` `parsePayload`: after BOM strip + failed JSON.parse, if stdin has `*** Begin Patch` and exactly one `Add File` or `Update File` path, synthesize `{ tool_name: \"ApplyPatch\", tool_input: { path, patch: post-BOM stdin } }` with empty context (not parseFailed).\n- **D2** Multi-file / unparseable free-form / other garbage → keep parseFailed fail-closed.\n- **D3** Regression tests in `hook-dispatch.test.ts` (+ dispatcher path as needed): free-form → ApplyPatch identity; multi-file deny; empty/invalid/BOM cases unchanged.\n- **D4** CHANGELOG `[Unreleased]`.\n- **D5** Out of scope: Cursor parent ApplyPatch absence; project adapters; #2734 BOM rework; relaxing fail-closed for true garbage.\n\n## Acceptance\n\n- Free-form single-file ApplyPatch does not yield parseFailed / \"not valid JSON\"\n- Synthesized payload recognized as ApplyPatch and reaches ritual/scope/allow like JSON today\n- Multi-file + non-patch garbage still fail closed\n- Tests + CHANGELOG; Closes #2738",
+      "Labels": "bug, agent-experience, area:cli"
+    },
+    "items": [
+      {
+        "title": "parsePayload free-form ApplyPatch synthesis (single-file)",
+        "status": "proposed"
+      },
+      {
+        "title": "Multi-file / garbage still parseFailed",
+        "status": "proposed"
+      },
+      {
+        "title": "hook-dispatch regression tests",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG [Unreleased]",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2738",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2738: fix(hooks): classify Cursor free-form ApplyPatch in parsePayload"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2713",
+        "type": "x-xbrief/reference",
+        "title": "Parent tracker #2713"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2734",
+        "type": "x-xbrief/reference",
+        "title": "BOM strip #2734 (shipped)"
+      }
+    ],
+    "updated": "2026-07-21T22:10:52Z",
+    "metadata": {
+      "completedAt": "2026-07-21T22:10:52Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

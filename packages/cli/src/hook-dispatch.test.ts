@@ -233,6 +233,9 @@ describe("hook-dispatch CLI", () => {
     const markerOnly = "*** Begin Patch\n*** End Patch";
     expect(parsePayload(markerOnly)).toEqual({ payload: {}, context: { parseFailed: true } });
 
+    const emptyPath = ["*** Begin Patch", "*** Add File: ", "+a", "*** End Patch"].join("\n");
+    expect(parsePayload(emptyPath)).toEqual({ payload: {}, context: { parseFailed: true } });
+
     expect(parsePayload("{bad-json")).toEqual({ payload: {}, context: { parseFailed: true } });
   });
 
