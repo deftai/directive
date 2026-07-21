@@ -337,12 +337,12 @@ describe("direct-write hook policy", () => {
         "cursor",
       ),
     ).toBe("ApplyPatch");
-    expect(
-      hookToolName({ tool_input: { path: "src/a.ts", patch: "diff" } }, "cursor"),
-    ).toBe("ApplyPatch");
-    expect(
-      hookToolName({ tool_input: { path: "src/a.ts", unified_diff: "diff" } }, "cursor"),
-    ).toBe("ApplyPatch");
+    expect(hookToolName({ tool_input: { path: "src/a.ts", patch: "diff" } }, "cursor")).toBe(
+      "ApplyPatch",
+    );
+    expect(hookToolName({ tool_input: { path: "src/a.ts", unified_diff: "diff" } }, "cursor")).toBe(
+      "ApplyPatch",
+    );
     expect(hookToolName({ tool_input: { path: "src/a.ts", diff: "diff" } }, "cursor")).toBe(
       "ApplyPatch",
     );
