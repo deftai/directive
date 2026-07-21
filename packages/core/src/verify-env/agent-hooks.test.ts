@@ -26,7 +26,8 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).toContain("Claude, Grok, Cursor, Codex");
     expect(result.message).toContain("runtime trust is user-controlled");
     expect(result.message).toContain("`/hooks`");
-    expect(result.message).toContain("direct-write tools only");
+    expect(result.message).toContain("compact re-arm deposited");
+    expect(result.message).toContain("Codex has no native compact hook");
   });
 
   it("reports missing registrations separately from git hooks", () => {
