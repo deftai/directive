@@ -11,17 +11,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
-  SPAWN_HOOK_MATCHER,
-  SPAWN_TOOL_NAMES,
   isDirectWriteTool,
   isSpawnTool,
+  SPAWN_TOOL_NAMES,
 } from "../hooks/tools.js";
 import {
   AGENT_HOOK_PATHS,
   DIRECT_WRITE_HOOK_MATCHER,
   inspectAgentHookDeposit,
+  SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
 } from "./agent-hooks.js";
 
