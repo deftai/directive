@@ -2,10 +2,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as headless from "./headless.js";
-import { applyIsolatedConsentEnv } from "./test-helpers.js";
 import * as sinkAdapter from "./github-private-sink-adapter.js";
 import { GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
+import * as headless from "./headless.js";
 import * as payloadModule from "./payload.js";
 import {
   assembleProductSignalPayload,
@@ -18,6 +17,7 @@ import {
   runProductSignalStatus,
   submitProductSignal,
 } from "./submit.js";
+import { applyIsolatedConsentEnv } from "./test-helpers.js";
 
 const roots: string[] = [];
 const envBackup = {

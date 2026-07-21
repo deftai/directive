@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as productSignalPolicy from "../policy/product-signal.js";
-import { isolatedConsentEnv } from "./test-helpers.js";
 import { classifySinkError, evaluateProductSignalGates } from "./gates.js";
+import { isolatedConsentEnv } from "./test-helpers.js";
 
 const roots: string[] = [];
 afterEach(() => {
