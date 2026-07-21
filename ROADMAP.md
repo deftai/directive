@@ -5,6 +5,40 @@
 
 # Roadmap
 
+## Consented agent-driven product signal (private deftai sink, defaults off) (#2693, #2603, #2697, #1709, #2376, #829, #1703, #2545)
+
+Ship a consented, agent-driven product-improvement signal path. The agent interviews lightly, attaches machine context (platform × harness × directive) plus minimized summaries of existing local ledgers (#1709 value/attribution, #1703 eval:health, #2545 helped/health) and optional #829 skillsSummary, then submits via private `deftai/product-signal` through a thin transport adapter. Defaults OFF; no ambient consent nag; soft-skip when not enabled / not consented / unauthorized. Sibling to #1709 gap escalation — does not replace it. Parent epic #2603 owns batched Insights/warehouse/dashboard; #2697 owns Phase 2 HTTP transport.
+
+### Wave A: productSignal typed policy (default off) + enable --confirm + policy:show field `[proposed]`
+
+### Wave A: consent file grant/revoke at platform-config path; no ambient nag when disabled `[proposed]`
+
+### Wave A: shared ProductSignalPayload schema + install-context collector + client validation/secret hygiene `[proposed]`
+
+### Wave A: optional minimized skillsSummary field (null unless local #829 sidecar exists; do not implement #829 emit here) `[proposed]`
+
+### Wave A: localSignalSummary Phase 1 attach — minimized #1709 value:show + #1703 eval:health + #2545 helped/health (no raw ledger dumps) `[proposed]`
+
+### Wave B: create private deftai/product-signal + bootstrap D20 labels + README (standing-thread conventions) `[proposed]`
+
+### Wave B: SubmitAdapter + GitHubPrivateSinkAdapter (portrait upsert, pulse comment); default sinkRepo=deftai/product-signal `[proposed]`
+
+### Wave B: soft-skip matrix (disabled / no consent / no network / 401-404 / headless / sink-unreachable) — D16/D18 fail-open; no sticky forever-fail; new sessions retry `[proposed]`
+
+### Wave B: standing-thread key (installId, actorName) with USER.md → gh-login → unnamed fallback; payload actorNameSource `[proposed]`
+
+### Wave C: deft-directive-product-signal skill (agent-driven ≤3Q interview) + Skills Index triggers `[proposed]`
+
+### Wave C: interactive first-time consent prompt (D17) including check-with-company partner line; revoke via consent --revoke / disable `[proposed]`
+
+### Wave C: CLI product-signal:status|consent|submit + operator docs + CHANGELOG `[proposed]`
+
+### Keep #1709 feedback:file confirmation-gated for public promote; private gaps = Gap: comments on standing pulse thread (D19) `[proposed]`
+
+### Regression tests: gates, payload validation, adapter dry-run, no outbound when off `[proposed]`
+
+---
+
 ## Completed
 
 - **#365** -- bdd strategy: move context and scenarios to vbrief; remove specs/ folder -- `[completed]`
