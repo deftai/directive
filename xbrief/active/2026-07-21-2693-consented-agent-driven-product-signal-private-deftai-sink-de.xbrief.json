@@ -8,7 +8,7 @@
   },
   "plan": {
     "title": "Consented agent-driven product signal (private deftai sink, defaults off)",
-    "status": "pending",
+    "status": "running",
     "summary": "Phase 1 under #2603: agent-driven qualitative check-in (pulse + portrait) with consent + enable gates, thin SubmitAdapter (GitHub private sink), shared install-context payload + minimized local ledger summaries (value/health/helped) + optional skillsSummary hook for #829. Not warehouse/dashboard (#2603), not challenge/HTTP (#2697), not building #829 emit.",
     "narratives": {
       "Overview": "Ship a consented, agent-driven product-improvement signal path. The agent interviews lightly, attaches machine context (platform × harness × directive) plus minimized summaries of existing local ledgers (#1709 value/attribution, #1703 eval:health, #2545 helped/health) and optional #829 skillsSummary, then submits via private `deftai/product-signal` through a thin transport adapter. Defaults OFF; no ambient consent nag; soft-skip when not enabled / not consented / unauthorized. Sibling to #1709 gap escalation — does not replace it. Parent epic #2603 owns batched Insights/warehouse/dashboard; #2697 owns Phase 2 HTTP transport.",
@@ -141,7 +141,7 @@
         "title": "Issue #2545: helped + health logs user-data root (localSignalSummary.helpedHealth)"
       }
     ],
-    "updated": "2026-07-21T16:12:25Z",
+    "updated": "2026-07-21T16:21:16Z",
     "metadata": {
       "issueSync": {
         "fingerprint": "a1e28244301ed577",
