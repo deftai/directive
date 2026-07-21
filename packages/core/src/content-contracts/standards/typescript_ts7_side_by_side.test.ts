@@ -17,7 +17,7 @@ describe("test_typescript_ts7_side_by_side.py", () => {
     '"@typescript/native": "npm:typescript@^7.0.2"',
     '"typescript": "npm:@typescript/typescript6@^6.0.2"',
     "@typescript/typescript6",
-    "dependency-name: \"typescript\"",
+    'dependency-name: "typescript"',
     "version-update:semver-major",
   ]) {
     it(`test_typescript_md_pins_required_alias_tokens ${alias}`, () => {
@@ -26,9 +26,7 @@ describe("test_typescript_ts7_side_by_side.py", () => {
   }
 
   it("test_typescript_md_links_official_and_typescript_eslint_refs", () => {
-    expect(typescriptMd).toContain(
-      "devblogs.microsoft.com/typescript/announcing-typescript-7-0",
-    );
+    expect(typescriptMd).toContain("devblogs.microsoft.com/typescript/announcing-typescript-7-0");
     expect(typescriptMd).toContain("typescript-eslint/typescript-eslint/issues/12518");
   });
 
