@@ -12,6 +12,7 @@ import {
   checkQuickStartResolves,
   checkSkillPathsResolve,
   checkStaleXbriefSchemaDeposit,
+  checkTypescript7SideBySide,
   deriveExitCode,
   runChecks,
   runChecksImpl,
@@ -344,6 +345,84 @@ describe("checkGitignoreCoverage (#2206)", () => {
 
   it("is advisory: does NOT change the doctor exit code", () => {
     const fail = checkGitignoreCoverage("/proj", seamsFor("node_modules/\n"));
+    expect(fail.status).toBe("fail");
+    expect(deriveExitCode([fail], [])).toBe(0);
+  });
+});
+
+describe("checkTypescript7SideBySide (#2591)", () => {
+  function seamsFor(packageJsonText: string | null): { readText: (path: string) => string | null } {
+    return {
+      readText: (p: string) => (p.endsWith("package.json") ? packageJsonText : null),
+    };
+  }
+
+  it("skips when package.json is absent", () => {
+    const result = checkTypescript7SideBySide("/proj", seamsFor(null));
+    expect(result.status).toBe("skip");
+    expect(result.detail).toContain("package.json not found");
+  });
+
+  it("passes when typescript uses the @typescript/typescript6 alias", () => {
+    const pkg = JSON.stringify({
+      devDependencies: {
+        eslint: "^9.0.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        typescript: "npm:@typescript/typescript6@^6.0.2",
+        "@typescript/native": "npm:typescript@^7.0.2",
+      },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("pass");
+  });
+
+  it("fails for bare typescript@7 with @typescript-eslint/parser and eslint", () => {
+    const pkg = JSON.stringify({
+      devDependencies: {
+        eslint: "^9.0.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        typescript: "^7.0.2",
+      },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("fail");
+    expect(result.detail).toContain("languages/typescript.md");
+    expect(result.detail).toContain("@typescript/typescript6");
+  });
+
+  it("passes for typescript@5 with eslint and typescript-eslint", () => {
+    const pkg = JSON.stringify({
+      devDependencies: {
+        eslint: "^9.0.0",
+        "typescript-eslint": "^8.0.0",
+        typescript: "^5.7.0",
+      },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("pass");
+  });
+
+  it("passes for ts7 without eslint", () => {
+    const pkg = JSON.stringify({
+      devDependencies: {
+        "@typescript-eslint/parser": "^8.0.0",
+        typescript: "^7.0.2",
+      },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("pass");
+    expect(result.detail).toContain("eslint is not declared");
+  });
+
+  it("is advisory: does NOT change the doctor exit code", () => {
+    const pkg = JSON.stringify({
+      devDependencies: {
+        eslint: "^9.0.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        typescript: "npm:typescript@^7.0.2",
+      },
+    });
+    const fail = checkTypescript7SideBySide("/proj", seamsFor(pkg));
     expect(fail.status).toBe("fail");
     expect(deriveExitCode([fail], [])).toBe(0);
   });

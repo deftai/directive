@@ -509,7 +509,8 @@ function runInstallIntegrityChecks(
           name === "canonical-vendored-npm-signpost" ||
           name === "manifest-version-reportable" ||
           name === "gitignore-coverage" ||
-          name === "stale-xbrief-schema-deposit") &&
+          name === "stale-xbrief-schema-deposit" ||
+          name === "typescript-7-side-by-side") &&
         status === "fail"
       ) {
         sink.warn(`${name}: ${detail}`);

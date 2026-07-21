@@ -157,7 +157,7 @@ ignore:
 
 **Scaffold bake — deferred (#2591):** Directive does not ship a Deft-owned TypeScript `package.json` scaffold to mutate. New TypeScript projects copy the alias snippet from this section into their own `package.json`.
 
-**Doctor / verify hint — deferred (#2591):** This release is docs-only. Reopen a follow-up if consumer Dependabot breakage recurs after this guidance lands.
+**Doctor hint — shipped (#2591):** `deft doctor` warns (advisory, exit-exempt) when `package.json` declares typescript-eslint (`typescript-eslint` or `@typescript-eslint/*`) and `eslint`, and `typescript` resolves to 7.x without the `@typescript/typescript6` alias — pointing here and at the Cartograph alias pattern above. Scaffold bake remains deferred.
 
 ### References
 

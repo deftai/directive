@@ -606,6 +606,165 @@ export function checkStaleXbriefSchemaDeposit(
   };
 }
 
+const TS7_SIDE_BY_SIDE_CHECK = "typescript-7-side-by-side";
+
+function depKeyIsTypescriptEslint(key: string): boolean {
+  return key === "typescript-eslint" || key.startsWith("@typescript-eslint/");
+}
+
+function depKeysIncludeTypescriptEslint(keys: readonly string[]): boolean {
+  return keys.some(depKeyIsTypescriptEslint);
+}
+
+function depKeysIncludeEslint(keys: readonly string[]): boolean {
+  return keys.includes("eslint");
+}
+
+function typescriptValueIs7Bound(value: string): boolean {
+  const v = value.trim();
+  if (!v || v.includes("@typescript/typescript6")) {
+    return false;
+  }
+  if (/npm:typescript@(?:[\^~>=<]*|\d*)7/i.test(v)) {
+    return true;
+  }
+  if (/^[\^~>=<]*7(?:\.\d|$)/.test(v)) {
+    return true;
+  }
+  if (/^7\.\d/.test(v)) {
+    return true;
+  }
+  return false;
+}
+
+function resolveTypescriptDepValue(
+  deps: Record<string, string>,
+  devDeps: Record<string, string>,
+): string | null {
+  if (typeof devDeps.typescript === "string") {
+    return devDeps.typescript;
+  }
+  if (typeof deps.typescript === "string") {
+    return deps.typescript;
+  }
+  return null;
+}
+
+/**
+ * #2591: advisory hint when a TypeScript project pins bare `typescript@7` alongside
+ * typescript-eslint without the `@typescript/typescript6` alias. Exit-exempt (like
+ * gitignore-coverage) — adoption guidance, not a broken install.
+ */
+export function checkTypescript7SideBySide(projectRoot: string, seams: CheckSeams = {}): CheckResult {
+  const packageJsonPath = join(projectRoot, "package.json");
+  const text = readText(packageJsonPath, seams);
+
+  if (text === null) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "skip",
+      detail: "package.json not found; nothing to inspect for TypeScript side-by-side layout.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "skip",
+      detail: "package.json is unreadable; skipping TypeScript side-by-side check.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  if (typeof parsed !== "object" || parsed === null) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "skip",
+      detail: "package.json has no dependency sections; skipping TypeScript side-by-side check.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const deps =
+    typeof record.dependencies === "object" && record.dependencies !== null
+      ? (record.dependencies as Record<string, string>)
+      : {};
+  const devDeps =
+    typeof record.devDependencies === "object" && record.devDependencies !== null
+      ? (record.devDependencies as Record<string, string>)
+      : {};
+  const depKeys = [...Object.keys(deps), ...Object.keys(devDeps)];
+
+  if (depKeys.length === 0) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "skip",
+      detail: "package.json has no dependency sections; skipping TypeScript side-by-side check.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  if (!depKeysIncludeTypescriptEslint(depKeys)) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "pass",
+      detail: "No typescript-eslint packages declared; TypeScript 7 side-by-side alias not required.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  if (!depKeysIncludeEslint(depKeys)) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "pass",
+      detail: "eslint is not declared; TypeScript 7 side-by-side alias not required.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  const typescriptValue = resolveTypescriptDepValue(deps, devDeps);
+  if (typescriptValue === null) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "pass",
+      detail: "No typescript dependency declared; TypeScript 7 side-by-side alias not required.",
+      data: { package_json_path: packageJsonPath },
+    };
+  }
+
+  if (!typescriptValueIs7Bound(typescriptValue)) {
+    return {
+      name: TS7_SIDE_BY_SIDE_CHECK,
+      status: "pass",
+      detail:
+        "typescript is not pinned to 7.x (or uses the @typescript/typescript6 alias); side-by-side layout not required.",
+      data: {
+        package_json_path: packageJsonPath,
+        typescript: typescriptValue,
+      },
+    };
+  }
+
+  return {
+    name: TS7_SIDE_BY_SIDE_CHECK,
+    status: "fail",
+    detail:
+      "typescript resolves to 7.x without the @typescript/typescript6 alias while typescript-eslint and eslint are present. " +
+      "Until TS 7.1, use the side-by-side alias pattern in languages/typescript.md § TypeScript 7 side-by-side (pre-7.1) " +
+      "(Cartograph #111: keep typescript on npm:@typescript/typescript6 and install TS 7 under @typescript/native).",
+    data: {
+      package_json_path: packageJsonPath,
+      typescript: typescriptValue,
+      suggested_fix: "languages/typescript.md#typescript-7-side-by-side-pre-71",
+    },
+  };
+}
+
 /**
  * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
  * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
@@ -669,6 +828,7 @@ export function deriveExitCode(checks: readonly CheckResult[], errors: readonly 
     "manifest-version-reportable",
     "gitignore-coverage",
     "stale-xbrief-schema-deposit",
+    "typescript-7-side-by-side",
   ]);
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
@@ -715,6 +875,7 @@ export function runChecksImpl(
     checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
     checks.push(checkStaleXbriefSchemaDeposit(projectRoot, seams));
     checks.push(checkGitignoreCoverage(projectRoot, seams));
+    checks.push(checkTypescript7SideBySide(projectRoot, seams));
     return {
       projectRoot,
       installRoot: null,
@@ -732,6 +893,7 @@ export function runChecksImpl(
   checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
   checks.push(checkStaleXbriefSchemaDeposit(projectRoot, seams));
   checks.push(checkGitignoreCoverage(projectRoot, seams));
+  checks.push(checkTypescript7SideBySide(projectRoot, seams));
   return {
     projectRoot,
     installRoot,

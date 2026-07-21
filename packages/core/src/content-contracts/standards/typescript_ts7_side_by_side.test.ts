@@ -30,9 +30,10 @@ describe("test_typescript_ts7_side_by_side.py", () => {
     expect(typescriptMd).toContain("typescript-eslint/typescript-eslint/issues/12518");
   });
 
-  it("test_typescript_md_records_scaffold_and_doctor_deferral", () => {
+  it("test_typescript_md_records_scaffold_deferred_and_doctor_shipped", () => {
     expect(typescriptMd).toContain("Scaffold bake — deferred");
-    expect(typescriptMd).toContain("Doctor / verify hint — deferred");
+    expect(typescriptMd).toContain("Doctor hint — shipped");
+    expect(typescriptMd).not.toContain("Doctor / verify hint — deferred");
     expect(typescriptMd).toContain("#2591");
   });
 
