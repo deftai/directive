@@ -363,6 +363,51 @@ describe("checkTypescript7SideBySide (#2591)", () => {
     expect(result.detail).toContain("package.json not found");
   });
 
+  it("skips when package.json is unreadable", () => {
+    const result = checkTypescript7SideBySide("/proj", seamsFor("{not-json"));
+    expect(result.status).toBe("skip");
+    expect(result.detail).toContain("unreadable");
+  });
+
+  it("skips when package.json has no dependency sections", () => {
+    const result = checkTypescript7SideBySide("/proj", seamsFor(JSON.stringify({ name: "demo" })));
+    expect(result.status).toBe("skip");
+    expect(result.detail).toContain("no dependency sections");
+  });
+
+  it("passes when typescript-eslint is absent", () => {
+    const pkg = JSON.stringify({
+      devDependencies: { eslint: "^9.0.0", typescript: "^7.0.2" },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("pass");
+    expect(result.detail).toContain("No typescript-eslint packages");
+  });
+
+  it("passes when eslint and typescript-eslint are present but typescript is missing", () => {
+    const pkg = JSON.stringify({
+      devDependencies: {
+        eslint: "^9.0.0",
+        "typescript-eslint": "^8.0.0",
+      },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("pass");
+    expect(result.detail).toContain("No typescript dependency");
+  });
+
+  it("reads typescript from dependencies when devDependencies omits it", () => {
+    const pkg = JSON.stringify({
+      dependencies: { typescript: "^7.0.2" },
+      devDependencies: {
+        eslint: "^9.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.0.0",
+      },
+    });
+    const result = checkTypescript7SideBySide("/proj", seamsFor(pkg));
+    expect(result.status).toBe("fail");
+  });
+
   it("passes when typescript uses the @typescript/typescript6 alias", () => {
     const pkg = JSON.stringify({
       devDependencies: {
