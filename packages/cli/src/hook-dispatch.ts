@@ -88,10 +88,36 @@ export interface ParsedPayload {
 
 const UTF8_BOM = "\uFEFF";
 const APPLY_PATCH_BEGIN_MARKER = "*** Begin Patch";
-const APPLY_PATCH_FILE_LINE_RE = /^\*\*\* (?:Add File|Update File): (.+)$/gm;
+/** Single-file Add/Update only — other *** … File: ops must fail closed (#2738 Greptile). */
+const APPLY_PATCH_MUTATION_LINE_RE =
+  /^\*\*\* (Add File|Update File|Delete File|Move File|Rename File): (.+)$/gm;
 
 function stripUtf8Bom(raw: string): string {
   return raw.startsWith(UTF8_BOM) ? raw.slice(UTF8_BOM.length) : raw;
+}
+
+function trySynthesizeFreeFormApplyPatch(normalized: string): ParsedPayload | null {
+  if (!normalized.includes(APPLY_PATCH_BEGIN_MARKER)) return null;
+  const mutations: { op: string; path: string }[] = [];
+  for (const match of normalized.matchAll(APPLY_PATCH_MUTATION_LINE_RE)) {
+    const op = match[1];
+    const path = match[2]?.trim();
+    if (op === undefined || !path) continue;
+    mutations.push({ op, path });
+  }
+  if (mutations.length !== 1) return null;
+  const sole = mutations[0];
+  if (sole === undefined || (sole.op !== "Add File" && sole.op !== "Update File")) return null;
+  return {
+    payload: {
+      tool_name: "ApplyPatch",
+      tool_input: {
+        path: sole.path,
+        patch: normalized,
+      },
+    },
+    context: {},
+  };
 }
 
 export function parsePayload(raw: string): ParsedPayload {
@@ -105,26 +131,8 @@ export function parsePayload(raw: string): ParsedPayload {
   try {
     return { payload: JSON.parse(normalized) as unknown, context: {} };
   } catch {
-    if (normalized.includes(APPLY_PATCH_BEGIN_MARKER)) {
-      const paths: string[] = [];
-      for (const match of normalized.matchAll(APPLY_PATCH_FILE_LINE_RE)) {
-        const path = match[1]?.trim();
-        if (path) paths.push(path);
-      }
-      if (paths.length === 1) {
-        const [targetPath] = paths;
-        return {
-          payload: {
-            tool_name: "ApplyPatch",
-            tool_input: {
-              path: targetPath,
-              patch: normalized,
-            },
-          },
-          context: {},
-        };
-      }
-    }
+    const synthesized = trySynthesizeFreeFormApplyPatch(normalized);
+    if (synthesized !== null) return synthesized;
     // tool.before is installed only on direct-write matchers, so an unreadable
     // payload becomes a missing-tool denial rather than a fail-open crash.
     return { payload: {}, context: { parseFailed: true } };

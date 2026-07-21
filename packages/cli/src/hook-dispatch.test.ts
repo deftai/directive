@@ -243,6 +243,19 @@ describe("hook-dispatch CLI", () => {
       payload: {},
       context: { parseFailed: true },
     });
+
+    // One Add + Delete must not synthesize — policy would only see the Add path.
+    const addPlusDelete = [
+      "*** Begin Patch",
+      "*** Add File: xbrief/proposed/a.xbrief.json",
+      "+probe",
+      "*** Delete File: src/secret.ts",
+      "*** End Patch",
+    ].join("\n");
+    expect(parsePayload(addPlusDelete)).toEqual({ payload: {}, context: { parseFailed: true } });
+
+    const deleteOnly = ["*** Begin Patch", "*** Delete File: src/a.ts", "*** End Patch"].join("\n");
+    expect(parsePayload(deleteOnly)).toEqual({ payload: {}, context: { parseFailed: true } });
   });
 
   it("allows Cursor JSON ApplyPatch through hook-dispatch (#2738)", () => {
