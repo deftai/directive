@@ -970,52 +970,17 @@
         }
       },
       {
-        "id": "2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de",
-        "title": "Consented agent-driven product signal (private deftai sink, defaults off)",
-        "status": "running",
+        "id": "2026-07-21-2734-fixhooks-strip-utf-8-bom-before-cursor-pretooluse-jsonparse",
+        "title": "fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse",
+        "status": "pending",
         "metadata": {
-          "source_path": "active/2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de.xbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "pending/2026-07-21-2734-fixhooks-strip-utf-8-bom-before-cursor-pretooluse-jsonparse.xbrief.json",
+          "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/2693",
+              "uri": "https://github.com/deftai/directive/issues/2734",
               "type": "x-xbrief/github-issue",
-              "title": "Issue #2693: Consented agent-driven product signal (private deftai sink, defaults off)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/2603",
-              "type": "x-xbrief/github-issue",
-              "title": "Epic #2603: Directive Product Insights"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/2697",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #2697: Phase 2 public challenge/nonce submission API"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1709",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #1709: value feedback / gap escalation"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/2376",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #2376: trusted-org local valueFeedback auto-enable"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/829",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #829: skill-usage telemetry sidecar (do-not-lose; optional skillsSummary consumer)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1703",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #1703: framework eval / eval:health (localSignalSummary.evalHealth)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/2545",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #2545: helped + health logs user-data root (localSignalSummary.helpedHealth)"
+              "title": "Issue #2734: fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse"
             }
           ]
         }
@@ -20930,6 +20895,57 @@
         }
       },
       {
+        "id": "2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de",
+        "title": "Consented agent-driven product signal (private deftai sink, defaults off)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-07-21-2693-consented-agent-driven-product-signal-private-deftai-sink-de.xbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2693",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #2693: Consented agent-driven product signal (private deftai sink, defaults off)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2603",
+              "type": "x-xbrief/github-issue",
+              "title": "Epic #2603: Directive Product Insights"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2697",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #2697: Phase 2 public challenge/nonce submission API"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1709",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #1709: value feedback / gap escalation"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2376",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #2376: trusted-org local valueFeedback auto-enable"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/829",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #829: skill-usage telemetry sidecar (do-not-lose; optional skillsSummary consumer)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1703",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #1703: framework eval / eval:health (localSignalSummary.evalHealth)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2545",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #2545: helped + health logs user-data root (localSignalSummary.helpedHealth)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-12-deft-bootstrap-cli-with-tui-typer-textual-strategy-aware",
         "title": "Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)",
         "status": "cancelled",
@@ -21681,6 +21697,6 @@
     "updated": "2026-07-02T14:32:31Z"
   },
   "xBRIEFInfo": {
-    "updated": "2026-07-21T16:12:44Z"
+    "updated": "2026-07-21T21:16:23Z"
   }
 }

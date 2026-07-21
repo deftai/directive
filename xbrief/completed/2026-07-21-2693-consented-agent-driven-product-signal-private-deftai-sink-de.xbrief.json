@@ -8,7 +8,7 @@
   },
   "plan": {
     "title": "Consented agent-driven product signal (private deftai sink, defaults off)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Ship a consented, agent-driven product-improvement signal path. The agent interviews lightly, attaches machine context (platform × harness × directive) plus minimized summaries of existing local ledgers (#1709 value/attribution, #1703 eval:health, #2545 helped/health) and optional #829 skillsSummary, then submits via private `deftai/product-signal` through a thin transport adapter. Defaults OFF; no ambient consent nag; soft-skip when not enabled / not consented / unauthorized. Sibling to #1709 gap escalation — does not replace it. Parent epic #2603 owns batched Insights/warehouse/dashboard; #2697 owns Phase 2 HTTP transport.",
       "Origin": "Ingested and design-locked from https://github.com/deftai/directive/issues/2693 (triage accept f8c31a48-3356-4f9d-a0ec-9754c9adf986). Amendment comments on the issue are superseded by LockedDecisions below after operator confirm.",
@@ -140,14 +140,16 @@
         "title": "Issue #2545: helped + health logs user-data root (localSignalSummary.helpedHealth)"
       }
     ],
-    "updated": "2026-07-21T16:21:16Z",
+    "updated": "2026-07-21T21:13:38Z",
     "metadata": {
       "issueSync": {
         "fingerprint": "a1e28244301ed577",
         "syncedAt": "2026-07-21T16:13:43.290Z",
         "issueNumber": 2693,
         "repo": "deftai/directive"
-      }
+      },
+      "completedAt": "2026-07-21T21:13:38Z",
+      "capacityBucket": "new-capability"
     }
   }
 }

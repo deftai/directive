@@ -1,0 +1,31 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2734",
+    "updated": "2026-07-21T21:16:24.004Z"
+  },
+  "plan": {
+    "title": "fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2734",
+      "Overview": "## Summary\n\nCursor live `preToolUse` stdin for bare `deft hook:dispatch --host cursor --event tool.before` can arrive as **UTF-8 BOM-prefixed JSON** (`EF BB BF` + `{...}`). Directive's `parsePayload` calls `JSON.parse` on the raw string, sets `parseFailed`, and fail-closes with the host-integration \"not valid JSON\" denial — even when the envelope is otherwise valid and includes `tool_name` / `tool_input`.\n\nProven on a failing Windows machine in #2713 full-story diagnostics ([comment](https://github.com/deftai/directive/issues/2713#issuecomment-5038497414)).\n\n## Evidence (do not re-diagnose)\n\n- Spy capture: live Write/Task hits bare-dispatch with `json_ok=false`, `hex16=efbbbf7b22…`\n- `JSON.parse` error cites the BOM character\n- After BOM strip, same bytes parse; top-level keys include `tool_name`, `tool_input`, `workspace_roots`, …\n- Live Write shape after strip: `tool_name=Write`, `tool_input` = `{ content, file_path }` (already covered by current inference)\n- Denial-2 (\"omitted its tool name\") is a **cascade of parse failure** (empty `{}`), not a missing field\n- Offline free-form ApplyPatch → bare dispatch remains a **separate** PARSE risk (#2713); not the live Write/Task failure mode in that run\n\n## Fix\n\nIn `packages/cli/src/hook-dispatch.ts` `parsePayload` (or a shared normalize helper used only for Cursor/`tool.before` stdin):\n\n1. If stdin begins with UTF-8 BOM, strip it before `JSON.parse`\n2. Keep existing `stdinEmpty` / `parseFailed` distinctions\n3. Add regression tests: BOM+valid Write JSON → past tool identity; BOM+empty / BOM+garbage still fail closed appropriately\n4. CHANGELOG under `[Unreleased]`\n\n## Non-goals (this issue)\n\n- Native free-form ApplyPatch (`*** Begin Patch`) classification — track on #2713 / follow-up\n- Cursor tool-surface absence of ApplyPatch\n- Changing fail-closed policy for truly invalid payloads\n\n## Acceptance\n\n- Unit/CLI test: `\"\\uFEFF\" + JSON.stringify({ tool_name: \"Write\", tool_input: { content: \"x\", file_path: \"a.txt\" }, workspace_roots: [\"/p\"] })` does **not** yield `parseFailed` / \"not valid JSON\"\n- Existing empty-stdin and invalid-JSON cases unchanged\n- Linked from #2713 as the first live fix surface\n\n## Related\n\n- #2713 — surviving tracker; ApplyPatch free-form + absorbed #2699 symptoms\n- #2669 / PR #2677 — prior tool-name inference (orthogonal; assumes JSON already parsed)",
+      "Labels": "bug, agent-experience, area:cli"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2734",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2734: fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse"
+      }
+    ],
+    "updated": "2026-07-21T20:08:27Z"
+  }
+}

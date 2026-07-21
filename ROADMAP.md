@@ -5,37 +5,48 @@
 
 # Roadmap
 
-## Consented agent-driven product signal (private deftai sink, defaults off) (#2693, #2603, #2697, #1709, #2376, #829, #1703, #2545)
+## fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse (#2734)
 
-Ship a consented, agent-driven product-improvement signal path. The agent interviews lightly, attaches machine context (platform × harness × directive) plus minimized summaries of existing local ledgers (#1709 value/attribution, #1703 eval:health, #2545 helped/health) and optional #829 skillsSummary, then submits via private `deftai/product-signal` through a thin transport adapter. Defaults OFF; no ambient consent nag; soft-skip when not enabled / not consented / unauthorized. Sibling to #1709 gap escalation — does not replace it. Parent epic #2603 owns batched Insights/warehouse/dashboard; #2697 owns Phase 2 HTTP transport.
+## Summary
 
-### Wave A: productSignal typed policy (default off) + enable --confirm + policy:show field `[proposed]`
+Cursor live `preToolUse` stdin for bare `deft hook:dispatch --host cursor --event tool.before` can arrive as **UTF-8 BOM-prefixed JSON** (`EF BB BF` + `{...}`). Directive's `parsePayload` calls `JSON.parse` on the raw string, sets `parseFailed`, and fail-closes with the host-integration "not valid JSON" denial — even when the envelope is otherwise valid and includes `tool_name` / `tool_input`.
 
-### Wave A: consent file grant/revoke at platform-config path; no ambient nag when disabled `[proposed]`
+Proven on a failing Windows machine in #2713 full-story diagnostics ([comment](https://github.com/deftai/directive/issues/2713#issuecomment-5038497414)).
 
-### Wave A: shared ProductSignalPayload schema + install-context collector + client validation/secret hygiene `[proposed]`
+## Evidence (do not re-diagnose)
 
-### Wave A: optional minimized skillsSummary field (null unless local #829 sidecar exists; do not implement #829 emit here) `[proposed]`
+- Spy capture: live Write/Task hits bare-dispatch with `json_ok=false`, `hex16=efbbbf7b22…`
+- `JSON.parse` error cites the BOM character
+- After BOM strip, same bytes parse; top-level keys include `tool_name`, `tool_input`, `workspace_roots`, …
+- Live Write shape after strip: `tool_name=Write`, `tool_input` = `{ content, file_path }` (already covered by current inference)
+- Denial-2 ("omitted its tool name") is a **cascade of parse failure** (empty `{}`), not a missing field
+- Offline free-form ApplyPatch → bare dispatch remains a **separate** PARSE risk (#2713); not the live Write/Task failure mode in that run
 
-### Wave A: localSignalSummary Phase 1 attach — minimized #1709 value:show + #1703 eval:health + #2545 helped/health (no raw ledger dumps) `[proposed]`
+## Fix
 
-### Wave B: create private deftai/product-signal + bootstrap D20 labels + README (standing-thread conventions) `[proposed]`
+In `packages/cli/src/hook-dispatch.ts` `parsePayload` (or a shared normalize helper used only for Cursor/`tool.before` stdin):
 
-### Wave B: SubmitAdapter + GitHubPrivateSinkAdapter (portrait upsert, pulse comment); default sinkRepo=deftai/product-signal `[proposed]`
+1. If stdin begins with UTF-8 BOM, strip it before `JSON.parse`
+2. Keep existing `stdinEmpty` / `parseFailed` distinctions
+3. Add regression tests: BOM+valid Write JSON → past tool identity; BOM+empty / BOM+garbage still fail closed appropriately
+4. CHANGELOG under `[Unreleased]`
 
-### Wave B: soft-skip matrix (disabled / no consent / no network / 401-404 / headless / sink-unreachable) — D16/D18 fail-open; no sticky forever-fail; new sessions retry `[proposed]`
+## Non-goals (this issue)
 
-### Wave B: standing-thread key (installId, actorName) with USER.md → gh-login → unnamed fallback; payload actorNameSource `[proposed]`
+- Native free-form ApplyPatch (`*** Begin Patch`) classification — track on #2713 / follow-up
+- Cursor tool-surface absence of ApplyPatch
+- Changing fail-closed policy for truly invalid payloads
 
-### Wave C: deft-directive-product-signal skill (agent-driven ≤3Q interview) + Skills Index triggers `[proposed]`
+## Acceptance
 
-### Wave C: interactive first-time consent prompt (D17) including check-with-company partner line; revoke via consent --revoke / disable `[proposed]`
+- Unit/CLI test: `"\uFEFF" + JSON.stringify({ tool_name: "Write", tool_input: { content: "x", file_path: "a.txt" }, workspace_roots: ["/p"] })` does **not** yield `parseFailed` / "not valid JSON"
+- Existing empty-stdin and invalid-JSON cases unchanged
+- Linked from #2713 as the first live fix surface
 
-### Wave C: CLI product-signal:status|consent|submit + operator docs + CHANGELOG `[proposed]`
+## Related
 
-### Keep #1709 feedback:file confirmation-gated for public promote; private gaps = Gap: comments on standing pulse thread (D19) `[proposed]`
-
-### Regression tests: gates, payload validation, adapter dry-run, no outbound when off `[proposed]`
+- #2713 — surviving tracker; ApplyPatch free-form + absorbed #2699 symptoms
+- #2669 / PR #2677 — prior tool-name inference (orthogonal; assumes JSON already parsed)
 
 ---
 
@@ -1045,4 +1056,5 @@ Ship a consented, agent-driven product-improvement signal path. The agent interv
 - **#2688** -- Review-cycle: Greptile CLEAN + ci_failures forces CI fix (no idle-poll) -- `[completed]`
 - **#2692** -- bug(release): Phase 1 long steps foreground-block the operator chat (#1880 Gap D) -- `[completed]`
 - ci: run TypeScript and Go jobs on GitHub-hosted ubuntu-latest -- `[completed]`
+- **#2693** -- Consented agent-driven product signal (private deftai sink, defaults off) -- `[completed]`
 
