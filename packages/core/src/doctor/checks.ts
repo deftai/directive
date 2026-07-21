@@ -655,7 +655,10 @@ function resolveTypescriptDepValue(
  * typescript-eslint without the `@typescript/typescript6` alias. Exit-exempt (like
  * gitignore-coverage) — adoption guidance, not a broken install.
  */
-export function checkTypescript7SideBySide(projectRoot: string, seams: CheckSeams = {}): CheckResult {
+export function checkTypescript7SideBySide(
+  projectRoot: string,
+  seams: CheckSeams = {},
+): CheckResult {
   const packageJsonPath = join(projectRoot, "package.json");
   const text = readText(packageJsonPath, seams);
 
@@ -713,7 +716,8 @@ export function checkTypescript7SideBySide(projectRoot: string, seams: CheckSeam
     return {
       name: TS7_SIDE_BY_SIDE_CHECK,
       status: "pass",
-      detail: "No typescript-eslint packages declared; TypeScript 7 side-by-side alias not required.",
+      detail:
+        "No typescript-eslint packages declared; TypeScript 7 side-by-side alias not required.",
       data: { package_json_path: packageJsonPath },
     };
   }

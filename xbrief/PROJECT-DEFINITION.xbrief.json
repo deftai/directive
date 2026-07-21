@@ -972,10 +972,10 @@
       {
         "id": "2026-07-21-2734-fixhooks-strip-utf-8-bom-before-cursor-pretooluse-jsonparse",
         "title": "fix(hooks): strip UTF-8 BOM before Cursor preToolUse JSON.parse",
-        "status": "pending",
+        "status": "completed",
         "metadata": {
-          "source_path": "pending/2026-07-21-2734-fixhooks-strip-utf-8-bom-before-cursor-pretooluse-jsonparse.xbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "completed/2026-07-21-2734-fixhooks-strip-utf-8-bom-before-cursor-pretooluse-jsonparse.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/2734",

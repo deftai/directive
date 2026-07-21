@@ -1,32 +1,28 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF for #2591 — TypeScript 7 side-by-side guidance for Deft TypeScript projects"
+    "description": "Scope xBRIEF for #2591 — TypeScript 7 side-by-side guidance + doctor hint"
   },
   "plan": {
     "title": "Document TypeScript 7 side-by-side setup for Deft TypeScript projects",
     "status": "completed",
     "narratives": {
-      "Description": "Ship agent-facing TypeScript 7 side-by-side install guidance (Cartograph #111 pattern) so Dependabot/agents do not merge a broken `typescript` 6→7 major while typescript-eslint still needs the TS 6 API. Explicitly decide scaffold + doctor coverage.",
-      "Origin": "Ingested from https://github.com/deftai/directive/issues/2591; refined with locked decisions 2026-07-21.",
-      "Overview": "## Why\n\nTS 7.0 has no stable programmatic API. A direct `typescript` major to 7 breaks `typescript-eslint` (`ModuleKind.Cjs` undefined). Official guidance is side-by-side until ~7.1.\n\n## Locked decisions\n\n- **D1 — Primary surface:** Add a `## TypeScript 7 side-by-side (pre-7.1)` section to `content/languages/typescript.md` with the Cartograph alias pattern (`@typescript/native` → `typescript@^7`, `typescript` → `@typescript/typescript6@^6`), Dependabot ignore for major bumps on the `typescript` alias, and links to the TS 7 announcement + typescript-eslint#12518.\n- **D2 — UPGRADING pointer:** Add a short top-of-`content/UPGRADING.md` note (applies-when / commands / references) pointing agents/operators at D1; not a framework-version migration.\n- **D3 — Scaffold bake: DEFER.** There is no Deft-owned TypeScript `package.json` scaffold to mutate; agents follow the language-pack snippet. Record deferral in the doc section and CHANGELOG.\n- **D4 — Doctor / verify hint: DEFER.** Docs-only close for #2591; reopen a follow-up if consumer Dependabot breakage recurs after guidance lands.\n- **D5 — Contract test:** Content test pins the new typescript.md section heading + required alias package names (and UPGRADING heading if that suite pattern exists).\n- **D6 — CHANGELOG:** Brief `[Unreleased]` notes entry (#1242 style).\n- **D7 — Out of scope:** Changing this repo's own `package.json` typescript pin; Cartograph already fixed; no warehouse/doctor code in this PR.\n\n## Acceptance\n\n- [ ] Documented pattern in `content/languages/typescript.md` agents can follow\n- [ ] UPGRADING.md short pointer shipped\n- [ ] Scaffold bake explicitly deferred in docs + CHANGELOG\n- [ ] Doctor hint explicitly deferred in docs + CHANGELOG\n- [ ] Content contract test green; `task check` green; issue #2591 closed by PR",
+      "Description": "Ship agent-facing TypeScript 7 side-by-side install guidance (Cartograph #111 pattern) plus an advisory deft doctor hint when typescript resolves to 7.x with typescript-eslint and without the @typescript/typescript6 alias. Scaffold bake remains deferred.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2591; D4 flipped to SHIP by operator 2026-07-21.",
+      "Overview": "## Why\n\nTS 7.0 has no stable programmatic API. A direct `typescript` major to 7 breaks `typescript-eslint`. Official guidance is side-by-side until ~7.1.\n\n## Locked decisions\n\n- **D1 — Primary surface:** `## TypeScript 7 side-by-side (pre-7.1)` in `content/languages/typescript.md` (aliases + Dependabot ignore + links). ALREADY SHIPPED on branch.\n- **D2 — UPGRADING pointer:** Short top-of-`content/UPGRADING.md` note. ALREADY SHIPPED.\n- **D3 — Scaffold bake: DEFER.** Unchanged — no Deft-owned TS package.json scaffold.\n- **D4 — Doctor / verify hint: SHIP (operator flip).** Advisory `deft doctor` check (install-integrity / checks.ts): when package.json has typescript-eslint (`typescript-eslint` or `@typescript-eslint/*`) AND `typescript` declares a 7.x range (or npm:typescript@7) AND the `typescript` value is NOT the `@typescript/typescript6` alias → warning pointing at languages/typescript.md side-by-side section. Exit-exempt (like gitignore-coverage). Wire into runChecksImpl + main.ts advisory warning list + unit tests. Update docs/CHANGELOG that previously said doctor deferred.\n- **D5 — Contract test:** Update content contract — doctor shipped, scaffold still deferred.\n- **D6 — CHANGELOG:** Update `[Unreleased]` entry for #2591 to mention doctor hint shipped; scaffold still deferred.\n- **D7 — Out of scope:** Changing this repo's root package.json typescript pin; scaffold bake.\n\n## Remaining work (this amendment)\n\n- [ ] Doctor check + tests + exit-exempt wiring\n- [ ] Flip typescript.md / UPGRADING / CHANGELOG / content-contract text from doctor-deferred → doctor-shipped\n- [ ] `task scope:complete`, PR Closes #2591, merge",
       "Labels": "enhancement, docs, coding-standards, agent-experience, area:guidance"
     },
     "items": [
       {
-        "title": "typescript.md TS7 side-by-side section + Dependabot ignore example",
+        "title": "Advisory doctor check for TS7 without typescript6 alias when typescript-eslint present",
         "status": "proposed"
       },
       {
-        "title": "UPGRADING.md short pointer section",
+        "title": "Docs/CHANGELOG/contract: doctor shipped; scaffold still deferred",
         "status": "proposed"
       },
       {
-        "title": "Explicit scaffold + doctor deferral recorded",
-        "status": "proposed"
-      },
-      {
-        "title": "Content contract test + CHANGELOG [Unreleased]",
+        "title": "PR Closes #2591 through merge",
         "status": "proposed"
       }
     ],
@@ -49,9 +45,9 @@
         "title": "Cartograph TS7 side-by-side precedent"
       }
     ],
-    "updated": "2026-07-21T22:04:47Z",
+    "updated": "2026-07-21T22:14:42Z",
     "metadata": {
-      "completedAt": "2026-07-21T22:04:47Z",
+      "completedAt": "2026-07-21T22:14:42Z",
       "capacityBucket": "new-capability"
     }
   }
