@@ -183,4 +183,12 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
     expect(result.code).toBe(0);
   });
+
+  it("skips cleanly when xbrief layout is absent (legacy vbrief consumer)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-orphan-no-xbrief-"));
+    temps.push(root);
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("nothing to scan");
+  });
 });

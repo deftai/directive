@@ -266,6 +266,19 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     lifecycleRoot = resolveLifecycleRoot(root);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    // Consumer/greenfield fixtures may still use legacy vbrief/ only (#2112).
+    // Orphan detection applies only to xbrief/active/ — skip cleanly, not config fail.
+    if (message.includes("No xbrief/ layout found")) {
+      if (quiet) {
+        return { code: 0, message: "", stream: "none", orphans: [] };
+      }
+      return {
+        code: 0,
+        message: "verify:orphan-active: no xbrief/ lifecycle root; nothing to scan.",
+        stream: "stdout",
+        orphans: [],
+      };
+    }
     return {
       code: 2,
       message: `verify:orphan-active: ${message}`,
