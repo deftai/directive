@@ -15,7 +15,7 @@ export function syncProjectDefinitionAfterScopeMove(
   newPath: string,
   vbriefRoot: string,
   targetStatus: string,
-): void {
+): string | null {
   const projectRoot = dirname(resolve(vbriefRoot));
   try {
     projectDefinitionMutationLock(projectRoot, () => {
@@ -33,7 +33,8 @@ export function syncProjectDefinitionAfterScopeMove(
         },
       );
     });
-  } catch {
-    /* best-effort */
+    return null;
+  } catch (err: unknown) {
+    return err instanceof Error ? err.message : String(err);
   }
 }

@@ -6,10 +6,10 @@ import * as cacheIo from "../cache/io.js";
 import {
   atomicWriteBrief,
   formatBriefJson,
-  minimalScopeBrief,
   readBriefForMutation,
   validateBriefForPersist,
 } from "./brief-io.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.js";
 
 function validBrief(status: string): Record<string, unknown> {
   return {
@@ -44,6 +44,12 @@ describe("brief-io", () => {
     if (result.ok) {
       expect((result.data.plan as { status: string }).status).toBe("running");
     }
+  });
+
+  it("readBriefForMutation rejects missing files", () => {
+    const result = readBriefForMutation(join(tmpdir(), "missing.xbrief.json"));
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/File not found/);
   });
 
   it("validateBriefForPersist rejects schema-invalid briefs", () => {

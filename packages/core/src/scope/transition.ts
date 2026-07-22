@@ -1,12 +1,13 @@
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
-import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
+import { atomicWriteBrief, formatBriefJson, readBriefForMutation } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import {
   LIFECYCLE_FOLDERS,
@@ -136,6 +137,9 @@ export function runTransition(
     stampCompletionMetadata(planObj, projectRoot, nowIso);
   }
 
+  const formatted = formatBriefJson(data);
+  const crud = new InstrumentedVbriefCrud({ now: () => now });
+
   if (targetFolder !== null) {
     const destDir = join(vbriefRoot, targetFolder);
     mkdirSync(destDir, { recursive: true });
@@ -150,6 +154,7 @@ export function runTransition(
     if (!writeResult.ok) {
       return { ok: false, message: writeResult.message };
     }
+    crud.recordTrustedUpdate(destPath, formatted);
 
     try {
       unlinkSync(resolvedPath);
@@ -162,11 +167,31 @@ export function runTransition(
       return { ok: false, message: `Failed to remove source after move: ${String(err)}` };
     }
 
+    try {
+      persistCrudMetrics(projectRoot, crud.getMetrics());
+    } catch {
+      /* best-effort telemetry persistence */
+    }
+
     updateDecomposedParentBackReferences(data, resolvedPath, destPath, vbriefRoot);
     updateDecomposedChildBackReferences(data, resolvedPath, destPath, vbriefRoot);
-    syncProjectDefinitionAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
-    syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
     const actionLabel = MOVE_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
+    const pdSyncError = syncProjectDefinitionAfterScopeMove(
+      data,
+      resolvedPath,
+      destPath,
+      vbriefRoot,
+      targetStatus,
+    );
+    if (pdSyncError !== null) {
+      return {
+        ok: false,
+        message:
+          `${actionLabel} ${basename}: brief moved to ${targetFolder}/ but ` +
+          `PROJECT-DEFINITION sync failed: ${pdSyncError}`,
+      };
+    }
+    syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
     return {
       ok: true,
       message: `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})`,
@@ -176,6 +201,12 @@ export function runTransition(
   const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot);
   if (!writeResult.ok) {
     return { ok: false, message: writeResult.message };
+  }
+  crud.recordTrustedUpdate(resolvedPath, formatted);
+  try {
+    persistCrudMetrics(projectRoot, crud.getMetrics());
+  } catch {
+    /* best-effort telemetry persistence */
   }
 
   const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);

@@ -12,7 +12,6 @@ import {
   readAll,
   ScopeAuditLogError,
 } from "./audit-log.js";
-import { minimalScopeBrief } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import {
   detectLifecycleFolder,
@@ -29,6 +28,7 @@ import {
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { findByBatchId, findByDecisionId, isAlreadyUndone, undoBatch, undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";

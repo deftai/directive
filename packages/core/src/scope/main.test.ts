@@ -2,11 +2,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { minimalScopeBrief } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import { demoteOne } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 import { checkWipCap, formatWipCapRefusal } from "./wip-cap-check.js";

@@ -19,14 +19,6 @@ export function formatBriefJson(data: unknown): string {
   return pythonJsonPretty(data);
 }
 
-/** Minimal schema-valid scope brief for lifecycle tests and fixtures (#2131). */
-export function minimalScopeBrief(plan: Record<string, unknown>): JsonObject {
-  return {
-    xBRIEFInfo: { version: "0.8" },
-    plan,
-  };
-}
-
 export type ReadBriefResult =
   | { readonly ok: true; readonly data: JsonObject }
   | { readonly ok: false; readonly message: string };

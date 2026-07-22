@@ -327,6 +327,37 @@ export class InstrumentedVbriefCrud {
     return { ok: true };
   }
 
+  /** Record update metrics without persisting (caller owns validated atomic write). */
+  recordTrustedUpdate(path: string, content: string): void {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch (err: unknown) {
+      const message = sanitizeInlineMessage(err instanceof Error ? err.message : String(err));
+      this.recordMetric({
+        operation: "update",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: invalid JSON -- ${message}`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return;
+    }
+
+    const assessment = assessDocument(path, parsed);
+    this.recordMetric({
+      operation: "update",
+      path,
+      schemaValid: assessment.schemaValid,
+      schemaErrors: assessment.schemaErrors,
+      inventedKeys: assessment.inventedKeys,
+      byteDiffMinimality: null,
+      byteDiffChangedRatio: null,
+    });
+  }
+
   delete(path: string): CrudResult {
     if (!existsSync(path)) {
       this.recordMetric({

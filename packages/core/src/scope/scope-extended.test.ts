@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
-import { minimalScopeBrief } from "./brief-io.js";
 import {
   detectLifecycleFolder,
   updateDecomposedChildBackReferences,
@@ -13,6 +12,7 @@ import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";
