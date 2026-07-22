@@ -1,0 +1,89 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2767"
+  },
+  "plan": {
+    "title": "security(product-signal): bind consent to sinkRepo destination (#2761)",
+    "status": "running",
+    "narratives": {
+      "Description": "Bind product-signal consent to the exact telemetry sinkRepo destination. Preserve custom-sink capability via consent schema v2 so a project cannot use the operator gh token as a confused deputy.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2767",
+      "Overview": "## Parent\n\n#2761\n\n## What to build\n\nBind product-signal consent to the exact telemetry destination so a project-controlled `sinkRepo` cannot use the operator's `gh` token as a confused deputy. Preserve intentional custom-sink capability by amending consent (schema v2) rather than removing overrides.\n\n## Acceptance criteria\n\n- [ ] Consent schema v2 records the exact normalized `owner/repo` sink\n- [ ] Existing v1 consent authorizes only the baked-in default `deftai/product-signal`, never a custom project sink\n- [ ] Destination authorization runs immediately before adapter construction / network use (including dry-run); `skipGates` cannot bypass it\n- [ ] Changing `plan.policy.productSignal.sinkRepo` after consent soft-skips (e.g. `sink-unconsented`) until the exact destination is re-consented\n- [ ] Consent/status commands show configured sink, consented sink, and whether they match\n- [ ] Docs + product-signal skill pack source updated; derived content regenerated (`task packs:render` / `task verify:pack-drift`)\n- [ ] Regression tests cover v1+default allow, v1+custom deny, v2 match allow, v2 mismatch deny-before-adapter, normalization, and headless fail-open\n- [ ] `task check` passes\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone — independent trust boundary; recommended merge after A and B for review-surface sizing\r\n\n",
+      "Labels": "bug, security",
+      "ImplementationPlan": "1) Extend the product-signal consent schema/module under packages/core/src/product-signal/ so v2 records normalized sinkRepo and authorize before adapter construction in submit.ts. 2) Add fixture tests in packages/core/src/product-signal/submit.test.ts that verify v1 custom sinks are rejected and mismatched v2 sinks emit sink-unconsented without network calls.",
+      "UserStory": "As a deft operator, I want product-signal consent bound to the exact sinkRepo, so that changing the destination requires explicit re-consent before telemetry posts."
+    },
+    "items": [
+      {
+        "title": "Given v1 consent and a custom project sinkRepo, when product-signal submit runs, then it rejects the destination before ",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given v1 consent and a custom project sinkRepo, when product-signal submit runs, then it rejects the destination before adapter construction and returns sink-unconsented."
+        }
+      },
+      {
+        "title": "Given v2 consent matching the configured sinkRepo, when submit or dry-run runs, then it returns success and records the ",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given v2 consent matching the configured sinkRepo, when submit or dry-run runs, then it returns success and records the authorized sink."
+        }
+      },
+      {
+        "title": "Given a post-consent sinkRepo policy change, when submit runs, then it fails soft with sink-unconsented and shows config",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given a post-consent sinkRepo policy change, when submit runs, then it fails soft with sink-unconsented and shows configured vs consented sinks in status output."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2767",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2767: security(product-signal): bind consent to sinkRepo destination (#2761)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2761",
+        "type": "x-xbrief/github-issue",
+        "title": "Parent umbrella #2761"
+      }
+    ],
+    "planRef": "pending/2026-07-22-2761-appsec-review-e7a4e7f7-corepack-shell-injection-lifecycle-sy.xbrief.json",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/product-signal/submit.ts",
+          "packages/core/src/product-signal/consent.ts",
+          "packages/core/src/product-signal/submit.test.ts",
+          "content/docs/product-signal.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/product-signal",
+          "task packs:render",
+          "task check"
+        ],
+        "expected_outputs": [
+          "sink mismatch soft-skips before adapter",
+          "consent/status shows configured vs consented sink",
+          "task check passes"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-product-signal",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue acceptance criteria and AppSec/planning comments rather than a SPECIFICATION section."
+      }
+    },
+    "updated": "2026-07-22T20:41:14Z",
+    "id": "2026-07-22-2767-securityproduct-signal-bind-consent-to-sinkrepo"
+  }
+}

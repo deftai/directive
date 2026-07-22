@@ -1,0 +1,76 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2752"
+  },
+  "plan": {
+    "title": "deft update re-projects .claude/settings.json with no persistent opt-out; fail-closed hook causes friction in non-ritual repos",
+    "status": "pending",
+    "narratives": {
+      "Description": "Add a persistent opt-out so deft update does not keep re-projecting .claude/settings.json into repos that deliberately skip the fail-closed Claude ritual hooks. Removing the file must not be treated as drift that silently recreates it.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2752",
+      "Overview": "## Summary\n\n`deft update` (and `directive init`) re-project a Directive-owned `.claude/settings.json` on every upgrade (per the \"Agent-host direct-write hooks\" feature, #2438 / #2596). For a consumer repo that deliberately does **not** want the fail-closed Claude Code hook, there is no persistent opt-out: removing the file is treated as drift and silently re-created by the next `deft update`. Combined with how the Claude Code `PreToolUse` gate behaves in practice, this produced real friction for a repo that uses Claude Code as a dev/agent host but not the interactive session-ritual workflow.\n\nReporting from a consumer deposit on **`@deftai/directive` 0.80.0** (dogfooding a separate project).\n\n## What happened\n\nUpgrading a consumer repo's vendored `.deft/core` from 0.75.0 → 0.80.0 projected `.claude/settings.json` (plus `.codex`/`.cursor`/`.grok` equivalents). The Claude `PreToolUse` gate then:\n\n1. **Blocked every `Edit`/`Write`** until a gated `deft session:start` + `deft doctor` ritual was recorded — expected per design, but this repo's workflow doesn't run that ritual, so it was pure friction.\n2. **Gated edits to files _outside_ the repo too.** Claude Code's `PreToolUse` matcher keys on the *tool name* (`Edit|Write|…`), not the target path, so once the hook is loaded for the session it fail-closes on edits to any path — e.g. it blocked edits to files in a different directory entirely (agent memory files under `~/.claude/...`).\n3. **Went stale on every `git` HEAD change.** The compact/HEAD re-arm (#2113) marks the ritual stale; a routine merge+pull mid-session re-blocked all writes until `deft session:start` was re-run. In a repo with a normal PR cadence this fires constantly.\n4. **Survived deletion.** After removing `.claude/settings.json` on purpose, the docs' own guidance (\"Repair missing/drifted entries: `deft update`\") means the next upgrade re-adds it — the removal isn't honored as intent.\n\nNet effect: to do ordinary work in the repo after the upgrade, every session needs `deft session:start && deft doctor` before the first edit, re-run after each HEAD change — and a deliberate removal doesn't stick.\n\n## Why this is a problem for this class of repo\n\nNot every repo that has Claude Code available runs the Directive interactive session-ritual + active-xBRIEF workflow. A benchmark harness / library / CI-style repo may use Claude Code purely as a coding host and never adopt the ritual gate. For those, the projected fail-closed hook is a net negative, and the lack of a durable opt-out means it keeps coming back.\n\n## Requests\n\n1. **A persistent, documented opt-out** so a consumer who doesn't want a given host's hooks isn't overridden by the next `deft update` — e.g. a `plan.policy` field (`hostHooks: { claude: false, … }`) or a deposit-local ignore list that `deft update` honors instead of treating an absent/edited file as drift-to-repair.\n2. **Honor intentional removal**: distinguish \"deleted on purpose\" from \"drifted / partial\" so `deft update` doesn't silently re-project a host file the operator removed.\n3. **(Consider)** narrowing or documenting the path-scope limitation — because the Claude `PreToolUse` matcher is tool-name-based, the gate applies to writes anywhere the session touches, including outside the project root. At minimum this is worth an explicit note in the \"Agent-host direct-write hooks\" docs.\n\n## Reference: the projected `.claude/settings.json` (0.80.0)\n\n```json\n{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"deft hook:dispatch --host claude --event session.start\",\n            \"timeout\": 5\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Edit|Write|WriteFile|CreateFile|MultiEdit|NotebookEdit|StrReplace|SearchReplace|Delete|DeleteFile|ApplyPatch|apply_patch\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"deft hook:dispatch --host claude --event tool.before\",\n            \"timeout\": 5\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Task|SubagentStart|spawn_subagent|start_agent|CreateAgent\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"deft hook:dispatch --host claude --event tool.before\",\n            \"timeout\": 5\n          }\n        ]\n      }\n    ],\n    \"PreCompact\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"deft hook:dispatch --host claude --event session.compact\",\n            \"timeout\": 5\n          }\n        ]\n      }\n    ],\n    \"PostCompact\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"deft hook:dispatch --host claude --event session.compact\",\n            \"timeout\": 5\n          }\n        ]\n      }\n    ]\n  }\n}\n```\n\nDocs: `.deft/core/commands.md` § \"Agent-host direct-write hooks (#2438, #2596)\".\n\n",
+      "ImplementationPlan": "1) Add a persistent opt-out config/marker in the agent-hosts update projection module under packages/core/src/agent-hosts. 2) Add fixture tests that verify deft update does not recreate .claude/settings.json when opt-out is set and documents the escape hatch.",
+      "UserStory": "As a consumer using Claude Code without session ritual, I want a persistent opt-out from projected .claude/settings.json, so that deft update stops recreating fail-closed hooks I removed."
+    },
+    "items": [
+      {
+        "title": "Given a project with the documented Claude settings opt-out, when deft update runs, then it rejects re-projection of .cl",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project with the documented Claude settings opt-out, when deft update runs, then it rejects re-projection of .claude/settings.json and the file stays absent."
+        }
+      },
+      {
+        "title": "Given opt-out enabled after the settings file was deleted, when drift detection runs, then it does not recreate the file",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given opt-out enabled after the settings file was deleted, when drift detection runs, then it does not recreate the file as drift repair."
+        }
+      },
+      {
+        "title": "Given the opt-out fixture tests, when the suite runs, then it returns green and docs show the persistent escape hatch.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the opt-out fixture tests, when the suite runs, then it returns green and docs show the persistent escape hatch."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2752",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2752: deft update re-projects .claude/settings.json with no persistent opt-out; fail-closed hook causes friction in non-ritual repos"
+      }
+    ],
+    "updated": "2026-07-22T20:41:06Z",
+    "id": "2026-07-22-2752-deft-update-re-projects-claudesettingsjson-opt-out",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/agent-hosts/claude.ts",
+          "packages/core/src/agent-hosts/claude.test.ts",
+          "packages/core/src/update/project.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/agent-hosts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "opt-out survives deft update",
+          "no silent recreate under opt-out",
+          "task check passes"
+        ],
+        "depends_on": [],
+        "conflict_group": "harness-claude-projection",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue acceptance criteria and AppSec/planning comments rather than a SPECIFICATION section."
+      }
+    }
+  }
+}

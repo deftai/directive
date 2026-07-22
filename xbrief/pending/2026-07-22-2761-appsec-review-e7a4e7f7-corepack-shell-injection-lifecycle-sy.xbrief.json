@@ -1,0 +1,66 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2761"
+  },
+  "plan": {
+    "title": "AppSec review (e7a4e7f7): Corepack shell injection + lifecycle symlink + product-signal sinkRepo",
+    "status": "pending",
+    "narratives": {
+      "Description": "AppSec review (e7a4e7f7): Corepack shell injection + lifecycle symlink + product-signal sinkRepo",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2761",
+      "Overview": "## Summary\n\nAppSec review of **deftai/directive** at commit `e7a4e7f7` validated **3 medium/high findings** (1 HIGH, 2 MEDIUM). This issue tracks remediation for all three.\n\n## Findings\n\n### 1. HIGH — Corepack `packageManager` shell injection\n\n- **Location:** `tasks/engine.yml`\n- **Impact:** Arbitrary command execution when `task build` / `task check` / `engine:pm-run` falls through to Corepack (`execFileSync(..., {shell:true})` interpolates `package.json#packageManager`).\n- **Attacker model:** Malicious repo author controlling `packageManager` (e.g. `pnpm@9.0.0; evil; echo`).\n- **Remediation:** Restrict the pin capture to a strict semver; stop using `shell:true` when the version string is in argv (keep PATHEXT probes separate).\n\n### 2. MEDIUM — `lifecycle:event` appends through `.deft-cache/events.jsonl` symlink\n\n- **Location:** `packages/core/src/lifecycle/events.ts`\n- **Impact:** Outside-repo file append under the operator identity when review-cycle runs `task lifecycle:event`.\n- **Remediation:** `assertWriteTargetSafe` / refuse symlinks before `mkdirSync` + `appendFileSync`.\n\n### 3. MEDIUM — product-signal `sinkRepo` confused-deputy exfil\n\n- **Location:** `packages/core/src/product-signal/submit.ts`\n- **Impact:** With install-level consent + project `enabled=true`, telemetry (`installId`, actor, OS/harness, summaries, human answers) is posted via the victim `gh` token to any attacker-chosen `sinkRepo` (public repos accept issues from any auth user).\n- **Remediation:** Bind consent to the baked-in sink / allowlist; re-confirm when project policy changes.\n\n## Acceptance criteria\n\n- [ ] Corepack pin path rejects non-semver / metacharacter `packageManager` values and does not pass attacker-controlled strings through `shell:true`\n- [ ] `lifecycle:event` refuses symlink (or otherwise unsafe) write targets under `.deft-cache/events.jsonl`\n- [ ] Product-signal sink is bound to consent / allowlist; changing `sinkRepo` (or equivalent project policy) requires re-confirmation\n- [ ] Regression tests cover each finding's attack shape\n\n## Notes\n\n- Review commit: `e7a4e7f7`\n- Severity rollup: 1 HIGH + 2 MEDIUM (validated)\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @dbcall2 (2026-07-22T20:21:25Z)\n\n## Planning update — validated findings and implementation plan\n\nReview basis: commit `e7a4e7f7`. The three findings in the issue body are reproducible from the current implementation. No existing xBRIEF was found for #2761.\n\n### Scope and delivery shape\n\nTreat #2761 as the parent tracker and implement the remediations as three child story xBRIEFs / PRs. The trust boundaries are independent, and combining them would create an unnecessarily large security review surface.\n\nRecommended merge order:\n\n1. Corepack/package-manager execution hardening (HIGH).\n2. Lifecycle-event symlink-safe append (MEDIUM).\n3. Product-signal destination-scoped consent (MEDIUM).\n\nClose #2761 only after all three remediations and their attack-shape regression tests are merged.\n\n### A. Corepack/package-manager execution hardening\n\n**Validated behavior**\n\n`tasks/engine.yml` has two duplicated inline Node paths. Both derive a Corepack command from `package.json#packageManager`, and the execution helper uses `shell: true`. A malicious pin can therefore cross the package metadata → shell boundary.\n\nThe existing `shell: true` behavior also serves a legitimate Windows purpose: Node cannot execute `.cmd` shims directly with `execFile()`. The fix must preserve Windows/Corepack dispatch without allowing repository-controlled strings to become shell syntax. See the [Node child-process documentation](https://nodejs.org/api/child_process.html#spawning-bat-and-cmd-files-on-windows).\n\n**Implementation**\n\n- Extract the duplicated logic into one testable helper, e.g. `tasks/engine-pm-run.cjs`, consumed by both `pm-run` and `_ts-build`.\n- Parse `packageManager` before starting any child process:\n  - missing/empty: preserve the existing unpinned fallback;\n  - accepted: exactly `pnpm@<SemVer 2.0>`, including valid prerelease/build metadata;\n  - rejected: other managers, whitespace, extra `@` segments, malformed versions, and shell metacharacters.\n- Validate the requested package script against `package.json#scripts`.\n- Keep fixed-name PATH/PATHEXT probes separate from execution.\n- Execute on POSIX with `execFileSync` and an argv array, without `shell: true`.\n- On Windows, launch only allowlisted `pnpm` / `corepack` / `npm` shims through an explicit, tightly quoted `cmd.exe` boundary. No unvalidated package metadata may become command syntax.\n- Preserve dispatch order: installed pnpm → pinned Corepack pnpm → unpinned Corepack pnpm.\n\n**Regression tests**\n\n- Accept normal, prerelease, and build-metadata pins.\n- Reject `;`, `&`, pipes, embedded whitespace, malformed pins, and non-pnpm managers.\n- Fake shims record exact argv.\n- A sentinel-file test proves a malicious pin cannot execute a second command.\n- Static/behavioral coverage proves actual execution does not use `shell: true`.\n- Add a Windows CI smoke covering `corepack.cmd` plus malicious-pin rejection.\n\n### B. Lifecycle-event symlink-safe append\n\n**Validated behavior**\n\n`packages/core/src/lifecycle/events.ts` resolves the event log, creates its parent directory, and calls `appendFileSync` without a containment or symlink guard. A project-controlled `.deft-cache/events.jsonl` or parent symlink can redirect the append outside the repository.\n\nA check followed by a path-based append would retain a time-of-check/time-of-use gap, so the remediation needs to couple validation with the opened file.\n\n**Implementation**\n\n- Thread an explicit `projectRoot` from `runLifecycleEvent` through the event writer instead of relying only on process cwd.\n- For the default project-owned log, call `assertWriteTargetSafe(projectRoot, target)` before directory creation/write.\n- Open using append/create/write flags plus `O_NOFOLLOW` where supported; write through the opened descriptor and close in `finally`.\n- Refuse escaping parent directories, final-target symlinks, and dangling symlinks with an actionable nonzero CLI result.\n- Preserve explicit `--log` / `DEFT_EVENT_LOG` compatibility: operator-selected external paths need not be beneath `projectRoot`, but the final target must still refuse symlink following.\n- Keep this PR scoped to lifecycle events; file follow-ups for other writers discovered during audit.\n\n**Regression tests**\n\n- `.deft-cache/events.jsonl` symlinked to an external victim.\n- `.deft-cache` parent symlinked outside the project.\n- Dangling target symlink.\n- Victim files remain unchanged after refusal.\n- Normal default append, explicit log paths, and idempotency remain intact.\n- POSIX symlink coverage plus Windows non-symlink regression coverage.\n\n### C. Product-signal destination-scoped consent\n\n**Validated behavior**\n\n`submit.ts` checks generic install consent and project enablement, then passes the project-controlled `sinkRepo` to the GitHub adapter. Consent is not bound to the authenticated request destination, so a project can redirect submission through the operator's `gh` credentials.\n\nThe original product-signal design intentionally allows `sinkRepo` overrides. The security fix should preserve that capability while explicitly amending the consent decision.\n\n**Implementation**\n\n- Introduce consent schema v2 containing the exact normalized `sinkRepo`.\n- Interpret existing v1 consent as authorization only for the baked-in default `deftai/product-signal`; v1 must never authorize a custom project sink.\n- Normalize/validate destinations as exact `owner/repo` identifiers.\n- Add a destination-authorization function that consumes policy plus consent and returns an authorized normalized sink.\n- Invoke that authorization immediately before adapter construction/network use.\n- Ensure test seams such as `skipGates` cannot bypass destination authorization.\n- Add a soft-skip result such as `sink-unconsented`, preserving the existing fail-open behavior while naming the destination that requires confirmation.\n- Update consent/status commands to display configured sink, consented sink, and whether they match.\n- Changing `plan.policy.productSignal.sinkRepo` after consent must soft-skip until the exact destination is re-consented.\n- Apply destination authorization to dry-run as well.\n- Update `content/docs/product-signal.md` and the product-signal skill pack source, then regenerate derived content rather than hand-editing it.\n\n**Regression tests**\n\n- v1 consent + default sink: allowed.\n- v1 consent + custom sink: denied.\n- v2 matching custom sink: allowed.\n- v2 mismatched/changed sink: denied before adapter construction.\n- Case normalization and malformed destination handling.\n- Adapter spy proves no GitHub request occurs on mismatch.\n- Headless operation remains noninteractive and fail-open.\n\n### Verification and completion gates\n\nEach child PR should include a brief `CHANGELOG.md` entry and focused tests for its boundary, followed by:\n\n- `task check`\n- `task verify:forward-coverage`\n- the pre-PR skill and standard review-cycle workflow\n\nFor the product-signal story, also run `task packs:render` and `task verify:pack-drift`.\n\n### Acceptance mapping\n\n- Corepack non-semver/metacharacter rejection and no attacker-controlled `shell: true`: Story A.\n- Unsafe lifecycle-event targets refused: Story B.\n- Sink authorization bound to consent and re-confirmed on change: Story C.\n- Attack-shape regression coverage: required in all three stories.",
+      "Labels": "bug, security"
+    },
+    "items": [
+      {
+        "title": "Corepack pin path rejects non-semver / metacharacter `packageManager` values and does not pass attacker-controlled strings through `shell:true`",
+        "status": "proposed"
+      },
+      {
+        "title": "`lifecycle:event` refuses symlink (or otherwise unsafe) write targets under `.deft-cache/events.jsonl`",
+        "status": "proposed"
+      },
+      {
+        "title": "Product-signal sink is bound to consent / allowlist; changing `sinkRepo` (or equivalent project policy) requires re-confirmation",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression tests cover each finding's attack shape",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "epic",
+      "status:tracker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2761",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2761: AppSec review (e7a4e7f7): Corepack shell injection + lifecycle symlink + product-signal sinkRepo"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2765",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2765: Wave-1 Corepack shell-injection hardening"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2766",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2766: Wave-1 lifecycle events.jsonl symlink refusal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2767",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2767: Wave-1 product-signal sinkRepo consent binding"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    },
+    "updated": "2026-07-22T20:37:22Z"
+  }
+}

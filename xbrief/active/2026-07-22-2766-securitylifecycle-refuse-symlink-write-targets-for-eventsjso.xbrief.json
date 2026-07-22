@@ -1,0 +1,87 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2766"
+  },
+  "plan": {
+    "title": "security(lifecycle): refuse symlink write targets for events.jsonl (#2761)",
+    "status": "running",
+    "narratives": {
+      "Description": "Make lifecycle:event refuse symlink or otherwise unsafe write targets for .deft-cache/events.jsonl. Prevent project-controlled symlinks from redirecting appends outside the repository under the operator identity.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2766",
+      "Overview": "## Parent\n\n#2761\n\n## What to build\n\nMake `task lifecycle:event` refuse symlink (or otherwise unsafe) write targets for `.deft-cache/events.jsonl` so a project-controlled symlink cannot redirect appends outside the repository under the operator identity.\n\nThread an explicit `projectRoot` from `runLifecycleEvent` through the event writer. Couple validation with the opened file (`assertWriteTargetSafe` + `O_NOFOLLOW` where supported) to avoid a TOCTOU gap.\n\n## Acceptance criteria\n\n- [ ] Default project-owned log calls `assertWriteTargetSafe(projectRoot, target)` before directory creation/write\n- [ ] Escaping parent directories, final-target symlinks, and dangling symlinks are refused with an actionable nonzero CLI result\n- [ ] Explicit `--log` / `DEFT_EVENT_LOG` paths may be outside `projectRoot` but still refuse symlink following\n- [ ] Writes go through an opened descriptor closed in `finally`\n- [ ] Regression tests cover symlink-to-victim, parent-dir symlink, dangling symlink, unchanged victim files after refusal, and normal default/explicit-log append behavior\n- [ ] `task check` passes\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone — independent of Story A; recommended merge after A only for review-surface sizing\r\n\n",
+      "Labels": "bug, security",
+      "ImplementationPlan": "1) Thread projectRoot through the lifecycle events module packages/core/src/lifecycle/events.ts and call assertWriteTargetSafe before append. 2) Add fixture tests in packages/core/src/lifecycle/events.test.ts that verify symlink targets are rejected and victim files are unchanged.",
+      "UserStory": "As a deft operator, I want lifecycle event appends to refuse symlink write targets, so that a project cannot redirect operator-identity writes outside the repo."
+    },
+    "items": [
+      {
+        "title": "Given .deft-cache/events.jsonl is a symlink to an external victim file, when lifecycle:event appends, then the CLI fails",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given .deft-cache/events.jsonl is a symlink to an external victim file, when lifecycle:event appends, then the CLI fails closed and the victim file contents remain unchanged."
+        }
+      },
+      {
+        "title": "Given an explicit --log path that is a dangling symlink, when lifecycle:event runs, then it rejects the target and retur",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given an explicit --log path that is a dangling symlink, when lifecycle:event runs, then it rejects the target and returns a nonzero actionable error."
+        }
+      },
+      {
+        "title": "Given a normal in-repo events log path, when lifecycle:event runs twice, then it persists idempotent JSONL records succe",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Given a normal in-repo events log path, when lifecycle:event runs twice, then it persists idempotent JSONL records successfully."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2766",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2766: security(lifecycle): refuse symlink write targets for events.jsonl (#2761)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2761",
+        "type": "x-xbrief/github-issue",
+        "title": "Parent umbrella #2761"
+      }
+    ],
+    "planRef": "pending/2026-07-22-2761-appsec-review-e7a4e7f7-corepack-shell-injection-lifecycle-sy.xbrief.json",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/lifecycle/events.ts",
+          "packages/core/src/lifecycle/events.test.ts",
+          "packages/cli/src/lifecycle-event.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/lifecycle/events.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "symlink write targets refused with nonzero CLI",
+          "victim files unchanged",
+          "task check passes"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-lifecycle-events",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue acceptance criteria and AppSec/planning comments rather than a SPECIFICATION section."
+      }
+    },
+    "updated": "2026-07-22T20:41:12Z",
+    "id": "2026-07-22-2766-securitylifecycle-refuse-symlink-write-targets"
+  }
+}
