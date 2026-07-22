@@ -6,7 +6,11 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isTerminalLifecyclePath, reconcile, scanVbriefDir } from "../intake/reconcile-issues.js";
+import {
+  buildLifecycleReport,
+  isTerminalLifecyclePath,
+  scanLifecycleAnchors,
+} from "../intake/reconcile-issues.js";
 import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
@@ -48,15 +52,22 @@ export function checkVbriefLifecycleSyncNative(
     vbriefDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   }
   try {
-    const issueToVbriefs = scanVbriefDir(vbriefDir);
-    const fetchResult = fetchIssueStatesForRelease(repo, new Set(issueToVbriefs.keys()), {
+    const anchors = scanLifecycleAnchors(vbriefDir);
+    const anchorIssueNumbers = new Set<number>();
+    for (const anchor of anchors) {
+      const num = anchor.issue_number as number | null;
+      if (num !== null) {
+        anchorIssueNumbers.add(num);
+      }
+    }
+    const fetchResult = fetchIssueStatesForRelease(repo, anchorIssueNumbers, {
       cwd: projectRoot,
     });
     if (!fetchResult.ok) {
       return [false, -1, fetchResult.reason];
     }
     const issueStateMap = fetchResult.states;
-    const report = reconcile(issueToVbriefs, issueStateMap);
+    const report = buildLifecycleReport(anchors, issueStateMap, false);
     const mismatches: string[] = [];
     for (const entry of report.no_open_issue) {
       const files = (entry.vbrief_files ?? []) as string[];

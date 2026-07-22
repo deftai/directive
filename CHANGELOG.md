@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Release preflight no longer blocks cuts when a closed secondary `references[]` issue remains on an open-parent xBRIEF (#2745).** Step 3 lifecycle sync now anchors closed-issue mismatch detection on the primary lifecycle issue (`parent_issue` / `planRef`), not every GitHub reference on the file.
+
 ### Removed
 
 ## [0.81.0] - 2026-07-22
