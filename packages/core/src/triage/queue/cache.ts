@@ -243,6 +243,11 @@ export function loadCachedIssues(
     if (scanPassed === false) {
       continue;
     }
+    // cachePut writes content.md only when scan_result.passed is true; missing
+    // approved content means the entry was quarantined or tampered — fail closed.
+    if (scanPassed === true && !existsSync(join(entryDir, "content.md"))) {
+      continue;
+    }
 
     const rawTitle = typeof payload.title === "string" ? payload.title : "";
     const safeTitle = sanitizeQueueTitle(rawTitle);
