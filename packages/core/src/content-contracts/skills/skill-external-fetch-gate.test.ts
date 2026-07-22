@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { listSkillMdFiles, readRepoFile } from "./helpers.js";
 import {
   analyzeSkillExternalFetch,
+  collectExternalFetchViolations,
   hasExecuteFromExternalSignal,
   hasExternalFetchSignal,
   hasRiskyExternalFetchPattern,
   hasUntrustedFetchMitigation,
-  collectExternalFetchViolations,
   skillProse,
 } from "./skill-external-fetch-gate.js";
 
