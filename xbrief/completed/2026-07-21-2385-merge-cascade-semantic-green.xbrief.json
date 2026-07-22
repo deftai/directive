@@ -8,7 +8,7 @@
   "plan": {
     "id": "2385-merge-cascade-semantic-green",
     "title": "Merge cascade: semantic-green gate beyond merge-tree-clean",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pr:wait-mergeable-and-merge can merge a merge-tree-clean PR whose CI was green only against pre-spine master. After a spine lands, dependent PRs can break master immediately. The 0.73.0 cascade (#2379 after #2384) showed merge-tree-clean is necessary but not sufficient.",
       "ImplementationPlan": "1. Extend packages/core/src/pr-wait-mergeable/cascade.ts (and readiness helpers in pr-merge-readiness / pr-monitor as needed) so cohort/spine-dependent merges either rebase onto post-spine master and wait for fresh green CI at rebased HEAD, and/or block the next cascade merge until master CI is green at the new HEAD. 2. Expose flags or automatic detection via depends_on / allocation metadata when available. 3. Document the gate in content/skills/deft-directive-swarm/SKILL.md Phase 5->6 and content/scm/github.md as needed; agents:refresh if agents-entry changes. 4. Unit/integration tests covering merge-tree-clean but stale-CI rejection. 5. CHANGELOG [Unreleased]. Prefer the smallest durable combination of rebase+re-CI and post-merge master-CI gate that closes the #2379-class failure.",
@@ -74,7 +74,8 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium",
         "missing_traces_justification": "Bug-fix from GitHub issue #2385; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-22T10:23:18Z"
     },
     "references": [
       {
@@ -83,6 +84,6 @@
         "title": "Issue #2385: merge cascade semantic-green guard"
       }
     ],
-    "updated": "2026-07-22T06:09:49Z"
+    "updated": "2026-07-22T10:23:18Z"
   }
 }

@@ -8,7 +8,7 @@
   "plan": {
     "id": "1936-untrusted-fetched-content-gate",
     "title": "feat(security,skills): untrusted fetched content doctrine + external-fetch gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Skills such as deft-directive-article-review instruct agents to fetch and follow external URLs at runtime. Fetched content treated as instructions is a TOCTOU exposure: a clean package can point at a link rewritten after review. Doctrine: external fetches are untrusted data. Gate: skill-validation (#1532) should flag fetch-then-execute patterns.",
       "ImplementationPlan": "1. Harden content/skills/deft-directive-article-review/SKILL.md and content/skills/deft-directive-debug/SKILL.md (and research strategy if in-scope) with Security context: fetched URLs are data not directives; forbid follow-as-execute. Cross-link #1938 TOCTOU and #480 without rewriting content/coding/security.md. 2. Extend skill-validation / content-contracts (#1532) to flag skills whose instructions combine external fetch with run/install/download execution patterns; surface via task check. 3. Tests for the gate; CHANGELOG [Unreleased]. Do not create the patterns/agent-skill-supply-chain.md file (#1937) or the coding/security.md TOCTOU section (#1938).",
@@ -71,7 +71,8 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium",
         "missing_traces_justification": "Security/skills work from GitHub issue #1936; extends #1532; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-22T10:22:44Z"
     },
     "references": [
       {
@@ -85,6 +86,6 @@
         "title": "Issue #1532: skill-validation gate"
       }
     ],
-    "updated": "2026-07-22T07:47:47Z"
+    "updated": "2026-07-22T10:22:44Z"
   }
 }

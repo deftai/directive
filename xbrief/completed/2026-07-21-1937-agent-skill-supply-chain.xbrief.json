@@ -8,7 +8,7 @@
   "plan": {
     "id": "1937-agent-skill-supply-chain",
     "title": "feat(security,patterns): agent-skill supply-chain security (inbound)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Directive-built projects consume skills, plugins, and MCP servers whose trust signals (stars, one-time scanner verdicts) are gameable or stale. This is the inbound complement to Agent Trap Defenses (#480) and outbound disclosure (#1700): structural controls for what skills an agent is given.",
       "ImplementationPlan": "1. Create content/patterns/agent-skill-supply-chain.md with RFC2119 guidance: treat skills as software, vet linked targets, pin versions or hashes with re-vet on change, least privilege for fetched actions, controlled install sources not stars-as-proof; cross-link issues 480 and 1700. 2. Add a discoverability pointer in content/patterns/llm-app.md and REFERENCES.md as appropriate. 3. Append CHANGELOG.md Unreleased. 4. Verify the new pattern file exists and mentions pin and re-vet guidance.",
@@ -63,7 +63,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Patterns RFC from GitHub issue #1937; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-22T10:22:45Z"
     },
     "references": [
       {
@@ -77,6 +78,6 @@
         "title": "Issue #480: Agent Trap Defenses"
       }
     ],
-    "updated": "2026-07-22T07:47:45Z"
+    "updated": "2026-07-22T10:22:45Z"
   }
 }
