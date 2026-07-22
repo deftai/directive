@@ -88,7 +88,7 @@ describe("skill_external_fetch_gate (#1936)", () => {
   it("has_untrusted_fetch_mitigation_requires_all_tokens", () => {
     expect(hasUntrustedFetchMitigation("# Skill\nfetch and read")).toBe(false);
     expect(
-      hasUntrustedFetchMitigation("## Security context\nuntrusted data\n⊗ run externally"),
+      hasUntrustedFetchMitigation("## Security context\nuntrusted data\n⊗ summarize only"),
     ).toBe(false);
   });
 
