@@ -1,7 +1,7 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildSyncComment,
   extractSyncSnapshot,
@@ -13,6 +13,16 @@ import {
   syncFromXbrief,
 } from "./sync-from-xbrief.js";
 import { parseArgs } from "./sync-from-xbrief-cli.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
+const tempRoots: string[] = [];
+
+afterEach(() => {
+  while (tempRoots.length > 0) {
+    const root = tempRoots.pop();
+    if (root) rmSync(root, { recursive: true, force: true });
+  }
+});
 
 const ORIGIN_XBRIEF = {
   xBRIEFInfo: { version: "0.8" },
@@ -161,8 +171,9 @@ describe("issue-sync dry-run and missing origin", () => {
     const out: string[] = [];
     const err: string[] = [];
     const runFn = vi.fn();
+    const { xbriefPath } = writeTempXbrief(ORIGIN_XBRIEF);
     const code = syncFromXbrief({
-      xbriefPath: writeTempXbrief(ORIGIN_XBRIEF),
+      xbriefPath,
       dryRun: true,
       repo: "deftai/directive",
       writeOut: (line) => out.push(line),
@@ -178,10 +189,11 @@ describe("issue-sync dry-run and missing origin", () => {
 
   it("missing origin exits non-zero", () => {
     const err: string[] = [];
+    const { xbriefPath } = writeTempXbrief({
+      plan: { title: "orphan", status: "running", items: [] },
+    });
     const code = syncFromXbrief({
-      xbriefPath: writeTempXbrief({
-        plan: { title: "orphan", status: "running", items: [] },
-      }),
+      xbriefPath,
       dryRun: true,
       writeErr: (line) => err.push(line),
     });
@@ -191,7 +203,7 @@ describe("issue-sync dry-run and missing origin", () => {
 
   it("skips posting when fingerprint matches stored metadata", () => {
     const snapshot = extractSyncSnapshot(ORIGIN_XBRIEF);
-    const path = writeTempXbrief({
+    const { xbriefPath, projectRoot } = writeTempXbrief({
       ...ORIGIN_XBRIEF,
       plan: {
         ...ORIGIN_XBRIEF.plan,
@@ -203,7 +215,8 @@ describe("issue-sync dry-run and missing origin", () => {
     const out: string[] = [];
     const runFn = vi.fn();
     const code = syncFromXbrief({
-      xbriefPath: path,
+      xbriefPath,
+      projectRoot,
       repo: "deftai/directive",
       writeOut: (line) => out.push(line),
       runFn,
@@ -214,16 +227,17 @@ describe("issue-sync dry-run and missing origin", () => {
   });
 
   it("posts comment and persists fingerprint on happy path", () => {
-    const path = writeTempXbrief(ORIGIN_XBRIEF);
+    const { xbriefPath, projectRoot } = writeTempXbrief(ORIGIN_XBRIEF);
     const runFn = vi.fn(() => ({ id: 999 }));
     const code = syncFromXbrief({
-      xbriefPath: path,
+      xbriefPath,
+      projectRoot,
       repo: "deftai/directive",
       runFn,
     });
     expect(code).toBe(0);
     expect(runFn).toHaveBeenCalled();
-    const saved = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const saved = JSON.parse(readFileSync(xbriefPath, "utf8")) as Record<string, unknown>;
     const plan = saved.plan as Record<string, unknown>;
     const metadata = plan.metadata as Record<string, unknown>;
     const issueSync = metadata.issueSync as Record<string, unknown>;
@@ -232,10 +246,11 @@ describe("issue-sync dry-run and missing origin", () => {
   });
 
   it("reports fingerprint persistence failure separately after posting", () => {
-    const path = writeTempXbrief(ORIGIN_XBRIEF);
+    const { xbriefPath, projectRoot } = writeTempXbrief(ORIGIN_XBRIEF);
     const err: string[] = [];
     const code = syncFromXbrief({
-      xbriefPath: path,
+      xbriefPath,
+      projectRoot,
       repo: "deftai/directive",
       runFn: () => ({ id: 1001 }),
       writeFingerprint: () => {
@@ -252,8 +267,10 @@ describe("issue-sync dry-run and missing origin", () => {
   it("refuses cross-repo comment mutation without allowCrossRepo (#2633)", () => {
     const err: string[] = [];
     const runFn = vi.fn();
+    const { xbriefPath, projectRoot } = writeTempXbrief(CROSS_REPO_XBRIEF);
     const code = syncFromXbrief({
-      xbriefPath: writeTempXbrief(CROSS_REPO_XBRIEF),
+      xbriefPath,
+      projectRoot,
       repo: "deftai/directive",
       writeErr: (line) => err.push(line),
       runFn,
@@ -264,10 +281,11 @@ describe("issue-sync dry-run and missing origin", () => {
   });
 
   it("allows cross-repo comment mutation when allowCrossRepo is set (#2633)", () => {
-    const path = writeTempXbrief(CROSS_REPO_XBRIEF);
+    const { xbriefPath, projectRoot } = writeTempXbrief(CROSS_REPO_XBRIEF);
     const runFn = vi.fn(() => ({ id: 1002 }));
     const code = syncFromXbrief({
-      xbriefPath: path,
+      xbriefPath,
+      projectRoot,
       repo: "deftai/directive",
       allowCrossRepo: true,
       runFn,
@@ -277,10 +295,11 @@ describe("issue-sync dry-run and missing origin", () => {
   });
 
   it("allows cross-repo comment mutation when target is allowlisted (#2633)", () => {
-    const path = writeTempXbrief(CROSS_REPO_XBRIEF);
+    const { xbriefPath, projectRoot } = writeTempXbrief(CROSS_REPO_XBRIEF);
     const runFn = vi.fn(() => ({ id: 1003 }));
     const code = syncFromXbrief({
-      xbriefPath: path,
+      xbriefPath,
+      projectRoot,
       repo: "deftai/directive",
       repoAllowlist: ["other/victim"],
       runFn,
@@ -292,8 +311,10 @@ describe("issue-sync dry-run and missing origin", () => {
   it("refuses cross-repo dry-run without allowCrossRepo (#2633)", () => {
     const err: string[] = [];
     const runFn = vi.fn();
+    const { xbriefPath, projectRoot } = writeTempXbrief(CROSS_REPO_XBRIEF);
     const code = syncFromXbrief({
-      xbriefPath: writeTempXbrief(CROSS_REPO_XBRIEF),
+      xbriefPath,
+      projectRoot,
       dryRun: true,
       repo: "deftai/directive",
       writeErr: (line) => err.push(line),
@@ -305,21 +326,72 @@ describe("issue-sync dry-run and missing origin", () => {
   });
 
   it("allows same-repo sync when --repo is a full GitHub URL (#2633)", () => {
-    const path = writeTempXbrief(ORIGIN_XBRIEF);
+    const { xbriefPath, projectRoot } = writeTempXbrief(ORIGIN_XBRIEF);
     const runFn = vi.fn(() => ({ id: 1004 }));
     const code = syncFromXbrief({
-      xbriefPath: path,
+      xbriefPath,
+      projectRoot,
       repo: "https://github.com/deftai/directive",
       runFn,
     });
     expect(code).toBe(0);
     expect(runFn).toHaveBeenCalled();
   });
+
+  itSymlink(
+    "refuses fingerprint persist when xBRIEF is a symlink outside the project (#2710)",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "issue-sync-project-"));
+      tempRoots.push(root);
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        `${JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "Project", status: "running", items: [] },
+        })}\n`,
+        "utf8",
+      );
+      const escapeDir = mkdtempSync(join(tmpdir(), "issue-sync-escape-"));
+      tempRoots.push(escapeDir);
+      const victim = join(escapeDir, "scope.xbrief.json");
+      writeFileSync(victim, `${JSON.stringify(ORIGIN_XBRIEF, null, 2)}\n`, "utf8");
+      const linkedPath = join(root, "xbrief", "active", "scope.xbrief.json");
+      symlinkSync(victim, linkedPath);
+
+      const runFn = vi.fn(() => ({ id: 2001 }));
+      const err: string[] = [];
+      const code = syncFromXbrief({
+        xbriefPath: linkedPath,
+        projectRoot: root,
+        repo: "deftai/directive",
+        runFn,
+        writeErr: (line) => err.push(line),
+      });
+      expect(code).toBe(1);
+      expect(runFn).toHaveBeenCalled();
+      expect(err.join("\n")).toMatch(/projection write refused|symlink/);
+      expect(readFileSync(victim, "utf8")).not.toContain('"issueSync"');
+    },
+  );
 });
 
-function writeTempXbrief(data: Record<string, unknown>): string {
-  const dir = mkdtempSync(join(tmpdir(), "issue-sync-"));
-  const path = join(dir, "scope.xbrief.json");
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-  return path;
+function writeTempXbrief(data: Record<string, unknown>): {
+  xbriefPath: string;
+  projectRoot: string;
+} {
+  const projectRoot = mkdtempSync(join(tmpdir(), "issue-sync-"));
+  tempRoots.push(projectRoot);
+  mkdirSync(join(projectRoot, "xbrief", "active"), { recursive: true });
+  writeFileSync(
+    join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    `${JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "Fixture", status: "running", items: [] },
+    })}\n`,
+    "utf8",
+  );
+  const xbriefPath = join(projectRoot, "xbrief", "active", "scope.xbrief.json");
+  writeFileSync(xbriefPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  return { xbriefPath, projectRoot };
 }

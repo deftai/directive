@@ -320,11 +320,17 @@ func regenerateBareVersionMarker(projectDir, tag string) (string, error) {
 	if bare == "" {
 		return "", nil
 	}
+	if err := assertConsumerProjectionContained(projectDir, "vbrief/.deft-version"); err != nil {
+		return "", err
+	}
 	vbriefDir := filepath.Join(projectDir, "vbrief")
 	if err := os.MkdirAll(vbriefDir, 0o755); err != nil {
 		return "", fmt.Errorf("could not create vbrief/ for .deft-version: %w", err)
 	}
 	path := filepath.Join(vbriefDir, ".deft-version")
+	if err := assertDestinationNotSymlink(path); err != nil {
+		return "", err
+	}
 	if err := os.WriteFile(path, []byte(bare+"\n"), 0o644); err != nil {
 		return "", fmt.Errorf("could not write vbrief/.deft-version: %w", err)
 	}

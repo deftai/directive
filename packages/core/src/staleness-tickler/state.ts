@@ -1,8 +1,14 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { resolveTriageCachePath } from "../triage/cache-path.js";
 import type { StalenessTicklerState } from "./types.js";
 
 export const STATE_RELATIVE_PATH = join("xbrief", ".triage-cache", "staleness-tickler-state.json");
+const STATE_FILE_NAME = "staleness-tickler-state.json";
+
+function resolveStalenessTicklerStatePath(projectRoot: string): string {
+  return resolveTriageCachePath(projectRoot, STATE_FILE_NAME);
+}
 
 export interface StateIo {
   readonly readText?: (path: string) => string | null;
@@ -43,7 +49,12 @@ export function loadStalenessTicklerState(
   projectRoot: string,
   io: StateIo = {},
 ): StalenessTicklerState {
-  const path = join(projectRoot, STATE_RELATIVE_PATH);
+  let path: string;
+  try {
+    path = resolveStalenessTicklerStatePath(projectRoot);
+  } catch {
+    return {};
+  }
   return parseStalenessTicklerState((io.readText ?? defaultReadText)(path));
 }
 
@@ -52,7 +63,12 @@ export function saveStalenessTicklerState(
   state: StalenessTicklerState,
   io: StateIo = {},
 ): void {
-  const path = join(projectRoot, STATE_RELATIVE_PATH);
+  let path: string;
+  try {
+    path = resolveStalenessTicklerStatePath(projectRoot);
+  } catch {
+    return;
+  }
   try {
     (io.writeText ?? defaultWriteText)(path, `${JSON.stringify(state, null, 2)}\n`);
   } catch {

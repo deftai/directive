@@ -819,6 +819,60 @@ func TestRegenerateBareVersionMarker(t *testing.T) {
 	})
 }
 
+// TestRegenerateBareVersionMarker_SymlinkOutside_RejectsProjection pins #2710:
+// when vbrief/.deft-version is a repo-controlled symlink pointing outside the
+// checkout, regenerateBareVersionMarker refuses before writing through the link.
+func TestRegenerateBareVersionMarker_SymlinkOutside_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	vbriefDir := filepath.Join(proj, "vbrief")
+	if err := os.MkdirAll(vbriefDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := seedOutsideSymlinkTarget(t)
+	symlinkOrSkip(t, outside, filepath.Join(vbriefDir, ".deft-version"))
+
+	_, err := regenerateBareVersionMarker(proj, "v0.39.3")
+	if err == nil {
+		t.Fatal("expected regenerateBareVersionMarker to refuse symlink .deft-version, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+	got, readErr := os.ReadFile(outside)
+	if readErr != nil {
+		t.Fatalf("read outside target: %v", readErr)
+	}
+	if string(got) != "untouched-sensitive-content\n" {
+		t.Fatalf("outside target was modified through symlink; got %q", got)
+	}
+}
+
+// TestRegenerateBareVersionMarker_SymlinkVbriefDir_RejectsProjection pins #2710:
+// when vbrief/ itself is a symlink escaping the project tree, marker regen refuses.
+func TestRegenerateBareVersionMarker_SymlinkVbriefDir_RejectsProjection(t *testing.T) {
+	proj := t.TempDir()
+	outsideDir := filepath.Join(t.TempDir(), "outside-vbrief")
+	if err := os.MkdirAll(outsideDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	symlinkOrSkip(t, outsideDir, filepath.Join(proj, "vbrief"))
+
+	_, err := regenerateBareVersionMarker(proj, "v0.39.3")
+	if err == nil {
+		t.Fatal("expected regenerateBareVersionMarker to refuse symlink vbrief/, got nil")
+	}
+	if !strings.Contains(err.Error(), "consumer projection refused") {
+		t.Fatalf("expected containment refusal, got: %v", err)
+	}
+	entries, err := os.ReadDir(outsideDir)
+	if err != nil {
+		t.Fatalf("read outside vbrief dir: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected no .deft-version written through symlink vbrief/, found %d entries", len(entries))
+	}
+}
+
 // TestRefreshVendoredCore_RegeneratesBareVersionMarker is the #1437 Bug B
 // regression: the vendored file-swap upgrade refreshes .deft/core/** AND now
 // regenerates the bare vbrief/.deft-version derivative from the resolved tag, so

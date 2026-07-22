@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { createIssueComment, type RunGhApiFn } from "../intake/github-body.js";
 import { provenanceIssueNumber, repoSlugFromUrl } from "../intake/issue-ingest.js";
 import {
@@ -276,10 +277,12 @@ export function syncFromXbrief(options: SyncFromXbriefOptions): number {
   const writeFingerprint =
     options.writeFingerprint ??
     ((targetPath, stamped) => {
+      assertWriteTargetSafe(projectRoot, targetPath);
       writeFileSync(targetPath, `${JSON.stringify(stamped, null, 2)}\n`, "utf8");
     });
 
   try {
+    assertWriteTargetSafe(projectRoot, absPath);
     writeFingerprint(absPath, stampIssueSyncFingerprint(data, origin));
   } catch (exc) {
     writeErr(
