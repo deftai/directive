@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Inbound agent-skill supply-chain security pattern complementing Agent Trap Defenses (#480).",
+    "created": "2026-07-22T08:00:00Z",
+    "updated": "2026-07-22T08:00:00Z"
+  },
+  "plan": {
+    "id": "1937-agent-skill-supply-chain",
+    "title": "feat(security,patterns): agent-skill supply-chain security (inbound)",
+    "status": "running",
+    "narratives": {
+      "Description": "Directive-built projects consume skills, plugins, and MCP servers whose trust signals (stars, one-time scanner verdicts) are gameable or stale. This is the inbound complement to Agent Trap Defenses (#480) and outbound disclosure (#1700): structural controls for what skills an agent is given.",
+      "ImplementationPlan": "1. Create content/patterns/agent-skill-supply-chain.md with RFC2119 guidance: treat skills as software, vet linked targets, pin versions or hashes with re-vet on change, least privilege for fetched actions, controlled install sources not stars-as-proof; cross-link issues 480 and 1700. 2. Add a discoverability pointer in content/patterns/llm-app.md and REFERENCES.md as appropriate. 3. Append CHANGELOG.md Unreleased. 4. Verify the new pattern file exists and mentions pin and re-vet guidance.",
+      "UserStory": "As a maintainer adding agent skills to a directive project, I want inbound supply-chain guidance that rejects signal-based trust, so that marketplace stars and one-time scans are not treated as lasting proof."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "New patterns entry for skill supply chain",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content/patterns/agent-skill-supply-chain.md exists, when an operator reads it, then pin/re-vet, vet-linked-targets, least-privilege, and controlled-source guidance are present with #480/#1700 cross-links."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Index/cross-link + CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the pattern lands, when REFERENCES or sibling pattern indexes are checked, then the new entry is discoverable; CHANGELOG [Unreleased] notes it."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "docs",
+      "x-tracking": {
+        "parent_issue": "#1937",
+        "decomposition_origin": "#1937"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/patterns/agent-skill-supply-chain.md",
+          "content/patterns/llm-app.md",
+          "content/meta/security.md",
+          "REFERENCES.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "rg -n \"supply.chain|pin|re-vet\" content/patterns/agent-skill-supply-chain.md"
+        ],
+        "expected_outputs": [
+          "patterns/agent-skill-supply-chain.md",
+          "cross-links",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "toctou-docs-1937",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Patterns RFC from GitHub issue #1937; no FR trace registry for hotfix cohort."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1937",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1937: agent-skill supply-chain security"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/480",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #480: Agent Trap Defenses"
+      }
+    ],
+    "updated": "2026-07-22T07:47:45Z"
+  }
+}

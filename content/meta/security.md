@@ -10,6 +10,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - [../swarm/swarm.md](../swarm/swarm.md) `## Compositional Fragment Defense (#480)` -- the Systemic / Compositional-Fragment class for multi-agent runs
 - [../vbrief/vbrief.md](../vbrief/vbrief.md) `### TrustLevel (#480)` -- the Cognitive State / Latent Memory class at the vBRIEF layer (additive extension; coordinates with #479 source-provenance work)
 - [../patterns/llm-app.md](../patterns/llm-app.md) -- the LLM-application analogue of the same trap classes (the rule body for projects Directive *builds*, not for Directive itself)
+- [../patterns/agent-skill-supply-chain.md](../patterns/agent-skill-supply-chain.md) -- inbound supply-chain controls for skills, plugins, and MCP servers (#1937); complements #480 runtime defenses and #1700 outbound disclosure
 - [../coding/security.md](../coding/security.md) `## Agent-Specific Threats` -- baseline security rules every project inherits
 
 ## Loading guidance
@@ -23,7 +24,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 The taxonomy below is sourced from the first systematic study of adversarial attacks targeting autonomous agents:
 
 - **AI Agent Traps** -- Franklin et al., Google DeepMind, 2025 (`docs/ssrn-6372438.pdf`)
-- Companion deft-side work: #480 (this taxonomy + framework-side defenses), #479 (vBRIEF source-provenance / TrustLevel field), #481 (patterns/llm-app.md application-layer analogue), #661 (coding/security.md baseline)
+- Companion deft-side work: #480 (this taxonomy + framework-side defenses), #479 (vBRIEF source-provenance / TrustLevel field), #481 (patterns/llm-app.md application-layer analogue), #661 (coding/security.md baseline), #1937 (patterns/agent-skill-supply-chain.md inbound skill vet/pin/re-vet), #1700 (outbound disclosure complement)
 
 The paper reports an 86% **partial-commandeering** rate for naive prompt injections embedded in web content -- the rules below are not theoretical; they close a measured attack surface.
 
