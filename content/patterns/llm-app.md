@@ -27,6 +27,7 @@ also #480 for the framework-side defenses against the same trap classes).
 - [../coding/coding.md](../coding/coding.md) — general coding standards (the addendum cross-references this file)
 - [../tools/telemetry.md](../tools/telemetry.md) — `## LLM-specific observability (#481)` extends general telemetry guidance for LLM calls
 - [../patterns/multi-agent.md](./multi-agent.md) — credential separation pattern for swarm workers (orthogonal identity track)
+- [./agent-skill-supply-chain.md](./agent-skill-supply-chain.md) — inbound supply-chain controls for skills, plugins, and MCP servers (#1937)
 
 ## Prompt construction
 
@@ -156,6 +157,8 @@ invisible to standard request/response tracing.
 ## Cross-references
 
 - #480 — agent trap defenses for directive agents themselves (the same trap classes, applied to the framework's own agents)
+- #1937 — agent-skill supply-chain security (inbound vet/pin/re-vet for skills, plugins, MCP servers)
+- #1700 — outbound disclosure complement (what agents may emit about environment and secrets)
 - #479 — false memory propagation and vBRIEF trust levels (the persistence-layer analogue of RAG poisoning)
 - `coding/coding.md` `## Calling LLM APIs (#481)` — short cross-reference addendum
 - `tools/telemetry.md` `## LLM-specific observability (#481)` — the observability surface this file mandates

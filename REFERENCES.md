@@ -177,6 +177,11 @@ Load as needed:
 - Contains: the cached-prefix-vs-ephemeral-injection invariant, canonical content for each layer, most-stable-first ordering inside the cached prefix, observability fields for cache-tier telemetry, and the load-bearing link to frozen-memory-snapshot (#832)
 - Extends: `patterns/llm-app.md` `## Prompt construction` + `## LLM-specific observability`
 
+**[patterns/agent-skill-supply-chain.md](./content/patterns/agent-skill-supply-chain.md)** - Agent-skill supply-chain security (#1937)
+- Load: When the project adds, updates, or curates agent skills, Cursor rules, MCP server configs, plugin manifests, or third-party capability bundles
+- Contains: treat skills as software, controlled install sources (not stars-as-proof), vet linked targets, pin versions with re-vet on change, least privilege for fetched actions; complements #480 runtime trap defenses and #1700 outbound disclosure
+- Source material: agent marketplace supply-chain incidents; coordinates with `meta/security.md` (#480)
+
 ### When Managing Context or Long Tasks
 
 - **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
