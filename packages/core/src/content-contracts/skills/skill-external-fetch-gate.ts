@@ -18,6 +18,17 @@ const UNTRUSTED_DOCTRINE_RE = /untrusted\s+(?:external\s+)?(?:content|data)/i;
 const FORBID_EXTERNAL_EXECUTE_RE =
   /⊗[\s\S]{0,200}\b(?:download|install|execute|run)\b[\s\S]{0,200}\b(?:external|fetched|externally|found inside)\b/i;
 
+/** Strip HTML comment blocks; repeat until stable for CodeQL multi-char sanitization. */
+function stripHtmlComments(text: string): string {
+  let body = text;
+  let prev = "";
+  while (prev !== body) {
+    prev = body;
+    body = body.replace(/<!--[\s\S]*?-->/g, "");
+  }
+  return body;
+}
+
 /** Strip YAML frontmatter and HTML comment banners before scanning skill prose. */
 export function skillProse(raw: string): string {
   let body = raw.replace(/\r\n/g, "\n");
@@ -27,7 +38,7 @@ export function skillProse(raw: string): string {
       body = body.slice(end + 4);
     }
   }
-  return body.replace(/<!--[\s\S]*?-->/g, "");
+  return stripHtmlComments(body);
 }
 
 export function hasExternalFetchSignal(prose: string): boolean {
