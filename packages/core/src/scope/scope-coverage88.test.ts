@@ -28,7 +28,7 @@ import {
 } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
-import { minimalScopeBrief } from "./scope-test-fixtures.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.test.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { findByBatchId, undoBatch, undoOne } from "./undo.js";
 import { formatBriefJson } from "./vbrief-json.js";

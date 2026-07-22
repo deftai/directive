@@ -6,7 +6,7 @@ import { append, canonicalLogPath, newDecisionId, ScopeAuditLogError } from "./a
 import { demoteOne } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
-import { minimalScopeBrief } from "./scope-test-fixtures.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.test.js";
 import { runTransition } from "./transition.js";
 import { undoOne } from "./undo.js";
 import { formatBriefJson } from "./vbrief-json.js";

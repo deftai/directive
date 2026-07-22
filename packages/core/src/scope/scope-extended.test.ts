@@ -12,7 +12,7 @@ import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
-import { minimalScopeBrief } from "./scope-test-fixtures.js";
+import { minimalScopeBrief } from "./scope-test-fixtures.test.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { undoOne } from "./undo.js";
 import { formatBriefJson } from "./vbrief-json.js";
