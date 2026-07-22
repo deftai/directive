@@ -1,3 +1,4 @@
+import { FIELD_HOST_HOOKS, FIELD_HOST_HOOKS_CLI_ALIAS, inspectHostHooks } from "./host-hooks.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import {
   FIELD_PRODUCT_SIGNAL,
@@ -27,6 +28,7 @@ export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./disclosure.js";
+export * from "./host-hooks.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
 export * from "./product-signal.js";
@@ -313,6 +315,16 @@ function inspectRuntimeAuthorityField(data: Record<string, unknown> | null): Pol
   };
 }
 
+function inspectHostHooksField(data: Record<string, unknown> | null): PolicyField {
+  const field = inspectHostHooks(data);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -344,6 +356,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
       emptyIsTyped: true,
     }),
   inspectSwarmSubagentBackend,
+  inspectHostHooksField,
   inspectStalenessTicklerField,
   inspectRuntimeAuthorityField,
   inspectProductSignalField,
@@ -367,7 +380,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
           ? FIELD_STALENESS_TICKLER
           : name === FIELD_RUNTIME_AUTHORITY_CLI_ALIAS
             ? FIELD_RUNTIME_AUTHORITY
-            : name;
+            : name === FIELD_HOST_HOOKS_CLI_ALIAS
+              ? FIELD_HOST_HOOKS
+              : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

@@ -3,6 +3,11 @@ import { dirname, join } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
+import {
+  type HostHooksPolicy,
+  isHostHookDepositEnabled,
+  loadHostHooksPolicyFromProject,
+} from "../policy/host-hooks.js";
 import type { InitDepositIo } from "./constants.js";
 
 export { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
@@ -90,9 +95,24 @@ function isManagedNestedGroup(value: unknown): boolean {
   return nestedCommands(value).some((value) => value.includes(DEFT_HOOK_COMMAND_MARKER));
 }
 
+function isManagedNestedGroupForHost(value: unknown, host: NestedHookHost): boolean {
+  return nestedCommands(value).some(
+    (command) => command.includes(DEFT_HOOK_COMMAND_MARKER) && command.includes(`--host ${host}`),
+  );
+}
+
 function isManagedCursorEntry(value: unknown): boolean {
   const entry = object(value);
   return typeof entry?.command === "string" && entry.command.includes(DEFT_HOOK_COMMAND_MARKER);
+}
+
+function isManagedCursorEntryForHost(value: unknown): boolean {
+  const entry = object(value);
+  return (
+    typeof entry?.command === "string" &&
+    entry.command.includes(DEFT_HOOK_COMMAND_MARKER) &&
+    entry.command.includes("--host cursor")
+  );
 }
 
 type NestedHookHost = "claude" | "grok" | "codex";
@@ -142,6 +162,47 @@ function mergeNestedConfig(
   return { ...config, hooks };
 }
 
+function stripManagedNestedConfig(
+  config: Record<string, unknown>,
+  path: string,
+  host: NestedHookHost,
+): Record<string, unknown> {
+  const hooks = hooksObject(config, path);
+  const nextHooks: Record<string, unknown> = {};
+  for (const key of ["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const) {
+    if (!(key in hooks)) continue;
+    const filtered = eventArray(hooks, key, path).filter(
+      (entry) => !isManagedNestedGroupForHost(entry, host),
+    );
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _hooks, ...rest } = config;
+    return rest;
+  }
+  return { ...config, hooks: nextHooks };
+}
+
+function stripManagedCursorConfig(
+  config: Record<string, unknown>,
+  path: string,
+): Record<string, unknown> {
+  const hooks = hooksObject(config, path);
+  const nextHooks: Record<string, unknown> = {};
+  for (const key of ["sessionStart", "preToolUse", "preCompact"] as const) {
+    if (!(key in hooks)) continue;
+    const filtered = eventArray(hooks, key, path).filter(
+      (entry) => !isManagedCursorEntryForHost(entry),
+    );
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _hooks, version: _version, ...rest } = config;
+    return rest;
+  }
+  return { ...config, version: 1, hooks: nextHooks };
+}
+
 function mergeCursorConfig(config: Record<string, unknown>, path: string): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "sessionStart", path).filter(
@@ -187,45 +248,90 @@ function writeJsonIfChanged(path: string, payload: Record<string, unknown>): boo
 export function writeAgentHookDeposit(
   projectRoot: string,
   io: InitDepositIo = { printf: () => undefined },
+  hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
 ): AgentHookDepositResult {
   const changedPaths: AgentHookPath[] = [];
+  const strippedPaths: AgentHookPath[] = [];
   const definitions: Array<{
+    host: HookHost;
     path: AgentHookPath;
     merge: (config: Record<string, unknown>, path: string) => Record<string, unknown>;
+    strip: (config: Record<string, unknown>, path: string) => Record<string, unknown>;
   }> = [
     {
+      host: "claude",
       path: AGENT_HOOK_PATHS[0],
       merge: (config, path) => mergeNestedConfig(config, path, "claude", { compact: true }),
+      strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },
     {
+      host: "grok",
       path: AGENT_HOOK_PATHS[1],
       merge: (config, path) => mergeNestedConfig(config, path, "grok", { compact: true }),
+      strip: (config, path) => stripManagedNestedConfig(config, path, "grok"),
     },
-    { path: AGENT_HOOK_PATHS[2], merge: mergeCursorConfig },
     {
+      host: "cursor",
+      path: AGENT_HOOK_PATHS[2],
+      merge: mergeCursorConfig,
+      strip: stripManagedCursorConfig,
+    },
+    {
+      host: "codex",
       path: AGENT_HOOK_PATHS[3],
       merge: (config, path) => mergeNestedConfig(config, path, "codex", { compact: false }),
+      strip: (config, path) => stripManagedNestedConfig(config, path, "codex"),
     },
   ];
 
-  const prepared = definitions.map((definition) => {
+  type PreparedWrite =
+    | { mode: "skip" }
+    | {
+        mode: "merge" | "strip";
+        absolute: string;
+        path: AgentHookPath;
+        payload: Record<string, unknown>;
+      };
+
+  const prepared: PreparedWrite[] = definitions.map((definition) => {
     const absolute = join(projectRoot, definition.path);
     assertDepositContained(projectRoot, absolute);
-    const merged = definition.merge(readConfig(absolute), absolute);
-    return { ...definition, absolute, merged };
+    if (!isHostHookDepositEnabled(definition.host, hostHooksPolicy)) {
+      if (!existsSync(absolute)) return { mode: "skip" };
+      return {
+        mode: "strip",
+        absolute,
+        path: definition.path,
+        payload: definition.strip(readConfig(absolute), absolute),
+      };
+    }
+    return {
+      mode: "merge",
+      absolute,
+      path: definition.path,
+      payload: definition.merge(readConfig(absolute), absolute),
+    };
   });
 
-  for (const definition of prepared) {
-    if (writeJsonIfChanged(definition.absolute, definition.merged)) {
-      changedPaths.push(definition.path);
+  for (const item of prepared) {
+    if (item.mode === "skip") continue;
+    if (writeJsonIfChanged(item.absolute, item.payload)) {
+      if (item.mode === "strip") strippedPaths.push(item.path);
+      else changedPaths.push(item.path);
     }
   }
   if (changedPaths.length > 0) {
     io.printf(`Installed Directive agent hooks: ${changedPaths.join(", ")}\n`);
-  } else {
+  }
+  if (strippedPaths.length > 0) {
+    io.printf(
+      `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ${strippedPaths.join(", ")}\n`,
+    );
+  }
+  if (changedPaths.length === 0 && strippedPaths.length === 0) {
     io.printf("Directive agent hooks already current.\n");
   }
-  return { changed: changedPaths.length > 0, changedPaths };
+  return { changed: changedPaths.length + strippedPaths.length > 0, changedPaths };
 }
 
 function hasNestedRegistration(
@@ -291,7 +397,10 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
 }
 
 /** Read-only registration probe shared by verify and doctor. */
-export function inspectAgentHookDeposit(projectRoot: string): AgentHookInspection[] {
+export function inspectAgentHookDeposit(
+  projectRoot: string,
+  hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
+): AgentHookInspection[] {
   const definitions: Array<{
     host: HookHost;
     path: AgentHookPath;
@@ -330,6 +439,17 @@ export function inspectAgentHookDeposit(projectRoot: string): AgentHookInspectio
       definition.compactSupport === "unsupported"
         ? " Compact re-arm is not deposited for Codex (no native compact hook surface)."
         : " PreCompact/PostCompact or preCompact compact re-arm is deposited.";
+    if (!isHostHookDepositEnabled(definition.host, hostHooksPolicy)) {
+      return {
+        host: definition.host,
+        path: definition.path,
+        status: "healthy",
+        compactSupport: definition.compactSupport,
+        detail:
+          `plan.policy.hostHooks.${definition.host} is false — Directive hook deposit is skipped for this host.` +
+          compactNote,
+      };
+    }
     if (!existsSync(absolute)) {
       return {
         host: definition.host,

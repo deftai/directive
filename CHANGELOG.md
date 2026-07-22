@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Persistent agent-host hook opt-out (#2752).** `plan.policy.hostHooks` lets consumers disable Directive hook deposit per host (`claude`, `cursor`, `grok`, `codex`). Opted-out hosts are skipped on `deft update` / `directive init`, managed entries are stripped without deleting unrelated settings, and doctor / `verify:hooks-installed` no longer recommend repair. Inspect with `deft policy:show --field=hostHooks`.
+
 ### Changed
 
 ### Fixed

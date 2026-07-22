@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
+import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
 import { evaluateAgentHooks } from "./agent-hooks.js";
 
 const temps: string[] = [];
@@ -42,5 +43,29 @@ describe("evaluateAgentHooks", () => {
     const result = evaluateAgentHooks(join(root, "missing"));
     expect(result.code).toBe(2);
     expect(result.message).toContain("does not exist");
+  });
+
+  it("passes when Claude is opted out via plan.policy.hostHooks", () => {
+    const root = project();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ plan: { policy: { hostHooks: { claude: false } } } }, null, 2)}\n`,
+      "utf8",
+    );
+    writeAgentHookDeposit(
+      root,
+      { printf: () => undefined },
+      {
+        ...DEFAULT_HOST_HOOKS_POLICY,
+        claude: false,
+      },
+    );
+
+    const result = evaluateAgentHooks(root);
+    expect(result.code).toBe(0);
+    expect(result.registrations.find((entry) => entry.host === "claude")).toMatchObject({
+      status: "healthy",
+    });
   });
 });

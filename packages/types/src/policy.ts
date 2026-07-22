@@ -26,6 +26,8 @@ export interface PlanPolicy {
   readonly triageHoldMarkers?: readonly string[];
   readonly swarmSubagentBackend?: string | null;
   readonly projectionProviders?: Record<string, ProjectionProviderPolicy>;
+  /** Per-host Directive hook deposit toggles (#2752). Default: all true. */
+  readonly hostHooks?: Partial<Record<"claude" | "cursor" | "grok" | "codex", boolean>>;
   readonly [key: `x-${string}`]: unknown;
 }
 

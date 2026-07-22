@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "security(lifecycle): refuse symlink write targets for events.jsonl (#2761)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Make lifecycle:event refuse symlink or otherwise unsafe write targets for .deft-cache/events.jsonl. Prevent project-controlled symlinks from redirecting appends outside the repository under the operator identity.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2766",
@@ -53,7 +53,6 @@
         "title": "Parent umbrella #2761"
       }
     ],
-    "planRef": "pending/2026-07-22-2761-appsec-review-e7a4e7f7-corepack-shell-injection-lifecycle-sy.xbrief.json",
     "metadata": {
       "kind": "story",
       "swarm": {
@@ -79,9 +78,11 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue acceptance criteria and AppSec/planning comments rather than a SPECIFICATION section."
-      }
+      },
+      "completedAt": "2026-07-22T23:16:35Z",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-07-22T20:41:12Z",
+    "updated": "2026-07-22T23:16:35Z",
     "id": "2026-07-22-2766-securitylifecycle-refuse-symlink-write-targets"
   }
 }

@@ -16,6 +16,7 @@ import {
   isSpawnTool,
   SPAWN_TOOL_NAMES,
 } from "../hooks/tools.js";
+import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
 import {
   AGENT_HOOK_PATHS,
   DIRECT_WRITE_HOOK_MATCHER,
@@ -33,6 +34,15 @@ function project(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-agent-hooks-"));
   temps.push(root);
   return root;
+}
+
+function writeProjectDefinition(root: string, hostHooks: Record<string, boolean>): void {
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(
+    join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+    `${JSON.stringify({ plan: { policy: { hostHooks } } }, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 describe("writeAgentHookDeposit", () => {
@@ -221,6 +231,49 @@ describe("writeAgentHookDeposit", () => {
       expect(existsSync(join(outside, "hooks.json"))).toBe(false);
     },
   );
+
+  it("skips Claude deposit when plan.policy.hostHooks.claude is false", () => {
+    const root = project();
+    writeProjectDefinition(root, { claude: false });
+    const lines: string[] = [];
+    const policy = { ...DEFAULT_HOST_HOOKS_POLICY, claude: false };
+    const result = writeAgentHookDeposit(root, { printf: (text) => lines.push(text) }, policy);
+
+    expect(result.changedPaths).not.toContain(".claude/settings.json");
+    expect(() => readFileSync(join(root, ".claude/settings.json"), "utf8")).toThrow();
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
+      "--host cursor --event tool.before",
+    );
+    expect(lines.join("")).toContain("Installed Directive agent hooks");
+  });
+
+  it("strips managed Claude hooks on update while preserving unrelated settings", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const claudePath = join(root, ".claude/settings.json");
+    const claude = JSON.parse(readFileSync(claudePath, "utf8")) as Record<string, unknown>;
+    claude.permissions = { allow: ["Read"] };
+    writeFileSync(claudePath, `${JSON.stringify(claude, null, 2)}\n`, "utf8");
+
+    const policy = { ...DEFAULT_HOST_HOOKS_POLICY, claude: false };
+    writeAgentHookDeposit(root, { printf: () => undefined }, policy);
+    const stripped = readFileSync(claudePath, "utf8");
+
+    expect(stripped).not.toContain("deft hook:dispatch");
+    expect(stripped).toContain('"allow"');
+    expect(stripped).toContain("Read");
+  });
+
+  it("does not recreate Claude settings after deletion when Claude is opted out", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    rmSync(join(root, ".claude/settings.json"));
+    const policy = { ...DEFAULT_HOST_HOOKS_POLICY, claude: false };
+
+    writeAgentHookDeposit(root, { printf: () => undefined }, policy);
+
+    expect(existsSync(join(root, ".claude/settings.json"))).toBe(false);
+  });
 });
 
 describe("inspectAgentHookDeposit", () => {
@@ -243,6 +296,19 @@ describe("inspectAgentHookDeposit", () => {
 
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "cursor")).toMatchObject({
       status: "drifted",
+    });
+  });
+
+  it("reports opted-out Claude host as healthy without requiring deposit", () => {
+    const root = project();
+    writeProjectDefinition(root, { claude: false });
+    const policy = { ...DEFAULT_HOST_HOOKS_POLICY, claude: false };
+
+    expect(
+      inspectAgentHookDeposit(root, policy).find((entry) => entry.host === "claude"),
+    ).toMatchObject({
+      status: "healthy",
+      detail: expect.stringContaining("hostHooks.claude is false"),
     });
   });
 });
