@@ -113,11 +113,8 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/process\.argv\[1\]/);
     expect(engine).toMatch(/readFileSync\(process\.argv\[1\]/);
     expect(engine).toMatch(/pm-run:/);
-    expect(engine).toMatch(/shell:true/);
-    expect(engine).toMatch(/trySteps/);
-    expect(engine).toMatch(/corepack/);
-    expect(engine).toMatch(/packageManager/);
-    expect(engine).toMatch(/DEFT_PACKAGE_MANAGER/);
+    expect(engine).toMatch(/engine-pm-run\.cjs/);
+    expect(engine).not.toMatch(/execFileSync\(cmd,args,\{cwd:root,stdio:'inherit',shell:true/);
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
     expect(engine).toMatch(/command -v directive/);
@@ -211,22 +208,28 @@ writeFileSync(process.env.TEST_ENGINE_OUTER_OUT, JSON.stringify({
   });
 
   it("pm-run / _ts-build hasCmd is cross-platform (no Unix sh/command -v) (#2415)", () => {
-    const engine = readTask(ENGINE_FILE);
+    const helper = readFileSync(join(repoRoot(), "tasks", "engine-pm-run.cjs"), {
+      encoding: "utf8",
+    });
     // Windows-native Task often has no `sh` on PATH; #2411's probe never saw Corepack.cmd.
-    expect(engine).not.toMatch(/execFileSync\('sh',\s*\['-c',\s*'command -v/);
+    expect(helper).not.toMatch(/execFileSync\('sh',\s*\['-c',\s*'command -v/);
     // Direct --version first (POSIX); shell:true fallback resolves .cmd/.exe on win32.
     // #2563: probes go through spawnOpts() with windowsHide (not bare {stdio:'ignore'}).
-    expect(engine).toMatch(/execFileSync\(name,\s*\['--version'\],\s*spawnOpts\(\)/);
-    expect(engine).toMatch(/execFileSync\(name,\s*\['--version'\],\s*spawnOpts\(\{shell:true\}\)/);
-    expect(engine).toMatch(/windowsHide:\s*true/);
+    expect(helper).toMatch(/execFn\(name,\s*\["--version"\],\s*spawnOpts\(\{\}\)/);
+    expect(helper).toMatch(/execFn\(name,\s*\["--version"\],\s*spawnOpts\(\{ shell: true \}\)/);
+    expect(helper).toMatch(/windowsHide:\s*true/);
+    // #2765: execution path must not use shell:true.
+    expect(helper).toMatch(/shell:\s*false/);
+    expect(helper).not.toMatch(/stdio:\s*['"]inherit['"][\s\S]*shell:\s*true/);
     // #2411 step order preserved: bare pnpm → corepack@pin → corepack → fail.
-    const pmRun = engine.slice(engine.indexOf("pm-run:"), engine.indexOf("_ts-build:"));
-    const pnpmIdx = pmRun.indexOf("hasCmd('pnpm')");
-    const pinIdx = pmRun.indexOf("hasCmd('corepack')&&match");
-    const bareCorepackIdx = pmRun.lastIndexOf("hasCmd('corepack')");
+    const pnpmIdx = helper.indexOf('cmd: "pnpm"');
+    const pinIdx = helper.search(/pnpm@\$\{input\.semver\}/);
+    const bareCorepackIdx = helper.lastIndexOf('args: ["pnpm", "run", input.script]');
     expect(pnpmIdx).toBeGreaterThan(-1);
     expect(pinIdx).toBeGreaterThan(pnpmIdx);
     expect(bareCorepackIdx).toBeGreaterThan(pinIdx);
+    expect(existsSync(join(repoRoot(), "tasks", "engine-pm-run.cjs"))).toBe(true);
+    expect(existsSync(join(repoRoot(), "tasks", "engine-pm-run.test.cjs"))).toBe(true);
   });
 
   it("_ts-build skips rebuild when dist is warm (#2563)", () => {

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Lifecycle events.jsonl symlink write refusal (#2766).** `lifecycle:event` / behavioral `emit` now call `assertWriteTargetSafe` for project-owned default logs, refuse symlink components on explicit `--log` / `DEFT_EVENT_LOG` paths, and append through `O_NOFOLLOW` file descriptors to close TOCTOU. Parent #2761.
+- **Corepack packageManager dispatch hardened against shell injection (#2765).** Extracted `tasks/engine-pm-run.cjs` from duplicated inline paths in `tasks/engine.yml`; validates `pnpm@<SemVer>` pins and script names before spawn, uses argv execution without `shell: true` on POSIX, and routes Windows `.cmd` shims through a quoted `cmd.exe` boundary. Closes #2765. Parent #2761.
 
 ### Removed
 
