@@ -8,7 +8,7 @@
   "plan": {
     "id": "2607-safe-issue-body-patch-helper",
     "title": "feat(scm): issue-body postcondition verify + safe fetch-to-file (#2607)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Existing scm:body:* (#1555) PATCHes via body-file and re-fetches, but does not fail closed when the stored body is flattened or mojibaked. Win32 agents still destroy live issue bodies on read-modify-write by capturing gh api --jq .body into a PowerShell string[] and joining with OFS. Directive needs stronger postconditions and a fetch-to-file path so agents never rebuild bodies via PS array coercion.",
       "ImplementationPlan": "1. In packages/core/src/intake/github-body.ts mutateWithReadback / editIssueBody (and sibling body mutators as appropriate), after re-fetch compare intended body to live body (equality or structural: newline count, no U+FFFD / space-joined collapse heuristics) and throw GitHubBodyError on mismatch. 2. Add github-body issue-fetch (or scm:body:issue:fetch) that writes the live body to a UTF-8 file for safe RMW. 3. Wire CLI/task in packages/core/src/intake/github-body-cli.ts, packages/cli route, tasks/scm.yml. 4. Unit tests with mocked runFn covering flattened/mojibake fail-closed and happy path. 5. CHANGELOG [Unreleased]. Docs always-load forbid for PS capture-concat is #2744 (depends on this helper).",
@@ -73,7 +73,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Enhancement from GitHub issue #2607 extending #1555; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-22T05:11:28Z"
     },
     "references": [
       {
@@ -87,6 +88,6 @@
         "title": "Issue #2744: always-load RMW guidance (follow-on docs)"
       }
     ],
-    "updated": "2026-07-22T02:17:45Z"
+    "updated": "2026-07-22T05:11:28Z"
   }
 }

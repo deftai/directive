@@ -71,6 +71,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/story-ready": sub("core", "story-ready"),
   "@deftai/directive-core/branch": sub("core", "branch"),
   "@deftai/directive-core/wip-cap": sub("core", "wip-cap"),
+  "@deftai/directive-core/orphan-active": sub("core", "orphan-active"),
   "@deftai/directive-core/agents-md-budget": sub("core", "agents-md-budget"),
   "@deftai/directive-core/agents-md-advisory": sub("core", "agents-md-advisory"),
   "@deftai/directive-core/eval-health-relocation": sub("core", "eval-health-relocation"),

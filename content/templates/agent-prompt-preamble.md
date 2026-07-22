@@ -449,8 +449,10 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 **Worker-owns-lifecycle (Gap C):**
 
 - ! When dispatching an implementation worker, the dispatch envelope MUST declare the unit-of-work boundary explicitly: `stop-at: pr-open` (worker opens PR and exits) OR `drive-to: merge-ready` (worker owns PR + Greptile review cycle + fix batches through merge-ready as ONE unit of work, spawning its own review poller per `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers). Default for story implementation dispatches is `drive-to: merge-ready`.
+- ! **Post-merge scope lifecycle (#2321 / Gap C):** Workers scoped `stop-at: pr-open` MUST NOT run `task scope:complete` before exit — their activation checkpoint rides into master on merge. The **orchestrator** (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort` on the headless path) MUST run `task scope:complete` or `task scope:cancel` for each shipped story xBRIEF after its PR merges. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `task scope:complete` on their active xBRIEF as part of the same unit of work (after merge when appropriate).
 - ! Workers scoped `drive-to: merge-ready` MUST drive to merge-ready in their own tool loop — pre-PR, push, PR open, review-cycle poll/fix loop, and the #1259 Step 6 fail-closed exit — without handing back at PR-open for the orchestrator to re-dispatch separate leaf agents for review or fixes.
 - ⊗ Re-dispatch a separate review-monitor or fix agent after an implementation worker exits at PR-open when the original envelope scoped `drive-to: merge-ready` — that split recreates cross-agent state-handoff hazards and terminal lifecycle gaps (#1878 / Gap C).
+- ⊗ Leave an `xbrief/active/` brief with `plan.status == running` on master after the story's issue is closed or its PR merged — `task verify:orphan-active` fails closed on that signature (#2321).
 
 **Background / independent dispatch (Gap D):**
 

@@ -111,6 +111,9 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
   "verify:wip-cap": spec("verify:wip-cap", "preflight_wip_cap:main", {
     projectRootArg: "--project-root",
   }),
+  "verify:orphan-active": spec("verify:orphan-active", "verify_orphan_active:main", {
+    projectRootArg: "--project-root",
+  }),
   "verify:pack-drift": spec("verify:pack-drift", "pack_render:main", {
     defaultArgs: ["--check"],
     cwd: "framework",
@@ -131,6 +134,7 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
     "verify:branch",
     "verify:cache-fresh",
     "verify:wip-cap",
+    "verify:orphan-active",
     "vbrief:validate",
     "verify-strategy-output",
   ]),
@@ -149,6 +153,7 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
     "verify:cache-fresh",
     "verify:pack-drift",
     "verify:wip-cap",
+    "verify:orphan-active",
     "vbrief:validate",
     "verify-strategy-output",
   ]),
@@ -329,6 +334,7 @@ const ENTRYPOINT_VERB: Record<string, string> = {
   "verify_no_task_runtime:main": "verify-no-task-runtime",
   "preflight_cache:main": "preflight-cache",
   "preflight_wip_cap:main": "verify-wip-cap",
+  "verify_orphan_active:main": "verify-orphan-active",
   "pack_render:main": "pack-render",
   "validate_strategy_output:main": "validate-strategy-output",
   "vbrief_validate:main": "vbrief-validate",

@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Assign scope:complete ownership for stop-at:pr-open and add orphaned active/running xBRIEF guard.",
+    "created": "2026-07-22T05:00:00Z",
+    "updated": "2026-07-22T05:00:00Z"
+  },
+  "plan": {
+    "id": "2321-stop-at-pr-open-orphan-active",
+    "title": "stop-at:pr-open must not leave orphaned active/running xBRIEFs on master",
+    "status": "running",
+    "narratives": {
+      "Description": "Workers dispatched stop-at:pr-open never run scope:complete. When they commit an activation checkpoint, the running xBRIEF rides into master on merge and permanently consumes a WIP slot. Orchestrator doctrine must own post-merge complete/cancel, and a deterministic gate must detect orphaned active/running briefs whose issues are closed or PR merged.",
+      "ImplementationPlan": "1. Update content/templates/agent-prompt-preamble.md §9 (#1880) and content/skills/deft-directive-swarm/SKILL.md (or agents-entry mirror) so stop-at:pr-open assigns orchestrator post-merge scope:complete/cancel ownership, and drive-to:merge-ready workers include scope:complete in their unit of work. 2. Add a deterministic verify verb (e.g. packages/core/src/scope or check/) that fails when active/ contains status=running briefs whose referenced issues are all closed or whose linked PR is merged; wire into task check or document as default-branch guard. 3. Add regression tests covering the orphan signature. 4. CHANGELOG [Unreleased]; task agents:refresh if agents-entry changes. Prefer not to block on Story Start Gate activation-checkpoint redesign unless a small docs note fits.",
+      "UserStory": "As a maintainer merging stop-at:pr-open worker PRs, I want explicit scope:complete ownership and an orphan-active gate, so that shipped work cannot leave running xBRIEFs on master."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Dispatch doctrine owns post-merge lifecycle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given agent-prompt-preamble §9 / swarm skill surfaces, when an orchestrator dispatches stop-at:pr-open, then the docs require the orchestrator to run scope:complete or scope:cancel after merge; drive-to:merge-ready docs require the worker to complete the xBRIEF."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Deterministic orphan-active guard",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an active/running xBRIEF whose referenced issues are all closed (or linked PR merged), when the orphan guard runs, then it fails closed with a clear remediation pointing at scope:complete."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Tests + CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the guard and docs land, when tests and task check wiring (if added) run, then the orphan signature is covered; CHANGELOG [Unreleased] notes the fix."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "x-tracking": {
+        "parent_issue": "#2321",
+        "decomposition_origin": "#2321"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "packages/core/src/scope",
+          "packages/core/src/check",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- orphan",
+          "task agents:refresh"
+        ],
+        "expected_outputs": [
+          "orchestrator post-merge complete ownership",
+          "orphan-active guard",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "lifecycle-orphan-2321",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Bug-fix from GitHub issue #2321; no FR trace registry for hotfix cohort."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2321",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2321: stop-at:pr-open leaves orphaned active/running xBRIEFs"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1880",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1880: orchestrator dispatch doctrine"
+      }
+    ],
+    "updated": "2026-07-22T04:58:03Z"
+  }
+}

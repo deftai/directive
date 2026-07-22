@@ -405,6 +405,7 @@ tasks:
       - verify:cache-fresh
       - verify:pack-drift
       - verify-wip-cap-framework-self-check
+      - verify:orphan-active
       - verify:agents-md-budget
       - verify-eval-health-relocation-framework-check
       - verify-eval-triggers-relocation-framework-check
@@ -423,6 +424,7 @@ tasks:
       - verify:branch
       - verify:cache-fresh
       - verify:wip-cap
+      - verify:orphan-active
       - vbrief:validate
       - verify-strategy-output
     cmds:

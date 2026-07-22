@@ -8,7 +8,7 @@
   "plan": {
     "id": "2744-win32-issue-body-rmw-guidance",
     "title": "docs/process: always-load win32 issue-body RMW footgun (PS string[]/OFS)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Win32 agents keep destroying live GitHub issue bodies on amend even after #2646 (safe write via --body-file). The failure mode is read-modify-write: capture gh api --jq .body into a PowerShell variable, concatenate, write temp, PATCH. #2607 shipped fail-closed postcondition verify and scm:body:issue:fetch; this issue closes the always-load process gap so agents stop taking the capture-concat path.",
       "ImplementationPlan": "1. Edit content/scm/github.md to add an always-load section naming the win32 PowerShell string[]/$OFS issue-body RMW footgun; include ⊗ capture-concat of gh api --jq .body and ! recipe using task scm:body:issue:fetch --out-file plus task scm:body:issue:edit (postcondition verify from #2607 packages/core/src/intake/github-body.ts). 2. Mirror the same !/⊗ into content/templates/agents-entry.md and content/templates/agent-prompt-preamble.md § Windows PowerShell bodies; run task agents:refresh and confirm AGENTS.md managed-section refresh. 3. Cite incidents #2087 / #2741 / #1492 in the scm note. 4. Append CHANGELOG.md [Unreleased]; verify with task agents:refresh exit 0.",
@@ -71,7 +71,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Documentation/process gap from GitHub issue #2744 after #2607 helper landed; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-22T05:11:29Z"
     },
     "references": [
       {
@@ -85,6 +86,6 @@
         "title": "Issue #2607: safe issue-body patch helper (parent, merged)"
       }
     ],
-    "updated": "2026-07-22T02:48:15Z"
+    "updated": "2026-07-22T05:11:29Z"
   }
 }

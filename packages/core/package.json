@@ -30,6 +30,10 @@
       "types": "./dist/wip-cap/index.d.ts",
       "default": "./dist/wip-cap/index.js"
     },
+    "./orphan-active": {
+      "types": "./dist/orphan-active/index.d.ts",
+      "default": "./dist/orphan-active/index.js"
+    },
     "./agents-md-budget": {
       "types": "./dist/agents-md-budget/index.d.ts",
       "default": "./dist/agents-md-budget/index.js"

@@ -8,7 +8,7 @@
   "plan": {
     "id": "2313-pr-watch-premature-stall",
     "title": "bug(pr:watch): no premature STALL on stale-SHA confidence during re-review",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task pr:watch fires a premature STALL (exit 2) within about 90 to 106 seconds when a fresh commit has just been pushed and bots are still mid-review. It classifies confidence from a stale prior-SHA review (sha_match == false) as stall-eligible after a few polls instead of honoring the roughly 10-minute Stall Detection Rubric.",
       "ImplementationPlan": "1. Align packages/core/src/pr-watch/watch.ts stall counter with sha_match gates and #1259 INCOMPLETE_BUT_RATED semantics so stale-SHA confidence does not accelerate early STALL. 2. Adjust packages/core/src/pr-watch/probe.ts / constants.ts if thresholds are shared. 3. Add regression covering fresh push + stale prior review remaining non-STALL until rubric threshold. 4. Verify with pnpm --filter @deftai/directive-core test -- pr-watch; CHANGELOG [Unreleased].",
@@ -70,7 +70,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Bug-fix from GitHub issue #2313; no FR trace registry for hotfix cohort."
-      }
+      },
+      "completedAt": "2026-07-22T05:11:26Z"
     },
     "references": [
       {
@@ -78,6 +79,7 @@
         "type": "x-xbrief/github-issue",
         "title": "Issue #2313: pr:watch premature STALL on stale-SHA confidence"
       }
-    ]
+    ],
+    "updated": "2026-07-22T05:11:26Z"
   }
 }
