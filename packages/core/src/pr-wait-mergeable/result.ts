@@ -13,6 +13,9 @@ export function toResultDict(result: WaitMergeableResult): Record<string, unknow
   if (Object.keys(result.protectedCheck).length > 0) {
     payload.protected_check = result.protectedCheck;
   }
+  if (Object.keys(result.semanticGreen).length > 0) {
+    payload.semantic_green = result.semanticGreen;
+  }
   if (result.mergeStdout.length > 0) {
     payload.merge_stdout = result.mergeStdout;
   }
@@ -28,10 +31,11 @@ export function toResultDict(result: WaitMergeableResult): Record<string, unknow
 export function makeResult(
   fields: Omit<
     WaitMergeableResult,
-    "monitorResult" | "protectedCheck" | "mergeStdout" | "mergeStderr"
+    "monitorResult" | "protectedCheck" | "semanticGreen" | "mergeStdout" | "mergeStderr"
   > & {
     readonly monitorResult?: Record<string, unknown>;
     readonly protectedCheck?: Record<string, unknown>;
+    readonly semanticGreen?: Record<string, unknown>;
     readonly mergeStdout?: string;
     readonly mergeStderr?: string;
   },
@@ -39,6 +43,7 @@ export function makeResult(
   return {
     monitorResult: fields.monitorResult ?? {},
     protectedCheck: fields.protectedCheck ?? {},
+    semanticGreen: fields.semanticGreen ?? {},
     mergeStdout: fields.mergeStdout ?? "",
     mergeStderr: fields.mergeStderr ?? "",
     prNumber: fields.prNumber,

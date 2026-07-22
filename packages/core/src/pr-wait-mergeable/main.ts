@@ -18,6 +18,9 @@ export interface ParsedWaitMergeableArgs {
   readonly capMinutes: number;
   readonly protectedValues: readonly string[];
   readonly emitJson: boolean;
+  readonly cascadeMode: boolean;
+  readonly requireMasterCiGreen: boolean;
+  readonly baseBranch: string | null;
   readonly error?: string;
 }
 
@@ -27,22 +30,42 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
   let capMinutes = 60;
   const protectedValues: string[] = [];
   let emitJson = false;
+  let cascadeMode = false;
+  let requireMasterCiGreen = false;
+  let baseBranch: string | null = null;
+
+  const baseReturn = (): Omit<ParsedWaitMergeableArgs, "error"> => ({
+    prNumber,
+    repo,
+    capMinutes,
+    protectedValues,
+    emitJson,
+    cascadeMode,
+    requireMasterCiGreen,
+    baseBranch,
+  });
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--json") {
       emitJson = true;
+    } else if (arg === "--cascade") {
+      cascadeMode = true;
+    } else if (arg === "--require-master-ci-green") {
+      requireMasterCiGreen = true;
+    } else if (arg === "--base-branch") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...baseReturn(), error: "argument --base-branch: expected one argument" };
+      }
+      baseBranch = value;
+      i += 1;
+    } else if (arg?.startsWith("--base-branch=")) {
+      baseBranch = arg.slice("--base-branch=".length);
     } else if (arg === "--repo") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return {
-          prNumber,
-          repo,
-          capMinutes,
-          protectedValues,
-          emitJson,
-          error: "argument --repo: expected one argument",
-        };
+        return { ...baseReturn(), error: "argument --repo: expected one argument" };
       }
       repo = value;
       i += 1;
@@ -51,25 +74,11 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
     } else if (arg === "--cap-minutes") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return {
-          prNumber,
-          repo,
-          capMinutes,
-          protectedValues,
-          emitJson,
-          error: "argument --cap-minutes: expected one argument",
-        };
+        return { ...baseReturn(), error: "argument --cap-minutes: expected one argument" };
       }
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) {
-        return {
-          prNumber,
-          repo,
-          capMinutes,
-          protectedValues,
-          emitJson,
-          error: `invalid --cap-minutes value: ${value}`,
-        };
+        return { ...baseReturn(), error: `invalid --cap-minutes value: ${value}` };
       }
       capMinutes = parsed;
       i += 1;
@@ -77,78 +86,36 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
       const value = arg.slice("--cap-minutes=".length);
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) {
-        return {
-          prNumber,
-          repo,
-          capMinutes,
-          protectedValues,
-          emitJson,
-          error: `invalid --cap-minutes value: ${value}`,
-        };
+        return { ...baseReturn(), error: `invalid --cap-minutes value: ${value}` };
       }
       capMinutes = parsed;
     } else if (arg === "--protected") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return {
-          prNumber,
-          repo,
-          capMinutes,
-          protectedValues,
-          emitJson,
-          error: "argument --protected: expected one argument",
-        };
+        return { ...baseReturn(), error: "argument --protected: expected one argument" };
       }
       protectedValues.push(value);
       i += 1;
     } else if (arg?.startsWith("--protected=")) {
       protectedValues.push(arg.slice("--protected=".length));
     } else if (arg?.startsWith("-")) {
-      return {
-        prNumber,
-        repo,
-        capMinutes,
-        protectedValues,
-        emitJson,
-        error: `unrecognized arguments: ${arg}`,
-      };
+      return { ...baseReturn(), error: `unrecognized arguments: ${arg}` };
     } else if (prNumber === null) {
       const n = Number(arg);
       if (!Number.isInteger(n)) {
-        return {
-          prNumber,
-          repo,
-          capMinutes,
-          protectedValues,
-          emitJson,
-          error: `invalid PR number: ${arg}`,
-        };
+        return { ...baseReturn(), error: `invalid PR number: ${arg}` };
       }
       prNumber = n;
     } else {
-      return {
-        prNumber,
-        repo,
-        capMinutes,
-        protectedValues,
-        emitJson,
-        error: `unrecognized arguments: ${arg}`,
-      };
+      return { ...baseReturn(), error: `unrecognized arguments: ${arg}` };
     }
   }
 
   if (prNumber === null) {
-    return {
-      prNumber,
-      repo,
-      capMinutes,
-      protectedValues,
-      emitJson,
-      error: "the following arguments are required: pr_number",
-    };
+    return { ...baseReturn(), error: "the following arguments are required: pr_number" };
   }
 
-  return { prNumber, repo, capMinutes, protectedValues, emitJson };
+  return baseReturn();
 }
 
 function summaryLabelForExit(exitCode: number): string {
@@ -168,6 +135,7 @@ export interface RunWaitMergeableOptions {
   readonly protectedFn?: Parameters<typeof waitMergeableAndMerge>[2]["protectedFn"];
   readonly monitorFn?: Parameters<typeof waitMergeableAndMerge>[2]["monitorFn"];
   readonly mergeFn?: Parameters<typeof waitMergeableAndMerge>[2]["mergeFn"];
+  readonly semanticGreenFn?: Parameters<typeof waitMergeableAndMerge>[2]["semanticGreenFn"];
 }
 
 export function runWaitMergeable(
@@ -201,6 +169,10 @@ export function runWaitMergeable(
     protectedFn: options.protectedFn,
     monitorFn: options.monitorFn,
     mergeFn: options.mergeFn,
+    semanticGreenFn: options.semanticGreenFn,
+    cascadeMode: args.cascadeMode,
+    requireMasterCiGreen: args.requireMasterCiGreen,
+    baseBranch: args.baseBranch,
   });
 
   const summaryLabel = summaryLabelForExit(result.exitCode);

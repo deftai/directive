@@ -22,6 +22,18 @@ describe("coverage boost", () => {
       "invalid --cap-minutes",
     );
     expect(parseWaitMergeableArgs(["1370", "--repo=o/r", "--protected=1"]).prNumber).toBe(1370);
+    expect(parseWaitMergeableArgs(["1370", "--repo", "o/r", "--base-branch"]).error).toContain(
+      "--base-branch",
+    );
+    expect(
+      parseWaitMergeableArgs([
+        "1370",
+        "--repo",
+        "o/r",
+        "--cascade",
+        "--require-master-ci-green",
+      ]).cascadeMode,
+    ).toBe(true);
   });
 
   it("classifyMonitorOutcome handles malformed readiness", () => {
@@ -71,6 +83,20 @@ describe("coverage boost", () => {
       mergeFn: () => [-1, "", ""],
     });
     expect(result.error).toBe("gh pr merge wrapper failed at OS layer (rc=-1).");
+  });
+
+  it("toResultDict includes semantic_green when set", () => {
+    const dict = toResultDict(
+      makeResult({
+        prNumber: 1,
+        repo: "o/r",
+        outcome: "semantic-stale-base",
+        exitCode: 1,
+        semanticGreen: { pr_base_sha: "a", target_head_sha: "b" },
+        error: "stale",
+      }),
+    );
+    expect(dict.semantic_green).toEqual({ pr_base_sha: "a", target_head_sha: "b" });
   });
 
   it("toResultDict includes merge_stderr when set", () => {

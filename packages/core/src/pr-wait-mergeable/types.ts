@@ -5,6 +5,7 @@ export interface WaitMergeableResult {
   readonly exitCode: number;
   readonly monitorResult: Record<string, unknown>;
   readonly protectedCheck: Record<string, unknown>;
+  readonly semanticGreen: Record<string, unknown>;
   readonly mergeStdout: string;
   readonly mergeStderr: string;
   readonly error: string | null;

@@ -31,6 +31,27 @@ describe("parseWaitMergeableArgs", () => {
       capMinutes: 60,
       protectedValues: [],
       emitJson: false,
+      cascadeMode: false,
+      requireMasterCiGreen: false,
+      baseBranch: null,
+    });
+  });
+
+  it("parses cascade flags", () => {
+    expect(
+      parseWaitMergeableArgs([
+        "1370",
+        "--repo",
+        "deftai/directive",
+        "--cascade",
+        "--require-master-ci-green",
+        "--base-branch",
+        "master",
+      ]),
+    ).toMatchObject({
+      cascadeMode: true,
+      requireMasterCiGreen: true,
+      baseBranch: "master",
     });
   });
 

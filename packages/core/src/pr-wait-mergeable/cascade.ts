@@ -1,6 +1,7 @@
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { makeResult } from "./result.js";
+import { evaluateSemanticGreen, type SemanticGreenFn } from "./semantic-green.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn, WaitMergeableResult } from "./types.js";
 import { runGhMerge, runMonitor, runProtectedCheck } from "./wrappers.js";
 
@@ -18,6 +19,13 @@ export interface WaitMergeableOptions {
   readonly protectedFn?: ProtectedCheckFn;
   readonly monitorFn?: MonitorFn;
   readonly mergeFn?: MergeFn;
+  readonly semanticGreenFn?: SemanticGreenFn;
+  /** Enable merge-cascade semantic-green gate (#2385). */
+  readonly cascadeMode?: boolean;
+  /** After a prior cascade merge, require target-branch CI green at HEAD. */
+  readonly requireMasterCiGreen?: boolean;
+  /** Target branch override for stale-base comparison (defaults to PR base.ref). */
+  readonly baseBranch?: string | null;
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -32,6 +40,7 @@ export function waitMergeableAndMerge(
   const protectedFn = options.protectedFn ?? runProtectedCheck;
   const monitorFn = options.monitorFn ?? runMonitor;
   const mergeFn = options.mergeFn ?? runGhMerge;
+  const semanticGreenFn = options.semanticGreenFn ?? evaluateSemanticGreen;
   const protectedIssues = options.protected;
 
   let protectedCheckPayload: Record<string, unknown> = {};
@@ -70,6 +79,23 @@ export function waitMergeableAndMerge(
           `protected-issue check exited ${prcRc} (config error). ` + `stderr: ${prcStderr.trim()}`,
       });
     }
+  }
+
+  const semanticGreen = semanticGreenFn(prNumber, repo, {
+    cascadeMode: options.cascadeMode,
+    requireMasterCiGreen: options.requireMasterCiGreen,
+    baseBranch: options.baseBranch,
+  });
+  if (!semanticGreen.ok) {
+    return makeResult({
+      prNumber,
+      repo,
+      outcome: semanticGreen.outcome ?? "semantic-green-blocked",
+      exitCode: semanticGreen.exitCode ?? EXIT_TIMEOUT_OR_ESCALATION,
+      protectedCheck: protectedCheckPayload,
+      semanticGreen: { ...semanticGreen.payload } as Record<string, unknown>,
+      error: semanticGreen.error,
+    });
   }
 
   const [monRc, monStdout, monStderr] = monitorFn(prNumber, repo, options.capMinutes);

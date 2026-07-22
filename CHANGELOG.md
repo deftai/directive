@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Merge cascade semantic-green gate (#2385).** `task pr:wait-mergeable-and-merge -- --cascade` refuses merge-tree-clean PRs whose base SHA is behind the current target branch HEAD (pre-spine CI on spine-dependent PRs); `--require-master-ci-green` blocks the next cascade merge until target-branch CI is green at the new HEAD. Closes #2385.
+
 - **Safe issue-body fetch and fail-closed postcondition verify (#2607).** `task scm:body:issue:fetch` writes the live issue body to a UTF-8 `--out-file` for read-modify-write without PowerShell capture; `scm:body:*` mutators now fail non-zero when re-fetched bodies are flattened or mojibaked vs the intended payload. Closes #2607.
 - **Always-load win32 issue-body RMW footgun guidance (#2744).** AGENTS.md, agent preamble, and `scm/github.md` now forbid PowerShell capture-concat of `gh api --jq .body` (string[]/$OFS newline collapse) and prescribe `scm:body:issue:fetch --out-file` plus verified `scm:body:issue:edit`. Closes #2744.
 

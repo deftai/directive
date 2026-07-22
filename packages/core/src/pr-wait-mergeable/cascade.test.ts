@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { waitMergeableAndMerge } from "./cascade.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { toResultDict } from "./result.js";
+import type { SemanticGreenResult } from "./semantic-green.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
 
 function makeProtectedFn(returncode: number, stdout = "", stderr = ""): ProtectedCheckFn {
@@ -393,6 +394,39 @@ describe("waitMergeableAndMerge", () => {
     expect(result.error).toContain("stderr tail:");
     expect(result.error).toContain("poll stderr tail marker");
   });
+
+  it("cascade semantic-stale-base blocks before monitor or merge (#2385)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload());
+    const mergeFn = makeMergeFn(0);
+    const semanticGreenFn = (): SemanticGreenResult => ({
+      ok: false,
+      outcome: "semantic-stale-base",
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error: "PR base SHA is behind the current target branch HEAD",
+      payload: {
+        pr_base_sha: "a".repeat(40),
+        target_branch: "master",
+        target_head_sha: "b".repeat(40),
+        master_ci: {},
+      },
+    });
+
+    const result = waitMergeableAndMerge(2379, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      cascadeMode: true,
+      protectedFn: makeProtectedFn(0),
+      monitorFn,
+      mergeFn,
+      semanticGreenFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("semantic-stale-base");
+    expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect(result.error).toContain("behind the current target branch HEAD");
+  });
 });
 
 describe("toResultDict", () => {
@@ -404,6 +438,7 @@ describe("toResultDict", () => {
       exitCode: 0,
       monitorResult: { monitor_result: "PR-TERMINAL" },
       protectedCheck: {},
+      semanticGreen: {},
       mergeStdout: "",
       mergeStderr: "",
       error: null,

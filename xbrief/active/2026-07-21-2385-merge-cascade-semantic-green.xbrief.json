@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Guard merge cascade so spine-dependent PRs are semantically green on post-merge master, not only merge-tree-clean.",
+    "created": "2026-07-22T06:15:00Z",
+    "updated": "2026-07-22T06:15:00Z"
+  },
+  "plan": {
+    "id": "2385-merge-cascade-semantic-green",
+    "title": "Merge cascade: semantic-green gate beyond merge-tree-clean",
+    "status": "running",
+    "narratives": {
+      "Description": "pr:wait-mergeable-and-merge can merge a merge-tree-clean PR whose CI was green only against pre-spine master. After a spine lands, dependent PRs can break master immediately. The 0.73.0 cascade (#2379 after #2384) showed merge-tree-clean is necessary but not sufficient.",
+      "ImplementationPlan": "1. Extend packages/core/src/pr-wait-mergeable/cascade.ts (and readiness helpers in pr-merge-readiness / pr-monitor as needed) so cohort/spine-dependent merges either rebase onto post-spine master and wait for fresh green CI at rebased HEAD, and/or block the next cascade merge until master CI is green at the new HEAD. 2. Expose flags or automatic detection via depends_on / allocation metadata when available. 3. Document the gate in content/skills/deft-directive-swarm/SKILL.md Phase 5->6 and content/scm/github.md as needed; agents:refresh if agents-entry changes. 4. Unit/integration tests covering merge-tree-clean but stale-CI rejection. 5. CHANGELOG [Unreleased]. Prefer the smallest durable combination of rebase+re-CI and post-merge master-CI gate that closes the #2379-class failure.",
+      "UserStory": "As a swarm monitor merging a spine-dependent cohort, I want wait-mergeable-and-merge to refuse merges that are only green on pre-spine master, so that master does not go red mid-cascade."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Semantic-green gate in wait-mergeable cascade",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a PR that is merge-tree-clean but whose last green CI is not against current base/post-spine HEAD, when task pr:wait-mergeable-and-merge runs in cascade mode, then it refuses or rebases+re-waits until CI is green at the semantically current HEAD."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Post-merge or rebase re-CI coverage",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a multi-PR cascade with a spine, when the next dependent PR is about to merge, then either master CI green at new HEAD is confirmed or the dependent PR has been rebased and re-CI'd against that HEAD."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Docs + tests + CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the gate lands, when swarm Phase 5->6 docs and unit tests run, then the #2379-class stale-CI case is covered and CHANGELOG [Unreleased] notes the guard."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "x-tracking": {
+        "parent_issue": "#2385",
+        "decomposition_origin": "#2385"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "packages/core/src/pr-wait-mergeable/main.ts",
+          "packages/core/src/pr-merge-readiness",
+          "packages/core/src/pr-monitor",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/scm/github.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- pr-wait-mergeable",
+          "pnpm --filter @deftai/directive-core test -- cascade"
+        ],
+        "expected_outputs": [
+          "semantic-green cascade gate",
+          "regression tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "merge-cascade-2385",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Bug-fix from GitHub issue #2385; no FR trace registry for hotfix cohort."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2385",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2385: merge cascade semantic-green guard"
+      }
+    ],
+    "updated": "2026-07-22T06:09:49Z"
+  }
+}
