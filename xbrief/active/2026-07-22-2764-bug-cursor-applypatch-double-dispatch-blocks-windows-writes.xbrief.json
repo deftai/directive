@@ -1,0 +1,84 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2764"
+  },
+  "plan": {
+    "title": "bug: Cursor ApplyPatch double-dispatch blocks Windows writes",
+    "status": "running",
+    "narratives": {
+      "Description": "Fix overlapping Cursor preToolUse matchers so ApplyPatch is not double-dispatched through the generic write hook. Restore Windows ApplyPatch writes after ritual when adapter and generic hooks both match.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2764",
+      "Overview": "## Summary\r\n\r\nDirective v0.82.0 generates overlapping Cursor preToolUse matchers for ApplyPatch. The adapter hook and the generic write hook both match the same tool call, causing the generic hook to process Cursor's free-form patch payload directly and fail closed.\r\n\r\n## Environment\r\n\r\n- Directive engine/content: v0.82.0\r\n- Host: Cursor\r\n- OS: Windows 10 (win32 10.0.26200)\r\n- Shell: PowerShell\r\n- Upgrade path: npm i -g @deftai/directive@latest, then directive update\r\n\r\n## Reproduction\r\n\r\n1. Upgrade an existing Directive project using the documented npm upgrade path.\r\n2. Run deft session:start.\r\n3. Run deft verify:session-ritual -- --tier=gated and confirm it passes.\r\n4. Invoke Cursor ApplyPatch against any repository file.\r\n\r\n## Generated hook configuration\r\n\r\nThe refreshed .cursor/hooks.json contains both:\r\n\r\n- Adapter matcher: ApplyPatch|apply_patch -> node .cursor/hooks/deft-cursor-hook-adapter.mjs ApplyPatch\r\n- Generic matcher: Edit|Write|WriteFile|CreateFile|MultiEdit|NotebookEdit|StrReplace|SearchReplace|Delete|DeleteFile|ApplyPatch|apply_patch -> deft hook:dispatch --host cursor --event tool.before\r\n\r\n## Actual result\r\n\r\nThe write is denied even though the ritual passed:\r\n\r\n    Directive denied Write: ritual state missing at C:\\C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture\\.deft\\ritual-state.json.\r\n\r\nBefore upgrading, the same integration also surfaced the generic raw-payload failure:\r\n\r\n    Directive denied this Cursor preToolUse event because the host payload was not valid JSON ... the host payload omitted its tool name.\r\n\r\n## Expected result\r\n\r\nApplyPatch should be handled exactly once by the Cursor adapter. A valid Windows absolute project path should not be prefixed with a second C:\\ segment, and a fresh successful session ritual should authorize the write.\r\n\r\n## Likely correction\r\n\r\n- Exclude ApplyPatch/apply_patch from the generic write matcher when the dedicated adapter hook is installed.\r\n- Add a generated-hooks regression test proving exactly one preToolUse hook handles ApplyPatch.\r\n- Add a Windows integration test covering an absolute cwd and ritual-state resolution without C:\\C:\\ duplication.\r\n\r\n## Impact\r\n\r\nAll Cursor file-edit operations using ApplyPatch are fail-closed after the documented v0.82.0 update, blocking normal coding and PR preparation.",
+      "Labels": "bug, adoption-blocker, agent-experience, harness, area:cli",
+      "ImplementationPlan": "1) Update the Cursor hooks projection module/file under packages/core/src so ApplyPatch is owned only by the adapter matcher. 2) Add fixture tests that verify generated hooks.json matcher disjointness and that the generic write matcher no longer lists ApplyPatch.",
+      "UserStory": "As a Cursor user on Windows, I want ApplyPatch to hit only the adapter hook after ritual, so that writes are not fail-closed by the generic write dispatcher."
+    },
+    "items": [
+      {
+        "title": "Given a refreshed .cursor/hooks.json projection, when matchers are inspected, then the generic write matcher rejects App",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a refreshed .cursor/hooks.json projection, when matchers are inspected, then the generic write matcher rejects ApplyPatch ownership and the adapter matcher alone owns ApplyPatch."
+        }
+      },
+      {
+        "title": "Given a gated ritual pass, when ApplyPatch is dispatched, then the generic write hook does not fail closed solely due to",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a gated ritual pass, when ApplyPatch is dispatched, then the generic write hook does not fail closed solely due to double-dispatch."
+        }
+      },
+      {
+        "title": "Given the matcher fixture tests, when the suite runs, then it returns green proving disjoint ApplyPatch routing.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the matcher fixture tests, when the suite runs, then it returns green proving disjoint ApplyPatch routing."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "harness",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2764",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2764: bug: Cursor ApplyPatch double-dispatch blocks Windows writes"
+      }
+    ],
+    "updated": "2026-07-22T23:08:10Z",
+    "id": "2026-07-22-2764-bug-cursor-applypatch-double-dispatch-blocks-windows",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/cursor-hooks.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts",
+          "packages/core/src/agent-hosts/cursor.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks",
+          "task check"
+        ],
+        "expected_outputs": [
+          "ApplyPatch matcher owned solely by adapter path",
+          "no double-dispatch deny after ritual",
+          "task check passes"
+        ],
+        "depends_on": [],
+        "conflict_group": "harness-cursor-hooks",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue acceptance criteria and AppSec/planning comments rather than a SPECIFICATION section."
+      }
+    }
+  }
+}
