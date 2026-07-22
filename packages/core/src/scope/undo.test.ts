@@ -15,7 +15,7 @@ import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { demoteOne } from "./demote.js";
 import { findByBatchId, undoBatch, undoOne } from "./undo.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
@@ -34,7 +34,7 @@ describe("undo", () => {
     const pending = join(root, "xbrief", "pending", "z.xbrief.json");
     writeFileSync(
       pending,
-      formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "pending", items: [] } }),
       "utf8",
     );
     const demote = demoteOne(pending, root, "test");
@@ -73,7 +73,7 @@ describe("undo", () => {
       const pending = join(root, "xbrief", "pending", name);
       writeFileSync(
         pending,
-        formatVbriefJson({ plan: { title: name, status: "pending", items: [] } }),
+        formatBriefJson({ plan: { title: name, status: "pending", items: [] } }),
         "utf8",
       );
       const demoted = demoteOne(pending, root, "batch", { batchId });
@@ -92,7 +92,7 @@ describe("undo", () => {
     const logPath = canonicalLogPath(root);
     writeFileSync(
       join(root, "xbrief", "cancelled", "c.xbrief.json"),
-      formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       "utf8",
     );
     const entry = {
@@ -130,7 +130,7 @@ describe("undo", () => {
     );
     writeFileSync(
       join(root, "xbrief", "cancelled", "x.xbrief.json"),
-      formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       "utf8",
     );
     const restoreEntry = readAll(logPath)[0] as Record<string, unknown>;
@@ -146,7 +146,7 @@ describe("undo", () => {
     const pending = join(root, "xbrief", "pending", "i.xbrief.json");
     writeFileSync(
       pending,
-      formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "pending", items: [] } }),
       "utf8",
     );
     const demote = demoteOne(pending, root, "test");
@@ -167,14 +167,14 @@ describe("undo", () => {
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "pending", "seed.xbrief.json"),
-      formatVbriefJson({ plan: { title: "seed", status: "pending", items: [] } }),
+      formatBriefJson({ plan: { title: "seed", status: "pending", items: [] } }),
       "utf8",
     );
     const escapeDir = mkdtempSync(join(tmpdir(), "undo-symlink-escape-"));
     const victim = join(escapeDir, "victim.xbrief.json");
     writeFileSync(
       victim,
-      formatVbriefJson({
+      formatBriefJson({
         plan: { title: "T", status: "proposed", updated: "2026-05-01T00:00:00Z", items: [] },
       }),
       "utf8",
@@ -216,7 +216,7 @@ describe("undo", () => {
     const pending = join(root, "xbrief", "pending", "x.xbrief.json");
     writeFileSync(
       pending,
-      formatVbriefJson({
+      formatBriefJson({
         plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
       }),
       "utf8",
@@ -247,7 +247,7 @@ describe("undo", () => {
     const pending = join(root, "xbrief", "pending", "x.xbrief.json");
     writeFileSync(
       pending,
-      formatVbriefJson({
+      formatBriefJson({
         plan: { title: "T", status: "pending", updated: "2026-05-01T00:00:00Z", items: [] },
       }),
       "utf8",

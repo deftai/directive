@@ -9,7 +9,7 @@ import {
 } from "./decomposed-refs.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { undoOne } from "./undo.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 describe("scope coverage boost", () => {
   let root = "";
@@ -30,7 +30,7 @@ describe("scope coverage boost", () => {
     const child = join(vbrief, "pending", "c.xbrief.json");
     writeFileSync(
       parent,
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           title: "P",
           status: "pending",
@@ -41,7 +41,7 @@ describe("scope coverage boost", () => {
     );
     writeFileSync(
       child,
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           title: "C",
           status: "pending",
@@ -73,7 +73,7 @@ describe("scope coverage boost", () => {
     mkdirSync(join(vbrief, "active"), { recursive: true });
     writeFileSync(
       join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           title: "P",
           status: "running",
@@ -94,7 +94,7 @@ describe("scope coverage boost", () => {
     const active = join(vbrief, "active", "move.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson({ plan: { title: "Other", status: "running", items: [] } }),
+      formatBriefJson({ plan: { title: "Other", status: "running", items: [] } }),
     );
     const data = JSON.parse(readFileSync(active, "utf8"));
     syncProjectDefinitionAfterScopeMove(
@@ -115,7 +115,7 @@ describe("scope coverage boost", () => {
     const logPath = canonicalLogPath(root);
     writeFileSync(
       join(root, "xbrief", "cancelled", "x.xbrief.json"),
-      formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
     );
     const entry = {
       decision_id: newDecisionId(),

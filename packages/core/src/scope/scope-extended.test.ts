@@ -15,7 +15,7 @@ import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.j
 import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { undoOne } from "./undo.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 import {
   canonicalRelpath,
   collectChildUris,
@@ -43,7 +43,7 @@ function writeVbrief(path: string, data: unknown): void {
     "xBRIEFInfo" in record || "vBRIEFInfo" in record
       ? record
       : minimalScopeBrief(record.plan as Record<string, unknown>);
-  writeFileSync(path, formatVbriefJson(body), "utf8");
+  writeFileSync(path, formatBriefJson(body), "utf8");
 }
 
 function makeDecomposedPair(root: string): { parent: string; child: string } {

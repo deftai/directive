@@ -8,7 +8,7 @@ import {
   findOpenUmbrellaReferences,
   renderOpenUmbrellaWarning,
 } from "./open-umbrella-warning.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 const REPO = "deftai/directive";
 
@@ -29,7 +29,7 @@ function writeScope(
   const path = join(root, "xbrief", folder, name);
   writeFileSync(
     path,
-    formatVbriefJson({
+    formatBriefJson({
       xBRIEFInfo: { version: "0.8" },
       plan: { items: [], ...plan },
     }),

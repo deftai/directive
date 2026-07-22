@@ -8,7 +8,7 @@ import {
 import type { JsonObject } from "../vbrief-build/types.js";
 import { syncRegistryArtifactAfterScopeMove } from "./registry-artifact-sync.js";
 
-/** Best-effort sync of PROJECT-DEFINITION after a lifecycle move (#1527 / #2131). */
+/** Fail-closed sync of PROJECT-DEFINITION after a lifecycle move (#1527 / #2131). */
 export function syncProjectDefinitionAfterScopeMove(
   scopeData: Record<string, unknown>,
   oldPath: string,

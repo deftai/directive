@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { runTransition } from "./transition.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 describe("specification-sync branches", () => {
   let root = "";
@@ -20,7 +20,7 @@ describe("specification-sync branches", () => {
     root = mkdtempSync(join(tmpdir(), "spec-sync-"));
     const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    writeFileSync(join(vbrief, "specification.xbrief.json"), formatVbriefJson(body));
+    writeFileSync(join(vbrief, "specification.xbrief.json"), formatBriefJson(body));
     return vbrief;
   }
 
@@ -95,7 +95,7 @@ describe("specification-sync branches", () => {
       },
     });
     const active = join(vbrief, "active", "top.xbrief.json");
-    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    writeFileSync(active, formatBriefJson({ plan: { title: "T", status: "running", items: [] } }));
     syncSpecificationAfterScopeMove(
       JSON.parse(readFileSync(active, "utf8")),
       active,
@@ -112,7 +112,7 @@ describe("specification-sync branches", () => {
     const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
     const active = join(vbrief, "active", "x.xbrief.json");
-    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    writeFileSync(active, formatBriefJson({ plan: { title: "T", status: "running", items: [] } }));
     const data = JSON.parse(readFileSync(active, "utf8"));
     syncSpecificationAfterScopeMove(
       data,
@@ -137,7 +137,7 @@ describe("specification-sync branches", () => {
       vbrief,
       "completed",
     );
-    writeFileSync(join(vbrief, "specification.xbrief.json"), formatVbriefJson({ plan: [] }));
+    writeFileSync(join(vbrief, "specification.xbrief.json"), formatBriefJson({ plan: [] }));
     syncSpecificationAfterScopeMove(
       data,
       active,
@@ -159,7 +159,7 @@ describe("specification-sync branches", () => {
     const active = join(vbrief, "active", "only-title.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson({ plan: { title: "Only title match", status: "running", items: [] } }),
+      formatBriefJson({ plan: { title: "Only title match", status: "running", items: [] } }),
     );
     syncSpecificationAfterScopeMove(
       JSON.parse(readFileSync(active, "utf8")),
@@ -230,7 +230,7 @@ describe("runTransition specification sync (#2566)", () => {
     }
     writeFileSync(
       join(root, "xbrief", "specification.xbrief.json"),
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           title: "Roadmap",
           status: "approved",
@@ -251,7 +251,7 @@ describe("runTransition specification sync (#2566)", () => {
     const active = join(root, "xbrief", "active", "2026-01-01-ship.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson(minimalScopeBrief({ title: "Ship now", status: "running", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "Ship now", status: "running", items: [] })),
     );
     const result = runTransition("complete", active);
     expect(result.ok).toBe(true);
@@ -269,7 +269,7 @@ describe("runTransition specification sync (#2566)", () => {
     const active = join(root, "xbrief", "active", "2026-01-01-ship.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson(minimalScopeBrief({ title: "Ship now", status: "running", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "Ship now", status: "running", items: [] })),
     );
     const result = runTransition("fail", active);
     expect(result.ok).toBe(true);

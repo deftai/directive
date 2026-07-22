@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 const CONFIG = {
   plan: {
@@ -33,7 +33,7 @@ function writeConfig(root: string, config: unknown = CONFIG): void {
   mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
     join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-    formatVbriefJson(config as Record<string, unknown>),
+    formatBriefJson(config as Record<string, unknown>),
     "utf8",
   );
 }

@@ -31,7 +31,7 @@ import { resolveProjectRoot } from "./project-context.js";
 import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { findByBatchId, undoBatch, undoOne } from "./undo.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 describe("scope coverage ≥88% buffer", () => {
   let root = "";
@@ -53,7 +53,7 @@ describe("scope coverage ≥88% buffer", () => {
       const parent = join(vbrief, "pending", "parent.xbrief.json");
       writeFileSync(
         parent,
-        formatVbriefJson({
+        formatBriefJson({
           plan: {
             references: [{ type: "x-vbrief/plan", uri: "file://pending/child.xbrief.json" }],
           },
@@ -62,7 +62,7 @@ describe("scope coverage ≥88% buffer", () => {
       const childPath = join(vbrief, "pending", "child.xbrief.json");
       writeFileSync(
         childPath,
-        formatVbriefJson({
+        formatBriefJson({
           plan: {
             planRef: "pending/parent.xbrief.json",
             items: [{ planRef: "pending/parent.xbrief.json" }],
@@ -91,7 +91,7 @@ describe("scope coverage ≥88% buffer", () => {
       writeFileSync(join(vbrief, "active", "bad-parent.xbrief.json"), "{", "utf8");
       writeFileSync(
         join(vbrief, "active", "no-refs.xbrief.json"),
-        formatVbriefJson({ plan: { items: [] } }),
+        formatBriefJson({ plan: { items: [] } }),
       );
       writeFileSync(join(vbrief, "active", "bad-child.xbrief.json"), "{", "utf8");
       const parentData = {
@@ -134,7 +134,7 @@ describe("scope coverage ≥88% buffer", () => {
       );
       writeFileSync(
         join(root, "xbrief", "pending", "noplan.xbrief.json"),
-        formatVbriefJson({ plan: [] }),
+        formatBriefJson({ plan: [] }),
       );
       expect(demoteOne(join(root, "xbrief", "pending", "noplan.xbrief.json"), root, "x").ok).toBe(
         false,
@@ -142,7 +142,7 @@ describe("scope coverage ≥88% buffer", () => {
       const mtimePath = join(root, "xbrief", "pending", "mtime.xbrief.json");
       writeFileSync(
         mtimePath,
-        formatVbriefJson({
+        formatBriefJson({
           plan: { title: "T", status: "pending", updated: "not-a-date", items: [] },
         }),
       );
@@ -172,7 +172,7 @@ describe("scope coverage ≥88% buffer", () => {
       const pending = join(root, "xbrief", "pending", "with-promo.xbrief.json");
       writeFileSync(
         pending,
-        formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+        formatBriefJson({ plan: { title: "T", status: "pending", items: [] } }),
       );
       const result = demoteOne(pending, root, "relief", { logPath });
       expect(result.ok).toBe(true);
@@ -189,7 +189,7 @@ describe("scope coverage ≥88% buffer", () => {
       mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
       writeFileSync(
         join(root, "xbrief", "pending", "young.xbrief.json"),
-        formatVbriefJson({
+        formatBriefJson({
           plan: { title: "T", status: "pending", updated: "2026-06-01T00:00:00Z", items: [] },
         }),
       );
@@ -271,7 +271,7 @@ describe("scope coverage ≥88% buffer", () => {
         const pending = join(root, "xbrief", "pending", name);
         writeFileSync(
           pending,
-          formatVbriefJson({ plan: { title: name, status: "pending", items: [] } }),
+          formatBriefJson({ plan: { title: name, status: "pending", items: [] } }),
         );
         demoteOne(pending, root, "batch");
       }
@@ -337,7 +337,7 @@ describe("scope coverage ≥88% buffer", () => {
         const name = `${c.from}.xbrief.json`;
         writeFileSync(
           join(root, "xbrief", "cancelled", name),
-          formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+          formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
         );
         const entry = {
           decision_id: newDecisionId(),
@@ -382,7 +382,7 @@ describe("scope coverage ≥88% buffer", () => {
       append(entry, logPath);
       writeFileSync(
         join(root, "xbrief", "proposed", "batch.xbrief.json"),
-        formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
+        formatBriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
       );
       expect(findByBatchId(batchId, readAll(logPath))).toHaveLength(1);
       const [, , , previews] = undoBatch(batchId, root, { logPath, dryRun: true });
@@ -441,7 +441,7 @@ describe("scope coverage ≥88% buffer", () => {
       );
       writeFileSync(
         join(root, "xbrief", "cancelled", "chain.xbrief.json"),
-        formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+        formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       );
       const restoreEntry = readAll(logPath)[0] as Record<string, unknown>;
       undoOne(restoreEntry, root, { logPath });
@@ -466,7 +466,7 @@ describe("scope coverage ≥88% buffer", () => {
       );
       writeFileSync(
         join(root, "xbrief", "cancelled", "c2.xbrief.json"),
-        formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+        formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       );
       const cancelEntry = readAll(logPath).find((e) => e.decision_id === cancelId) as Record<
         string,
@@ -517,7 +517,7 @@ describe("scope coverage ≥88% buffer", () => {
       const name = "orphan.xbrief.json";
       writeFileSync(
         join(root, "xbrief", "cancelled", name),
-        formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+        formatBriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       );
       append(
         {
@@ -566,7 +566,7 @@ describe("scope coverage ≥88% buffer", () => {
       );
       writeFileSync(
         join(root, "xbrief", "proposed", "skip.xbrief.json"),
-        formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
+        formatBriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
       );
       append(
         {
@@ -652,7 +652,7 @@ describe("scope coverage ≥88% buffer", () => {
       const vbrief = join(root, "xbrief", "active", "stay.xbrief.json");
       writeFileSync(
         vbrief,
-        formatVbriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
+        formatBriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
       );
       expect(runTransition("block", vbrief).ok).toBe(true);
     });

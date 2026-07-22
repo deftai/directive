@@ -4,7 +4,7 @@ import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/project
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { REVERSIBLE_ACTIONS, TERMINAL_ACTIONS } from "./constants.js";
-import { formatVbriefJson, utcNowIso } from "./vbrief-json.js";
+import { formatBriefJson, utcNowIso } from "./vbrief-json.js";
 
 export interface UndoResult {
   readonly ok: boolean;
@@ -224,7 +224,7 @@ function moveAndFlip(
   const planObj = plan as Record<string, unknown>;
   planObj.status = newStatus;
   planObj.updated = timestamp;
-  writeFileSync(srcFile, formatVbriefJson(data), "utf8");
+  writeFileSync(srcFile, formatBriefJson(data), "utf8");
   mkdirSync(destFolder, { recursive: true });
   const destPath = join(destFolder, basename(srcFile));
   renameSync(srcFile, destPath);

@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { detectLifecycleFolder, runTransition } from "./transition.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
@@ -39,7 +39,7 @@ function writeVbrief(
 }
 
 function writeFile(path: string, data: unknown): void {
-  writeFileSync(path, formatVbriefJson(data), "utf8");
+  writeFileSync(path, formatBriefJson(data), "utf8");
 }
 
 describe("runTransition", () => {

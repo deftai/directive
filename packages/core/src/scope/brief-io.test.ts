@@ -52,6 +52,24 @@ describe("brief-io", () => {
     expect(result.message).toMatch(/File not found/);
   });
 
+  it("readBriefForMutation rejects non-artifact filenames", () => {
+    root = mkdtempSync(join(tmpdir(), "brief-io-suffix-"));
+    const path = join(root, "not-a-brief.json");
+    writeFileSync(path, "{}", "utf8");
+    const result = readBriefForMutation(path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Not a vBRIEF file/);
+  });
+
+  it("readBriefForMutation rejects invalid JSON", () => {
+    root = mkdtempSync(join(tmpdir(), "brief-io-json-"));
+    const path = join(root, "story.xbrief.json");
+    writeFileSync(path, "{not json", "utf8");
+    const result = readBriefForMutation(path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Invalid JSON/);
+  });
+
   it("validateBriefForPersist rejects schema-invalid briefs", () => {
     root = mkdtempSync(join(tmpdir(), "brief-io-invalid-"));
     const vbriefRoot = join(root, "xbrief");

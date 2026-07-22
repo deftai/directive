@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "./vbrief-ref.js";
 
 function rewriteOnePlanRef(
@@ -65,7 +65,7 @@ function rewriteParentChildReference(
   }
   if (changed) {
     try {
-      writeFileSync(parentPath, formatVbriefJson(parentData), "utf8");
+      writeFileSync(parentPath, formatBriefJson(parentData), "utf8");
     } catch {
       return false;
     }
@@ -158,7 +158,7 @@ function rewriteChildParentReference(
   }
   if (changed) {
     try {
-      writeFileSync(childPath, formatVbriefJson(childData), "utf8");
+      writeFileSync(childPath, formatBriefJson(childData), "utf8");
     } catch {
       return false;
     }

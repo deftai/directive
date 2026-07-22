@@ -18,7 +18,7 @@ import {
 } from "../layout/resolve.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -71,7 +71,7 @@ function loadJson(path: string): JsonObj {
 
 function writeJson(path: string, data: JsonObj): void {
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, formatVbriefJson(data), "utf8");
+  writeFileSync(path, formatBriefJson(data), "utf8");
 }
 
 // ---------------------------------------------------------------------------

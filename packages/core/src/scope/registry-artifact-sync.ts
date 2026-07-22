@@ -133,15 +133,18 @@ export function syncRegistryArtifactAfterScopeMove(
   if (newRel === null) {
     return;
   }
-  if (!existsSync(registryPath)) {
-    return;
-  }
   try {
     let registry: Record<string, unknown>;
     if (hooks.loadForMutation !== undefined) {
+      if (!existsSync(registryPath)) {
+        return;
+      }
       const [loaded] = hooks.loadForMutation();
       registry = loaded;
     } else {
+      if (!existsSync(registryPath)) {
+        return;
+      }
       const parsed: unknown = JSON.parse(readFileSync(registryPath, "utf8"));
       if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
         return;
@@ -201,7 +204,9 @@ export function syncRegistryArtifactAfterScopeMove(
         atomicWriteText(registryPath, formatBriefJson(registry));
       }
     }
-  } catch {
-    /* best-effort */
+  } catch (err: unknown) {
+    if (hooks.loadForMutation !== undefined || hooks.persist !== undefined) {
+      throw err;
+    }
   }
 }

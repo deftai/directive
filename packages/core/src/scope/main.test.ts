@@ -8,7 +8,7 @@ import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { minimalScopeBrief } from "./scope-test-fixtures.js";
 import { runTransition } from "./transition.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 import { checkWipCap, formatWipCapRefusal } from "./wip-cap-check.js";
 
 describe("project-context", () => {
@@ -45,7 +45,7 @@ describe("wip-cap-check", () => {
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-      formatVbriefJson({
+      formatBriefJson({
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
       "utf8",
@@ -76,7 +76,7 @@ describe("lifecycleMain", () => {
     const file = join(root, "xbrief", "proposed", "eq.xbrief.json");
     writeFileSync(
       file,
-      formatVbriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
       "utf8",
     );
     expect(lifecycleMain([`promote`, file, `--project-root=${root}`])).toBe(0);
@@ -88,7 +88,7 @@ describe("lifecycleMain", () => {
     const file = join(root, "xbrief", "proposed", "s.xbrief.json");
     writeFileSync(
       file,
-      formatVbriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
       "utf8",
     );
     expect(lifecycleMain(["promote", file, "--project-root", root, "--nope"])).toBe(2);
@@ -100,7 +100,7 @@ describe("lifecycleMain", () => {
     const file = join(root, "xbrief", "active", "s.xbrief.json");
     writeFileSync(
       file,
-      formatVbriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
       "utf8",
     );
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(1);
@@ -112,14 +112,14 @@ describe("lifecycleMain", () => {
     const blocked = join(root, "xbrief", "active", "b.xbrief.json");
     writeFileSync(
       blocked,
-      formatVbriefJson(minimalScopeBrief({ title: "T", status: "blocked", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "blocked", items: [] })),
       "utf8",
     );
     expect(runTransition("unblock", blocked).ok).toBe(true);
     const running = join(root, "xbrief", "active", "r.xbrief.json");
     writeFileSync(
       running,
-      formatVbriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
       "utf8",
     );
     expect(runTransition("fail", running).ok).toBe(true);
@@ -141,7 +141,7 @@ describe("demoteMain", () => {
     const file = join(root, "xbrief", "pending", "d.xbrief.json");
     writeFileSync(
       file,
-      formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "pending", items: [] } }),
       "utf8",
     );
     expect(demoteMain([file, "--project-root", root, "--reason=relief"])).toBe(0);
@@ -153,7 +153,7 @@ describe("demoteMain", () => {
     const file = join(root, "xbrief", "proposed", "d.xbrief.json");
     writeFileSync(
       file,
-      formatVbriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
       "utf8",
     );
     expect(demoteMain([file, "--project-root", root])).toBe(1);
@@ -185,7 +185,7 @@ describe("capacity-stamp policy branches", () => {
     ]) {
       writeFileSync(
         join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-        formatVbriefJson(body),
+        formatBriefJson(body),
         "utf8",
       );
       const plan: Record<string, unknown> = {};
@@ -216,7 +216,7 @@ describe("undoMain", () => {
     const pending = join(root, "xbrief", "pending", "u.xbrief.json");
     writeFileSync(
       pending,
-      formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "pending", items: [] } }),
       "utf8",
     );
     demoteOne(pending, root, "test");

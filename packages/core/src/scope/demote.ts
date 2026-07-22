@@ -13,7 +13,7 @@ import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js"
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
 import { append, canonicalLogPath, latestForPath, newDecisionId } from "./audit-log.js";
 import { resolveProjectRoot } from "./project-context.js";
-import { formatVbriefJson, utcNowIso } from "./vbrief-json.js";
+import { formatBriefJson, utcNowIso } from "./vbrief-json.js";
 import { canonicalRelpath } from "./vbrief-ref.js";
 
 export const DEFAULT_OLDER_THAN_DAYS = 45;
@@ -121,7 +121,7 @@ export function demoteOne(
   const timestamp = utcNowIso(now);
   planObj.status = TARGET_STATUS;
   planObj.updated = timestamp;
-  writeFileSync(resolved, formatVbriefJson(data), "utf8");
+  writeFileSync(resolved, formatBriefJson(data), "utf8");
 
   const vbriefRoot = dirname(dirname(resolved));
   const targetDir = join(vbriefRoot, TARGET_FOLDER);

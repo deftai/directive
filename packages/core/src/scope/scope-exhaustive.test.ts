@@ -10,7 +10,7 @@ import {
 import { undoMain } from "./main.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { undoOne } from "./undo.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 import {
   collectChildUris,
   collectPlanRefs,
@@ -77,7 +77,7 @@ describe("scope exhaustive branches", () => {
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "pending", "x.xbrief.json"),
-      formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+      formatBriefJson({ plan: { title: "T", status: "pending", items: [] } }),
     );
     expect(undoOne(undoEntry, root, { logPath }).ok).toBe(true);
 
@@ -114,7 +114,7 @@ describe("scope exhaustive branches", () => {
     const parent = join(vbrief, "pending", "p.xbrief.json");
     writeFileSync(
       parent,
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           title: "P",
           items: [{ planRef: "pending/c.xbrief.json" }],
@@ -125,7 +125,7 @@ describe("scope exhaustive branches", () => {
     const child = join(vbrief, "pending", "c.xbrief.json");
     writeFileSync(
       child,
-      formatVbriefJson({ plan: { title: "C", items: [], planRef: "pending/p.xbrief.json" } }),
+      formatBriefJson({ plan: { title: "C", items: [], planRef: "pending/p.xbrief.json" } }),
     );
     const childData = JSON.parse(readFileSync(child, "utf8")) as Record<string, unknown>;
     const newChild = join(vbrief, "active", "c.xbrief.json");

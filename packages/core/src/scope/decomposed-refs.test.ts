@@ -7,7 +7,7 @@ import {
   updateDecomposedChildBackReferences,
   updateDecomposedParentBackReferences,
 } from "./decomposed-refs.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 describe("decomposed-refs branches", () => {
   let root = "";
@@ -25,7 +25,7 @@ describe("decomposed-refs branches", () => {
     const parent = join(vbrief, "active", "p.xbrief.json");
     writeFileSync(
       parent,
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           references: [
             { type: "x-vbrief/plan", uri: "active/child.xbrief.json" },
@@ -50,7 +50,7 @@ describe("decomposed-refs branches", () => {
 
     writeFileSync(
       parent,
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           references: [{ type: "x-vbrief/plan", uri: "active/child.xbrief.json" }],
         },
@@ -58,7 +58,7 @@ describe("decomposed-refs branches", () => {
     );
     writeFileSync(
       join(vbrief, "active", "child.xbrief.json"),
-      formatVbriefJson({ plan: { planRef: "active/p.xbrief.json", items: [] } }),
+      formatBriefJson({ plan: { planRef: "active/p.xbrief.json", items: [] } }),
     );
     updateDecomposedParentBackReferences(
       childData,
@@ -78,7 +78,7 @@ describe("decomposed-refs branches", () => {
     const child = join(vbrief, "pending", "c.xbrief.json");
     writeFileSync(
       parent,
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           references: [{ type: "x-vbrief/plan", uri: "pending/c.xbrief.json" }],
           items: [],
@@ -87,7 +87,7 @@ describe("decomposed-refs branches", () => {
     );
     writeFileSync(
       child,
-      formatVbriefJson({
+      formatBriefJson({
         plan: { planRef: "pending/p.xbrief.json", items: [{ planRef: "pending/p.xbrief.json" }] },
       }),
     );

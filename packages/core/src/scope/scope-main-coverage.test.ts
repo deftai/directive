@@ -11,7 +11,7 @@ import { demoteOne } from "./demote.js";
 import { undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { undoBatch } from "./undo.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 describe("scope main and context branches", () => {
   let root = "";
@@ -77,7 +77,7 @@ describe("scope main and context branches", () => {
       const pending = join(root, "xbrief", "pending", name);
       writeFileSync(
         pending,
-        formatVbriefJson({ plan: { title: name, status: "pending", items: [] } }),
+        formatBriefJson({ plan: { title: name, status: "pending", items: [] } }),
       );
       demoteOne(pending, root, "batch", { batchId });
     }

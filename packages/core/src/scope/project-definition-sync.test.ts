@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
-import { formatVbriefJson } from "./vbrief-json.js";
+import { formatBriefJson } from "./vbrief-json.js";
 
 describe("project-definition-sync branches", () => {
   let root = "";
@@ -18,7 +18,7 @@ describe("project-definition-sync branches", () => {
     root = mkdtempSync(join(tmpdir(), "pd-sync-"));
     const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), formatVbriefJson(body));
+    writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), formatBriefJson(body));
     return vbrief;
   }
 
@@ -98,7 +98,7 @@ describe("project-definition-sync branches", () => {
     );
     writeFileSync(
       join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
-      formatVbriefJson({
+      formatBriefJson({
         plan: {
           items: [],
           references: [{ type: "x-vbrief/plan", uri: "file://active/top.xbrief.json" }],
@@ -108,7 +108,7 @@ describe("project-definition-sync branches", () => {
     );
     const active = join(xbrief, "active", "top.xbrief.json");
     mkdirSync(join(xbrief, "pending"), { recursive: true });
-    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    writeFileSync(active, formatBriefJson({ plan: { title: "T", status: "running", items: [] } }));
     syncProjectDefinitionAfterScopeMove(
       JSON.parse(readFileSync(active, "utf8")),
       active,
@@ -135,7 +135,7 @@ describe("project-definition-sync branches", () => {
       },
     });
     const active = join(vbrief, "active", "top.xbrief.json");
-    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    writeFileSync(active, formatBriefJson({ plan: { title: "T", status: "running", items: [] } }));
     syncProjectDefinitionAfterScopeMove(
       JSON.parse(readFileSync(active, "utf8")),
       active,
@@ -147,38 +147,46 @@ describe("project-definition-sync branches", () => {
     expect(pd.plan.references[0].uri).toBe("file://pending/top.xbrief.json");
   });
 
-  it("no-ops on missing project def, bad json, invalid plan, and outside vbrief paths", () => {
+  it("returns error when PROJECT-DEFINITION exists but is invalid JSON", () => {
     root = mkdtempSync(join(tmpdir(), "pd-noop-"));
     const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
     const active = join(vbrief, "active", "x.xbrief.json");
-    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    writeFileSync(active, formatBriefJson({ plan: { title: "T", status: "running", items: [] } }));
     const data = JSON.parse(readFileSync(active, "utf8"));
-    syncProjectDefinitionAfterScopeMove(
-      data,
-      active,
-      join(vbrief, "completed", "x.xbrief.json"),
-      vbrief,
-      "completed",
-    );
+    expect(
+      syncProjectDefinitionAfterScopeMove(
+        data,
+        active,
+        join(vbrief, "completed", "x.xbrief.json"),
+        vbrief,
+        "completed",
+      ),
+    ).toBeNull();
+
     writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "{", "utf8");
-    syncProjectDefinitionAfterScopeMove(
+    const badJson = syncProjectDefinitionAfterScopeMove(
       data,
       active,
       join(vbrief, "completed", "x.xbrief.json"),
       vbrief,
       "completed",
     );
-    writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), formatVbriefJson({ plan: [] }));
-    syncProjectDefinitionAfterScopeMove(
-      data,
-      active,
-      join(vbrief, "completed", "x.xbrief.json"),
-      vbrief,
-      "completed",
-    );
-    syncProjectDefinitionAfterScopeMove(data, "/outside/a", "/outside/b", vbrief, "completed");
-    expect(true).toBe(true);
+    expect(badJson).toMatch(/not valid JSON/);
+
+    writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), formatBriefJson({ plan: [] }));
+    expect(
+      syncProjectDefinitionAfterScopeMove(
+        data,
+        active,
+        join(vbrief, "completed", "x.xbrief.json"),
+        vbrief,
+        "completed",
+      ),
+    ).toBeNull();
+    expect(
+      syncProjectDefinitionAfterScopeMove(data, "/outside/a", "/outside/b", vbrief, "completed"),
+    ).toBeNull();
   });
 
   it("sync creates metadata when item matches by title only", () => {
@@ -191,7 +199,7 @@ describe("project-definition-sync branches", () => {
     const active = join(vbrief, "active", "only-title.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson({ plan: { title: "Only title match", status: "running", items: [] } }),
+      formatBriefJson({ plan: { title: "Only title match", status: "running", items: [] } }),
     );
     syncProjectDefinitionAfterScopeMove(
       JSON.parse(readFileSync(active, "utf8")),
@@ -222,7 +230,7 @@ describe("project-definition-sync branches", () => {
     mkdirSync(join(vbrief, "completed"), { recursive: true });
     writeFileSync(
       completed,
-      formatVbriefJson({ plan: { title: "Scope title", status: "completed", items: [] } }),
+      formatBriefJson({ plan: { title: "Scope title", status: "completed", items: [] } }),
     );
     const data = JSON.parse(readFileSync(completed, "utf8"));
     syncProjectDefinitionAfterScopeMove(data, completed, completed, vbrief, "completed");
