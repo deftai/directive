@@ -67,6 +67,20 @@ Extends and reinforces [coding.md Secrets rule](coding.md#code-organization). Pr
 - ⊗ Disable lockfile checks to "speed up" CI
 - ⊗ Pin to floating refs (`main`, `latest`, `@v1`) for third-party GitHub Actions — pin to a full SHA
 
+## TOCTOU — Scan-Once Is Not Safe for Mutable External Resources (#1938)
+
+The AIR fake-skill experiment (The Hacker News, 2026-06-23) is the canonical recurrence record: a skill package passed every scanner because the scan read a fixed local artifact, while the external URL the skill pointed to was rewritten after review to deliver a payload. Time-of-check ≠ time-of-use (TOCTOU) — a one-time validation of a mutable external resource does not certify what the code or agent will fetch or execute later.
+
+- ! When a decision depends on the *content* of an external or otherwise mutable resource (URLs, remote configs, registry entries, cached issue bodies, skill install targets), couple validation with use in the same trust boundary, OR pin the resource by content hash / immutable version and re-validate on any change signal (ETag, `updated_at`, digest mismatch)
+- ! Treat a passing scan or verdict on a snapshot as certifying only that snapshot — not future fetches of the same reference, URL, or cache key
+- ! Re-fetch and re-validate before acting on cached copies when the source can mutate; cache TTL alone is not authorization
+- ! Pin by content hash or immutable artifact reference — not by self-reported metadata (package name, semver label, declared size, or "verified" badge text)
+- ⊗ Trust a fetched-once value indefinitely without a pin, revalidation hook, or change detector
+- ⊗ Split "check" and "use" across separate requests, processes, or sessions when the underlying resource can change between them
+- ⊗ Assume a clean install-time scan covers runtime fetches from mutable links embedded in the artifact
+
+Cross-references: [`issue:ingest` stale-body replay (#1714)](https://github.com/deftai/directive/issues/1714) (internal same-class instance: cache-first ingest can silently replay a stale issue body within TTL) | AIR fake-skill experiment <https://thehackernews.com/2026/06/fake-ai-agent-skill-passed-security.html> (2026-06-23) | `Agent-Specific Threats` section above
+
 ## Agent-Specific Threats
 
 Directive builds AI agent frameworks; agents introduce a distinct threat surface beyond classic web security.
@@ -152,7 +166,8 @@ Cross-references: [`incidents/README.md`](../incidents/README.md) (incidents lib
 - ⊗ Logging entire request bodies or environment dumps in production
 - ⊗ Granting agents blanket network or shell access without per-tool allow-lists
 - ⊗ Reflecting third-party content (issue bodies, web pages, tool outputs) into privileged tool calls unsanitized
+- ⊗ Scan-once trust of mutable external resources (URLs, caches, registries) without pin-by-hash or revalidation on change (#1938)
 
 ---
 
-**See also**: [coding.md](coding.md) (general coding standards, Secrets rule) | [testing.md](testing.md) (Security Tests section) | [hygiene.md](hygiene.md) (error-hiding anti-patterns) | [../scm/github.md](../scm/github.md) (destructive `gh` verbs preflight gate #1019) | [../incidents/README.md](../incidents/README.md) (incidents library, #708)
+**See also**: [coding.md](coding.md) (general coding standards, Secrets rule) | [testing.md](testing.md) (Security Tests section) | [hygiene.md](hygiene.md) (error-hiding anti-patterns) | [../scm/github.md](../scm/github.md) (destructive `gh` verbs preflight gate #1019) | [../incidents/README.md](../incidents/README.md) (incidents library, #708) | TOCTOU / mutable external resources section above (#1938, #1714)
