@@ -20,11 +20,7 @@ function makeRepo(): string {
   return root;
 }
 
-function writeBrief(
-  root: string,
-  name: string,
-  plan: Record<string, unknown>,
-): void {
+function writeBrief(root: string, name: string, plan: Record<string, unknown>): void {
   writeFileSync(
     join(root, "xbrief", "active", name),
     JSON.stringify({
@@ -42,7 +38,10 @@ function writeCachedIssue(
   state: "open" | "closed",
 ): void {
   const [owner, name] = repo.split("/", 2);
-  const dir = join(root, ".deft-cache", "github-issue", owner!, name!, String(number));
+  if (!owner || !name) {
+    throw new Error(`invalid repo slug: ${repo}`);
+  }
+  const dir = join(root, ".deft-cache", "github-issue", owner, name, String(number));
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "raw.json"), JSON.stringify({ number, state }), "utf8");
 }
