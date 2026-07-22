@@ -172,11 +172,11 @@ function jsonStringifySorted(value: unknown): string {
 
 function resolveLogPath(logPath: string | null | undefined, projectRoot: string): string {
   if (logPath !== undefined && logPath !== null) {
-    return resolve(logPath);
+    return isAbsolute(logPath) ? resolve(logPath) : resolve(projectRoot, logPath);
   }
   const envPath = process.env.DEFT_EVENT_LOG;
   if (envPath !== undefined && envPath.length > 0) {
-    return resolve(envPath);
+    return isAbsolute(envPath) ? resolve(envPath) : resolve(projectRoot, envPath);
   }
   return resolve(projectRoot, DEFAULT_EVENT_LOG);
 }
