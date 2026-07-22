@@ -1,8 +1,9 @@
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { evaluateSkillExternalFetchGate } from "./skill-external-fetch-gate.js";
 
-const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
+const REPO_ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 
 describe("evaluateSkillExternalFetchGate (#1936)", () => {
   it("passes_on_real_framework_source_tree", () => {

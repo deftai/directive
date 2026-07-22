@@ -6,7 +6,7 @@ import {
   hasExternalFetchSignal,
   hasRiskyExternalFetchPattern,
   hasUntrustedFetchMitigation,
-  scanSkillsForExternalFetchViolations,
+  collectExternalFetchViolations,
   skillProse,
 } from "./skill-external-fetch-gate.js";
 
@@ -101,7 +101,7 @@ describe("skill_external_fetch_gate (#1936)", () => {
   });
 
   it("scan_skills_collects_violations_and_skips_clean_entries", () => {
-    const violations = scanSkillsForExternalFetchViolations([
+    const violations = collectExternalFetchViolations([
       { path: "skills/bad/SKILL.md", text: BAD_FIXTURE },
       { path: "skills/good/SKILL.md", text: GOOD_FIXTURE },
     ]);
@@ -135,7 +135,7 @@ describe("skill_external_fetch_gate (#1936)", () => {
       path,
       text: readRepoFile(path),
     }));
-    const violations = scanSkillsForExternalFetchViolations(entries);
+    const violations = collectExternalFetchViolations(entries);
     expect(violations).toEqual([]);
   });
 });

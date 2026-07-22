@@ -16,12 +16,16 @@ export function repoPath(...segments: string[]): string {
  * first (SOURCE layout), then fall back to the repo root so root-resident
  * harness entries (AGENTS.md) and the flattened consumer layout still resolve.
  */
-export function resolveRepoPath(relPath: string): string {
-  const underContent = join(REPO_ROOT, "content", relPath);
+export function resolveContentPathFromRoot(projectRoot: string, relPath: string): string {
+  const underContent = join(projectRoot, "content", relPath);
   if (existsSync(underContent)) {
     return underContent;
   }
-  return repoPath(relPath);
+  return join(projectRoot, relPath);
+}
+
+export function resolveRepoPath(relPath: string): string {
+  return resolveContentPathFromRoot(REPO_ROOT, relPath);
 }
 
 export function readRepoFile(relPath: string): string {
@@ -53,15 +57,8 @@ export function returningSessionsSection(): string {
 }
 
 function skillsDirFromRoot(projectRoot: string): string | null {
-  const underContent = join(projectRoot, "content", "skills");
-  if (existsSync(underContent)) {
-    return underContent;
-  }
-  const flat = join(projectRoot, "skills");
-  if (existsSync(flat)) {
-    return flat;
-  }
-  return null;
+  const resolved = resolveContentPathFromRoot(projectRoot, "skills");
+  return existsSync(resolved) ? resolved : null;
 }
 
 export function listSkillMdFilesFromRoot(projectRoot: string): string[] {

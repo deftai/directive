@@ -102,7 +102,8 @@ export function analyzeSkillExternalFetch(
   };
 }
 
-export function scanSkillsForExternalFetchViolations(
+/** Collect violations across skill entries (used by verify-source gate + tests). */
+export function collectExternalFetchViolations(
   entries: ReadonlyArray<{ path: string; text: string }>,
 ): ExternalFetchViolation[] {
   const violations: ExternalFetchViolation[] = [];

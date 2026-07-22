@@ -1,7 +1,7 @@
 /**
  * skill-external-fetch-gate.ts -- deterministic gate for fetch-then-execute skill prose (#1936 / #1532).
  *
- * Production entry for scanSkillsForExternalFetchViolations: wired into
+ * Production entry for collectExternalFetchViolations: wired into
  * `task verify:skill-external-fetch-gate` and `check:framework-source`.
  *
  * Exit codes (three-state):
@@ -11,9 +11,12 @@
  */
 
 import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { listSkillMdEntriesFromRoot } from "../content-contracts/skills/helpers.js";
-import { scanSkillsForExternalFetchViolations } from "../content-contracts/skills/skill-external-fetch-gate.js";
+import { resolve } from "node:path";
+import {
+  listSkillMdEntriesFromRoot,
+  resolveContentPathFromRoot,
+} from "../content-contracts/skills/helpers.js";
+import { collectExternalFetchViolations } from "../content-contracts/skills/skill-external-fetch-gate.js";
 
 const EXIT_OK = 0;
 const EXIT_DRIFT = 1;
@@ -26,16 +29,8 @@ export interface SkillExternalFetchGateResult {
 }
 
 function resolveSkillsRoot(projectRoot: string): string | null {
-  const root = resolve(projectRoot);
-  const underContent = join(root, "content", "skills");
-  if (existsSync(underContent)) {
-    return underContent;
-  }
-  const flat = join(root, "skills");
-  if (existsSync(flat)) {
-    return flat;
-  }
-  return null;
+  const resolved = resolveContentPathFromRoot(resolve(projectRoot), "skills");
+  return existsSync(resolved) ? resolved : null;
 }
 
 /**
@@ -64,18 +59,19 @@ export function evaluateSkillExternalFetchGate(projectRoot: string): SkillExtern
     };
   }
 
-  const violations = scanSkillsForExternalFetchViolations(entries);
+  const violations = collectExternalFetchViolations(entries);
   if (violations.length > 0) {
+    const sanitize = (value: string): string => value.replace(/\r?\n/g, " ");
     const lines = [
       `FAIL: skill external-fetch gate detected ${violations.length} violation(s):`,
-      ...violations.map((v) => `  - ${v.skillPath}: ${v.detail}`),
+      ...violations.map((v) => `  - ${sanitize(v.skillPath)}: ${sanitize(v.detail)}`),
     ];
     return { code: EXIT_DRIFT, message: lines.join("\n"), stream: "stderr" };
   }
 
   return {
     code: EXIT_OK,
-    message: `OK: skill external-fetch gate clean -- ${entries.length} skill(s) scanned (root=${root}).`,
+    message: `OK: skill external-fetch gate clean -- ${entries.length} skill(s) scanned (root=${root.replace(/\r?\n/g, " ")}).`,
     stream: "stdout",
   };
 }
