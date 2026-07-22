@@ -26,13 +26,8 @@ describe("coverage boost", () => {
       "--base-branch",
     );
     expect(
-      parseWaitMergeableArgs([
-        "1370",
-        "--repo",
-        "o/r",
-        "--cascade",
-        "--require-master-ci-green",
-      ]).cascadeMode,
+      parseWaitMergeableArgs(["1370", "--repo", "o/r", "--cascade", "--require-master-ci-green"])
+        .cascadeMode,
     ).toBe(true);
   });
 
