@@ -10,8 +10,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
 import { minimalScopeBrief } from "./brief-io.js";
+import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
 import { runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 

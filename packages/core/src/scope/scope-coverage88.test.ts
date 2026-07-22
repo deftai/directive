@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const itChmod = it.skipIf(process.platform === "win32");
 
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
+import { minimalScopeBrief } from "./brief-io.js";
 import {
   updateDecomposedChildBackReferences,
   updateDecomposedParentBackReferences,
@@ -28,7 +29,6 @@ import {
 } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
-import { minimalScopeBrief } from "./brief-io.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { findByBatchId, undoBatch, undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";
