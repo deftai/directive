@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Stop pr:watch from premature STALL on stale-SHA confidence while re-review is in flight.",
+    "created": "2026-07-22T01:25:00Z",
+    "updated": "2026-07-22T01:30:00Z"
+  },
+  "plan": {
+    "id": "2313-pr-watch-premature-stall",
+    "title": "bug(pr:watch): no premature STALL on stale-SHA confidence during re-review",
+    "status": "running",
+    "narratives": {
+      "Description": "task pr:watch fires a premature STALL (exit 2) within about 90 to 106 seconds when a fresh commit has just been pushed and bots are still mid-review. It classifies confidence from a stale prior-SHA review (sha_match == false) as stall-eligible after a few polls instead of honoring the roughly 10-minute Stall Detection Rubric.",
+      "ImplementationPlan": "1. Align packages/core/src/pr-watch/watch.ts stall counter with sha_match gates and #1259 INCOMPLETE_BUT_RATED semantics so stale-SHA confidence does not accelerate early STALL. 2. Adjust packages/core/src/pr-watch/probe.ts / constants.ts if thresholds are shared. 3. Add regression covering fresh push + stale prior review remaining non-STALL until rubric threshold. 4. Verify with pnpm --filter @deftai/directive-core test -- pr-watch; CHANGELOG [Unreleased].",
+      "UserStory": "As a review-cycle owner waiting on Greptile after a push, I want pr:watch to wait for HEAD reviews instead of stalling within about 90 seconds on a stale SHA, so that legitimate in-flight re-reviews are not aborted early."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Exclude stale-SHA confidence from early stall counter",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given sha_match == false on a prior-SHA confidence score, when pr:watch polls during re-review, then that score does not accelerate STALL before the rubric threshold."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Regression for premature STALL class",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fixture that reproduces the #2311-class premature STALL, when pr-watch tests run, then they fail before the fix and pass after."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "CHANGELOG Unreleased entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when CHANGELOG is reviewed, then [Unreleased] has a brief note for pr:watch stall behavior."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix",
+      "x-tracking": {
+        "parent_issue": "#2313",
+        "decomposition_origin": "#2313"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-watch/probe.ts",
+          "packages/core/src/pr-watch/constants.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- pr-watch"
+        ],
+        "expected_outputs": [
+          "no premature STALL on stale SHA",
+          "regression test",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "pr-watch-2313",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Bug-fix from GitHub issue #2313; no FR trace registry for hotfix cohort."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2313",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2313: pr:watch premature STALL on stale-SHA confidence"
+      }
+    ]
+  }
+}

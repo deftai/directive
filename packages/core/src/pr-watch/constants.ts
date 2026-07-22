@@ -66,10 +66,10 @@ export const WATCH_HELP =
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
   "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | RUNNER_CAPACITY_STALL | config / usage error\n";
 /**
- * Consecutive polls with a review PRESENT but stuck on a stale (non-HEAD)
- * commit before the loop surfaces STALL instead of waiting the full cap. Keeps
- * a Greptile review that never re-reviews the new HEAD from silently eating the
- * whole 30-minute budget (#1039 STALL terminal).
+ * Consecutive polls where the CLEAN gate is wedged on HEAD (!has_blocking &&
+ * !is_clean with a holdout other than sha_match) before STALL (#1039). Stale-SHA
+ * reads (sha_match holdout) do NOT advance this counter — re-review in flight
+ * waits until max-wait cap (#2313 / #1259 INCOMPLETE_BUT_RATED).
  */
 export const DEFAULT_STALL_THRESHOLD = 3;
 /**

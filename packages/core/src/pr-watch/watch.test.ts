@@ -226,17 +226,45 @@ describe("watch blocking loop (injected clock + sleep)", () => {
     expect(r.pollCount).toBe(3);
   });
 
-  it("STALL after stallThreshold consecutive non-HEAD reviews", () => {
+  it("does NOT STALL on stale-SHA confidence during re-review (#2313)", () => {
     const clock = new FakeClock();
     const sleep = vi.fn(makeSleep(clock));
-    const stale = makeProbe({
+    const staleReReview = makeProbe({
       lastReviewedSha: STALE,
       shaMatch: false,
       hasBlocking: false,
       isClean: false,
       cleanGateHoldout: "sha_match",
+      confidence: 4,
     });
-    const { fn } = makeProbeSeq(stale);
+    const { fn } = makeProbeSeq(staleReReview);
+
+    const r = watch(9, "deftai/directive", {
+      pollSeconds: 1,
+      maxWaitMinutes: 0.1,
+      stallThreshold: 3,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_TIMEOUT);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+    expect(r.pollCount).toBeGreaterThan(3);
+  });
+
+  it("STALL after stallThreshold wedged HEAD holdouts (#1039)", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const wedged = makeProbe({
+      shaMatch: true,
+      hasBlocking: false,
+      isClean: false,
+      cleanGateHoldout: "terminal_check_run",
+      confidence: 5,
+      terminalCheckRun: false,
+    });
+    const { fn } = makeProbeSeq(wedged);
 
     const r = watch(9, "deftai/directive", {
       pollSeconds: 30,

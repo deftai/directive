@@ -145,9 +145,11 @@ export function watch(
       return build(VERDICT_CI_BLOCKED, EXIT_TERMINAL_ERROR, probe, poll);
     }
 
-    // Stall = a review IS present but stuck on a non-HEAD commit; surface it
-    // rather than burning the whole cap waiting for a re-review that isn't coming.
-    if (probe.found && !probe.shaMatch) {
+    // STALL (#1039): wedged CLEAN-gate on HEAD — !has_blocking && !is_clean for N
+    // consecutive polls with a holdout OTHER than sha_match. Stale-SHA reads
+    // (clean_gate_holdout=sha_match) are INCOMPLETE for HEAD per #1259 / #2313 —
+    // keep polling until cap, not early STALL while re-review is in flight.
+    if (!probe.hasBlocking && !probe.isClean && probe.cleanGateHoldout !== "sha_match") {
       stallStreak += 1;
     } else {
       stallStreak = 0;

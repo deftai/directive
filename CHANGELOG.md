@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Release preflight no longer blocks cuts when a closed secondary `references[]` issue remains on an open-parent xBRIEF (#2745).** Step 3 lifecycle sync now anchors closed-issue mismatch detection on the primary lifecycle issue (`parent_issue` / `planRef`), not every GitHub reference on the file.
 - **triage:queue honors cache quarantine for issue titles (#2433).** Queue loading now omits entries whose `meta.json` scan failed or whose approved `content.md` is missing, and end-to-end render never surfaces quarantined raw titles from `raw.json`. Closes #2433. Refs #2435.
+- **`pr:watch` no longer STALLs early on stale-SHA confidence during re-review (#2313).** The stall counter now follows the #1039 wedged-HEAD signature (`!has_blocking && !is_clean` with a holdout other than `sha_match`), not consecutive stale-SHA polls — aligning with #1259 `INCOMPLETE_BUT_RATED` semantics so a fresh push waits for HEAD reviews instead of exiting at ~90s. Closes #2313.
 
 ### Removed
 
