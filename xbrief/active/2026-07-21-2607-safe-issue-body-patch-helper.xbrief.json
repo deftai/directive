@@ -1,0 +1,92 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Strengthen scm:body issue-edit with fail-closed postcondition verify + safe body fetch-to-file for win32 RMW.",
+    "created": "2026-07-22T01:35:00Z",
+    "updated": "2026-07-22T02:20:00Z"
+  },
+  "plan": {
+    "id": "2607-safe-issue-body-patch-helper",
+    "title": "feat(scm): issue-body postcondition verify + safe fetch-to-file (#2607)",
+    "status": "running",
+    "narratives": {
+      "Description": "Existing scm:body:* (#1555) PATCHes via body-file and re-fetches, but does not fail closed when the stored body is flattened or mojibaked. Win32 agents still destroy live issue bodies on read-modify-write by capturing gh api --jq .body into a PowerShell string[] and joining with OFS. Directive needs stronger postconditions and a fetch-to-file path so agents never rebuild bodies via PS array coercion.",
+      "ImplementationPlan": "1. In packages/core/src/intake/github-body.ts mutateWithReadback / editIssueBody (and sibling body mutators as appropriate), after re-fetch compare intended body to live body (equality or structural: newline count, no U+FFFD / space-joined collapse heuristics) and throw GitHubBodyError on mismatch. 2. Add github-body issue-fetch (or scm:body:issue:fetch) that writes the live body to a UTF-8 file for safe RMW. 3. Wire CLI/task in packages/core/src/intake/github-body-cli.ts, packages/cli route, tasks/scm.yml. 4. Unit tests with mocked runFn covering flattened/mojibake fail-closed and happy path. 5. CHANGELOG [Unreleased]. Docs always-load forbid for PS capture-concat is #2744 (depends on this helper).",
+      "UserStory": "As a win32 agent amending an issue body, I want a helper that patches via body-file with fail-closed re-fetch verify and a fetch-to-file read path, so that newlines and Unicode are not silently destroyed."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Fail-closed postcondition verify on body mutate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a PATCH whose re-fetched body is flattened or mojibaked relative to the intended payload, when scm:body:issue:edit / editIssueBody runs, then it exits non-zero with a short diagnosis and does not report success."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Safe fetch-to-file for RMW",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an issue with a multi-line Unicode body, when the fetch-to-file verb runs, then a UTF-8 file contains the exact live body without PowerShell string[] join."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Tests + CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given mocked gh responses, when github-body tests run, then flattened/mojibake cases fail closed and happy path passes; CHANGELOG [Unreleased] notes the verify + fetch path."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "enhancement",
+      "x-tracking": {
+        "parent_issue": "#2607",
+        "decomposition_origin": "#2607"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/github-body.ts",
+          "packages/core/src/intake/github-body-cli.ts",
+          "packages/core/src/intake/github-body.test.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "packages/cli/src/dispatch.ts",
+          "tasks/scm.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- github-body"
+        ],
+        "expected_outputs": [
+          "postcondition verify fail-closed",
+          "fetch-to-file verb",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "scm-body-2607",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Enhancement from GitHub issue #2607 extending #1555; no FR trace registry for hotfix cohort."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2607",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2607: safe issue-body patch helper + postcondition verify"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2744",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2744: always-load RMW guidance (follow-on docs)"
+      }
+    ],
+    "updated": "2026-07-22T02:17:45Z"
+  }
+}

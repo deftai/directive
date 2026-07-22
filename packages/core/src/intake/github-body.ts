@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { defaultWhich } from "../scm/binary.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 
@@ -95,6 +95,63 @@ function requireIntField(obj: Record<string, unknown>, field: string): number {
   return value;
 }
 
+function requireStringField(obj: Record<string, unknown>, field: string): string {
+  const value = obj[field];
+  if (typeof value !== "string") {
+    throw new GitHubBodyError(`response did not include string field ${JSON.stringify(field)}`);
+  }
+  return value;
+}
+
+function countNewlines(text: string): number {
+  let count = 0;
+  for (const ch of text) {
+    if (ch === "\n") count += 1;
+  }
+  return count;
+}
+
+function normalizeNewlines(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
+/** Fail closed when live read-back body is flattened or mojibaked vs intended payload (#2607). */
+export function verifyBodyPostcondition(intended: string, live: string): void {
+  if (intended === live) {
+    return;
+  }
+  if (normalizeNewlines(intended) === normalizeNewlines(live)) {
+    return;
+  }
+
+  const diagnoses: string[] = [];
+  if (live.includes("\uFFFD") && !intended.includes("\uFFFD")) {
+    diagnoses.push(
+      "live body contains U+FFFD replacement character not present in intended payload",
+    );
+  }
+
+  const intendedNl = countNewlines(intended);
+  const liveNl = countNewlines(live);
+  if (intendedNl > 0 && liveNl < intendedNl) {
+    diagnoses.push(`newline count mismatch (intended ${intendedNl}, live ${liveNl})`);
+  }
+
+  if (intended.includes("\n") && intended.replace(/\n/g, " ") === live) {
+    diagnoses.push(
+      "live body looks like intended newlines were collapsed to spaces (PowerShell string[] join)",
+    );
+  }
+
+  if (diagnoses.length > 0) {
+    throw new GitHubBodyError(`body postcondition failed: ${diagnoses.join("; ")}`);
+  }
+
+  throw new GitHubBodyError(
+    `body postcondition failed: re-fetched body does not match intended payload (length intended=${intended.length}, live=${live.length})`,
+  );
+}
+
 function mutateWithReadback(
   mutationEndpoint: string,
   method: string,
@@ -102,6 +159,7 @@ function mutateWithReadback(
   readbackEndpoint: string | ((response: Record<string, unknown>) => string),
   options: { binary?: string | null; runFn?: RunGhApiFn } = {},
 ): Record<string, unknown> {
+  const intendedBody = typeof payload.body === "string" ? payload.body : undefined;
   const mutation = runGhApiJson([mutationEndpoint, "--method", method, "--input", "-"], {
     inputText: jsonInput(payload),
     binary: options.binary,
@@ -109,7 +167,11 @@ function mutateWithReadback(
   });
   const endpoint =
     typeof readbackEndpoint === "function" ? readbackEndpoint(mutation) : readbackEndpoint;
-  return runGhApiJson([endpoint], { binary: options.binary, runFn: options.runFn });
+  const readback = runGhApiJson([endpoint], { binary: options.binary, runFn: options.runFn });
+  if (intendedBody !== undefined) {
+    verifyBodyPostcondition(intendedBody, requireStringField(readback, "body"));
+  }
+  return readback;
 }
 
 export function createIssue(
@@ -182,6 +244,28 @@ export function editPrBody(
   });
 }
 
+export function fetchIssueBody(
+  repo: string,
+  issue: number,
+  options: { binary?: string | null; runFn?: RunGhApiFn } = {},
+): string {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/issues/${issue}`;
+  const response = runGhApiJson([endpoint], { binary: options.binary, runFn: options.runFn });
+  return requireStringField(response, "body");
+}
+
+export function writeIssueBodyToFile(
+  repo: string,
+  issue: number,
+  outFile: string,
+  options: { binary?: string | null; runFn?: RunGhApiFn } = {},
+): string {
+  const body = fetchIssueBody(repo, issue, options);
+  writeFileSync(outFile, body, { encoding: "utf8" });
+  return body;
+}
+
 export interface GitHubBodyCliArgs {
   command: string;
   repo?: string;
@@ -190,34 +274,47 @@ export interface GitHubBodyCliArgs {
   comment?: number;
   pr?: number;
   bodyFile?: string;
+  outFile?: string;
 }
 
 export function githubBodyMain(args: GitHubBodyCliArgs): number {
   try {
-    const body = readBody(args.bodyFile ?? "-");
-    let result: Record<string, unknown>;
     switch (args.command) {
-      case "issue-create":
-        result = createIssue(args.repo as string, { title: args.title as string, body });
-        break;
-      case "issue-edit":
-        result = editIssueBody(args.repo as string, args.issue as number, { body });
-        break;
-      case "comment-create":
-        result = createIssueComment(args.repo as string, args.issue as number, { body });
-        break;
-      case "comment-edit":
-        result = editIssueCommentBody(args.repo as string, args.comment as number, { body });
-        break;
-      case "pr-edit":
-        result = editPrBody(args.repo as string, args.pr as number, { body });
-        break;
-      default:
-        process.stderr.write(`error: unknown command ${JSON.stringify(args.command)}\n`);
-        return 1;
+      case "issue-fetch": {
+        if (args.repo === undefined || args.issue === undefined || args.outFile === undefined) {
+          process.stderr.write("error: issue-fetch requires --repo, --issue, and --out-file\n");
+          return 1;
+        }
+        writeIssueBodyToFile(args.repo, args.issue, args.outFile);
+        return 0;
+      }
+      default: {
+        const body = readBody(args.bodyFile ?? "-");
+        let result: Record<string, unknown>;
+        switch (args.command) {
+          case "issue-create":
+            result = createIssue(args.repo as string, { title: args.title as string, body });
+            break;
+          case "issue-edit":
+            result = editIssueBody(args.repo as string, args.issue as number, { body });
+            break;
+          case "comment-create":
+            result = createIssueComment(args.repo as string, args.issue as number, { body });
+            break;
+          case "comment-edit":
+            result = editIssueCommentBody(args.repo as string, args.comment as number, { body });
+            break;
+          case "pr-edit":
+            result = editPrBody(args.repo as string, args.pr as number, { body });
+            break;
+          default:
+            process.stderr.write(`error: unknown command ${JSON.stringify(args.command)}\n`);
+            return 1;
+        }
+        process.stdout.write(`${JSON.stringify(result)}\n`);
+        return 0;
+      }
     }
-    process.stdout.write(`${JSON.stringify(result)}\n`);
-    return 0;
   } catch (exc) {
     process.stderr.write(`error: ${String(exc)}\n`);
     return 1;

@@ -30,6 +30,7 @@ import {
   editPrBody,
   GitHubBodyError,
   githubBodyMain,
+  type RunGhApiFn,
   readBody,
 } from "./github-body.js";
 import {
@@ -815,18 +816,22 @@ describe("intake coverage boost", () => {
   });
 
   describe("github-body", () => {
-    const runFn = (args: readonly string[], _input?: string) => {
-      if (args.includes("--method")) {
-        return { number: 7, id: 99 };
-      }
-      return { number: 7, body: "ok", id: 99 };
-    };
-
     it("mutations round-trip via runFn seam", () => {
-      expect(editIssueBody("o/r", 7, { body: "b", runFn, binary: "gh" }).body).toBe("ok");
+      let lastBody = "";
+      const runFn: RunGhApiFn = (args, options) => {
+        if (args.includes("--method")) {
+          if (options?.inputText) {
+            const parsed = JSON.parse(options.inputText) as { body?: string };
+            if (typeof parsed.body === "string") lastBody = parsed.body;
+          }
+          return { number: 7, id: 99 };
+        }
+        return { number: 7, body: lastBody, id: 99 };
+      };
+      expect(editIssueBody("o/r", 7, { body: "b", runFn, binary: "gh" }).body).toBe("b");
       expect(createIssueComment("o/r", 7, { body: "c", runFn, binary: "gh" }).id).toBe(99);
       expect(editIssueCommentBody("o/r", 99, { body: "d", runFn, binary: "gh" }).id).toBe(99);
-      expect(editPrBody("o/r", 3, { body: "e", runFn, binary: "gh" }).body).toBe("ok");
+      expect(editPrBody("o/r", 3, { body: "e", runFn, binary: "gh" }).body).toBe("e");
     });
 
     it("readBody and githubBodyMain", () => {
@@ -835,11 +840,18 @@ describe("intake coverage boost", () => {
       writeFileSync(bodyPath, "hello", "utf8");
       expect(readBody(bodyPath)).toBe("hello");
       expect(readBody("-", "stdin")).toBe("stdin");
-      const callSpy = vi
-        .spyOn(scm, "call")
-        .mockImplementation(() =>
-          completed(JSON.stringify({ number: 1, body: "ok", id: 99 }), "", 0),
-        );
+      let lastBody = "";
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_domain, _verb, args, opts) => {
+        if (args.includes("--method")) {
+          const input = opts?.input;
+          if (typeof input === "string") {
+            const parsed = JSON.parse(input) as { body?: string };
+            if (typeof parsed.body === "string") lastBody = parsed.body;
+          }
+          return completed(JSON.stringify({ number: 1, id: 99 }), "", 0);
+        }
+        return completed(JSON.stringify({ number: 1, body: lastBody, id: 99 }), "", 0);
+      });
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       try {

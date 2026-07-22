@@ -11,7 +11,7 @@ import {
   validateGithubAuth,
 } from "./github-auth-modes.js";
 import { mainEntry as authCliMain } from "./github-auth-modes-cli.js";
-import { createIssue, githubBodyMain } from "./github-body.js";
+import { createIssue, githubBodyMain, type RunGhApiFn } from "./github-body.js";
 import { mainEntry as bodyCliMain } from "./github-body-cli.js";
 import {
   emitUmbrella,
@@ -453,9 +453,18 @@ describe("intake cli and branch coverage", () => {
     });
 
     it("githubBodyMain issue-create and createIssue readback", () => {
-      const callSpy = vi
-        .spyOn(scm, "call")
-        .mockImplementation(() => completed(JSON.stringify({ number: 9, body: "created" }), "", 0));
+      let lastBody = "";
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_domain, _verb, args, opts) => {
+        if (args.includes("--method")) {
+          const input = opts?.input;
+          if (typeof input === "string") {
+            const parsed = JSON.parse(input) as { body?: string };
+            if (typeof parsed.body === "string") lastBody = parsed.body;
+          }
+          return completed(JSON.stringify({ number: 9 }), "", 0);
+        }
+        return completed(JSON.stringify({ number: 9, body: lastBody }), "", 0);
+      });
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       expect(
         githubBodyMain({
@@ -465,8 +474,17 @@ describe("intake cli and branch coverage", () => {
           bodyFile: "-",
         }),
       ).toBe(0);
-      const runFn = (args: readonly string[]) =>
-        args.includes("--method") ? { number: 11 } : { number: 11, body: "b" };
+      let createBody = "";
+      const runFn: RunGhApiFn = (args, options) => {
+        if (args.includes("--method")) {
+          if (options?.inputText) {
+            const parsed = JSON.parse(options.inputText) as { body?: string };
+            if (typeof parsed.body === "string") createBody = parsed.body;
+          }
+          return { number: 11 };
+        }
+        return { number: 11, body: createBody };
+      };
       expect(createIssue("o/r", { title: "t", body: "b", runFn, binary: "gh" }).number).toBe(11);
       callSpy.mockRestore();
       stdout.mockRestore();

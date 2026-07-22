@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Safe issue-body fetch and fail-closed postcondition verify (#2607).** `task scm:body:issue:fetch` writes the live issue body to a UTF-8 `--out-file` for read-modify-write without PowerShell capture; `scm:body:*` mutators now fail non-zero when re-fetched bodies are flattened or mojibaked vs the intended payload. Closes #2607.
+
 ### Changed
 
 ### Fixed

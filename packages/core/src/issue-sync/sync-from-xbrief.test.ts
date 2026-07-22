@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { RunGhApiFn } from "../intake/github-body.js";
 import {
   buildSyncComment,
   extractSyncSnapshot,
@@ -13,6 +14,21 @@ import {
   syncFromXbrief,
 } from "./sync-from-xbrief.js";
 import { parseArgs } from "./sync-from-xbrief-cli.js";
+
+function mockCommentRunFn(id: number): RunGhApiFn {
+  let lastBody = "";
+  const fn: RunGhApiFn = (args, options) => {
+    if (args.includes("--method")) {
+      if (options?.inputText) {
+        const parsed = JSON.parse(options.inputText) as { body?: string };
+        if (typeof parsed.body === "string") lastBody = parsed.body;
+      }
+      return { id };
+    }
+    return { id, body: lastBody };
+  };
+  return vi.fn(fn) as unknown as RunGhApiFn;
+}
 
 const itSymlink = it.skipIf(process.platform === "win32");
 const tempRoots: string[] = [];
@@ -228,7 +244,7 @@ describe("issue-sync dry-run and missing origin", () => {
 
   it("posts comment and persists fingerprint on happy path", () => {
     const { xbriefPath, projectRoot } = writeTempXbrief(ORIGIN_XBRIEF);
-    const runFn = vi.fn(() => ({ id: 999 }));
+    const runFn = mockCommentRunFn(999);
     const code = syncFromXbrief({
       xbriefPath,
       projectRoot,
@@ -252,7 +268,7 @@ describe("issue-sync dry-run and missing origin", () => {
       xbriefPath,
       projectRoot,
       repo: "deftai/directive",
-      runFn: () => ({ id: 1001 }),
+      runFn: mockCommentRunFn(1001),
       writeFingerprint: () => {
         throw new Error("read-only");
       },
@@ -282,7 +298,7 @@ describe("issue-sync dry-run and missing origin", () => {
 
   it("allows cross-repo comment mutation when allowCrossRepo is set (#2633)", () => {
     const { xbriefPath, projectRoot } = writeTempXbrief(CROSS_REPO_XBRIEF);
-    const runFn = vi.fn(() => ({ id: 1002 }));
+    const runFn = mockCommentRunFn(1002);
     const code = syncFromXbrief({
       xbriefPath,
       projectRoot,
@@ -296,7 +312,7 @@ describe("issue-sync dry-run and missing origin", () => {
 
   it("allows cross-repo comment mutation when target is allowlisted (#2633)", () => {
     const { xbriefPath, projectRoot } = writeTempXbrief(CROSS_REPO_XBRIEF);
-    const runFn = vi.fn(() => ({ id: 1003 }));
+    const runFn = mockCommentRunFn(1003);
     const code = syncFromXbrief({
       xbriefPath,
       projectRoot,
@@ -327,7 +343,7 @@ describe("issue-sync dry-run and missing origin", () => {
 
   it("allows same-repo sync when --repo is a full GitHub URL (#2633)", () => {
     const { xbriefPath, projectRoot } = writeTempXbrief(ORIGIN_XBRIEF);
-    const runFn = vi.fn(() => ({ id: 1004 }));
+    const runFn = mockCommentRunFn(1004);
     const code = syncFromXbrief({
       xbriefPath,
       projectRoot,
@@ -359,7 +375,7 @@ describe("issue-sync dry-run and missing origin", () => {
       const linkedPath = join(root, "xbrief", "active", "scope.xbrief.json");
       symlinkSync(victim, linkedPath);
 
-      const runFn = vi.fn(() => ({ id: 2001 }));
+      const runFn = mockCommentRunFn(2001);
       const err: string[] = [];
       const code = syncFromXbrief({
         xbriefPath: linkedPath,

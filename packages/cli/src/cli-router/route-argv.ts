@@ -92,6 +92,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "slice:list": ["slice", "list"],
   "github-body:issue-create": ["github-body", "issue-create"],
   "github-body:issue-edit": ["github-body", "issue-edit"],
+  "github-body:issue-fetch": ["github-body", "issue-fetch"],
   "github-body:comment-create": ["github-body", "comment-create"],
   "github-body:comment-edit": ["github-body", "comment-edit"],
   "github-body:pr-edit": ["github-body", "pr-edit"],

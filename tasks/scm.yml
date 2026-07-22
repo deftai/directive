@@ -113,6 +113,16 @@ tasks:
         vars:
           ENGINE_CMD: 'github-body issue-edit {{.CLI_ARGS}}'
 
+  body:issue:fetch:
+    desc: "[#2607] Fetch live issue body to UTF-8 --out-file for safe read-modify-write"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body issue-fetch {{.CLI_ARGS}}'
+
   body:comment:create:
     desc: "[#1555] Safely create an issue/PR comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'

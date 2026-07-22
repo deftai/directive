@@ -12,6 +12,7 @@ function parseArgs(argv: string[]): GitHubBodyCliArgs {
     else if (arg === "--comment") out.comment = Number.parseInt(argv[++i] as string, 10);
     else if (arg === "--pr") out.pr = Number.parseInt(argv[++i] as string, 10);
     else if (arg === "--body-file") out.bodyFile = argv[++i];
+    else if (arg === "--out-file") out.outFile = argv[++i];
   }
   return out;
 }
