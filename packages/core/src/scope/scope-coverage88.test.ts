@@ -28,6 +28,7 @@ import {
 } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
+import { minimalScopeBrief } from "./brief-io.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { findByBatchId, undoBatch, undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";
@@ -651,7 +652,7 @@ describe("scope coverage ≥88% buffer", () => {
       const vbrief = join(root, "xbrief", "active", "stay.xbrief.json");
       writeFileSync(
         vbrief,
-        formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }),
+        formatVbriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
       );
       expect(runTransition("block", vbrief).ok).toBe(true);
     });

@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
+import { minimalScopeBrief } from "./brief-io.js";
 import { runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 
@@ -130,7 +131,7 @@ describe("promote then demote undo path", () => {
     const proposed = join(root, "xbrief", "proposed", "y.xbrief.json");
     writeFileSync(
       proposed,
-      formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
+      formatVbriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
       "utf8",
     );
     expect(runTransition("promote", proposed).ok).toBe(true);

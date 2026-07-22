@@ -31,7 +31,7 @@ function writeScope(
     path,
     formatVbriefJson({
       xBRIEFInfo: { version: "0.8" },
-      plan,
+      plan: { items: [], ...plan },
     }),
     "utf8",
   );

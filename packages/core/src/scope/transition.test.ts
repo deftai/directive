@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { detectLifecycleFolder, runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 
@@ -31,7 +32,7 @@ function writeVbrief(
 ): string {
   const path = join(root, "xbrief", folder, name);
   writeFile(path, {
-    vBRIEFInfo: { version: "0.5" },
+    xBRIEFInfo: { version: "0.8" },
     plan: { title: "T", status, items: [] },
   });
   return path;
@@ -139,6 +140,24 @@ describe("runTransition", () => {
   it("detects lifecycle folder", () => {
     expect(detectLifecycleFolder("/tmp/xbrief/pending/foo.xbrief.json")).toBe("pending");
     expect(detectLifecycleFolder("/tmp/other/foo.xbrief.json")).toBeNull();
+  });
+
+  it("rejects persist when post-mutation brief would be folder/status invalid (#2131)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running", "invalid-persist.xbrief.json");
+    const readResult = readBriefForMutation(file);
+    expect(readResult.ok).toBe(true);
+    if (!readResult.ok) {
+      return;
+    }
+    const data = readResult.data;
+    const plan = data.plan as Record<string, unknown>;
+    plan.status = "pending";
+    plan.updated = "2026-06-01T12:00:00Z";
+    const before = readFileSync(file, "utf8");
+    const writeResult = atomicWriteBrief(file, data, join(root, "xbrief"));
+    expect(writeResult.ok).toBe(false);
+    expect(readFileSync(file, "utf8")).toBe(before);
   });
 });
 

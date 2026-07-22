@@ -300,11 +300,12 @@ describe("coverage branches round 2", () => {
     writeFileSync(
       join(root, "xbrief", "completed", "dep.xbrief.json"),
       formatVbriefJson({
-        vBRIEFInfo: { version: "0.5" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           id: "dep",
           title: "dep",
           status: "completed",
+          items: [],
           metadata: { kind: "story", swarm: { depends_on: [] } },
         },
       }),
@@ -312,11 +313,12 @@ describe("coverage branches round 2", () => {
     writeFileSync(
       join(root, "xbrief", "proposed", "child.xbrief.json"),
       formatVbriefJson({
-        vBRIEFInfo: { version: "0.5" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           id: "child",
           title: "child",
           status: "proposed",
+          items: [],
           metadata: { kind: "story", swarm: { depends_on: ["dep"] } },
         },
       }),

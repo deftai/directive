@@ -1,12 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
+import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import {
   LIFECYCLE_FOLDERS,
@@ -23,7 +23,7 @@ import {
 } from "./decomposed-refs.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
-import { formatVbriefJson, utcNowIso } from "./vbrief-json.js";
+import { utcNowIso } from "./vbrief-json.js";
 import type { WipCapCheck } from "./wip-cap-check.js";
 
 export interface TransitionResult {
@@ -73,12 +73,11 @@ export function runTransition(
     };
   }
 
-  let data: Record<string, unknown>;
-  try {
-    data = JSON.parse(readFileSync(resolvedPath, "utf8")) as Record<string, unknown>;
-  } catch (err: unknown) {
-    return { ok: false, message: `Invalid JSON in ${resolvedPath}: ${String(err)}` };
+  const readResult = readBriefForMutation(resolvedPath);
+  if (!readResult.ok) {
+    return { ok: false, message: readResult.message };
   }
+  const data = readResult.data;
 
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
@@ -137,9 +136,6 @@ export function runTransition(
     stampCompletionMetadata(planObj, projectRoot, nowIso);
   }
 
-  const formatted = formatVbriefJson(data);
-  const crud = new InstrumentedVbriefCrud({ now: () => now });
-
   if (targetFolder !== null) {
     const destDir = join(vbriefRoot, targetFolder);
     mkdirSync(destDir, { recursive: true });
@@ -150,9 +146,9 @@ export function runTransition(
 
     // #2578: stamp terminal status at the destination path in the same write as
     // folder placement — never leave a non-terminal status under completed/.
-    const writeResult = crud.update(destPath, formatted, { trustedWrite: true });
+    const writeResult = atomicWriteBrief(destPath, data, vbriefRoot);
     if (!writeResult.ok) {
-      return { ok: false, message: writeResult.error ?? `CRUD update failed for ${destPath}` };
+      return { ok: false, message: writeResult.message };
     }
 
     try {
@@ -166,12 +162,6 @@ export function runTransition(
       return { ok: false, message: `Failed to remove source after move: ${String(err)}` };
     }
 
-    try {
-      persistCrudMetrics(projectRoot, crud.getMetrics());
-    } catch {
-      /* best-effort telemetry persistence */
-    }
-
     updateDecomposedParentBackReferences(data, resolvedPath, destPath, vbriefRoot);
     updateDecomposedChildBackReferences(data, resolvedPath, destPath, vbriefRoot);
     syncProjectDefinitionAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
@@ -183,14 +173,9 @@ export function runTransition(
     };
   }
 
-  const writeResult = crud.update(resolvedPath, formatted, { trustedWrite: true });
+  const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot);
   if (!writeResult.ok) {
-    return { ok: false, message: writeResult.error ?? `CRUD update failed for ${resolvedPath}` };
-  }
-  try {
-    persistCrudMetrics(projectRoot, crud.getMetrics());
-  } catch {
-    /* best-effort telemetry persistence */
+    return { ok: false, message: writeResult.message };
   }
 
   const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);

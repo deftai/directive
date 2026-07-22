@@ -6,6 +6,7 @@ import { append, canonicalLogPath, newDecisionId, ScopeAuditLogError } from "./a
 import { demoteOne } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
+import { minimalScopeBrief } from "./brief-io.js";
 import { runTransition } from "./transition.js";
 import { undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";
@@ -37,7 +38,7 @@ describe("scope branch coverage", () => {
     for (let i = 0; i < 10; i += 1) {
       writeFileSync(
         join(root, "xbrief", "pending", `p${i}.xbrief.json`),
-        formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+        formatVbriefJson(minimalScopeBrief({ title: "T", status: "pending", items: [] })),
       );
     }
     writeFileSync(
@@ -47,7 +48,10 @@ describe("scope branch coverage", () => {
       }),
     );
     const file = join(root, "xbrief", "proposed", "new.xbrief.json");
-    writeFileSync(file, formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }));
+    writeFileSync(
+      file,
+      formatVbriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+    );
     expect(lifecycleMain(["promote", file, "--project-root", root, "--force"])).toBe(0);
   });
 
@@ -59,7 +63,7 @@ describe("scope branch coverage", () => {
     const proposed = join(root, "xbrief", "proposed", "r.xbrief.json");
     writeFileSync(
       proposed,
-      formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
+      formatVbriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
     );
     const restoreEntry = {
       decision_id: newDecisionId(),
@@ -78,7 +82,7 @@ describe("scope branch coverage", () => {
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       pending,
-      formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
+      formatVbriefJson(minimalScopeBrief({ title: "T", status: "pending", items: [] })),
     );
     const demoted = demoteOne(pending, root, "x");
     const undoResult = undoOne(demoted.auditEntry as Record<string, unknown>, root, { logPath });
@@ -123,13 +127,16 @@ describe("scope branch coverage", () => {
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
     const active = join(root, "xbrief", "active", "f.xbrief.json");
-    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    writeFileSync(
+      active,
+      formatVbriefJson(minimalScopeBrief({ title: "T", status: "running", items: [] })),
+    );
     runTransition("block", active);
     expect(runTransition("unblock", active).ok).toBe(true);
     const cancelled = join(root, "xbrief", "cancelled", "c.xbrief.json");
     writeFileSync(
       cancelled,
-      formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
+      formatVbriefJson(minimalScopeBrief({ title: "T", status: "cancelled", items: [] })),
     );
     expect(runTransition("cancel", cancelled).message).toContain("No-op");
   });

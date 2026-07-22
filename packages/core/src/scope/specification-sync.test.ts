@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
+import { minimalScopeBrief } from "./brief-io.js";
 import { runTransition } from "./transition.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 
@@ -250,7 +251,7 @@ describe("runTransition specification sync (#2566)", () => {
     const active = join(root, "xbrief", "active", "2026-01-01-ship.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson({ plan: { title: "Ship now", status: "running", items: [] } }),
+      formatVbriefJson(minimalScopeBrief({ title: "Ship now", status: "running", items: [] })),
     );
     const result = runTransition("complete", active);
     expect(result.ok).toBe(true);
@@ -268,7 +269,7 @@ describe("runTransition specification sync (#2566)", () => {
     const active = join(root, "xbrief", "active", "2026-01-01-ship.xbrief.json");
     writeFileSync(
       active,
-      formatVbriefJson({ plan: { title: "Ship now", status: "running", items: [] } }),
+      formatVbriefJson(minimalScopeBrief({ title: "Ship now", status: "running", items: [] })),
     );
     const result = runTransition("fail", active);
     expect(result.ok).toBe(true);

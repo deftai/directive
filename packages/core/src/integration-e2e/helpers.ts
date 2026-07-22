@@ -136,7 +136,7 @@ export function writeScopeVbrief(
     target,
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.5" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "Consumer fixture scope",
           status,

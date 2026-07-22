@@ -12,6 +12,7 @@ import { batchDemote, demoteOne, resolveFilePath } from "./demote.js";
 import { demoteMain, lifecycleMain, undoMain } from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
+import { minimalScopeBrief } from "./brief-io.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { undoOne } from "./undo.js";
 import { formatVbriefJson } from "./vbrief-json.js";
@@ -37,7 +38,12 @@ function makeRepo(): string {
 }
 
 function writeVbrief(path: string, data: unknown): void {
-  writeFileSync(path, formatVbriefJson(data), "utf8");
+  const record = data as Record<string, unknown>;
+  const body =
+    "xBRIEFInfo" in record || "vBRIEFInfo" in record
+      ? record
+      : minimalScopeBrief(record.plan as Record<string, unknown>);
+  writeFileSync(path, formatVbriefJson(body), "utf8");
 }
 
 function makeDecomposedPair(root: string): { parent: string; child: string } {
