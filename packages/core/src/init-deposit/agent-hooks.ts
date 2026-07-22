@@ -331,7 +331,10 @@ export function writeAgentHookDeposit(
   if (changedPaths.length === 0 && strippedPaths.length === 0) {
     io.printf("Directive agent hooks already current.\n");
   }
-  return { changed: changedPaths.length + strippedPaths.length > 0, changedPaths };
+  return {
+    changed: changedPaths.length + strippedPaths.length > 0,
+    changedPaths: [...changedPaths, ...strippedPaths],
+  };
 }
 
 function hasNestedRegistration(
@@ -445,9 +448,7 @@ export function inspectAgentHookDeposit(
         path: definition.path,
         status: "healthy",
         compactSupport: definition.compactSupport,
-        detail:
-          `plan.policy.hostHooks.${definition.host} is false — Directive hook deposit is skipped for this host.` +
-          compactNote,
+        detail: `plan.policy.hostHooks.${definition.host} is false — Directive hook deposit is skipped for this host.`,
       };
     }
     if (!existsSync(absolute)) {
