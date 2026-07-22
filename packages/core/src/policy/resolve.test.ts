@@ -384,11 +384,11 @@ describe("inspectAllPolicies", () => {
     for (const r of roots) rmSync(r, { recursive: true, force: true });
   });
 
-  it("returns twelve registered fields by default", () => {
+  it("returns fourteen registered fields by default", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    expect(inspectAllPolicies(r)).toHaveLength(13);
+    expect(inspectAllPolicies(r)).toHaveLength(14);
   });
 
   it("surfaces typed allowDirectCommits", () => {
