@@ -70,6 +70,42 @@ task scm:body:comment:edit -- \
 
 The helper's stdout is the live post-mutation GitHub object, so inspect the `body` field from that output first. If you need a second manual verification, use live REST through `gh api repos/OWNER/REPO/issues/comments/<id>` or `gh api repos/OWNER/REPO/issues/<number>`; do not use `ghx` for immediate read-back after the mutation because it may return a cached GET.
 
+### Win32 issue-body read-modify-write footgun (#2744 / #2607)
+
+#2646 covers safe **write** delivery (`--body-file`). A distinct failure mode persists on **read-modify-write** (amending an existing issue body): capturing `gh api repos/OWNER/REPO/issues/<N> --jq .body` into a PowerShell variable, concatenating amended text, writing a temp file, and PATCHing.
+
+When `--jq` emits JSON with embedded newlines, PowerShell 5.x/7+ often stores the result as a **string array** (`string[]`). String interpolation or `$body + $append` coerces via `$OFS` (Output Field Separator, default single space), collapsing paragraph breaks into one line. The PATCH then persists a flattened body; agents may treat a zero exit code as success unless postcondition verify catches the damage (#2607).
+
+**Canonical RMW recipe (all platforms; mandatory on win32):**
+
+1. Fetch the live body to a UTF-8 file — no shell capture:
+
+```bash
+task scm:body:issue:fetch -- \
+  --repo OWNER/REPO \
+  --issue <N> \
+  --out-file "$bodyFile"
+```
+
+2. Edit `$bodyFile` with the editor/Write tool or Python `pathlib` — not PowerShell string concat on captured `gh` output.
+
+3. PATCH via verified edit:
+
+```bash
+task scm:body:issue:edit -- \
+  --repo OWNER/REPO \
+  --issue <N> \
+  --body-file "$bodyFile"
+```
+
+`scm:body:issue:edit` re-fetches after PATCH and fails closed when the live body is flattened, mojibaked, or otherwise mismatched vs the intended payload (#2607).
+
+- ! For issue-body RMW on win32, MUST use `task scm:body:issue:fetch --out-file` then file edit then `task scm:body:issue:edit --body-file` — never rebuild the body from PowerShell-captured `gh api --jq .body` output
+- ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` (or `$body = (gh api ... | ConvertFrom-Json).body`) into PowerShell variables for amendment — the string[]/$OFS join destroys multi-line Markdown bodies silently
+- ⊗ Treat a successful `gh api -X PATCH` exit code as proof the body survived intact without read-back — use `scm:body:issue:edit` postcondition verify instead
+
+**Incident record:** #2087 (automation-declaration body corruption), #2741 (win32 RMW flattening during issue amend), #1492 (issue-body integrity class). Parent helper: #2607 / PR #2750.
+
 ## PR Workflow Conventions
 
 ### Merge Strategy

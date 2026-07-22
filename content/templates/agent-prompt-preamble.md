@@ -233,6 +233,8 @@ Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inh
 
 ! Multi-line git commit / gh issue|pr|comment bodies: write UTF-8 (no BOM) to OS temp, then `git commit -F` / `gh --body-file` / `deft scm:body:* --body-file`. ⊗ bash heredocs, `<<<`, inline multi-line `--body`, or multi-line PS here-strings in the agent command box on Windows PowerShell — those patterns fail at parse time, split arguments, or get rewritten by host shell wrappers before git/gh runs. This applies to your own commit and PR tooling on win32; do not use bash heredocs even when user rules show POSIX patterns. `ghx` is read-only — mutations stay on live `gh`. Detail: `content/scm/github.md` § #2646 (#1417, #240, #798).
 
+! Issue-body read-modify-write on win32: `task scm:body:issue:fetch --out-file` then edit the body file then `task scm:body:issue:edit --body-file` (fail-closed postcondition verify, #2607). ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` into PowerShell variables — PS string[]/$OFS collapses newlines to spaces and silently destroys live bodies (#2744, #2087, #2741, #1492). Detail: `content/scm/github.md` § #2744.
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:
@@ -326,6 +328,7 @@ Use the canonical safe wrapper for issue bodies, PR bodies, and issue/PR comment
 task scm:body:comment:create -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
 task scm:body:comment:edit -- --repo OWNER/REPO --comment 123456789 --body-file "$bodyFile"
 task scm:body:issue:create -- --repo OWNER/REPO --title "Title" --body-file "$bodyFile"
+task scm:body:issue:fetch -- --repo OWNER/REPO --issue 1555 --out-file "$bodyFile"
 task scm:body:issue:edit -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
 task scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
 ```
