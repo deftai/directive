@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   COVERAGE_GOAL,
@@ -7,6 +10,7 @@ import {
   metricsBelowGoal,
   parseCoverageDebtArgv,
   parseCoverageDebtIssueNumber,
+  readCoverageTotalsFromReport,
   resolveCoverageDebtIssue,
   summarizeCoverageFinal,
 } from "./coverage-debt.js";
@@ -26,6 +30,10 @@ describe("parseCoverageDebtIssueNumber", () => {
 });
 
 describe("parseCoverageDebtArgv", () => {
+  it("returns none when flag absent", () => {
+    expect(parseCoverageDebtArgv(["vitest", "run"])).toEqual({ kind: "none" });
+  });
+
   it("parses equals and spaced forms", () => {
     expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt=#2573"])).toEqual({
       kind: "valid",
@@ -64,6 +72,24 @@ describe("resolveCoverageDebtIssue env scoping (#1553)", () => {
       }),
     ).toEqual({ kind: "valid", issue: 2573 });
   });
+
+  it("rejects invalid env during release preflight", () => {
+    expect(
+      resolveCoverageDebtIssue(["vitest"], {
+        DEFT_ALLOW_COVERAGE_DEBT: "abc",
+        DEFT_RELEASE_PREFLIGHT: "1",
+      }),
+    ).toEqual({ kind: "invalid", reason: "DEFT_ALLOW_COVERAGE_DEBT must be a positive integer" });
+  });
+
+  it("prefers argv over release-scoped env", () => {
+    expect(
+      resolveCoverageDebtIssue(["vitest", "--allow-coverage-debt=1936"], {
+        DEFT_ALLOW_COVERAGE_DEBT: "2573",
+        DEFT_RELEASE_PREFLIGHT: "1",
+      }),
+    ).toEqual({ kind: "valid", issue: 1936 });
+  });
 });
 
 describe("summarizeCoverageFinal + metricsBelowGoal", () => {
@@ -86,6 +112,12 @@ describe("summarizeCoverageFinal + metricsBelowGoal", () => {
       branches: 90,
       statements: 90,
     };
+    expect(metricsBelowGoal(totals)).toEqual([]);
+  });
+
+  it("handles empty coverage-final payloads", () => {
+    const totals = summarizeCoverageFinal({});
+    expect(totals.branches).toBe(100);
     expect(metricsBelowGoal(totals)).toEqual([]);
   });
 });
@@ -113,5 +145,28 @@ describe("attribution + overuse warning", () => {
   it("does not count feature documentation without a debt acknowledgment", () => {
     const changelog = "## [0.1.0]\nAdded allow-coverage-debt flag for release pipeline\n";
     expect(countRecentCoverageDebtMentions(changelog)).toBe(0);
+  });
+
+  it("returns null overuse warning below threshold", () => {
+    expect(formatOveruseWarning(1)).toBeNull();
+  });
+});
+
+describe("readCoverageTotalsFromReport", () => {
+  it("returns null when coverage-final.json is missing", () => {
+    expect(readCoverageTotalsFromReport(join(tmpdir(), "missing-coverage-dir"))).toBeNull();
+  });
+
+  it("reads totals from a valid coverage-final.json", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cov-debt-"));
+    writeFileSync(
+      join(dir, "coverage-final.json"),
+      JSON.stringify({
+        "a.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1] } },
+      }),
+      "utf8",
+    );
+    const totals = readCoverageTotalsFromReport(dir);
+    expect(totals?.branches).toBe(100);
   });
 });

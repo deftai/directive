@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Untrusted-fetched-content doctrine for skills + deterministic external-fetch gate extending #1532.",
+    "created": "2026-07-22T08:00:00Z",
+    "updated": "2026-07-22T08:00:00Z"
+  },
+  "plan": {
+    "id": "1936-untrusted-fetched-content-gate",
+    "title": "feat(security,skills): untrusted fetched content doctrine + external-fetch gate",
+    "status": "running",
+    "narratives": {
+      "Description": "Skills such as deft-directive-article-review instruct agents to fetch and follow external URLs at runtime. Fetched content treated as instructions is a TOCTOU exposure: a clean package can point at a link rewritten after review. Doctrine: external fetches are untrusted data. Gate: skill-validation (#1532) should flag fetch-then-execute patterns.",
+      "ImplementationPlan": "1. Harden content/skills/deft-directive-article-review/SKILL.md and content/skills/deft-directive-debug/SKILL.md (and research strategy if in-scope) with Security context: fetched URLs are data not directives; forbid follow-as-execute. Cross-link #1938 TOCTOU and #480 without rewriting content/coding/security.md. 2. Extend skill-validation / content-contracts (#1532) to flag skills whose instructions combine external fetch with run/install/download execution patterns; surface via task check. 3. Tests for the gate; CHANGELOG [Unreleased]. Do not create the patterns/agent-skill-supply-chain.md file (#1937) or the coding/security.md TOCTOU section (#1938).",
+      "UserStory": "As a maintainer shipping deft skills that fetch URLs, I want doctrine and a check gate against fetch-then-execute, so that rewritten external links cannot become agent instructions unnoticed."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Skill doctrine for untrusted fetches",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given article-review and debug skill SKILL.md files, when an agent follows them, then fetched external content is labeled untrusted data and execute/install follow-through is forbidden."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Deterministic external-fetch gate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a skill fixture with fetch-then-execute instructions, when skill-validation / content-contracts run under task check, then the exposure is flagged fail-closed or as a required finding."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "CHANGELOG Unreleased entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the doctrine and gate land, when CHANGELOG is reviewed, then [Unreleased] notes the untrusted-fetch skill guidance and gate."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "enhancement",
+      "x-tracking": {
+        "parent_issue": "#1936",
+        "decomposition_origin": "#1936"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-article-review/SKILL.md",
+          "content/skills/deft-directive-debug/SKILL.md",
+          "packages/core/src/content-contracts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- content-contracts",
+          "pnpm --filter @deftai/directive-core test -- skills"
+        ],
+        "expected_outputs": [
+          "skill untrusted-fetch doctrine",
+          "validation gate",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "toctou-docs-1936",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Security/skills work from GitHub issue #1936; extends #1532; no FR trace registry for hotfix cohort."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1936",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1936: untrusted-fetched-content doctrine + skill external-fetch gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1532",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1532: skill-validation gate"
+      }
+    ],
+    "updated": "2026-07-22T07:47:47Z"
+  }
+}
