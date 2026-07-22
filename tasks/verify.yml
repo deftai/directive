@@ -59,6 +59,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-content-manifest --project-root "{{.DEFT_ROOT}}"'
 
+  skill-external-fetch-gate:
+    desc: "Verify shipped skills do not pair external fetch/follow-through with execute/install without Security context mitigation (#1936 / #1532)."
+    deps:
+      - task: :engine:_ts-build
+    # Framework-source-only gate: scans THIS repo's content/skills tree.
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-skill-external-fetch-gate --project-root "{{.DEFT_ROOT}}"'
+
   contract-drift:
     desc: "Drift gate for the public contract layer (#1799). Asserts packages/types/schemas/vbrief-core-0.6.schema.json matches content/vbrief/schemas/vbrief-core.schema.json and that @deftai/directive-types Status/version constants align with the schema. Three-state exit (0 clean / 1 drift / 2 config error)."
     deps:

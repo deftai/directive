@@ -52,8 +52,23 @@ export function returningSessionsSection(): string {
   return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
 }
 
-export function listSkillMdFiles(): string[] {
-  const skillsDir = resolveRepoPath("skills");
+function skillsDirFromRoot(projectRoot: string): string | null {
+  const underContent = join(projectRoot, "content", "skills");
+  if (existsSync(underContent)) {
+    return underContent;
+  }
+  const flat = join(projectRoot, "skills");
+  if (existsSync(flat)) {
+    return flat;
+  }
+  return null;
+}
+
+export function listSkillMdFilesFromRoot(projectRoot: string): string[] {
+  const skillsDir = skillsDirFromRoot(projectRoot);
+  if (skillsDir === null) {
+    return [];
+  }
   const results: string[] = [];
   for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
@@ -64,6 +79,34 @@ export function listSkillMdFiles(): string[] {
     }
   }
   return results.sort();
+}
+
+export function listSkillMdFiles(): string[] {
+  return listSkillMdFilesFromRoot(REPO_ROOT);
+}
+
+export function listSkillMdEntriesFromRoot(
+  projectRoot: string,
+): ReadonlyArray<{ path: string; text: string }> {
+  const skillsDir = skillsDirFromRoot(projectRoot);
+  if (skillsDir === null) {
+    return [];
+  }
+  const entries: Array<{ path: string; text: string }> = [];
+  for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const skillMd = join(skillsDir, entry.name, "SKILL.md");
+    if (!existsSync(skillMd)) {
+      continue;
+    }
+    entries.push({
+      path: join("skills", entry.name, "SKILL.md"),
+      text: readFileSync(skillMd, "utf8").replace(/\r\n/g, "\n").replace(/\r/g, "\n"),
+    });
+  }
+  return entries.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 export const RFC2119_LEGEND = "!=MUST, ~=SHOULD";

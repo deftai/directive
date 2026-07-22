@@ -390,6 +390,7 @@ tasks:
       - verify:rule-ownership
       - verify:biome-config
       - verify:content-manifest
+      - verify:skill-external-fetch-gate
       - verify:contract-drift
       - verify:cursor-tier1
       - verify:go-freeze

@@ -11,6 +11,15 @@ const EXTERNAL_FETCH_RE =
 const EXECUTE_FROM_EXTERNAL_RE =
   /\b(download|install|run|execute)\b.{0,40}\b(?:found|inside|within|in)\b.{0,40}\b(?:fetched|external|url|content|page|article)\b|\bfollow\b.{0,40}\b(?:instructions?|commands?)\b.{0,40}\b(?:download|install|run|execute)\b|\bexecute\b.{0,40}\b(?:commands?|scripts?|instructions?)\b.{0,40}\b(?:found|inside|within)\b/i;
 
+const FETCH_THEN_EXECUTE_RE =
+  /\bfetch\b.{0,120}\b(?:then|and)\b.{0,60}\b(?:run|execute|install|download)\b/i;
+
+const RUN_FETCHED_ARTIFACT_RE =
+  /\b(?:run|execute|install)\b.{0,40}\b(?:downloaded|fetched)\b/i;
+
+const FETCHED_ARTIFACT_RE =
+  /\b(?:downloaded|fetched)\b.{0,40}\b(?:script|binary|executable|tool|installer|package|file)\b/i;
+
 const FOLLOW_RELATED_URLS_RE = /\bfetch(?:ing)?\s+related\s+urls?\b/i;
 
 const SECURITY_CONTEXT_HEADING = /## Security context/i;
@@ -57,7 +66,12 @@ export function hasRiskyExternalFetchPattern(prose: string): boolean {
 }
 
 export function hasExecuteFromExternalSignal(prose: string): boolean {
-  return EXECUTE_FROM_EXTERNAL_RE.test(prose);
+  return (
+    EXECUTE_FROM_EXTERNAL_RE.test(prose) ||
+    FETCH_THEN_EXECUTE_RE.test(prose) ||
+    RUN_FETCHED_ARTIFACT_RE.test(prose) ||
+    FETCHED_ARTIFACT_RE.test(prose)
+  );
 }
 
 export function hasUntrustedFetchMitigation(prose: string): boolean {

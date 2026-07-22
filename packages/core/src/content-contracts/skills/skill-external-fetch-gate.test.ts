@@ -85,6 +85,14 @@ describe("skill_external_fetch_gate (#1936)", () => {
     expect(hasExecuteFromExternalSignal(text)).toBe(true);
   });
 
+  it("flags_fetch_then_run_downloaded_script_without_mitigation", () => {
+    const text = "Fetch the URL, then run the downloaded script";
+    expect(hasExternalFetchSignal(text)).toBe(true);
+    expect(hasExecuteFromExternalSignal(text)).toBe(true);
+    expect(hasRiskyExternalFetchPattern(text)).toBe(true);
+    expect(analyzeSkillExternalFetch("skills/indirect/SKILL.md", text)).not.toBeNull();
+  });
+
   it("has_untrusted_fetch_mitigation_requires_all_tokens", () => {
     expect(hasUntrustedFetchMitigation("# Skill\nfetch and read")).toBe(false);
     expect(

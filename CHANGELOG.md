@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Agent-skill supply-chain security pattern (#1937).** `patterns/agent-skill-supply-chain.md` adds inbound RFC2119 guidance: treat skills as software, vet linked targets, pin/re-vet on change, least privilege, controlled sources (not stars-as-proof); cross-links #480 and #1700. Closes #1937.
 
-- **Untrusted fetched-content doctrine for external-fetch skills (#1936).** `deft-directive-article-review` and `deft-directive-debug` now treat runtime URL fetches as untrusted data (TOCTOU cross-links #1938 / #1937 / #480); content-contracts skill-validation flags fetch-then-execute skill prose without Security-context mitigation under `task check`. Closes #1936.
+- **Untrusted fetched-content doctrine for external-fetch skills (#1936).** `deft-directive-article-review` and `deft-directive-debug` now treat runtime URL fetches as untrusted data (TOCTOU cross-links #1938 / #1937 / #480); content-contracts skill-validation flags fetch-then-execute skill prose without Security-context mitigation; `task verify:skill-external-fetch-gate` wires the gate into `task check`. Closes #1936.
 
 - **Merge cascade semantic-green gate (#2385).** `task pr:wait-mergeable-and-merge -- --cascade` refuses merge-tree-clean PRs whose base SHA is behind the current target branch HEAD (pre-spine CI on spine-dependent PRs); `--require-master-ci-green` blocks the next cascade merge until target-branch CI is green at the new HEAD. Closes #2385.
 
