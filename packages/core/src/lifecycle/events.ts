@@ -170,7 +170,7 @@ function jsonStringifySorted(value: unknown): string {
   return JSON.stringify(sortKeysDeep(value));
 }
 
-function resolveLogPath(logPath?: string | null): string {
+function resolveLogPath(logPath: string | null | undefined, projectRoot: string): string {
   if (logPath !== undefined && logPath !== null) {
     return resolve(logPath);
   }
@@ -178,7 +178,7 @@ function resolveLogPath(logPath?: string | null): string {
   if (envPath !== undefined && envPath.length > 0) {
     return resolve(envPath);
   }
-  return resolve(DEFAULT_EVENT_LOG);
+  return resolve(projectRoot, DEFAULT_EVENT_LOG);
 }
 
 function isNestedUnder(parent: string, child: string): boolean {
@@ -283,7 +283,7 @@ export function emit(
   };
 
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const target = resolveLogPath(options.logPath);
+  const target = resolveLogPath(options.logPath, projectRoot);
   assertEventLogTargetSafe(projectRoot, target);
   mkdirSync(dirname(target), { recursive: true });
   appendLineNoFollow(target, `${jsonStringifySorted(record)}\n`);
@@ -292,7 +292,7 @@ export function emit(
 
 /** Return all events from the log in emission order. */
 export function readEvents(logPath?: string | null): BehavioralEventRecord[] {
-  const target = resolveLogPath(logPath);
+  const target = resolveLogPath(logPath, process.cwd());
   if (!existsSync(target)) {
     return [];
   }
