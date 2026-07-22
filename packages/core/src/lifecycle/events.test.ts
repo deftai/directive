@@ -1,7 +1,17 @@
-import { appendFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   clearRegistryCache,
   DEFAULT_EVENT_LOG,
@@ -352,6 +362,327 @@ describe("events cli", () => {
     );
     expect(validatePairing(undefined, { logPath: log })).toHaveLength(1);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("behavioral emit symlink containment (#2766)", () => {
+  itSymlink("refuses default events.jsonl when it is a symlink to an external victim file", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-symlink-target-"));
+    const escapeDir = mkdtempSync(join(tmpdir(), "be-symlink-victim-"));
+    const victim = join(escapeDir, "events.jsonl");
+    writeFileSync(victim, "victim\n", "utf8");
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    symlinkSync(victim, join(root, ".deft-cache", "events.jsonl"));
+    expect(() =>
+      emit("session:interrupted", { reason: "probe", session_id: "s1" }, { projectRoot: root }),
+    ).toThrow(ProjectionContainmentError);
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(root, { recursive: true, force: true });
+    rmSync(escapeDir, { recursive: true, force: true });
+  });
+
+  itSymlink("refuses default append when .deft-cache is a symlink outside the project", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-symlink-parent-"));
+    const escapeDir = mkdtempSync(join(tmpdir(), "be-symlink-parent-victim-"));
+    const victim = join(escapeDir, "events.jsonl");
+    writeFileSync(victim, "victim\n", "utf8");
+    symlinkSync(escapeDir, join(root, ".deft-cache"));
+    expect(() =>
+      emit("session:interrupted", { reason: "probe", session_id: "s1" }, { projectRoot: root }),
+    ).toThrow(/projection write refused|symlink escaping/);
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(root, { recursive: true, force: true });
+    rmSync(escapeDir, { recursive: true, force: true });
+  });
+
+  itSymlink("refuses explicit --log path when it is a dangling symlink", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-dangling-log-"));
+    const dangling = join(root, "missing-target.jsonl");
+    symlinkSync(join(root, "does-not-exist.jsonl"), dangling);
+    expect(() =>
+      emit(
+        "session:interrupted",
+        { reason: "probe", session_id: "s1" },
+        { logPath: dangling, projectRoot: root },
+      ),
+    ).toThrow(/projection write refused|symlink on the write path/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  itSymlink(
+    "refuses explicit log outside projectRoot when the path is a symlink to a victim file",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "be-explicit-symlink-"));
+      const outsideRoot = mkdtempSync(join(tmpdir(), "be-explicit-symlink-victim-"));
+      const victim = join(outsideRoot, "victim.jsonl");
+      writeFileSync(victim, "victim\n", "utf8");
+      const symlinkLog = join(outsideRoot, "link.jsonl");
+      symlinkSync(victim, symlinkLog);
+      expect(() =>
+        emit(
+          "session:interrupted",
+          { reason: "probe", session_id: "s1" },
+          { logPath: symlinkLog, projectRoot: root },
+        ),
+      ).toThrow(/projection write refused|symlink on the write path/);
+      expect(readFileSync(victim, "utf8")).toBe("victim\n");
+      rmSync(root, { recursive: true, force: true });
+      rmSync(outsideRoot, { recursive: true, force: true });
+    },
+  );
+
+  it("cli emit returns nonzero when the default log target is unsafe", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-cli-unsafe-"));
+    const cwd = process.cwd();
+    process.chdir(root);
+    try {
+      mkdirSync(join(root, ".deft-cache"), { recursive: true });
+      const outsideRoot = mkdtempSync(join(tmpdir(), "be-cli-unsafe-victim-"));
+      const victim = join(outsideRoot, "events.jsonl");
+      writeFileSync(victim, "victim\n", "utf8");
+      if (process.platform === "win32") {
+        expect(main(["emit", "session:interrupted", "--session-id", "s1", "--reason", "x"])).toBe(
+          0,
+        );
+      } else {
+        symlinkSync(victim, join(root, ".deft-cache", "events.jsonl"));
+        expect(main(["emit", "session:interrupted", "--session-id", "s1", "--reason", "x"])).toBe(
+          2,
+        );
+        expect(readFileSync(victim, "utf8")).toBe("victim\n");
+      }
+      rmSync(outsideRoot, { recursive: true, force: true });
+    } finally {
+      process.chdir(cwd);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("appends twice to a normal in-repo default log path", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-normal-default-"));
+    const cwd = process.cwd();
+    process.chdir(root);
+    try {
+      emit("session:interrupted", { reason: "first", session_id: "s1" }, { projectRoot: root });
+      emit("session:interrupted", { reason: "second", session_id: "s2" }, { projectRoot: root });
+      expect(readEvents().length).toBe(2);
+    } finally {
+      process.chdir(cwd);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("appends to an explicit log path outside projectRoot when it is a regular file", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-explicit-outside-"));
+    const outsideRoot = mkdtempSync(join(tmpdir(), "be-explicit-outside-log-"));
+    const log = join(outsideRoot, "external-events.jsonl");
+    emit(
+      "session:interrupted",
+      { reason: "outside", session_id: "s-out" },
+      { logPath: log, projectRoot: root },
+    );
+    expect(readEvents(log)).toHaveLength(1);
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outsideRoot, { recursive: true, force: true });
+  });
+
+  it("unknown emit flag fails before writing", () => {
+    expect(main(["emit", "session:interrupted", "--not-a-flag", "x"])).toBe(2);
+  });
+
+  it("emit honors detectedAt override", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-detected-at-"));
+    const log = join(root, "events.jsonl");
+    const record = emit(
+      "session:interrupted",
+      { reason: "probe", session_id: "s1" },
+      { logPath: log, detectedAt: "2026-01-01T00:00:00Z", projectRoot: root },
+    );
+    expect(record.detected_at).toBe("2026-01-01T00:00:00Z");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("parse payload object validation rejects arrays", () => {
+    expect(main(["emit", "session:interrupted", "--payload", "[]"])).toBe(2);
+  });
+
+  it("parse payload flag requires a value", () => {
+    expect(main(["emit", "session:interrupted", "--payload"])).toBe(2);
+  });
+
+  it("readEvents returns empty list for a missing log file", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-missing-log-"));
+    expect(readEvents(join(root, "missing.jsonl"))).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("validatePairing ignores interrupted records without string ids", () => {
+    const badInterrupt = {
+      detected_at: "2026-01-01T00:00:00Z",
+      event: "session:interrupted",
+      id: 123,
+      payload: { reason: "probe", session_id: "s1" },
+    };
+    const orphanResumed = {
+      detected_at: "2026-01-01T00:00:01Z",
+      event: "session:resumed",
+      id: "resume-1",
+      payload: { interrupted_id: "missing", session_id: "s1" },
+    };
+    expect(validatePairing([badInterrupt, orphanResumed])).toHaveLength(1);
+  });
+
+  it("emit cli accepts remaining documented flags", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-cli-flags-"));
+    const log = join(root, "events.jsonl");
+    expect(
+      main([
+        "emit",
+        "session:resumed",
+        "--log",
+        log,
+        "--session-id",
+        "s1",
+        "--interrupted-id",
+        "ref",
+        "--detail",
+        "ok",
+      ]),
+    ).toBe(0);
+    expect(readEvents(log)[0]?.payload.detail).toBe("ok");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("emit cli accepts inline and flagged boolean flags", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-cli-bool-"));
+    const log = join(root, "events.jsonl");
+    expect(
+      main([
+        "emit",
+        "legacy:detected",
+        "--log",
+        log,
+        "--title",
+        "t",
+        "--source",
+        "s",
+        "--range",
+        "1-2",
+        "--size-bytes",
+        "3",
+        "--inline",
+        "false",
+        "--flagged",
+        "yes",
+      ]),
+    ).toBe(0);
+    const payload = readEvents(log)[0]?.payload;
+    expect(payload?.inline).toBe(false);
+    expect(payload?.flagged).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("emit cli accepts a JSON payload object", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-cli-payload-"));
+    const log = join(root, "events.jsonl");
+    expect(
+      main([
+        "emit",
+        "session:interrupted",
+        "--log",
+        log,
+        "--payload",
+        '{"session_id":"s-json","reason":"payload"}',
+      ]),
+    ).toBe(0);
+    expect(readEvents(log)[0]?.payload).toMatchObject({
+      session_id: "s-json",
+      reason: "payload",
+    });
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("emit cli accepts plan approval flags", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-cli-plan-"));
+    const log = join(root, "events.jsonl");
+    expect(
+      main([
+        "emit",
+        "plan:approved",
+        "--log",
+        log,
+        "--plan-ref",
+        "https://github.com/deftai/directive/pull/1",
+        "--approver",
+        "operator",
+        "--approval-phrase",
+        "other",
+      ]),
+    ).toBe(0);
+    expect(readEvents(log)[0]?.payload.approval_phrase).toBe("other");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("list uses DEFT_EVENT_LOG when --log is omitted", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-list-env-"));
+    const log = join(root, "env-events.jsonl");
+    process.env.DEFT_EVENT_LOG = log;
+    emit("session:interrupted", { reason: "listed", session_id: "s-env" }, { projectRoot: root });
+    const chunks: string[] = [];
+    const stdoutWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      chunks.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    expect(main(["list"])).toBe(0);
+    process.stdout.write = stdoutWrite;
+    expect(chunks.join("")).toContain("s-env");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("validatePairing with null events reads from the configured log", () => {
+    const root = mkdtempSync(join(tmpdir(), "be-null-stream-"));
+    const log = join(root, "events.jsonl");
+    const opened = emit(
+      "session:interrupted",
+      { reason: "pair", session_id: "s1" },
+      { logPath: log, projectRoot: root },
+    );
+    emit(
+      "session:resumed",
+      { interrupted_id: opened.id, session_id: "s1" },
+      { logPath: log, projectRoot: root },
+    );
+    expect(validatePairing(null, { logPath: log })).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("validatePairing accepts an in-memory event stream", () => {
+    const opened = {
+      detected_at: "2026-01-01T00:00:00Z",
+      event: "session:interrupted",
+      id: "interrupt-1",
+      payload: { reason: "probe", session_id: "s1" },
+    };
+    const resumed = {
+      detected_at: "2026-01-01T00:00:01Z",
+      event: "session:resumed",
+      id: "resume-1",
+      payload: { interrupted_id: "interrupt-1", session_id: "s1" },
+    };
+    expect(validatePairing([opened, resumed])).toEqual([]);
+  });
+
+  it("validatePairing treats non-string interrupt ids as orphan resumed records", () => {
+    const orphan = {
+      detected_at: "2026-01-01T00:00:00Z",
+      event: "session:resumed",
+      id: "resume-orphan",
+      payload: { interrupted_id: 42, session_id: "s1" },
+    };
+    expect(validatePairing([orphan])).toHaveLength(1);
   });
 });
 
