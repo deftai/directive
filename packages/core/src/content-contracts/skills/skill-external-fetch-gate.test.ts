@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listSkillMdFiles, readRepoFile } from "./helpers.js";
+import { listSkillMdEntriesFromRoot, REPO_ROOT, readRepoFile } from "./helpers.js";
 import {
   analyzeSkillExternalFetch,
   collectExternalFetchViolations,
@@ -131,10 +131,7 @@ describe("skill_external_fetch_gate (#1936)", () => {
   });
 
   it("shipped_skills_pass_external_fetch_gate", () => {
-    const entries = listSkillMdFiles().map((path) => ({
-      path,
-      text: readRepoFile(path),
-    }));
+    const entries = listSkillMdEntriesFromRoot(REPO_ROOT);
     const violations = collectExternalFetchViolations(entries);
     expect(violations).toEqual([]);
   });

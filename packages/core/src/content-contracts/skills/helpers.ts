@@ -79,7 +79,17 @@ export function listSkillMdFilesFromRoot(projectRoot: string): string[] {
 }
 
 export function listSkillMdFiles(): string[] {
-  return listSkillMdFilesFromRoot(REPO_ROOT);
+  const skillsDir = resolveRepoPath("skills");
+  const results: string[] = [];
+  for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const skillMd = join(skillsDir, entry.name, "SKILL.md");
+      if (existsSync(skillMd)) {
+        results.push(join("skills", entry.name, "SKILL.md"));
+      }
+    }
+  }
+  return results.sort();
 }
 
 export function listSkillMdEntriesFromRoot(

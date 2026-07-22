@@ -14,6 +14,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   listSkillMdEntriesFromRoot,
+  listSkillMdFilesFromRoot,
   resolveContentPathFromRoot,
 } from "../content-contracts/skills/helpers.js";
 import { collectExternalFetchViolations } from "../content-contracts/skills/skill-external-fetch-gate.js";
@@ -49,6 +50,14 @@ export function evaluateSkillExternalFetchGate(projectRoot: string): SkillExtern
 
   let entries: ReadonlyArray<{ path: string; text: string }>;
   try {
+    const skillPaths = listSkillMdFilesFromRoot(root);
+    if (skillPaths.length === 0) {
+      return {
+        code: EXIT_DRIFT,
+        message: `FAIL: skill external-fetch gate found no SKILL.md files under ${skillsRoot}`,
+        stream: "stderr",
+      };
+    }
     entries = listSkillMdEntriesFromRoot(root);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
