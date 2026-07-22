@@ -14,8 +14,7 @@ const EXECUTE_FROM_EXTERNAL_RE =
 const FETCH_THEN_EXECUTE_RE =
   /\bfetch\b.{0,120}\b(?:then|and)\b.{0,60}\b(?:run|execute|install|download)\b/i;
 
-const RUN_FETCHED_ARTIFACT_RE =
-  /\b(?:run|execute|install)\b.{0,40}\b(?:downloaded|fetched)\b/i;
+const RUN_FETCHED_ARTIFACT_RE = /\b(?:run|execute|install)\b.{0,40}\b(?:downloaded|fetched)\b/i;
 
 const FETCHED_ARTIFACT_RE =
   /\b(?:downloaded|fetched)\b.{0,40}\b(?:script|binary|executable|tool|installer|package|file)\b/i;

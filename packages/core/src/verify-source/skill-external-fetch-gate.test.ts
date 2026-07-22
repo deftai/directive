@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 import { evaluateSkillExternalFetchGate } from "./skill-external-fetch-gate.js";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
