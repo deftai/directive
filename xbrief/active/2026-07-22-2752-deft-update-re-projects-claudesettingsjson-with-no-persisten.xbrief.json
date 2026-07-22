@@ -16,21 +16,21 @@
     "items": [
       {
         "title": "Given a project with the documented Claude settings opt-out, when deft update runs, then it rejects re-projection of .cl",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a project with the documented Claude settings opt-out, when deft update runs, then it rejects re-projection of .claude/settings.json and the file stays absent."
         }
       },
       {
         "title": "Given opt-out enabled after the settings file was deleted, when drift detection runs, then it does not recreate the file",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given opt-out enabled after the settings file was deleted, when drift detection runs, then it does not recreate the file as drift repair."
         }
       },
       {
         "title": "Given the opt-out fixture tests, when the suite runs, then it returns green and docs show the persistent escape hatch.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the opt-out fixture tests, when the suite runs, then it returns green and docs show the persistent escape hatch."
         }

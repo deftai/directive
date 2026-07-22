@@ -1,6 +1,8 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { type AgentHookInspection, inspectAgentHookDeposit } from "../init-deposit/agent-hooks.js";
+import type { HostHooksPolicy } from "../policy/host-hooks.js";
+import { loadHostHooksPolicyFromProject } from "../policy/host-hooks.js";
 import type { OutputStream } from "./verify-hooks-installed.js";
 
 export interface AgentHookHealthResult {
@@ -19,7 +21,10 @@ function isDirectory(path: string): boolean {
 }
 
 /** Read-only P0 agent-host registration health, independent of git hooks. */
-export function evaluateAgentHooks(projectRoot: string): AgentHookHealthResult {
+export function evaluateAgentHooks(
+  projectRoot: string,
+  hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
+): AgentHookHealthResult {
   const root = resolve(projectRoot);
   if (!isDirectory(root)) {
     return {
@@ -30,7 +35,7 @@ export function evaluateAgentHooks(projectRoot: string): AgentHookHealthResult {
     };
   }
 
-  const registrations = inspectAgentHookDeposit(root);
+  const registrations = inspectAgentHookDeposit(root, hostHooksPolicy);
   const unhealthy = registrations.filter((entry) => entry.status !== "healthy");
   if (unhealthy.length > 0) {
     return {
