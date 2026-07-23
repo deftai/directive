@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  defaultGitRunner,
   emitVerifyJson,
   type GitRunner,
   inspectSessionRitual,
@@ -52,22 +53,14 @@ function initRepo(): { root: string; head: string } {
 }
 
 function fakeGit(head: string, worktree: string): GitRunner {
-  return (_r, args) => {
+  return (projectRoot, args) => {
     if (args[0] === "rev-parse" && args[1] === "--verify" && args[2] === "HEAD") {
       return { code: 0, stdout: head, stderr: "" };
     }
     if (args[0] === "rev-parse" && args[1] === "--show-toplevel") {
       return { code: 0, stdout: worktree, stderr: "" };
     }
-    if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
-      const ancestor = args[2];
-      const descendant = args[3];
-      if (ancestor === descendant) {
-        return { code: 0, stdout: "", stderr: "" };
-      }
-      return { code: 1, stdout: "", stderr: "" };
-    }
-    return { code: 0, stdout: "", stderr: "" };
+    return defaultGitRunner(projectRoot, args);
   };
 }
 
