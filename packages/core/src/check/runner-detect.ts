@@ -43,7 +43,7 @@ function detectFromPolicy(projectRoot: string): TestRunnerKind | null {
     const planPath = projectDefinitionPath(projectRoot);
     const plan = readJson(planPath) as { plan?: { policy?: { testRunner?: unknown } } } | null;
     const raw = plan?.plan?.policy?.testRunner;
-    if (raw === "vitest" || raw === "jest" || raw === "go" || raw === "pytest") {
+    if (raw === "vitest" || raw === "jest" || raw === "go" || raw === "pytest" || raw === "none") {
       return raw;
     }
   } catch {

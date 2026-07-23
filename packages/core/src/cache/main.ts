@@ -49,12 +49,16 @@ function cmdClear(args: string[]): number {
       throw new CacheError(`unexpected argument: ${arg}`);
     }
   }
-  const code = clearTaskCache(projectRoot);
-  if (code !== 0) {
+  const result = clearTaskCache(projectRoot);
+  if (result.code !== 0) {
     process.stderr.write("cache clear: failed to remove task cache directory\n");
     return 1;
   }
-  process.stdout.write(`cache clear: removed task cache under ${projectRoot}\n`);
+  if (result.removed) {
+    process.stdout.write(`cache clear: removed task cache under ${projectRoot}\n`);
+  } else {
+    process.stdout.write(`cache clear: no task cache present under ${projectRoot}\n`);
+  }
   return 0;
 }
 

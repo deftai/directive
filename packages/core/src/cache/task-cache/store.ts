@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
 import { DEFAULT_TASK_CACHE_ROOT, TASK_CACHE_MANIFEST } from "./constants.js";
@@ -46,13 +46,24 @@ export function writeCachedTaskRecord(
   writeFileSync(manifest, `${JSON.stringify(record, null, 2)}\n`, "utf8");
 }
 
-export function clearTaskCache(projectRoot: string, cacheRoot = DEFAULT_TASK_CACHE_ROOT): number {
+export interface ClearTaskCacheResult {
+  readonly code: number;
+  readonly removed: boolean;
+}
+
+export function clearTaskCache(
+  projectRoot: string,
+  cacheRoot = DEFAULT_TASK_CACHE_ROOT,
+): ClearTaskCacheResult {
   const root = join(resolve(projectRoot), cacheRoot);
+  if (!existsSync(root)) {
+    return { code: 0, removed: false };
+  }
   try {
     rmSync(root, { recursive: true, force: true });
-    return 0;
+    return { code: 0, removed: true };
   } catch {
-    return 1;
+    return { code: 1, removed: false };
   }
 }
 

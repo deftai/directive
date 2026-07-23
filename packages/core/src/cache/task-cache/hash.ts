@@ -87,7 +87,12 @@ export function hashTaskInputs(
   const fileHashes: Record<string, string> = {};
   for (const rel of files) {
     const abs = resolve(projectRoot, rel);
-    fileHashes[rel] = hashFile(abs);
+    try {
+      fileHashes[rel] = hashFile(abs);
+    } catch {
+      // Fail open: a file removed/unreadable between glob and read must not crash check.
+      return { complete: false, digest: "" };
+    }
   }
 
   const payload = {
