@@ -1,14 +1,31 @@
 {
-  "schemaVersion": "0.8.0",
-  "kind": "story",
-  "id": "2026-07-23-cursor-failclosed-empty-allow",
-  "title": "Cursor failClosed empty allow stdout blocks writes",
-  "status": "active",
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2779 — Cursor failClosed empty allow stdout blocks Write"
+  },
   "plan": {
+    "title": "bug(hooks): Cursor failClosed empty allow stdout blocks Write after successful Directive gate",
     "status": "running",
     "narratives": {
-      "Intent": "Cursor preToolUse deposits use failClosed:true; empty allow stdout is treated as hook failure and blocks Write/StrReplace. Emit explicit {\"permission\":\"allow\"} for Cursor allow decisions.",
-      "Acceptance": "renderHostDecision('cursor', allow) returns permission allow JSON; denials unchanged; other hosts keep empty allow; tests + CHANGELOG updated; ApplyPatch adapter also normalizes empty success to allow."
-    }
+      "Description": "Cursor preToolUse deposits use failClosed:true; empty allow stdout is treated as hook failure and blocks Write/StrReplace even when Directive gates allowed the tool. Emit explicit {\"permission\":\"allow\"} for Cursor allow decisions.",
+      "Origin": "Filed from field failure in deftai/evolution; tracking https://github.com/deftai/directive/issues/2779",
+      "Acceptance": "renderHostDecision('cursor', allow) returns permission allow JSON; denials unchanged; other hosts keep empty allow; ApplyPatch adapter normalizes empty success to allow; tests + CHANGELOG updated; consumer smoke after session:start + active xBRIEF.",
+      "Labels": "bug, agent-experience, area:cli"
+    },
+    "items": [],
+    "tags": ["bug", "agent-experience", "area:cli"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2779",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2779: Cursor failClosed empty allow stdout blocks Write"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/2778",
+        "type": "x-xbrief/github-pull-request",
+        "title": "PR #2778: emit Cursor permission allow for failClosed deposits"
+      }
+    ],
+    "updated": "2026-07-23T13:30:00Z"
   }
 }

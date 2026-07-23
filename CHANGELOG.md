@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Cursor failClosed empty-allow stdout no longer blocks Write tools.** Cursor `preToolUse` deposits use `failClosed: true`, which treats empty/null hook stdout as failure. `renderHostDecision` now emits `{"permission":"allow"}` for Cursor allow decisions (denials unchanged; Claude/Grok/Codex keep empty allow). The deposited ApplyPatch adapter also normalizes empty success stdout to an explicit allow so Windows/ApplyPatch paths cannot fail closed after a clean ritual.
+- **Cursor failClosed empty-allow stdout no longer blocks Write tools (#2779).** Cursor `preToolUse` deposits use `failClosed: true`, which treats empty/null hook stdout as failure. `renderHostDecision` now emits `{"permission":"allow"}` for Cursor allow decisions (denials unchanged; Claude/Grok/Codex keep empty allow). The deposited ApplyPatch adapter also normalizes empty success stdout to an explicit allow so Windows/ApplyPatch paths cannot fail closed after a clean ritual. Closes #2779.
 
 - **Vitest branch coverage restored above 85% (#2762).** Added focused `evaluateSkillExternalFetchGate` fixture coverage for non-Error read failures, clearing the v0.82.0 `--allow-coverage-debt` citation without a consecutive soft-pass. Closes #2762.
 - **Corepack packageManager dispatch hardened against shell injection (#2765).** Extracted `tasks/engine-pm-run.cjs` from duplicated inline paths in `tasks/engine.yml`; validates `pnpm@<SemVer>` pins and script names before spawn, uses argv execution without `shell: true` on POSIX, and routes Windows `.cmd` shims through a quoted `cmd.exe` boundary. Closes #2765. Parent #2761.

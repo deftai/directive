@@ -89,7 +89,7 @@ describe("hook-dispatch CLI", () => {
     expect(err.join("")).toContain("non-blocking path");
   });
 
-  it("uses a payload-derived project root and allows non-write tools silently", () => {
+  it("uses a payload-derived project root and emits Cursor allow for non-write tools (#2779)", () => {
     const out: string[] = [];
     const code = run(["--host=cursor", "--event=tool.before"], {
       readStdin: () => JSON.stringify({ tool_name: "Read", workspace_root: "/project" }),
@@ -98,7 +98,8 @@ describe("hook-dispatch CLI", () => {
       cwd: () => "/fallback",
     });
     expect(code).toBe(0);
-    expect(out).toEqual([]);
+    // Cursor failClosed deposits treat empty stdout as failure — allow must be explicit.
+    expect(JSON.parse(out.join(""))).toEqual({ permission: "allow" });
   });
 
   it("returns exit 2 through the CLI error path", () => {
