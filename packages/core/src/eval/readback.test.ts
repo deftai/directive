@@ -1,4 +1,12 @@
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -172,5 +180,24 @@ describe("emitSessionEvalReadback", () => {
 describe("EVAL_READBACK_SUPPRESSION_HOURS", () => {
   it("matches value-readback debounce parity", () => {
     expect(EVAL_READBACK_SUPPRESSION_HOURS).toBe(4);
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("eval readback history symlink containment (#2781)", () => {
+  itSymlink("does not append when history path is a symlink to an external victim file", () => {
+    const root = tempRoot();
+    const escapeDir = mkdtempSync(join(tmpdir(), "eval-readback-victim-"));
+    const victim = join(escapeDir, "eval-readback-history.jsonl");
+    writeFileSync(victim, "victim\n", "utf8");
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    symlinkSync(victim, join(root, ".deft-cache", "eval-readback-history.jsonl"));
+    renderSessionEvalReadback(root, {
+      now: new Date("2026-07-05T12:00:00Z"),
+      evaluate: () => ({ report: sampleReport() }),
+    });
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(escapeDir, { recursive: true, force: true });
   });
 });

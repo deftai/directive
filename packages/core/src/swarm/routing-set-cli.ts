@@ -83,8 +83,9 @@ export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
     return EXIT_CONFIG_ERROR;
   }
 
-  const path = resolveRoutingPath(resolve(projectRoot));
-  writeModelDecision(path, resolvedProvider, role, {
+  const root = resolve(projectRoot);
+  const path = resolveRoutingPath(root);
+  writeModelDecision(root, path, resolvedProvider, role, {
     model,
     mode: harnessDefault ? ROUTING_MODE_HARNESS_DEFAULT : ROUTING_MODE_PINNED,
   });

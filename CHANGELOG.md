@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Three medium symlink write sinks contained (#2781).** `scope:decompose`, `swarm:routing-set` / `writeModelDecision`, and session readback history appends (`value/readback`, `eval/readback`) now call `assertWriteTargetSafe` before write/append so leaf symlinks cannot divert operator-controlled paths outside the repo. Closes #2781.
+
 ### Removed
 
 ## [0.83.0] - 2026-07-23

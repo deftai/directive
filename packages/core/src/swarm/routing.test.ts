@@ -1,8 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   dispatchProviderFromRuntime,
   loadRoutingFile,
@@ -187,7 +188,7 @@ describe("writeModelDecision", () => {
   });
 
   it("creates the file + parent dir and stamps decidedAt", () => {
-    writeModelDecision(path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
+    writeModelDecision(dir, path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
     const data = loadRoutingFile(path).data;
     expect(data?.cursor?.["leaf-implementation"]?.model).toBe("composer-2.5-fast");
     expect(data?.cursor?.["leaf-implementation"]?.mode).toBe(ROUTING_MODE_PINNED);
@@ -195,15 +196,15 @@ describe("writeModelDecision", () => {
   });
 
   it("records an explicit harness default (model null)", () => {
-    writeModelDecision(path, "cursor", "review-monitor", { model: null });
+    writeModelDecision(dir, path, "cursor", "review-monitor", { model: null });
     const data = loadRoutingFile(path).data;
     expect(data?.cursor?.["review-monitor"]?.model).toBeNull();
     expect(data?.cursor?.["review-monitor"]?.mode).toBe(ROUTING_MODE_HARNESS_DEFAULT);
   });
 
   it("merges additional roles without clobbering existing ones", () => {
-    writeModelDecision(path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
-    writeModelDecision(path, "cursor", "orchestrator", { model: "gpt-5.5-medium" });
+    writeModelDecision(dir, path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
+    writeModelDecision(dir, path, "cursor", "orchestrator", { model: "gpt-5.5-medium" });
     const data = loadRoutingFile(path).data;
     expect(data?.cursor?.["leaf-implementation"]?.model).toBe("composer-2.5-fast");
     expect(data?.cursor?.orchestrator?.model).toBe("gpt-5.5-medium");
@@ -212,8 +213,10 @@ describe("writeModelDecision", () => {
 
   it("rejects prototype-polluting provider/role keys (CodeQL #52)", () => {
     for (const key of ["__proto__", "constructor", "prototype"]) {
-      expect(() => writeModelDecision(path, key, "leaf-implementation", { model: "x" })).toThrow();
-      expect(() => writeModelDecision(path, "cursor", key, { model: "x" })).toThrow();
+      expect(() =>
+        writeModelDecision(dir, path, key, "leaf-implementation", { model: "x" }),
+      ).toThrow();
+      expect(() => writeModelDecision(dir, path, "cursor", key, { model: "x" })).toThrow();
     }
     // Object.prototype must be untouched by the attempted injection.
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
@@ -227,10 +230,32 @@ describe("writeModelDecision", () => {
     // legitimate write must land on the null-prototype targets, never reach
     // Object.prototype, and must preserve the real providers.
     writeFileSync(path, JSON.stringify({ __proto__: { polluted: true }, cursor: {} }), "utf8");
-    writeModelDecision(path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
+    writeModelDecision(dir, path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
     expect(Object.prototype).not.toHaveProperty("polluted");
     const data = loadRoutingFile(path).data;
     expect(data?.cursor?.["leaf-implementation"]?.model).toBe("composer-2.5-fast");
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("writeModelDecision symlink containment (#2781)", () => {
+  itSymlink("refuses routing.local.json when it is a symlink to an external victim file", () => {
+    const root = mkdtempSync(join(tmpdir(), "routing-symlink-target-"));
+    const escapeDir = mkdtempSync(join(tmpdir(), "routing-symlink-victim-"));
+    const victim = join(escapeDir, "routing.local.json");
+    writeFileSync(victim, "victim\n", "utf8");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    const routePath = join(root, ".deft", "routing.local.json");
+    symlinkSync(victim, routePath);
+    expect(() =>
+      writeModelDecision(root, routePath, "cursor", "leaf-implementation", {
+        model: "composer-2.5-fast",
+      }),
+    ).toThrow(ProjectionContainmentError);
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(root, { recursive: true, force: true });
+    rmSync(escapeDir, { recursive: true, force: true });
   });
 });
 
