@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -14,6 +14,7 @@ import {
   verifySessionRitual,
   writeRitualState,
 } from "./index.js";
+import type { GitRunResult } from "./git.js";
 import { defaultBranchSync, parseDeferrals, runSessionStart } from "./session-start.js";
 
 function initRepo(): { root: string; head: string } {
@@ -52,13 +53,35 @@ function initRepo(): { root: string; head: string } {
   return { root, head };
 }
 
+function capturedGitRun(projectRoot: string, args: readonly string[]): GitRunResult {
+  const result = spawnSync("git", [...args], {
+    cwd: projectRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "T",
+      GIT_AUTHOR_EMAIL: "t@t.local",
+      GIT_COMMITTER_NAME: "T",
+      GIT_COMMITTER_EMAIL: "t@t.local",
+    },
+  });
+  return {
+    code: result.status ?? 2,
+    stdout: (result.stdout ?? "").trimEnd(),
+    stderr: (result.stderr ?? "").trimEnd(),
+  };
+}
+
 function fakeGit(head: string, worktree: string): GitRunner {
   return (projectRoot, args) => {
     if (args[0] === "rev-parse" && args[1] === "--verify" && args[2] === "HEAD") {
-      return { code: 0, stdout: head, stderr: "" };
+      const run = capturedGitRun(projectRoot, args);
+      return { ...run, code: 0, stdout: head };
     }
     if (args[0] === "rev-parse" && args[1] === "--show-toplevel") {
-      return { code: 0, stdout: worktree, stderr: "" };
+      const run = capturedGitRun(projectRoot, args);
+      return { ...run, code: 0, stdout: worktree };
     }
     return defaultGitRunner(projectRoot, args);
   };
