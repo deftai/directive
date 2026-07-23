@@ -9,6 +9,10 @@ describe("cache CLI wrapper", () => {
   it("invalidate on missing entry exits 0", () => {
     expect(main(["invalidate", "github-issue", "deftai/directive/99999"])).toBe(0);
   });
+
+  it("clear removes the task cache directory", () => {
+    expect(main(["clear", "--project-root", process.cwd()])).toBe(0);
+  });
 });
 
 describe("cache.ts entry", () => {

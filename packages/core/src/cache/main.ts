@@ -17,6 +17,11 @@ import { cacheFetchAll, cacheRefreshClosed } from "./fetch.js";
 import { pythonBool, pythonJsonPretty } from "./json.js";
 import { cacheGet, cacheInvalidate, cachePrune, cachePruneToCap, cachePut } from "./operations.js";
 import { resolveCaps } from "./quota.js";
+import { clearTaskCache } from "./task-cache/store.js";
+
+function usage(): void {
+  process.stderr.write("usage: cache [-h] {put,get,invalidate,fetch-all,prune,clear} ...\n");
+}
 
 function normaliseLabelFilter(raw: string[] | undefined): string[] {
   if (!raw || raw.length === 0) return [];
@@ -28,8 +33,33 @@ function normaliseLabelFilter(raw: string[] | undefined): string[] {
   );
 }
 
-function usage(): void {
-  process.stderr.write("usage: cache [-h] {put,get,invalidate,fetch-all,prune} ...\n");
+function cmdClear(args: string[]): number {
+  let projectRoot = process.cwd();
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--project-root") {
+      const next = args[i + 1];
+      if (next !== undefined) {
+        projectRoot = next;
+      }
+      i += 1;
+    } else if (arg?.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
+    } else {
+      throw new CacheError(`unexpected argument: ${arg}`);
+    }
+  }
+  const result = clearTaskCache(projectRoot);
+  if (result.code !== 0) {
+    process.stderr.write("cache clear: failed to remove task cache directory\n");
+    return 1;
+  }
+  if (result.removed) {
+    process.stdout.write(`cache clear: removed task cache under ${projectRoot}\n`);
+  } else {
+    process.stdout.write(`cache clear: no task cache present under ${projectRoot}\n`);
+  }
+  return 0;
 }
 
 function cmdPut(args: string[]): number {
@@ -309,6 +339,8 @@ export function main(argv: readonly string[]): number {
         return cmdFetchAll(rest);
       case "prune":
         return cmdPrune(rest);
+      case "clear":
+        return cmdClear(rest);
       default:
         usage();
         process.stderr.write(`cache: error: argument cmd: invalid choice: '${cmd}'\n`);

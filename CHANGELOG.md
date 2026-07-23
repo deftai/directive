@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **In-engine content-hash task cache (#1713).** `deft check` replays prior exit-0 results for unchanged cacheable gates from `.deft/cache/task/`; `--no-cache` and `deft cache:clear` escape hatches; `codeVersion` invalidates on upgrade; volatile gates opt out; runner auto-detect documents vitest/jest/go/pytest fast-lane conventions (full suite remains the merge gate per #1704). Public `@deft/types` contract deferred to #2784.
+
 ### Changed
 
 ### Fixed

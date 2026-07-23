@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 /**
- * check.ts -- CLI wrapper for the context-aware `task check` orchestrator (#1854).
+ * check.ts -- CLI wrapper for the context-aware `task check` orchestrator (#1854, #1713).
  *
- * Usage: deft-ts check --framework-root <path> --project-root <path>
- *
- * Thin shim: parses args and delegates to dispatchTaskCheck in @deftai/directive-core/check.
+ * Usage: deft-ts check --framework-root <path> --project-root <path> [--no-cache]
  */
 import { fileURLToPath } from "node:url";
 import { dispatchTaskCheck } from "@deftai/directive-core/check";
@@ -12,6 +10,7 @@ import { dispatchTaskCheck } from "@deftai/directive-core/check";
 interface ParsedArgs {
   frameworkRoot?: string;
   projectRoot?: string;
+  noCache?: boolean;
   error?: string;
 }
 
@@ -37,6 +36,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i++;
     } else if (arg.startsWith("--project-root=")) {
       parsed.projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--no-cache") {
+      parsed.noCache = true;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -54,7 +55,7 @@ export function run(argv: string[]): number {
     process.stderr.write("check: --framework-root and --project-root are required\n");
     return 2;
   }
-  return dispatchTaskCheck(args.frameworkRoot, args.projectRoot);
+  return dispatchTaskCheck(args.frameworkRoot, args.projectRoot, { noCache: args.noCache });
 }
 
 /* v8 ignore start -- entry guard */

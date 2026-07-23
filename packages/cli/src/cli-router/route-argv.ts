@@ -76,6 +76,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "cache:invalidate": ["cache", "invalidate"],
   "cache:fetch-all": ["cache", "fetch-all"],
   "cache:prune": ["cache", "prune"],
+  "cache:clear": ["cache", "clear"],
   "policy:show": ["policy", "show"],
   "policy:enforce-branches": ["policy", "enforce-branches"],
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],

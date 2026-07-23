@@ -289,6 +289,7 @@ describe("checkGitignoreCoverage (#2206)", () => {
   it("passes when all canonical entries are present", () => {
     const lines = [
       ".deft-cache/",
+      ".deft/cache/",
       ".deft/.cli/",
       ".deft/ritual-state.json",
       ".deft/last-session.json",

@@ -71,7 +71,7 @@ describe("dispatchTaskCheck", () => {
     };
 
     const root = "/home/user/deft";
-    const code = dispatchTaskCheck(root, root, { spawnFn });
+    const code = dispatchTaskCheck(root, root, { spawnFn, useTaskCache: false });
     expect(code).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.args[0]).toBe("check:framework-source");
@@ -87,7 +87,7 @@ describe("dispatchTaskCheck", () => {
 
     const framework = "/home/user/deft";
     const project = "/home/user/consumer-project";
-    const code = dispatchTaskCheck(framework, project, { spawnFn });
+    const code = dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
     expect(code).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.args[0]).toBe("check:consumer");
@@ -101,7 +101,7 @@ describe("dispatchTaskCheck", () => {
     };
 
     const root = "/home/user/deft";
-    dispatchTaskCheck(root, root, { spawnFn });
+    dispatchTaskCheck(root, root, { spawnFn, useTaskCache: false });
     expect(calls[0]?.cwd).toBe(resolve(root));
   });
 
@@ -114,7 +114,7 @@ describe("dispatchTaskCheck", () => {
 
     const framework = "/home/user/deft";
     const project = "/home/user/consumer";
-    dispatchTaskCheck(framework, project, { spawnFn });
+    dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
     expect(calls[0]?.cwd).toBe(resolve(project));
   });
 
@@ -125,7 +125,7 @@ describe("dispatchTaskCheck", () => {
       return { status: 0 };
     };
 
-    dispatchTaskCheck("/root", "/root", { taskBin: "my-task", spawnFn });
+    dispatchTaskCheck("/root", "/root", { taskBin: "my-task", spawnFn, useTaskCache: false });
     expect(calls[0]?.cmd).toBe("my-task");
   });
 
@@ -135,7 +135,7 @@ describe("dispatchTaskCheck", () => {
       return { status: null, error: new Error("task not found") };
     };
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn });
+    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false });
     expect(code).toBe(2);
     errWrite.mockRestore();
   });
@@ -145,7 +145,7 @@ describe("dispatchTaskCheck", () => {
       return { status: null };
     };
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn });
+    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false });
     expect(code).toBe(1);
   });
 
@@ -156,7 +156,7 @@ describe("dispatchTaskCheck", () => {
       return { status: 0 };
     };
 
-    dispatchTaskCheck("/my/framework", "/my/consumer", { spawnFn });
+    dispatchTaskCheck("/my/framework", "/my/consumer", { spawnFn, useTaskCache: false });
     const taskfileIdx = calls[0]?.args.indexOf("--taskfile") ?? -1;
     expect(taskfileIdx).toBeGreaterThan(-1);
     const taskfilePath = calls[0]?.args[taskfileIdx + 1];
@@ -168,7 +168,7 @@ describe("dispatchTaskCheck", () => {
       return { status: 42 };
     };
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn });
+    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false });
     expect(code).toBe(42);
   });
 
@@ -188,7 +188,7 @@ describe("dispatchTaskCheck", () => {
       DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1",
       DEFT_RELEASE_PREFLIGHT: "1",
     };
-    dispatchTaskCheck("/root", "/root", { spawnFn, env });
+    dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false, env });
     expect(calls[0]?.env?.FOO).toBe("bar");
     expect(calls[0]?.env?.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT).toBe("1");
     expect(calls[0]?.env?.DEFT_RELEASE_PREFLIGHT).toBe("1");
@@ -202,7 +202,11 @@ describe("dispatchTaskCheck", () => {
       _opts: { cwd: string; stdio: string; timeoutMs?: number },
     ) => ({ status: null, signal: "SIGTERM" as const });
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn, timeoutMs: 60_000 });
+    const code = dispatchTaskCheck("/root", "/root", {
+      spawnFn,
+      useTaskCache: false,
+      timeoutMs: 60_000,
+    });
     expect(code).toBe(124);
     errWrite.mockRestore();
   });
@@ -214,6 +218,7 @@ describe("dispatchTaskCheck", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchTaskCheck("/tmp/fake-fw", "/tmp/fake-fw", {
       taskBin: "/absolutely-nonexistent-binary-that-cannot-exist",
+      useTaskCache: false,
     });
     expect(code).toBe(2);
     errWrite.mockRestore();
