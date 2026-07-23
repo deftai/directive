@@ -56,6 +56,26 @@ export function worktreePath(projectRoot: string, runGit: GitRunner = defaultGit
   return resolve(projectRoot);
 }
 
+/** True when `ancestor` is reachable from `descendant` (same commit counts). */
+export function gitIsAncestor(
+  projectRoot: string,
+  ancestor: string,
+  descendant: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean | null {
+  if (ancestor === descendant) {
+    return true;
+  }
+  const { code } = runGit(projectRoot, ["merge-base", "--is-ancestor", ancestor, descendant]);
+  if (code === 0) {
+    return true;
+  }
+  if (code === 1) {
+    return false;
+  }
+  return null;
+}
+
 export function detectBranch(
   projectRoot: string,
   runGit: GitRunner = defaultGitRunner,

@@ -1,0 +1,97 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #2782 — session ritual survives forward commits via HEAD ancestor rebind."
+  },
+  "plan": {
+    "id": "2782-ritual-forward-head-rebind",
+    "title": "Session ritual invalidates on every forward commit (exact HEAD pin + PreToolUse)",
+    "status": "running",
+    "planRef": "https://github.com/deftai/directive/issues/2782",
+    "narratives": {
+      "Description": "Session ritual is pinned to an exact git HEAD SHA. Any forward commit on the same worktree invalidates .deft/ritual-state.json, so the next PreToolUse direct-write fails closed with git HEAD changed. Shell commits are outside the write gate, so the normal edit-commit-edit loop becomes a ceremony tax every few minutes. Age staleness is rarely the trigger; exact SHA equality is.",
+      "ImplementationPlan": "1. In packages/core/src/session/verify-session-ritual.ts evaluateLoadedState, when ritual.git_head is a git ancestor of current HEAD and worktree_path matches, treat the ritual as fresh and optionally rewrite git_head via packages/core/src/session/ritual-sentinel.ts writeRitualState without requiring session:start. 2. Keep hard-fail on worktree mismatch, branch checkout that is not a simple forward move, and non-ff history rewrite (reset/rebase/amend replacing the pinned commit) using git merge-base --is-ancestor checks in packages/core/src/session/git.ts. 3. Preserve compact re-arm (#2113) and age-based staleness. 4. Extend packages/core/src/session/verify-session-ritual.test.ts and packages/core/src/session/branches.test.ts with regression fixtures: forward commit allow/rebind; branch switch deny; reset/rebase off pinned commit deny; worktree mismatch deny. 5. Improve recovery copy when useful. 6. CHANGELOG [Unreleased]. Run task ts:test and task check green.",
+      "UserStory": "As a Directive operator committing iteratively under Cursor PreToolUse hooks, I want a fresh gated ritual to survive forward commits on the same worktree, so that I am not forced to re-run session:start after every commit while checkout and history rewrites still invalidate the ritual.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2782",
+      "Traces": "#2782, #1348, #2558, #2113, #2180, #2176"
+    },
+    "items": [
+      {
+        "id": "2782-a1",
+        "title": "Forward commits do not deny the next write",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a fresh gated ritual, when a normal git commit advances HEAD on the same branch and worktree, then the next direct-write PreToolUse is not denied solely because the HEAD SHA changed."
+        }
+      },
+      {
+        "id": "2782-a2",
+        "title": "Discontinuous history still fails closed",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given ritual state pinned to a commit, when the operator checks out a different branch, mismatches worktree, or resets/rebases off the pinned commit, then inspectSessionRitual fails closed with a clear recovery message."
+        }
+      },
+      {
+        "id": "2782-a3",
+        "title": "Compact and age semantics preserved",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given compact re-arm (#2113) and plan.policy.sessionRitualStalenessHours, when those conditions fire, then the ritual still goes stale as today even if HEAD only moved forward."
+        }
+      },
+      {
+        "id": "2782-a4",
+        "title": "Regression tests + CHANGELOG",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the rebind behavior, when the PR lands, then tests cover forward commit allow/rebind, branch switch deny, reset/rebase deny, and worktree mismatch deny; CHANGELOG [Unreleased] documents the UX fix; task check is green."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2782"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/verify-session-ritual.test.ts",
+          "packages/core/src/session/ritual-sentinel.ts",
+          "packages/core/src/session/ritual-sentinel.test.ts",
+          "packages/core/src/session/git.ts",
+          "packages/core/src/session/branches.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task ts:test",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Forward-commit ritual rebind; discontinuous HEAD still fail-closed; tests + CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "2782-ritual-head-rebind",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2782",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2782: Session ritual invalidates on every forward commit (exact HEAD pin + PreToolUse)"
+      }
+    ],
+    "updated": "2026-07-23T14:53:48.238Z"
+  }
+}

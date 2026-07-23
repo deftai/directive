@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
-import { defaultGitRunner, type GitRunner, gitHead, worktreePath } from "./git.js";
+import { defaultGitRunner, type GitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 import { pythonJsonDump } from "./json.js";
 import {
   type DirectivePosture,
@@ -112,10 +112,17 @@ function runGatedStep(
   return null;
 }
 
+function headDriftRecoveryMessage(): string {
+  return (
+    `session ritual state is stale because git HEAD changed discontinuously. ` +
+    `Run \`${formatFrameworkCommand(["session:start"])}\` again.`
+  );
+}
+
 function evaluateLoadedState(
   projectRoot: string,
   state: RitualState,
-  input: { tier: string; now: Date; runGit?: GitRunner },
+  input: { tier: string; now: Date; runGit?: GitRunner; rebindForwardHead?: boolean },
 ): [number, string] {
   const runGit = input.runGit ?? defaultGitRunner;
   const { head: currentHead, error: headError } = gitHead(projectRoot, runGit);
@@ -130,10 +137,21 @@ function evaluateLoadedState(
     ];
   }
   if (state.gitHead !== currentHead) {
-    return [
-      1,
-      `session ritual state is stale because git HEAD changed. Run \`${formatFrameworkCommand(["session:start"])}\` again.`,
-    ];
+    const forward = gitIsAncestor(projectRoot, state.gitHead, currentHead, runGit);
+    if (forward === null) {
+      return [2, "could not verify git history for session ritual"];
+    }
+    if (!forward) {
+      return [1, headDriftRecoveryMessage()];
+    }
+    if (input.rebindForwardHead) {
+      const payload = { ...state.raw, git_head: currentHead };
+      try {
+        writeRitualState(projectRoot, payload);
+      } catch (exc) {
+        return [2, `could not rebind session ritual git HEAD: ${String(exc)}`];
+      }
+    }
   }
   const staleness = resolveSessionRitualStalenessHours(projectRoot);
   if (staleness.source === "default-on-error") {
@@ -243,6 +261,7 @@ export function inspectSessionRitual(
     tier,
     now: options.now ?? new Date(),
     runGit: options.runGit,
+    rebindForwardHead: false,
   });
   return {
     code,
@@ -340,6 +359,7 @@ export function verifySessionRitual(
       tier: "quick",
       now: instant,
       runGit: options.runGit,
+      rebindForwardHead: true,
     });
     if (precheckCode !== 0) {
       return {
@@ -397,6 +417,7 @@ export function verifySessionRitual(
     tier,
     now: instant,
     runGit: options.runGit,
+    rebindForwardHead: true,
   });
   if (isBypassed) {
     return {

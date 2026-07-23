@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Session ritual no longer invalidates on every forward commit on the same worktree. When the pinned `git_head` is still an ancestor of current HEAD, gated direct writes stay allowed and `verify:session-ritual` rebinds the pin in place; checkout, reset, rebase, and worktree mismatches still fail closed. Closes #2782.
+
 ### Removed
 
 ## [0.83.0] - 2026-07-23

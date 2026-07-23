@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectBranch, gitHead, worktreePath } from "./git.js";
+import { detectBranch, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 
 describe("session git helpers", () => {
   it("gitHead returns error when git missing", () => {
@@ -27,5 +27,18 @@ describe("session git helpers", () => {
 
   it("detectBranch returns null when git unavailable", () => {
     expect(detectBranch("/tmp", () => ({ code: 127, stdout: "", stderr: "" }))).toBeNull();
+  });
+
+  it("gitIsAncestor handles equal shas and git exit codes", () => {
+    expect(gitIsAncestor("/tmp", "abc", "abc")).toBe(true);
+    expect(gitIsAncestor("/tmp", "old", "new", () => ({ code: 0, stdout: "", stderr: "" }))).toBe(
+      true,
+    );
+    expect(gitIsAncestor("/tmp", "old", "new", () => ({ code: 1, stdout: "", stderr: "" }))).toBe(
+      false,
+    );
+    expect(
+      gitIsAncestor("/tmp", "old", "new", () => ({ code: 128, stdout: "", stderr: "bad" })),
+    ).toBeNull();
   });
 });

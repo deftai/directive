@@ -6,7 +6,9 @@ import { describe, expect, it } from "vitest";
 import {
   emitVerifyJson,
   type GitRunner,
+  inspectSessionRitual,
   newRitualStatePayload,
+  readRitualState,
   ritualStep,
   verifySessionRitual,
   writeRitualState,
@@ -57,9 +59,133 @@ function fakeGit(head: string, worktree: string): GitRunner {
     if (args[0] === "rev-parse" && args[1] === "--show-toplevel") {
       return { code: 0, stdout: worktree, stderr: "" };
     }
+    if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+      const ancestor = args[2];
+      const descendant = args[3];
+      if (ancestor === descendant) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 1, stdout: "", stderr: "" };
+    }
     return { code: 0, stdout: "", stderr: "" };
   };
 }
+
+function freshPayload(root: string, head: string, now: Date): Record<string, unknown> {
+  return newRitualStatePayload({
+    sessionId: "s",
+    gitHead: head,
+    worktreePath: resolve(root),
+    startedAt: now,
+    quickSteps: {
+      alignment: ritualStep({ ok: true, ts: now }),
+      branch_policy: ritualStep({ ok: true, ts: now }),
+      triage_welcome: ritualStep({ ok: true, ts: now }),
+    },
+    gatedSteps: {
+      doctor: ritualStep({ ok: true, ts: now }),
+      cache_fresh: ritualStep({ ok: true, ts: now }),
+    },
+  });
+}
+
+function commitFile(root: string, name: string, message: string): string {
+  writeFileSync(join(root, name), `${message}\n`, "utf8");
+  execFileSync("git", ["add", name], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", message], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "T",
+      GIT_AUTHOR_EMAIL: "t@t.local",
+      GIT_COMMITTER_NAME: "T",
+      GIT_COMMITTER_EMAIL: "t@t.local",
+    },
+  });
+  return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+}
+
+describe("forward HEAD rebind (#2782)", () => {
+  it("verify rebinds ritual git_head after a forward commit", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    const advancedHead = commitFile(root, "next.txt", "forward");
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+    });
+    expect(result.code).toBe(0);
+    const [state] = readRitualState(root);
+    expect(state?.gitHead).toBe(advancedHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("inspect accepts forward HEAD without rewriting ritual state", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, initialHead, now));
+    commitFile(root, "next.txt", "forward");
+
+    const before = readRitualState(root)[0]?.gitHead;
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+    });
+    expect(result.code).toBe(0);
+    expect(readRitualState(root)[0]?.gitHead).toBe(before);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("denies reset off the pinned commit", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const advancedHead = commitFile(root, "next.txt", "forward");
+    writeRitualState(root, freshPayload(root, advancedHead, now));
+    execFileSync("git", ["reset", "--hard", initialHead], { cwd: root, encoding: "utf8" });
+
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("discontinuously");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("fails closed when git history cannot be verified", () => {
+    const { root, head } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    writeRitualState(root, freshPayload(root, head, now));
+    const brokenGit: GitRunner = (_r, args) => {
+      if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+        return { code: 128, stdout: "", stderr: "bad object" };
+      }
+      return fakeGit(head, resolve(root))(_r, args);
+    };
+    const advancedHead = commitFile(root, "next.txt", "forward");
+    const result = inspectSessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      runGit: (_r, args) => {
+        if (args[0] === "rev-parse" && args[1] === "--verify" && args[2] === "HEAD") {
+          return { code: 0, stdout: advancedHead, stderr: "" };
+        }
+        return brokenGit(_r, args);
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("could not verify git history");
+    rmSync(root, { recursive: true, force: true });
+  });
+});
 
 describe("verify session ritual", () => {
   it("missing state fails closed at gated mutation boundary", () => {
