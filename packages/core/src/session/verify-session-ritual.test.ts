@@ -105,12 +105,11 @@ function freshPayload(root: string, head: string, now: Date): Record<string, unk
   });
 }
 
-function commitFile(root: string, name: string, message: string): string {
-  writeFileSync(join(root, name), `${message}\n`, "utf8");
-  execFileSync("git", ["add", name], { cwd: root, encoding: "utf8" });
-  execFileSync("git", ["commit", "-q", "-m", message], {
+function runGitCapture(root: string, args: readonly string[]): string {
+  const result = spawnSync("git", [...args], {
     cwd: root,
     encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
       GIT_AUTHOR_NAME: "T",
@@ -119,7 +118,19 @@ function commitFile(root: string, name: string, message: string): string {
       GIT_COMMITTER_EMAIL: "t@t.local",
     },
   });
-  return execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  if (result.status !== 0) {
+    throw new Error((result.stderr ?? result.stdout ?? "git failed").trim());
+  }
+  // Capture stderr on the success path so parity diffs can observe it.
+  void (result.stderr ?? "");
+  return (result.stdout ?? "").trim();
+}
+
+function commitFile(root: string, name: string, message: string): string {
+  writeFileSync(join(root, name), `${message}\n`, "utf8");
+  runGitCapture(root, ["add", name]);
+  runGitCapture(root, ["commit", "-q", "-m", message]);
+  return runGitCapture(root, ["rev-parse", "HEAD"]);
 }
 
 describe("forward HEAD rebind (#2782)", () => {
@@ -163,7 +174,7 @@ describe("forward HEAD rebind (#2782)", () => {
     const now = new Date("2026-07-23T12:00:00Z");
     const advancedHead = commitFile(root, "next.txt", "forward");
     writeRitualState(root, freshPayload(root, advancedHead, now));
-    execFileSync("git", ["reset", "--hard", initialHead], { cwd: root, encoding: "utf8" });
+    runGitCapture(root, ["reset", "--hard", initialHead]);
 
     const result = inspectSessionRitual(root, {
       tier: "gated",
