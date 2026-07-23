@@ -1,6 +1,13 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
+import {
+  CURSOR_APPLY_PATCH_ADAPTER_RELATIVE,
+  CURSOR_APPLY_PATCH_ADAPTER_SOURCE,
+  CURSOR_GENERIC_WRITE_HOOK_MATCHER,
+  cursorApplyPatchAdapterEntry,
+  DEFT_CURSOR_ADAPTER_COMMAND_MARKER,
+} from "../hooks/cursor-hooks.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
 import {
@@ -10,6 +17,10 @@ import {
 } from "../policy/host-hooks.js";
 import type { InitDepositIo } from "./constants.js";
 
+export {
+  CURSOR_GENERIC_WRITE_HOOK_MATCHER,
+  DEFT_CURSOR_ADAPTER_COMMAND_MARKER,
+} from "../hooks/cursor-hooks.js";
 export { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
 export const DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
 export const AGENT_HOOK_PATHS = [
@@ -103,16 +114,15 @@ function isManagedNestedGroupForHost(value: unknown, host: NestedHookHost): bool
 
 function isManagedCursorEntry(value: unknown): boolean {
   const entry = object(value);
-  return typeof entry?.command === "string" && entry.command.includes(DEFT_HOOK_COMMAND_MARKER);
+  if (typeof entry?.command !== "string") return false;
+  return (
+    entry.command.includes(DEFT_HOOK_COMMAND_MARKER) ||
+    entry.command.includes(DEFT_CURSOR_ADAPTER_COMMAND_MARKER)
+  );
 }
 
 function isManagedCursorEntryForHost(value: unknown): boolean {
-  const entry = object(value);
-  return (
-    typeof entry?.command === "string" &&
-    entry.command.includes(DEFT_HOOK_COMMAND_MARKER) &&
-    entry.command.includes("--host cursor")
-  );
+  return isManagedCursorEntry(value);
 }
 
 type NestedHookHost = "claude" | "grok" | "codex";
@@ -217,9 +227,10 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   hooks.sessionStart = [...session, { command: command("cursor", "session.start"), timeout: 5 }];
   hooks.preToolUse = [
     ...preTool,
+    cursorApplyPatchAdapterEntry(),
     {
       command: command("cursor", "tool.before"),
-      matcher: DIRECT_WRITE_HOOK_MATCHER,
+      matcher: CURSOR_GENERIC_WRITE_HOOK_MATCHER,
       failClosed: true,
       timeout: 5,
     },
@@ -232,6 +243,15 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   ];
   hooks.preCompact = [...preCompact, { command: command("cursor", "session.compact"), timeout: 5 }];
   return { ...config, version: 1, hooks };
+}
+
+function writeTextIfChanged(path: string, contents: string): boolean {
+  if (existsSync(path) && readFileSync(path, "utf8") === contents) return false;
+  mkdirSync(dirname(path), { recursive: true });
+  const temporary = `${path}.deft-${process.pid}.tmp`;
+  writeFileSync(temporary, contents, "utf8");
+  renameSync(temporary, path);
+  return true;
 }
 
 function writeJsonIfChanged(path: string, payload: Record<string, unknown>): boolean {
@@ -320,6 +340,22 @@ export function writeAgentHookDeposit(
       else changedPaths.push(item.path);
     }
   }
+
+  const adapterAbsolute = join(projectRoot, CURSOR_APPLY_PATCH_ADAPTER_RELATIVE);
+  assertDepositContained(projectRoot, adapterAbsolute);
+  if (isHostHookDepositEnabled("cursor", hostHooksPolicy)) {
+    if (writeTextIfChanged(adapterAbsolute, CURSOR_APPLY_PATCH_ADAPTER_SOURCE)) {
+      if (!changedPaths.includes(AGENT_HOOK_PATHS[2])) {
+        changedPaths.push(AGENT_HOOK_PATHS[2]);
+      }
+    }
+  } else if (existsSync(adapterAbsolute)) {
+    rmSync(adapterAbsolute, { force: true });
+    if (!strippedPaths.includes(AGENT_HOOK_PATHS[2])) {
+      strippedPaths.push(AGENT_HOOK_PATHS[2]);
+    }
+  }
+
   if (changedPaths.length > 0) {
     io.printf(`Installed Directive agent hooks: ${changedPaths.join(", ")}\n`);
   }
@@ -383,7 +419,15 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
       const hook = object(entry);
       return (
         hook?.command === command("cursor", "tool.before") &&
-        hook.matcher === DIRECT_WRITE_HOOK_MATCHER &&
+        hook.matcher === CURSOR_GENERIC_WRITE_HOOK_MATCHER &&
+        hook.failClosed === true
+      );
+    }) &&
+    preTool.some((entry) => {
+      const hook = object(entry);
+      return (
+        hook?.command === cursorApplyPatchAdapterEntry().command &&
+        hook.matcher === cursorApplyPatchAdapterEntry().matcher &&
         hook.failClosed === true
       );
     }) &&

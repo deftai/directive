@@ -966,6 +966,18 @@ describe("provider input normalization", () => {
     );
     expect(projectRootFromHookPayload({ cwd: "/cwd" }, "/fallback")).toBe(resolve("/cwd"));
     expect(projectRootFromHookPayload({}, "/fallback")).toBe(resolve("/fallback"));
+    expect(
+      projectRootFromHookPayload(
+        { workspace_roots: ["C:"], cwd: "C:" },
+        "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture",
+      ),
+    ).toBe(resolve("C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture"));
+    expect(projectRootFromHookPayload({ workspaceRoot: "C:" }, "/fallback")).toBe(
+      resolve("/fallback"),
+    );
+    expect(projectRootFromHookPayload({ workspace_root: "D:" }, "/fallback")).toBe(
+      resolve("/fallback"),
+    );
   });
 
   it("validates public host and event identifiers", () => {

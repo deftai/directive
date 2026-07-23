@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Corepack packageManager dispatch hardened against shell injection (#2765).** Extracted `tasks/engine-pm-run.cjs` from duplicated inline paths in `tasks/engine.yml`; validates `pnpm@<SemVer>` pins and script names before spawn, uses argv execution without `shell: true` on POSIX, and routes Windows `.cmd` shims through a quoted `cmd.exe` boundary. Closes #2765. Parent #2761.
 
+- **Cursor ApplyPatch preToolUse double-dispatch (#2764).** Cursor hook deposit now routes ApplyPatch through a dedicated project adapter and excludes ApplyPatch from the generic direct-write matcher, preventing overlapping preToolUse handlers from fail-closing Windows writes after a successful ritual. Hook project-root resolution ignores drive-only Windows `workspace_roots`/`cwd` values that produced `C:\\C:\\...` ritual paths. Closes #2764.
+
 ### Removed
 
 ## [0.82.0] - 2026-07-22

@@ -276,18 +276,25 @@ export function isProposedLifecycleWrite(projectRoot: string, targetPath: string
   return posix.startsWith("xbrief/proposed/") || posix.startsWith("vbrief/proposed/");
 }
 
+function isWindowsDriveOnlyRoot(value: string): boolean {
+  return /^[A-Za-z]:\\?$/.test(value.trim());
+}
+
 export function projectRootFromHookPayload(payload: unknown, fallback: string): string {
   const input = record(payload);
-  if (input === null) return resolve(fallback);
+  const fallbackResolved = resolve(fallback);
+  if (input === null) return fallbackResolved;
   const workspaceRoots = input.workspace_roots;
-  const root = firstString(
+  const candidate = firstString(
     input.workspaceRoot,
     input.workspace_root,
     Array.isArray(workspaceRoots) ? workspaceRoots[0] : null,
     input.cwd,
-    fallback,
   );
-  return resolve(root ?? fallback);
+  if (candidate === null || isWindowsDriveOnlyRoot(candidate)) {
+    return fallbackResolved;
+  }
+  return resolve(candidate);
 }
 
 export function isHookHost(value: string): value is HookHost {
