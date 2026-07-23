@@ -10,6 +10,7 @@ import {
   hookPayloadTopLevelKeys,
   isHookEvent,
   isHookHost,
+  normalizeHookProjectRoot,
   projectRootFromHookPayload,
   renderHostDecision,
 } from "@deftai/directive-core/hooks";
@@ -151,9 +152,9 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const readStdin = seams.readStdin ?? (() => readFileSync(0, "utf8"));
   const cwd = (seams.cwd ?? process.cwd)();
   const { payload, context: payloadContext } = parsePayload(readStdin());
-  const projectRoot = args.projectRoot
-    ? resolve(args.projectRoot)
-    : projectRootFromHookPayload(payload, cwd);
+  const projectRoot = normalizeHookProjectRoot(
+    args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
+  );
   const decision = decideHook({
     host: args.host,
     event: args.event,

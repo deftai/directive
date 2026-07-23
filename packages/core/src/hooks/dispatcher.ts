@@ -280,21 +280,61 @@ function isWindowsDriveOnlyRoot(value: string): boolean {
   return /^[A-Za-z]:[/\\]?$/.test(value.trim());
 }
 
-export function projectRootFromHookPayload(payload: unknown, fallback: string): string {
-  const input = record(payload);
-  const fallbackResolved = resolve(fallback);
-  if (input === null) return fallbackResolved;
+function hookPayloadRootCandidates(input: Record<string, unknown>): string[] {
+  const candidates: string[] = [];
+  const push = (value: unknown): void => {
+    if (typeof value === "string" && value.trim().length > 0) {
+      candidates.push(value.trim());
+    }
+  };
+  push(input.workspaceRoot);
+  push(input.workspace_root);
   const workspaceRoots = input.workspace_roots;
-  const candidate = firstString(
-    input.workspaceRoot,
-    input.workspace_root,
-    Array.isArray(workspaceRoots) ? workspaceRoots[0] : null,
-    input.cwd,
-  );
-  if (candidate === null || isWindowsDriveOnlyRoot(candidate)) {
-    return fallbackResolved;
+  if (Array.isArray(workspaceRoots)) {
+    for (const entry of workspaceRoots) push(entry);
   }
-  return resolve(candidate);
+  push(input.cwd);
+  return candidates;
+}
+
+/** Collapse join('C:', 'c:\\...') doubled drive prefix on Windows (#2787). */
+function collapseDoubledWindowsDrivePrefix(path: string): string {
+  return path.replace(/^([A-Za-z]:\\)(?=[A-Za-z]:\\)/i, "");
+}
+
+function msysPathToWin32(path: string): string | null {
+  const match = /^\/([a-zA-Z])\/(.*)$/.exec(path.trim());
+  if (match === null || match[1] === undefined || match[2] === undefined) return null;
+  return `${match[1].toUpperCase()}:\\${match[2].replace(/\//g, "\\")}`;
+}
+
+/** Normalize hook project-root resolution on Windows (doubled drive + MSYS `/c/...`). */
+export function normalizeHookProjectRoot(path: string): string {
+  if (process.platform !== "win32") return resolve(path);
+  const trimmed = path.trim();
+  const msys = msysPathToWin32(trimmed);
+  let resolved = resolve(msys ?? trimmed);
+  const collapsed = collapseDoubledWindowsDrivePrefix(resolved);
+  if (collapsed !== resolved) {
+    resolved = resolve(collapsed);
+  }
+  if (/^[a-z]:\\/.test(resolved)) {
+    resolved = `${resolved.charAt(0).toUpperCase()}${resolved.slice(1)}`;
+  }
+  return resolved;
+}
+
+export function projectRootFromHookPayload(payload: unknown, fallback: string): string {
+  const fallbackResolved = normalizeHookProjectRoot(fallback);
+  const input = record(payload);
+  if (input === null) return fallbackResolved;
+  const usable = hookPayloadRootCandidates(input).find(
+    (candidate) => !isWindowsDriveOnlyRoot(candidate),
+  );
+  if (usable !== undefined) {
+    return normalizeHookProjectRoot(usable);
+  }
+  return fallbackResolved;
 }
 
 export function isHookHost(value: string): value is HookHost {
