@@ -90,6 +90,9 @@ function parseConsentRecord(raw: unknown): ProductSignalConsentRecord | null {
       return null;
     }
     sinkRepo = normalizeProductSignalSinkRepo(rec.sinkRepo);
+    if (sinkRepo.length === 0) {
+      return null;
+    }
   }
   return {
     consentVersion: rec.consentVersion,
@@ -110,7 +113,10 @@ export function resolveConsentedProductSignalSink(
   if (consent.consentVersion >= PRODUCT_SIGNAL_CONSENT_VERSION) {
     return consent.sinkRepo ?? null;
   }
-  return normalizeProductSignalSinkRepo(DEFAULT_PRODUCT_SIGNAL_SINK_REPO);
+  if (consent.consentVersion === PRODUCT_SIGNAL_CONSENT_VERSION_V1) {
+    return normalizeProductSignalSinkRepo(DEFAULT_PRODUCT_SIGNAL_SINK_REPO);
+  }
+  return null;
 }
 
 /** Authorize configured sink against install consent (#2767). */
@@ -177,7 +183,7 @@ export function grantProductSignalConsent(
 ): ProductSignalConsentRecord {
   const now = options.now ?? new Date();
   const sinkRepo = normalizeProductSignalSinkRepo(
-    (options.sinkRepo ?? DEFAULT_PRODUCT_SIGNAL_SINK_REPO).trim(),
+    (options.sinkRepo || DEFAULT_PRODUCT_SIGNAL_SINK_REPO).trim(),
   );
   const record: ProductSignalConsentRecord = {
     consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION,

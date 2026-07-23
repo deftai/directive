@@ -339,6 +339,48 @@ describe("sink authorization (#2767)", () => {
     );
   });
 
+  it("rejects v2 consent when sinkRepo normalizes to empty", () => {
+    const home = mkdtempSync(join(tmpdir(), "deft-ps-consent-empty-norm-"));
+    roots.push(home);
+    mkdirSync(join(home, "deft"), { recursive: true });
+    const env = { APPDATA: home } as NodeJS.ProcessEnv;
+    const path = resolveProductSignalConsentPath({ env, platform: "win32", homeDir: home });
+    writeFileSync(
+      path,
+      JSON.stringify({
+        consentVersion: 2,
+        grantedAt: "2026-07-21T12:00:00Z",
+        tier: "product-signal",
+        sinkRepo: "https://github.com/",
+      }),
+      "utf8",
+    );
+    expect(readProductSignalConsent({ env, platform: "win32", homeDir: home })).toBeNull();
+  });
+
+  it("grant falls back to default sink when sinkRepo is empty", () => {
+    const home = mkdtempSync(join(tmpdir(), "deft-ps-consent-grant-empty-"));
+    roots.push(home);
+    const env = { APPDATA: home } as NodeJS.ProcessEnv;
+    const record = grantProductSignalConsent({
+      env,
+      platform: "win32",
+      homeDir: home,
+      sinkRepo: "",
+    });
+    expect(record.sinkRepo).toBe("deftai/product-signal");
+  });
+
+  it("resolveConsentedProductSignalSink returns null for unknown consent version", () => {
+    expect(
+      resolveConsentedProductSignalSink({
+        consentVersion: 0,
+        grantedAt: "2026-07-21T12:00:00Z",
+        tier: "product-signal",
+      }),
+    ).toBeNull();
+  });
+
   it("returns null for invalid tier", () => {
     const home = mkdtempSync(join(tmpdir(), "deft-ps-consent-tier-"));
     roots.push(home);
