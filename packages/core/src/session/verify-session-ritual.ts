@@ -374,6 +374,22 @@ export function verifySessionRitual(
       };
     }
 
+    const reloadedAfterPrecheck = readRitualState(projectRoot);
+    state = reloadedAfterPrecheck[0];
+    err = reloadedAfterPrecheck[1];
+    if (state === null) {
+      return {
+        code: 2,
+        message: err ?? "ritual state invalid after precheck",
+        tier,
+        statePath,
+        bypassed: false,
+        wouldFailCode: null,
+        posture,
+        ritualStateRequired,
+      };
+    }
+
     const payload = { ...state.raw };
     const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
     payload.gated_steps = gated;

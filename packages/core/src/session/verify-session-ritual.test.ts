@@ -152,6 +152,29 @@ describe("forward HEAD rebind (#2782)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("gated step refresh preserves precheck forward HEAD rebind", () => {
+    const { root, head: initialHead } = initRepo();
+    const now = new Date("2026-07-23T12:00:00Z");
+    const payload = freshPayload(root, initialHead, now);
+    const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
+    gated.doctor = ritualStep({ ok: false, ts: now, message: "stale" });
+    payload.gated_steps = gated;
+    writeRitualState(root, payload);
+    const advancedHead = commitFile(root, "next.txt", "forward");
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      now,
+      bypass: false,
+      posture: "mutation",
+      runner: () => ({ code: 0, stdout: "ok", stderr: "" }),
+    });
+    expect(result.code).toBe(0);
+    const [state] = readRitualState(root);
+    expect(state?.gitHead).toBe(advancedHead);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("inspect accepts forward HEAD without rewriting ritual state", () => {
     const { root, head: initialHead } = initRepo();
     const now = new Date("2026-07-23T12:00:00Z");
