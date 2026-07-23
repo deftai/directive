@@ -57,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Synthetic secret-shaped test fixtures no longer trip GitHub secret scanning (#2792).** Product-signal, cache-scanner, and umbrella-current-shape tests now assemble `ghp_`-shaped placeholders at runtime (split-literal #1070 precedent) so no single source line matches secret scanning while validators still reject the concatenated strings. Closes #2792.
+
 - **Cursor failClosed empty-allow stdout no longer blocks Write tools (#2779).** Cursor `preToolUse` deposits use `failClosed: true`, which treats empty/null hook stdout as failure. `renderHostDecision` now emits `{"permission":"allow"}` for Cursor allow decisions (denials unchanged; Claude/Grok/Codex keep empty allow). The deposited ApplyPatch adapter also normalizes empty success stdout to an explicit allow so Windows/ApplyPatch paths cannot fail closed after a clean ritual. Closes #2779.
 
 - **Vitest branch coverage restored above 85% (#2762).** Added focused `evaluateSkillExternalFetchGate` fixture coverage for non-Error read failures, clearing the v0.82.0 `--allow-coverage-debt` citation without a consecutive soft-pass. Closes #2762.

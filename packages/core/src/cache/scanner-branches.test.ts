@@ -7,6 +7,10 @@ import { lineHasShellVector, scan } from "./scanner.js";
 const OLD_BODY_VECTOR_RE =
   /(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b|\bbase64\s+(?:-d|--decode|-D)\b|\beval\s*[($"'`]/i;
 
+// Synthetic credential-shaped fixtures split across literals (#2792 / #1070 precedent).
+const SYNTHETIC_GHP_TOKEN = `ghp_${"12345678901234567890123456789012"}`;
+const SYNTHETIC_SK_TOKEN = `sk-${"1234567890123456789012"}`;
+
 describe("scanner branches", () => {
   it("handles empty and whitespace-only bodies", () => {
     expect(scan("").passed).toBe(true);
@@ -18,7 +22,7 @@ describe("scanner branches", () => {
   });
 
   it("detects multiple credential patterns", () => {
-    const body = "ghp_12345678901234567890123456789012 and sk-1234567890123456789012";
+    const body = `${SYNTHETIC_GHP_TOKEN} and ${SYNTHETIC_SK_TOKEN}`;
     const result = scan(body);
     expect(result.passed).toBe(false);
     expect(result.flags.length).toBeGreaterThan(0);
@@ -36,7 +40,7 @@ describe("scanner branches", () => {
   });
 
   it("detects assorted credential shapes", () => {
-    expect(scan("ghp_12345678901234567890123456789012").passed).toBe(false);
+    expect(scan(SYNTHETIC_GHP_TOKEN).passed).toBe(false);
     expect(scan("sk-ant-api03-1234567890123456789012").passed).toBe(false);
     expect(scan("xoxb-1234567890123456789012345678901234567890").passed).toBe(false);
     expect(scan("Bearer abcdefghijklmnopqrstuvwxyz").passed).toBe(false);

@@ -1,0 +1,77 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2792 — split synthetic ghp_ test fixtures to avoid secret-scanning false positives"
+  },
+  "plan": {
+    "id": "2026-07-23-2792-choresecurity-split-synthetic-ghp-fixtures",
+    "title": "chore(security): split synthetic ghp_ fixtures that trip secret-scanning alert #1",
+    "status": "running",
+    "narratives": {
+      "Description": "GitHub secret-scanning alert #1 flagged synthetic ghp_ fixtures in product-signal tests. Split literals at runtime per #1070 precedent so no single source line matches secret scanning while detection coverage stays unchanged.",
+      "Origin": "https://github.com/deftai/directive/issues/2792",
+      "ImplementationPlan": "1) Split ghp_/sk- shaped fixtures via string concatenation in payload.test.ts, scanner-branches.test.ts, umbrella-current-shape/index.test.ts. 2) Add CHANGELOG [Unreleased] entry. 3) Run targeted vitest + task check. 4) Open PR with Closes #2792.",
+      "UserStory": "As a maintainer, I want synthetic secret-shaped test fixtures split across source lines so GitHub secret scanning does not flag false positives while validators still reject assembled strings."
+    },
+    "items": [
+      {
+        "title": "Split ghp_ fixtures in payload.test.ts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "No contiguous ghp_ literal on a single source line; validateProductSignalPayload still rejects the assembled freeText."
+        }
+      },
+      {
+        "title": "Split ghp_/sk- fixtures in scanner-branches.test.ts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Runtime-concatenated tokens still fail scan(); no contiguous ghp_/sk- literals on single source lines."
+        }
+      },
+      {
+        "title": "Split ghp_ fixtures in umbrella-current-shape/index.test.ts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Credential hard-fail tests still pass; assembled token not echoed to stdout/stderr."
+        }
+      },
+      {
+        "title": "CHANGELOG and PR",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Brief [Unreleased] entry; PR body contains Closes #2792."
+        }
+      }
+    ],
+    "tags": [
+      "chore",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2792",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2792"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/product-signal/payload.test.ts",
+          "packages/core/src/cache/scanner-branches.test.ts",
+          "packages/core/src/umbrella-current-shape/index.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/product-signal/payload.test.ts packages/core/src/cache/scanner-branches.test.ts packages/core/src/umbrella-current-shape/index.test.ts",
+          "task check"
+        ]
+      },
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-07-23T21:31:11Z"
+  }
+}
