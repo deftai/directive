@@ -62,15 +62,18 @@ const result = spawnSync(
   },
 );
 
-if (result.stdout) process.stdout.write(result.stdout);
 if (result.stderr) process.stderr.write(result.stderr);
 if (result.error) {
   process.stderr.write(String(result.error));
   process.exit(2);
 }
 if (result.status !== 0 && result.status !== null) {
+  if (result.stdout) process.stdout.write(result.stdout);
   process.exit(result.status);
 }
+// Cursor failClosed treats empty stdout as failure — normalize allow.
+const out = (result.stdout ?? "").trim();
+process.stdout.write((out.length > 0 ? out : '{"permission":"allow"}') + "\\n");
 process.exit(0);
 `;
 

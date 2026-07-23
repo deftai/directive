@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "0.8.0",
+  "kind": "story",
+  "id": "2026-07-23-cursor-failclosed-empty-allow",
+  "title": "Cursor failClosed empty allow stdout blocks writes",
+  "status": "active",
+  "plan": {
+    "status": "running",
+    "narratives": {
+      "Intent": "Cursor preToolUse deposits use failClosed:true; empty allow stdout is treated as hook failure and blocks Write/StrReplace. Emit explicit {\"permission\":\"allow\"} for Cursor allow decisions.",
+      "Acceptance": "renderHostDecision('cursor', allow) returns permission allow JSON; denials unchanged; other hosts keep empty allow; tests + CHANGELOG updated; ApplyPatch adapter also normalizes empty success to allow."
+    }
+  }
+}

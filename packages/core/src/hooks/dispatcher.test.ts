@@ -882,7 +882,7 @@ describe("provider codecs", () => {
     });
   });
 
-  it("emits no provider override for an allow decision", () => {
+  it("emits no provider override for an allow decision on non-Cursor hosts", () => {
     const allow = decideHook(
       {
         host: "claude",
@@ -894,8 +894,22 @@ describe("provider codecs", () => {
     );
     expect(renderHostDecision("claude", allow)).toBe("");
     expect(renderHostDecision("grok", allow)).toBe("");
-    expect(renderHostDecision("cursor", allow)).toBe("");
     expect(renderHostDecision("codex", allow)).toBe("");
+  });
+
+  it("emits explicit Cursor permission allow for failClosed deposits", () => {
+    const allow = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Read" },
+      },
+      readySeams(),
+    );
+    expect(JSON.parse(renderHostDecision("cursor", allow))).toEqual({
+      permission: "allow",
+    });
   });
 });
 

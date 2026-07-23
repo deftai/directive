@@ -604,9 +604,21 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
   return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: true });
 }
 
-/** Render only authoritative denials; allow preserves the host's own permission flow. */
+/**
+ * Render host-facing hook output.
+ *
+ * Cursor deposits use `failClosed: true`. Cursor treats empty/null stdout as a
+ * hook failure and blocks the tool — so Cursor allows must emit explicit
+ * `{"permission":"allow"}`. Other hosts keep empty allow so the host permission
+ * flow is unchanged.
+ */
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {
-  if (decision.verdict === "allow") return "";
+  if (decision.verdict === "allow") {
+    if (host === "cursor") {
+      return JSON.stringify({ permission: "allow" });
+    }
+    return "";
+  }
   switch (host) {
     case "claude":
     case "codex":

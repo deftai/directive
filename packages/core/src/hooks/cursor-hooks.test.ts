@@ -41,6 +41,12 @@ describe("cursor hook projection (#2764)", () => {
     expect(DIRECT_WRITE_HOOK_MATCHER).toContain("ApplyPatch");
   });
 
+  it("normalizes empty ApplyPatch adapter success to Cursor allow JSON", () => {
+    expect(CURSOR_APPLY_PATCH_ADAPTER_SOURCE).toContain('{"permission":"allow"}');
+    expect(CURSOR_APPLY_PATCH_ADAPTER_SOURCE).toContain("normalize allow");
+    expect(CURSOR_APPLY_PATCH_ADAPTER_SOURCE).not.toContain("${out}");
+  });
+
   it("builds the adapter preToolUse entry expected by hooks.json", () => {
     expect(cursorApplyPatchAdapterEntry()).toEqual({
       command: CURSOR_APPLY_PATCH_ADAPTER_COMMAND,
