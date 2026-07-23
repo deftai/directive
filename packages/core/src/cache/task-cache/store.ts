@@ -4,7 +4,11 @@ import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
 import { DEFAULT_TASK_CACHE_ROOT, TASK_CACHE_MANIFEST } from "./constants.js";
 import type { CachedTaskRecord } from "./types.js";
 
-function entryDir(projectRoot: string, cacheKey: string, cacheRoot = DEFAULT_TASK_CACHE_ROOT): string {
+function entryDir(
+  projectRoot: string,
+  cacheKey: string,
+  cacheRoot = DEFAULT_TASK_CACHE_ROOT,
+): string {
   return join(resolve(projectRoot), cacheRoot, cacheKey.slice(0, 2), cacheKey);
 }
 

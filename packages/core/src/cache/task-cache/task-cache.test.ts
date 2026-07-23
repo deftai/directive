@@ -1,9 +1,9 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { composeCacheKey, hashTaskInputs } from "./hash.js";
 import { runWithCache } from "./executor.js";
+import { composeCacheKey, hashTaskInputs } from "./hash.js";
 import { readCachedTaskRecord } from "./store.js";
 import type { TaskContract } from "./types.js";
 

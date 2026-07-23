@@ -202,7 +202,11 @@ describe("dispatchTaskCheck", () => {
       _opts: { cwd: string; stdio: string; timeoutMs?: number },
     ) => ({ status: null, signal: "SIGTERM" as const });
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false, timeoutMs: 60_000 });
+    const code = dispatchTaskCheck("/root", "/root", {
+      spawnFn,
+      useTaskCache: false,
+      timeoutMs: 60_000,
+    });
     expect(code).toBe(124);
     errWrite.mockRestore();
   });

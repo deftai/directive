@@ -52,7 +52,10 @@ export function expandInputGlobs(projectRoot: string, spec: TaskInputSpec): stri
 }
 
 /** Collect env values for declared keys (missing vars map to empty string). */
-export function collectEnvValues(spec: TaskInputSpec, env: NodeJS.ProcessEnv): Record<string, string> {
+export function collectEnvValues(
+  spec: TaskInputSpec,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const key of spec.env ?? []) {
     out[key] = env[key] ?? "";
@@ -98,7 +101,5 @@ export function hashTaskInputs(
 
 /** Compose the final cache key digest including codeVersion. */
 export function composeCacheKey(taskId: string, inputsHash: string, codeVersion: string): string {
-  return createHash("sha256")
-    .update(stableJson({ taskId, inputsHash, codeVersion }))
-    .digest("hex");
+  return createHash("sha256").update(stableJson({ taskId, inputsHash, codeVersion })).digest("hex");
 }

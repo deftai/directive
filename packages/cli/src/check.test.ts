@@ -8,13 +8,13 @@ import { parseArgs } from "./check.js";
 
 describe("check CLI", () => {
   it("parses --no-cache", () => {
-    expect(
-      parseArgs(["--framework-root", "/fw", "--project-root", "/proj", "--no-cache"]),
-    ).toEqual({
-      frameworkRoot: "/fw",
-      projectRoot: "/proj",
-      noCache: true,
-    });
+    expect(parseArgs(["--framework-root", "/fw", "--project-root", "/proj", "--no-cache"])).toEqual(
+      {
+        frameworkRoot: "/fw",
+        projectRoot: "/proj",
+        noCache: true,
+      },
+    );
   });
 
   it("rejects unknown flags", () => {

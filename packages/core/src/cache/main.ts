@@ -16,8 +16,8 @@ import {
 import { cacheFetchAll, cacheRefreshClosed } from "./fetch.js";
 import { pythonBool, pythonJsonPretty } from "./json.js";
 import { cacheGet, cacheInvalidate, cachePrune, cachePruneToCap, cachePut } from "./operations.js";
-import { clearTaskCache } from "./task-cache/store.js";
 import { resolveCaps } from "./quota.js";
+import { clearTaskCache } from "./task-cache/store.js";
 
 function usage(): void {
   process.stderr.write("usage: cache [-h] {put,get,invalidate,fetch-all,prune,clear} ...\n");

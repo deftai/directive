@@ -1,10 +1,14 @@
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
-import { readCorePackageVersion } from "../engine-version.js";
-import { resolveTaskContract, runWithCache } from "../cache/task-cache/index.js";
+import {
+  lintShippedRegistry,
+  resolveTaskContract,
+  runWithCache,
+} from "../cache/task-cache/index.js";
 import type { TaskRunResult } from "../cache/task-cache/types.js";
+import { readCorePackageVersion } from "../engine-version.js";
+import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 import { gatesForCheckTarget } from "./gate-lists.js";
-import { resolveCheckTarget, type CheckOrchestratorSeams } from "./orchestrator.js";
 
 export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly onGateStart?: (gateId: string) => void;
@@ -51,6 +55,16 @@ export function dispatchCachedTaskCheck(
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
   const gates = gatesForCheckTarget(target);
   const codeVersion = readCorePackageVersion();
+
+  const registryLint = lintShippedRegistry();
+  if (!registryLint.ok) {
+    for (const finding of registryLint.findings.filter((f) => f.kind === "under-declared-input")) {
+      process.stderr.write(
+        `check: task registry lint failed for ${finding.taskId}: ${finding.detail}\n`,
+      );
+    }
+    return 2;
+  }
 
   if (gates.length === 0) {
     process.stderr.write(`check: no gate list for target ${target}\n`);

@@ -9,14 +9,7 @@ import type { RunWithCacheOptions, TaskRunResult } from "./types.js";
  * - Non-cacheable / incomplete inputs fail open to running.
  */
 export function runWithCache(options: RunWithCacheOptions): TaskRunResult {
-  const {
-    projectRoot,
-    contract,
-    codeVersion,
-    noCache = false,
-    cacheRoot,
-    runner,
-  } = options;
+  const { projectRoot, contract, codeVersion, noCache = false, cacheRoot, runner } = options;
 
   if (noCache || !contract.cacheable) {
     const live = runner();

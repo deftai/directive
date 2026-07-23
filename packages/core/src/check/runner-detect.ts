@@ -149,7 +149,8 @@ export function runnerDetectionTable(): ReadonlyArray<{
     },
     {
       runner: "pytest",
-      detection: "pytest.ini / pyproject.toml / requirements.txt, or plan.policy.testRunner = pytest",
+      detection:
+        "pytest.ini / pyproject.toml / requirements.txt, or plan.policy.testRunner = pytest",
       affectedConvention: "pytest --testmon",
     },
     {
