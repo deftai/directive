@@ -277,7 +277,7 @@ export function isProposedLifecycleWrite(projectRoot: string, targetPath: string
 }
 
 function isWindowsDriveOnlyRoot(value: string): boolean {
-  return /^[A-Za-z]:\\?$/.test(value.trim());
+  return /^[A-Za-z]:[/\\]?$/.test(value.trim());
 }
 
 export function projectRootFromHookPayload(payload: unknown, fallback: string): string {

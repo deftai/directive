@@ -9,6 +9,7 @@ import {
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import {
   APPLY_PATCH_HOOK_MATCHER,
+  assertCursorApplyPatchMatchersDisjoint,
   CURSOR_APPLY_PATCH_ADAPTER_COMMAND,
   CURSOR_APPLY_PATCH_ADAPTER_RELATIVE,
   CURSOR_APPLY_PATCH_ADAPTER_SOURCE,
@@ -32,6 +33,7 @@ function project(): string {
 
 describe("cursor hook projection (#2764)", () => {
   it("keeps ApplyPatch out of the generic Cursor write matcher", () => {
+    assertCursorApplyPatchMatchersDisjoint();
     expect(cursorApplyPatchMatchersDisjoint()).toBe(true);
     expect(CURSOR_GENERIC_WRITE_HOOK_MATCHER).not.toContain("ApplyPatch");
     expect(CURSOR_GENERIC_WRITE_HOOK_MATCHER).not.toContain("apply_patch");
@@ -67,17 +69,23 @@ describe("cursor hook projection (#2764)", () => {
     expect(hooksJson).toContain('"matcher": "ApplyPatch|apply_patch"');
   });
 
-  it("avoids Windows C:\\C:\\ ritual paths when payload carries a drive-only root", () => {
-    const fallback = "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture";
-    const resolved = projectRootFromHookPayload({ workspace_roots: ["C:"], cwd: "C:" }, fallback);
-    expect(resolved).toBe(resolve(fallback));
-    expect(ritualStatePath(resolved)).toBe(join(resolve(fallback), ".deft", "ritual-state.json"));
-    expect(ritualStatePath(resolved)).not.toContain("C:\\C:\\");
-  });
+  it.skipIf(process.platform !== "win32")(
+    "avoids Windows C:\\C:\\ ritual paths when payload carries a drive-only root",
+    () => {
+      const fallback = "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture";
+      const resolved = projectRootFromHookPayload({ workspace_roots: ["C:"], cwd: "C:" }, fallback);
+      expect(resolved).toBe(resolve(fallback));
+      expect(ritualStatePath(resolved)).toBe(join(resolve(fallback), ".deft", "ritual-state.json"));
+      expect(ritualStatePath(resolved)).not.toContain("C:\\C:\\");
+    },
+  );
 
-  it("treats trailing-backslash drive roots as drive-only on Windows", () => {
+  it.skipIf(process.platform !== "win32")("treats trailing-backslash drive roots as drive-only on Windows", () => {
     const fallback = "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture";
     expect(projectRootFromHookPayload({ workspace_root: "C:\\" }, fallback)).toBe(
+      resolve(fallback),
+    );
+    expect(projectRootFromHookPayload({ workspace_root: "C:/" }, fallback)).toBe(
       resolve(fallback),
     );
   });

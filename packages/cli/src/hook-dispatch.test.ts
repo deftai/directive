@@ -299,31 +299,34 @@ describe("hook-dispatch CLI", () => {
     expect(rendered).not.toContain("omitted a recognizable tool name");
   });
 
-  it("honors explicit --project-root over drive-only payload workspace roots (#2764)", () => {
-    const payload = {
-      tool_name: "Write",
-      tool_input: { file_path: "src/a.ts", content: "x" },
-      workspace_roots: ["C:"],
-      cwd: "C:",
-    };
-    const out: string[] = [];
-    const code = run(
-      [
-        "--host=cursor",
-        "--event=tool.before",
-        "--project-root",
-        "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture",
-      ],
-      {
-        readStdin: () => JSON.stringify(payload),
-        writeOut: (text) => out.push(text),
-        writeErr: () => undefined,
-        cwd: () => "C:",
-      },
-    );
-    expect(code).toBe(0);
-    expect(out.join("")).not.toContain("C:\\\\C:\\\\");
-  });
+  it.skipIf(process.platform !== "win32")(
+    "honors explicit --project-root over drive-only payload workspace roots (#2764)",
+    () => {
+      const payload = {
+        tool_name: "Write",
+        tool_input: { file_path: "src/a.ts", content: "x" },
+        workspace_roots: ["C:"],
+        cwd: "C:",
+      };
+      const out: string[] = [];
+      const code = run(
+        [
+          "--host=cursor",
+          "--event=tool.before",
+          "--project-root",
+          "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture",
+        ],
+        {
+          readStdin: () => JSON.stringify(payload),
+          writeOut: (text) => out.push(text),
+          writeErr: () => undefined,
+          cwd: () => "C:",
+        },
+      );
+      expect(code).toBe(0);
+      expect(out.join("")).not.toContain("C:\\\\C:\\\\");
+    },
+  );
 
   it("denies Cursor multi-file free-form ApplyPatch as invalid JSON (#2738)", () => {
     const multiFile = [

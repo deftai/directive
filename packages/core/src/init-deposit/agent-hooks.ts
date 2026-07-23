@@ -5,6 +5,7 @@ import {
   CURSOR_APPLY_PATCH_ADAPTER_RELATIVE,
   CURSOR_APPLY_PATCH_ADAPTER_SOURCE,
   CURSOR_GENERIC_WRITE_HOOK_MATCHER,
+  assertCursorApplyPatchMatchersDisjoint,
   cursorApplyPatchAdapterEntry,
   DEFT_CURSOR_ADAPTER_COMMAND_MARKER,
 } from "../hooks/cursor-hooks.js";
@@ -214,6 +215,7 @@ function stripManagedCursorConfig(
 }
 
 function mergeCursorConfig(config: Record<string, unknown>, path: string): Record<string, unknown> {
+  assertCursorApplyPatchMatchersDisjoint();
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "sessionStart", path).filter(
     (entry) => !isManagedCursorEntry(entry),
@@ -413,6 +415,7 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
   const session = Array.isArray(hooks.sessionStart) ? hooks.sessionStart : [];
   const preTool = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
   const preCompact = Array.isArray(hooks.preCompact) ? hooks.preCompact : [];
+  const adapter = cursorApplyPatchAdapterEntry();
   return (
     session.some((entry) => object(entry)?.command === command("cursor", "session.start")) &&
     preTool.some((entry) => {
@@ -426,8 +429,8 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
     preTool.some((entry) => {
       const hook = object(entry);
       return (
-        hook?.command === cursorApplyPatchAdapterEntry().command &&
-        hook.matcher === cursorApplyPatchAdapterEntry().matcher &&
+        hook?.command === adapter.command &&
+        hook.matcher === adapter.matcher &&
         hook.failClosed === true
       );
     }) &&

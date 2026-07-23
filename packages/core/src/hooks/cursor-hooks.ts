@@ -68,7 +68,10 @@ if (result.error) {
   process.stderr.write(String(result.error));
   process.exit(2);
 }
-process.exit(result.status ?? 0);
+if (result.status !== 0 && result.status !== null) {
+  process.exit(result.status);
+}
+process.exit(0);
 `;
 
 export interface CursorPreToolUseEntry {
@@ -94,4 +97,13 @@ export function cursorApplyPatchMatchersDisjoint(): boolean {
     if (generic.has(token)) return false;
   }
   return true;
+}
+
+/** Fail closed when Cursor hook projection would double-dispatch ApplyPatch (#2764). */
+export function assertCursorApplyPatchMatchersDisjoint(): void {
+  if (!cursorApplyPatchMatchersDisjoint()) {
+    throw new Error(
+      "Cursor ApplyPatch and generic direct-write matchers overlap — refusing hook deposit (#2764).",
+    );
+  }
 }
