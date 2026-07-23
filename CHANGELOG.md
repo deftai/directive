@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Corepack packageManager dispatch hardened against shell injection (#2765).** Extracted `tasks/engine-pm-run.cjs` from duplicated inline paths in `tasks/engine.yml`; validates `pnpm@<SemVer>` pins and script names before spawn, uses argv execution without `shell: true` on POSIX, and routes Windows `.cmd` shims through a quoted `cmd.exe` boundary. Closes #2765. Parent #2761.
-- **Product-signal consent bound to sinkRepo destination (#2767).** Consent schema v2 records the normalized telemetry sink; legacy v1 consent authorizes only the default `deftai/product-signal`. Submit and dry-run enforce destination match before adapter construction; changing `sinkRepo` after consent soft-skips until re-consent. Parent #2761.
+- **Product-signal consent bound to sinkRepo destination (#2767).** Consent schema v2 records the normalized telemetry sink; legacy v1 consent authorizes only the default `deftai/product-signal`. Submit and dry-run enforce destination match before adapter construction; changing `sinkRepo` after consent soft-skips until re-consent. Closes #2767. Parent #2761.
 
 - **Cursor ApplyPatch preToolUse double-dispatch (#2764).** Cursor hook deposit now routes ApplyPatch through a dedicated project adapter and excludes ApplyPatch from the generic direct-write matcher, preventing overlapping preToolUse handlers from fail-closing Windows writes after a successful ritual. Hook project-root resolution ignores drive-only Windows `workspace_roots`/`cwd` values that produced `C:\\C:\\...` ritual paths. Closes #2764.
 

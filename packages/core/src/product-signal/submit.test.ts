@@ -395,6 +395,21 @@ describe("productSignalMain", () => {
     expect(await productSignalMain(["consent", "--grant", "--project-root"])).toBe(0);
   });
 
+  it("routes consent grant with project-root= form preserving equals in path", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-main-consent-eqpath-"));
+    roots.push(root);
+    const rootWithEquals = `${root}=suffix`;
+    mkdirSync(rootWithEquals, { recursive: true });
+    roots.push(rootWithEquals);
+    writeProjectDef(rootWithEquals, { productSignal: { enabled: true, sinkRepo: "partner/inbox" } });
+    applyIsolatedConsentEnv(roots, false);
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(await productSignalMain(["consent", "--grant", `--project-root=${rootWithEquals}`])).toBe(
+      0,
+    );
+    expect(String(stdout.mock.calls[0]?.[0])).toContain("partner/inbox");
+  });
+
   it("routes consent grant with project-root= form", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-main-consent-eq-"));
     roots.push(root);

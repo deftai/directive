@@ -312,26 +312,30 @@ export function parseProductSignalSubmitArgs(argv: string[]): {
   return { surface, dryRun, json, projectRoot, nps };
 }
 
+function parseOptionalProjectRootArg(argv: string[], fallback: string | null): string | null {
+  const rootIdx = argv.indexOf("--project-root");
+  if (rootIdx >= 0) {
+    return argv[rootIdx + 1] ?? fallback;
+  }
+  const eqArg = argv.find((a) => a.startsWith("--project-root="));
+  if (eqArg !== undefined) {
+    return eqArg.slice("--project-root=".length) || fallback;
+  }
+  return fallback;
+}
+
 /** CLI module entrypoint for dispatch (#2693). */
 export async function productSignalMain(argv: string[] = process.argv.slice(2)): Promise<number> {
   const sub = argv[0];
   if (sub === "status") {
-    const rootIdx = argv.indexOf("--project-root");
-    const root =
-      rootIdx >= 0
-        ? (argv[rootIdx + 1] ?? ".")
-        : (argv.find((a) => a.startsWith("--project-root="))?.split("=")[1] ?? ".");
+    const root = parseOptionalProjectRootArg(argv, ".") ?? ".";
     const result = runProductSignalStatus(root);
     process.stdout.write(result.text);
     return result.exitCode;
   }
   if (sub === "enable") {
     const confirm = argv.includes("--confirm");
-    const rootIdx = argv.indexOf("--project-root");
-    const root =
-      rootIdx >= 0
-        ? (argv[rootIdx + 1] ?? ".")
-        : (argv.find((a) => a.startsWith("--project-root="))?.split("=")[1] ?? ".");
+    const root = parseOptionalProjectRootArg(argv, ".") ?? ".";
     const result = runProductSignalEnable(root, confirm);
     process.stdout.write(result.text);
     return result.exitCode;
@@ -343,11 +347,7 @@ export async function productSignalMain(argv: string[] = process.argv.slice(2)):
       process.stderr.write("usage: product-signal consent -- --grant|--revoke\n");
       return 1;
     }
-    const rootIdx = argv.indexOf("--project-root");
-    const root =
-      rootIdx >= 0
-        ? (argv[rootIdx + 1] ?? ".")
-        : (argv.find((a) => a.startsWith("--project-root="))?.split("=")[1] ?? null);
+    const root = parseOptionalProjectRootArg(argv, null);
     const result = runProductSignalConsent(grant ? "grant" : "revoke", root);
     process.stdout.write(result.text);
     return result.exitCode;

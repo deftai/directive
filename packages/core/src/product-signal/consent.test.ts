@@ -374,7 +374,7 @@ describe("sink authorization (#2767)", () => {
   it("resolveConsentedProductSignalSink returns null for unknown consent version", () => {
     expect(
       resolveConsentedProductSignalSink({
-        consentVersion: 0,
+        consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION_V1 - 1,
         grantedAt: "2026-07-21T12:00:00Z",
         tier: "product-signal",
       }),
