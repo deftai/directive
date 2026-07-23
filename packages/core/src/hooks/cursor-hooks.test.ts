@@ -80,15 +80,18 @@ describe("cursor hook projection (#2764)", () => {
     },
   );
 
-  it.skipIf(process.platform !== "win32")("treats trailing-backslash drive roots as drive-only on Windows", () => {
-    const fallback = "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture";
-    expect(projectRootFromHookPayload({ workspace_root: "C:\\" }, fallback)).toBe(
-      resolve(fallback),
-    );
-    expect(projectRootFromHookPayload({ workspace_root: "C:/" }, fallback)).toBe(
-      resolve(fallback),
-    );
-  });
+  it.skipIf(process.platform !== "win32")(
+    "treats trailing-backslash drive roots as drive-only on Windows",
+    () => {
+      const fallback = "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture";
+      expect(projectRootFromHookPayload({ workspace_root: "C:\\" }, fallback)).toBe(
+        resolve(fallback),
+      );
+      expect(projectRootFromHookPayload({ workspace_root: "C:/" }, fallback)).toBe(
+        resolve(fallback),
+      );
+    },
+  );
 
   it("leaves adapter deposit byte-idempotent on repeat refresh", () => {
     const root = project();

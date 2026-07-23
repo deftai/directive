@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { dirname, join } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import {
+  assertCursorApplyPatchMatchersDisjoint,
   CURSOR_APPLY_PATCH_ADAPTER_RELATIVE,
   CURSOR_APPLY_PATCH_ADAPTER_SOURCE,
   CURSOR_GENERIC_WRITE_HOOK_MATCHER,
-  assertCursorApplyPatchMatchersDisjoint,
   cursorApplyPatchAdapterEntry,
   DEFT_CURSOR_ADAPTER_COMMAND_MARKER,
 } from "../hooks/cursor-hooks.js";
