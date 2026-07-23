@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { GitRunResult } from "./git.js";
 import {
   defaultGitRunner,
   emitVerifyJson,
@@ -14,7 +15,6 @@ import {
   verifySessionRitual,
   writeRitualState,
 } from "./index.js";
-import type { GitRunResult } from "./git.js";
 import { defaultBranchSync, parseDeferrals, runSessionStart } from "./session-start.js";
 
 function initRepo(): { root: string; head: string } {
