@@ -1,12 +1,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { DEFAULT_PRODUCT_SIGNAL_SINK_REPO } from "../policy/product-signal.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 
 export const PRODUCT_SIGNAL_CONSENT_FILENAME = "product-signal-consent.json";
 
-/** Consent record schema version (#2693 D2). */
-export const PRODUCT_SIGNAL_CONSENT_VERSION = 1;
+/** Consent record schema version (#2693 D2, #2767 v2 sink binding). */
+export const PRODUCT_SIGNAL_CONSENT_VERSION = 2;
+
+/** Legacy consent schema — authorizes default sink only (#2767). */
+export const PRODUCT_SIGNAL_CONSENT_VERSION_V1 = 1;
 
 /** Phase-1 consent tier permitting qualitative outbound (#2693 D2). */
 export const PRODUCT_SIGNAL_CONSENT_TIER = "product-signal";
@@ -15,6 +19,8 @@ export interface ProductSignalConsentRecord {
   readonly consentVersion: number;
   readonly grantedAt: string;
   readonly tier: string;
+  /** Normalized owner/repo sink authorized by v2 consent (#2767). */
+  readonly sinkRepo?: string;
   readonly revokedAt?: string;
 }
 
@@ -22,6 +28,14 @@ export interface ResolveConsentPathOptions {
   readonly platform?: NodeJS.Platform;
   readonly env?: NodeJS.ProcessEnv;
   readonly homeDir?: string;
+}
+
+export interface SinkAuthorizationResult {
+  readonly authorized: boolean;
+  readonly configuredSink: string;
+  readonly consentedSink: string | null;
+  readonly sinksMatch: boolean;
+  readonly message: string;
 }
 
 function resolveHomeDirForConsent(options: ResolveConsentPathOptions): string {
@@ -51,23 +65,75 @@ export function resolveProductSignalConsentPath(options: ResolveConsentPathOptio
   return join(platformUserConfigDir(platform, env, homeDir), PRODUCT_SIGNAL_CONSENT_FILENAME);
 }
 
+/** Normalize sinkRepo to lowercase owner/repo (#2767). */
+export function normalizeProductSignalSinkRepo(raw: string): string {
+  const sink = raw.trim().replace(/^https?:\/\/github\.com\//i, "");
+  return sink.replace(/\/+$/, "").toLowerCase();
+}
+
 function parseConsentRecord(raw: unknown): ProductSignalConsentRecord | null {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return null;
   }
   const rec = raw as Record<string, unknown>;
-  if (typeof rec.consentVersion !== "number" || typeof rec.grantedAt !== "string") {
-    return null;
-  }
-  if (typeof rec.tier !== "string") {
+  if (
+    typeof rec.consentVersion !== "number" ||
+    typeof rec.grantedAt !== "string" ||
+    typeof rec.tier !== "string"
+  ) {
     return null;
   }
   const revokedAt = typeof rec.revokedAt === "string" ? rec.revokedAt : undefined;
+  let sinkRepo: string | undefined;
+  if (rec.consentVersion >= PRODUCT_SIGNAL_CONSENT_VERSION) {
+    if (typeof rec.sinkRepo !== "string" || rec.sinkRepo.trim().length === 0) {
+      return null;
+    }
+    sinkRepo = normalizeProductSignalSinkRepo(rec.sinkRepo);
+  }
   return {
     consentVersion: rec.consentVersion,
     grantedAt: rec.grantedAt,
     tier: rec.tier,
+    sinkRepo,
     revokedAt,
+  };
+}
+
+/** Resolve the sink authorized by a consent record (#2767). */
+export function resolveConsentedProductSignalSink(
+  consent: ProductSignalConsentRecord | null,
+): string | null {
+  if (consent === null) {
+    return null;
+  }
+  if (consent.consentVersion >= PRODUCT_SIGNAL_CONSENT_VERSION) {
+    return consent.sinkRepo ?? null;
+  }
+  return normalizeProductSignalSinkRepo(DEFAULT_PRODUCT_SIGNAL_SINK_REPO);
+}
+
+/** Authorize configured sink against install consent (#2767). */
+export function authorizeProductSignalSink(
+  configuredSink: string,
+  consent: ProductSignalConsentRecord | null,
+): SinkAuthorizationResult {
+  const configured = normalizeProductSignalSinkRepo(configuredSink);
+  const consented = resolveConsentedProductSignalSink(consent);
+  const sinksMatch = consented !== null && configured === consented;
+  let message = "sink authorized";
+  if (!sinksMatch) {
+    message =
+      consented === null
+        ? "product-signal requires consent (`task product-signal:consent -- --grant`)."
+        : `product-signal skipped (sink-unconsented): configured sink=${configured} does not match consented sink=${consented}. Re-run \`task product-signal:consent -- --grant\` after confirming the destination.`;
+  }
+  return {
+    authorized: sinksMatch,
+    configuredSink: configured,
+    consentedSink: consented,
+    sinksMatch,
+    message,
   };
 }
 
@@ -101,17 +167,23 @@ export function isProductSignalConsented(options: ResolveConsentPathOptions = {}
 
 export interface WriteConsentOptions extends ResolveConsentPathOptions {
   readonly now?: Date;
+  /** Normalized sink to bind into v2 consent (#2767). Defaults to baked-in sink. */
+  readonly sinkRepo?: string;
 }
 
-/** Write a fresh consent grant (#2693 D17 yes path). */
+/** Write a fresh consent grant (#2693 D17 yes path, #2767 v2 sink binding). */
 export function grantProductSignalConsent(
   options: WriteConsentOptions = {},
 ): ProductSignalConsentRecord {
   const now = options.now ?? new Date();
+  const sinkRepo = normalizeProductSignalSinkRepo(
+    (options.sinkRepo ?? DEFAULT_PRODUCT_SIGNAL_SINK_REPO).trim(),
+  );
   const record: ProductSignalConsentRecord = {
     consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION,
     grantedAt: now.toISOString().replace(/\.\d{3}Z$/, "Z"),
     tier: PRODUCT_SIGNAL_CONSENT_TIER,
+    sinkRepo,
   };
   const path = resolveProductSignalConsentPath(options);
   mkdirSync(dirname(path), { recursive: true });

@@ -27,6 +27,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! `plan.policy.productSignal.enabled` MUST be true (`task policy:show --field=productSignal`)
 - ! Install-level consent MUST be recorded before outbound submit (`task product-signal:status`)
+- ! Consent schema v2 binds to the configured sinkRepo; legacy v1 consent authorizes only `deftai/product-signal` (#2767)
+- ! Re-consent after changing `plan.policy.productSignal.sinkRepo`; mismatch soft-skips as sink-unconsented
 - ⊗ Prompt or submit when `enabled` is false
 - ⊗ Block story work on sink errors — fail open (#2693 D16/D18)
 
@@ -50,7 +52,7 @@ When enabled, interactive, and consent missing/revoked, ask:
 >
 > Reply **yes** to consent, or **no** to decline.
 
-- **yes** → `task product-signal:consent -- --grant`; continue
+- **yes** → `task product-signal:consent -- --grant` (pass `--project-root` when using a custom sinkRepo); continue
 - **no** → soft-skip; do not badger every turn
 
 ## Phase 3 — Interview (≤3 answers + optional NPS)

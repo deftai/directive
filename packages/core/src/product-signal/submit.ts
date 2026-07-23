@@ -8,8 +8,8 @@ import {
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveActorName } from "./actor-name.js";
 import {
+  authorizeProductSignalSink,
   grantProductSignalConsent,
-  isProductSignalConsented,
   readProductSignalConsent,
   revokeProductSignalConsent,
 } from "./consent.js";
@@ -165,16 +165,27 @@ export async function submitProductSignal(
     };
   }
 
-  if (options.dryRun) {
+  const policy = resolveProductSignal(root);
+  const consent = readProductSignalConsent();
+  const sinkAuth = authorizeProductSignalSink(policy.sinkRepo, consent);
+  if (!sinkAuth.authorized) {
     return {
-      outcome: "dry-run",
+      outcome: "sink-unconsented",
       exitCode: 0,
-      message: `[dry-run] payload valid for ${payload.surface}\n`,
+      message: `${sinkAuth.message}\n`,
       payload,
     };
   }
 
-  const policy = resolveProductSignal(root);
+  if (options.dryRun) {
+    return {
+      outcome: "dry-run",
+      exitCode: 0,
+      message: `[dry-run] payload valid for ${payload.surface} (sink=${sinkAuth.configuredSink})\n`,
+      payload,
+    };
+  }
+
   const adapter = new GitHubPrivateSinkAdapter({ sinkRepo: policy.sinkRepo });
   const result = await adapter.submit(payload, { gapText: options.gapText });
   if (result.outcome === "submitted") {
@@ -193,11 +204,13 @@ export async function submitProductSignal(
 export function runProductSignalStatus(projectRoot: string | null): { exitCode: 0; text: string } {
   const root = resolveProjectRoot(projectRoot ?? undefined) ?? process.cwd();
   const policy = resolveProductSignal(root);
-  const consented = isProductSignalConsented();
+  const consent = readProductSignalConsent();
+  const configuredSink = policy.sinkRepo;
+  const sinkAuth = authorizeProductSignalSink(configuredSink, consent);
   const last = readLastSubmitSummary(root);
   const lines = [
     formatProductSignalStatusLine(policy),
-    `[deft product-signal] consented=${String(consented)}`,
+    `[deft product-signal] consented=${String(consent !== null)} configuredSink=${configuredSink} consentedSink=${sinkAuth.consentedSink ?? "none"} sinksMatch=${String(sinkAuth.sinksMatch)}`,
     last ? `[deft product-signal] ${last}` : "[deft product-signal] last submit: none",
   ];
   return { exitCode: 0, text: `${lines.join("\n")}\n` };
@@ -215,15 +228,22 @@ export function runProductSignalEnable(
   return { exitCode: result.exitCode, text: result.stdout };
 }
 
-export function runProductSignalConsent(action: "grant" | "revoke"): {
+export function runProductSignalConsent(
+  action: "grant" | "revoke",
+  projectRoot?: string | null,
+): {
   exitCode: 0 | 1;
   text: string;
 } {
   if (action === "grant") {
-    const record = grantProductSignalConsent();
+    const root = resolveProjectRoot(projectRoot ?? undefined);
+    const sinkRepo = root !== null ? resolveProductSignal(root).sinkRepo : undefined;
+    const record = grantProductSignalConsent({ sinkRepo });
     return {
       exitCode: 0,
-      text: `product-signal consent granted (tier=${record.tier}, version=${record.consentVersion}).\n`,
+      text:
+        `product-signal consent granted (tier=${record.tier}, version=${record.consentVersion}, ` +
+        `sinkRepo=${record.sinkRepo ?? "unknown"}).\n`,
     };
   }
   const ok = revokeProductSignalConsent();
@@ -323,7 +343,12 @@ export async function productSignalMain(argv: string[] = process.argv.slice(2)):
       process.stderr.write("usage: product-signal consent -- --grant|--revoke\n");
       return 1;
     }
-    const result = runProductSignalConsent(grant ? "grant" : "revoke");
+    const rootIdx = argv.indexOf("--project-root");
+    const root =
+      rootIdx >= 0
+        ? (argv[rootIdx + 1] ?? ".")
+        : (argv.find((a) => a.startsWith("--project-root="))?.split("=")[1] ?? null);
+    const result = runProductSignalConsent(grant ? "grant" : "revoke", root);
     process.stdout.write(result.text);
     return result.exitCode;
   }

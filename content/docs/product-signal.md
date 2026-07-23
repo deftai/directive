@@ -15,19 +15,23 @@ Capability-cost disclosure prints before `--confirm` applies `plan.policy.produc
 
 Consent file: `%APPDATA%\\deft\\product-signal-consent.json` (Windows) or `~/.config/deft/product-signal-consent.json` (Unix).
 
+Schema **v2** records the normalized `owner/repo` sink you authorize (#2767). Legacy v1 consent authorizes only the baked-in default `deftai/product-signal`; a custom `plan.policy.productSignal.sinkRepo` requires re-consent after grant.
+
 ```bash
-task product-signal:consent -- --grant
+task product-signal:consent -- --grant [--project-root .]
 task product-signal:consent -- --revoke
 task product-signal:status
 ```
 
-Outbound requires **both** enable and consent.
+`task product-signal:status` shows configured sink, consented sink, and whether they match. Outbound requires **both** enable and consent, and the configured sink must match the consented destination (including dry-run).
 
 ## Submit (ops / tests)
 
 ```bash
 task product-signal:submit -- --surface pulse|portrait [--dry-run] [--json] [--nps 0-10]
 ```
+
+Changing `sinkRepo` after consent soft-skips with `sink-unconsented` until you re-run consent for the new destination. Destination authorization cannot be bypassed with `skipGates`.
 
 ## Sink bootstrap (maintainers)
 

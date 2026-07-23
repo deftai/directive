@@ -9,6 +9,7 @@ export type ProductSignalOutcome =
   | "no-consent"
   | "no-network"
   | "non-interactive"
+  | "sink-unconsented"
   | "sink-unreachable"
   | "sink-unauthorized"
   | "validation"
