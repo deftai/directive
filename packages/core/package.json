@@ -86,6 +86,10 @@
       "types": "./dist/cache/index.d.ts",
       "default": "./dist/cache/index.js"
     },
+    "./cache/task-cache": {
+      "types": "./dist/cache/task-cache/index.d.ts",
+      "default": "./dist/cache/task-cache/index.js"
+    },
     "./doctor": {
       "types": "./dist/doctor/index.d.ts",
       "default": "./dist/doctor/index.js"

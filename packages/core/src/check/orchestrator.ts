@@ -17,7 +17,14 @@ import { existsSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 
 /** Seams for test isolation (allow injecting a custom task runner). */
-export interface CheckOrchestratorSeams {
+import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
+
+export interface CheckOrchestratorOptions {
+  readonly noCache?: boolean;
+  readonly useTaskCache?: boolean;
+}
+
+export interface CheckOrchestratorSeams extends CheckOrchestratorOptions {
   /** Override the `task` binary path (default: "task"). */
   readonly taskBin?: string;
   /** Override the spawnSync implementation for unit testing. */
@@ -96,6 +103,12 @@ export function dispatchTaskCheck(
 ): number {
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
+  const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
+
+  if (useTaskCache) {
+    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, seams);
+  }
+
   const taskfilePath = join(resolvedFramework, "Taskfile.yml");
   const taskBin = seams.taskBin ?? "task";
 
