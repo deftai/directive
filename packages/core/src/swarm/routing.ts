@@ -16,6 +16,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 
 /**
  * The fixed worker-role vocabulary (reused from #1531). No separate tier
@@ -250,6 +251,7 @@ function assertSafeRoutingKey(kind: "provider" | "role", key: string): void {
  * resolver path (resolver step 5) and the `swarm:routing-set` task.
  */
 export function writeModelDecision(
+  projectRoot: string,
   path: string,
   provider: string,
   role: string,
@@ -257,6 +259,7 @@ export function writeModelDecision(
 ): void {
   assertSafeRoutingKey("provider", provider);
   assertSafeRoutingKey("role", role);
+  assertWriteTargetSafe(projectRoot, path);
   const { data } = loadRoutingFile(path);
   // Null-prototype write targets so a computed provider/role key can only ever
   // set an own property and can never reach `Object.prototype`, even if the

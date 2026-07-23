@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  PROJECTION_CONTAINMENT_REFUSED_EXIT_CODE,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
 import {
@@ -83,11 +87,20 @@ export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
     return EXIT_CONFIG_ERROR;
   }
 
-  const path = resolveRoutingPath(resolve(projectRoot));
-  writeModelDecision(path, resolvedProvider, role, {
-    model,
-    mode: harnessDefault ? ROUTING_MODE_HARNESS_DEFAULT : ROUTING_MODE_PINNED,
-  });
+  const root = resolve(projectRoot);
+  const path = resolveRoutingPath(root);
+  try {
+    writeModelDecision(root, path, resolvedProvider, role, {
+      model,
+      mode: harnessDefault ? ROUTING_MODE_HARNESS_DEFAULT : ROUTING_MODE_PINNED,
+    });
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      process.stderr.write(`ERROR: ${err.message}\n`);
+      return PROJECTION_CONTAINMENT_REFUSED_EXIT_CODE;
+    }
+    throw err;
+  }
 
   const modelText = model ?? "<harness default>";
   process.stdout.write(

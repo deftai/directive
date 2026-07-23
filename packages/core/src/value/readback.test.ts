@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -344,5 +352,24 @@ describe("debounce history persistence", () => {
     const parsed = parseJsonObject(readFileSync(hist, "utf8").trim());
     expect(parsed.event_id).toBe("evt-0");
     expect(String(parsed.line).length).toBeGreaterThan(0);
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("value readback history symlink containment (#2781)", () => {
+  itSymlink("does not append when history path is a symlink to an external victim file", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: true },
+      events: [{ event: "value:gate-catch", payload: { source: "verify:branch", detail: "x" } }],
+    });
+    const escapeDir = mkdtempSync(join(tmpdir(), "value-readback-victim-"));
+    const victim = join(escapeDir, "value-readback-history.jsonl");
+    writeFileSync(victim, "victim\n", "utf8");
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    symlinkSync(victim, join(root, VALUE_READBACK_HISTORY_REL));
+    renderSessionReadback(root, { now: new Date("2026-07-05T10:00:00Z") });
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(escapeDir, { recursive: true, force: true });
   });
 });

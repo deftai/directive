@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Session ritual no longer invalidates on every forward commit on the same worktree. When the pinned `git_head` is still an ancestor of current HEAD, gated direct writes stay allowed and `verify:session-ritual` rebinds the pin in place; checkout, reset, rebase, and worktree mismatches still fail closed. Closes #2782.
+- **Three medium symlink write sinks contained (#2781).** `scope:decompose`, `swarm:routing-set` / `writeModelDecision`, and session readback history appends (`value/readback`, `eval/readback`) now call `assertWriteTargetSafe` before write/append so leaf symlinks cannot divert operator-controlled paths outside the repo. Closes #2781.
 
 ### Removed
 
