@@ -306,11 +306,11 @@ describe("runProductSignalEnable", () => {
 describe("runProductSignalConsent", () => {
   it("grant and revoke paths", () => {
     applyIsolatedConsentEnv(roots, false);
-    const grant = runProductSignalConsent("grant");
+    const grant = runProductSignalConsent({ action: "grant" });
     expect(grant.exitCode).toBe(0);
     expect(grant.text).toContain("granted");
     expect(grant.text).toContain("sinkRepo=");
-    const revoke = runProductSignalConsent("revoke");
+    const revoke = runProductSignalConsent({ action: "revoke" });
     expect(revoke.exitCode).toBe(0);
     expect(revoke.text).toContain("revoked");
   });
@@ -320,13 +320,16 @@ describe("runProductSignalConsent", () => {
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true, sinkRepo: "partner/inbox" } });
     applyIsolatedConsentEnv(roots, false);
-    const grant = runProductSignalConsent("grant", root);
+    const grant = runProductSignalConsent({ action: "grant", projectRoot: root });
     expect(grant.text).toContain("sinkRepo=partner/inbox");
   });
 
   it("grant uses default sink when project root missing", () => {
     applyIsolatedConsentEnv(roots, false);
-    const grant = runProductSignalConsent("grant", "/nonexistent/deft-ps-root");
+    const grant = runProductSignalConsent({
+      action: "grant",
+      projectRoot: "/nonexistent/deft-ps-root",
+    });
     expect(grant.text).toContain("sinkRepo=deftai/product-signal");
   });
 });

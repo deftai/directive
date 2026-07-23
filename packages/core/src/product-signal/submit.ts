@@ -228,15 +228,17 @@ export function runProductSignalEnable(
   return { exitCode: result.exitCode, text: result.stdout };
 }
 
-export function runProductSignalConsent(
-  action: "grant" | "revoke",
-  projectRoot?: string | null,
-): {
+export interface ProductSignalConsentRunOptions {
+  readonly action: "grant" | "revoke";
+  readonly projectRoot?: string | null;
+}
+
+export function runProductSignalConsent(options: ProductSignalConsentRunOptions): {
   exitCode: 0 | 1;
   text: string;
 } {
-  if (action === "grant") {
-    const root = resolveProjectRoot(projectRoot ?? undefined);
+  if (options.action === "grant") {
+    const root = resolveProjectRoot(options.projectRoot ?? undefined);
     const sinkRepo = root !== null ? resolveProductSignal(root).sinkRepo : undefined;
     const record = grantProductSignalConsent({ sinkRepo });
     return {
@@ -348,7 +350,10 @@ export async function productSignalMain(argv: string[] = process.argv.slice(2)):
       return 1;
     }
     const root = parseOptionalProjectRootArg(argv, null);
-    const result = runProductSignalConsent(grant ? "grant" : "revoke", root);
+    const result = runProductSignalConsent({
+      action: grant ? "grant" : "revoke",
+      projectRoot: root,
+    });
     process.stdout.write(result.text);
     return result.exitCode;
   }

@@ -9,7 +9,6 @@ import {
   isProductSignalConsented,
   normalizeProductSignalSinkRepo,
   PRODUCT_SIGNAL_CONSENT_VERSION,
-  PRODUCT_SIGNAL_CONSENT_VERSION_V1,
   readProductSignalConsent,
   resolveConsentedProductSignalSink,
   resolveProductSignalConsentPath,
@@ -143,7 +142,7 @@ describe("sink authorization (#2767)", () => {
 
   it("v1 consent authorizes only default sink", () => {
     const consent = {
-      consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION_V1,
+      consentVersion: 1,
       grantedAt: "2026-07-21T12:00:00Z",
       tier: "product-signal",
     };
@@ -241,7 +240,7 @@ describe("sink authorization (#2767)", () => {
 
   it("v1 consent ignores sinkRepo field in file for authorization", () => {
     const consent = {
-      consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION_V1,
+      consentVersion: 1,
       grantedAt: "2026-07-21T12:00:00Z",
       tier: "product-signal",
       sinkRepo: "evil/custom",
@@ -358,23 +357,30 @@ describe("sink authorization (#2767)", () => {
     expect(readProductSignalConsent({ env, platform: "win32", homeDir: home })).toBeNull();
   });
 
-  it("grant falls back to default sink when sinkRepo is empty", () => {
+  it("grant falls back to default sink when sinkRepo normalizes empty", () => {
     const home = mkdtempSync(join(tmpdir(), "deft-ps-consent-grant-empty-"));
     roots.push(home);
     const env = { APPDATA: home } as NodeJS.ProcessEnv;
-    const record = grantProductSignalConsent({
+    const fromEmpty = grantProductSignalConsent({
       env,
       platform: "win32",
       homeDir: home,
       sinkRepo: "",
     });
-    expect(record.sinkRepo).toBe("deftai/product-signal");
+    expect(fromEmpty.sinkRepo).toBe("deftai/product-signal");
+    const fromGithubRoot = grantProductSignalConsent({
+      env,
+      platform: "win32",
+      homeDir: home,
+      sinkRepo: "https://github.com/",
+    });
+    expect(fromGithubRoot.sinkRepo).toBe("deftai/product-signal");
   });
 
   it("resolveConsentedProductSignalSink returns null for unknown consent version", () => {
     expect(
       resolveConsentedProductSignalSink({
-        consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION_V1 - 1,
+        consentVersion: 0,
         grantedAt: "2026-07-21T12:00:00Z",
         tier: "product-signal",
       }),

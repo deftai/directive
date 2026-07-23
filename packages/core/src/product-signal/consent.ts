@@ -10,7 +10,7 @@ export const PRODUCT_SIGNAL_CONSENT_FILENAME = "product-signal-consent.json";
 export const PRODUCT_SIGNAL_CONSENT_VERSION = 2;
 
 /** Legacy consent schema — authorizes default sink only (#2767). */
-export const PRODUCT_SIGNAL_CONSENT_VERSION_V1 = 1;
+const PRODUCT_SIGNAL_CONSENT_VERSION_V1 = 1;
 
 /** Phase-1 consent tier permitting qualitative outbound (#2693 D2). */
 export const PRODUCT_SIGNAL_CONSENT_TIER = "product-signal";
@@ -93,6 +93,8 @@ function parseConsentRecord(raw: unknown): ProductSignalConsentRecord | null {
     if (sinkRepo.length === 0) {
       return null;
     }
+  } else if (rec.consentVersion !== PRODUCT_SIGNAL_CONSENT_VERSION_V1) {
+    return null;
   }
   return {
     consentVersion: rec.consentVersion,
@@ -182,9 +184,11 @@ export function grantProductSignalConsent(
   options: WriteConsentOptions = {},
 ): ProductSignalConsentRecord {
   const now = options.now ?? new Date();
-  const sinkRepo = normalizeProductSignalSinkRepo(
-    (options.sinkRepo || DEFAULT_PRODUCT_SIGNAL_SINK_REPO).trim(),
+  const normalizedSink = normalizeProductSignalSinkRepo(
+    (options.sinkRepo ?? DEFAULT_PRODUCT_SIGNAL_SINK_REPO).trim(),
   );
+  const sinkRepo =
+    normalizedSink || normalizeProductSignalSinkRepo(DEFAULT_PRODUCT_SIGNAL_SINK_REPO);
   const record: ProductSignalConsentRecord = {
     consentVersion: PRODUCT_SIGNAL_CONSENT_VERSION,
     grantedAt: now.toISOString().replace(/\.\d{3}Z$/, "Z"),
