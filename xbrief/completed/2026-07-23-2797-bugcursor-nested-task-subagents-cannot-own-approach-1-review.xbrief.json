@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(cursor): nested Task subagents cannot own Approach 1 review-monitors",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(cursor): nested Task subagents cannot own Approach 1 review-monitors",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2797",
@@ -40,6 +40,10 @@
         "title": "Issue #2797: bug(cursor): nested Task subagents cannot own Approach 1 review-monitors"
       }
     ],
-    "updated": "2026-07-23T22:20:52Z"
+    "updated": "2026-07-23T22:54:43Z",
+    "metadata": {
+      "completedAt": "2026-07-23T22:54:43Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
