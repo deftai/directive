@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "perf(harness): PreToolUse hook:dispatch cold CLI boot ~0.7–1s per edit on Windows",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(harness): PreToolUse hook:dispatch cold CLI boot ~0.7–1s per edit on Windows",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2790",
@@ -52,6 +52,10 @@
         "title": "Issue #2790: perf(harness): PreToolUse hook:dispatch cold CLI boot ~0.7–1s per edit on Windows"
       }
     ],
-    "updated": "2026-07-23T20:58:01Z"
+    "updated": "2026-07-23T22:15:24Z",
+    "metadata": {
+      "completedAt": "2026-07-23T22:15:24Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
