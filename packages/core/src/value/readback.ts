@@ -2,6 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { ALL_ATTRIBUTION_EVENT_NAMES } from "../events/attribution-constants.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { type BehavioralEventRecord, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
 import {
@@ -293,9 +294,13 @@ function appendReadbackHistory(
     line,
   };
   try {
+    assertWriteTargetSafe(projectRoot, path);
     mkdirSync(join(path, ".."), { recursive: true });
     appendFileSync(path, `${JSON.stringify(record)}\n`, "utf8");
-  } catch {
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw err;
+    }
     // observability only
   }
 }

@@ -10,6 +10,7 @@
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -69,7 +70,8 @@ function loadJson(path: string): JsonObj {
   return data as JsonObj;
 }
 
-function writeJson(path: string, data: JsonObj): void {
+function writeJson(projectRoot: string, path: string, data: JsonObj): void {
+  assertWriteTargetSafe(projectRoot, path);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, formatBriefJson(data), "utf8");
 }
@@ -998,7 +1000,7 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   }
   for (let i = 0; i < childPaths.length; i += 1) {
     // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
-    writeJson(childPaths[i]!.target, childDocs[i]!);
+    writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
   }
 
   let parentPlan = parent.plan;
@@ -1045,7 +1047,7 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
-  writeJson(parentPath, parent);
+  writeJson(projectRoot, parentPath, parent);
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }
@@ -1163,6 +1165,10 @@ export function decomposeMain(argv: string[]): number {
     if (err instanceof DecompositionError) {
       process.stderr.write(`ERROR: ${err.message}\n`);
       return 1;
+    }
+    if (err instanceof ProjectionContainmentError) {
+      process.stderr.write(`ERROR: ${err.message}\n`);
+      return 2;
     }
     process.stderr.write(`ERROR: ${String(err)}\n`);
     return 1;

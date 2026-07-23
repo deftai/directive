@@ -3,10 +3,11 @@
  * tests/cli/test_scope_decompose_unit.py including non-happy-path/edge cases.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   acceptanceTextsFromItems,
   applyDecomposition,
@@ -409,6 +410,37 @@ describe("applyDecomposition", () => {
       }),
     ).toThrow("already exists");
   });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("applyDecomposition symlink containment (#2781)", () => {
+  itSymlink(
+    "refuses parent update when parent path is a symlink to an external victim file",
+    () => {
+      const proj = tmpProject();
+      const escapeDir = join(tmpdir(), `decompose-victim-${Date.now()}`);
+      mkdirSync(escapeDir, { recursive: true });
+      const victim = join(escapeDir, "parent.xbrief.json");
+      writeFileSync(victim, JSON.stringify({ plan: { references: [] } }), "utf8");
+      const parentPath = join(proj, "xbrief", "pending", "2026-05-12-parent.xbrief.json");
+      symlinkSync(victim, parentPath);
+      const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+      mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+      writeJson(draftPath, goodDraft());
+      expect(() =>
+        applyDecomposition({
+          projectRoot: proj,
+          parentPath,
+          draftPath,
+          checkOnly: false,
+          date: "2026-06-01",
+        }),
+      ).toThrow(ProjectionContainmentError);
+      const victimAfter = JSON.parse(readFileSync(victim, "utf8")) as Record<string, unknown>;
+      expect((victimAfter.plan as Record<string, unknown>).references).toEqual([]);
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
