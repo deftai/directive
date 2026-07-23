@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug: Cursor ApplyPatch double-dispatch blocks Windows writes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Fix overlapping Cursor preToolUse matchers so ApplyPatch is not double-dispatched through the generic write hook. Restore Windows ApplyPatch writes after ritual when adapter and generic hooks both match.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2764",
@@ -51,7 +51,7 @@
         "title": "Issue #2764: bug: Cursor ApplyPatch double-dispatch blocks Windows writes"
       }
     ],
-    "updated": "2026-07-22T23:08:10Z",
+    "updated": "2026-07-23T01:51:49Z",
     "id": "2026-07-22-2764-bug-cursor-applypatch-double-dispatch-blocks-windows",
     "metadata": {
       "kind": "story",
@@ -78,7 +78,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue acceptance criteria and AppSec/planning comments rather than a SPECIFICATION section."
-      }
+      },
+      "completedAt": "2026-07-23T01:51:49Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
