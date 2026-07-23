@@ -6,7 +6,7 @@
   "plan": {
     "id": "2026-07-23-2792-choresecurity-split-synthetic-ghp-fixtures",
     "title": "chore(security): split synthetic ghp_ fixtures that trip secret-scanning alert #1",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "GitHub secret-scanning alert #1 flagged synthetic ghp_ fixtures in product-signal tests. Split literals at runtime per #1070 precedent so no single source line matches secret scanning while detection coverage stays unchanged.",
       "Origin": "https://github.com/deftai/directive/issues/2792",
@@ -70,8 +70,9 @@
           "task check"
         ]
       },
-      "capacityBucket": "technical-debt"
+      "capacityBucket": "technical-debt",
+      "completedAt": "2026-07-23T22:06:37Z"
     },
-    "updated": "2026-07-23T21:31:11Z"
+    "updated": "2026-07-23T22:06:37Z"
   }
 }
