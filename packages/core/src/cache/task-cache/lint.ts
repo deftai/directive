@@ -1,10 +1,19 @@
 import type { RegistryLintFinding, TaskContract, TaskInputSpec } from "./types.js";
 
+/** Strip trailing `*` glob wildcards without regex (CodeQL ReDoS-safe). */
+function stripTrailingGlobStars(pattern: string): string {
+  let end = pattern.length;
+  while (end > 0 && pattern[end - 1] === "*") {
+    end--;
+  }
+  return pattern.slice(0, end);
+}
+
 function diffSpec(superset: TaskInputSpec, declared: TaskInputSpec): string[] {
   const findings: string[] = [];
   for (const glob of superset.globs ?? []) {
     const covered = (declared.globs ?? []).some(
-      (decl) => decl === glob || glob.startsWith(decl.replace(/\*+$/, "")),
+      (decl) => decl === glob || glob.startsWith(stripTrailingGlobStars(decl)),
     );
     if (!covered) {
       findings.push(`glob '${glob}' missing from declared inputs`);
