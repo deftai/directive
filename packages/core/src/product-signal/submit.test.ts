@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_PRODUCT_SIGNAL_SINK_REPO } from "../policy/product-signal.js";
 import { grantProductSignalConsent, resolveProductSignalConsentPath } from "./consent.js";
@@ -59,9 +59,9 @@ function setupEnabledConsented(root: string, sinkRepo?: string): void {
   grantProductSignalConsent({ sinkRepo: sinkRepo ?? DEFAULT_PRODUCT_SIGNAL_SINK_REPO });
 }
 
-function writeLegacyV1Consent(home: string, env: NodeJS.ProcessEnv): void {
-  mkdirSync(join(home, "deft"), { recursive: true });
-  const path = resolveProductSignalConsentPath({ env, platform: "win32", homeDir: home });
+function writeLegacyV1Consent(): void {
+  const path = resolveProductSignalConsentPath();
+  mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
     `${JSON.stringify({
@@ -512,13 +512,8 @@ describe("submitProductSignal sink consent (#2767)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-sink-v1-default-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-sink-v1-env-"));
-    roots.push(home);
-    const env = { APPDATA: home } as NodeJS.ProcessEnv;
-    delete process.env.CI;
-    delete process.env.GITHUB_ACTIONS;
-    process.env.APPDATA = home;
-    writeLegacyV1Consent(home, env);
+    applyIsolatedConsentEnv(roots, false);
+    writeLegacyV1Consent();
     const result = await submitProductSignal({
       projectRoot: root,
       surface: "pulse",
@@ -532,13 +527,8 @@ describe("submitProductSignal sink consent (#2767)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-sink-v1-submit-"));
     roots.push(root);
     writeProjectDef(root, { productSignal: { enabled: true } });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-sink-v1-submit-env-"));
-    roots.push(home);
-    const env = { APPDATA: home } as NodeJS.ProcessEnv;
-    delete process.env.CI;
-    delete process.env.GITHUB_ACTIONS;
-    process.env.APPDATA = home;
-    writeLegacyV1Consent(home, env);
+    applyIsolatedConsentEnv(roots, false);
+    writeLegacyV1Consent();
     vi.spyOn(GitHubPrivateSinkAdapter.prototype, "submit").mockResolvedValue({
       outcome: "submitted",
       message: "ok",
@@ -559,13 +549,8 @@ describe("submitProductSignal sink consent (#2767)", () => {
     writeProjectDef(root, {
       productSignal: { enabled: true, sinkRepo: "evil/custom-sink" },
     });
-    const home = mkdtempSync(join(tmpdir(), "deft-ps-sink-v1-custom-env-"));
-    roots.push(home);
-    const env = { APPDATA: home } as NodeJS.ProcessEnv;
-    delete process.env.CI;
-    delete process.env.GITHUB_ACTIONS;
-    process.env.APPDATA = home;
-    writeLegacyV1Consent(home, env);
+    applyIsolatedConsentEnv(roots, false);
+    writeLegacyV1Consent();
     const adapterSpy = vi.spyOn(GitHubPrivateSinkAdapter.prototype, "submit");
     const result = await submitProductSignal({
       projectRoot: root,
