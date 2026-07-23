@@ -253,8 +253,14 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! **Deterministic review-monitor gate (#2655):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, register with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task`. Exit `0` ready / `1` not ready / `2` config. Approach 3 on Tier 1 is a gate failure — use `--approach3 --approach3-warned` only on Tier 3 after the user warning.
 
+! **Regression trigger (#2797):** A leaf that claims a monitor is active without a preceding `task review-monitor:register` record MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient.
+
+
+
 ! **CI-holdout carve-out (#2688):** When `task pr:watch --one-shot --json` reports `clean_gate_holdout=ci_failures` with Greptile fields otherwise satisfied on current HEAD, do **not** freeze on `verify:review-monitor` / spawn-monitor as if Greptile latency were the blocker. Fix CI first (same ownership as Greptile P0). Keep or register a review-monitor only while still waiting on Greptile latency; a `BLOCKED: ci_failures` DONE handback to the implementation owner is correct.
 
+
+! **Cursor leaf boundary (#2797):** A Cursor `Task` leaf cannot reliably spawn another Cursor `Task`; nested Task (leaf spawning leaf) is unsupported for an Approach 1 review-monitor. A Cursor `drive-to: merge-ready` leaf MUST either keep ownership in the same agent by blocking on `task pr:watch -- <N>`, or its envelope MUST instead be `stop-at: pr-open` so the orchestrator can spawn and register a sibling review-monitor. A background shell `task pr:watch` is not a monitor and MUST NOT be claimed as one.
 
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 

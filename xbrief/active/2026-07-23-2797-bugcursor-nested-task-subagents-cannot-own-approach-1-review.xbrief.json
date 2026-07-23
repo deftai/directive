@@ -1,0 +1,45 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2797"
+  },
+  "plan": {
+    "title": "bug(cursor): nested Task subagents cannot own Approach 1 review-monitors",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(cursor): nested Task subagents cannot own Approach 1 review-monitors",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2797",
+      "Overview": "## Summary\n\nOn Cursor, a `Task`-tool subagent cannot reliably spawn further `Task` subagents (nested Approach 1). Deft's review-cycle / swarm guidance still tells `drive-to: merge-ready` implementation workers to spawn a background review-monitor via the Cursor `Task` primitive. In practice the leaf either has no working nested `Task`, or it fakes ownership by backgrounding `task pr:watch` in a shell (`block_until_ms: 0`) and exiting — so `task verify:review-monitor -- --pr <N>` correctly reports no active monitor while the parent believes monitoring started.\n\nThis is a framework/process gap for Cursor Tier-1, not a one-off agent mistake.\n\n## Observed (2026-07-23, deftai/directive #2790 / PR #2795)\n\n1. Orchestrator dispatched a Cursor `Task` leaf (`leaf-implementation`, `drive-to: merge-ready`) with instructions to own PR + Greptile review-cycle.\n2. After PR open, the leaf started `task pr:watch -- 2795` as a background shell and reported \"review monitoring is active\", then ended its turn.\n3. Parent ran `task verify:review-monitor -- --pr 2795` → fail: Tier 1 available but no active review-monitor recorded (#2655).\n4. Recovery that worked: **parent** (this chat) spawned a sibling review-monitor `Task` and ran `task review-monitor:register -- --pr 2795 --monitor-agent-id <id> --platform-primitive cursor-task`.\n\nSo Approach 1 is sound only when the agent that **has** `Task` does the spawn. Nesting \"impl worker → monitor worker\" on Cursor is the broken shape.\n\n## Why this matters\n\n- `#1880` Gap C / Gap D + `#1877` Cursor Tier-1 + `#2655` review-monitor gate assume a living Approach 1 poller.\n- A leaf that exits after backgrounding a shell leaves no live agent to consume CLEAN / NEW_P0_P1, fix, or merge — exactly the \"promise-to-poll evaporates\" class `#1056` / `#2655` were meant to close.\n- Operators see false \"monitoring active\" status and stalled PRs.\n\n## Expected product shape\n\nDocument and enforce a Cursor-safe ownership split:\n\n1. **Default (recommended):** Cursor `drive-to: merge-ready` leaves may implement + open PR, but **must not** claim Approach 1 by nesting `Task`. Either:\n   - own a **blocking** `task pr:watch` in the same leaf turn/process (no nested spawn), or\n   - `stop-at: pr-open` and hand back so the **orchestrator** spawns the sibling review-monitor `Task` + `review-monitor:register`.\n2. **`verify:review-monitor`:** treat \"I backgrounded a shell\" as insufficient; registration remains the gate (#2655).\n3. **Skills / preamble:** `deft-directive-review-cycle` + swarm Phase 3 + agent-prompt-preamble should explicitly forbid nested Cursor `Task` for review-monitors and describe the sibling-spawn / same-agent-blocking alternatives.\n4. **Optional hardening:** if Cursor ever exposes nested `Task`, keep sibling-from-orchestrator as the documented default until nested spawn is proven in CI/eval.\n\n## Non-goals\n\n- Removing Cursor as Tier 1 (`Task` remains first-class for **parent→leaf** dispatch).\n- Changing Greptile detection / `task pr:watch` semantics.\n- Requiring Warp/`spawn_subagent` for Cursor sessions.\n\n## Acceptance criteria\n\n- [ ] Review-cycle + swarm Cursor docs state that nested `Task` (leaf spawning leaf) is unsupported / unreliable for Approach 1.\n- [ ] `drive-to: merge-ready` Cursor envelopes prescribe either same-agent blocking `pr:watch` **or** `stop-at: pr-open` + orchestrator sibling monitor (with register).\n- [ ] A regression note / eval trigger (or checklist item) covers \"leaf claimed monitor active without `review-monitor:register`\" as a fail.\n- [ ] CHANGELOG / commands pointer updated so maintainers stop diagnosing this as random agent flakiness.\n\n## Related\n\n- #1877 — Cursor Task as Tier-1 review-monitor path\n- #1880 — worker-owns-lifecycle / background dispatch\n- #2655 — deterministic review-monitor gate\n- #1056 — `task pr:watch` terminal verdict\n- #2308 — review-cycle precedence over host babysit\n- Stimulus: PR #2795 review ownership after #2790 swarm on Cursor (2026-07-23)\n\n## Labels (suggested)\n\n`bug`, `agent-experience`, `area:swarm`, `harness`\r\n\n",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Review-cycle + swarm Cursor docs state that nested `Task` (leaf spawning leaf) is unsupported / unreliable for Approach 1.",
+        "status": "proposed"
+      },
+      {
+        "title": "`drive-to: merge-ready` Cursor envelopes prescribe either same-agent blocking `pr:watch` **or** `stop-at: pr-open` + orchestrator sibling monitor (with register).",
+        "status": "proposed"
+      },
+      {
+        "title": "A regression note / eval trigger (or checklist item) covers \"leaf claimed monitor active without `review-monitor:register`\" as a fail.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG / commands pointer updated so maintainers stop diagnosing this as random agent flakiness.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2797",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2797: bug(cursor): nested Task subagents cannot own Approach 1 review-monitors"
+      }
+    ],
+    "updated": "2026-07-23T22:20:52Z"
+  }
+}

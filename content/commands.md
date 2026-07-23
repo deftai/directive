@@ -197,6 +197,12 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 
 Use `task --list` for the exact current verify namespace.
 
+### Review-monitor ownership on Cursor (#2797)
+
+Use `task pr:watch -- <N>` as the blocking terminal-verdict wait for a `drive-to: merge-ready` Cursor `Task` leaf. A Cursor leaf cannot reliably spawn a nested `Task` review-monitor; do not replace the blocking wait with a background shell process or claim that it is monitoring.
+
+When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: pr-open`. The orchestrator that owns the Task primitive must spawn the sibling review-monitor and record it with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive cursor-task`; `task verify:review-monitor -- --pr <N>` remains the fail-closed proof of active ownership. See `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring and `skills/deft-directive-swarm/SKILL.md` Phase 3.
+
 ### Agent-host direct-write hooks (#2438, #2596)
 
 `directive init` and `deft update` idempotently merge Directive-owned entries into `.claude/settings.json`, `.grok/hooks/deft.json`, `.cursor/hooks.json`, and `.codex/hooks.json` while preserving unrelated settings. `SessionStart` refreshes resume bookkeeping on a non-blocking path. `PreToolUse` uses the lightweight `deft-hook` entrypoint rather than booting the full CLI router, reducing cold hook latency while retaining the same fail-closed ritual, scope, and runtime-authority decisions. Cursor `ApplyPatch` shares the direct-write registration, so each matched edit invokes one hook process. Cursor `preToolUse` deposits set `failClosed: true`, so allow decisions emit `{"permission":"allow"}` — empty stdout is treated as hook failure and would block Write tools. A second `PreToolUse` matcher covers spawn/Task tools (`Task`, `SubagentStart`, `spawn_subagent`, `start_agent`, `CreateAgent`) with the same pre-`start_agent` gate stack; explore spawns (`subagent_type: explore`) pass without implementation gates.

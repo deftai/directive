@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Dependabot brace-expansion DoS advisories closed via pnpm overrides.** Pin transitive `brace-expansion@2` → `2.1.2` and `@5` → `5.0.7` (minimatch/glob via vitest coverage and archiver) so lockfile consumers no longer resolve the vulnerable 2.1.1 / 5.0.6 lines.
+- **Cursor review-monitor ownership is now explicit (#2797).** Cursor `Task` leaves no longer treat nested Task dispatch or a backgrounded `task pr:watch` shell as an active Approach 1 monitor. A merge-ready leaf blocks in its own review loop, or exits at PR open so its orchestrator can launch and register a sibling monitor; the unregistered-monitor claim is a fail-closed regression condition. Closes #2797.
 - **Agent-host edit hooks no longer boot the full CLI for every tool call (#2790).** `directive init` and `deft update` now deposit the lightweight `deft-hook` entrypoint for Claude, Grok, Cursor, and Codex. Cursor ApplyPatch shares the direct-write hook rather than probing and spawning a second CLI process; the same ritual, scope, runtime-authority, and fail-closed decisions remain enforced. Upgrade `@deftai/directive` and run `deft update` to refresh existing deposits—`hostHooks` opt-out is not the performance fix.
 
 ### Removed
