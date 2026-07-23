@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(hooks): Cursor failClosed empty allow stdout blocks Write after successful Directive gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Cursor preToolUse deposits use failClosed:true; empty allow stdout is treated as hook failure and blocks Write/StrReplace even when Directive gates allowed the tool. Emit explicit {\"permission\":\"allow\"} for Cursor allow decisions.",
       "Origin": "Filed from field failure in deftai/evolution; tracking https://github.com/deftai/directive/issues/2779",
@@ -13,7 +13,11 @@
       "Labels": "bug, agent-experience, area:cli"
     },
     "items": [],
-    "tags": ["bug", "agent-experience", "area:cli"],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2779",
@@ -26,6 +30,10 @@
         "title": "PR #2778: emit Cursor permission allow for failClosed deposits"
       }
     ],
-    "updated": "2026-07-23T13:30:00Z"
+    "updated": "2026-07-23T13:39:15Z",
+    "metadata": {
+      "completedAt": "2026-07-23T13:39:15Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
