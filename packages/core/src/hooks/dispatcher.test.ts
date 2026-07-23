@@ -1,5 +1,6 @@
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { ritualStatePath } from "../session/ritual-sentinel.js";
 import {
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
@@ -12,11 +13,16 @@ import {
   isHookHost,
   isProposedLifecycleWrite,
   isSpawnTool,
+  normalizeHookProjectRoot,
   projectRootFromHookPayload,
   READ_ONLY_HOOK_ENV,
   renderHostDecision,
   SPAWN_TOOL_NAMES,
 } from "./index.js";
+
+function hasDoubledWindowsDrivePrefix(path: string): boolean {
+  return /^[A-Za-z]:\\[A-Za-z]:\\/i.test(path.replace(/\//g, "\\"));
+}
 
 const READY_RITUAL = {
   code: 0,
@@ -995,6 +1001,61 @@ describe("provider input normalization", () => {
       );
       expect(projectRootFromHookPayload({ workspace_root: "C:/" }, "/fallback")).toBe(
         resolve("/fallback"),
+      );
+    }
+  });
+
+  it.skipIf(process.platform !== "win32")(
+    "collapses C:\\c:\\ doubled-drive ritual paths (#2787)",
+    () => {
+      const fallback = "C:\\Repos\\deft\\statusreport";
+      const expectStatusreportRoot = (payload: unknown) => {
+        const root = projectRootFromHookPayload(payload, fallback);
+        expect(root).toBe(resolve(fallback));
+        expect(hasDoubledWindowsDrivePrefix(root)).toBe(false);
+        expect(hasDoubledWindowsDrivePrefix(ritualStatePath(root))).toBe(false);
+        expect(ritualStatePath(root)).toBe(join(resolve(fallback), ".deft", "ritual-state.json"));
+      };
+
+      expectStatusreportRoot({ workspace_root: "C:\\c:\\Repos\\deft\\statusreport" });
+      expectStatusreportRoot({
+        workspace_root: "C:",
+        cwd: "c:\\Repos\\deft\\statusreport",
+      });
+      expectStatusreportRoot({
+        workspace_roots: ["C:", "c:\\Repos\\deft\\statusreport"],
+        cwd: "C:",
+      });
+      expectStatusreportRoot({ workspace_root: "C:\\Repos\\deft\\statusreport" });
+      expectStatusreportRoot({ cwd: "c:\\Repos\\deft\\statusreport" });
+
+      expect(normalizeHookProjectRoot("C:\\c:\\Repos\\deft\\statusreport")).toBe(resolve(fallback));
+      expect(normalizeHookProjectRoot("/c/Repos/deft/statusreport")).toBe(resolve(fallback));
+      expect(normalizeHookProjectRoot("C:\\Repos\\deft\\statusreport")).toBe(resolve(fallback));
+    },
+  );
+
+  it("keeps non-win32 hook roots on resolve-only path", () => {
+    vi.stubGlobal("process", { ...process, platform: "linux" });
+    try {
+      expect(normalizeHookProjectRoot("/tmp/statusreport")).toBe(resolve("/tmp/statusreport"));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("ignores non-string workspace root entries when scanning payload candidates", () => {
+    const fallback = "C:\\Repos\\deft\\statusreport";
+    if (process.platform === "win32") {
+      expect(
+        projectRootFromHookPayload(
+          { workspace_roots: ["C:", 42, null, "c:\\Repos\\deft\\statusreport"] },
+          fallback,
+        ),
+      ).toBe(resolve(fallback));
+    } else {
+      expect(projectRootFromHookPayload({ workspace_roots: ["/project", 42] }, "/fallback")).toBe(
+        resolve("/project"),
       );
     }
   });

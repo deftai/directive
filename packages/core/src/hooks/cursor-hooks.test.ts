@@ -78,11 +78,28 @@ describe("cursor hook projection (#2764)", () => {
   it.skipIf(process.platform !== "win32")(
     "avoids Windows C:\\C:\\ ritual paths when payload carries a drive-only root",
     () => {
-      const fallback = "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture";
+      const fallback = "C:\\Repos\\deft\\statusreport";
       const resolved = projectRootFromHookPayload({ workspace_roots: ["C:"], cwd: "C:" }, fallback);
       expect(resolved).toBe(resolve(fallback));
       expect(ritualStatePath(resolved)).toBe(join(resolve(fallback), ".deft", "ritual-state.json"));
-      expect(ritualStatePath(resolved)).not.toContain("C:\\C:\\");
+      expect(ritualStatePath(resolved)).not.toMatch(/[A-Za-z]:\\[A-Za-z]:\\/i);
+    },
+  );
+
+  it.skipIf(process.platform !== "win32")(
+    "resolves statusreport-shaped Write payloads without C:\\c:\\ doubling (#2787)",
+    () => {
+      const fallback = "C:\\Repos\\deft\\statusreport";
+      const payload = {
+        tool_name: "Write",
+        workspace_root: "C:",
+        cwd: "c:\\Repos\\deft\\statusreport",
+        workspace_roots: ["C:", "c:\\Repos\\deft\\statusreport"],
+      };
+      const root = projectRootFromHookPayload(payload, fallback);
+      expect(root).toBe(resolve(fallback));
+      expect(ritualStatePath(root)).toBe(join(resolve(fallback), ".deft", "ritual-state.json"));
+      expect(ritualStatePath(root)).not.toMatch(/[A-Za-z]:\\[A-Za-z]:\\/i);
     },
   );
 

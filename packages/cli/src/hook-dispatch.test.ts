@@ -311,12 +311,7 @@ describe("hook-dispatch CLI", () => {
       };
       const out: string[] = [];
       const code = run(
-        [
-          "--host=cursor",
-          "--event=tool.before",
-          "--project-root",
-          "C:\\Users\\nicol\\OneDrive\\Documents\\Projects\\Aperture",
-        ],
+        ["--host=cursor", "--event=tool.before", "--project-root", "C:\\Repos\\deft\\statusreport"],
         {
           readStdin: () => JSON.stringify(payload),
           writeOut: (text) => out.push(text),
@@ -325,7 +320,34 @@ describe("hook-dispatch CLI", () => {
         },
       );
       expect(code).toBe(0);
-      expect(out.join("")).not.toContain("C:\\\\C:\\\\");
+      expect(out.join("")).not.toMatch(/[A-Za-z]:\\[A-Za-z]:\\/i);
+    },
+  );
+
+  it.skipIf(process.platform !== "win32")(
+    "normalizes doubled-drive --project-root before ritual lookup (#2787)",
+    () => {
+      const out: string[] = [];
+      const code = run(
+        [
+          "--host=cursor",
+          "--event=tool.before",
+          "--project-root",
+          "C:\\c:\\Repos\\deft\\statusreport",
+        ],
+        {
+          readStdin: () =>
+            JSON.stringify({
+              tool_name: "Write",
+              tool_input: { file_path: "src/a.ts", content: "x" },
+            }),
+          writeOut: (text) => out.push(text),
+          writeErr: () => undefined,
+          cwd: () => "C:\\Repos\\deft\\statusreport",
+        },
+      );
+      expect(code).toBe(0);
+      expect(out.join("")).not.toMatch(/[A-Za-z]:\\[A-Za-z]:\\/i);
     },
   );
 
