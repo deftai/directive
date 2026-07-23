@@ -241,7 +241,7 @@ describe("runRefreshDeposit", () => {
     expect(existsSync(join(result.deftDir, "main.md"))).toBe(true);
     const codexHooks = readFileSync(join(project, ".codex", "hooks.json"), "utf8");
     expect(codexHooks).toContain("./consumer-check.sh");
-    expect(codexHooks).toContain("deft hook:dispatch --host codex --event tool.before");
+    expect(codexHooks).toContain("deft-hook --host codex --event tool.before");
     expect(readFileSync(join(project, ".codex", "config.toml"), "utf8")).toBe('model = "gpt-5"\n');
   });
 

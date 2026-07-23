@@ -1,22 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  DEFT_CURSOR_ADAPTER_COMMAND_MARKER,
-  writeAgentHookDeposit,
-} from "../init-deposit/agent-hooks.js";
+import { writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
-import {
-  APPLY_PATCH_HOOK_MATCHER,
-  assertCursorApplyPatchMatchersDisjoint,
-  CURSOR_APPLY_PATCH_ADAPTER_COMMAND,
-  CURSOR_APPLY_PATCH_ADAPTER_RELATIVE,
-  CURSOR_APPLY_PATCH_ADAPTER_SOURCE,
-  CURSOR_GENERIC_WRITE_HOOK_MATCHER,
-  cursorApplyPatchAdapterEntry,
-  cursorApplyPatchMatchersDisjoint,
-} from "./cursor-hooks.js";
+import { APPLY_PATCH_HOOK_MATCHER } from "./cursor-hooks.js";
 import { projectRootFromHookPayload } from "./dispatcher.js";
 import { DIRECT_WRITE_HOOK_MATCHER } from "./tools.js";
 
@@ -31,48 +19,19 @@ function project(): string {
   return root;
 }
 
-describe("cursor hook projection (#2764)", () => {
-  it("keeps ApplyPatch out of the generic Cursor write matcher", () => {
-    assertCursorApplyPatchMatchersDisjoint();
-    expect(cursorApplyPatchMatchersDisjoint()).toBe(true);
-    expect(CURSOR_GENERIC_WRITE_HOOK_MATCHER).not.toContain("ApplyPatch");
-    expect(CURSOR_GENERIC_WRITE_HOOK_MATCHER).not.toContain("apply_patch");
+describe("cursor hook projection", () => {
+  it("uses the shared direct-write matcher for ApplyPatch", () => {
     expect(APPLY_PATCH_HOOK_MATCHER).toBe("ApplyPatch|apply_patch");
     expect(DIRECT_WRITE_HOOK_MATCHER).toContain("ApplyPatch");
   });
 
-  it("normalizes empty ApplyPatch adapter success to Cursor allow JSON", () => {
-    expect(CURSOR_APPLY_PATCH_ADAPTER_SOURCE).toContain('{"permission":"allow"}');
-    expect(CURSOR_APPLY_PATCH_ADAPTER_SOURCE).toContain("normalize allow");
-    expect(CURSOR_APPLY_PATCH_ADAPTER_SOURCE).not.toContain("${out}");
-  });
-
-  it("builds the adapter preToolUse entry expected by hooks.json", () => {
-    expect(cursorApplyPatchAdapterEntry()).toEqual({
-      command: CURSOR_APPLY_PATCH_ADAPTER_COMMAND,
-      matcher: APPLY_PATCH_HOOK_MATCHER,
-      failClosed: true,
-      timeout: 5,
-    });
-    expect(CURSOR_APPLY_PATCH_ADAPTER_COMMAND).toContain(DEFT_CURSOR_ADAPTER_COMMAND_MARKER);
-  });
-
-  it("deposits adapter script and disjoint matchers into .cursor/hooks.json", () => {
+  it("deposits one direct-write hook and removes a legacy adapter", () => {
     const root = project();
     writeAgentHookDeposit(root);
     const hooksJson = readFileSync(join(root, ".cursor/hooks.json"), "utf8");
-    const adapterPath = join(root, CURSOR_APPLY_PATCH_ADAPTER_RELATIVE);
 
-    expect(existsSync(adapterPath)).toBe(true);
-    expect(readFileSync(adapterPath, "utf8")).toBe(CURSOR_APPLY_PATCH_ADAPTER_SOURCE);
-    expect(hooksJson).toContain(CURSOR_APPLY_PATCH_ADAPTER_COMMAND);
-    expect(hooksJson).toContain(CURSOR_GENERIC_WRITE_HOOK_MATCHER);
-    expect(hooksJson).not.toMatch(
-      new RegExp(
-        `"matcher": "${CURSOR_GENERIC_WRITE_HOOK_MATCHER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*ApplyPatch`,
-      ),
-    );
-    expect(hooksJson).toContain('"matcher": "ApplyPatch|apply_patch"');
+    expect(existsSync(join(root, ".cursor/hooks/deft-cursor-hook-adapter.mjs"))).toBe(false);
+    expect(hooksJson).toContain(`"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`);
   });
 
   it.skipIf(process.platform !== "win32")(
@@ -116,23 +75,24 @@ describe("cursor hook projection (#2764)", () => {
     },
   );
 
-  it("leaves adapter deposit byte-idempotent on repeat refresh", () => {
+  it("leaves fast hook deposit byte-idempotent on repeat refresh", () => {
     const root = project();
     writeAgentHookDeposit(root);
-    const first = readFileSync(join(root, CURSOR_APPLY_PATCH_ADAPTER_RELATIVE), "utf8");
+    const first = readFileSync(join(root, ".cursor/hooks.json"), "utf8");
     const second = writeAgentHookDeposit(root);
     expect(second.changed).toBe(false);
-    expect(readFileSync(join(root, CURSOR_APPLY_PATCH_ADAPTER_RELATIVE), "utf8")).toBe(first);
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toBe(first);
   });
 
-  it("rewrites a drifted adapter script even when hooks.json is already current", () => {
+  it("removes a legacy adapter even when hooks.json is already current", () => {
     const root = project();
     writeAgentHookDeposit(root);
     writeAgentHookDeposit(root);
-    const adapterPath = join(root, CURSOR_APPLY_PATCH_ADAPTER_RELATIVE);
+    const adapterPath = join(root, ".cursor/hooks/deft-cursor-hook-adapter.mjs");
+    mkdirSync(join(root, ".cursor", "hooks"), { recursive: true });
     writeFileSync(adapterPath, "// stale adapter\n", "utf8");
     const refreshed = writeAgentHookDeposit(root);
     expect(refreshed.changed).toBe(true);
-    expect(readFileSync(adapterPath, "utf8")).toBe(CURSOR_APPLY_PATCH_ADAPTER_SOURCE);
+    expect(existsSync(adapterPath)).toBe(false);
   });
 });

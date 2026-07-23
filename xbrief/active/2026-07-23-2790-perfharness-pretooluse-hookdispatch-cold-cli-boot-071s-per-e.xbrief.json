@@ -1,0 +1,57 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2790"
+  },
+  "plan": {
+    "title": "perf(harness): PreToolUse hook:dispatch cold CLI boot ~0.7–1s per edit on Windows",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(harness): PreToolUse hook:dispatch cold CLI boot ~0.7–1s per edit on Windows",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2790",
+      "Overview": "## Summary\n\nAgent-host `PreToolUse` deposits (`deft hook:dispatch`, #2438 / #1185) add ~0.7–1.0s **per matched tool call** on Windows. Gate logic is cheap; almost all wall time is cold CLI boot (PowerShell/cmd npm shim → Node → load `@deftai/directive` → exit). Chatty edit loops pay this tax on every Write/Edit/StrReplace, so a short agent turn with 5 edits and `[hooks: 2]` in the host UI can burn ~10s of pure hook overhead before model \"Thought\" time.\n\n**Scope of this issue:** everything Directive can ship so consumers benefit automatically (via package release + `deft update` / deposit refresh) is **required**. Consumer/operator habit changes are out of band and are not acceptance criteria.\n\n## Repro / measurements (win32, 2026-07-23)\n\nOn a maintainer machine with global `deft` on PATH (`%APPDATA%\\npm\\deft.cmd` → pwsh shim → `node …/@deftai/directive/dist/bin.js`):\n\n| Step | Wall time |\n|------|-----------|\n| `node -e \"process.exit(0)\"` | ~160ms |\n| `deft --help` | ~665ms |\n| `echo '{…Edit…}' \\| deft hook:dispatch --host grok --event tool.before` (allow path, 3 runs) | ~670–840ms |\n\nGate path inside `decideHook` (`packages/core/src/hooks/dispatcher.ts`) is in-process (`inspectSessionRitual`, `inspectActiveScope`, optional runtimeAuthority). It does **not** re-shell `verify:session-ritual` / `xbrief:preflight` as separate CLIs. Boot dominates.\n\nHost UI often labels each edit `[hooks: 2]` because deposits register **two** `PreToolUse` matcher groups (direct-write + spawn).\n\n## Extra tax: Cursor ApplyPatch adapter\n\n`.cursor/hooks/deft-cursor-hook-adapter.mjs` (from `packages/core/src/hooks/cursor-hooks.ts`) probes `deft --version` / `directive --version` via `spawnSync`, **then** runs `hook:dispatch`. That is **two** full CLI boots per ApplyPatch. Generic Edit/Write skip the probe but still pay one boot.\n\n## Impact\n\n- Interactive agent loops feel sluggish even when ritual/scope are already green.\n- Multi-edit turns accumulate seconds of serial waits (hosts block on failClosed / PreToolUse).\n- `plan.policy.hostHooks.<host> = false` (#2752) removes the tax by disabling gates — that is an escape hatch, not the fix this issue ships.\n\n## Required work (Directive must ship)\n\nAll items below are **required** for closing this issue. They are framework deliverables; consumers must not need to hand-edit hook files or implement their own helper.\n\n### R1 — Eliminate ApplyPatch double-boot\n\n! Cursor ApplyPatch adapter MUST resolve and invoke the dispatch path with **at most one** Node/CLI process (no `spawnSync(…, ['--version'])` probe that boots a second process). Prefer `process.execPath` + known package bin, or equivalent zero-extra-boot resolution. `deft update` / deposit refresh MUST rewrite drifted adapter bytes so existing consumers pick this up without manual intervention.\n\n### R2 — Prove and fix per-edit hook multiplicity\n\n! MUST measure whether deposited write + spawn matchers cause **two** `hook:dispatch` (or adapter) processes on a single Edit/Write for Cursor, Grok, Claude, and Codex.\n! If more than one process runs for a single direct-write tool, MUST fix deposit/matchers so exactly one gate process runs per matched tool call (disjoint matchers; no double-fire).\n! If the host UI only *displays* `[hooks: 2]` while one process runs, MUST document that finding in the issue/PR so future work does not chase a false double-dispatch — but R1 + R3 remain required regardless.\n\n### R3 — Fast default dispatch path for consumers\n\n! MUST replace the default deposited PreToolUse command path so consumers no longer pay full CLI graph cold-start on every allow/deny. Required product shape (implement one; others may follow as stretch):\n\n- **Primary (required):** light entrypoint (e.g. `deft-hook` / dedicated `node` bin) that loads only the hook decision surface (`@deftai/directive-core/hooks` + ritual/scope inspect + host codecs), reads stdin, writes host decision, exits — **or** equivalent lazy-load of `hook:dispatch` that does not pay the full CLI router/package graph on the hot path.\n- **Stretch (should, not blocking if Primary hits acceptance):** resident helper started from SessionStart, with thin client + fail-closed fallback if helper is down.\n\n! `directive init` / `deft update` MUST deposit the fast path for all hosted surfaces that currently deposit `deft hook:dispatch` for `tool.before` (Claude, Grok, Cursor, Codex), preserving fail-closed deny semantics and host codec envelopes.\n! Doctor / `verify:hooks-installed --scope=agent` MUST treat the fast-path deposit as the current healthy registration (drift detection rewritten accordingly).\n\n### R4 — Consumer-facing docs (framework-owned)\n\n! MUST document in `content/commands.md` (agent-host hooks section) and CHANGELOG:\n  - that PreToolUse latency was dominated by CLI boot and what release fixed it;\n  - that `hostHooks` opt-out remains available but is not the performance fix;\n  - how consumers refresh deposits (`deft update`) after upgrading `@deftai/directive`.\n\n⊗ Closing this issue with only docs, only the ApplyPatch probe removal, or only “operators should batch edits” guidance.\n\n## Acceptance criteria\n\n- [ ] ApplyPatch path: one process max (R1); deposit rewrite covered by update/init tests.\n- [ ] Multiplicity audit complete for four hosts (R2); deposit fixed if double-fire is real.\n- [ ] Default deposited `tool.before` path uses the fast entrypoint / lazy hot path (R3).\n- [ ] Allow-path Edit `tool.before` on Windows: **≤ 50ms p50** (same class of machine that measured ~700ms today), without weakening ritual/scope/runtimeAuthority deny semantics.\n- [ ] `verify:hooks-installed --scope=agent` / doctor healthy against the new deposit.\n- [ ] Commands.md + CHANGELOG updated (R4).\n- [ ] Consumers receive the fix via npm package + `deft update` — no required hand-edits under `.cursor/`, `.grok/`, `.claude/`, or `.codex/`.\n\n## Non-goals\n\n- Removing Tier-1 PreToolUse enforcement.\n- Moving gate evaluation back to advisory AGENTS-only posture.\n- Shell/MCP matcher work (#2711) — orthogonal; do not block this on push/merge scopes.\n- Mandating that agents batch edits (operator habit; helpful but not a Directive deliverable for closing this issue).\n\n## Related\n\n- #2437 — epic: agent host hooks as Tier-1 surface\n- #2438 — P0 PreToolUse deposit + `hook:dispatch`\n- #1185 — spawn/Task matcher\n- #2752 — `hostHooks` opt-out\n- #2779 — Cursor failClosed allow stdout (adjacent; latency unchanged)\n\n## Stimulus\n\nMaintainer observation of Grok Build activity log: Create/Edit operations each tagged `[hooks: 2]`, ~1s per hook; analysis confirmed cold CLI boot as the dominant cost.",
+      "Labels": "enhancement"
+    },
+    "items": [
+      {
+        "title": "ApplyPatch path: one process max (R1); deposit rewrite covered by update/init tests.",
+        "status": "proposed"
+      },
+      {
+        "title": "Multiplicity audit complete for four hosts (R2); deposit fixed if double-fire is real.",
+        "status": "proposed"
+      },
+      {
+        "title": "Default deposited `tool.before` path uses the fast entrypoint / lazy hot path (R3).",
+        "status": "proposed"
+      },
+      {
+        "title": "Allow-path Edit `tool.before` on Windows: **≤ 50ms p50** (same class of machine that measured ~700ms today), without weakening ritual/scope/runtimeAuthority deny semantics.",
+        "status": "proposed"
+      },
+      {
+        "title": "`verify:hooks-installed --scope=agent` / doctor healthy against the new deposit.",
+        "status": "proposed"
+      },
+      {
+        "title": "Commands.md + CHANGELOG updated (R4).",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumers receive the fix via npm package + `deft update` — no required hand-edits under `.cursor/`, `.grok/`, `.claude/`, or `.codex/`.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2790",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2790: perf(harness): PreToolUse hook:dispatch cold CLI boot ~0.7–1s per edit on Windows"
+      }
+    ],
+    "updated": "2026-07-23T20:58:01Z"
+  }
+}

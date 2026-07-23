@@ -1,0 +1,27 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "hook-dispatch-fast-path",
+    "status": "approved",
+    "narratives": {
+      "Problem": "Each deposited PreToolUse command starts the complete Directive CLI router, making Windows edit hooks spend roughly 0.7–1.0 seconds in cold process startup. Cursor ApplyPatch adds a second process through its adapter probe.",
+      "Change": "Ship a dedicated lightweight deft-hook executable and deposit it for every host's tool.before registration. Remove the Cursor adapter and its version probe while retaining the existing fail-closed decision path.",
+      "Scope": "In scope: hook executable, all agent-host deposits and their health checks, multiplicity coverage, user-facing hook documentation, and release notes. Out of scope: disabling Tier-1 hooks, hostHooks opt-out as a performance solution, resident helpers, and Shell/MCP matcher work.",
+      "Impact": "Touches the CLI package bin surface, Cursor projection, shared agent-hook deposit and inspection logic, installer hygiene, focused tests, commands documentation, and CHANGELOG.",
+      "Risks": "A malformed fast-path deposit could bypass hook enforcement or leave consumers with stale Cursor adapters. The implementation must preserve host codecs, fail-closed denies, and existing ritual/scope/runtimeAuthority decision logic.",
+      "Approach": "Invoke the existing hook-dispatch runner directly from a dedicated bin, route every tool.before command to it, and migrate Cursor ApplyPatch back to the shared direct-write matcher because hook-dispatch already parses its free-form stdin. Recognize legacy registrations as managed so update rewrites them.",
+      "Alternatives": "A resident helper would reduce startup further but increases lifecycle and fallback complexity. Keeping an ApplyPatch adapter would still require an additional Node process, so it cannot meet the one-process requirement.",
+      "Dependencies": "The existing hook-dispatch parser, core hooks decision surface, and init/update deposit refresh are already available.",
+      "Confirmation": "Scott explicitly approved named change hook-dispatch-fast-path on 2026-07-23."
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2790",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2790: fast PreToolUse hook dispatch"
+      }
+    ]
+  }
+}

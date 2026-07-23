@@ -172,7 +172,7 @@ describe("runInitDeposit", () => {
     expect(readFileSync(join(project, "greptile.json"), "utf8")).toContain(".deft/core/**");
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft/core/");
     expect(readFileSync(join(project, ".codex", "hooks.json"), "utf8")).toContain(
-      "deft hook:dispatch --host codex --event tool.before",
+      "deft-hook --host codex --event tool.before",
     );
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");
