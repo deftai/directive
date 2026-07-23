@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { MAX_LINE_CHARS } from "../triage/welcome/constants.js";
 import { evaluateHealth, type HealthReport, healthHistoryPath } from "./health.js";
 
@@ -149,7 +149,10 @@ function appendEvalReadbackHistory(
     assertWriteTargetSafe(projectRoot, path);
     mkdirSync(join(path, ".."), { recursive: true });
     appendFileSync(path, `${JSON.stringify(record)}\n`, "utf8");
-  } catch {
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw err;
+    }
     // observability only
   }
 }
