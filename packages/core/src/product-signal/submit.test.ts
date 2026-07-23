@@ -401,12 +401,14 @@ describe("productSignalMain", () => {
     const rootWithEquals = `${root}=suffix`;
     mkdirSync(rootWithEquals, { recursive: true });
     roots.push(rootWithEquals);
-    writeProjectDef(rootWithEquals, { productSignal: { enabled: true, sinkRepo: "partner/inbox" } });
+    writeProjectDef(rootWithEquals, {
+      productSignal: { enabled: true, sinkRepo: "partner/inbox" },
+    });
     applyIsolatedConsentEnv(roots, false);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    expect(await productSignalMain(["consent", "--grant", `--project-root=${rootWithEquals}`])).toBe(
-      0,
-    );
+    expect(
+      await productSignalMain(["consent", "--grant", `--project-root=${rootWithEquals}`]),
+    ).toBe(0);
     expect(String(stdout.mock.calls[0]?.[0])).toContain("partner/inbox");
   });
 
