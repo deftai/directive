@@ -56,6 +56,23 @@ describe("review-owner GitHub lease seams", () => {
     expect(listReviewOwnerComments("deftai/directive", 4, { fetchComments: () => [] })).toEqual([]);
   });
 
+  it("ignores non-maintainer-authored marker comments", () => {
+    expect(
+      listReviewOwnerComments("deftai/directive", 3, {
+        fetchComments: () => [
+          {
+            id: 1,
+            body: LEASE_BODY,
+            htmlUrl: "",
+            updatedAt: "2026-07-24T12:00:00.000Z",
+            authorLogin: "attacker",
+            authorAssociation: "NONE",
+          },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
   it("create/update/delete honor custom seams", () => {
     expect(
       createReviewOwnerComment("deftai/directive", 1, LEASE_BODY, {

@@ -194,6 +194,60 @@ function resolveCreateRace(
   return null;
 }
 
+function verifyExclusiveActiveClaim(
+  repo: string,
+  pr: number,
+  commentId: number,
+  owner: string,
+  monitorAgentId: string,
+  seams: ReviewOwnerGithubSeams,
+  options: { now?: Date; headSha?: string | null },
+): RegisterReviewMonitorResult | null {
+  const relisted = listReviewOwnerComments(repo, pr, seams);
+  if (!Array.isArray(relisted)) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `review_monitor_register: ${relisted.error}`,
+      record: null,
+      commentId: null,
+      priorOwner: null,
+    };
+  }
+  const active = findActiveLeaseComment(relisted, options);
+  if (active === null || active.id !== commentId) {
+    const holder = active?.lease ?? null;
+    return {
+      exitCode: EXIT_CONFLICT,
+      message:
+        holder !== null
+          ? conflictMessage(holder, pr)
+          : `review_monitor_register: PR #${pr} post-write verify failed; active lease not on comment ${commentId}.`,
+      record: null,
+      commentId: active?.id ?? commentId,
+      priorOwner: holder?.owner ?? null,
+    };
+  }
+  if (active.lease === null || !sameClaimHolder(active.lease, owner, monitorAgentId)) {
+    const holder = active.lease ?? {
+      owner: "unknown",
+      monitor_agent_id: "unknown",
+      expires_at: "",
+      head_sha: null,
+      started_at: "",
+      platform_primitive: "cursor-task",
+      ended_at: null,
+    };
+    return {
+      exitCode: EXIT_CONFLICT,
+      message: conflictMessage(holder, pr),
+      record: null,
+      commentId: active.id,
+      priorOwner: holder.owner !== owner ? holder.owner : null,
+    };
+  }
+  return null;
+}
+
 export function registerReviewMonitor(
   input: RegisterReviewMonitorInput,
 ): RegisterReviewMonitorResult {
@@ -353,6 +407,18 @@ export function registerReviewMonitor(
         priorOwner: null,
       };
     }
+    const verified = verifyExclusiveActiveClaim(
+      repo,
+      input.pr,
+      anchor.id,
+      owner,
+      monitorAgentId,
+      seams,
+      { now: startedAt, headSha: input.headSha ?? null },
+    );
+    if (verified !== null) {
+      return verified;
+    }
     return {
       exitCode: EXIT_READY,
       message: `review_monitor_register: claimed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${anchor.id}).`,
@@ -429,11 +495,18 @@ export function releaseReviewMonitor(input: ReleaseReviewMonitorInput): ReleaseR
   }
 
   const active = findActiveLeaseComment(listed, { now: input.endedAt ?? new Date() });
+  const owner = input.owner ?? resolveGitHubLogin(seams);
   if (active?.lease !== null && active?.lease !== undefined) {
     const holder = active.lease;
-    const owner = input.owner ?? resolveGitHubLogin(seams);
+    if (owner === null || owner.length === 0) {
+      return {
+        exitCode: EXIT_CONFIG_ERROR,
+        message:
+          "review_monitor_release: could not resolve GitHub login — pass --owner or authenticate gh",
+      };
+    }
     const monitorAgentId = input.monitorAgentId?.trim() ?? null;
-    const ownerMatches = owner !== null && holder.owner === owner;
+    const ownerMatches = holder.owner === owner;
     const authorized =
       monitorAgentId !== null && monitorAgentId.length > 0
         ? ownerMatches && holder.monitor_agent_id === monitorAgentId
@@ -446,9 +519,10 @@ export function releaseReviewMonitor(input: ReleaseReviewMonitorInput): ReleaseR
     }
   }
 
+  const releaseTarget = active ?? anchor;
   const endedAt = (input.endedAt ?? new Date()).toISOString();
   const body = renderReleasedReviewOwnerComment(endedAt);
-  const updated = updateReviewOwnerComment(repo, anchor.id, body, seams);
+  const updated = updateReviewOwnerComment(repo, releaseTarget.id, body, seams);
   if ("error" in updated) {
     return {
       exitCode: EXIT_CONFIG_ERROR,
@@ -457,7 +531,7 @@ export function releaseReviewMonitor(input: ReleaseReviewMonitorInput): ReleaseR
   }
   return {
     exitCode: EXIT_READY,
-    message: `review_monitor_release: released PR #${input.pr} review-owner lease (comment ${anchor.id}).`,
+    message: `review_monitor_release: released PR #${input.pr} review-owner lease (comment ${releaseTarget.id}).`,
   };
 }
 

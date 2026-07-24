@@ -2,7 +2,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { computeExpiresAt, renderReviewOwnerComment } from "./lease-comment.js";
+import {
+  computeExpiresAt,
+  renderReleasedReviewOwnerComment,
+  renderReviewOwnerComment,
+} from "./lease-comment.js";
 import { readReviewMonitorFile, registerReviewMonitor, releaseReviewMonitor } from "./record.js";
 
 const NOW = new Date("2026-07-24T12:00:00.000Z");
@@ -344,6 +348,53 @@ describe("review-monitor GitHub lease", () => {
     });
     expect(claimed.exitCode).toBe(0);
     expect(claimed.record?.owner).toBe("bob");
+  });
+
+  it("release patches the active lease comment, not the oldest anchor", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gh-release-target-"));
+    const staleAnchor = renderReleasedReviewOwnerComment(
+      new Date(NOW.getTime() - 60_000).toISOString(),
+    );
+    let activeBody = activeLeaseBody("alice", "rm-alice");
+    const updatedIds: number[] = [];
+    const released = releaseReviewMonitor({
+      pr: 10,
+      repo: "deftai/directive",
+      owner: "alice",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      endedAt: NOW,
+      seams: {
+        fetchComments: () => [
+          {
+            id: 50,
+            body: staleAnchor,
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          },
+          {
+            id: 99,
+            body: activeBody,
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          },
+        ],
+        updateComment: (_repo, id, nextBody) => {
+          updatedIds.push(id);
+          if (id === 99) {
+            activeBody = nextBody;
+          }
+          return { ok: true as const };
+        },
+      },
+    });
+    expect(released.exitCode).toBe(0);
+    expect(updatedIds).toEqual([99]);
+    expect(activeBody).toContain("ended_at:");
   });
 
   it("renews idempotently for the same monitor_agent_id", () => {

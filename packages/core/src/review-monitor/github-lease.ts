@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { resolveBinary } from "../scm/binary.js";
 import {
+  DEFAULT_TIMEOUT_S,
   type GhRestSeams,
   restDeleteComment,
   restGetUser,
@@ -8,7 +9,11 @@ import {
   restUpdateComment,
 } from "../scm/gh-rest.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
-import { type IssueComment, parseCommentsFromGhStdout } from "../umbrella-current-shape/index.js";
+import {
+  type IssueComment,
+  isMaintainerAuthored,
+  parseCommentsFromGhStdout,
+} from "../umbrella-current-shape/index.js";
 import { mapCommentEntry, type ReviewOwnerComment } from "./lease-comment.js";
 
 export type { IssueComment };
@@ -39,6 +44,7 @@ function defaultFetchComments(
   const proc = spawnSync(binary, ["api", "--paginate", path], {
     encoding: "utf8",
     maxBuffer: SUBPROCESS_MAX_BUFFER,
+    timeout: DEFAULT_TIMEOUT_S * 1000,
   });
   if (proc.error !== undefined) {
     return { error: `fetch PR #${pr} comments (${repo}) failed: ${proc.error.message}` };
@@ -69,6 +75,9 @@ export function listReviewOwnerComments(
   }
   const comments: ReviewOwnerComment[] = [];
   for (const entry of fetched) {
+    if (!isMaintainerAuthored(entry.authorAssociation)) {
+      continue;
+    }
     const mapped = mapCommentEntry({
       id: entry.id,
       body: entry.body,
