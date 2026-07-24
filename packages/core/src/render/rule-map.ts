@@ -542,14 +542,13 @@ function buildModel(repo: string, withBodies: boolean): Model {
 
 // --------------------------------------------------------------- MD rendering
 function mdTable(headers: string[], rows: (string | number)[][]): string {
+  // Collapse any embedded newlines so no header/cell value can break out of its row.
+  const oneLine = (c: string | number): string => String(c).replace(/\r?\n/g, " ");
   const out = [
-    `| ${headers.join(" | ")} |`,
+    `| ${headers.map(oneLine).join(" | ")} |`,
     `|${headers.map((_, i) => (i === 0 ? "---" : "--:")).join("|")}|`,
   ];
-  for (const r of rows) {
-    // Collapse any embedded newlines so a cell value cannot break out of the row.
-    out.push(`| ${r.map((c) => String(c).replace(/\r?\n/g, " ")).join(" | ")} |`);
-  }
+  for (const r of rows) out.push(`| ${r.map(oneLine).join(" | ")} |`);
   return out.join("\n");
 }
 function renderMd(model: Model): string {
