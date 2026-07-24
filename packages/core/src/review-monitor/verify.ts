@@ -14,6 +14,8 @@ import {
   defaultSubagentStatusDir,
   fetchActiveMonitorFromGithub,
   type ReviewMonitorRecord,
+  readReviewMonitorFile,
+  reviewMonitorPath,
 } from "./record.js";
 import { isTier1, type MonitoringTierProbe, probeMonitoringTier } from "./tier-detection.js";
 
@@ -113,6 +115,9 @@ export function evaluateReviewMonitorGate(
   const callSite = args.callSite ?? "unspecified";
   const staleMinutes = args.staleMinutes ?? 30;
   const now = args.now ?? new Date();
+
+  // Legacy `.deft/review-monitor.json` is obsolete (#2814); explicit no-op read documents migration.
+  readReviewMonitorFile(reviewMonitorPath(projectRoot));
 
   if (args.approach3 === true) {
     if (isTier1(tier)) {

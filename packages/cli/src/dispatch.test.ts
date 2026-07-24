@@ -428,6 +428,23 @@ describe("dispatch", () => {
     expect(resolveCanonicalVerb("scm")).toBe("scm");
   });
 
+  it("loads review-monitor colon aliases to native CLI modules (#2814)", async () => {
+    const reviewMonitorVerbs = [
+      ["review-monitor:register", "review-monitor-register"],
+      ["review-monitor:release", "review-monitor-release"],
+      ["verify:review-monitor", "verify-review-monitor"],
+    ] as const;
+    for (const [alias, canonical] of reviewMonitorVerbs) {
+      expect(resolveCanonicalVerb(alias)).toBe(canonical);
+      expect(CLI_MODULE_VERBS).toContain(canonical);
+      const code = await dispatch([alias, "--help"], {
+        writeOut: () => {},
+        writeErr: () => {},
+      });
+      expect(code, alias).toBe(0);
+    }
+  });
+
   it("resolves every task-style alias in VERB_ALIASES", () => {
     for (const [alias, canonical] of Object.entries(VERB_ALIASES)) {
       expect(resolveCanonicalVerb(alias)).toBe(canonical);

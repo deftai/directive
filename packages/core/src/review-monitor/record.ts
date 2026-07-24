@@ -434,11 +434,11 @@ export function releaseReviewMonitor(input: ReleaseReviewMonitorInput): ReleaseR
     const owner = input.owner ?? resolveGitHubLogin(seams);
     const monitorAgentId = input.monitorAgentId?.trim() ?? null;
     const ownerMatches = owner !== null && holder.owner === owner;
-    const monitorMatches =
+    const authorized =
       monitorAgentId !== null && monitorAgentId.length > 0
-        ? holder.monitor_agent_id === monitorAgentId
+        ? ownerMatches && holder.monitor_agent_id === monitorAgentId
         : ownerMatches;
-    if (!monitorMatches) {
+    if (!authorized) {
       return {
         exitCode: EXIT_CONFLICT,
         message: conflictMessage(holder, input.pr),

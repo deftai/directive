@@ -354,13 +354,141 @@ describe("review-monitor record branch coverage (#2666)", () => {
     ).toBe(2);
   });
 
-  it("findActiveMonitorForPrFromComments honors head_sha gate", () => {
+  it("release rejects monitor_agent_id without matching owner (#2814 auth)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-rel-auth-"));
+    const body = activeLeaseBody("bob", "rm-bob");
     expect(
-      findActiveMonitorForPrFromComments(
-        [{ id: 17, body: activeLeaseBody("alice", "rm-17") }],
-        17,
-        { now: NOW, headSha: "other-sha" },
-      ),
-    ).toBeNull();
+      releaseReviewMonitor({
+        pr: 18,
+        repo: "deftai/directive",
+        owner: "alice",
+        monitorAgentId: "rm-bob",
+        projectRoot: root,
+        endedAt: NOW,
+        seams: {
+          fetchComments: () => [
+            {
+              id: 18,
+              body,
+              htmlUrl: "",
+              updatedAt: NOW.toISOString(),
+              authorLogin: "bob",
+              authorAssociation: "MEMBER",
+            },
+          ],
+        },
+      }).exitCode,
+    ).toBe(1);
+  });
+
+  it("create-race delete failure surfaces config error", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-race-del-"));
+    const winnerBody = activeLeaseBody("alice", "rm-winner");
+    let fetchCalls = 0;
+    const result = registerReviewMonitor({
+      pr: 19,
+      repo: "deftai/directive",
+      owner: "bob",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-bob",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => {
+          fetchCalls += 1;
+          if (fetchCalls === 1) {
+            return [];
+          }
+          return [
+            {
+              id: 20,
+              body: winnerBody,
+              htmlUrl: "",
+              updatedAt: NOW.toISOString(),
+              authorLogin: "alice",
+              authorAssociation: "MEMBER",
+            },
+          ];
+        },
+        createComment: () => ({ id: 21 }),
+        deleteComment: () => ({ error: "forbidden delete" }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("create-race loser could not delete duplicate");
+    expect(result.message).toContain("forbidden delete");
+  });
+
+  it("create-race refetch listed.error surfaces register config failure", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-race-list-"));
+    let fetchCalls = 0;
+    const result = registerReviewMonitor({
+      pr: 20,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => {
+          fetchCalls += 1;
+          if (fetchCalls === 1) {
+            return [];
+          }
+          return { error: "listed offline" };
+        },
+        createComment: () => ({ id: 22 }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("review_monitor_register: listed offline");
+  });
+
+  it("register createComment error surfaces config failure", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-create-err-"));
+    const result = registerReviewMonitor({
+      pr: 21,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => [],
+        createComment: () => ({ error: "create denied" }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("review_monitor_register: create denied");
+  });
+
+  it("register anchor update error surfaces config failure", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-anchor-err-"));
+    const result = registerReviewMonitor({
+      pr: 22,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => [
+          {
+            id: 23,
+            body: "<!-- deft:review-owner -->\n<!-- /deft:review-owner -->",
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          },
+        ],
+        updateComment: () => ({ error: "patch denied" }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("review_monitor_register: patch denied");
   });
 });
