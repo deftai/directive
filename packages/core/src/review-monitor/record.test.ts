@@ -123,6 +123,56 @@ describe("review-monitor GitHub lease", () => {
     expect(deleted).toEqual([20]);
   });
 
+  it("surfaces create-race delete failures and create errors", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gh-race-del-"));
+    const comments: Array<{ id: number; body: string }> = [
+      { id: 10, body: activeLeaseBody("bob", "rm-bob") },
+    ];
+    const deleteFail = registerReviewMonitor({
+      pr: 12,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () =>
+          comments.map((comment) => ({
+            id: comment.id,
+            body: comment.body,
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          })),
+        createComment: () => {
+          comments.push({ id: 20, body: activeLeaseBody("alice", "rm-alice") });
+          return { id: 20 };
+        },
+        deleteComment: () => ({ error: "delete denied" }),
+      },
+    });
+    expect(deleteFail.exitCode).toBe(2);
+    expect(deleteFail.message).toContain("delete denied");
+
+    expect(
+      registerReviewMonitor({
+        pr: 13,
+        repo: "deftai/directive",
+        owner: "alice",
+        platformPrimitive: "cursor-task",
+        monitorAgentId: "rm-alice",
+        projectRoot: root,
+        startedAt: NOW,
+        seams: {
+          fetchComments: () => [],
+          createComment: () => ({ error: "create denied" }),
+        },
+      }).exitCode,
+    ).toBe(2);
+  });
+
   it("allows expired lease takeover without --force", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gh-expired-"));
     let body = activeLeaseBody("bob", "rm-bob")
@@ -159,6 +209,29 @@ describe("review-monitor GitHub lease", () => {
 
   it("requires --force for non-expired foreign takeover", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gh-force-"));
+    const withoutForce = registerReviewMonitor({
+      pr: 9,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => [
+          {
+            id: 90,
+            body: activeLeaseBody("bob", "rm-bob"),
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "bob",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+    });
+    expect(withoutForce.exitCode).toBe(1);
+
     const result = registerReviewMonitor({
       pr: 9,
       repo: "deftai/directive",
