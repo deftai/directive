@@ -396,9 +396,9 @@ Directive turns a coding agent into an auditable process: load only the guidance
 
 | Pack | Version | Rules | MUST | SHOULD | MUST_NOT |
 |---|--:|--:|--:|--:|--:|
-| `content\packs\lessons\lessons-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content\packs\patterns\patterns-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content\packs\rules\rules-pack-0.1.json` | 0.1 | 595 | 297 | 104 | 177 |
-| `content\packs\skills\skills-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content\packs\strategies\strategies-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content\packs\swarm-spec\swarm-spec-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content/packs/rules/rules-pack-0.1.json` | 0.1 | 595 | 297 | 104 | 177 |
+| `content/packs/skills/skills-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |

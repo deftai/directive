@@ -229,6 +229,10 @@ function markers(t: string): Record<string, number> {
   }
   return c;
 }
+/** Normalize repo-relative paths to `/` so Markdown/HTML output is OS-stable. */
+function normRel(p: string): string {
+  return p.split("\\").join("/");
+}
 function walkMd(dir: string): string[] {
   const out: string[] = [];
   for (const e of readdirSync(dir).sort()) {
@@ -251,17 +255,18 @@ function walkJson(dir: string): string[] {
 
 // --------------------------------------------------------------- model build
 function summarizeFile(repo: string, rel: string, withBody = true): FileItem {
-  const t = read(repo, rel);
+  const path = normRel(rel);
+  const t = read(repo, path);
   const d: FileItem = {
     kind: "file",
-    name: basename(rel),
-    title: h1(t) || basename(rel),
+    name: basename(path),
+    title: h1(t) || basename(path),
     summary: firstPara(t),
     sections: sections(t),
     markers: markers(t),
     generated: isGenerated(t),
     lines: t ? t.split("\n").length : 0,
-    path: rel,
+    path,
   };
   if (withBody) {
     d.body = t.slice(0, MAX_BODY);
@@ -270,13 +275,14 @@ function summarizeFile(repo: string, rel: string, withBody = true): FileItem {
   return d;
 }
 function summarizeDir(repo: string, reldir: string): DirItem {
+  const dir = normRel(reldir);
   let readme: FileItem | null = null;
   const files: FileItem[] = [];
-  for (const entry of readdirSync(join(repo, reldir)).sort()) {
-    const full = join(reldir, entry);
+  for (const entry of readdirSync(join(repo, dir)).sort()) {
+    const full = normRel(join(dir, entry));
     const ab = join(repo, full);
     if (statSync(ab).isDirectory()) {
-      for (const sub of walkMd(ab)) files.push(summarizeFile(repo, relative(repo, sub)));
+      for (const sub of walkMd(ab)) files.push(summarizeFile(repo, normRel(relative(repo, sub))));
     } else if (entry.endsWith(".md")) {
       const fi = summarizeFile(repo, full);
       if (entry.toLowerCase() === "readme.md") readme = fi;
@@ -285,13 +291,13 @@ function summarizeDir(repo: string, reldir: string): DirItem {
   }
   return {
     kind: "dir",
-    name: basename(reldir),
-    title: readme ? readme.title : basename(reldir),
+    name: basename(dir),
+    title: readme ? readme.title : basename(dir),
     summary: readme ? readme.summary : "",
     readme,
     files,
     count: files.length,
-    path: reldir,
+    path: dir,
   };
 }
 function addMarkers(totals: Record<string, number>, fi: FileItem): void {
@@ -303,10 +309,10 @@ function buildGroupings(repo: string): Grouping[] {
   for (const name of readdirSync(content).sort()) {
     const gdir = join(content, name);
     if (!statSync(gdir).isDirectory() || name.startsWith(".") || EXCLUDE_GROUPS.has(name)) continue;
-    const rel = join("content", name);
+    const rel = normRel(join("content", name));
     const items: Item[] = [];
     for (const entry of readdirSync(gdir).sort()) {
-      const full = join(rel, entry);
+      const full = normRel(join(rel, entry));
       const ab = join(repo, full);
       if (statSync(ab).isDirectory()) items.push(summarizeDir(repo, full));
       else if (entry.endsWith(".md")) items.push(summarizeFile(repo, full));
@@ -448,7 +454,7 @@ function buildTasks(repo: string): TaskNamespace[] {
   const out: TaskNamespace[] = [];
   const seen = new Set<string>();
   for (const inc of parseIncludes(repo)) {
-    const rel = join("tasks", inc.file);
+    const rel = normRel(join("tasks", inc.file));
     if (!existsSync(join(repo, rel))) continue;
     const { purpose, tasks } = parseTasks(repo, rel);
     out.push({
@@ -467,7 +473,7 @@ function buildTasks(repo: string): TaskNamespace[] {
   }
   for (const f of readdirSync(tasksDir).sort()) {
     if (!f.endsWith(".yml") || seen.has(f)) continue;
-    const rel = join("tasks", f);
+    const rel = normRel(join("tasks", f));
     const { purpose, tasks } = parseTasks(repo, rel);
     if (!tasks.length) continue;
     const ns = f.slice(0, -4);
@@ -494,7 +500,7 @@ function counter(values: (string | undefined)[]): Record<string, number> {
 function buildPacks(repo: string): Pack[] {
   const packs: Pack[] = [];
   for (const pj of walkJson(join(repo, "content", "packs"))) {
-    const rel = relative(repo, pj);
+    const rel = normRel(relative(repo, pj));
     let d: Record<string, unknown>;
     try {
       const parsed: unknown = JSON.parse(readFileSync(pj, "utf8"));
@@ -544,8 +550,9 @@ function buildModel(repo: string, withBodies: boolean): Model {
 function mdTable(headers: string[], rows: (string | number)[][]): string {
   // Collapse embedded newlines and escape `|` so cell values cannot break table structure
   // (e.g. option syntax like `--format=text|json` in task descriptions).
+  // Escape backslashes first so a trailing `\` cannot neutralize the pipe escape (CodeQL js/incomplete-sanitization).
   const cell = (c: string | number): string =>
-    String(c).replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
+    String(c).replace(/\r?\n/g, " ").replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
   const out = [
     `| ${headers.map(cell).join(" | ")} |`,
     `|${headers.map((_, i) => (i === 0 ? "---" : "--:")).join("|")}|`,
