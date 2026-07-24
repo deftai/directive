@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2806 — stop migrate:xbrief from copying obsolete framework vbrief.md into consumer xbrief/."
+  },
+  "plan": {
+    "id": "2806-migrate-omit-vbrief-md",
+    "title": "bug: migrate:xbrief carries stale vbrief.md into xbrief with broken links",
+    "status": "running",
+    "narratives": {
+      "Description": "`deft migrate:xbrief` copies every non-JSON file from the legacy lifecycle root, so a framework-deposited `vbrief/vbrief.md` lands at `xbrief/vbrief.md` with broken framework-relative links. That narrative is not a current consumer projection and is not cleaned by later updates. This story omits obsolete framework-support narratives during migration and cleans a known stale `xbrief/vbrief.md` on update when present.",
+      "ImplementationPlan": "1. Update `packages/core/src/xbrief-migrate/migrate-project.ts` so the legacy tree copy skips framework-support narratives such as `vbrief.md` (or projects a consumer-valid replacement with a canonical filename). 2. Add or extend update hygiene to remove a known stale `xbrief/vbrief.md` left by earlier migrations while preserving project JSON records and `xbrief/schemas/`. 3. Add focused regression coverage in `packages/core/src/xbrief-migrate/migrate-project.test.ts` that fixtures `vbrief/vbrief.md` beside project records and asserts it is omitted from `xbrief/`.",
+      "UserStory": "As a Directive consumer migrating from vbrief/ to xbrief/, I want obsolete framework narrative files omitted, so that my lifecycle root does not contain broken-link Markdown litter.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2806",
+      "Overview": "## Summary\n\n`deft migrate:xbrief` copies every non-JSON file from the legacy lifecycle root without path-specific filtering. When an earlier update/bridge has deposited the framework support narrative as `vbrief/vbrief.md`, migration carries it to `xbrief/vbrief.md` unchanged apart from token rewriting.\n\n## Expected\n\nMigration should omit obsolete framework-support narratives from the lifecycle record copy, or explicitly project a current xBRIEF narrative with consumer-valid links and a canonical filename. A later `directive update` should also clean up the known stale projection if it was created by an earlier migration.\n",
+      "Labels": "bug, area:cli, area:vbrief",
+      "Traces": "#2806"
+    },
+    "items": [
+      {
+        "id": "2806-a1",
+        "title": "Given vbrief/vbrief.md beside project records, when migrate:xbrief runs, then xbrief/vbrief.md is not created.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a legacy `vbrief/` tree that contains both project `.vbrief.json` records and a framework `vbrief.md` narrative, when `deft migrate:xbrief` runs, then project records are migrated into `xbrief/` and `xbrief/vbrief.md` is not created.",
+          "Traces": "#2806"
+        }
+      },
+      {
+        "id": "2806-a2",
+        "title": "Given a stale xbrief/vbrief.md from an earlier migration, when directive update runs, then that stale narrative is removed.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer that already has a stale `xbrief/vbrief.md` from an earlier migration, when `directive update` runs, then that known stale narrative is removed while `xbrief/schemas/` and project JSON records remain.",
+          "Traces": "#2806"
+        }
+      },
+      {
+        "id": "2806-a3",
+        "title": "Given only project JSON and schemas under vbrief/, when migrate:xbrief runs, then migration still succeeds without omitting required records.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a legacy `vbrief/` tree that contains only project JSON records and schemas with no framework narrative, when `deft migrate:xbrief` runs, then migration still succeeds and required records appear under `xbrief/`.",
+          "Traces": "#2806"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:cli",
+      "area:vbrief"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/xbrief-migrate/migrate-project.test.ts"
+        ],
+        "expected_outputs": [
+          "migrate-project tests pass",
+          "vbrief.md omitted from migrated xbrief/"
+        ],
+        "depends_on": [],
+        "conflict_group": "xbrief-migrate",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2806",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2806: bug: migrate:xbrief carries stale vbrief.md into xbrief with broken links",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-07-24T17:32:12Z"
+  }
+}
