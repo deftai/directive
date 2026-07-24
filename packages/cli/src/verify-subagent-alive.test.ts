@@ -129,6 +129,51 @@ describe("verify-subagent-alive gate (#2824 / cohort-2804-2814)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("required agent healthy ignores unrelated stale record in same scratch dir", () => {
+    const root = mkdtempSync(join(tmpdir(), "sam-alive-mixed-"));
+    const scratch = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    writeFileSync(
+      join(scratch, "worker-2824.json"),
+      JSON.stringify({
+        agent_id: "worker-2824",
+        parent_id: "parent",
+        last_heartbeat_at: now,
+        last_message: "healthy",
+        phase: "polling",
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(scratch, "unrelated-stale.json"),
+      JSON.stringify({
+        agent_id: "unrelated-stale",
+        parent_id: "parent",
+        last_heartbeat_at: "2020-01-01T12:00:00Z",
+        last_message: "old",
+        phase: "polling",
+      }),
+      "utf8",
+    );
+
+    const verdict = evaluateSubagentAliveGate(
+      {
+        scratchDirs: [scratch],
+        requireAgents: ["worker-2824"],
+        thresholdMinutes: 30,
+        emitJson: false,
+        help: false,
+      },
+      root,
+    );
+
+    expect(verdict.exitCode).toBe(0);
+    expect(verdict.redispatchOk).toBe(false);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("run prints help and exits 0", () => {
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     expect(run(["--help"])).toBe(0);

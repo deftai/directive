@@ -6,7 +6,6 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  cmdSubagentMonitor,
   defaultScratchDir,
   DEFAULT_THRESHOLD_MINUTES,
   EXIT_EXTERNAL_ERROR,
@@ -146,8 +145,10 @@ export function evaluateSubagentAliveGate(
     }
   }
 
-  const sweepUnhealthy = !sweepAllOk(sweep);
   const requiredUnhealthy = missingAgents.length > 0;
+  // When --require-agent is set, only named workers gate the verdict; unrelated
+  // stale records in a shared scratch dir must not trigger REDISPATCH_OK (#2824).
+  const sweepUnhealthy = args.requireAgents.length === 0 && !sweepAllOk(sweep);
   const unhealthy = sweepUnhealthy || requiredUnhealthy;
 
   if (args.emitJson) {
@@ -228,11 +229,6 @@ export function run(argv: readonly string[]): number {
   }
 
   return verdict.exitCode;
-}
-
-/** Raw heartbeat sweep (agent:monitor alias). */
-export function runMonitor(argv: readonly string[]): number {
-  return cmdSubagentMonitor([...argv]);
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
