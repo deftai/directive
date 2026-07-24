@@ -353,4 +353,14 @@ describe("review-monitor record branch coverage (#2666)", () => {
       }).exitCode,
     ).toBe(2);
   });
+
+  it("findActiveMonitorForPrFromComments honors head_sha gate", () => {
+    expect(
+      findActiveMonitorForPrFromComments(
+        [{ id: 17, body: activeLeaseBody("alice", "rm-17") }],
+        17,
+        { now: NOW, headSha: "other-sha" },
+      ),
+    ).toBeNull();
+  });
 });

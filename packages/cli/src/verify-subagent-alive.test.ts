@@ -255,6 +255,33 @@ describe("verify-subagent-alive gate (#2824 / cohort-2804-2814)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("evaluateSubagentAliveGate rejects zero threshold minutes", () => {
+    expect(
+      evaluateSubagentAliveGate({
+        scratchDirs: [],
+        requireAgents: [],
+        thresholdMinutes: 0,
+        emitJson: false,
+        help: false,
+      }).message,
+    ).toContain("must be positive");
+  });
+
+  it("json config error uses external exit code", () => {
+    const verdict = evaluateSubagentAliveGate(
+      {
+        scratchDirs: ["/does/not/exist/subagent-status"],
+        requireAgents: ["worker"],
+        thresholdMinutes: 30,
+        emitJson: true,
+        help: false,
+      },
+      process.cwd(),
+    );
+    expect(verdict.exitCode).toBe(2);
+    expect(verdict.json?.all_ok).toBe(false);
+  });
+
   it("run emits JSON verdict on stdout", () => {
     const root = mkdtempSync(join(tmpdir(), "sam-alive-json-"));
     const scratch = join(root, ".deft-scratch", "subagent-status");

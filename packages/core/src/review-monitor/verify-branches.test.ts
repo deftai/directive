@@ -129,6 +129,20 @@ describe("review-monitor verify branch coverage (#2666)", () => {
     expect(result.exitCode).toBe(2);
   });
 
+  it("includes unspecified call-site hint when failing closed", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cs-unspec-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 13,
+      projectRoot: root,
+      repo: "deftai/directive",
+      callSite: "unspecified",
+      environ: { CURSOR_COMPOSER: "1" },
+      seams: { fetchComments: () => [] },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("Solo drive-to");
+  });
+
   it("fails when repo cannot be resolved on Tier 1 verify", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-verify-repo-"));
     const result = evaluateReviewMonitorGate({
