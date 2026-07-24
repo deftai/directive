@@ -333,4 +333,24 @@ describe("review-monitor record branch coverage (#2666)", () => {
       ),
     ).toBe(false);
   });
+
+  it("release surfaces repo resolution and fetch failures", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-rel-repo-"));
+    expect(
+      releaseReviewMonitor({
+        pr: 15,
+        repo: "",
+        projectRoot: root,
+      }).message,
+    ).toContain("could not resolve owner/repo");
+
+    expect(
+      releaseReviewMonitor({
+        pr: 16,
+        repo: "deftai/directive",
+        projectRoot: root,
+        seams: { fetchComments: () => ({ error: "offline" }) },
+      }).exitCode,
+    ).toBe(2);
+  });
 });

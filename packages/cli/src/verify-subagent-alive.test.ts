@@ -180,10 +180,94 @@ describe("verify-subagent-alive gate (#2824 / cohort-2804-2814)", () => {
     expect(out.mock.calls.join("")).toContain("verify:subagent-alive");
   });
 
-  it("run exits 2 on config error (missing scratch dir, no records)", () => {
+  it("evaluateSubagentAliveGate propagates parse args errors", () => {
+    const verdict = evaluateSubagentAliveGate({
+      scratchDirs: [],
+      requireAgents: [],
+      thresholdMinutes: 30,
+      emitJson: false,
+      help: false,
+      error: "argument --require-agent: expected one argument",
+    });
+    expect(verdict.exitCode).toBe(2);
+    expect(verdict.message).toContain("expected one argument");
+  });
+
+  it("configError returns text message when emitJson is false", () => {
     const root = mkdtempSync(join(tmpdir(), "sam-alive-cfg-"));
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(run(["--scratch-dir", join(root, "missing-status"), "--require-agent", "x"])).toBe(2);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it("parseVerifySubagentAliveArgs surfaces scratch-dir and threshold errors", () => {
+    expect(parseVerifySubagentAliveArgs(["--scratch-dir"]).error).toMatch(/expected one argument/);
+    expect(parseVerifySubagentAliveArgs(["--threshold-minutes"]).error).toMatch(
+      /expected one argument/,
+    );
+    expect(parseVerifySubagentAliveArgs(["--unknown-flag"]).error).toMatch(/unrecognized argument/);
+    expect(parseVerifySubagentAliveArgs(["positional"]).error).toMatch(/unrecognized argument/);
+  });
+
+  it("evaluateSubagentAliveGate rejects non-positive threshold minutes", () => {
+    const verdict = evaluateSubagentAliveGate({
+      scratchDirs: [],
+      requireAgents: [],
+      thresholdMinutes: Number.NaN,
+      emitJson: false,
+      help: false,
+    });
+    expect(verdict.exitCode).toBe(2);
+    expect(verdict.message).toContain("must be positive");
+  });
+
+  it("sweep-only mode fails when unrelated stale records exist", () => {
+    const root = mkdtempSync(join(tmpdir(), "sam-alive-sweep-"));
+    const scratch = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    writeFileSync(
+      join(scratch, "stale-only.json"),
+      JSON.stringify({
+        agent_id: "stale-only",
+        parent_id: "parent",
+        last_heartbeat_at: "2020-01-01T12:00:00Z",
+        last_message: "stale",
+        phase: "polling",
+      }),
+      "utf8",
+    );
+
+    const verdict = evaluateSubagentAliveGate(
+      {
+        scratchDirs: [scratch],
+        requireAgents: [],
+        thresholdMinutes: 30,
+        emitJson: false,
+        help: false,
+      },
+      root,
+    );
+
+    expect(verdict.exitCode).toBe(1);
+    expect(verdict.message).toContain("Sweep:");
+    expect(verdict.message).toContain("REDISPATCH_OK");
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("run emits JSON verdict on stdout", () => {
+    const root = mkdtempSync(join(tmpdir(), "sam-alive-json-"));
+    const scratch = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    const cwd = process.cwd();
+    process.chdir(root);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["--scratch-dir", scratch, "--require-agent", "missing-agent", "--json"])).toBe(1);
+      expect(out.mock.calls.join("")).toContain('"redispatch_ok": true');
+    } finally {
+      process.chdir(cwd);
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

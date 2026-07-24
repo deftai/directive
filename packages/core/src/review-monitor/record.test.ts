@@ -293,6 +293,7 @@ describe("review-monitor GitHub lease", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.message).toContain("forced takeover from bob");
+    expect(result.priorOwner).toBe("bob");
   });
 
   it("release ends lease so another owner can claim", () => {

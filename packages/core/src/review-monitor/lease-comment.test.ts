@@ -82,6 +82,9 @@ describe("review-owner lease comment", () => {
     };
     expect(isLeaseActive(endedLease, { now: new Date("2026-07-24T12:10:00.000Z") })).toBe(false);
     expect(isLeaseExpired(endedLease, new Date("2026-07-24T12:10:00.000Z"))).toBe(true);
+    expect(parseIso8601Utc("2026-07-24T12:00:00+00:00")?.toISOString()).toBe(
+      "2026-07-24T12:00:00.000Z",
+    );
     expect(
       renderReviewOwnerComment({
         owner: "bob",
