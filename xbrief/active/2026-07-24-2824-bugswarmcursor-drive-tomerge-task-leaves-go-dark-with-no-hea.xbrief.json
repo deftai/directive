@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2824 — fail-closed Cursor Task worker liveness gate (heartbeat + REDISPATCH_OK)."
+  },
+  "plan": {
+    "id": "2824-cursor-subagent-liveness-gate",
+    "title": "bug(swarm,cursor): drive-to:merge Task leaves go dark with no heartbeat gate or REDISPATCH_OK",
+    "status": "running",
+    "narratives": {
+      "Description": "Cursor Task drive-to:merge leaves can go silent after PR-open with no heartbeat, no DONE/FAILED, and a host false-alive \"still running\" state that blocks resume/replace. Prose (#1365) and deft-ts subagent-monitor exist, but there is no fail-closed Taskfile gate analogous to verify:review-monitor (#2655). This story wires task verify:subagent-alive / task agent:monitor, makes swarm Phase 5 fail closed on STALE/missing heartbeats with REDISPATCH_OK, documents Cursor false-alive re-dispatch policy, and adds a regression eval/contract case.",
+      "ImplementationPlan": "1. Add packages/cli verify-subagent-alive (and optional agent:monitor alias) wrapping packages/core/src/orchestration/subagent-monitor.ts with three-state exit 0/1/2; register in packages/cli/src/dispatch.ts and tasks/verify.yml (mirror verify:review-monitor). 2. Update content/skills/deft-directive-swarm/SKILL.md Phase 5 + content/templates/agent-prompt-preamble.md §10.5 so monitors MUST run the gate for in-flight drive-to:merge* workers and treat STALE+no-activity as REDISPATCH_OK even when the host says running. 3. Document the Cursor false-alive policy in docs/subagent-heartbeat.md. 4. Add focused unit tests for the CLI gate plus an eval/trigger or contract test for \"PR open, no heartbeat => not healthy\". 5. CHANGELOG [Unreleased] + commands.md pointer. Coordinate shared files with open PR #2820 (#2814): rebase onto master after it merges, or carefully merge CHANGELOG.md, agent-prompt-preamble.md, and packages/cli/src/dispatch.ts.",
+      "UserStory": "As a swarm monitor on Cursor, I want a deterministic worker-liveness gate that fails closed when drive-to:merge leaves stop heartbeating, so that I can re-dispatch takeovers instead of waiting on false-alive zombies.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2824",
+      "Overview": "## Summary\n\nCursor `Task` `drive-to: merge` leaves from cohort-2804-2814 (#2804 PR #2818, #2814 PR #2820) opened PRs then went dark: empty transcripts, zero heartbeats, resume reported \"still running\". Monitor prose and `subagent-monitor` did not fail closed.\n\n## Expected\n\n`task verify:subagent-alive` fails closed on missing/STALE heartbeats; swarm Phase 5 prints REDISPATCH_OK; Cursor false-alive policy treats host-running + STALE + no activity as dead for re-dispatch.\n\n## Actual\n\nHeartbeat is prose-only on Cursor leaves; `task agent:monitor` does not exist as a Taskfile surface; monitors invent policy or move on.\n\n## Non-goals\n\n- Replacing #2655 review-monitor ownership\n- Changing Greptile/`pr:watch` semantics\n- Removing Cursor as Tier-1\n",
+      "Labels": "bug, swarm, determinism, agent-experience, review-cycle, harness, monitoring",
+      "Traces": "#2824"
+    },
+    "items": [
+      {
+        "id": "2824-a1",
+        "title": "Given registered in-flight workers with missing or STALE heartbeats, when verify:subagent-alive runs, then it exits 1 and surfaces REDISPATCH_OK.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given one or more registered in-flight worker heartbeat paths under `.deft-scratch/subagent-status/` that are missing or STALE past the threshold, when `task verify:subagent-alive` (or `task agent:monitor`) runs, then it exits 1, prints per-agent diagnostics, and includes a REDISPATCH_OK signal; exit 0 only when all non-terminal records are fresh; exit 2 on config errors.",
+          "Traces": "#2824"
+        }
+      },
+      {
+        "id": "2824-a2",
+        "title": "Given swarm Phase 5 with in-flight drive-to:merge PRs, when the monitor poll loop runs, then it MUST invoke the liveness gate before claiming workers healthy.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an active swarm Phase 5 monitor loop with in-flight `drive-to: merge` or `drive-to: merge-ready` PRs, when the poll iteration runs, then the swarm skill requires `task verify:subagent-alive` (or equivalent) and forbids treating host \"running\" alone as healthy when heartbeats are missing/STALE.",
+          "Traces": "#2824"
+        }
+      },
+      {
+        "id": "2824-a3",
+        "title": "Given Cursor host reports running but heartbeat is STALE with no git/PR activity, when policy is applied, then re-dispatch is authorized.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given docs/subagent-heartbeat.md and the agent-prompt-preamble, when a Cursor Task is host-reported running but the heartbeat is STALE and there is no recent git/PR activity, then the documented policy authorizes REDISPATCH_OK / takeover without waiting for a terminal platform lifecycle event.",
+          "Traces": "#2824"
+        }
+      },
+      {
+        "id": "2824-a4",
+        "title": "Given a regression fixture with PR open and no heartbeat, when the contract/eval runs, then workers are not reported healthy.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a unit, contract, or eval fixture representing \"PR open, no heartbeat record\", when the gate or trigger suite runs, then the case fails closed (not healthy) and is named so maintainers can find the cohort-2804-2814 recurrence class.",
+          "Traces": "#2824"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "determinism",
+      "agent-experience",
+      "review-cycle",
+      "harness",
+      "monitoring"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/orchestration/subagent-monitor.ts",
+          "packages/core/src/orchestration/orchestration.test.ts",
+          "packages/cli/src/verify-subagent-alive.ts",
+          "packages/cli/src/verify-subagent-alive.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "tasks/verify.yml",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "docs/subagent-heartbeat.md",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/verify-subagent-alive.test.ts packages/core/src/orchestration/orchestration.test.ts"
+        ],
+        "expected_outputs": [
+          "verify:subagent-alive / agent:monitor Taskfile surface with three-state exit",
+          "swarm Phase 5 + preamble fail-closed REDISPATCH_OK policy for Cursor false-alive",
+          "regression test for PR-open with no heartbeat"
+        ],
+        "depends_on": [],
+        "conflict_group": "subagent-liveness",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2824",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2824: bug(swarm,cursor): drive-to:merge Task leaves go dark with no heartbeat gate or REDISPATCH_OK (false-alive)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1365",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1365"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2655",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2655"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/2818",
+        "type": "x-xbrief/refs",
+        "title": "PR #2818 recurrence stimulus (merged after silent leaf)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/2820",
+        "type": "x-xbrief/refs",
+        "title": "PR #2820 recurrence stimulus (open; coordinate shared files)"
+      }
+    ],
+    "updated": "2026-07-24T19:37:19Z"
+  }
+}
