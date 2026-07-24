@@ -11,11 +11,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  APPLY_PATCH_HOOK_MATCHER,
-  CURSOR_APPLY_PATCH_ADAPTER_COMMAND,
-  CURSOR_APPLY_PATCH_ADAPTER_RELATIVE,
-} from "../hooks/cursor-hooks.js";
-import {
   DIRECT_WRITE_TOOL_NAMES,
   isDirectWriteTool,
   isSpawnTool,
@@ -24,7 +19,6 @@ import {
 import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
 import {
   AGENT_HOOK_PATHS,
-  CURSOR_GENERIC_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_HOOK_MATCHER,
   inspectAgentHookDeposit,
   SPAWN_HOOK_MATCHER,
@@ -75,18 +69,9 @@ describe("writeAgentHookDeposit", () => {
       "--host cursor --event session.compact",
     );
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
-      CURSOR_GENERIC_WRITE_HOOK_MATCHER,
-    );
-    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
-      CURSOR_APPLY_PATCH_ADAPTER_COMMAND,
-    );
-    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(
-      APPLY_PATCH_HOOK_MATCHER,
-    );
-    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).not.toContain(
       `"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`,
     );
-    expect(existsSync(join(root, CURSOR_APPLY_PATCH_ADAPTER_RELATIVE))).toBe(true);
+    expect(existsSync(join(root, ".cursor/hooks/deft-cursor-hook-adapter.mjs"))).toBe(false);
     expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toContain(
       "--host claude --event session.compact",
     );
@@ -103,7 +88,18 @@ describe("writeAgentHookDeposit", () => {
     });
   });
 
-  it("replaces stale overlapping Cursor ApplyPatch registrations on refresh (#2764)", () => {
+  it("deposits exactly one direct-write matcher for each supported host (#2790)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+
+    for (const path of AGENT_HOOK_PATHS) {
+      const deposit = readFileSync(join(root, path), "utf8");
+      expect(deposit.split(DIRECT_WRITE_HOOK_MATCHER)).toHaveLength(2);
+      expect(deposit).toContain("deft-hook --host");
+    }
+  });
+
+  it("replaces legacy Cursor adapter registrations with one fast direct-write hook", () => {
     const root = project();
     mkdirSync(join(root, ".cursor", "hooks"), { recursive: true });
     writeFileSync(
@@ -122,12 +118,6 @@ describe("writeAgentHookDeposit", () => {
                 failClosed: true,
                 timeout: 5,
               },
-              {
-                command: "node .cursor/hooks/deft-cursor-hook-adapter.mjs ApplyPatch",
-                matcher: APPLY_PATCH_HOOK_MATCHER,
-                failClosed: true,
-                timeout: 5,
-              },
             ],
             preCompact: [
               { command: "deft hook:dispatch --host cursor --event session.compact", timeout: 5 },
@@ -142,8 +132,8 @@ describe("writeAgentHookDeposit", () => {
 
     writeAgentHookDeposit(root);
     const cursor = readFileSync(join(root, ".cursor/hooks.json"), "utf8");
-    expect(cursor).toContain(CURSOR_GENERIC_WRITE_HOOK_MATCHER);
-    expect(cursor).not.toContain(`"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`);
+    expect(cursor).toContain(`"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`);
+    expect(cursor).not.toContain("deft-cursor-hook-adapter.mjs");
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "cursor")?.status).toBe(
       "healthy",
     );
@@ -377,7 +367,7 @@ describe("inspectAgentHookDeposit", () => {
     });
   });
 
-  it("marks Cursor registration drifted when generic matcher still includes ApplyPatch (#2764)", () => {
+  it("marks Cursor registration drifted when the direct-write matcher excludes ApplyPatch", () => {
     const root = project();
     writeAgentHookDeposit(root);
     const cursorPath = join(root, ".cursor/hooks.json");
@@ -385,8 +375,8 @@ describe("inspectAgentHookDeposit", () => {
       hooks: { preToolUse: Array<Record<string, unknown>> };
     };
     cursor.hooks.preToolUse = cursor.hooks.preToolUse.map((entry) =>
-      entry.matcher === CURSOR_GENERIC_WRITE_HOOK_MATCHER
-        ? { ...entry, matcher: DIRECT_WRITE_HOOK_MATCHER }
+      entry.matcher === DIRECT_WRITE_HOOK_MATCHER
+        ? { ...entry, matcher: DIRECT_WRITE_HOOK_MATCHER.replace("|ApplyPatch|apply_patch", "") }
         : entry,
     );
     writeFileSync(cursorPath, `${JSON.stringify(cursor, null, 2)}\n`, "utf8");
@@ -396,7 +386,7 @@ describe("inspectAgentHookDeposit", () => {
     });
   });
 
-  it("marks Cursor registration drifted when ApplyPatch adapter entry is missing (#2764)", () => {
+  it("marks Cursor registration drifted when its direct-write entry is missing", () => {
     const root = project();
     writeAgentHookDeposit(root);
     const cursorPath = join(root, ".cursor/hooks.json");
@@ -404,7 +394,7 @@ describe("inspectAgentHookDeposit", () => {
       hooks: { preToolUse: Array<Record<string, unknown>> };
     };
     cursor.hooks.preToolUse = cursor.hooks.preToolUse.filter(
-      (entry) => entry.matcher !== APPLY_PATCH_HOOK_MATCHER,
+      (entry) => entry.matcher !== DIRECT_WRITE_HOOK_MATCHER,
     );
     writeFileSync(cursorPath, `${JSON.stringify(cursor, null, 2)}\n`, "utf8");
 

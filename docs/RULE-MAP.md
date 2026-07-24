@@ -37,7 +37,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 21 | 459 | 111 | 400 | 0 | 16 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 293 | 88 | 119 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 67 | 12 | 15 | 0 | 0 |
-| templates | Reusable document/scaffold templates. | 10 | 84 | 10 | 35 | 1 | 5 |
+| templates | Reusable document/scaffold templates. | 10 | 85 | 10 | 36 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 90 | 73 | 33 | 1 | 15 |
 | vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 67 | 24 | 26 | 0 | 7 |
 | verification | How agents prove work is done: gates, validators, coverage, review. | 4 | 39 | 22 | 25 | 0 | 4 |

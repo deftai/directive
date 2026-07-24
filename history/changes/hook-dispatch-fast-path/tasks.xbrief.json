@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "hook-dispatch-fast-path",
+    "status": "approved",
+    "items": [
+      {
+        "title": "Add and test the direct deft-hook executable",
+        "status": "pending"
+      },
+      {
+        "title": "Deposit the fast path for all agent hosts and remove Cursor adapter drift",
+        "status": "pending"
+      },
+      {
+        "title": "Prove direct-write matcher multiplicity and preserve health checks",
+        "status": "pending"
+      },
+      {
+        "title": "Document the consumer update path and release note",
+        "status": "pending"
+      },
+      {
+        "title": "Run focused and full quality gates before PR review",
+        "status": "pending"
+      }
+    ],
+    "edges": []
+  }
+}

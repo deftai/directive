@@ -21692,6 +21692,10 @@
         "absoluteMaxBytes": 8273,
         "skillFrontmatterTier": "daily-core",
         "skillFrontmatterMaxBytes": 2260
+      },
+      "productSignal": {
+        "enabled": true,
+        "sinkRepo": "deftai/product-signal"
       }
     },
     "updated": "2026-07-02T14:32:31Z"

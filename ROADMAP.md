@@ -1026,5 +1026,8 @@
 - **#2762** -- test(coverage): restore branches >=85% after v0.82.0 hairline miss -- `[completed]`
 - **#2764** -- bug: Cursor ApplyPatch double-dispatch blocks Windows writes -- `[completed]`
 - **#2766** -- security(lifecycle): refuse symlink write targets for events.jsonl (#2761) -- `[completed]`
+- **#1704** -- RFC: gate throughput without quality loss — process levers (fast lane, CI monolith, merge queue) -- `[completed]`
+- **#2782** -- Session ritual invalidates on every forward commit (exact HEAD pin + PreToolUse) -- `[completed]`
+- bug(check): #1713 cached task check shells internal Taskfile shims (go-task 202) -- `[completed]`
 - **#2779** -- bug(hooks): Cursor failClosed empty allow stdout blocks Write after successful Directive gate -- `[completed]`
 

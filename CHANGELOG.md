@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Rule Map generator (#2809).** New maintainer-only `task docs:rule-map` engine verb (TypeScript, Node stdlib only, no new deps) renders `docs/RULE-MAP.md` (committed, diff-friendly, timestamp-free) and a self-contained zero-dependency `docs/rule-map/index.html` explorer (gitignored). `task docs:rule-map:check` gates staleness of the committed Markdown. Lives under maintainer-only top-level `docs/` so it stays out of the shipped payload.
+
+### Changed
+
+### Fixed
+
+- **Dependabot brace-expansion DoS advisories closed via pnpm overrides.** Pin transitive `brace-expansion@2` → `2.1.2` and `@5` → `5.0.7` (minimatch/glob via vitest coverage and archiver) so lockfile consumers no longer resolve the vulnerable 2.1.1 / 5.0.6 lines.
+- **Cursor review-monitor ownership is now explicit (#2797).** Cursor `Task` leaves no longer treat nested Task dispatch or a backgrounded `task pr:watch` shell as an active Approach 1 monitor. A merge-ready leaf blocks in its own review loop, or exits at PR open so its orchestrator can launch and register a sibling monitor; the unregistered-monitor claim is a fail-closed regression condition. Closes #2797.
+- **Agent-host edit hooks no longer boot the full CLI for every tool call (#2790).** `directive init` and `deft update` now deposit the lightweight `deft-hook` entrypoint for Claude, Grok, Cursor, and Codex. Cursor ApplyPatch shares the direct-write hook rather than probing and spawning a second CLI process; the same ritual, scope, runtime-authority, and fail-closed decisions remain enforced. Upgrade `@deftai/directive` and run `deft update` to refresh existing deposits—`hostHooks` opt-out is not the performance fix.
+
+### Removed
+
+## [0.84.0] - 2026-07-23
+
+> Faster consumer checks: in-engine content-hash cache and iteration fast lane, plus Windows Cursor Write path, session-ritual rebind, and symlink write hardening.
+
+### Added
+
 - **In-engine content-hash task cache (#1713).** `deft check` replays prior exit-0 results for unchanged cacheable gates from `.deft/cache/task/`; `--no-cache` and `deft cache:clear` escape hatches; `codeVersion` invalidates on upgrade; volatile gates opt out; runner auto-detect documents vitest/jest/go/pytest fast-lane conventions (full suite remains the merge gate per #1704). Public `@deft/types` contract deferred to #2784.
 - **Gate throughput process levers (#1704).** Iteration fast lane (affected/static gates during commits; full `task check` at PR/merge only) in build, swarm, and pre-pr skills; `task check:merge` alias; CI merge-gate job runs `task check:merge` as merge SoT (cached `deft check` cannot invoke internal Taskfile shims — `#1713` follow-up). Escape-rate consumption points at `#1703` Tier-1 telemetry. In-engine cache remains `#1713`. Merge queue deferred pending `#1713` + stable escape-rate signal.
 
@@ -25,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm/build/pre-pr gate policy (#1704).** Moves swarm-heavy workflows toward `O(merges × full-gate) + O(iterations × cheap-proxy)` from `O(commits × full-gate)`.
 
 ### Fixed
+
+- **Cached `task check` no longer shells internal Taskfile shims (#2791).** The #1713 framework gate list now invokes the public `verify:wip-cap --allow-over-cap` and eval-relocation surfaces (with `--base-ref origin/master`) instead of `internal: true` task names that go-task 3.50 refuses with exit 202. Closes #2791. Parent #1713.
 
 - Session ritual no longer invalidates on every forward commit on the same worktree. When the pinned `git_head` is still an ancestor of current HEAD, gated direct writes stay allowed and `verify:session-ritual` rebinds the pin in place; checkout, reset, rebase, and worktree mismatches still fail closed. Closes #2782.
 - **Cursor Write hook ritual path no longer doubles Windows drive prefix (#2787).** Hook project-root resolution now scans all Cursor payload workspace fields (not just the first drive-only `C:` entry), normalizes MSYS `/c/...` shapes, and collapses `C:\\c:\\...` doubled-drive paths before ritual-state lookup so Write PreToolUse matches `deft session:start` on Windows consumer trees like `C:\\Repos\\...`. Closes #2787.
@@ -43,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+
+- **Synthetic secret-shaped test fixtures no longer trip GitHub secret scanning (#2792).** Product-signal, cache-scanner, and umbrella-current-shape tests now assemble `ghp_`-shaped placeholders at runtime (split-literal #1070 precedent) so no single source line matches secret scanning while validators still reject the concatenated strings. Closes #2792.
 
 - **Cursor failClosed empty-allow stdout no longer blocks Write tools (#2779).** Cursor `preToolUse` deposits use `failClosed: true`, which treats empty/null hook stdout as failure. `renderHostDecision` now emits `{"permission":"allow"}` for Cursor allow decisions (denials unchanged; Claude/Grok/Codex keep empty allow). The deposited ApplyPatch adapter also normalizes empty success stdout to an explicit allow so Windows/ApplyPatch paths cannot fail closed after a clean ritual. Closes #2779.
 
@@ -4612,7 +4633,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.83.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.84.0...HEAD
+[0.84.0]: https://github.com/deftai/directive/compare/v0.83.0...v0.84.0
 [0.83.0]: https://github.com/deftai/directive/compare/v0.82.0...v0.83.0
 [0.82.0]: https://github.com/deftai/directive/compare/v0.81.0...v0.82.0
 [0.81.0]: https://github.com/deftai/directive/compare/v0.80.0...v0.81.0

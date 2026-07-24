@@ -9,6 +9,9 @@ import {
 } from "./payload.js";
 import { assembleProductSignalPayload } from "./submit.js";
 
+// Synthetic GitHub PAT-shaped token split across literals (#2792 / #1070 precedent).
+const SYNTHETIC_GHP_TOKEN = `ghp_${"1234567890123456789012345678901234"}`;
+
 const roots: string[] = [];
 afterEach(() => {
   for (const root of roots.splice(0)) {
@@ -31,7 +34,7 @@ describe("validateProductSignalPayload", () => {
       human: {
         nps: 8,
         answers: [],
-        freeText: "token ghp_1234567890123456789012345678901234",
+        freeText: `token ${SYNTHETIC_GHP_TOKEN}`,
       },
     });
     expect(validateProductSignalPayload(payload).length).toBeGreaterThan(0);

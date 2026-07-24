@@ -11,6 +11,11 @@ packages:
 overrides:
   vite: "^7.3.6"
   esbuild: "^0.28.1"
+  # Dependabot high: brace-expansion DoS via consecutive non-expanding {} groups
+  # (alerts #6/#7). Arrives via minimatch@9 (glob/test-exclude/vitest coverage)
+  # and minimatch@10 (archiver + test-exclude). Pin both major lines.
+  "brace-expansion@2": "2.1.2"
+  "brace-expansion@5": "5.0.7"
 
 # pnpm 11 defaults to strictDepBuilds and blocks dependency build scripts
 # unless explicitly allowed via the `allowBuilds` map (it replaced the old
@@ -22,3 +27,5 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - vite@7.3.6
+  - brace-expansion@2.1.2
+  - brace-expansion@5.0.7

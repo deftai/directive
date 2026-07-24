@@ -8,7 +8,7 @@ import {
 import type { TaskRunResult } from "../cache/task-cache/types.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
-import { gatesForCheckTarget } from "./gate-lists.js";
+import { checkGateId, checkGateSpawnArgs, gatesForCheckTarget } from "./gate-lists.js";
 
 export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly onGateStart?: (gateId: string) => void;
@@ -71,9 +71,11 @@ export function dispatchCachedTaskCheck(
     return 2;
   }
 
-  for (const gateId of gates) {
+  for (const gateSpec of gates) {
+    const gateId = checkGateId(gateSpec);
     options.onGateStart?.(gateId);
     const contract = resolveTaskContract(gateId);
+    const taskArgs = checkGateSpawnArgs(gateSpec, taskfilePath);
     const result = runWithCache({
       projectRoot: cwd,
       contract,
@@ -81,11 +83,11 @@ export function dispatchCachedTaskCheck(
       noCache: options.noCache,
       runner: () => {
         const spawned = options.gateSpawnFn
-          ? options.gateSpawnFn(gateId, taskBin, [gateId, "--taskfile", taskfilePath], {
+          ? options.gateSpawnFn(gateId, taskBin, taskArgs, {
               cwd,
               env: options.env,
             })
-          : captureSpawn(taskBin, [gateId, "--taskfile", taskfilePath], { cwd, env: options.env });
+          : captureSpawn(taskBin, taskArgs, { cwd, env: options.env });
         if (spawned.stdout.length > 0) {
           process.stdout.write(spawned.stdout);
         }

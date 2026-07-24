@@ -31,6 +31,9 @@ const SAMPLE_BODY =
   "### Reading order for fresh contributors\n\n" +
   "1. Body\n2. This comment\n3. Amendments";
 
+// Synthetic GitHub PAT-shaped token split across literals (#2792 / #1070 precedent).
+const SYNTHETIC_GHP_TOKEN = `ghp_${"0123456789012345678901234567890123"}`;
+
 // Single options object for the optional fields (pass override + provenance)
 // so every call site passes at most three arguments and never a positional
 // `undefined` placeholder — keeps the helper's arity unambiguous.
@@ -298,7 +301,7 @@ describe("runCurrentShape", () => {
     // Structurally valid, maintainer-authored, but carries a credential the
     // scanner flags (hard-fail) — detectCredentials does NOT redact it, so the
     // emit MUST refuse rather than forward the raw secret to stdout.
-    const withCredential = `${SAMPLE_BODY}\n\nAPI key: ghp_0123456789012345678901234567890123\n`;
+    const withCredential = `${SAMPLE_BODY}\n\nAPI key: ${SYNTHETIC_GHP_TOKEN}\n`;
     const code = runCurrentShape({
       issueNumber: 1119,
       projectRoot: "/tmp",
@@ -313,13 +316,13 @@ describe("runCurrentShape", () => {
     expect(err).toContain("quarantine scanner hard-fail");
     expect(err).toContain("nothing written");
     // The raw credential MUST NOT appear anywhere in the output surfaces.
-    expect(`${outLines.join("")}${err}`).not.toContain("ghp_0123456789012345678901234567890123");
+    expect(`${outLines.join("")}${err}`).not.toContain(SYNTHETIC_GHP_TOKEN);
   });
 
   it("(e, #2307) fails closed in JSON mode too — no credential in stdout", () => {
     const outLines: string[] = [];
     const errLines: string[] = [];
-    const withCredential = `${SAMPLE_BODY}\n\nleaked: ghp_0123456789012345678901234567890123\n`;
+    const withCredential = `${SAMPLE_BODY}\n\nleaked: ${SYNTHETIC_GHP_TOKEN}\n`;
     const code = runCurrentShape({
       issueNumber: 1119,
       projectRoot: "/tmp",

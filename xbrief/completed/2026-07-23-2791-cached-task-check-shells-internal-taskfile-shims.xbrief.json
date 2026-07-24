@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #2791 — cached task check must not shell internal Taskfile shims."
+  },
+  "plan": {
+    "id": "2791-cached-check-internal-shims",
+    "title": "bug(check): #1713 cached task check shells internal Taskfile shims (go-task 202)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2791",
+    "narratives": {
+      "Description": "After #1713, framework `task check` shells each FRAMEWORK_CHECK_GATES entry by name. Three Taskfile shims are internal:true and go-task 3.50 exits 202 when invoked directly, blocking release prep.",
+      "ImplementationPlan": "1. Change gate-lists to use public verify:wip-cap --allow-over-cap and eval-relocation --base-ref origin/master. 2. Teach cached-orchestrator to spawn CheckGateSpec args after --. 3. Unit test + CHANGELOG. 4. Re-run task check.",
+      "UserStory": "As a maintainer running task check on master, I want the #1713 cached orchestrator to invoke public Taskfile surfaces so go-task does not refuse internal shim names.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2791",
+      "Traces": "#2791, #1713, #1124"
+    },
+    "items": [
+      {
+        "id": "2791-a1",
+        "title": "Framework gate list uses public surfaces",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given FRAMEWORK_CHECK_GATES, when resolved, then it does not contain internal shim task names and WIP-cap/eval-relocation entries carry the shim CLI flags."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2791"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/gate-lists.test.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/index.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task ts:test",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Public gate spawn args; no internal shim names in FRAMEWORK_CHECK_GATES"
+        ]
+      },
+      "completedAt": "2026-07-23T21:08:04Z",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-07-23T21:08:04Z"
+  }
+}

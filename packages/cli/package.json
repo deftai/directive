@@ -9,6 +9,7 @@
     "directive": "./dist/bin.js",
     "deft": "./dist/bin.js",
     "deft-ts": "./dist/bin.js",
+    "deft-hook": "./dist/hook-bin.js",
     "deft-verify-encoding": "./dist/verify-encoding.js"
   },
   "exports": {
