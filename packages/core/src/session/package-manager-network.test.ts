@@ -146,6 +146,43 @@ describe("package-manager network scope (#2182)", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 
+    spawnSyncMock.mockImplementation(((command: string, args?: readonly string[]) => {
+      if (command === "npm" && args?.[0] === "config" && args?.[1] === "get") {
+        const key = args[2];
+        if (key === "@deftai:registry") {
+          return {
+            status: 0,
+            stdout: "undefined\n",
+            stderr: "",
+            pid: 1,
+            output: [null, "undefined\n", ""],
+            signal: null,
+            error: undefined,
+          };
+        }
+        if (key === "registry") {
+          return {
+            status: 0,
+            stdout: "https://registry.npmjs.org/\n",
+            stderr: "",
+            pid: 1,
+            output: [null, "https://registry.npmjs.org/\n", ""],
+            signal: null,
+            error: undefined,
+          };
+        }
+      }
+      return spawnSyncMock.getMockImplementation()?.(command, args) ?? {
+        status: 1,
+        stdout: "",
+        stderr: "",
+        pid: 1,
+        output: [null, "", ""],
+        signal: null,
+        error: undefined,
+      };
+    }) as typeof spawnSync);
+
     const result = defaultRitualRunner(GATED_ENTRYPOINT_COMMANDS.doctor.slice(), root);
 
     expect(typeof result.code).toBe("number");
@@ -153,6 +190,16 @@ describe("package-manager network scope (#2182)", () => {
       [
         "npm",
         ["config", "get", "@deftai:registry"],
+        expect.objectContaining({
+          cwd: root,
+          encoding: "utf8",
+          shell: false,
+          timeout: 5_000,
+        }),
+      ],
+      [
+        "npm",
+        ["config", "get", "registry"],
         expect.objectContaining({
           cwd: root,
           encoding: "utf8",
