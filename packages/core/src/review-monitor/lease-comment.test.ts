@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   computeExpiresAt,
+  findActiveLeaseComment,
+  hasReviewOwnerMarker,
   isLeaseActive,
   isLeaseExpired,
+  mapCommentEntry,
+  parseIso8601Utc,
   parseReviewOwnerLease,
+  renderReleasedReviewOwnerComment,
   renderReviewOwnerComment,
   selectWinningReviewOwnerComment,
 } from "./lease-comment.js";
@@ -47,5 +52,44 @@ describe("review-owner lease comment", () => {
     expect(isLeaseActive(lease, { now })).toBe(true);
     expect(isLeaseExpired(lease, now)).toBe(false);
     expect(isLeaseActive(lease, { now, headSha: "zzz" })).toBe(false);
+  });
+
+  it("covers parse helpers and active-lease selection", () => {
+    expect(parseIso8601Utc("")).toBeNull();
+    expect(parseIso8601Utc("2026-07-24T12:00:00.000Z")?.toISOString()).toBe(
+      "2026-07-24T12:00:00.000Z",
+    );
+    expect(parseIso8601Utc("not-a-date")).toBeNull();
+    expect(hasReviewOwnerMarker("<!-- deft:review-owner -->")).toBe(true);
+    expect(mapCommentEntry(null)).toBeNull();
+    expect(mapCommentEntry({ id: 1, body: "no marker" })).toBeNull();
+    expect(findActiveLeaseComment([])).toBeNull();
+    expect(renderReleasedReviewOwnerComment("2026-07-24T13:00:00.000Z")).toContain("ended_at:");
+    expect(selectWinningReviewOwnerComment([])).toBeNull();
+    expect(
+      parseReviewOwnerLease("<!-- deft:review-owner --><!-- /deft:review-owner -->"),
+    ).toBeNull();
+    const endedLease = {
+      owner: "alice",
+      monitor_agent_id: "rm-1",
+      head_sha: null,
+      started_at: "2026-07-24T12:00:00.000Z",
+      expires_at: "2026-07-24T12:30:00.000Z",
+      platform_primitive: "cursor-task" as const,
+      ended_at: "2026-07-24T12:20:00.000Z",
+    };
+    expect(isLeaseActive(endedLease, { now: new Date("2026-07-24T12:10:00.000Z") })).toBe(false);
+    expect(isLeaseExpired(endedLease, new Date("2026-07-24T12:10:00.000Z"))).toBe(true);
+    expect(
+      renderReviewOwnerComment({
+        owner: "bob",
+        monitor_agent_id: "rm-2",
+        head_sha: null,
+        started_at: "2026-07-24T12:00:00.000Z",
+        expires_at: "2026-07-24T12:30:00.000Z",
+        platform_primitive: "cursor-task",
+        ended_at: null,
+      }),
+    ).toContain("head_sha:");
   });
 });
