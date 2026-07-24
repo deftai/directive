@@ -183,9 +183,7 @@ describe("verify-subagent-alive gate (#2824 / cohort-2804-2814)", () => {
   it("run exits 2 on config error (missing scratch dir, no records)", () => {
     const root = mkdtempSync(join(tmpdir(), "sam-alive-cfg-"));
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    expect(
-      run(["--scratch-dir", join(root, "missing-status"), "--require-agent", "x"]),
-    ).toBe(2);
+    expect(run(["--scratch-dir", join(root, "missing-status"), "--require-agent", "x"])).toBe(2);
     rmSync(root, { recursive: true, force: true });
   });
 });

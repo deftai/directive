@@ -6,15 +6,15 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  defaultScratchDir,
   DEFAULT_THRESHOLD_MINUTES,
+  defaultScratchDir,
   EXIT_EXTERNAL_ERROR,
   EXIT_OK,
   EXIT_STALE,
   recordOk,
+  type ScratchDirEntry,
   sweepAllOk,
   sweepScratchDirs,
-  type ScratchDirEntry,
 } from "@deftai/directive-core/orchestration";
 
 export const SUBAGENT_ALIVE_HELP = `verify:subagent-alive — fail-closed worker liveness gate (#2824)
