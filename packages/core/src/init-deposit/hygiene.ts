@@ -212,13 +212,13 @@ function listRelativeFilePathsSync(root: string): string[] {
   const results: string[] = [];
   const walk = (dir: string, prefix: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const rel = normalizeRelativePath(prefix ? `${prefix}/${entry.name}` : entry.name);
       const abs = join(dir, entry.name);
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) {
         walk(abs, rel);
       } else if (entry.isFile()) {
-        results.push(normalizeRelativePath(rel));
+        results.push(rel);
       }
     }
   };
@@ -232,13 +232,13 @@ async function listRelativeFilePaths(root: string): Promise<string[]> {
   const walk = async (dir: string, prefix: string): Promise<void> => {
     const entries = await readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const rel = normalizeRelativePath(prefix ? `${prefix}/${entry.name}` : entry.name);
       const abs = join(dir, entry.name);
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) {
         await walk(abs, rel);
       } else if (entry.isFile()) {
-        results.push(normalizeRelativePath(rel));
+        results.push(rel);
       }
     }
   };
@@ -290,10 +290,9 @@ export interface PrunePackageAbsentDepositPathsResult {
 
 async function pruneEmptyParentsForFile(
   deftDir: string,
-  contentRoot: string,
+  contentDirs: ReadonlySet<string>,
   relFile: string,
 ): Promise<string[]> {
-  const contentDirs = contentDirectoryPaths(listRelativeFilePathsSync(contentRoot));
   const prunedDirs: string[] = [];
   let rel = dirname(relFile);
   while (rel && rel !== ".") {
@@ -323,13 +322,14 @@ export async function prunePackageAbsentDepositPaths(
   io: InitDepositIo,
 ): Promise<PrunePackageAbsentDepositPathsResult> {
   const absent = await findPackageAbsentDepositPaths(deftDir, contentRoot);
+  const contentDirs = contentDirectoryPaths(listRelativeFilePathsSync(contentRoot));
   const pruned: string[] = [];
   const prunedDirs: string[] = [];
   for (const rel of absent) {
     try {
       rmSync(join(deftDir, rel), { force: true });
       pruned.push(rel);
-      prunedDirs.push(...(await pruneEmptyParentsForFile(deftDir, contentRoot, rel)));
+      prunedDirs.push(...(await pruneEmptyParentsForFile(deftDir, contentDirs, rel)));
     } catch (cause) {
       io.printf(`Warning: could not prune .deft/core/${rel}: ${String(cause)}\n`);
     }

@@ -68,11 +68,6 @@ export function renderDepositFileSetHygieneLine(
   );
 }
 
-/** Back-compat alias for the former packages/-only advisory (#2142 / #2347). */
-export function renderStrayPackagesAdvisoryLine(projectRoot: string): string {
-  return renderDepositFileSetHygieneLine(projectRoot);
-}
-
 export function run(argv: string[]): number {
   // #2022: surface pre-cutover (pre-v0.20 document model) migration state alongside the
   // core doctor report. Only emit on a valid, human-readable invocation: suppressed under

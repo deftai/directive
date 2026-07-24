@@ -8,12 +8,7 @@ vi.mock("@deftai/directive-core/dist/doctor/main.js", () => ({
 }));
 
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
-import {
-  evaluateDepositFileSetHygiene,
-  renderDepositFileSetHygieneLine,
-  renderStrayPackagesAdvisoryLine,
-  run,
-} from "./doctor.js";
+import { evaluateDepositFileSetHygiene, renderDepositFileSetHygieneLine, run } from "./doctor.js";
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
@@ -313,7 +308,7 @@ describe("doctor CLI", () => {
     });
     expect(out).toContain("Deposit hygiene: none");
     expect(out).toContain("matches @deftai/directive-content");
-    expect(renderStrayPackagesAdvisoryLine(root)).toContain("Deposit hygiene: none");
+    expect(renderDepositFileSetHygieneLine(root)).toContain("Deposit hygiene: none");
   });
 
   it("flags package-absent bridge leftovers under .deft/core (#2804)", () => {
@@ -362,7 +357,7 @@ describe("doctor CLI", () => {
     });
     expect(out).toContain("Deposit hygiene: fail");
     expect(out).toContain("packages/cli/package.json");
-    expect(renderStrayPackagesAdvisoryLine(root)).toContain("fail");
+    expect(renderDepositFileSetHygieneLine(root)).toContain("fail");
   });
 
   it("names `directive update` as the remediation for package-absent deposit files (#2804)", () => {
@@ -371,7 +366,7 @@ describe("doctor CLI", () => {
     seedContentPackage(root);
     mkdirSync(join(root, ".deft", "core", "packages"), { recursive: true });
     writeFileSync(join(root, ".deft", "core", "packages", "stale.txt"), "stale\n", "utf8");
-    const advisory = renderStrayPackagesAdvisoryLine(root);
+    const advisory = renderDepositFileSetHygieneLine(root);
     expect(advisory).toContain("directive update");
     expect(advisory).toContain("#2804");
   });
