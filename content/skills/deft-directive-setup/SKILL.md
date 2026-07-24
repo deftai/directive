@@ -350,12 +350,16 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
   5. Embedded / low-resource
   6. Web / Cloud
   7. Mobile (iOS / Android)
-  8. Other / not sure
+  8. Retro console (Vectrex, Atari 2600, …)
+  9. Other / not sure
 - Step 4: Ask languages — show a filtered shortlist (3–4 recommendations) based on project type + platform. If codebase markers exist (`go.mod`, `pyproject.toml`, etc.), skip and confirm: "Detected {lang} — correct?"
   - If user selects "Other": show remaining plausible languages for the type+platform context (Tier 2)
   - If still not found: free text input (Tier 3)
   - If entered language has no deft `languages/{lang}.md` standards file, warn: "deft doesn't have a standards file for {lang} yet — general defaults will be used. Continue?"
+  - If platform is Retro console / Vectrex: recommend C (VectreC) or 6809 asm; record platform `vectrex` (or `2600`) in PROJECT-DEFINITION so `platforms/{platform}.md` loads in build
 - Step 5: Ask tech stack (frameworks, libraries)
+  - Vectrex: VectreC / CMOC, Vecx, flash cart target; note `platforms/vectrex.md`
+  - Atari 2600: DASM + Stella; note `platforms/2600.md`
 - Step 6: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Step 7: Ask coverage (default to USER.md Defaults; ask if this project needs different)
 - Step 8: Ask for project-specific rules (optional, same one-per-line format as Phase 1 custom rules)

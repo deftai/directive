@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Vectrex Platform Standards**: `content/platforms/vectrex.md` — Vectrex / VectreC development standards covering 50 Hz frame budget, VIA mesh drawing, AY bus safety, overrun catch-up, mode flourishes, and hardware smoke-test checklist; wired into `deft-directive-build` lazy file reading and `deft-directive-setup` Retro console option.
+
 ### Changed
 
 ### Fixed

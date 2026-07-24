@@ -54,7 +54,7 @@ interfaces/    # CLI, REST, TUI, and web interface guidance
 languages/     # Language-specific standards
 meta/          # Philosophy, morals, security, lessons, ideas, and suggestions
 patterns/      # Reusable architectural and LLM-application patterns
-platforms/     # Niche platform guidance
+platforms/     # Niche platform guidance (Vectrex, Atari 2600, Unity, …)
 references/    # External/reference material
 resilience/    # Continue-here and context-pruning protocols
 scm/           # Git, GitHub, and changelog guidance

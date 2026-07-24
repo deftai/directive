@@ -157,10 +157,14 @@ signal.
   7. `deft/coding/testing.md` -- testing requirements
   8. `deft/coding/toolchain.md` -- toolchain validation rules
   9. `deft/languages/{language}.md` -- only for languages this project uses
+  10. `deft/platforms/{platform}.md` -- only when PROJECT-DEFINITION / markers identify a target platform (e.g. `vectrex`, `2600`, `unity`)
 - ~ If the MAP is absent or may be stale and the current scope needs broad codebase orientation, run `task codebase:map` and `task verify:codebase-map-fresh` when those commands resolve. Treat absence/staleness as advisory unless the task edits `plan.architecture.codeStructure`, a configured provider artifact, or the generated MAP itself.
 - ! Treat `plan.architecture.codeStructure` and selected provider artifacts as authoritative. The MAP is a generated projection.
-- ⊗ Read all language/interface/tool files upfront
+- ⊗ Read all language/interface/tool/platform files upfront
 - ⊗ Hand-edit `.planning/codebase/MAP.md` or block unrelated implementation solely because the MAP is stale or absent
+- ! Detect Vectrex projects from markers (`vectrex/bios.h`, `wait_recal`, `VECTREC`, `*.bin` ROM build) and load `platforms/vectrex.md`
+- ! Detect Atari 2600 projects from markers (`vcs.h`, DASM `-f3`, Stella) and load `platforms/2600.md`
+- ! Detect Unity projects from markers (`Assets/`, `*.asmdef`, `ProjectSettings/`) and load `platforms/unity.md`
 
 ## Rule Precedence
 
@@ -168,6 +172,7 @@ signal.
 USER.md Personal                  <- HIGHEST (name, custom rules -- always wins)
 PROJECT-DEFINITION.xbrief.json   <- Project-specific (tech stack, architecture, config)
 USER.md Defaults                  <- Fallback defaults (used when PROJECT-DEFINITION doesn't specify)
+{platform}.md                     <- Platform standards (Vectrex, 2600, Unity, ...)
 {language}.md                     <- Language standards
 coding.md                         <- General coding
 main.md                           <- Framework defaults
@@ -176,6 +181,7 @@ Scope xBRIEFs                     <- LOWEST
 
 - ! USER.md Personal section always wins over any other file
 - ! For project-scoped settings, PROJECT-DEFINITION.xbrief.json overrides USER.md Defaults
+- ! When a platform standards file applies, it overrides generic language defaults for hardware/timing/draw rules
 
 ## Change Lifecycle Gate
 

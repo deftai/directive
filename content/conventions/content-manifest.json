@@ -125,7 +125,7 @@
     {
       "path": "content/platforms",
       "bucket": "content",
-      "note": "Platform-specific guidance docs (unity, 2600, ...)."
+      "note": "Platform-specific guidance docs (vectrex, unity, 2600, ...)."
     },
     {
       "path": "content/references",
