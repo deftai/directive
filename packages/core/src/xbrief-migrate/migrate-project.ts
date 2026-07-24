@@ -16,6 +16,7 @@ import {
   LEGACY_ARTIFACT_SUFFIX,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
+  OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
 } from "./constants.js";
@@ -70,6 +71,22 @@ function collectFiles(root: string, acc: string[] = []): string[] {
     }
   }
   return acc;
+}
+
+/** True when a legacy lifecycle file is an obsolete framework narrative (#2806). */
+export function shouldOmitLegacyMigrationFile(relativePath: string): boolean {
+  return relativePath.replace(/\\/g, "/") === OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME;
+}
+
+/**
+ * Remove a stale `xbrief/vbrief.md` left by an earlier migrate:xbrief run.
+ * Project JSON records and `xbrief/schemas/` are untouched (#2806).
+ */
+export function removeStaleMigratedFrameworkNarrative(projectRoot: string): boolean {
+  const stale = join(projectRoot, MIGRATED_ARTIFACT_DIR, OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME);
+  if (!existsSync(stale)) return false;
+  rmSync(stale, { force: true });
+  return true;
 }
 
 function mapRelativePath(relativePath: string): string {
@@ -147,6 +164,7 @@ function migrateLegacyTree(
   try {
     for (const srcPath of files) {
       const rel = relative(legacyDir, srcPath);
+      if (shouldOmitLegacyMigrationFile(rel)) continue;
       const destPath = join(stagedDir, mapRelativePath(rel));
       writeMigratedFile(srcPath, destPath);
     }

@@ -22,8 +22,10 @@ import { detectXbriefConvergence } from "./detect.js";
 import {
   convergeLegacyVbriefRoot,
   emitXbriefMigration,
+  removeStaleMigratedFrameworkNarrative,
   runXbriefMigration,
   runXbriefMigrationCli,
+  shouldOmitLegacyMigrationFile,
 } from "./migrate-project.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
@@ -222,6 +224,45 @@ describe("runXbriefMigration", () => {
     );
     expect(outcome.kind).toBe("config");
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(true);
+  });
+
+  it("omits framework vbrief.md during migrate:xbrief (#2806) [2806-a1]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-omit-vbrief-md-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "vbrief.md"),
+      "# Framework narrative\nsee ../context/working-memory.md\n",
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "vbrief.md"))).toBe(false);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"))).toBe(
+      true,
+    );
+  });
+
+  it("still migrates project JSON and schemas when no framework narrative is present (#2806) [2806-a3]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-schemas-only-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "schemas"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "schemas", "scope.schema.json"),
+      '{"title":"scope"}\n',
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("migrated");
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"))).toBe(
+      true,
+    );
+    expect(
+      readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "schemas", "scope.schema.json"), "utf8"),
+    ).toBe('{"title":"scope"}\n');
   });
 
   it("rewrites non-json text files during migration", () => {
@@ -597,6 +638,48 @@ describe("convergeLegacyVbriefRoot (#2270)", () => {
     expect(existsSync(join(base, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
       true,
     );
+  });
+});
+
+describe("framework narrative hygiene (#2806)", () => {
+  it("shouldOmitLegacyMigrationFile matches only the lifecycle-root narrative", () => {
+    expect(shouldOmitLegacyMigrationFile("vbrief.md")).toBe(true);
+    expect(shouldOmitLegacyMigrationFile("active/story.xbrief.json")).toBe(false);
+    expect(shouldOmitLegacyMigrationFile("schemas/scope.schema.json")).toBe(false);
+    expect(shouldOmitLegacyMigrationFile("notes.txt")).toBe(false);
+  });
+
+  it("removeStaleMigratedFrameworkNarrative drops xbrief/vbrief.md but keeps records (#2806) [2806-a2]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-remove-stale-vbrief-md-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "active"), { recursive: true });
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "schemas"), { recursive: true });
+    writeFileSync(
+      join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"),
+      JSON.stringify(SAMPLE_V06),
+      "utf8",
+    );
+    writeFileSync(
+      join(project, MIGRATED_ARTIFACT_DIR, "schemas", "xbrief-core-0.8.schema.json"),
+      "{}\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, MIGRATED_ARTIFACT_DIR, "vbrief.md"),
+      "# stale migrated framework narrative\n",
+      "utf8",
+    );
+
+    expect(removeStaleMigratedFrameworkNarrative(project)).toBe(true);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "vbrief.md"))).toBe(false);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"))).toBe(
+      true,
+    );
+    expect(
+      existsSync(join(project, MIGRATED_ARTIFACT_DIR, "schemas", "xbrief-core-0.8.schema.json")),
+    ).toBe(true);
+    expect(removeStaleMigratedFrameworkNarrative(project)).toBe(false);
   });
 });
 

@@ -16,6 +16,13 @@ export const V08_CONTAINER_ITEM_TYPES = new Set(
 export const LEGACY_ARTIFACT_DIR = "vbrief" as const;
 export const MIGRATED_ARTIFACT_DIR = "xbrief" as const;
 
+/**
+ * Obsolete framework support narrative at the lifecycle root. Legacy
+ * `migrate:xbrief` copied this to `xbrief/vbrief.md` with broken framework
+ * links; consumer projections use `xbrief.md` instead (#2806).
+ */
+export const OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME = "vbrief.md" as const;
+
 export const LEGACY_ARTIFACT_SUFFIX = ".vbrief.json" as const;
 export const MIGRATED_ARTIFACT_SUFFIX = ".xbrief.json" as const;
 
