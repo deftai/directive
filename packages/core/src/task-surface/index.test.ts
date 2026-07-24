@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
@@ -173,5 +173,33 @@ describe("task-surface", () => {
     expect(runInstallUninstall(project, io)).toBe(0);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe("Keep me\n");
     expect(lines.join("")).toContain("Removed deft entry");
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("task-surface symlink containment (#2807)", () => {
+  itSymlink("install-uninstall refuses AGENTS.md symlink escape before rewrite", () => {
+    const project = makeProject();
+    const escapeDir = mkdtempSync(join(tmpdir(), "deft-task-surface-agents-victim-"));
+    const victim = join(escapeDir, "AGENTS.md");
+    writeFileSync(victim, "See deft/main.md for guidelines\nKeep me\n", "utf8");
+    symlinkSync(victim, join(project, "AGENTS.md"));
+    const { lines, io } = captureIo();
+    expect(runInstallUninstall(project, io)).toBe(2);
+    expect(lines.join("")).toMatch(/projection write refused|symlink/);
+    expect(readFileSync(victim, "utf8")).toBe("See deft/main.md for guidelines\nKeep me\n");
+    rmSync(escapeDir, { recursive: true, force: true });
+  });
+
+  itSymlink("change-init refuses history/ directory symlink escape before materialization", () => {
+    const project = makeProject();
+    const escapeDir = mkdtempSync(join(tmpdir(), "deft-task-surface-history-victim-"));
+    symlinkSync(escapeDir, join(project, "history"), "dir");
+    const { lines, io } = captureIo();
+    expect(runChangeInit(project, "symlink-escape", io)).toBe(2);
+    expect(lines.join("")).toMatch(/projection write refused|symlink escaping/);
+    expect(existsSync(join(escapeDir, "changes", "symlink-escape"))).toBe(false);
+    rmSync(escapeDir, { recursive: true, force: true });
   });
 });
