@@ -1,0 +1,127 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2822 ΓÇö one-time trusted-org install force-on for valueFeedback + productSignal enable."
+  },
+  "plan": {
+    "id": "2822-org-force-on-value-product-signal",
+    "title": "fix(value-feedback,product-signal): one-time org force-on at next install",
+    "status": "running",
+    "narratives": {
+      "Description": "Trusted-org repos stay dark for local value-feedback and product-signal because typed `enabled: false` blocks org-auto (#2376) and productSignal has no org-auto layer (#2693). This story adds a once-per-checkout install/upgrade migration that force-enables local valueFeedback (enabled/emitEvents/sessionLine true; upstreamPrompt false) and productSignal.enabled for trusted-org consumers, with durable markers so later intentional opt-outs are not fought forever, without silently granting personal product-signal consent.",
+      "ImplementationPlan": "1. Add a once-per-checkout migration module under `packages/core/src/policy/` (value-feedback + product-signal force-on with durable markers under `.deft-cache/` or audited policy log) that forces local valueFeedback ON including subflags and sets productSignal.enabled=true for trusted-org origins, then wire it from the install/update refresh path in `packages/core/src/init-deposit/refresh.ts` (rebase onto #2818 if that PR still owns refresh). 2. Ensure post-force-enable missing/revoked product-signal consent triggers the D17 interactive consent ask on next interactive session/skill entry (headless fail-open); prefer `policy:clear-value-feedback` (or equivalent) so true opt-out/clear-key is distinct from baseline false. 3. Cover Part A/B ACs with focused tests in `value-feedback*.test.ts`, `product-signal` policy/consent suites, and CHANGELOG + docs for auditable source and post-migration opt-out.",
+      "UserStory": "As a deftai org operator running directive update, I want trusted-org repos force-enabled once for value-feedback and product-signal, so that company dogfood collection and Insights eligibility start without hand-editing typed false baselines.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2822",
+      "Overview": "## Summary\n\nPart A: one-time valueFeedback force-on for trusted-org at install/upgrade (overrides typed enabled:false; forces subflags ON).\nPart B: one-time productSignal.enabled force-on for trusted-org; consent still D17 interactive (not silent grant).\n\nRefs #1709 #2376 #2693 #2603. Comment: enable-value-feedback must not leave emitEvents/sessionLine false.\n",
+      "Labels": "bug, enhancement, adoption-blocker, agent-experience, area:cli",
+      "Traces": "#2822, #2376, #2693, #1709, #2603"
+    },
+    "items": [
+      {
+        "id": "2822-a1",
+        "title": "Given a trusted-org repo with typed valueFeedback all-false, when update runs once, then local valueFeedback paths are forced ON with a durable marker.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a trusted-org consumer with a typed `plan.policy.valueFeedback` block of `enabled/emitEvents/sessionLine` false, when `directive update` (or install refresh) runs the once-per-checkout migration, then local valueFeedback is forced ON (`enabled`/`emitEvents`/`sessionLine` true, `upstreamPrompt` false), a durable marker is persisted so the force-on does not re-run forever, and `policy:show --field=valueFeedback` reports an auditable non-stuck-typed-false source.",
+          "Traces": "#2822"
+        }
+      },
+      {
+        "id": "2822-a2",
+        "title": "Given the same trusted-org update pass, when migration runs, then productSignal.enabled is forced true without writing personal consent.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a trusted-org consumer with productSignal disabled or absent, when the same install/upgrade migration runs, then `plan.policy.productSignal.enabled` becomes true (default sink `deftai/product-signal` unless already overridden), the personal consent file is not auto-granted, and `product-signal:status` reports enabled=true while consent still reflects personal grant/revoke.",
+          "Traces": "#2822"
+        }
+      },
+      {
+        "id": "2822-a3",
+        "title": "Given force-enable without consent, when the next interactive session or skill entry runs, then the D17 consent ask surfaces; headless stays fail-open.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a post-migration trusted-org repo with productSignal enabled and missing/revoked consent, when the next interactive session or product-signal skill entry runs, then the D17 first-time consent ask surfaces; when the same state is evaluated headless/CI, then no consent prompt blocks and fail-open behavior is preserved.",
+          "Traces": "#2822"
+        }
+      },
+      {
+        "id": "2822-a4",
+        "title": "Given a later intentional opt-out after migration, when update runs again, then the marker does not re-force enable forever.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a repo that already consumed the one-time force-on marker and later intentionally disables valueFeedback or productSignal (or clears the typed key via a dedicated clear verb), when a subsequent update runs, then the migration does not re-enable against that intentional opt-out, and docs describe how clear-key vs explicit false vs disable verb differ.",
+          "Traces": "#2822"
+        }
+      },
+      {
+        "id": "2822-a5",
+        "title": "Given a non-trusted-org repo, when update runs, then force-on does not enable either surface.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer whose origin org is outside DEFAULT_AUTOENABLE_ORGS / DEFT_VALUE_AUTOENABLE_ORGS, when install/update refresh runs, then valueFeedback and productSignal remain OFF unless explicitly enabled, and no ambient product-signal consent nag is introduced.",
+          "Traces": "#2822"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/value-feedback.ts",
+          "packages/core/src/policy/value-feedback.test.ts",
+          "packages/core/src/policy/value-feedback-autoenable.ts",
+          "packages/core/src/policy/value-feedback-autoenable.test.ts",
+          "packages/core/src/policy/product-signal.ts",
+          "packages/core/src/product-signal/consent.ts",
+          "packages/core/src/product-signal/consent.test.ts",
+          "packages/core/src/product-signal/gates.ts",
+          "packages/core/src/product-signal/gates.test.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/cli/src/policy.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy/value-feedback.test.ts packages/core/src/policy/value-feedback-autoenable.test.ts packages/core/src/product-signal/consent.test.ts packages/core/src/product-signal/gates.test.ts"
+        ],
+        "expected_outputs": [
+          "org force-on migration tests pass for valueFeedback and productSignal",
+          "durable marker prevents infinite re-force against later opt-out"
+        ],
+        "depends_on": [],
+        "conflict_group": "org-force-on-policy",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2822",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2822: one-time org force-on for valueFeedback + productSignal",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2376",
+        "type": "x-xbrief/related",
+        "title": "Issue #2376 valueFeedback org-auto",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2693",
+        "type": "x-xbrief/related",
+        "title": "Issue #2693 product-signal Phase 1",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-07-24T19:01:28Z"
+  }
+}
