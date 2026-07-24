@@ -1,4 +1,4 @@
-import { join, resolve, sep } from "node:path";
+import { join } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { describe, expect, it, vi } from "vitest";

@@ -110,7 +110,7 @@ export function assertProjectionContained(projectDir: string, targetPath: string
     } else {
       try {
         deepestExistingReal = realpathSync(current);
-      } catch (err) {
+      } catch {
         throw new ProjectionContainmentError(
           `projection write refused: could not resolve ${current} on the projection path`,
           { projectDir: projectAbs, targetPath: targetAbs, offendingPath: current },

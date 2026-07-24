@@ -172,15 +172,17 @@ describe("package-manager network scope (#2182)", () => {
           };
         }
       }
-      return spawnSyncMock.getMockImplementation()?.(command, args) ?? {
-        status: 1,
-        stdout: "",
-        stderr: "",
-        pid: 1,
-        output: [null, "", ""],
-        signal: null,
-        error: undefined,
-      };
+      return (
+        spawnSyncMock.getMockImplementation()?.(command, args) ?? {
+          status: 1,
+          stdout: "",
+          stderr: "",
+          pid: 1,
+          output: [null, "", ""],
+          signal: null,
+          error: undefined,
+        }
+      );
     }) as typeof spawnSync);
 
     const result = defaultRitualRunner(GATED_ENTRYPOINT_COMMANDS.doctor.slice(), root);

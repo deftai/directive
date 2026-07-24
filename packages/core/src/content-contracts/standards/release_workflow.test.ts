@@ -110,7 +110,7 @@ describe("test_release_workflow.py", () => {
 
 describe("#1987 freeze-gate graceful skip", () => {
   it("freeze-gate job declares the frozen_skip output from the gate step", () => {
-    expect(workflowText).toContain("frozen_skip: ${{ steps.gate.outputs.frozen_skip }}");
+    expect(workflowText).toContain("frozen_skip: $" + "{{ steps.gate.outputs.frozen_skip }}");
   });
   it("the above-the-line branch sets frozen_skip=true and exits 0 (no hard-fail)", () => {
     expect(workflowText).toContain('echo "frozen_skip=true" >> "$GITHUB_OUTPUT"');
