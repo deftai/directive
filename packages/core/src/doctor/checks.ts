@@ -1,7 +1,9 @@
 import { join } from "node:path";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import {
+  detectDualLayout,
   detectLegacyLayout,
+  dualLayoutSignpostLine,
   type LegacyDetectSeams,
   legacyLayoutSignpostLine,
 } from "../init-deposit/legacy-detect.js";
@@ -354,6 +356,21 @@ export function checkLegacyLayout(projectRoot: string, seams: CheckSeams = {}): 
     ...(seams.isFile ? { isFile: seams.isFile } : {}),
     ...(seams.isDir ? { isDir: seams.isDir } : {}),
   };
+  const dualLayout = detectDualLayout(projectRoot, legacySeams);
+  if (dualLayout !== null) {
+    return {
+      name: "legacy-layout",
+      status: "fail",
+      detail: dualLayoutSignpostLine(dualLayout),
+      data: {
+        legacy_layout: true,
+        legacy_layout_kind: dualLayout.kind,
+        evidence: [...dualLayout.evidence],
+        upgrading_doc_url: UPGRADING_DOC_URL,
+        go_bridge_releases_url: GO_BRIDGE_RELEASES_URL,
+      },
+    };
+  }
   const detection = detectLegacyLayout(projectRoot, legacySeams);
   if (!detection.legacy) {
     return {

@@ -24,11 +24,13 @@
  * Refs #1912, #1669.
  */
 
-import { statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { GO_BRIDGE_RELEASES_URL, UPGRADING_DOC_URL } from "../doctor/constants.js";
 import { extractManagedSection, parseInstallRootFromAgentsMd } from "../doctor/manifest.js";
 import { readTextSafe } from "../doctor/paths.js";
+import { gitPorcelain } from "../story-ready/git.js";
 
 /** Non-zero exit code for a use-time legacy-layout refusal (needs-action). */
 export const LEGACY_LAYOUT_REFUSED_EXIT_CODE = 2;
@@ -37,7 +39,8 @@ export type LegacyLayoutKind =
   | "orphan-deft-version"
   | "legacy-deft-prefixed"
   | "git-clone-or-submodule"
-  | "pre-v0.27-sentinel-agents-md";
+  | "pre-v0.27-sentinel-agents-md"
+  | "dual-layout";
 
 export interface LegacyLayoutDetection {
   readonly legacy: boolean;
@@ -76,6 +79,22 @@ function defaultIsDir(p: string): boolean {
 }
 
 /** Does `.gitmodules` reference the deft framework at a deft install path? */
+const LEGACY_DEFT_DIR = "deft";
+
+function isFrameworkDeftDir(
+  projectDir: string,
+  isDir: (p: string) => boolean,
+  isFile: (p: string) => boolean,
+): boolean {
+  const deftDir = join(projectDir, LEGACY_DEFT_DIR);
+  const deftMarkers = [
+    join(deftDir, "VERSION"),
+    join(deftDir, "main.md"),
+    join(deftDir, "Taskfile.yml"),
+  ];
+  return isDir(deftDir) && (deftMarkers.some((m) => isFile(m)) || isDir(join(deftDir, "skills")));
+}
+
 function gitmodulesReferencesFramework(text: string): boolean {
   const normalized = text.replace(/\r\n/g, "\n").toLowerCase();
   if (normalized.includes("deftai/directive")) {
@@ -84,6 +103,33 @@ function gitmodulesReferencesFramework(text: string): boolean {
   // A submodule whose path is the framework install dir is a strong signal even
   // when the url host differs (mirror, fork). Match `path = deft` / `path = .deft`.
   return /(^|\n)\s*path\s*=\s*\.?deft(\/|\s|$)/.test(normalized);
+}
+
+const DUAL_LAYOUT_DETAIL =
+  "Found both the canonical .deft/core/ deposit and a leftover legacy deft/ " +
+  "framework tree -- remove deft/ so .deft/core/ is the sole framework root.";
+
+/**
+ * Detect a post-bridge dual-layout: canonical `.deft/core/` plus a leftover
+ * framework-marked `deft/` tree. Doctor-only -- the npm deposit path treats
+ * `.deft/core/` as canonical and must not refuse here (#2805 / #2804 wiring).
+ */
+export function detectDualLayout(
+  projectDir: string,
+  seams: LegacyDetectSeams = {},
+): LegacyLayoutDetection | null {
+  const isFile = seams.isFile ?? defaultIsFile;
+  const isDir = seams.isDir ?? defaultIsDir;
+  const hasCanonicalCore = isDir(join(projectDir, ".deft", "core"));
+  if (!hasCanonicalCore || !isFrameworkDeftDir(projectDir, isDir, isFile)) {
+    return null;
+  }
+  return {
+    legacy: true,
+    kind: "dual-layout",
+    detail: DUAL_LAYOUT_DETAIL,
+    evidence: [".deft/core/", "deft/"],
+  };
 }
 
 /**
@@ -99,10 +145,12 @@ export function detectLegacyLayout(
   const isDir = seams.isDir ?? defaultIsDir;
   const readText = seams.readText ?? readTextSafe;
 
+  const hasCanonicalCore = isDir(join(projectDir, ".deft", "core"));
+  const deftDirIsFramework = isFrameworkDeftDir(projectDir, isDir, isFile);
+
   // Canonical vendored layout present -> the npm path owns it; not legacy. Any
-  // AGENTS.md / manifest drift here is repaired by the healthy refresh path,
-  // not by refusing.
-  if (isDir(join(projectDir, ".deft", "core"))) {
+  // leftover deft/ tree is a dual-layout hygiene issue surfaced by Doctor only.
+  if (hasCanonicalCore) {
     return NOT_LEGACY;
   }
 
@@ -123,14 +171,7 @@ export function detectLegacyLayout(
   // framework markers. Distinguish a git-clone / submodule deposit (a `.git`
   // inside `deft/`, or a `.gitmodules` pointing at the framework) from a plain
   // legacy-prefixed vendored copy.
-  const deftDir = join(projectDir, "deft");
-  const deftMarkers = [
-    join(deftDir, "VERSION"),
-    join(deftDir, "main.md"),
-    join(deftDir, "Taskfile.yml"),
-  ];
-  const deftDirIsFramework =
-    isDir(deftDir) && (deftMarkers.some((m) => isFile(m)) || isDir(join(deftDir, "skills")));
+  const deftDir = join(projectDir, LEGACY_DEFT_DIR);
   if (deftDirIsFramework) {
     const submoduleGit = isFile(join(deftDir, ".git")) || isDir(join(deftDir, ".git"));
     if (submoduleGit) {
@@ -269,10 +310,143 @@ export function buildLegacyRefusalJson(
 
 /** One-line doctor signpost carrying the stable URL (no baked version/command). */
 export function legacyLayoutSignpostLine(detection: LegacyLayoutDetection): string {
+  if (detection.kind === "dual-layout") {
+    return dualLayoutSignpostLine(detection);
+  }
   return (
     `Legacy Deft layout detected (${detection.kind ?? "unknown"}): ${detection.detail} ` +
     "Run the frozen Go bridge installer to migrate to .deft/core/, then use the npm " +
     `CLI (\`npx @deftai/directive update\`). See ${UPGRADING_DOC_URL} ` +
     `(frozen bridge: ${GO_BRIDGE_RELEASES_URL}).`
   );
+}
+
+/** Doctor / npm signpost for the post-bridge dual-layout state (#2805). */
+export function dualLayoutSignpostLine(detection: LegacyLayoutDetection): string {
+  return (
+    `Dual Deft layout detected (${detection.kind ?? "dual-layout"}): ${detection.detail} ` +
+    "Remove the legacy deft/ tree so .deft/core/ is the sole framework root " +
+    "(when clean: `git rm -r deft/`; reconcile local edits first if `git status deft/` is dirty). " +
+    `See ${UPGRADING_DOC_URL}.`
+  );
+}
+
+export interface LegacyDeftCleanupSeams {
+  readonly gitPorcelain?: (projectRoot: string) => string | null;
+  readonly runGitRm?: (projectDir: string, relPath: string) => void;
+  readonly removeDir?: (absPath: string) => void;
+}
+
+export type LegacyDeftCleanupAction = "removed" | "staged" | "refused" | "skipped";
+
+export interface LegacyDeftCleanupResult {
+  readonly ok: boolean;
+  readonly action: LegacyDeftCleanupAction;
+  readonly detail: string;
+}
+
+function porcelainEntryPath(line: string): string {
+  let path = line.slice(3).trim().replace(/\\/g, "/");
+  if (path.startsWith('"') && path.endsWith('"')) {
+    path = path.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  }
+  return path;
+}
+
+function porcelainTouchesLegacyDeft(porcelain: string): string[] {
+  const touched: string[] = [];
+  for (const line of porcelain.split("\n")) {
+    if (!line.trim()) continue;
+    const path = porcelainEntryPath(line);
+    if (path === LEGACY_DEFT_DIR || path.startsWith(`${LEGACY_DEFT_DIR}/`)) {
+      touched.push(path);
+    }
+  }
+  return touched;
+}
+
+/**
+ * Remove a clean tracked legacy `deft/` tree after bridge migration (#2805).
+ * Refuses when the tree has local modifications or untracked files.
+ */
+export function tryCleanupLegacyDeftTree(
+  projectDir: string,
+  seams: LegacyDeftCleanupSeams = {},
+): LegacyDeftCleanupResult {
+  const detection = detectDualLayout(projectDir);
+  if (detection === null) {
+    return {
+      ok: true,
+      action: "skipped",
+      detail: "No dual-layout legacy deft/ tree to remove.",
+    };
+  }
+
+  const readPorcelain = seams.gitPorcelain ?? gitPorcelain;
+  const porcelain = readPorcelain(projectDir);
+  if (porcelain === null) {
+    return {
+      ok: false,
+      action: "refused",
+      detail:
+        "Cannot determine whether the legacy deft/ tree is clean (git unavailable). " +
+        "Inspect `git status deft/` and remove the tree manually once clean.",
+    };
+  }
+
+  const dirtyPaths = porcelainTouchesLegacyDeft(porcelain);
+  if (dirtyPaths.length > 0) {
+    return {
+      ok: false,
+      action: "refused",
+      detail:
+        "Refusing to remove the legacy deft/ tree because it has local modifications or " +
+        "untracked files. Reconcile or commit those changes, then re-run " +
+        "`npx @deftai/directive update`, or remove deft/ manually once clean. " +
+        `Dirty paths: ${JSON.stringify(dirtyPaths.slice(0, 5))}` +
+        (dirtyPaths.length > 5 ? ", …" : "") +
+        ".",
+    };
+  }
+
+  const deftDir = join(projectDir, LEGACY_DEFT_DIR);
+  const removeDir = seams.removeDir ?? ((p: string) => rmSync(p, { recursive: true, force: true }));
+  const runGitRm =
+    seams.runGitRm ??
+    ((root: string, relPath: string) => {
+      execFileSync("git", ["rm", "-r", "--ignore-unmatch", relPath], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    });
+
+  try {
+    runGitRm(projectDir, LEGACY_DEFT_DIR);
+    removeDir(deftDir);
+    return {
+      ok: true,
+      action: "staged",
+      detail:
+        "Removed the legacy deft/ framework tree and staged its deletion; " +
+        ".deft/core/ is now the sole framework root.",
+    };
+  } catch {
+    try {
+      removeDir(deftDir);
+      return {
+        ok: true,
+        action: "removed",
+        detail:
+          "Removed the legacy deft/ framework tree from disk; stage the deletion with " +
+          "`git add -u deft/` if it was tracked.",
+      };
+    } catch (cause) {
+      return {
+        ok: false,
+        action: "refused",
+        detail: `Could not remove the legacy deft/ tree: ${String(cause)}`,
+      };
+    }
+  }
 }
