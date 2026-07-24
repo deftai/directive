@@ -10,6 +10,7 @@ import {
 } from "../platform/shell-context.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { resolvePolicy } from "../policy/resolve.js";
+import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
@@ -485,6 +486,11 @@ export function runSessionStart(
     });
   } catch {
     // observability only — session start must not abort on transient eval readback I/O
+  }
+
+  const consentPrompt = maybeFormatProductSignalConsentPrompt({ projectRoot });
+  if (consentPrompt.length > 0) {
+    lines.push(consentPrompt.trimEnd());
   }
 
   const payload = newRitualStatePayload({

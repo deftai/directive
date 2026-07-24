@@ -239,6 +239,7 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:enforce-branches": "enforce-branches",
   "policy:allow-direct-commits": "allow-direct-commits",
   "policy:enable-value-feedback": "enable-value-feedback",
+  "policy:clear-value-feedback": "clear-value-feedback",
 };
 
 const POLICY_ACTION_COLON_ALIASES = Object.fromEntries(

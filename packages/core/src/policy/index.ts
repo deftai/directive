@@ -29,6 +29,7 @@ export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./disclosure.js";
 export * from "./host-hooks.js";
+export * from "./org-force-on-migration.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
 export * from "./product-signal.js";
@@ -36,6 +37,7 @@ export * from "./resolve.js";
 export * from "./runtime-authority.js";
 export * from "./staleness-tickler.js";
 export * from "./value-feedback.js";
+export * from "./value-feedback-autoenable.js";
 export * from "./wip.js";
 
 export const FIELD_ALLOW_DIRECT_COMMITS = "plan.policy.allowDirectCommitsToMaster";

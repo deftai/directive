@@ -3,6 +3,7 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
+import { productSignalInstallForceOnSource } from "./org-force-on-migration.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
@@ -23,7 +24,7 @@ export interface ProductSignalConfig {
   readonly sinkRepo: string;
 }
 
-export type ProductSignalSource = "typed" | "default" | "default-on-error";
+export type ProductSignalSource = "typed" | "install-force-on" | "default" | "default-on-error";
 
 export interface ProductSignalResolved extends ProductSignalConfig {
   readonly source: ProductSignalSource;
@@ -75,7 +76,8 @@ export function validateProductSignal(value: unknown): string[] {
   return errors;
 }
 
-function resolveFromPolicyBlock(raw: unknown): ProductSignalResolved {
+/** Resolve a typed `productSignal` block without install-force-on overlay. */
+export function resolveProductSignalFromTypedBlock(raw: unknown): ProductSignalResolved {
   const errors = validateProductSignal(raw);
   if (errors.length > 0) {
     return defaultResolved("default-on-error", errors[0] ?? "invalid productSignal block");
@@ -113,7 +115,13 @@ export function resolveProductSignal(projectRoot: string): ProductSignalResolved
   ) {
     return defaultResolved("default");
   }
-  return resolveFromPolicyBlock((policyBlock as Record<string, unknown>).productSignal);
+  const raw = (policyBlock as Record<string, unknown>).productSignal;
+  const installSource = productSignalInstallForceOnSource(projectRoot, raw);
+  if (installSource !== null) {
+    const resolved = resolveProductSignalFromTypedBlock(raw);
+    return { ...resolved, source: installSource };
+  }
+  return resolveProductSignalFromTypedBlock(raw);
 }
 
 /** Human-readable status line for CLI surfaces. */
@@ -166,8 +174,12 @@ export function inspectProductSignal(
     }
     return fieldFromResolved(defaultResolved("default"));
   }
+  const raw = (policyBlock as Record<string, unknown>).productSignal;
+  const installSource =
+    projectRoot !== undefined ? productSignalInstallForceOnSource(projectRoot, raw) : null;
+  const resolved = resolveProductSignalFromTypedBlock(raw);
   return fieldFromResolved(
-    resolveFromPolicyBlock((policyBlock as Record<string, unknown>).productSignal),
+    installSource !== null ? { ...resolved, source: installSource } : resolved,
   );
 }
 
@@ -240,7 +252,7 @@ export function enableProductSignal(
           ? prevObj.sinkRepo.trim()
           : DEFAULT_PRODUCT_SIGNAL_SINK_REPO);
       const nextBlock = { enabled: true, sinkRepo };
-      const previousNormalized = resolveFromPolicyBlock(previous);
+      const previousNormalized = resolveProductSignalFromTypedBlock(previous);
       const changedFlag =
         previousNormalized.enabled !== nextBlock.enabled ||
         previousNormalized.sinkRepo !== nextBlock.sinkRepo;

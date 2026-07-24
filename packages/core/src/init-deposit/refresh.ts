@@ -20,6 +20,7 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { runOrgForceOnMigration } from "../policy/org-force-on-migration.js";
 import {
   type ClassifySeams,
   checkLocalEngineIntegrity,
@@ -117,6 +118,8 @@ export interface RefreshDepositSeams {
   gitLsFiles?: GitLsFiles;
   /** #2530: injected git config seams for {@link writeConsumerGitHooks}. */
   gitHooks?: GitHooksSeams;
+  /** #2822: optional seam for trusted-org policy force-on migration. */
+  runOrgForceOn?: (projectRoot: string) => void;
 }
 
 /**
@@ -642,6 +645,17 @@ export async function runRefreshDeposit(
   if (hasCanonicalXbriefLifecycle(projectDir)) {
     syncConsumerXbriefSchemas(projectDir, deftDir);
     removeStaleMigratedFrameworkNarrative(projectDir);
+  }
+
+  const runOrgForceOn =
+    seams.runOrgForceOn ??
+    ((root) => {
+      runOrgForceOnMigration(root, { actor: "directive-update" });
+    });
+  try {
+    runOrgForceOn(projectDir);
+  } catch {
+    // Policy migration is best-effort; never block framework refresh (#2822).
   }
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
