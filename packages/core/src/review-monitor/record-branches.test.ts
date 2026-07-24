@@ -62,7 +62,7 @@ describe("review-monitor record branch coverage (#2666)", () => {
       }).message,
     ).toContain("offline");
 
-    let body = activeLeaseBody("alice", "rm-3");
+    const body = activeLeaseBody("alice", "rm-3");
     expect(
       registerReviewMonitor({
         pr: 3,
@@ -73,7 +73,16 @@ describe("review-monitor record branch coverage (#2666)", () => {
         projectRoot: root,
         startedAt: NOW,
         seams: {
-          fetchComments: () => [{ id: 3, body, htmlUrl: "", updatedAt: NOW.toISOString(), authorLogin: "alice", authorAssociation: "MEMBER" }],
+          fetchComments: () => [
+            {
+              id: 3,
+              body,
+              htmlUrl: "",
+              updatedAt: NOW.toISOString(),
+              authorLogin: "alice",
+              authorAssociation: "MEMBER",
+            },
+          ],
           updateComment: () => ({ error: "denied" }),
         },
       }).exitCode,
@@ -101,7 +110,16 @@ describe("review-monitor record branch coverage (#2666)", () => {
         projectRoot: root,
         endedAt: NOW,
         seams: {
-          fetchComments: () => [{ id: 5, body, htmlUrl: "", updatedAt: NOW.toISOString(), authorLogin: "bob", authorAssociation: "MEMBER" }],
+          fetchComments: () => [
+            {
+              id: 5,
+              body,
+              htmlUrl: "",
+              updatedAt: NOW.toISOString(),
+              authorLogin: "bob",
+              authorAssociation: "MEMBER",
+            },
+          ],
         },
       }).exitCode,
     ).toBe(1);
@@ -114,7 +132,16 @@ describe("review-monitor record branch coverage (#2666)", () => {
         projectRoot: root,
         endedAt: NOW,
         seams: {
-          fetchComments: () => [{ id: 6, body, htmlUrl: "", updatedAt: NOW.toISOString(), authorLogin: "bob", authorAssociation: "MEMBER" }],
+          fetchComments: () => [
+            {
+              id: 6,
+              body,
+              htmlUrl: "",
+              updatedAt: NOW.toISOString(),
+              authorLogin: "bob",
+              authorAssociation: "MEMBER",
+            },
+          ],
           updateComment: () => ({ error: "patch failed" }),
         },
       }).exitCode,
@@ -150,6 +177,8 @@ describe("review-monitor record branch coverage (#2666)", () => {
     };
     expect(isRecordActive(expired, { now: NOW })).toBe(false);
     expect(isRecordActive({ ...expired, ended_at: NOW.toISOString() }, { now: NOW })).toBe(false);
-    expect(isRecordActive(expired, { now: new Date("2026-07-24T10:01:00.000Z"), headSha: "zzz" })).toBe(false);
+    expect(
+      isRecordActive(expired, { now: new Date("2026-07-24T10:01:00.000Z"), headSha: "zzz" }),
+    ).toBe(false);
   });
 });
