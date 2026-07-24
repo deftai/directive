@@ -504,6 +504,11 @@ The contract in one paragraph:
 
 The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Skipping the heartbeat is a hard `⊗` for any long-running sub-agent: a stalled agent with no heartbeat surface is the exact #1166 failure mode this contract closes.
 
+! **Cursor false-alive / REDISPATCH_OK (#2824):** On the Cursor `Task` path, the host may report a leaf as "still running" after it has gone silent (empty transcript, no heartbeats, no DONE/FAILED). When `task verify:subagent-alive` exits `1` for a registered in-flight `drive-to: merge*` worker — missing heartbeat, STALE heartbeat, or no recent git/PR activity — the monitor MUST treat the worker as dead and print `REDISPATCH_OK` to authorize takeover re-dispatch. Do NOT block on host resume when the liveness gate has failed closed.
+
+- Monitors run `task verify:subagent-alive -- --require-agent <agent-id> [--scratch-dir <worktree>/.deft-scratch/subagent-status]` each poll iteration.
+- Workers run `task agent:monitor` (raw sweep) or the gate verb above; both wrap `subagent-monitor` (#1365).
+
 ## 11. Mandatory DONE message even on early exit
 
 Every worker MUST send a final status message before exiting its tool loop, regardless of outcome:

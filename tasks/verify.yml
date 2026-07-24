@@ -466,3 +466,13 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'verify-review-monitor {{.CLI_ARGS}}'
+
+  subagent-alive:
+    desc: "Fail-closed worker liveness gate (#2824): missing/STALE heartbeats for in-flight drive-to:merge* workers exit 1 with REDISPATCH_OK. Three-state exit (0 alive / 1 stale-or-missing / 2 config error)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-subagent-alive {{.CLI_ARGS}}'

@@ -35,6 +35,43 @@ Monitoring (Approach 1 / heartbeat contract for Cursor pollers),
 `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 2e (Cursor launch).
 Refs #1877, #1166.
 
+## Cursor false-alive and REDISPATCH_OK (#2824)
+
+Cursor `Task` `drive-to: merge*` leaves can go silent after PR-open while the
+host still reports "still running" — blocking resume/replace. The recurrence
+record is cohort-2804-2814 (PR #2818 / #2820 silent leaves with zero heartbeat
+records and ~1-line transcripts).
+
+! When a monitor observes host-reported **running** PLUS any of: **missing**
+heartbeat record for a registered in-flight worker, **STALE** heartbeat (age >
+threshold, `terminal_state` null), or **no recent git/PR activity** on the
+worker worktree, it MUST treat the worker as dead for re-dispatch purposes and
+surface **`REDISPATCH_OK`**. Do NOT wait for a terminal platform lifecycle
+event.
+
+Deterministic gate:
+
+```pwsh path=null start=null
+task verify:subagent-alive -- \
+  --require-agent <agent-id> \
+  --scratch-dir <worktree>/.deft-scratch/subagent-status
+```
+
+Exit `1` prints `REDISPATCH_OK` and authorizes takeover. Exit `0` means fresh
+heartbeats for all required agents. Exit `2` is config error (missing scratch
+dir with no records).
+
+Raw heartbeat sweep (no `--require-agent` fail-closed semantics):
+
+```pwsh path=null start=null
+task agent:monitor -- \
+  --scratch-dir <worktree>/.deft-scratch/subagent-status
+```
+
+Cross-references: `task verify:subagent-alive`, `skills/deft-directive-swarm/SKILL.md`
+Phase 4 / Phase 5, `templates/agent-prompt-preamble.md` § 10.5. Refs #2824,
+#1365, #2655 (review-monitor is orthogonal — ownership, not implementer liveness).
+
 ## Where heartbeats live
 
 ! Every long-running sub-agent (review-cycle poller, watchdog, or

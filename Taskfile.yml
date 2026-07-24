@@ -96,6 +96,9 @@ includes:
   review-monitor:
     taskfile: ./tasks/review-monitor.yml
     optional: true
+  agent:
+    taskfile: ./tasks/agent.yml
+    optional: true
   architecture:
     taskfile: ./tasks/architecture.yml
     optional: true
