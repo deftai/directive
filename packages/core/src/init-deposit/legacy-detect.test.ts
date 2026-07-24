@@ -5,11 +5,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildLegacyRefusalJson,
   buildLegacyRefusalMessage,
+  detectDualLayout,
   detectLegacyLayout,
+  dualLayoutSignpostLine,
   LEGACY_LAYOUT_REFUSED_EXIT_CODE,
   type LegacyDetectSeams,
   LegacyLayoutRefusedError,
   legacyLayoutSignpostLine,
+  tryCleanupLegacyDeftTree,
 } from "./legacy-detect.js";
 
 const PROJ = "/proj";
@@ -45,6 +48,23 @@ describe("detectLegacyLayout — not legacy", () => {
     expect(result.kind).toBeNull();
   });
 
+  it("dual-layout beside .deft/core/ is not legacy for the npm deposit path", () => {
+    const result = detectLegacyLayout(
+      PROJ,
+      seamsFor({ dirs: [".deft/core", "deft"], files: ["deft/main.md"] }),
+    );
+    expect(result.legacy).toBe(false);
+    expect(result.kind).toBeNull();
+  });
+
+  it("unrelated deft/ directory beside .deft/core/ is not dual-layout", () => {
+    const result = detectDualLayout(
+      PROJ,
+      seamsFor({ dirs: [".deft/core", "deft"], files: ["deft/README.md"] }),
+    );
+    expect(result).toBeNull();
+  });
+
   it("greenfield (nothing installed) is not legacy", () => {
     const result = detectLegacyLayout(PROJ, seamsFor({}));
     expect(result.legacy).toBe(false);
@@ -77,6 +97,18 @@ describe("detectLegacyLayout — not legacy", () => {
     );
     expect(result.legacy).toBe(false);
     expect(result.kind).toBeNull();
+  });
+});
+
+describe("detectDualLayout (#2805)", () => {
+  it("detects framework deft/ beside .deft/core/", () => {
+    const result = detectDualLayout(
+      PROJ,
+      seamsFor({ dirs: [".deft/core", "deft"], files: ["deft/main.md"] }),
+    );
+    expect(result).not.toBeNull();
+    expect(result?.kind).toBe("dual-layout");
+    expect(result?.evidence).toEqual([".deft/core/", "deft/"]);
   });
 });
 
@@ -246,10 +278,102 @@ describe("refusal helpers", () => {
     expect(line).not.toMatch(/v?\d+\.\d+\.\d+/);
   });
 
+  it("dualLayoutSignpostLine points at deft/ removal, not the Go bridge", () => {
+    const dual = {
+      legacy: true as const,
+      kind: "dual-layout" as const,
+      detail:
+        "Found both the canonical .deft/core/ deposit and a leftover legacy deft/ framework tree.",
+      evidence: [".deft/core/", "deft/"],
+    };
+    const line = dualLayoutSignpostLine(dual);
+    expect(line).toContain("Dual Deft layout detected");
+    expect(line).toContain("Remove the legacy deft/ tree");
+    expect(line).not.toContain("Go bridge");
+    expect(line).not.toContain("auto-remove");
+  });
+
+  it("legacyLayoutSignpostLine routes dual-layout to the dual signpost", () => {
+    const dual = {
+      legacy: true as const,
+      kind: "dual-layout" as const,
+      detail: "dual",
+      evidence: [".deft/core/", "deft/"],
+    };
+    expect(legacyLayoutSignpostLine(dual)).toContain("Dual Deft layout detected");
+  });
+
   it("LegacyLayoutRefusedError exposes the detection and exit code", () => {
     const err = new LegacyLayoutRefusedError(detection);
     expect(err).toBeInstanceOf(Error);
     expect(err.detection.kind).toBe("orphan-deft-version");
     expect(LEGACY_LAYOUT_REFUSED_EXIT_CODE).toBe(2);
+  });
+});
+
+describe("tryCleanupLegacyDeftTree (#2805)", () => {
+  const created: string[] = [];
+  afterEach(() => {
+    for (const dir of created.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+  function root(): string {
+    const d = mkdtempSync(join(tmpdir(), "legacy-cleanup-"));
+    created.push(d);
+    return d;
+  }
+
+  it("skips when no dual-layout is present", () => {
+    const r = root();
+    mkdirSync(join(r, ".deft", "core"), { recursive: true });
+    const result = tryCleanupLegacyDeftTree(r, { gitPorcelain: () => "" });
+    expect(result.action).toBe("skipped");
+    expect(result.ok).toBe(true);
+  });
+
+  it("removes a clean legacy deft/ tree and stages deletion", () => {
+    const r = root();
+    mkdirSync(join(r, ".deft", "core"), { recursive: true });
+    mkdirSync(join(r, "deft"), { recursive: true });
+    writeFileSync(join(r, "deft", "main.md"), "# legacy\n", "utf8");
+    let gitRmCalled = false;
+    let removed = false;
+    const result = tryCleanupLegacyDeftTree(r, {
+      gitPorcelain: () => "",
+      runGitRm: () => {
+        gitRmCalled = true;
+      },
+      removeDir: () => {
+        removed = true;
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.action).toBe("staged");
+    expect(gitRmCalled).toBe(true);
+    expect(removed).toBe(true);
+  });
+
+  it("refuses when the legacy deft/ tree is dirty", () => {
+    const r = root();
+    mkdirSync(join(r, ".deft", "core"), { recursive: true });
+    mkdirSync(join(r, "deft"), { recursive: true });
+    writeFileSync(join(r, "deft", "main.md"), "# legacy\n", "utf8");
+    const result = tryCleanupLegacyDeftTree(r, {
+      gitPorcelain: () => " M deft/main.md\n",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.action).toBe("refused");
+    expect(result.detail).toContain("local modifications");
+  });
+
+  it("refuses when quoted porcelain paths mark deft/ dirty", () => {
+    const r = root();
+    mkdirSync(join(r, ".deft", "core"), { recursive: true });
+    mkdirSync(join(r, "deft"), { recursive: true });
+    writeFileSync(join(r, "deft", "main.md"), "# legacy\n", "utf8");
+    const result = tryCleanupLegacyDeftTree(r, {
+      gitPorcelain: () => '?? "deft/spaced name.md"\n',
+    });
+    expect(result.ok).toBe(false);
+    expect(result.action).toBe("refused");
   });
 });
