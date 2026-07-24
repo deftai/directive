@@ -39,6 +39,26 @@ describe("runLocalSignpostChecks (#1997)", () => {
     }
   });
 
+  it("warns on dual-layout (deft/ + .deft/core/) instead of skipping", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-sp-dual-"));
+    try {
+      mkdirSync(join(root, ".deft", "core"), { recursive: true });
+      writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: v0.84.0\n", "utf8");
+      mkdirSync(join(root, "deft"), { recursive: true });
+      writeFileSync(join(root, "deft", "main.md"), "# legacy framework\n", "utf8");
+      writeFileSync(join(root, "AGENTS.md"), "Deft is installed in .deft/core/.\n", "utf8");
+      const findings: Finding[] = [];
+      runLocalSignpostChecks(root, createPlainSink(), (f) => findings.push(f), {
+        runNpmConfigGet: () => ({ ok: false, value: "" }),
+      });
+      const legacy = findings.find((f) => f.check === "legacy-layout");
+      expect(legacy).toBeDefined();
+      expect(legacy?.message).toContain("Dual Deft layout detected");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps the npm registry advisory active on the throttle-skipped path", () => {
     const findings: Finding[] = [];
     runLocalSignpostChecks("/tmp/project", createPlainSink(), (f) => findings.push(f), {
