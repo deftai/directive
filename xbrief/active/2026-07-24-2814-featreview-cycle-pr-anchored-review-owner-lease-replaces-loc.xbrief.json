@@ -1,7 +1,7 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Story xBRIEF for GitHub issue #2814 — PR-anchored review-owner lease replaces local review-monitor.json."
+    "description": "Story xBRIEF for GitHub issue #2814 ΓÇö PR-anchored review-owner lease replaces local review-monitor.json."
   },
   "plan": {
     "id": "2814-pr-review-owner-lease",
@@ -12,7 +12,7 @@
       "ImplementationPlan": "1. Replace file IO in `packages/core/src/review-monitor/record.ts` and `verify.ts` with sticky-comment parse/render plus REST list/create/patch helpers (fixture-friendly; preserve exit `0`/`1`/`2`), and stop all writes to `.deft/review-monitor.json`. 2. Wire CLI `packages/cli/src/review-monitor-register.ts` and `verify-review-monitor.ts` (plus `tasks/review-monitor.yml`) for claim conflict, create-race oldest-wins, expiry takeover, `--force`, and new `review-monitor:release`, with focused tests under `packages/core/src/review-monitor/*.test.ts` and CLI register/verify tests. 3. Update `content/skills/deft-directive-review-cycle/SKILL.md`, `content/commands.md`, and `content/templates/agent-prompt-preamble.md` so register must succeed before a second review-cycle/fix loop and legacy local JSON alone cannot satisfy `verify:review-monitor`.",
       "UserStory": "As a Directive maintainer running review-cycle across machines, I want a PR-anchored review-owner lease on GitHub, so that two agents cannot both claim the same PR's fix loop.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2814",
-      "Overview": "## Summary\n\nReplace the machine-local `.deft/review-monitor.json` ledger (#2655) with a **PR-anchored review-owner lease** as the sole source of truth.\n\nDogfood: PR #2810 cross-maintainer double babysit. Prior gate: #2655. Related: #1880 Gap C, #2797, #2308.\n\n### Verb semantics\n- `review-monitor:register` — claim sticky comment; conflict / race / renew / expiry / `--force`\n- `review-monitor:release` — end lease\n- `verify:review-monitor` — GitHub lease only; local JSON must not satisfy\n",
+      "Overview": "## Summary\n\nReplace the machine-local `.deft/review-monitor.json` ledger (#2655) with a **PR-anchored review-owner lease** as the sole source of truth.\n\nDogfood: PR #2810 cross-maintainer double babysit. Prior gate: #2655. Related: #1880 Gap C, #2797, #2308.\n\n### Verb semantics\n- `review-monitor:register` ΓÇö claim sticky comment; conflict / race / renew / expiry / `--force`\n- `review-monitor:release` ΓÇö end lease\n- `verify:review-monitor` ΓÇö GitHub lease only; local JSON must not satisfy\n",
       "Labels": "bug, enhancement, swarm, determinism, agent-experience, review-cycle, monitoring",
       "Traces": "#2814, #2655, #2810"
     },

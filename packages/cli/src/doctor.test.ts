@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@deftai/directive-core/dist/doctor/main.js", () => ({
@@ -8,7 +8,7 @@ vi.mock("@deftai/directive-core/dist/doctor/main.js", () => ({
 }));
 
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
-import { renderStrayPackagesAdvisoryLine, run } from "./doctor.js";
+import { evaluateDepositFileSetHygiene, renderDepositFileSetHygieneLine, run } from "./doctor.js";
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
@@ -36,6 +36,25 @@ function makeRoot(prefix: string): string {
   const root = mkdtempSync(join(tmpdir(), prefix));
   createdRoots.push(root);
   return root;
+}
+
+function seedContentPackage(
+  projectRoot: string,
+  files: Record<string, string> = { "main.md": "# Deft\n" },
+): string {
+  const contentRoot = join(projectRoot, "node_modules", "@deftai", "directive-content");
+  mkdirSync(contentRoot, { recursive: true });
+  writeFileSync(
+    join(contentRoot, "package.json"),
+    JSON.stringify({ name: "@deftai/directive-content", version: "0.84.0" }),
+    "utf8",
+  );
+  for (const [rel, body] of Object.entries(files)) {
+    const abs = join(contentRoot, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, body, "utf8");
+  }
+  return contentRoot;
 }
 
 function captureStdout(fn: () => void): string {
@@ -276,36 +295,95 @@ describe("doctor CLI", () => {
     expect(out).toContain("AGENTS.md header drift: none");
   });
 
-  it("reports clean deposit hygiene when .deft/core has no packages/ (#2142)", () => {
+  it("reports clean deposit hygiene when .deft/core matches the content package (#2804)", () => {
     const root = makeRoot("doctor-deposit-clean-");
     makeLifecycleDirs(root);
+    seedContentPackage(root);
+    const deftDir = join(root, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
     const out = captureStdout(() => {
       run(["--project-root", root]);
     });
     expect(out).toContain("Deposit hygiene: none");
-    expect(renderStrayPackagesAdvisoryLine(root)).toContain("Deposit hygiene: none");
+    expect(out).toContain("matches @deftai/directive-content");
+    expect(renderDepositFileSetHygieneLine(root)).toContain("Deposit hygiene: none");
   });
 
-  it("flags stray packages/ under .deft/core (#2142)", () => {
+  it("flags package-absent bridge leftovers under .deft/core (#2804)", () => {
+    const root = makeRoot("doctor-package-absent-");
+    makeLifecycleDirs(root);
+    seedContentPackage(root);
+    mkdirSync(join(root, ".deft", "core", "cmd", "deft-install"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "cmd", "deft-install", "main.go"),
+      "package main\n",
+      "utf8",
+    );
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("Deposit hygiene: fail");
+    expect(out).toContain("cmd/deft-install/main.go");
+    expect(renderDepositFileSetHygieneLine(root)).toContain("directive update");
+    expect(renderDepositFileSetHygieneLine(root)).toContain("#2804");
+  });
+
+  it("returns exit 1 on --full when package-absent deposit files remain (#2804)", () => {
+    const root = makeRoot("doctor-full-fail-");
+    makeLifecycleDirs(root);
+    seedContentPackage(root);
+    mkdirSync(join(root, ".deft", "core", "cmd", "deft-install"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "cmd", "deft-install", "main.go"),
+      "package main\n",
+      "utf8",
+    );
+    captureStdout(() => {
+      expect(run(["--full", "--project-root", root])).toBe(1);
+    });
+  });
+
+  it("flags stray packages/ under .deft/core (#2142 / #2804)", () => {
     const root = makeRoot("doctor-stray-packages-");
     makeLifecycleDirs(root);
+    seedContentPackage(root);
     mkdirSync(join(root, ".deft", "core", "packages", "cli"), { recursive: true });
     writeFileSync(join(root, ".deft", "core", "packages", "cli", "package.json"), "{}\n", "utf8");
     const out = captureStdout(() => {
       run(["--project-root", root]);
     });
-    expect(out).toContain("Deposit hygiene: advisory");
-    expect(out).toContain(".deft/core/packages/");
-    expect(renderStrayPackagesAdvisoryLine(root)).toContain("advisory");
+    expect(out).toContain("Deposit hygiene: fail");
+    expect(out).toContain("packages/cli/package.json");
+    expect(renderDepositFileSetHygieneLine(root)).toContain("fail");
   });
 
-  it("names `directive update` as the remediation for stray packages/ (#2347)", () => {
+  it("names `directive update` as the remediation for package-absent deposit files (#2804)", () => {
     const root = makeRoot("doctor-stray-remediation-");
     makeLifecycleDirs(root);
+    seedContentPackage(root);
     mkdirSync(join(root, ".deft", "core", "packages"), { recursive: true });
-    const advisory = renderStrayPackagesAdvisoryLine(root);
+    writeFileSync(join(root, ".deft", "core", "packages", "stale.txt"), "stale\n", "utf8");
+    const advisory = renderDepositFileSetHygieneLine(root);
     expect(advisory).toContain("directive update");
-    expect(advisory).toContain("#2347");
+    expect(advisory).toContain("#2804");
+  });
+
+  it("evaluates package-absent deposit files against an explicit content root in tests", () => {
+    const root = makeRoot("doctor-eval-explicit-");
+    const contentRoot = join(root, "content-pkg");
+    const deftDir = join(root, ".deft", "core");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(join(deftDir, "legacy", "vbrief"), { recursive: true });
+    writeFileSync(join(deftDir, "legacy", "vbrief", "old.md"), "stale\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
+
+    const result = evaluateDepositFileSetHygiene(root, { contentRoot });
+    expect(result.absent).toEqual(["legacy/vbrief/old.md"]);
+    expect(renderDepositFileSetHygieneLine(root, result)).toContain("legacy/vbrief/old.md");
   });
 
   it("defaults projectRoot to process.cwd() when --project-root is omitted", () => {

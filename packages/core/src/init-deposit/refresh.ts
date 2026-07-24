@@ -41,7 +41,7 @@ import {
   depositStagePaths,
   isInstallerManagedPath,
   printCommitGuidance,
-  pruneStrayDepositPaths,
+  prunePackageAbsentDepositPaths,
 } from "./hygiene.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
@@ -607,10 +607,10 @@ export async function runRefreshDeposit(
   } else {
     await copyContent(contentRoot, deftDir);
     await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-    // #2347: prune framework-source paths that the content package does not ship.
-    // The additive file-swap never removes them, causing the deposit-hygiene
-    // advisory to persist across every upgrade until manually cleaned.
-    await pruneStrayDepositPaths(deftDir, contentRoot, io);
+    // #2804 / #2347: prune deposit paths absent from the content package. The
+    // additive file-swap never removes them, causing stale bridge-era files to
+    // survive across upgrades until manually cleaned.
+    await prunePackageAbsentDepositPaths(deftDir, contentRoot, io);
 
     const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
     const manifestFields: InstallManifestFields = {

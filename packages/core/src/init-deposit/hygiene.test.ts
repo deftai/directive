@@ -5,9 +5,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   depositStagePaths,
+  findPackageAbsentDepositPaths,
+  findPackageAbsentDepositPathsSync,
   frameworkStagePaths,
   installerManagedGuardEre,
+  isDepositGeneratedMetadata,
   isInstallerManagedPath,
+  prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
   stageFrameworkPaths,
 } from "./hygiene.js";
@@ -322,5 +326,94 @@ describe("pruneStrayDepositPaths (#2347)", () => {
     const result = await pruneStrayDepositPaths(deftDir, contentRoot, { printf: () => {} });
 
     expect(result.pruned).toHaveLength(0);
+  });
+});
+
+describe("package-absent deposit prune (#2804)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  it("treats VERSION as generated deposit metadata", () => {
+    expect(isDepositGeneratedMetadata("VERSION")).toBe(true);
+    expect(isDepositGeneratedMetadata("main.md")).toBe(false);
+  });
+
+  it("finds bridge-era leftovers absent from the content package", () => {
+    const root = freshRoot("package-absent-find-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "cmd", "deft-install"), { recursive: true });
+    writeFileSync(join(deftDir, "cmd", "deft-install", "main.go"), "package main\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    expect(findPackageAbsentDepositPathsSync(deftDir, contentRoot)).toEqual([
+      "cmd/deft-install/main.go",
+    ]);
+  });
+
+  it("removes package-absent bridge leftovers while preserving VERSION", async () => {
+    const root = freshRoot("package-absent-prune-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "cmd", "deft-install"), { recursive: true });
+    writeFileSync(join(deftDir, "cmd", "deft-install", "main.go"), "package main\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const lines: string[] = [];
+    const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, {
+      printf: (text) => lines.push(text),
+    });
+
+    expect(result.pruned).toEqual(["cmd/deft-install/main.go"]);
+    expect(existsSync(join(deftDir, "cmd", "deft-install", "main.go"))).toBe(false);
+    expect(existsSync(join(deftDir, "VERSION"))).toBe(true);
+    expect(await findPackageAbsentDepositPaths(deftDir, contentRoot)).toEqual([]);
+    expect(lines.join("")).toContain("#2804");
+  });
+
+  it("is a no-op when the deposit already matches the content package", async () => {
+    const root = freshRoot("package-absent-clean-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, { printf: () => {} });
+
+    expect(result.pruned).toHaveLength(0);
+    expect(result.prunedDirs).toHaveLength(0);
+  });
+
+  it("also prunes package-absent files under packages/ when absent from the content package", async () => {
+    const root = freshRoot("package-absent-packages-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "packages", "core"), { recursive: true });
+    writeFileSync(join(deftDir, "packages", "core", "index.ts"), "export {};\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, { printf: () => {} });
+
+    expect(result.pruned).toContain("packages/core/index.ts");
+    expect(await findPackageAbsentDepositPaths(deftDir, contentRoot)).toEqual([]);
   });
 });
