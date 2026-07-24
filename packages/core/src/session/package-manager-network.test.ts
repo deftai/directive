@@ -146,6 +146,33 @@ describe("package-manager network scope (#2182)", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 
+    vi.mocked(spawnSync).mockImplementation(((command: string, args?: readonly string[]) => {
+      if (command !== "npm" || !Array.isArray(args) || args[0] !== "config" || args[1] !== "get") {
+        return (
+          spawnSyncMock.getMockImplementation()?.(command, args) ?? {
+            status: 1,
+            stdout: "",
+            stderr: "",
+            pid: 1,
+            output: [null, "", ""],
+            signal: null,
+            error: undefined,
+          }
+        );
+      }
+      const key = args[2];
+      const stdout = key === "@deftai:registry" ? "undefined\n" : "https://registry.npmjs.org/\n";
+      return {
+        status: 0,
+        stdout,
+        stderr: "",
+        pid: 1,
+        output: [null, stdout, ""],
+        signal: null,
+        error: undefined,
+      };
+    }) as typeof spawnSync);
+
     const result = defaultRitualRunner(GATED_ENTRYPOINT_COMMANDS.doctor.slice(), root);
 
     expect(typeof result.code).toBe("number");
