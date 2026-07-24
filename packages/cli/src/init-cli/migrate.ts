@@ -5,6 +5,7 @@ import {
 } from "@deftai/directive-core/init-deposit";
 import type { DispatchIo } from "../dispatch.js";
 import { CANONICAL_MIGRATE_ARGV, MIGRATE_UNTRACK_CORE_FLAG } from "./constants.js";
+import { argvWantsHelp, printMigrateHelp } from "./help.js";
 
 /**
  * `directive migrate` (alias `deft migrate`) -- stage-2 provenance verb (#1941):
@@ -29,6 +30,10 @@ function hasUntrackCoreFlag(argv: readonly string[]): boolean {
 }
 
 export function runMigrate(argv: readonly string[], io: DispatchIo): number {
+  if (argvWantsHelp(argv)) {
+    printMigrateHelp(io);
+    return 0;
+  }
   const args = parseInitArgv(CANONICAL_MIGRATE_ARGV, argv);
 
   // `migrate --untrack-core` selects the destructive un-track subcommand;
