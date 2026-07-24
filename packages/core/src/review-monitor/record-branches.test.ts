@@ -181,4 +181,156 @@ describe("review-monitor record branch coverage (#2666)", () => {
       isRecordActive(expired, { now: new Date("2026-07-24T10:01:00.000Z"), headSha: "zzz" }),
     ).toBe(false);
   });
+
+  it("findActiveMonitorForPr picks newest active legacy record", () => {
+    const file = {
+      schema_version: 1 as const,
+      records: [
+        {
+          pr: 10,
+          repo: "deftai/directive",
+          head_sha: null,
+          platform_primitive: "cursor-task" as const,
+          monitor_agent_id: "rm-old",
+          owner: "alice",
+          started_at: "2026-07-24T10:00:00.000Z",
+          expires_at: computeExpiresAt(new Date("2026-07-24T10:00:00.000Z")),
+          worktree_path: null,
+          parent_session_id: null,
+          ended_at: null,
+          comment_id: 1,
+        },
+        {
+          pr: 10,
+          repo: "deftai/directive",
+          head_sha: null,
+          platform_primitive: "cursor-task" as const,
+          monitor_agent_id: "rm-new",
+          owner: "alice",
+          started_at: NOW.toISOString(),
+          expires_at: computeExpiresAt(NOW),
+          worktree_path: null,
+          parent_session_id: null,
+          ended_at: null,
+          comment_id: 2,
+        },
+      ],
+    };
+    const active = findActiveMonitorForPr(file, 10, { now: NOW });
+    expect(active?.monitor_agent_id).toBe("rm-new");
+  });
+
+  it("release succeeds when owner matches without monitor_agent_id", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-rel-owner-"));
+    let body = activeLeaseBody("bob", "rm-bob");
+    const result = releaseReviewMonitor({
+      pr: 11,
+      repo: "deftai/directive",
+      owner: "bob",
+      projectRoot: root,
+      endedAt: NOW,
+      seams: {
+        fetchComments: () => [
+          {
+            id: 11,
+            body,
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "bob",
+            authorAssociation: "MEMBER",
+          },
+        ],
+        updateComment: (_repo, _id, nextBody) => {
+          body = nextBody;
+          return { ok: true as const };
+        },
+      },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(body).toContain("ended_at:");
+  });
+
+  it("create-race reports generic loss when winner lease is unparseable", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-race-null-"));
+    const comments: Array<{ id: number; body: string }> = [];
+    const result = registerReviewMonitor({
+      pr: 12,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () =>
+          comments.map((comment) => ({
+            id: comment.id,
+            body: comment.body,
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          })),
+        createComment: (_repo, _pr, body) => {
+          comments.push({
+            id: 5,
+            body: "<!-- deft:review-owner -->\n<!-- /deft:review-owner -->",
+          });
+          comments.push({ id: 25, body });
+          return { id: 25 };
+        },
+        deleteComment: () => ({ ok: true as const }),
+      },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("create-race lost");
+  });
+
+  it("create-race refetch errors surface as config failures", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-rec-race-fetch-"));
+    let fetchCalls = 0;
+    const result = registerReviewMonitor({
+      pr: 13,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => {
+          fetchCalls += 1;
+          if (fetchCalls === 1) {
+            return [];
+          }
+          return { error: "race refetch failed" };
+        },
+        createComment: () => ({ id: 30 }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("race refetch failed");
+  });
+
+  it("isRecordActive rejects invalid lease timestamps", () => {
+    expect(
+      isRecordActive(
+        {
+          pr: 14,
+          repo: "deftai/directive",
+          head_sha: null,
+          platform_primitive: "cursor-task",
+          monitor_agent_id: "rm-14",
+          owner: "alice",
+          started_at: "bad",
+          expires_at: "also-bad",
+          worktree_path: null,
+          parent_session_id: null,
+          ended_at: null,
+          comment_id: 14,
+        },
+        { now: NOW },
+      ),
+    ).toBe(false);
+  });
 });

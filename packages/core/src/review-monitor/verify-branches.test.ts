@@ -72,19 +72,6 @@ describe("review-monitor verify branch coverage (#2666)", () => {
     expect(json.ready).toBe(true);
   });
 
-  it("registerReviewMonitor returns config error when repo cannot be resolved", () => {
-    const root = mkdtempSync(join(tmpdir(), "rm-reg-config-"));
-    const result = registerReviewMonitor({
-      pr: 3,
-      platformPrimitive: "cursor-task",
-      monitorAgentId: "rm-3",
-      projectRoot: root,
-      repo: "",
-      owner: "alice",
-    });
-    expect(result.exitCode).toBe(2);
-  });
-
   it("covers Approach 3 and GitHub fetch error branches", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-verify-br-"));
     expect(
@@ -127,5 +114,30 @@ describe("review-monitor verify branch coverage (#2666)", () => {
         seams: { fetchComments: () => ({ error: "offline" }) },
       }).exitCode,
     ).toBe(2);
+  });
+
+  it("registerReviewMonitor returns config error when repo cannot be resolved", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-reg-config-"));
+    const result = registerReviewMonitor({
+      pr: 3,
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-3",
+      projectRoot: root,
+      repo: "",
+      owner: "alice",
+    });
+    expect(result.exitCode).toBe(2);
+  });
+
+  it("fails when repo cannot be resolved on Tier 1 verify", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-verify-repo-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 4,
+      projectRoot: root,
+      repo: "",
+      environ: { CURSOR_COMPOSER: "1" },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("could not resolve owner/repo");
   });
 });
