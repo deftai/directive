@@ -1,0 +1,15 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  monitor:
+    desc: "Sub-agent heartbeat sweep (#1365 / #2824). Three-state exit (0 ok / 1 stale-or-malformed / 2 config). Alias for the raw subagent-monitor engine."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'subagent-monitor {{.CLI_ARGS}}'

@@ -146,43 +146,31 @@ describe("package-manager network scope (#2182)", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 
-    spawnSyncMock.mockImplementation(((command: string, args?: readonly string[]) => {
-      if (command === "npm" && args?.[0] === "config" && args?.[1] === "get") {
-        const key = args[2];
-        if (key === "@deftai:registry") {
-          return {
-            status: 0,
-            stdout: "undefined\n",
+    vi.mocked(spawnSync).mockImplementation(((command: string, args?: readonly string[]) => {
+      if (command !== "npm" || !Array.isArray(args) || args[0] !== "config" || args[1] !== "get") {
+        return (
+          spawnSyncMock.getMockImplementation()?.(command, args) ?? {
+            status: 1,
+            stdout: "",
             stderr: "",
             pid: 1,
-            output: [null, "undefined\n", ""],
+            output: [null, "", ""],
             signal: null,
             error: undefined,
-          };
-        }
-        if (key === "registry") {
-          return {
-            status: 0,
-            stdout: "https://registry.npmjs.org/\n",
-            stderr: "",
-            pid: 1,
-            output: [null, "https://registry.npmjs.org/\n", ""],
-            signal: null,
-            error: undefined,
-          };
-        }
+          }
+        );
       }
-      return (
-        spawnSyncMock.getMockImplementation()?.(command, args) ?? {
-          status: 1,
-          stdout: "",
-          stderr: "",
-          pid: 1,
-          output: [null, "", ""],
-          signal: null,
-          error: undefined,
-        }
-      );
+      const key = args[2];
+      const stdout = key === "@deftai:registry" ? "undefined\n" : "https://registry.npmjs.org/\n";
+      return {
+        status: 0,
+        stdout,
+        stderr: "",
+        pid: 1,
+        output: [null, stdout, ""],
+        signal: null,
+        error: undefined,
+      };
     }) as typeof spawnSync);
 
     const result = defaultRitualRunner(GATED_ENTRYPOINT_COMMANDS.doctor.slice(), root);
