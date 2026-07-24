@@ -6,7 +6,7 @@
   "plan": {
     "id": "2814-pr-review-owner-lease",
     "title": "feat(review-cycle): PR-anchored review-owner lease replaces local review-monitor.json",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Machine-local `.deft/review-monitor.json` cannot serialize review-cycle ownership across clones, so two maintainer agents can both babysit the same PR (as with #2810). This story makes a sticky PR issue-comment with `<!-- deft:review-owner -->` markers the sole lease source of truth: register/release/verify speak only to GitHub over REST, stop writing the local ledger, and update review-cycle skill + commands pointers so agents cannot claim a monitor is active without a successful GitHub claim.",
       "ImplementationPlan": "1. Replace file IO in `packages/core/src/review-monitor/record.ts` and `verify.ts` with sticky-comment parse/render plus REST list/create/patch helpers (fixture-friendly; preserve exit `0`/`1`/`2`), and stop all writes to `.deft/review-monitor.json`. 2. Wire CLI `packages/cli/src/review-monitor-register.ts` and `verify-review-monitor.ts` (plus `tasks/review-monitor.yml`) for claim conflict, create-race oldest-wins, expiry takeover, `--force`, and new `review-monitor:release`, with focused tests under `packages/core/src/review-monitor/*.test.ts` and CLI register/verify tests. 3. Update `content/skills/deft-directive-review-cycle/SKILL.md`, `content/commands.md`, and `content/templates/agent-prompt-preamble.md` so register must succeed before a second review-cycle/fix loop and legacy local JSON alone cannot satisfy `verify:review-monitor`.",
@@ -107,7 +107,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-07-24T22:48:08Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -129,6 +131,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-07-24T17:32:15Z"
+    "updated": "2026-07-24T22:48:08Z"
   }
 }
