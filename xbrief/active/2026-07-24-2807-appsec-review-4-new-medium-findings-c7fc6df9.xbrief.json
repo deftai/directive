@@ -1,0 +1,99 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2807 — contain four symlink write/append/mkdir sinks with assertWriteTargetSafe."
+  },
+  "plan": {
+    "id": "2807-symlink-write-containment",
+    "title": "AppSec review — 4 new medium findings (c7fc6df9)",
+    "status": "running",
+    "narratives": {
+      "Description": "AppSec review found four MEDIUM symlink / confused-deputy sinks where committed or force-addable leaf or directory symlinks divert `writeFileSync`, `appendFileSync`, or mkdir materialization outside the project under the operator identity. Prior work already ships `assertWriteTargetSafe` / `projectionTarget` in `packages/core/src/fs/projection-containment.ts`. This story gates the four remaining CLI paths and adds symlink-diversion regression tests for each.",
+      "ImplementationPlan": "1. Guard `writeHealthBaseline` in `packages/core/src/eval-health-relocation/evaluate.ts`, `recordLastSubmit` in `packages/core/src/product-signal/submit.ts`, and the uninstall AGENTS.md rewrite plus `change:init` history materialization in `packages/core/src/task-surface/index.ts` with `assertWriteTargetSafe` / `projectionTarget` before mutate. 2. Extend focused tests in `evaluate.test.ts`, `submit.test.ts`, and `task-surface/index.test.ts` (reusing patterns from `projection-containment.test.ts`) so symlink-at-leaf and directory diversion are rejected with a clear error and no outside write. 3. Record a short pattern-audit note in the PR for any remaining same-trust-class writers that need a follow-up issue or intentional exception.",
+      "UserStory": "As a Directive operator running CLI tasks, I want write sinks to reject symlink diversion outside the project, so that automation cannot overwrite or append files under a confused-deputy path.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2807",
+      "Overview": "## Summary\n\nAppSec review against commit `c7fc6df9` found **4 MEDIUM** symlink / confused-deputy write sinks with end-to-end CLI paths.\n\n### Findings\n1. `eval-health-relocation/evaluate.ts` — seed-baseline overwrite via symlink\n2. `product-signal/submit.ts` — last-submit append via symlink\n3. `task-surface/index.ts` — uninstall AGENTS.md rewrite via symlink\n4. `task-surface/index.ts` — change:init history/ directory symlink escape\n\nRelated prior fix pattern: `assertWriteTargetSafe` / `projectionTarget` (`packages/core/src/fs/projection-containment.ts`).\n",
+      "Labels": "bug, security",
+      "Traces": "#2807"
+    },
+    "items": [
+      {
+        "id": "2807-a1",
+        "title": "Given a symlink at the eval-health baseline path, when seed-baseline runs, then the outside target is rejected.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a committed symlink at `xbrief/.eval/results/eval-health-baseline.json` pointing outside the project, when `task verify:eval-health-relocation -- --seed-baseline` runs, then the write is rejected with a clear containment error and the outside target is not overwritten.",
+          "Traces": "#2807"
+        }
+      },
+      {
+        "id": "2807-a2",
+        "title": "Given a symlink at product-signal last-submit path, when submit records metadata, then the outside append is rejected.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a force-addable symlink at `.deft-cache/product-signal-last-submit.json` pointing outside the project, when a successful `task product-signal:submit` records last-submit metadata, then the append is rejected with a clear containment error and the outside target is not appended.",
+          "Traces": "#2807"
+        }
+      },
+      {
+        "id": "2807-a3",
+        "title": "Given AGENTS.md or history/ symlinks, when uninstall or change:init runs, then outside rewrite or materialization is rejected.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a repo `AGENTS.md` symlink or an escaping `history/` directory symlink, when `task install:uninstall` rewrites AGENTS.md or `task change:init` materializes `history/changes/<name>/`, then the operation rejects the diverted target and does not overwrite or create files outside the project root.",
+          "Traces": "#2807"
+        }
+      },
+      {
+        "id": "2807-a4",
+        "title": "Given the four gated sinks, when regression tests run, then each symlink diversion path is covered.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the four gated write/append/mkdir sinks, when the focused vitest suites run, then symlink diversion coverage exists for eval-health baseline seed, product-signal last-submit append, uninstall AGENTS.md rewrite, and change:init history materialization.",
+          "Traces": "#2807"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/eval-health-relocation/evaluate.ts",
+          "packages/core/src/eval-health-relocation/evaluate.test.ts",
+          "packages/core/src/product-signal/submit.ts",
+          "packages/core/src/product-signal/submit.test.ts",
+          "packages/core/src/task-surface/index.ts",
+          "packages/core/src/task-surface/index.test.ts",
+          "packages/core/src/fs/projection-containment.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/eval-health-relocation/evaluate.test.ts packages/core/src/product-signal/submit.test.ts packages/core/src/task-surface/index.test.ts packages/core/src/fs/projection-containment.test.ts"
+        ],
+        "expected_outputs": [
+          "symlink diversion tests pass for all four sinks",
+          "assertWriteTargetSafe guards at each mutate site"
+        ],
+        "depends_on": [],
+        "conflict_group": "write-containment",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2807",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2807: AppSec review — 4 new medium findings (c7fc6df9)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-07-24T17:32:14Z"
+  }
+}

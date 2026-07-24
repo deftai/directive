@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { evaluateHealth, type HealthReport } from "../eval/health.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { resolveEvalPath } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 
@@ -93,6 +94,7 @@ export function readHealthBaseline(projectRoot: string): HealthReport | null {
 /** Persist a health report as the committed baseline (#2373 Wave 2 seed). */
 export function writeHealthBaseline(projectRoot: string, report: HealthReport): void {
   const path = healthBaselinePath(projectRoot);
+  assertWriteTargetSafe(projectRoot, path);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(report)}\n`, "utf8");
 }
@@ -240,7 +242,18 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
         stream: "stderr",
       };
     }
-    writeHealthBaseline(projectRoot, report);
+    try {
+      writeHealthBaseline(projectRoot, report);
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        return {
+          code: 2,
+          message: `❌ verify:eval-health-relocation: ${err.message}`,
+          stream: "stderr",
+        };
+      }
+      throw err;
+    }
     return {
       code: 0,
       message:

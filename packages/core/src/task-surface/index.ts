@@ -2,6 +2,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
+import {
+  assertProjectionContained,
+  assertWriteTargetSafe,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 
 export interface TaskSurfaceIo {
   writeOut: (text: string) => void;
@@ -12,6 +17,21 @@ const UNRELEASED_RE = /## \[Unreleased\][ \t]*\n([\s\S]*?)(?=\n## \[|$)/;
 const CHANGE_NAME_RE = /^[\w][\w-]*$/;
 const COMMIT_TYPES = "feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert";
 const COMMIT_SUBJECT_RE = new RegExp(`^(${COMMIT_TYPES})(\\(.+\\))?!?: .+`);
+
+/** Refuse task-surface writes that escape via repo-controlled symlinks (#2807). */
+function projectionTarget(projectDir: string, ...relSegments: string[]): string {
+  const target = join(resolve(projectDir), ...relSegments);
+  assertProjectionContained(projectDir, target);
+  return target;
+}
+
+function containmentExitCode(io: TaskSurfaceIo, err: unknown): number | null {
+  if (err instanceof ProjectionContainmentError) {
+    io.writeErr(`FAIL: ${err.message}\n`);
+    return 2;
+  }
+  return null;
+}
 
 function proposalTemplate(name: string): unknown {
   return {
@@ -77,27 +97,34 @@ export function runChangeInit(projectRoot: string, name: string, io: TaskSurface
     io.writeOut("FAIL: Name must contain only alphanumeric characters, underscores, and hyphens\n");
     return 1;
   }
-  const base = join(resolve(projectRoot), "history", "changes", trimmed);
-  if (existsSync(base)) {
-    io.writeOut(`FAIL: ${base} already exists\n`);
-    return 1;
+  const projectAbs = resolve(projectRoot);
+  try {
+    const base = projectionTarget(projectAbs, join("history", "changes", trimmed));
+    if (existsSync(base)) {
+      io.writeOut(`FAIL: ${base} already exists\n`);
+      return 1;
+    }
+    const specsDir = join(base, "specs");
+    assertProjectionContained(projectAbs, specsDir);
+    mkdirSync(specsDir, { recursive: true });
+    const proposalPath = join(base, "proposal.xbrief.json");
+    const tasksPath = join(base, "tasks.xbrief.json");
+    assertWriteTargetSafe(projectAbs, proposalPath);
+    assertWriteTargetSafe(projectAbs, tasksPath);
+    writeFileSync(proposalPath, `${JSON.stringify(proposalTemplate(trimmed), null, 2)}\n`, "utf8");
+    writeFileSync(tasksPath, `${JSON.stringify(tasksTemplate(trimmed), null, 2)}\n`, "utf8");
+    io.writeOut(`OK: Created change proposal at ${base}/\n`);
+    for (const file of ["proposal.xbrief.json", "tasks.xbrief.json", "specs/"]) {
+      io.writeOut(`  - ${file}\n`);
+    }
+    return 0;
+  } catch (err) {
+    const code = containmentExitCode(io, err);
+    if (code !== null) {
+      return code;
+    }
+    throw err;
   }
-  mkdirSync(join(base, "specs"), { recursive: true });
-  writeFileSync(
-    join(base, "proposal.xbrief.json"),
-    `${JSON.stringify(proposalTemplate(trimmed), null, 2)}\n`,
-    "utf8",
-  );
-  writeFileSync(
-    join(base, "tasks.xbrief.json"),
-    `${JSON.stringify(tasksTemplate(trimmed), null, 2)}\n`,
-    "utf8",
-  );
-  io.writeOut(`OK: Created change proposal at ${base}/\n`);
-  for (const file of ["proposal.xbrief.json", "tasks.xbrief.json", "specs/"]) {
-    io.writeOut(`  - ${file}\n`);
-  }
-  return 0;
 }
 
 /** Port of ``task commit:lint`` inline Python (#2022 Phase 2). */
@@ -142,8 +169,17 @@ export function runInstallUninstall(projectRoot: string, io: TaskSurfaceIo): num
   );
   const next = filtered.join("");
   if (next !== original) {
-    writeFileSync(path, next, "utf8");
-    io.writeOut("Removed deft entry from AGENTS.md\n");
+    try {
+      assertWriteTargetSafe(resolve(projectRoot), path);
+      writeFileSync(path, next, "utf8");
+      io.writeOut("Removed deft entry from AGENTS.md\n");
+    } catch (err) {
+      const code = containmentExitCode(io, err);
+      if (code !== null) {
+        return code;
+      }
+      throw err;
+    }
   } else {
     io.writeOut("No deft entry found in AGENTS.md\n");
   }
