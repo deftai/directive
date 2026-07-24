@@ -1,0 +1,81 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2828 — deft update --help must print help without mutating."
+  },
+  "plan": {
+    "id": "2828-update-help-no-mutation",
+    "title": "bug(cli): deft update --help performs the update instead of printing help",
+    "status": "running",
+    "narratives": {
+      "Description": "`deft update --help` / `directive update --help` currently runs the full deposit refresh (payload swap, AGENTS.md rewrite, git index staging) because parseUpdateArgv / runUpdate never intercepts --help/-h before mutation. Fix by printing usage and exiting 0 with zero filesystem or git side effects; audit sibling top-level mutators (init/migrate) for the same pattern.",
+      "ImplementationPlan": "1. Intercept --help/-h in packages/cli/src/init-cli/update.ts (and/or parseUpdateArgv / parseInitArgv) before runRefreshDepositCli. 2. Print update usage and return 0. 3. Add a focused test that update --help does not call refresh / does not write deposit files. 4. Quick audit of init/migrate --help for the same fall-through; fix if same bug. 5. CHANGELOG [Unreleased].",
+      "UserStory": "As an operator or agent probing flags, I want `deft update --help` to print usage only, so that discovery never upgrades or stages my working tree.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2828",
+      "Overview": "Reproduced on @deftai/directive 0.84.0: update --help swapped .deft/core, rewrote AGENTS.md, modified .gitignore, and staged index changes. parseUpdateArgv in refresh.ts has no help branch.",
+      "Labels": "bug, adoption-blocker, agent-experience, area:cli, area:installer",
+      "Traces": "#2828"
+    },
+    "items": [
+      {
+        "id": "2828-a1",
+        "title": "Given update --help, when the CLI runs, then it prints help and exits 0 with no deposit mutation.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an initialized Directive project, when `directive update --help` (or `-h`) is invoked, then usage text is printed, the process exits 0, and `.deft/core`, AGENTS.md, `.gitignore`, and the git index are unchanged.",
+          "Traces": "#2828"
+        }
+      },
+      {
+        "id": "2828-a2",
+        "title": "Given init/migrate --help audit, when the same fall-through exists, then it is fixed or explicitly documented as already safe.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a quick audit of top-level `init` and `migrate` help handling, when the same mutate-on-help pattern exists, then it is fixed in this story; otherwise the PR notes they already intercept help safely.",
+          "Traces": "#2828"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli",
+      "area:installer"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/init-cli/update.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/cli/src/init-cli",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/refresh.test.ts packages/cli/src/init-cli"
+        ],
+        "expected_outputs": [
+          "update --help exits 0 without mutation",
+          "init/migrate help audit noted or fixed"
+        ],
+        "depends_on": [],
+        "conflict_group": "update-help",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2828",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2828"
+      }
+    ],
+    "updated": "2026-07-24T21:59:10Z"
+  }
+}
