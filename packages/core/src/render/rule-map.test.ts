@@ -45,6 +45,8 @@ const TASKFILE_YML = `version: '3'
 includes:
   scm:
     taskfile: ./tasks/scm.yml
+  metrics:
+    taskfile: ./tasks/metrics.yml
 `;
 
 const TASKS_YML = `version: '3'
@@ -60,6 +62,15 @@ tasks:
     desc: >-
       Sync the local branch
       with the upstream remote.
+`;
+
+const METRICS_YML = `version: '3'
+
+# Trend readout (--window=7d|30d) (--format=text|json)
+
+tasks:
+  show:
+    desc: "Show metrics"
 `;
 
 const PACK_JSON = JSON.stringify({
@@ -87,6 +98,7 @@ function makeRepo(): string {
 
   mkdirSync(join(root, "tasks"), { recursive: true });
   writeFileSync(join(root, "tasks", "scm.yml"), TASKS_YML, "utf8");
+  writeFileSync(join(root, "tasks", "metrics.yml"), METRICS_YML, "utf8");
   writeFileSync(join(root, "Taskfile.yml"), TASKFILE_YML, "utf8");
 
   const packs = join(root, "content", "packs");
@@ -221,6 +233,20 @@ describe("rule-map generator", () => {
     const scm = model.tasks.find((t) => t.namespace === "scm");
     const sync = scm?.tasks.find((t) => t.name === "sync");
     expect(sync?.desc).toBe("Sync the local branch with the upstream remote.");
+  });
+
+  it("escapes literal pipe characters inside Markdown table cells", () => {
+    const root = makeRepo();
+    ruleMapMain(["--project-root", root]);
+    const md = readFileSync(mdPathOf(root), "utf8");
+    // Unescaped `|` would split the table column; escaped form preserves the option syntax.
+    expect(md).toContain("--format=text\\|json");
+    expect(md).toContain("--window=7d\\|30d");
+    const metricsRow = md.split("\n").find((l) => l.includes("| metrics |"));
+    expect(metricsRow).toBeDefined();
+    // Purpose is a single cell: no raw `|json` / `|30d` column breaks (only `\|…`).
+    expect(metricsRow).not.toMatch(/(?<!\\)\|json/);
+    expect(metricsRow).not.toMatch(/(?<!\\)\|30d/);
   });
 
   it("does not throw when the repo has content/ but no tasks/ directory", () => {

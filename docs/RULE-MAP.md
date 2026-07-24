@@ -337,8 +337,8 @@ _How agents prove work is done: gates, validators, coverage, review._
 | docs | Maintainer documentation tasks. | 2 |
 | engine | Consumer engine resolution (#2022 Phase 3). | 3 |
 | eval | Self-consistency and quality evaluation tasks. | 4 |
-| feedback | Draft or file a deduped framework-gap issue upstream (#1709). -- task feedback:file -- [--summary TEXT | positional] [--context ...]… | 1 |
-| framework | Read-only remote-version probe (#801) -- task framework:check-updates [-- --force | --json]. Honors DEFT_NO_NETWORK=1 and… | 2 |
+| feedback | Draft or file a deduped framework-gap issue upstream (#1709). -- task feedback:file -- [--summary TEXT \| positional] [--context ...]… | 1 |
+| framework | Read-only remote-version probe (#801) -- task framework:check-updates [-- --force \| --json]. Honors DEFT_NO_NETWORK=1 and… | 2 |
 | install | Installer / bootstrap tasks for consumer projects. | 3 |
 | issue | Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run]) | 2 |
 | lifecycle | Emit behavioral framework events (review-cycle plan:approved recorder). -- task lifecycle:event -- emit plan:approved --plan-ref <url>… | 1 |
@@ -365,19 +365,19 @@ _How agents prove work is done: gates, validators, coverage, review._
 | triage-actions | Accept an issue for triage. Records an audit entry. (#845 Story 3) | 8 |
 | triage-bootstrap | Triage v1 bootstrap fragment (#845 Story 6). | 1 |
 | triage-bulk | Story 4 of #845 + #915 cache-walk re-enable. | 5 |
-| triage-classify | Inspect / validate plan.policy.triageAutoClassify[] + triageHoldMarkers[] (#1129 / D10). -- task triage:classify -- [--list | --validate] | 1 |
+| triage-classify | Inspect / validate plan.policy.triageAutoClassify[] + triageHoldMarkers[] (#1129 / D10). -- task triage:classify -- [--list \| --validate] | 1 |
 | triage-metrics | D17 triage metrics alias for value-readback (#1709). | 1 |
 | triage-queue | Print the ranked triage queue (#1128 / D11). -- task triage:queue [-- --repo OWNER/NAME] [--limit N] | 3 |
 | triage-reconcile | `task triage:reconcile` audit-log self-heal (#1468). | 1 |
 | triage-scope | Inspect / mutate / diff the typed plan.policy.triageScope[] subscription + triageScopeIgnores[] (#1131 / D12, #1133 / D14, #1182 /… | 1 |
 | triage-scope-drift | Detect subscription drift -- unsubscribed labels/milestones on cached open issues (#1133 / D14). -- task triage:scope-drift [--… | 1 |
 | triage-smoketest | N6 (#1146) `task triage:smoketest` end-to-end | 1 |
-| triage-subscribe | Subscribe to a label / milestone / issue on plan.policy.triageScope[] (#1133 / D14). -- task triage:subscribe -- (--label=L |… | 2 |
+| triage-subscribe | Subscribe to a label / milestone / issue on plan.policy.triageScope[] (#1133 / D14). -- task triage:subscribe -- (--label=L \|… | 2 |
 | triage-summary | D2 (#1122) `task triage:summary` one-liner surface. | 1 |
 | triage-welcome | N3 (#1143) `task triage:welcome` 6-phase | 1 |
 | ts | TypeScript engine monorepo verbs (#1717). Parity oracle tasks removed (#1860). | 5 |
-| umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO | --json | --strict]. Does NOT… | 1 |
-| value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d|30d] [--format=text|json] | 1 |
+| umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
+| value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
 | verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 36 |
 | xbrief | Preflight an implementation-intent gate (#810): exits 0 only when the xBRIEF is in xbrief/active/ AND plan.status == 'running'. Alias of… | 1 |
@@ -396,9 +396,9 @@ Directive turns a coding agent into an auditable process: load only the guidance
 
 | Pack | Version | Rules | MUST | SHOULD | MUST_NOT |
 |---|--:|--:|--:|--:|--:|
-| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content/packs/rules/rules-pack-0.1.json` | 0.1 | 595 | 297 | 104 | 177 |
-| `content/packs/skills/skills-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content/packs/strategies/strategies-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
-| `content/packs/swarm-spec/swarm-spec-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content\packs\lessons\lessons-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content\packs\patterns\patterns-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content\packs\rules\rules-pack-0.1.json` | 0.1 | 595 | 297 | 104 | 177 |
+| `content\packs\skills\skills-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content\packs\strategies\strategies-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |
+| `content\packs\swarm-spec\swarm-spec-pack-0.1.json` | 0.1 | — | 0 | 0 | 0 |

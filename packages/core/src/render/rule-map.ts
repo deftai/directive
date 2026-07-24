@@ -542,13 +542,15 @@ function buildModel(repo: string, withBodies: boolean): Model {
 
 // --------------------------------------------------------------- MD rendering
 function mdTable(headers: string[], rows: (string | number)[][]): string {
-  // Collapse any embedded newlines so no header/cell value can break out of its row.
-  const oneLine = (c: string | number): string => String(c).replace(/\r?\n/g, " ");
+  // Collapse embedded newlines and escape `|` so cell values cannot break table structure
+  // (e.g. option syntax like `--format=text|json` in task descriptions).
+  const cell = (c: string | number): string =>
+    String(c).replace(/\r?\n/g, " ").replace(/\|/g, "\\|");
   const out = [
-    `| ${headers.map(oneLine).join(" | ")} |`,
+    `| ${headers.map(cell).join(" | ")} |`,
     `|${headers.map((_, i) => (i === 0 ? "---" : "--:")).join("|")}|`,
   ];
-  for (const r of rows) out.push(`| ${r.map(oneLine).join(" | ")} |`);
+  for (const r of rows) out.push(`| ${r.map(cell).join(" | ")} |`);
   return out.join("\n");
 }
 function renderMd(model: Model): string {

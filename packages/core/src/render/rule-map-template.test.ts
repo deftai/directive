@@ -22,4 +22,10 @@ describe("rule-map template", () => {
     expect(TEMPLATE).not.toContain("http://");
     expect(TEMPLATE).not.toContain("https://");
   });
+
+  it("copyPath falls back when Clipboard API is unavailable (file://)", () => {
+    expect(TEMPLATE).toContain("function copyPath(p)");
+    expect(TEMPLATE).toContain('document.execCommand("copy")');
+    expect(TEMPLATE).toContain("navigator.clipboard");
+  });
 });

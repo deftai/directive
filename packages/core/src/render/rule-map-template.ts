@@ -143,7 +143,24 @@ const MARK2TIER={"!":"MUST","⊗":"MUST NOT","~":"SHOULD","≉":"SHOULD NOT","?"
 
 function toast(msg,err){const t=document.getElementById('toast');t.textContent=msg;
   t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',1800);}
-function copyPath(p){navigator.clipboard.writeText(p).then(()=>toast("Path copied"),()=>toast("Copy failed",true));}
+function copyPath(p){
+  const ok=()=>toast("Path copied");
+  const fail=()=>toast("Copy failed",true);
+  const fallback=()=>{
+    try{
+      const ta=document.createElement("textarea");
+      ta.value=p;ta.setAttribute("readonly","");
+      ta.style.position="fixed";ta.style.left="-9999px";
+      document.body.appendChild(ta);ta.select();
+      const done=document.execCommand("copy");
+      document.body.removeChild(ta);
+      done?ok():fail();
+    }catch(_){fail();}
+  };
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==="function"){
+    navigator.clipboard.writeText(p).then(ok,fallback);
+  }else fallback();
+}
 
 /* tiny zero-dependency markdown renderer (headings, lists, code, quote, inline) */
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
