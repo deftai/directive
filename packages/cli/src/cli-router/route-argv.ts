@@ -81,6 +81,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:enforce-branches": ["policy", "enforce-branches"],
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],
   "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
+  "policy:clear-value-feedback": ["policy", "clear-value-feedback"],
   "product-signal:status": ["product-signal", "status"],
   "product-signal:enable": ["product-signal", "enable"],
   "product-signal:consent": ["product-signal", "consent"],

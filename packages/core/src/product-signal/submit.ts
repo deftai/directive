@@ -14,6 +14,7 @@ import {
   readProductSignalConsent,
   revokeProductSignalConsent,
 } from "./consent.js";
+import { maybeFormatProductSignalConsentPrompt } from "./consent-prompt.js";
 import { evaluateProductSignalGates, type ProductSignalOutcome } from "./gates.js";
 import { GitHubPrivateSinkAdapter } from "./github-private-sink-adapter.js";
 import { collectInstallContext } from "./install-context.js";
@@ -228,6 +229,10 @@ export function runProductSignalStatus(projectRoot: string | null): { exitCode: 
     `[deft product-signal] consented=${String(consent !== null)} configuredSink=${configuredSink} consentedSink=${sinkAuth.consentedSink ?? "none"} sinksMatch=${String(sinkAuth.sinksMatch)}`,
     last ? `[deft product-signal] ${last}` : "[deft product-signal] last submit: none",
   ];
+  const consentPrompt = maybeFormatProductSignalConsentPrompt({ projectRoot: root });
+  if (consentPrompt.length > 0) {
+    lines.push(consentPrompt.trimEnd());
+  }
   return { exitCode: 0, text: `${lines.join("\n")}\n` };
 }
 

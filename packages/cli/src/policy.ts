@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { resolve as pathResolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  clearValueFeedback,
   describeShadowedPlanExtension,
   detectShadowedPlanExtensions,
   disclosureLine,
@@ -52,7 +53,13 @@ interface ShowArgs {
 }
 
 interface SetArgs {
-  cmd: "show" | "enforce-branches" | "allow-direct-commits" | "enable-value-feedback" | "resolve";
+  cmd:
+    | "show"
+    | "enforce-branches"
+    | "allow-direct-commits"
+    | "enable-value-feedback"
+    | "clear-value-feedback"
+    | "resolve";
   confirm: boolean;
   actor: string;
   note: string;
@@ -153,7 +160,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|clear-value-feedback|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -191,7 +198,8 @@ export function parseArgs(argv: string[]): SetArgs {
   if (
     cmd === "enforce-branches" ||
     cmd === "allow-direct-commits" ||
-    cmd === "enable-value-feedback"
+    cmd === "enable-value-feedback" ||
+    cmd === "clear-value-feedback"
   ) {
     let confirm = false;
     let actor =
@@ -199,7 +207,9 @@ export function parseArgs(argv: string[]): SetArgs {
         ? policyColonInvocation("enforce-branches")
         : cmd === "allow-direct-commits"
           ? policyColonInvocation("allow-direct-commits")
-          : policyColonInvocation("enable-value-feedback");
+          : cmd === "enable-value-feedback"
+            ? policyColonInvocation("enable-value-feedback")
+            : policyColonInvocation("clear-value-feedback");
     let note = "";
     let projectRoot = ".";
     for (let i = 1; i < argv.length; i += 1) {
@@ -380,6 +390,15 @@ function runSet(args: SetArgs): number {
   }
 }
 
+function runClearValueFeedback(args: SetArgs): number {
+  const result = clearValueFeedback(pathResolve(args.projectRoot), {
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
 /** Run the policy CLI; returns process exit code. */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
@@ -403,6 +422,9 @@ export function run(argv: string[]): number {
   }
   if (args.cmd === "enable-value-feedback") {
     return runEnableValueFeedback(args);
+  }
+  if (args.cmd === "clear-value-feedback") {
+    return runClearValueFeedback(args);
   }
   return 2;
 }

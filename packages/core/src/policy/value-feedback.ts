@@ -3,6 +3,7 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
+import { valueFeedbackInstallForceOnSource } from "./org-force-on-migration.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
@@ -32,7 +33,12 @@ export interface ValueFeedbackConfig {
   readonly upstreamPrompt: boolean;
 }
 
-export type ValueFeedbackSource = "typed" | "org-auto" | "default" | "default-on-error";
+export type ValueFeedbackSource =
+  | "typed"
+  | "org-auto"
+  | "install-force-on"
+  | "default"
+  | "default-on-error";
 
 export interface ValueFeedbackResolved extends ValueFeedbackConfig {
   readonly source: ValueFeedbackSource;
@@ -114,7 +120,8 @@ export function validateValueFeedback(value: unknown): string[] {
   return errors;
 }
 
-function resolveFromPolicyBlock(raw: unknown): ValueFeedbackResolved {
+/** Resolve a typed `valueFeedback` block without org-auto / install-force-on layers. */
+export function resolveValueFeedbackFromTypedBlock(raw: unknown): ValueFeedbackResolved {
   const errors = validateValueFeedback(raw);
   if (errors.length > 0) {
     return defaultResolved("default-on-error", errors[0] ?? "invalid valueFeedback block");
@@ -179,7 +186,13 @@ export function resolveValueFeedback(
     }
     return defaultResolved("default");
   }
-  return resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
+  const raw = (policyBlock as Record<string, unknown>).valueFeedback;
+  const installSource = valueFeedbackInstallForceOnSource(projectRoot, raw);
+  if (installSource !== null) {
+    const resolved = resolveValueFeedbackFromTypedBlock(raw);
+    return { ...resolved, source: installSource };
+  }
+  return resolveValueFeedbackFromTypedBlock(raw);
 }
 
 /** Master gate: when `enabled` is false, every downstream path is rejected. */
@@ -277,8 +290,13 @@ export function inspectValueFeedback(
     return fieldFromResolved(defaultResolved("default"));
   }
 
-  const resolved = resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
-  return fieldFromResolved(resolved);
+  const raw = (policyBlock as Record<string, unknown>).valueFeedback;
+  const installSource =
+    projectRoot !== undefined ? valueFeedbackInstallForceOnSource(projectRoot, raw) : null;
+  const resolved = resolveValueFeedbackFromTypedBlock(raw);
+  return fieldFromResolved(
+    installSource !== null ? { ...resolved, source: installSource } : resolved,
+  );
 }
 
 export interface EnableValueFeedbackOptions {
@@ -360,7 +378,7 @@ export function enableValueFeedback(
         sessionLine: readPersistedSubFlag("sessionLine"),
         upstreamPrompt: readPersistedSubFlag("upstreamPrompt"),
       };
-      const previousNormalized = resolveFromPolicyBlock(previous);
+      const previousNormalized = resolveValueFeedbackFromTypedBlock(previous);
       const changedFlag =
         previousNormalized.enabled !== nextBlock.enabled ||
         previousNormalized.emitEvents !== nextBlock.emitEvents ||
@@ -394,6 +412,87 @@ export function enableValueFeedback(
       changed
         ? "  audit: meta/policy-changes.log updated."
         : "  no-op: value already matched (audit entry still appended for trail).",
+      formatValueFeedbackStatusLine(resolved),
+    ];
+    return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("PROJECT-DEFINITION not found")) {
+      return { exitCode: 2, stdout: `\u274c ${message}\n`, changed: false };
+    }
+    return { exitCode: 2, stdout: `\u274c Config error: ${message}\n`, changed: false };
+  }
+}
+
+export interface ClearValueFeedbackOptions {
+  readonly actor?: string;
+  readonly note?: string;
+}
+
+export interface ClearValueFeedbackResult {
+  readonly exitCode: 0 | 2;
+  readonly stdout: string;
+  readonly changed: boolean;
+}
+
+/**
+ * Remove the typed `valueFeedback` key so trusted-org resolution can return to
+ * org-auto (#2822). Does not delete the install-force-on marker — subsequent
+ * updates will not re-force against intentional opt-out.
+ */
+export function clearValueFeedback(
+  projectRoot: string,
+  options: ClearValueFeedbackOptions = {},
+): ClearValueFeedbackResult {
+  const path = projectDefinitionPath(projectRoot);
+  try {
+    const { changed } = projectDefinitionMutationLock(projectRoot, () => {
+      const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
+      }
+      const data = parsed as Record<string, unknown>;
+      if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
+        throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+      }
+      const plan = data.plan as Record<string, unknown>;
+      migrateLegacyPolicyKey(plan);
+      const existingPolicy = plan[PLAN_POLICY_KEY];
+      if (
+        typeof existingPolicy !== "object" ||
+        existingPolicy === null ||
+        Array.isArray(existingPolicy)
+      ) {
+        return { changed: false };
+      }
+      const policyBlock = existingPolicy as Record<string, unknown>;
+      if (!("valueFeedback" in policyBlock)) {
+        return { changed: false };
+      }
+      const previous = policyBlock.valueFeedback;
+      delete policyBlock.valueFeedback;
+      atomicWriteProjectDefinition(path, data);
+
+      const actor = options.actor ?? policyColonInvocation("clear-value-feedback");
+      const note = options.note ?? "";
+      const parts = [
+        `actor=${actor}`,
+        "valueFeedback=cleared",
+        `previous=${JSON.stringify(previous ?? null)}`,
+      ];
+      if (note) {
+        parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
+      }
+      appendAuditLog(projectRoot, parts.join(" "));
+      return { changed: true };
+    });
+
+    const resolved = resolveValueFeedback(projectRoot);
+    const lines = [
+      `\u2713 ${FIELD_VALUE_FEEDBACK} typed key removed (resolution returns to org-auto/default).`,
+      changed
+        ? "  audit: meta/policy-changes.log updated."
+        : "  no-op: typed key was already absent.",
       formatValueFeedbackStatusLine(resolved),
     ];
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };

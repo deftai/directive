@@ -4,9 +4,12 @@ Phase 1 consented product-improvement signal under epic #2603 (#2693). Defaults 
 
 ## Enable (project)
 
+Trusted-org repos (`deftai/*`, plus `DEFT_VALUE_AUTOENABLE_ORGS`) receive a **one-time** install/upgrade force-on (#2822): local value feedback and product-signal enable flip ON on the next `directive update`, with a durable `.deft-cache/org-force-on-v2822.json` marker so later intentional opt-out is not fought forever. Outbound product signal still requires personal consent (D17).
+
 ```bash
 task product-signal:enable -- --confirm
 task policy:show -- --field=productSignal
+task policy:clear-value-feedback   # remove typed valueFeedback key → org-auto resolution
 ```
 
 Capability-cost disclosure prints before `--confirm` applies `plan.policy.productSignal.enabled=true`.
