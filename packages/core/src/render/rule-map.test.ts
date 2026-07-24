@@ -56,6 +56,10 @@ tasks:
     desc: "Create a commit"
   push:
     desc: "Push the branch"
+  sync:
+    desc: >-
+      Sync the local branch
+      with the upstream remote.
 `;
 
 const PACK_JSON = JSON.stringify({
@@ -205,5 +209,27 @@ describe("rule-map generator", () => {
     const empty = mkdtempSync(join(tmpdir(), "deft-rule-map-empty-"));
     temps.push(empty);
     expect(ruleMapMain(["--project-root", empty])).toBe(2);
+  });
+
+  it("folds YAML block-scalar task descriptions into one line", () => {
+    const root = makeRepo();
+    ruleMapMain(["--project-root", root]);
+    const html = readFileSync(htmlPathOf(root), "utf8");
+    const model = JSON.parse(extractDataBlob(html)) as {
+      tasks: { namespace: string; tasks: { name: string; desc: string }[] }[];
+    };
+    const scm = model.tasks.find((t) => t.namespace === "scm");
+    const sync = scm?.tasks.find((t) => t.name === "sync");
+    expect(sync?.desc).toBe("Sync the local branch with the upstream remote.");
+  });
+
+  it("does not throw when the repo has content/ but no tasks/ directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-rule-map-notasks-"));
+    temps.push(root);
+    const coding = join(root, "content", "coding");
+    mkdirSync(coding, { recursive: true });
+    writeFileSync(join(coding, "coding.md"), "# Coding\n\nRules.\n\n- ! MUST test\n", "utf8");
+    expect(ruleMapMain(["--project-root", root])).toBe(0);
+    expect(existsSync(mdPathOf(root))).toBe(true);
   });
 });

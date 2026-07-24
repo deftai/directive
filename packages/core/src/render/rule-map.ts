@@ -23,7 +23,6 @@ const MARKER_LABEL: Record<string, string> = {
   "≉": "SHOULD NOT",
   "?": "MAY",
 };
-const TIER_ORDER = ["MUST", "SHOULD", "MUST NOT", "SHOULD NOT", "MAY"] as const;
 const MAX_BODY = 300_000; // cap per-file body inlined into the HTML (content docs are small)
 const EXCLUDE_GROUPS = new Set(["packs", "secrets"]);
 
@@ -342,7 +341,9 @@ function buildGroupings(repo: string): Grouping[] {
   return groups;
 }
 function parseIncludes(repo: string): { namespace: string; file: string }[] {
-  const text = read(repo, "Taskfile.yml");
+  // Normalize CRLF -> LF so the `:\n` include pattern matches Taskfiles saved with
+  // Windows line endings (or checked out with core.autocrlf=true).
+  const text = read(repo, "Taskfile.yml").replace(/\r\n/g, "\n");
   const out: { namespace: string; file: string }[] = [];
   const re = /^ {2}([a-z][a-z0-9-]*):\n\s+taskfile:\s*\.\/tasks\/(\S+)/gm;
   let m: RegExpExecArray | null = re.exec(text);
@@ -353,23 +354,47 @@ function parseIncludes(repo: string): { namespace: string; file: string }[] {
   return out;
 }
 function parseTasks(repo: string, relfile: string): { purpose: string; tasks: TaskEntry[] } {
-  const text = read(repo, relfile);
+  const text = read(repo, relfile).replace(/\r\n/g, "\n");
   const tasks: TaskEntry[] = [];
+  const lines = text.split("\n");
   let inTasks = false;
-  for (const line of text.split("\n")) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] as string;
     if (/^tasks:\s*$/.test(line)) {
       inTasks = true;
       continue;
     }
     if (!inTasks) continue;
-    const m = line.match(/^ {2}([a-zA-Z_][\w:-]*):\s*$/);
-    if (m) {
-      tasks.push({ name: m[1] as string, desc: "" });
+    const nameMatch = line.match(/^ {2}([a-zA-Z_][\w:-]*):\s*$/);
+    if (nameMatch) {
+      tasks.push({ name: nameMatch[1] as string, desc: "" });
       continue;
     }
-    const d = line.match(/^\s+desc:\s*["']?(.*?)["']?\s*$/);
-    if (d && tasks.length && !tasks[tasks.length - 1]!.desc)
-      tasks[tasks.length - 1]!.desc = d[1] as string;
+    const descMatch = line.match(/^(\s+)desc:\s*["']?(.*?)["']?\s*$/);
+    const last = tasks[tasks.length - 1];
+    if (descMatch && last && !last.desc) {
+      let value = descMatch[2] as string;
+      // YAML block scalars (`desc: >-`, `>`, `|`, `|-`) carry their text on the
+      // following more-indented lines; fold them into one line rather than
+      // recording the literal indicator token (e.g. ">-").
+      if (/^[>|][+-]?$/.test(value.trim())) {
+        const indent = (descMatch[1] as string).length;
+        const buf: string[] = [];
+        let j = i + 1;
+        while (j < lines.length) {
+          const bl = lines[j] as string;
+          if (bl.trim() !== "") {
+            const ind = bl.length - bl.replace(/^\s+/, "").length;
+            if (ind <= indent) break;
+            buf.push(bl.trim());
+          }
+          j += 1;
+        }
+        value = buf.join(" ").replace(/\s+/g, " ").trim();
+        i = j - 1;
+      }
+      last.desc = value;
+    }
   }
   const comments: string[] = [];
   for (const line of text.split("\n")) {
@@ -396,8 +421,8 @@ function parseTasks(repo: string, relfile: string): { purpose: string; tasks: Ta
     "pwsh",
   ];
   const clean = (c: string): string => {
-    if (c.includes(" -- ")) return c.split(" -- ")[1]!.trim();
-    if (c.includes(" — ")) return c.split(" — ")[1]!.trim();
+    if (c.includes(" -- ")) return (c.split(" -- ")[1] ?? "").trim();
+    if (c.includes(" — ")) return (c.split(" — ")[1] ?? "").trim();
     return c.trim();
   };
   let purpose = "";
@@ -436,6 +461,10 @@ function buildTasks(repo: string): TaskNamespace[] {
     seen.add(inc.file);
   }
   const tasksDir = join(repo, "tasks");
+  if (!existsSync(tasksDir)) {
+    out.sort((a, b) => (a.namespace < b.namespace ? -1 : a.namespace > b.namespace ? 1 : 0));
+    return out;
+  }
   for (const f of readdirSync(tasksDir).sort()) {
     if (!f.endsWith(".yml") || seen.has(f)) continue;
     const rel = join("tasks", f);
@@ -457,8 +486,8 @@ function buildTasks(repo: string): TaskNamespace[] {
 function counter(values: (string | undefined)[]): Record<string, number> {
   const c: Record<string, number> = {};
   for (const v of values) {
-    const k = String(v);
-    c[k] = (c[k] ?? 0) + 1;
+    if (v === undefined) continue; // don't pollute with an "undefined" key
+    c[v] = (c[v] ?? 0) + 1;
   }
   return c;
 }
@@ -468,7 +497,11 @@ function buildPacks(repo: string): Pack[] {
     const rel = relative(repo, pj);
     let d: Record<string, unknown>;
     try {
-      d = JSON.parse(readFileSync(pj, "utf8")) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(readFileSync(pj, "utf8"));
+      // JSON.parse returns top-level null / primitives without throwing; only
+      // objects have the fields we read below.
+      if (parsed === null || typeof parsed !== "object") continue;
+      d = parsed as Record<string, unknown>;
     } catch {
       continue;
     }
@@ -513,7 +546,10 @@ function mdTable(headers: string[], rows: (string | number)[][]): string {
     `| ${headers.join(" | ")} |`,
     `|${headers.map((_, i) => (i === 0 ? "---" : "--:")).join("|")}|`,
   ];
-  for (const r of rows) out.push(`| ${r.map((c) => String(c)).join(" | ")} |`);
+  for (const r of rows) {
+    // Collapse any embedded newlines so a cell value cannot break out of the row.
+    out.push(`| ${r.map((c) => String(c).replace(/\r?\n/g, " ")).join(" | ")} |`);
+  }
   return out.join("\n");
 }
 function renderMd(model: Model): string {
@@ -687,11 +723,13 @@ export function main(argv: readonly string[]): number {
   const htmlDir = join(repo, "docs", "rule-map");
   const htmlPath = join(htmlDir, "index.html");
 
-  const md = renderMd(buildModel(repo, false));
+  const model = buildModel(repo, false);
+  const md = renderMd(model);
 
   if (check) {
     const current = existsSync(mdPath) ? readFileSync(mdPath, "utf8") : "";
-    if (current !== md) {
+    // Normalize CRLF so a Windows checkout (core.autocrlf=true) isn't reported STALE.
+    if (current.replace(/\r\n/g, "\n") !== md) {
       process.stderr.write("STALE: docs/RULE-MAP.md is out of date — run `task docs:rule-map`\n");
       return 1;
     }
@@ -705,13 +743,13 @@ export function main(argv: readonly string[]): number {
   const html = renderHtml(buildModel(repo, true));
   writeFileSync(htmlPath, html, "utf8");
 
-  const m = buildModel(repo, false);
+  // Reuse the no-body model built above for the summary counts (no third scan).
   process.stdout.write(`✓ docs/RULE-MAP.md         (${md.split("\n").length} lines, committed)\n`);
   process.stdout.write(
     `✓ docs/rule-map/index.html (${Math.floor(html.length / 1024)} KB, gitignored, self-contained)\n`,
   );
   process.stdout.write(
-    `  groupings=${m.groupings.length} tasks=${m.tasks.length} packs=${m.packs.length}\n`,
+    `  groupings=${model.groupings.length} tasks=${model.tasks.length} packs=${model.packs.length}\n`,
   );
   process.stdout.write(`\nOpen the interactive map:\n  ${htmlPath}\n`);
   return 0;

@@ -152,7 +152,7 @@ function inlineMd(s){
   s=s.replace(/\`([^\`]+)\`/g,'<code>$1</code>');
   s=s.replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>');
   s=s.replace(/(^|[^*])\\*([^*]+)\\*/g,'$1<em>$2</em>');
-  s=s.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,'<a href="$2">$1</a>');
+  s=s.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,function(_,t,u){return /^(?:https?:|[/#.])/i.test(u)?'<a href="'+u+'">'+t+'</a>':t;});
   return s;
 }
 function mdToHtml(md){
