@@ -1,0 +1,37 @@
+version: '3'
+
+# Maintainer documentation tasks.
+#
+# docs:rule-map renders the Rule Map: a maintainer-facing view of how the
+# framework's rules are layered and grouped. Source of truth is content/ +
+# tasks/ + the packs; the map is a derived view, so regenerate after changing
+# rules rather than hand-editing the outputs.
+#
+#   docs/RULE-MAP.md          committed, diff-friendly Markdown (no timestamps)
+#   docs/rule-map/index.html  gitignored, self-contained interactive explorer
+#
+# Implemented as the `rule-map` engine verb (packages/core/src/render/rule-map.ts),
+# dispatched through the TS engine like the other render gates. No Python, no
+# external dependencies, no network.
+
+tasks:
+
+  rule-map:
+    desc: "Build the maintainer Rule Map (docs/RULE-MAP.md + gitignored docs/rule-map/index.html)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'rule-map --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  rule-map:check:
+    desc: "Fail if committed docs/RULE-MAP.md is out of date (for CI / pre-commit gating)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'rule-map --project-root "{{.USER_WORKING_DIR}}" --check'

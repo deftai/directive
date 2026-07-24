@@ -194,6 +194,7 @@ export const CORE_MODULE_VERBS = [
   "export-spec",
   "project-render",
   "roadmap-render",
+  "rule-map",
   "spec-render",
   "spec-validate",
   "code-structure-validate",
@@ -339,6 +340,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "spec:render": "spec-render",
   "prd:render": "prd-render",
   "project:render": "project-render",
+  "docs:rule-map": "rule-map",
   "project:export-spec": "export-spec",
   "pr:watch": "pr-watch",
   doctor: "doctor",
@@ -2671,6 +2673,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "project-render": {
       const { runProjectRenderCli } = await import("./render-cli/project-render-cli.js");
       return (argv) => runProjectRenderCli(argv);
+    }
+    case "rule-map": {
+      const { runRuleMapCli } = await import("./render-cli/rule-map-cli.js");
+      return (argv) => runRuleMapCli(argv);
     }
     case "export-spec": {
       const { runExportSpecCli } = await import("./render-cli/export-spec-cli.js");

@@ -38,6 +38,7 @@ export {
   renderRoadmap,
   renderRoadmapToBuffer,
 } from "./roadmap-render.js";
+export { main as ruleMapMain } from "./rule-map.js";
 export { aggregateScopeSection, buildScopeOutlookSection } from "./scope-outlook.js";
 export * as specRender from "./spec-render.js";
 export { main as specRenderMain, parseIncludeScopesFlag, renderSpec } from "./spec-render.js";
