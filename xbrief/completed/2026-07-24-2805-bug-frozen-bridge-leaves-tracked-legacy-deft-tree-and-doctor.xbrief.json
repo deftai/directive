@@ -6,7 +6,7 @@
   "plan": {
     "id": "2805-dual-layout-doctor",
     "title": "bug: frozen bridge leaves tracked legacy deft tree and Doctor misses dual layout",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The frozen bridge can leave a tracked legacy `deft/` framework tree beside a new `.deft/core/` deposit, but Doctor short-circuits to skip as soon as `.deft/core/` exists. Operators then see a false clean `legacy-layout` check while conflicting framework trees remain on disk and in git. This story teaches Doctor (and the npm upgrade path) to detect dual-layout and either remove a clean tracked legacy tree or fail closed with explicit cleanup guidance.",
       "ImplementationPlan": "1. Update `packages/core/src/init-deposit/legacy-detect.ts` so a present `.deft/core/` no longer hides a remaining framework `deft/` tree; introduce a dual-layout kind with evidence for both roots. 2. Wire Doctor `legacy-layout` / signpost output in `packages/core/src/doctor/checks.ts` (and related signpost tests) to fail or warn until the legacy tree is removed, and add an npm-side cleanup or staging helper when the legacy tree has no local modifications. 3. Add regression tests in `packages/core/src/init-deposit/legacy-detect.test.ts` and `packages/core/src/doctor/signpost-checks.test.ts` that fixture dual-layout and assert Doctor no longer skips.",
@@ -76,7 +76,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-07-24T18:22:23Z",
+      "capacityBucket": "technical-debt"
     },
     "references": [
       {
@@ -86,6 +88,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-07-24T17:32:10Z"
+    "updated": "2026-07-24T18:22:23Z"
   }
 }
