@@ -1,0 +1,134 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2814 — PR-anchored review-owner lease replaces local review-monitor.json."
+  },
+  "plan": {
+    "id": "2814-pr-review-owner-lease",
+    "title": "feat(review-cycle): PR-anchored review-owner lease replaces local review-monitor.json",
+    "status": "running",
+    "narratives": {
+      "Description": "Machine-local `.deft/review-monitor.json` cannot serialize review-cycle ownership across clones, so two maintainer agents can both babysit the same PR (as with #2810). This story makes a sticky PR issue-comment with `<!-- deft:review-owner -->` markers the sole lease source of truth: register/release/verify speak only to GitHub over REST, stop writing the local ledger, and update review-cycle skill + commands pointers so agents cannot claim a monitor is active without a successful GitHub claim.",
+      "ImplementationPlan": "1. Replace file IO in `packages/core/src/review-monitor/record.ts` and `verify.ts` with sticky-comment parse/render plus REST list/create/patch helpers (fixture-friendly; preserve exit `0`/`1`/`2`), and stop all writes to `.deft/review-monitor.json`. 2. Wire CLI `packages/cli/src/review-monitor-register.ts` and `verify-review-monitor.ts` (plus `tasks/review-monitor.yml`) for claim conflict, create-race oldest-wins, expiry takeover, `--force`, and new `review-monitor:release`, with focused tests under `packages/core/src/review-monitor/*.test.ts` and CLI register/verify tests. 3. Update `content/skills/deft-directive-review-cycle/SKILL.md`, `content/commands.md`, and `content/templates/agent-prompt-preamble.md` so register must succeed before a second review-cycle/fix loop and legacy local JSON alone cannot satisfy `verify:review-monitor`.",
+      "UserStory": "As a Directive maintainer running review-cycle across machines, I want a PR-anchored review-owner lease on GitHub, so that two agents cannot both claim the same PR's fix loop.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2814",
+      "Overview": "## Summary\n\nReplace the machine-local `.deft/review-monitor.json` ledger (#2655) with a **PR-anchored review-owner lease** as the sole source of truth.\n\nDogfood: PR #2810 cross-maintainer double babysit. Prior gate: #2655. Related: #1880 Gap C, #2797, #2308.\n\n### Verb semantics\n- `review-monitor:register` — claim sticky comment; conflict / race / renew / expiry / `--force`\n- `review-monitor:release` — end lease\n- `verify:review-monitor` — GitHub lease only; local JSON must not satisfy\n",
+      "Labels": "bug, enhancement, swarm, determinism, agent-experience, review-cycle, monitoring",
+      "Traces": "#2814, #2655, #2810"
+    },
+    "items": [
+      {
+        "id": "2814-a1",
+        "title": "Given no active lease on PR N, when register runs, then it creates/edits the sticky review-owner comment and does not write local JSON.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given PR N has no active `<!-- deft:review-owner -->` lease, when `review-monitor:register` runs, then it creates or edits the sticky claim comment with owner, monitor_agent_id, head_sha, started_at, and expires_at, and it does not write `.deft/review-monitor.json`.",
+          "Traces": "#2814"
+        }
+      },
+      {
+        "id": "2814-a2",
+        "title": "Given an unexpired lease for another owner, when a second register or create-race loser runs, then it exits conflict without overwriting the winner.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an unexpired GitHub lease for a different owner or monitor_agent_id, when a second register runs (including a create-race loser after two near-simultaneous creates), then the command exits conflict (`1`), does not overwrite the oldest winning claim, and removes its duplicate comment when safe.",
+          "Traces": "#2814"
+        }
+      },
+      {
+        "id": "2814-a3",
+        "title": "Given an expired lease, when register runs without --force, then takeover succeeds; non-expired steal requires --force.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an expired sticky lease, when register runs without `--force`, then takeover edits the claim in place and succeeds; given a non-expired foreign lease, takeover without `--force` refuses and with `--force` succeeds while surfacing the prior owner.",
+          "Traces": "#2814"
+        }
+      },
+      {
+        "id": "2814-a4",
+        "title": "Given an active lease, when release then verify run, then the lease ends and verify requires GitHub not local JSON.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an active GitHub lease, when `review-monitor:release` runs, then a subsequent register by another owner succeeds; when `verify:review-monitor` runs, then exit `0` requires an unexpired GitHub claim and presence of legacy local JSON alone does not satisfy the gate.",
+          "Traces": "#2814"
+        }
+      },
+      {
+        "id": "2814-a5",
+        "title": "Given skill and commands pointers, when agents enter review-cycle ownership, then they must register on GitHub before claiming a monitor is active.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given updated review-cycle skill, commands.md, and agent-prompt-preamble pointers, when an agent starts a second review-cycle or fix loop, then the docs require a successful GitHub `register` first and document that `.deft/review-monitor.json` is obsolete and ignored.",
+          "Traces": "#2814"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "swarm",
+      "determinism",
+      "agent-experience",
+      "review-cycle",
+      "monitoring"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/review-monitor/record.ts",
+          "packages/core/src/review-monitor/record.test.ts",
+          "packages/core/src/review-monitor/record-branches.test.ts",
+          "packages/core/src/review-monitor/verify.ts",
+          "packages/core/src/review-monitor/verify.test.ts",
+          "packages/core/src/review-monitor/verify-branches.test.ts",
+          "packages/core/src/review-monitor/index.ts",
+          "packages/core/src/review-monitor/constants.ts",
+          "packages/cli/src/review-monitor-register.ts",
+          "packages/cli/src/review-monitor-register.test.ts",
+          "packages/cli/src/verify-review-monitor.ts",
+          "packages/cli/src/verify-review-monitor.test.ts",
+          "tasks/review-monitor.yml",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/commands.md",
+          "content/templates/agent-prompt-preamble.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/review-monitor packages/cli/src/review-monitor-register.test.ts packages/cli/src/verify-review-monitor.test.ts"
+        ],
+        "expected_outputs": [
+          "review-monitor GitHub lease tests pass",
+          "register/release/verify no longer depend on local JSON"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-owner-lease",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2814",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2814: feat(review-cycle): PR-anchored review-owner lease replaces local review-monitor.json",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2655",
+        "type": "x-xbrief/related",
+        "title": "Issue #2655: local review-monitor gate",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/2810",
+        "type": "x-xbrief/related",
+        "title": "PR #2810 dogfood double-babysit",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-07-24T17:32:15Z"
+  }
+}
