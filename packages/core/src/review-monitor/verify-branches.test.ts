@@ -84,4 +84,48 @@ describe("review-monitor verify branch coverage (#2666)", () => {
     });
     expect(result.exitCode).toBe(2);
   });
+
+  it("covers Approach 3 and GitHub fetch error branches", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-verify-br-"));
+    expect(
+      evaluateReviewMonitorGate({
+        pr: 30,
+        projectRoot: root,
+        repo: "deftai/directive",
+        approach3: true,
+        environ: { CURSOR_COMPOSER: "1" },
+      }).message,
+    ).toContain("Approach 3 blocking poll is forbidden");
+
+    expect(
+      evaluateReviewMonitorGate({
+        pr: 31,
+        projectRoot: root,
+        repo: "deftai/directive",
+        approach3: true,
+        environ: {},
+      }).message,
+    ).toContain("explicit user warning acknowledgment");
+
+    expect(
+      evaluateReviewMonitorGate({
+        pr: 32,
+        projectRoot: root,
+        repo: "deftai/directive",
+        approach3: true,
+        approach3Warned: true,
+        environ: {},
+      }).exitCode,
+    ).toBe(0);
+
+    expect(
+      evaluateReviewMonitorGate({
+        pr: 33,
+        projectRoot: root,
+        repo: "deftai/directive",
+        environ: { CURSOR_COMPOSER: "1" },
+        seams: { fetchComments: () => ({ error: "offline" }) },
+      }).exitCode,
+    ).toBe(2);
+  });
 });

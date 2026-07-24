@@ -13,6 +13,8 @@ import {
   selectWinningReviewOwnerComment,
 } from "./lease-comment.js";
 
+const NOW = new Date("2026-07-24T12:00:00.000Z");
+
 describe("review-owner lease comment", () => {
   it("parses and renders a claim block", () => {
     const body =
@@ -91,5 +93,21 @@ describe("review-owner lease comment", () => {
         ended_at: null,
       }),
     ).toContain("head_sha:");
+    const body = renderReviewOwnerComment({
+      owner: "alice",
+      monitor_agent_id: "rm-8",
+      head_sha: "abc",
+      started_at: NOW.toISOString(),
+      expires_at: computeExpiresAt(NOW),
+      platform_primitive: "cursor-task",
+      ended_at: null,
+    });
+    const activeComment = {
+      id: 8,
+      body,
+      createdAt: NOW.toISOString(),
+      lease: parseReviewOwnerLease(body),
+    };
+    expect(findActiveLeaseComment([activeComment], { now: NOW })?.id).toBe(8);
   });
 });
