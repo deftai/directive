@@ -57,6 +57,12 @@ describe("parseGithubPrUri", () => {
   it("parses bare PR numbers", () => {
     expect(parseGithubPrUri("2753")).toEqual([null, 2753]);
   });
+
+  it("rejects invalid PR URI shapes", () => {
+    expect(parseGithubPrUri("")).toEqual([null, null]);
+    expect(parseGithubPrUri(null)).toEqual([null, null]);
+    expect(parseGithubPrUri("not-a-number")).toEqual([null, null]);
+  });
 });
 
 describe("collectGithubRefs", () => {
@@ -83,6 +89,24 @@ describe("collectGithubRefs", () => {
     );
     expect(issues).toEqual([{ repo: "deftai/directive", number: 2321 }]);
     expect(prs).toEqual([{ repo: "deftai/directive", number: 9999 }]);
+  });
+
+  it("collects x-tracking parent issue refs", () => {
+    const { issues } = collectGithubRefs(
+      {
+        metadata: {
+          "x-tracking": {
+            parent_issue: "#1234",
+            decomposition_origin: 5678,
+          },
+        },
+      },
+      "deftai/directive",
+    );
+    expect(issues).toEqual([
+      { repo: "deftai/directive", number: 1234 },
+      { repo: "deftai/directive", number: 5678 },
+    ]);
   });
 });
 
@@ -190,5 +214,79 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
     expect(result.code).toBe(0);
     expect(result.message).toContain("nothing to scan");
+  });
+
+  it("returns config error when project root is missing", () => {
+    const result = evaluate(join(tmpdir(), "deft-orphan-missing-root-never"), {
+      repo: "deftai/directive",
+      skipGh: true,
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("does not exist");
+  });
+
+  it("quiet mode suppresses success output", () => {
+    const root = makeRepo();
+    writeBrief(root, "open-story.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/2321",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2321, "open");
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true, quiet: true });
+    expect(result.code).toBe(0);
+    expect(result.stream).toBe("none");
+    expect(result.message).toBe("");
+  });
+
+  it("does not orphan when linked PR is still open", () => {
+    const root = makeRepo();
+    writeBrief(root, "open-pr-story.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/43",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/pulls/43")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ merged_at: null }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const result = evaluate(root, { repo: "deftai/directive", runGh });
+    expect(result.code).toBe(0);
+    expect(result.orphans).toEqual([]);
+  });
+
+  it("uses live gh issue state when cache is absent", () => {
+    const root = makeRepo();
+    writeBrief(root, "live-issue.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/5000",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/issues/5000")) {
+        return { returncode: 0, stdout: JSON.stringify({ state: "open" }), stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const result = evaluate(root, { repo: "deftai/directive", runGh });
+    expect(result.code).toBe(0);
   });
 });
