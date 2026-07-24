@@ -2,6 +2,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as reviewMonitor from "@deftai/directive-core/review-monitor";
+import {
+  EXIT_NOT_READY,
+  MONITORING_TIER_1,
+} from "@deftai/directive-core/review-monitor";
 import { parseVerifyReviewMonitorArgs, run } from "./verify-review-monitor.js";
 
 afterEach(() => {
@@ -90,8 +95,18 @@ describe("verify-review-monitor CLI", () => {
 
   it("run emits json and fails closed on Tier 1 without monitor", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-cli-"));
-    vi.stubEnv("DEFT_MONITOR_TIER", "1");
-    vi.stubEnv("DEFT_MONITOR_TIER1_PRIMITIVE", "cursor-task");
+    vi.spyOn(reviewMonitor, "evaluateReviewMonitorGate").mockReturnValue({
+      exitCode: EXIT_NOT_READY,
+      message: "verify_review_monitor: no active GitHub review-owner lease on PR #55.",
+      tier: {
+        tier: MONITORING_TIER_1,
+        descriptor: "cursor-task",
+        primitive: "cursor-task",
+      },
+      monitorRecord: null,
+      heartbeatActive: false,
+      callSite: "swarm-phase6-cascade",
+    });
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(
@@ -106,7 +121,7 @@ describe("verify-review-monitor CLI", () => {
         "swarm-phase6-cascade",
         "--json",
       ]),
-    ).toBe(1);
+    ).toBe(EXIT_NOT_READY);
     expect(out.mock.calls.join("")).toContain('"ready": false');
   });
 
