@@ -1,142 +1,54 @@
-import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+import { resolveRepo } from "../triage/queue/repo.js";
 import {
-  closeSync,
-  existsSync,
-  fdatasyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  writeSync,
-} from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
-import { DEFAULT_STALE_MINUTES, REVIEW_MONITOR_FILENAME, SCHEMA_VERSION } from "./constants.js";
+  DEFAULT_STALE_MINUTES,
+  EXIT_CONFIG_ERROR,
+  EXIT_CONFLICT,
+  EXIT_READY,
+  SCHEMA_VERSION,
+} from "./constants.js";
+import {
+  createReviewOwnerComment,
+  deleteReviewOwnerComment,
+  listReviewOwnerComments,
+  type ReviewOwnerGithubSeams,
+  resolveGitHubLogin,
+  updateReviewOwnerComment,
+} from "./github-lease.js";
+import {
+  computeExpiresAt,
+  findActiveLeaseComment,
+  isLeaseExpired,
+  parseIso8601Utc,
+  parseReviewOwnerLease,
+  type ReviewOwnerLease,
+  renderReleasedReviewOwnerComment,
+  renderReviewOwnerComment,
+  selectWinningReviewOwnerComment,
+} from "./lease-comment.js";
 import type { PlatformPrimitive } from "./tier-detection.js";
 
+export { parseIso8601Utc };
+
+/** Legacy shape retained for verify JSON compatibility (#2655 / #2814). */
 export interface ReviewMonitorRecord {
   readonly pr: number;
   readonly repo: string | null;
   readonly head_sha: string | null;
   readonly platform_primitive: PlatformPrimitive;
   readonly monitor_agent_id: string;
+  readonly owner: string;
   readonly started_at: string;
-  readonly worktree_path: string;
+  readonly expires_at: string;
+  readonly worktree_path: string | null;
   readonly parent_session_id: string | null;
   readonly ended_at: string | null;
+  readonly comment_id: number | null;
 }
 
 export interface ReviewMonitorFile {
   readonly schema_version: number;
   readonly records: ReviewMonitorRecord[];
-}
-
-function resolveMainWorktreeRoot(startDir: string): string {
-  let root = resolve(startDir);
-  try {
-    const out = execFileSync("git", ["rev-parse", "--git-common-dir"], {
-      cwd: startDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    if (out.length > 0) {
-      const commonDir = isAbsolute(out) ? out : resolve(startDir, out);
-      root = dirname(commonDir);
-    }
-  } catch {
-    // Not a git work tree -- fall back to startDir.
-  }
-  return root;
-}
-
-export function reviewMonitorPath(projectRoot: string): string {
-  const root = resolveMainWorktreeRoot(projectRoot);
-  return join(root, ".deft", REVIEW_MONITOR_FILENAME);
-}
-
-function atomicWriteJson(path: string, payload: unknown): void {
-  mkdirSync(dirname(path), { recursive: true });
-  const tmp = `${path}.tmp-${process.pid}`;
-  const text = `${JSON.stringify(payload, null, 2)}\n`;
-  const fd = openSync(tmp, "w");
-  try {
-    writeSync(fd, text, undefined, "utf8");
-    fdatasyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-  renameSync(tmp, path);
-}
-
-export function emptyReviewMonitorFile(): ReviewMonitorFile {
-  return { schema_version: SCHEMA_VERSION, records: [] };
-}
-
-export function readReviewMonitorFile(path: string): {
-  data: ReviewMonitorFile | null;
-  error: string | null;
-} {
-  if (!existsSync(path)) {
-    return { data: emptyReviewMonitorFile(), error: null };
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(path, "utf8"));
-  } catch (exc: unknown) {
-    return { data: null, error: `${path}: invalid JSON (${String(exc)}).` };
-  }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return { data: null, error: `${path}: review-monitor file must be a JSON object.` };
-  }
-  const obj = parsed as Record<string, unknown>;
-  const recordsRaw = obj.records;
-  const records: ReviewMonitorRecord[] = [];
-  if (Array.isArray(recordsRaw)) {
-    for (const entry of recordsRaw) {
-      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
-        continue;
-      }
-      const e = entry as Record<string, unknown>;
-      const pr = e.pr;
-      const monitorAgentId = e.monitor_agent_id;
-      const platformPrimitive = e.platform_primitive;
-      const startedAt = e.started_at;
-      const worktreePath = e.worktree_path;
-      if (
-        typeof pr !== "number" ||
-        !Number.isInteger(pr) ||
-        pr <= 0 ||
-        typeof monitorAgentId !== "string" ||
-        monitorAgentId.trim().length === 0 ||
-        typeof platformPrimitive !== "string" ||
-        typeof startedAt !== "string" ||
-        typeof worktreePath !== "string"
-      ) {
-        continue;
-      }
-      records.push({
-        pr,
-        repo: typeof e.repo === "string" ? e.repo : null,
-        head_sha: typeof e.head_sha === "string" ? e.head_sha : null,
-        platform_primitive: platformPrimitive as PlatformPrimitive,
-        monitor_agent_id: monitorAgentId.trim(),
-        started_at: startedAt,
-        worktree_path: worktreePath,
-        parent_session_id: typeof e.parent_session_id === "string" ? e.parent_session_id : null,
-        ended_at: typeof e.ended_at === "string" ? e.ended_at : null,
-      });
-    }
-  }
-  return {
-    data: {
-      schema_version: typeof obj.schema_version === "number" ? obj.schema_version : SCHEMA_VERSION,
-      records,
-    },
-    error: null,
-  };
-}
-
-export function writeReviewMonitorFile(path: string, data: ReviewMonitorFile): void {
-  atomicWriteJson(path, data);
 }
 
 export interface RegisterReviewMonitorInput {
@@ -147,55 +59,429 @@ export interface RegisterReviewMonitorInput {
   readonly monitorAgentId: string;
   readonly projectRoot: string;
   readonly parentSessionId?: string | null;
+  readonly owner?: string | null;
   readonly startedAt?: Date;
+  readonly staleMinutes?: number;
+  readonly force?: boolean;
+  readonly seams?: ReviewOwnerGithubSeams;
 }
 
-export function registerReviewMonitor(input: RegisterReviewMonitorInput): {
-  path: string;
-  record: ReviewMonitorRecord;
-} {
-  const path = reviewMonitorPath(input.projectRoot);
-  const { data, error } = readReviewMonitorFile(path);
-  if (data === null) {
-    throw new Error(error ?? "could not read review-monitor file");
-  }
-  const startedAt = (input.startedAt ?? new Date()).toISOString();
-  const record: ReviewMonitorRecord = {
-    pr: input.pr,
-    repo: input.repo ?? null,
-    head_sha: input.headSha ?? null,
-    platform_primitive: input.platformPrimitive,
+export interface RegisterReviewMonitorResult {
+  readonly exitCode: typeof EXIT_READY | typeof EXIT_CONFLICT | typeof EXIT_CONFIG_ERROR;
+  readonly message: string;
+  readonly record: ReviewMonitorRecord | null;
+  readonly commentId: number | null;
+  readonly priorOwner: string | null;
+}
+
+export interface ReleaseReviewMonitorInput {
+  readonly pr: number;
+  readonly repo?: string | null;
+  readonly monitorAgentId?: string | null;
+  readonly owner?: string | null;
+  readonly projectRoot: string;
+  readonly endedAt?: Date;
+  readonly seams?: ReviewOwnerGithubSeams;
+}
+
+export interface ReleaseReviewMonitorResult {
+  readonly exitCode: typeof EXIT_READY | typeof EXIT_CONFLICT | typeof EXIT_CONFIG_ERROR;
+  readonly message: string;
+}
+
+function leaseToRecord(
+  pr: number,
+  repo: string | null,
+  lease: ReviewOwnerLease,
+  commentId: number,
+  worktreePath: string | null,
+  parentSessionId: string | null,
+): ReviewMonitorRecord {
+  return {
+    pr,
+    repo,
+    head_sha: lease.head_sha,
+    platform_primitive: lease.platform_primitive,
+    monitor_agent_id: lease.monitor_agent_id,
+    owner: lease.owner,
+    started_at: lease.started_at,
+    expires_at: lease.expires_at,
+    worktree_path: worktreePath,
+    parent_session_id: parentSessionId,
+    ended_at: lease.ended_at,
+    comment_id: commentId,
+  };
+}
+
+function buildLease(input: {
+  owner: string;
+  monitorAgentId: string;
+  headSha: string | null;
+  platformPrimitive: PlatformPrimitive;
+  startedAt: Date;
+  staleMinutes: number;
+}): ReviewOwnerLease {
+  const startedAtIso = input.startedAt.toISOString();
+  return {
+    owner: input.owner,
     monitor_agent_id: input.monitorAgentId.trim(),
-    started_at: startedAt,
-    worktree_path: resolve(input.projectRoot),
-    parent_session_id: input.parentSessionId ?? null,
+    head_sha: input.headSha,
+    started_at: startedAtIso,
+    expires_at: computeExpiresAt(input.startedAt, input.staleMinutes),
+    platform_primitive: input.platformPrimitive,
     ended_at: null,
   };
-  const active = data.records.filter((r) => r.ended_at === null && r.pr !== input.pr);
-  writeReviewMonitorFile(path, {
-    schema_version: SCHEMA_VERSION,
-    records: [...active, record],
-  });
-  return { path, record };
 }
 
-export function parseIso8601Utc(value: string): Date | null {
-  if (typeof value !== "string" || value.length === 0) {
+function resolveRegisterRepo(input: RegisterReviewMonitorInput): string | null {
+  return resolveRepo(input.repo ?? null, resolve(input.projectRoot));
+}
+
+function sameClaimHolder(lease: ReviewOwnerLease, owner: string, monitorAgentId: string): boolean {
+  return lease.monitor_agent_id === monitorAgentId.trim() && lease.owner === owner;
+}
+
+function conflictMessage(holder: ReviewOwnerLease, pr: number): string {
+  return (
+    `review_monitor_register: PR #${pr} review-owner lease held by ${holder.owner} ` +
+    `(monitor_agent_id=${holder.monitor_agent_id}, expires_at=${holder.expires_at}).`
+  );
+}
+
+function resolveCreateRace(
+  repo: string,
+  pr: number,
+  createdId: number,
+  seams: ReviewOwnerGithubSeams,
+): RegisterReviewMonitorResult | null {
+  const listed = listReviewOwnerComments(repo, pr, seams);
+  if (!Array.isArray(listed)) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `review_monitor_register: ${listed.error}`,
+      record: null,
+      commentId: null,
+      priorOwner: null,
+    };
+  }
+  const winner = selectWinningReviewOwnerComment(listed);
+  if (winner === null || winner.id === createdId) {
     return null;
   }
-  const trimmed = value.trim();
-  let candidate = trimmed;
-  if (trimmed.endsWith("Z")) {
-    candidate = `${trimmed.slice(0, -1)}+00:00`;
+  if (winner.id !== createdId) {
+    const deleteResult = deleteReviewOwnerComment(repo, createdId, seams);
+    if ("error" in deleteResult) {
+      return {
+        exitCode: EXIT_CONFIG_ERROR,
+        message: `review_monitor_register: create-race loser could not delete duplicate: ${deleteResult.error}`,
+        record: null,
+        commentId: null,
+        priorOwner: winner?.lease?.owner ?? null,
+      };
+    }
+    const holder = winner?.lease ?? null;
+    return {
+      exitCode: EXIT_CONFLICT,
+      message:
+        holder !== null
+          ? conflictMessage(holder, pr)
+          : `review_monitor_register: PR #${pr} create-race lost to an older claim comment.`,
+      record: null,
+      commentId: winner?.id ?? null,
+      priorOwner: holder?.owner ?? null,
+    };
   }
-  if (!candidate.endsWith("+00:00")) {
+  return null;
+}
+
+export function registerReviewMonitor(
+  input: RegisterReviewMonitorInput,
+): RegisterReviewMonitorResult {
+  const repo = resolveRegisterRepo(input);
+  if (repo === null) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message:
+        "review_monitor_register: could not resolve owner/repo — pass --repo OWNER/REPO or run inside a git repo with origin",
+      record: null,
+      commentId: null,
+      priorOwner: null,
+    };
+  }
+
+  const seams = input.seams ?? {};
+  const owner = input.owner ?? resolveGitHubLogin(seams);
+  if (owner === null || owner.length === 0) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message:
+        "review_monitor_register: could not resolve GitHub login — pass --owner or authenticate gh",
+      record: null,
+      commentId: null,
+      priorOwner: null,
+    };
+  }
+
+  const startedAt = input.startedAt ?? new Date();
+  const staleMinutes = input.staleMinutes ?? DEFAULT_STALE_MINUTES;
+  const monitorAgentId = input.monitorAgentId.trim();
+  const worktreePath = resolve(input.projectRoot);
+  const listed = listReviewOwnerComments(repo, input.pr, seams);
+  if (!Array.isArray(listed)) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `review_monitor_register: ${listed.error}`,
+      record: null,
+      commentId: null,
+      priorOwner: null,
+    };
+  }
+
+  const anchor = selectWinningReviewOwnerComment(listed);
+  const active = findActiveLeaseComment(listed, { now: startedAt, headSha: input.headSha ?? null });
+
+  if (active?.lease !== null && active?.lease !== undefined) {
+    const holder = active.lease;
+    if (sameClaimHolder(holder, owner, monitorAgentId)) {
+      const renewed = buildLease({
+        owner,
+        monitorAgentId,
+        headSha: input.headSha ?? holder.head_sha,
+        platformPrimitive: input.platformPrimitive,
+        startedAt,
+        staleMinutes,
+      });
+      const body = renderReviewOwnerComment(renewed);
+      const updated = updateReviewOwnerComment(repo, active.id, body, seams);
+      if ("error" in updated) {
+        return {
+          exitCode: EXIT_CONFIG_ERROR,
+          message: `review_monitor_register: ${updated.error}`,
+          record: null,
+          commentId: active.id,
+          priorOwner: null,
+        };
+      }
+      return {
+        exitCode: EXIT_READY,
+        message: `review_monitor_register: renewed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${active.id}).`,
+        record: leaseToRecord(
+          input.pr,
+          repo,
+          renewed,
+          active.id,
+          worktreePath,
+          input.parentSessionId ?? null,
+        ),
+        commentId: active.id,
+        priorOwner: null,
+      };
+    }
+
+    if (!isLeaseExpired(holder, startedAt) && input.force !== true) {
+      return {
+        exitCode: EXIT_CONFLICT,
+        message: conflictMessage(holder, input.pr),
+        record: leaseToRecord(input.pr, repo, holder, active.id, null, null),
+        commentId: active.id,
+        priorOwner: holder.owner,
+      };
+    }
+
+    const priorOwner = holder.owner;
+    const takeover = buildLease({
+      owner,
+      monitorAgentId,
+      headSha: input.headSha ?? null,
+      platformPrimitive: input.platformPrimitive,
+      startedAt,
+      staleMinutes,
+    });
+    const body = renderReviewOwnerComment(takeover);
+    const updated = updateReviewOwnerComment(repo, active.id, body, seams);
+    if ("error" in updated) {
+      return {
+        exitCode: EXIT_CONFIG_ERROR,
+        message: `review_monitor_register: ${updated.error}`,
+        record: null,
+        commentId: active.id,
+        priorOwner,
+      };
+    }
+    const forceNote =
+      input.force === true && !isLeaseExpired(holder, startedAt)
+        ? ` (forced takeover from ${priorOwner})`
+        : isLeaseExpired(holder, startedAt)
+          ? " (expired lease takeover)"
+          : "";
+    return {
+      exitCode: EXIT_READY,
+      message:
+        `review_monitor_register: claimed PR #${input.pr} review-owner lease for ${monitorAgentId}` +
+        `${forceNote} (comment ${active.id}).`,
+      record: leaseToRecord(
+        input.pr,
+        repo,
+        takeover,
+        active.id,
+        worktreePath,
+        input.parentSessionId ?? null,
+      ),
+      commentId: active.id,
+      priorOwner: priorOwner !== owner ? priorOwner : null,
+    };
+  }
+
+  const lease = buildLease({
+    owner,
+    monitorAgentId,
+    headSha: input.headSha ?? null,
+    platformPrimitive: input.platformPrimitive,
+    startedAt,
+    staleMinutes,
+  });
+  const body = renderReviewOwnerComment(lease);
+
+  if (anchor !== null) {
+    const updated = updateReviewOwnerComment(repo, anchor.id, body, seams);
+    if ("error" in updated) {
+      return {
+        exitCode: EXIT_CONFIG_ERROR,
+        message: `review_monitor_register: ${updated.error}`,
+        record: null,
+        commentId: anchor.id,
+        priorOwner: null,
+      };
+    }
+    return {
+      exitCode: EXIT_READY,
+      message: `review_monitor_register: claimed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${anchor.id}).`,
+      record: leaseToRecord(
+        input.pr,
+        repo,
+        lease,
+        anchor.id,
+        worktreePath,
+        input.parentSessionId ?? null,
+      ),
+      commentId: anchor.id,
+      priorOwner: null,
+    };
+  }
+
+  const created = createReviewOwnerComment(repo, input.pr, body, seams);
+  if ("error" in created) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `review_monitor_register: ${created.error}`,
+      record: null,
+      commentId: null,
+      priorOwner: null,
+    };
+  }
+
+  const race = resolveCreateRace(repo, input.pr, created.id, seams);
+  if (race !== null) {
+    return race;
+  }
+
+  return {
+    exitCode: EXIT_READY,
+    message: `review_monitor_register: claimed PR #${input.pr} review-owner lease for ${monitorAgentId} (comment ${created.id}).`,
+    record: leaseToRecord(
+      input.pr,
+      repo,
+      lease,
+      created.id,
+      worktreePath,
+      input.parentSessionId ?? null,
+    ),
+    commentId: created.id,
+    priorOwner: null,
+  };
+}
+
+export function releaseReviewMonitor(input: ReleaseReviewMonitorInput): ReleaseReviewMonitorResult {
+  const repo = resolveRepo(input.repo ?? null, resolve(input.projectRoot));
+  if (repo === null) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message:
+        "review_monitor_release: could not resolve owner/repo — pass --repo OWNER/REPO or run inside a git repo with origin",
+    };
+  }
+
+  const seams = input.seams ?? {};
+  const listed = listReviewOwnerComments(repo, input.pr, seams);
+  if (!Array.isArray(listed)) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `review_monitor_release: ${listed.error}`,
+    };
+  }
+
+  const anchor = selectWinningReviewOwnerComment(listed);
+  if (anchor === null) {
+    return {
+      exitCode: EXIT_READY,
+      message: `review_monitor_release: no review-owner comment on PR #${input.pr}; nothing to release.`,
+    };
+  }
+
+  const active = findActiveLeaseComment(listed, { now: input.endedAt ?? new Date() });
+  if (active?.lease !== null && active?.lease !== undefined) {
+    const holder = active.lease;
+    const owner = input.owner ?? resolveGitHubLogin(seams);
+    const monitorAgentId = input.monitorAgentId?.trim() ?? null;
+    const ownerMatches = owner !== null && holder.owner === owner;
+    const monitorMatches =
+      monitorAgentId !== null && monitorAgentId.length > 0
+        ? holder.monitor_agent_id === monitorAgentId
+        : ownerMatches;
+    if (!monitorMatches) {
+      return {
+        exitCode: EXIT_CONFLICT,
+        message: conflictMessage(holder, input.pr),
+      };
+    }
+  }
+
+  const endedAt = (input.endedAt ?? new Date()).toISOString();
+  const body = renderReleasedReviewOwnerComment(endedAt);
+  const updated = updateReviewOwnerComment(repo, anchor.id, body, seams);
+  if ("error" in updated) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `review_monitor_release: ${updated.error}`,
+    };
+  }
+  return {
+    exitCode: EXIT_READY,
+    message: `review_monitor_release: released PR #${input.pr} review-owner lease (comment ${anchor.id}).`,
+  };
+}
+
+export function findActiveMonitorForPrFromComments(
+  comments: readonly { id: number; body: string }[],
+  pr: number,
+  options: { now?: Date; staleMinutes?: number; headSha?: string | null; repo?: string | null },
+): ReviewMonitorRecord | null {
+  const mapped = comments
+    .map((entry) => ({
+      id: entry.id,
+      body: entry.body,
+      createdAt: "",
+      lease: parseReviewOwnerLease(entry.body),
+    }))
+    .filter((entry) => entry.lease !== null);
+  const active = findActiveLeaseComment(mapped, {
+    now: options.now,
+    headSha: options.headSha ?? null,
+  });
+  if (active?.lease === null || active?.lease === undefined) {
     return null;
   }
-  const parsed = new Date(candidate);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  return parsed;
+  return leaseToRecord(pr, options.repo ?? null, active.lease, active.id, null, null);
 }
 
 export function isRecordActive(
@@ -206,13 +492,12 @@ export function isRecordActive(
     return false;
   }
   const started = parseIso8601Utc(record.started_at);
-  if (started === null) {
+  const expires = parseIso8601Utc(record.expires_at);
+  if (started === null || expires === null) {
     return false;
   }
   const now = options.now ?? new Date();
-  const staleMinutes = options.staleMinutes ?? DEFAULT_STALE_MINUTES;
-  const ageMs = now.getTime() - started.getTime();
-  if (ageMs > staleMinutes * 60 * 1000) {
+  if (now.getTime() > expires.getTime()) {
     return false;
   }
   if (options.headSha !== undefined && options.headSha !== null && record.head_sha !== null) {
@@ -233,6 +518,48 @@ export function findActiveMonitorForPr(
   return matches.sort((a, b) => b.started_at.localeCompare(a.started_at))[0] ?? null;
 }
 
+export function emptyReviewMonitorFile(): ReviewMonitorFile {
+  return { schema_version: SCHEMA_VERSION, records: [] };
+}
+
+/** @deprecated Local `.deft/review-monitor.json` is obsolete (#2814); always empty. */
+export function readReviewMonitorFile(_path: string): {
+  data: ReviewMonitorFile | null;
+  error: string | null;
+} {
+  return { data: emptyReviewMonitorFile(), error: null };
+}
+
+/** @deprecated Local `.deft/review-monitor.json` is obsolete (#2814); no-op. */
+export function writeReviewMonitorFile(_path: string, _data: ReviewMonitorFile): void {
+  // intentionally no-op
+}
+
+/** @deprecated Local `.deft/review-monitor.json` is obsolete (#2814). */
+export function reviewMonitorPath(projectRoot: string): string {
+  return resolve(projectRoot, ".deft", "review-monitor.json");
+}
+
 export function defaultSubagentStatusDir(projectRoot: string): string {
-  return join(resolve(projectRoot), ".deft-scratch", "subagent-status");
+  return resolve(projectRoot, ".deft-scratch", "subagent-status");
+}
+
+export function fetchActiveMonitorFromGithub(
+  repo: string,
+  pr: number,
+  options: {
+    now?: Date;
+    headSha?: string | null;
+    seams?: ReviewOwnerGithubSeams;
+  } = {},
+): ReviewMonitorRecord | null | { error: string } {
+  const listed = listReviewOwnerComments(repo, pr, options.seams ?? {});
+  if (!Array.isArray(listed)) {
+    return { error: listed.error };
+  }
+  return findActiveMonitorForPrFromComments(listed, pr, {
+    now: options.now,
+    headSha: options.headSha ?? null,
+    repo,
+  });
 }

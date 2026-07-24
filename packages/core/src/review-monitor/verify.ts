@@ -1,6 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { sweepScratchDirs } from "../orchestration/subagent-monitor.js";
+import { resolveRepo } from "../triage/queue/repo.js";
 import {
   EXIT_CONFIG_ERROR,
   EXIT_NOT_READY,
@@ -8,12 +9,11 @@ import {
   MONITORING_TIER_1,
   MONITORING_TIER_3,
 } from "./constants.js";
+import type { ReviewOwnerGithubSeams } from "./github-lease.js";
 import {
   defaultSubagentStatusDir,
-  findActiveMonitorForPr,
+  fetchActiveMonitorFromGithub,
   type ReviewMonitorRecord,
-  readReviewMonitorFile,
-  reviewMonitorPath,
 } from "./record.js";
 import { isTier1, type MonitoringTierProbe, probeMonitoringTier } from "./tier-detection.js";
 
@@ -34,6 +34,7 @@ export interface VerifyReviewMonitorArgs {
   readonly staleMinutes?: number;
   readonly now?: Date;
   readonly environ?: NodeJS.ProcessEnv;
+  readonly seams?: ReviewOwnerGithubSeams;
 }
 
 export interface VerifyReviewMonitorResult {
@@ -162,12 +163,12 @@ export function evaluateReviewMonitorGate(
     };
   }
 
-  const path = reviewMonitorPath(projectRoot);
-  const { data, error } = readReviewMonitorFile(path);
-  if (data === null) {
+  const repo = resolveRepo(args.repo ?? null, projectRoot);
+  if (repo === null) {
     return {
       exitCode: EXIT_CONFIG_ERROR,
-      message: `verify_review_monitor: ${error ?? "could not read review-monitor state"}`,
+      message:
+        "verify_review_monitor: could not resolve owner/repo — pass --repo OWNER/REPO or run inside a git repo with origin",
       tier,
       monitorRecord: null,
       heartbeatActive: false,
@@ -175,23 +176,35 @@ export function evaluateReviewMonitorGate(
     };
   }
 
-  const monitorRecord = findActiveMonitorForPr(data, args.pr, {
+  const githubMonitor = fetchActiveMonitorFromGithub(repo, args.pr, {
     now,
-    staleMinutes,
     headSha: args.headSha ?? null,
+    seams: args.seams,
   });
+  if (githubMonitor !== null && typeof githubMonitor === "object" && "error" in githubMonitor) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      message: `verify_review_monitor: ${githubMonitor.error}`,
+      tier,
+      monitorRecord: null,
+      heartbeatActive: false,
+      callSite,
+    };
+  }
+
+  const monitorRecord = githubMonitor;
   const heartbeatActive = hasActivePollingHeartbeat(projectRoot, args.pr, {
     now,
     staleMinutes,
   });
 
-  if (monitorRecord !== null || heartbeatActive) {
-    const via = monitorRecord !== null ? "review-monitor record" : "subagent heartbeat";
+  if (monitorRecord !== null) {
     return {
       exitCode: EXIT_READY,
       message:
-        `verify_review_monitor: active review-monitor for PR #${args.pr} via ${via} ` +
-        `(call-site=${callSite}, tier=1, descriptor=${tier.descriptor ?? "unknown"}).`,
+        `verify_review_monitor: active GitHub review-owner lease for PR #${args.pr} ` +
+        `(monitor_agent_id=${monitorRecord.monitor_agent_id}, owner=${monitorRecord.owner}, ` +
+        `call-site=${callSite}, tier=1, descriptor=${tier.descriptor ?? "unknown"}).`,
       tier,
       monitorRecord,
       heartbeatActive,
@@ -206,16 +219,22 @@ export function evaluateReviewMonitorGate(
         ? "Swarm Phase 6 post force-push (#380)"
         : "Solo drive-to merge-ready / review-cycle ownership";
 
+  const heartbeatHint = heartbeatActive
+    ? "  Note: local subagent heartbeat is present but is not a GitHub review-owner lease (#2814).\n"
+    : "";
+
   return {
     exitCode: EXIT_NOT_READY,
     message:
-      `verify_review_monitor: Tier 1 available but no active review-monitor for PR #${args.pr} (#2655).\n` +
+      `verify_review_monitor: Tier 1 available but no active GitHub review-owner lease for PR #${args.pr} (#2814).\n` +
+      heartbeatHint +
       `  Call site: ${siteHint}.\n` +
       `  Detected descriptor=${tier.descriptor ?? "unknown"} primitive=${tier.primitive ?? "none"}.\n` +
+      `  Legacy .deft/review-monitor.json is ignored.\n` +
       `  ${spawnRedirect(tier)}`,
     tier,
     monitorRecord: null,
-    heartbeatActive: false,
+    heartbeatActive,
     callSite,
   };
 }
@@ -227,6 +246,7 @@ export function verifyResultToJson(result: VerifyReviewMonitorResult): Record<st
     heartbeat_active: result.heartbeatActive,
     message: result.message,
     monitor_agent_id: result.monitorRecord?.monitor_agent_id ?? null,
+    monitor_owner: result.monitorRecord?.owner ?? null,
     monitor_record: result.monitorRecord,
     ready: result.exitCode === EXIT_READY,
     tier: result.tier.tier,

@@ -251,9 +251,9 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
-! **Deterministic review-monitor gate (#2655):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, register with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task`. Exit `0` ready / `1` not ready / `2` config. Approach 3 on Tier 1 is a gate failure — use `--approach3 --approach3-warned` only on Tier 3 after the user warning.
+! **Deterministic review-monitor gate (#2655 / #2814):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task`. Release with `task review-monitor:release -- --pr <N>` when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix.
 
-! **Regression trigger (#2797):** A leaf that claims a monitor is active without a preceding `task review-monitor:register` record MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient.
+! **Regression trigger (#2797):** A leaf that claims a monitor is active without a preceding successful `task review-monitor:register` GitHub claim MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient.
 
 
 

@@ -1,12 +1,18 @@
-/** Deterministic review-monitor gate (#2655). Three-state exit contract. */
+/** Deterministic review-monitor gate (#2655 / #2814). Three-state exit contract. */
 
 export const EXIT_READY = 0;
 export const EXIT_NOT_READY = 1;
 export const EXIT_CONFIG_ERROR = 2;
+export const EXIT_CONFLICT = 1;
 
 export const SCHEMA_VERSION = 1;
+/** @deprecated Obsolete local ledger (#2814); retained for migration references only. */
 export const REVIEW_MONITOR_FILENAME = "review-monitor.json";
+/** @deprecated Obsolete local ledger (#2814). */
 export const REVIEW_MONITOR_RELPATH = [".deft", REVIEW_MONITOR_FILENAME] as const;
+
+export const REVIEW_OWNER_MARKER_START = "<!-- deft:review-owner -->";
+export const REVIEW_OWNER_MARKER_END = "<!-- /deft:review-owner -->";
 
 export const MONITORING_TIER_1 = 1;
 export const MONITORING_TIER_2 = 2;
@@ -17,14 +23,16 @@ export const DEFAULT_STALE_MINUTES = 30;
 export const REVIEW_MONITOR_HELP =
   "usage: task verify:review-monitor -- --pr <N> [options]\n" +
   "\n" +
-  "Fail-closed gate: when Tier 1 (sub-agent primitive available), require a\n" +
-  "recorded active review-monitor before the parent may yield, Approach-3\n" +
-  "sleep-poll, or claim review ownership (#2655).\n" +
+  "Fail-closed gate: when Tier 1 (sub-agent primitive available), require an\n" +
+  "unexpired GitHub review-owner lease (`<!-- deft:review-owner -->` sticky\n" +
+  "PR comment) before the parent may yield, Approach-3 sleep-poll, or claim\n" +
+  "review ownership (#2655 / #2814). Legacy `.deft/review-monitor.json` is\n" +
+  "ignored and must not satisfy this gate.\n" +
   "\n" +
   "options:\n" +
   "  -h, --help                 Show this help and exit 0\n" +
   "  --pr N                     Pull request number (required unless --help)\n" +
-  "  --repo OWNER/REPO          Repository (optional audit field)\n" +
+  "  --repo OWNER/REPO          Repository (optional; inferred from origin)\n" +
   "  --head-sha SHA             Expected HEAD SHA (optional freshness check)\n" +
   "  --project-root PATH        Project root (default: cwd)\n" +
   "  --call-site SITE           solo | swarm-phase5-6 | swarm-phase6-cascade\n" +
@@ -33,20 +41,24 @@ export const REVIEW_MONITOR_HELP =
   "  --json                     Emit structured JSON on stdout\n" +
   "\n" +
   "exit codes:\n" +
-  "  0  READY       Tier 1 monitor recorded, or Tier 3 Approach 3 with warning ack\n" +
-  "  1  NOT READY   Tier 1 without monitor, or Approach 3 blocked on Tier 1\n" +
-  "  2  CONFIG      Usage / path / unreadable state error\n" +
+  "  0  READY       Tier 1 GitHub lease active, or Tier 3 Approach 3 with warning ack\n" +
+  "  1  NOT READY   Tier 1 without GitHub lease, or Approach 3 blocked on Tier 1\n" +
+  "  2  CONFIG      Usage / path / GitHub fetch error\n" +
   "\n" +
-  "Register a monitor after spawning Approach 1:\n" +
+  "Claim a lease after spawning Approach 1:\n" +
   "  task review-monitor:register -- --pr <N> --monitor-agent-id <id> \\\n" +
   "    --platform-primitive cursor-task|spawn_subagent|start_agent \\\n" +
-  "    [--head-sha SHA] [--repo OWNER/REPO]\n";
+  "    [--head-sha SHA] [--repo OWNER/REPO] [--force]\n" +
+  "\n" +
+  "Release when done:\n" +
+  "  task review-monitor:release -- --pr <N> [--monitor-agent-id <id>]\n";
 
 export const REGISTER_HELP =
   "usage: task review-monitor:register -- --pr <N> --monitor-agent-id <id> \\\n" +
   "       --platform-primitive <primitive> [options]\n" +
   "\n" +
-  "Record an active review-monitor after spawning an Approach 1 poller (#2655).\n" +
+  "Claim the PR-anchored review-owner lease via a sticky GitHub PR comment\n" +
+  "(`<!-- deft:review-owner -->`). Does not write `.deft/review-monitor.json` (#2814).\n" +
   "\n" +
   "required:\n" +
   "  --pr N                     Pull request number\n" +
@@ -54,9 +66,26 @@ export const REGISTER_HELP =
   "  --platform-primitive P     start_agent | spawn_subagent | cursor-task\n" +
   "\n" +
   "options:\n" +
-  "  --repo OWNER/REPO          Repository\n" +
+  "  --repo OWNER/REPO          Repository (default: origin / DEFT_TRIAGE_REPO)\n" +
+  "  --owner LOGIN              GitHub login for claim (default: gh api user)\n" +
   "  --head-sha SHA             HEAD SHA at monitor start\n" +
   "  --project-root PATH        Project root (default: cwd)\n" +
-  "  --parent-session-id ID     Optional parent ritual / session id\n" +
+  "  --parent-session-id ID     Optional parent ritual / session id (audit only)\n" +
+  "  --force                    Take over a non-expired foreign lease (loud)\n" +
   "\n" +
-  "exit codes: 0 registered / 2 config error\n";
+  "exit codes: 0 claimed / 1 conflict / 2 config error\n";
+
+export const RELEASE_HELP =
+  "usage: task review-monitor:release -- --pr <N> [options]\n" +
+  "\n" +
+  "End the PR-anchored review-owner lease by editing the sticky GitHub comment\n" +
+  "in place (#2814).\n" +
+  "\n" +
+  "options:\n" +
+  "  --pr N                     Pull request number (required)\n" +
+  "  --repo OWNER/REPO          Repository (default: origin / DEFT_TRIAGE_REPO)\n" +
+  "  --monitor-agent-id ID      Release only when this monitor holds the lease\n" +
+  "  --owner LOGIN              Release only when this GitHub login holds the lease\n" +
+  "  --project-root PATH        Project root (default: cwd)\n" +
+  "\n" +
+  "exit codes: 0 released / 1 held-by-other / 2 config error\n";

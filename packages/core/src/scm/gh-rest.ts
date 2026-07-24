@@ -229,6 +229,9 @@ export const REST_PAGINATION_MAX_PAGES = 100;
 export const PUBLIC_HELPERS = [
   "restCreateIssue",
   "restPostComment",
+  "restUpdateComment",
+  "restDeleteComment",
+  "restGetUser",
   "restUpdateIssue",
   "restCreateLabel",
   "restCloseIssue",
@@ -306,6 +309,50 @@ export function restPostComment(
     hint: "verify repo permissions, that the issue/PR is open or lockable, and core REST bucket quota",
     ...seams,
   });
+}
+
+/** `PATCH /repos/{owner}/{repo}/issues/comments/{id}` -- edit a PR/issue comment in place. */
+export function restUpdateComment(
+  repo: string,
+  commentId: number,
+  body: string,
+  seams: GhRestSeams = {},
+): Record<string, unknown> {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/issues/comments/${commentId}`;
+  return execMutation([endpoint, "--method", "PATCH"], {
+    endpoint,
+    payload: { body },
+    hint: "verify repo permissions and comment id; check gh auth status",
+    ...seams,
+  });
+}
+
+/** `DELETE /repos/{owner}/{repo}/issues/comments/{id}` -- remove a duplicate claim comment. */
+export function restDeleteComment(
+  repo: string,
+  commentId: number,
+  seams: GhRestSeams = {},
+): Record<string, unknown> {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/issues/comments/${commentId}`;
+  return execMutation([endpoint, "--method", "DELETE"], {
+    endpoint,
+    payload: {},
+    hint: "verify repo permissions and comment id; check gh auth status",
+    ...seams,
+  });
+}
+
+/** `GET /user` -- authenticated GitHub login for review-owner claims. */
+export function restGetUser(seams: GhRestSeams = {}): Record<string, unknown> {
+  return execApi(["user"], {
+    endpoint: "user",
+    payload: null,
+    hint: "verify gh auth status (`gh auth login`)",
+    runGhApiFn: seams.runGhApiFn,
+    whichFn: seams.whichFn,
+  }) as Record<string, unknown>;
 }
 
 export function restUpdateIssue(

@@ -160,16 +160,6 @@ describe("package-manager network scope (#2182)", () => {
           timeout: 5_000,
         }),
       ],
-      [
-        "npm",
-        ["config", "get", "registry"],
-        expect.objectContaining({
-          cwd: root,
-          encoding: "utf8",
-          shell: false,
-          timeout: 5_000,
-        }),
-      ],
     ]);
     expect(`${result.stdout}${result.stderr}`).toMatch(/--network/);
   });

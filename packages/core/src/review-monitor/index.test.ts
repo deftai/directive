@@ -6,5 +6,6 @@ describe("review-monitor index", () => {
     expect(typeof reviewMonitor.evaluateReviewMonitorGate).toBe("function");
     expect(typeof reviewMonitor.probeMonitoringTier).toBe("function");
     expect(typeof reviewMonitor.registerReviewMonitor).toBe("function");
+    expect(typeof reviewMonitor.releaseReviewMonitor).toBe("function");
   });
 });

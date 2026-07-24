@@ -13,8 +13,10 @@ interface ParsedArgs {
   platformPrimitive: PlatformPrimitive | null;
   repo: string | null;
   headSha: string | null;
+  owner: string | null;
   projectRoot: string;
   parentSessionId: string | null;
+  force: boolean;
   help: boolean;
   error?: string;
 }
@@ -28,8 +30,10 @@ export function parseRegisterArgs(argv: readonly string[]): ParsedArgs {
     platformPrimitive: null,
     repo: null,
     headSha: null,
+    owner: null,
     projectRoot: ".",
     parentSessionId: null,
+    force: false,
     help: false,
   };
 
@@ -38,7 +42,9 @@ export function parseRegisterArgs(argv: readonly string[]): ParsedArgs {
     if (arg === "--help" || arg === "-h") {
       return { ...acc, help: true };
     }
-    if (arg === "--pr") {
+    if (arg === "--force") {
+      acc.force = true;
+    } else if (arg === "--pr") {
       const value = argv[i + 1];
       if (value === undefined) {
         return { ...acc, error: "argument --pr: expected one argument" };
@@ -89,6 +95,15 @@ export function parseRegisterArgs(argv: readonly string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--repo=")) {
       acc.repo = arg.slice("--repo=".length);
+    } else if (arg === "--owner") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...acc, error: "argument --owner: expected one argument" };
+      }
+      acc.owner = value;
+      i += 1;
+    } else if (arg?.startsWith("--owner=")) {
+      acc.owner = arg.slice("--owner=".length);
     } else if (arg === "--head-sha") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -149,24 +164,24 @@ export function run(argv: readonly string[]): number {
     return 2;
   }
 
-  try {
-    const { path, record } = registerReviewMonitor({
-      pr: args.pr,
-      repo: args.repo,
-      headSha: args.headSha,
-      platformPrimitive: args.platformPrimitive,
-      monitorAgentId: args.monitorAgentId,
-      projectRoot: resolve(args.projectRoot),
-      parentSessionId: args.parentSessionId,
-    });
-    process.stdout.write(
-      `review_monitor_register: recorded PR #${record.pr} monitor ${record.monitor_agent_id} at ${path}\n`,
-    );
-    return 0;
-  } catch (err: unknown) {
-    process.stderr.write(`review_monitor_register: ${String((err as Error).message ?? err)}\n`);
-    return 2;
+  const result = registerReviewMonitor({
+    pr: args.pr,
+    repo: args.repo,
+    headSha: args.headSha,
+    owner: args.owner,
+    platformPrimitive: args.platformPrimitive,
+    monitorAgentId: args.monitorAgentId,
+    projectRoot: resolve(args.projectRoot),
+    parentSessionId: args.parentSessionId,
+    force: args.force,
+  });
+
+  if (result.exitCode === 0) {
+    process.stdout.write(`${result.message}\n`);
+  } else {
+    process.stderr.write(`${result.message}\n`);
   }
+  return result.exitCode;
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {

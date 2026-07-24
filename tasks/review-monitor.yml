@@ -5,7 +5,7 @@ vars:
 
 tasks:
   register:
-    desc: "Record an active Approach 1 review-monitor after spawn (#2655). Writes .deft/review-monitor.json at the main worktree root."
+    desc: "Claim PR-anchored review-owner lease via sticky GitHub comment (#2814). Does not write local JSON."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
@@ -13,3 +13,13 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'review-monitor-register {{.CLI_ARGS}}'
+
+  release:
+    desc: "Release PR-anchored review-owner lease by editing the sticky GitHub comment (#2814)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'review-monitor-release {{.CLI_ARGS}}'

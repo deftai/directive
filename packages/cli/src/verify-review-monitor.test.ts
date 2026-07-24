@@ -95,7 +95,17 @@ describe("verify-review-monitor CLI", () => {
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(
-      run(["--pr", "55", "--project-root", root, "--call-site", "swarm-phase6-cascade", "--json"]),
+      run([
+        "--pr",
+        "55",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        root,
+        "--call-site",
+        "swarm-phase6-cascade",
+        "--json",
+      ]),
     ).toBe(1);
     expect(out.mock.calls.join("")).toContain('"ready": false');
   });

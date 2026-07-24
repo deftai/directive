@@ -16,9 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **PR-anchored review-owner lease (#2814).** `review-monitor:register`, new `review-monitor:release`, and `verify:review-monitor` now use a sticky GitHub PR comment (`<!-- deft:review-owner -->`) as the sole lease source of truth. Cross-machine double-babysit is blocked via REST claim/conflict semantics; legacy `.deft/review-monitor.json` is no longer written or honored.
+
 - **Rule Map generator (#2809).** New maintainer-only `task docs:rule-map` engine verb (TypeScript, Node stdlib only, no new deps) renders `docs/RULE-MAP.md` (committed, diff-friendly, timestamp-free) and a self-contained zero-dependency `docs/rule-map/index.html` explorer (gitignored). `task docs:rule-map:check` gates staleness of the committed Markdown. Lives under maintainer-only top-level `docs/` so it stays out of the shipped payload.
 
 ### Changed
+
+- **Review-cycle ownership is GitHub-anchored (#2814).** Agents must succeed at `task review-monitor:register` on GitHub before claiming an active monitor; `task verify:review-monitor` requires an unexpired GitHub lease on Tier 1 (local heartbeat alone is insufficient).
 
 ### Fixed
 
@@ -28,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent-host edit hooks no longer boot the full CLI for every tool call (#2790).** `directive init` and `deft update` now deposit the lightweight `deft-hook` entrypoint for Claude, Grok, Cursor, and Codex. Cursor ApplyPatch shares the direct-write hook rather than probing and spawning a second CLI process; the same ritual, scope, runtime-authority, and fail-closed decisions remain enforced. Upgrade `@deftai/directive` and run `deft update` to refresh existing deposits—`hostHooks` opt-out is not the performance fix.
 
 ### Removed
+
+- **Local review-monitor ledger (#2814).** `.deft/review-monitor.json` is obsolete; register/release/verify no longer read or write it.
 
 ## [0.84.0] - 2026-07-23
 

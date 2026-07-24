@@ -2,18 +2,27 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  findActiveMonitorForPr,
-  readReviewMonitorFile,
-  registerReviewMonitor,
-  reviewMonitorPath,
-} from "./record.js";
+import { computeExpiresAt, renderReviewOwnerComment } from "./lease-comment.js";
 import { probeMonitoringTier } from "./tier-detection.js";
 import {
   evaluateReviewMonitorGate,
   hasActivePollingHeartbeat,
   verifyResultToJson,
 } from "./verify.js";
+
+const NOW = new Date("2026-07-24T12:00:00.000Z");
+
+function activeLeaseComment(owner: string, monitorAgentId: string): string {
+  return renderReviewOwnerComment({
+    owner,
+    monitor_agent_id: monitorAgentId,
+    head_sha: "abc123",
+    started_at: NOW.toISOString(),
+    expires_at: computeExpiresAt(NOW),
+    platform_primitive: "cursor-task",
+    ended_at: null,
+  });
+}
 
 describe("probeMonitoringTier", () => {
   it("detects Cursor composer as Tier 1 cursor-task", () => {
@@ -37,37 +46,76 @@ describe("probeMonitoringTier", () => {
 });
 
 describe("evaluateReviewMonitorGate", () => {
-  it("Tier 1 + missing record fails closed", () => {
+  it("Tier 1 + missing GitHub lease fails closed", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-"));
     const result = evaluateReviewMonitorGate({
       pr: 42,
       projectRoot: root,
+      repo: "deftai/directive",
       callSite: "solo",
       environ: { CURSOR_COMPOSER: "1" },
+      seams: { fetchComments: () => [] },
     });
     expect(result.exitCode).toBe(1);
-    expect(result.message).toContain("no active review-monitor");
+    expect(result.message).toContain("no active GitHub review-owner lease");
     expect(result.message).toContain("review-monitor:register");
   });
 
-  it("Tier 1 + valid record passes", () => {
+  it("Tier 1 + GitHub lease passes", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-ok-"));
-    registerReviewMonitor({
-      pr: 7,
-      platformPrimitive: "cursor-task",
-      monitorAgentId: "review-monitor-pr-7",
-      projectRoot: root,
-      headSha: "abc123",
-    });
     const result = evaluateReviewMonitorGate({
       pr: 7,
       projectRoot: root,
+      repo: "deftai/directive",
       headSha: "abc123",
       callSite: "swarm-phase5-6",
-      environ: { CURSOR_AGENT: "1" },
+      now: NOW,
+      environ: { CURSOR_COMPOSER: "1" },
+      seams: {
+        fetchComments: () => [
+          {
+            id: 7,
+            body: activeLeaseComment("alice", "review-monitor-pr-7"),
+            htmlUrl: "",
+            updatedAt: "2026-07-24T12:00:00.000Z",
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
     });
     expect(result.exitCode).toBe(0);
     expect(result.monitorRecord?.monitor_agent_id).toBe("review-monitor-pr-7");
+  });
+
+  it("legacy local JSON alone does not satisfy Tier 1 gate", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-local-"));
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "review-monitor.json"),
+      JSON.stringify({
+        schema_version: 1,
+        records: [
+          {
+            pr: 8,
+            monitor_agent_id: "legacy-only",
+            platform_primitive: "cursor-task",
+            started_at: new Date().toISOString(),
+            worktree_path: root,
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const result = evaluateReviewMonitorGate({
+      pr: 8,
+      projectRoot: root,
+      repo: "deftai/directive",
+      environ: { CURSOR_COMPOSER: "1" },
+      seams: { fetchComments: () => [] },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("Legacy .deft/review-monitor.json is ignored");
   });
 
   it("Tier 3 allows verify without monitor record", () => {
@@ -86,6 +134,7 @@ describe("evaluateReviewMonitorGate", () => {
     const result = evaluateReviewMonitorGate({
       pr: 1,
       projectRoot: root,
+      repo: "deftai/directive",
       approach3: true,
       environ: { CURSOR_COMPOSER: "1" },
     });
@@ -140,34 +189,29 @@ describe("evaluateReviewMonitorGate", () => {
     expect(json.tier).toBe(3);
   });
 
-  it("fails when monitor head_sha mismatches", () => {
+  it("fails when GitHub lease head_sha mismatches", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-sha-"));
-    registerReviewMonitor({
-      pr: 8,
-      platformPrimitive: "cursor-task",
-      monitorAgentId: "rm-8",
-      projectRoot: root,
-      headSha: "aaaa",
-    });
     const result = evaluateReviewMonitorGate({
       pr: 8,
       projectRoot: root,
+      repo: "deftai/directive",
       headSha: "bbbb",
+      now: NOW,
       environ: { CURSOR_COMPOSER: "1" },
+      seams: {
+        fetchComments: () => [
+          {
+            id: 8,
+            body: activeLeaseComment("alice", "rm-8"),
+            htmlUrl: "",
+            updatedAt: "2026-07-24T12:00:00.000Z",
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
     });
     expect(result.exitCode).toBe(1);
-  });
-
-  it("exits config error when review-monitor file is corrupt", () => {
-    const root = mkdtempSync(join(tmpdir(), "rm-gate-corrupt-"));
-    mkdirSync(join(root, ".deft"), { recursive: true });
-    writeFileSync(join(root, ".deft", "review-monitor.json"), "{bad", "utf8");
-    const result = evaluateReviewMonitorGate({
-      pr: 1,
-      projectRoot: root,
-      environ: { CURSOR_COMPOSER: "1" },
-    });
-    expect(result.exitCode).toBe(2);
   });
 
   it("includes solo call-site hint when failing closed", () => {
@@ -175,8 +219,10 @@ describe("evaluateReviewMonitorGate", () => {
     const result = evaluateReviewMonitorGate({
       pr: 2,
       projectRoot: root,
+      repo: "deftai/directive",
       callSite: "solo",
       environ: { CURSOR_COMPOSER: "1" },
+      seams: { fetchComments: () => [] },
     });
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("Solo drive-to");
@@ -201,7 +247,7 @@ describe("evaluateReviewMonitorGate", () => {
     expect(hasActivePollingHeartbeat(root, 1)).toBe(false);
   });
 
-  it("accepts active polling heartbeat as monitor evidence", () => {
+  it("heartbeat alone does not satisfy Tier 1 verify (#2814)", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-hb-"));
     const statusDir = join(root, ".deft-scratch", "subagent-status");
     mkdirSync(statusDir, { recursive: true });
@@ -222,28 +268,13 @@ describe("evaluateReviewMonitorGate", () => {
     const result = evaluateReviewMonitorGate({
       pr: 55,
       projectRoot: root,
+      repo: "deftai/directive",
       callSite: "swarm-phase6-cascade",
       environ: { CURSOR_COMPOSER: "1" },
+      seams: { fetchComments: () => [] },
     });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(1);
     expect(result.heartbeatActive).toBe(true);
-  });
-});
-
-describe("review monitor record file", () => {
-  it("round-trips register and read", () => {
-    const root = mkdtempSync(join(tmpdir(), "rm-rec-"));
-    registerReviewMonitor({
-      pr: 12,
-      platformPrimitive: "spawn_subagent",
-      monitorAgentId: "rm-12",
-      projectRoot: root,
-      repo: "deftai/directive",
-    });
-    const path = reviewMonitorPath(root);
-    const { data } = readReviewMonitorFile(path);
-    expect(data?.records).toHaveLength(1);
-    const active = findActiveMonitorForPr(data as NonNullable<typeof data>, 12, {});
-    expect(active?.monitor_agent_id).toBe("rm-12");
+    expect(result.message).toContain("local subagent heartbeat is present");
   });
 });
