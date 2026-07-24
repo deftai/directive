@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Rule Map: maintainer-facing generated view of the rule taxonomy (`task docs:rule-map`)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Rule Map: maintainer-facing generated view of the rule taxonomy (`task docs:rule-map`)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2809",
@@ -55,6 +55,10 @@
         "title": "Issue #2809: Rule Map: maintainer-facing generated view of the rule taxonomy (`task docs:rule-map`)"
       }
     ],
-    "updated": "2026-07-24T15:03:49Z"
+    "updated": "2026-07-24T16:59:46Z",
+    "metadata": {
+      "completedAt": "2026-07-24T16:59:46Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
