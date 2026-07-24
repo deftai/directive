@@ -6,7 +6,7 @@
   "plan": {
     "id": "2807-symlink-write-containment",
     "title": "AppSec review — 4 new medium findings (c7fc6df9)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "AppSec review found four MEDIUM symlink / confused-deputy sinks where committed or force-addable leaf or directory symlinks divert `writeFileSync`, `appendFileSync`, or mkdir materialization outside the project under the operator identity. Prior work already ships `assertWriteTargetSafe` / `projectionTarget` in `packages/core/src/fs/projection-containment.ts`. This story gates the four remaining CLI paths and adds symlink-diversion regression tests for each.",
       "ImplementationPlan": "1. Guard `writeHealthBaseline` in `packages/core/src/eval-health-relocation/evaluate.ts`, `recordLastSubmit` in `packages/core/src/product-signal/submit.ts`, and the uninstall AGENTS.md rewrite plus `change:init` history materialization in `packages/core/src/task-surface/index.ts` with `assertWriteTargetSafe` / `projectionTarget` before mutate. 2. Extend focused tests in `evaluate.test.ts`, `submit.test.ts`, and `task-surface/index.test.ts` (reusing patterns from `projection-containment.test.ts`) so symlink-at-leaf and directory diversion are rejected with a clear error and no outside write. 3. Record a short pattern-audit note in the PR for any remaining same-trust-class writers that need a follow-up issue or intentional exception.",
@@ -84,7 +84,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-07-24T18:46:56Z",
+      "capacityBucket": "technical-debt"
     },
     "references": [
       {
@@ -94,6 +96,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-07-24T17:32:14Z"
+    "updated": "2026-07-24T18:46:56Z"
   }
 }
