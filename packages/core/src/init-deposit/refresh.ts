@@ -34,6 +34,7 @@ import {
   resolveEngine,
 } from "../resolution/index.js";
 import { gitPorcelain } from "../story-ready/git.js";
+import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, type GitLsFiles, isDepositTrackedInGit } from "./gitignore.js";
 import {
@@ -640,6 +641,7 @@ export async function runRefreshDeposit(
   // lifecycle content before migrate:xbrief can transactionally converge it.
   if (hasCanonicalXbriefLifecycle(projectDir)) {
     syncConsumerXbriefSchemas(projectDir, deftDir);
+    removeStaleMigratedFrameworkNarrative(projectDir);
   }
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);

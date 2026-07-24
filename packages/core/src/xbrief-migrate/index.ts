@@ -11,6 +11,7 @@ export {
   type StaleHeaderDetection,
 } from "./agents-header.js";
 export {
+  OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
   VBRIEF_DEPRECATION_MARKER_BODY,
   VBRIEF_DEPRECATION_MARKER_FILENAME,
   VBRIEF_DEPRECATION_MARKER_SENTINEL,
@@ -40,8 +41,10 @@ export {
 export {
   convergeLegacyVbriefRoot,
   emitXbriefMigration,
+  removeStaleMigratedFrameworkNarrative,
   runXbriefMigration,
   runXbriefMigrationCli,
+  shouldOmitLegacyMigrationFile,
   type VbriefConvergeAction,
   type XbriefMigrationArgs,
   type XbriefMigrationIo,
