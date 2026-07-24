@@ -105,6 +105,33 @@ function gitmodulesReferencesFramework(text: string): boolean {
   return /(^|\n)\s*path\s*=\s*\.?deft(\/|\s|$)/.test(normalized);
 }
 
+const DUAL_LAYOUT_DETAIL =
+  "Found both the canonical .deft/core/ deposit and a leftover legacy deft/ " +
+  "framework tree -- remove deft/ so .deft/core/ is the sole framework root.";
+
+/**
+ * Detect a post-bridge dual-layout: canonical `.deft/core/` plus a leftover
+ * framework-marked `deft/` tree. Doctor-only -- the npm deposit path treats
+ * `.deft/core/` as canonical and must not refuse here (#2805 / #2804 wiring).
+ */
+export function detectDualLayout(
+  projectDir: string,
+  seams: LegacyDetectSeams = {},
+): LegacyLayoutDetection | null {
+  const isFile = seams.isFile ?? defaultIsFile;
+  const isDir = seams.isDir ?? defaultIsDir;
+  const hasCanonicalCore = isDir(join(projectDir, ".deft", "core"));
+  if (!hasCanonicalCore || !isFrameworkDeftDir(projectDir, isDir, isFile)) {
+    return null;
+  }
+  return {
+    legacy: true,
+    kind: "dual-layout",
+    detail: DUAL_LAYOUT_DETAIL,
+    evidence: [".deft/core/", "deft/"],
+  };
+}
+
 /**
  * Classify the on-disk layout at `projectDir`. Returns `legacy: false` for the
  * canonical `.deft/core/` vendored layout and for a greenfield project (so init
@@ -121,19 +148,8 @@ export function detectLegacyLayout(
   const hasCanonicalCore = isDir(join(projectDir, ".deft", "core"));
   const deftDirIsFramework = isFrameworkDeftDir(projectDir, isDir, isFile);
 
-  // Dual-layout: bridge deposited `.deft/core/` but left the legacy `deft/` tree.
-  if (hasCanonicalCore && deftDirIsFramework) {
-    return {
-      legacy: true,
-      kind: "dual-layout",
-      detail:
-        "Found both the canonical .deft/core/ deposit and a leftover legacy deft/ " +
-        "framework tree -- remove deft/ so .deft/core/ is the sole framework root.",
-      evidence: [".deft/core/", "deft/"],
-    };
-  }
-
-  // Canonical vendored layout present with no legacy deft/ tree -> not legacy.
+  // Canonical vendored layout present -> the npm path owns it; not legacy. Any
+  // leftover deft/ tree is a dual-layout hygiene issue surfaced by Doctor only.
   if (hasCanonicalCore) {
     return NOT_LEGACY;
   }
@@ -309,8 +325,8 @@ export function legacyLayoutSignpostLine(detection: LegacyLayoutDetection): stri
 export function dualLayoutSignpostLine(detection: LegacyLayoutDetection): string {
   return (
     `Dual Deft layout detected (${detection.kind ?? "dual-layout"}): ${detection.detail} ` +
-    "Remove the legacy deft/ tree (or run `npx @deftai/directive update` on a clean tree " +
-    "to auto-remove it). Keep .deft/core/ as the sole framework root. " +
+    "Remove the legacy deft/ tree so .deft/core/ is the sole framework root " +
+    "(when clean: `git rm -r deft/`; reconcile local edits first if `git status deft/` is dirty). " +
     `See ${UPGRADING_DOC_URL}.`
   );
 }
@@ -329,11 +345,19 @@ export interface LegacyDeftCleanupResult {
   readonly detail: string;
 }
 
+function porcelainEntryPath(line: string): string {
+  let path = line.slice(3).trim().replace(/\\/g, "/");
+  if (path.startsWith('"') && path.endsWith('"')) {
+    path = path.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  }
+  return path;
+}
+
 function porcelainTouchesLegacyDeft(porcelain: string): string[] {
   const touched: string[] = [];
   for (const line of porcelain.split("\n")) {
     if (!line.trim()) continue;
-    const path = line.slice(3).trim().replace(/\\/g, "/");
+    const path = porcelainEntryPath(line);
     if (path === LEGACY_DEFT_DIR || path.startsWith(`${LEGACY_DEFT_DIR}/`)) {
       touched.push(path);
     }
@@ -349,8 +373,8 @@ export function tryCleanupLegacyDeftTree(
   projectDir: string,
   seams: LegacyDeftCleanupSeams = {},
 ): LegacyDeftCleanupResult {
-  const detection = detectLegacyLayout(projectDir);
-  if (!detection.legacy || detection.kind !== "dual-layout") {
+  const detection = detectDualLayout(projectDir);
+  if (detection === null) {
     return {
       ok: true,
       action: "skipped",

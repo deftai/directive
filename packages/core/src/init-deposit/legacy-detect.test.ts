@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildLegacyRefusalJson,
   buildLegacyRefusalMessage,
+  detectDualLayout,
   detectLegacyLayout,
   dualLayoutSignpostLine,
   LEGACY_LAYOUT_REFUSED_EXIT_CODE,
@@ -47,22 +48,21 @@ describe("detectLegacyLayout — not legacy", () => {
     expect(result.kind).toBeNull();
   });
 
-  it("dual-layout with deft/ and .deft/core/ is legacy", () => {
+  it("dual-layout beside .deft/core/ is not legacy for the npm deposit path", () => {
     const result = detectLegacyLayout(
       PROJ,
       seamsFor({ dirs: [".deft/core", "deft"], files: ["deft/main.md"] }),
     );
-    expect(result.legacy).toBe(true);
-    expect(result.kind).toBe("dual-layout");
-    expect(result.evidence).toEqual([".deft/core/", "deft/"]);
+    expect(result.legacy).toBe(false);
+    expect(result.kind).toBeNull();
   });
 
   it("unrelated deft/ directory beside .deft/core/ is not dual-layout", () => {
-    const result = detectLegacyLayout(
+    const result = detectDualLayout(
       PROJ,
       seamsFor({ dirs: [".deft/core", "deft"], files: ["deft/README.md"] }),
     );
-    expect(result.legacy).toBe(false);
+    expect(result).toBeNull();
   });
 
   it("greenfield (nothing installed) is not legacy", () => {
@@ -97,6 +97,18 @@ describe("detectLegacyLayout — not legacy", () => {
     );
     expect(result.legacy).toBe(false);
     expect(result.kind).toBeNull();
+  });
+});
+
+describe("detectDualLayout (#2805)", () => {
+  it("detects framework deft/ beside .deft/core/", () => {
+    const result = detectDualLayout(
+      PROJ,
+      seamsFor({ dirs: [".deft/core", "deft"], files: ["deft/main.md"] }),
+    );
+    expect(result).not.toBeNull();
+    expect(result?.kind).toBe("dual-layout");
+    expect(result?.evidence).toEqual([".deft/core/", "deft/"]);
   });
 });
 
@@ -278,6 +290,7 @@ describe("refusal helpers", () => {
     expect(line).toContain("Dual Deft layout detected");
     expect(line).toContain("Remove the legacy deft/ tree");
     expect(line).not.toContain("Go bridge");
+    expect(line).not.toContain("auto-remove");
   });
 
   it("legacyLayoutSignpostLine routes dual-layout to the dual signpost", () => {
@@ -350,5 +363,17 @@ describe("tryCleanupLegacyDeftTree (#2805)", () => {
     expect(result.ok).toBe(false);
     expect(result.action).toBe("refused");
     expect(result.detail).toContain("local modifications");
+  });
+
+  it("refuses when quoted porcelain paths mark deft/ dirty", () => {
+    const r = root();
+    mkdirSync(join(r, ".deft", "core"), { recursive: true });
+    mkdirSync(join(r, "deft"), { recursive: true });
+    writeFileSync(join(r, "deft", "main.md"), "# legacy\n", "utf8");
+    const result = tryCleanupLegacyDeftTree(r, {
+      gitPorcelain: () => '?? "deft/spaced name.md"\n',
+    });
+    expect(result.ok).toBe(false);
+    expect(result.action).toBe("refused");
   });
 });
