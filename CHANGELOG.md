@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **migrate:xbrief no longer copies obsolete framework `vbrief.md` into `xbrief/` (#2806).** Legacy migration skips the lifecycle-root framework support narrative so consumers are not left with broken-link Markdown litter; `directive update` removes a stale `xbrief/vbrief.md` from earlier migrations while preserving project JSON records and `xbrief/schemas/`.
 - **Corporate npm mirrors no longer hide the public Directive release path (#2808).** `directive doctor` now warns when the effective `@deftai` registry is not public npm without exposing configured URLs, its network-gated release lookup explicitly targets `registry.npmjs.org`, and the upgrade/bootstrap docs cover `E404`, `ETARGET`, silently stale `@latest`, scoped `.npmrc` routing, and organization-policy-safe recovery.
 - **Dependabot brace-expansion DoS advisories closed via pnpm overrides.** Pin transitive `brace-expansion@2` → `2.1.2` and `@5` → `5.0.7` (minimatch/glob via vitest coverage and archiver) so lockfile consumers no longer resolve the vulnerable 2.1.1 / 5.0.6 lines.
 - **Cursor review-monitor ownership is now explicit (#2797).** Cursor `Task` leaves no longer treat nested Task dispatch or a backgrounded `task pr:watch` shell as an active Approach 1 monitor. A merge-ready leaf blocks in its own review loop, or exits at PR open so its orchestrator can launch and register a sibling monitor; the unregistered-monitor claim is a fail-closed regression condition. Closes #2797.
