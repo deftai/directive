@@ -99,7 +99,7 @@ export function runChangeInit(projectRoot: string, name: string, io: TaskSurface
   }
   const projectAbs = resolve(projectRoot);
   try {
-    const base = projectionTarget(projectAbs, "history", "changes", trimmed);
+    const base = projectionTarget(projectAbs, join("history", "changes", trimmed));
     if (existsSync(base)) {
       io.writeOut(`FAIL: ${base} already exists\n`);
       return 1;

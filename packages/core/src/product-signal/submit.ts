@@ -73,10 +73,7 @@ function recordLastSubmit(
       })}\n`,
       "utf8",
     );
-  } catch (err) {
-    if (err instanceof ProjectionContainmentError) {
-      throw err;
-    }
+  } catch {
     // observability only
   }
 }
