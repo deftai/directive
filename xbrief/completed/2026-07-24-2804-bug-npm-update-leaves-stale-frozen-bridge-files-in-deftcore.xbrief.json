@@ -6,7 +6,7 @@
   "plan": {
     "id": "2804-deposit-package-absent-prune",
     "title": "bug: npm update leaves stale frozen-bridge files in .deft/core",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After a frozen Go-bridge deposit, `directive update` leaves hundreds of package-absent files under `.deft/core/` because the file-swap is additive and only prunes the hard-coded `packages/` stray path. Consumers can commit a v0.84.0 VERSION alongside bridge-era trees while Doctor still reports clean deposit hygiene. This story makes update converge the deposit file-set to the content package (preserving generated metadata such as VERSION) and makes Doctor fail when package-absent files remain.",
       "ImplementationPlan": "1. Extend `packages/core/src/init-deposit/hygiene.ts` (and the refresh call site in `packages/core/src/init-deposit/refresh.ts`) so file-swap prunes deposit paths absent from `@deftai/directive-content`, with an allowlist for generated deposit metadata such as `VERSION`. 2. Add a Doctor deposit file-set check (wired where the existing packages/ hygiene check lives) that fails when package-absent files remain. 3. Cover the prune + Doctor paths with focused tests in `packages/core/src/init-deposit/hygiene.test.ts` and `packages/cli/src/doctor.test.ts` that seed bridge-era leftovers and assert removal plus a failing Doctor finding.",
@@ -77,7 +77,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-07-24T19:30:57Z",
+      "capacityBucket": "technical-debt"
     },
     "references": [
       {
@@ -87,6 +89,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-07-24T17:32:08Z"
+    "updated": "2026-07-24T19:30:57Z"
   }
 }
