@@ -125,9 +125,8 @@ describe("review-monitor GitHub lease", () => {
 
   it("surfaces create-race delete failures and create errors", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gh-race-del-"));
-    const comments: Array<{ id: number; body: string }> = [
-      { id: 10, body: activeLeaseBody("bob", "rm-bob") },
-    ];
+    const comments: Array<{ id: number; body: string }> = [];
+    let fetchCount = 0;
     const deleteFail = registerReviewMonitor({
       pr: 12,
       repo: "deftai/directive",
@@ -137,16 +136,22 @@ describe("review-monitor GitHub lease", () => {
       projectRoot: root,
       startedAt: NOW,
       seams: {
-        fetchComments: () =>
-          comments.map((comment) => ({
+        fetchComments: () => {
+          fetchCount += 1;
+          if (fetchCount === 1) {
+            return [];
+          }
+          return comments.map((comment) => ({
             id: comment.id,
             body: comment.body,
             htmlUrl: "",
             updatedAt: NOW.toISOString(),
             authorLogin: "alice",
             authorAssociation: "MEMBER",
-          })),
+          }));
+        },
         createComment: () => {
+          comments.push({ id: 10, body: activeLeaseBody("bob", "rm-bob") });
           comments.push({ id: 20, body: activeLeaseBody("alice", "rm-alice") });
           return { id: 20 };
         },
