@@ -212,6 +212,37 @@ describe("review-monitor GitHub lease", () => {
     expect(body).toContain("owner: alice");
   });
 
+  it("surfaces update failures during expired takeover", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gh-exp-update-"));
+    const body = activeLeaseBody("bob", "rm-bob")
+      .replace(/expires_at: .+/, "expires_at: 2026-07-24T10:30:00.000Z")
+      .replace(/started_at: .+/, "started_at: 2026-07-24T10:00:00.000Z");
+    const result = registerReviewMonitor({
+      pr: 14,
+      repo: "deftai/directive",
+      owner: "alice",
+      platformPrimitive: "cursor-task",
+      monitorAgentId: "rm-alice",
+      projectRoot: root,
+      startedAt: NOW,
+      seams: {
+        fetchComments: () => [
+          {
+            id: 14,
+            body,
+            htmlUrl: "",
+            updatedAt: "2026-07-24T10:00:00.000Z",
+            authorLogin: "bob",
+            authorAssociation: "MEMBER",
+          },
+        ],
+        updateComment: () => ({ error: "patch denied" }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("patch denied");
+  });
+
   it("requires --force for non-expired foreign takeover", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gh-force-"));
     const withoutForce = registerReviewMonitor({

@@ -52,6 +52,8 @@ describe("review-owner GitHub lease seams", () => {
         fetchComments: () => ({ error: "boom" }),
       }),
     ).toEqual({ error: "boom" });
+
+    expect(listReviewOwnerComments("deftai/directive", 4, { fetchComments: () => [] })).toEqual([]);
   });
 
   it("create/update/delete honor custom seams", () => {
@@ -123,6 +125,10 @@ describe("review-owner GitHub lease seams", () => {
     const userSpy = vi.spyOn(ghRest, "restGetUser").mockReturnValue({ login: "ci-bot" });
     expect(resolveGitHubLogin()).toBe("ci-bot");
     userSpy.mockRestore();
+
+    const emptyLogin = vi.spyOn(ghRest, "restGetUser").mockReturnValue({ login: "" });
+    expect(resolveGitHubLogin()).toBeNull();
+    emptyLogin.mockRestore();
 
     const failSpy = vi.spyOn(ghRest, "restGetUser").mockImplementation(() => {
       throw new Error("no auth");
