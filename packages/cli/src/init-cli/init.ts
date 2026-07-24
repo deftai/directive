@@ -12,6 +12,7 @@ import {
   INIT_HEADLESS_FLAGS,
   INIT_OUTPUT_FLAGS,
 } from "./constants.js";
+import { argvWantsHelp, printInitHelp } from "./help.js";
 
 /** True when the user argv asked for a classify-only dispatch plan (`--dry-run`/`--plan`). */
 export function isInitDryRun(argv: readonly string[]): boolean {
@@ -72,6 +73,10 @@ export function runInit(
   seams?: InitDispatchSeams,
   headlessSeams?: HeadlessManifestSeams,
 ): Promise<number> {
+  if (argvWantsHelp(argv)) {
+    printInitHelp(io);
+    return Promise.resolve(0);
+  }
   if (isInitHeadless(argv)) {
     return runInitHeadlessCli({
       outputPath: parseInitOutputPath(argv),
