@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2804 — prune package-absent deposit files on update and fail Doctor hygiene when they remain."
+  },
+  "plan": {
+    "id": "2804-deposit-package-absent-prune",
+    "title": "bug: npm update leaves stale frozen-bridge files in .deft/core",
+    "status": "running",
+    "narratives": {
+      "Description": "After a frozen Go-bridge deposit, `directive update` leaves hundreds of package-absent files under `.deft/core/` because the file-swap is additive and only prunes the hard-coded `packages/` stray path. Consumers can commit a v0.84.0 VERSION alongside bridge-era trees while Doctor still reports clean deposit hygiene. This story makes update converge the deposit file-set to the content package (preserving generated metadata such as VERSION) and makes Doctor fail when package-absent files remain.",
+      "ImplementationPlan": "1. Extend `packages/core/src/init-deposit/hygiene.ts` (and the refresh call site in `packages/core/src/init-deposit/refresh.ts`) so file-swap prunes deposit paths absent from `@deftai/directive-content`, with an allowlist for generated deposit metadata such as `VERSION`. 2. Add a Doctor deposit file-set check (wired where the existing packages/ hygiene check lives) that fails when package-absent files remain. 3. Cover the prune + Doctor paths with focused tests in `packages/core/src/init-deposit/hygiene.test.ts` and `packages/cli/src/doctor.test.ts` that seed bridge-era leftovers and assert removal plus a failing Doctor finding.",
+      "UserStory": "As a Directive consumer upgrading from the frozen bridge, I want update and Doctor to remove or flag package-absent deposit files, so that my `.deft/core/` matches the published content package.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2804",
+      "Overview": "## Summary\n\nMigrating a legacy consumer with the frozen `v0.58.0` Go bridge and then running `directive update` at `0.84.0` leaves hundreds of stale bridge-era files under `.deft/core/`, even though update reports a successful file-swap and Doctor reports clean deposit hygiene.\n\n## Reproduction\n\n1. Start with a legacy `deft/` consumer.\n2. Run the verified frozen v0.58.0 bridge into `.deft/core/`.\n3. Install `@deftai/directive@0.84.0` and run `directive update`.\n4. Hash-compare `.deft/core/` with the installed `@deftai/directive-content@0.84.0` package.\n\nObserved: all 327 package files match byte-for-byte, but the deposit has 230 package-absent files, including old `cmd/deft-install/**`, legacy `vbrief/**`, historical docs, Go/Python metadata, and obsolete root files. The generated `VERSION` manifest is the only expected deposit-local file in this class.\n\n## Expected\n\nThe file-swap removes files not present in the current content package, preserving only explicit generated deposit metadata such as `VERSION`.\n\n## Actual\n\nStale v0.58.0 files survive and can be committed under a v0.84.0 manifest. `directive doctor --full` reports deposit hygiene clean because its current check catches only selected paths such as stray `packages/`.\n\nA deterministic package-vs-deposit file-set check in update/Doctor would prevent this.\n",
+      "Labels": "bug, adoption-blocker, doctor, Upgrade Blocker, vendored-deposit, area:installer",
+      "Traces": "#2804"
+    },
+    "items": [
+      {
+        "id": "2804-a1",
+        "title": "Given a deposit with package-absent bridge leftovers, when update file-swaps, then those paths are removed while VERSION remains.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a `.deft/core/` deposit that contains package-absent bridge leftovers such as `cmd/deft-install/`, when `directive update` runs a file-swap, then those package-absent paths are deleted and the generated `VERSION` file remains.",
+          "Traces": "#2804"
+        }
+      },
+      {
+        "id": "2804-a2",
+        "title": "Given package-absent files remain in the deposit, when Doctor runs full hygiene, then it fails with a deposit file-set finding.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a `.deft/core/` deposit that still contains package-absent files after an incomplete prune, when `directive doctor --full` runs, then deposit hygiene fails with a clear package-vs-deposit file-set finding instead of reporting clean.",
+          "Traces": "#2804"
+        }
+      },
+      {
+        "id": "2804-a3",
+        "title": "Given a deposit that already matches the content package, when update and Doctor run, then they report a clean no-op prune.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a `.deft/core/` deposit whose file-set already matches `@deftai/directive-content` plus allowlisted generated metadata, when update and Doctor run, then no extra files are deleted and Doctor reports clean deposit hygiene.",
+          "Traces": "#2804"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "doctor",
+      "Upgrade Blocker",
+      "vendored-deposit",
+      "area:installer"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/cli/src/doctor.ts",
+          "packages/cli/src/doctor.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/hygiene.test.ts packages/cli/src/doctor.test.ts"
+        ],
+        "expected_outputs": [
+          "hygiene and doctor deposit file-set tests pass",
+          "package-absent prune covered with VERSION allowlist"
+        ],
+        "depends_on": [],
+        "conflict_group": "deposit-prune",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2804",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2804: bug: npm update leaves stale frozen-bridge files in .deft/core",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-07-24T17:32:08Z"
+  }
+}
