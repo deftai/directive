@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -695,4 +695,38 @@ describe("runProductSignalStatus sink fields", () => {
     const result = runProductSignalStatus(root);
     expect(result.text).toContain("sinksMatch=true");
   });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("product-signal last-submit symlink containment (#2807)", () => {
+  itSymlink(
+    "does not append when last-submit path is a symlink to an external victim file",
+    async () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-ps-submit-symlink-"));
+      roots.push(root);
+      setupEnabledConsented(root);
+      const escapeDir = mkdtempSync(join(tmpdir(), "deft-ps-submit-victim-"));
+      const victim = join(escapeDir, "product-signal-last-submit.json");
+      writeFileSync(victim, "victim\n", "utf8");
+      mkdirSync(join(root, ".deft-cache"), { recursive: true });
+      symlinkSync(victim, join(root, PRODUCT_SIGNAL_LAST_SUBMIT_REL));
+      vi.spyOn(GitHubPrivateSinkAdapter.prototype, "submit").mockResolvedValue({
+        outcome: "submitted",
+        message: "pulse submitted",
+        issueUrl: "https://github.com/deftai/product-signal/issues/9",
+        issueNumber: 9,
+      });
+      const result = await submitProductSignal({
+        projectRoot: root,
+        surface: "pulse",
+        skipGates: true,
+      });
+      expect(result.outcome).toBe("error-config");
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toMatch(/projection write refused|symlink/);
+      expect(readFileSync(victim, "utf8")).toBe("victim\n");
+      rmSync(escapeDir, { recursive: true, force: true });
+    },
+  );
 });

@@ -1,8 +1,17 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { HealthReport } from "../eval/health.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   classifyRuleRelocationPaths,
   detectHealthRegression,
@@ -198,5 +207,39 @@ describe("evaluate", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("regression");
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("eval-health baseline symlink containment (#2807)", () => {
+  itSymlink("writeHealthBaseline refuses a symlink at the baseline leaf path", () => {
+    const root = seedRepo();
+    const escapeDir = mkdtempSync(join(tmpdir(), "deft-eval-health-victim-"));
+    const victim = join(escapeDir, "eval-health-baseline.json");
+    writeFileSync(victim, "victim\n", "utf8");
+    const baselinePath = join(root, "xbrief", ".eval", "results", "eval-health-baseline.json");
+    symlinkSync(victim, baselinePath);
+    expect(() => writeHealthBaseline(root, baselineReport)).toThrow(ProjectionContainmentError);
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(escapeDir, { recursive: true, force: true });
+  });
+
+  itSymlink("seed-baseline returns exit 2 when baseline path is a symlink", () => {
+    const root = seedRepo();
+    const escapeDir = mkdtempSync(join(tmpdir(), "deft-eval-health-seed-victim-"));
+    const victim = join(escapeDir, "eval-health-baseline.json");
+    writeFileSync(victim, "victim\n", "utf8");
+    const baselinePath = join(root, "xbrief", ".eval", "results", "eval-health-baseline.json");
+    symlinkSync(victim, baselinePath);
+    const result = evaluate({
+      projectRoot: root,
+      seedBaseline: true,
+      healthEvaluator: () => baselineReport,
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toMatch(/projection write refused|symlink/);
+    expect(readFileSync(victim, "utf8")).toBe("victim\n");
+    rmSync(escapeDir, { recursive: true, force: true });
   });
 });

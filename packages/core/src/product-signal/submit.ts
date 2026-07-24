@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   enableProductSignal,
   formatProductSignalStatusLine,
@@ -60,6 +61,7 @@ function recordLastSubmit(
   url: string | null,
 ): void {
   const path = resolve(projectRoot, PRODUCT_SIGNAL_LAST_SUBMIT_REL);
+  assertWriteTargetSafe(projectRoot, path);
   try {
     mkdirSync(join(path, ".."), { recursive: true });
     appendFileSync(
@@ -189,7 +191,20 @@ export async function submitProductSignal(
   const adapter = new GitHubPrivateSinkAdapter({ sinkRepo: policy.sinkRepo });
   const result = await adapter.submit(payload, { gapText: options.gapText });
   if (result.outcome === "submitted") {
-    recordLastSubmit(root, result.outcome, result.issueUrl ?? null);
+    try {
+      recordLastSubmit(root, result.outcome, result.issueUrl ?? null);
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        return {
+          outcome: "error-config",
+          exitCode: 2,
+          message: `${err.message}\n`,
+          issueUrl: result.issueUrl,
+          payload,
+        };
+      }
+      throw err;
+    }
   }
   const urlLine = result.issueUrl ? ` url=${result.issueUrl}` : "";
   return {
