@@ -6,7 +6,7 @@
   "plan": {
     "id": "2828-update-help-no-mutation",
     "title": "bug(cli): deft update --help performs the update instead of printing help",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`deft update --help` / `directive update --help` currently runs the full deposit refresh (payload swap, AGENTS.md rewrite, git index staging) because parseUpdateArgv / runUpdate never intercepts --help/-h before mutation. Fix by printing usage and exiting 0 with zero filesystem or git side effects; audit sibling top-level mutators (init/migrate) for the same pattern.",
       "ImplementationPlan": "1. Intercept --help/-h in packages/cli/src/init-cli/update.ts (and/or parseUpdateArgv / parseInitArgv) before runRefreshDepositCli. 2. Print update usage and return 0. 3. Add a focused test that update --help does not call refresh / does not write deposit files. 4. Quick audit of init/migrate --help for the same fall-through; fix if same bug. 5. CHANGELOG [Unreleased].",
@@ -67,7 +67,9 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-07-24T22:13:14Z",
+      "capacityBucket": "technical-debt"
     },
     "references": [
       {
@@ -76,6 +78,6 @@
         "title": "Issue #2828"
       }
     ],
-    "updated": "2026-07-24T21:59:10Z"
+    "updated": "2026-07-24T22:13:14Z"
   }
 }
