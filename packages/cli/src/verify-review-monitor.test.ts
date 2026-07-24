@@ -1,12 +1,9 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
 import * as reviewMonitor from "@deftai/directive-core/review-monitor";
-import {
-  EXIT_NOT_READY,
-  MONITORING_TIER_1,
-} from "@deftai/directive-core/review-monitor";
+import { EXIT_NOT_READY, MONITORING_TIER_1 } from "@deftai/directive-core/review-monitor";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseVerifyReviewMonitorArgs, run } from "./verify-review-monitor.js";
 
 afterEach(() => {
