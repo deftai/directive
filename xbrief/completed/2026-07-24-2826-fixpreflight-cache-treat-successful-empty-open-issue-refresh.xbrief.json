@@ -1,0 +1,81 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for GitHub issue #2826 — treat successful empty open-issue refresh as cache-fresh."
+  },
+  "plan": {
+    "id": "2826-empty-open-cache-fresh",
+    "title": "fix(preflight-cache): treat successful empty open-issue refresh as fresh",
+    "status": "completed",
+    "narratives": {
+      "Description": "After a successful open-only cache refresh that writes zero issues (empty inventory), verify:cache-fresh / preflight-cache still treat the cache as stale because minFetchedAt is null and age becomes Infinity. That blocks write hooks incorrectly. Fix evaluate.ts so a successfully refreshed empty open inventory is fresh while preserving fail-closed behavior for failed fetches, nonempty stale entries, drift, and --for-issue.",
+      "ImplementationPlan": "1. In packages/core/src/preflight-cache/evaluate.ts, distinguish successful empty open-only refresh (inventory proven empty) from never-fetched/missing freshness metadata — likely via a durable refresh stamp or candidates-log/empty-populate signal written when issues_written=0 and failed=0. 2. Ensure age/staleness path does not use Infinityh as a hard block for that success case. 3. Add focused tests in evaluate.test.ts covering empty successful refresh => exit 0, and regression that failed/missing fetch still fails closed. 4. CHANGELOG [Unreleased].",
+      "UserStory": "As a consumer with zero open issues, I want a successful empty open-issue refresh to count as fresh, so that write hooks are not blocked by Infinityh stale cache.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2826",
+      "Overview": "Observed on BestiMax with @deftai/directive v0.84.0: forced canonical open-only fetch returns issues_written=0 failed=0, then verify:cache-fresh shows minFetchedAt=null / Infinityh and blocks. Locus: packages/core/src/preflight-cache/evaluate.ts around minFetchedAt / ageMs Infinity.",
+      "Labels": "bug, adoption-blocker, agent-experience, area:cli",
+      "Traces": "#2826"
+    },
+    "items": [
+      {
+        "id": "2826-a1",
+        "title": "Given a successful empty open-only refresh, when verify:cache-fresh runs, then it exits 0 as fresh.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a project whose open-issue fetch completed successfully with zero issues written and zero failures, when `task verify:cache-fresh` / preflight-cache evaluate runs without --for-issue, then it exits 0 and does not report Infinityh stale age as a blocking failure.",
+          "Traces": "#2826"
+        }
+      },
+      {
+        "id": "2826-a2",
+        "title": "Given failed fetch or truly missing freshness metadata, when evaluate runs, then it still fails closed.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a failed open-only fetch, or a cache with no successful refresh stamp and no open entries, when evaluate runs, then it continues to fail closed (non-zero) and does not treat those cases as the successful-empty success path.",
+          "Traces": "#2826"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "packages/core/src/preflight-cache/evaluate.test.ts",
+          "packages/core/src/cache/empty-populate.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/preflight-cache/evaluate.test.ts"
+        ],
+        "expected_outputs": [
+          "successful empty open refresh treated as fresh",
+          "failed/missing fetch still fail-closed"
+        ],
+        "depends_on": [],
+        "conflict_group": "preflight-cache-fresh",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-24T22:39:59Z",
+      "capacityBucket": "technical-debt"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2826",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2826"
+      }
+    ],
+    "updated": "2026-07-24T22:39:59Z"
+  }
+}

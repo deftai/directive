@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,6 +8,7 @@ import {
   cacheRefreshClosed,
   detectRateLimit,
   listOpenIssueNumbers,
+  readOpenInventoryStamp,
   restIssueListPaginated,
   runFetchAll,
   runStateRefresh,
@@ -17,6 +18,7 @@ import {
   setProgressWriter,
   setSingleIssueFetcher,
   setSleepFn,
+  writeOpenInventoryStamp,
 } from "./fetch.js";
 
 describe("fetch branches", () => {
@@ -440,6 +442,9 @@ describe("fetch branches", () => {
         cacheRoot: root,
       });
       expect(report.issuesWritten).toBe(0);
+      expect(
+        existsSync(join(root, "github-issue", "deftai", "directive", "open-inventory.json")),
+      ).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
       setPaginatedLister(restIssueListPaginated);
@@ -546,6 +551,72 @@ describe("fetch branches", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
       setPaginatedLister(restIssueListPaginated);
+    }
+  });
+});
+
+describe("open inventory stamp (#2826)", () => {
+  it("readOpenInventoryStamp returns null for absent or invalid stamps", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-open-inv-read-"));
+    try {
+      expect(readOpenInventoryStamp(root, "github-issue", "deftai/directive")).toBeNull();
+
+      const stampDir = join(root, "github-issue", "deftai", "directive");
+      mkdirSync(stampDir, { recursive: true });
+      writeFileSync(join(stampDir, "open-inventory.json"), "not-json", "utf8");
+      expect(readOpenInventoryStamp(root, "github-issue", "deftai/directive")).toBeNull();
+
+      writeFileSync(
+        join(stampDir, "open-inventory.json"),
+        JSON.stringify({ fetched_at: "2026-01-01T00:00:00Z", open_count: 3 }),
+        "utf8",
+      );
+      expect(readOpenInventoryStamp(root, "github-issue", "deftai/directive")).toBeNull();
+
+      writeFileSync(
+        join(stampDir, "open-inventory.json"),
+        JSON.stringify({ open_count: 0 }),
+        "utf8",
+      );
+      expect(readOpenInventoryStamp(root, "github-issue", "deftai/directive")).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("writeOpenInventoryStamp no-ops when openCount is not zero", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-open-inv-write-skip-"));
+    try {
+      writeOpenInventoryStamp({
+        cacheRoot: root,
+        source: "github-issue",
+        repo: "deftai/directive",
+        openCount: 2,
+      });
+      expect(
+        existsSync(join(root, "github-issue", "deftai", "directive", "open-inventory.json")),
+      ).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("writeOpenInventoryStamp and readOpenInventoryStamp round-trip", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-open-inv-roundtrip-"));
+    try {
+      writeOpenInventoryStamp({
+        cacheRoot: root,
+        source: "github-issue",
+        repo: "deftai/directive",
+        openCount: 0,
+        fetchedAt: new Date("2026-07-24T12:00:00Z"),
+      });
+      expect(readOpenInventoryStamp(root, "github-issue", "deftai/directive")).toEqual({
+        fetched_at: "2026-07-24T12:00:00Z",
+        open_count: 0,
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 });

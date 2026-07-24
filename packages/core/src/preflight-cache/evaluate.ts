@@ -15,7 +15,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { isTriageCacheEmpty, maybeAutoPopulateEmptyCache } from "../cache/empty-populate.js";
-import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
+import {
+  type CacheDriftProbeResult,
+  probeCacheDrift,
+  readOpenInventoryStamp,
+} from "../cache/fetch.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
 
@@ -494,6 +498,18 @@ function evaluateWithContext(
     if (ts !== null && (minFetchedAt === null || ts < minFetchedAt)) {
       minFetchedAt = ts;
       minMetaPath = p;
+    }
+  }
+
+  // #2826: empty open inventory with a successful fetch stamp is fresh — not
+  // the never-fetched case that yields minFetchedAt=null / Infinity age.
+  if (minFetchedAt === null && rawCandidatePaths.length === 0 && resolvedRepo !== null) {
+    const stamp = readOpenInventoryStamp(cacheRoot, source, resolvedRepo);
+    if (stamp !== null) {
+      const parsed = new Date(stamp.fetched_at);
+      if (!Number.isNaN(parsed.getTime())) {
+        minFetchedAt = parsed;
+      }
     }
   }
 

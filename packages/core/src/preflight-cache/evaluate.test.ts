@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as emptyPopulate from "../cache/empty-populate.js";
+import { writeOpenInventoryStamp } from "../cache/fetch.js";
 import {
   CACHE_DIR_NAME,
   CANDIDATES_RELPATH,
@@ -48,6 +49,16 @@ function writeCacheEntry(
     JSON.stringify({ number: issueNum, ...rawData }),
     "utf8",
   );
+}
+
+function writeOpenInventoryStampAt(root: string, repo: string, fetchedAt: string): void {
+  writeOpenInventoryStamp({
+    cacheRoot: join(root, CACHE_DIR_NAME),
+    source: DEFAULT_SOURCE,
+    repo,
+    openCount: 0,
+    fetchedAt: new Date(fetchedAt),
+  });
 }
 
 function nowMinus(hours: number): Date {
@@ -618,6 +629,111 @@ describe("normaliseRepoUrl (CodeQL #51 host anchoring)", () => {
   it("returns null on empty or malformed input", () => {
     expect(normaliseRepoUrl("")).toBeNull();
     expect(normaliseRepoUrl("https://github.com/only-owner")).toBeNull();
+  });
+});
+
+describe("evaluate -- empty open inventory stamp (#2826)", () => {
+  it("returns code 0 when cache is empty but open-inventory stamp is fresh", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, []);
+    mkdirSync(join(root, CACHE_DIR_NAME, DEFAULT_SOURCE, "owner", "repo"), {
+      recursive: true,
+    });
+    writeOpenInventoryStampAt(root, "owner/repo", nowMinus(1).toISOString());
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: false,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("✓");
+    expect(result.message).not.toContain("Infinity");
+  });
+
+  it("returns code 1 when cache is empty with no open-inventory stamp (never fetched)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, []);
+    mkdirSync(join(root, CACHE_DIR_NAME, DEFAULT_SOURCE, "owner", "repo"), {
+      recursive: true,
+    });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: false,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("Infinity");
+  });
+
+  it("returns code 1 when open-inventory stamp is stale", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, []);
+    writeOpenInventoryStampAt(root, "owner/repo", nowMinus(48).toISOString());
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: false,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("48.0h old");
+  });
+
+  it("returns code 1 when open-inventory stamp has invalid fetched_at", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, []);
+    const stampDir = join(root, CACHE_DIR_NAME, DEFAULT_SOURCE, "owner", "repo");
+    mkdirSync(stampDir, { recursive: true });
+    writeFileSync(
+      join(stampDir, "open-inventory.json"),
+      JSON.stringify({ fetched_at: "not-a-date", open_count: 0 }),
+      "utf8",
+    );
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: false,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("Infinity");
+  });
+
+  it("auto-populates empty cache with zero open issues then treats stamp as fresh", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, []);
+
+    const populateSpy = vi
+      .spyOn(emptyPopulate, "maybeAutoPopulateEmptyCache")
+      .mockImplementation((projectRoot) => {
+        writeOpenInventoryStampAt(projectRoot, "owner/repo", nowMinus(1).toISOString());
+        return {
+          skipped: false,
+          skipReason: null,
+          repo: "owner/repo",
+          populated: true,
+          succeeded: 0,
+          message: "auto-populated empty triage cache from GitHub (owner/repo)",
+        };
+      });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: false,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+
+    expect(populateSpy).toHaveBeenCalled();
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("✓");
+    populateSpy.mockRestore();
   });
 });
 

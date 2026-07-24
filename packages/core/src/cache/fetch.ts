@@ -10,10 +10,67 @@ import {
 } from "../scm/gh-rest.js";
 import { DEFAULT_BATCH_SIZE, DEFAULT_DELAY_MS } from "./constants.js";
 import { CacheError, CacheFetchError } from "./errors.js";
+import { atomicWriteText } from "./io.js";
 import { pythonJsonLine } from "./json.js";
 import { cachePut, isFresh, validateRepo } from "./operations.js";
 import { entryDir } from "./paths.js";
+import { type Clock, systemClock, utcIso } from "./time.js";
 import type { FetchAllReport, StateRefreshReport } from "./types.js";
+
+/** Repo-level stamp proving a successful open-only enumeration (#2826). */
+export const OPEN_INVENTORY_STAMP = "open-inventory.json";
+
+export interface OpenInventoryStamp {
+  readonly fetched_at: string;
+  readonly open_count: number;
+}
+
+export function openInventoryStampPath(cacheRoot: string, source: string, repo: string): string {
+  const [owner, name] = repo.split("/", 2) as [string, string];
+  return join(cacheRoot, source, owner, name, OPEN_INVENTORY_STAMP);
+}
+
+export function readOpenInventoryStamp(
+  cacheRoot: string,
+  source: string,
+  repo: string,
+): OpenInventoryStamp | null {
+  const path = openInventoryStampPath(cacheRoot, source, repo);
+  if (!existsSync(path)) return null;
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const fetchedAt = (raw as Record<string, unknown>).fetched_at;
+    const openCount = (raw as Record<string, unknown>).open_count;
+    if (typeof fetchedAt !== "string") return null;
+    if (typeof openCount !== "number" || openCount !== 0) return null;
+    return { fetched_at: fetchedAt, open_count: openCount };
+  } catch {
+    return null;
+  }
+}
+
+export function writeOpenInventoryStamp(options: {
+  cacheRoot: string;
+  source: string;
+  repo: string;
+  openCount: number;
+  fetchedAt?: Date;
+  clock?: Clock;
+}): void {
+  if (options.openCount !== 0) return;
+  validateRepo(options.repo);
+  const clock = options.clock ?? systemClock;
+  const fetchedAt = options.fetchedAt ?? clock.now();
+  const payload: OpenInventoryStamp = {
+    fetched_at: utcIso(clock, fetchedAt),
+    open_count: 0,
+  };
+  atomicWriteText(
+    openInventoryStampPath(options.cacheRoot, options.source, options.repo),
+    `${JSON.stringify(payload)}\n`,
+  );
+}
 
 export const REST_MAX_PER_PAGE = 100;
 export const REST_PAGINATION_MAX_PAGES = 100;
@@ -405,6 +462,18 @@ export function runFetchAll(options: {
     maybeSleep(delayMs);
     if (processed % batchSize === 0) maybeSleep(delayMs);
   }
+
+  // #2826: zero open issues is a successful inventory answer — persist freshness
+  // metadata so preflight-cache does not treat minFetchedAt=null as Infinity stale.
+  if (total === 0 && report.issuesFailed === 0) {
+    writeOpenInventoryStamp({
+      cacheRoot,
+      source,
+      repo: options.repo,
+      openCount: 0,
+    });
+  }
+
   return report;
 }
 
