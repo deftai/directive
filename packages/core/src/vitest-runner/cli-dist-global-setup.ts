@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const LOCK_STALE_MS = 120_000;
@@ -20,12 +20,8 @@ function repoRoot(): string {
   return resolve(import.meta.dirname, "../../../..");
 }
 
-function lockDir(root: string): string {
-  return resolve(root, ".deft-scratch/vitest-cli-dist-build.lock");
-}
-
 function lockMetaPath(root: string): string {
-  return resolve(lockDir(root), "meta.json");
+  return resolve(root, ".deft-scratch/vitest-cli-dist-build.lock.json");
 }
 
 function readLockMeta(root: string): LockMeta | null {
@@ -56,34 +52,39 @@ export function isStaleVitestCliDistLock(root: string, now = Date.now()): boolea
 
 export function acquireVitestCliDistBuildLock(root: string, timeoutMs = 60_000): void {
   mkdirSync(resolve(root, ".deft-scratch"), { recursive: true });
-  const dir = lockDir(root);
+  const metaPath = lockMetaPath(root);
+  const payload = JSON.stringify({ pid: process.pid, startedAt: Date.now() } satisfies LockMeta);
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (existsSync(dir) && !isStaleVitestCliDistLock(root)) {
-      sleepMs(50);
-      continue;
-    }
-    if (existsSync(dir)) {
-      rmSync(dir, { recursive: true, force: true });
+    if (existsSync(metaPath)) {
+      if (!isStaleVitestCliDistLock(root)) {
+        sleepMs(50);
+        continue;
+      }
+      rmSync(metaPath, { force: true });
     }
     try {
-      mkdirSync(dir);
-      writeFileSync(
-        lockMetaPath(root),
-        JSON.stringify({ pid: process.pid, startedAt: Date.now() } satisfies LockMeta),
-      );
+      const fd = openSync(metaPath, "wx");
+      try {
+        writeFileSync(fd, payload);
+      } finally {
+        closeSync(fd);
+      }
       return;
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
-      if (code !== "EEXIST") throw err;
-      sleepMs(50);
+      if (code === "EEXIST") {
+        sleepMs(50);
+        continue;
+      }
+      throw err;
     }
   }
   throw new Error("timed out acquiring vitest CLI dist build lock");
 }
 
 export function releaseVitestCliDistBuildLock(root: string): void {
-  rmSync(lockDir(root), { recursive: true, force: true });
+  rmSync(lockMetaPath(root), { force: true });
 }
 
 /**

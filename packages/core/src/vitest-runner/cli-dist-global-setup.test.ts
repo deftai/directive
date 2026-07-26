@@ -10,6 +10,7 @@ import setup, {
 } from "./cli-dist-global-setup.js";
 
 const LOCK_STALE_MS = 120_000;
+const lockFileName = "vitest-cli-dist-build.lock.json";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -26,24 +27,23 @@ function fakeRepoRoot(): string {
   return root;
 }
 
+function lockMetaPath(root: string): string {
+  return join(root, ".deft-scratch", lockFileName);
+}
+
 function writeLockMeta(root: string, meta: { pid: number; startedAt: number }): void {
-  const lockPath = join(root, ".deft-scratch/vitest-cli-dist-build.lock");
-  mkdirSync(lockPath, { recursive: true });
-  writeFileSync(join(lockPath, "meta.json"), JSON.stringify(meta));
+  writeFileSync(lockMetaPath(root), JSON.stringify(meta));
 }
 
 describe("cli-dist-global-setup lock", () => {
   it("treats missing lock metadata as stale", () => {
     const root = fakeRepoRoot();
-    mkdirSync(join(root, ".deft-scratch/vitest-cli-dist-build.lock"), { recursive: true });
     expect(isStaleVitestCliDistLock(root)).toBe(true);
   });
 
   it("treats invalid lock metadata as stale", () => {
     const root = fakeRepoRoot();
-    const metaPath = join(root, ".deft-scratch/vitest-cli-dist-build.lock/meta.json");
-    mkdirSync(join(root, ".deft-scratch/vitest-cli-dist-build.lock"), { recursive: true });
-    writeFileSync(metaPath, "{not-json");
+    writeFileSync(lockMetaPath(root), "{not-json");
     expect(isStaleVitestCliDistLock(root)).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe("cli-dist-global-setup lock", () => {
   it("acquires, releases, and re-acquires the repo-scoped lock", () => {
     const root = fakeRepoRoot();
     acquireVitestCliDistBuildLock(root);
-    expect(existsSync(join(root, ".deft-scratch/vitest-cli-dist-build.lock/meta.json"))).toBe(true);
+    expect(existsSync(lockMetaPath(root))).toBe(true);
     releaseVitestCliDistBuildLock(root);
     expect(isStaleVitestCliDistLock(root)).toBe(true);
     acquireVitestCliDistBuildLock(root);
@@ -79,7 +79,7 @@ describe("cli-dist-global-setup lock", () => {
     const root = fakeRepoRoot();
     writeLockMeta(root, { pid: 999_999, startedAt: Date.now() - LOCK_STALE_MS - 1 });
     acquireVitestCliDistBuildLock(root, 1_000);
-    expect(existsSync(join(root, ".deft-scratch/vitest-cli-dist-build.lock/meta.json"))).toBe(true);
+    expect(existsSync(lockMetaPath(root))).toBe(true);
     releaseVitestCliDistBuildLock(root);
   });
 
