@@ -3,13 +3,16 @@ import { existsSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
 const CLI_SRC_DIR = dirname(fileURLToPath(import.meta.url));
 const HOOK_BIN_PATH = join(CLI_SRC_DIR, "../dist/hook-bin.js");
 const VERIFY_ENCODING_PATH = join(CLI_SRC_DIR, "../dist/verify-encoding.js");
+
+const DIST_BUILD_HINT =
+  "packages/cli/dist is missing — run `task check` or `pnpm --filter @deftai/directive-cli run build` before this suite";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -26,9 +29,10 @@ function gitRepo(content: string): string {
 }
 
 describe.sequential("CLI bin symlink entrypoints (#2846)", () => {
-  itSymlink("dist bins exist after vitest globalSetup", () => {
-    expect(existsSync(HOOK_BIN_PATH)).toBe(true);
-    expect(existsSync(VERIFY_ENCODING_PATH)).toBe(true);
+  beforeAll(() => {
+    if (!existsSync(HOOK_BIN_PATH) || !existsSync(VERIFY_ENCODING_PATH)) {
+      throw new Error(DIST_BUILD_HINT);
+    }
   });
 
   itSymlink("deft-hook emits Cursor allow JSON through an npm-style bin symlink", () => {

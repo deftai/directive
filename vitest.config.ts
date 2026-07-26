@@ -52,14 +52,6 @@ const win32CoverageTmpSetup = resolve(
   import.meta.dirname,
   "packages/core/src/vitest-runner/win32-coverage-tmp-setup.ts",
 );
-const cliDistGlobalSetup = resolve(
-  import.meta.dirname,
-  "packages/core/src/vitest-runner/cli-dist-global-setup.ts",
-);
-const globalSetupFiles = [
-  cliDistGlobalSetup,
-  ...(isWin32 && coverageEnabled ? [win32CoverageTmpSetup] : []),
-];
 
 // Alias the workspace packages to their TypeScript source so the suite runs
 // against src/ without a prior `tsc -b` build (keeps `vitest --changed` fast
@@ -170,7 +162,6 @@ export default defineConfig({
   test: {
     env: testEnvironment,
     include: ["packages/*/src/**/*.test.ts"],
-    globalSetup: globalSetupFiles,
     // Windows git fixture suites (session:start) exceed the 5s default under
     // full-suite parallelism; Linux CI stays on the default. Refs #2467.
     testTimeout: isWin32 ? 20_000 : 5_000,
@@ -187,6 +178,7 @@ export default defineConfig({
           dangerouslyIgnoreUnhandledErrors: true,
           ...(coverageEnabled
             ? {
+                globalSetup: [win32CoverageTmpSetup],
                 fileParallelism: false,
               }
             : {}),
