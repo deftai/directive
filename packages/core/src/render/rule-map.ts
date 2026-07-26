@@ -13,6 +13,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { TEMPLATE } from "./rule-map-template.js";
 
 const MARKER_RE = /^\s*[-*]\s*([!~⊗≉?])\s/;
@@ -745,6 +746,10 @@ export function main(argv: readonly string[]): number {
     return 0;
   }
 
+  // Preflight both destinations before either write so a later HTML refusal
+  // cannot leave RULE-MAP.md updated while docs/rule-map/index.html stays stale.
+  assertWriteTargetSafe(repo, mdPath);
+  assertWriteTargetSafe(repo, htmlPath);
   mkdirSync(dirname(mdPath), { recursive: true });
   writeFileSync(mdPath, md, "utf8");
   mkdirSync(htmlDir, { recursive: true });

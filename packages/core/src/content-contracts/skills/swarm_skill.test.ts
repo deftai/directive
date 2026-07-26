@@ -683,4 +683,12 @@ describe("test_swarm_skill", () => {
     }
     expect(found).toBe(true);
   });
+  it("swarm_phase5_blocked_leaf_continuation_2843", () => {
+    const text = _read_swarm();
+    expect(text).toContain("Blocked-leaf continuation (#1880 / #2843)");
+    expect(text).toContain("Completion-notification decision tree (#2843)");
+    expect(text).not.toContain(
+      "monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner",
+    );
+  });
 });

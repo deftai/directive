@@ -1,8 +1,19 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { main as ruleMapMain } from "./rule-map.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 const temps: string[] = [];
 afterEach(() => {
@@ -257,5 +268,49 @@ describe("rule-map generator", () => {
     writeFileSync(join(coding, "coding.md"), "# Coding\n\nRules.\n\n- ! MUST test\n", "utf8");
     expect(ruleMapMain(["--project-root", root])).toBe(0);
     expect(existsSync(mdPathOf(root))).toBe(true);
+  });
+});
+
+describe("rule-map projection containment (#2839)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshEscape(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    created.push(dir);
+    return dir;
+  }
+
+  itSymlink("refuses when docs/RULE-MAP.md is a symlink outside the project", () => {
+    const root = makeRepo();
+    created.push(root);
+    const escapeDir = freshEscape("rule-map-md-escape-");
+    const escapeFile = join(escapeDir, "stolen-rule-map.md");
+    writeFileSync(escapeFile, "victim\n", "utf8");
+    mkdirSync(join(root, "docs"), { recursive: true });
+    symlinkSync(escapeFile, mdPathOf(root));
+
+    expect(() => ruleMapMain(["--project-root", root])).toThrow(ProjectionContainmentError);
+    expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
+  });
+
+  itSymlink("refuses when docs/rule-map/index.html is a symlink outside the project", () => {
+    const root = makeRepo();
+    created.push(root);
+    const escapeDir = freshEscape("rule-map-html-escape-");
+    const escapeFile = join(escapeDir, "stolen-index.html");
+    writeFileSync(escapeFile, "victim\n", "utf8");
+    mkdirSync(join(root, "docs", "rule-map"), { recursive: true });
+    symlinkSync(escapeFile, htmlPathOf(root));
+
+    expect(() => ruleMapMain(["--project-root", root])).toThrow(ProjectionContainmentError);
+    expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
+    // Preflight both sinks first — Markdown must not be left updated when HTML refuses.
+    expect(existsSync(mdPathOf(root))).toBe(false);
   });
 });

@@ -567,6 +567,24 @@
       "body": "**Source:** Issue #1102. On 2026-05-12 a refinement session (PR #1098) filed #1099 proposing to add `.github/dependabot.yml` without checking master -- the file already existed (landed via #1070 / v0.29.1). #1099 closed as a stale duplicate the same day; #1100 was re-filed as the additive-delta scope.\n\n**Key insight:** A one-second `git ls-tree origin/master -- <path>` (or `gh api repos/{owner}/{repo}/contents/{path}` without a clone) existence check before filing an add-a-file issue prevents this whole close-and-refile class. If the path already exists, the issue must be scoped to the DELTA vs the on-master state, not the original 'deposit this file' framing.\n\n**Canonical encoding (strongest-applicable layer):** the `!` MUST rule + `\u2297` anti-pattern live in the canonical issue-filing skill `skills/deft-directive-gh-slice/SKILL.md` (Step 5 + Anti-Patterns), cross-referenced from `skills/deft-directive-refinement/SKILL.md` Phase 1. Deterministic shape-coverage: `packages/core/src/content-contracts/skills/gh_slice_prefiling_master_diff.test.ts`.\n\n**Cross-references:** #1070 (`.github/dependabot.yml` originally landed), #1099 (stale-duplicate filing, closed), #1100 (corrected additive-scope refile), PR #1098 (refinement session that surfaced the pattern)."
     },
     {
+      "id": "monitor-as-implementer-after-false-done-2026-07",
+      "title": "Swarm monitor must not self-implement after false DONE (2026-07)",
+      "date": "2026-07",
+      "issue_refs": [
+        "#2843",
+        "#1880",
+        "#2824"
+      ],
+      "tags": [
+        "agent-experience",
+        "harness",
+        "agent-safety",
+        "swarm"
+      ],
+      "source": "Issue #2843. Recurrence in cohort-2026-07-26-hooks-appsec-coverage after #2839 PR #2842: a drive-to:merge-ready Cursor leaf exited DONE while Greptile P1 still blocked merge-ready, pulling the cohort monitor into inline fix batches and pr:watch.",
+      "body": "**Source:** Issue #2843. Recurrence in cohort-2026-07-26-hooks-appsec-coverage after #2839 PR #2842.\n\n**Failure mode:** A `drive-to: merge-ready` leaf emits `DONE` before `task pr:merge-ready` passes. The host reports terminal success; the swarm monitor reads Phase 5 \"monitor MAY run review-cycle itself\" and starts inline Greptile fixes — violating Gap D (monitor conversation no longer interactive) and Gap C (lifecycle ownership splits mid-cycle).\n\n**Rule:** Preamble §11 reserves `DONE` for merge-ready on `drive-to: merge-ready` envelopes; mid-cycle exits MUST be `BLOCKED` with PR, HEAD SHA, blocker class, worktree path, and `REDISPATCH_OK`. Swarm Phase 5 + review-cycle skill require Tier 1 monitors to background-dispatch ONE continuation leaf instead of self-implementing.\n\n**Canonical encoding:** `templates/agent-prompt-preamble.md` §11; `skills/deft-directive-swarm/SKILL.md` Phase 5 blocked-leaf continuation + completion-notification decision tree; `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring.\n\n**Cross-references:** #1880 (Gap C/D doctrine), #2824 (REDISPATCH_OK / false-alive), #2843."
+    },
+    {
       "id": "win32-ps-safe-multiline-git-gh-bodies-2026-07",
       "title": "Windows PowerShell: safe multi-line git/gh bodies (2026-07)",
       "date": "2026-07",

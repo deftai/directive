@@ -6,12 +6,14 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { copyTree } from "../deposit/copy-tree.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   CANONICAL_GITIGNORE_BASELINE,
   ensureInitGitignoreLines,
@@ -279,4 +281,60 @@ describe("reconstituteDepositFromContent", () => {
     expect(result.reconstituted).toBe(false);
     expect(readFileSync(join(deftDir, "main.md"), "utf8")).toContain("# fresh");
   });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("init-deposit gitignore projection containment (#2839)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  function freshEscape(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    created.push(dir);
+    return dir;
+  }
+
+  itSymlink(
+    "ensureInitGitignoreLines refuses when .gitignore is a symlink outside the project",
+    () => {
+      const root = freshRoot("gitignore-symlink-");
+      const escapeDir = freshEscape("gitignore-escape-");
+      const escapeFile = join(escapeDir, "stolen.gitignore");
+      writeFileSync(escapeFile, "victim\n", "utf8");
+      symlinkSync(escapeFile, join(root, ".gitignore"));
+
+      expect(() => ensureInitGitignoreLines(root, { printf: () => {} })).toThrow(
+        ProjectionContainmentError,
+      );
+      expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
+    },
+  );
+
+  itSymlink(
+    "ensureUntrackCoreGitignoreLines refuses when .gitignore is a symlink outside the project",
+    () => {
+      const root = freshRoot("gitignore-untrack-symlink-");
+      const escapeDir = freshEscape("gitignore-untrack-escape-");
+      const escapeFile = join(escapeDir, "stolen.gitignore");
+      writeFileSync(escapeFile, "victim\n", "utf8");
+      symlinkSync(escapeFile, join(root, ".gitignore"));
+
+      expect(() => ensureUntrackCoreGitignoreLines(root, { printf: () => {} })).toThrow(
+        ProjectionContainmentError,
+      );
+      expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
+    },
+  );
 });

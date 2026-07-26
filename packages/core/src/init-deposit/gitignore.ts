@@ -12,6 +12,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   FORBIDDEN_BLANKET_EVAL_LINES,
   stripGitignoreInlineComment,
@@ -245,8 +246,12 @@ function reconcileGitignoreFile(
   }
 
   try {
+    assertWriteTargetSafe(projectDir, path);
     writeFileSync(path, body, { encoding: "utf8", mode: 0o644 });
   } catch (cause) {
+    if (cause instanceof ProjectionContainmentError) {
+      throw cause;
+    }
     throw new Error(`could not write .gitignore: ${String(cause)}`);
   }
 
