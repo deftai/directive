@@ -2,11 +2,16 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { engineInfo } from "@deftai/directive-core";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { waitForCliDistBuildIdle } from "./test-support/cli-dist-build-coordination.js";
 
 const VERSION_LINE = `@deftai/directive (engine: @deftai/directive-core@${engineInfo().version})\n`;
 
 describe("dist/bin.js entrypoint", () => {
+  beforeAll(() => {
+    waitForCliDistBuildIdle();
+  });
+
   const binPath = join(dirname(fileURLToPath(import.meta.url)), "../dist/bin.js");
 
   it("prints the engine banner for --version", () => {

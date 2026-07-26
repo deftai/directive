@@ -1,52 +1,16 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { ensureCliDistBuiltWithLock } from "./test-support/cli-dist-build-coordination.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
 const CLI_SRC_DIR = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(CLI_SRC_DIR, "../../..");
 const HOOK_BIN_PATH = join(CLI_SRC_DIR, "../dist/hook-bin.js");
 const VERIFY_ENCODING_PATH = join(CLI_SRC_DIR, "../dist/verify-encoding.js");
-const BUILD_LOCK_DIR = join(REPO_ROOT, ".deft-scratch/cli-dist-test-build.lock");
-
-function sleepMs(ms: number): void {
-  const deadline = Date.now() + ms;
-  while (Date.now() < deadline) {
-    // Busy-wait for short lock spins in test coordination only.
-  }
-}
-
-function ensureCliDistBuiltForSymlinkTests(): void {
-  mkdirSync(join(REPO_ROOT, ".deft-scratch"), { recursive: true });
-  const deadline = Date.now() + 30_000;
-  while (true) {
-    try {
-      mkdirSync(BUILD_LOCK_DIR);
-      break;
-    } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code !== "EEXIST") throw err;
-      if (Date.now() >= deadline) {
-        throw new Error("timed out acquiring packages/cli dist build lock");
-      }
-      sleepMs(25);
-    }
-  }
-
-  try {
-    const tscBin = join(REPO_ROOT, "node_modules/typescript/bin/tsc");
-    execFileSync(process.execPath, [tscBin, "-b", "packages/cli"], {
-      cwd: REPO_ROOT,
-      stdio: "pipe",
-    });
-  } finally {
-    rmSync(BUILD_LOCK_DIR, { recursive: true, force: true });
-  }
-}
 
 const temps: string[] = [];
 afterEach(() => {
@@ -62,13 +26,9 @@ function gitRepo(content: string): string {
   return root;
 }
 
-describe("CLI bin symlink entrypoints (#2846)", () => {
+describe.sequential("CLI bin symlink entrypoints (#2846)", () => {
   beforeAll(() => {
-    // Merge gate / task check build dist before vitest; rebuild only when bins are absent
-    // (e.g. isolated `vitest run` on a clean checkout) to avoid racing other dist readers.
-    if (!existsSync(HOOK_BIN_PATH) || !existsSync(VERIFY_ENCODING_PATH)) {
-      ensureCliDistBuiltForSymlinkTests();
-    }
+    ensureCliDistBuiltWithLock();
     if (!existsSync(HOOK_BIN_PATH) || !existsSync(VERIFY_ENCODING_PATH)) {
       throw new Error("packages/cli dist bins missing after build");
     }

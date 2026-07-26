@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { run } from "./slice.js";
+import { waitForCliDistBuildIdle } from "./test-support/cli-dist-build-coordination.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -25,6 +26,7 @@ describe("slice thin CLI", () => {
   });
 
   it("run delegates to core cli when built", () => {
+    waitForCliDistBuildIdle();
     const coreCli = join(dirname(fileURLToPath(import.meta.url)), "../../core/dist/slice/cli.js");
     const root = makeRoot();
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
