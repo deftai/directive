@@ -329,13 +329,21 @@ export function writeAgentHookDeposit(
     }
   }
 
-  const adapterAbsolute = join(projectRoot, ".cursor/hooks/deft-cursor-hook-adapter.mjs");
-  assertDepositContained(projectRoot, adapterAbsolute);
-  if (existsSync(adapterAbsolute)) {
-    rmSync(adapterAbsolute, { force: true });
-    if (!changedPaths.includes(AGENT_HOOK_PATHS[2])) {
-      changedPaths.push(AGENT_HOOK_PATHS[2]);
+  const legacyAdapterPaths = [
+    ".cursor/hooks/deft-cursor-hook-adapter.mjs",
+    ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
+  ] as const;
+  let removedLegacyAdapter = false;
+  for (const relative of legacyAdapterPaths) {
+    const absolute = join(projectRoot, relative);
+    assertDepositContained(projectRoot, absolute);
+    if (existsSync(absolute)) {
+      rmSync(absolute, { force: true });
+      removedLegacyAdapter = true;
     }
+  }
+  if (removedLegacyAdapter && !changedPaths.includes(AGENT_HOOK_PATHS[2])) {
+    changedPaths.push(AGENT_HOOK_PATHS[2]);
   }
 
   if (changedPaths.length > 0) {

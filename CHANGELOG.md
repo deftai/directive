@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`deft update` removes orphaned Cursor adapter test (#2838).** Hook deposit refresh now deletes leftover `.cursor/hooks/deft-cursor-hook-adapter.test.mjs` alongside the retired adapter script so `node --test .cursor/hooks/` does not fail on dead imports after upgrade.
 - **`deft xbrief:preflight -- <path>` now works as documented.** The CLI accepts the task-style `--` separator (matching `verify:session-ritual`, #2681), and `--help` prints usage without attempting to evaluate a null path. Closes #2837.
 
 ### Removed
