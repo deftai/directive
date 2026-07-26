@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#2836).** Added focused tests for coverage-debt teardown, GitHub review-owner default fetch, org force-on edge paths, and win32 coverage setup, clearing the v0.85.0 `--allow-coverage-debt` citation without a consecutive soft-pass. Closes #2836.
+
 ### Removed
 
 ## [0.85.0] - 2026-07-25

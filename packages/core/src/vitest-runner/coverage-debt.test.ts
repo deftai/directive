@@ -54,6 +54,14 @@ describe("parseCoverageDebtArgv", () => {
       kind: "invalid",
       reason: "--allow-coverage-debt= value must be #N or N",
     });
+    expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt", "abc"])).toEqual({
+      kind: "invalid",
+      reason: "--allow-coverage-debt value must be #N or N",
+    });
+    expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt", "--coverage"])).toEqual({
+      kind: "invalid",
+      reason: "--allow-coverage-debt requires an issue number (#N)",
+    });
   });
 });
 

@@ -5,9 +5,12 @@ import { afterAll, describe, expect, it } from "vitest";
 import { inspectOnePolicy } from "./index.js";
 import {
   FORCE_ON_VALUE_FEEDBACK_BLOCK,
+  isForceOnValueFeedbackBlock,
   ORG_FORCE_ON_MARKER_REL,
+  productSignalInstallForceOnSource,
   readOrgForceOnMarker,
   runOrgForceOnMigration,
+  valueFeedbackInstallForceOnSource,
 } from "./org-force-on-migration.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import { resolveProductSignal } from "./product-signal.js";
@@ -144,6 +147,126 @@ describe("runOrgForceOnMigration", () => {
     const field = inspectOnePolicy("valueFeedback", root);
     expect(field?.source).toBe("install-force-on");
     expect((field?.current as { enabled: boolean }).enabled).toBe(true);
+  });
+
+  it("writes a marker without mutation when policy is already force-on shaped", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: { ...FORCE_ON_VALUE_FEEDBACK_BLOCK },
+        productSignal: { enabled: true, sinkRepo: "deftai/product-signal" },
+      },
+    });
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.skippedReason).toBe("already-enabled");
+    expect(result.ran).toBe(false);
+    expect(readOrgForceOnMarker(root)?.valueFeedback).toBe(false);
+  });
+
+  it("skips when PROJECT-DEFINITION is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-org-force-on-"));
+    temps.push(root);
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.skippedReason).toContain("PROJECT-DEFINITION not found");
+  });
+
+  it("forces only productSignal when valueFeedback is already fully ON", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: { ...FORCE_ON_VALUE_FEEDBACK_BLOCK },
+        productSignal: { enabled: false },
+      },
+    });
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.ran).toBe(true);
+    expect(result.valueFeedbackChanged).toBe(false);
+    expect(result.productSignalChanged).toBe(true);
+  });
+
+  it("preserves a custom productSignal sinkRepo during force-on", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: { ...FORCE_ON_VALUE_FEEDBACK_BLOCK },
+        productSignal: { enabled: false, sinkRepo: "acme/custom-signal" },
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+    const ps = resolveProductSignal(root);
+    expect(ps.sinkRepo).toBe("acme/custom-signal");
+  });
+
+  it("forces valueFeedback when upstreamPrompt is still ON", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: {
+          enabled: true,
+          emitEvents: true,
+          sessionLine: true,
+          upstreamPrompt: true,
+        },
+        productSignal: { enabled: true },
+      },
+    });
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.ran).toBe(true);
+    expect(result.valueFeedbackChanged).toBe(true);
+    expect(resolveValueFeedback(root, trustedAutoEnable).upstreamPrompt).toBe(false);
+  });
+});
+
+describe("org force-on marker helpers", () => {
+  it("returns null for invalid marker JSON", () => {
+    const root = makeTrustedRepo();
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(join(root, ORG_FORCE_ON_MARKER_REL), "{not-json", "utf8");
+    expect(readOrgForceOnMarker(root)).toBeNull();
+  });
+
+  it("returns null for marker records with the wrong version", () => {
+    const root = makeTrustedRepo();
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(
+      join(root, ORG_FORCE_ON_MARKER_REL),
+      `${JSON.stringify({
+        version: 2,
+        appliedAt: "2026-07-25T00:00:00Z",
+        originOrg: "deftai",
+        valueFeedback: true,
+        productSignal: true,
+        directiveVersion: "0.85.0",
+      })}\n`,
+      "utf8",
+    );
+    expect(readOrgForceOnMarker(root)).toBeNull();
+  });
+
+  it("detects install-force-on source only for matching typed blocks", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: { ...FORCE_ON_VALUE_FEEDBACK_BLOCK },
+        productSignal: { enabled: true },
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+    writeFileSync(
+      join(root, ORG_FORCE_ON_MARKER_REL),
+      `${JSON.stringify({
+        version: 1,
+        appliedAt: "2026-07-25T00:00:00Z",
+        originOrg: "deftai",
+        valueFeedback: true,
+        productSignal: true,
+        directiveVersion: "0.85.0",
+      })}\n`,
+      "utf8",
+    );
+    expect(isForceOnValueFeedbackBlock(FORCE_ON_VALUE_FEEDBACK_BLOCK)).toBe(true);
+    expect(isForceOnValueFeedbackBlock({ enabled: true })).toBe(false);
+    expect(valueFeedbackInstallForceOnSource(root, FORCE_ON_VALUE_FEEDBACK_BLOCK)).toBe(
+      "install-force-on",
+    );
+    expect(productSignalInstallForceOnSource(root, { enabled: true })).toBe("install-force-on");
+    expect(productSignalInstallForceOnSource(root, { enabled: false })).toBeNull();
+    expect(valueFeedbackInstallForceOnSource(root, { enabled: true })).toBeNull();
   });
 });
 

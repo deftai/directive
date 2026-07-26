@@ -1,8 +1,8 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import {
+import { afterEach, describe, expect, it, vi } from "vitest";
+import win32CoverageTmpSetup, {
   ensureCoverageTmpDir,
   installCoverageTmpWriteGuard,
   isCoverageTmpChunkPath,
@@ -45,6 +45,34 @@ describe("win32-coverage-tmp-setup (#2634)", () => {
     } finally {
       uninstall();
     }
+  });
+
+  it("installCoverageTmpWriteGuard leaves non-chunk paths untouched", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cov-plain-"));
+    tempRoots.push(root);
+    const plainPath = join(root, "plain.txt");
+    const uninstall = installCoverageTmpWriteGuard();
+
+    try {
+      await fsPromisesWrite(plainPath, "hello\n");
+      expect(readFileSync(plainPath, "utf8")).toBe("hello\n");
+    } finally {
+      uninstall();
+    }
+  });
+
+  it("default setup is a no-op teardown on non-win32 platforms", () => {
+    const teardown = win32CoverageTmpSetup();
+    expect(typeof teardown).toBe("function");
+    expect(() => teardown()).not.toThrow();
+  });
+
+  it("default setup installs the write guard on win32", () => {
+    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const teardown = win32CoverageTmpSetup();
+    expect(typeof teardown).toBe("function");
+    expect(() => teardown()).not.toThrow();
+    platformSpy.mockRestore();
   });
 });
 
