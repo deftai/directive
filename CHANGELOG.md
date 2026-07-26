@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`deft xbrief:preflight -- <path>` now works as documented.** The CLI accepts the task-style `--` separator (matching `verify:session-ritual`, #2681), and `--help` prints usage without attempting to evaluate a null path. Closes #2837.
+
 ### Removed
 
 ## [0.85.0] - 2026-07-25
