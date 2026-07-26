@@ -687,6 +687,8 @@ describe("test_swarm_skill", () => {
     const text = _read_swarm();
     expect(text).toContain("Blocked-leaf continuation (#1880 / #2843)");
     expect(text).toContain("Completion-notification decision tree (#2843)");
-    expect(text).not.toContain("monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner");
+    expect(text).not.toContain(
+      "monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner",
+    );
   });
 });
