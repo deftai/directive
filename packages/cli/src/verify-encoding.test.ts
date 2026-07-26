@@ -1,12 +1,19 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./verify-encoding.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
+
+function ensureVerifyEncodingDistBuilt(distPath: string, srcPath: string): void {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+  if (!existsSync(distPath) || statSync(srcPath).mtimeMs > statSync(distPath).mtimeMs) {
+    execFileSync("pnpm", ["exec", "tsc", "-b", "packages/cli"], { cwd: repoRoot, stdio: "pipe" });
+  }
+}
 
 const temps: string[] = [];
 afterAll(() => {
@@ -83,7 +90,11 @@ describe("verify-encoding bin symlink entrypoint (#2846)", () => {
     dirname(fileURLToPath(import.meta.url)),
     "../dist/verify-encoding.js",
   );
+  const verifyEncodingSrc = join(dirname(fileURLToPath(import.meta.url)), "verify-encoding.ts");
   const linkTemps: string[] = [];
+  beforeAll(() => {
+    ensureVerifyEncodingDistBuilt(verifyEncodingPath, verifyEncodingSrc);
+  });
   afterEach(() => {
     for (const dir of linkTemps.splice(0)) rmSync(dir, { recursive: true, force: true });
   });

@@ -1,12 +1,19 @@
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { main } from "./hook-bin.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
+
+function ensureHookBinDistBuilt(hookBinPath: string, hookSrcPath: string): void {
+  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+  if (!existsSync(hookBinPath) || statSync(hookSrcPath).mtimeMs > statSync(hookBinPath).mtimeMs) {
+    execFileSync("pnpm", ["exec", "tsc", "-b", "packages/cli"], { cwd: repoRoot, stdio: "pipe" });
+  }
+}
 
 const temps: string[] = [];
 afterEach(() => {
@@ -15,6 +22,11 @@ afterEach(() => {
 
 describe("deft-hook executable", () => {
   const hookBinPath = join(dirname(fileURLToPath(import.meta.url)), "../dist/hook-bin.js");
+  const hookSrcPath = join(dirname(fileURLToPath(import.meta.url)), "hook-bin.ts");
+
+  beforeAll(() => {
+    ensureHookBinDistBuilt(hookBinPath, hookSrcPath);
+  });
 
   it("uses the direct hook dispatcher instead of the general CLI router", () => {
     const source = readFileSync(new URL("./hook-bin.ts", import.meta.url), "utf8");
