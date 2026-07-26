@@ -1,5 +1,90 @@
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+
+const LOCK_STALE_MS = 120_000;
+
+interface LockMeta {
+  readonly pid: number;
+  readonly startedAt: number;
+}
+
+function sleepMs(ms: number): void {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    // Busy-wait for short lock spins in test coordination only.
+  }
+}
+
+function repoRoot(): string {
+  return resolve(import.meta.dirname, "../../../..");
+}
+
+function lockDir(root: string): string {
+  return resolve(root, ".deft-scratch/vitest-cli-dist-build.lock");
+}
+
+function lockMetaPath(root: string): string {
+  return resolve(lockDir(root), "meta.json");
+}
+
+function readLockMeta(root: string): LockMeta | null {
+  const metaPath = lockMetaPath(root);
+  if (!existsSync(metaPath)) return null;
+  try {
+    return JSON.parse(readFileSync(metaPath, "utf8")) as LockMeta;
+  } catch {
+    return null;
+  }
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isStaleVitestCliDistLock(root: string, now = Date.now()): boolean {
+  const meta = readLockMeta(root);
+  if (!meta) return true;
+  if (now - meta.startedAt > LOCK_STALE_MS) return true;
+  return !isProcessAlive(meta.pid);
+}
+
+export function acquireVitestCliDistBuildLock(root: string, timeoutMs = 60_000): void {
+  mkdirSync(resolve(root, ".deft-scratch"), { recursive: true });
+  const dir = lockDir(root);
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (existsSync(dir) && !isStaleVitestCliDistLock(root)) {
+      sleepMs(50);
+      continue;
+    }
+    if (existsSync(dir)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    try {
+      mkdirSync(dir);
+      writeFileSync(
+        lockMetaPath(root),
+        JSON.stringify({ pid: process.pid, startedAt: Date.now() } satisfies LockMeta),
+      );
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== "EEXIST") throw err;
+      sleepMs(50);
+    }
+  }
+  throw new Error("timed out acquiring vitest CLI dist build lock");
+}
+
+export function releaseVitestCliDistBuildLock(root: string): void {
+  rmSync(lockDir(root), { recursive: true, force: true });
+}
 
 /**
  * Build packages/cli dist once before Vitest forks workers so dist-backed subprocess
@@ -7,10 +92,15 @@ import { resolve } from "node:path";
  * Incremental `tsc -b` is a no-op when `task check` already built.
  */
 export default function setup(): void {
-  const repoRoot = resolve(import.meta.dirname, "../../../..");
-  const tscBin = resolve(repoRoot, "node_modules/typescript/bin/tsc");
-  execFileSync(process.execPath, [tscBin, "-b", "packages/cli"], {
-    cwd: repoRoot,
-    stdio: "pipe",
-  });
+  const root = repoRoot();
+  acquireVitestCliDistBuildLock(root);
+  try {
+    const tscBin = resolve(root, "node_modules/typescript/bin/tsc");
+    execFileSync(process.execPath, [tscBin, "-b", "packages/cli"], {
+      cwd: root,
+      stdio: "pipe",
+    });
+  } finally {
+    releaseVitestCliDistBuildLock(root);
+  }
 }
