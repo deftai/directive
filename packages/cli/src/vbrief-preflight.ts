@@ -50,7 +50,19 @@ export function parseArgs(argv: string[]): ParsedArgs {
       return { ...parsed, help: true };
     }
     if (PATH_FLAG_NAMES.includes(arg as (typeof PATH_FLAG_NAMES)[number])) {
-      const next = assignPathFlag(parsed, argv[i + 1]);
+      // Task wrappers bake `--vbrief-path {{.CLI_ARGS}}`, so
+      // `task xbrief:preflight -- --help` arrives as `--vbrief-path --help`.
+      const nextToken = argv[i + 1];
+      if (nextToken === "--help" || nextToken === "-h") {
+        return { ...parsed, help: true };
+      }
+      if (nextToken !== undefined && nextToken.startsWith("-")) {
+        return {
+          ...parsed,
+          error: "argument --vbrief-path: expected one argument",
+        };
+      }
+      const next = assignPathFlag(parsed, nextToken);
       if (next?.error !== undefined) return next;
       parsed.vbriefPath = next?.vbriefPath ?? null;
       i += 1;

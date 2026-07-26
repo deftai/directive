@@ -69,6 +69,16 @@ describe("parseArgs", () => {
     expect(parseArgs(["--help"]).error).toBeUndefined();
     expect(parseArgs(["-h"])).toMatchObject({ help: true });
   });
+  it("treats task-baked --vbrief-path --help as help (#2837)", () => {
+    // `task xbrief:preflight -- --help` → ENGINE_CMD prepends --vbrief-path.
+    expect(parseArgs(["--vbrief-path", "--help"])).toMatchObject({
+      help: true,
+      vbriefPath: null,
+    });
+    expect(parseArgs(["--vbrief-path", "--help"]).error).toBeUndefined();
+    expect(parseArgs(["--vbrief-path", "-h"])).toMatchObject({ help: true });
+    expect(parseArgs(["--vbrief-path", "--json"]).error).toContain("expected one argument");
+  });
   it("errors on missing values and unknown flags", () => {
     expect(parseArgs(["--vbrief-path"]).error).toBeDefined();
     expect(parseArgs(["--bogus"]).error).toBeDefined();
