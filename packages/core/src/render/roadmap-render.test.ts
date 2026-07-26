@@ -454,22 +454,25 @@ describe("roadmap-render projection containment (#2839)", () => {
     expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
   });
 
-  itSymlink("renderRoadmap refuses when ROADMAP parent dir is a symlink outside the project", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-parent-"));
-    created.push(root);
-    const pending = join(root, "xbrief", "pending");
-    mkdirSync(pending, { recursive: true });
-    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+  itSymlink(
+    "renderRoadmap refuses when ROADMAP parent dir is a symlink outside the project",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-roadmap-parent-"));
+      created.push(root);
+      const pending = join(root, "xbrief", "pending");
+      mkdirSync(pending, { recursive: true });
+      writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
 
-    const escapeDir = freshEscape("roadmap-parent-escape-");
-    const outParent = join(root, "docs-out");
-    symlinkSync(escapeDir, outParent);
-    const outPath = join(outParent, "ROADMAP.md");
+      const escapeDir = freshEscape("roadmap-parent-escape-");
+      const outParent = join(root, "docs-out");
+      symlinkSync(escapeDir, outParent);
+      const outPath = join(outParent, "ROADMAP.md");
 
-    // Containment must use project root, not dirname(outPath) (which realpaths to escapeDir).
-    const [ok, msg] = renderRoadmap(pending, outPath, undefined, root);
-    expect(ok).toBe(false);
-    expect(msg).toContain("Failed");
-    expect(existsSync(join(escapeDir, "ROADMAP.md"))).toBe(false);
-  });
+      // Containment must use project root, not dirname(outPath) (which realpaths to escapeDir).
+      const [ok, msg] = renderRoadmap(pending, outPath, undefined, root);
+      expect(ok).toBe(false);
+      expect(msg).toContain("Failed");
+      expect(existsSync(join(escapeDir, "ROADMAP.md"))).toBe(false);
+    },
+  );
 });

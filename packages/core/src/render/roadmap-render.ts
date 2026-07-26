@@ -370,9 +370,7 @@ export function renderRoadmap(
     // Trust boundary is the project root — never dirname(outPath), which follows a
     // diverted parent symlink and would make containment pass outside the checkout.
     const projectDir =
-      projectRoot !== undefined
-        ? resolve(projectRoot)
-        : resolve(pendingDir, "..", "..");
+      projectRoot !== undefined ? resolve(projectRoot) : resolve(pendingDir, "..", "..");
     assertWriteTargetSafe(projectDir, resolve(outPath));
     writeFileSync(outPath, content, "utf8");
     return [true, `✓ Rendered ROADMAP.md to ${outPath}`];
