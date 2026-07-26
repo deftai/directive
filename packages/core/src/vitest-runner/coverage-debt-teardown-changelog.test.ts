@@ -1,10 +1,16 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
-const coverageDir = join(repoRoot, "coverage");
-const coverageFinal = join(coverageDir, "coverage-final.json");
+const { mockReadCoverage } = vi.hoisted(() => ({
+  mockReadCoverage: vi.fn(),
+}));
+
+vi.mock("./coverage-debt.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./coverage-debt.js")>();
+  return {
+    ...actual,
+    readCoverageTotalsFromReport: mockReadCoverage,
+  };
+});
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -23,28 +29,19 @@ import coverageDebtTeardown from "./coverage-debt-teardown.js";
 
 describe("coverageDebtTeardown CHANGELOG read failure (#2836)", () => {
   const stderrChunks: string[] = [];
-  let hadCoverage = false;
 
   afterEach(() => {
     stderrChunks.length = 0;
-    if (hadCoverage) {
-      return;
-    }
-    if (existsSync(coverageFinal)) {
-      rmSync(coverageFinal, { force: true });
-    }
+    mockReadCoverage.mockReset();
   });
 
   it("still attributes debt when CHANGELOG cannot be read", async () => {
-    hadCoverage = existsSync(coverageFinal);
-    mkdirSync(coverageDir, { recursive: true });
-    writeFileSync(
-      coverageFinal,
-      JSON.stringify({
-        "a.ts": { s: { "0": 1, "1": 0 }, f: { "0": 1 }, b: { "0": [1, 0] } },
-      }),
-      "utf8",
-    );
+    mockReadCoverage.mockReturnValue({
+      lines: 84.5,
+      functions: 86,
+      branches: 84.9,
+      statements: 84.5,
+    });
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       stderrChunks.push(String(chunk));
       return true;
@@ -59,5 +56,6 @@ describe("coverageDebtTeardown CHANGELOG read failure (#2836)", () => {
     }
 
     expect(stderrChunks.join("")).toContain("#2836");
+    expect(mockReadCoverage).toHaveBeenCalledOnce();
   });
 });
