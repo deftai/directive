@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -412,5 +412,37 @@ describe("roadmap-render main() --project-root layout resolver (#2139)", () => {
     roadmapRenderMain(["--project-root", root, outPath]);
     const exit = roadmapRenderMain(["--project-root", root, outPath, "--check"]);
     expect(exit).toBe(0);
+  });
+});
+
+const itSymlink = it.skipIf(process.platform === "win32");
+
+describe("roadmap-render projection containment (#2839)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshEscape(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    created.push(dir);
+    return dir;
+  }
+
+  itSymlink("renderRoadmap refuses when ROADMAP.md is a symlink outside the project", () => {
+    const { pending, outPath } = makeFixture();
+    const escapeDir = freshEscape("roadmap-escape-");
+    const escapeFile = join(escapeDir, "stolen-roadmap.md");
+    writeFileSync(escapeFile, "victim\n", "utf8");
+    symlinkSync(escapeFile, outPath);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+
+    const [ok, msg] = renderRoadmap(pending, outPath);
+    expect(ok).toBe(false);
+    expect(msg).toContain("Failed");
+    expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
   });
 });

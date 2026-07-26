@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { MIGRATOR_METADATA_KEY, ROADMAP_BANNER } from "./constants.js";
 import { phaseSortKey } from "./text-utils.js";
@@ -365,6 +366,8 @@ export function renderRoadmap(
 ): RenderRoadmapResult {
   try {
     const content = renderRoadmapToBuffer(pendingDir, completedDir);
+    const projectDir = resolve(dirname(outPath));
+    assertWriteTargetSafe(projectDir, resolve(outPath));
     writeFileSync(outPath, content, "utf8");
     return [true, `✓ Rendered ROADMAP.md to ${outPath}`];
   } catch (exc) {

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
@@ -81,6 +82,7 @@ export function readOrgForceOnMarker(projectRoot: string): OrgForceOnMarker | nu
 
 function writeOrgForceOnMarker(projectRoot: string, marker: OrgForceOnMarker): void {
   const path = markerPath(projectRoot);
+  assertWriteTargetSafe(projectRoot, path);
   mkdirSync(join(path, ".."), { recursive: true });
   writeFileSync(path, `${JSON.stringify(marker, null, 2)}\n`, "utf8");
 }
