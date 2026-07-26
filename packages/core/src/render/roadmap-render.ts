@@ -359,12 +359,24 @@ export function generateRoadmapContent(pendingDir: string, completedDir?: string
 
 export type RenderRoadmapResult = readonly [boolean, string];
 
+export type RenderRoadmapOptions = {
+  completedDir?: string;
+  projectRoot?: string;
+};
+
 export function renderRoadmap(
   pendingDir: string,
   outPath: string,
-  completedDir?: string,
-  projectRoot?: string,
+  completedDirOrOptions?: string | RenderRoadmapOptions,
 ): RenderRoadmapResult {
+  let completedDir: string | undefined;
+  let projectRoot: string | undefined;
+  if (typeof completedDirOrOptions === "string") {
+    completedDir = completedDirOrOptions;
+  } else if (completedDirOrOptions !== undefined) {
+    completedDir = completedDirOrOptions.completedDir;
+    projectRoot = completedDirOrOptions.projectRoot;
+  }
   try {
     const content = renderRoadmapToBuffer(pendingDir, completedDir);
     // Trust boundary is the project root — never dirname(outPath), which follows a
@@ -439,12 +451,9 @@ export function main(argv: readonly string[]): number {
   }
   // When --project-root is set, use it; otherwise renderRoadmap derives from pendingDir
   // (…/xbrief|vbrief/pending → project root). Never use dirname(outPath).
-  const [ok, msg] = renderRoadmap(
-    pendingDir,
-    outPath,
-    undefined,
-    projectRoot !== undefined ? resolve(projectRoot) : undefined,
-  );
+  const [ok, msg] = renderRoadmap(pendingDir, outPath, {
+    projectRoot: projectRoot !== undefined ? resolve(projectRoot) : undefined,
+  });
   process.stdout.write(`${msg}\n`);
   return ok ? 0 : 1;
 }

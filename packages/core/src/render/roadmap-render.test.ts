@@ -469,7 +469,7 @@ describe("roadmap-render projection containment (#2839)", () => {
       const outPath = join(outParent, "ROADMAP.md");
 
       // Containment must use project root, not dirname(outPath) (which realpaths to escapeDir).
-      const [ok, msg] = renderRoadmap(pending, outPath, undefined, root);
+      const [ok, msg] = renderRoadmap(pending, outPath, { projectRoot: root });
       expect(ok).toBe(false);
       expect(msg).toContain("Failed");
       expect(existsSync(join(escapeDir, "ROADMAP.md"))).toBe(false);
