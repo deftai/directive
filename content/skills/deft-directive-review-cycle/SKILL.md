@@ -239,6 +239,8 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! **Worker-owns-lifecycle (#1880 Gap C):** When this skill runs as part of an implementation worker scoped `drive-to: merge-ready`, the worker owns the full review/fix loop through merge-ready in its own tool loop — do NOT exit at PR-open expecting the orchestrator to spawn a separate review leaf.
 
+! **Swarm monitor must not self-implement (#2843 / Gap C):** When a cohort monitor receives `BLOCKED` or DONE-with-blockers from a `drive-to: merge-ready` implementation leaf, the monitor MUST NOT enter the review/fix loop inline on Tier 1 — background-dispatch ONE continuation leaf scoped `drive-to: merge-ready` on the same worktree. Monitor-inline review-cycle is permitted only on Tier 3 or with explicit operator consent (see `skills/deft-directive-swarm/SKILL.md` Phase 5 completion-notification decision tree).
+
 
 
 ! Select the monitoring approach based on runtime capability detection (the matrix in `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1, extended per #1342 slices 1-2 for `spawn_subagent` / "grok-build" and per #1877 for Cursor as first-class Tier-1 tiers). Probe the environment (tool set + env vars) to obtain the stable platform descriptor (`grok-build`, `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, etc.) from the launch adapter / `get_platform_capabilities` and map the descriptor to the appropriate tier + dispatch primitive (`start_agent`, `spawn_subagent`, or the Cursor `Task` tool). The descriptor (not hard-coded tool presence) is the single source of truth for both launch and review monitoring.

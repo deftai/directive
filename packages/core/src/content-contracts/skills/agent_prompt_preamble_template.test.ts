@@ -84,6 +84,14 @@ describe("test_agent_prompt_preamble_template", () => {
       expect(templateText).toContain(exit_marker);
     }
   });
+  it("template_drive_to_merge_ready_done_reservation_2843", () => {
+    expect(templateText).toContain("drive-to: merge-ready` DONE reservation (#2843)");
+    expect(templateText).toContain("Mid-cycle BLOCKED contract (#2843)");
+    expect(templateText).toContain("REDISPATCH_OK");
+    expect(templateText).toContain(
+      "Emit `DONE` from a `drive-to: merge-ready` worker while merge-ready is false",
+    );
+  });
   it("template_rate_limit_probe_uses_gh_not_ghx_with_q_flag", () => {
     expect(/gh\s+api\s+rate_limit\s+-q\s+'/.test(templateText)).toBeTruthy();
     expect(!/ghx\s+api\s+rate_limit\s+-q\b/.test(templateText)).toBe(true);

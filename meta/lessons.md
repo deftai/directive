@@ -641,6 +641,18 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 
 **Cross-references:** #1070 (`.github/dependabot.yml` originally landed), #1099 (stale-duplicate filing, closed), #1100 (corrected additive-scope refile), PR #1098 (refinement session that surfaced the pattern).
 
+## Swarm monitor must not self-implement after false DONE (2026-07)
+
+**Source:** Issue #2843. Recurrence in cohort-2026-07-26-hooks-appsec-coverage after #2839 PR #2842.
+
+**Failure mode:** A `drive-to: merge-ready` leaf emits `DONE` before `task pr:merge-ready` passes. The host reports terminal success; the swarm monitor reads Phase 5 "monitor MAY run review-cycle itself" and starts inline Greptile fixes — violating Gap D (monitor conversation no longer interactive) and Gap C (lifecycle ownership splits mid-cycle).
+
+**Rule:** Preamble §11 reserves `DONE` for merge-ready on `drive-to: merge-ready` envelopes; mid-cycle exits MUST be `BLOCKED` with PR, HEAD SHA, blocker class, worktree path, and `REDISPATCH_OK`. Swarm Phase 5 + review-cycle skill require Tier 1 monitors to background-dispatch ONE continuation leaf instead of self-implementing.
+
+**Canonical encoding:** `templates/agent-prompt-preamble.md` §11; `skills/deft-directive-swarm/SKILL.md` Phase 5 blocked-leaf continuation + completion-notification decision tree; `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring.
+
+**Cross-references:** #1880 (Gap C/D doctrine), #2824 (REDISPATCH_OK / false-alive), #2843.
+
 ## Windows PowerShell: safe multi-line git/gh bodies (2026-07)
 
 **Source:** Issue #2646 (absorbs #1417). On Windows PowerShell, agents fail when authoring multi-line git/gh payloads via bash heredocs, `<<<` redirection, inline multi-line `--body` flags, or multi-line PS here-strings in the agent command box. Host/agent shell wrappers can also rewrite shell-embedded commit/issue prose before PowerShell executes.

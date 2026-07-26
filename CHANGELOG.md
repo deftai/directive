@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Swarm monitors no longer self-implement after a false DONE from a blocked merge-ready leaf (#2843).** Preamble §11 reserves `DONE` for merge-ready on `drive-to: merge-ready` envelopes and requires `BLOCKED` + `REDISPATCH_OK` mid-cycle; swarm Phase 5 and review-cycle skills require Tier 1 monitors to background-dispatch ONE continuation leaf instead of inline Greptile fixes. Closes #2843.
+
 - **Symlink-escaping write sinks are now refused on rule-map, org-force-on, gitignore, and roadmap render (#2839).** Four medium AppSec findings where repo-controlled leaf symlinks could divert `writeFileSync` outside the checkout are gated with `assertWriteTargetSafe` before write, matching the projection-containment pattern from #2807. Closes #2839.
 - **`deft update` removes orphaned Cursor adapter test (#2838).** Hook deposit refresh now deletes leftover `.cursor/hooks/deft-cursor-hook-adapter.test.mjs` alongside the retired adapter script so `node --test .cursor/hooks/` does not fail on dead imports after upgrade.
 - **`deft xbrief:preflight -- <path>` now works as documented.** The CLI accepts the task-style `--` separator (matching `verify:session-ritual`, #2681), and `--help` prints usage without attempting to evaluate a null path. Closes #2837.

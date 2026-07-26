@@ -518,6 +518,12 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 - Failure: `FAILED: <reason> + recovery hint`
 - Stand-down: `STOOD-DOWN: <reason>` (e.g. user said "wait" with no follow-up dispatch)
 
+! **`drive-to: merge-ready` DONE reservation (#2843):** When the dispatch envelope scoped `drive-to: merge-ready` (or `drive-to: merge`), `DONE` is reserved for merge-ready completion — `task pr:merge-ready -- <N>` exit 0 on current HEAD, or merge + `task scope:complete` when the envelope included merge authority. Greptile P0/P1 outstanding, CI failure, branch behind, review-cycle cap, or any other merge blocker MUST NOT exit as `DONE`.
+
+! **Mid-cycle BLOCKED contract (#2843):** A `drive-to: merge-ready` worker that must exit before merge-ready (blocker, cap, context limit, host turn budget) MUST emit `BLOCKED:` (never `DONE`) with: PR number (or `no-pr`), HEAD SHA, blocker class (`greptile_p0_p1` / `ci_failures` / `behind_base` / `review_cycle_cap` / `context_limit` / other), worktree path, and `REDISPATCH_OK` when a continuation leaf should take over. Example: `BLOCKED: Greptile P1 on HEAD abc1234 (PR #2842, blocker greptile_p0_p1, worktree .deft-scratch/worktrees/2839-appsec, REDISPATCH_OK)`.
+
+⊗ Emit `DONE` from a `drive-to: merge-ready` worker while merge-ready is false — a false-terminal `DONE` pulls the cohort monitor into inline Greptile fixes and violates Gap D (#2843 monitor-as-implementer recurrence).
+
 Per-step acks during the run are noise. ONE start message, ONE final message; intermediate messages only on `BLOCKED` / `FAILED`. The final message lets the dispatcher distinguish a clean exit from a silent timeout when the lifecycle event arrives.
 
 ## 12. Session ritual + `task verify:cache-fresh` gates before `start_agent` (#1348 / #1127)

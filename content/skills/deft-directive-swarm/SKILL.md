@@ -611,7 +611,16 @@ For each agent's PR:
 1. ! Check that Greptile has reviewed the latest commit (compare "Last reviewed commit" SHA to branch HEAD)
 2. ! Verify Greptile confidence score > 3
 3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
-4. ! **Worker-owns-lifecycle fallback (#1880):** Prefer workers scoped `drive-to: merge-ready` so this step is rare. When a worker exits at PR-open without reaching merge-ready, the monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner — but MUST NOT split review polling and fix batches across separate leaf agents for the same PR (#727 + #1880 Gap C).
+4. ! **Blocked-leaf continuation (#1880 / #2843):** Prefer workers scoped `drive-to: merge-ready` so this step is rare. When a leaf exits `BLOCKED` (or a false-terminal DONE-with-blockers — see `templates/agent-prompt-preamble.md` §11) before merge-ready:
+   - **Tier 1 available** (`start_agent`, `spawn_subagent`, Cursor `Task`): the monitor MUST background-dispatch ONE continuation leaf (`drive-to: merge-ready`, same worktree) owning fix batches + blocking `task pr:watch` + merge readiness. The monitor MUST NOT run inline code edits or review-cycle fix batches in its own turn (#2843 monitor-as-implementer recurrence).
+   - **Tier 3 only** (no sub-agent primitive): the monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself after explicit operator consent — or offer serial self-execution downgrade from Phase 3.
+   - ⊗ Split review polling and fix batches across separate leaf agents for the same PR (#727 + #1880 Gap C).
+
+! **Completion-notification decision tree (#2843):** When a background leaf completion notification arrives, parse the terminal message per preamble §11:
+   - `DONE` + merge-ready verified (`task pr:merge-ready -- <N>` exit 0): may proceed to merge / `task scope:complete` per Phase 5→6 / Phase 6.
+   - `BLOCKED` (+ optional `REDISPATCH_OK`): resume the same leaf if the host supports it, OR background-dispatch ONE continuation leaf with the cited PR/SHA/worktree — no monitor-inline fixes on Tier 1.
+   - `FAILED` / silent (no terminal message): run `task verify:subagent-alive`; on exit 1 print `REDISPATCH_OK` and background-dispatch ONE continuation leaf.
+   - ⊗ Treat `DONE` without merge-ready verification as success — that is the false-terminal pattern §11 closes.
 
 ### Complete xBRIEFs
 
