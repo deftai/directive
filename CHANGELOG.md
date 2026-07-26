@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **migrate:xbrief and policy wip-cap/subagent-backend refuse symlink write targets (#2847).** `runAgentsRefresh` during `migrate:xbrief` and the `policy set wip-cap` / `policy set subagent-backend` writers now gate AGENTS.md and PROJECT-DEFINITION paths with `assertWriteTargetSafe` and atomic write helpers instead of bare `writeFileSync`, so a malicious repo cannot redirect trusted CLI writes outside the checkout. Closes #2847.
 - **Vitest branch coverage restored above 85% (#2836).** Added focused tests for coverage-debt teardown, GitHub review-owner default fetch, org force-on edge paths, and win32 coverage setup, clearing the v0.85.0 `--allow-coverage-debt` citation without a consecutive soft-pass. Closes #2836.
 - **Swarm monitors no longer self-implement after a false DONE from a blocked merge-ready leaf (#2843).** Preamble §11 reserves `DONE` for merge-ready on `drive-to: merge-ready` envelopes and requires `BLOCKED` + `REDISPATCH_OK` mid-cycle; swarm Phase 5 and review-cycle skills require Tier 1 monitors to background-dispatch ONE continuation leaf instead of inline Greptile fixes. Closes #2843.
 

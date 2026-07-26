@@ -8,8 +8,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
-import { agentsRefreshPlan } from "../platform/agents-md.js";
+import { applyAgentsRefresh } from "../platform/agents-md.js";
 import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
   LEGACY_ARTIFACT_DIR,
@@ -237,25 +238,32 @@ function runAgentsRefresh(
   frameworkRoot: string | undefined,
   io: XbriefMigrationIo,
 ): number {
-  const plan = agentsRefreshPlan(projectRoot, { frameworkRoot }) as Record<string, unknown>;
-  const state = String(plan.state ?? "unknown");
-  if (state === "current") {
-    io.writeOut("AGENTS.md managed section is current — no changes.\n");
+  try {
+    assertWriteTargetSafe(projectRoot, join(projectRoot, "AGENTS.md"));
+    const { state, wrote, writable } = applyAgentsRefresh(projectRoot, {}, { frameworkRoot });
+    if (state === "current") {
+      io.writeOut("AGENTS.md managed section is current — no changes.\n");
+      return 0;
+    }
+    if (state === "template-missing" || state === "template-malformed" || state === "unreadable") {
+      io.writeErr(`agents:refresh failed: ${state}\n`);
+      return 2;
+    }
+    if (!writable) {
+      io.writeErr("agents:refresh failed: plan produced no new_content\n");
+      return 2;
+    }
+    if (wrote) {
+      io.writeOut(`AGENTS.md updated (state=${state}).\n`);
+    }
     return 0;
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      io.writeErr(`agents:refresh failed: ${err.message}\n`);
+      return 2;
+    }
+    throw err;
   }
-  if (state === "template-missing" || state === "template-malformed" || state === "unreadable") {
-    io.writeErr(`agents:refresh failed: ${state}\n`);
-    return 2;
-  }
-  const newContent = plan.new_content;
-  if (typeof newContent !== "string") {
-    io.writeErr("agents:refresh failed: plan produced no new_content\n");
-    return 2;
-  }
-  const path = String(plan.path ?? join(projectRoot, "AGENTS.md"));
-  writeFileSync(path, newContent, "utf8");
-  io.writeOut(`AGENTS.md updated (state=${state}).\n`);
-  return 0;
 }
 
 /** Core orchestrator for the consumer xbrief rename (#2110) + convergence (#2270). */

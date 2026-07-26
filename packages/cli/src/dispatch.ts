@@ -19,6 +19,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo, userConfig } from "@deftai/directive-core";
+import { assertWriteTargetSafe } from "@deftai/directive-core/dist/fs/projection-containment.js";
 import { parseInitArgv, runInitDepositCli } from "@deftai/directive-core/init-deposit";
 import {
   appendAuditLog,
@@ -39,6 +40,7 @@ import {
   resolveSwarmSubagentBackend,
   type SubagentBackendDescriptor,
 } from "@deftai/directive-core/swarm";
+import { atomicWriteProjectDefinition } from "@deftai/directive-core/vbrief-build";
 
 export type CommandHandler = (argv: string[]) => number | Promise<number>;
 
@@ -2374,7 +2376,8 @@ function writeWipCap(
   const { path, data, policyBlock } = loadProjectDefinitionForWrite(projectRoot);
   const previous = policyBlock.wipCap;
   policyBlock.wipCap = cap;
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  assertWriteTargetSafe(projectRoot, path);
+  atomicWriteProjectDefinition(path, data);
   const changed = previous !== cap;
   const parts = [`actor=${actor}`, `wipCap=${cap}`, `previous=${pyRepr(previous)}`];
   if (note) parts.push(`note=${sanitizeNote(note)}`);
@@ -2393,7 +2396,8 @@ function writeSubagentBackend(
   const { path, data, policyBlock } = loadProjectDefinitionForWrite(projectRoot);
   const previous = policyBlock.swarmSubagentBackend;
   policyBlock.swarmSubagentBackend = backendId;
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  assertWriteTargetSafe(projectRoot, path);
+  atomicWriteProjectDefinition(path, data);
   const changed = previous !== backendId;
   const parts = [
     `actor=${actor}`,

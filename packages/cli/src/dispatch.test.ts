@@ -1,6 +1,14 @@
 import type { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
@@ -1061,6 +1069,7 @@ describe("native pack-migrate handlers (#2022)", () => {
 // ---------------------------------------------------------------------------
 
 describe("native policy-set handler (#2022)", () => {
+  const itSymlink = it.skipIf(process.platform === "win32");
   let root: string;
 
   function projectDefPath(): string {
@@ -1363,6 +1372,55 @@ describe("native policy-set handler (#2022)", () => {
     expect(result.code).toBe(2);
     expect(result.err).toContain("required: --set");
   });
+
+  itSymlink(
+    "wip-cap refuses when PROJECT-DEFINITION is a symlink outside the project (#2847)",
+    async () => {
+      const escapeDir = mkdtempSync(join(tmpdir(), "deft-policy-wip-cap-victim-"));
+      const victim = join(escapeDir, "PROJECT-DEFINITION.xbrief.json");
+      writeFileSync(victim, readFileSync(projectDefPath(), "utf8"), "utf8");
+      rmSync(projectDefPath());
+      symlinkSync(victim, projectDefPath());
+
+      const result = await runPolicy([
+        "wip-cap",
+        "--set",
+        "5",
+        "--confirm",
+        "--project-root",
+        root,
+      ]);
+      expect(result.code).toBe(2);
+      expect(result.err).toMatch(/Config error:.*symlink/);
+      expect(readPolicyBlock().wipCap).toBeUndefined();
+      expect(readFileSync(victim, "utf8")).not.toContain('"wipCap": 5');
+      rmSync(escapeDir, { recursive: true, force: true });
+    },
+  );
+
+  itSymlink(
+    "subagent-backend refuses when PROJECT-DEFINITION is a symlink outside the project (#2847)",
+    async () => {
+      const escapeDir = mkdtempSync(join(tmpdir(), "deft-policy-backend-victim-"));
+      const victim = join(escapeDir, "PROJECT-DEFINITION.xbrief.json");
+      writeFileSync(victim, readFileSync(projectDefPath(), "utf8"), "utf8");
+      rmSync(projectDefPath());
+      symlinkSync(victim, projectDefPath());
+
+      const result = await runPolicy([
+        "subagent-backend",
+        "--set",
+        "composer",
+        "--project-root",
+        root,
+      ]);
+      expect(result.code).toBe(2);
+      expect(result.err).toMatch(/Config error:.*symlink/);
+      expect(readPolicyBlock().swarmSubagentBackend).toBeUndefined();
+      expect(readFileSync(victim, "utf8")).not.toContain('"swarmSubagentBackend"');
+      rmSync(escapeDir, { recursive: true, force: true });
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------

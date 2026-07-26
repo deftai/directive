@@ -432,6 +432,29 @@ describe("runXbriefMigrationCli", () => {
     expect(code).toBe(2);
     expect(errs.join("")).toContain("agents:refresh failed");
   });
+
+  itSymlink(
+    "refuses agents:refresh when AGENTS.md is a symlink outside the project (#2847)",
+    () => {
+      const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-cli-agents-symlink-"));
+      temps.push(base);
+      const escapeDir = mkdtempSync(join(tmpdir(), "xbrief-migrate-cli-agents-victim-"));
+      temps.push(escapeDir);
+      const project = scaffoldLegacyProject(base);
+      const victim = join(escapeDir, "AGENTS.md");
+      writeFileSync(victim, "# victim\nKeep me\n", "utf8");
+      symlinkSync(victim, join(project, "AGENTS.md"));
+
+      const errs: string[] = [];
+      const code = runXbriefMigrationCli(
+        { projectRoot: project, frameworkRoot: join(project, ".deft", "core"), force: true },
+        { writeOut: () => {}, writeErr: (t) => errs.push(t) },
+      );
+      expect(code).toBe(2);
+      expect(errs.join("")).toMatch(/agents:refresh failed.*symlink/);
+      expect(readFileSync(victim, "utf8")).toBe("# victim\nKeep me\n");
+    },
+  );
 });
 
 const SILENT_IO = { writeOut: () => {}, writeErr: () => {} };
