@@ -64,7 +64,11 @@ function gitRepo(content: string): string {
 
 describe("CLI bin symlink entrypoints (#2846)", () => {
   beforeAll(() => {
-    ensureCliDistBuiltForSymlinkTests();
+    // Merge gate / task check build dist before vitest; rebuild only when bins are absent
+    // (e.g. isolated `vitest run` on a clean checkout) to avoid racing other dist readers.
+    if (!existsSync(HOOK_BIN_PATH) || !existsSync(VERIFY_ENCODING_PATH)) {
+      ensureCliDistBuiltForSymlinkTests();
+    }
     if (!existsSync(HOOK_BIN_PATH) || !existsSync(VERIFY_ENCODING_PATH)) {
       throw new Error("packages/cli dist bins missing after build");
     }
