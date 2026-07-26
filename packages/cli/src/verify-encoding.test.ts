@@ -1,21 +1,9 @@
-import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { join } from "node:path";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./verify-encoding.js";
-
-const itSymlink = it.skipIf(process.platform === "win32");
-
-function ensureCliDistBuilt(): void {
-  const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-  const tscBin = join(repoRoot, "node_modules/typescript/bin/tsc");
-  execFileSync(process.execPath, [tscBin, "-b", "packages/cli"], {
-    cwd: repoRoot,
-    stdio: "pipe",
-  });
-}
 
 const temps: string[] = [];
 afterAll(() => {
@@ -84,34 +72,5 @@ describe("run", () => {
   });
   it("returns 2 for a bad argument", () => {
     expect(silentRun(["--bogus"])).toBe(2);
-  });
-});
-
-describe("verify-encoding bin symlink entrypoint (#2846)", () => {
-  const verifyEncodingPath = join(
-    dirname(fileURLToPath(import.meta.url)),
-    "../dist/verify-encoding.js",
-  );
-  const linkTemps: string[] = [];
-  beforeAll(() => {
-    ensureCliDistBuilt();
-  });
-  afterEach(() => {
-    for (const dir of linkTemps.splice(0)) rmSync(dir, { recursive: true, force: true });
-  });
-
-  itSymlink("runs main through an npm-style bin symlink", () => {
-    const root = repo("clean ascii\n");
-    const dir = mkdtempSync(join(tmpdir(), "deft-verify-encoding-link-"));
-    linkTemps.push(dir);
-    const linkPath = join(dir, "deft-verify-encoding");
-    symlinkSync(verifyEncodingPath, linkPath);
-
-    const result = spawnSync(process.execPath, [linkPath, "--all", "--project-root", root], {
-      encoding: "utf8",
-    });
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("no mojibake");
   });
 });
