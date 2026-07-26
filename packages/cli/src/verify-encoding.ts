@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { evaluate, type ScanMode } from "@deftai/directive-core";
+import { isDirectEntrypoint } from "./entrypoint.js";
 
 interface ParsedArgs {
   mode: ScanMode;
@@ -80,9 +80,6 @@ export function run(argv: string[]): number {
 }
 
 // Only execute when invoked directly as a binary (not when imported in tests).
-// Normalize both sides via fileURLToPath so the guard fires on Windows too,
-// where process.argv[1] is a native backslash path and import.meta.url is a
-// forward-slash file:// URL -- a raw `file://${process.argv[1]}` never matches.
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isDirectEntrypoint(import.meta.url)) {
   process.exit(run(process.argv.slice(2)));
 }
