@@ -6,7 +6,7 @@
   "plan": {
     "id": "2026-07-26-2838-bughooks-deft-update-leaves-orphaned-deft-cursor-hook-adapte",
     "title": "bug(hooks): deft update leaves orphaned deft-cursor-hook-adapter.test.mjs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After #2790, deft update deletes legacy deft-cursor-hook-adapter.mjs but leaves the companion .test.mjs. That orphaned test imports removed exports and fails node --test in consumer repositories.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2838",
@@ -38,7 +38,9 @@
         }
       }
     ],
-    "tags": ["bug"],
+    "tags": [
+      "bug"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2838",
@@ -46,7 +48,7 @@
         "title": "Issue #2838: bug(hooks): deft update leaves orphaned deft-cursor-hook-adapter.test.mjs"
       }
     ],
-    "updated": "2026-07-26T02:35:00Z",
+    "updated": "2026-07-26T03:14:03Z",
     "metadata": {
       "kind": "story",
       "swarm": {
@@ -73,7 +75,8 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to narrowed GitHub issue #2838 acceptance after #2790 supersession rather than a SPECIFICATION section."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-26T03:14:03Z"
     }
   }
 }
