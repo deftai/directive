@@ -51,18 +51,64 @@ describe("parseArgs", () => {
       "xbrief/active/story.xbrief.json",
     );
   });
+  it("accepts a lone -- separator before path (#2837)", () => {
+    expect(parseArgs(["--", "xbrief/active/story.xbrief.json"]).vbriefPath).toBe(
+      "xbrief/active/story.xbrief.json",
+    );
+    expect(parseArgs(["--", "xbrief/active/story.xbrief.json"]).error).toBeUndefined();
+    expect(parseArgs(["--", "xbrief/active/story.xbrief.json"])).toEqual(
+      parseArgs(["xbrief/active/story.xbrief.json"]),
+    );
+    expect(parseArgs(["--", "--vbrief-path", "/x"])).toEqual(parseArgs(["--vbrief-path", "/x"]));
+  });
   it("parses --vbrief-path= form", () => {
     expect(parseArgs(["--vbrief-path=/y"]).vbriefPath).toBe("/y");
+  });
+  it("returns help without requiring a path", () => {
+    expect(parseArgs(["--help"])).toMatchObject({ help: true, vbriefPath: null });
+    expect(parseArgs(["--help"]).error).toBeUndefined();
+    expect(parseArgs(["-h"])).toMatchObject({ help: true });
+  });
+  it("treats task-baked --vbrief-path --help as help (#2837)", () => {
+    // `task xbrief:preflight -- --help` → ENGINE_CMD prepends --vbrief-path.
+    expect(parseArgs(["--vbrief-path", "--help"])).toMatchObject({
+      help: true,
+      vbriefPath: null,
+    });
+    expect(parseArgs(["--vbrief-path", "--help"]).error).toBeUndefined();
+    expect(parseArgs(["--vbrief-path", "-h"])).toMatchObject({ help: true });
+    expect(parseArgs(["--vbrief-path", "--json"]).error).toContain("expected one argument");
   });
   it("errors on missing values and unknown flags", () => {
     expect(parseArgs(["--vbrief-path"]).error).toBeDefined();
     expect(parseArgs(["--bogus"]).error).toBeDefined();
+    expect(parseArgs(["--"]).error).toContain("--vbrief-path");
+    expect(parseArgs(["--"]).error).not.toContain("null");
   });
 });
 
 describe("run", () => {
   it("returns 0 for active running vBRIEF", () => {
     expect(silentRun(["--vbrief-path", activeRunning()])).toBe(0);
+  });
+  it("returns 0 for separator form matching --vbrief-path (#2837)", () => {
+    const path = activeRunning();
+    expect(silentRun(["--", path])).toBe(0);
+    expect(silentRun(["--vbrief-path", path])).toBe(0);
+  });
+  it("returns 0 for --help without evaluating a path", () => {
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--help"])).toBe(0);
+      const written = String(out.mock.calls[0]?.[0] ?? "");
+      expect(written).toContain("usage: xbrief:preflight");
+      expect(written).toContain("deft xbrief:preflight --");
+      expect(err).not.toHaveBeenCalled();
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
   });
   it("returns 1 for pending folder", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-pending-"));

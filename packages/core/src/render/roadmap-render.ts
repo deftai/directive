@@ -363,10 +363,16 @@ export function renderRoadmap(
   pendingDir: string,
   outPath: string,
   completedDir?: string,
+  projectRoot?: string,
 ): RenderRoadmapResult {
   try {
     const content = renderRoadmapToBuffer(pendingDir, completedDir);
-    const projectDir = resolve(dirname(outPath));
+    // Trust boundary is the project root — never dirname(outPath), which follows a
+    // diverted parent symlink and would make containment pass outside the checkout.
+    const projectDir =
+      projectRoot !== undefined
+        ? resolve(projectRoot)
+        : resolve(pendingDir, "..", "..");
     assertWriteTargetSafe(projectDir, resolve(outPath));
     writeFileSync(outPath, content, "utf8");
     return [true, `✓ Rendered ROADMAP.md to ${outPath}`];
@@ -433,7 +439,14 @@ export function main(argv: readonly string[]): number {
     process.stdout.write(`${msg}\n`);
     return ok ? 0 : 1;
   }
-  const [ok, msg] = renderRoadmap(pendingDir, outPath);
+  // When --project-root is set, use it; otherwise renderRoadmap derives from pendingDir
+  // (…/xbrief|vbrief/pending → project root). Never use dirname(outPath).
+  const [ok, msg] = renderRoadmap(
+    pendingDir,
+    outPath,
+    undefined,
+    projectRoot !== undefined ? resolve(projectRoot) : undefined,
+  );
   process.stdout.write(`${msg}\n`);
   return ok ? 0 : 1;
 }

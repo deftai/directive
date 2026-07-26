@@ -746,10 +746,12 @@ export function main(argv: readonly string[]): number {
     return 0;
   }
 
+  // Preflight both destinations before either write so a later HTML refusal
+  // cannot leave RULE-MAP.md updated while docs/rule-map/index.html stays stale.
   assertWriteTargetSafe(repo, mdPath);
+  assertWriteTargetSafe(repo, htmlPath);
   mkdirSync(dirname(mdPath), { recursive: true });
   writeFileSync(mdPath, md, "utf8");
-  assertWriteTargetSafe(repo, htmlPath);
   mkdirSync(htmlDir, { recursive: true });
   const html = renderHtml(buildModel(repo, true));
   writeFileSync(htmlPath, html, "utf8");

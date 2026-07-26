@@ -5,8 +5,19 @@ import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core
 interface ParsedArgs {
   vbriefPath: string | null;
   emitJson: boolean;
+  help?: boolean;
   error?: string;
 }
+
+const HELP_TEXT = `usage: xbrief:preflight [--vbrief-path PATH | PATH] [--json] [--help]
+
+Implementation-intent gate (#810): exits 0 only when the xBRIEF is in
+xbrief/active/ (or legacy vbrief/active/) AND plan.status == 'running'.
+
+Examples:
+  deft xbrief:preflight -- xbrief/active/<story>.xbrief.json
+  deft xbrief:preflight --vbrief-path xbrief/active/<story>.xbrief.json
+`;
 
 const PATH_FLAG_NAMES = ["--vbrief-path", "--brief-path", "--xbrief-path"] as const;
 
@@ -28,15 +39,30 @@ export function parseArgs(argv: string[]): ParsedArgs {
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "--") {
+      continue;
+    }
     if (arg === "--json") {
       parsed.emitJson = true;
       continue;
     }
     if (arg === "--help" || arg === "-h") {
-      return parsed;
+      return { ...parsed, help: true };
     }
     if (PATH_FLAG_NAMES.includes(arg as (typeof PATH_FLAG_NAMES)[number])) {
-      const next = assignPathFlag(parsed, argv[i + 1]);
+      // Task wrappers bake `--vbrief-path {{.CLI_ARGS}}`, so
+      // `task xbrief:preflight -- --help` arrives as `--vbrief-path --help`.
+      const nextToken = argv[i + 1];
+      if (nextToken === "--help" || nextToken === "-h") {
+        return { ...parsed, help: true };
+      }
+      if (nextToken !== undefined && nextToken.startsWith("-")) {
+        return {
+          ...parsed,
+          error: "argument --vbrief-path: expected one argument",
+        };
+      }
+      const next = assignPathFlag(parsed, nextToken);
       if (next?.error !== undefined) return next;
       parsed.vbriefPath = next?.vbriefPath ?? null;
       i += 1;
@@ -72,6 +98,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
 /** Run the gate and return the process exit code (parse errors -> 2). */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
+  if (args.help) {
+    process.stdout.write(HELP_TEXT);
+    return 0;
+  }
   if (args.error !== undefined) {
     process.stderr.write(`preflight_implementation: ${args.error}\n`);
     return 2;

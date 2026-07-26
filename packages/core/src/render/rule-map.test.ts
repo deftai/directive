@@ -310,5 +310,7 @@ describe("rule-map projection containment (#2839)", () => {
 
     expect(() => ruleMapMain(["--project-root", root])).toThrow(ProjectionContainmentError);
     expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
+    // Preflight both sinks first — Markdown must not be left updated when HTML refuses.
+    expect(existsSync(mdPathOf(root))).toBe(false);
   });
 });
