@@ -4,21 +4,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { ensureCliDistBuiltWithLock } from "./cli-dist-test-coordination.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
 const CLI_SRC_DIR = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(CLI_SRC_DIR, "../../..");
 const HOOK_BIN_PATH = join(CLI_SRC_DIR, "../dist/hook-bin.js");
 const VERIFY_ENCODING_PATH = join(CLI_SRC_DIR, "../dist/verify-encoding.js");
-
-function ensureCliDistBuilt(): void {
-  const tscBin = join(REPO_ROOT, "node_modules/typescript/bin/tsc");
-  execFileSync(process.execPath, [tscBin, "-b", "packages/cli"], {
-    cwd: REPO_ROOT,
-    stdio: "pipe",
-  });
-}
 
 const temps: string[] = [];
 afterEach(() => {
@@ -36,7 +28,7 @@ function gitRepo(content: string): string {
 
 describe("CLI bin symlink entrypoints (#2846)", () => {
   beforeAll(() => {
-    ensureCliDistBuilt();
+    ensureCliDistBuiltWithLock();
   });
 
   itSymlink("deft-hook emits Cursor allow JSON through an npm-style bin symlink", () => {

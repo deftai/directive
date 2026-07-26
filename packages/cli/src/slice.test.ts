@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import { waitForCliDistBuildIdle } from "./cli-dist-test-coordination.js";
 import { run } from "./slice.js";
 
 const temps: string[] = [];
@@ -37,6 +38,7 @@ describe("slice thin CLI", () => {
       out.mockRestore();
       err.mockRestore();
     }
+    waitForCliDistBuildIdle();
     expect(spawnSync(process.execPath, [coreCli, "--help"]).status).toBeDefined();
   });
 });

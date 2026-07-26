@@ -6,6 +6,6 @@
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "dist"],
+  "exclude": ["src/**/*.test.ts", "src/cli-dist-test-coordination.ts", "dist"],
   "references": [{ "path": "../core" }]
 }
