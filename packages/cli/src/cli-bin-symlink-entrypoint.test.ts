@@ -3,8 +3,7 @@ import { existsSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { ensureCliDistBuiltWithLock } from "./test-support/cli-dist-build-coordination.js";
+import { afterEach, describe, expect, it } from "vitest";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
@@ -27,11 +26,9 @@ function gitRepo(content: string): string {
 }
 
 describe.sequential("CLI bin symlink entrypoints (#2846)", () => {
-  beforeAll(() => {
-    ensureCliDistBuiltWithLock();
-    if (!existsSync(HOOK_BIN_PATH) || !existsSync(VERIFY_ENCODING_PATH)) {
-      throw new Error("packages/cli dist bins missing after build");
-    }
+  itSymlink("dist bins exist after vitest globalSetup", () => {
+    expect(existsSync(HOOK_BIN_PATH)).toBe(true);
+    expect(existsSync(VERIFY_ENCODING_PATH)).toBe(true);
   });
 
   itSymlink("deft-hook emits Cursor allow JSON through an npm-style bin symlink", () => {
