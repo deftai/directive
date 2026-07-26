@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`deft update` removes orphaned Cursor adapter test (#2838).** Hook deposit refresh now deletes leftover `.cursor/hooks/deft-cursor-hook-adapter.test.mjs` alongside the retired adapter script so `node --test .cursor/hooks/` does not fail on dead imports after upgrade.
+
 ### Removed
 
 ## [0.85.0] - 2026-07-25

@@ -95,4 +95,26 @@ describe("cursor hook projection", () => {
     expect(refreshed.changed).toBe(true);
     expect(existsSync(adapterPath)).toBe(false);
   });
+
+  it("removes legacy adapter and companion test on refresh (#2838)", () => {
+    const root = project();
+    const hooksDir = join(root, ".cursor", "hooks");
+    mkdirSync(hooksDir, { recursive: true });
+    const adapterPath = join(hooksDir, "deft-cursor-hook-adapter.mjs");
+    const adapterTestPath = join(hooksDir, "deft-cursor-hook-adapter.test.mjs");
+    writeFileSync(adapterPath, "export const removed = true;\n", "utf8");
+    writeFileSync(
+      adapterTestPath,
+      "import { removed } from './deft-cursor-hook-adapter.mjs';\n",
+      "utf8",
+    );
+
+    writeAgentHookDeposit(root);
+    const hooksJson = readFileSync(join(root, ".cursor/hooks.json"), "utf8");
+
+    expect(existsSync(adapterPath)).toBe(false);
+    expect(existsSync(adapterTestPath)).toBe(false);
+    expect(hooksJson).toContain(`"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`);
+    expect(hooksJson).toContain("--host cursor --event tool.before");
+  });
 });
