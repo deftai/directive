@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Symlink-escaping write sinks are now refused on rule-map, org-force-on, gitignore, and roadmap render (#2839).** Four medium AppSec findings where repo-controlled leaf symlinks could divert `writeFileSync` outside the checkout are gated with `assertWriteTargetSafe` before write, matching the projection-containment pattern from #2807. Closes #2839.
+- **`deft update` removes orphaned Cursor adapter test (#2838).** Hook deposit refresh now deletes leftover `.cursor/hooks/deft-cursor-hook-adapter.test.mjs` alongside the retired adapter script so `node --test .cursor/hooks/` does not fail on dead imports after upgrade.
 
 ### Removed
 
