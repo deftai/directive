@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import setup, {
+import {
   acquireVitestCliDistBuildLock,
   isStaleVitestCliDistLock,
   releaseVitestCliDistBuildLock,
@@ -53,15 +53,15 @@ describe("cli-dist-global-setup lock", () => {
     expect(isStaleVitestCliDistLock(root)).toBe(false);
   });
 
-  it("expires locks older than the stale window", () => {
+  it("does not expire locks while the owner pid is still alive", () => {
     const root = fakeRepoRoot();
     writeLockMeta(root, { pid: process.pid, startedAt: Date.now() - LOCK_STALE_MS - 1 });
-    expect(isStaleVitestCliDistLock(root)).toBe(true);
+    expect(isStaleVitestCliDistLock(root)).toBe(false);
   });
 
-  it("treats locks owned by dead pids as stale", () => {
+  it("expires dead-owner locks older than the stale window", () => {
     const root = fakeRepoRoot();
-    writeLockMeta(root, { pid: 999_999, startedAt: Date.now() });
+    writeLockMeta(root, { pid: 999_999, startedAt: Date.now() - LOCK_STALE_MS - 1 });
     expect(isStaleVitestCliDistLock(root)).toBe(true);
   });
 
@@ -90,11 +90,5 @@ describe("cli-dist-global-setup lock", () => {
       "timed out acquiring vitest CLI dist build lock",
     );
     releaseVitestCliDistBuildLock(root);
-  });
-});
-
-describe("cli-dist-global-setup", () => {
-  it("builds packages/cli dist under the repo lock", () => {
-    expect(() => setup()).not.toThrow();
   });
 });

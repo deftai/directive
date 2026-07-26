@@ -46,8 +46,8 @@ function isProcessAlive(pid: number): boolean {
 export function isStaleVitestCliDistLock(root: string, now = Date.now()): boolean {
   const meta = readLockMeta(root);
   if (!meta) return true;
-  if (now - meta.startedAt > LOCK_STALE_MS) return true;
-  return !isProcessAlive(meta.pid);
+  if (isProcessAlive(meta.pid)) return false;
+  return now - meta.startedAt > LOCK_STALE_MS;
 }
 
 export function acquireVitestCliDistBuildLock(root: string, timeoutMs = 60_000): void {
@@ -92,7 +92,7 @@ export function releaseVitestCliDistBuildLock(root: string): void {
  * regressions (#2846) never race parallel readers or mid-suite tsc -b writes.
  * Incremental `tsc -b` is a no-op when `task check` already built.
  */
-export default function setup(): void {
+export default function setup(): () => void {
   const root = repoRoot();
   acquireVitestCliDistBuildLock(root);
   try {
@@ -101,7 +101,9 @@ export default function setup(): void {
       cwd: root,
       stdio: "pipe",
     });
-  } finally {
+  } catch (err) {
     releaseVitestCliDistBuildLock(root);
+    throw err;
   }
+  return () => releaseVitestCliDistBuildLock(root);
 }
