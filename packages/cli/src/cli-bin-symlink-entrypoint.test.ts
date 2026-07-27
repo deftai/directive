@@ -49,7 +49,8 @@ describe.sequential("CLI bin symlink entrypoints (#2846)", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout.trim().length).toBeGreaterThan(0);
-    expect(JSON.parse(result.stdout)).toEqual({ permission: "allow" });
+    // code is on the wire for agent-readable verdict classes (#2864).
+    expect(JSON.parse(result.stdout)).toEqual({ permission: "allow", code: "not-direct-write" });
   });
 
   itSymlink("deft-hook denies through a bin symlink instead of silent empty stdout", () => {
@@ -66,6 +67,7 @@ describe.sequential("CLI bin symlink entrypoints (#2846)", () => {
     expect(result.status).toBe(0);
     const decision = JSON.parse(result.stdout);
     expect(decision.permission).toBe("deny");
+    expect(decision.code).toBe("stdin-empty");
     expect(decision.user_message).toContain("stdin was empty");
   });
 
