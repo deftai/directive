@@ -1,5 +1,5 @@
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { lstatSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
 import { type ScanFlag, scan } from "../cache/scanner.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
@@ -689,6 +689,45 @@ export function fetchIssue(
 
 export type IngestResult = "created" | "dryrun" | "duplicate";
 
+/**
+ * Resolve the containment root for ingest writes (#2869 / #2871).
+ *
+ * Precedence:
+ * 1. Explicit `cwd` (CLI project root)
+ * 2. Sentinel walk from vbriefDir (`xbrief` / `vbrief` / `.git`)
+ * 3. Parent of a layout-named lifecycle dir (`…/xbrief` or `…/vbrief`) — even when
+ *    that dir does not exist yet (mkdir is about to create it)
+ * 4. An already-existing non-symlink vbriefDir used as a bare lifecycle root (tests)
+ *
+ * ⊗ Never use a non-existent or symlink path as a silent dirname fallback.
+ */
+function resolveIngestProjectRoot(
+  vbriefDir: string,
+  cwd: string | null | undefined,
+): string | null {
+  if (cwd !== undefined && cwd !== null && cwd.length > 0) {
+    return resolve(cwd);
+  }
+  const walked = resolveProjectRoot(null, vbriefDir);
+  if (walked !== null) {
+    return walked;
+  }
+  const abs = resolve(vbriefDir);
+  const base = basename(abs);
+  if (base === "xbrief" || base === "vbrief" || base === "vBRIEF") {
+    return dirname(abs);
+  }
+  try {
+    const info = lstatSync(abs);
+    if (info.isDirectory() && !info.isSymbolicLink()) {
+      return abs;
+    }
+  } catch {
+    // missing dir — cannot contain writes safely without an explicit root
+  }
+  return null;
+}
+
 export function ingestOne(
   issue: Record<string, unknown>,
   options: {
@@ -733,12 +772,7 @@ export function ingestOne(
 
   // Gate lifecycle folder + leaf before mkdir/write so folder/parent symlinks
   // cannot divert issue:ingest / triage:accept outside the project (#2869).
-  // Fail closed when no project root is resolvable — never use dirname(vbriefDir)
-  // as containment root (that trusts a possibly-symlinked parent; #2871 P1).
-  const projectRoot =
-    options.cwd !== undefined && options.cwd !== null && options.cwd.length > 0
-      ? resolve(options.cwd)
-      : resolveProjectRoot(null, options.vbriefDir);
+  const projectRoot = resolveIngestProjectRoot(options.vbriefDir, options.cwd);
   if (projectRoot === null) {
     throw new ProjectionContainmentError(
       `projection write refused: could not resolve project root for ingest into ${options.vbriefDir}`,
