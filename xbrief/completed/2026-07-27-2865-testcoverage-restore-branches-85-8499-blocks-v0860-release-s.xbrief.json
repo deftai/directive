@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2865 - restore branch coverage >=85% for v0.86.0"
+  },
+  "plan": {
+    "title": "test(coverage): restore branches >= 85% (84.99% blocks v0.86.0 release Step 5)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Release Step 5 fails because vitest branch coverage is 84.99% against the 85% global threshold. v0.85.0 already used --allow-coverage-debt, so this cut must restore real coverage rather than soft-pass again.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2865",
+      "Overview": "Hairline branch-coverage restore so v0.86.0 can clear Step 5 without consecutive coverage-debt soft-pass.",
+      "Labels": "bug, testing",
+      "UserStory": "As a maintainer cutting v0.86.0, I want task check branch coverage at or above 85%, so that the release Step 5 gate passes without --allow-coverage-debt.",
+      "ImplementationPlan": "Run the coverage lane and task coverage:hotspots. Add focused branch tests in packages/core/src/vitest-runner/ (coverage-debt*.ts / win32-coverage-tmp-setup) and other high-ROI near-miss modules identified by hotspots — same approach as #2836 / PR #2845. Confirm global branch coverage >= 85% via pnpm exec vitest run under the ts:check-lane coverage config. Update CHANGELOG.md [Unreleased] citing #2865. Do not use --allow-coverage-debt and do not edit AGENTS.md."
+    },
+    "items": [
+      {
+        "title": "Given the ts:check-lane coverage report, when the suite finishes on this branch, then global branch coverage is at least 85.00%.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given master with this fix merged, when task check runs the coverage gate, then the report shows Coverage for branches >= 85% and the command exits 0 without --allow-coverage-debt."
+        }
+      },
+      {
+        "title": "Given CHANGELOG.md, when the PR opens, then [Unreleased] cites #2865.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the opened PR, when CHANGELOG [Unreleased] is read, then a Fixed or Changed bullet cites #2865."
+        }
+      },
+      {
+        "title": "Given the v0.86.0 cut resume, when Step 5 runs after merge, then --allow-coverage-debt is not required.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given #2865 merged, when task release Step 5 re-runs, then it does not fail on the 84.99% hairline and does not need the debt hatch."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "testing"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2865",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2865: test(coverage): restore branches >= 85% (84.99% blocks v0.86.0 release Step 5)"
+      }
+    ],
+    "id": "2026-07-27-2865-testcoverage-restore-branches-85-8499-blocks-v0860-release-s",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vitest-runner/coverage-debt.ts",
+          "packages/core/src/vitest-runner/coverage-debt.test.ts",
+          "packages/core/src/vitest-runner/coverage-debt-teardown.test.ts",
+          "packages/core/src/vitest-runner/win32-coverage-tmp-setup.test.ts",
+          "packages/core/src/policy/org-force-on-migration.test.ts",
+          "packages/core/src/review-monitor/github-lease-default-fetch.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vitest-runner --coverage",
+          "task check"
+        ],
+        "expected_outputs": [
+          "branch coverage >= 85%",
+          "CHANGELOG Unreleased citing #2865"
+        ],
+        "depends_on": [],
+        "conflict_group": "coverage-2865",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to #2865 acceptance and release Step 5 failure log (84.99%)."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-27T17:51:33Z"
+    },
+    "updated": "2026-07-27T17:51:33Z"
+  }
+}

@@ -47,6 +47,25 @@ Release Step 5 runs `task check` → vitest coverage with a **20-minute hard tim
 
 Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-link).
 
+## Fixable check failure during release (#2859)
+
+When Phase 1 `task ci:local` / `task check` fails on a **fixable product or test defect** during a cut, do **not** lead with an inline hotfix on the release branch or untracked `--skip-ci`. Pause the cut and route the blocker through normal issue → xBRIEF → feature branch → PR → merge → confirm check green → resume Phase 1.
+
+The full agent contract (including the explicit rejection of AGENTS.md / agents-entry bulk for this reminder) lives in `skills/deft-directive-release/SKILL.md` § **Fixable check failure — file-and-merge before resume (#2859)**. Production `--skip-ci` with `--allow-skip-ci=#N` remains incident-only per § Vitest coverage hang recovery above.
+
+## Coverage debt hatch during release (#2866)
+
+When **`task release` Step 5** fails on Vitest coverage below the 85% goal, use this hatch **only** when **branches** is the **sole** metric below 85% (lines, functions, and statements all ≥ 85%). Confirm from the Step 5 output or `task coverage:hotspots`. If any other metric also misses, or the failure is a hang / failing test / non-coverage defect, pause and follow § Fixable check failure during release (#2859).
+
+**Runtime note:** `--allow-coverage-debt=#N` zeros all vitest coverage thresholds for the Step 5 run (`vitest.config.ts`, #2573). File debt only for branch-only hairlines; acceptance criteria must restore **all four metrics** to ≥ 85%.
+
+1. **No open coverage-debt issue** → union three probes: (a) open issues with `coverage-debt in:title,body`, (b) open issues with `allow-coverage-debt in:body`, (c) open issues cited via `--allow-coverage-debt=#N` in `CHANGELOG.md` `[Unreleased]` or the last three release sections (legacy hatch debt before markers were mandatory). If all empty, file `#N` with title prefix `coverage-debt:` and body containing both `coverage-debt` and `--allow-coverage-debt`, then continue with `--allow-coverage-debt=#N` on `task release`. On PowerShell use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` (#2621).
+2. **Open coverage-debt issue from a prior hatch still exists** → do **not** soft-pass again; restore all four metrics to ≥ 85% and close the debt issue before the cut proceeds.
+
+The hatch is **release-scoped only** — not the default for ordinary PR / `task check` work. Hangs, failing tests, multi-metric coverage misses, and other non-coverage Step 5 failures stay under § Fixable check failure during release (#2859).
+
+Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)**.
+
 ## What the Smoke Tests Verify
 
 Every build is tested on its native platform (including `macos-latest` and `ubuntu-24.04-arm`):

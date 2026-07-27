@@ -92,12 +92,60 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ⊗ Foreground-block the operator chat on reconcile / `ci:local` / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
 
+### Fixable check failure — file-and-merge before resume (#2859)
+
+! When Step 4 (`task ci:local` or `task check`) fails on a **fixable product or test defect** (hang, failing test, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
+
+? **Step 5 branch-coverage threshold misses** during `task release` (Vitest branch coverage below 85% with no other failure mode) are carved out to § Step 5 branch-coverage threshold — open-issue ledger hatch (#2866) below — not this file-and-merge path.
+
+**Required path:**
+1. File a GitHub issue with root cause, recurrence signature, and acceptance criteria.
+2. Ingest / promote / activate scope xBRIEF; implement on a feature branch with `drive-to: merge-ready`.
+3. Merge; confirm `task check` / `ci:local` is green for the failure mode.
+4. Resume the release cut from Phase 1 (re-run Step 4).
+
+⊗ Lead with an inline-only hotfix on the release branch / default branch without a tracked issue and merged PR.
+⊗ Suggest untracked `--skip-ci` or `--allow-skip-ci` without a **tracked issue number** as the first recovery when the failure is a clear, shippable bug.
+⊗ Continue the cut with "raise timeouts," "fix it here," or other shortcut theater before file-and-merge completes.
+
+? **`--skip-ci` / `--allow-skip-ci=#N` remains valid** only under explicit operator incident review with a **tracked issue** cited on the flag (Phase 4 contract). It is NOT a substitute for filing and merging a fixable defect discovered in Phase 1.
+
+**AGENTS.md bulk rejected (#2859):** Expanding `AGENTS.md` / `content/templates/agents-entry.md` with an always-on pin for this release-phase reminder was considered and **rejected**. This rule lives in the release skill (and optional lesson); do NOT add AGENTS.md / agents-entry bulk for it.
+
+See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure during release for the operator runbook and the existing `--allow-skip-ci=#N` incident contract.
+
+### Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)
+
+! When **`task release` Step 5** fails on Vitest coverage below the 85% goal, apply this hatch **only** when **branches** is the **sole** metric below 85% (hairline branch miss — lines, functions, and statements all ≥ 85%). Confirm via the Step 5 failure output or `task coverage:hotspots` before hatching. If **any other metric** is also below 85%, or the failure is a hang / failing test / non-coverage defect, STOP — use § Fixable check failure — file-and-merge before resume (#2859) instead.
+
+**Runtime disclosure (#2573):** `--allow-coverage-debt=#N` sets vitest coverage thresholds to zero for the release Step 5 run (`vitest.config.ts`). The hatch is justified only for branch-only hairlines; the filed debt issue MUST require restoring **all four metrics** (lines, functions, branches, statements) to ≥ 85% before close.
+
+**Open-issue ledger (release-scoped only):**
+
+1. Check for an **open coverage-debt tracking issue** (unpaid hatch from a prior cut) — union all three probes and dedupe by issue number:
+   - **Marker search** (new-format debt issues):
+     ```
+     gh issue list --repo <owner>/<repo> --state open --search "coverage-debt in:title,body" --limit 20
+     gh issue list --repo <owner>/<repo> --state open --search "allow-coverage-debt in:body" --limit 20
+     ```
+   - **CHANGELOG citation scan** (legacy hatch issues filed before markers were mandatory): parse `CHANGELOG.md` `[Unreleased]` plus the last three `## [version]` sections for `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations; for each `#N`, run `gh issue view N --json state --jq .state` — `OPEN` counts as unpaid debt even when title/body lack the new markers (#2866).
+2. If **no open coverage-debt issue exists** → file `#N` with title prefix `coverage-debt:` and body containing both markers `coverage-debt` and `--allow-coverage-debt`, documenting measured metrics, branch-only trigger, and acceptance criteria (restore **all four** coverage metrics ≥ 85%). Continue the cut with `--allow-coverage-debt=#N` on `task release` (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — see Anti-Patterns #2621). The open `#N` remains WIP until coverage is restored and the issue is closed.
+3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real coverage (all four metrics ≥ 85%) and close the debt issue before the cut proceeds.
+
+⊗ Auto-pass on a near-miss band without `#N` (#2573).
+⊗ Silent soft-pass with no tracked issue.
+⊗ File a debt issue without `coverage-debt` / `allow-coverage-debt` markers in title or body — the ledger query will miss it and permit a consecutive soft-pass (#2866).
+⊗ Use this carve-out when lines, functions, or statements are also below 85%, or for hangs, failing tests, or non-coverage Step 5 failures — those stay under #2859 file-and-merge.
+⊗ Treat file-debt-then-hatch as the default for ordinary PR / `task check` work outside a release cut — this hatch is release-scoped only.
+
+See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch during release.
+
 ~ **Frozen Go-installer bridge (#1912 / #1972 / #1987):** by default a release tag *above* the frozen line (the `LAST_GO_INSTALLER` constant in `packages/core/src/legacy-bridge/sot.ts`) will NOT rebuild the 6 Go binaries -- the CI `freeze-gate` job in `.github/workflows/release.yml` skips the build (the run stays green; npm still ships from the separate `npm-publish.yml`). If this release must rebuild the Go installer, follow the runbook in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge: roll `LAST_GO_INSTALLER` forward to the cut tag BEFORE tagging (pinning to the exact cut tag both releases the gate AND re-freezes at the new line), then see that section's "After the release" step for the re-pin.
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
 2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content (breaking change → major; new feature → minor; fix-only → patch)
 3. ! Inspect `[Unreleased]` content vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
-4. ! Verify `task ci:local` passes locally (or `task check` as the graceful-degradation fallback per `tasks/release.yml` line 9-10). The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier
+4. ! Verify `task ci:local` passes locally (or `task check` as the graceful-degradation fallback per `tasks/release.yml` line 9-10). The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier — **on failure from a fixable defect, STOP and follow § Fixable check failure below (#2859); do NOT proceed to step 5**
 5. ! Verify `gh auth status` reports authenticated (`task release` will refuse otherwise)
 6. ! **Run `task reconcile:issues -- --apply-lifecycle-fixes` to clear any closed-issue / non-completed-folder xBRIEFs before invoking `task release`** (#734). The release pipeline carries the deterministic gate at Step 3 (`scripts/release.py::check_vbrief_lifecycle_sync`, refuses with `EXIT_VIOLATION` on any Section (c) mismatch), but Phase 1 is the operator's first-line defence -- running the apply-mode flag here is the canonical clean path; `--allow-vbrief-drift` on the pipeline exists only as the explicit-acknowledgment escape hatch (analogous to `--allow-dirty`). The recurrence record is the v0.21.0 cut, which surfaced 13 stranded xBRIEFs (8 cycle-relevant + 5 historical residue) post-publish; the gate now blocks that drift before any irreversible action
 7. ! **Verify the proposed `v<version>` tag is not already in use locally, on origin, or as a published GitHub release** (#784). The release pipeline carries the deterministic gate at Step 4 (`scripts/release.py::check_tag_available`, refuses with `EXIT_VIOLATION` before any state mutation -- CHANGELOG promotion, ROADMAP refresh, build, commit), but Phase 1 is the operator's first-line defence. Quickly probe with `git tag -l v<version>` (local), `git ls-remote --tags origin refs/tags/v<version>` (remote), and `gh release view v<version> --repo <owner>/<repo>` (release-only, where `gh release view` exits 0 only when the release exists). The recurrence record is the v0.22.0 → v0.23.0 release attempt on 2026-05-01: the operator typed `0.22.0` (the prior release from 12 hours earlier) and the legacy pipeline ran 8 steps before failing at `git tag` -- leaving a wrong-version local commit + `dist/deft-0.22.0.zip` orphan + manual `git reset --hard` recovery. The new pre-flight gate blocks that mode before any irreversible action
@@ -310,4 +358,4 @@ Where `<one-line guidance>` is one of:
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
 - ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** env prefix on those three git commands only — see Branch-Protection Policy Guard, #2623)
 - ⊗ Pass `--allow-coverage-debt=#N` unquoted on Windows PowerShell (#2621) -- `#` starts a comment and silently drops the issue number. Use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"`
-- ⊗ Soft-pass coverage debt on consecutive releases when the prior cut already cited debt (#2618 / #2573) -- restore real branch coverage >= 85% instead of reusing the escape hatch
+- ⊗ Soft-pass coverage debt while an **open** coverage-debt issue from a prior hatch still exists (#2866 / #2573) -- restore real branch coverage >= 85% and close the debt issue before reusing `--allow-coverage-debt`; the ledger is open GitHub issues, not prior CHANGELOG citations (#2618 superseded by open-issue ledger)

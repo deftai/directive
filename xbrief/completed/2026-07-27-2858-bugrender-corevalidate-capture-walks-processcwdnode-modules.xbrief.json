@@ -1,0 +1,91 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2858 — core:validate must honor dispatcher cwd and not walk node_modules"
+  },
+  "plan": {
+    "id": "2026-07-27-2858-bugrender-corevalidate-capture-walks-processcwdnode-modules",
+    "title": "bug(render): core:validate capture walks process.cwd()/node_modules (hangs task check)",
+    "status": "completed",
+    "narratives": {
+      "Description": "cmdCoreValidate always walks collectMarkdownFiles(\".\") so runFrameworkCommand with a scoped frameworkRoot still validates process.cwd(). Under task check that walks the monorepo plus .deft-scratch worktree node_modules and times out at 120s, blocking release.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2858",
+      "Overview": "Pass the dispatcher cwd into the inline core:validate path; harden collectMarkdownFiles to skip node_modules and .deft-scratch; keep the temp-root regression test under a short timeout; CHANGELOG cites #2858.",
+      "Labels": "bug, testing, agent-experience",
+      "ImplementationPlan": "1) In packages/core/src/render/framework-commands.ts, change cmdCoreValidate / collectMarkdownFiles to accept an explicit root (default \".\" only when intentional). 2) Update invokeEntrypoint inline TS_INLINE handlers so framework_commands:_cmd_core_validate receives the resolved cwd argument (no ambient chdir). 3) Exclude node_modules, .deft-scratch, and similar junk from collectMarkdownFiles. 4) Ensure packages/core/src/render/framework-commands-branches.test.ts cmdCoreValidate succeeds with capture passes quickly against a temp root. 5) Verify with pnpm exec vitest run packages/core/src/render/framework-commands-branches.test.ts and CHANGELOG [Unreleased] citing #2858.",
+      "UserStory": "As a maintainer running task check before a release, I want core:validate to honor the scoped framework root and finish quickly, so that Vitest does not hang walking worktree node_modules."
+    },
+    "items": [
+      {
+        "title": "Given a temp frameworkRoot, when core:validate runs with capture, then only that tree is walked.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given runFrameworkCommand(\"core:validate\", [], { capture: true, frameworkRoot: temp, projectRoot: temp }) with one sample.md in temp, when the command runs, then it exits 0 quickly and stdout reports that single-file validation without walking the repo node_modules."
+        }
+      },
+      {
+        "title": "Given collectMarkdownFiles on a large checkout, when junk dirs exist, then they are skipped.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a tree containing node_modules and .deft-scratch, when collectMarkdownFiles runs, then those directories are not descended into."
+        }
+      },
+      {
+        "title": "Given the branch coverage test, when vitest runs it, then it passes under a short timeout.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/render/framework-commands-branches.test.ts, when pnpm exec vitest run that file, then cmdCoreValidate succeeds with capture passes without a 120s timeout."
+        }
+      },
+      {
+        "title": "Given the fix lands, when CHANGELOG is updated, then #2858 is cited.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the render fix, when the PR opens, then CHANGELOG [Unreleased] cites #2858."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "testing",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2858",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2858: bug(render) core:validate capture walks process.cwd()/node_modules"
+      }
+    ],
+    "updated": "2026-07-27T14:56:27Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/render/framework-commands.ts",
+          "packages/core/src/render/framework-commands-branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/render/framework-commands-branches.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "cwd-aware cmdCoreValidate",
+          "collectMarkdownFiles skips node_modules/.deft-scratch",
+          "CHANGELOG Unreleased citing #2858"
+        ],
+        "depends_on": [],
+        "conflict_group": "render-core-validate-2858",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2858 acceptance and release-blocker diagnosis rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-27T14:56:27Z"
+    }
+  }
+}

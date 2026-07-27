@@ -16,12 +16,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Doctor `--full` live-probes deposited agent hooks (#2852).** After structural registration checks pass, doctor spawns the configured `deft-hook` command with Cursor `tool.before` allow and deny fixtures and warns when stdout is empty, unparseable, or missing an expected deny — surfacing #2846-class packaging failures that structurally valid deposits hide. Closes #2852.
-
 ### Changed
 
 ### Fixed
 
+### Removed
+
+## [0.86.0] - 2026-07-27
+
+> Doctor live-probe and maintainer false-positive fixes, symlink-safe hooks/CLI and AppSec write sinks, core:validate no longer hangs task check, and release Phase 1 file-and-merge discipline.
+
+### Added
+
+- **Doctor `--full` live-probes deposited agent hooks (#2852).** After structural registration checks pass, doctor spawns the configured `deft-hook` command with Cursor `tool.before` allow and deny fixtures and warns when stdout is empty, unparseable, or missing an expected deny — surfacing #2846-class packaging failures that structurally valid deposits hide. Closes #2852.
+
+### Changed
+
+- **Release Phase 1 routes fixable `task check` failures through file-and-merge (#2859).** When `task ci:local` / `task check` fails on a shippable defect during a cut, the release skill requires filing a tracked issue and merging a fix before resuming — not inline hotfix theater or untracked `--skip-ci`. AGENTS.md bulk for this reminder was considered and rejected. Closes #2859.
+- **Release Step 5 branch-coverage hairlines use open-issue ledger hatch (#2866).** When `task release` Step 5 fails only on Vitest branch coverage below 85% and no open coverage-debt issue exists, file `#N` and continue with `--allow-coverage-debt=#N` (PowerShell-safe); while a prior hatch debt issue remains open, soft-pass is forbidden until coverage is restored. Non-coverage failures stay under #2859 file-and-merge. Closes #2866.
+
+### Fixed
+
+- **Vitest branch coverage restored above 85% (#2865).** Focused win32 coverage setup and coverage-debt argv branch tests clear the 84.99% hairline so v0.86.0 Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2865.
+- **`core:validate` honors the dispatcher cwd and skips junk trees (#2858).** Inline `core:validate` now walks the resolved framework root instead of ambient `process.cwd()`, and `collectMarkdownFiles` skips `node_modules` and `.deft-scratch` so `task check` no longer hangs on maintainer clones with swarm worktrees. Closes #2858.
 - **Doctor no longer misclassifies a maintainer clone as a consumer when using the global CLI (#2850).** `frameworkRoot` now resolves via `resolveFrameworkRootForProject(projectRoot)` so hooks and Deft structure checks skip on a source checkout like install-integrity already does; `EXPECTED_FRAMEWORK_DIRS` expects `xbrief/` instead of legacy `vbrief/`. Closes #2850.
 - **deft-hook and guarded CLI bins now run through npm bin symlinks (#2846).** Global npm bins are symlinks; the entrypoint guard compared raw `process.argv[1]` to `import.meta.url`, so `main()` never ran (empty stdout exit 0). Cursor failClosed blocked all edits; other hosts silently dropped deny decisions. Shared `isDirectEntrypoint` realpath-compares both sides. Closes #2846.
 - **migrate:xbrief and policy wip-cap/subagent-backend refuse symlink write targets (#2847).** `runAgentsRefresh` during `migrate:xbrief` and the `policy set wip-cap` / `policy set subagent-backend` writers now gate AGENTS.md and PROJECT-DEFINITION paths with `assertWriteTargetSafe` and atomic write helpers instead of bare `writeFileSync`, so a malicious repo cannot redirect trusted CLI writes outside the checkout. Closes #2847.
@@ -4671,7 +4688,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.85.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.86.0...HEAD
+[0.86.0]: https://github.com/deftai/directive/compare/v0.85.0...v0.86.0
 [0.85.0]: https://github.com/deftai/directive/compare/v0.84.0...v0.85.0
 [0.84.0]: https://github.com/deftai/directive/compare/v0.83.0...v0.84.0
 [0.83.0]: https://github.com/deftai/directive/compare/v0.82.0...v0.83.0

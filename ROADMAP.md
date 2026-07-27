@@ -1043,4 +1043,17 @@
 - **#2824** -- bug(swarm,cursor): drive-to:merge Task leaves go dark with no heartbeat gate or REDISPATCH_OK -- `[completed]`
 - **#2826** -- fix(preflight-cache): treat successful empty open-issue refresh as fresh -- `[completed]`
 - **#2828** -- bug(cli): deft update --help performs the update instead of printing help -- `[completed]`
+- **#2836** -- test(coverage): restore branches >=85% after v0.85.0 hairline miss (84.95%) -- `[completed]`
+- **#2837** -- bug(cli): documented xbrief:preflight separator form fails on v0.84.0 -- `[completed]`
+- **#2838** -- bug(hooks): deft update leaves orphaned deft-cursor-hook-adapter.test.mjs -- `[completed]`
+- **#2839** -- AppSec review — 4 new medium findings (4f570263) -- `[completed]`
+- **#2843** -- swarm: monitor must not self-implement after drive-to:merge-ready leaf exits BLOCKED/DONE-with-blockers -- `[completed]`
+- **#2846** -- bug(hooks): deft-hook symlink shim never runs main() (argv[1] realpath mismatch) -- `[completed]`
+- **#2847** -- AppSec: medium symlink-follow writes in migrate:xbrief + policy wip-cap/subagent-backend -- `[completed]`
+- **#2850** -- bug(doctor): Deft structure + agent-host hook checks fire spurious warnings in framework maintainer clone -- `[completed]`
+- **#2852** -- doctor: live-probe agent hooks (empty/unparseable stdout is currently invisible) -- `[completed]`
+- **#2858** -- bug(render): core:validate capture walks process.cwd()/node_modules (hangs task check) -- `[completed]`
+- **#2859** -- release: on task check failure, file-and-merge the blocker — do not lead with inline hotfix (AGENTS.md bulk rejected) -- `[completed]`
+- **#2865** -- test(coverage): restore branches >= 85% (84.99% blocks v0.86.0 release Step 5) -- `[completed]`
+- **#2866** -- release: prefer --allow-coverage-debt=#N when no open coverage-debt issue (don't interrupt cut for hairlines) -- `[completed]`
 
