@@ -32,6 +32,47 @@ export interface TransitionResult {
   readonly message: string;
 }
 
+/** Item statuses that still represent unfinished work and should advance on terminal transitions (#2862). */
+const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
+
+/** Terminal lifecycle actions that reconcile the brief's own plan.items (#2862). */
+const OWN_ITEMS_RECONCILE_ACTIONS = new Set<ScopeAction>(["complete", "fail", "cancel"]);
+
+/**
+ * Advance non-terminal plan.items / subItems to the terminal target status.
+ * Leaves cancelled / failed / completed / other non-pending-proposed-running items alone (#2862).
+ */
+function advanceNonTerminalOwnItems(items: unknown, targetStatus: string): void {
+  if (!Array.isArray(items)) {
+    return;
+  }
+  for (const item of items) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    const status = String(obj.status ?? "");
+    if (NON_TERMINAL_ITEM_STATUSES.has(status)) {
+      obj.status = targetStatus;
+    }
+    advanceNonTerminalOwnItems(obj.subItems, targetStatus);
+    advanceNonTerminalOwnItems(obj.items, targetStatus);
+  }
+}
+
+/**
+ * Refresh the document envelope `updated` stamp to match `plan.updated`.
+ * Stamps whichever of xBRIEFInfo (v0.8) / vBRIEFInfo (v0.6) is present — never creates one (#2862 / #2346).
+ */
+function stampEnvelopeUpdated(data: Record<string, unknown>, nowIso: string): void {
+  for (const key of ["xBRIEFInfo", "vBRIEFInfo"] as const) {
+    const env = data[key];
+    if (typeof env === "object" && env !== null && !Array.isArray(env)) {
+      (env as Record<string, unknown>).updated = nowIso;
+    }
+  }
+}
+
 export function runTransition(
   action: string,
   filePath: string,
@@ -132,6 +173,13 @@ export function runTransition(
   const nowIso = utcNowIso(now);
   planObj.status = targetStatus;
   planObj.updated = nowIso;
+  // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).
+  stampEnvelopeUpdated(data, nowIso);
+
+  // Reconcile the completing brief's own plan.items (mirrors #1527 / #2566 registry sync) (#2862).
+  if (OWN_ITEMS_RECONCILE_ACTIONS.has(act)) {
+    advanceNonTerminalOwnItems(planObj.items, targetStatus);
+  }
 
   if (act === "complete") {
     stampCompletionMetadata(planObj, projectRoot, nowIso);

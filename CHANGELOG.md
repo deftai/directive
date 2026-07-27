@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`scope:complete` reconciles the completing brief's own `plan.items` and envelope `updated` (#2862).** Terminal transitions (`complete` / `fail` / `cancel`) now advance non-terminal own items (and nested `subItems`) to the terminal status while preserving already-terminal items (`cancelled` / `failed` / `completed`), and stamp `xBRIEFInfo.updated` or `vBRIEFInfo.updated` alongside `plan.updated`. Closes #2862.
+
 ### Removed
 
 ## [0.86.0] - 2026-07-27
