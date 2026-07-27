@@ -43,7 +43,7 @@ import { runNpmRegistryMirrorCheck } from "./npm-registry.js";
 import { createPlainSink } from "./output.js";
 import {
   readTextSafe,
-  resolveDefaultFrameworkRoot,
+  resolveFrameworkRootForProject,
   resolvePath,
   resolveVersion,
   runningInsideDeftRepo,
@@ -99,7 +99,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const quietMode = flags.quiet;
   const fullMode = flags.full;
   const projectRoot = resolvePath(flags.projectRoot ?? process.cwd());
-  const frameworkRoot = seams.frameworkRoot ?? resolveDefaultFrameworkRoot();
+  const frameworkRoot = seams.frameworkRoot ?? resolveFrameworkRootForProject(projectRoot);
   const consumerContext = resolve(projectRoot) !== resolve(frameworkRoot);
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());

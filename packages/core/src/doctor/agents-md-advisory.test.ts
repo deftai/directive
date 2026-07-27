@@ -28,7 +28,7 @@ function makeConsumerDeposit(options: {
   const framework = mkdtempSync(join(tmpdir(), "deft-doc-advisory-fw-"));
   temps.push(root, framework);
   const deposit = join(root, ".deft", "core");
-  for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "vbrief"]) {
+  for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "xbrief"]) {
     mkdirSync(join(deposit, dir), { recursive: true });
   }
   const lines: string[] = [];

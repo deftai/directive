@@ -4,6 +4,28 @@ import { createPlainSink } from "./output.js";
 import type { DoctorSeams, Finding } from "./types.js";
 
 describe("runAgentHooksHealthCheck", () => {
+  it("skips agent-hooks registration on maintainer source checkout", () => {
+    const lines: string[] = [];
+    const findings: Finding[] = [];
+
+    runAgentHooksHealthCheck(
+      "/project",
+      false,
+      createPlainSink({ write: (text) => lines.push(text) }),
+      (finding) => findings.push(finding),
+      {},
+    );
+
+    expect(lines.join("")).toContain("skip -- maintainer source checkout");
+    expect(findings).toEqual([
+      expect.objectContaining({
+        severity: "skip",
+        check: "agent-hooks-registration",
+        status: "skip",
+      }),
+    ]);
+  });
+
   it("records structural health and leaves Codex runtime trust unverifiable", () => {
     const lines: string[] = [];
     const findings: Finding[] = [];

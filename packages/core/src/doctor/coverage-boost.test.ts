@@ -151,7 +151,7 @@ describe("doctor branch coverage boost", () => {
     const framework = mkdtempSync(join(tmpdir(), "deft-doc-framework-layout-"));
     const deposit = join(root, ".deft", "core");
     try {
-      for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "vbrief"]) {
+      for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "xbrief"]) {
         mkdirSync(join(deposit, dir), { recursive: true });
       }
       writeFileSync(

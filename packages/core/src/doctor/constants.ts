@@ -64,10 +64,10 @@ export const PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE =
 
 // Engine / lifecycle dirs that stay at the framework root (NOT relocated by
 // #1875). Shippable-content dirs moved under content/ -- see EXPECTED_CONTENT_DIRS.
-export const EXPECTED_FRAMEWORK_DIRS = ["tasks", "scripts", "vbrief"] as const;
+export const EXPECTED_FRAMEWORK_DIRS = ["tasks", "scripts", "xbrief"] as const;
 
 /** npm consumer deposit after #2022 Phase 3 -- Python scripts/ tree is intentionally absent. */
-export const CONSUMER_FRAMEWORK_DIRS = ["tasks", "vbrief"] as const;
+export const CONSUMER_FRAMEWORK_DIRS = ["tasks", "xbrief"] as const;
 
 // Post-#1875 content/ move: these framework-internal markers now live under
 // content/ in the SOURCE repo. They identify a deft source checkout (a consumer

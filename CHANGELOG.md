@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Doctor no longer misclassifies a maintainer clone as a consumer when using the global CLI (#2850).** `frameworkRoot` now resolves via `resolveFrameworkRootForProject(projectRoot)` so hooks and Deft structure checks skip on a source checkout like install-integrity already does; `EXPECTED_FRAMEWORK_DIRS` expects `xbrief/` instead of legacy `vbrief/`. Closes #2850.
 - **deft-hook and guarded CLI bins now run through npm bin symlinks (#2846).** Global npm bins are symlinks; the entrypoint guard compared raw `process.argv[1]` to `import.meta.url`, so `main()` never ran (empty stdout exit 0). Cursor failClosed blocked all edits; other hosts silently dropped deny decisions. Shared `isDirectEntrypoint` realpath-compares both sides. Closes #2846.
 - **migrate:xbrief and policy wip-cap/subagent-backend refuse symlink write targets (#2847).** `runAgentsRefresh` during `migrate:xbrief` and the `policy set wip-cap` / `policy set subagent-backend` writers now gate AGENTS.md and PROJECT-DEFINITION paths with `assertWriteTargetSafe` and atomic write helpers instead of bare `writeFileSync`, so a malicious repo cannot redirect trusted CLI writes outside the checkout. Closes #2847.
 - **Vitest branch coverage restored above 85% (#2836).** Added focused tests for coverage-debt teardown, GitHub review-owner default fetch, org force-on edge paths, and win32 coverage setup, clearing the v0.85.0 `--allow-coverage-debt` citation without a consecutive soft-pass. Closes #2836.

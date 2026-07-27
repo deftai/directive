@@ -113,6 +113,59 @@ describe("cmdDoctor", () => {
   });
 });
 
+describe("cmdDoctor maintainer clone classification (#2850)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function makeMaintainerClone(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-doctor-2850-"));
+    created.push(root);
+    writeFileSync(join(root, "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(root, "AGENTS.md"), "# Agents\n", "utf8");
+    mkdirSync(join(root, "content", "templates"), { recursive: true });
+    mkdirSync(join(root, "content", "skills", "deft-directive-build"), { recursive: true });
+    writeFileSync(join(root, "content", "templates", "agents-entry.md"), "# agents\n", "utf8");
+    writeFileSync(
+      join(root, "content", "skills", "deft-directive-build", "SKILL.md"),
+      "# build\n",
+      "utf8",
+    );
+    for (const dir of ["languages", "strategies", "skills", "templates"]) {
+      mkdirSync(join(root, "content", dir), { recursive: true });
+    }
+    for (const dir of ["tasks", "scripts", "xbrief"]) {
+      mkdirSync(join(root, dir), { recursive: true });
+    }
+    return root;
+  }
+
+  it("skips hooks and structure warnings when global CLI targets a maintainer clone", () => {
+    const root = makeMaintainerClone();
+    const stdout: string[] = [];
+    const write = (t: string) => stdout.push(t);
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = write as typeof process.stdout.write;
+    try {
+      const exit = cmdDoctor(["--full", "--json", "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+      });
+      expect(exit).toBe(0);
+      const payload = stdout.join("");
+      expect(payload).toContain('"check": "agent-hooks-registration"');
+      expect(payload).toContain("maintainer source checkout");
+      expect(payload).not.toContain('"check": "framework-layout"');
+      expect(payload).not.toContain("Missing directory:");
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
+});
+
 describe("parseDoctorFlags", () => {
   it("parses project-root forms", () => {
     expect(parseDoctorFlags(["--project-root", "/tmp"]).projectRoot).toBe("/tmp");
