@@ -28,17 +28,14 @@ export function loadVbrief(path: string): Record<string, unknown> {
 }
 
 /**
- * Persist an xBRIEF/vBRIEF JSON document. Gates the write target so a leaf or
- * parent-directory symlink cannot divert the stamped file outside the project (#2869).
+ * Resolve project root and refuse unsafe write targets before any emit side-effect.
+ * Callers that create remote issues MUST invoke this before `fileIssue` so a
+ * containment refusal cannot leave an orphan GitHub issue (#2869 / #2871).
  *
  * ⊗ Do not fall back to `dirname(path)` as the containment root — that trusts a
  * possibly-symlinked parent and would re-open the escape (Greptile P1 on #2871).
  */
-export function writeVbrief(
-  path: string,
-  data: Record<string, unknown>,
-  projectRoot?: string | null,
-): void {
+export function assertVbriefWriteTargetSafe(path: string, projectRoot?: string | null): string {
   const absPath = resolve(path);
   const root =
     projectRoot !== undefined && projectRoot !== null && projectRoot.length > 0
@@ -55,7 +52,20 @@ export function writeVbrief(
     );
   }
   assertWriteTargetSafe(root, absPath);
-  writeFileSync(absPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  return root;
+}
+
+/**
+ * Persist an xBRIEF/vBRIEF JSON document. Gates the write target so a leaf or
+ * parent-directory symlink cannot divert the stamped file outside the project (#2869).
+ */
+export function writeVbrief(
+  path: string,
+  data: Record<string, unknown>,
+  projectRoot?: string | null,
+): void {
+  assertVbriefWriteTargetSafe(path, projectRoot);
+  writeFileSync(resolve(path), `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
 export function vbriefTitle(data: Record<string, unknown>): string {
@@ -239,10 +249,12 @@ export function emitSingle(
     return { result: "dryrun", vbrief: shown, url: null, title };
   }
 
+  // Containment gate BEFORE remote create — refusal must not leave an orphan issue (#2871).
+  const root = assertVbriefWriteTargetSafe(path, options.projectRoot);
   const body = renderIssueBody(data);
   const url = fileIssue(options.repo, title, body, options.scmCall);
   addGithubIssueReference(data, url);
-  writeVbrief(path, data, options.projectRoot);
+  writeVbrief(path, data, root);
   return { result: "created", vbrief: shown, url, title };
 }
 
@@ -316,6 +328,11 @@ export function emitUmbrella(
       title: umbrellaTitle,
       vbriefs: [...pending.map(([, disp]) => ({ vbrief: disp, result: "dryrun" })), ...already],
     };
+  }
+
+  // Gate every pending write target before the single remote umbrella create (#2871).
+  for (const [path] of pending) {
+    assertVbriefWriteTargetSafe(path, options.projectRoot);
   }
 
   const body = renderUmbrellaBody(pending.map(([, disp, data]) => [disp, data]));
