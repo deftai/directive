@@ -122,12 +122,13 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure d
 
 **Open-issue ledger (release-scoped only):**
 
-1. Check for an **open coverage-debt tracking issue** (unpaid hatch from a prior cut) with a deterministic query — any open issue whose title or body contains `coverage-debt` **or** `allow-coverage-debt`:
-   ```
-   gh issue list --repo <owner>/<repo> --state open --search "coverage-debt in:title,body" --limit 20
-   gh issue list --repo <owner>/<repo> --state open --search "allow-coverage-debt in:body" --limit 20
-   ```
-   (Union the results; dedupe by issue number.)
+1. Check for an **open coverage-debt tracking issue** (unpaid hatch from a prior cut) — union all three probes and dedupe by issue number:
+   - **Marker search** (new-format debt issues):
+     ```
+     gh issue list --repo <owner>/<repo> --state open --search "coverage-debt in:title,body" --limit 20
+     gh issue list --repo <owner>/<repo> --state open --search "allow-coverage-debt in:body" --limit 20
+     ```
+   - **CHANGELOG citation scan** (legacy hatch issues filed before markers were mandatory): parse `CHANGELOG.md` `[Unreleased]` plus the last three `## [version]` sections for `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations; for each `#N`, run `gh issue view N --json state --jq .state` — `OPEN` counts as unpaid debt even when title/body lack the new markers (#2866).
 2. If **no open coverage-debt issue exists** → file `#N` with title prefix `coverage-debt:` and body containing both markers `coverage-debt` and `--allow-coverage-debt`, documenting measured metrics, branch-only trigger, and acceptance criteria (restore **all four** coverage metrics ≥ 85%). Continue the cut with `--allow-coverage-debt=#N` on `task release` (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — see Anti-Patterns #2621). The open `#N` remains WIP until coverage is restored and the issue is closed.
 3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real coverage (all four metrics ≥ 85%) and close the debt issue before the cut proceeds.
 

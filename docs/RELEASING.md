@@ -59,7 +59,7 @@ When **`task release` Step 5** fails on Vitest coverage below the 85% goal, use 
 
 **Runtime note:** `--allow-coverage-debt=#N` zeros all vitest coverage thresholds for the Step 5 run (`vitest.config.ts`, #2573). File debt only for branch-only hairlines; acceptance criteria must restore **all four metrics** to ≥ 85%.
 
-1. **No open coverage-debt issue** → query open issues with `coverage-debt in:title,body` and `allow-coverage-debt in:body` (union/dedupe). If empty, file `#N` with title prefix `coverage-debt:` and body containing both `coverage-debt` and `--allow-coverage-debt`, then continue with `--allow-coverage-debt=#N` on `task release`. On PowerShell use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` (#2621).
+1. **No open coverage-debt issue** → union three probes: (a) open issues with `coverage-debt in:title,body`, (b) open issues with `allow-coverage-debt in:body`, (c) open issues cited via `--allow-coverage-debt=#N` in `CHANGELOG.md` `[Unreleased]` or the last three release sections (legacy hatch debt before markers were mandatory). If all empty, file `#N` with title prefix `coverage-debt:` and body containing both `coverage-debt` and `--allow-coverage-debt`, then continue with `--allow-coverage-debt=#N` on `task release`. On PowerShell use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` (#2621).
 2. **Open coverage-debt issue from a prior hatch still exists** → do **not** soft-pass again; restore all four metrics to ≥ 85% and close the debt issue before the cut proceeds.
 
 The hatch is **release-scoped only** — not the default for ordinary PR / `task check` work. Hangs, failing tests, multi-metric coverage misses, and other non-coverage Step 5 failures stay under § Fixable check failure during release (#2859).
