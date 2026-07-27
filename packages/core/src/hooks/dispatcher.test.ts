@@ -277,7 +277,7 @@ describe("direct-write hook policy", () => {
     expect(decision.message).not.toContain("deft session:start");
   });
 
-  it("distinguishes empty stdin from unknown-shape Cursor denies (#2669)", () => {
+  it("distinguishes empty stdin from unknown-shape Cursor denies (#2669 / #2864)", () => {
     const emptyStdin = decideHook(
       {
         host: "cursor",
@@ -288,6 +288,7 @@ describe("direct-write hook policy", () => {
       },
       readySeams(),
     );
+    expect(emptyStdin).toMatchObject({ verdict: "deny", code: "stdin-empty" });
     expect(emptyStdin.message).toContain("stdin was empty");
 
     const parseFailed = decideHook(
@@ -300,6 +301,7 @@ describe("direct-write hook policy", () => {
       },
       readySeams(),
     );
+    expect(parseFailed).toMatchObject({ verdict: "deny", code: "invalid-input" });
     expect(parseFailed.message).toContain("not valid JSON");
 
     const unknownShape = decideHook(
@@ -311,6 +313,7 @@ describe("direct-write hook policy", () => {
       },
       readySeams(),
     );
+    expect(unknownShape).toMatchObject({ verdict: "deny", code: "invalid-input" });
     expect(unknownShape.message).toContain("Top-level payload keys: host_version");
     expect(hookPayloadTopLevelKeys({ host_version: "1.2.3" })).toEqual(["host_version"]);
   });
@@ -872,9 +875,10 @@ describe("provider codecs", () => {
     });
   });
 
-  it("renders Cursor's permission denial", () => {
+  it("renders Cursor's permission denial with decision code on the wire (#2864)", () => {
     expect(JSON.parse(renderHostDecision("cursor", deny))).toMatchObject({
       permission: "deny",
+      code: deny.code,
     });
   });
 
@@ -903,7 +907,7 @@ describe("provider codecs", () => {
     expect(renderHostDecision("codex", allow)).toBe("");
   });
 
-  it("emits explicit Cursor permission allow for failClosed deposits", () => {
+  it("emits explicit Cursor permission allow with code for failClosed deposits (#2864)", () => {
     const allow = decideHook(
       {
         host: "cursor",
@@ -915,6 +919,41 @@ describe("provider codecs", () => {
     );
     expect(JSON.parse(renderHostDecision("cursor", allow))).toEqual({
       permission: "allow",
+      code: "not-direct-write",
+    });
+  });
+
+  it("surfaces stdin-empty code on Cursor deny wire for empty-payload path (#2864)", () => {
+    const empty = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {},
+        payloadContext: { stdinEmpty: true },
+      },
+      readySeams(),
+    );
+    expect(JSON.parse(renderHostDecision("cursor", empty))).toMatchObject({
+      permission: "deny",
+      code: "stdin-empty",
+    });
+  });
+
+  it("surfaces spawn-ready code on Cursor allow wire for Task spawns (#2864)", () => {
+    const spawnAllow = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+      },
+      readySeams(),
+    );
+    expect(spawnAllow.code).toBe("spawn-ready");
+    expect(JSON.parse(renderHostDecision("cursor", spawnAllow))).toEqual({
+      permission: "allow",
+      code: "spawn-ready",
     });
   });
 });

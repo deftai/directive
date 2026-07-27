@@ -45,6 +45,8 @@ export type HookDecisionCode =
   | "session-compact-noop"
   | "not-direct-write"
   | "invalid-input"
+  /** Host closed stdin with zero bytes — integration failure, not a policy gate (#2864). */
+  | "stdin-empty"
   | "ritual-not-ready"
   | "scope-not-ready"
   | "write-propose-ready"
@@ -579,9 +581,14 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
 
   const toolName = hookToolName(input.payload, input.host);
   if (toolName === null) {
+    // stdin-empty is a host-integration failure; keep it distinct from invalid-input
+    // so agents can retry without treating it as a policy refusal (#2864).
+    const missingCode: HookDecisionCode = input.payloadContext?.stdinEmpty
+      ? "stdin-empty"
+      : "invalid-input";
     return deny(
       input,
-      "invalid-input",
+      missingCode,
       null,
       missingToolNameMessage({
         host: input.host,
@@ -651,11 +658,16 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
  * hook failure and blocks the tool — so Cursor allows must emit explicit
  * `{"permission":"allow"}`. Other hosts keep empty allow so the host permission
  * flow is unchanged.
+ *
+ * Cursor stdout always includes `code` (stable machine-readable decision code)
+ * so agents can distinguish policy denials from host-integration failures
+ * without parsing English (#2864). Exit status still does not encode the
+ * verdict — see hook-dispatch `run()` exit-code contract.
  */
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {
   if (decision.verdict === "allow") {
     if (host === "cursor") {
-      return JSON.stringify({ permission: "allow" });
+      return JSON.stringify({ permission: "allow", code: decision.code });
     }
     return "";
   }
@@ -676,6 +688,7 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
         permission: "deny",
         user_message: decision.message,
         agent_message: decision.message,
+        code: decision.code,
       });
   }
 }

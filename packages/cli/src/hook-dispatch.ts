@@ -27,6 +27,73 @@ export interface HookDispatchCliSeams {
   readonly writeOut?: (text: string) => void;
   readonly writeErr?: (text: string) => void;
   readonly cwd?: () => string;
+  /**
+   * Sleep between empty-stdin retry polls (#2864). Injected in tests so delayed
+   * payloads can be simulated without real wall-clock waits.
+   */
+  readonly sleepMs?: (ms: number) => void;
+  /**
+   * Empty-stdin retry budget in ms (default {@link DEFAULT_STDIN_EMPTY_RETRY_MS}).
+   * Set `0` to disable retries (single read). Tests for true-empty paths often
+   * set this to 0 for speed; delayed-payload tests set a positive budget.
+   */
+  readonly stdinEmptyRetryMs?: number;
+  /** Clock for empty-stdin deadline; defaults to `Date.now` (tests inject synthetic clocks). */
+  readonly nowMs?: () => number;
+}
+
+/**
+ * How long to re-poll stdin after an empty first read before concluding the host
+ * sent nothing (#2864). Keeps well under Cursor's deposited `timeout: 5` while
+ * covering short non-blocking delivery races (reporter matrix rows K/L).
+ */
+export const DEFAULT_STDIN_EMPTY_RETRY_MS = 250;
+
+/** Interval between empty-stdin re-polls while the retry budget remains. */
+export const STDIN_EMPTY_RETRY_INTERVAL_MS = 25;
+
+function defaultSleepMs(ms: number): void {
+  if (ms <= 0) return;
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      /* spin — last-resort fallback when Atomics.wait is unavailable */
+    }
+  }
+}
+
+/**
+ * Read hook stdin with a short empty-read retry budget (#2864).
+ *
+ * A single `readFileSync(0)` on a non-blocking descriptor can return zero bytes
+ * before the host has attached a writer. That is indistinguishable from a true
+ * empty payload if we never re-poll. We re-read for up to `emptyRetryMs`; true
+ * empty (every poll empty through the budget) still yields empty for the deny
+ * path. Delayed payloads that arrive within the budget are accepted.
+ */
+export function readStdinHardened(
+  readOnce: () => string,
+  options: {
+    emptyRetryMs?: number;
+    sleepMs?: (ms: number) => void;
+    nowMs?: () => number;
+  } = {},
+): string {
+  const emptyRetryMs = options.emptyRetryMs ?? DEFAULT_STDIN_EMPTY_RETRY_MS;
+  const sleepMs = options.sleepMs ?? defaultSleepMs;
+  const nowMs = options.nowMs ?? (() => Date.now());
+  let raw = readOnce();
+  if (raw.trim().length > 0 || emptyRetryMs <= 0) return raw;
+
+  const deadline = nowMs() + emptyRetryMs;
+  while (nowMs() < deadline) {
+    sleepMs(STDIN_EMPTY_RETRY_INTERVAL_MS);
+    raw = readOnce();
+    if (raw.trim().length > 0) return raw;
+  }
+  return raw;
 }
 
 function takeValue(
@@ -140,6 +207,22 @@ export function parsePayload(raw: string): ParsedPayload {
   }
 }
 
+/**
+ * Provider-neutral hook dispatch CLI entry (`deft hook:dispatch` / `deft-hook`).
+ *
+ * ## Exit-code contract (#2864)
+ *
+ * | Exit | Meaning |
+ * |------|---------|
+ * | `0`  | A host decision was rendered to stdout (allow **or** deny). Hosts must parse stdout; exit status does **not** encode the verdict. |
+ * | `2`  | Argv / configuration error (unsupported host/event, missing flags, unrecognized args). |
+ *
+ * This process never returns `1` for a rendered verdict. Cursor `failClosed`
+ * deposits that report "exit code 1" are therefore process-level failures
+ * (crash, signal kill under host timeout, spawn environment), not `run()` deny
+ * paths. Empty-stdin denies still exit `0` with a Cursor JSON body carrying
+ * `code: "stdin-empty"`.
+ */
 export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const args = parseArgs(argv);
   const writeOut = seams.writeOut ?? ((text: string) => process.stdout.write(text));
@@ -149,9 +232,14 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     return 2;
   }
 
-  const readStdin = seams.readStdin ?? (() => readFileSync(0, "utf8"));
+  const readOnce = seams.readStdin ?? (() => readFileSync(0, "utf8"));
+  const rawStdin = readStdinHardened(readOnce, {
+    emptyRetryMs: seams.stdinEmptyRetryMs,
+    sleepMs: seams.sleepMs,
+    nowMs: seams.nowMs,
+  });
   const cwd = (seams.cwd ?? process.cwd)();
-  const { payload, context: payloadContext } = parsePayload(readStdin());
+  const { payload, context: payloadContext } = parsePayload(rawStdin);
   const projectRoot = normalizeHookProjectRoot(
     args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
   );
@@ -164,11 +252,16 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   });
   const rendered = renderHostDecision(args.host, decision);
   if (rendered.length > 0) writeOut(`${rendered}\n`);
-  if (decision.code === "invalid-input" && args.host === "cursor") {
+  if (
+    (decision.code === "invalid-input" || decision.code === "stdin-empty") &&
+    args.host === "cursor"
+  ) {
     // Keys are already embedded in decision.message; stderr helps operators tailing logs.
     const keys = hookPayloadTopLevelKeys(payload);
     if (keys.length > 0) {
       writeErr(`Directive hook diagnostic: payload top-level keys: ${keys.join(", ")}\n`);
+    } else if (decision.code === "stdin-empty") {
+      writeErr("Directive hook diagnostic: stdin was empty after empty-read retry budget\n");
     }
   }
   if (decision.code === "session-start-degraded") writeErr(`${decision.message}\n`);

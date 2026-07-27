@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { resolveCanonicalVerb } from "./dispatch.js";
-import { parseArgs, parsePayload, run } from "./hook-dispatch.js";
+import {
+  DEFAULT_STDIN_EMPTY_RETRY_MS,
+  parseArgs,
+  parsePayload,
+  readStdinHardened,
+  run,
+  STDIN_EMPTY_RETRY_INTERVAL_MS,
+} from "./hook-dispatch.js";
 
 describe("hook-dispatch CLI", () => {
   it("parses the provider-neutral host/event contract", () => {
@@ -89,7 +96,7 @@ describe("hook-dispatch CLI", () => {
     expect(err.join("")).toContain("non-blocking path");
   });
 
-  it("uses a payload-derived project root and emits Cursor allow for non-write tools (#2779)", () => {
+  it("uses a payload-derived project root and emits Cursor allow for non-write tools (#2779 / #2864)", () => {
     const out: string[] = [];
     const code = run(["--host=cursor", "--event=tool.before"], {
       readStdin: () => JSON.stringify({ tool_name: "Read", workspace_root: "/project" }),
@@ -99,7 +106,8 @@ describe("hook-dispatch CLI", () => {
     });
     expect(code).toBe(0);
     // Cursor failClosed deposits treat empty stdout as failure — allow must be explicit.
-    expect(JSON.parse(out.join(""))).toEqual({ permission: "allow" });
+    // code is on the wire so agents can distinguish verdict classes without English (#2864).
+    expect(JSON.parse(out.join(""))).toEqual({ permission: "allow", code: "not-direct-write" });
   });
 
   it("returns exit 2 through the CLI error path", () => {
@@ -385,19 +393,23 @@ describe("hook-dispatch CLI", () => {
     expect(err.join("")).toMatch(/compaction|ritual/i);
   });
 
-  it("logs Cursor payload keys and distinct empty-stdin messaging (#2669)", () => {
+  it("logs Cursor payload keys and distinct empty-stdin messaging (#2669 / #2864)", () => {
     const emptyOut: string[] = [];
     const emptyErr: string[] = [];
-    run(["--host=cursor", "--event=tool.before"], {
+    const emptyExit = run(["--host=cursor", "--event=tool.before"], {
       readStdin: () => "",
+      // Skip wall-clock retry budget; empty path is covered with retries below.
+      stdinEmptyRetryMs: 0,
       writeOut: (text) => emptyOut.push(text),
       writeErr: (text) => emptyErr.push(text),
       cwd: () => "/project",
     });
     const emptyDecision = JSON.parse(emptyOut.join(""));
+    expect(emptyExit).toBe(0);
     expect(emptyDecision.permission).toBe("deny");
+    expect(emptyDecision.code).toBe("stdin-empty");
     expect(emptyDecision.user_message).toContain("stdin was empty");
-    expect(emptyErr).toEqual([]);
+    expect(emptyErr.join("")).toContain("stdin was empty after empty-read retry budget");
 
     const unknownOut: string[] = [];
     const unknownErr: string[] = [];
@@ -408,7 +420,136 @@ describe("hook-dispatch CLI", () => {
       cwd: () => "/project",
     });
     const unknownDecision = JSON.parse(unknownOut.join(""));
+    expect(unknownDecision.code).toBe("invalid-input");
     expect(unknownDecision.user_message).toContain("Top-level payload keys: host_version");
     expect(unknownErr.join("")).toContain("Directive hook diagnostic: payload top-level keys");
+  });
+
+  it("accepts delayed stdin within the empty-read retry budget (#2864)", () => {
+    let calls = 0;
+    let clock = 0;
+    const taskPayload = JSON.stringify({
+      tool_name: "Task",
+      tool_input: { subagent_type: "generalPurpose", prompt: "explore" },
+      workspace_root: "/project",
+    });
+    const out: string[] = [];
+    const exit = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => {
+        calls += 1;
+        // First two polls empty (race); third delivers the host payload.
+        return calls < 3 ? "" : taskPayload;
+      },
+      sleepMs: (ms) => {
+        clock += ms;
+      },
+      nowMs: () => clock,
+      stdinEmptyRetryMs: DEFAULT_STDIN_EMPTY_RETRY_MS,
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(exit).toBe(0);
+    expect(calls).toBeGreaterThanOrEqual(3);
+    const decision = JSON.parse(out.join(""));
+    // Ritual/scope seams use real project paths; without ready gates this may deny
+    // spawn-not-ready — but it must NOT be stdin-empty (payload was accepted).
+    expect(decision.code).not.toBe("stdin-empty");
+    expect(decision.permission === "allow" || decision.permission === "deny").toBe(true);
+  });
+
+  it("denies true empty stdin with code stdin-empty and exit 0 after retries (#2864)", () => {
+    let calls = 0;
+    let clock = 0;
+    const out: string[] = [];
+    const exit = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => {
+        calls += 1;
+        return "";
+      },
+      sleepMs: (ms) => {
+        clock += ms;
+      },
+      nowMs: () => clock,
+      stdinEmptyRetryMs: DEFAULT_STDIN_EMPTY_RETRY_MS,
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(exit).toBe(0);
+    expect(calls).toBeGreaterThan(1);
+    expect(clock).toBeGreaterThanOrEqual(DEFAULT_STDIN_EMPTY_RETRY_MS);
+    const decision = JSON.parse(out.join(""));
+    expect(decision).toMatchObject({ permission: "deny", code: "stdin-empty" });
+  });
+
+  it("readStdinHardened returns first non-empty poll and leaves true empty as empty (#2864)", () => {
+    let n = 0;
+    let clock = 0;
+    const delayed = readStdinHardened(
+      () => {
+        n += 1;
+        return n === 1 ? "" : '{"tool_name":"Task"}';
+      },
+      {
+        emptyRetryMs: 100,
+        sleepMs: (ms) => {
+          clock += ms;
+        },
+        nowMs: () => clock,
+      },
+    );
+    expect(delayed).toBe('{"tool_name":"Task"}');
+    expect(n).toBe(2);
+
+    n = 0;
+    clock = 0;
+    const empty = readStdinHardened(
+      () => {
+        n += 1;
+        return "   ";
+      },
+      {
+        emptyRetryMs: STDIN_EMPTY_RETRY_INTERVAL_MS * 3,
+        sleepMs: (ms) => {
+          clock += ms;
+        },
+        nowMs: () => clock,
+      },
+    );
+    expect(empty.trim()).toBe("");
+    expect(n).toBeGreaterThan(1);
+  });
+
+  it("documents exit 0 for rendered verdicts and exit 2 only for argv errors (#2864)", () => {
+    const allowOut: string[] = [];
+    const allowExit = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => JSON.stringify({ tool_name: "Read", workspace_root: "/project" }),
+      writeOut: (text) => allowOut.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(allowExit).toBe(0);
+    expect(JSON.parse(allowOut.join("")).permission).toBe("allow");
+
+    const denyOut: string[] = [];
+    const denyExit = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => "",
+      stdinEmptyRetryMs: 0,
+      writeOut: (text) => denyOut.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(denyExit).toBe(0);
+    expect(JSON.parse(denyOut.join("")).permission).toBe("deny");
+
+    const argvErr: string[] = [];
+    const argvExit = run(["--host=cursor", "--event=bogus"], {
+      readStdin: () => "",
+      writeOut: () => undefined,
+      writeErr: (text) => argvErr.push(text),
+    });
+    expect(argvExit).toBe(2);
+    expect(argvErr.join("")).toContain("unsupported event");
   });
 });
