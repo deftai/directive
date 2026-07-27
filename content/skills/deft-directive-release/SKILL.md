@@ -116,17 +116,25 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure d
 
 ### Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)
 
-! When **`task release` Step 5** fails **only** on Vitest **branch** coverage below the 85% threshold (hairline miss — not a hang, failing test, or other check failure), follow the open-issue ledger rule below. Non-coverage Step 5 failures remain under § Fixable check failure — file-and-merge before resume (#2859).
+! When **`task release` Step 5** fails on Vitest coverage below the 85% goal, apply this hatch **only** when **branches** is the **sole** metric below 85% (hairline branch miss — lines, functions, and statements all ≥ 85%). Confirm via the Step 5 failure output or `task coverage:hotspots` before hatching. If **any other metric** is also below 85%, or the failure is a hang / failing test / non-coverage defect, STOP — use § Fixable check failure — file-and-merge before resume (#2859) instead.
+
+**Runtime disclosure (#2573):** `--allow-coverage-debt=#N` sets vitest coverage thresholds to zero for the release Step 5 run (`vitest.config.ts`). The hatch is justified only for branch-only hairlines; the filed debt issue MUST require restoring **all four metrics** (lines, functions, branches, statements) to ≥ 85% before close.
 
 **Open-issue ledger (release-scoped only):**
 
-1. Check for an **open coverage-debt tracking issue** (unpaid hatch from a prior cut): `gh issue list --repo <owner>/<repo> --state open --search "coverage-debt OR allow-coverage-debt in:title,body" --limit 20` (or equivalent REST query). An open issue filed for a prior `--allow-coverage-debt` hatch counts as unpaid debt.
-2. If **no open coverage-debt issue exists** → file `#N` documenting the hairline miss and acceptance criteria (restore branch coverage ≥ 85%), then continue the cut with `--allow-coverage-debt=#N` on `task release` (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — see Anti-Patterns #2621). The open `#N` remains WIP until coverage is restored and the issue is closed.
-3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real branch coverage ≥ 85% (or consciously change the threshold) and close the debt issue before the cut proceeds.
+1. Check for an **open coverage-debt tracking issue** (unpaid hatch from a prior cut) with a deterministic query — any open issue whose title or body contains `coverage-debt` **or** `allow-coverage-debt`:
+   ```
+   gh issue list --repo <owner>/<repo> --state open --search "coverage-debt in:title,body" --limit 20
+   gh issue list --repo <owner>/<repo> --state open --search "allow-coverage-debt in:body" --limit 20
+   ```
+   (Union the results; dedupe by issue number.)
+2. If **no open coverage-debt issue exists** → file `#N` with title prefix `coverage-debt:` and body containing both markers `coverage-debt` and `--allow-coverage-debt`, documenting measured metrics, branch-only trigger, and acceptance criteria (restore **all four** coverage metrics ≥ 85%). Continue the cut with `--allow-coverage-debt=#N` on `task release` (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — see Anti-Patterns #2621). The open `#N` remains WIP until coverage is restored and the issue is closed.
+3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real coverage (all four metrics ≥ 85%) and close the debt issue before the cut proceeds.
 
 ⊗ Auto-pass on a near-miss band without `#N` (#2573).
 ⊗ Silent soft-pass with no tracked issue.
-⊗ Use this carve-out for hangs, failing tests, or non-coverage Step 5 failures — those stay under #2859 file-and-merge.
+⊗ File a debt issue without `coverage-debt` / `allow-coverage-debt` markers in title or body — the ledger query will miss it and permit a consecutive soft-pass (#2866).
+⊗ Use this carve-out when lines, functions, or statements are also below 85%, or for hangs, failing tests, or non-coverage Step 5 failures — those stay under #2859 file-and-merge.
 ⊗ Treat file-debt-then-hatch as the default for ordinary PR / `task check` work outside a release cut — this hatch is release-scoped only.
 
 See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch during release.

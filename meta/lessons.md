@@ -683,6 +683,6 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 
 **Failure mode:** `task release` Step 5 fails on Vitest branch coverage below 85% (hairline miss). Agent treats it like a #2859 file-and-merge product defect or attempts consecutive `--allow-coverage-debt` soft-passes while a prior hatch debt issue is still open.
 
-**Rule (release-scoped only):** If no open coverage-debt issue exists → file `#N`, continue cut with `--allow-coverage-debt=#N` (PowerShell: `N` or `"#N"`). If an open debt issue from a prior hatch exists → restore branch coverage ≥ 85% and close the issue before reusing the hatch. Hangs, failing tests, and non-coverage failures stay under #2859 file-and-merge.
+**Rule (release-scoped only):** Hatch applies only when branches is the sole metric below 85%. Query open issues via `coverage-debt in:title,body` and `allow-coverage-debt in:body`; file new debt with title prefix `coverage-debt:` and both markers in body. If no open debt → file `#N`, continue with `--allow-coverage-debt=#N` (PowerShell: `N` or `"#N"`). If open debt from prior hatch → restore all four metrics ≥ 85% before reusing hatch. Multi-metric misses, hangs, and failing tests stay under #2859 file-and-merge.
 
 **Canonical encoding:** `skills/deft-directive-release/SKILL.md` § Step 5 branch-coverage threshold — open-issue ledger hatch (#2866); `docs/RELEASING.md` § Coverage debt hatch during release.
