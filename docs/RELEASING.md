@@ -47,6 +47,12 @@ Release Step 5 runs `task check` → vitest coverage with a **20-minute hard tim
 
 Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-link).
 
+## Fixable check failure during release (#2859)
+
+When Phase 1 `task ci:local` / `task check` fails on a **fixable product or test defect** during a cut, do **not** lead with an inline hotfix on the release branch or untracked `--skip-ci`. Pause the cut and route the blocker through normal issue → xBRIEF → feature branch → PR → merge → confirm check green → resume Phase 1.
+
+The full agent contract (including the explicit rejection of AGENTS.md / agents-entry bulk for this reminder) lives in `skills/deft-directive-release/SKILL.md` § **Fixable check failure — file-and-merge before resume (#2859)**. Production `--skip-ci` with `--allow-skip-ci=#N` remains incident-only per § Vitest coverage hang recovery above.
+
 ## What the Smoke Tests Verify
 
 Every build is tested on its native platform (including `macos-latest` and `ubuntu-24.04-arm`):

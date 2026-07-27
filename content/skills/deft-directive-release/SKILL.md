@@ -92,12 +92,32 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ⊗ Foreground-block the operator chat on reconcile / `ci:local` / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
 
+### Fixable check failure — file-and-merge before resume (#2859)
+
+! When Step 4 (`task ci:local` or `task check`) fails on a **fixable product or test defect** (hang, failing test, coverage regression, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
+
+**Required path:**
+1. File a GitHub issue with root cause, recurrence signature, and acceptance criteria.
+2. Ingest / promote / activate scope xBRIEF; implement on a feature branch with `drive-to: merge-ready`.
+3. Merge; confirm `task check` / `ci:local` is green for the failure mode.
+4. Resume the release cut from Phase 1 (re-run Step 4).
+
+⊗ Lead with an inline-only hotfix on the release branch / default branch without a tracked issue and merged PR.
+⊗ Suggest untracked `--skip-ci` or `--allow-skip-ci` without a **tracked issue number** as the first recovery when the failure is a clear, shippable bug.
+⊗ Continue the cut with "raise timeouts," "fix it here," or other shortcut theater before file-and-merge completes.
+
+? **`--skip-ci` / `--allow-skip-ci=#N` remains valid** only under explicit operator incident review with a **tracked issue** cited on the flag (Phase 4 contract). It is NOT a substitute for filing and merging a fixable defect discovered in Phase 1.
+
+**AGENTS.md bulk rejected (#2859):** Expanding `AGENTS.md` / `content/templates/agents-entry.md` with an always-on pin for this release-phase reminder was considered and **rejected**. This rule lives in the release skill (and optional lesson); do NOT add AGENTS.md / agents-entry bulk for it.
+
+See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure during release for the operator runbook and the existing `--allow-skip-ci=#N` incident contract.
+
 ~ **Frozen Go-installer bridge (#1912 / #1972 / #1987):** by default a release tag *above* the frozen line (the `LAST_GO_INSTALLER` constant in `packages/core/src/legacy-bridge/sot.ts`) will NOT rebuild the 6 Go binaries -- the CI `freeze-gate` job in `.github/workflows/release.yml` skips the build (the run stays green; npm still ships from the separate `npm-publish.yml`). If this release must rebuild the Go installer, follow the runbook in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge: roll `LAST_GO_INSTALLER` forward to the cut tag BEFORE tagging (pinning to the exact cut tag both releases the gate AND re-freezes at the new line), then see that section's "After the release" step for the re-pin.
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
 2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content (breaking change → major; new feature → minor; fix-only → patch)
 3. ! Inspect `[Unreleased]` content vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
-4. ! Verify `task ci:local` passes locally (or `task check` as the graceful-degradation fallback per `tasks/release.yml` line 9-10). The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier
+4. ! Verify `task ci:local` passes locally (or `task check` as the graceful-degradation fallback per `tasks/release.yml` line 9-10). The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier — **on failure from a fixable defect, STOP and follow § Fixable check failure below (#2859); do NOT proceed to step 5**
 5. ! Verify `gh auth status` reports authenticated (`task release` will refuse otherwise)
 6. ! **Run `task reconcile:issues -- --apply-lifecycle-fixes` to clear any closed-issue / non-completed-folder xBRIEFs before invoking `task release`** (#734). The release pipeline carries the deterministic gate at Step 3 (`scripts/release.py::check_vbrief_lifecycle_sync`, refuses with `EXIT_VIOLATION` on any Section (c) mismatch), but Phase 1 is the operator's first-line defence -- running the apply-mode flag here is the canonical clean path; `--allow-vbrief-drift` on the pipeline exists only as the explicit-acknowledgment escape hatch (analogous to `--allow-dirty`). The recurrence record is the v0.21.0 cut, which surfaced 13 stranded xBRIEFs (8 cycle-relevant + 5 historical residue) post-publish; the gate now blocks that drift before any irreversible action
 7. ! **Verify the proposed `v<version>` tag is not already in use locally, on origin, or as a published GitHub release** (#784). The release pipeline carries the deterministic gate at Step 4 (`scripts/release.py::check_tag_available`, refuses with `EXIT_VIOLATION` before any state mutation -- CHANGELOG promotion, ROADMAP refresh, build, commit), but Phase 1 is the operator's first-line defence. Quickly probe with `git tag -l v<version>` (local), `git ls-remote --tags origin refs/tags/v<version>` (remote), and `gh release view v<version> --repo <owner>/<repo>` (release-only, where `gh release view` exits 0 only when the release exists). The recurrence record is the v0.22.0 → v0.23.0 release attempt on 2026-05-01: the operator typed `0.22.0` (the prior release from 12 hours earlier) and the legacy pipeline ran 8 steps before failing at `git tag` -- leaving a wrong-version local commit + `dist/deft-0.22.0.zip` orphan + manual `git reset --hard` recovery. The new pre-flight gate blocks that mode before any irreversible action

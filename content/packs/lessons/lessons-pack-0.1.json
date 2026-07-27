@@ -601,6 +601,22 @@
       ],
       "source": "Issue #2646 (absorbs #1417). Dogfood on Cursor + Windows PowerShell 2026-07-19 while filing/updating the issue.",
       "body": "**Source:** Issue #2646 (absorbs #1417). On Windows PowerShell, agents fail when authoring multi-line git/gh payloads via bash heredocs, `<<<` redirection, inline multi-line `--body` flags, or multi-line PS here-strings in the agent command box. Host/agent shell wrappers can also rewrite shell-embedded commit/issue prose before PowerShell executes.\n\n**Failure modes:** (1) Bash heredoc / `<<<` under PowerShell -- parse abort before any gh call. (2) Long inline `gh issue create` / `gh pr create --body` -- argument splitting, angle-bracket parse errors, silent truncation (#1417). (3) Host wrapper injection into shell-embedded git/gh prose (Co-authored-by / Made-with fragments) corrupting PATCH payloads. (4) Partial fixes (escaping, backtick-n, PS here-strings) reintroduce #240 or #798 damage.\n\n**Rule:** never put multi-line markdown inline in a PowerShell agent command. Write a UTF-8 (no BOM) temp file in the OS temp directory via editor/Write/Node (outside the shell), then pass `git commit -F`, `gh --body-file`, or `gh api --input`. Verify posted bodies after PATCH when wrappers may have corrupted earlier attempts.\n\n**Canonical encoding (strongest-applicable layer):** rule body in `content/scm/github.md` \u00a7 Windows PowerShell: safe multi-line git/gh bodies (#2646); agent pointer in `templates/agent-prompt-preamble.md` \u00a7 3.9 and `templates/agents-entry.md` Contextual guardrails lazy-load trigger.\n\n**Cross-references:** #240 (Warp here-string splitting), #798 (PS 5.1 encoding safe write path), #1417 (long gh --body quoting, closed duplicate), #2646."
+    },
+    {
+      "id": "release-check-failure-file-and-merge-2026-07",
+      "title": "Release Phase 1 check failure \u2014 file-and-merge, not inline hotfix (2026-07)",
+      "date": "2026-07",
+      "issue_refs": [
+        "#2859",
+        "#2858"
+      ],
+      "tags": [
+        "agent-experience",
+        "release",
+        "documentation"
+      ],
+      "source": "Issue #2859. During v0.86.0 Phase 1, task check failed on #2858-class hang; orchestrator led with inline hotfix / skip-ci instead of file \u2192 PR \u2192 merge \u2192 resume.",
+      "body": "**Source:** Issue #2859 (recurrence during v0.86.0 cut; concrete hang #2858).\n\n**Failure mode:** Release Phase 1 `task check` / `ci:local` fails on a fixable defect. Agent offers inline hotfix, timeout tweaks, or untracked `--skip-ci` before filing a tracked issue and driving merge-ready.\n\n**Rule:** Pause the cut. File GitHub issue \u2192 xBRIEF \u2192 feature branch \u2192 PR \u2192 merge \u2192 confirm check green \u2192 resume Phase 1. `--allow-skip-ci=#N` stays incident-only with a tracked issue (Phase 4); never the first suggestion for a shippable bug.\n\n**AGENTS.md bulk rejected:** Always-pin expansion in AGENTS.md / agents-entry for this reminder was considered and rejected (#2859).\n\n**Canonical encoding:** `skills/deft-directive-release/SKILL.md` \u00a7 Fixable check failure \u2014 file-and-merge before resume (#2859); `docs/RELEASING.md` \u00a7 Fixable check failure during release."
     }
   ]
 }

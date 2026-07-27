@@ -664,3 +664,15 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Canonical encoding (strongest-applicable layer):** rule body in `content/scm/github.md` § Windows PowerShell: safe multi-line git/gh bodies (#2646); agent pointer in `templates/agent-prompt-preamble.md` § 3.9 and `templates/agents-entry.md` Contextual guardrails lazy-load trigger.
 
 **Cross-references:** #240 (Warp here-string splitting), #798 (PS 5.1 encoding safe write path), #1417 (long gh --body quoting, closed duplicate), #2646.
+
+## Release Phase 1 check failure — file-and-merge, not inline hotfix (2026-07)
+
+**Source:** Issue #2859 (recurrence during v0.86.0 cut; concrete hang #2858).
+
+**Failure mode:** Release Phase 1 `task check` / `ci:local` fails on a fixable defect. Agent offers inline hotfix, timeout tweaks, or untracked `--skip-ci` before filing a tracked issue and driving merge-ready.
+
+**Rule:** Pause the cut. File GitHub issue → xBRIEF → feature branch → PR → merge → confirm check green → resume Phase 1. `--allow-skip-ci=#N` stays incident-only with a tracked issue (Phase 4); never the first suggestion for a shippable bug.
+
+**AGENTS.md bulk rejected:** Always-pin expansion in AGENTS.md / agents-entry for this reminder was considered and rejected (#2859).
+
+**Canonical encoding:** `skills/deft-directive-release/SKILL.md` § Fixable check failure — file-and-merge before resume (#2859); `docs/RELEASING.md` § Fixable check failure during release.

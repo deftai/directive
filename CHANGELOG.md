@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Release Phase 1 routes fixable `task check` failures through file-and-merge (#2859).** When `task ci:local` / `task check` fails on a shippable defect during a cut, the release skill requires filing a tracked issue and merging a fix before resuming — not inline hotfix theater or untracked `--skip-ci`. AGENTS.md bulk for this reminder was considered and rejected. Closes #2859.
+
 ### Fixed
 
 - **`core:validate` honors the dispatcher cwd and skips junk trees (#2858).** Inline `core:validate` now walks the resolved framework root instead of ambient `process.cwd()`, and `collectMarkdownFiles` skips `node_modules` and `.deft-scratch` so `task check` no longer hangs on maintainer clones with swarm worktrees. Closes #2858.

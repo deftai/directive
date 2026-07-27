@@ -1,0 +1,93 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2859 - release Phase 1 file-and-merge blocker (AGENTS.md bulk rejected)"
+  },
+  "plan": {
+    "title": "release: on task check failure, file-and-merge the blocker — do not lead with inline hotfix (AGENTS.md bulk rejected)",
+    "status": "running",
+    "narratives": {
+      "Description": "When release Phase 1 task check fails on a fixable defect, agents must file a GitHub issue and drive it through merge before resuming the cut. Leading with an inline hotfix or untracked --skip-ci is the wrong default; AGENTS.md bulk for this reminder is explicitly rejected.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2859",
+      "Overview": "Harden deft-directive-release Phase 1 so task-check failures on fixable defects route through issue -> PR -> merge before the cut resumes. Explicitly reject AGENTS.md bulk for this process reminder.",
+      "Labels": "bug, documentation, agent-experience",
+      "UserStory": "As a maintainer cutting a release, I want the release skill to require filing and merging a fixable task-check blocker before resume, so that agents do not lead with inline hotfix theater or untracked skip-ci.",
+      "ImplementationPlan": "Edit content/packs/skills/skills-pack-0.1.json (deft-directive-release Phase 1) to require file-and-merge on fixable task check / ci:local failures, note AGENTS.md bulk rejection, and retain --allow-skip-ci=#N. Run task packs:render so content/skills/deft-directive-release/SKILL.md updates. Optionally add a short entry in content/packs/lessons/lessons-pack-0.1.json and a pointer in docs/RELEASING.md. Verify with rg for #2859 / file-and-merge / AGENTS.md rejected in the rendered skill; CHANGELOG [Unreleased] cites #2859; no AGENTS.md or agents-entry edits."
+    },
+    "items": [
+      {
+        "title": "Given Phase 1 task check fails on a fixable defect, when the release skill is followed, then the agent files an issue and processes through merge before resume.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fixable task check failure, when Phase 1 runs, then the skill requires file-and-merge and forbids leading with inline-only hotfix or untracked skip-ci."
+        }
+      },
+      {
+        "title": "Given the skill text, when operators read the AGENTS.md note, then bulk expansion is marked considered and rejected.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the updated skill/lesson text, when it mentions AGENTS.md, then it states expansion was considered and rejected per #2859."
+        }
+      },
+      {
+        "title": "Given the change lands, when CHANGELOG or lesson is updated, then #2859 is cited.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the PR, when Unreleased or the lesson entry is present, then it cites #2859."
+        }
+      },
+      {
+        "title": "Given the fix, when AGENTS.md and agents-entry are checked, then they are unchanged for this rule.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the PR diff, when AGENTS.md / content/templates/agents-entry.md are inspected for this reminder, then no new always-pin bulk was added."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2859",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2859: release: on task check failure, file-and-merge the blocker — do not lead with inline hotfix (AGENTS.md bulk rejected)"
+      }
+    ],
+    "id": "2026-07-27-2859-release-on-task-check-failure-file-and-merge-the-blocker-do",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/packs/lessons/lessons-pack-0.1.json",
+          "docs/RELEASING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task packs:render",
+          "rg -n \"file-and-merge|#2859|AGENTS.md\" content/skills/deft-directive-release/SKILL.md content/packs/skills/skills-pack-0.1.json"
+        ],
+        "expected_outputs": [
+          "release skill Phase 1 file-and-merge-blocker rule",
+          "explicit AGENTS.md bulk rejection note",
+          "CHANGELOG Unreleased citing #2859",
+          "no AGENTS.md / agents-entry bulk"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-skill-2859",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2859 acceptance; skill SoT is skills-pack-0.1.json (packs:render)."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "updated": "2026-07-27T14:51:00Z"
+  }
+}
