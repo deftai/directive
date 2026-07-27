@@ -127,6 +127,26 @@ describe("AppSec write sinks symlink containment (#2869)", () => {
     expect(readFileSync(victim, "utf8")).toBe('{"plan":{"title":"KEEP"}}\n');
   });
 
+  it("writeVbrief refuses when project root cannot be resolved (no dirname fallback)", () => {
+    const bare = temp("deft-2869-emit-no-root-");
+    const path = join(bare, "story.xbrief.json");
+    // Force unresolvable root via env (walk-up may hit filesystem ancestors on win32).
+    const prev = process.env.DEFT_PROJECT_ROOT;
+    process.env.DEFT_PROJECT_ROOT = join(tmpdir(), "deft-2869-missing-project-root");
+    try {
+      expect(() => writeVbrief(path, { plan: { title: "no root" } })).toThrow(
+        ProjectionContainmentError,
+      );
+      expect(existsSync(path)).toBe(false);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_PROJECT_ROOT;
+      } else {
+        process.env.DEFT_PROJECT_ROOT = prev;
+      }
+    }
+  });
+
   itSymlink("release-availability state path refuses a parent .triage-cache symlink escape", () => {
     const root = temp("deft-2869-rel-root-");
     const outsideDir = temp("deft-2869-rel-escape-");

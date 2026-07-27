@@ -2,7 +2,7 @@ import { globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
@@ -30,6 +30,9 @@ export function loadVbrief(path: string): Record<string, unknown> {
 /**
  * Persist an xBRIEF/vBRIEF JSON document. Gates the write target so a leaf or
  * parent-directory symlink cannot divert the stamped file outside the project (#2869).
+ *
+ * ⊗ Do not fall back to `dirname(path)` as the containment root — that trusts a
+ * possibly-symlinked parent and would re-open the escape (Greptile P1 on #2871).
  */
 export function writeVbrief(
   path: string,
@@ -40,7 +43,17 @@ export function writeVbrief(
   const root =
     projectRoot !== undefined && projectRoot !== null && projectRoot.length > 0
       ? resolve(projectRoot)
-      : (resolveProjectRoot(null, dirname(absPath)) ?? dirname(absPath));
+      : resolveProjectRoot(null, dirname(absPath));
+  if (root === null) {
+    throw new ProjectionContainmentError(
+      `projection write refused: could not resolve project root for ${absPath}`,
+      {
+        projectDir: dirname(absPath),
+        targetPath: absPath,
+        offendingPath: absPath,
+      },
+    );
+  }
   assertWriteTargetSafe(root, absPath);
   writeFileSync(absPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }

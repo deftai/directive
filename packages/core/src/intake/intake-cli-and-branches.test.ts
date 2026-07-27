@@ -96,7 +96,7 @@ describe("intake cli and branch coverage", () => {
     it("issue-emit-cli parses umbrella and per-vbrief flags", () => {
       const dir = mkdtempSync(join(tmpdir(), "emit-cli-flags-"));
       const path = join(dir, "solo.xbrief.json");
-      writeVbrief(path, { plan: { title: "Solo" } });
+      writeVbrief(path, { plan: { title: "Solo" } }, dir);
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       expect(
         emitCliMain([
@@ -250,10 +250,15 @@ describe("intake cli and branch coverage", () => {
       const dir = mkdtempSync(join(tmpdir(), "umbrella-"));
       const a = join(dir, "a.xbrief.json");
       const b = join(dir, "b.xbrief.json");
-      writeVbrief(a, { plan: { title: "Child A" } });
-      writeVbrief(b, { plan: { title: "Child B" } });
+      writeVbrief(a, { plan: { title: "Child A" } }, dir);
+      writeVbrief(b, { plan: { title: "Child B" } }, dir);
       const scmCall = () => completed("https://github.com/o/r/issues/100\n", "", 0);
-      const action = emitUmbrella([a, b], { repo: "o/r", scmCall, displayPaths: ["a", "b"] });
+      const action = emitUmbrella([a, b], {
+        repo: "o/r",
+        scmCall,
+        displayPaths: ["a", "b"],
+        projectRoot: dir,
+      });
       expect(action.result).toBe("created");
       expect(existingGithubIssueRef(loadVbrief(a))).toBeTruthy();
       expect(renderUmbrellaBody([["a", loadVbrief(a)]])).toContain("Child A");
@@ -274,7 +279,7 @@ describe("intake cli and branch coverage", () => {
     it("issueEmitMain per-vbrief and title guard", () => {
       const dir = mkdtempSync(join(tmpdir(), "per-vb-"));
       const path = join(dir, "one.xbrief.json");
-      writeVbrief(path, { plan: { title: "One" } });
+      writeVbrief(path, { plan: { title: "One" } }, dir);
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       expect(issueEmitMain({ patterns: [path], projectRoot: dir, title: "Bad" })).toBe(2);
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);

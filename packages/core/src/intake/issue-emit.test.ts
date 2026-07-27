@@ -37,10 +37,10 @@ describe("issue-emit helpers", () => {
   it("writes reference back to vbrief", () => {
     const dir = mkdtempSync(join(tmpdir(), "emit-"));
     const path = join(dir, "x.xbrief.json");
-    writeVbrief(path, { plan: { title: "Hello" } });
+    writeVbrief(path, { plan: { title: "Hello" } }, dir);
     const data = loadVbrief(path);
     addGithubIssueReference(data, "https://github.com/o/r/issues/9");
-    writeVbrief(path, data);
+    writeVbrief(path, data, dir);
     expect(existingGithubIssueRef(loadVbrief(path))).toBe("https://github.com/o/r/issues/9");
     rmSync(dir, { recursive: true, force: true });
   });

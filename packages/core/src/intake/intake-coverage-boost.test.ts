@@ -753,21 +753,30 @@ describe("intake coverage boost", () => {
       expect(renderIssueBody({})).toContain("Scope vBRIEF");
       const dir = mkdtempSync(join(tmpdir(), "emit-"));
       const path = join(dir, "one.xbrief.json");
-      writeVbrief(path, {
-        plan: {
-          title: "Emit me",
-          references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      writeVbrief(
+        path,
+        {
+          plan: {
+            title: "Emit me",
+            references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+          },
         },
-      });
-      const skipped = emitSingle(path, { repo: "o/r", noNetwork: false });
+        dir,
+      );
+      const skipped = emitSingle(path, { repo: "o/r", noNetwork: false, projectRoot: dir });
       expect(skipped.result).toBe("skipped");
-      writeVbrief(join(dir, "two.xbrief.json"), { plan: { title: "Dry" } });
-      const dry = emitSingle(join(dir, "two.xbrief.json"), { repo: "o/r", noNetwork: true });
+      writeVbrief(join(dir, "two.xbrief.json"), { plan: { title: "Dry" } }, dir);
+      const dry = emitSingle(join(dir, "two.xbrief.json"), {
+        repo: "o/r",
+        noNetwork: true,
+        projectRoot: dir,
+      });
       expect(dry.result).toBe("dryrun");
       const umbrella = emitUmbrella([join(dir, "two.xbrief.json")], {
         repo: "o/r",
         noNetwork: true,
         displayPaths: ["two.xbrief.json"],
+        projectRoot: dir,
       });
       expect(umbrella.result).toBe("dryrun");
       rmSync(dir, { recursive: true, force: true });
@@ -776,12 +785,12 @@ describe("intake coverage boost", () => {
     it("fileIssue and emitPerVbrief with stub scm", () => {
       const dir = mkdtempSync(join(tmpdir(), "emit-file-"));
       const path = join(dir, "fresh.xbrief.json");
-      writeVbrief(path, { plan: { title: "Fresh" } });
+      writeVbrief(path, { plan: { title: "Fresh" } }, dir);
       const scmCall = () => completed("https://github.com/o/r/issues/42\n", "", 0);
-      const created = emitSingle(path, { repo: "o/r", scmCall });
+      const created = emitSingle(path, { repo: "o/r", scmCall, projectRoot: dir });
       expect(created.result).toBe("created");
       expect(created.url).toContain("/issues/42");
-      const actions = emitPerVbrief([path], { repo: "o/r", scmCall });
+      const actions = emitPerVbrief([path], { repo: "o/r", scmCall, projectRoot: dir });
       expect(actions[0]?.result).toBe("skipped");
       expect(() => fileIssue("o/r", "t", "b", () => completed("", "fail", 1))).toThrow(
         IssueEmitError,
@@ -792,7 +801,7 @@ describe("intake coverage boost", () => {
     it("expandPatterns displayPath isNoNetwork issueEmitMain", () => {
       const dir = mkdtempSync(join(tmpdir(), "emit-cli-"));
       const vpath = join(dir, "solo.xbrief.json");
-      writeVbrief(vpath, { plan: { title: "Solo" } });
+      writeVbrief(vpath, { plan: { title: "Solo" } }, dir);
       const matches = expandPatterns([vpath], dir);
       expect(matches).toHaveLength(1);
       expect(displayPath(vpath, dir)).toBe("solo.xbrief.json");
@@ -802,7 +811,7 @@ describe("intake coverage boost", () => {
       process.env.DEFT_NO_NETWORK = prev;
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       expect(issueEmitMain({ patterns: [], projectRoot: dir })).toBe(2);
-      writeVbrief(join(dir, "other.xbrief.json"), { plan: { title: "Other" } });
+      writeVbrief(join(dir, "other.xbrief.json"), { plan: { title: "Other" } }, dir);
       expect(
         issueEmitMain({
           patterns: [join(dir, "*.xbrief.json")],

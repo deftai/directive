@@ -1,8 +1,8 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
 import { type ScanFlag, scan } from "../cache/scanner.js";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -733,12 +733,22 @@ export function ingestOne(
 
   // Gate lifecycle folder + leaf before mkdir/write so folder/parent symlinks
   // cannot divert issue:ingest / triage:accept outside the project (#2869).
+  // Fail closed when no project root is resolvable — never use dirname(vbriefDir)
+  // as containment root (that trusts a possibly-symlinked parent; #2871 P1).
   const projectRoot =
-    (options.cwd !== undefined && options.cwd !== null && options.cwd.length > 0
+    options.cwd !== undefined && options.cwd !== null && options.cwd.length > 0
       ? resolve(options.cwd)
-      : null) ??
-    resolveProjectRoot(null, options.vbriefDir) ??
-    resolve(dirname(options.vbriefDir));
+      : resolveProjectRoot(null, options.vbriefDir);
+  if (projectRoot === null) {
+    throw new ProjectionContainmentError(
+      `projection write refused: could not resolve project root for ingest into ${options.vbriefDir}`,
+      {
+        projectDir: options.vbriefDir,
+        targetPath: target,
+        offendingPath: options.vbriefDir,
+      },
+    );
+  }
   assertWriteTargetSafe(projectRoot, folderPath);
   assertWriteTargetSafe(projectRoot, target);
 
