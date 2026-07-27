@@ -1,0 +1,96 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2837 — accept documented xbrief:preflight -- <path> form"
+  },
+  "plan": {
+    "id": "2026-07-26-2837-bugcli-documented-xbriefpreflight-separator-form-fails-on-v0",
+    "title": "bug(cli): documented xbrief:preflight separator form fails on v0.84.0",
+    "status": "completed",
+    "narratives": {
+      "Description": "The documented deft xbrief:preflight -- <path> form fails with unrecognized argument: -- while --vbrief-path works. Align the parser with verify:session-ritual (#2681) and fix --help so it does not evaluate a null path.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2837",
+      "Overview": "Consumer AGENTS.md and commands.md prescribe task-style separator-plus-positional syntax for the #810 implementation-intent gate. On v0.84.0 the CLI rejects the lone -- before lifecycle validation, blocking agents that follow generated instructions.",
+      "Labels": "bug",
+      "ImplementationPlan": "1) In packages/cli/src/vbrief-preflight.ts parseArgs, accept a lone -- separator (same as verify-session-ritual). 2) Make --help print usage and exit without calling evaluate. 3) Add regression tests for separator+path, --vbrief-path parity, help, and fail-closed unknowns.",
+      "UserStory": "As an agent following AGENTS.md, I want deft xbrief:preflight -- <active-path> to work like --vbrief-path, so that the Implementation Intent Gate does not block on a parser mismatch."
+    },
+    "items": [
+      {
+        "title": "Given an active running xBRIEF, when preflight uses -- <path>, then it matches --vbrief-path success.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an active running xBRIEF path, when deft xbrief:preflight -- <path> runs, then exit code and readiness match the same --vbrief-path invocation."
+        }
+      },
+      {
+        "title": "Given missing or non-running paths, when either form is used, then lifecycle failures match.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given missing, non-active, or non-running xBRIEFs, when either documented form is used, then both produce equivalent non-zero lifecycle failures."
+        }
+      },
+      {
+        "title": "Given --help, when xbrief:preflight is invoked, then usage prints without null path evaluation.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given deft xbrief:preflight --help, when the command runs, then it prints valid usage and exits successfully with no null path errors."
+        }
+      },
+      {
+        "title": "Given unknown args or missing path, when parse runs, then it fails closed without null placeholders.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given unknown arguments or a missing path, when parse/run executes, then it fails closed with actionable messages and never emits a null path in the error text."
+        }
+      },
+      {
+        "title": "Given managed docs, when syntax is checked, then AGENTS/commands/help agree on supported forms.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given managed AGENTS.md, agents-entry, commands.md, and CLI help, when syntax is reviewed, then they agree on the supported separator and flag forms."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2837",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2837: bug(cli): documented xbrief:preflight separator form fails on v0.84.0"
+      }
+    ],
+    "updated": "2026-07-26T03:16:28Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/vbrief-preflight.ts",
+          "packages/cli/src/vbrief-preflight.test.ts",
+          "content/commands.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/vbrief-preflight.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "separator form accepted",
+          "--help usage without null path",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "conflict_group": "cli-preflight-2837",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2837 acceptance criteria and sibling fix #2681 rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-26T03:16:28Z"
+    }
+  }
+}

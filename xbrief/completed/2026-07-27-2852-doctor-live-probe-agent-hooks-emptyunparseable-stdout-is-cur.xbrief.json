@@ -1,0 +1,93 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2852 — doctor live-probe of agent hooks for empty/unparseable stdout"
+  },
+  "plan": {
+    "id": "2026-07-27-2852-doctor-live-probe-agent-hooks-emptyunparseable-stdout-is-cur",
+    "title": "doctor: live-probe agent hooks (empty/unparseable stdout is currently invisible)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Doctor agent-hooks-registration only checks deposit shape. A broken hook bin that exits 0 with empty stdout still reports registered and structurally valid — the #2846 class failure. Add a live probe under --full that spawns the configured hook command and fails closed on empty/unparseable stdout or missing deny.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2852; split from #2846 so the symlink entrypoint fix was not blocked.",
+      "Overview": "Extend evaluateAgentHooks or a sibling doctor check to pipe synthetic allow and deny payloads through the deposited/configured hook command (prefer bin/symlink invocation). Keep structural checks; gate the live probe behind --full so quick doctor stays offline-friendly.",
+      "Labels": "bug, security, test-debt, doctor",
+      "ImplementationPlan": "1) Locate evaluateAgentHooks / runAgentHooksHealthCheck in packages/core/src/doctor and packages/core/src/verify-env (or sibling). 2) Add a live probe that resolves the configured hook command as hosts invoke it and spawns --host cursor --event tool.before with allow + empty/deny fixtures. 3) Warn/fail P0-high on empty Cursor stdout, unparseable JSON, or missing deny; keep structural registration checks. 4) Gate the probe behind doctor --full (or explicit opt-in); do not break --quick. 5) Add a regression test with a stub command that exits 0 with empty stdout; CHANGELOG [Unreleased] citing #2852.",
+      "UserStory": "As an operator running deft doctor --full, I want a non-functional hook bin to surface as unhealthy, so that empty-stdout packaging failures cannot hide behind a structurally valid deposit."
+    },
+    "items": [
+      {
+        "title": "Given doctor --full, when the configured hook returns empty stdout, then the check warns or fails.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a deposited hook command that exits 0 with empty stdout, when doctor --full runs the live probe, then agent-hooks health is not reported as registered-and-valid and an actionable finding is emitted."
+        }
+      },
+      {
+        "title": "Given allow and deny fixtures, when the live probe runs, then both paths are asserted.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a working hook bin, when the live probe pipes allow and empty/deny payloads for Cursor tool.before, then allow yields parseable permission allow and deny yields a deny decision."
+        }
+      },
+      {
+        "title": "Given doctor --quick, when doctor runs, then the live probe is not required.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given offline or --quick doctor, when doctor runs, then structural hooks checks still work and the live spawn probe is skipped unless --full (or explicit opt-in) is set."
+        }
+      },
+      {
+        "title": "Given the fix lands, when CHANGELOG is updated, then #2852 is cited.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the live probe ships, when the PR opens, then CHANGELOG [Unreleased] cites #2852."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "test-debt",
+      "doctor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2852",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2852: doctor live-probe agent hooks"
+      }
+    ],
+    "updated": "2026-07-27T01:16:18Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/agent-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor/agent-hooks.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "live probe under doctor --full",
+          "stub empty-stdout regression",
+          "CHANGELOG Unreleased citing #2852"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-hooks-live-probe-2852",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2852 acceptance criteria rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "security",
+      "completedAt": "2026-07-27T01:16:18Z"
+    }
+  }
+}

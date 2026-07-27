@@ -1,0 +1,93 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2846 — fix deft-hook / guarded bins so symlink argv[1] still runs main()"
+  },
+  "plan": {
+    "id": "2026-07-26-2846-bughooks-deft-hook-symlink-shim-never-runs-main-argv1-realpa",
+    "title": "bug(hooks): deft-hook symlink shim never runs main() (argv[1] realpath mismatch)",
+    "status": "completed",
+    "narratives": {
+      "Description": "In v0.85.0 the deft-hook entrypoint guard compares raw process.argv[1] to fileURLToPath(import.meta.url). npm global bins are symlinks, so main() never runs: empty stdout exit 0. Cursor failClosed blocks all edits; Claude/Grok/Codex silently fail open and lose deny.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2846",
+      "Overview": "Reproduce via symlink vs realpath node invocation. Fix with shared realpath-aware isDirectEntrypoint helper applied to hook-bin, verify-encoding, and the latent guarded modules. Add hermetic symlink smoke tests and prefer a doctor live probe for empty stdout.",
+      "Labels": "bug, security, test-debt",
+      "ImplementationPlan": "1) Add a shared helper module file (e.g. packages/cli/src/entrypoint.ts) exporting isDirectEntrypoint(moduleUrl) that realpathSync-compares process.argv[1] and fileURLToPath(moduleUrl) with try/catch. 2) Wire packages/cli/src/hook-bin.ts and packages/cli/src/verify-encoding.ts (and remaining guarded bin/latent CLI files sharing the raw-string guard) to call that helper. 3) Add a hermetic regression test that creates a temp symlink to dist/hook-bin.js, pipes a Cursor allow payload, and asserts non-empty JSON permission=allow plus a deny-path assertion through the same symlink. 4) Verify with pnpm exec vitest run on the new/updated tests and a manual symlink smoke if needed; CHANGELOG [Unreleased] citing #2846. 5) Optional: extend agent-hooks doctor probe to spawn the configured hook and warn on empty/unparseable stdout.",
+      "UserStory": "As a Cursor or multi-host operator, I want deft-hook decisions to reach the host when invoked through the npm bin symlink, so that fail-closed edits are not blocked and deny decisions are not silently dropped."
+    },
+    "items": [
+      {
+        "title": "Given a symlink to hook-bin, when the host invokes deft-hook, then main runs and stdout is a decision document.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a temporary symlink to dist/hook-bin.js, when invoked with --host cursor --event tool.before and a Write payload, then stdout is non-empty parseable JSON with permission allow (not empty exit 0)."
+        }
+      },
+      {
+        "title": "Given a deny payload through the symlink, when deft-hook runs, then a host-shaped deny is emitted.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an empty or omit-tool-name payload through the symlink for --host claude (or cursor), when deft-hook runs, then stdout contains a deny decision (not empty allow-shaped silence)."
+        }
+      },
+      {
+        "title": "Given verify-encoding and other guarded bins, when invoked via symlink, then their entrypoints also run.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the shared isDirectEntrypoint helper, when deft-verify-encoding (and other declared guarded bins) are invoked via symlink, then main runs instead of silent no-op exit 0."
+        }
+      },
+      {
+        "title": "Given the fix lands, when CHANGELOG is updated, then #2846 is cited under Unreleased.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the entrypoint realpath fix, when the PR opens, then CHANGELOG [Unreleased] describes the symlink shim bug and cites #2846."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "test-debt"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2846",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2846: bug(hooks): deft-hook symlink shim never runs main() (argv[1] realpath mismatch)"
+      }
+    ],
+    "updated": "2026-07-26T22:25:34Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/hook-bin.ts",
+          "packages/cli/src/hook-bin.test.ts",
+          "packages/cli/src/verify-encoding.ts",
+          "packages/cli/src/entrypoint.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/hook-bin.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "realpath-aware isDirectEntrypoint helper",
+          "hermetic symlink regression test for deft-hook",
+          "CHANGELOG Unreleased note citing #2846"
+        ],
+        "depends_on": [],
+        "conflict_group": "hooks-entrypoint-realpath-2846",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2846 reproduction and proposed shared helper rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-26T22:25:34Z"
+    }
+  }
+}

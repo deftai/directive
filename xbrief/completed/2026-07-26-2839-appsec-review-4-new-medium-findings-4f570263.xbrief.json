@@ -1,0 +1,91 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2839 — contain four medium symlink write sinks"
+  },
+  "plan": {
+    "id": "2026-07-26-2839-appsec-review-4-new-medium-findings-4f570263",
+    "title": "AppSec review — 4 new medium findings (4f570263)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Four medium symlink / confused-deputy write sinks remain ungated: rule-map render, org-force-on marker, init-deposit gitignore, and roadmap:render. Gate each with assertWriteTargetSafe / assertProjectionContained before write.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2839",
+      "Overview": "AppSec review at 4f570263 found four MEDIUM write sinks where repo-controlled leaf symlinks divert writeFileSync outside the project. Same pattern as #2807 / projection-containment helpers.",
+      "Labels": "bug, security",
+      "ImplementationPlan": "1) Gate writeFileSync in rule-map.ts (md+html), org-force-on-migration.ts writeOrgForceOnMarker, init-deposit/gitignore.ts, and roadmap-render.ts with assertWriteTargetSafe or assertProjectionContained. 2) Add symlink-diversion regression tests per sink. 3) CHANGELOG Unreleased note.",
+      "UserStory": "As an operator, I want symlink-escaping write targets refused on rule-map org-force-on gitignore and roadmap sinks, so that routine commands cannot overwrite files outside the checkout."
+    },
+    "items": [
+      {
+        "title": "Given the four write sites, when they mutate the filesystem, then they call containment helpers first.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the four listed write sites, when they call writeFileSync, then each has already called assertWriteTargetSafe or equivalent projection containment."
+        }
+      },
+      {
+        "title": "Given a leaf symlink diversion, when each sink writes, then the write is refused with a clear error.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a symlink-at-leaf diverting each output path, when the sink runs, then it rejects with a clear error and does not overwrite the outside target."
+        }
+      },
+      {
+        "title": "Given regression tests per sink, when the suite runs, then symlink diversion cases are covered.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given regression tests for rule-map md+html, org-force-on marker, init-deposit gitignore, and roadmap:render, when vitest runs those suites, then symlink diversion cases pass."
+        }
+      },
+      {
+        "title": "Given a pattern audit, when same-class sinks are reviewed, then none remain unguarded without follow-up.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a short pattern audit of the same trust-class write paths, when the PR lands, then no sibling unguarded writeFileSync remains without a follow-up issue or documented exception."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2839",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2839: AppSec review — 4 new medium findings (4f570263)"
+      }
+    ],
+    "updated": "2026-07-26T03:51:18Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/render/rule-map.ts",
+          "packages/core/src/policy/org-force-on-migration.ts",
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/render/roadmap-render.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/render packages/core/src/policy packages/core/src/init-deposit/gitignore",
+          "task check"
+        ],
+        "expected_outputs": [
+          "four sinks gated",
+          "symlink diversion tests green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-symlink-2839",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2839 AppSec acceptance criteria and prior containment pattern #2807 rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "security",
+      "completedAt": "2026-07-26T03:51:18Z"
+    }
+  }
+}

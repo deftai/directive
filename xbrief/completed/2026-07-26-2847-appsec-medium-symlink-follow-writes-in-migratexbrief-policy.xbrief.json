@@ -1,0 +1,90 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2847 — gate migrate:xbrief AGENTS refresh and policy PROJECT-DEFINITION writers against symlink escape"
+  },
+  "plan": {
+    "id": "2026-07-26-2847-appsec-medium-symlink-follow-writes-in-migratexbrief-policy",
+    "title": "AppSec: medium symlink-follow writes in migrate:xbrief + policy wip-cap/subagent-backend",
+    "status": "completed",
+    "narratives": {
+      "Description": "At d90e2d50, migrate:xbrief local runAgentsRefresh and policy writeWipCap/writeSubagentBackend still use bare writeFileSync. A committed AGENTS.md or PROJECT-DEFINITION symlink lets a malicious repo overwrite outside paths when the operator runs trusted CLI verbs.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2847",
+      "Overview": "Two medium TOCTOU/symlink-escape sinks remain after the #2839 AppSec pass. Gate both with assertWriteTargetSafe / atomicWrite helpers already used by sibling writers, plus committed-symlink regression tests.",
+      "Labels": "security",
+      "ImplementationPlan": "1) In packages/core/src/xbrief-migrate/migrate-project.ts runAgentsRefresh, replace bare writeFileSync with assertWriteTargetSafe + atomicWriteText (or applyAgentsRefresh) so AGENTS.md symlink/outside targets fail closed. 2) In packages/cli/src/dispatch.ts, route writeWipCap and writeSubagentBackend through atomicWriteProjectDefinition (with assertWriteTargetSafe) instead of bare writeFileSync on PROJECT-DEFINITION. 3) Add regression tests with committed symlinks for both paths under packages/core/src/xbrief-migrate and packages/cli (or existing dispatch/policy tests). 4) Verify with pnpm exec vitest on the touched suites and CHANGELOG [Unreleased] citing #2847. 5) Leave sibling writers already on safe helpers unchanged.",
+      "UserStory": "As an operator running migrate:xbrief or policy verbs in an untrusted clone, I want AGENTS.md and PROJECT-DEFINITION writes to refuse symlink escape targets, so that a malicious repo cannot overwrite files outside the project under my identity."
+    },
+    "items": [
+      {
+        "title": "Given a symlinked AGENTS.md, when migrate:xbrief refreshes agents, then the write is refused.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given AGENTS.md is a symlink to an outside file, when migrate:xbrief runAgentsRefresh runs, then the outside target is not overwritten and the path fails closed via assertWriteTargetSafe / safe writer parity with agents:refresh."
+        }
+      },
+      {
+        "title": "Given a symlinked PROJECT-DEFINITION, when policy wip-cap or subagent-backend writes, then the write is refused.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given xbrief/PROJECT-DEFINITION.xbrief.json is a symlink outside the project, when writeWipCap or writeSubagentBackend runs, then both use atomicWriteProjectDefinition and do not follow the symlink with bare writeFileSync."
+        }
+      },
+      {
+        "title": "Given committed-symlink fixtures, when regression tests run, then both sinks are covered.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given committed-symlink write-target fixtures for AGENTS.md and PROJECT-DEFINITION, when the new/extended vitest suites run, then they fail closed for unsafe targets and pass for normal files."
+        }
+      },
+      {
+        "title": "Given the fix lands, when CHANGELOG is updated, then #2847 is cited.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given both sinks are gated, when the PR opens, then CHANGELOG [Unreleased] describes the AppSec fix and cites #2847."
+        }
+      }
+    ],
+    "tags": [
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2847",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2847: AppSec medium symlink-follow writes in migrate:xbrief + policy wip-cap/subagent-backend"
+      }
+    ],
+    "updated": "2026-07-26T18:44:17Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "migrate:xbrief AGENTS refresh fails closed on symlink",
+          "writeWipCap/writeSubagentBackend via atomicWriteProjectDefinition",
+          "CHANGELOG Unreleased citing #2847"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-symlink-writes-2847",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2847 AppSec findings at d90e2d50 rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "security",
+      "completedAt": "2026-07-26T18:44:17Z"
+    }
+  }
+}

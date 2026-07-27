@@ -1,0 +1,82 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2838 — remove orphaned Cursor adapter companion test on update"
+  },
+  "plan": {
+    "id": "2026-07-26-2838-bughooks-deft-update-leaves-orphaned-deft-cursor-hook-adapte",
+    "title": "bug(hooks): deft update leaves orphaned deft-cursor-hook-adapter.test.mjs",
+    "status": "completed",
+    "narratives": {
+      "Description": "After #2790, deft update deletes legacy deft-cursor-hook-adapter.mjs but leaves the companion .test.mjs. That orphaned test imports removed exports and fails node --test in consumer repositories.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2838",
+      "Overview": "Residual follow-up after adapter retirement. Extend writeAgentHookDeposit cleanup to remove .cursor/hooks/deft-cursor-hook-adapter.test.mjs when present, with regression coverage. Shell-quoting defect on the old adapter is out of scope (superseded by #2790).",
+      "Labels": "bug",
+      "ImplementationPlan": "1) In packages/core/src/init-deposit/agent-hooks.ts, rmSync the companion .test.mjs beside the existing adapter .mjs cleanup. 2) Extend cursor-hooks/agent-hooks tests to seed both files and assert both are removed on refresh. 3) CHANGELOG Unreleased note.",
+      "UserStory": "As a consumer running deft update, I want orphaned Cursor adapter tests removed with the adapter, so that node --test .cursor/hooks/ does not fail on dead imports."
+    },
+    "items": [
+      {
+        "title": "Given a leftover adapter test, when hooks deposit refreshes, then the test file is removed.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given .cursor/hooks/deft-cursor-hook-adapter.test.mjs present, when writeAgentHookDeposit / deft update runs, then that file is removed along with the legacy .mjs adapter."
+        }
+      },
+      {
+        "title": "Given seeded adapter and test files, when refresh runs, then both are gone and hooks.json stays current.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given both adapter and companion test seeded, when deposit refresh runs, then both are gone and Cursor direct-write hooks.json registration remains current."
+        }
+      },
+      {
+        "title": "Given the cleanup, when CHANGELOG is updated, then Unreleased notes the orphan removal.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the orphan cleanup lands, when CHANGELOG [Unreleased] is reviewed, then it notes removal of leftover deft-cursor-hook-adapter.test.mjs on update."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2838",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2838: bug(hooks): deft update leaves orphaned deft-cursor-hook-adapter.test.mjs"
+      }
+    ],
+    "updated": "2026-07-26T02:55:28Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/hooks/cursor-hooks.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "orphaned adapter test removed on refresh",
+          "regression test green",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "conflict_group": "hooks-adapter-orphan-2838",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to narrowed GitHub issue #2838 acceptance after #2790 supersession rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-26T02:55:28Z"
+    }
+  }
+}

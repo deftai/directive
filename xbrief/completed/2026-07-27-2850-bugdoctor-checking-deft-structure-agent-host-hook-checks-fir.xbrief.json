@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2850 — fix doctor consumerContext misclassification when global CLI runs against a maintainer clone"
+  },
+  "plan": {
+    "id": "2026-07-27-2850-bugdoctor-checking-deft-structure-agent-host-hook-checks-fir",
+    "title": "bug(doctor): Deft structure + agent-host hook checks fire spurious warnings in framework maintainer clone",
+    "status": "completed",
+    "narratives": {
+      "Description": "Global directive doctor --full against a clean deftai/directive clone emits 7 false warnings (hooks incomplete + six Missing directory). install-integrity and Taskfile already skip via runningInsideDeftRepo; hooks and structure use consumerContext derived from frameworkRoot = resolveDefaultFrameworkRoot() (installed package), so the clone is misclassified as a consumer.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2850; treat the issue comment correction as authoritative over the original path-heuristic suggestion.",
+      "Overview": "Resolve doctor frameworkRoot with resolveFrameworkRootForProject(projectRoot) so maintainer clones get consumerContext=false. Align hooks/structure skip signaling with other maintainer skips. Separately update EXPECTED_FRAMEWORK_DIRS so vbrief is not required post-xbrief migration.",
+      "Labels": "bug, doctor, agent-experience",
+      "ImplementationPlan": "1) In packages/core/src/doctor/main.ts (frameworkRoot assignment ~line 103), prefer resolveFrameworkRootForProject(projectRoot) from packages/core/src/doctor/paths.ts over resolveDefaultFrameworkRoot() so a maintainer clone is not treated as a consumer when using the global CLI. 2) Confirm runAgentHooksHealthCheck and Deft structure checks skip with auditable info lines when consumerContext is false / runningInsideDeftRepo. 3) Update EXPECTED_FRAMEWORK_DIRS to drop or replace vbrief for post-xbrief layout. 4) Add regression tests covering global-CLI-style seams where projectRoot is a maintainer clone and installed frameworkRoot would otherwise diverge. 5) Verify with pnpm exec vitest on doctor suites + CHANGELOG [Unreleased] citing #2850.",
+      "UserStory": "As a maintainer running global directive doctor --full inside the framework clone, I want hooks and structure checks to skip like install-integrity already does, so that a clean clone reports zero spurious warnings."
+    },
+    "items": [
+      {
+        "title": "Given a maintainer clone and global CLI, when doctor resolves frameworkRoot, then consumerContext is false.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given projectRoot is a deftai/directive source checkout and the doctor package is installed elsewhere, when doctor runs, then frameworkRoot resolves via resolveFrameworkRootForProject(projectRoot) and consumerContext is false."
+        }
+      },
+      {
+        "title": "Given maintainer context, when hooks and structure checks run, then they emit skip info not warnings.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given consumerContext false on a clean maintainer clone, when agent-hooks-registration and Deft structure checks run, then they print auditable skip lines and do not emit the 7 spurious warnings from the issue repro."
+        }
+      },
+      {
+        "title": "Given post-xbrief layout, when EXPECTED_FRAMEWORK_DIRS is evaluated, then vbrief is not required.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given current master layout with xbrief/ and no vbrief/, when maintainer structure check runs after consumerContext fix, then it does not warn solely for missing vbrief/."
+        }
+      },
+      {
+        "title": "Given the fix lands, when CHANGELOG is updated, then #2850 is cited.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the doctor classification fix, when the PR opens, then CHANGELOG [Unreleased] cites #2850."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2850",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2850: bug(doctor) spurious warnings in framework maintainer clone"
+      }
+    ],
+    "updated": "2026-07-27T00:31:05Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/paths.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/doctor/agent-hooks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor",
+          "task check"
+        ],
+        "expected_outputs": [
+          "frameworkRoot via resolveFrameworkRootForProject",
+          "maintainer skip for hooks + structure",
+          "EXPECTED_FRAMEWORK_DIRS without required vbrief",
+          "CHANGELOG Unreleased citing #2850"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-maintainer-context-2850",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2850 body + correction comment rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-07-27T00:31:05Z"
+    }
+  }
+}

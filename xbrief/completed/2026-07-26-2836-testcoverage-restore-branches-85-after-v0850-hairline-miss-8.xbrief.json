@@ -1,0 +1,81 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2836 — restore branch coverage ≥85% after v0.85.0 debt hatch"
+  },
+  "plan": {
+    "id": "2026-07-26-2836-testcoverage-restore-branches-85-after-v0850-hairline-miss-8",
+    "title": "test(coverage): restore branches >=85% after v0.85.0 hairline miss (84.95%)",
+    "status": "completed",
+    "narratives": {
+      "Description": "v0.85.0 shipped with --allow-coverage-debt=2836 after branches landed at 84.95% versus the 85% floor. Restore real branch coverage so the next release cut does not reuse the debt hatch.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2836",
+      "Overview": "Local task check / vitest coverage for the v0.85.0 cut reports branches 84.95% vs the global 85% floor. Follow-up MUST restore branches ≥85% without debt (same class as #2762 / #2630).",
+      "Labels": "bug, testing",
+      "ImplementationPlan": "1) Run vitest coverage and task coverage:hotspots to list lowest src/ modules and uncovered branch samples in the report. 2) Add focused unit tests under packages/core/src and packages/cli/src for those branch gaps (~17 hits) with fixture asserts. 3) Re-run the coverage report and confirm branches >=85% without --allow-coverage-debt=2836.",
+      "UserStory": "As a maintainer, I want branch coverage back at or above 85% without a debt hatch, so that release cuts enforce the real quality floor."
+    },
+    "items": [
+      {
+        "title": "Given the current suite, when coverage is measured, then branches are at least 85%.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the current suite, when task check runs without --allow-coverage-debt, then reported branch coverage is at least 85%."
+        }
+      },
+      {
+        "title": "Given the debt hatch for 2836, when coverage is restored, then the hatch is no longer required.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the v0.85.0 debt allowance for #2836, when coverage is restored, then release/check paths no longer need --allow-coverage-debt=2836."
+        }
+      },
+      {
+        "title": "Given new branch-hitting tests, when the suite runs, then they stay green and raise coverage.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given focused tests targeting the uncovered branches, when vitest runs those paths, then they pass and contribute the missing branch hits."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "testing"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2836",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2836: test(coverage): restore branches >=85% after v0.85.0 hairline miss (84.95%)"
+      }
+    ],
+    "updated": "2026-07-26T05:59:41Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "vitest.config.ts",
+          "packages/core/src/ts-check-lane/run-lane.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run --coverage",
+          "task coverage:hotspots"
+        ],
+        "expected_outputs": [
+          "branch coverage >=85% without debt hatch",
+          "CHANGELOG Unreleased note if hatch retirement is user-visible"
+        ],
+        "depends_on": [],
+        "conflict_group": "coverage-2836",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #2836 acceptance and the v0.85.0 release debt comment rather than a SPECIFICATION section."
+      },
+      "capacityBucket": "technical-debt",
+      "completedAt": "2026-07-26T05:59:41Z"
+    }
+  }
+}
