@@ -266,9 +266,12 @@ export function runCliCapture(argv: string[]): { code: number; stdout: string; s
       cacheRoot: args.cacheRoot !== undefined ? resolve(args.cacheRoot) : undefined,
     });
     const subHash = subscriptionHash(rules);
+    // When --cache-root is outside the project tree, contain against that root
+    // instead of projectRoot (tests and operators may redirect the cache) (#2869).
     const record = writeCoverageDenominator(path, {
       count: args.count,
       subscriptionHashValue: subHash,
+      projectRoot: args.cacheRoot !== undefined ? resolve(args.cacheRoot) : projectRoot,
     });
     stdout.push(
       `triage:scope: wrote coverage denominator count=${record.count} ` +

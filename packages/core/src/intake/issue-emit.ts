@@ -1,7 +1,8 @@
 import { globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
@@ -26,8 +27,22 @@ export function loadVbrief(path: string): Record<string, unknown> {
     : {};
 }
 
-export function writeVbrief(path: string, data: Record<string, unknown>): void {
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+/**
+ * Persist an xBRIEF/vBRIEF JSON document. Gates the write target so a leaf or
+ * parent-directory symlink cannot divert the stamped file outside the project (#2869).
+ */
+export function writeVbrief(
+  path: string,
+  data: Record<string, unknown>,
+  projectRoot?: string | null,
+): void {
+  const absPath = resolve(path);
+  const root =
+    projectRoot !== undefined && projectRoot !== null && projectRoot.length > 0
+      ? resolve(projectRoot)
+      : (resolveProjectRoot(null, dirname(absPath)) ?? dirname(absPath));
+  assertWriteTargetSafe(root, absPath);
+  writeFileSync(absPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
 export function vbriefTitle(data: Record<string, unknown>): string {
@@ -191,6 +206,7 @@ export function emitSingle(
     scmCall?: ScmCallFn;
     noNetwork?: boolean;
     displayPath?: string | null;
+    projectRoot?: string | null;
   },
 ): EmitAction {
   const shown = options.displayPath ?? path;
@@ -213,7 +229,7 @@ export function emitSingle(
   const body = renderIssueBody(data);
   const url = fileIssue(options.repo, title, body, options.scmCall);
   addGithubIssueReference(data, url);
-  writeVbrief(path, data);
+  writeVbrief(path, data, options.projectRoot);
   return { result: "created", vbrief: shown, url, title };
 }
 
@@ -224,6 +240,7 @@ export function emitPerVbrief(
     scmCall?: ScmCallFn;
     noNetwork?: boolean;
     displayPaths?: string[] | null;
+    projectRoot?: string | null;
   },
 ): EmitAction[] {
   const shown = options.displayPaths ?? paths;
@@ -259,6 +276,7 @@ export function emitUmbrella(
     noNetwork?: boolean;
     title?: string | null;
     displayPaths?: string[] | null;
+    projectRoot?: string | null;
   },
 ): UmbrellaAction {
   const shown = options.displayPaths ?? paths;
@@ -293,7 +311,7 @@ export function emitUmbrella(
   const written: { vbrief: string; result: string }[] = [];
   for (const [path, disp, data] of pending) {
     addGithubIssueReference(data, url);
-    writeVbrief(path, data);
+    writeVbrief(path, data, options.projectRoot);
     written.push({ vbrief: disp, result: "created" });
   }
 
@@ -391,10 +409,16 @@ export function issueEmitMain(args: IssueEmitCliArgs): number {
         noNetwork,
         title: args.title,
         displayPaths: display,
+        projectRoot,
       });
       summary = { mode: "umbrella", no_network: noNetwork, umbrella: action };
     } else if (args.perVbrief) {
-      const actions = emitPerVbrief(paths, { repo, noNetwork, displayPaths: display });
+      const actions = emitPerVbrief(paths, {
+        repo,
+        noNetwork,
+        displayPaths: display,
+        projectRoot,
+      });
       summary = { mode: "per-vbrief", no_network: noNetwork, actions };
     } else {
       if (paths.length !== 1) {
@@ -407,6 +431,7 @@ export function issueEmitMain(args: IssueEmitCliArgs): number {
         repo,
         noNetwork,
         displayPath: display[0],
+        projectRoot,
       });
       summary = { mode: "single", no_network: noNetwork, actions: [action] };
     }

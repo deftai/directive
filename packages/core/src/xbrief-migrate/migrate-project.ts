@@ -175,7 +175,7 @@ function migrateLegacyTree(
     // either removed (default) or retained for read-compat behind an explicit
     // deprecation marker so it never looks like an active source of truth (#2270).
     if (options.keepLegacy) {
-      writeVbriefDeprecationMarker(legacyDir);
+      writeVbriefDeprecationMarker(projectRoot, legacyDir);
     } else {
       rmSync(legacyDir, { recursive: true, force: true });
     }
@@ -186,17 +186,17 @@ function migrateLegacyTree(
   }
 }
 
-/** Idempotently write the legacy-root deprecation marker (#2270). */
-function writeVbriefDeprecationMarker(legacyDir: string): void {
+/** Idempotently write the legacy-root deprecation marker (#2270 / #2869). */
+function writeVbriefDeprecationMarker(projectRoot: string, legacyDir: string): void {
+  const markerPath = join(legacyDir, VBRIEF_DEPRECATION_MARKER_FILENAME);
+  // Refuse leaf or parent-dir symlink escapes before mkdir/write (#2869).
+  assertWriteTargetSafe(projectRoot, legacyDir);
+  assertWriteTargetSafe(projectRoot, markerPath);
   mkdirSync(legacyDir, { recursive: true });
   if (hasVbriefDeprecationMarker(legacyDir)) {
     return;
   }
-  writeFileSync(
-    join(legacyDir, VBRIEF_DEPRECATION_MARKER_FILENAME),
-    VBRIEF_DEPRECATION_MARKER_BODY,
-    "utf8",
-  );
+  writeFileSync(markerPath, VBRIEF_DEPRECATION_MARKER_BODY, "utf8");
 }
 
 /**
@@ -221,10 +221,9 @@ export function convergeLegacyVbriefRoot(
     rmSync(legacyDir, { recursive: true, force: true });
     return "removed";
   }
-  writeVbriefDeprecationMarker(legacyDir);
+  writeVbriefDeprecationMarker(projectRoot, legacyDir);
   return "marker";
 }
-
 function renameOrReplace(src: string, dest: string): void {
   if (existsSync(dest)) {
     rmSync(dest, { recursive: true, force: true });

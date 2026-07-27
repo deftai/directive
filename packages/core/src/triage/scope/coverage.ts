@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
 import {
   CACHE_DIR_NAME,
   COVERAGE_FILENAME,
@@ -43,7 +44,13 @@ export function coverageTtlHours(): number {
 
 export function writeCoverageDenominator(
   path: string,
-  options: { count: number; subscriptionHashValue: string; fetchedAt?: Date },
+  options: {
+    count: number;
+    subscriptionHashValue: string;
+    fetchedAt?: Date;
+    /** Project (or cache) root for symlink containment (#2869). */
+    projectRoot?: string;
+  },
 ): CoverageRecord {
   if (options.count < 0) {
     throw new Error(`count must be >= 0; got ${options.count}`);
@@ -51,14 +58,28 @@ export function writeCoverageDenominator(
   if (!options.subscriptionHashValue) {
     throw new Error("subscription_hash_value must be a non-empty string");
   }
+  const absPath = resolve(path);
+  // Production CLI always passes projectRoot. When omitted (unit tests with a
+  // bare cacheRoot), walk up to the deepest existing ancestor so containment
+  // can realpath the root before mkdir creates intermediate dirs (#2869).
+  let containmentRoot =
+    options.projectRoot !== undefined ? resolve(options.projectRoot) : dirname(absPath);
+  if (options.projectRoot === undefined) {
+    while (!existsSync(containmentRoot)) {
+      const parent = dirname(containmentRoot);
+      if (parent === containmentRoot) break;
+      containmentRoot = parent;
+    }
+  }
+  assertWriteTargetSafe(containmentRoot, absPath);
   const stamp = utcIso(options.fetchedAt ?? null);
-  mkdirSync(join(path, ".."), { recursive: true });
+  mkdirSync(dirname(absPath), { recursive: true });
   const payload = {
     count: options.count,
     fetched_at: stamp,
     subscription_hash: options.subscriptionHashValue,
   };
-  writeFileSync(path, `${JSON.stringify(payload, Object.keys(payload).sort())}\n`, "utf8");
+  writeFileSync(absPath, `${JSON.stringify(payload, Object.keys(payload).sort())}\n`, "utf8");
   return {
     count: options.count,
     fetchedAt: stamp,

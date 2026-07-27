@@ -4,10 +4,17 @@ import { dirname, join } from "node:path";
 import { locateManifest, parseInstallManifest } from "../doctor/manifest.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { evaluateReleaseAvailability } from "../doctor/release-availability.js";
+import { resolveTriageCachePath } from "../triage/cache-path.js";
 
 const THROTTLE_MS = 24 * 60 * 60 * 1000;
 const PUBLIC_NPM_REGISTRY = "https://registry.npmjs.org/";
-const STATE_RELATIVE_PATH = join("xbrief", ".triage-cache", "release-availability-state.json");
+const STATE_FILE_NAME = "release-availability-state.json";
+/** Display/back-compat constant; resolution flows through resolveTriageCachePath (#2869). */
+export const STATE_RELATIVE_PATH = join("xbrief", ".triage-cache", STATE_FILE_NAME);
+
+function resolveReleaseAvailabilityStatePath(projectRoot: string): string {
+  return resolveTriageCachePath(projectRoot, STATE_FILE_NAME);
+}
 
 export interface ReleaseAvailabilityProbeOptions {
   readonly now?: Date;
@@ -123,25 +130,35 @@ export function probeSessionReleaseAvailability(
   );
   if (availability.status !== "available") return { lines };
 
-  const statePath = join(projectRoot, STATE_RELATIVE_PATH);
-  const state = parseState((options.readState ?? defaultReadText)(statePath));
+  let statePath: string | null = null;
+  try {
+    statePath = resolveReleaseAvailabilityStatePath(projectRoot);
+  } catch {
+    // Symlink-escaping triage-cache path: skip throttle state; still emit advisory (#2869).
+    statePath = null;
+  }
+  const state = parseState(
+    statePath !== null ? (options.readState ?? defaultReadText)(statePath) : null,
+  );
   const now = options.now ?? new Date();
   if (isThrottled(state, availability.latestVersion, now)) return { lines: [] };
 
   const message =
     `[deft release] Newer Directive release available: v${availability.latestVersion} ` +
     `(installed v${availability.installedVersion}). Run \`npm i -g @deftai/directive@latest\`.`;
-  try {
-    (options.writeState ?? defaultWriteState)(
-      statePath,
-      `${JSON.stringify(
-        { latestVersion: availability.latestVersion, notifiedAt: now.toISOString() },
-        null,
-        2,
-      )}\n`,
-    );
-  } catch {
-    // The advisory remains useful if its best-effort throttle state cannot persist.
+  if (statePath !== null) {
+    try {
+      (options.writeState ?? defaultWriteState)(
+        statePath,
+        `${JSON.stringify(
+          { latestVersion: availability.latestVersion, notifiedAt: now.toISOString() },
+          null,
+          2,
+        )}\n`,
+      );
+    } catch {
+      // The advisory remains useful if its best-effort throttle state cannot persist.
+    }
   }
   return { lines: [...lines, message] };
 }

@@ -1,7 +1,8 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
 import { type ScanFlag, scan } from "../cache/scanner.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -723,13 +724,25 @@ export function ingestOne(
     infoVersion: emissionLayout.infoVersion,
   });
   const filename = targetFilename(number, String(issue.title ?? ""), emissionLayout.artifactSuffix);
-  const target = join(options.vbriefDir, folder, filename);
+  const folderPath = join(options.vbriefDir, folder);
+  const target = join(folderPath, filename);
 
   if (options.dryRun) {
     return ["dryrun", target, `DRY-RUN would write ${folder}/${filename}`];
   }
 
-  mkdirSync(join(options.vbriefDir, folder), { recursive: true });
+  // Gate lifecycle folder + leaf before mkdir/write so folder/parent symlinks
+  // cannot divert issue:ingest / triage:accept outside the project (#2869).
+  const projectRoot =
+    (options.cwd !== undefined && options.cwd !== null && options.cwd.length > 0
+      ? resolve(options.cwd)
+      : null) ??
+    resolveProjectRoot(null, options.vbriefDir) ??
+    resolve(dirname(options.vbriefDir));
+  assertWriteTargetSafe(projectRoot, folderPath);
+  assertWriteTargetSafe(projectRoot, target);
+
+  mkdirSync(folderPath, { recursive: true });
   writeFileSync(target, `${JSON.stringify(vbrief, null, 2)}\n`, "utf8");
   return ["created", target, `CREATED ${folder}/${filename}`];
 }
