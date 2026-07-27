@@ -188,7 +188,7 @@ export function formatFrameworkCommand(
   return [surface, ...parts].join(" ");
 }
 
-const EXCLUDE_PARTS = new Set([".git", "backup"]);
+const EXCLUDE_PARTS = new Set([".git", "backup", "node_modules", ".deft-scratch"]);
 
 function collectMarkdownFiles(root: string): string[] {
   const out: string[] = [];
@@ -219,12 +219,12 @@ function collectMarkdownFiles(root: string): string[] {
   return out.sort();
 }
 
-export function cmdCoreValidate(argv: readonly string[]): number {
+export function cmdCoreValidate(argv: readonly string[], root = "."): number {
   if (argv.length > 0) {
     process.stderr.write(`error: core:validate does not accept arguments: ${argv.join(" ")}\n`);
     return 2;
   }
-  const files = collectMarkdownFiles(".");
+  const files = collectMarkdownFiles(root);
   for (const path of files) process.stdout.write(`✓ ${path}\n`);
   process.stdout.write(`✓ All ${files.length} markdown files validated\n`);
   return 0;
@@ -306,8 +306,10 @@ function runBuildDistArgv(argv: readonly string[]): number {
   return result.status ?? 1;
 }
 
-const TS_INLINE: Record<string, (argv: string[]) => number> = {
-  "framework_commands:_cmd_core_validate": (argv) => cmdCoreValidate(argv),
+type TsInlineHandler = (argv: string[], cwd: string) => number;
+
+const TS_INLINE: Record<string, TsInlineHandler> = {
+  "framework_commands:_cmd_core_validate": (argv, cwd) => cmdCoreValidate(argv, cwd),
   "doctor:cmd_doctor": (argv) => cmdDoctor(argv),
   "build_dist:main": (argv) => runBuildDistArgv(argv),
 };
@@ -399,14 +401,14 @@ function invokeEntrypoint(
       };
       let code: number;
       try {
-        code = inline(argv);
+        code = inline(argv, cwd);
       } finally {
         process.stdout.write = prevOut;
         process.stderr.write = prevErr;
       }
       return { code, stdout: chunks.out, stderr: chunks.err };
     }
-    return { code: inline(argv), stdout: "", stderr: "" };
+    return { code: inline(argv, cwd), stdout: "", stderr: "" };
   }
   const verb = ENTRYPOINT_VERB[entrypoint];
   if (verb) {
