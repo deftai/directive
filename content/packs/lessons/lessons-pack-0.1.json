@@ -617,6 +617,23 @@
       ],
       "source": "Issue #2859. During v0.86.0 Phase 1, task check failed on #2858-class hang; orchestrator led with inline hotfix / skip-ci instead of file \u2192 PR \u2192 merge \u2192 resume.",
       "body": "**Source:** Issue #2859 (recurrence during v0.86.0 cut; concrete hang #2858).\n\n**Failure mode:** Release Phase 1 `task check` / `ci:local` fails on a fixable defect. Agent offers inline hotfix, timeout tweaks, or untracked `--skip-ci` before filing a tracked issue and driving merge-ready.\n\n**Rule:** Pause the cut. File GitHub issue \u2192 xBRIEF \u2192 feature branch \u2192 PR \u2192 merge \u2192 confirm check green \u2192 resume Phase 1. `--allow-skip-ci=#N` stays incident-only with a tracked issue (Phase 4); never the first suggestion for a shippable bug.\n\n**AGENTS.md bulk rejected:** Always-pin expansion in AGENTS.md / agents-entry for this reminder was considered and rejected (#2859).\n\n**Canonical encoding:** `skills/deft-directive-release/SKILL.md` \u00a7 Fixable check failure \u2014 file-and-merge before resume (#2859); `docs/RELEASING.md` \u00a7 Fixable check failure during release."
+    },
+    {
+      "id": "release-coverage-debt-hatch-2026-07",
+      "title": "Release Step 5 coverage hairline \u2014 open-issue ledger hatch (2026-07)",
+      "date": "2026-07",
+      "issue_refs": [
+        "#2866",
+        "#2573",
+        "#2618"
+      ],
+      "tags": [
+        "agent-experience",
+        "release",
+        "documentation"
+      ],
+      "source": "Issue #2866. Hairline branch-coverage misses at release Step 5 repeatedly interrupted cuts; operator approved file-#N-then-hatch when no open debt issue exists.",
+      "body": "**Source:** Issue #2866 (operator-approved 2026-07-27).\n\n**Failure mode:** `task release` Step 5 fails on Vitest branch coverage below 85% (hairline miss). Agent treats it like a #2859 file-and-merge product defect or attempts consecutive `--allow-coverage-debt` soft-passes while a prior hatch debt issue is still open.\n\n**Rule (release-scoped only):** If no open coverage-debt issue exists \u2192 file `#N`, continue cut with `--allow-coverage-debt=#N` (PowerShell: `N` or `\"#N\"`). If an open debt issue from a prior hatch exists \u2192 restore branch coverage \u2265 85% and close the issue before reusing the hatch. Hangs, failing tests, and non-coverage failures stay under #2859 file-and-merge.\n\n**Canonical encoding:** `skills/deft-directive-release/SKILL.md` \u00a7 Step 5 branch-coverage threshold \u2014 open-issue ledger hatch (#2866); `docs/RELEASING.md` \u00a7 Coverage debt hatch during release."
     }
   ]
 }

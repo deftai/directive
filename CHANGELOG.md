@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Release Phase 1 routes fixable `task check` failures through file-and-merge (#2859).** When `task ci:local` / `task check` fails on a shippable defect during a cut, the release skill requires filing a tracked issue and merging a fix before resuming — not inline hotfix theater or untracked `--skip-ci`. AGENTS.md bulk for this reminder was considered and rejected. Closes #2859.
+- **Release Step 5 branch-coverage hairlines use open-issue ledger hatch (#2866).** When `task release` Step 5 fails only on Vitest branch coverage below 85% and no open coverage-debt issue exists, file `#N` and continue with `--allow-coverage-debt=#N` (PowerShell-safe); while a prior hatch debt issue remains open, soft-pass is forbidden until coverage is restored. Non-coverage failures stay under #2859 file-and-merge. Closes #2866.
 
 ### Fixed
 

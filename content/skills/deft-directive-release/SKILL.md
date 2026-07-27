@@ -94,7 +94,9 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ### Fixable check failure — file-and-merge before resume (#2859)
 
-! When Step 4 (`task ci:local` or `task check`) fails on a **fixable product or test defect** (hang, failing test, coverage regression, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
+! When Step 4 (`task ci:local` or `task check`) fails on a **fixable product or test defect** (hang, failing test, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
+
+? **Step 5 branch-coverage threshold misses** during `task release` (Vitest branch coverage below 85% with no other failure mode) are carved out to § Step 5 branch-coverage threshold — open-issue ledger hatch (#2866) below — not this file-and-merge path.
 
 **Required path:**
 1. File a GitHub issue with root cause, recurrence signature, and acceptance criteria.
@@ -111,6 +113,23 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 **AGENTS.md bulk rejected (#2859):** Expanding `AGENTS.md` / `content/templates/agents-entry.md` with an always-on pin for this release-phase reminder was considered and **rejected**. This rule lives in the release skill (and optional lesson); do NOT add AGENTS.md / agents-entry bulk for it.
 
 See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure during release for the operator runbook and the existing `--allow-skip-ci=#N` incident contract.
+
+### Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)
+
+! When **`task release` Step 5** fails **only** on Vitest **branch** coverage below the 85% threshold (hairline miss — not a hang, failing test, or other check failure), follow the open-issue ledger rule below. Non-coverage Step 5 failures remain under § Fixable check failure — file-and-merge before resume (#2859).
+
+**Open-issue ledger (release-scoped only):**
+
+1. Check for an **open coverage-debt tracking issue** (unpaid hatch from a prior cut): `gh issue list --repo <owner>/<repo> --state open --search "coverage-debt OR allow-coverage-debt in:title,body" --limit 20` (or equivalent REST query). An open issue filed for a prior `--allow-coverage-debt` hatch counts as unpaid debt.
+2. If **no open coverage-debt issue exists** → file `#N` documenting the hairline miss and acceptance criteria (restore branch coverage ≥ 85%), then continue the cut with `--allow-coverage-debt=#N` on `task release` (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — see Anti-Patterns #2621). The open `#N` remains WIP until coverage is restored and the issue is closed.
+3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real branch coverage ≥ 85% (or consciously change the threshold) and close the debt issue before the cut proceeds.
+
+⊗ Auto-pass on a near-miss band without `#N` (#2573).
+⊗ Silent soft-pass with no tracked issue.
+⊗ Use this carve-out for hangs, failing tests, or non-coverage Step 5 failures — those stay under #2859 file-and-merge.
+⊗ Treat file-debt-then-hatch as the default for ordinary PR / `task check` work outside a release cut — this hatch is release-scoped only.
+
+See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch during release.
 
 ~ **Frozen Go-installer bridge (#1912 / #1972 / #1987):** by default a release tag *above* the frozen line (the `LAST_GO_INSTALLER` constant in `packages/core/src/legacy-bridge/sot.ts`) will NOT rebuild the 6 Go binaries -- the CI `freeze-gate` job in `.github/workflows/release.yml` skips the build (the run stays green; npm still ships from the separate `npm-publish.yml`). If this release must rebuild the Go installer, follow the runbook in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge: roll `LAST_GO_INSTALLER` forward to the cut tag BEFORE tagging (pinning to the exact cut tag both releases the gate AND re-freezes at the new line), then see that section's "After the release" step for the re-pin.
 
@@ -330,4 +349,4 @@ Where `<one-line guidance>` is one of:
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
 - ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** env prefix on those three git commands only — see Branch-Protection Policy Guard, #2623)
 - ⊗ Pass `--allow-coverage-debt=#N` unquoted on Windows PowerShell (#2621) -- `#` starts a comment and silently drops the issue number. Use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"`
-- ⊗ Soft-pass coverage debt on consecutive releases when the prior cut already cited debt (#2618 / #2573) -- restore real branch coverage >= 85% instead of reusing the escape hatch
+- ⊗ Soft-pass coverage debt while an **open** coverage-debt issue from a prior hatch still exists (#2866 / #2573) -- restore real branch coverage >= 85% and close the debt issue before reusing `--allow-coverage-debt`; the ledger is open GitHub issues, not prior CHANGELOG citations (#2618 superseded by open-issue ledger)

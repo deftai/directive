@@ -676,3 +676,13 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **AGENTS.md bulk rejected:** Always-pin expansion in AGENTS.md / agents-entry for this reminder was considered and rejected (#2859).
 
 **Canonical encoding:** `skills/deft-directive-release/SKILL.md` § Fixable check failure — file-and-merge before resume (#2859); `docs/RELEASING.md` § Fixable check failure during release.
+
+## Release Step 5 coverage hairline — open-issue ledger hatch (2026-07)
+
+**Source:** Issue #2866 (operator-approved 2026-07-27).
+
+**Failure mode:** `task release` Step 5 fails on Vitest branch coverage below 85% (hairline miss). Agent treats it like a #2859 file-and-merge product defect or attempts consecutive `--allow-coverage-debt` soft-passes while a prior hatch debt issue is still open.
+
+**Rule (release-scoped only):** If no open coverage-debt issue exists → file `#N`, continue cut with `--allow-coverage-debt=#N` (PowerShell: `N` or `"#N"`). If an open debt issue from a prior hatch exists → restore branch coverage ≥ 85% and close the issue before reusing the hatch. Hangs, failing tests, and non-coverage failures stay under #2859 file-and-merge.
+
+**Canonical encoding:** `skills/deft-directive-release/SKILL.md` § Step 5 branch-coverage threshold — open-issue ledger hatch (#2866); `docs/RELEASING.md` § Coverage debt hatch during release.
