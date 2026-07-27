@@ -62,9 +62,26 @@ describe("win32-coverage-tmp-setup (#2634)", () => {
   });
 
   it("default setup is a no-op teardown on non-win32 platforms", () => {
+    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("linux");
     const teardown = win32CoverageTmpSetup();
     expect(typeof teardown).toBe("function");
     expect(() => teardown()).not.toThrow();
+    platformSpy.mockRestore();
+  });
+
+  it("installCoverageTmpWriteGuard mkdirs parent when path is a Buffer", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cov-buffer-"));
+    tempRoots.push(root);
+    const chunkPath = join(root, "coverage", ".tmp", "coverage-0.json");
+    const uninstall = installCoverageTmpWriteGuard();
+
+    try {
+      const { promises } = await import("node:fs");
+      await promises.writeFile(Buffer.from(chunkPath, "utf8"), '{"buffer":true}\n', "utf8");
+      expect(readFileSync(chunkPath, "utf8")).toBe('{"buffer":true}\n');
+    } finally {
+      uninstall();
+    }
   });
 
   it("default setup installs the write guard on win32", () => {

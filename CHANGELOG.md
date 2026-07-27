@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#2865).** Focused win32 coverage setup and coverage-debt argv branch tests clear the 84.99% hairline so v0.86.0 Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2865.
 - **`core:validate` honors the dispatcher cwd and skips junk trees (#2858).** Inline `core:validate` now walks the resolved framework root instead of ambient `process.cwd()`, and `collectMarkdownFiles` skips `node_modules` and `.deft-scratch` so `task check` no longer hangs on maintainer clones with swarm worktrees. Closes #2858.
 - **Doctor no longer misclassifies a maintainer clone as a consumer when using the global CLI (#2850).** `frameworkRoot` now resolves via `resolveFrameworkRootForProject(projectRoot)` so hooks and Deft structure checks skip on a source checkout like install-integrity already does; `EXPECTED_FRAMEWORK_DIRS` expects `xbrief/` instead of legacy `vbrief/`. Closes #2850.
 - **deft-hook and guarded CLI bins now run through npm bin symlinks (#2846).** Global npm bins are symlinks; the entrypoint guard compared raw `process.argv[1]` to `import.meta.url`, so `main()` never ran (empty stdout exit 0). Cursor failClosed blocked all edits; other hosts silently dropped deny decisions. Shared `isDirectEntrypoint` realpath-compares both sides. Closes #2846.

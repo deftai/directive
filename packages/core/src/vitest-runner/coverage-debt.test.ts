@@ -34,6 +34,13 @@ describe("parseCoverageDebtArgv", () => {
     expect(parseCoverageDebtArgv(["vitest", "run"])).toEqual({ kind: "none" });
   });
 
+  it("ignores sparse argv holes while scanning for the debt flag", () => {
+    const sparse: string[] = [];
+    sparse[2] = "--allow-coverage-debt";
+    sparse[3] = "2865";
+    expect(parseCoverageDebtArgv(sparse)).toEqual({ kind: "valid", issue: 2865 });
+  });
+
   it("parses equals and spaced forms", () => {
     expect(parseCoverageDebtArgv(["vitest", "--allow-coverage-debt=#2573"])).toEqual({
       kind: "valid",
