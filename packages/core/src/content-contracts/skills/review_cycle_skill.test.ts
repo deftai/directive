@@ -218,9 +218,7 @@ describe("test_review_cycle_skill", () => {
     // Anti-pattern: bare task-only consumer form
     expect(text).toContain("Treat bare `task pr:watch` as the only consumer gate form");
     // Positive probe must be `deft pr:watch --help` (without go-task bare --)
-    const probeLine = text
-      .split("\n")
-      .find((l) => l.includes("`deft` / `directive` CLI first"));
+    const probeLine = text.split("\n").find((l) => l.includes("`deft` / `directive` CLI first"));
     expect(probeLine).toBeDefined();
     expect(probeLine).toContain("deft pr:watch --help");
     expect(probeLine).not.toMatch(/deft pr:watch -- --help/);
