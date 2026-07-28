@@ -245,15 +245,18 @@ Remediation:
 ! **Official gh-only fallback** (when `task pr:watch` / review-monitor tasks are missing):
 
 1. Still select Approach 1 when a sub-agent primitive exists (OpenClaw `sessions_spawn`, Cursor `Task`, `spawn_subagent`, `start_agent`) — spawn a review-monitor that runs the gh-only loop; do not block the parent.
-2. Poll with adaptive cadence (20-30s / 60s / 90s) using:
+2. **Do not call** `task pr:watch`, `task verify:review-monitor`, or `task review-monitor:register` when the probe showed them absent — those invocations cannot succeed and must not gate the spawn.
+3. Ownership claim without the tasks: post/update the sticky `<!-- deft:review-owner -->` PR comment via `gh api` (same field shape as the task-written lease) **or** keep ownership in the parent and document `missing-task: review-monitor` in the PR/parent handback. Never invent `.deft/review-monitor.json`.
+4. Poll with adaptive cadence (20-30s / 60s / 90s) using:
    - `gh pr view <N> --comments` (dual-source + Step 1 rules still apply)
    - `gh pr checks <N>`
    - `gh api repos/<owner>/<repo>/pulls/<N> -q .head.sha` for HEAD pin
    - `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` for Greptile terminal check-run
-3. Evaluate the same Step 6 fail-closed all-of (terminal check-run + HEAD SHA + Last reviewed commit + confidence > 3 + no P0/P1).
-4. Surface missing-task once to the operator/parent on first detection; do not silently rebrand freestyle sleep as `pr:watch`.
+5. Evaluate the same Step 6 fail-closed all-of (terminal check-run + HEAD SHA + Last reviewed commit + confidence > 3 + no P0/P1).
+6. Surface missing-task once to the operator/parent on first detection; do not silently rebrand freestyle sleep as `pr:watch`.
 
-⊗ Fake a successful `task pr:watch` when the task is absent from the consumer Taskfile.
+⊗ Fake a successful `task pr:watch` or `task review-monitor:*` when the task is absent from the consumer Taskfile.
+⊗ Block Approach 1 / parent yield on missing `review-monitor:*` tasks after the missing-task probe — use the gh lease claim or parent-owned gh-only poll instead (#2878).
 ⊗ Invent ad-hoc `sleep` / main-session poll / OpenClaw cron loops outside Approach 1–3 when the skill already names this fallback (#2878 / statusreport#153 recurrence).
 ⊗ Skip Step 6 fail-closed fields because deterministic tasks are missing — the gh surfaces above remain mandatory.
 
@@ -322,7 +325,13 @@ Remediation:
 
 ! Swarm agents (whether launched via `start_agent`, `spawn_subagent`, or OpenClaw `sessions_spawn` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
-! **Deterministic review-monitor gate (#2655 / #2814 / #2876):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task|sessions_spawn|openclaw-sessions-spawn`. Release with `task review-monitor:release -- --pr <N>` when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix. When review-monitor tasks are missing on a consumer, fail-loud per #2878 and still run Approach 1 with the gh-only fallback.
+! **Deterministic review-monitor gate (#2655 / #2814 / #2876):** When Tier 1 is available **and** `task review-monitor:register` / `task verify:review-monitor` exist on the consumer Taskfile, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task|sessions_spawn|openclaw-sessions-spawn`. Release with `task review-monitor:release -- --pr <N>` when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix.
+
+! **Missing review-monitor tasks carve-out (#2878):** When `task pr:watch` **or** `task review-monitor:*` are absent (same missing-task probe as above), do **not** invoke those tasks and do **not** block Approach 1 on them. Fail-loud once with `missing-task: review-monitor` / `missing-task: pr:watch`, then:
+1. Still spawn Approach 1 with the official gh-only fallback when a sub-agent primitive exists.
+2. Post (or update) the sticky lease comment via raw `gh api` using the same `<!-- deft:review-owner -->` field shape the tasks would write — parent may yield after that claim succeeds — **or**, if the agent cannot write issue comments, keep ownership in the parent with the gh-only poll and document that lease tasks were unavailable.
+3. Never invent a local `.deft/review-monitor.json` as a substitute gate.
+⊗ Require successful `task verify:review-monitor` / `task review-monitor:register` on a consumer that does not ship those tasks — that is the conf=3 / #2878 inconsistency Greptile flagged.
 
 ! **Regression trigger (#2797):** A leaf that claims a monitor is active without a preceding successful `task review-monitor:register` GitHub claim MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient.
 
