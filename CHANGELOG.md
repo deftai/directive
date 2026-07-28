@@ -20,11 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-<<<<<<< HEAD
 - **`scope:complete` reconciles the completing brief's own `plan.items` and envelope `updated` (#2862).** Terminal transitions (`complete` / `fail` / `cancel`) now advance non-terminal own items (and nested `subItems`) to the terminal status while preserving already-terminal items (`cancelled` / `failed` / `completed`), and stamp `xBRIEFInfo.updated` or `vBRIEFInfo.updated` alongside `plan.updated`. Closes #2862.
-=======
 - **Cursor tool.before decisions emit machine-readable `code` and harden empty-stdin races (#2864).** `renderHostDecision` now includes `decision.code` on Cursor allow/deny JSON (e.g. `spawn-ready`, `stdin-empty`, `invalid-input`) so agents can distinguish policy denials from host-integration failures without parsing English. Empty first stdin reads re-poll briefly (`DEFAULT_STDIN_EMPTY_RETRY_MS`) before concluding empty — delayed payloads within the budget are accepted; true empty still denies with `code: "stdin-empty"` and **exit 0**. Documented exit-code contract: `0` for rendered verdicts (allow or deny), `2` only for argv errors — never `1` for a rendered decision. Closes #2864.
->>>>>>> 4d96f684 (fix(hooks): surface decision codes and harden Cursor tool.before spawn path (#2864))
 
 ### Removed
 
