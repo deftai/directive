@@ -97,25 +97,44 @@ the session exists, not that the review-monitor tool loop is progressing.
 Prefer the file-heartbeat + `task verify:subagent-alive` / `task agent:monitor`
 path as the **canonical** liveness contract for OpenClaw review-monitors.
 
-! **Parent `mkdir` before first probe (#2879 Greptile P1):** `task verify:subagent-alive`
+! **Parent `mkdir` + startup grace before REDISPATCH_OK (#2879):** `task verify:subagent-alive`
 exits `2` (config error, **no** `REDISPATCH_OK`) when the scratch directory is
 missing and has zero records. A worker that dies before its first heartbeat
 never creates `.deft-scratch/subagent-status/`, so a probe against a non-existent
 dir blocks the takeover this contract promises. Parents MUST create the worker
-worktree's status directory at dispatch time:
+worktree's status directory at dispatch time **and** honor a startup grace before
+treating a missing required-agent record as dead:
 
 ```pwsh path=null start=null
 New-Item -ItemType Directory -Force -Path <worktree>/.deft-scratch/subagent-status | Out-Null
 # or: mkdir -p <worktree>/.deft-scratch/subagent-status
+# ... sessions_spawn the worker ...
+# Startup grace: wait until the first expected heartbeat window elapses
+# (default 3 minutes, matching the heartbeat cadence floor) OR until the
+# first `phase: "starting"` record appears -- whichever comes first.
+# Only THEN arm --require-agent probes for REDISPATCH_OK.
 task verify:subagent-alive -- \
   --require-agent <agent-id> \
   --scratch-dir <worktree>/.deft-scratch/subagent-status
 ```
 
-Once the directory exists, a missing required-agent record is exit `1` +
-`REDISPATCH_OK` (same as Cursor #2824). Exit `2` stays reserved for true config
-errors (invalid args, wrong path). Workers still MUST write the first heartbeat
-immediately (`phase: "starting"`) so the empty dir is not a permanent dark state.
+Once the directory exists **and** the startup grace has elapsed, a missing
+required-agent record is exit `1` + `REDISPATCH_OK` (same as Cursor #2824).
+Exit `2` stays reserved for true config errors (invalid args, wrong path).
+
+! **Startup grace is mandatory (#2879 Greptile P1):** An immediate first probe
+against a parent-created empty status directory will correctly emit
+`REDISPATCH_OK` for a missing required-agent -- and that would race a healthy
+worker that has not yet written `phase: "starting"`. Parents MUST NOT treat
+missing heartbeat as takeover-eligible until either (a) a first heartbeat has
+been observed for that agent_id, then later goes missing/STALE, or (b) the
+startup grace (default **3 minutes** from dispatch) has elapsed with still no
+record. Workers still MUST write the first heartbeat immediately
+(`phase: "starting"`) so the grace window stays short in the healthy path.
+
+⊗ Redispatch on the first `verify:subagent-alive` exit `1` within the startup
+grace window without checking wall-clock age since dispatch -- that is the
+duplicate-worker race this rule closes.
 
 ? When an OpenClaw-native liveness signal is available (gateway session health,
 subagent lifecycle event, Control UI status), monitors MAY treat it as a

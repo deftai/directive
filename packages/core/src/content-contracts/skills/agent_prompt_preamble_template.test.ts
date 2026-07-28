@@ -183,6 +183,7 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("parent push / announce");
     // Must NOT invent a swarmSubagentBackend enum value rejected by policy
     expect(templateText).toContain("do not write `selected_backend: openclaw`");
-    expect(templateText).toContain("Parent ensures scratch dir exists");
+    expect(templateText).toContain("startup grace");
+    expect(templateText).toContain("Parent ensures scratch dir");
   });
 });
