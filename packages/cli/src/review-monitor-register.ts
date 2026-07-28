@@ -2,6 +2,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  PLATFORM_PRIMITIVE_SET,
   type PlatformPrimitive,
   REGISTER_HELP,
   registerReviewMonitor,
@@ -21,7 +22,7 @@ interface ParsedArgs {
   error?: string;
 }
 
-const PRIMITIVES = new Set<PlatformPrimitive>(["start_agent", "spawn_subagent", "cursor-task"]);
+const PRIMITIVES = PLATFORM_PRIMITIVE_SET;
 
 export function parseRegisterArgs(argv: readonly string[]): ParsedArgs {
   const acc: ParsedArgs = {

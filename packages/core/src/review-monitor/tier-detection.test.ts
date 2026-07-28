@@ -26,6 +26,23 @@ describe("tier-detection", () => {
     );
   });
 
+  it("maps OpenClaw / sessions_spawn probes to Tier 1 (#2876)", () => {
+    expect(probeMonitoringTier({ DEFT_PROBE_SESSIONS_SPAWN: "1" }).primitive).toBe(
+      "sessions_spawn",
+    );
+    expect(probeMonitoringTier({ DEFT_HAS_SESSIONS_SPAWN: "true" }).descriptor).toBe("openclaw");
+    expect(probeMonitoringTier({ OPENCLAW: "1" }).primitive).toBe("sessions_spawn");
+    expect(probeMonitoringTier({ DEFT_AGENT_RUNTIME: "openclaw" }).primitive).toBe(
+      "sessions_spawn",
+    );
+    expect(
+      probeMonitoringTier({
+        DEFT_PROBE_OPENCLAW: "yes",
+        DEFT_MONITOR_TIER1_PRIMITIVE: "openclaw-sessions-spawn",
+      }).primitive,
+    ).toBe("openclaw-sessions-spawn");
+  });
+
   it("honors tier overrides", () => {
     expect(probeMonitoringTier({ DEFT_MONITOR_TIER: "tier1" }).descriptor).toBe("override-tier1");
     expect(
@@ -34,6 +51,12 @@ describe("tier-detection", () => {
         DEFT_MONITOR_TIER1_PRIMITIVE: "start_agent",
       }).primitive,
     ).toBe("start_agent");
+    expect(
+      probeMonitoringTier({
+        DEFT_MONITOR_TIER: "1",
+        DEFT_MONITOR_TIER1_PRIMITIVE: "sessions_spawn",
+      }).primitive,
+    ).toBe("sessions_spawn");
     expect(probeMonitoringTier({ DEFT_MONITOR_TIER: "tier3" }).tier).toBe(3);
   });
 });

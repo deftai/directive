@@ -17,10 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **OpenClaw agent-host operator docs (#2877).** Discoverable `content/docs/openclaw-agent-host.md` covers Control UI / Telegram / TUI roles, bot vs human GitHub identity, executable babysit path (always follow installed review-cycle skill), and the epic **babysit → `sessions_spawn` Approach 1** expectation as design north star — no invented gate or register-primitive contracts; skill/engine wiring remains #2875/#2876. Cross-linked from `content/QUICK-START.md` and `content/docs/getting-started.md`. Closes #2877.
+- **OpenClaw babysit/review-monitor routes to Approach 1 `sessions_spawn` (#2876).** Review-cycle skill names OpenClaw under #2261 supersession; Approach 1 lists `sessions_spawn` beside Warp/Cursor/grok-build; `cron` alone is Approach 2 only when spawn is unavailable; visible Control UI SHOULD; parent sessions MUST stay non-blocking. `review-monitor:register` / `verify:review-monitor` accept `--platform-primitive sessions_spawn` and alias `openclaw-sessions-spawn`; tier probe maps OpenClaw env/runtime. Closes #2876. Refs #2261, #2655, #1880, #2874.
+- **Official gh-only babysit fallback when `task pr:watch` is missing (#2878).** Review-cycle documents fail-loud **missing-task: pr:watch** / **missing-task: review-monitor** remediation and an official gh-only poll subset (still Step 6 fail-closed) so consumer repos without pr surfaces do not freestyle sleep loops. When review-monitor tasks are absent, do not gate Approach 1 on them — claim ownership via raw `gh` sticky lease or keep parent ownership. Closes #2878. Refs #2874, #1056.
 
 ### Changed
 
 - **OpenClaw poller/preamble + heartbeat templates (#2879).** Greptile poller template names OpenClaw `sessions_spawn` and parent push/announce completion channel (alongside Warp `start_agent` and grok-build `spawn_subagent`); agent preamble lists OpenClaw as a first-class provider-neutral backend with Gap D background-dispatch and §10.5 heartbeat mapping; `docs/subagent-heartbeat.md` documents OpenClaw file-heartbeat + supplementary native liveness and `REDISPATCH_OK` posture. Closes #2879. Refs #2874, #1365, #2824.
+- **Babysit/review must not expand active story past xBRIEF AC (#2881).** Out-of-AC Greptile findings default to follow-up issue or consented brief amend; P0 carve-out limited to already-touched surfaces; confidence-only holds (0 P0/P1) do not authorize unbounded redesign; `issue:emit` related-ref footgun documented (github-issue type marks already tracked). Closes #2881.
 
 ### Fixed
 

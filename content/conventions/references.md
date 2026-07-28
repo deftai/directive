@@ -46,7 +46,7 @@ The following `type` values are recognized by deft's tooling and skills. Any
 semantics.
 
 - `x-vbrief/plan` — reference to another vBRIEF plan (epic→story or story→epic links, also the canonical v0.5 enum value)
-- `x-vbrief/github-issue` — a GitHub issue (the origin of an ingested scope vBRIEF, or a related issue)
+- `x-vbrief/github-issue` — a GitHub issue (the **primary** origin of an ingested scope vBRIEF). `task issue:emit` treats any `plan.references[]` entry whose type matches `github-issue` / `x-vbrief/github-issue` / `x-xbrief/github-issue` as **already tracked** and SKIPs create. Do **not** add related-only issue refs with this type when the brief still needs emit for its primary origin — keep related links in narratives / PR body / `Refs #N` prose instead (#2881 related-ref footgun).
 - `x-vbrief/github-pr` — a GitHub pull request (implementing PR, related PR, or superseded PR)
 - `x-vbrief/jira-ticket` — a Jira ticket (origin provenance for Jira-backed projects)
 - `x-vbrief/user-request` — a direct user request captured verbatim (no external tracker ID)

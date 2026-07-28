@@ -50,6 +50,17 @@ On repos with `.deft/core/` installed, **PR shepherding intent** routes here -- 
 - ! Cloud babysit workers use `worker_role: review-monitor` (or `drive-to: merge-ready` implementation workers that own the review cycle) -- not a generic babysit loop without Phase 1 audit or Step 6 exit predicate (#1259).
 - ⊗ Route **babysit-pull-request-in-cloud** to Cursor global babysit when `.deft/core/` is present -- that bypasses xBRIEF preflight, `task check`, Greptile fail-closed exit, and CHANGELOG discipline (#2261 recurrence).
 
+### OpenClaw babysit supersession (#2876 / #2261)
+
+On OpenClaw hosts with Directive installed (`.deft/core/` or equivalent content deposit), **babysit / shepherd / watch** intent likewise routes here -- not host-local freestyle poll loops and not OpenClaw `cron` alone.
+
+- ! When the OpenClaw tool surface exposes `sessions_spawn`, Approach 1 is the **default** babysit path: spawn a background review-monitor via `sessions_spawn` (register with `--platform-primitive sessions_spawn` or the alias `openclaw-sessions-spawn`).
+- ! Prefer a **visible** Control UI subagent when OpenClaw Control UI is the operator control plane so humans can inspect the monitor.
+- ! Long review-monitor ownership (>~3 min) MUST NOT block the parent OpenClaw session — background `sessions_spawn` + parent yield; same Gap D rule as Cursor/Grok Build (#1880).
+- ! Prefer `task pr:watch` / `task pr:merge-ready` inside the monitor when those tasks exist on the consumer (see missing-task fallback below, #2878).
+- ⊗ Treat OpenClaw `cron` (or any host scheduler alone) as Approach 1. Cron/timer re-invocation is Approach 2 only when `sessions_spawn` is unavailable.
+- ⊗ Freestyle main-session `gh pr view` / `sleep` poll + ad-hoc cron when `sessions_spawn` is available — that is the statusreport#153 / #2876 process-routing failure mode.
+
 ## Branch-Protection Policy Guard
 
 ! Before entering the review/fix loop, run the skill-level branch-policy guard (#746 / #747). Halt before any state mutation if the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND the operator has not set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. Concretely:
@@ -142,8 +153,38 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 - Identify cross-file dependencies (a term, value, or field mentioned in multiple files)
 - Categorize by severity (P0, P1, P2 — where P0 is critical/blocking, P1 is a real defect, P2 is a style or non-blocking suggestion)
 - Plan a single coherent batch of fixes
+- ! **Scope-check each finding against the active story xBRIEF** (`plan.items[].narrative.Acceptance`) before coding — see Out-of-AC gate (#2881) below
 
 ⊗ Start fixing individual findings as you encounter them.
+
+### Out-of-AC findings / active-story scope gate (#2881)
+
+Babysit and review-cycle are **not** a second unbounded implementation mandate. When Greptile (or another reviewer) raises design-adjacent work outside the active story's acceptance criteria, default to follow-up — not silent redesign mid-babysit (PR #2871 / #2869 → #2880 recurrence).
+
+! Given an active story xBRIEF with fixed `plan.items`, when a finding is **outside** those Acceptance criteria:
+
+1. ! File or propose a **follow-up** GitHub issue / scope xBRIEF for the out-of-AC work, **or**
+2. ! Amend the active brief's `plan.items` (and narratives) **with explicit operator consent** before implementing a new subsystem,
+3. ! Then continue babysit only for in-AC and carve-out findings.
+
+! **P0 carve-out vs new-subsystem-needs-story:**
+
+- ! P0 security / correctness defects on files **already touched** by the PR MAY land in the same PR without a new story.
+- ! New ledgers, idempotency protocols, cross-cutting reliability contracts, or multi-commit redesigns that expand story meaning **require** a separate story or an amended brief before code.
+
+! **Confidence-only holds (0 P0/P1):** when confidence is below threshold (e.g. `Confidence Score: 3/5`) with zero P0 and zero P1 findings, the skill does **not** mandate unbounded redesign to raise confidence. Offer one of:
+
+1. Follow-up issue / residual-risk note in the PR,
+2. Operator override path (document in PR comment),
+3. Minimal in-AC polish only — then re-evaluate Step 6.
+
+! **`issue:emit` related-ref footgun:** `task issue:emit` treats any `plan.references[]` entry whose type matches `github-issue` / `x-xbrief/github-issue` / `x-vbrief/github-issue` as **already tracked** and SKIPs creating a new issue. When linking **related** (non-primary) work:
+
+- ! Use a non-emit-tracking type for related issues (e.g. keep related links in narratives / PR body / `Refs #N` prose), **or** designate a single primary origin github-issue ref that emit should honor.
+- ⊗ Add related-issue `x-*/github-issue` refs to a brief that still needs `issue:emit` for its primary origin — emit will SKIP as already tracked.
+
+⊗ Expand active story scope past xBRIEF AC mid-babysit without follow-up or consented amend (#2881).
+⊗ Treat confidence-only holds as authorization to invent new subsystems in-tree.
 
 ### Step 3: Fix all findings in ONE batch commit
 
@@ -187,6 +228,34 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ### Greptile CLEAN vs CI holdout (`pr:watch` / #2688)
 
 ! When waiting on a Greptile verdict for a `drive-to: merge-ready` worker (or any review-cycle owner), prefer `task pr:watch -- <N>` (or `--one-shot --json`) over ad-hoc sleep loops (#1056). Parse `clean_gate_holdout` on every probe.
+
+### Missing `task pr:watch` / consumer gh-only fallback (#2878)
+
+Some consumer repos (e.g. sister product deposits) ship Directive skills but **do not** wire `task pr:watch`, `task pr:merge-ready`, or `task review-monitor:*` into their Taskfile. Agents MUST NOT invent a non-skill poll loop when those tasks are missing.
+
+! **Probe first:** run `task --list` (or attempt `task pr:watch -- --help`). If the task is absent, classify the session as **missing-task: pr:watch** and fail-loud:
+
+```
+BLOCKED: missing-task pr:watch on this consumer
+Remediation:
+  1. Prefer upgrading/porting Directive pr surfaces (pr:watch / review-monitor:*) into the consumer Taskfile when maintainers own that packaging path, OR
+  2. Use the official gh-only fallback subset below (still this skill — not freestyle).
+```
+
+! **Official gh-only fallback** (when `task pr:watch` / review-monitor tasks are missing):
+
+1. Still select Approach 1 when a sub-agent primitive exists (OpenClaw `sessions_spawn`, Cursor `Task`, `spawn_subagent`, `start_agent`) — spawn a review-monitor that runs the gh-only loop; do not block the parent.
+2. Poll with adaptive cadence (20-30s / 60s / 90s) using:
+   - `gh pr view <N> --comments` (dual-source + Step 1 rules still apply)
+   - `gh pr checks <N>`
+   - `gh api repos/<owner>/<repo>/pulls/<N> -q .head.sha` for HEAD pin
+   - `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` for Greptile terminal check-run
+3. Evaluate the same Step 6 fail-closed all-of (terminal check-run + HEAD SHA + Last reviewed commit + confidence > 3 + no P0/P1).
+4. Surface missing-task once to the operator/parent on first detection; do not silently rebrand freestyle sleep as `pr:watch`.
+
+⊗ Fake a successful `task pr:watch` when the task is absent from the consumer Taskfile.
+⊗ Invent ad-hoc `sleep` / main-session poll / OpenClaw cron loops outside Approach 1–3 when the skill already names this fallback (#2878 / statusreport#153 recurrence).
+⊗ Skip Step 6 fail-closed fields because deterministic tasks are missing — the gh surfaces above remain mandatory.
 
 ! When `clean_gate_holdout=ci_failures` and Greptile otherwise satisfies the probe-side Step 6 fields (SHA match on HEAD, confidence > 3, no P0/P1, not errored): **MUST NOT** idle-poll hoping CI heals. Treat Greptile CLEAN + CI red with the **same ownership** as a Greptile P0 for a merge-ready worker — one fix batch, re-push, re-probe.
 
@@ -243,17 +312,17 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 
 
-! Select the monitoring approach based on runtime capability detection (the matrix in `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1, extended per #1342 slices 1-2 for `spawn_subagent` / "grok-build" and per #1877 for Cursor as first-class Tier-1 tiers). Probe the environment (tool set + env vars) to obtain the stable platform descriptor (`grok-build`, `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, etc.) from the launch adapter / `get_platform_capabilities` and map the descriptor to the appropriate tier + dispatch primitive (`start_agent`, `spawn_subagent`, or the Cursor `Task` tool). The descriptor (not hard-coded tool presence) is the single source of truth for both launch and review monitoring.
+! Select the monitoring approach based on runtime capability detection (the matrix in `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1, extended per #1342 slices 1-2 for `spawn_subagent` / "grok-build", per #1877 for Cursor as first-class Tier-1 tiers, and per #2876 for OpenClaw `sessions_spawn`). Probe the environment (tool set + env vars) to obtain the stable platform descriptor (`grok-build`, `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, `openclaw`, etc.) from the launch adapter / `get_platform_capabilities` and map the descriptor to the appropriate tier + dispatch primitive (`start_agent`, `spawn_subagent`, the Cursor `Task` tool, or OpenClaw `sessions_spawn`). The descriptor (not hard-coded tool presence) is the single source of truth for both launch and review monitoring.
 
-- **Tier 1 (orchestrated sub-agent)** → Approach 1 (spawn review-monitor sub-agent via the primitive matching the descriptor: `start_agent`, `spawn_subagent`, or the Cursor `Task` tool with `run_in_background: true`)
-- **Tier 2 (no sub-agent primitive, but scheduler/timer/auto-reinvocation)** → Approach 2 (yield-between-polls)
+- **Tier 1 (orchestrated sub-agent)** → Approach 1 (spawn review-monitor sub-agent via the primitive matching the descriptor: `start_agent`, `spawn_subagent`, the Cursor `Task` tool with `run_in_background: true`, or OpenClaw `sessions_spawn`)
+- **Tier 2 (no sub-agent primitive, but scheduler/timer/auto-reinvocation)** → Approach 2 (yield-between-polls) — includes OpenClaw `cron` / host scheduler **only when** `sessions_spawn` is unavailable (#2876)
 - **Tier 3 (interactive session, nothing else)** → Approach 3 (blocking sleep loop as last resort)
 
-! Detection: use the full runtime capability matrix (swarm Phase 3 + launch adapter from #1342 slice 2). The old single-probe for `start_agent` is superseded; the returned platform descriptor determines both the orchestration path and the MCP surface (see MCP probe below). If the descriptor is `grok-build` (spawn_subagent present, start_agent + WARP_* absent), treat as Tier 1 with the spawn_subagent poller path. If the descriptor is `cursor-composer` / `cursor-cloud-agent` (Cursor `Task` tool present, start_agent + WARP_* + spawn_subagent absent), treat as **Tier 1 with the backgrounded Cursor `Task` poller path** (#1877) — NOT Tier 3. Cursor's `Task` tool is a first-class sub-agent primitive; degrading a Cursor session to the Approach-3 blocking poll is the misclassification #1877 closes.
+! Detection: use the full runtime capability matrix (swarm Phase 3 + launch adapter from #1342 slice 2). The old single-probe for `start_agent` is superseded; the returned platform descriptor determines both the orchestration path and the MCP surface (see MCP probe below). If the descriptor is `grok-build` (spawn_subagent present, start_agent + WARP_* absent), treat as Tier 1 with the spawn_subagent poller path. If the descriptor is `cursor-composer` / `cursor-cloud-agent` (Cursor `Task` tool present, start_agent + WARP_* + spawn_subagent absent), treat as **Tier 1 with the backgrounded Cursor `Task` poller path** (#1877) — NOT Tier 3. Cursor's `Task` tool is a first-class sub-agent primitive; degrading a Cursor session to the Approach-3 blocking poll is the misclassification #1877 closes. If the descriptor is `openclaw` (`sessions_spawn` present), treat as **Tier 1 with the backgrounded `sessions_spawn` poller path** (#2876) — NOT Approach 2 cron and NOT main-session gh poll.
 
-! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
+! Swarm agents (whether launched via `start_agent`, `spawn_subagent`, or OpenClaw `sessions_spawn` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
-! **Deterministic review-monitor gate (#2655 / #2814):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task`. Release with `task review-monitor:release -- --pr <N>` when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix.
+! **Deterministic review-monitor gate (#2655 / #2814 / #2876):** When Tier 1 is available, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task|sessions_spawn|openclaw-sessions-spawn`. Release with `task review-monitor:release -- --pr <N>` when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix. When review-monitor tasks are missing on a consumer, fail-loud per #2878 and still run Approach 1 with the gh-only fallback.
 
 ! **Regression trigger (#2797):** A leaf that claims a monitor is active without a preceding successful `task review-monitor:register` GitHub claim MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient.
 
@@ -266,17 +335,21 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 
-! **Background dispatch (#1880):** Spawn the review-monitor sub-agent via the matching primitive IN THE BACKGROUND (Cursor: Task `run_in_background: true`; Grok Build: `spawn_subagent` with parent yielding). The parent MUST remain interactive while the poller runs.
+! **Background dispatch (#1880 / #2876):** Spawn the review-monitor sub-agent via the matching primitive IN THE BACKGROUND (Cursor: Task `run_in_background: true`; Grok Build: `spawn_subagent` with parent yielding; OpenClaw: `sessions_spawn` with parent yielding). The parent MUST remain interactive while the poller runs — never block the parent OpenClaw/Cursor/Grok session for >~3 min of monitor ownership.
 
-! **Heartbeat contract for Cursor pollers (#1877 / #1166):** A Cursor `Task` review-monitor poller whose loop runs > ~3 min MUST honour the sub-agent heartbeat contract (`docs/subagent-heartbeat.md`), same as the `spawn_subagent` path — emit periodic progress so the parent can distinguish a live poller from a hung one.
+! **Heartbeat contract for Cursor pollers (#1877 / #1166 / #2876):** OpenClaw sessions_spawn pollers share this contract. A Cursor `Task` or OpenClaw `sessions_spawn` review-monitor poller whose loop runs > ~3 min MUST honour the sub-agent heartbeat contract (`docs/subagent-heartbeat.md`), same as the `spawn_subagent` path — emit periodic progress so the parent can distinguish a live poller from a hung one.
+
+~ **Visible Control UI (OpenClaw):** When OpenClaw Control UI is the operator control plane, SHOULD spawn the review-monitor as a **visible** subagent so humans can inspect progress without attaching to the parent session.
 
 ! When the platform descriptor indicates Tier 1 (sub-agent support), spawn a review-monitor sub-agent using the primitive matching the descriptor:
 
-1. ! Launch via the matching primitive: `start_agent` (Warp), `spawn_subagent` (grok-build / TUI / non-Warp), **or the Cursor `Task` tool with `run_in_background: true` (`cursor-composer` / `cursor-cloud-agent`, #1877)** with a prompt that instructs it to poll for Greptile completion. For `spawn_subagent` and the Cursor `Task` tool the prompt MUST reference the canonical poller template `templates/swarm-greptile-poller-prompt.md` (with placeholders filled) plus the agent preamble; the working directory / context must be the PR branch (worktree or equivalent for hybrid).
-2. ! The sub-agent polls using the mechanism for its primitive: for `spawn_subagent` use `get_command_or_subagent_output` (adaptive cadence: ~20-30s first check after push, ~60s second, ~90s thereafter; Greptile typically lands in 3-7 min); for `start_agent` the native messaging path; for the Cursor `Task` tool the backgrounded-task completion-notification path. Front-load the first check to catch fast reviews.
-3. ! When the exit condition is met (Greptile review current on the HEAD commit SHA, confidence > 3, no P0/P1 remaining), the sub-agent reports completion back to the parent (via `send_message_to_agent` or the spawn_subagent result channel).
+1. ! Launch via the matching primitive: `start_agent` (Warp), `spawn_subagent` (grok-build / TUI / non-Warp), the Cursor `Task` tool with `run_in_background: true` (`cursor-composer` / `cursor-cloud-agent`, #1877), **or OpenClaw `sessions_spawn` (`openclaw`, #2876)** with a prompt that instructs it to poll for Greptile completion. For `spawn_subagent`, Cursor `Task`, and OpenClaw `sessions_spawn` the prompt MUST reference the canonical poller template `templates/swarm-greptile-poller-prompt.md` (with placeholders filled) plus the agent preamble; the working directory / context must be the PR branch (worktree or equivalent for hybrid).
+2. ! The sub-agent polls using the mechanism for its primitive: for `spawn_subagent` use `get_command_or_subagent_output` (adaptive cadence: ~20-30s first check after push, ~60s second, ~90s thereafter; Greptile typically lands in 3-7 min); for `start_agent` the native messaging path; for the Cursor `Task` tool the backgrounded-task completion-notification path; for OpenClaw `sessions_spawn` the host session completion / messaging channel (prefer `task pr:watch` inside the child when available). Front-load the first check to catch fast reviews.
+3. ! When the exit condition is met (Greptile review current on the HEAD commit SHA, confidence > 3, no P0/P1 remaining), the sub-agent reports completion back to the parent (via `send_message_to_agent`, the spawn_subagent result channel, or the OpenClaw sessions completion channel).
 4. ! The main conversation pane stays fully interactive during monitoring -- the user (or parent monitor) can continue other work.
 5. ! On receiving the completion message / result, the parent re-fetches findings (both gh pr view --comments and the secondary source) and proceeds to Step 5.
+
+⊗ Use OpenClaw `cron` alone as Approach 1 when `sessions_spawn` is available — cron is Approach 2 scheduler fallback only (#2876).
 
 **Approach 2 (fallback -- no sub-agent primitive for the descriptor):**
 
@@ -439,6 +512,11 @@ task lifecycle:event -- emit plan:approved \
 ## Anti-Patterns
 
 - ⊗ Route PR shepherding to Cursor global `babysit` on Deft-managed repos when `.deft/core/` is installed -- use this review-cycle skill instead (#2261)
+- ⊗ Route OpenClaw babysit/shepherd/watch to main-session gh poll + cron when `sessions_spawn` is available -- use Approach 1 with `sessions_spawn` (#2876 / #2261)
+- ⊗ Treat OpenClaw `cron` alone as Approach 1 — cron/timer is Approach 2 only if spawn is unavailable (#2876)
+- ⊗ Expand active story scope past xBRIEF AC mid-babysit without follow-up issue or consented brief amend (#2881)
+- ⊗ Treat confidence-only holds (0 P0/P1) as a mandate for unbounded redesign (#2881)
+- ⊗ Invent freestyle sleep/poll loops when `task pr:watch` is missing — use the official gh-only fallback and fail-loud missing-task (#2878)
 - ⊗ Treat a passing SLizard/Greptile check run, a non-blocking review comment, or an ad hoc fix commit as the review-cycle exit predicate -- Step 6 fail-closed all-of (#1259) and multi-reviewer registry triage (#769) still apply
 - ⊗ Push individual fix commits per finding
 - ⊗ Start fixing before analyzing ALL findings

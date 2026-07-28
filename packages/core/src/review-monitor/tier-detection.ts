@@ -2,7 +2,24 @@ import { MONITORING_TIER_1, MONITORING_TIER_2, MONITORING_TIER_3 } from "./const
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
-export type PlatformPrimitive = "start_agent" | "spawn_subagent" | "cursor-task";
+/** Canonical Approach-1 platform primitives for review-monitor register/verify (#2655 / #2876). */
+export type PlatformPrimitive =
+  | "start_agent"
+  | "spawn_subagent"
+  | "cursor-task"
+  | "sessions_spawn"
+  | "openclaw-sessions-spawn";
+
+/** Accepted `--platform-primitive` values (register CLI + help text). */
+export const PLATFORM_PRIMITIVES: readonly PlatformPrimitive[] = [
+  "start_agent",
+  "spawn_subagent",
+  "cursor-task",
+  "sessions_spawn",
+  "openclaw-sessions-spawn",
+] as const;
+
+export const PLATFORM_PRIMITIVE_SET = new Set<string>(PLATFORM_PRIMITIVES);
 
 export interface MonitoringTierProbe {
   readonly tier: typeof MONITORING_TIER_1 | typeof MONITORING_TIER_2 | typeof MONITORING_TIER_3;
@@ -17,8 +34,10 @@ function envTruthy(environ: NodeJS.ProcessEnv, name: string): boolean {
 function probeOverride(environ: NodeJS.ProcessEnv): MonitoringTierProbe | null {
   const raw = (environ.DEFT_MONITOR_TIER ?? environ.DEFT_MONITOR_TIER_OVERRIDE ?? "").trim();
   if (raw === "1" || raw.toLowerCase() === "tier1") {
-    const primitive =
-      (environ.DEFT_MONITOR_TIER1_PRIMITIVE as PlatformPrimitive | undefined) ?? "cursor-task";
+    const requested = (environ.DEFT_MONITOR_TIER1_PRIMITIVE ?? "cursor-task").trim();
+    const primitive = PLATFORM_PRIMITIVE_SET.has(requested)
+      ? (requested as PlatformPrimitive)
+      : "cursor-task";
     return { tier: MONITORING_TIER_1, primitive, descriptor: "override-tier1" };
   }
   if (raw === "3" || raw.toLowerCase() === "tier3") {
@@ -29,7 +48,7 @@ function probeOverride(environ: NodeJS.ProcessEnv): MonitoringTierProbe | null {
 
 /**
  * Inline Tier-1 detection aligned with the swarm Phase 3 / review-cycle matrix
- * (#1877 / #2655). Prefer `task platform:capabilities` when available (#1357);
+ * (#1877 / #2655 / #2876). Prefer `task platform:capabilities` when available (#1357);
  * this probe does not block MVP.
  */
 export function probeMonitoringTier(environ: NodeJS.ProcessEnv = process.env): MonitoringTierProbe {
@@ -59,6 +78,23 @@ export function probeMonitoringTier(environ: NodeJS.ProcessEnv = process.env): M
   }
 
   const runtime = (environ.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase();
+  // OpenClaw: sessions_spawn is the Tier-1 Approach 1 primitive (#2876).
+  // Alias openclaw-sessions-spawn accepted on register for explicit naming.
+  if (
+    envTruthy(environ, "DEFT_PROBE_SESSIONS_SPAWN") ||
+    envTruthy(environ, "DEFT_HAS_SESSIONS_SPAWN") ||
+    envTruthy(environ, "DEFT_PROBE_OPENCLAW") ||
+    envTruthy(environ, "OPENCLAW") ||
+    runtime === "openclaw" ||
+    runtime === "openclaw-sessions-spawn"
+  ) {
+    const alias =
+      (environ.DEFT_MONITOR_TIER1_PRIMITIVE ?? "").trim() === "openclaw-sessions-spawn"
+        ? "openclaw-sessions-spawn"
+        : "sessions_spawn";
+    return { tier: MONITORING_TIER_1, primitive: alias, descriptor: "openclaw" };
+  }
+
   if (
     envTruthy(environ, "DEFT_PROBE_GROK_BUILD") ||
     envTruthy(environ, "GROK_BUILD") ||

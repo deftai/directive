@@ -33,6 +33,23 @@ describe("review-monitor-register CLI", () => {
     expect(parsed.force).toBe(true);
   });
 
+  it("accepts OpenClaw sessions_spawn primitives (#2876)", () => {
+    expect(
+      parseRegisterArgs([
+        "--pr=9",
+        "--monitor-agent-id=oc-monitor",
+        "--platform-primitive=sessions_spawn",
+      ]).platformPrimitive,
+    ).toBe("sessions_spawn");
+    expect(
+      parseRegisterArgs([
+        "--pr=9",
+        "--monitor-agent-id=oc-monitor",
+        "--platform-primitive=openclaw-sessions-spawn",
+      ]).platformPrimitive,
+    ).toBe("openclaw-sessions-spawn");
+  });
+
   it("rejects invalid primitive and unknown args", () => {
     expect(parseRegisterArgs(["--platform-primitive", "nope"]).error).toMatch(/invalid/);
     expect(parseRegisterArgs(["--bogus"]).error).toMatch(/unrecognized/);
