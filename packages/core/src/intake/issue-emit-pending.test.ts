@@ -212,7 +212,7 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("umbrella rejects conflicting recovered sibling URLs", () => {
+  it("umbrella rejects conflicting recovered sibling URLs before stamping either", () => {
     const dir = mkdtempSync(join(tmpdir(), "emit-umb-conflict-"));
     const a = join(dir, "a.xbrief.json");
     const b = join(dir, "b.xbrief.json");
@@ -232,6 +232,11 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
         displayPaths: ["a", "b"],
       }),
     ).toThrow(/conflicting issue URLs/);
+    // Neither sibling stamped; both recovery/ledger entries remain for operator resolve.
+    expect(existingGithubIssueRef(loadVbrief(a))).toBeUndefined();
+    expect(existingGithubIssueRef(loadVbrief(b))).toBeUndefined();
+    expect(loadPendingEmitUrls(dir)[resolve(a)]).toBe("https://github.com/o/r/issues/1");
+    expect(loadPendingEmitUrls(dir)[resolve(b)]).toBe("https://github.com/o/r/issues/2");
     clearRecoveredUrl(a);
     clearRecoveredUrl(b);
     rmSync(dir, { recursive: true, force: true });

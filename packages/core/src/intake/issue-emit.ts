@@ -677,11 +677,13 @@ export function emitUmbrella(
 
   const written: { vbrief: string; result: string }[] = [];
   const stillNeedRemote: [string, string, Record<string, unknown>][] = [];
+  // Pass 1: resolve all recovered URLs and reject conflicts BEFORE any stamp (#2880).
+  // Stamping first would clear recovery for sibling A and leave B divergent on retry.
   let reconciledUrl: string | null = null;
+  const withPrior: [string, string, Record<string, unknown>, string][] = [];
   for (const [path, disp, data] of pending) {
     const prior = resolvePriorCreatedUrl(root, path);
     if (typeof prior === "string" && prior.length > 0) {
-      // Reject conflicting recovered URLs — never stamp an arbitrary sibling issue (#2880).
       if (reconciledUrl !== null && reconciledUrl !== prior) {
         throw new IssueEmitError(
           `umbrella recovered conflicting issue URLs: ${reconciledUrl} vs ${prior}; resolve local pending/recovery state before retry`,
@@ -689,16 +691,20 @@ export function emitUmbrella(
         );
       }
       reconciledUrl = prior;
-      try {
-        stampUrlOntoVbrief(path, data, prior, root);
-        written.push({ vbrief: disp, result: "created" });
-      } catch {
-        // Leave recovery/ledger for retry; still surface URL via reconciledUrl.
-        written.push({ vbrief: disp, result: "pending-reconcile" });
-      }
+      withPrior.push([path, disp, data, prior]);
     } else {
       writeVbrief(path, data, root);
       stillNeedRemote.push([path, disp, data]);
+    }
+  }
+  // Pass 2: stamp only after the recovered set is conflict-free.
+  for (const [path, disp, data, prior] of withPrior) {
+    try {
+      stampUrlOntoVbrief(path, data, prior, root);
+      written.push({ vbrief: disp, result: "created" });
+    } catch {
+      // Leave recovery/ledger for retry; still surface URL via reconciledUrl.
+      written.push({ vbrief: disp, result: "pending-reconcile" });
     }
   }
 
