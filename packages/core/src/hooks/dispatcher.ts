@@ -459,7 +459,9 @@ function inspectMutationGates(
     // Active-scope governs in-repo lifecycle work only. Outside-root Write/Edit
     // (agent memory, $TMPDIR, user config) skips the deny; null/unparseable
     // targets stay fail-closed. Spawn has no write target → still requires scope (#2885).
-    const outsideRoot = relTarget !== null && relTarget.startsWith("..");
+    // Use ".." / "../" only — startsWith("..") alone matches in-repo names like "..secret".
+    const outsideRoot =
+      relTarget !== null && (relTarget === ".." || relTarget.startsWith("../"));
     if (!outsideRoot || isSpawnTool(toolName)) {
       const proposedPathHint =
         options.proposedLifecycleExempt &&

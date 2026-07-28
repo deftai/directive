@@ -185,6 +185,30 @@ describe("direct-write hook policy", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
   });
 
+  it("does not treat in-repo '..'-prefixed filenames as outside root (#2885)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/..secret" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+  });
+
   it("still denies spawn when no active scope even without a write target (#2885)", () => {
     const decision = decideHook(
       {
