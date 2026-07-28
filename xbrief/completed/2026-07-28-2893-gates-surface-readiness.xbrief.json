@@ -1,0 +1,98 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF: gates-surface readiness doctor + skill dual invoke",
+    "updated": "2026-07-28T23:34:53Z"
+  },
+  "plan": {
+    "title": "bug(doctor/skills): gates-surface broken for consumers — dual deft/task invoke",
+    "status": "completed",
+    "updated": "2026-07-28T23:34:53Z",
+    "id": "2026-07-28-2893-gates-surface-readiness",
+    "narratives": {
+      "Description": "Directive skills teach bare task pr:watch and review-monitor gates that many consumers cannot invoke, breaking deep-think harness performance. This story elevates doctor Taskfile-include messaging for gates readiness and aligns always-pin skills to probe deft then task deft: then #2878 fallback.",
+      "Overview": "Major consumer harness bugfix MVP; policy enforce and init banner deferred.",
+      "Origin": "https://github.com/deftai/directive/issues/2893",
+      "UserStory": "As a consumer agent running review-cycle, I want doctor and skills to surface working gate invoke paths (deft or task deft:), so that missing bare task verbs do not force freestyle poll loops.",
+      "ImplementationPlan": "Step 1: Update packages/core/src/doctor/main.ts runTaskfileIncludeCheck copy and elevate warning when resolution is proceed/clean with dual remediations (deft verbs + include snippet); adjust taskfile.ts messaging as needed. Step 2: Update content/skills/deft-directive-review-cycle/SKILL.md and content/skills/deft-directive-swarm/SKILL.md probe order: deft/directive CLI first, then task deft:verb, then #2878 fallback; stop bare task pr:watch as sole consumer form. Step 3: Unit tests for doctor messaging/findings and skill content-contract markers. Step 4: Docs touch openclaw-agent-host or consumer docs if needed; CHANGELOG cites #2893. Verification: run doctor unit tests and skill contract tests; task check:merge before push.",
+      "Labels": "bug, adoption-blocker, doctor, tooling, agent-experience, area:skills, harness",
+      "Traces": "Acceptance maps to #2893 AC; missing_traces_justification until line maps."
+    },
+    "items": [
+      {
+        "title": "Doctor elevates missing Taskfile include when otherwise clean",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given consumer deposit and resolution proceed without higher-severity findings, when classifyTaskfileInclude is not ok, then doctor emits warning naming deep-think gates with dual remediations (deft + include snippet)."
+        }
+      },
+      {
+        "title": "Doctor copy frames gates readiness not optional-only task surface",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given doctor taskfile-include messaging, when read, then purpose is gates readiness and it does not claim include is only for optional task deft:X convenience."
+        }
+      },
+      {
+        "title": "Review-cycle and swarm probe order deft then task deft: then fallback",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given review-cycle and swarm skill text, when agent follows probe guidance, then deft/directive CLI is first, task deft: second when include present, #2878 fallback last; bare task pr:watch is not sole consumer form."
+        }
+      },
+      {
+        "title": "Regression tests and CHANGELOG cite #2893",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the PR, when tests run, then doctor gates-surface cases and skill contract markers pass and CHANGELOG Unreleased cites #2893."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "doctor",
+      "tooling",
+      "agent-experience",
+      "area:skills",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2893",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/docs/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/doctor",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "doctor gates-surface elevate",
+          "skill dual invoke order",
+          "CHANGELOG #2893"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2893-gates-surface",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T23:34:53Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
