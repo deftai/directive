@@ -1,0 +1,95 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Review-cycle/babysit must default out-of-AC findings to follow-up issue or brief amendment, not silent redesign mid-babysit.",
+    "updated": "2026-07-28T20:36:14Z"
+  },
+  "plan": {
+    "title": "bug(process): babysit/review must not expand active story scope past xbrief AC",
+    "status": "completed",
+    "updated": "2026-07-28T20:36:14Z",
+    "id": "2026-07-28-2881-babysit-must-not-expand-active-story-past-xbrief-ac",
+    "narratives": {
+      "Description": "Review-cycle/babysit must default out-of-AC findings to follow-up issue or brief amendment, not silent redesign mid-babysit. Recurrence PR #2871 expanded #2869 containment into #2880 durability without a new scope brief.",
+      "Overview": "Process lesson from PR #2871 expanding #2869 into #2880 durability work.",
+      "Origin": "https://github.com/deftai/directive/issues/2881",
+      "UserStory": "As a swarm monitor, I want babysit and review-cycle skills to refuse out-of-AC redesigns, so that active story scope is not silently expanded mid-review.",
+      "ImplementationPlan": "Step 1: content/skills/deft-directive-review-cycle/SKILL.md — out-of-AC → follow-up/amend; P0 carve-out; confidence-only holds. Step 2: content/skills/deft-directive-pre-pr/SKILL.md if needed. Step 3: Document issue:emit related-ref footgun in skill or content/docs. Step 4: CHANGELOG #2881. Verification: skill AC text present; task check:merge. Same skill as #2876 — implement in one PR with #2876/#2878 if concurrent. Touch concrete source files listed in plan.metadata.swarm.file_scope. Verification evidence: run targeted unit tests or verify gates and capture pass evidence in the PR.",
+      "Labels": "bug, process, area:skills, agent-experience",
+      "Traces": "Acceptance criteria map to #2881; missing_traces_justification until implementation maps lines."
+    },
+    "items": [
+      {
+        "title": "Out-of-AC findings default to follow-up or amend",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given active story xBRIEF with fixed plan.items, when Greptile finding is outside AC, when skill is followed, then agent files/proposes follow-up or amends brief with consent before new subsystem."
+        }
+      },
+      {
+        "title": "P0 carve-out vs new-subsystem-needs-story",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given skill text, when read, then P0 security on already-touched files may land same PR; new ledgers/idempotency/cross-cutting reliability require separate or amended story."
+        }
+      },
+      {
+        "title": "Confidence-only holds do not mandate redesign",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given review-cycle guidance, when conf < threshold with 0 P0/P1, then skill offers follow-up/residual note/operator override, not unbounded redesign."
+        }
+      },
+      {
+        "title": "issue:emit related-ref footgun documented",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given docs or skill notes, when author adds related-issue ref, then guidance prevents using emit-tracking github-issue type for non-primary related work."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "process",
+      "area:skills",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2881",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/docs/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "Out-of-AC findings default to follow-up or amend",
+          "P0 carve-out vs new-subsystem-needs-story",
+          "Confidence-only holds do not mandate redesign",
+          "issue:emit related-ref footgun documented"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2881",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T20:36:14Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

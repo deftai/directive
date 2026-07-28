@@ -1,0 +1,78 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Document or package official path for consumers lacking task pr:watch so OpenClaw agents do not freestyle.",
+    "updated": "2026-07-28T20:36:11Z"
+  },
+  "plan": {
+    "title": "feat(consumers): statusreport pr:watch / review-monitor or official gh-fallback",
+    "status": "completed",
+    "updated": "2026-07-28T20:36:11Z",
+    "id": "2026-07-28-2878-consumer-pr-watch-fallback",
+    "narratives": {
+      "Description": "Document or package official path for consumers lacking task pr:watch so OpenClaw agents do not freestyle. Prefer documenting the official gh-only fallback inside Directive skill or consumer guidance when pr:watch is absent from the consumer Taskfile.",
+      "Overview": "Epic #2874 P2. Prefer fail-loud documented gh-fallback in Directive skill/docs if statusreport port is out of band; or note consumer packaging path.",
+      "Origin": "https://github.com/deftai/directive/issues/2878",
+      "UserStory": "As a maintainer of a consumer repo without task pr:watch, I want an official fail-loud babysit fallback, so that agents do not invent non-skill poll loops.",
+      "ImplementationPlan": "Step 1: In content/skills/deft-directive-review-cycle/SKILL.md (or dedicated consumer doc under content/docs/), document official gh-only fallback when task pr:watch is missing. Step 2: Fail-loud missing-task case. Step 3: CHANGELOG #2878. Verification: skill/doc section present; task check:merge. Coordinate with #2876 same skill file — land after or same PR as #2876. Verification evidence: run targeted unit tests or verify gates and capture pass evidence in the PR.",
+      "Labels": "feat, harness:openclaw, docs, consumers",
+      "Traces": "Acceptance criteria map to #2878; missing_traces_justification until implementation maps lines."
+    },
+    "items": [
+      {
+        "title": "OpenClaw agent can babysit consumers without inventing non-skill path",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given review-cycle or consumer guidance, when pr:watch is missing, then an official fail-loud fallback is documented (not freestyle sleep loops)."
+        }
+      },
+      {
+        "title": "Missing-task case explicit",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given skill or consumer doc, when task pr:watch is absent, then the missing-task case is named with remediation."
+        }
+      }
+    ],
+    "tags": [
+      "feat",
+      "harness:openclaw",
+      "docs",
+      "consumers"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2878",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/docs/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "OpenClaw agent can babysit consumers without inventing non-s",
+          "Missing-task case explicit"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2878",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T20:36:11Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

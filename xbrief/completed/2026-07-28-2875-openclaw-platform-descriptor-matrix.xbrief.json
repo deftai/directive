@@ -1,0 +1,97 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Add OpenClaw as first-class runtime descriptor in swarm Phase 3 capability/launch matrix with sessions_spawn Tier 1 and verify:openclaw-tier1.",
+    "updated": "2026-07-28T20:36:06Z"
+  },
+  "plan": {
+    "title": "feat(swarm): OpenClaw platform descriptor + capability matrix (Tier 1 sessions_spawn)",
+    "status": "completed",
+    "updated": "2026-07-28T20:36:06Z",
+    "id": "2026-07-28-2875-openclaw-platform-descriptor-matrix",
+    "narratives": {
+      "Description": "Add OpenClaw as first-class runtime descriptor in swarm Phase 3 capability/launch matrix with sessions_spawn Tier 1 and verify:openclaw-tier1. This is the P0 spine of epic #2874. Cursor and grok-build already have Tier-1 descriptors; OpenClaw sessions_spawn must not fall through to generic-terminal.",
+      "Overview": "Epic #2874 P0 spine. Mirror Cursor #1877 / grok-build #1342 treatment for OpenClaw sessions_spawn.",
+      "Origin": "https://github.com/deftai/directive/issues/2875",
+      "UserStory": "As a Directive orchestrator on OpenClaw, I want a first-class openclaw platform descriptor and capability matrix, so that sessions_spawn is treated as Tier 1 instead of generic-terminal degradation.",
+      "ImplementationPlan": "Step 1: Update content/skills/deft-directive-swarm/SKILL.md Phase 3 capability matrix to probe sessions_spawn and set descriptor openclaw as Tier 1. Step 2: Extend packages/core/src/platform/ and packages/core/src/swarm/ routing so openclaw is a valid dispatch_provider. Step 3: Add task verify:openclaw-tier1 (mirror verify:cursor-tier1) under tasks/ and wire into docs/agents-entry if required. Step 4: Unit or gate tests proving matrix markers fail closed when removed. Step 5: CHANGELOG [Unreleased] cites #2875. Verification: task verify:openclaw-tier1; task check:merge. Touch concrete source files listed in plan.metadata.swarm.file_scope.",
+      "Labels": "feat, harness:openclaw, swarm, tooling",
+      "Traces": "Acceptance criteria map to #2875; missing_traces_justification until implementation maps lines."
+    },
+    "items": [
+      {
+        "title": "Capability matrix documents openclaw + sessions_spawn probe",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given swarm Phase 3 capability matrix / detection code, when sessions_spawn is present, then descriptor openclaw (or documented split) is Tier 1 and not misclassified as grok-build/generic-terminal."
+        }
+      },
+      {
+        "title": "Launch/monitor/Phase 6 use openclaw descriptor",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given skill and platform adapter surfaces, when OpenClaw is detected, then launch/monitor/post-PR dispatch paths use the openclaw descriptor rather than hard-coded Cursor/Warp/grok-only branches."
+        }
+      },
+      {
+        "title": "verify:openclaw-tier1 gate exists and is wired",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given task verify:openclaw-tier1 (or equivalent), when openclaw markers are removed from required surfaces, then the gate fails closed; CHANGELOG cites #2875."
+        }
+      },
+      {
+        "title": "Routing can record OpenClaw as dispatch provider",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given swarm routing (#1739) surfaces, when operator configures provider, then OpenClaw is a valid dispatch_provider entry."
+        }
+      }
+    ],
+    "tags": [
+      "feat",
+      "harness:openclaw",
+      "swarm",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2875",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "packages/core/src/platform/",
+          "packages/core/src/swarm/",
+          "tasks/",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task verify:openclaw-tier1",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "Capability matrix documents openclaw + sessions_spawn probe",
+          "Launch/monitor/Phase 6 use openclaw descriptor",
+          "verify:openclaw-tier1 gate exists and is wired",
+          "Routing can record OpenClaw as dispatch provider"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2875",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T20:36:06Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Route PR babysit/shepherd/watch on OpenClaw to Tier 1 Approach 1 background sessions_spawn review-monitor, not main-session gh poll + cron.",
+    "updated": "2026-07-28T20:36:08Z"
+  },
+  "plan": {
+    "title": "feat(review-cycle): OpenClaw babysit/review-monitor → sessions_spawn (Approach 1)",
+    "status": "completed",
+    "updated": "2026-07-28T20:36:08Z",
+    "id": "2026-07-28-2876-openclaw-review-cycle-sessions-spawn",
+    "narratives": {
+      "Description": "Route PR babysit/shepherd/watch on OpenClaw to Tier 1 Approach 1 background sessions_spawn review-monitor, not main-session gh poll + cron. Live recurrence was APE on statusreport PR babysit freestyling poll and cron despite sessions_spawn availability.",
+      "Overview": "Epic #2874 P0 symptom fix. Incident: APE statusreport babysit freestyled poll+cron despite sessions_spawn.",
+      "Origin": "https://github.com/deftai/directive/issues/2876",
+      "UserStory": "As an OpenClaw agent babysitting a PR, I want review-cycle Approach 1 to use sessions_spawn, so that I do not freestyle main-session gh poll plus cron.",
+      "ImplementationPlan": "Step 1: Edit content/skills/deft-directive-review-cycle/SKILL.md Review Monitoring Approach 1 to list OpenClaw sessions_spawn beside Cursor/Warp/grok-build. Step 2: Add #2261 supersession subsection for OpenClaw; document cron ≠ Approach 1. Step 3: Extend packages/core review-monitor register/verify to accept sessions_spawn primitive if those modules exist. Step 4: Prefer task pr:watch language. Step 5: CHANGELOG #2876. Verification: skill text grep + task check:merge. Touch concrete source files listed in plan.metadata.swarm.file_scope.",
+      "Labels": "feat, harness:openclaw, review-cycle, area:skills",
+      "Traces": "Acceptance criteria map to #2876; missing_traces_justification until implementation maps lines."
+    },
+    "items": [
+      {
+        "title": "Approach 1 + #2261 name OpenClaw sessions_spawn",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given deft-directive-review-cycle Review Monitoring, when host is OpenClaw with sessions_spawn, then Approach 1 is the default path and #2261 babysit supersession text names OpenClaw."
+        }
+      },
+      {
+        "title": "register/verify accept OpenClaw primitive",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given review-monitor:register and verify:review-monitor, when primitive is sessions_spawn (or openclaw-sessions-spawn), then registration/verify succeed."
+        }
+      },
+      {
+        "title": "cron ≠ Approach 1 documented",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given skill text, when read, then OpenClaw cron alone is not Approach 1 (scheduler fallback only if spawn unavailable)."
+        }
+      },
+      {
+        "title": "visible Control UI SHOULD + non-blocking parent",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given long review-monitor ownership, when OpenClaw Control UI is control plane, then visible subagent is preferred and parent session is not blocked >~3 min."
+        }
+      }
+    ],
+    "tags": [
+      "feat",
+      "harness:openclaw",
+      "review-cycle",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2876",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "packages/core/src/review-monitor/",
+          "packages/core/src/pr/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "Approach 1 + #2261 name OpenClaw sessions_spawn",
+          "register/verify accept OpenClaw primitive",
+          "cron ≠ Approach 1 documented",
+          "visible Control UI SHOULD + non-blocking parent"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2876",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T20:36:08Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
