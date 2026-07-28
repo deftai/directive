@@ -266,12 +266,8 @@ export function emitSingle(
   try {
     writeVbrief(path, data, root);
   } catch {
-    // Best-effort raw write — containment already passed twice above.
-    try {
-      writeFileSync(resolve(path), `${JSON.stringify(data, null, 2)}\n`, "utf8");
-    } catch {
-      // Local stamp failed; URL is still returned so retry paths can skip re-create.
-    }
+    // No raw recovery write: bypassing containment after a guarded refusal would
+    // re-open a symlink sink (#2871). URL is still returned so callers do not re-emit.
   }
   return { result: "created", vbrief: shown, url, title };
 }
@@ -362,11 +358,7 @@ export function emitUmbrella(
     try {
       writeVbrief(path, data, options.projectRoot);
     } catch {
-      try {
-        writeFileSync(resolve(path), `${JSON.stringify(data, null, 2)}\n`, "utf8");
-      } catch {
-        // Still count as created — remote URL is returned for reconciliation.
-      }
+      // No raw recovery write — keep containment fail-closed; URL still returned.
     }
     written.push({ vbrief: disp, result: "created" });
   }
