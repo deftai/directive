@@ -5,13 +5,12 @@ import {
   PROJECTION_CONTAINMENT_REFUSED_EXIT_CODE,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
-import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
 import {
-  dispatchProviderFromRuntime,
   HARNESS_BOUND_PROVIDERS,
   ROUTING_MODE_HARNESS_DEFAULT,
   ROUTING_MODE_PINNED,
+  resolveDispatchProvider,
   resolveRoutingPath,
   SWARM_WORKER_ROLES,
   writeModelDecision,
@@ -63,13 +62,10 @@ export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
 
   let resolvedProvider = provider;
   if (resolvedProvider === null || resolvedProvider.length === 0) {
-    let runtimeMode = "";
-    try {
-      runtimeMode = getPlatformCapabilities().runtimeMode;
-    } catch {
-      runtimeMode = "";
-    }
-    resolvedProvider = dispatchProviderFromRuntime(runtimeMode);
+    // Same key as launch + verify:routing: OPENCLAW / sessions_spawn → openclaw
+    // (#2875 Greptile P1). Do not map via runtimeMode alone — OpenClaw-only envs
+    // are often local-unsandboxed while still dispatching under provider openclaw.
+    resolvedProvider = resolveDispatchProvider(process.env);
   }
 
   if (harnessDefault) {

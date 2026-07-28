@@ -36,7 +36,18 @@ export const OPENCLAW_TIER1_TARGETS: readonly OpenclawTier1Target[] = [
   {
     path: "packages/core/src/swarm/routing.ts",
     label: "swarm routing dispatch_provider",
-    markers: ['"openclaw"', "DEFT_HAS_SESSIONS_SPAWN", "ROUTING_GATED_DISPATCH_PROVIDERS"],
+    // Prefer operative identifiers (function + return), not free-floating prose.
+    markers: [
+      "export function resolveDispatchProvider",
+      'return "openclaw"',
+      "DEFT_HAS_SESSIONS_SPAWN",
+      "ROUTING_GATED_DISPATCH_PROVIDERS",
+    ],
+  },
+  {
+    path: "packages/core/src/swarm/routing-set-cli.ts",
+    label: "swarm:routing-set provider resolution",
+    markers: ["resolveDispatchProvider", "openclaw"],
   },
 ];
 

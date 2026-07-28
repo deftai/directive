@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { OPENCLAW_TIER1_TARGETS } from "@deftai/directive-core/verify-source";
+import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./verify-openclaw-tier1.js";
 
 function writeTarget(root: string, relPath: string, body: string): void {
