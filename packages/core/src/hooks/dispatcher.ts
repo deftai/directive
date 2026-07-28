@@ -1,4 +1,5 @@
-import { relative, resolve, sep } from "node:path";
+import { realpathSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   evaluateRuntimeAuthorityDirectWrite,
@@ -264,6 +265,56 @@ export function toProjectRelativePosix(projectRoot: string, targetPath: string):
   return rel.split(sep).join("/").replace(/\\/g, "/");
 }
 
+function posixRelative(fromAbs: string, toAbs: string): string {
+  return relative(fromAbs, toAbs).split(sep).join("/").replace(/\\/g, "/");
+}
+
+/**
+ * Lexical "outside project root" predicate used by #2885.
+ * - `".."` / `"../…"` are outside (not bare `startsWith("..")` — that matches `..secret`).
+ * - Absolute / drive-letter relatives (win32 cross-drive) are outside.
+ */
+export function isLexicalOutsideProjectRoot(relPosix: string): boolean {
+  return (
+    relPosix === ".." ||
+    relPosix.startsWith("../") ||
+    isAbsolute(relPosix) ||
+    /^[A-Za-z]:\//.test(relPosix)
+  );
+}
+
+/**
+ * True when a write target is outside `projectRoot` for the active-scope skip (#2885).
+ * Lexically outside paths still fail the skip when a symlink/junction re-enters the project.
+ * When the project root cannot be realpath'd (unit fixtures), lexical classification wins.
+ */
+export function isOutsideProjectRootWrite(projectRoot: string, targetPath: string): boolean {
+  const projectAbs = resolve(projectRoot);
+  const targetAbs = resolve(projectRoot, targetPath.replace(/\\/g, "/"));
+  const rel = posixRelative(projectAbs, targetAbs);
+  if (!isLexicalOutsideProjectRoot(rel)) return false;
+
+  try {
+    const projectReal = realpathSync(projectAbs);
+    let probe = targetAbs;
+    for (;;) {
+      try {
+        const probeReal = realpathSync(probe);
+        const reenter = posixRelative(projectReal, probeReal);
+        // Empty reenter ⇒ probeReal === projectReal (inside). Lexical-outside reenter ⇒ truly out.
+        if (reenter === "" || !isLexicalOutsideProjectRoot(reenter)) return false;
+        return true;
+      } catch {
+        const parent = dirname(probe);
+        if (parent === probe) return true;
+        probe = parent;
+      }
+    }
+  } catch {
+    return true;
+  }
+}
+
 /**
  * Proposing a scope under xbrief/proposed/ (or legacy vbrief/proposed/) is
  * planning, not implementation dispatch — exempt from the active-scope gate (#2625).
@@ -459,9 +510,8 @@ function inspectMutationGates(
     // Active-scope governs in-repo lifecycle work only. Outside-root Write/Edit
     // (agent memory, $TMPDIR, user config) skips the deny; null/unparseable
     // targets stay fail-closed. Spawn has no write target → still requires scope (#2885).
-    // Use ".." / "../" only — startsWith("..") alone matches in-repo names like "..secret".
-    const outsideRoot =
-      relTarget !== null && (relTarget === ".." || relTarget.startsWith("../"));
+    // Lexical ../ + realpath re-entry guard (not bare startsWith(".."); not symlink aliases).
+    const outsideRoot = writeTarget !== null && isOutsideProjectRootWrite(projectRoot, writeTarget);
     if (!outsideRoot || isSpawnTool(toolName)) {
       const proposedPathHint =
         options.proposedLifecycleExempt &&
