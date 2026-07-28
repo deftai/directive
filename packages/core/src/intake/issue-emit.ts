@@ -37,15 +37,18 @@ export function loadVbrief(path: string): Record<string, unknown> {
  */
 export function assertVbriefWriteTargetSafe(path: string, projectRoot?: string | null): string {
   const absPath = resolve(path);
+  // Resolve root only from explicit projectRoot, DEFT_PROJECT_ROOT, or cwd walk-up.
+  // Never start discovery from dirname(absPath) — that trusts a possibly-symlinked parent
+  // of the write target as the containment root (Greptile/SLizard P1 on #2871).
   const root =
     projectRoot !== undefined && projectRoot !== null && projectRoot.length > 0
       ? resolve(projectRoot)
-      : resolveProjectRoot(null, dirname(absPath));
+      : resolveProjectRoot(null);
   if (root === null) {
     throw new ProjectionContainmentError(
-      `projection write refused: could not resolve project root for ${absPath}`,
+      `projection write refused: could not resolve project root for ${absPath}; pass projectRoot or run from a project checkout`,
       {
-        projectDir: dirname(absPath),
+        projectDir: process.cwd(),
         targetPath: absPath,
         offendingPath: absPath,
       },
@@ -252,8 +255,12 @@ export function emitSingle(
   // Containment gate BEFORE remote create — refusal must not leave an orphan issue (#2871).
   const root = assertVbriefWriteTargetSafe(path, options.projectRoot);
   const body = renderIssueBody(data);
+  // Re-check immediately before remote create (TOCTOU).
+  assertVbriefWriteTargetSafe(path, root);
   const url = fileIssue(options.repo, title, body, options.scmCall);
   addGithubIssueReference(data, url);
+  // Final containment check before local write.
+  assertVbriefWriteTargetSafe(path, root);
   writeVbrief(path, data, root);
   return { result: "created", vbrief: shown, url, title };
 }
