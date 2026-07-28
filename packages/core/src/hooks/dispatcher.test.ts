@@ -225,7 +225,33 @@ describe("direct-write hook policy", () => {
     expect(isLexicalOutsideProjectRoot("../tmp/x")).toBe(true);
     expect(isLexicalOutsideProjectRoot("..secret")).toBe(false);
     expect(isLexicalOutsideProjectRoot("src/foo.ts")).toBe(false);
-    expect(isLexicalOutsideProjectRoot("D:/tmp/x")).toBe(true);
+    // Drive-letter relatives are outside only on win32 (cross-drive path.relative).
+    // On POSIX, `D:/tmp/x` is a valid in-project child path segment.
+    expect(isLexicalOutsideProjectRoot("D:/tmp/x")).toBe(process.platform === "win32");
+  });
+
+  it("denies in-repo drive-like POSIX child path without active scope (#2885)", () => {
+    if (process.platform === "win32") return;
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/D:/tmp/x" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
   });
 
   itSymlink("denies outside-root symlink that re-enters the project (#2885)", () => {

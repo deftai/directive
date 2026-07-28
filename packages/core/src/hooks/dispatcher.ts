@@ -272,15 +272,15 @@ function posixRelative(fromAbs: string, toAbs: string): string {
 /**
  * Lexical "outside project root" predicate used by #2885.
  * - `".."` / `"../…"` are outside (not bare `startsWith("..")` — that matches `..secret`).
- * - Absolute / drive-letter relatives (win32 cross-drive) are outside.
+ * - Absolute relatives and win32 cross-drive paths (`D:/…`) are outside.
+ * - Drive-letter form is win32-only so POSIX children like `D:/tmp/x` stay in-repo.
  */
 export function isLexicalOutsideProjectRoot(relPosix: string): boolean {
-  return (
-    relPosix === ".." ||
-    relPosix.startsWith("../") ||
-    isAbsolute(relPosix) ||
-    /^[A-Za-z]:\//.test(relPosix)
-  );
+  if (relPosix === ".." || relPosix.startsWith("../") || isAbsolute(relPosix)) {
+    return true;
+  }
+  // path.relative returns absolute drive paths across volumes on Windows only.
+  return process.platform === "win32" && /^[A-Za-z]:\//.test(relPosix);
 }
 
 /**
