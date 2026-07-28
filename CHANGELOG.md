@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **OpenClaw poller/preamble + heartbeat templates (#2879).** Greptile poller template names OpenClaw `sessions_spawn` and parent push/announce completion channel (alongside Warp `start_agent` and grok-build `spawn_subagent`); agent preamble lists OpenClaw as a first-class provider-neutral backend with Gap D background-dispatch and §10.5 heartbeat mapping; `docs/subagent-heartbeat.md` documents OpenClaw file-heartbeat + supplementary native liveness and `REDISPATCH_OK` posture. Closes #2879. Refs #2874, #1365, #2824.
+
 ### Fixed
 
 - **Issue-emit dual ledger+stamp failure and umbrella partial-failure no longer re-create GitHub issues on retry (#2880).** After remote create, the URL is always recorded in process-local + OS-temp recovery (in addition to the project pending ledger) before the xBRIEF stamp; `IssueEmitError.createdUrl` is structured; `emitUmbrella` shares the same reconcile contract and reuses a sibling recovered URL instead of filing a second issue. Residual reliability after #2871 AppSec/ledger baseline. Closes #2880.

@@ -6,13 +6,14 @@ Canonical Greptile review-cycle / poller sub-agent prompt body.
 Used by parent monitor agents when delegating post-PR work via the platform
 dispatch primitive per the parent's Phase 3 runtime capability detection
 (`spawn_subagent` for "grok-build" / Grok Build TUI, `start_agent` for
-Warp-orchestrated, or equivalent in other environments). See
-`skills/deft-directive-swarm/SKILL.md` Phase 3 + #1342 slices 1-3 and the
-review-cycle skill's updated Approach 1.
+Warp-orchestrated, `sessions_spawn` for OpenClaw, Cursor `Task` with
+`run_in_background: true`, or equivalent in other environments). See
+`skills/deft-directive-swarm/SKILL.md` Phase 3 + #1342 slices 1-3 / #2874
+OpenClaw Tier 1 and the review-cycle skill's updated Approach 1.
 
 The parent reads this file and applies Python `str.format(...)` to substitute
 five placeholders, then passes the formatted prompt via the chosen dispatch
-primitive (spawn_subagent, start_agent, etc.):
+primitive (spawn_subagent, start_agent, sessions_spawn, Cursor Task, etc.):
 
     from pathlib import Path
     prompt = Path("templates/swarm-greptile-poller-prompt.md").read_text(encoding="utf-8").format(
@@ -23,7 +24,9 @@ primitive (spawn_subagent, start_agent, etc.):
         parent_agent_id="<parent-id>",
     )
     # Dispatch via the detected primitive (example for start_agent shown;
-    # use spawn_subagent + the launch adapter for grok-build per #1342)
+    # use spawn_subagent + the launch adapter for grok-build per #1342;
+    # use sessions_spawn for OpenClaw per #2874 / #2879 -- completion is
+    # parent push / announce, not get_command_or_subagent_output)
     start_agent(name=f"greptile-poller-{{N}}", prompt=prompt, execution_mode="local")
 
 This file is the proven prompt body. Hand-authored variants have repeatedly
@@ -31,10 +34,11 @@ missed two specific parsing bugs (markdown-link `Last reviewed commit:`,
 raw `\b(P0|P1)\b` substring scan with negation false-positive); the body
 below encodes the fixes inline. See #727 (canonical encoding) and
 `skills/deft-directive-swarm/SKILL.md` Phase 6 Sub-Agent Role Separation
-(#1342 platform adapter unification: the platform adapter dispatches via
-`spawn_subagent` on grok-build and `start_agent` on Warp-orchestrated, so
-this template is platform-agnostic by construction) for the rules that
-mandate using this template instead of hand-authoring.
+(#1342 / #2879 platform adapter unification: the platform adapter dispatches
+via `spawn_subagent` on grok-build, `start_agent` on Warp-orchestrated, and
+`sessions_spawn` on OpenClaw, so this template is platform-agnostic by
+construction) for the rules that mandate using this template instead of
+hand-authoring.
 
 NOTE on `.format()` escaping: every literal curly brace in this file is
 doubled (`{{` / `}}`) so it survives the `str.format(...)` pass. The five
@@ -48,8 +52,12 @@ DO NOT STOP until ONE of the six terminal exit conditions below fires.
 ## Role posture
 
 - Single role: review-cycle agent. Read `skills/deft-directive-review-cycle/SKILL.md` and follow Phase 2 (Review/Fix Loop) end-to-end.
-- Parent agent ID for status messages: `{parent_agent_id}`. Send status updates via `send_message_to_agent` at start, on each terminal exit condition, and on any blocker.
-- Execution: local. Working directory: the worktree the parent gave you (or your `--cwd` if running under `oz agent run --cwd`).
+- Parent agent ID for status messages: `{parent_agent_id}`. Send status updates at start, on each terminal exit condition, and on any blocker via the **host completion channel** for your dispatch primitive:
+  - Warp / `start_agent`: `send_message_to_agent`
+  - grok-build / `spawn_subagent`: spawn result channel / parent announce (parent may poll `get_command_or_subagent_output`)
+  - **OpenClaw / `sessions_spawn` (#2879):** parent push / announce (session announce or Control UI–visible completion) -- **not** `get_command_or_subagent_output`, and not Cursor Task completion semantics
+  - Cursor `Task` (background): Task completion-notification path
+- Execution: local. Working directory: the worktree the parent gave you (or your `--cwd` if running under `oz agent run --cwd` / OpenClaw session cwd).
 
 ## Bounded poll loop
 
@@ -533,7 +541,7 @@ Send:
 - ! Set `$env:GIT_EDITOR = "true"` (Windows PowerShell) or `GIT_EDITOR=true` (Unix) BEFORE any git command that could open an editor (rebase, commit --amend) to prevent terminal lockup.
 - ! Use Python scripts (single `run_shell_command` call) for the poll loop, NEVER shell `Start-Sleep` + repeated tool calls. The Python script handles `time.sleep({poll_interval_seconds})` between polls and exits when a terminal condition fires.
 - ! Always pass `do_not_summarize_output: true` semantics when fetching `gh pr view --comments` -- summarizers silently drop the Outside-Diff section.
-- ! Send a status message to `{parent_agent_id}` at start (acknowledging the task) and at every terminal exit (CLEAN / NEW P0/P1 FINDINGS escalation / ERRORED / TIMEOUT / STALL). Do NOT silently complete.
+- ! Send a status message to `{parent_agent_id}` at start (acknowledging the task) and at every terminal exit (CLEAN / NEW P0/P1 FINDINGS escalation / ERRORED / TIMEOUT / STALL / INFORMAL-CLEAN). Route it through the host completion channel for your primitive (see Role posture -- OpenClaw `sessions_spawn` uses parent push / announce). Do NOT silently complete.
 
 ## Implementation Notes
 
@@ -554,3 +562,4 @@ Dogfood lessons captured during the #727 self-review cycle. The template body ab
 - #727 -- this template's acceptance issue and the full anti-pattern record (rm-chaining, parsing-bug recurrence, role-conflation in implementation-agent prompts).
 - #1039 -- (5) STALL terminal exit + Tier 1 instrumentation + Tier 3 per-condition fail-loud (`clean_gate_holdout`); the third recurrence in this template's detector-gap chain after #910 (triple-tier) and #1035 (Tier 2.5 + confidence-heading).
 - #1364 -- cohort-level CLEAN verification gate (`task swarm:verify-review-clean`, `scripts/swarm_verify_review_clean.py`). The (1) CLEAN section's swarm-orchestrated terminal contract block declares that only the exact `PR #{pr_number} CLEAN -- ready for merge` subject with `confidence > 3` on current HEAD is an acceptable "review complete" signal for the swarm monitor's Phase 5 -> 6 transition; the cohort verifier picks up any other terminal exit ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL) and holds the merge gate until fresh poller re-dispatch or explicit user escalation resolves it. Recurrence record: #1166 swarm execution where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate because the trigger keyed on "all pollers have reported back" rather than "every PR in the cohort is objectively CLEAN".
+- #2879 -- OpenClaw `sessions_spawn` + parent push/announce completion channel named in Role posture (alongside Warp `start_agent` and grok-build `spawn_subagent`); heartbeat mapping in `docs/subagent-heartbeat.md` and preamble §10.5. Epic #2874.

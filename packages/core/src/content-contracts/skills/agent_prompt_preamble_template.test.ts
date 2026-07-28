@@ -174,4 +174,12 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).not.toContain("ghp_");
     expect(templateText).not.toContain("github_pat_");
   });
+  it("template_lists_openclaw_as_first_class_backend_2879", () => {
+    expect(templateText).toContain("OpenClaw");
+    expect(templateText).toContain("sessions_spawn");
+    expect(templateText).toContain("openclaw");
+    expect(templateText).toContain("#2879");
+    expect(templateText).toContain("OpenClaw `sessions_spawn` / heartbeat mapping (#2879)");
+    expect(templateText).toContain("parent push / announce");
+  });
 });

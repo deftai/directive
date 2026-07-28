@@ -72,6 +72,49 @@ Cross-references: `task verify:subagent-alive`, `skills/deft-directive-swarm/SKI
 Phase 4 / Phase 5, `templates/agent-prompt-preamble.md` § 10.5. Refs #2824,
 #1365, #2655 (review-monitor is orthogonal — ownership, not implementer liveness).
 
+## OpenClaw sessions_spawn (#2879)
+
+Long-running OpenClaw `sessions_spawn` review-monitors and leaves can go dark
+from the parent session's perspective the same way Grok Build `spawn_subagent`
+and Cursor `Task` pollers do: the host may still show a live session while the
+tool loop has stalled (no commits, no PR comments, no parent announce).
+
+! Every long-running OpenClaw `sessions_spawn` sub-agent (review-monitor
+poller, implementation worker whose tool loop is expected to exceed ~3 minutes,
+or a Control UI–visible subagent) MUST honour this heartbeat contract — same
+obligation as the `spawn_subagent` and Cursor `Task` paths (#1166 / #1365 /
+#2879).
+
+~ OpenClaw pollers write to the same
+`.deft-scratch/subagent-status/<agent-id>.json` path and schema documented
+below. The monitor helper (`scripts/subagent_monitor.py` / `task agent:monitor`
+/ `task verify:subagent-alive`) reads OpenClaw records from that directory
+without a separate OpenClaw-specific surface.
+
+! OpenClaw host session liveness, Control UI presence, or gateway channel
+reachability does NOT replace periodic heartbeats. Those signals only prove
+the session exists, not that the review-monitor tool loop is progressing.
+Prefer the file-heartbeat + `task verify:subagent-alive` / `task agent:monitor`
+path as the **canonical** liveness contract for OpenClaw review-monitors.
+
+? When an OpenClaw-native liveness signal is available (gateway session health,
+subagent lifecycle event, Control UI status), monitors MAY treat it as a
+*supplementary* signal alongside the file heartbeat, but MUST NOT treat host
+"still running" alone as alive when the heartbeat is missing or STALE (same
+`REDISPATCH_OK` posture as Cursor #2824).
+
+! OpenClaw completion for pollers is **parent push / announce** (session
+announce or visible subagent terminal message) — not
+`get_command_or_subagent_output` and not Cursor Task completion-notification
+semantics. The completion channel and the heartbeat path are complementary:
+completion tells the parent the poller finished; the file heartbeat tells the
+monitor the poller is still alive mid-flight.
+
+Cross-references: `templates/swarm-greptile-poller-prompt.md` (Role posture +
+OpenClaw completion channel), `templates/agent-prompt-preamble.md` § 10.5,
+`skills/deft-directive-review-cycle/SKILL.md` Review Monitoring (Approach 1).
+Refs #2879, #2874, #1365, #2824.
+
 ## Where heartbeats live
 
 ! Every long-running sub-agent (review-cycle poller, watchdog, or
@@ -319,15 +362,18 @@ Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1a,
 - `tests/cli/test_subagent_monitor.py` -- empty / fresh / stale /
   malformed coverage
 - `templates/swarm-greptile-poller-prompt.md` -- the poller template that
-  embeds the heartbeat write into the bounded poll loop
+  embeds the heartbeat write into the bounded poll loop (OpenClaw
+  `sessions_spawn` + parent push/announce completion channel, #2879)
 - `templates/agent-prompt-preamble.md` -- the canonical orchestrator
-  preamble carrying the Heartbeat contract section
+  preamble carrying the Heartbeat contract section (§10.5 OpenClaw
+  mapping, #2879)
 - `skills/deft-directive-swarm/SKILL.md` Phase 4 (Monitor) and Phase 6
   Sub-Agent Role Separation -- the swarm skill surfaces that cite the
   heartbeat contract as the canonical alive-check on the Grok Build
-  hybrid path
+  hybrid path (OpenClaw descriptor matrix is #2875 -- not this doc)
 - `AGENTS.md` `## Safe subprocess capture (#1366)` -- the dependency
   helper the monitor uses for any gh capture it does on behalf of a
   dark sub-agent
 - Recurrence: the #1166 swarm session where `#1362` and `#1363` went
   silent with zero observable signals
+- OpenClaw: #2879 (templates + heartbeat mapping), epic #2874
