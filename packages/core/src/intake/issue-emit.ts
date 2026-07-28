@@ -1,4 +1,4 @@
-import { globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
@@ -19,6 +19,61 @@ export class IssueEmitError extends Error {
     this.name = "IssueEmitError";
   }
 }
+
+
+/** Contained durable map: abs vbrief path -> issue URL for in-flight emits (#2871). */
+export function pendingEmitLedgerPath(projectRoot: string): string {
+  return join(resolve(projectRoot), ".deft-cache", "issue-emit-pending.json");
+}
+
+export function loadPendingEmitUrls(projectRoot: string): Record<string, string> {
+  const ledger = pendingEmitLedgerPath(projectRoot);
+  try {
+    assertWriteTargetSafe(projectRoot, ledger);
+    const raw = readFileSync(ledger, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (typeof v === "string" && v.length > 0) {
+          out[k] = v;
+        }
+      }
+      return out;
+    }
+  } catch {
+    // Missing or unreadable ledger is empty.
+  }
+  return {};
+}
+
+export function savePendingEmitUrl(projectRoot: string, vbriefAbsPath: string, url: string): void {
+  const ledger = pendingEmitLedgerPath(projectRoot);
+  assertWriteTargetSafe(projectRoot, ledger);
+  mkdirSync(dirname(ledger), { recursive: true });
+  const map = loadPendingEmitUrls(projectRoot);
+  map[resolve(vbriefAbsPath)] = url;
+  assertWriteTargetSafe(projectRoot, ledger);
+  writeFileSync(ledger, `${JSON.stringify(map, null, 2)}\n`, "utf8");
+}
+
+export function clearPendingEmitUrl(projectRoot: string, vbriefAbsPath: string): void {
+  const ledger = pendingEmitLedgerPath(projectRoot);
+  const key = resolve(vbriefAbsPath);
+  const map = loadPendingEmitUrls(projectRoot);
+  if (!(key in map)) {
+    return;
+  }
+  delete map[key];
+  try {
+    assertWriteTargetSafe(projectRoot, ledger);
+    mkdirSync(dirname(ledger), { recursive: true });
+    writeFileSync(ledger, `${JSON.stringify(map, null, 2)}\n`, "utf8");
+  } catch {
+    // Best-effort clear; next successful stamp still works via existingGithubIssueRef.
+  }
+}
+
 
 export function loadVbrief(path: string): Record<string, unknown> {
   const data = JSON.parse(readFileSync(path, "utf8")) as unknown;
@@ -252,23 +307,32 @@ export function emitSingle(
     return { result: "dryrun", vbrief: shown, url: null, title };
   }
 
-  // Ordering contract for no orphan / no duplicate-on-retry (#2871):
-  // 1) Prove the local write path works (pre-persist current payload).
-  // 2) Create the remote issue only after that success.
-  // 3) Stamp the URL locally; if stamping fails, still return the URL so callers
-  //    do not re-emit and create a duplicate issue.
+  // Atomic emit contract (#2871 / Greptile):
+  // 1) Resolve a trusted project root (never dirname of target).
+  // 2) Reconcile any prior pending URL for this path (retry after partial failure).
+  // 3) Pre-persist current payload so the write path is proven.
+  // 4) Create remote issue, immediately record URL in a contained pending ledger.
+  // 5) Stamp the vbrief; clear pending on success.
   const root = assertVbriefWriteTargetSafe(path, options.projectRoot);
+  const absPath = resolve(path);
+  const pending = loadPendingEmitUrls(root);
+  const priorUrl = pending[absPath];
+  if (typeof priorUrl === "string" && priorUrl.length > 0) {
+    addGithubIssueReference(data, priorUrl);
+    writeVbrief(path, data, root);
+    clearPendingEmitUrl(root, absPath);
+    return { result: "created", vbrief: shown, url: priorUrl, title };
+  }
+
   writeVbrief(path, data, root);
   const body = renderIssueBody(data);
   assertVbriefWriteTargetSafe(path, root);
   const url = fileIssue(options.repo, title, body, options.scmCall);
+  // Durable URL ledger BEFORE vbrief stamp — retry will reconcile without re-create.
+  savePendingEmitUrl(root, absPath, url);
   addGithubIssueReference(data, url);
-  try {
-    writeVbrief(path, data, root);
-  } catch {
-    // No raw recovery write: bypassing containment after a guarded refusal would
-    // re-open a symlink sink (#2871). URL is still returned so callers do not re-emit.
-  }
+  writeVbrief(path, data, root);
+  clearPendingEmitUrl(root, absPath);
   return { result: "created", vbrief: shown, url, title };
 }
 
@@ -344,27 +408,47 @@ export function emitUmbrella(
     };
   }
 
-  // Prove every pending local write BEFORE remote create (#2871).
-  for (const [path, , data] of pending) {
-    writeVbrief(path, data, options.projectRoot);
-  }
-
-  const body = renderUmbrellaBody(pending.map(([, disp, data]) => [disp, data]));
-  const url = fileIssue(options.repo, umbrellaTitle, body, options.scmCall);
+  // Umbrella emit: reconcile pending URLs, pre-persist, create once, stamp all (#2871).
+  const root =
+    options.projectRoot !== undefined && options.projectRoot !== null && options.projectRoot.length > 0
+      ? resolve(options.projectRoot)
+      : assertVbriefWriteTargetSafe(pending[0]![0] as string, options.projectRoot);
 
   const written: { vbrief: string; result: string }[] = [];
+  const stillNeedRemote: [string, string, Record<string, unknown>][] = [];
   for (const [path, disp, data] of pending) {
-    addGithubIssueReference(data, url);
-    try {
-      writeVbrief(path, data, options.projectRoot);
-    } catch {
-      // No raw recovery write — keep containment fail-closed; URL still returned.
+    const absPath = resolve(path);
+    const prior = loadPendingEmitUrls(root)[absPath];
+    if (typeof prior === "string" && prior.length > 0) {
+      addGithubIssueReference(data, prior);
+      writeVbrief(path, data, root);
+      clearPendingEmitUrl(root, absPath);
+      written.push({ vbrief: disp, result: "created" });
+    } else {
+      writeVbrief(path, data, root);
+      stillNeedRemote.push([path, disp, data]);
     }
+  }
+
+  if (stillNeedRemote.length === 0) {
+    return { result: "created", url: null, title: umbrellaTitle, vbriefs: [...written, ...already] };
+  }
+
+  const body = renderUmbrellaBody(stillNeedRemote.map(([, disp, data]) => [disp, data]));
+  const url = fileIssue(options.repo, umbrellaTitle, body, options.scmCall);
+  for (const [path, , ] of stillNeedRemote) {
+    savePendingEmitUrl(root, path, url);
+  }
+  for (const [path, disp, data] of stillNeedRemote) {
+    addGithubIssueReference(data, url);
+    writeVbrief(path, data, root);
+    clearPendingEmitUrl(root, path);
     written.push({ vbrief: disp, result: "created" });
   }
 
   return { result: "created", url, title: umbrellaTitle, vbriefs: [...written, ...already] };
 }
+
 
 export function expandPatterns(patterns: string[], root: string | null = null): string[] {
   const seen = new Set<string>();

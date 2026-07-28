@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Issue emit uses a contained pending-URL ledger to prevent duplicate GitHub issues (#2869 / #2871).** After remote create, the issue URL is recorded under \.deft-cache/issue-emit-pending.json\ (gated by projection containment) before the vBRIEF stamp; retries reconcile the pending URL without re-creating the issue.
 - **Issue-emit recovery never bypasses projection containment (#2869 / #2871).** Post-create local stamp failures no longer fall through to unguarded \writeFileSync\; the remote URL is still returned so retries cannot create duplicate issues without reopening a symlink write sink.
 - **Issue emit never orphans a remote create without returning the URL (#2869 / #2871).** \mitSingle\ / \mitUmbrella\ pre-persist the local xBRIEF, create the GitHub issue only after that write succeeds, then stamp the URL; if the post-create stamp fails the URL is still returned so retries cannot create duplicates.
 - **`scope:complete` reconciles the completing brief's own `plan.items` and envelope `updated` (#2862).** Terminal transitions (`complete` / `fail` / `cancel`) now advance non-terminal own items (and nested `subItems`) to the terminal status while preserving already-terminal items (`cancelled` / `failed` / `completed`), and stamp `xBRIEFInfo.updated` or `vBRIEFInfo.updated` alongside `plan.updated`. Closes #2862.
