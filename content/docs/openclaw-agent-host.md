@@ -22,57 +22,61 @@ If you are installing Directive for the first time, start at [QUICK-START.md](..
 
 ## Mental model (host class)
 
-| Host | Host-native Tier-1 spawn (typical) | Directive review-monitor path |
-|------|------------------------------------|-------------------------------|
-| Warp | `start_agent` | Approach 1 (orchestrated sub-agent) |
-| Grok Build | `spawn_subagent` | Approach 1 |
-| Cursor | `Task` (`run_in_background: true`) | Approach 1 |
-| **OpenClaw** | **`sessions_spawn`** (optional visible subagent) | **Approach 1** (when Tier 1 is available) |
+| Host | Host-native background spawn (typical) | Directive review-monitor role |
+|------|----------------------------------------|-------------------------------|
+| Warp | `start_agent` | Approach 1 when Tier 1 |
+| Grok Build | `spawn_subagent` | Approach 1 when Tier 1 |
+| Cursor | `Task` (`run_in_background: true`) | Approach 1 when Tier 1 |
+| **OpenClaw** | **`sessions_spawn`** (optional visible) | Approach 1 when Tier 1 **in the installed skill/matrix** |
 
-OpenClaw’s native background-spawn tool is **`sessions_spawn`**. That places the host in the **same Tier-1 class** as Warp / Grok Build / Cursor — not an interactive-only shell that must degrade to main-session poll loops.
+OpenClaw’s native background-spawn tool is **`sessions_spawn`**. Operator intent places that tool in the **same Tier-1 role** as Warp / Grok Build / Cursor — not “interactive shell only.” Whether a given Directive **release** classifies OpenClaw as Tier 1 is decided by the **shipped** swarm matrix and review-cycle skill, not by this page.
 
-! Gate tiers, allowed register primitives, dispatch detection, and review Approaches are defined **only** in shipped skill + engine text (not invented in this doc):
+! Gate tiers, allowed register primitives, dispatch detection, and review Approaches are defined **only** in shipped skill + engine text:
 
 - Swarm capability matrix + launch path: [`skills/deft-directive-swarm/SKILL.md`](../skills/deft-directive-swarm/SKILL.md) (Phase 3 runtime detection / launch adapter).
-- PR babysit / shepherd / watch: [`skills/deft-directive-review-cycle/SKILL.md`](../skills/deft-directive-review-cycle/SKILL.md) → **Review Monitoring** → Approach selection.
+- PR babysit / shepherd / watch: [`skills/deft-directive-review-cycle/SKILL.md`](../skills/deft-directive-review-cycle/SKILL.md) → **Review Monitoring**.
 - Provider-neutral dispatch envelope: [`templates/agent-prompt-preamble.md`](../templates/agent-prompt-preamble.md).
-- Review-owner lease: `task review-monitor:register` / `task verify:review-monitor` (accept only the `--platform-primitive` values those commands document).
+- Review-owner lease: `task review-monitor:register` / `task verify:review-monitor` (only `--platform-primitive` values those commands accept in your install).
 
-! When the live skill/matrix text and the OpenClaw runtime disagree, **prefer the shipped skill + register/verify output** over this host guide. This page is a discovery map and operator preference note.
+! When this host guide and the installed skill/CLI disagree, **the skill and CLI win**.
 
-⊗ Invent a parallel “OpenClaw-only” review gate that bypasses `deft-directive-review-cycle` or redefines Approach 1 / register semantics here.
+⊗ Invent a parallel “OpenClaw-only” review gate that bypasses `deft-directive-review-cycle`.
 
-⊗ Pass a host-native name (e.g. `sessions_spawn`) to `task review-monitor:register -- --platform-primitive …` unless that exact token appears in the **current** skill/CLI help for the installed Directive version.
+⊗ Pass `sessions_spawn` (or any host-native name) to `task review-monitor:register -- --platform-primitive …` unless that exact token is listed in the **installed** skill/CLI help.
 
 ---
 
-## First-session: babysit → Approach 1 (not freestyle poll + cron)
+## First-session: babysit on OpenClaw
 
 **Operator says:** “babysit this PR”, “shepherd”, “watch the PR”, or equivalent PR-shepherding intent on a Deft-managed repo (`.deft/core/` present, or framework checkout with Directive skills).
 
-**Expected path:**
+### Executable path (any installed Directive version)
 
-1. ! Load **`deft-directive-review-cycle`** — not a host-global babysit skill and not a freestyle `gh` poll loop in the main session ([#2261](https://github.com/deftai/directive/issues/2261) class; same supersession idea as Cursor-global babysit).
-2. ! Prefer **Review Monitoring Approach 1** (background review-monitor subagent) when the runtime can spawn independent subagents. On OpenClaw, the host-native spawn tool for that role is **`sessions_spawn`** (prefer **visible** when Control UI is the control plane — see below).
-3. ! After spawn, claim ownership with the **shipped** review-monitor gate (`task review-monitor:register` / `task verify:review-monitor`) using a **`--platform-primitive` value accepted by the installed release** — see the review-cycle skill. Do not claim “monitoring” without a successful register/verify (or an explicit skill-allowed fallback path).
-4. ! Prefer deterministic wait language from the skill (`task pr:watch` when available on the consumer Taskfile) over inventing sleep/cron loops.
-5. ⊗ Treat **OpenClaw cron alone** as Approach 1. Cron / scheduler re-invocation is a **fallback** class (closer to Approach 2 / Approach 3 territory) when a live background review-monitor cannot be spawned — never a substitute for Approach 1 when spawn works.
-6. ⊗ Block the main session with long `gh` poll + sleep while independent subagent spawn is available (#1880 Gap D / incident class on epic #2874).
+1. ! Load **`deft-directive-review-cycle`** — not a host-global babysit skill and not a freestyle `gh` poll loop in the main session ([#2261](https://github.com/deftai/directive/issues/2261) class).
+2. ! Select monitoring Approach using **runtime detection in that skill** (and the swarm Phase 3 matrix when relevant). Do not invent a host path outside the skill.
+3. ! If the installed skill reports Tier 1, use **Approach 1** (background review-monitor) and register with a **`--platform-primitive` value accepted by the installed CLI**.
+4. ! Prefer deterministic wait language from the skill (`task pr:watch` when the consumer Taskfile exposes it) over inventing sleep/cron loops.
+5. ⊗ Treat **OpenClaw cron alone** as Approach 1. Cron / scheduler re-invocation is fallback territory when a live background review-monitor cannot be spawned per the skill — not a substitute for Approach 1 when the skill says spawn is available.
+6. ⊗ Block the main session with long `gh` poll + sleep when the skill’s Tier 1 / background path is available (#1880 Gap D / incident class on epic #2874).
 
-### Epic wiring vs this doc
+### Operator expectation: babysit → `sessions_spawn` (epic target)
 
-Sibling slices land the **matrix descriptor, skill naming, and register primitive** so OpenClaw is first-class in code — not only in this prose:
+Epic [#2874](https://github.com/deftai/directive/issues/2874) sets the **intended** OpenClaw mapping:
 
-| Issue | Owns |
-|-------|------|
-| [#2875](https://github.com/deftai/directive/issues/2875) | Swarm capability matrix + `openclaw` descriptor + verify gate |
-| [#2876](https://github.com/deftai/directive/issues/2876) | Review-cycle Approach 1 + #2261 text names OpenClaw / `sessions_spawn`; register accepts the OpenClaw primitive when shipped |
+> On OpenClaw, PR babysit/shepherd/watch routes into **`deft-directive-review-cycle` Approach 1** using the host-native **`sessions_spawn`** (prefer **visible** when Control UI is the control plane), not main-session `gh` poll + cron.
+
+That expectation is for operators and first-session agents to **find and remember**. It becomes the **executable** default only when the installed Directive version’s swarm matrix + review-cycle skill name OpenClaw / `sessions_spawn` as Tier 1 Approach 1 (sibling work):
+
+| Issue | Lands |
+|-------|--------|
+| [#2875](https://github.com/deftai/directive/issues/2875) | Swarm matrix + `openclaw` descriptor + verify gate |
+| [#2876](https://github.com/deftai/directive/issues/2876) | Review-cycle Approach 1 + register primitive for OpenClaw `sessions_spawn`; cron ≠ Approach 1 |
 | [#2879](https://github.com/deftai/directive/issues/2879) | Poller/preamble templates + heartbeat mapping |
 | [#2878](https://github.com/deftai/directive/issues/2878) | Consumer `pr:watch` / official gh fallback |
 
-Until those skill/engine changes are in the version you run, ! still open **review-cycle** on babysit intent and follow **whatever Tier-1 primitive the installed skill lists**; ~ map OpenClaw’s `sessions_spawn` onto that Approach 1 *role* without inventing unregistered CLI tokens. After they ship, the same babysit entry point uses `sessions_spawn` end-to-end as the skill text states.
+~ After those slices are in your Directive version, follow the **updated skill text** end-to-end (including any new register token). Until then, still open review-cycle on babysit intent and use only primitives the **current** skill accepts — while keeping the `sessions_spawn` expectation as the design north star (do not freestyle a weaker path when you could wait for / upgrade to the OpenClaw-capable release).
 
-Authoritative wording for Approaches, register primitives, and exit predicates lives only in the skill files and CLI. This section is the **discovery map**, not a second contract.
+This section is a **discovery map**. Authoritative Approaches, register primitives, and exit predicates live only in skill files and CLI.
 
 ---
 
@@ -86,7 +90,7 @@ When multiple OpenClaw surfaces are available:
 | **Telegram** (or similar mobile chat) | Remote/mobile chat; not the preferred surface for long blocking polls. |
 | **TUI** | Break-glass local terminal — use when UI/channels are unavailable. |
 
-~ Prefer **visible** background review-monitors (OpenClaw: visible `sessions_spawn`) when Control UI is in play so the operator can see the subagent without freezing the parent conversation.
+~ Prefer **visible** background review-monitors when Control UI is in play so the operator can see the subagent without freezing the parent conversation. Once OpenClaw Approach 1 is skill-backed, that usually means visible `sessions_spawn`.
 
 ! Keep long-running review-monitors and implementation leaves on independent/background dispatch so the parent session stays interactive (Gap D — see preamble and review-cycle skill).
 
@@ -107,7 +111,7 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 
 1. Install / refresh Directive like any other host ([QUICK-START.md](../QUICK-START.md), `directive init` / `directive update`).
 2. Confirm skills resolve under the deposit (consumer: `.deft/core/.agents/skills/…`; framework checkout: `content/skills/…`).
-3. On first PR shepherding request, open **`deft-directive-review-cycle`** and take **Approach 1** (background review-monitor) when spawn is available — OpenClaw’s host-native spawn for that role is `sessions_spawn` (see sections above).
+3. On first PR shepherding request, open **`deft-directive-review-cycle`** and follow its Review Monitoring section for **your** install. Remember the epic expectation: OpenClaw → Approach 1 via `sessions_spawn` once skill wiring ships (#2875 / #2876).
 4. For multi-story parallel work, follow **`deft-directive-swarm`** — do not hand-roll worktree orchestration outside the skill.
 5. Keep CHANGELOG / xBRIEF / branch gates the same as on Cursor or Warp; the host changes the **spawn surface**, not the Directive lifecycle.
 
@@ -115,7 +119,7 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 
 ## Anti-patterns
 
-- ⊗ Main-session `gh` poll + **cron** as the default babysit path when independent subagent spawn is available.
+- ⊗ Main-session `gh` poll + **cron** as the default babysit path when the installed skill offers a Tier 1 / background monitor.
 - ⊗ Inventing skill gate semantics or unregistered `--platform-primitive` values in operator docs instead of linking to shipped `SKILL.md` / CLI text.
 - ⊗ Treating `content/platforms/` hardware packs as the home for agent-host OpenClaw guidance.
 - ⊗ Substituting host-native review theater for `deft-directive-review-cycle` on Deft-managed repos.
