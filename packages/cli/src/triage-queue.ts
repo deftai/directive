@@ -252,12 +252,11 @@ export function parseShowArgs(argv: string[]): ShowArgs {
     if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
-    // positional issue number
-    const n = Number.parseInt(arg ?? "", 10);
-    if (!Number.isFinite(n) || n < 1) {
+    // positional issue number — strict positive int (reject "42abc" / "42.5")
+    if (!/^[1-9]\d*$/u.test(arg ?? "")) {
       return { ...parsed, error: `argument number: invalid int value: '${arg}'` };
     }
-    parsed.number = n;
+    parsed.number = Number(arg);
   }
   if (parsed.number === null && parsed.error === undefined) {
     return { ...parsed, error: "triage:show: issue number is required (e.g. triage:show -- 42)" };
@@ -343,9 +342,17 @@ function runShow(args: ShowArgs): number {
     return 2;
   }
 
-  ensureTriageCacheHydrated(projectRoot, { repo });
+  const cacheRoot =
+    args.cacheRoot !== null && args.cacheRoot.length > 0 ? resolve(args.cacheRoot) : null;
+  ensureTriageCacheHydrated(projectRoot, {
+    repo,
+    ...(cacheRoot !== null ? { cacheRoot } : {}),
+  });
 
-  const issue = loadCachedIssueDetail(repo, number, { projectRoot });
+  const issue = loadCachedIssueDetail(repo, number, {
+    projectRoot,
+    cacheRoot,
+  });
   const logPath = args.auditLog ?? resolveTriageCachePath(projectRoot, "candidates.jsonl");
   const history = findByIssue(number, repo, logPath)
     .slice()

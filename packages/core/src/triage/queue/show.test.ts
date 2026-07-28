@@ -71,6 +71,31 @@ describe("loadCachedIssueDetail", () => {
     expect(issue?.body).toContain("Acceptance criteria");
     expect(issue?.htmlUrl).toBe("https://github.com/owner/repo/issues/42");
   });
+
+  it("honors cacheRoot override and uses canonical issue URL", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-show-cache-root-"));
+    temps.push(root);
+    const cacheRoot = join(root, "custom-cache");
+    const dir = join(cacheRoot, "github-issue", "owner", "repo", "7");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "raw.json"),
+      `${JSON.stringify({
+        number: 7,
+        title: "Alt",
+        state: "open",
+        labels: [],
+        body: "x",
+        // Poisoned URL must not be trusted
+        html_url: "https://evil.example/github.com/owner/repo/issues/7",
+        url: "https://evil.example/?q=github.com",
+      })}\n`,
+      "utf8",
+    );
+    const issue = loadCachedIssueDetail("owner/repo", 7, { projectRoot: root, cacheRoot });
+    expect(issue?.title).toBe("Alt");
+    expect(issue?.htmlUrl).toBe("https://github.com/owner/repo/issues/7");
+  });
 });
 
 describe("extractBodySummary / extractAcceptanceCriteria", () => {

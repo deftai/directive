@@ -276,6 +276,12 @@ describe("triage:show CLI (#2890)", () => {
     expect(args.error).toMatch(/issue number is required/);
   });
 
+  it("parseShowArgs rejects malformed numeric-prefix issue numbers", () => {
+    expect(parseShowArgs(["show", "42abc", "--repo", "o/r"]).error).toMatch(/invalid int/);
+    expect(parseShowArgs(["show", "42.5", "--repo", "o/r"]).error).toMatch(/invalid int/);
+    expect(parseShowArgs(["show", "0", "--repo", "o/r"]).error).toMatch(/invalid int/);
+  });
+
   it("run show returns 1 on cache miss", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-show-miss-"));
     temps.push(root);
@@ -361,6 +367,47 @@ describe("triage:show CLI (#2890)", () => {
       expect(output).toContain("triage:show -- owner/repo#3");
       expect(output).toContain("title:      Default show");
       expect(output).toContain("latest decision: defer");
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("run show honors --cache-root override", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-triage-show-cache-root-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    // Seed ONLY under an alternate cache root, not projectRoot/.deft-cache.
+    const altCache = join(root, "alt-cache");
+    const dir = join(altCache, "github-issue", "owner", "repo", "9");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "raw.json"),
+      `${JSON.stringify({
+        number: 9,
+        title: "From alt cache",
+        state: "open",
+        labels: [],
+        updated_at: "2026-07-28T00:00:00Z",
+        body: "alt",
+      })}\n`,
+      "utf8",
+    );
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(
+        run([
+          "show",
+          "9",
+          "--project-root",
+          root,
+          "--repo",
+          "owner/repo",
+          "--cache-root",
+          altCache,
+        ]),
+      ).toBe(0);
+      const output = stdout.mock.calls.map((c) => String(c[0])).join("");
+      expect(output).toContain("From alt cache");
     } finally {
       stdout.mockRestore();
     }

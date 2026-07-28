@@ -49,11 +49,30 @@ function parseLabels(raw: unknown): readonly string[] {
   return labels;
 }
 
+/** Collapse CR/LF so cached attacker text cannot break markdown bullets (P2). */
+export function oneLine(value: string): string {
+  return value.replace(/\r?\n/gu, " ").trim();
+}
+
+/**
+ * Resolve a safe issue link. Always construct the canonical github.com path for
+ * `owner/name#N` rather than trusting payload URL substrings (CodeQL
+ * incomplete-url-substring-sanitization).
+ */
+export function resolveIssueHtmlUrl(repo: string, number: number): string {
+  return `https://github.com/${repo}/issues/${number}`;
+}
+
 /** Load a single cached issue (include closed) or null on miss. */
 export function loadCachedIssueDetail(
   repo: string,
   number: number,
-  options: { readonly projectRoot: string; readonly source?: string } = {
+  options: {
+    readonly projectRoot: string;
+    /** Absolute/relative path to `.deft-cache` root (CLI `--cache-root`). */
+    readonly cacheRoot?: string | null;
+    readonly source?: string;
+  } = {
     projectRoot: process.cwd(),
   },
 ): CachedIssueDetail | null {
@@ -67,14 +86,11 @@ export function loadCachedIssueDetail(
     throw new Error(`repo must be 'owner/name'; got '${repo}'`);
   }
   const source = options.source ?? CACHE_SOURCE_GITHUB_ISSUE;
-  const entryDir = join(
-    resolve(options.projectRoot),
-    CACHE_DIR_NAME,
-    source,
-    owner,
-    name,
-    String(number),
-  );
+  const cacheBase =
+    options.cacheRoot !== null && options.cacheRoot !== undefined && options.cacheRoot.length > 0
+      ? resolve(options.cacheRoot)
+      : join(resolve(options.projectRoot), CACHE_DIR_NAME);
+  const entryDir = join(cacheBase, source, owner, name, String(number));
   const rawPath = join(entryDir, "raw.json");
   if (!existsSync(rawPath)) {
     return null;
@@ -100,12 +116,6 @@ export function loadCachedIssueDetail(
       : typeof payload.updatedAt === "string"
         ? payload.updatedAt
         : "";
-  const htmlUrl =
-    typeof payload.html_url === "string"
-      ? payload.html_url
-      : typeof payload.url === "string" && payload.url.includes("github.com")
-        ? payload.url
-        : `https://github.com/${repo}/issues/${n}`;
   return {
     number: n,
     title,
@@ -113,7 +123,7 @@ export function loadCachedIssueDetail(
     labels: parseLabels(payload.labels),
     updatedAt,
     body,
-    htmlUrl,
+    htmlUrl: resolveIssueHtmlUrl(repo, n),
   };
 }
 
@@ -134,20 +144,20 @@ export function renderShow(options: {
     lines.push("  Run `task triage:bootstrap` to populate, or check the repo slug.");
     return lines.join("\n");
   }
-  const labels = options.issue.labels;
-  lines.push(`  title:      ${options.issue.title}`);
-  lines.push(`  state:      ${options.issue.state}`);
+  const labels = options.issue.labels.map(oneLine);
+  lines.push(`  title:      ${oneLine(options.issue.title)}`);
+  lines.push(`  state:      ${oneLine(options.issue.state)}`);
   lines.push(`  labels:     ${labels.length > 0 ? labels.join(", ") : "<none>"}`);
-  lines.push(`  updated_at: ${options.issue.updatedAt}`);
+  lines.push(`  updated_at: ${oneLine(options.issue.updatedAt)}`);
   lines.push("");
   lines.push(`  active xBRIEF reference: ${options.inActiveXbrief ? "yes" : "no"}`);
   if (options.latestDecision !== null) {
     const d = options.latestDecision;
     lines.push(
-      `  latest decision: ${String(d.decision ?? "?")} at ${String(d.timestamp ?? "?")} by ${String(d.actor ?? "?")}`,
+      `  latest decision: ${oneLine(String(d.decision ?? "?"))} at ${oneLine(String(d.timestamp ?? "?"))} by ${oneLine(String(d.actor ?? "?"))}`,
     );
     if (typeof d.reason === "string" && d.reason.length > 0) {
-      lines.push(`    reason: ${d.reason}`);
+      lines.push(`    reason: ${oneLine(d.reason)}`);
     }
   } else {
     lines.push("  latest decision: <none -- untriaged>");
@@ -156,9 +166,9 @@ export function renderShow(options: {
     lines.push("");
     lines.push(`  history (${options.history.length} entries, oldest first):`);
     for (const entry of options.history) {
-      const decision = String(entry.decision ?? "?").padEnd(14);
+      const decision = oneLine(String(entry.decision ?? "?")).padEnd(14);
       lines.push(
-        `    - ${String(entry.timestamp ?? "?")} ${decision} by ${String(entry.actor ?? "?")}`,
+        `    - ${oneLine(String(entry.timestamp ?? "?"))} ${decision} by ${oneLine(String(entry.actor ?? "?"))}`,
       );
     }
   }
@@ -298,15 +308,15 @@ export function renderOperatorBrief(options: {
     return lines.join("\n");
   }
   const issue = options.issue;
-  const link = issue.htmlUrl ?? `https://github.com/${options.repo}/issues/${options.number}`;
-  const labels = issue.labels.length > 0 ? issue.labels.join(", ") : "<none>";
-  lines.push(`#${options.number}  ${issue.title}`);
-  lines.push(`link:    ${link}`);
+  const link = issue.htmlUrl ?? resolveIssueHtmlUrl(options.repo, options.number);
+  const labels = issue.labels.length > 0 ? issue.labels.map(oneLine).join(", ") : "<none>";
+  lines.push(`#${options.number}  ${oneLine(issue.title)}`);
+  lines.push(`link:    ${oneLine(link)}`);
   lines.push(`labels:  ${labels}`);
   lines.push("");
   lines.push("summary:");
   for (const line of extractBodySummary(issue.body).split("\n")) {
-    lines.push(`  ${line}`);
+    lines.push(`  ${oneLine(line)}`);
   }
   lines.push("");
   const ac = extractAcceptanceCriteria(issue.body);
@@ -315,14 +325,14 @@ export function renderOperatorBrief(options: {
   } else {
     lines.push("acceptance criteria:");
     for (const item of ac) {
-      lines.push(`  - ${item}`);
+      lines.push(`  - ${oneLine(item)}`);
     }
   }
   lines.push("");
   if (options.latestDecision !== null) {
     const d = options.latestDecision;
     lines.push(
-      `latest decision: ${String(d.decision ?? "?")} at ${String(d.timestamp ?? "?")} by ${String(d.actor ?? "?")}`,
+      `latest decision: ${oneLine(String(d.decision ?? "?"))} at ${oneLine(String(d.timestamp ?? "?"))} by ${oneLine(String(d.actor ?? "?"))}`,
     );
   } else {
     lines.push("latest decision: <none -- untriaged>");
