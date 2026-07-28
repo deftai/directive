@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  chmodSync,
   closeSync,
   constants,
   globSync,
@@ -67,6 +68,45 @@ function privateRecoveryRoot(): string {
   return join(base, `deft-issue-emit-recovery-${uid}`);
 }
 
+/** Refuse dirs/files we do not own or that are group/other-writable (forged recovery, #2880). */
+function isTrustedStat(st: {
+  isSymbolicLink(): boolean;
+  uid?: number;
+  mode: number | bigint;
+}): boolean {
+  if (st.isSymbolicLink()) {
+    return false;
+  }
+  if (typeof process.getuid === "function" && typeof st.uid === "number") {
+    if (st.uid !== process.getuid()) {
+      return false;
+    }
+  }
+  // Group/other write bits allow another local principal to rewrite recovery state.
+  const mode = Number(st.mode);
+  if ((mode & 0o022) !== 0) {
+    return false;
+  }
+  return true;
+}
+
+function ensureTrustedRecoveryDir(): string {
+  const dir = privateRecoveryRoot();
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const dirStat = lstatSync(dir);
+  if (!isTrustedStat(dirStat) || !dirStat.isDirectory()) {
+    throw new Error("issue-emit recovery dir is not a trusted directory owned by the current user");
+  }
+  if ((dirStat.mode & 0o777) !== 0o700) {
+    try {
+      chmodSync(dir, 0o700);
+    } catch {
+      // Best-effort tighten; isTrustedStat already refused group/other write.
+    }
+  }
+  return dir;
+}
+
 export function recoverySidecarPath(vbriefAbsPath: string): string {
   const key = createHash("sha256").update(resolve(vbriefAbsPath)).digest("hex").slice(0, 40);
   return join(privateRecoveryRoot(), `${key}.json`);
@@ -74,14 +114,13 @@ export function recoverySidecarPath(vbriefAbsPath: string): string {
 
 /**
  * Write recovery sidecar without following symlinks (#2880 Greptile P1).
- * Private per-uid dir + lstat refusal + O_EXCL|O_NOFOLLOW create.
+ * Trusted per-uid dir (ownership + mode) + O_EXCL|O_NOFOLLOW create.
  */
 function writeRecoverySidecarSafe(sidePath: string, payload: string): void {
-  const dir = dirname(sidePath);
-  mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const dirStat = lstatSync(dir);
-  if (dirStat.isSymbolicLink()) {
-    throw new Error("issue-emit recovery dir is a symlink");
+  const dir = ensureTrustedRecoveryDir();
+  if (resolve(dirname(sidePath)) !== resolve(dir)) {
+    // Always write under the validated recovery root.
+    throw new Error("issue-emit recovery path escapes trusted root");
   }
   try {
     const existing = lstatSync(sidePath);
@@ -134,8 +173,14 @@ export function loadRecoveredUrl(vbriefAbsPath: string): string | undefined {
   }
   try {
     const side = recoverySidecarPath(key);
+    // Parent dir must be trusted before we read any sidecar (forged-dir attack, #2880).
+    const parent = dirname(side);
+    const parentStat = lstatSync(parent);
+    if (!isTrustedStat(parentStat) || !parentStat.isDirectory()) {
+      return undefined;
+    }
     const st = lstatSync(side);
-    if (st.isSymbolicLink() || !st.isFile()) {
+    if (!st.isFile() || !isTrustedStat(st)) {
       return undefined;
     }
     const raw = readFileSync(side, "utf8");
@@ -144,7 +189,7 @@ export function loadRecoveredUrl(vbriefAbsPath: string): string | undefined {
       const obj = parsed as Record<string, unknown>;
       const url = obj.url;
       const pathField = obj.path;
-      if (typeof url === "string" && url.length > 0) {
+      if (typeof url === "string" && url.length > 0 && ISSUE_URL_PATTERN.test(url)) {
         if (typeof pathField === "string" && resolve(pathField) !== key) {
           return undefined;
         }
@@ -153,7 +198,7 @@ export function loadRecoveredUrl(vbriefAbsPath: string): string | undefined {
       }
     }
   } catch {
-    // Missing recovery file is empty.
+    // Missing or untrusted recovery file is empty.
   }
   return undefined;
 }

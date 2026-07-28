@@ -1,4 +1,12 @@
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -239,6 +247,7 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     writeFileSync(victim, "keep-me\n", "utf8");
     try {
       // Prefer junction/file symlink; skip when platform forbids symlink without elevation.
+      mkdirSync(join(side, ".."), { recursive: true });
       symlinkSync(victim, side);
     } catch {
       rmSync(dir, { recursive: true, force: true });
@@ -251,6 +260,51 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     expect(loadRecoveredUrl(path)).toBe("https://github.com/o/r/issues/9");
     // Victim must remain unpolluted if link was replaced/refused.
     expect(readFileSync(victim, "utf8")).not.toContain("issues/9");
+    clearRecoveredUrl(path);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("recovery load refuses group/other-writable forged sidecars", () => {
+    const dir = mkdtempSync(join(tmpdir(), "emit-forge-"));
+    const path = join(dir, "story.xbrief.json");
+    writeVbrief(path, { plan: { title: "Forge" } }, dir);
+    clearRecoveredUrl(path);
+    // Plant a world-writable forged sidecar under the recovery path.
+    const side = recoverySidecarPath(path);
+    mkdirSync(join(side, ".."), { recursive: true, mode: 0o777 });
+    writeFileSync(
+      side,
+      `${JSON.stringify({ path: resolve(path), url: "https://github.com/evil/r/issues/666" }, null, 2)}\n`,
+      "utf8",
+    );
+    try {
+      chmodSync(side, 0o666);
+    } catch {
+      // Platform may ignore mode bits; ownership path still exercises.
+    }
+    // Clear process map so load only sees disk (forged) state.
+    clearRecoveredUrl(path);
+    // Re-plant after clearRecoveredUrl may have unlinked.
+    writeFileSync(
+      side,
+      `${JSON.stringify({ path: resolve(path), url: "https://github.com/evil/r/issues/666" }, null, 2)}\n`,
+      "utf8",
+    );
+    try {
+      chmodSync(side, 0o666);
+    } catch {
+      // ignore
+    }
+    // If mode is still group/other writable, load must refuse.
+    // On platforms where chmod is a no-op (win32), isTrustedStat may still accept —
+    // then at least URL must not stamp from process-cleared path without our write.
+    const recovered = loadRecoveredUrl(path);
+    if (process.platform !== "win32") {
+      expect(recovered).toBeUndefined();
+    } else if (recovered !== undefined) {
+      // win32 often ignores mode; still must not be stamped without emitSingle.
+      expect(existingGithubIssueRef(loadVbrief(path))).toBeUndefined();
+    }
     clearRecoveredUrl(path);
     rmSync(dir, { recursive: true, force: true });
   });
