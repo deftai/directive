@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2862",
+    "updated": "2026-07-28T17:16:43Z"
+  },
+  "plan": {
+    "title": "bug(scope): scope:complete leaves the completing brief's own plan.items[].status pending and xBRIEFInfo.updated stale",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:complete moves a brief to completed/ and sets plan.status to completed, but leaves plan.items[].status on pending and never refreshes xBRIEFInfo.updated. Mirror registry sync already reconciles PROJECT-DEFINITION and specification items; the completing brief itself is the gap. Fix terminal transitions in runTransition to advance non-terminal own items and refresh the envelope updated stamp.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2862",
+      "Overview": "Filed as a **consumer of the framework**, not a maintainer — apologies if any of this is already understood internally. Everything below was verified against the installed package on one project; I have not read the framework source repo.\n\n## Summary\n\n`deft scope:complete` moves a scope brief to `xbrief/completed/` and sets `plan.status = \"completed\"`, but leaves the brief's **own** `plan.items[].status` on `pending` and never refreshes the document-level `xBRIEFInfo.updated`. The result is a completed brief that internally still reads as unstarted work.\n\nThis is the same reconcile obligation you already closed twice for the *mirror* artifacts — #1527 for `PROJECT-DEFINITION` and #2566 / #2592 for `specification.xbrief.json`. Both of those flip `plan.items[].status` on a terminal transition. The one artifact left unreconciled is the completing brief itself, which is the authoritative record rather than a projection.\n\nOur operators have hand-corrected this on three consecutive completion PRs and a bot flagged it on a fourth, which is why I'm filing rather than continuing to patch it locally.\n\n## Environment\n\n| | |\n|---|---|\n| CLI | `@deftai/directive@0.85.0` (engine `@deftai/directive-core@0.85.0`), global npm install |\n| Vendored content | `.deft/core` at `v0.84.0` (`managed_by: npm`, deposited 2026-07-23) |\n| `xbrief/.deft-version` | `0.84.0` |\n| Layout | `xbrief/` (v0.8), consumer install (not a framework source checkout) |\n| OS / shell | macOS (darwin 25.5.0), zsh |\n\n## Observed behavior\n\n1. A brief in `xbrief/active/` has `plan.status: \"running\"` and `plan.items[*].status: \"pending\"`.\n2. The work ships and the PR merges.\n3. Operator runs `deft scope:complete -- xbrief/active/<brief>.xbrief.json`.\n4. The file moves to `xbrief/completed/` with `plan.status: \"completed\"`, `plan.updated` refreshed, and `plan.metadata.completedAt` stamped.\n5. **`plan.items[*].status` is still `\"pending\"`** on every item, including items that fully shipped.\n6. **`xBRIEFInfo.updated`** still holds the timestamp from before the completion.\n\n## Expected behavior\n\nOn a terminal transition, either:\n\n- set the brief's own `plan.items[*].status` to the terminal status (with whatever cascade rule you prefer for `subItems`) and refresh `xBRIEFInfo.updated` alongside `plan.updated`; **or**\n- document that `plan.items[].status` on a completed brief is not authoritative, and stop having deterministic reviewers flag it (see the SLizard rule below, which currently treats it as a logic error).\n\nEither resolution is fine from a consumer's perspective. The current state is the one that costs time: the field looks authoritative, a bot says it's wrong, and the tooling won't fix it.\n\n## Reproduction\n\n```bash\ndeft scope:activate -- xbrief/proposed/<brief>.xbrief.json   # -> active/, status running, items pending\n# ... ship the work ...\ndeft scope:complete -- xbrief/active/<brief>.xbrief.json     # -> completed/, status completed\njq '.plan.status, [.plan.items[].status], .xBRIEFInfo.updated' xbrief/completed/<brief>.xbrief.json\n# \"completed\"\n# [\"pending\",\"pending\",\"pending\",\"pending\"]\n# \"<pre-completion timestamp>\"\n```\n\n## Evidence from the installed code\n\n`@deftai/directive-core@0.85.0`, `dist/scope/transition.js` (built from `packages/core/src/scope/transition.ts`), the mutation block of `runTransition`:\n\n```js\nconst nowIso = utcNowIso(now);\nplanObj.status = targetStatus;\nplanObj.updated = nowIso;\nif (act === \"complete\") {\n    stampCompletionMetadata(planObj, projectRoot, nowIso);\n}\n```\n\nThat is the complete set of in-document mutations. `stampCompletionMetadata` (`dist/scope/capacity-stamp.js`) only writes `plan.metadata.completedAt` and `plan.metadata.capacityBucket`. Nothing in the function reads or writes `planObj.items`, and nothing touches the top-level `xBRIEFInfo` / `vBRIEFInfo` envelope — `planObj.updated` is `plan.updated`, a different field.\n\n**The asymmetry is visible in the same function.** A few lines later `runTransition` calls:\n\n```js\nsyncProjectDefinitionAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);\nsyncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);\n```\n\nBoth route into `dist/scope/registry-artifact-sync.js`, which does exactly the thing the brief itself doesn't get:\n\n```js\nif (i.status !== targetStatus) {\n    i.status = targetStatus;\n}\n```\n\nSo on a completion the framework reaches out and reconciles item status in two derived registries while leaving the source artifact stale. From the outside that reads like an oversight rather than a decision, but I may be missing the rationale.\n\n## Occurrences in one consumer repo (deftai/BestiMax)\n\nThree PRs whose entire diff is the hand-correction, plus a bot finding:\n\n| PR | Brief | Manual fix-up in the diff |\n|---|---|---|\n| [#119](https://github.com/deftai/BestiMax/pull/119) | `2026-07-22-land-dependabot-patch-minor` | `items[].status: pending -> completed`, `xBRIEFInfo.updated` bumped |\n| [#121](https://github.com/deftai/BestiMax/pull/121) | `2026-07-22-land-eslint-10` | same two corrections |\n| [#138](https://github.com/deftai/BestiMax/pull/138) | `2026-07-26-rls-boundary-hardening` | same two corrections, on four items |\n\nPR #138's commit message names the gap directly:\n\n> `deft scope:complete` flips plan.status and stamps metadata.completedAt but leaves item statuses and xBRIEFInfo.updated behind, so those are corrected here.\n\n**A deterministic reviewer already treats this as a defect.** SLizard's review on [BestiMax PR #127](https://github.com/deftai/BestiMax/pull/127) raised rule `directive-2584-recall`:\n\n> **directive-2584-recall**: [Logic Error] Active xBRIEF plan.status is still \"running\"/\"active\" and all plan.items are pending/proposed even though this PR implements the work.\n\nWorth being precise about what that finding proves, since it is adjacent rather than identical: it fired on the *implementation* PR, where the brief was still active, so it is about the implementing agent not updating item statuses. Combined with this report the picture is that **no surface in the toolchain ever transitions a brief's own `items[].status`** — not the implementer, not the lifecycle command. An operator following the documented flow exactly still ends up with a stale corpus and a bot finding.\n\nThree repetitions of an identical manual correction, plus an automated reviewer flagging the same field, is what pushed this from \"our habit is wrong\" to \"the tooling has a gap\".\n\n## Impact\n\nLow severity, steady cost. Nothing breaks and no gate fails — `deft check` and `vbrief:validate` both pass on a brief with completed status and pending items, because the fields are schema-independent.\n\nWhat it costs:\n\n- **Every completion needs a hand-edit**, or the corpus accumulates briefs that are internally contradictory.\n- **Reviewers flag it**, so each completion PR carries a finding the operator must dismiss or fix.\n- **Item-level status becomes unusable as a data source** — you can't answer \"which planned items actually shipped\" across the corpus, because the answer is \"all of them say pending\".\n- **It is invisible in the moment.** `scope:complete` exits 0 with a success message; the staleness is only found later, by a reviewer or a reader.\n\n## Prior art in this repo\n\n- **#1527** (closed) — *\"scope:complete updates PROJECT-DEFINITION references but leaves registry item status stale.\"* Same defect, mirror artifact, fixed.\n- **#2566 / #2592** (closed) — *\"scope:complete moves scopes to completed/ but leaves specification.xbrief.json roadmap item statuses stale.\"* Same defect, second mirror artifact, fixed. #2566's framing applies verbatim here: *\"Lifecycle folder moves succeed; the item statuses are never reconciled.\"*\n- **#1674** (open) — *\"task scope:cancel doesn't stamp cancellation metadata (cancelledAt / cancellationReason / item status / Disposition).\"* This is the closest existing issue and it already names the exact gap, including the asymmetry:\n\n  > `plan.items[*].status` — left as `proposed` (etc.) instead of `cancelled` when the parent is cancelled. (The existing PROJECT-DEFINITION sync updates *that* plan's items, but not the scope vBRIEF's own `plan.items[]`.)\n\n  But #1674 is scoped to `cancel`; its proposed-fix item 4 asks whether the same symmetry should extend to `fail`, and does not mention `complete`. **If you'd rather widen #1674 to cover all terminal transitions than carry a second issue, that seems cleaner and I'm happy for this one to be closed as folded in.** I filed separately because `complete` is by far the highest-traffic verb and #1674 has sat at P3 since June with no comments.\n- **#1618** (open RFC) — *\"Separate source-of-truth from materialized views — demote plan.items.\"* If `plan.items` is heading for demotion, that changes the right fix here (documenting non-authority rather than reconciling), which is the other reason I'd rather surface this than keep patching locally.\n\n## Suggested fix\n\nMirroring the shape of #1527 / #2592, inside `runTransition`:\n\n1. On terminal transitions (`complete`, and by symmetry `fail` / `cancel` per #1674), set the brief's own `plan.items[*].status` to the terminal status, recursing into `subItems`.\n2. Decide and document the cascade rule for items that legitimately did **not** ship. A blanket flip to `completed` would overwrite a deliberate `cancelled` or `deferred` item. The conservative rule — only advance items still in a non-terminal state (`pending` / `proposed` / `running`), leave already-terminal items alone — preserves operator intent and is what our hand-edits have been doing by eye.\n3. Refresh `xBRIEFInfo.updated` (v0.8) / `vBRIEFInfo.updated` (v0.6) in the same write as `plan.updated`, matching whichever envelope the document actually carries. #2346 / #2363 is the cautionary precedent here: a writer that stamped `vBRIEFInfo` unconditionally corrupted v0.8 files and blocked a release.\n4. If instead the intended contract is that a completed brief's item statuses are *not* authoritative, document that and retire the `directive-2584-recall` reviewer rule — the two currently contradict each other.\n\n## Two adjacent observations, recorded for context only\n\nNeither is part of this report; happy to file either separately if useful.\n\n**(a) `plan.completedNote` is rejected by the conformance gate, and the canonical replacement isn't obvious from the error.** The two briefs completed by the PRs in the table above (BestiMax #119 and #121) use bare `plan.completedNote`, which the #1620 gate now flags: *\"detected 4 bare key(s) ... Every vBRIEF key MUST be spec-core, x-directive/-namespaced, x-vbrief/-namespaced, or x-xbrief/-namespaced.\"* Reading `dist/policy/plan-extensions.js` makes clear this is **intended** tightening under #1650, and that the canonical target is `x-directive/completedNote` with `dist/category-b-namespace/index.js` as the codemod. So: not a bug, and I'm not filing it. The friction is only that the gate's remediation text lists three namespace prefixes generically without naming `x-directive/completedNote` as *the* answer for this specific key — our operator guessed `plan.metadata.completedNote`, which is conformant but off-canon. A one-line hint in the message would have prevented that.\n\n**(b) The conformance gate appears not to run on consumer installs.** On a consumer project, `deft verify:vbrief-conformance` with no arguments prints `OK: vBRIEF validation passed` and exits 0, while `deft verify:vbrief-conformance --all` on the identical tree exits non-zero with 4 findings. Looking at `dist/vbrief-validate/main.js`, `cmdVbriefValidate` only routes to `runConformance` when `argv[0] === \"conformance\"`, or when `--staged` / `--all` is present — a bare invocation falls through to the schema validator (its `--help` even prints `usage: vbrief_validate.py ...`). Separately, `dist/check/gate-lists.js` lists `verify:vbrief-conformance` in `FRAMEWORK_CHECK_GATES` but not in `CONSUMER_CHECK_GATES`. Net effect on our install: the only path that actually runs the #1620 scan is the pre-commit hook's `--staged` mode, which sees newly staged files only — so four pre-existing violations have sat in the tree unreported. This may well be deliberate scoping; flagging in case the bare-verb fallthrough is not.\n\n## Also from this install\n\nThe same project filed #2826 on 2026-07-24 (empty open-issue inventory treated as stale, blocking write hooks) — since closed by #2830, thank you. Noting it so you can see these come from the same consumer install and framework line, in case that's useful for correlating reports.\n\n",
+      "Labels": "bug, source-of-truth, tooling, area:vbrief",
+      "UserStory": "As a maintainer completing a scope brief, I want scope:complete to reconcile the brief's own plan.items status and xBRIEFInfo.updated, so that completed briefs do not look unstarted and reviewers stop flagging false positives.",
+      "ImplementationPlan": "In packages/core/src/scope/transition.ts runTransition mutation block: on terminal transitions (complete, and by symmetry fail/cancel), advance the brief's own plan.items[*].status (and subItems) only when still non-terminal (pending/proposed/running), leave already-terminal items alone. Refresh xBRIEFInfo.updated (v0.8) or vBRIEFInfo.updated (v0.6) in the same write as plan.updated. Add unit tests covering complete with mixed item statuses and envelope stamp. CHANGELOG [Unreleased] cites #2862. Do not expand #1674 cancel-only unless the same helper is shared cleanly.",
+      "Traces": "missing_traces_justification: issue-ingested scope; acceptance items are the authoritative trace until implementation maps source lines."
+    },
+    "items": [
+      {
+        "title": "On complete, advance non-terminal plan.items[].status to completed (preserve cancelled/deferred).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given items pending/proposed/running and one cancelled, when scope:complete runs, then non-terminal items become completed and cancelled stays cancelled."
+        }
+      },
+      {
+        "title": "Refresh xBRIEFInfo.updated (or vBRIEFInfo.updated) alongside plan.updated on terminal transition.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a completed brief, when the file is read, then the envelope updated timestamp matches plan.updated within the same write."
+        }
+      },
+      {
+        "title": "Unit tests cover complete path mixed statuses and envelope stamp; CHANGELOG cites #2862.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the PR, when tests and CHANGELOG are inspected, then regression coverage and Unreleased entry exist."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "source-of-truth",
+      "tooling",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2862",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2862: bug(scope): scope:complete leaves the completing brief's own plan.items[].status pending and xBRIEFInfo.updated stale"
+      }
+    ],
+    "updated": "2026-07-28T17:16:43Z",
+    "id": "2026-07-27-2862-bugscope-scopecomplete-leaves-the-completing-briefs-own-plan",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/capacity-stamp.ts"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/scope/transition.test.ts",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "terminal transition reconciles own plan.items",
+          "envelope updated stamped",
+          "CHANGELOG Unreleased #2862"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-transition",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T17:16:43Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

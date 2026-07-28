@@ -1,0 +1,102 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2869",
+    "updated": "2026-07-28T17:16:44Z"
+  },
+  "plan": {
+    "title": "AppSec review — 5 new medium findings (db39366e)",
+    "status": "completed",
+    "narratives": {
+      "Description": "AppSec review at db39366e found five MEDIUM symlink-follow write sinks: triage coverage denominator writer, issue ingestOne, writeVbrief in issue-emit, release-availability state path, and migrate-project deprecation marker. Each needs assertWriteTargetSafe or resolveTriageCachePath routing plus regression tests for leaf and parent-dir symlink escape.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2869",
+      "Overview": "## Summary\n\nAppSec review against commit `db39366e` found **5 MEDIUM** symlink / confused-deputy write sinks with end-to-end CLI paths. Committed (or force-addable) leaf or parent-directory symlinks under operator-controlled paths cause `mkdirSync` / `writeFileSync` / atomic tmp+rename to follow the link and overwrite files **outside** the repo under the operator/automation identity.\n\nRelated prior fix pattern: `assertWriteTargetSafe` / `assertProjectionContained` / `projectionTarget` / `resolveTriageCachePath` (see `packages/core/src/fs/projection-containment.ts` and triage-cache path resolution). Prior batches: #2839, #2847, #2710 (staleness-tickler + `issue:sync-from-xbrief` fingerprint already gated; several siblings below remain open).\n\n## Findings\n\n### 1. MEDIUM — `packages/core/src/triage/scope/coverage.ts`\n\n`triage:scope --refresh-denominator` bare `writeFileSync` follows a force-addable `.deft-cache/.../coverage.json` (or parent) symlink.\n\n- **Impact:** Overwrites attacker-chosen outside files with coverage JSON under the operator identity.\n- **Fix:** `assertWriteTargetSafe(projectRoot, path)` before mkdir/write (match gated `.deft-cache` writers).\n\n### 2. MEDIUM — `packages/core/src/intake/issue-ingest.ts`\n\n`ingestOne` `mkdirSync`+`writeFileSync` into `xbrief/{proposed,pending}/` with no containment (folder-symlink residual after transition dest gates).\n\n- **Impact:** `issue:ingest` / `triage:accept` creates xBRIEF JSON outside the project through a committed lifecycle-folder symlink.\n- **Fix:** `assertWriteTargetSafe` / `assertProjectionContained` on folder+target before write; refuse escaping folder symlinks.\n\n### 3. MEDIUM — `packages/core/src/intake/issue-emit.ts`\n\n`writeVbrief` bare `writeFileSync` after successful emit (incomplete sibling of gated `issue:sync-from-xbrief` fingerprint write).\n\n- **Impact:** Leaf xBRIEF symlink → outside overwrite with stamped github-issue reference JSON.\n- **Fix:** `assertWriteTargetSafe(projectRoot, path)` before `writeVbrief`.\n\n### 4. MEDIUM — `packages/core/src/session/release-availability.ts`\n\nHardcoded `xbrief/.triage-cache/release-availability-state.json` bypasses `resolveTriageCachePath` (staleness-tickler sibling already fixed in #2710).\n\n- **Impact:** Parent `.triage-cache` dir symlink diverts atomic tmp+rename state write outside the project on `session:start`.\n- **Fix:** Route through `resolveTriageCachePath(projectRoot, 'release-availability-state.json')`.\n\n### 5. MEDIUM — `packages/core/src/xbrief-migrate/migrate-project.ts`\n\n`writeVbriefDeprecationMarker` bare `writeFileSync` on `vbrief/DEPRECATED.md`; converge/dual-populated skips `assertMigrationSourceSafe`.\n\n- **Impact:** `migrate:xbrief` overwrites outside files via leaf or parent `vbrief/` symlink with deprecation marker body.\n- **Fix:** Assert migration/write target safe before marker write; refuse escaping `DEPRECATED.md` / `vbrief/` symlinks.\n\n## Acceptance criteria\n\n- [ ] Finding 1: coverage denominator writer calls `assertWriteTargetSafe` (or equivalent) before mkdir/write.\n- [ ] Finding 2: `ingestOne` gates lifecycle folder + target with projection containment and refuses escaping folder symlinks.\n- [ ] Finding 3: `writeVbrief` calls `assertWriteTargetSafe` before write.\n- [ ] Finding 4: release-availability state path resolves via `resolveTriageCachePath` (no hardcoded `.triage-cache` join).\n- [ ] Finding 5: deprecation-marker (and converge/dual-populated paths) assert migration/write target safe before write.\n- [ ] Regression tests cover symlink leaf and/or parent-dir escape for each sink (fail closed; no outside overwrite).\n- [ ] CHANGELOG `[Unreleased]` entry for the batch.\n\n## Notes\n\n- Commit under review: `db39366e`\n- Severity: all five MEDIUM\n- Pattern class: symlink-follow / confused-deputy write (same family as #2839 / #2847 / #2710)",
+      "Labels": "bug, security, area:cli",
+      "UserStory": "As a framework consumer running triage and lifecycle writers, I want symlink-confused-deputy write sinks gated by assertWriteTargetSafe/projection containment, so that force-addable symlinks cannot overwrite files outside the project under the operator identity.",
+      "ImplementationPlan": "Step 1: Gate each write sink module/file (coverage.ts, issue-ingest.ts, issue-emit.ts, release-availability.ts, migrate-project.ts) with assertWriteTargetSafe, assertProjectionContained, or resolveTriageCachePath from the projection-containment module. Step 2: Add regression tests that install leaf and parent-dir symlinks and assert writes fail closed with no outside overwrite. Step 3: Update CHANGELOG [Unreleased] citing #2869 and verify with targeted task test plus task check:merge.",
+      "Traces": "missing_traces_justification: issue-ingested scope; acceptance items are the authoritative trace until implementation maps source lines."
+    },
+    "items": [
+      {
+        "title": "Finding 1: coverage denominator writer calls assertWriteTargetSafe before mkdir/write.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a symlink under .deft-cache coverage path, when refresh-denominator runs, then write is refused and no outside file is overwritten."
+        }
+      },
+      {
+        "title": "Finding 2: ingestOne gates lifecycle folder + target with projection containment.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given escaping folder symlink in xbrief/proposed or pending, when ingestOne runs, then write is refused."
+        }
+      },
+      {
+        "title": "Finding 3: writeVbrief calls assertWriteTargetSafe before write.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given leaf xBRIEF symlink, when writeVbrief runs, then outside overwrite is refused."
+        }
+      },
+      {
+        "title": "Finding 4: release-availability state uses resolveTriageCachePath.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given parent .triage-cache symlink, when session:start writes state, then path is contained or refused."
+        }
+      },
+      {
+        "title": "Finding 5: deprecation-marker write asserts migration/write target safe; tests + CHANGELOG for batch.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given vbrief/ symlink escape, when migrate writes DEPRECATED.md, then refused; regression tests cover sinks; CHANGELOG cites #2869."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2869",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2869: AppSec review — 5 new medium findings (db39366e)"
+      }
+    ],
+    "updated": "2026-07-28T17:16:44Z",
+    "id": "2026-07-27-2869-appsec-review-5-new-medium-findings-db39366e",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/scope/coverage.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-emit.ts",
+          "packages/core/src/session/release-availability.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/fs/projection-containment.ts"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/fs packages/core/src/intake packages/core/src/triage packages/core/src/session packages/core/src/xbrief-migrate",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "five sinks gated",
+          "symlink regression tests",
+          "CHANGELOG Unreleased #2869"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-write-sinks",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T17:16:44Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
