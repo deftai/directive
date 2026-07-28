@@ -97,6 +97,26 @@ the session exists, not that the review-monitor tool loop is progressing.
 Prefer the file-heartbeat + `task verify:subagent-alive` / `task agent:monitor`
 path as the **canonical** liveness contract for OpenClaw review-monitors.
 
+! **Parent `mkdir` before first probe (#2879 Greptile P1):** `task verify:subagent-alive`
+exits `2` (config error, **no** `REDISPATCH_OK`) when the scratch directory is
+missing and has zero records. A worker that dies before its first heartbeat
+never creates `.deft-scratch/subagent-status/`, so a probe against a non-existent
+dir blocks the takeover this contract promises. Parents MUST create the worker
+worktree's status directory at dispatch time:
+
+```pwsh path=null start=null
+New-Item -ItemType Directory -Force -Path <worktree>/.deft-scratch/subagent-status | Out-Null
+# or: mkdir -p <worktree>/.deft-scratch/subagent-status
+task verify:subagent-alive -- \
+  --require-agent <agent-id> \
+  --scratch-dir <worktree>/.deft-scratch/subagent-status
+```
+
+Once the directory exists, a missing required-agent record is exit `1` +
+`REDISPATCH_OK` (same as Cursor #2824). Exit `2` stays reserved for true config
+errors (invalid args, wrong path). Workers still MUST write the first heartbeat
+immediately (`phase: "starting"`) so the empty dir is not a permanent dark state.
+
 ? When an OpenClaw-native liveness signal is available (gateway session health,
 subagent lifecycle event, Control UI status), monitors MAY treat it as a
 *supplementary* signal alongside the file heartbeat, but MUST NOT treat host

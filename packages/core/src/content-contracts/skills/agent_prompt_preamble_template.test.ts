@@ -177,9 +177,12 @@ describe("test_agent_prompt_preamble_template", () => {
   it("template_lists_openclaw_as_first_class_backend_2879", () => {
     expect(templateText).toContain("OpenClaw");
     expect(templateText).toContain("sessions_spawn");
-    expect(templateText).toContain("openclaw");
+    expect(templateText).toContain("openclaw"); // platform descriptor, not selected_backend enum
     expect(templateText).toContain("#2879");
     expect(templateText).toContain("OpenClaw `sessions_spawn` / heartbeat mapping (#2879)");
     expect(templateText).toContain("parent push / announce");
+    // Must NOT invent a swarmSubagentBackend enum value rejected by policy
+    expect(templateText).toContain("do not write `selected_backend: openclaw`");
+    expect(templateText).toContain("Parent ensures scratch dir exists");
   });
 });
