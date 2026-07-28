@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OpenClaw agent-host operator docs (#2877).** Discoverable `content/docs/openclaw-agent-host.md` covers Control UI / Telegram / TUI roles, bot vs human GitHub identity, and the first-session babysit → `sessions_spawn` Approach 1 expectation with pointers to shipped review-cycle and swarm skills (no invented gate contracts). Cross-linked from `content/QUICK-START.md` and `content/docs/getting-started.md`. Closes #2877.
+
 ### Changed
 
 ### Fixed

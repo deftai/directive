@@ -151,6 +151,8 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 
 **Upgrade pointer:** Users moving between framework versions should also read [UPGRADING.md](./UPGRADING.md) in the repo root for the version-by-version guide. For a multi-version "big jump", start at its [big-jump triage entry point](./UPGRADING.md#big-jump-triage--multi-version-upgrades-start-here), which names which version buckets apply and in what order. An agent on a big jump that hits both a stale AGENTS.md and pre-cutover artifacts should follow [Case G+H](#case-gh--combined-stale-agentsmd--pre-cutover-migration-big-jump-one-session) above to complete both in one session.
 
+**OpenClaw agent-host pointer:** Running Directive under OpenClaw persistent-memory agents? See [docs/openclaw-agent-host.md](./docs/openclaw-agent-host.md) for Control UI / identity notes and the first-session babysit → `sessions_spawn` (Approach 1) expectation — skill contracts stay in the shipped review-cycle and swarm skills (#2877 / epic #2874).
+
 **Contributor pointer (non-blocking):** Working on Deft itself (a `deftai/directive` source checkout)? See [CONTRIBUTING.md](../CONTRIBUTING.md) and use the maintainer install path (`deft-install --yes --upgrade --maintainer --repo-root . --json`). The repo's root `AGENTS.md` has contributor instructions — you do not need the consumer first-session flow above.
 
 ## Update notifications
