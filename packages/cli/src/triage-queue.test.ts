@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { parseArgs, run } from "./triage-queue.js";
+import { parseArgs, parseShowArgs, run } from "./triage-queue.js";
 import {
   augmentParityArgv,
   buildFixtureRepo,
@@ -253,6 +253,114 @@ describe("triage-queue CLI", () => {
       // #1 has an accept decision -> [other] (triaged); #2 stays untriaged.
       expect(output).toMatch(/\[other\][^\n]*#1\b/);
       expect(output).toMatch(/\[untriaged\][^\n]*#2\b/);
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+});
+
+describe("triage:show CLI (#2890)", () => {
+  it("parseShowArgs defaults format and reads number", () => {
+    const args = parseShowArgs(["show", "42", "--repo", "owner/repo"]);
+    expect(args).toMatchObject({ cmd: "show", number: 42, format: "default", repo: "owner/repo" });
+  });
+
+  it("parseShowArgs accepts --format=operator", () => {
+    const args = parseShowArgs(["show", "--format=operator", "99", "--repo=o/r"]);
+    expect(args.format).toBe("operator");
+    expect(args.number).toBe(99);
+  });
+
+  it("parseShowArgs rejects missing number", () => {
+    const args = parseShowArgs(["show", "--repo", "o/r"]);
+    expect(args.error).toMatch(/issue number is required/);
+  });
+
+  it("run show returns 1 on cache miss", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-triage-show-miss-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["show", "404", "--project-root", root, "--repo", "owner/repo"])).toBe(1);
+      const output = stdout.mock.calls.map((c) => String(c[0])).join("");
+      expect(output).toContain("issue not present in local cache");
+    } finally {
+      stdout.mockRestore();
+      stderr.mockRestore();
+    }
+  });
+
+  it("run show --format=operator emits pasteable brief", () => {
+    const root = buildFixtureRepo({
+      issues: [
+        {
+          number: 51,
+          title: "Operator brief dogfood",
+          labels: ["bug"],
+          updatedAt: "2026-07-28T10:00:00Z",
+        },
+      ],
+      auditEntries: [{ issueNumber: 51, decision: "needs-ac", timestamp: "2026-07-27T10:00:00Z" }],
+      activeIssueNumbers: [51],
+    });
+    temps.push(root);
+    // Enrich raw.json body for operator summary/AC extraction.
+    const rawPath = join(root, ".deft-cache", "github-issue", "owner", "repo", "51", "raw.json");
+    writeFileSync(
+      rawPath,
+      `${JSON.stringify({
+        number: 51,
+        title: "Operator brief dogfood",
+        state: "open",
+        labels: [{ name: "bug" }],
+        updated_at: "2026-07-28T10:00:00Z",
+        html_url: "https://github.com/owner/repo/issues/51",
+        body: [
+          "Chip-only Phase 3 turns hide problem context from the operator.",
+          "",
+          "## Acceptance criteria",
+          "- [ ] brief before menu",
+          "- [ ] same-turn coupling",
+        ].join("\n"),
+      })}\n`,
+      "utf8",
+    );
+
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(["show", "51", "--format=operator", "--project-root", root, "--repo", "owner/repo"]),
+      ).toBe(0);
+      const output = stdout.mock.calls.map((c) => String(c[0])).join("");
+      expect(output).toContain("triage:show --format=operator");
+      expect(output).toContain("#51  Operator brief dogfood");
+      expect(output).toContain("https://github.com/owner/repo/issues/51");
+      expect(output).toContain("labels:  bug");
+      expect(output).toContain("Chip-only Phase 3");
+      expect(output).toContain("brief before menu");
+      expect(output).toContain("latest decision: needs-ac");
+      expect(output).toContain("active xBRIEF: yes");
+      expect(output).toContain("lean: (agent-owned");
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("run show default format prints title and history", () => {
+    const root = buildFixtureRepo({
+      issues: [{ number: 3, title: "Default show", labels: ["enhancement"] }],
+      auditEntries: [{ issueNumber: 3, decision: "defer", timestamp: "2026-07-20T00:00:00Z" }],
+    });
+    temps.push(root);
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["show", "3", "--project-root", root, "--repo", "owner/repo"])).toBe(0);
+      const output = stdout.mock.calls.map((c) => String(c[0])).join("");
+      expect(output).toContain("triage:show -- owner/repo#3");
+      expect(output).toContain("title:      Default show");
+      expect(output).toContain("latest decision: defer");
     } finally {
       stdout.mockRestore();
     }

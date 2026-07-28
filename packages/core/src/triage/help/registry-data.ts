@@ -223,17 +223,26 @@ export const registryData = {
     },
     "task triage:show": {
       name: "task triage:show",
-      summary: "Per-issue detail with optional drift diff",
-      refs: "(D11 / #1128)",
+      summary: "Per-issue detail + optional operator brief",
+      refs: "(D11 / #1128, #2890)",
       description:
-        "Per-issue read-only detail (cached upstream payload + latest triage decision + audit timeline). Useful before running triage:accept / triage:defer to confirm context.",
-      usage: "task triage:show -- <N> [--repo=owner/name]",
+        "Per-issue read-only detail (cached upstream payload + latest triage decision + audit timeline). --format=operator emits a pasteable Phase 3 candidate brief backbone (title/link/labels/summary/AC/latest decision/active-xBRIEF); agent still owns lean. Exit 0 on hit, 1 on cache miss.",
+      usage: "task triage:show -- <N> [--format=default|operator] [--repo=owner/name]",
       flags: [
         ["<N>", "(required)", "Issue number (positional)."],
+        [
+          "--format default|operator",
+          "default",
+          "default = audit/cache detail; operator = Phase 3 pasteable brief (#2890).",
+        ],
         ["--repo owner/name", "(git remote)", "Explicit repo override."],
       ],
-      examples: ["task triage:show -- 42", "task triage:show -- 42 --repo deftai/directive"],
-      see_also: ["task triage:queue", "task triage:status", "#1119 / D11"],
+      examples: [
+        "task triage:show -- 42",
+        "task triage:show -- 42 --format=operator",
+        "task triage:show -- 42 --repo deftai/directive",
+      ],
+      see_also: ["task triage:queue", "task triage:status", "#1119 / D11", "#2890"],
       placeholder: false,
     },
     "task triage:scope": {

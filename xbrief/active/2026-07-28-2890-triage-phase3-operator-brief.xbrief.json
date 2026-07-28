@@ -1,0 +1,100 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF: triage Phase 3 operator brief + triage:show --format=operator",
+    "updated": "2026-07-28T22:20:36Z"
+  },
+  "plan": {
+    "title": "feat(skills,triage): Phase 3 operator brief contract + triage:show --format=operator",
+    "status": "running",
+    "updated": "2026-07-28T22:20:36Z",
+    "id": "2026-07-28-2890-triage-phase3-operator-brief",
+    "narratives": {
+      "Description": "deft-directive-triage Phase 3 requires decision menus but does not contract an operator-facing candidate brief before each decision, so agents can ship menu-only or chip-only turns. This story adds a Phase 3 brief + same-turn rule, host structured-question adapter, Phase 2.3 disambiguation, and triage:show --format=operator mechanical assist.",
+      "Overview": "Standalone triage judgment-surface quality fix from statusreport dogfood; not OpenClaw-only.",
+      "Origin": "https://github.com/deftai/directive/issues/2890",
+      "UserStory": "As a triage operator, I want every Phase 3 decision to show a same-turn candidate brief with lean before the menu, so that structured-question hosts cannot reduce triage to chip-only verb dispatch.",
+      "ImplementationPlan": "Step 1: Edit content/skills/deft-directive-triage/SKILL.md Phase 3 with ! operator brief fields, same-turn rule, host ask_user/chips adapter, and Phase 2.3 cross-link that queue non-annotation does not forbid Phase 3 briefs. Step 2: Implement triage:show --format=operator (or equivalent) in packages/core triage show module and CLI/task wiring so pasteable brief comes from cache files. Step 3: Unit tests for operator format renderer and skill content-contract markers. Step 4: CHANGELOG [Unreleased] cites #2890. Verification: run targeted unit tests for triage show operator format and skill contract tests; task check:merge before push.",
+      "Labels": "bug, enhancement, skills, area:skills",
+      "Traces": "Acceptance maps to #2890 A–E; missing_traces_justification until implementation maps line numbers."
+    },
+    "items": [
+      {
+        "title": "Phase 3 requires operator brief before decision menu",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Phase 3 per-item decision, when skill is followed, then agent presents issue id/title/link, labels, 2-5 line summary, AC or thin-body note, and lean+why before or with the menu; menu-only/chip-only without brief is forbidden."
+        }
+      },
+      {
+        "title": "Brief and menu same operator-visible turn",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Phase 3 decision UI, when presented, then brief and menu share one operator-visible message/surface; brief-only then later chip-only without restating brief is forbidden."
+        }
+      },
+      {
+        "title": "Host structured-question adapter documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given chips/ask_user hosts, when skill is read, then prose brief stays in chat, options are actions only, option labels do not substitute for brief, and OpenClaw ask_user is named as example."
+        }
+      },
+      {
+        "title": "Phase 2.3 disambiguated vs Phase 3 briefs",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given skill Phase 2.3 and Phase 3, when read, then queue non-annotation rule does not forbid Phase 3 operator briefs/leans and cross-links make that explicit."
+        }
+      },
+      {
+        "title": "triage:show --format=operator pasteable brief + tests",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given cache-backed triage:show, when --format=operator runs, then pasteable brief includes title link labels summary AC excerpt latest decision active-xBRIEF flag; skill SHOULD prefer it as backbone; tests and CHANGELOG cite #2890."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "skills",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2890",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-triage/SKILL.md",
+          "packages/core/src/triage/",
+          "packages/cli/src/",
+          "tasks/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/triage",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "Phase 3 operator brief contract",
+          "triage:show operator format",
+          "CHANGELOG #2890"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2890-triage-brief",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

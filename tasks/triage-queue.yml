@@ -36,7 +36,7 @@ tasks:
           ENGINE_CMD: 'triage-queue queue --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   show:
-    desc: "Per-issue triage detail (#1128 / D11). -- task triage:show -- <N> [--repo OWNER/NAME]"
+    desc: "Per-issue triage detail (#1128 / D11, #2890). -- task triage:show -- <N> [--format=default|operator] [--repo OWNER/NAME]"
     internal: true
     deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'

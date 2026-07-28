@@ -83,6 +83,25 @@ describe("test_triage_skill", () => {
     expect(text).toContain("displayed number (`1`-`7`) or exact displayed option text");
     expect(text).toContain("bare letters such as `d` / `b`");
   });
+  it("triage_phase3_operator_brief_contract_2890", () => {
+    const text = readRepoFile(_TRIAGE_PATH);
+    // A: required brief fields + forbid menu-only
+    expect(text).toContain("Operator brief (same turn as menu)");
+    expect(text).toMatch(/issue `#N` \+ title \+ link/i);
+    expect(text).toContain("thin body / no AC");
+    expect(text).toContain("lean");
+    expect(text).toContain("Menu-only or chip-only Phase 3 turns without that brief");
+    // B: same-turn coupling
+    expect(text).toContain("same operator-visible message/surface");
+    // C: host structured-question adapter (OpenClaw named)
+    expect(text).toContain("Host structured-question adapter");
+    expect(text).toContain("OpenClaw `ask_user`");
+    expect(text).toContain("actions only");
+    // D: Phase 2.3 disambiguation
+    expect(text).toContain("does **not** forbid Phase 3 per-candidate operator briefs");
+    // E: mechanical assist
+    expect(text).toContain("task triage:show --format=operator");
+  });
   it("triage_skill_pointer_exists", () => {
     expect(repoFileExists(_TRIAGE_POINTER_PATH)).toBeTruthy();
   });

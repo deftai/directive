@@ -1,7 +1,17 @@
 #!/usr/bin/env node
+/**
+ * triage:queue / triage:show CLI (#1128 / #2890).
+ *
+ * Subcommands:
+ *   queue  — ranked queue (default when first token is not show/audit)
+ *   show   — per-issue detail; --format=operator for Phase 3 brief backbone
+ *
+ * audit remains routed here by Taskfile; not reimplemented in this story.
+ */
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureTriageCacheHydrated } from "@deftai/directive-core/dist/cache/empty-populate.js";
+import { findByIssue } from "@deftai/directive-core/dist/triage/actions/candidates-log.js";
 import { resolveTriageCachePath } from "@deftai/directive-core/dist/triage/cache-path.js";
 import {
   activeReferencedIssueNumbers,
@@ -9,38 +19,118 @@ import {
   collectOrphanIssueNumbers,
   DEFAULT_QUEUE_LIMIT,
   type LiveOpenIssuesReader,
+  loadCachedIssueDetail,
   loadCachedIssues,
   loadSliceRecords,
   readAuditEntries,
   reconcileLiveOpenState,
+  renderOperatorBrief,
   renderQueue,
+  renderShow,
   resolveRankingLabels,
   resolveRepo,
 } from "@deftai/directive-core/dist/triage/queue/index.js";
 import { resolveScopeIgnores } from "@deftai/directive-core/dist/triage/scope-drift/index.js";
 
-interface ParsedArgs {
+export type ShowFormat = "default" | "operator";
+
+interface CommonArgs {
   projectRoot: string;
   repo: string | null;
-  limit: number;
-  includeBlocked: boolean;
-  reconcile: boolean;
   cacheRoot: string | null;
   auditLog: string | null;
-  slicesLog: string | null;
   error?: string;
 }
 
-/** Parse triage-queue CLI args for the queue subcommand. */
-export function parseArgs(argv: string[]): ParsedArgs {
-  const parsed: ParsedArgs = {
+interface QueueArgs extends CommonArgs {
+  cmd: "queue";
+  limit: number;
+  includeBlocked: boolean;
+  reconcile: boolean;
+  slicesLog: string | null;
+}
+
+interface ShowArgs extends CommonArgs {
+  cmd: "show";
+  number: number | null;
+  format: ShowFormat;
+}
+
+function baseArgs(): CommonArgs {
+  return {
     projectRoot: process.env.DEFT_PROJECT_ROOT ?? ".",
     repo: process.env.DEFT_TRIAGE_REPO ?? null,
+    cacheRoot: null,
+    auditLog: null,
+  };
+}
+
+function parseCommonFlag(
+  arg: string | undefined,
+  argv: string[],
+  i: number,
+  parsed: CommonArgs,
+): { consumed: number; error?: string } | null {
+  if (arg === "--project-root") {
+    const value = argv[i + 1];
+    if (value === undefined) {
+      return { consumed: 0, error: "argument --project-root: expected one argument" };
+    }
+    parsed.projectRoot = value;
+    return { consumed: 1 };
+  }
+  if (arg?.startsWith("--project-root=")) {
+    parsed.projectRoot = arg.slice("--project-root=".length);
+    return { consumed: 0 };
+  }
+  if (arg === "--repo") {
+    const value = argv[i + 1];
+    if (value === undefined) {
+      return { consumed: 0, error: "argument --repo: expected one argument" };
+    }
+    parsed.repo = value;
+    return { consumed: 1 };
+  }
+  if (arg?.startsWith("--repo=")) {
+    parsed.repo = arg.slice("--repo=".length);
+    return { consumed: 0 };
+  }
+  if (arg === "--cache-root") {
+    const value = argv[i + 1];
+    if (value === undefined) {
+      return { consumed: 0, error: "argument --cache-root: expected one argument" };
+    }
+    parsed.cacheRoot = value;
+    return { consumed: 1 };
+  }
+  if (arg?.startsWith("--cache-root=")) {
+    parsed.cacheRoot = arg.slice("--cache-root=".length);
+    return { consumed: 0 };
+  }
+  if (arg === "--audit-log") {
+    const value = argv[i + 1];
+    if (value === undefined) {
+      return { consumed: 0, error: "argument --audit-log: expected one argument" };
+    }
+    parsed.auditLog = value;
+    return { consumed: 1 };
+  }
+  if (arg?.startsWith("--audit-log=")) {
+    parsed.auditLog = arg.slice("--audit-log=".length);
+    return { consumed: 0 };
+  }
+  return null;
+}
+
+/** Parse triage-queue CLI args (queue subcommand — default). */
+export function parseArgs(argv: string[]): QueueArgs {
+  const common = baseArgs();
+  const parsed: QueueArgs = {
+    ...common,
+    cmd: "queue",
     limit: DEFAULT_QUEUE_LIMIT,
     includeBlocked: false,
     reconcile: true,
-    cacheRoot: null,
-    auditLog: null,
     slicesLog: null,
   };
 
@@ -57,30 +147,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.reconcile = false;
       continue;
     }
-    if (arg === "--project-root") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return { ...parsed, error: "argument --project-root: expected one argument" };
+    const commonHit = parseCommonFlag(arg, argv, i, parsed);
+    if (commonHit !== null) {
+      if (commonHit.error !== undefined) {
+        return { ...parsed, error: commonHit.error };
       }
-      parsed.projectRoot = value;
-      i += 1;
-      continue;
-    }
-    if (arg?.startsWith("--project-root=")) {
-      parsed.projectRoot = arg.slice("--project-root=".length);
-      continue;
-    }
-    if (arg === "--repo") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return { ...parsed, error: "argument --repo: expected one argument" };
-      }
-      parsed.repo = value;
-      i += 1;
-      continue;
-    }
-    if (arg?.startsWith("--repo=")) {
-      parsed.repo = arg.slice("--repo=".length);
+      i += commonHit.consumed;
       continue;
     }
     if (arg === "--limit") {
@@ -105,32 +177,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.limit = parsedLimit;
       continue;
     }
-    if (arg === "--cache-root") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return { ...parsed, error: "argument --cache-root: expected one argument" };
-      }
-      parsed.cacheRoot = value;
-      i += 1;
-      continue;
-    }
-    if (arg?.startsWith("--cache-root=")) {
-      parsed.cacheRoot = arg.slice("--cache-root=".length);
-      continue;
-    }
-    if (arg === "--audit-log") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return { ...parsed, error: "argument --audit-log: expected one argument" };
-      }
-      parsed.auditLog = value;
-      i += 1;
-      continue;
-    }
-    if (arg?.startsWith("--audit-log=")) {
-      parsed.auditLog = arg.slice("--audit-log=".length);
-      continue;
-    }
     if (arg === "--slices-log") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -151,14 +197,80 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/** Parse show subcommand args. */
+export function parseShowArgs(argv: string[]): ShowArgs {
+  const common = baseArgs();
+  const parsed: ShowArgs = {
+    ...common,
+    cmd: "show",
+    number: null,
+    format: "default",
+  };
+
+  // Skip leading "show" token if present
+  let start = 0;
+  if (argv[0] === "show") {
+    start = 1;
+  }
+
+  for (let i = start; i < argv.length; i += 1) {
+    const arg = argv[i];
+    const commonHit = parseCommonFlag(arg, argv, i, parsed);
+    if (commonHit !== null) {
+      if (commonHit.error !== undefined) {
+        return { ...parsed, error: commonHit.error };
+      }
+      i += commonHit.consumed;
+      continue;
+    }
+    if (arg === "--format") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --format: expected one argument" };
+      }
+      if (value !== "default" && value !== "operator" && value !== "plain" && value !== "text") {
+        return {
+          ...parsed,
+          error: `argument --format: invalid choice: '${value}' (choose from default, operator)`,
+        };
+      }
+      parsed.format = value === "operator" ? "operator" : "default";
+      i += 1;
+      continue;
+    }
+    if (arg?.startsWith("--format=")) {
+      const value = arg.slice("--format=".length);
+      if (value !== "default" && value !== "operator" && value !== "plain" && value !== "text") {
+        return {
+          ...parsed,
+          error: `argument --format: invalid choice: '${value}' (choose from default, operator)`,
+        };
+      }
+      parsed.format = value === "operator" ? "operator" : "default";
+      continue;
+    }
+    if (arg?.startsWith("-")) {
+      return { ...parsed, error: `unrecognized argument: ${arg}` };
+    }
+    // positional issue number
+    const n = Number.parseInt(arg ?? "", 10);
+    if (!Number.isFinite(n) || n < 1) {
+      return { ...parsed, error: `argument number: invalid int value: '${arg}'` };
+    }
+    parsed.number = n;
+  }
+  if (parsed.number === null && parsed.error === undefined) {
+    return { ...parsed, error: "triage:show: issue number is required (e.g. triage:show -- 42)" };
+  }
+  return parsed;
+}
+
 /** Optional injection seam for `run` (tests supply a stub live-open reader). */
 export interface RunOptions {
   readonly liveOpenReader?: LiveOpenIssuesReader;
 }
 
-/** Run triage:queue and return process exit code. */
-export function run(argv: string[], options: RunOptions = {}): number {
-  const args = parseArgs(argv);
+function runQueue(args: QueueArgs, options: RunOptions = {}): number {
   if (args.error !== undefined) {
     process.stderr.write(`triage_queue: ${args.error}\n`);
     return 2;
@@ -174,10 +286,6 @@ export function run(argv: string[], options: RunOptions = {}): number {
   ensureTriageCacheHydrated(projectRoot, { repo });
 
   const cachedForQueue = loadCachedIssues(repo, { projectRoot });
-  // Reconcile the cached candidate set against live open/closed state so a
-  // just-closed/merged issue never lingers in the queue as [untriaged] until
-  // the cache refreshes (#2238). Fails open: a read error passes candidates
-  // through unchanged rather than emptying the queue.
   const issuesForQueue = args.reconcile
     ? reconcileLiveOpenState(cachedForQueue, repo, options.liveOpenReader)
     : cachedForQueue;
@@ -216,6 +324,70 @@ export function run(argv: string[], options: RunOptions = {}): number {
     })}\n`,
   );
   return 0;
+}
+
+function runShow(args: ShowArgs): number {
+  if (args.error !== undefined) {
+    process.stderr.write(`triage:show: ${args.error}\n`);
+    return 2;
+  }
+  const projectRoot = resolve(args.projectRoot);
+  const repo = resolveRepo(args.repo, projectRoot);
+  if (repo === null) {
+    process.stderr.write("triage:show: --repo OWNER/NAME (or $DEFT_TRIAGE_REPO) is required.\n");
+    return 2;
+  }
+  const number = args.number;
+  if (number === null) {
+    process.stderr.write("triage:show: issue number is required\n");
+    return 2;
+  }
+
+  ensureTriageCacheHydrated(projectRoot, { repo });
+
+  const issue = loadCachedIssueDetail(repo, number, { projectRoot });
+  const logPath = args.auditLog ?? resolveTriageCachePath(projectRoot, "candidates.jsonl");
+  const history = findByIssue(number, repo, logPath)
+    .slice()
+    .sort((a, b) => String(a.timestamp ?? "").localeCompare(String(b.timestamp ?? "")));
+  const latest = history.length > 0 ? (history[history.length - 1] ?? null) : null;
+  const activeRefs = activeReferencedIssueNumbers(projectRoot);
+  const inActive = activeRefs.has(number);
+
+  if (args.format === "operator") {
+    process.stdout.write(
+      `${renderOperatorBrief({
+        issue,
+        repo,
+        number,
+        latestDecision: latest,
+        inActiveXbrief: inActive,
+      })}\n`,
+    );
+  } else {
+    process.stdout.write(
+      `${renderShow({
+        issue,
+        repo,
+        number,
+        latestDecision: latest,
+        history,
+        inActiveXbrief: inActive,
+      })}\n`,
+    );
+  }
+  return issue !== null ? 0 : 1;
+}
+
+/** Run triage:queue or triage:show and return process exit code. */
+export function run(argv: string[], options: RunOptions = {}): number {
+  const first = argv[0];
+  if (first === "show") {
+    return runShow(parseShowArgs(argv));
+  }
+  // Other subcommands (e.g. audit) keep prior queue-module routing until
+  // separately ported; only `show` is specialized here (#2890).
+  return runQueue(parseArgs(argv), options);
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {

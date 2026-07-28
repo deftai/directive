@@ -10,4 +10,5 @@ export * from "./repo.js";
 export * from "./scope-ignores-filter.js";
 export * from "./scope-walk.js";
 export * from "./selection.js";
+export * from "./show.js";
 export * from "./types.js";
