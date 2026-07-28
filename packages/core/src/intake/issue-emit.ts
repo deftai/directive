@@ -252,15 +252,14 @@ export function emitSingle(
     return { result: "dryrun", vbrief: shown, url: null, title };
   }
 
-  // Containment gate BEFORE remote create — refusal must not leave an orphan issue (#2871).
+  // Prove local persistence BEFORE remote create so a failed write cannot leave an
+  // unrecorded GitHub issue (#2871 Greptile confidence hold: orphan-on-retry).
   const root = assertVbriefWriteTargetSafe(path, options.projectRoot);
+  writeVbrief(path, data, root);
   const body = renderIssueBody(data);
-  // Re-check immediately before remote create (TOCTOU).
   assertVbriefWriteTargetSafe(path, root);
   const url = fileIssue(options.repo, title, body, options.scmCall);
   addGithubIssueReference(data, url);
-  // Final containment check before local write.
-  assertVbriefWriteTargetSafe(path, root);
   writeVbrief(path, data, root);
   return { result: "created", vbrief: shown, url, title };
 }
@@ -337,9 +336,9 @@ export function emitUmbrella(
     };
   }
 
-  // Gate every pending write target before the single remote umbrella create (#2871).
-  for (const [path] of pending) {
-    assertVbriefWriteTargetSafe(path, options.projectRoot);
+  // Prove every pending local write BEFORE the single remote umbrella create (#2871).
+  for (const [path, , data] of pending) {
+    writeVbrief(path, data, options.projectRoot);
   }
 
   const body = renderUmbrellaBody(pending.map(([, disp, data]) => [disp, data]));
