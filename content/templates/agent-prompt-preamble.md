@@ -73,15 +73,15 @@ When the operator supplies an ordered plan (delivery sequence, cohort, checklist
 
 ## 2.6 Provider-neutral worker metadata (#1531)
 
-Heterogeneous swarm dispatch (#1531) assigns each worker a **dispatch provider** (the runtime primitive that launched the agent), a **worker role** (what the agent is allowed to do), and a **selected backend** or **routing policy** (how the harness maps that role to a concrete agent). These fields are provider-neutral: Composer-class coding agents, Grok Build (`spawn_subagent`), Cursor/cloud agents, and future adapters share the same contract.
+Heterogeneous swarm dispatch (#1531) assigns each worker a **dispatch provider** (the runtime primitive that launched the agent), a **worker role** (what the agent is allowed to do), and a **selected backend** or **routing policy** (how the harness maps that role to a concrete agent). These fields are provider-neutral: Composer-class coding agents, Grok Build (`spawn_subagent`), Cursor/cloud agents, OpenClaw (`sessions_spawn`, #2874 / #2879), and future adapters share the same contract.
 
 ! Every intentional backend-routed dispatch MUST carry a separate `## Worker metadata` section in the dispatch envelope, placed AFTER `## Allocation context` and BEFORE the task body. This section is advisory metadata for the worker and for audit; it does NOT replace, extend, or reorder the five-field #1378 `## Allocation context` recognition contract above.
 
 When present, the section documents these fields in order:
 
-- `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `cursor-composer`, `cursor-cloud-agent`, or a future adapter id. Names the harness surface, not the model.
+- `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `sessions_spawn` (OpenClaw host; platform descriptor `openclaw` per #2874 / #2875), `cursor-composer`, `cursor-cloud-agent`, or a future adapter id. Names the harness surface, not the model.
 - `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
-- `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (e.g. `composer`, `grok-build`, `cursor-cloud`) | null -- which catalogued coding backend the operator selected for this role.
+- `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (accepted set today: `composer`, `grok-build`, `cursor-cloud` only — see `KNOWN_SUBAGENT_BACKEND_IDS`) | null -- which catalogued **coding** backend the operator selected for this role. OpenClaw is a **host / dispatch_provider** (`sessions_spawn` / descriptor `openclaw`), not a `swarmSubagentBackend` enum value; do not write `selected_backend: openclaw` into policy (#2879 Greptile P1).
 - `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route. The canonical handle is the gitignored, per-machine `.deft/routing.local.json` (#1739), keyed by `(dispatch_provider, worker_role)`; set decisions with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`.
 - `resolved_model` (#1739): the concrete model slug the operator pinned for this `(provider, role)` | null for an explicit harness default. Resolved from `.deft/routing.local.json` and stamped into the `task swarm:launch` manifest. **This is the field the dispatch primitive must actually honor** -- see the threading rule below.
 - `model_source` (#1739): provenance of `resolved_model` -- e.g. `cursor-route`, `harness-default explicit`. Lets a postmortem tell a pinned model from a harness default.
@@ -94,7 +94,7 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 - `orchestrator`, `review-monitor`, or `merge-release` + explicit backend routing: at least one MUST be non-null so strong-tier audit traces stay reconstructable.
 - Any role on the harness-default agent with no tiering decision: both MAY be null; `dispatch_provider` and `worker_role` remain required.
 
-**Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, or a future adapter:
+**Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, OpenClaw, or a future adapter:
 
 - ! `leaf-implementation` workers implement scoped xBRIEF work in their assigned worktree only -- gates (`task check`, file-scope audit, Greptile review cycle) are model-agnostic and MUST still pass.
 - ! `orchestrator`, `review-monitor`, and `merge-release` roles MUST run on strong or review-capable agents; dispatchers MUST NOT route these roles to cheap leaf backends.
@@ -460,6 +460,7 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 
 - ! Long-running workers (expected >~3 min: implementation, fix batches, review-cycle owners, pollers) MUST be dispatched independently / in the background so the parent conversation channel stays interactive and the orchestrator is notified on completion (`DONE` / `BLOCKED` / `FAILED` per §11).
 - ! On Cursor, background dispatch means the Task tool's background path (`run_in_background: true` on the Task invocation) — NOT blocking the orchestrator's turn for the worker's full wall-clock.
+- ! On OpenClaw, background dispatch means `sessions_spawn` (optionally with `visible` so the Control UI can watch the subagent) so the parent session stays interactive; the completion channel is **parent push / announce**, not `get_command_or_subagent_output` and not Cursor Task completion (#2874 / #2879). Nested leaf-spawn-leaf limits mirror Cursor #2797 when the platform does not support reliable nested `sessions_spawn`.
 - ⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when a background/independent dispatch primitive is available — blocking locks the conversation and prevents user steerability (#1878 / Gap D).
 - ~ Foreground dispatch is reserved for short tasks (<~3 min): quick probes, single-command checks, terse status reads.
 
@@ -490,7 +491,7 @@ Reference: scope-expansion comment 4399553752 on issue #954.
 
 ## 10.5 Heartbeat contract (#1365)
 
-Long-running `spawn_subagent` review-cycle agents on the Grok Build hybrid swarm path can go completely dark from the monitor's perspective -- no commits, no PR comments, no completion notifications. The #1166 swarm session demonstrated the failure mode: two of three dispatched pollers produced zero observable signals; the monitor could not distinguish stalled from healthy.
+Long-running `spawn_subagent` review-cycle agents on the Grok Build hybrid swarm path can go completely dark from the monitor's perspective -- no commits, no PR comments, no completion notifications. The same visibility gap applies to OpenClaw `sessions_spawn` and Cursor `Task` pollers. The #1166 swarm session demonstrated the failure mode: two of three dispatched pollers produced zero observable signals; the monitor could not distinguish stalled from healthy.
 
 The heartbeat contract closes that gap. Any sub-agent whose tool loop is expected to run for more than ~3 minutes (review-cycle pollers, watchdogs, long-running implementation agents) MUST emit a small JSON heartbeat at `<project-root>/.deft-scratch/subagent-status/<agent-id>.json` per `docs/subagent-heartbeat.md`.
 
@@ -505,6 +506,10 @@ The contract in one paragraph:
 The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Skipping the heartbeat is a hard `⊗` for any long-running sub-agent: a stalled agent with no heartbeat surface is the exact #1166 failure mode this contract closes.
 
 ! **Cursor false-alive / REDISPATCH_OK (#2824):** On the Cursor `Task` path, the host may report a leaf as "still running" after it has gone silent (empty transcript, no heartbeats, no DONE/FAILED). When `task verify:subagent-alive` exits `1` for a registered in-flight `drive-to: merge*` worker — missing heartbeat, STALE heartbeat, or no recent git/PR activity — the monitor MUST treat the worker as dead and print `REDISPATCH_OK` to authorize takeover re-dispatch. Do NOT block on host resume when the liveness gate has failed closed.
+
+! **OpenClaw `sessions_spawn` / heartbeat mapping (#2879):** Same file-heartbeat contract applies to OpenClaw review-monitors and long-running leaves. OpenClaw host session liveness, Control UI presence, or gateway channel reachability does NOT replace periodic heartbeats — those signals only prove the session exists, not that the tool loop is progressing. OpenClaw pollers write `.deft-scratch/subagent-status/<agent-id>.json` so `task agent:monitor` / `task verify:subagent-alive` can detect stalled monitors; OpenClaw-native session status MAY be a *supplementary* signal only. Host "still running" + missing/STALE heartbeat authorizes the same `REDISPATCH_OK` posture as Cursor #2824.
+
+! **Parent ensures scratch dir + startup grace before REDISPATCH_OK (#2879):** `task verify:subagent-alive` exits `2` (config error, no `REDISPATCH_OK`) when the scratch directory is **missing** and has no records. Parents MUST `mkdir` the worker worktree's `.deft-scratch/subagent-status/` at dispatch time so a later missing record is exit `1` + `REDISPATCH_OK`. Parents MUST ALSO wait a **startup grace** (default 3 minutes from dispatch, or until the first `phase: "starting"` heartbeat is observed) before treating a missing required-agent as takeover-eligible — probing an empty parent-created dir immediately races a healthy worker still writing its first heartbeat and can spawn a duplicate. Exit `2` remains reserved for true config errors (bad args / wrong path).
 
 - Monitors run `task verify:subagent-alive -- --require-agent <agent-id> [--scratch-dir <worktree>/.deft-scratch/subagent-status]` each poll iteration.
 - Workers run `task agent:monitor` (raw sweep) or the gate verb above; both wrap `subagent-monitor` (#1365).

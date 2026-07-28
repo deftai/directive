@@ -532,9 +532,11 @@ describe("test_swarm_poller_template", () => {
     expect(rendered).toContain("[poll {i}/{cap}]");
   });
   it("template_status_message_list_includes_stall", () => {
+    // Six terminal exits (#1543 INFORMAL-CLEAN + #2879 OpenClaw completion-channel note)
     expect(templateText).toContain(
-      "(CLEAN / NEW P0/P1 FINDINGS escalation / ERRORED / TIMEOUT / STALL)",
+      "(CLEAN / NEW P0/P1 FINDINGS escalation / ERRORED / TIMEOUT / STALL / INFORMAL-CLEAN)",
     );
+    expect(templateText).toContain("STALL");
   });
   it("template_recurrence_record_cites_1039", () => {
     expect(templateText).toContain("#1039");
@@ -569,5 +571,14 @@ describe("test_swarm_poller_template", () => {
       true,
     );
     expect(templateText).toContain("#1342");
+  });
+  it("template_openclaw_sessions_spawn_and_completion_channel_2879", () => {
+    expect(templateText).toContain("sessions_spawn");
+    expect(templateText).toContain("OpenClaw");
+    expect(templateText).toContain("parent push / announce");
+    expect(templateText).toContain("#2879");
+    expect(templateText).not.toMatch(
+      /sessions_spawn for OpenClaw.*get_command_or_subagent_output(?!.*not)/is,
+    );
   });
 });
