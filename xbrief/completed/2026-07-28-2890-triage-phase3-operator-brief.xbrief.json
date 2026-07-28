@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF: triage Phase 3 operator brief + triage:show --format=operator",
-    "updated": "2026-07-28T22:20:36Z"
+    "updated": "2026-07-28T23:34:08Z"
   },
   "plan": {
     "title": "feat(skills,triage): Phase 3 operator brief contract + triage:show --format=operator",
-    "status": "running",
-    "updated": "2026-07-28T22:20:36Z",
+    "status": "completed",
+    "updated": "2026-07-28T23:34:08Z",
     "id": "2026-07-28-2890-triage-phase3-operator-brief",
     "narratives": {
       "Description": "deft-directive-triage Phase 3 requires decision menus but does not contract an operator-facing candidate brief before each decision, so agents can ship menu-only or chip-only turns. This story adds a Phase 3 brief + same-turn rule, host structured-question adapter, Phase 2.3 disambiguation, and triage:show --format=operator mechanical assist.",
@@ -21,35 +21,35 @@
     "items": [
       {
         "title": "Phase 3 requires operator brief before decision menu",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Phase 3 per-item decision, when skill is followed, then agent presents issue id/title/link, labels, 2-5 line summary, AC or thin-body note, and lean+why before or with the menu; menu-only/chip-only without brief is forbidden."
         }
       },
       {
         "title": "Brief and menu same operator-visible turn",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Phase 3 decision UI, when presented, then brief and menu share one operator-visible message/surface; brief-only then later chip-only without restating brief is forbidden."
         }
       },
       {
         "title": "Host structured-question adapter documented",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given chips/ask_user hosts, when skill is read, then prose brief stays in chat, options are actions only, option labels do not substitute for brief, and OpenClaw ask_user is named as example."
         }
       },
       {
         "title": "Phase 2.3 disambiguated vs Phase 3 briefs",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given skill Phase 2.3 and Phase 3, when read, then queue non-annotation rule does not forbid Phase 3 operator briefs/leans and cross-links make that explicit."
         }
       },
       {
         "title": "triage:show --format=operator pasteable brief + tests",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given cache-backed triage:show, when --format=operator runs, then pasteable brief includes title link labels summary AC excerpt latest decision active-xBRIEF flag; skill SHOULD prefer it as backbone; tests and CHANGELOG cite #2890."
         }
@@ -94,7 +94,9 @@
         "size": "M",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-28T23:34:08Z",
+      "capacityBucket": "new-capability"
     }
   }
 }
