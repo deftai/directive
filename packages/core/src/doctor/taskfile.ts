@@ -69,3 +69,28 @@ export function classifyTaskfileInclude(projectRoot: string): TaskfileIncludeSta
 export function formatMissingIncludeSnippet(): string {
   return "  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n";
 }
+
+/** Primary remediation for deep-think gates when Taskfile include is absent (#2893). */
+export const GATES_SURFACE_DEFT_REMEDIATION =
+  "Prefer `deft pr:watch` / `deft review-monitor:register` / `deft verify:review-monitor` " +
+  "(primary npm/CLI surface; no Taskfile required).";
+
+/**
+ * Dual remediations for gates-surface readiness (#2893):
+ * 1. `deft <verb>` CLI (works without Taskfile)
+ * 2. Taskfile include so go-task exposes `task deft:<verb>` (not bare `task pr:watch`)
+ */
+export function formatGatesSurfaceDualRemediation(
+  kind: "missing-file" | "missing-include",
+): string {
+  const includePart =
+    kind === "missing-file"
+      ? "Create root Taskfile.yml with the canonical deft include so go-task exposes `task deft:<verb>` " +
+        "(not bare `task pr:watch`):\n" +
+        "version: '3'\n\nincludes:\n" +
+        formatMissingIncludeSnippet()
+      : "Add the deft include to the existing Taskfile `includes:` block so go-task exposes " +
+        "`task deft:<verb>` (doctor NEVER mutates an existing user-owned Taskfile):\n" +
+        formatMissingIncludeSnippet();
+  return `${GATES_SURFACE_DEFT_REMEDIATION}\n2. ${includePart}`;
+}

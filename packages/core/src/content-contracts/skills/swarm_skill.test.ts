@@ -691,4 +691,15 @@ describe("test_swarm_skill", () => {
       "monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner",
     );
   });
+
+  it("gates_surface_dual_invoke_order (#2893)", () => {
+    const text = _read_swarm();
+    expect(text).toContain("Gates-surface dual invoke (#2893)");
+    expect(text).toContain("`deft <verb>` / `directive <verb>` first");
+    expect(text).toContain("`task deft:<verb>`");
+    expect(text).toContain("#2878 gh-only fallback");
+    expect(text).toContain("Bare `task pr:watch` is not the sole consumer form");
+    expect(text).toContain("deft pr:watch");
+    expect(text).toContain("task deft:pr:watch");
+  });
 });

@@ -198,10 +198,23 @@ describe("test_review_cycle_skill", () => {
     const text = readReviewCycleSkill();
     expect(text).toContain("Greptile CLEAN vs CI holdout");
     expect(text).toContain("clean_gate_holdout=ci_failures");
-    expect(text).toContain("task pr:watch");
+    expect(text).toMatch(/pr:watch/);
     expect(text).toContain("same ownership");
     expect(text).toContain("Test plan");
     expect(text).toContain("CI-holdout carve-out (#2688)");
+  });
+
+  it("gates_surface_dual_invoke_order (#2893)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Gates-surface dual invoke order (#2893");
+    expect(text).toContain("`deft` / `directive` CLI first");
+    expect(text).toContain("`task deft:<verb>` second");
+    expect(text).toContain("#2878 gh-only fallback last");
+    expect(text).toContain("bare `task pr:watch` is **not** the sole");
+    expect(text).toContain("deft pr:watch -- --help");
+    expect(text).toContain("task deft:pr:watch");
+    // Anti-pattern: bare task-only consumer form
+    expect(text).toContain("Treat bare `task pr:watch` as the only consumer gate form");
   });
 
   it("ci_failures_must_not_idle_poll (#2688)", () => {

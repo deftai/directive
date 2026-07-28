@@ -53,7 +53,9 @@ import { runPayloadStalenessCheck } from "./payload-staleness.js";
 import { runLocalSignpostChecks } from "./signpost-checks.js";
 import {
   classifyTaskfileInclude,
+  formatGatesSurfaceDualRemediation,
   formatMissingIncludeSnippet,
+  GATES_SURFACE_DEFT_REMEDIATION,
   includesBlockHasDeftTaskfile,
   resolveConsumerTaskfile,
 } from "./taskfile.js";
@@ -363,7 +365,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!jsonMode) {
     sink.blank();
   }
-  sink.info("Checking optional root Taskfile.yml include...");
+  sink.info("Checking gates-surface readiness (Taskfile include for deep-think agent gates)...");
   runTaskfileIncludeCheck(projectRoot, fixMode, jsonMode, sink, addFinding, seams);
 
   let resolution: ResolutionSummary | null = null;
@@ -768,16 +770,24 @@ function runTaskfileIncludeCheck(
   }
   const includeStatus = classifyTaskfileInclude(projectRoot);
   if (includeStatus === "ok") {
-    sink.success("Root Taskfile.yml includes the deft framework");
+    sink.success(
+      "Gates-surface ready: root Taskfile.yml includes the deft framework (`task deft:<verb>`)",
+    );
     return;
   }
   if (includeStatus === "missing-file") {
     let includeMissing = true;
     const target = join(projectRoot, "Taskfile.yml");
+    // #2893: elevate to warning — deep-think agent gates need a working invoke path.
+    // Dual remediations: (1) deft CLI primary (2) Taskfile include for task deft: verbs.
     const message =
-      "Root Taskfile.yml missing. This is OK for package-manager installs that use the `deft X` surface directly. To also enable the optional `task deft:X` surface, paste this into " +
-      `${target}:`;
-    sink.info(message);
+      "Gates-surface readiness: root Taskfile.yml missing. Deep-think agent gates " +
+      "(`pr:watch`, `review-monitor:*`) need a working invoke path — not optional convenience. " +
+      "1. " +
+      GATES_SURFACE_DEFT_REMEDIATION +
+      ` 2. Create ${target} with the canonical include so go-task exposes \`task deft:<verb>\` ` +
+      "(include key `deft:` → namespaced tasks; bare `task pr:watch` is not the consumer form):";
+    sink.warn(message);
     if (!jsonMode) {
       sink.blank();
       sink.raw(TASKFILE_INCLUDE_SNIPPET);
@@ -796,23 +806,31 @@ function runTaskfileIncludeCheck(
           sink.error(`Failed to write ${target}: ${exc}`);
         }
       } else {
-        sink.info("Skipped Taskfile.yml creation -- paste the snippet above when you are ready.");
+        sink.info(
+          "Skipped Taskfile.yml creation -- use `deft <verb>` now, or paste the include snippet when ready.",
+        );
       }
     }
     if (includeMissing) {
       addFinding({
         severity: "warning",
-        message: "Root Taskfile.yml missing; optional Taskfile include unavailable",
+        message:
+          "Gates-surface: root Taskfile.yml missing — deep-think gates need `deft` CLI or `task deft:` include",
         check: "taskfile-include",
         file: target,
-        suggestion: TASKFILE_INCLUDE_SNIPPET,
+        suggestion: formatGatesSurfaceDualRemediation("missing-file"),
       });
     }
     return;
   }
   if (includeStatus === "missing-include") {
     const message =
-      "Root Taskfile.yml exists but does not include the deft framework. The `deft X` surface still works; add this to the Taskfile `includes:` block only if you want the optional `task deft:X` surface (doctor NEVER mutates an existing user-owned Taskfile):";
+      "Gates-surface readiness: root Taskfile.yml exists but does not include the deft framework. " +
+      "Deep-think agent gates (`pr:watch`, `review-monitor:*`) need a working invoke path. " +
+      "1. " +
+      GATES_SURFACE_DEFT_REMEDIATION +
+      " 2. Add this to the Taskfile `includes:` block so go-task exposes `task deft:<verb>` " +
+      "(doctor NEVER mutates an existing user-owned Taskfile; bare `task pr:watch` is not the consumer form when the include key is `deft:`):";
     sink.warn(message);
     if (!jsonMode) {
       sink.blank();
@@ -821,21 +839,25 @@ function runTaskfileIncludeCheck(
     const tf = resolveConsumerTaskfile(projectRoot);
     addFinding({
       severity: "warning",
-      message: "Root Taskfile.yml does not include the deft framework",
+      message:
+        "Gates-surface: root Taskfile.yml does not include the deft framework — deep-think gates need `deft` CLI or `task deft:` include",
       check: "taskfile-include",
       file: tf,
-      suggestion: formatMissingIncludeSnippet(),
+      suggestion: formatGatesSurfaceDualRemediation("missing-include"),
     });
     return;
   }
   const taskfilePath = resolveConsumerTaskfile(projectRoot) ?? join(projectRoot, "Taskfile.yml");
-  const message = `Root Taskfile.yml at ${taskfilePath} exists but could not be read -- check file permissions.`;
+  const message =
+    `Gates-surface readiness: root Taskfile.yml at ${taskfilePath} exists but could not be read — ` +
+    "check file permissions. Deep-think gates still work via `deft <verb>` until the include is readable.";
   sink.warn(message);
   addFinding({
     severity: "warning",
     message,
     check: "taskfile-include",
     file: taskfilePath,
+    suggestion: GATES_SURFACE_DEFT_REMEDIATION,
   });
 }
 
@@ -931,11 +953,12 @@ function runPlanExtensionShadowCheck(
 
 /**
  * Never emit a bare `task ...` remediation in a project without Taskfile wiring
- * (#2267). The `directive` surface always works; `task deft:X` is optional and
- * only present when the consumer wired the include. `plan()` already emits the
- * `directive` / `npx` / `npm` surface, so this guard is a defensive invariant:
- * any `task`-prefixed command is rewritten to the `directive` surface unless the
- * project actually has the include.
+ * (#2267 / #2893). The `directive`/`deft` surface always works; `task deft:X` is
+ * the go-task namespaced form only when the consumer wired the include (bare
+ * `task pr:watch` is not the consumer form under include key `deft:`). `plan()`
+ * already emits the `directive` / `npx` / `npm` surface, so this guard is a
+ * defensive invariant: any `task`-prefixed command is rewritten to the
+ * `directive` surface unless the project actually has the include.
  */
 /**
  * Detect Taskfile wiring through the injected seam (#2267). Mirrors

@@ -14,7 +14,9 @@ import { resolvePath, runningInsideDeftRepo } from "./paths.js";
 import { runPayloadStalenessCheck } from "./payload-staleness.js";
 import {
   classifyTaskfileInclude,
+  formatGatesSurfaceDualRemediation,
   formatMissingIncludeSnippet,
+  GATES_SURFACE_DEFT_REMEDIATION,
   includesBlockHasDeftTaskfile,
 } from "./taskfile.js";
 import { defaultWhich } from "./which.js";
@@ -86,6 +88,19 @@ describe("taskfile", () => {
 
   it("classify missing file", () => {
     expect(classifyTaskfileInclude("/nonexistent-path-xyz")).toBe("missing-file");
+  });
+
+  it("gates-surface dual remediation names deft CLI and include (#2893)", () => {
+    const missing = formatGatesSurfaceDualRemediation("missing-file");
+    expect(missing).toContain(GATES_SURFACE_DEFT_REMEDIATION);
+    expect(missing).toContain("deft pr:watch");
+    expect(missing).toContain("task deft:");
+    expect(missing).toContain("taskfile: ./.deft/core/Taskfile.yml");
+    expect(missing).not.toMatch(/only for optional `task deft:X` convenience/i);
+
+    const noInclude = formatGatesSurfaceDualRemediation("missing-include");
+    expect(noInclude).toContain("NEVER mutates an existing user-owned Taskfile");
+    expect(noInclude).toContain("Prefer `deft pr:watch`");
   });
 });
 

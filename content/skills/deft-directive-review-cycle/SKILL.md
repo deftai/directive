@@ -57,7 +57,7 @@ On OpenClaw hosts with Directive installed (`.deft/core/` or equivalent content 
 - ! When the OpenClaw tool surface exposes `sessions_spawn`, Approach 1 is the **default** babysit path: spawn a background review-monitor via `sessions_spawn` (register with `--platform-primitive sessions_spawn` or the alias `openclaw-sessions-spawn`).
 - ! Prefer a **visible** Control UI subagent when OpenClaw Control UI is the operator control plane so humans can inspect the monitor.
 - ! Long review-monitor ownership (>~3 min) MUST NOT block the parent OpenClaw session — background `sessions_spawn` + parent yield; same Gap D rule as Cursor/Grok Build (#1880).
-- ! Prefer `task pr:watch` / `task pr:merge-ready` inside the monitor when those tasks exist on the consumer (see missing-task fallback below, #2878).
+- ! Prefer deep-think gates inside the monitor via the dual-invoke probe order (#2893): `deft pr:watch` / `deft pr:merge-ready` first, then `task deft:pr:watch` when the Taskfile include is present, then the #2878 gh-only fallback — bare `task pr:watch` is not the consumer form.
 - ⊗ Treat OpenClaw `cron` (or any host scheduler alone) as Approach 1. Cron/timer re-invocation is Approach 2 only when `sessions_spawn` is unavailable.
 - ⊗ Freestyle main-session `gh pr view` / `sleep` poll + ad-hoc cron when `sessions_spawn` is available — that is the statusreport#153 / #2876 process-routing failure mode.
 
@@ -227,25 +227,38 @@ Babysit and review-cycle are **not** a second unbounded implementation mandate. 
 
 ### Greptile CLEAN vs CI holdout (`pr:watch` / #2688)
 
-! When waiting on a Greptile verdict for a `drive-to: merge-ready` worker (or any review-cycle owner), prefer `task pr:watch -- <N>` (or `--one-shot --json`) over ad-hoc sleep loops (#1056). Parse `clean_gate_holdout` on every probe.
+! When waiting on a Greptile verdict for a `drive-to: merge-ready` worker (or any review-cycle owner), prefer the dual-invoke probe order below over ad-hoc sleep loops (#1056 / #2893). Parse `clean_gate_holdout` on every probe.
 
-### Missing `task pr:watch` / consumer gh-only fallback (#2878)
+### Gates-surface dual invoke order (#2893 / #2878)
 
-Some consumer repos (e.g. sister product deposits) ship Directive skills but **do not** wire `task pr:watch`, `task pr:merge-ready`, or `task review-monitor:*` into their Taskfile. Agents MUST NOT invent a non-skill poll loop when those tasks are missing.
+Deep-think gates (`pr:watch`, `pr:merge-ready`, `review-monitor:*`) have **three ordered invoke paths**. Agents MUST probe in this order; bare `task pr:watch` is **not** the sole (or first) consumer form.
 
-! **Probe first:** run `task --list` (or attempt `task pr:watch -- --help`). If the task is absent, classify the session as **missing-task: pr:watch** and fail-loud:
+! **Probe order (MUST):**
+
+1. **`deft` / `directive` CLI first** — attempt `deft pr:watch -- --help` (or `directive pr:watch -- --help`). Primary for npm/package-manager installs; works without a root Taskfile.
+2. **`task deft:<verb>` second** — when a root Taskfile includes `.deft/core/Taskfile.yml` under key `deft:`, go-task exposes **namespaced** tasks (`task deft:pr:watch`, `task deft:verify:review-monitor`, `task deft:review-monitor:register`). Probe `task --list` / `task deft:pr:watch -- --help`.
+3. **#2878 gh-only fallback last** — only when both CLI and namespaced task probes fail, classify **missing-task: pr:watch** (or **missing-task: review-monitor**) and use the official gh-only subset below.
+
+⊗ Treat bare `task pr:watch` / `task review-monitor:register` as the only prescribed consumer form — under include key `deft:` those un-namespaced names are absent; that probe failure is not proof the gate is unavailable if `deft` or `task deft:` works (#2893).
+
+### Missing gate surface / consumer gh-only fallback (#2878)
+
+Some consumer repos (e.g. sister product deposits) ship Directive skills but have **no working invoke path** for `pr:watch` / `review-monitor:*` (no `deft` CLI on PATH, no Taskfile include → no `task deft:…`). Agents MUST NOT invent a non-skill poll loop when every probe fails.
+
+! **After dual-invoke probe fails (#2893):** classify the session as **missing-task: pr:watch** (or the specific verb) and fail-loud:
 
 ```
 BLOCKED: missing-task pr:watch on this consumer
 Remediation:
-  1. Prefer upgrading/porting Directive pr surfaces (pr:watch / review-monitor:*) into the consumer Taskfile when maintainers own that packaging path, OR
-  2. Use the official gh-only fallback subset below (still this skill — not freestyle).
+  1. Prefer `deft pr:watch` / install `@deftai/directive` so the CLI surface works, OR
+  2. Add the root Taskfile include (doctor gates-surface snippet) so `task deft:pr:watch` works, OR
+  3. Use the official gh-only fallback subset below (still this skill — not freestyle).
 ```
 
-! **Official gh-only fallback** (when `task pr:watch` / review-monitor tasks are missing):
+! **Official gh-only fallback** (when both `deft`/`directive` and `task deft:<verb>` probes fail for pr:watch / review-monitor):
 
 1. Still select Approach 1 when a sub-agent primitive exists (OpenClaw `sessions_spawn`, Cursor `Task`, `spawn_subagent`, `start_agent`) — spawn a review-monitor that runs the gh-only loop; do not block the parent.
-2. **Do not call** `task pr:watch`, `task verify:review-monitor`, or `task review-monitor:register` when the probe showed them absent — those invocations cannot succeed and must not gate the spawn.
+2. **Do not call** gate verbs via any surface the probe showed absent — those invocations cannot succeed and must not gate the spawn.
 3. Ownership claim without the tasks: post/update the sticky `<!-- deft:review-owner -->` PR comment via `gh api` (same field shape as the task-written lease) **or** keep ownership in the parent and document `missing-task: review-monitor` in the PR/parent handback. Never invent `.deft/review-monitor.json`.
 4. Poll with adaptive cadence (20-30s / 60s / 90s) using:
    - `gh pr view <N> --comments` (dual-source + Step 1 rules still apply)
@@ -255,8 +268,8 @@ Remediation:
 5. Evaluate the same Step 6 fail-closed all-of (terminal check-run + HEAD SHA + Last reviewed commit + confidence > 3 + no P0/P1).
 6. Surface missing-task once to the operator/parent on first detection; do not silently rebrand freestyle sleep as `pr:watch`.
 
-⊗ Fake a successful `task pr:watch` or `task review-monitor:*` when the task is absent from the consumer Taskfile.
-⊗ Block Approach 1 / parent yield on missing `review-monitor:*` tasks after the missing-task probe — use the gh lease claim or parent-owned gh-only poll instead (#2878).
+⊗ Fake a successful `pr:watch` or `review-monitor:*` gate when every dual-invoke probe failed.
+⊗ Block Approach 1 / parent yield on missing `review-monitor:*` after the dual-invoke probe — use the gh lease claim or parent-owned gh-only poll instead (#2878).
 ⊗ Invent ad-hoc `sleep` / main-session poll / OpenClaw cron loops outside Approach 1–3 when the skill already names this fallback (#2878 / statusreport#153 recurrence).
 ⊗ Skip Step 6 fail-closed fields because deterministic tasks are missing — the gh surfaces above remain mandatory.
 
@@ -325,22 +338,22 @@ Remediation:
 
 ! Swarm agents (whether launched via `start_agent`, `spawn_subagent`, or OpenClaw `sessions_spawn` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
-! **Deterministic review-monitor gate (#2655 / #2814 / #2876):** When Tier 1 is available **and** `task review-monitor:register` / `task verify:review-monitor` exist on the consumer Taskfile, run `task verify:review-monitor -- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task|sessions_spawn|openclaw-sessions-spawn`. Release with `task review-monitor:release -- --pr <N>` when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix.
+! **Deterministic review-monitor gate (#2655 / #2814 / #2876 / #2893):** When Tier 1 is available **and** a dual-invoke probe succeeds for review-monitor verbs (`deft verify:review-monitor` / `deft review-monitor:register`, or `task deft:verify:review-monitor` / `task deft:review-monitor:register`), run that verify form with `-- --pr <N> [--call-site solo]` before yielding, entering Approach 3, or claiming review monitoring started. After spawning Approach 1, claim the PR-anchored lease with the matching register form (`-- --pr <N> --monitor-agent-id <id> --platform-primitive start_agent|spawn_subagent|cursor-task|sessions_spawn|openclaw-sessions-spawn`). Release with the matching release form (`-- --pr <N>`) when done. Exit `0` ready / `1` not ready or held-by-other / `2` config. The sole source of truth is the sticky GitHub PR comment (`<!-- deft:review-owner -->`); legacy `.deft/review-monitor.json` is obsolete and ignored. On register conflict, attach to the existing owner or stop — do not parallel-fix.
 
-! **Missing review-monitor tasks carve-out (#2878):** When `task pr:watch` **or** `task review-monitor:*` are absent (same missing-task probe as above), do **not** invoke those tasks and do **not** block Approach 1 on them. Fail-loud once with `missing-task: review-monitor` / `missing-task: pr:watch`, then:
+! **Missing review-monitor surface carve-out (#2878 / #2893):** When dual-invoke probes fail for `pr:watch` **and** `review-monitor:*` (no `deft` CLI, no `task deft:` include), do **not** invoke those gates and do **not** block Approach 1 on them. Fail-loud once with `missing-task: review-monitor` / `missing-task: pr:watch`, then:
 1. Still spawn Approach 1 with the official gh-only fallback when a sub-agent primitive exists.
 2. Post (or update) the sticky lease comment via raw `gh api` using the same `<!-- deft:review-owner -->` field shape the tasks would write — parent may yield after that claim succeeds — **or**, if the agent cannot write issue comments, keep ownership in the parent with the gh-only poll and document that lease tasks were unavailable.
 3. Never invent a local `.deft/review-monitor.json` as a substitute gate.
-⊗ Require successful `task verify:review-monitor` / `task review-monitor:register` on a consumer that does not ship those tasks — that is the conf=3 / #2878 inconsistency Greptile flagged.
+⊗ Require successful review-monitor register/verify on a consumer where dual-invoke probes failed — that is the conf=3 / #2878 inconsistency Greptile flagged.
 
-! **Regression trigger (#2797 / #2878):** A leaf that claims a monitor is active without a preceding successful **GitHub sticky lease claim** MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient. When `task review-monitor:register` exists, that task is the required claim path. When the missing-task carve-out applies (#2878), a raw `gh api` post/update of the same `<!-- deft:review-owner -->` sticky comment satisfies the claim (or the parent keeps ownership and does not claim a separate monitor). The regression fails only on a claim with **no** sticky lease evidence — not on consumers that legitimately lack the task surface.
+! **Regression trigger (#2797 / #2878):** A leaf that claims a monitor is active without a preceding successful **GitHub sticky lease claim** MUST fail the review-monitor checklist/eval; a backgrounded `pr:watch` shell is insufficient. When a dual-invoke probe finds `review-monitor:register`, that form is the required claim path. When the missing-task carve-out applies (#2878), a raw `gh api` post/update of the same `<!-- deft:review-owner -->` sticky comment satisfies the claim (or the parent keeps ownership and does not claim a separate monitor). The regression fails only on a claim with **no** sticky lease evidence — not on consumers that legitimately lack the gate surface.
 
 
 
 ! **CI-holdout carve-out (#2688):** When `task pr:watch --one-shot --json` reports `clean_gate_holdout=ci_failures` with Greptile fields otherwise satisfied on current HEAD, do **not** freeze on `verify:review-monitor` / spawn-monitor as if Greptile latency were the blocker. Fix CI first (same ownership as Greptile P0). Keep or register a review-monitor only while still waiting on Greptile latency; a `BLOCKED: ci_failures` DONE handback to the implementation owner is correct.
 
 
-! **Cursor leaf boundary (#2797):** A Cursor `Task` leaf cannot reliably spawn another Cursor `Task`; nested Task (leaf spawning leaf) is unsupported for an Approach 1 review-monitor. A Cursor `drive-to: merge-ready` leaf MUST either keep ownership in the same agent by blocking on `task pr:watch -- <N>`, or its envelope MUST instead be `stop-at: pr-open` so the orchestrator can spawn and register a sibling review-monitor. A background shell `task pr:watch` is not a monitor and MUST NOT be claimed as one.
+! **Cursor leaf boundary (#2797 / #2893):** A Cursor `Task` leaf cannot reliably spawn another Cursor `Task`; nested Task (leaf spawning leaf) is unsupported for an Approach 1 review-monitor. A Cursor `drive-to: merge-ready` leaf MUST either keep ownership in the same agent by blocking on `deft pr:watch -- <N>` (or `task deft:pr:watch -- <N>` when include-present), or its envelope MUST instead be `stop-at: pr-open` so the orchestrator can spawn and register a sibling review-monitor. A background shell `pr:watch` is not a monitor and MUST NOT be claimed as one.
 
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 
@@ -525,7 +538,8 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Treat OpenClaw `cron` alone as Approach 1 — cron/timer is Approach 2 only if spawn is unavailable (#2876)
 - ⊗ Expand active story scope past xBRIEF AC mid-babysit without follow-up issue or consented brief amend (#2881)
 - ⊗ Treat confidence-only holds (0 P0/P1) as a mandate for unbounded redesign (#2881)
-- ⊗ Invent freestyle sleep/poll loops when `task pr:watch` is missing — use the official gh-only fallback and fail-loud missing-task (#2878)
+- ⊗ Invent freestyle sleep/poll loops when dual-invoke probes fail for `pr:watch` — use the official gh-only fallback and fail-loud missing-task (#2878 / #2893)
+- ⊗ Treat bare `task pr:watch` as the only consumer gate form — probe `deft` then `task deft:` first (#2893)
 - ⊗ Treat a passing SLizard/Greptile check run, a non-blocking review comment, or an ad hoc fix commit as the review-cycle exit predicate -- Step 6 fail-closed all-of (#1259) and multi-reviewer registry triage (#769) still apply
 - ⊗ Push individual fix commits per finding
 - ⊗ Start fixing before analyzing ALL findings

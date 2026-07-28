@@ -166,6 +166,80 @@ describe("taskfile interactive fix", () => {
     }
   });
 
+  it("elevates missing Taskfile include as gates-surface warning with dual remediations (#2893)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
+    const chunks: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      chunks.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      writeConsumerRoot(root);
+      writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
+      const code = cmdDoctor(["--full", "--json", "--project-root", root], {
+        whichFn: () => "/bin/x",
+      });
+      expect(code).toBe(0);
+      const payload = JSON.parse(chunks.join("")) as {
+        findings: Array<{
+          severity: string;
+          check?: string;
+          message: string;
+          suggestion?: string;
+        }>;
+        summary: { warnings: number };
+      };
+      const tfFinding = payload.findings.find((f) => f.check === "taskfile-include");
+      expect(tfFinding).toBeDefined();
+      expect(tfFinding?.severity).toBe("warning");
+      expect(tfFinding?.message).toMatch(/Gates-surface/i);
+      expect(tfFinding?.message).toMatch(/deep-think/i);
+      expect(tfFinding?.message).not.toMatch(/optional Taskfile include unavailable/i);
+      expect(tfFinding?.suggestion ?? "").toContain("deft pr:watch");
+      expect(tfFinding?.suggestion ?? "").toContain("task deft:");
+      expect(tfFinding?.suggestion ?? "").toContain("taskfile: ./.deft/core/Taskfile.yml");
+      expect(payload.summary.warnings).toBeGreaterThan(0);
+    } finally {
+      process.stdout.write = orig;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("elevates missing Taskfile.yml as gates-surface warning (#2893)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
+    const chunks: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      chunks.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      writeConsumerRoot(root);
+      const code = cmdDoctor(["--full", "--json", "--project-root", root], {
+        whichFn: () => "/bin/x",
+      });
+      expect(code).toBe(0);
+      const payload = JSON.parse(chunks.join("")) as {
+        findings: Array<{
+          severity: string;
+          check?: string;
+          message: string;
+          suggestion?: string;
+        }>;
+      };
+      const tfFinding = payload.findings.find((f) => f.check === "taskfile-include");
+      expect(tfFinding).toBeDefined();
+      expect(tfFinding?.severity).toBe("warning");
+      expect(tfFinding?.message).toMatch(/Gates-surface/i);
+      expect(tfFinding?.suggestion ?? "").toContain("Prefer `deft pr:watch`");
+      expect(tfFinding?.suggestion ?? "").toContain("Create root Taskfile.yml");
+    } finally {
+      process.stdout.write = orig;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("handles unreadable taskfile", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
     try {
