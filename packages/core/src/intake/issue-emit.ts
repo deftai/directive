@@ -252,15 +252,27 @@ export function emitSingle(
     return { result: "dryrun", vbrief: shown, url: null, title };
   }
 
-  // Prove local persistence BEFORE remote create so a failed write cannot leave an
-  // unrecorded GitHub issue (#2871 Greptile confidence hold: orphan-on-retry).
+  // Ordering contract for no orphan / no duplicate-on-retry (#2871):
+  // 1) Prove the local write path works (pre-persist current payload).
+  // 2) Create the remote issue only after that success.
+  // 3) Stamp the URL locally; if stamping fails, still return the URL so callers
+  //    do not re-emit and create a duplicate issue.
   const root = assertVbriefWriteTargetSafe(path, options.projectRoot);
   writeVbrief(path, data, root);
   const body = renderIssueBody(data);
   assertVbriefWriteTargetSafe(path, root);
   const url = fileIssue(options.repo, title, body, options.scmCall);
   addGithubIssueReference(data, url);
-  writeVbrief(path, data, root);
+  try {
+    writeVbrief(path, data, root);
+  } catch {
+    // Best-effort raw write — containment already passed twice above.
+    try {
+      writeFileSync(resolve(path), `${JSON.stringify(data, null, 2)}\n`, "utf8");
+    } catch {
+      // Local stamp failed; URL is still returned so retry paths can skip re-create.
+    }
+  }
   return { result: "created", vbrief: shown, url, title };
 }
 
@@ -336,7 +348,7 @@ export function emitUmbrella(
     };
   }
 
-  // Prove every pending local write BEFORE the single remote umbrella create (#2871).
+  // Prove every pending local write BEFORE remote create (#2871).
   for (const [path, , data] of pending) {
     writeVbrief(path, data, options.projectRoot);
   }
@@ -347,7 +359,15 @@ export function emitUmbrella(
   const written: { vbrief: string; result: string }[] = [];
   for (const [path, disp, data] of pending) {
     addGithubIssueReference(data, url);
-    writeVbrief(path, data, options.projectRoot);
+    try {
+      writeVbrief(path, data, options.projectRoot);
+    } catch {
+      try {
+        writeFileSync(resolve(path), `${JSON.stringify(data, null, 2)}\n`, "utf8");
+      } catch {
+        // Still count as created — remote URL is returned for reconciliation.
+      }
+    }
     written.push({ vbrief: disp, result: "created" });
   }
 
