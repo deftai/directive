@@ -20,7 +20,6 @@ export class IssueEmitError extends Error {
   }
 }
 
-
 /** Contained durable map: abs vbrief path -> issue URL for in-flight emits (#2871). */
 export function pendingEmitLedgerPath(projectRoot: string): string {
   return join(resolve(projectRoot), ".deft-cache", "issue-emit-pending.json");
@@ -73,7 +72,6 @@ export function clearPendingEmitUrl(projectRoot: string, vbriefAbsPath: string):
     // Best-effort clear; next successful stamp still works via existingGithubIssueRef.
   }
 }
-
 
 export function loadVbrief(path: string): Record<string, unknown> {
   const data = JSON.parse(readFileSync(path, "utf8")) as unknown;
@@ -410,7 +408,9 @@ export function emitUmbrella(
 
   // Umbrella emit: reconcile pending URLs, pre-persist, create once, stamp all (#2871).
   const root =
-    options.projectRoot !== undefined && options.projectRoot !== null && options.projectRoot.length > 0
+    options.projectRoot !== undefined &&
+    options.projectRoot !== null &&
+    options.projectRoot.length > 0
       ? resolve(options.projectRoot)
       : assertVbriefWriteTargetSafe(pending[0]![0] as string, options.projectRoot);
 
@@ -431,12 +431,17 @@ export function emitUmbrella(
   }
 
   if (stillNeedRemote.length === 0) {
-    return { result: "created", url: null, title: umbrellaTitle, vbriefs: [...written, ...already] };
+    return {
+      result: "created",
+      url: null,
+      title: umbrellaTitle,
+      vbriefs: [...written, ...already],
+    };
   }
 
   const body = renderUmbrellaBody(stillNeedRemote.map(([, disp, data]) => [disp, data]));
   const url = fileIssue(options.repo, umbrellaTitle, body, options.scmCall);
-  for (const [path, , ] of stillNeedRemote) {
+  for (const [path, ,] of stillNeedRemote) {
     savePendingEmitUrl(root, path, url);
   }
   for (const [path, disp, data] of stillNeedRemote) {
@@ -448,7 +453,6 @@ export function emitUmbrella(
 
   return { result: "created", url, title: umbrellaTitle, vbriefs: [...written, ...already] };
 }
-
 
 export function expandPatterns(patterns: string[], root: string | null = null): string[] {
   const seen = new Set<string>();
