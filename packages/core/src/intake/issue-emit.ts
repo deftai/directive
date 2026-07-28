@@ -430,10 +430,7 @@ export function emitUmbrella(
     options.projectRoot !== null &&
     options.projectRoot.length > 0
       ? resolve(options.projectRoot)
-      : assertVbriefWriteTargetSafe(
-          String((pending[0] && pending[0][0]) || ""),
-          options.projectRoot,
-        );
+      : assertVbriefWriteTargetSafe(String(pending[0]?.[0] || ""), options.projectRoot);
 
   const written: { vbrief: string; result: string }[] = [];
   const stillNeedRemote: [string, string, Record<string, unknown>][] = [];
