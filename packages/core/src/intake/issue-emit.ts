@@ -327,7 +327,25 @@ export function emitSingle(
   assertVbriefWriteTargetSafe(path, root);
   const url = fileIssue(options.repo, title, body, options.scmCall);
   // Durable URL ledger BEFORE vbrief stamp — retry will reconcile without re-create.
-  savePendingEmitUrl(root, absPath, url);
+  // Never lose the URL if ledger or stamp fails: return/throw always includes it (#2871).
+  try {
+    savePendingEmitUrl(root, absPath, url);
+  } catch (ledgerErr) {
+    try {
+      addGithubIssueReference(data, url);
+      writeVbrief(path, data, root);
+      return { result: "created", vbrief: shown, url, title };
+    } catch (stampErr) {
+      throw new IssueEmitError(
+        "created " +
+          url +
+          " but failed to persist local records: " +
+          String(ledgerErr) +
+          " / " +
+          String(stampErr),
+      );
+    }
+  }
   addGithubIssueReference(data, url);
   writeVbrief(path, data, root);
   clearPendingEmitUrl(root, absPath);
@@ -412,7 +430,10 @@ export function emitUmbrella(
     options.projectRoot !== null &&
     options.projectRoot.length > 0
       ? resolve(options.projectRoot)
-      : assertVbriefWriteTargetSafe(pending[0]![0] as string, options.projectRoot);
+      : assertVbriefWriteTargetSafe(
+          String((pending[0] && pending[0][0]) || ""),
+          options.projectRoot,
+        );
 
   const written: { vbrief: string; result: string }[] = [];
   const stillNeedRemote: [string, string, Record<string, unknown>][] = [];
