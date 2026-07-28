@@ -39,8 +39,8 @@ export const ROUTING_FILENAME = "routing.local.json";
 /** Providers whose model is harness-bound -- deft cannot pin or verify a slug. */
 export const HARNESS_BOUND_PROVIDERS = new Set<string>(["grok"]);
 
-/** Providers whose per-role model must be decided before sub-agent dispatch (#1739 / #1877). */
-export const ROUTING_GATED_DISPATCH_PROVIDERS = new Set<string>(["cursor", "grok"]);
+/** Providers whose per-role model must be decided before sub-agent dispatch (#1739 / #1877 / #2875). */
+export const ROUTING_GATED_DISPATCH_PROVIDERS = new Set<string>(["cursor", "grok", "openclaw"]);
 
 const TRUTHY_ENV = new Set(["1", "true", "yes", "on"]);
 
@@ -191,6 +191,9 @@ export function dispatchProviderFromRuntime(runtimeMode: string): string {
   if (normalized.length === 0) {
     return "unknown";
   }
+  if (normalized.includes("openclaw")) {
+    return "openclaw";
+  }
   if (normalized.includes("grok")) {
     return "grok";
   }
@@ -204,13 +207,22 @@ export function dispatchProviderFromRuntime(runtimeMode: string): string {
  * Resolve the `dispatch_provider` routing key from the active runtime envelope.
  * Separate from `runtime_mode` (#1557): Cursor sessions may carry
  * `runtime_mode=cloud-headless` for gh-auth purposes but route under provider
- * `cursor` for model selection (#1877).
+ * `cursor` for model selection (#1877). OpenClaw routes under `openclaw` when
+ * `sessions_spawn` / OPENCLAW signals are present (#2875).
  */
 export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env): string {
   if (envTruthy(environ, "CURSOR_COMPOSER") || envTruthy(environ, "CURSOR_AGENT")) {
     return "cursor";
   }
   const runtime = (environ.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase();
+  if (
+    envTruthy(environ, "OPENCLAW") ||
+    envTruthy(environ, "DEFT_HAS_SESSIONS_SPAWN") ||
+    envTruthy(environ, "DEFT_PROBE_SESSIONS_SPAWN") ||
+    runtime === "openclaw"
+  ) {
+    return "openclaw";
+  }
   if (envTruthy(environ, "GROK_BUILD") || runtime === "grok-build") {
     return "grok";
   }
@@ -222,7 +234,9 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
     envTruthy(environ, "BUILDKITE") ||
     (envTruthy(environ, "CI") &&
       !envTruthy(environ, "CURSOR_COMPOSER") &&
-      !envTruthy(environ, "CURSOR_AGENT"))
+      !envTruthy(environ, "CURSOR_AGENT") &&
+      !envTruthy(environ, "OPENCLAW") &&
+      !envTruthy(environ, "DEFT_HAS_SESSIONS_SPAWN"))
   ) {
     return "cloud-headless";
   }

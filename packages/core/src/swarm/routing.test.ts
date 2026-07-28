@@ -79,10 +79,12 @@ describe("resolveModelRoute (tri-state by key presence)", () => {
 });
 
 describe("dispatchProviderFromRuntime", () => {
-  it("maps grok and cursor variants", () => {
+  it("maps grok, cursor, and openclaw variants", () => {
     expect(dispatchProviderFromRuntime("grok-build")).toBe("grok");
     expect(dispatchProviderFromRuntime("cursor-cloud")).toBe("cursor");
     expect(dispatchProviderFromRuntime("CURSOR")).toBe("cursor");
+    expect(dispatchProviderFromRuntime("openclaw")).toBe("openclaw");
+    expect(dispatchProviderFromRuntime("OPENCLAW-main")).toBe("openclaw");
   });
   it("passes through unknown and defaults empty", () => {
     expect(dispatchProviderFromRuntime("warp")).toBe("warp");
@@ -90,10 +92,24 @@ describe("dispatchProviderFromRuntime", () => {
   });
 });
 
-describe("resolveDispatchProvider (#1877)", () => {
+describe("resolveDispatchProvider (#1877 / #2875)", () => {
   it("maps Cursor env signals to cursor even when runtime_mode would be cloud-headless", () => {
     expect(resolveDispatchProvider({ CURSOR_AGENT: "1", CI: "true" })).toBe("cursor");
     expect(resolveDispatchProvider({ CURSOR_COMPOSER: "1" })).toBe("cursor");
+  });
+
+  it("maps OpenClaw sessions_spawn signals to openclaw (#2875)", () => {
+    expect(resolveDispatchProvider({ OPENCLAW: "1" })).toBe("openclaw");
+    expect(resolveDispatchProvider({ DEFT_HAS_SESSIONS_SPAWN: "true" })).toBe("openclaw");
+    expect(resolveDispatchProvider({ DEFT_PROBE_SESSIONS_SPAWN: "yes" })).toBe("openclaw");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "openclaw" })).toBe("openclaw");
+  });
+
+  it("prefers openclaw over CI cloud-headless when sessions_spawn signals are set (#2875)", () => {
+    expect(resolveDispatchProvider({ CI: "true", OPENCLAW: "1" })).toBe("openclaw");
+    expect(resolveDispatchProvider({ CI: "true", DEFT_HAS_SESSIONS_SPAWN: "true" })).toBe(
+      "openclaw",
+    );
   });
 
   it("maps grok-build signals to grok", () => {
@@ -101,13 +117,23 @@ describe("resolveDispatchProvider (#1877)", () => {
     expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "grok-build" })).toBe("grok");
   });
 
+  it("maps DEFT_AGENT_RUNTIME cloud/headless to cloud-headless", () => {
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "cloud" })).toBe("cloud-headless");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "headless" })).toBe("cloud-headless");
+  });
+
   it("maps CI without Cursor composer to cloud-headless", () => {
     expect(resolveDispatchProvider({ CI: "true" })).toBe("cloud-headless");
     expect(resolveDispatchProvider({ GITHUB_ACTIONS: "true" })).toBe("cloud-headless");
+    expect(resolveDispatchProvider({ BUILDKITE: "1" })).toBe("cloud-headless");
   });
 
   it("returns unknown for a plain local shell", () => {
     expect(resolveDispatchProvider({})).toBe("unknown");
+  });
+
+  it("treats whitespace-only DEFT_AGENT_RUNTIME as non-openclaw", () => {
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "   " })).toBe("unknown");
   });
 });
 

@@ -38,6 +38,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:skill-external-fetch-gate",
   "verify:contract-drift",
   "verify:cursor-tier1",
+  "verify:openclaw-tier1",
   "verify:go-freeze",
   "verify:bridge-drift",
   "verify:branch",

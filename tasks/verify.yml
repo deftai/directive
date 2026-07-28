@@ -91,6 +91,18 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-cursor-tier1 --project-root "{{.DEFT_ROOT}}"'
 
+  openclaw-tier1:
+    desc: "Framework-source content gate (#2875): assert OpenClaw (openclaw descriptor, sessions_spawn primitive) is enumerated as Tier 1 in the swarm Phase 3 capability matrix AND routing accepts openclaw as a dispatch_provider. Fails when a doc/code edit drops the OpenClaw descriptor and silently re-opens grok-build / generic-terminal misclassification. Three-state exit (0 clean / 1 missing marker / 2 config error)."
+    deps:
+      - task: :engine:_ts-build
+    # Framework-source-only gate: it scans THIS repo's swarm skill + routing
+    # module, so it targets DEFT_ROOT (not USER_WORKING_DIR). Mirrors
+    # verify:cursor-tier1 / verify:content-manifest.
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-openclaw-tier1 --project-root "{{.DEFT_ROOT}}"'
+
   go-freeze:
     desc: "Tier-1 freeze gate for the legacy Go-installer bridge (#1912). Advisory while the Tier-0 SoT (lastGoInstaller) is null; once the operator pins it, fails when cmd/deft-install is bumped above the frozen tag. Three-state exit (0 ok / 1 violation / 2 config error). Emergency bypass: DEFT_ALLOW_GO_INSTALLER_BUMP=1."
     deps:
