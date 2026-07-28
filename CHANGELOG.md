@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Issue-emit dual ledger+stamp failure and umbrella partial-failure no longer re-create GitHub issues on retry (#2880).** After remote create, the URL is always recorded in process-local + OS-temp recovery (in addition to the project pending ledger) before the xBRIEF stamp; `IssueEmitError.createdUrl` is structured; `emitUmbrella` shares the same reconcile contract and reuses a sibling recovered URL instead of filing a second issue. Residual reliability after #2871 AppSec/ledger baseline. Closes #2880.
 - **Issue emit uses a contained pending-URL ledger to prevent duplicate GitHub issues (#2869 / #2871).** After remote create, the issue URL is recorded under \.deft-cache/issue-emit-pending.json\ (gated by projection containment) before the vBRIEF stamp; retries reconcile the pending URL without re-creating the issue.
 - **Issue-emit recovery never bypasses projection containment (#2869 / #2871).** Post-create local stamp failures no longer fall through to unguarded \writeFileSync\; the remote URL is still returned so retries cannot create duplicate issues without reopening a symlink write sink.
 - **Issue emit never orphans a remote create without returning the URL (#2869 / #2871).** \mitSingle\ / \mitUmbrella\ pre-persist the local xBRIEF, create the GitHub issue only after that write succeeds, then stamp the URL; if the post-create stamp fails the URL is still returned so retries cannot create duplicates.
