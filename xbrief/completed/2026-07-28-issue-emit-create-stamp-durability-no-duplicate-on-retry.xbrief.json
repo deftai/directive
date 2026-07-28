@@ -1,0 +1,87 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF: issue-emit residual create/stamp durability (dual-failure + umbrella)",
+    "updated": "2026-07-28T18:19:34Z"
+  },
+  "plan": {
+    "title": "bug(intake): issue-emit create/stamp durability — no orphan remote / no duplicate on retry",
+    "status": "completed",
+    "updated": "2026-07-28T18:19:34Z",
+    "id": "2026-07-28-issue-emit-create-stamp-durability-no-duplicate-on-retry",
+    "narratives": {
+      "Description": "Issue emission can leave a GitHub issue without a durable local URL stamp, or force retries that create duplicates, when create and local persistence are not fully reconciled. #2869 / PR #2871 landed AppSec containment and a first-pass pending ledger. This story owns residual reliability: dual ledger+stamp failure, umbrella sequential durability, and TOCTOU reconcile without re-create.",
+      "Overview": "Close residual Greptile confidence-hold class for issue-emit after #2871 merged. Do not re-implement dirname-root or unguarded write fixes already on master.",
+      "Origin": "https://github.com/deftai/directive/issues/2880 — extracted from PR #2871 conf 2/5 hold after AppSec P0/P1 closed. Related process lesson #2881.",
+      "UserStory": "As an agent or operator running issue:emit, I want remote issue create and local URL persistence to reconcile on every failure mode (including dual local failure and partial umbrella), so that retry never creates a second GitHub issue.",
+      "ImplementationPlan": "Step 1: Read master packages/core/src/intake/issue-emit.ts (post-#2871) — baseline already has assertVbriefWriteTargetSafe without dirname, pending ledger, emitSingle try/ledger-then-stamp, no raw recovery write. Step 2: Close dual-failure gap so URL is never only in an exception message (stronger durable surface or retry-safe recovery that does not re-create). Step 3: Give emitUmbrella the same durability contract as emitSingle (partial ledger/stamp mid-loop). Step 4: Cover TOCTOU/preflight residual with tests that prove no second fileIssue on retry. Step 5: Unit tests for dual-failure and umbrella partial-failure; CHANGELOG [Unreleased] cites #2880. Step 6: drive-to merge-ready PR; do not expand into unrelated sinks.",
+      "Labels": "bug, tooling, area:cli, source-of-truth",
+      "Traces": "Acceptance items map to residual paths documented on #2880 after PR #2871 merge; baseline ledger/dirname/no-raw-write already shipped in #2871."
+    },
+    "items": [
+      {
+        "title": "Dual ledger+stamp failure never loses the URL for retry without re-create.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given fileIssue succeeds and both pending-ledger write and xBRIEF stamp fail, when the operator or agent retries emitSingle for the same path, then no second GitHub issue is created and the local artifact eventually records the original URL."
+        }
+      },
+      {
+        "title": "Umbrella emit has the same durability contract as single emit.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given emitUmbrella creates one remote issue for N artifacts, when any post-create ledger or stamp step fails mid-loop, then retry does not create another remote issue and every pending artifact can reconcile to the original URL."
+        }
+      },
+      {
+        "title": "Regression tests prove dual-failure and umbrella partial-failure paths; CHANGELOG cites #2880.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the implementation PR, when tests run, then dual-failure and umbrella partial-failure cases pass and [Unreleased] cites #2880."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "tooling",
+      "area:cli",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2880",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/issue-emit.ts",
+          "packages/core/src/intake/issue-emit.test.ts",
+          "packages/core/src/intake/issue-emit-pending.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/intake/issue-emit",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "dual-failure durability",
+          "umbrella partial-failure durability",
+          "CHANGELOG Unreleased #2880"
+        ],
+        "depends_on": [],
+        "conflict_group": "issue-emit-durability",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-07-28T18:19:34Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
