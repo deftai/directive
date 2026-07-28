@@ -16,6 +16,7 @@ import {
   emitSingle,
   emitUmbrella,
   existingGithubIssueRef,
+  GITHUB_ISSUE_REF_TYPE,
   IssueEmitError,
   loadPendingEmitUrls,
   loadRecoveredUrl,
@@ -207,6 +208,71 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     expect(existingGithubIssueRef(loadVbrief(a))).toBe("https://github.com/o/r/issues/881");
     expect(existingGithubIssueRef(loadVbrief(b))).toBe("https://github.com/o/r/issues/881");
 
+    clearRecoveredUrl(a);
+    clearRecoveredUrl(b);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("umbrella reuses already-stamped sibling URL without re-create", () => {
+    const dir = mkdtempSync(join(tmpdir(), "emit-umb-stamped-"));
+    const a = join(dir, "a.xbrief.json");
+    const b = join(dir, "b.xbrief.json");
+    writeVbrief(
+      a,
+      {
+        plan: {
+          title: "Child A",
+          references: [{ type: GITHUB_ISSUE_REF_TYPE, uri: "https://github.com/o/r/issues/900" }],
+        },
+      },
+      dir,
+    );
+    writeVbrief(b, { plan: { title: "Child B" } }, dir);
+    clearRecoveredUrl(b);
+    const action = emitUmbrella([a, b], {
+      repo: "o/r",
+      projectRoot: dir,
+      scmCall: (() => {
+        throw new Error("must reuse stamped sibling URL");
+      }) as never,
+      displayPaths: ["a", "b"],
+    });
+    expect(action.result).toBe("created");
+    expect(existingGithubIssueRef(loadVbrief(a))).toBe("https://github.com/o/r/issues/900");
+    expect(existingGithubIssueRef(loadVbrief(b))).toBe("https://github.com/o/r/issues/900");
+    clearRecoveredUrl(a);
+    clearRecoveredUrl(b);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("umbrella rejects recovery URL that conflicts with already-stamped sibling", () => {
+    const dir = mkdtempSync(join(tmpdir(), "emit-umb-stamped-conflict-"));
+    const a = join(dir, "a.xbrief.json");
+    const b = join(dir, "b.xbrief.json");
+    writeVbrief(
+      a,
+      {
+        plan: {
+          title: "Child A",
+          references: [{ type: GITHUB_ISSUE_REF_TYPE, uri: "https://github.com/o/r/issues/901" }],
+        },
+      },
+      dir,
+    );
+    writeVbrief(b, { plan: { title: "Child B" } }, dir);
+    clearRecoveredUrl(b);
+    savePendingEmitUrl(dir, b, "https://github.com/o/r/issues/902");
+    expect(() =>
+      emitUmbrella([a, b], {
+        repo: "o/r",
+        projectRoot: dir,
+        scmCall: (() => {
+          throw new Error("must not create on stamped conflict");
+        }) as never,
+        displayPaths: ["a", "b"],
+      }),
+    ).toThrow(/conflicting issue URLs/);
+    expect(existingGithubIssueRef(loadVbrief(b))).toBeUndefined();
     clearRecoveredUrl(a);
     clearRecoveredUrl(b);
     rmSync(dir, { recursive: true, force: true });

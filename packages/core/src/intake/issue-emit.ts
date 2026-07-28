@@ -646,14 +646,28 @@ export function emitUmbrella(
   }
 
   const pending = loaded.filter(([, , data]) => existingGithubIssueRef(data) === undefined);
-  const already = loaded
-    .filter(([, , data]) => existingGithubIssueRef(data) !== undefined)
-    .map(([, disp]) => ({ vbrief: disp, result: "skipped" }));
+  const alreadyEntries = loaded.filter(([, , data]) => existingGithubIssueRef(data) !== undefined);
+  const already = alreadyEntries.map(([, disp]) => ({ vbrief: disp, result: "skipped" }));
+
+  // Already-stamped siblings seed the umbrella URL and participate in conflict checks (#2880).
+  let stampedSiblingUrl: string | null = null;
+  for (const [, , data] of alreadyEntries) {
+    const ref = existingGithubIssueRef(data);
+    if (typeof ref === "string" && ref.length > 0) {
+      if (stampedSiblingUrl !== null && stampedSiblingUrl !== ref) {
+        throw new IssueEmitError(
+          `umbrella siblings already stamped with conflicting issue URLs: ${stampedSiblingUrl} vs ${ref}`,
+          { createdUrl: stampedSiblingUrl },
+        );
+      }
+      stampedSiblingUrl = ref;
+    }
+  }
 
   const umbrellaTitle = options.title ?? defaultUmbrellaTitle(loaded.length);
 
   if (pending.length === 0) {
-    return { result: "skipped", url: null, title: umbrellaTitle, vbriefs: already };
+    return { result: "skipped", url: stampedSiblingUrl, title: umbrellaTitle, vbriefs: already };
   }
 
   if (options.noNetwork) {
@@ -677,9 +691,9 @@ export function emitUmbrella(
 
   const written: { vbrief: string; result: string }[] = [];
   const stillNeedRemote: [string, string, Record<string, unknown>][] = [];
-  // Pass 1: resolve all recovered URLs and reject conflicts BEFORE any stamp (#2880).
-  // Stamping first would clear recovery for sibling A and leave B divergent on retry.
-  let reconciledUrl: string | null = null;
+  // Pass 1: resolve recovered URLs and reject conflicts BEFORE any stamp (#2880).
+  // Include already-stamped sibling URLs so partial umbrella cohorts cannot split.
+  let reconciledUrl: string | null = stampedSiblingUrl;
   const withPrior: [string, string, Record<string, unknown>, string][] = [];
   for (const [path, disp, data] of pending) {
     const prior = resolvePriorCreatedUrl(root, path);
@@ -724,8 +738,7 @@ export function emitUmbrella(
     };
   }
 
-  // Sibling recovery: if any artifact already holds a prior umbrella URL, stamp remaining
-  // with that URL instead of filing a second remote issue (#2880).
+  // Sibling recovery: reuse recovered/stamped umbrella URL instead of a second remote create (#2880).
   let url = reconciledUrl;
   if (url === null || url.length === 0) {
     const body = renderUmbrellaBody(stillNeedRemote.map(([, disp, data]) => [disp, data]));
