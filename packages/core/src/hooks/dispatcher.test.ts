@@ -110,6 +110,104 @@ describe("direct-write hook policy", () => {
     expect(decision.message).toContain("deft scope:activate");
   });
 
+  it("allows Write outside projectRoot when no active scope (#2885)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: {
+            file_path: "/home/user/.claude/projects/slug/memory/note.md",
+          },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("scope-not-ready");
+  });
+
+  it("allows Edit outside projectRoot when no active scope (#2885)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Edit",
+          tool_input: { path: "/tmp/agent-scratch/note.md" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("scope-not-ready");
+  });
+
+  it("denies unparseable Write target when no active scope (fail-closed, #2885)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          // No extractable path — must not skip the gate via unparseable payload.
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+  });
+
+  it("still denies spawn when no active scope even without a write target (#2885)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active/running xBRIEF is available.",
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+  });
+
   it("allows Write of xbrief/proposed/*.xbrief.json with no active scope (#2625)", () => {
     const inspectScope = vi.fn(() => ({
       ready: false,

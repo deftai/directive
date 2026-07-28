@@ -456,24 +456,30 @@ function inspectMutationGates(
     const writeTarget = hookWriteTargetPath(input.payload);
     const relTarget =
       writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
-    const proposedPathHint =
-      options.proposedLifecycleExempt &&
-      relTarget !== null &&
-      (relTarget.startsWith("xbrief/proposed/") || relTarget.startsWith("vbrief/proposed/"))
-        ? " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
-          "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
-          "planning writes (#2625)."
-        : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
-          (options.proposedLifecycleExempt
-            ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption)."
-            : "then re-run the pre-start_agent gate stack.");
-    const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
-    return deny(
-      input,
-      denyCode,
-      toolName,
-      `Directive denied ${toolName}: ${scope.message}${proposedPathHint}`,
-    );
+    // Active-scope governs in-repo lifecycle work only. Outside-root Write/Edit
+    // (agent memory, $TMPDIR, user config) skips the deny; null/unparseable
+    // targets stay fail-closed. Spawn has no write target → still requires scope (#2885).
+    const outsideRoot = relTarget !== null && relTarget.startsWith("..");
+    if (!outsideRoot || isSpawnTool(toolName)) {
+      const proposedPathHint =
+        options.proposedLifecycleExempt &&
+        relTarget !== null &&
+        (relTarget.startsWith("xbrief/proposed/") || relTarget.startsWith("vbrief/proposed/"))
+          ? " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
+            "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
+            "planning writes (#2625)."
+          : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
+            (options.proposedLifecycleExempt
+              ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption)."
+              : "then re-run the pre-start_agent gate stack.");
+      const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+      return deny(
+        input,
+        denyCode,
+        toolName,
+        `Directive denied ${toolName}: ${scope.message}${proposedPathHint}`,
+      );
+    }
   }
 
   const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
