@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -9,18 +9,22 @@ import {
   emitUmbrella,
   existingGithubIssueRef,
   IssueEmitError,
-  issueEmitTestHooks,
   loadPendingEmitUrls,
   loadRecoveredUrl,
   loadVbrief,
+  recoverySidecarPath,
   rememberCreatedUrl,
-  resetIssueEmitTestHooks,
   savePendingEmitUrl,
   writeVbrief,
 } from "./issue-emit.js";
 
+function clearTestFailEnv(): void {
+  delete process.env.DEFT_ISSUE_EMIT_TEST_FAIL_LEDGER;
+  delete process.env.DEFT_ISSUE_EMIT_TEST_FAIL_STAMP;
+}
+
 afterEach(() => {
-  resetIssueEmitTestHooks();
+  clearTestFailEnv();
 });
 
 describe("issue-emit pending ledger (#2871)", () => {
@@ -82,8 +86,8 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
       };
     };
 
-    issueEmitTestHooks.failProjectLedger = true;
-    issueEmitTestHooks.failStamp = true;
+    process.env.DEFT_ISSUE_EMIT_TEST_FAIL_LEDGER = "1";
+    process.env.DEFT_ISSUE_EMIT_TEST_FAIL_STAMP = "1";
     let thrown: unknown;
     try {
       emitSingle(path, { repo: "o/r", projectRoot: dir, scmCall: scmCall as never });
@@ -97,7 +101,7 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     expect(loadRecoveredUrl(path)).toBe("https://github.com/o/r/issues/501");
 
     // Retry: recovery holds URL — must not file a second issue.
-    resetIssueEmitTestHooks();
+    clearTestFailEnv();
     const action = emitSingle(path, {
       repo: "o/r",
       projectRoot: dir,
@@ -134,8 +138,7 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
       };
     };
 
-    // First pass: remote create + durable record, but stamp fails for all.
-    issueEmitTestHooks.failStamp = true;
+    process.env.DEFT_ISSUE_EMIT_TEST_FAIL_STAMP = "1";
     let thrown: unknown;
     try {
       emitUmbrella([a, b], {
@@ -153,8 +156,7 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     expect(existingGithubIssueRef(loadVbrief(a))).toBeUndefined();
     expect(existingGithubIssueRef(loadVbrief(b))).toBeUndefined();
 
-    // Retry: both paths reconcile from ledger/recovery — no second remote create.
-    resetIssueEmitTestHooks();
+    clearTestFailEnv();
     const action = emitUmbrella([a, b], {
       repo: "o/r",
       projectRoot: dir,
@@ -183,11 +185,8 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
     clearRecoveredUrl(a);
     clearRecoveredUrl(b);
 
-    // Simulate post-create partial: A has durable URL, B has neither stamp nor ledger.
     savePendingEmitUrl(dir, a, "https://github.com/o/r/issues/881");
     rememberCreatedUrl(a, "https://github.com/o/r/issues/881");
-    // B lost local records except we still expect sibling reconcile — put recovery only on A.
-    // With sibling recovery, B should inherit A's URL without scm.
     const action = emitUmbrella([a, b], {
       repo: "o/r",
       projectRoot: dir,
@@ -202,6 +201,57 @@ describe("issue-emit dual-failure + recovery durability (#2880)", () => {
 
     clearRecoveredUrl(a);
     clearRecoveredUrl(b);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("umbrella rejects conflicting recovered sibling URLs", () => {
+    const dir = mkdtempSync(join(tmpdir(), "emit-umb-conflict-"));
+    const a = join(dir, "a.xbrief.json");
+    const b = join(dir, "b.xbrief.json");
+    writeVbrief(a, { plan: { title: "Child A" } }, dir);
+    writeVbrief(b, { plan: { title: "Child B" } }, dir);
+    clearRecoveredUrl(a);
+    clearRecoveredUrl(b);
+    savePendingEmitUrl(dir, a, "https://github.com/o/r/issues/1");
+    savePendingEmitUrl(dir, b, "https://github.com/o/r/issues/2");
+    expect(() =>
+      emitUmbrella([a, b], {
+        repo: "o/r",
+        projectRoot: dir,
+        scmCall: (() => {
+          throw new Error("must not create when conflict detected");
+        }) as never,
+        displayPaths: ["a", "b"],
+      }),
+    ).toThrow(/conflicting issue URLs/);
+    clearRecoveredUrl(a);
+    clearRecoveredUrl(b);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("recovery load refuses symlink sidecars", () => {
+    const dir = mkdtempSync(join(tmpdir(), "emit-symlink-"));
+    const path = join(dir, "story.xbrief.json");
+    writeVbrief(path, { plan: { title: "S" } }, dir);
+    clearRecoveredUrl(path);
+    const side = recoverySidecarPath(path);
+    const victim = join(dir, "victim.txt");
+    writeFileSync(victim, "keep-me\n", "utf8");
+    try {
+      // Prefer junction/file symlink; skip when platform forbids symlink without elevation.
+      symlinkSync(victim, side);
+    } catch {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    }
+    // Process map empty after clear; load must not follow symlink to victim.
+    expect(loadRecoveredUrl(path)).toBeUndefined();
+    // rememberCreatedUrl must not follow symlink into victim content.
+    rememberCreatedUrl(path, "https://github.com/o/r/issues/9");
+    expect(loadRecoveredUrl(path)).toBe("https://github.com/o/r/issues/9");
+    // Victim must remain unpolluted if link was replaced/refused.
+    expect(readFileSync(victim, "utf8")).not.toContain("issues/9");
+    clearRecoveredUrl(path);
     rmSync(dir, { recursive: true, force: true });
   });
 });

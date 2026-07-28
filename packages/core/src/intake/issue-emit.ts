@@ -1,5 +1,18 @@
 import { createHash } from "node:crypto";
-import { globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  globSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
@@ -32,37 +45,82 @@ export class IssueEmitError extends Error {
 
 /**
  * Process-local fallback for post-create URL when project ledger and xBRIEF stamp both fail (#2880).
- * Survives same-process retry without re-create; paired with OS-temp sidecar for process restarts.
+ * Survives same-process retry without re-create; paired with private OS-temp sidecar for restarts.
  */
 const processPendingUrls = new Map<string, string>();
 
-/** Test-only failure injection for dual-failure / partial-stamp paths. Always empty in production. */
-export const issueEmitTestHooks: {
-  failProjectLedger?: boolean;
-  failStamp?: boolean;
-} = {};
+/** Vitest-only failure injection via env (not a production export surface). */
+function testFailProjectLedger(): boolean {
+  return process.env.VITEST === "true" && process.env.DEFT_ISSUE_EMIT_TEST_FAIL_LEDGER === "1";
+}
 
-export function resetIssueEmitTestHooks(): void {
-  delete issueEmitTestHooks.failProjectLedger;
-  delete issueEmitTestHooks.failStamp;
+function testFailStamp(): boolean {
+  return process.env.VITEST === "true" && process.env.DEFT_ISSUE_EMIT_TEST_FAIL_STAMP === "1";
+}
+
+function privateRecoveryRoot(): string {
+  const base =
+    typeof process.env.XDG_RUNTIME_DIR === "string" && process.env.XDG_RUNTIME_DIR.length > 0
+      ? process.env.XDG_RUNTIME_DIR
+      : tmpdir();
+  const uid = typeof process.getuid === "function" ? String(process.getuid()) : "u";
+  return join(base, `deft-issue-emit-recovery-${uid}`);
 }
 
 export function recoverySidecarPath(vbriefAbsPath: string): string {
   const key = createHash("sha256").update(resolve(vbriefAbsPath)).digest("hex").slice(0, 40);
-  return join(tmpdir(), "deft-issue-emit-recovery", `${key}.json`);
+  return join(privateRecoveryRoot(), `${key}.json`);
 }
 
 /**
- * Always-on recovery after remote create: process memory + OS-temp sidecar.
+ * Write recovery sidecar without following symlinks (#2880 Greptile P1).
+ * Private per-uid dir + lstat refusal + O_EXCL|O_NOFOLLOW create.
+ */
+function writeRecoverySidecarSafe(sidePath: string, payload: string): void {
+  const dir = dirname(sidePath);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const dirStat = lstatSync(dir);
+  if (dirStat.isSymbolicLink()) {
+    throw new Error("issue-emit recovery dir is a symlink");
+  }
+  try {
+    const existing = lstatSync(sidePath);
+    if (existing.isSymbolicLink() || existing.isFile()) {
+      // unlink of a symlink removes the link itself (does not follow).
+      unlinkSync(sidePath);
+    } else {
+      throw new Error("issue-emit recovery path exists and is not a regular file");
+    }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") {
+      throw err;
+    }
+  }
+  let flags = constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL;
+  if (typeof constants.O_NOFOLLOW === "number") {
+    flags |= constants.O_NOFOLLOW;
+  }
+  const fd = openSync(sidePath, flags, 0o600);
+  try {
+    writeSync(fd, payload, undefined, "utf8");
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/**
+ * Always-on recovery after remote create: process memory + private OS-temp sidecar.
  * Independent of project-contained ledger so dual local failure still reconciles on retry (#2880).
  */
 export function rememberCreatedUrl(vbriefAbsPath: string, url: string): void {
   const key = resolve(vbriefAbsPath);
   processPendingUrls.set(key, url);
   try {
-    const side = recoverySidecarPath(key);
-    mkdirSync(dirname(side), { recursive: true });
-    writeFileSync(side, `${JSON.stringify({ path: key, url }, null, 2)}\n`, "utf8");
+    writeRecoverySidecarSafe(
+      recoverySidecarPath(key),
+      `${JSON.stringify({ path: key, url }, null, 2)}\n`,
+    );
   } catch {
     // Best-effort disk mirror; process map still holds the URL for same-process retry.
   }
@@ -75,7 +133,12 @@ export function loadRecoveredUrl(vbriefAbsPath: string): string | undefined {
     return mem;
   }
   try {
-    const raw = readFileSync(recoverySidecarPath(key), "utf8");
+    const side = recoverySidecarPath(key);
+    const st = lstatSync(side);
+    if (st.isSymbolicLink() || !st.isFile()) {
+      return undefined;
+    }
+    const raw = readFileSync(side, "utf8");
     const parsed = JSON.parse(raw) as unknown;
     if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
       const obj = parsed as Record<string, unknown>;
@@ -99,7 +162,15 @@ export function clearRecoveredUrl(vbriefAbsPath: string): void {
   const key = resolve(vbriefAbsPath);
   processPendingUrls.delete(key);
   try {
-    rmSync(recoverySidecarPath(key), { force: true });
+    const side = recoverySidecarPath(key);
+    try {
+      const st = lstatSync(side);
+      if (st.isSymbolicLink() || st.isFile()) {
+        unlinkSync(side);
+      }
+    } catch {
+      rmSync(side, { force: true });
+    }
   } catch {
     // Best-effort clear.
   }
@@ -128,7 +199,7 @@ export function recordCreatedUrlDurable(
   url: string,
 ): void {
   rememberCreatedUrl(vbriefAbsPath, url);
-  if (issueEmitTestHooks.failProjectLedger === true) {
+  if (testFailProjectLedger()) {
     return;
   }
   try {
@@ -144,7 +215,7 @@ function stampUrlOntoVbrief(
   url: string,
   projectRoot: string,
 ): void {
-  if (issueEmitTestHooks.failStamp === true) {
+  if (testFailStamp()) {
     throw new Error("issue-emit test hook: stamp failure");
   }
   addGithubIssueReference(data, url);
@@ -565,6 +636,13 @@ export function emitUmbrella(
   for (const [path, disp, data] of pending) {
     const prior = resolvePriorCreatedUrl(root, path);
     if (typeof prior === "string" && prior.length > 0) {
+      // Reject conflicting recovered URLs — never stamp an arbitrary sibling issue (#2880).
+      if (reconciledUrl !== null && reconciledUrl !== prior) {
+        throw new IssueEmitError(
+          `umbrella recovered conflicting issue URLs: ${reconciledUrl} vs ${prior}; resolve local pending/recovery state before retry`,
+          { createdUrl: reconciledUrl },
+        );
+      }
       reconciledUrl = prior;
       try {
         stampUrlOntoVbrief(path, data, prior, root);
