@@ -333,7 +333,7 @@ Remediation:
 3. Never invent a local `.deft/review-monitor.json` as a substitute gate.
 ⊗ Require successful `task verify:review-monitor` / `task review-monitor:register` on a consumer that does not ship those tasks — that is the conf=3 / #2878 inconsistency Greptile flagged.
 
-! **Regression trigger (#2797):** A leaf that claims a monitor is active without a preceding successful `task review-monitor:register` GitHub claim MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient.
+! **Regression trigger (#2797 / #2878):** A leaf that claims a monitor is active without a preceding successful **GitHub sticky lease claim** MUST fail the review-monitor checklist/eval; a backgrounded `task pr:watch` shell is insufficient. When `task review-monitor:register` exists, that task is the required claim path. When the missing-task carve-out applies (#2878), a raw `gh api` post/update of the same `<!-- deft:review-owner -->` sticky comment satisfies the claim (or the parent keeps ownership and does not claim a separate monitor). The regression fails only on a claim with **no** sticky lease evidence — not on consumers that legitimately lack the task surface.
 
 
 
