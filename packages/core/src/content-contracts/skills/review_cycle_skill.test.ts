@@ -211,10 +211,19 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("`task deft:<verb>` second");
     expect(text).toContain("#2878 gh-only fallback last");
     expect(text).toContain("bare `task pr:watch` is **not** the sole");
-    expect(text).toContain("deft pr:watch -- --help");
-    expect(text).toContain("task deft:pr:watch");
+    // CLI form: no go-task bare -- separator on the prescribed probe
+    expect(text).toContain("deft pr:watch --help");
+    expect(text).toContain("task deft:pr:watch -- --help");
+    expect(text).toContain("Pass go-task's bare `--` separator into `deft`/`directive` CLI forms");
     // Anti-pattern: bare task-only consumer form
     expect(text).toContain("Treat bare `task pr:watch` as the only consumer gate form");
+    // Positive probe must be `deft pr:watch --help` (without go-task bare --)
+    const probeLine = text
+      .split("\n")
+      .find((l) => l.includes("`deft` / `directive` CLI first"));
+    expect(probeLine).toBeDefined();
+    expect(probeLine).toContain("deft pr:watch --help");
+    expect(probeLine).not.toMatch(/deft pr:watch -- --help/);
   });
 
   it("ci_failures_must_not_idle_poll (#2688)", () => {
