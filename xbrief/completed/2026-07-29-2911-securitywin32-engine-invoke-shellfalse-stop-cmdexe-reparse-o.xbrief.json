@@ -2,15 +2,15 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2911",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T18:44:11Z"
   },
   "plan": {
-    "title": "security(win32): engine-invoke shell:false \u2014 stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01)",
-    "status": "running",
+    "title": "security(win32): engine-invoke shell:false — stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01)",
+    "status": "completed",
     "narratives": {
-      "Description": "security(win32): engine-invoke shell:false \u2014 stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
+      "Description": "security(win32): engine-invoke shell:false — stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2911",
-      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch B** (Windows shell + PAT scanner).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `subprocess-scm-01` |\n| **Severity** | **High** |\n| **Dimension** | `subprocess-scm` |\n| **File** | [`tasks/engine-invoke.cjs`](https://github.com/deftai/directive/blob/master/tasks/engine-invoke.cjs) |\n\n## Issue\nWindows global engine-invoke still uses `shell:true` with free-text tokens from `DEFT_ENGINE_CMD_JSON` (including CLI_ARGS). Args are re-parsed by `cmd.exe` when spawning the global deft/directive `.cmd` shim \u2014 injection / metacharacter surface after #2547 argv work.\n\n## Impact\nOperator/agent free-text args can inject via cmd.exe reparse on win32 global path.\n\n## Remediation\n1. Align with `engine-pm-run`: `shell:false` or tightly quoted `cmd.exe /d /s /c`.\n2. Metacharacter regression tests for free-text CLI args on win32 global path.\n\n## Acceptance\n- [ ] Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path\n- [ ] Regression test for metacharacters / injection-shaped args\n- [ ] CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch B sibling: cache-quarantine-01\n- #2547 ENGINE_CMD JSON + argv spawn (partial)",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch B** (Windows shell + PAT scanner).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `subprocess-scm-01` |\n| **Severity** | **High** |\n| **Dimension** | `subprocess-scm` |\n| **File** | [`tasks/engine-invoke.cjs`](https://github.com/deftai/directive/blob/master/tasks/engine-invoke.cjs) |\n\n## Issue\nWindows global engine-invoke still uses `shell:true` with free-text tokens from `DEFT_ENGINE_CMD_JSON` (including CLI_ARGS). Args are re-parsed by `cmd.exe` when spawning the global deft/directive `.cmd` shim — injection / metacharacter surface after #2547 argv work.\n\n## Impact\nOperator/agent free-text args can inject via cmd.exe reparse on win32 global path.\n\n## Remediation\n1. Align with `engine-pm-run`: `shell:false` or tightly quoted `cmd.exe /d /s /c`.\n2. Metacharacter regression tests for free-text CLI args on win32 global path.\n\n## Acceptance\n- [ ] Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path\n- [ ] Regression test for metacharacters / injection-shaped args\n- [ ] CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch B sibling: cache-quarantine-01\n- #2547 ENGINE_CMD JSON + argv spawn (partial)",
       "Labels": "bug, security, urgent",
       "UserStory": "As a security engineer, I want spawn global engine-invoke on Windows without shell:true reparse of free-text argv, so that DEFT_ENGINE_CMD_JSON tokens cannot break out via cmd.exe.",
       "ImplementationPlan": "1. Open the source module files under tasks/engine-invoke.cjs (and related paths: tasks/engine-invoke.cjs, tasks/engine-pm-run.cjs, tasks/, CHANGELOG.md) and implement the fail-closed fix described in issue #2911. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: node --test tasks/; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
@@ -19,7 +19,7 @@
       {
         "id": "free-text-deft-engine-cmd-json-tokens-ne",
         "title": "Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2911, when verification runs, then: Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path."
         }
@@ -27,7 +27,7 @@
       {
         "id": "regression-test-for-metacharacters-injec",
         "title": "Regression test for metacharacters / injection-shaped args",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2911, when verification runs, then: Regression test for metacharacters / injection-shaped args."
         }
@@ -35,7 +35,7 @@
       {
         "id": "changelog",
         "title": "CHANGELOG",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2911, when verification runs, then: CHANGELOG."
         }
@@ -50,10 +50,10 @@
       {
         "uri": "https://github.com/deftai/directive/issues/2911",
         "type": "x-xbrief/github-issue",
-        "title": "Issue #2911: security(win32): engine-invoke shell:false \u2014 stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01)"
+        "title": "Issue #2911: security(win32): engine-invoke shell:false — stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01)"
       }
     ],
-    "updated": "2026-07-29T15:00:04Z",
+    "updated": "2026-07-29T18:44:11Z",
     "id": "story-2911",
     "metadata": {
       "kind": "story",
@@ -80,7 +80,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2911."
-      }
+      },
+      "completedAt": "2026-07-29T18:44:11Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
