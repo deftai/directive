@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2912",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T18:58:34Z"
   },
   "plan": {
     "title": "security(deposit): refuse in-tree dest symlinks on consumer projection writers (install-deposit-04)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(deposit): refuse in-tree dest symlinks on consumer projection writers (install-deposit-04). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2912",
@@ -19,7 +19,7 @@
       {
         "id": "no-projection-sink-follows-dest-leaf-par",
         "title": "No projection sink follows dest leaf/parent symlink escapes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2912, when verification runs, then: No projection sink follows dest leaf/parent symlink escapes."
         }
@@ -27,7 +27,7 @@
       {
         "id": "regression-tests-for-agents-md-githooks",
         "title": "Regression tests for AGENTS.md / .githooks / .gitignore class sinks",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2912, when verification runs, then: Regression tests for AGENTS.md / .githooks / .gitignore class sinks."
         }
@@ -35,7 +35,7 @@
       {
         "id": "changelog",
         "title": "CHANGELOG",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2912, when verification runs, then: CHANGELOG."
         }
@@ -52,7 +52,7 @@
         "title": "Issue #2912: security(deposit): refuse in-tree dest symlinks on consumer projection writers (install-deposit-04)"
       }
     ],
-    "updated": "2026-07-29T15:00:05Z",
+    "updated": "2026-07-29T18:58:34Z",
     "id": "story-2912",
     "metadata": {
       "kind": "story",
@@ -80,7 +80,8 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2912."
-      }
+      },
+      "completedAt": "2026-07-29T18:58:34Z"
     }
   }
 }
