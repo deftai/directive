@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2913",
+    "updated": "2026-07-29T15:01:56Z"
+  },
+  "plan": {
+    "title": "security(deposit): npm update full-tree replace \u2014 no stale .deft/core survival (install-deposit-06)",
+    "status": "running",
+    "narratives": {
+      "Description": "security(deposit): npm update full-tree replace \u2014 no stale .deft/core survival (install-deposit-06). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2913",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch C** (deposit write integrity).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `install-deposit-06` |\n| **Severity** | **Medium** |\n| **Dimension** | `install-deposit` |\n| **Surface** | npm `directive update` / deposit refresh |\n\n## Issue\nnpm `directive update` is **additive copy**. Stale or malicious files under `.deft/core` can **survive** upgrade. Go install path does full swap \u2014 inconsistent integrity.\n\n## Remediation\n1. Full tree replace or delete-not-in-source on npm refresh.\n2. Refuse VERSION stamp until reconcile succeeds.\n\n## Acceptance\n- [ ] Update leaves no dst-only agent content under `.deft/core` after refresh\n- [ ] Parity with Go full-swap integrity model (or documented intentional residual)\n- [ ] Tests / CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch C siblings: install-deposit-04, skill-pack-supply-01",
+      "Labels": "bug, security",
+      "UserStory": "As a security engineer, I want npm directive update to fully replace .deft/core so stale agent content cannot survive, so that content VERSION stamps match a reconciled deposit without dst-only leftovers.",
+      "ImplementationPlan": "In packages/core/src/init-deposit/refresh.ts, replace additive copyTree merge with full tree replace (stage + atomic swap or delete-not-in-source reconcile like Go swapInCore / prunePackageAbsentDepositPaths expanded beyond packages). Refuse VERSION stamp until reconcile succeeds. Tests for dst-only file removal. CHANGELOG cites #2913. Note any existing prunePackageAbsentDepositPaths work and complete the gap.",
+      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2913; file paths named in ImplementationPlan are the authoritative touch list."
+    },
+    "items": [
+      {
+        "id": "update-leaves-no-dst-only-agent-content",
+        "title": "Update leaves no dst-only agent content under `.deft/core` after refresh",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2913, when verification runs, then: Update leaves no dst-only agent content under `.deft/core` after refresh."
+        }
+      },
+      {
+        "id": "parity-with-go-full-swap-integrity-model",
+        "title": "Parity with Go full-swap integrity model (or documented intentional residual)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2913, when verification runs, then: Parity with Go full-swap integrity model (or documented intentional residual)."
+        }
+      },
+      {
+        "id": "tests-changelog",
+        "title": "Tests / CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2913, when verification runs, then: Tests / CHANGELOG."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2913",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2913: security(deposit): npm update full-tree replace \u2014 no stale .deft/core survival (install-deposit-06)"
+      }
+    ],
+    "updated": "2026-07-29T15:00:05Z",
+    "id": "story-2913",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/",
+          "packages/core/src/deposit/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/init-deposit",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "full-tree replace or delete-not-in-source",
+          "VERSION after reconcile",
+          "CHANGELOG #2913"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-deposit-ts",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

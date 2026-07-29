@@ -1,0 +1,87 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2909",
+    "updated": "2026-07-29T15:01:56Z"
+  },
+  "plan": {
+    "title": "security(install): pin+verify Linux --yes uv/task/gh bootstrap (install-deposit-02)",
+    "status": "running",
+    "narratives": {
+      "Description": "security(install): pin+verify Linux --yes uv/task/gh bootstrap (install-deposit-02). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2909",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch A** (installer authenticity).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `install-deposit-02` |\n| **Severity** | **High** |\n| **Dimension** | `install-deposit` |\n| **File** | [`cmd/deft-install/setup.go`](https://github.com/deftai/directive/blob/master/cmd/deft-install/setup.go) |\n\n## Issue\nLinux non-interactive `EnsureCoreTools` bootstraps uv, task, and gh by downloading **unpinned** install scripts / latest tarballs into `~/.local/bin` with no checksum or signed-release verification.\n\n## Impact\nCompromise of astral.sh, taskfile.dev, or latest gh release (or MitM) yields arbitrary code under the user account on Linux `--yes` installs.\n\n## Remediation\n1. Mirror CI ghx pattern: download-to-temp + pinned SHA-256 (+ version-pinned assets) before execute/install.\n2. Fail closed on mismatch.\n3. Consider distro packages or pre-staged verified binaries for `--yes`.\n\n## Acceptance\n- [ ] uv/task/gh bootstrap paths under `cmd/deft-install` require pinned digests (or explicit documented residual)\n- [ ] Fail closed on verify failure\n- [ ] CHANGELOG / docs/security.md as needed\n\n## Refs\n- Tracker #2904\n- Batch A sibling: install-deposit-01\n- Contrast: CI `GHX_INSTALL_SH_SHA256` / #1070 class",
+      "Labels": "bug, security, urgent",
+      "UserStory": "As a security engineer, I want pin and SHA-256 verify Linux --yes uv/task/gh bootstrap assets before exec, so that non-interactive EnsureCoreTools cannot run unpinned remote install scripts.",
+      "ImplementationPlan": "In cmd/deft-install/setup.go, replace floating curl|sh / latest tarball paths for uv, task, and gh with download-to-temp + pinned version + SHA-256 verify (mirror CI ghx pattern). Fail closed on mismatch. Document --yes trust boundary. Tests for pin table and verify failure. CHANGELOG cites #2909.",
+      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2909; file paths named in ImplementationPlan are the authoritative touch list."
+    },
+    "items": [
+      {
+        "id": "uv-task-gh-bootstrap-paths-under-cmd-def",
+        "title": "uv/task/gh bootstrap paths under `cmd/deft-install` require pinned digests (or explicit documented residual)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2909, when verification runs, then: uv/task/gh bootstrap paths under `cmd/deft-install` require pinned digests (or explicit documented residual)."
+        }
+      },
+      {
+        "id": "fail-closed-on-verify-failure",
+        "title": "Fail closed on verify failure",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2909, when verification runs, then: Fail closed on verify failure."
+        }
+      },
+      {
+        "id": "changelog-docs-security-md-as-needed",
+        "title": "CHANGELOG / docs/security.md as needed",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2909, when verification runs, then: CHANGELOG / docs/security.md as needed."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2909",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2909: security(install): pin+verify Linux --yes uv/task/gh bootstrap (install-deposit-02)"
+      }
+    ],
+    "updated": "2026-07-29T15:00:03Z",
+    "id": "story-2909",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/",
+          "docs/security.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "cd cmd/deft-install && go test ./...",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "pinned uv/task/gh bootstrap",
+          "fail-closed digest checks",
+          "CHANGELOG #2909"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-install-go",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

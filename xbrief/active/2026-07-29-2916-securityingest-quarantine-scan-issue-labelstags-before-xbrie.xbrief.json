@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2916",
+    "updated": "2026-07-29T15:01:56Z"
+  },
+  "plan": {
+    "title": "security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06)",
+    "status": "running",
+    "narratives": {
+      "Description": "security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2916",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch D** (quarantine completeness).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-06` |\n| **Severity** | **Low** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/intake/issue-ingest.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/intake/issue-ingest.ts) |\n\n## Issue\n`buildIssueVbrief` scans title/body/comments/plan-item titles but copies **label names unchanged** into `narratives.Labels` and `plan.tags` \u2014 unscanned agent-authoritative fields.\n\n## Remediation\n1. Run label strings through `scanUntrustedIngestText` (hard-fail credentials; fence/omit injection-shaped labels) before writing Labels/tags.\n2. Tests for credential-shaped / injection-shaped labels.\n\n## Acceptance\n- [ ] Labels follow same hard-fail/fence contract as titles\n- [ ] Tests assert label scan\n- [ ] CHANGELOG if needed\n\n## Refs\n- Tracker #2904\n- Batch D sibling: cache-quarantine-03",
+      "Labels": "bug, security",
+      "UserStory": "As a security engineer, I want quarantine-scan issue labels and tags before they enter xBRIEF Labels/tags, so that credential- or injection-shaped labels cannot bypass title/body scanning.",
+      "ImplementationPlan": "In packages/core/src/intake/issue-ingest.ts, run label strings through scanUntrustedIngestText before narratives.Labels and plan.tags. Tests for credential-shaped labels hard-fail and injection fence. CHANGELOG cites #2916.",
+      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2916; file paths named in ImplementationPlan are the authoritative touch list."
+    },
+    "items": [
+      {
+        "id": "labels-follow-same-hard-fail-fence-contr",
+        "title": "Labels follow same hard-fail/fence contract as titles",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2916, when verification runs, then: Labels follow same hard-fail/fence contract as titles."
+        }
+      },
+      {
+        "id": "tests-assert-label-scan",
+        "title": "Tests assert label scan",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2916, when verification runs, then: Tests assert label scan."
+        }
+      },
+      {
+        "id": "changelog-if-needed",
+        "title": "CHANGELOG if needed",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2916, when verification runs, then: CHANGELOG if needed."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2916",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2916: security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06)"
+      }
+    ],
+    "updated": "2026-07-29T15:00:07Z",
+    "id": "story-2916",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/intake",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "label/tag scan",
+          "tests",
+          "CHANGELOG #2916"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-ingest",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2911",
+    "updated": "2026-07-29T15:01:56Z"
+  },
+  "plan": {
+    "title": "security(win32): engine-invoke shell:false \u2014 stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01)",
+    "status": "running",
+    "narratives": {
+      "Description": "security(win32): engine-invoke shell:false \u2014 stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2911",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch B** (Windows shell + PAT scanner).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `subprocess-scm-01` |\n| **Severity** | **High** |\n| **Dimension** | `subprocess-scm` |\n| **File** | [`tasks/engine-invoke.cjs`](https://github.com/deftai/directive/blob/master/tasks/engine-invoke.cjs) |\n\n## Issue\nWindows global engine-invoke still uses `shell:true` with free-text tokens from `DEFT_ENGINE_CMD_JSON` (including CLI_ARGS). Args are re-parsed by `cmd.exe` when spawning the global deft/directive `.cmd` shim \u2014 injection / metacharacter surface after #2547 argv work.\n\n## Impact\nOperator/agent free-text args can inject via cmd.exe reparse on win32 global path.\n\n## Remediation\n1. Align with `engine-pm-run`: `shell:false` or tightly quoted `cmd.exe /d /s /c`.\n2. Metacharacter regression tests for free-text CLI args on win32 global path.\n\n## Acceptance\n- [ ] Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path\n- [ ] Regression test for metacharacters / injection-shaped args\n- [ ] CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch B sibling: cache-quarantine-01\n- #2547 ENGINE_CMD JSON + argv spawn (partial)",
+      "Labels": "bug, security, urgent",
+      "UserStory": "As a security engineer, I want spawn global engine-invoke on Windows without shell:true reparse of free-text argv, so that DEFT_ENGINE_CMD_JSON tokens cannot break out via cmd.exe.",
+      "ImplementationPlan": "In tasks/engine-invoke.cjs, stop using shell:true for mode===global && win32 with free-form argv. Align with engine-pm-run.cjs executeAllowlisted (shell:false or tightly quoted cmd.exe /d /s /c). Add regression test that metacharacters in DEFT_ENGINE_CMD_JSON remain a single argv token. CHANGELOG cites #2911.",
+      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2911; file paths named in ImplementationPlan are the authoritative touch list."
+    },
+    "items": [
+      {
+        "id": "free-text-deft-engine-cmd-json-tokens-ne",
+        "title": "Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2911, when verification runs, then: Free-text `DEFT_ENGINE_CMD_JSON` tokens never reach `shell:true` on win32 global path."
+        }
+      },
+      {
+        "id": "regression-test-for-metacharacters-injec",
+        "title": "Regression test for metacharacters / injection-shaped args",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2911, when verification runs, then: Regression test for metacharacters / injection-shaped args."
+        }
+      },
+      {
+        "id": "changelog",
+        "title": "CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2911, when verification runs, then: CHANGELOG."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2911",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2911: security(win32): engine-invoke shell:false \u2014 stop cmd.exe reparse of DEFT_ENGINE_CMD_JSON (subprocess-scm-01)"
+      }
+    ],
+    "updated": "2026-07-29T15:00:04Z",
+    "id": "story-2911",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/engine-invoke.cjs",
+          "tasks/engine-pm-run.cjs",
+          "tasks/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "node --test tasks/",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "win32 global shell:false path",
+          "metacharacter regression test",
+          "CHANGELOG #2911"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-engine-invoke",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2914",
+    "updated": "2026-07-29T15:01:56Z"
+  },
+  "plan": {
+    "title": "security(packs): contain pack-render path fields under CONTENT_ROOT + schema (skill-pack-supply-01)",
+    "status": "running",
+    "narratives": {
+      "Description": "security(packs): contain pack-render path fields under CONTENT_ROOT + schema (skill-pack-supply-01). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2914",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch C** (deposit write integrity).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `skill-pack-supply-01` |\n| **Severity** | **Medium** |\n| **Dimension** | `skill-pack-supply` |\n| **Surface** | multipack `packs:render` path fields |\n\n## Issue\nPack-render builds `outPath` as `join(CONTENT_ROOT, record[pathField])` **without** containment/schema. Absolute/`../` paths can escape or overwrite agent-policy files when render runs without `--check`.\n\n## Remediation\n1. Resolve each `outPath` with realpath semantics; refuse unless contained under `CONTENT_ROOT` (mirror `deposit/contain.ts`).\n2. Enforce pack schemas (path patterns) before render.\n3. Sanitize YAML frontmatter fields; deny absolute paths / null bytes.\n\n## Acceptance\n- [ ] Multipack render refuses escape paths\n- [ ] Schema/path tests; no write outside CONTENT_ROOT\n- [ ] CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch C siblings: install-deposit-04, install-deposit-06",
+      "Labels": "bug, security",
+      "UserStory": "As a security engineer, I want contain pack-render output paths under CONTENT_ROOT and enforce pack schema, so that malicious pack JSON cannot write outside content/ or inject unescaped frontmatter.",
+      "ImplementationPlan": "In packages/core/src/packs/pack-render.ts, resolve outPath with containment under CONTENT_ROOT; refuse absolute paths and .. escapes. Enforce pack schema path patterns before render. Sanitize YAML frontmatter fields. Tests for escape attempts. CHANGELOG cites #2914.",
+      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2914; file paths named in ImplementationPlan are the authoritative touch list."
+    },
+    "items": [
+      {
+        "id": "multipack-render-refuses-escape-paths",
+        "title": "Multipack render refuses escape paths",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2914, when verification runs, then: Multipack render refuses escape paths."
+        }
+      },
+      {
+        "id": "schema-path-tests-no-write-outside-conte",
+        "title": "Schema/path tests; no write outside CONTENT_ROOT",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2914, when verification runs, then: Schema/path tests; no write outside CONTENT_ROOT."
+        }
+      },
+      {
+        "id": "changelog",
+        "title": "CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the #2904 remediation for #2914, when verification runs, then: CHANGELOG."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2914",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2914: security(packs): contain pack-render path fields under CONTENT_ROOT + schema (skill-pack-supply-01)"
+      }
+    ],
+    "updated": "2026-07-29T15:00:06Z",
+    "id": "story-2914",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/packs/pack-render.ts",
+          "packages/core/src/packs/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/packs",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "contained pack-render paths",
+          "schema enforce",
+          "CHANGELOG #2914"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-packs",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}
