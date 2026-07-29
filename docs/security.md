@@ -21,7 +21,9 @@ This is the inaugural baseline recorded by the 2026-05-12 supply-chain hygiene c
 
 ## 2026-07-29 event-driven remediation -- AppSec install-authenticity (tracker #2904)
 
-AppSec scan tracker **#2904** flagged the `deft-install` Windows bootstrap as an installer-authenticity risk. This section records the **Git-for-Windows download trust boundary** hardened under finding `install-deposit-01` (#2908). Sibling installer-authenticity findings from the same tracker are remediated under their own issues and PRs.
+AppSec scan tracker **#2904** flagged `deft-install` bootstrap authenticity risks. This section records the hardened trust boundaries for Windows Git-for-Windows (`install-deposit-01` / #2908) and Linux `--yes` uv/task/gh (`install-deposit-02` / #2909). Sibling installer-authenticity findings from the same tracker are remediated under their own issues and PRs.
+
+### Git-for-Windows silent install (`install-deposit-01` / #2908)
 
 - **Finding `install-deposit-01` (High).** On Windows, when `winget` was unavailable or failed, `cmd/deft-install/git.go` downloaded the **latest** Git-for-Windows 64-bit `.exe` via the GitHub Releases API and executed it `/SILENT /NORESTART` with **no SHA-256 or Authenticode pin** -- TLS + "GitHub latest" were the only trust signals. A compromised release/asset or a MitM on the download therefore yielded arbitrary code execution as the installing user during an automated install.
 - **Remediation (#2908).** The Windows install path now establishes an explicit trust boundary:
@@ -30,6 +32,16 @@ AppSec scan tracker **#2904** flagged the `deft-install` Windows bootstrap as an
   3. **Pinned winget.** The preferred `winget install --id Git.Git` is pinned with `--version 2.55.0.3`; if that version is unavailable winget fails through to the SHA-256-verified download, which is itself fail-closed -- so no fallback is less safe than the primary path.
 - **Pin provenance.** The pinned digest was captured out-of-band at pin time and cross-checked against **both** the GitHub release asset `digest` field **and** the Git-for-Windows-published SHA-256 in the release body for `v2.55.0.windows.3`. Bumping the pinned git version requires updating the tag, winget version, asset name, and digest together (guarded by `TestPinnedGitConstants_Consistent` / `TestPinnedGitForWindowsSHA256_WellFormed`).
 - **Residual risk / follow-ups.** Verification is SHA-256 pin only; **Authenticode signature validation is not yet enforced** (deferred -- the digest pin already defeats release/asset tampering and MitM for the pinned artifact). Because the digest is pinned to a single release, security patches to Git-for-Windows require a deliberate pin bump rather than auto-tracking `latest`; this is an intentional trade of freshness for authenticity, mitigated by the pinned-winget preferred path. Fail-closed behaviour is covered by `TestDownloadGitInstaller_FailClosedOnDigestMismatch` and `TestVerifyFileSHA256_Mismatch` in `cmd/deft-install/git_test.go`.
+
+### Linux `--yes` uv / task / gh bootstrap (`install-deposit-02` / #2909)
+
+- **Finding `install-deposit-02` (High).** On Linux non-interactive installs, `EnsureCoreTools` in `cmd/deft-install/setup.go` bootstrapped missing doctor-required tools by downloading **unpinned** install scripts from `astral.sh` / `taskfile.dev` and the **latest** `cli/cli` release tarball into `~/.local/bin` with **no checksum**. Compromise of those CDNs/releases or a MitM yielded arbitrary code under the installing user on `deft-install --yes`.
+- **Remediation (#2909).** The Linux bootstrap path now mirrors the CI ghx / #2908 pattern:
+  1. **Pinned release assets, not install scripts / `latest`.** uv `0.12.0`, task `v3.52.0`, and gh `v2.96.0` download exact GitHub release tarball URLs for `amd64` / `arm64` / `arm` (gh arm uses the upstream `armv6` asset name). No `curl | sh` install script is executed.
+  2. **Fail-closed SHA-256 verification.** Each tarball is downloaded to a temp file and hashed against a hard-coded, out-of-band-verified digest **before any extract/install**. On mismatch or hashing error the archive is refused and deleted; extract never runs. There is no non-verified install path.
+  3. **Pure-Go extract into `~/.local/bin`.** After verify, only the required basename (`uv` / `task` / `gh`) is written atomically mode `0755`. Archive path layout is not recreated under the destination (basename-only), removing path-traversal as an install sink.
+- **Pin provenance.** Digests were captured from each GitHub release asset `digest` field at pin time and cross-checked by hashing the downloaded bytes locally before commit. Bumping a tool pin requires updating version/tag/URL and the per-arch digest map together (guarded by `TestPinnedLinuxBootstrapDigests_WellFormed` / `TestPinnedLinuxBootstrapAssets_URLAndVersionConsistent`).
+- **Residual risk / follow-ups.** Verification is SHA-256 pin only (no cosign/sigstore attestation consumed yet). Pinned releases do not auto-track upstream security patches -- freshness requires a deliberate pin bump (intentional authenticity-over-latest trade, same class as #2908). Architectures outside the pin maps fail closed with a structured bootstrap error rather than falling back to an unpinned script. Fail-closed behaviour is covered by `TestInstallPinnedLinuxTool_FailClosedOnDigestMismatch` and related tests in `cmd/deft-install/setup_test.go`.
 
 ## Audit cadence
 

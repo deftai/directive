@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -1360,41 +1362,88 @@ func pathListEntryPresent(pathEnv, entry, sep string) bool {
 	return false
 }
 
-// linuxBootstrapFetcherAvailable reports whether curl or wget is on PATH for
-// the portable install scripts (#1538).
-func linuxBootstrapFetcherAvailable() bool {
-	for _, bin := range []string{"curl", "wget"} {
-		if _, err := lookPathFunc(bin); err == nil {
-			return true
-		}
-	}
-	return false
+// ---------------------------------------------------------------------------
+// Linux --yes core-tool bootstrap trust anchors (#2909 / tracker #2904,
+// finding install-deposit-02)
+// ---------------------------------------------------------------------------
+//
+// Historically EnsureCoreTools on Linux non-interactive installs bootstrapped
+// uv/task/gh by downloading unpinned install scripts (astral.sh / taskfile.dev)
+// or the *latest* gh release tarball into ~/.local/bin with TLS as the only
+// trust signal. A compromised CDN/release or MitM yielded arbitrary code under
+// the installing user. This build mirrors the CI ghx / #2908 Git-for-Windows
+// pattern: version-pinned release assets, download-to-temp, SHA-256 verify,
+// fail closed on mismatch, then extract the verified bytes into ~/.local/bin.
+// No install script is executed.
+//
+// Bumping a pin requires updating the version/tag/asset triple AND the digest
+// map entry together. Digests were captured out-of-band at pin time from the
+// GitHub release asset `digest` field and cross-checked by hashing the
+// downloaded bytes locally before commit.
+
+const (
+	// pinnedUVVersion is the astral-sh/uv release tag (no leading "v").
+	pinnedUVVersion = "0.12.0"
+
+	// pinnedTaskVersion / pinnedTaskTag are the go-task/task release coordinates.
+	pinnedTaskVersion = "3.52.0"
+	pinnedTaskTag     = "v3.52.0"
+
+	// pinnedGhVersion / pinnedGhTag are the cli/cli release coordinates.
+	pinnedGhVersion = "2.96.0"
+	pinnedGhTag     = "v2.96.0"
+)
+
+// pinnedUVSHA256 maps GOARCH -> lowercase hex SHA-256 of the pinned uv
+// linux-gnu (amd64/arm64) or linux-musleabihf (arm) release tarball. Vars (not
+// consts) so fail-closed unit tests can substitute a digest for fixture bytes;
+// production never mutates these maps.
+var pinnedUVSHA256 = map[string]string{
+	"amd64": "eaf842262aa1c418d8ecc5605f02ee1ebfd369124fa48548e85f9481a47831a9", // uv-x86_64-unknown-linux-gnu.tar.gz @ 0.12.0
+	"arm64": "2c5d6e3092cc5223b10ff403880cc75121bf64e84644e7a0c69f643b0d89ac95", // uv-aarch64-unknown-linux-gnu.tar.gz @ 0.12.0
+	"arm":   "b5879d87fe1fd7a3c8fb27346339222acc5628000002024e7f4d114f1e67a55d", // uv-arm-unknown-linux-musleabihf.tar.gz @ 0.12.0
 }
 
-// linuxBootstrapArch maps runtime.GOARCH to the architecture token used by
-// upstream gh/task release asset names.
-func linuxBootstrapArch(goarch string) (string, bool) {
-	switch goarch {
-	case "amd64":
-		return "amd64", true
-	case "arm64":
-		return "arm64", true
-	case "arm":
-		return "armv6", true
-	default:
-		return "", false
-	}
+// pinnedTaskSHA256 maps GOARCH -> SHA-256 of task_linux_<arch>.tar.gz @ pinnedTaskTag.
+var pinnedTaskSHA256 = map[string]string{
+	"amd64": "02c679ffae53dca791804847d78b31731615894e292948397c971c87ac9e95bd",
+	"arm64": "7e0044108830cec0534577b289564e3b7c83e6df276feb631a1edc63d04e4ebe",
+	"arm":   "7a0159a45b9c472a69062562d36c4ddc521a6e40ed272f4bf367c20b43e6ee1c",
+}
+
+// pinnedGhSHA256 maps GOARCH -> SHA-256 of gh_<ver>_linux_<assetArch>.tar.gz @ pinnedGhTag.
+var pinnedGhSHA256 = map[string]string{
+	"amd64": "83d5c2ccad5498f58bf6368acb1ab32588cf43ab3a4b1c301bf36328b1c8bd60",
+	"arm64": "06f86ec7103d41993b76cd78072f43595c34aaa56506d971d9860e67140bf909",
+	"arm":   "14ff25ec64823415086214fb05b3e85aef21deba6a8d723a7ef8ead1cb977826", // armv6 asset
+}
+
+// goarchForCoreTools is the architecture gate for Linux bootstrap asset
+// selection. Tests override it to exercise pin maps without depending on the
+// host GOARCH.
+var goarchForCoreTools = func() string { return runtime.GOARCH }
+
+// fetchLinuxBootstrapURLFunc downloads a URL to a unique temp path. Tests
+// replace it so fail-closed digest checks never hit the network.
+var fetchLinuxBootstrapURLFunc = fetchLinuxBootstrapURL
+
+// extractTarGzBinariesFunc extracts named regular-file members from a .tar.gz
+// into destDir. Tests may replace it to assert it is NOT called on mismatch.
+var extractTarGzBinariesFunc = extractTarGzBinaries
+
+// linuxBootstrapArchSupported reports whether goarch has pinned digests for
+// uv, task, and gh under this build.
+func linuxBootstrapArchSupported(goarch string) bool {
+	_, okUV := pinnedUVSHA256[goarch]
+	_, okTask := pinnedTaskSHA256[goarch]
+	_, okGh := pinnedGhSHA256[goarch]
+	return okUV && okTask && okGh
 }
 
 // bootstrapLinuxCoreTools installs missing doctor-required tools into
-// ~/.local/bin using portable, non-root scripts/downloads (#1538).
+// ~/.local/bin using version-pinned, SHA-256-verified release tarballs
+// (#1538 + #2909). No upstream install script is executed.
 func bootstrapLinuxCoreTools(w *Wizard, missing []string) error {
-	if !linuxBootstrapFetcherAvailable() {
-		return &ErrCoreToolsBootstrap{
-			Missing: missing,
-			Detail:  "no supported fetcher on PATH (need curl or wget for portable Linux bootstrap)",
-		}
-	}
 	if _, err := os.UserHomeDir(); err != nil {
 		return &ErrCoreToolsBootstrap{
 			Missing: missing,
@@ -1407,11 +1456,11 @@ func bootstrapLinuxCoreTools(w *Wizard, missing []string) error {
 			Detail:  fmt.Sprintf("cannot prepare ~/.local/bin: %v", err),
 		}
 	}
-	arch, ok := linuxBootstrapArch(runtime.GOARCH)
-	if !ok {
+	arch := goarchForCoreTools()
+	if !linuxBootstrapArchSupported(arch) {
 		return &ErrCoreToolsBootstrap{
 			Missing: missing,
-			Detail:  fmt.Sprintf("unsupported Linux architecture %q for portable bootstrap", runtime.GOARCH),
+			Detail:  fmt.Sprintf("unsupported Linux architecture %q for pinned portable bootstrap", arch),
 		}
 	}
 	for _, tool := range missing {
@@ -1422,7 +1471,7 @@ func bootstrapLinuxCoreTools(w *Wizard, missing []string) error {
 		case "task":
 			err = installTaskLinux(w)
 		case "gh":
-			err = installGhLinux(w, arch)
+			err = installGhLinux(w)
 		default:
 			continue
 		}
@@ -1436,46 +1485,285 @@ func bootstrapLinuxCoreTools(w *Wizard, missing []string) error {
 	return nil
 }
 
+// linuxBootstrapAsset describes one pinned release tarball and the binaries to
+// extract from it after SHA-256 verification.
+type linuxBootstrapAsset struct {
+	Tool     string
+	Version  string
+	URL      string
+	SHA256   string
+	Binaries []string // basenames required inside the tarball
+}
+
+func pinnedUVAsset(goarch string) (linuxBootstrapAsset, error) {
+	sum, ok := pinnedUVSHA256[goarch]
+	if !ok || sum == "" {
+		return linuxBootstrapAsset{}, fmt.Errorf("no pinned uv digest for GOARCH %q", goarch)
+	}
+	var triple string
+	switch goarch {
+	case "amd64":
+		triple = "x86_64-unknown-linux-gnu"
+	case "arm64":
+		triple = "aarch64-unknown-linux-gnu"
+	case "arm":
+		// armv6/armv7 hosts: musleabihf build is the upstream portable asset.
+		triple = "arm-unknown-linux-musleabihf"
+	default:
+		return linuxBootstrapAsset{}, fmt.Errorf("unsupported uv GOARCH %q", goarch)
+	}
+	asset := fmt.Sprintf("uv-%s.tar.gz", triple)
+	return linuxBootstrapAsset{
+		Tool:     "uv",
+		Version:  pinnedUVVersion,
+		URL:      fmt.Sprintf("https://github.com/astral-sh/uv/releases/download/%s/%s", pinnedUVVersion, asset),
+		SHA256:   sum,
+		Binaries: []string{"uv"},
+	}, nil
+}
+
+func pinnedTaskAsset(goarch string) (linuxBootstrapAsset, error) {
+	sum, ok := pinnedTaskSHA256[goarch]
+	if !ok || sum == "" {
+		return linuxBootstrapAsset{}, fmt.Errorf("no pinned task digest for GOARCH %q", goarch)
+	}
+	var assetArch string
+	switch goarch {
+	case "amd64", "arm64", "arm":
+		assetArch = goarch
+	default:
+		return linuxBootstrapAsset{}, fmt.Errorf("unsupported task GOARCH %q", goarch)
+	}
+	asset := fmt.Sprintf("task_linux_%s.tar.gz", assetArch)
+	return linuxBootstrapAsset{
+		Tool:     "task",
+		Version:  pinnedTaskVersion,
+		URL:      fmt.Sprintf("https://github.com/go-task/task/releases/download/%s/%s", pinnedTaskTag, asset),
+		SHA256:   sum,
+		Binaries: []string{"task"},
+	}, nil
+}
+
+func pinnedGhAsset(goarch string) (linuxBootstrapAsset, error) {
+	sum, ok := pinnedGhSHA256[goarch]
+	if !ok || sum == "" {
+		return linuxBootstrapAsset{}, fmt.Errorf("no pinned gh digest for GOARCH %q", goarch)
+	}
+	var assetArch string
+	switch goarch {
+	case "amd64", "arm64":
+		assetArch = goarch
+	case "arm":
+		// cli/cli ships arm hosts as armv6.
+		assetArch = "armv6"
+	default:
+		return linuxBootstrapAsset{}, fmt.Errorf("unsupported gh GOARCH %q", goarch)
+	}
+	asset := fmt.Sprintf("gh_%s_linux_%s.tar.gz", pinnedGhVersion, assetArch)
+	return linuxBootstrapAsset{
+		Tool:     "gh",
+		Version:  pinnedGhVersion,
+		URL:      fmt.Sprintf("https://github.com/cli/cli/releases/download/%s/%s", pinnedGhTag, asset),
+		SHA256:   sum,
+		Binaries: []string{"gh"},
+	}, nil
+}
+
+// installPinnedLinuxTool downloads the pinned asset, verifies SHA-256 fail-closed,
+// and extracts the required binaries into ~/.local/bin (#2909).
+func installPinnedLinuxTool(w *Wizard, asset linuxBootstrapAsset) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	destDir := filepath.Join(home, ".local", "bin")
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		return fmt.Errorf("prepare %s: %w", destDir, err)
+	}
+
+	w.printf("  Downloading pinned %s %s ...\n", asset.Tool, asset.Version)
+	tmpPath, err := fetchLinuxBootstrapURLFunc(w, asset.URL)
+	if err != nil {
+		return err
+	}
+	// Always remove the tarball -- success and every fail-closed branch -- so a
+	// rejected (potentially tampered) archive is never left on disk.
+	defer os.Remove(tmpPath)
+
+	// FAIL-CLOSED trust gate (#2909): verify BEFORE extract/install. A MitM or
+	// compromised release asset changes the digest and is refused here; there
+	// is no non-verified install path.
+	if err := verifyFileSHA256(tmpPath, asset.SHA256); err != nil {
+		return fmt.Errorf("refusing to install unverified %s (pinned %s): %w", asset.Tool, asset.Version, err)
+	}
+	w.printf("  Verified %s SHA-256 against pinned %s.\n", asset.Tool, asset.Version)
+
+	if err := extractTarGzBinariesFunc(tmpPath, destDir, asset.Binaries); err != nil {
+		return fmt.Errorf("extract %s: %w", asset.Tool, err)
+	}
+	w.printf("  Installed %s %s -> %s\n", asset.Tool, asset.Version, destDir)
+	return nil
+}
+
 func installUVLinux(w *Wizard) error {
-	w.printf("  Installing uv via Astral install script...\n")
-	// Download to a temp file first so a curl failure propagates to runCmdFunc.
-	// A bare `curl | sh` pipeline masks curl's exit status (POSIX uses the last
-	// command's status), which would report bootstrap success on network errors.
-	return runCmdFunc(w.out, "sh", "-c", `set -e
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
-curl -fsSL https://astral.sh/uv/install.sh -o "$tmpdir/install.sh"
-sh "$tmpdir/install.sh"`)
+	asset, err := pinnedUVAsset(goarchForCoreTools())
+	if err != nil {
+		return err
+	}
+	w.printf("  Installing uv via pinned GitHub release tarball...\n")
+	return installPinnedLinuxTool(w, asset)
 }
 
 func installTaskLinux(w *Wizard) error {
-	w.printf("  Installing task via taskfile.dev install script...\n")
-	return runCmdFunc(w.out, "sh", "-c", `set -e
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
-curl -fsSL https://taskfile.dev/install.sh -o "$tmpdir/install.sh"
-sh "$tmpdir/install.sh" -d -b "${HOME}/.local/bin"`)
+	asset, err := pinnedTaskAsset(goarchForCoreTools())
+	if err != nil {
+		return err
+	}
+	w.printf("  Installing task via pinned GitHub release tarball...\n")
+	return installPinnedLinuxTool(w, asset)
 }
 
-func installGhLinux(w *Wizard, arch string) error {
-	w.printf("  Installing gh via GitHub CLI release tarball...\n")
-	script := fmt.Sprintf(`
-set -e
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
-tag="$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-if [ -z "$tag" ]; then
-  echo "could not resolve latest gh release tag" >&2
-  exit 1
-fi
-ver="${tag#v}"
-asset="gh_${ver}_linux_%s.tar.gz"
-url="https://github.com/cli/cli/releases/download/${tag}/${asset}"
-curl -fsSL "$url" -o "$tmpdir/gh.tgz"
-tar -xzf "$tmpdir/gh.tgz" -C "$tmpdir"
-install -m 0755 "$tmpdir"/gh_*/bin/gh "${HOME}/.local/bin/gh"
-`, arch)
-	return runCmdFunc(w.out, "sh", "-c", script)
+func installGhLinux(w *Wizard) error {
+	asset, err := pinnedGhAsset(goarchForCoreTools())
+	if err != nil {
+		return err
+	}
+	w.printf("  Installing gh via pinned GitHub release tarball...\n")
+	return installPinnedLinuxTool(w, asset)
+}
+
+// fetchLinuxBootstrapURL downloads url to a unique temp file and returns its
+// path. The caller owns cleanup. On any error the partial temp file is removed
+// so a failed download never leaves an unverified archive on disk.
+func fetchLinuxBootstrapURL(w *Wizard, url string) (string, error) {
+	w.printf("  GET %s\n", url)
+	// Reuse the installer download client (transport-level timeouts + generous
+	// body-stream ceiling) so multi-MB release tarballs are not killed by the
+	// short metadata client deadline.
+	resp, err := installerDownloadClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("download failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("GET %s: HTTP %s", url, resp.Status)
+	}
+
+	f, err := os.CreateTemp(os.TempDir(), "deft-linux-bootstrap-*.tgz")
+	if err != nil {
+		return "", fmt.Errorf("could not create temp file: %w", err)
+	}
+	tmpPath := f.Name()
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		f.Close()
+		os.Remove(tmpPath)
+		return "", fmt.Errorf("download interrupted: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		os.Remove(tmpPath)
+		return "", fmt.Errorf("could not finalize download: %w", err)
+	}
+	return tmpPath, nil
+}
+
+// extractTarGzBinaries opens archivePath as a .tar.gz and writes each required
+// basename (regular files only) into destDir mode 0755. It refuses path
+// traversal in member names and fails if any required binary is missing.
+func extractTarGzBinaries(archivePath, destDir string, required []string) error {
+	need := make(map[string]bool, len(required))
+	for _, name := range required {
+		if name == "" || strings.Contains(name, "/") || strings.Contains(name, "\\") || name == "." || name == ".." {
+			return fmt.Errorf("invalid required binary name %q", name)
+		}
+		need[name] = true
+	}
+	found := make(map[string]bool, len(required))
+
+	f, err := os.Open(archivePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("gzip: %w", err)
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("tar: %w", err)
+		}
+		if hdr.Typeflag != tar.TypeReg {
+			continue
+		}
+		// Normalize member path and take the basename only -- we never recreate
+		// archive directory layout under destDir, which removes path-traversal
+		// as an install sink.
+		base := filepath.Base(filepath.Clean(filepath.FromSlash(hdr.Name)))
+		if base == "." || base == ".." || base == "/" || base == string(filepath.Separator) {
+			continue
+		}
+		if !need[base] {
+			continue
+		}
+		dest := filepath.Join(destDir, base)
+		if err := writeReaderAtomicExec(dest, tr); err != nil {
+			return fmt.Errorf("write %s: %w", base, err)
+		}
+		found[base] = true
+	}
+
+	var missing []string
+	for _, name := range required {
+		if !found[name] {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("archive missing required binaries: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+// writeReaderAtomicExec copies r to destPath via a same-dir temp file + rename
+// and sets mode 0755 on success so a partial extract never leaves a truncated
+// executable on PATH.
+func writeReaderAtomicExec(destPath string, r io.Reader) error {
+	dir := filepath.Dir(destPath)
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(destPath)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	cleaned := false
+	defer func() {
+		if !cleaned {
+			os.Remove(tmpPath)
+		}
+	}()
+	if _, err := io.Copy(tmp, r); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(0o755); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, destPath); err != nil {
+		return err
+	}
+	cleaned = true
+	return nil
 }
 
 type maintainerToolStatus struct {

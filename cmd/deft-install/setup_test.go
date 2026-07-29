@@ -1,7 +1,11 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -1478,39 +1482,350 @@ func TestPrependLinuxLocalBin_PrependsHomeLocalBin(t *testing.T) {
 	}
 }
 
-// TestInstallTaskLinux_PassesInstallerFlagsDirectly pins the go-task installer
-// invocation that the Linux CI path exercises. The downloaded installer expects
-// its own flags directly; passing the shell-style "-s --" sentinel makes it exit
-// with "Illegal option -s" (#1538 CI follow-up).
-func TestInstallTaskLinux_PassesInstallerFlagsDirectly(t *testing.T) {
-	origRun := runCmdFunc
-	defer func() { runCmdFunc = origRun }()
+// ---------------------------------------------------------------------------
+// #2909 -- pin + SHA-256 verify Linux --yes uv/task/gh bootstrap
+// (tracker #2904, finding install-deposit-02)
+// ---------------------------------------------------------------------------
 
-	var gotName string
-	var gotArgs []string
-	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		gotName = name
-		gotArgs = append([]string{}, args...)
+func TestPinnedLinuxBootstrapDigests_WellFormed(t *testing.T) {
+	check := func(tool, arch, got string) {
+		t.Helper()
+		if len(got) != 64 {
+			t.Fatalf("%s/%s pinned SHA-256 must be 64 hex chars, got %d (%q)", tool, arch, len(got), got)
+		}
+		if strings.HasPrefix(got, "sha256:") {
+			t.Fatalf("%s/%s pinned SHA-256 must not carry a sha256: prefix: %q", tool, arch, got)
+		}
+		if _, err := hex.DecodeString(got); err != nil {
+			t.Fatalf("%s/%s pinned SHA-256 is not valid hex: %v", tool, arch, err)
+		}
+		if got != strings.ToLower(got) {
+			t.Errorf("%s/%s pinned SHA-256 should be lowercase: %q", tool, arch, got)
+		}
+	}
+	for arch, sum := range pinnedUVSHA256 {
+		check("uv", arch, sum)
+	}
+	for arch, sum := range pinnedTaskSHA256 {
+		check("task", arch, sum)
+	}
+	for arch, sum := range pinnedGhSHA256 {
+		check("gh", arch, sum)
+	}
+	for _, arch := range []string{"amd64", "arm64", "arm"} {
+		if !linuxBootstrapArchSupported(arch) {
+			t.Errorf("expected pinned support for GOARCH %q", arch)
+		}
+	}
+	if linuxBootstrapArchSupported("mips") {
+		t.Error("mips must not be reported as a supported bootstrap arch")
+	}
+}
+
+func TestPinnedLinuxBootstrapAssets_URLAndVersionConsistent(t *testing.T) {
+	origArch := goarchForCoreTools
+	defer func() { goarchForCoreTools = origArch }()
+
+	for _, arch := range []string{"amd64", "arm64", "arm"} {
+		goarchForCoreTools = func() string { return arch }
+
+		uvAsset, err := pinnedUVAsset(arch)
+		if err != nil {
+			t.Fatalf("pinnedUVAsset(%s): %v", arch, err)
+		}
+		if uvAsset.Version != pinnedUVVersion {
+			t.Errorf("uv version = %q, want %q", uvAsset.Version, pinnedUVVersion)
+		}
+		if !strings.Contains(uvAsset.URL, "/download/"+pinnedUVVersion+"/") {
+			t.Errorf("uv URL must embed pinned version, got %s", uvAsset.URL)
+		}
+		if strings.Contains(uvAsset.URL, "latest") {
+			t.Errorf("uv URL must not use latest: %s", uvAsset.URL)
+		}
+		if uvAsset.SHA256 != pinnedUVSHA256[arch] {
+			t.Errorf("uv digest mismatch for %s", arch)
+		}
+
+		taskAsset, err := pinnedTaskAsset(arch)
+		if err != nil {
+			t.Fatalf("pinnedTaskAsset(%s): %v", arch, err)
+		}
+		if taskAsset.Version != pinnedTaskVersion {
+			t.Errorf("task version = %q, want %q", taskAsset.Version, pinnedTaskVersion)
+		}
+		if !strings.Contains(taskAsset.URL, "/download/"+pinnedTaskTag+"/") {
+			t.Errorf("task URL must embed pinned tag, got %s", taskAsset.URL)
+		}
+		if strings.Contains(taskAsset.URL, "latest") {
+			t.Errorf("task URL must not use latest: %s", taskAsset.URL)
+		}
+
+		ghAsset, err := pinnedGhAsset(arch)
+		if err != nil {
+			t.Fatalf("pinnedGhAsset(%s): %v", arch, err)
+		}
+		if ghAsset.Version != pinnedGhVersion {
+			t.Errorf("gh version = %q, want %q", ghAsset.Version, pinnedGhVersion)
+		}
+		if !strings.Contains(ghAsset.URL, "/download/"+pinnedGhTag+"/") {
+			t.Errorf("gh URL must embed pinned tag, got %s", ghAsset.URL)
+		}
+		if strings.Contains(ghAsset.URL, "latest") {
+			t.Errorf("gh URL must not use latest: %s", ghAsset.URL)
+		}
+		if arch == "arm" && !strings.Contains(ghAsset.URL, "_armv6.tar.gz") {
+			t.Errorf("gh arm asset must use armv6 name, got %s", ghAsset.URL)
+		}
+	}
+}
+
+// TestInstallPinnedLinuxTool_FailClosedOnDigestMismatch is the core #2909
+// security contract: mismatched bytes must not be extracted/installed, and the
+// rejected temp archive must be removed.
+func TestInstallPinnedLinuxTool_FailClosedOnDigestMismatch(t *testing.T) {
+	origFetch := fetchLinuxBootstrapURLFunc
+	origExtract := extractTarGzBinariesFunc
+	defer func() {
+		fetchLinuxBootstrapURLFunc = origFetch
+		extractTarGzBinariesFunc = origExtract
+	}()
+
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, "tampered.tgz")
+	if err := os.WriteFile(tmpPath, []byte("MALICIOUS or corrupted bootstrap archive"), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	fetchLinuxBootstrapURLFunc = func(w *Wizard, url string) (string, error) {
+		return tmpPath, nil
+	}
+	extracted := false
+	extractTarGzBinariesFunc = func(archivePath, destDir string, required []string) error {
+		extracted = true
 		return nil
 	}
 
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	// UserHomeDir on some platforms also consults USERPROFILE; set both.
+	t.Setenv("USERPROFILE", home)
+
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	err := installPinnedLinuxTool(w, linuxBootstrapAsset{
+		Tool:     "task",
+		Version:  pinnedTaskVersion,
+		URL:      "https://example.invalid/task.tgz",
+		SHA256:   pinnedTaskSHA256["amd64"], // will not match fixture bytes
+		Binaries: []string{"task"},
+	})
+	if err == nil {
+		t.Fatal("expected fail-closed error on digest mismatch, got nil")
+	}
+	if !strings.Contains(err.Error(), "refusing to install unverified") && !strings.Contains(err.Error(), "mismatch") {
+		t.Errorf("expected refusal/mismatch error, got: %v", err)
+	}
+	if extracted {
+		t.Fatal("SECURITY: extract/install ran despite SHA-256 mismatch")
+	}
+	if _, statErr := os.Stat(tmpPath); !os.IsNotExist(statErr) {
+		t.Errorf("rejected bootstrap temp file should be removed, stat err = %v", statErr)
+	}
+	// Dest must not contain a planted binary either.
+	if _, err := os.Stat(filepath.Join(home, ".local", "bin", "task")); err == nil {
+		t.Fatal("SECURITY: task binary present under ~/.local/bin after mismatch")
+	}
+}
+
+// TestInstallPinnedLinuxTool_InstallsOnDigestMatch verifies the happy path:
+// matching digest allows extract, and the temp archive is cleaned up.
+func TestInstallPinnedLinuxTool_InstallsOnDigestMatch(t *testing.T) {
+	origFetch := fetchLinuxBootstrapURLFunc
+	origExtract := extractTarGzBinariesFunc
+	defer func() {
+		fetchLinuxBootstrapURLFunc = origFetch
+		extractTarGzBinariesFunc = origExtract
+	}()
+
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, "good.tgz")
+	content := []byte("verified good bootstrap archive bytes")
+	if err := os.WriteFile(tmpPath, content, 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	sum := sha256.Sum256(content)
+	wantHex := hex.EncodeToString(sum[:])
+
+	fetchLinuxBootstrapURLFunc = func(w *Wizard, url string) (string, error) {
+		return tmpPath, nil
+	}
+	var gotArchive, gotDest string
+	var gotRequired []string
+	extractTarGzBinariesFunc = func(archivePath, destDir string, required []string) error {
+		gotArchive = archivePath
+		gotDest = destDir
+		gotRequired = append([]string{}, required...)
+		return nil
+	}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	w := NewWizardWithLayout(strings.NewReader(""), &bytes.Buffer{}, false, false)
+	if err := installPinnedLinuxTool(w, linuxBootstrapAsset{
+		Tool:     "uv",
+		Version:  pinnedUVVersion,
+		URL:      "https://example.invalid/uv.tgz",
+		SHA256:   wantHex,
+		Binaries: []string{"uv"},
+	}); err != nil {
+		t.Fatalf("expected success on digest match, got: %v", err)
+	}
+	if gotArchive != tmpPath {
+		t.Errorf("extract archive = %q, want %q", gotArchive, tmpPath)
+	}
+	wantDest := filepath.Join(home, ".local", "bin")
+	if gotDest != wantDest {
+		t.Errorf("extract dest = %q, want %q", gotDest, wantDest)
+	}
+	if len(gotRequired) != 1 || gotRequired[0] != "uv" {
+		t.Errorf("extract required = %v, want [uv]", gotRequired)
+	}
+	if _, statErr := os.Stat(tmpPath); !os.IsNotExist(statErr) {
+		t.Errorf("bootstrap temp file should be removed after install, stat err = %v", statErr)
+	}
+}
+
+// TestExtractTarGzBinaries_ExtractsRequiredAndIgnoresOthers covers the pure-Go
+// extractor used after digest verification.
+func TestExtractTarGzBinaries_ExtractsRequiredAndIgnoresOthers(t *testing.T) {
+	archivePath := writeTestTarGz(t, map[string]string{
+		"prefix/bin/task": "#!/bin/sh\necho task\n",
+		"README.md":       "docs\n",
+		"prefix/bin/extra": "nope\n",
+	})
+	dest := t.TempDir()
+	if err := extractTarGzBinaries(archivePath, dest, []string{"task"}); err != nil {
+		t.Fatalf("extractTarGzBinaries: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(dest, "task"))
+	if err != nil {
+		t.Fatalf("read extracted task: %v", err)
+	}
+	if string(got) != "#!/bin/sh\necho task\n" {
+		t.Errorf("task contents = %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(dest, "extra")); err == nil {
+		t.Fatal("non-required binary must not be extracted")
+	}
+	if _, err := os.Stat(filepath.Join(dest, "README.md")); err == nil {
+		t.Fatal("non-required member must not be extracted")
+	}
+}
+
+func TestExtractTarGzBinaries_MissingRequiredFails(t *testing.T) {
+	archivePath := writeTestTarGz(t, map[string]string{
+		"README.md": "docs only\n",
+	})
+	err := extractTarGzBinaries(archivePath, t.TempDir(), []string{"gh"})
+	if err == nil {
+		t.Fatal("expected missing-binary error")
+	}
+	if !strings.Contains(err.Error(), "missing required binaries") {
+		t.Errorf("expected missing binaries error, got: %v", err)
+	}
+}
+
+// TestInstallTaskLinux_UsesPinnedAssetAndVerifies wires installTaskLinux through
+// the pin helper and asserts the resolved URL is version-pinned (not latest)
+// and that extract only runs after a matching digest.
+func TestInstallTaskLinux_UsesPinnedAssetAndVerifies(t *testing.T) {
+	origArch := goarchForCoreTools
+	origFetch := fetchLinuxBootstrapURLFunc
+	origExtract := extractTarGzBinariesFunc
+	origTaskSum := pinnedTaskSHA256["amd64"]
+	defer func() {
+		goarchForCoreTools = origArch
+		fetchLinuxBootstrapURLFunc = origFetch
+		extractTarGzBinariesFunc = origExtract
+		pinnedTaskSHA256["amd64"] = origTaskSum
+	}()
+
+	goarchForCoreTools = func() string { return "amd64" }
+
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, "task.tgz")
+	content := []byte("task pin fixture")
+	if err := os.WriteFile(tmpPath, content, 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	sum := sha256.Sum256(content)
+	pinnedTaskSHA256["amd64"] = hex.EncodeToString(sum[:])
+
+	var fetchedURL string
+	fetchLinuxBootstrapURLFunc = func(w *Wizard, url string) (string, error) {
+		fetchedURL = url
+		return tmpPath, nil
+	}
+	extractCalled := false
+	extractTarGzBinariesFunc = func(archivePath, destDir string, required []string) error {
+		extractCalled = true
+		return nil
+	}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
 	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
 	if err := installTaskLinux(w); err != nil {
-		t.Fatalf("installTaskLinux returned error: %v", err)
+		t.Fatalf("installTaskLinux: %v", err)
 	}
-	if gotName != "sh" {
-		t.Fatalf("run command name = %q, want sh", gotName)
+	wantURL := "https://github.com/go-task/task/releases/download/" + pinnedTaskTag + "/task_linux_amd64.tar.gz"
+	if fetchedURL != wantURL {
+		t.Errorf("fetched URL = %q, want %q", fetchedURL, wantURL)
 	}
-	if len(gotArgs) != 2 || gotArgs[0] != "-c" {
-		t.Fatalf("run command args = %v, want [-c <script>]", gotArgs)
+	if strings.Contains(fetchedURL, "latest") || strings.Contains(fetchedURL, "taskfile.dev/install.sh") {
+		t.Errorf("must not use unpinned install script/latest URL: %s", fetchedURL)
 	}
-	script := gotArgs[1]
-	if strings.Contains(script, "-s --") {
-		t.Fatalf("task installer script still contains invalid shell sentinel -s --:\n%s", script)
+	if !extractCalled {
+		t.Fatal("expected extract after successful digest verify")
 	}
-	if !strings.Contains(script, `sh "$tmpdir/install.sh" -d -b "${HOME}/.local/bin"`) {
-		t.Fatalf("task installer script missing direct flag invocation; got:\n%s", script)
+}
+
+func writeTestTarGz(t *testing.T, files map[string]string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "fixture.tgz")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
 	}
+	gz := gzip.NewWriter(f)
+	tw := tar.NewWriter(gz)
+	for name, body := range files {
+		hdr := &tar.Header{
+			Name:     name,
+			Mode:     0o755,
+			Size:     int64(len(body)),
+			Typeflag: tar.TypeReg,
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := io.WriteString(tw, body); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
 
 // TestEnsureTaskfile_PreservesExistingIncludes covers the Greptile P1 fix:
