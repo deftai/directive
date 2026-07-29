@@ -167,7 +167,23 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
       backup = await mkdtemp(join(tmpdir(), "deft-core-bak-"));
       // mkdtemp created an empty dir; remove it so moveTree can rename onto the path.
       await rm(backup, { recursive: true, force: true });
-      await moveTree(dst, backup);
+      try {
+        await moveTree(dst, backup);
+      } catch (asideErr) {
+        // Greptile P1: moveTree may fall back to copy+remove. If removal fails after a
+        // successful copy (or after a partial delete of dst), `backup` is the only full
+        // recovery copy while dst may already be damaged. Do NOT let `finally` delete it.
+        if (await pathExists(backup)) {
+          preserveBackupOnExit = true;
+        } else {
+          backup = null;
+        }
+        const asideMsg = asideErr instanceof Error ? asideErr.message : String(asideErr);
+        throw new Error(
+          `replaceTree: failed to move existing destination aside (${asideMsg})` +
+            (backup ? ` — recovery copy at ${backup}` : ""),
+        );
+      }
     }
 
     try {
@@ -194,10 +210,13 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
         ? err
         : new Error(`replaceTree: install new payload failed: ${String(err)}`);
     }
-    // Successful install — drop the backup (Go keeps it for operator rollback;
-    // the npm path does not surface a backup path today and must not litter TEMP).
+    // Successful install — best-effort drop the backup (Go keeps it for operator
+    // rollback; the npm path does not surface a backup path today and must not
+    // litter TEMP). Cleanup MUST NOT fail the replace: the new payload is already
+    // live at `dst`. A thrown rm here would reject replaceTree and skip the
+    // VERSION stamp in runRefreshDeposit → version drift (Greptile P1).
     if (backup !== null) {
-      await rm(backup, { recursive: true, force: true });
+      await rm(backup, { recursive: true, force: true }).catch(() => undefined);
       backup = null;
     }
   } finally {
