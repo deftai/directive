@@ -40,6 +40,8 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 
 **Category fit:** Directive is a **repo practice layer** (standards + durable work state + gates) — not a coding host, not only a skill pack, and not an app orchestrator. See **[docs/CATEGORY.md](./docs/CATEGORY.md)** before you compare substitutes by star count.
 
+**📚 Public docs:** [https://deftai.github.io/directive/](https://deftai.github.io/directive/) — install, concepts A/B/C, gates, upgrade, and license (standalone home for #2906; `deft.md` DNS cutover is an operator follow-up).
+
 **📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
 
 ## Deft & Directive (naming)
@@ -311,6 +313,7 @@ Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-t
 
 ## 📚 Learn More
 
+- **[Public docs site](https://deftai.github.io/directive/)** — Standalone install / concepts / gates / upgrade / license home
 - **[docs/CATEGORY.md](./docs/CATEGORY.md)** — Category decision aid: hosts vs skill packs vs practice layer vs orchestrators
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — Current Taskfile-first architecture, rule authority, vBRIEF state, installer layout, and codeStructure projection boundary
 - **[docs/CONCEPTS.md](./docs/CONCEPTS.md)** — Current operating concepts: vBRIEF source of truth, deterministic gates, cache-backed triage, lifecycle folders, and projections

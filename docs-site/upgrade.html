@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Upgrade — Directive</title>
+    <meta
+      name="description"
+      content="Upgrade an existing Directive project with npm and directive update."
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap inner">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>Directive</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="index.html">What it is</a>
+          <a href="install.html">Install</a>
+          <a href="concepts.html">Concepts</a>
+          <a href="gates.html">Gates</a>
+          <a href="upgrade.html" aria-current="page">Upgrade</a>
+          <a href="license.html">License</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="meta-row">
+          <span class="badge">Upgrade</span>
+          <a class="badge" href="https://www.npmjs.com/package/@deftai/directive">
+            <img
+              src="https://img.shields.io/npm/v/@deftai/directive?label=npm"
+              alt="npm version for @deftai/directive"
+            />
+          </a>
+        </div>
+        <h1>Upgrade</h1>
+        <p class="lede">
+          Ordinary upgrades are two steps: refresh the global engine, then run
+          <code>directive update</code> in the project. Use
+          <code>doctor</code> when the path is unclear.
+        </p>
+      </section>
+
+      <h2>Canonical path (npm)</h2>
+      <ol class="steps">
+        <li>
+          <strong>Upgrade the global engine</strong>
+          <pre><code>npm i -g @deftai/directive@latest</code></pre>
+          <p class="muted" style="margin: 0.6rem 0 0">
+            pnpm: <code>pnpm add -g @deftai/directive@latest</code>
+          </p>
+        </li>
+        <li>
+          <strong>Refresh the project deposit</strong>
+          <pre><code>cd /path/to/your-project
+directive update
+directive doctor</code></pre>
+        </li>
+        <li>
+          <strong>Start a new agent session</strong>
+          <p style="margin: 0.35rem 0 0">
+            After a framework update, open a fresh agent session so
+            <code>AGENTS.md</code> and skills are not stale mid-context.
+          </p>
+        </li>
+      </ol>
+
+      <h2>Which command when</h2>
+      <ul>
+        <li><strong>Ordinary upgrade</strong> → <code>directive update</code> after npm latest.</li>
+        <li><strong>Not sure / looks broken</strong> → <code>directive doctor</code> (read-only; one next step).</li>
+        <li><strong>First adoption or legacy layout</strong> → <code>directive init</code> (classifies and routes).</li>
+      </ul>
+
+      <p class="note warn">
+        Multi-version “big jumps”, frozen pre-v0.20 document-model migration,
+        corporate registry lag, and legacy Go-installer bridges are documented in
+        <a href="https://github.com/deftai/directive/blob/master/content/UPGRADING.md"
+          >content/UPGRADING.md</a
+        >. Do not invent a third upgrade tool when doctor already names the next
+        command.
+      </p>
+
+      <h2>Version badge</h2>
+      <p>
+        Public version truth is the published npm package and GitHub releases —
+        not the <code>0.0.0</code> placeholders inside the monorepo source tree
+        (those are stamped at release time).
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap inner">
+        <span><a href="gates.html">← Gates</a></span>
+        <span><a href="license.html">License →</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

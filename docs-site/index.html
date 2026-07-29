@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Directive — AI-assisted development framework</title>
+    <meta
+      name="description"
+      content="Directive is Deft's Taskfile-first framework for AI-assisted software work: layered standards, durable xBRIEF scope state, and deterministic gates."
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap inner">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>Directive</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="index.html" aria-current="page">What it is</a>
+          <a href="install.html">Install</a>
+          <a href="concepts.html">Concepts</a>
+          <a href="gates.html">Gates</a>
+          <a href="upgrade.html">Upgrade</a>
+          <a href="license.html">License</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="meta-row">
+          <span class="badge">Public docs</span>
+          <a
+            class="badge"
+            href="https://www.npmjs.com/package/@deftai/directive"
+            title="Published npm package version"
+          >
+            <img
+              src="https://img.shields.io/npm/v/@deftai/directive?label=npm"
+              alt="npm version for @deftai/directive"
+            />
+          </a>
+          <a
+            class="badge"
+            href="https://github.com/deftai/directive/releases"
+            title="GitHub releases"
+          >
+            <img
+              src="https://img.shields.io/github/v/release/deftai/directive?label=release"
+              alt="Latest GitHub release"
+            />
+          </a>
+        </div>
+        <h1>Directive — one-shot, anti-slop development with agents</h1>
+        <p class="lede">
+          <strong>Deft</strong> is the company and on-disk footprint.
+          <strong>Directive</strong> is the product: a layered framework of
+          standards, skills, and deterministic <code>task</code> tooling so
+          AI-assisted coding stays consistent, auditable, and upgradeable.
+        </p>
+        <p class="lede">
+          Start with three commands —
+          <a href="install.html"><code>init</code> · <code>update</code> · <code>doctor</code></a>
+          — then learn the
+          <a href="concepts.html">A / B / C concepts</a>,
+          <a href="gates.html">quality gates</a>, and
+          <a href="upgrade.html">upgrade path</a>.
+        </p>
+      </section>
+
+      <h2>What it is</h2>
+      <p>
+        Directive is a <strong>repo practice layer</strong>: shared standards,
+        durable work state, and hard gates in the git tree. It is not a coding
+        host, not only a skill pack, and not an app orchestrator. Read the
+        four-way map in
+        <a href="https://github.com/deftai/directive/blob/master/docs/CATEGORY.md"
+          >docs/CATEGORY.md</a
+        >
+        before you compare tools by star count.
+      </p>
+      <p>
+        In practice it turns agent work from chat-only habits into a repeatable
+        loop:
+      </p>
+      <ul>
+        <li>Layered guidance agents load only when needed (not one giant prompt).</li>
+        <li>Durable project and scope state in xBRIEF JSON instead of lost chat memory.</li>
+        <li>Deterministic gates (<code>task check</code>, doctor, hooks, CI) instead of “remember to verify” prose.</li>
+      </ul>
+      <p class="muted">
+        This site is the public home for install and concepts. Deep detail still
+        lives in the
+        <a href="https://github.com/deftai/directive">GitHub repository</a>
+        (contributor source of truth). No traction or adoption metrics are
+        claimed here beyond what the public repo and npm package show.
+      </p>
+
+      <div class="grid-3">
+        <article class="card">
+          <div class="letter">A</div>
+          <h3>Standards that stick</h3>
+          <p>
+            USER.md, project definition, language files, and <code>main.md</code>
+            cascade so agents stop re-learning your preferences every session.
+          </p>
+        </article>
+        <article class="card">
+          <div class="letter">B</div>
+          <h3>Scope you can audit</h3>
+          <p>
+            Work moves through xBRIEF lifecycle folders
+            (<code>proposed → pending → active → completed</code>
+            with explicit promote / activate / complete verbs.
+          </p>
+        </article>
+        <article class="card">
+          <div class="letter">C</div>
+          <h3>Gates that enforce</h3>
+          <p>
+            <code>task check</code>, branch policy, encoding, and story preflight
+            keep quality out of fragile narrative-only rules.
+          </p>
+        </article>
+      </div>
+
+      <h2>Three-command model</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Situation</th>
+            <th>Command</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>New or existing codebase, first Directive setup</td>
+            <td><code>directive init</code></td>
+          </tr>
+          <tr>
+            <td>Already on Directive; refresh the deposit / engine</td>
+            <td><code>directive update</code></td>
+          </tr>
+          <tr>
+            <td>Not sure, or something looks broken</td>
+            <td><code>directive doctor</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="note">
+        Canonical install is npm: <code>npm i -g @deftai/directive</code>
+        (Node ≥ 20). The <code>deft</code> CLI name remains an alias for
+        <code>directive</code>. Details:
+        <a href="install.html">Install</a>.
+      </p>
+
+      <h2>Next</h2>
+      <ul>
+        <li><a href="install.html">Install in three commands</a></li>
+        <li><a href="concepts.html">Concepts A / B / C</a></li>
+        <li><a href="https://github.com/deftai/directive/blob/master/README.md">Full README on GitHub</a></li>
+      </ul>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap inner">
+        <span>
+          © 2025–2026 Jonathan "visionik" Taylor ·
+          <a href="license.html">MIT License</a>
+        </span>
+        <span>
+          <a href="https://github.com/deftai/directive">github.com/deftai/directive</a>
+          · hosted on GitHub Pages
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

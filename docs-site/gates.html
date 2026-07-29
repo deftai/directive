@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gates — Directive</title>
+    <meta
+      name="description"
+      content="Directive quality gates: doctor, task check, story preflight, and branch policy."
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap inner">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>Directive</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="index.html">What it is</a>
+          <a href="install.html">Install</a>
+          <a href="concepts.html">Concepts</a>
+          <a href="gates.html" aria-current="page">Gates</a>
+          <a href="upgrade.html">Upgrade</a>
+          <a href="license.html">License</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="meta-row">
+          <span class="badge">Gates</span>
+        </div>
+        <h1>Quality gates</h1>
+        <p class="lede">
+          Directive prefers enforceable checks over “please remember” guidance.
+          Use narrow gates while iterating; run the full merge gate before a PR.
+        </p>
+      </section>
+
+      <h2>Everyday gates</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Gate</th>
+            <th>What it answers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>directive doctor</code></td>
+            <td>Is the install / deposit healthy? What is the single next command?</td>
+          </tr>
+          <tr>
+            <td><code>task check</code></td>
+            <td>Is this change merge-ready for the framework (or consumer include)?</td>
+          </tr>
+          <tr>
+            <td><code>task xbrief:preflight -- <path></code></td>
+            <td>Is this scope brief activated and ready before code edits?</td>
+          </tr>
+          <tr>
+            <td><code>task verify:branch</code></td>
+            <td>Are we on a feature branch when policy requires it?</td>
+          </tr>
+          <tr>
+            <td><code>task verify:encoding</code></td>
+            <td>Did non-ASCII content survive edits without mojibake?</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Merge chokepoint vs iteration lane</h2>
+      <p>
+        Every change must pass the full gate at least once before merge. While
+        iterating, prefer affected tests and focused <code>verify:*</code>
+        targets. Before push / PR, run the full aggregate once.
+      </p>
+      <pre><code># iteration (examples)
+task verify:branch
+task xbrief:preflight -- xbrief/active/<story>.xbrief.json
+
+# merge chokepoint
+task check
+# or, when preparing a framework PR:
+task check:merge</code></pre>
+
+      <h2>Branch policy</h2>
+      <p>
+        Default policy blocks direct commits to <code>master</code>/<code>main</code>
+        and refuses PRs whose head ref equals the base ref. Enforcement spans git
+        hooks, <code>task verify:branch</code>, and CI
+        (<code>branch-gate.yml</code>). See the repository README branch-policy
+        section for the typed
+        <code>plan.policy.allowDirectCommitsToMaster</code> flag and emergency
+        bypass.
+      </p>
+
+      <p class="note">
+        Hosted agent workflows (review-cycle, swarm, pre-pr skills) assume these
+        gates stay green. Skipping them is how silent drift returns.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap inner">
+        <span><a href="concepts.html">← Concepts</a></span>
+        <span><a href="upgrade.html">Upgrade →</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

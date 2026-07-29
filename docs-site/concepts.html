@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Concepts — Directive</title>
+    <meta
+      name="description"
+      content="Directive concepts A/B/C: layered standards, xBRIEF scope lifecycle, and deterministic gates."
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap inner">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>Directive</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="index.html">What it is</a>
+          <a href="install.html">Install</a>
+          <a href="concepts.html" aria-current="page">Concepts</a>
+          <a href="gates.html">Gates</a>
+          <a href="upgrade.html">Upgrade</a>
+          <a href="license.html">License</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="meta-row">
+          <span class="badge">Concepts A / B / C</span>
+        </div>
+        <h1>Three concepts that carry the product</h1>
+        <p class="lede">
+          Directive’s install story is dense on purpose. These three ideas are
+          enough to orient before you dive into skills and strategies.
+        </p>
+      </section>
+
+      <article class="card" style="margin-bottom: 1rem">
+        <div class="letter">A</div>
+        <h2 style="margin-top: 0">Layered standards (how agents behave)</h2>
+        <p>
+          Preferences and rules cascade. Higher layers win. Agents lazy-load only
+          what the task needs.
+        </p>
+        <ol>
+          <li><strong>USER.md</strong> — personal overrides (always wins for fields it defines).</li>
+          <li><strong>PROJECT-DEFINITION</strong> xBRIEF — project identity and policy.</li>
+          <li><strong>Language / tool files</strong> — stack-specific standards.</li>
+          <li><strong>main.md</strong> — general agent behavior.</li>
+        </ol>
+        <p class="muted">
+          Requirements (“what to build”) stay on a separate ladder: specification
+          and scope xBRIEFs, not mixed into the behavior cascade.
+        </p>
+      </article>
+
+      <article class="card" style="margin-bottom: 1rem">
+        <div class="letter">B</div>
+        <h2 style="margin-top: 0">xBRIEF scope lifecycle (what is in progress)</h2>
+        <p>
+          Work is durable JSON state, not chat memory. Scope briefs move through
+          lifecycle folders with matching <code>plan.status</code>:
+        </p>
+        <pre><code>proposed → pending → active → completed
+                 ↘ cancelled / failed</code></pre>
+        <p>
+          Use framework verbs (<code>scope:promote</code>,
+          <code>scope:activate</code>, <code>scope:complete</code>, …) rather
+          than moving files by hand. Implementation intent is gated
+          (<code>xbrief:preflight</code>) so agents do not edit code before a
+          running brief exists.
+        </p>
+      </article>
+
+      <article class="card" style="margin-bottom: 1rem">
+        <div class="letter">C</div>
+        <h2 style="margin-top: 0">Deterministic gates (proof over prose)</h2>
+        <p>
+          High-impact behavior is enforced by checks, not only by README wording:
+        </p>
+        <ul>
+          <li><code>task check</code> — pre-merge aggregate gate</li>
+          <li><code>directive doctor</code> — install / deposit diagnosis</li>
+          <li>Branch, encoding, session-ritual, and story-ready verifiers</li>
+          <li>Hooks and CI that refuse default-branch and same-ref PR mistakes</li>
+        </ul>
+        <p class="muted">
+          Rule strength order: deterministic checks > Taskfile targets >
+          xBRIEF policy > RFC2119 markers > plain prose.
+        </p>
+      </article>
+
+      <h2>Category fit</h2>
+      <p>
+        Directive is the <strong>practice layer</strong> row: standards + durable
+        work state + gates in the repo. Coding hosts run the agent. Skill packs
+        improve one session. App orchestrators run multi-agent products in app
+        code. Full four-way map:
+        <a href="https://github.com/deftai/directive/blob/master/docs/CATEGORY.md"
+          >docs/CATEGORY.md</a
+        >.
+      </p>
+
+      <h2>How the loop fits together</h2>
+      <p>
+        At inception: concept → strategy analysis → specification + proposed
+        scopes. Every session after that: session start → triage/refine → slice →
+        swarm → review/fix → ship, with new issues feeding triage again.
+      </p>
+      <p>
+        Diagram and stage-to-command map:
+        <a
+          href="https://github.com/deftai/directive/blob/master/content/docs/directive-lifecycle.md"
+          >directive-lifecycle.md</a
+        >.
+        Maintainer concepts deep-dive:
+        <a href="https://github.com/deftai/directive/blob/master/docs/CONCEPTS.md"
+          >docs/CONCEPTS.md</a
+        >.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap inner">
+        <span><a href="install.html">← Install</a></span>
+        <span><a href="gates.html">Gates →</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

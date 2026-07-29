@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install — Directive</title>
+    <meta
+      name="description"
+      content="Install Directive with npm, then use init, doctor, and update."
+    />
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap inner">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>Directive</span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="index.html">What it is</a>
+          <a href="install.html" aria-current="page">Install</a>
+          <a href="concepts.html">Concepts</a>
+          <a href="gates.html">Gates</a>
+          <a href="upgrade.html">Upgrade</a>
+          <a href="license.html">License</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="meta-row">
+          <span class="badge">Install</span>
+          <a class="badge" href="https://www.npmjs.com/package/@deftai/directive">
+            <img
+              src="https://img.shields.io/npm/v/@deftai/directive?label=npm"
+              alt="npm version for @deftai/directive"
+            />
+          </a>
+        </div>
+        <h1>Install (three commands)</h1>
+        <p class="lede">
+          Node ≥ 20 is required to run Directive. The canonical channel is the
+          published npm package <code>@deftai/directive</code>.
+        </p>
+      </section>
+
+      <ol class="steps">
+        <li>
+          <strong>Install the engine globally</strong>
+          <pre><code>npm i -g @deftai/directive</code></pre>
+          <p class="muted" style="margin: 0.6rem 0 0">
+            pnpm works against the same registry:
+            <code>pnpm add -g @deftai/directive</code>
+            (ensure <code>PNPM_HOME</code> is on <code>PATH</code>).
+          </p>
+        </li>
+        <li>
+          <strong>Initialize the project directory</strong>
+          <pre><code>cd /path/to/your-project
+directive init</code></pre>
+          <p class="muted" style="margin: 0.6rem 0 0">
+            <code>init</code> classifies the current working directory (empty,
+            brownfield app, existing Directive deposit, or legacy layout) and
+            takes exactly one path. It does not reach outside the directory you
+            run it in.
+          </p>
+        </li>
+        <li>
+          <strong>Confirm with doctor</strong>
+          <pre><code>directive doctor</code></pre>
+          <p class="muted" style="margin: 0.6rem 0 0">
+            Read-only diagnosis. Prints exactly one recommended next step.
+          </p>
+        </li>
+      </ol>
+
+      <h2>When to use each command</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Use when</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>directive init</code></td>
+            <td>First-time adoption or layout classification / migration routing.</td>
+          </tr>
+          <tr>
+            <td><code>directive update</code></td>
+            <td>Existing Directive project: refresh deposit and heal the engine.</td>
+          </tr>
+          <tr>
+            <td><code>directive doctor</code></td>
+            <td>Any time you need a safe “where am I?” probe.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>One-shot without a global install</h2>
+      <pre><code>npx @deftai/directive doctor
+npx @deftai/directive init</code></pre>
+      <p class="muted">
+        Alias: <code>deft</code> is the same binary as <code>directive</code>.
+      </p>
+
+      <h2>What gets committed vs ignored</h2>
+      <ul>
+        <li>
+          <strong>Tracked:</strong> your <code>package.json</code> pin (reconstitutes
+          the deposit on a fresh clone), managed <code>AGENTS.md</code> section,
+          project xBRIEF sources you author.
+        </li>
+        <li>
+          <strong>Gitignored local artifacts:</strong>
+          <code>.deft/core/</code> deposit, <code>.deft/.cli/</code> engine cache,
+          session/ritual state, <code>.deft-cache/</code>.
+        </li>
+      </ul>
+
+      <p class="note">
+        Full install ladder, corporate registry recovery, sandbox prefix install,
+        and legacy Go installer bridge:
+        <a href="https://github.com/deftai/directive/blob/master/README.md"
+          >README Getting Started</a
+        >
+        and
+        <a href="https://github.com/deftai/directive/blob/master/content/UPGRADING.md"
+          >UPGRADING.md</a
+        >.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap inner">
+        <span><a href="index.html">← What it is</a></span>
+        <span><a href="concepts.html">Concepts →</a></span>
+      </div>
+    </footer>
+  </body>
+</html>
