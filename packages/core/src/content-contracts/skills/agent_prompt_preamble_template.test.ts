@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile, repoFileExists,
-  readSwarmSkillSurface
-} from "./helpers.js";
+import { readRepoFile, readSwarmSkillSurface, repoFileExists } from "./helpers.js";
 
 /** Port of tests/content/test_agent_prompt_preamble_template.py (#1838 #1530) */
 

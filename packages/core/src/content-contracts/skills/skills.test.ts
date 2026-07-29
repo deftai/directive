@@ -5,10 +5,10 @@ import {
   RFC2119_LEGEND,
   readRepoFile,
   readSkill,
+  readSwarmSkillSurface,
   repoFileExists,
   resolveRepoPath,
   USER_MD_GATE_HEADING,
-  readSwarmSkillSurface,
 } from "./helpers.js";
 
 /** Port of tests/content/test_skills.py (#1838 #1530) */

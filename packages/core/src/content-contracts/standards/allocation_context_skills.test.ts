@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { readText } from "./_helpers.js";
 
 const BUILD = "skills/deft-directive-build/SKILL.md";
-const SWARM = "skills/deft-directive-swarm/SKILL.md";
 function readSwarmSurface(): string {
   const order = [
     "skills/deft-directive-swarm/SKILL.md",
@@ -20,7 +19,6 @@ function readSwarmSurface(): string {
   ];
   return order.map((rel) => readText(rel)).join("\n\n");
 }
-
 
 function buildStep0(text: string): string {
   const start = text.indexOf("## Step 0 -- Implementation Preflight (#810)");

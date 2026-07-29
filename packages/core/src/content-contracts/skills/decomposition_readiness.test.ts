@@ -1,8 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readRepoFile, repoPath,
-  readSwarmSkillSurface
-} from "./helpers.js";
+import { readRepoFile, readSwarmSkillSurface, repoPath } from "./helpers.js";
 
 /** Port of tests/content/test_decomposition_readiness.py (#1838 #1530) */
 

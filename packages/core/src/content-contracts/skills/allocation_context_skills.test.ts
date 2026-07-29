@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile,
-  readSwarmSkillSurface
-} from "./helpers.js";
+import { readRepoFile, readSwarmSkillSurface } from "./helpers.js";
 
 /** Port of tests/content/test_allocation_context_skills.py (#1838 #1530) */
 

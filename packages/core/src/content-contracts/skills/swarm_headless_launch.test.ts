@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readAgentsMd, readRepoFile,
-  readSwarmSkillSurface
-} from "./helpers.js";
+import { readAgentsMd, readSwarmSkillSurface } from "./helpers.js";
 
 /** Port of tests/content/test_swarm_headless_launch.py (#1838 #1530) */
 
@@ -13,10 +11,6 @@ const PHASE2_STEP1_HEADER = "### Step 1: Create Worktrees";
 const PHASE3_STEP05_HEADER =
   "### Step 0.5: Consume the launch-manifest before dispatch (headless path, C2 / #1387)";
 const AGENTS_HEADER = "## Headless swarm launch gate-stack (#1387)";
-
-function read(relPath: string): string {
-  return readRepoFile(relPath);
-}
 
 function boundedBlock(text: string, startMarker: string, endMarker: string, path: string): string {
   const start = text.indexOf(startMarker);

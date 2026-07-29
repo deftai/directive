@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile,
-  readSwarmSkillSurface
-} from "./helpers.js";
+import { readRepoFile, readSwarmSkillSurface } from "./helpers.js";
 
 /** Port of tests/content/test_pre_pr_skill_closing_keyword_rule.py (#1838 #1530) */
 

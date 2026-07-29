@@ -63,13 +63,21 @@ describe("evaluateCursorTier1", () => {
     expect(result.code).toBe(1);
     expect(result.findings.length).toBe(CURSOR_TIER1_TARGETS.length);
     expect(result.stream).toBe("stderr");
-    expect(result.message).toContain(CURSOR_TIER1_TARGETS[0]!.markers[0]!);
+    const firstTarget = CURSOR_TIER1_TARGETS[0];
+    expect(firstTarget).toBeDefined();
+    const firstMarker = firstTarget?.markers[0];
+    expect(firstMarker).toBeDefined();
+    expect(result.message).toContain(firstMarker);
   });
 
   it("exits 2 when a required skill file is missing (config error)", () => {
     root = mkdtempSync(join(tmpdir(), "cursor-tier1-nofile-"));
     // Only seed the first target; the second is absent.
-    const first = CURSOR_TIER1_TARGETS[0]!;
+    const first = CURSOR_TIER1_TARGETS[0];
+    expect(first).toBeDefined();
+    if (first === undefined) {
+      throw new Error("CURSOR_TIER1_TARGETS must be non-empty");
+    }
     writeTarget(root, first.path, bodyWithAllMarkers(first.markers));
     const result = evaluateCursorTier1(root);
     expect(result.code).toBe(2);
@@ -87,8 +95,8 @@ describe("evaluateCursorTier1", () => {
     expect(result.code).toBe(2);
     expect(result.message).toContain("required skill file not found");
     expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]!.path).toBe(present.path);
-    expect(result.findings[0]!.missingMarkers).toContain("beta");
+    expect(result.findings[0]?.path).toBe(present.path);
+    expect(result.findings[0]?.missingMarkers).toContain("beta");
   });
 
   it("exits 2 when project root is not a directory", () => {

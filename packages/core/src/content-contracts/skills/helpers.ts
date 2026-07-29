@@ -67,9 +67,13 @@ export function readSwarmSkillSurface(): string {
   const parts: string[] = [readRepoFile(SWARM_SKILL_REL)];
   for (const name of SWARM_REFERENCE_ORDER) {
     const rel = `skills/deft-directive-swarm/references/${name}`;
-    if (repoFileExists(rel)) {
-      parts.push(readRepoFile(rel));
+    // Fail-loud: SWARM_REFERENCE_ORDER is the complete shipped surface (#2928).
+    // Silently skipping a missing reference lets incomplete packs pass contracts
+    // that never assert markers unique to the omitted file (Greptile on #2936).
+    if (!repoFileExists(rel)) {
+      throw new Error(`readSwarmSkillSurface: missing declared reference ${rel}`);
     }
+    parts.push(readRepoFile(rel));
   }
   return parts.join("\n\n");
 }
