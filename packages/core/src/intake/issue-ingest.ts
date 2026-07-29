@@ -433,14 +433,23 @@ export function buildIssueVbrief(
   const labelNames: string[] = [];
   if (Array.isArray(labelsRaw)) {
     for (const lbl of labelsRaw) {
+      let rawName: string | undefined;
       if (typeof lbl === "string") {
-        labelNames.push(lbl);
+        rawName = lbl;
       } else if (lbl !== null && typeof lbl === "object" && !Array.isArray(lbl)) {
         const name = (lbl as Record<string, unknown>).name;
         if (typeof name === "string" && name.length > 0) {
-          labelNames.push(name);
+          rawName = name;
         }
       }
+      if (rawName === undefined || rawName.length === 0) {
+        continue;
+      }
+      // #2916: label names copy unchanged into narratives.Labels and plan.tags --
+      // agent-authoritative fields. Quarantine-scan them under the same contract as
+      // titles/body: hard-fail closed on credential-shaped labels, fence/omit
+      // injection-shaped labels. (cache-quarantine-06, tracker #2904)
+      labelNames.push(scanUntrustedIngestText(number, rawName));
     }
   }
 

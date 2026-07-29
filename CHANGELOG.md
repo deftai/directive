@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Quarantine-scan issue labels/tags before xBRIEF Labels/tags (#2916, cache-quarantine-06).** `buildIssueVbrief` previously copied issue label names unchanged into `narratives.Labels` and `plan.tags` while scanning title/body/comments/plan-item titles — leaving agent-authoritative fields unscanned. Label strings now run through `scanUntrustedIngestText` under the same fail-closed contract as titles: credential-shaped labels hard-fail (nothing written); injection-shaped labels are fenced/quarantined. Tests assert credential hard-fail plus injection-fence for object- and string-form labels. Closes #2916. Refs #2904.
+
 ### Removed
 
 ## [0.87.0] - 2026-07-29
