@@ -1736,6 +1736,42 @@ func TestExtractTarGzBinaries_MissingRequiredFails(t *testing.T) {
 	}
 }
 
+// TestExtractTarGzBinaries_PathTraversalMembersStayInDestDir ensures Zip Slip
+// style member names (../, absolute) never write outside destDir. Matching
+// basenames still install under destDir using the trusted allowlist name.
+func TestExtractTarGzBinaries_PathTraversalMembersStayInDestDir(t *testing.T) {
+	archivePath := writeTestTarGz(t, map[string]string{
+		"../../../etc/gh":            "escaped-absolute-style\n",
+		"prefix/../../outside/task": "escaped-relative\n",
+		"ok/uv":                     "safe-uv\n",
+	})
+	parent := t.TempDir()
+	dest := filepath.Join(parent, "bin")
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := extractTarGzBinaries(archivePath, dest, []string{"gh", "task", "uv"}); err != nil {
+		t.Fatalf("extractTarGzBinaries: %v", err)
+	}
+	// Required basenames land only under dest.
+	for _, name := range []string{"gh", "task", "uv"} {
+		p := filepath.Join(dest, name)
+		if _, err := os.Stat(p); err != nil {
+			t.Fatalf("expected %s under dest: %v", name, err)
+		}
+	}
+	// Nothing written beside dest under parent (no ../ escape).
+	entries, err := os.ReadDir(parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if e.Name() != "bin" {
+			t.Fatalf("unexpected path outside destDir: %s", e.Name())
+		}
+	}
+}
+
 // TestInstallTaskLinux_UsesPinnedAssetAndVerifies wires installTaskLinux through
 // the pin helper and asserts the resolved URL is version-pinned (not latest)
 // and that extract only runs after a matching digest.

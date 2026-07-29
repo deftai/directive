@@ -1669,6 +1669,10 @@ func fetchLinuxBootstrapURL(w *Wizard, url string) (string, error) {
 // extractTarGzBinaries opens archivePath as a .tar.gz and writes each required
 // basename (regular files only) into destDir mode 0755. It refuses path
 // traversal in member names and fails if any required binary is missing.
+//
+// Destination paths are built only from the trusted required[] allowlist (never
+// from raw archive member paths), then re-checked with a destDir containment
+// guard so Zip Slip / path-escape members cannot write outside destDir.
 func extractTarGzBinaries(archivePath, destDir string, required []string) error {
 	need := make(map[string]bool, len(required))
 	for _, name := range required {
@@ -1678,6 +1682,12 @@ func extractTarGzBinaries(archivePath, destDir string, required []string) error 
 		need[name] = true
 	}
 	found := make(map[string]bool, len(required))
+
+	cleanDestDir := filepath.Clean(destDir)
+	if cleanDestDir == "." || cleanDestDir == string(filepath.Separator) {
+		return fmt.Errorf("invalid extract destination %q", destDir)
+	}
+	destDirPrefix := cleanDestDir + string(filepath.Separator)
 
 	f, err := os.Open(archivePath)
 	if err != nil {
@@ -1700,24 +1710,36 @@ func extractTarGzBinaries(archivePath, destDir string, required []string) error 
 		if err != nil {
 			return fmt.Errorf("tar: %w", err)
 		}
-		if hdr.Typeflag != tar.TypeReg {
+		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
 			continue
 		}
-		// Normalize member path and take the basename only -- we never recreate
-		// archive directory layout under destDir, which removes path-traversal
-		// as an install sink.
+		// Match archive members by basename only. The write sink is always an
+		// entry from required[] (trusted allowlist), never hdr.Name itself.
 		base := filepath.Base(filepath.Clean(filepath.FromSlash(hdr.Name)))
 		if base == "." || base == ".." || base == "/" || base == string(filepath.Separator) {
 			continue
 		}
-		if !need[base] {
+		var installName string
+		for _, name := range required {
+			if base == name {
+				installName = name // untainted: copied from required allowlist
+				break
+			}
+		}
+		if installName == "" || !need[installName] || found[installName] {
 			continue
 		}
-		dest := filepath.Join(destDir, base)
-		if err := writeReaderAtomicExec(dest, tr); err != nil {
-			return fmt.Errorf("write %s: %w", base, err)
+		dest := filepath.Join(cleanDestDir, installName)
+		cleanDest := filepath.Clean(dest)
+		// Explicit Zip Slip containment (CodeQL + defense in depth): final
+		// path must stay under destDir even if Join/Clean ever misbehaves.
+		if !strings.HasPrefix(cleanDest, destDirPrefix) {
+			return fmt.Errorf("refusing archive path escape %q -> %q", hdr.Name, dest)
 		}
-		found[base] = true
+		if err := writeReaderAtomicExec(cleanDest, tr); err != nil {
+			return fmt.Errorf("write %s: %w", installName, err)
+		}
+		found[installName] = true
 	}
 
 	var missing []string
