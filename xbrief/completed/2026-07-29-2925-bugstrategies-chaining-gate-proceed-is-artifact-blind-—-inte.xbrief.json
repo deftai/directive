@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "0.20",
+  "kind": "story",
+  "origin": {
+    "type": "github-issue",
+    "id": "2925",
+    "url": "https://github.com/deftai/directive/issues/2925"
+  },
+  "title": "bug(strategies): chaining gate Proceed is artifact-blind — interview create-vs-update",
+  "summary": "Make Chaining Gate brownfield-aware (Add scope default); wire interview+yolo to Spec-Generating roster and Before-writing guards; align setup Phase 3 vocabulary.",
+  "plan": {
+    "status": "completed",
+    "items": [
+      {
+        "id": "impl",
+        "text": "Make Chaining Gate brownfield-aware (Add scope default); wire interview+yolo to Spec-Generating roster and Before-writing guards; align setup Phase 3 vocabulary.",
+        "status": "completed"
+      }
+    ],
+    "metadata": {
+      "activatedAt": "2026-07-29T21:27:53.086144Z",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/strategies/interview.md",
+          "content/strategies/artifact-guards.md",
+          "content/strategies/yolo.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/core/src/content-contracts/",
+          "CHANGELOG.md"
+        ],
+        "missing_traces_justification": "Operator-activated cohort #2925+#2926; readiness from file_scope audit (strategies vs policy/setup/doctor). Shared CHANGELOG append-only; setup SKILL surgical non-overlapping sections (Phase3 vs early flag)."
+      },
+      "definitionOfDone": [
+        "Brownfield Chaining Gate default is Add scope to this project; Replace needs yes/confirmed",
+        "interview on Spec-Generating roster + ! Before writing → artifact-guards",
+        "yolo on Spec-Generating roster",
+        "setup Phase 3 and gate share add-scope/update/replace semantics",
+        "content contracts + CHANGELOG cite #2925 and #82/#387 incomplete closeout"
+      ],
+      "CODE_PATH_TERMS": [
+        "content/strategies/interview.md",
+        "content/strategies/artifact-guards.md",
+        "content/strategies/yolo.md",
+        "content/skills/deft-directive-setup/SKILL.md",
+        "packages/core/src/content-contracts/",
+        "CHANGELOG.md"
+      ],
+      "VERIFY_EVIDENCE_TERMS": [
+        "content-contracts",
+        "CHANGELOG",
+        "vitest",
+        "session:start",
+        "artifact-guards"
+      ],
+      "completedAt": "2026-07-29T21:32:07Z"
+    }
+  },
+  "completedAt": "2026-07-29T21:32:07Z"
+}

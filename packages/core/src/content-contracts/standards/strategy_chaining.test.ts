@@ -52,6 +52,46 @@ describe("test_strategy_chaining.py", () => {
     });
   });
 
+  /** #2925 — Chaining Gate brownfield create-vs-update + interview guard wiring. */
+  describe("TestChainingGateArtifactAware", () => {
+    const interview = readText("strategies/interview.md");
+    const guards = readText("strategies/artifact-guards.md");
+    const chaining = interview.includes("## Chaining Gate")
+      ? (interview.split("## Chaining Gate")[1]?.split("## Sizing Gate")[0] ?? "")
+      : "";
+    const specGenRosterLine =
+      guards
+        .split("\n")
+        .find((line) => line.includes("Referenced by spec-generating strategies:")) ?? "";
+
+    it("test_interview_cites_artifact_guards_and_before_writing", () => {
+      expect(interview).toContain("artifact-guards.md");
+      expect(interview).toContain("Before writing");
+      expect(interview).toContain("Spec-Generating Guard");
+      expect(interview).toContain("Preparatory Guard");
+    });
+
+    it("test_chaining_gate_documents_brownfield_add_scope_default", () => {
+      expect(chaining).toContain("Brownfield Detector");
+      expect(chaining).toContain("Add scope to this project");
+      expect(chaining).toMatch(/Add scope to this project[\s\S]*\(default\)/);
+      expect(chaining).toContain("Update project definition");
+      expect(chaining).toContain("Replace specification (scrap)");
+      expect(chaining).toContain("yes");
+      expect(chaining).toContain("confirmed");
+      // Greenfield keeps Proceed default; brownfield must not default only to Proceed.
+      expect(chaining).toContain("Proceed to specification");
+    });
+
+    it("test_spec_generating_roster_includes_interview_and_yolo", () => {
+      expect(specGenRosterLine).toContain("interview");
+      expect(specGenRosterLine).toContain("yolo");
+      expect(guards).toMatch(
+        /\*\*speckit\*\*, \*\*enterprise\*\*, \*\*rapid\*\*, \*\*interview\*\*, \*\*yolo\*\*/,
+      );
+    });
+  });
+
   describe("TestReadmeTypeColumn", () => {
     const rows = parseReadmeTable();
     it("test_type_column_exists", () => {

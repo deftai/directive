@@ -504,15 +504,23 @@ omit = [
 
 ### Onboarding Question
 
-! Before proceeding with the strategy gate, ask the onboarding question:
+! Before proceeding with the strategy gate, ask the onboarding question. Use the same add-scope / update / replace vocabulary as the Chaining Gate in [strategies/interview.md](../../strategies/interview.md#chaining-gate).
 
-> "Are you adding a scope to this project or starting a new specification?"
-> 1. Adding scope to existing project [default if `./xbrief/specification.xbrief.json` exists or scope xBRIEFs found in lifecycle folders]
-> 2. Starting a new project specification [default if no specification or scope xBRIEFs exist]
+**Brownfield detector** (same as Chaining Gate): `PROJECT-DEFINITION` exists (`./xbrief/` or legacy `./vbrief/`) **OR** any lifecycle folder (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) has scope records.
 
-- ! Default based on repo state: if specification.xbrief.json exists or any lifecycle folder has scope xBRIEFs, default to "Adding scope"; otherwise default to "Starting new"
-- ! If adding scope: skip the full interview, create a new scope xBRIEF in `./xbrief/proposed/` with the user's description, then exit
-- ! If starting new: proceed to the Strategy Gate below
+> "How should we treat this project's specification?"
+> 1. **Add scope to this project** [default when brownfield] — load existing identity; skip greenfield "what are we building?"; emit one proposed scope; Preparatory Guard on write
+> 2. **Update project definition** — delta interview → Spec-Generating Guard → merge narratives into existing PROJECT-DEFINITION
+> 3. **Replace specification (scrap)** — only after explicit affirmative (`yes` / `confirmed`); then full new-spec path
+> 4. **Starting a new project specification** [default when greenfield] — proceed to the Strategy Gate below
+
+- ! Default based on repo state via the brownfield detector above (brownfield → Add scope; greenfield → Starting new)
+- ! If **Add scope**: skip the full interview, create a new scope xBRIEF in `./xbrief/proposed/` with the user's description, apply Preparatory Guard on write, then exit
+- ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard; merge narratives (do not wholesale replace unless the user confirmed scrap)
+- ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
+- ! If **Starting new**: proceed to the Strategy Gate below
+- ⊗ Treat brownfield repos as "Starting new" by default
+- ⊗ Accept vague confirmation (`proceed`, `ok`) for Replace/scrap
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 

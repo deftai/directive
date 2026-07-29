@@ -18,7 +18,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 This file is not a standalone strategy — it is a shared guard referenced by other strategies. It activates automatically when a strategy writes to vBRIEF artifacts.
 
-- ! Referenced by spec-generating strategies: [speckit](./speckit.md), [enterprise](./enterprise.md), [rapid](./rapid.md)
+- ! Referenced by spec-generating strategies: [speckit](./speckit.md), [enterprise](./enterprise.md), [rapid](./rapid.md), [interview](./interview.md), [yolo](./yolo.md)
 - ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md), [probe](./probe.md)
 
 ## Workflow
@@ -32,7 +32,7 @@ This file is not a standalone strategy — it is a shared guard referenced by ot
 
 ## Spec-Generating Guard (Full)
 
-Applies to strategies that write to `PROJECT-DEFINITION.vbrief.json` (⊗ never `specification.vbrief.json` per [v0-20-contract.md](./v0-20-contract.md)): **speckit**, **enterprise**, **rapid**.
+Applies to strategies that write to `PROJECT-DEFINITION.vbrief.json` (⊗ never `specification.vbrief.json` per [v0-20-contract.md](./v0-20-contract.md)): **speckit**, **enterprise**, **rapid**, **interview**, **yolo**.
 
 ! Before writing to `vbrief/PROJECT-DEFINITION.vbrief.json`, the strategy MUST perform the following checks (⊗ Never target the legacy `specification.vbrief.json`):
 

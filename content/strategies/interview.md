@@ -13,7 +13,7 @@ follow this strategy.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [strategies/discuss.md](./discuss.md) | [strategies/yolo.md](./yolo.md) | [core/glossary.md](../glossary.md)
+**⚠️ See also**: [strategies/discuss.md](./discuss.md) | [strategies/yolo.md](./yolo.md) | [strategies/artifact-guards.md](./artifact-guards.md) | [core/glossary.md](../glossary.md)
 
 ## When to Use
 
@@ -42,13 +42,35 @@ and wait for the user to choose before proceeding.
 - ! After each completed preparatory strategy (recursive — the gate reappears)
 - ! After the [Acceptance Gate](#acceptance-gate) when the user chooses "Revise" or "Switch"
 
+### Brownfield Detector
+
+Before rendering menu options, classify the repo (align with setup Phase 3):
+
+- **Brownfield** when **either**:
+  - `PROJECT-DEFINITION` exists under `./xbrief/` or legacy `./vbrief/` (`PROJECT-DEFINITION.xbrief.json` or `PROJECT-DEFINITION.vbrief.json`), **or**
+  - any lifecycle folder (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/` under `xbrief/` or legacy `vbrief/`) has scope records
+- **Greenfield** otherwise
+
+! The detector MUST run on every Chaining Gate presentation.
+⊗ Offer only the greenfield-framed **Proceed to specification** default on a brownfield repo.
+⊗ Treat brownfield as a full create path without an explicit Replace/scrap confirm.
+
 ### Options
 
-Present two groups sourced from the `Type` column in
-[strategies/README.md](./README.md#strategy-types):
+Present groups sourced from the `Type` column in
+[strategies/README.md](./README.md#strategy-types). The **default path** depends
+on the brownfield detector:
 
-**Default:**
-1. **Proceed to specification** (default) — continue to the [Sizing Gate](#sizing-gate)
+**Default path (greenfield):**
+1. **Proceed to specification** (default) — continue to the [Sizing Gate](#sizing-gate) for a full create path
+
+**Default path (brownfield) — create-vs-update menu:**
+1. **Add scope to this project** (default) — load existing project identity + preparatory artifacts; **skip** the greenfield "what are we building?" interview; gather only the new scope; emit **one** proposed scope record; apply the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) on write
+2. **Update project definition** — run a **delta** interview against existing identity; apply the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full); **merge** narratives (prefer enrich/merge when the user declines replace)
+3. **Replace specification (scrap)** — full recreate equivalent to greenfield Proceed; **only** after explicit affirmative (`yes` / `confirmed`); vague replies (`proceed`, `ok`, `go ahead`) are **not** acceptance
+   - ! On confirmed scrap, continue to the [Sizing Gate](#sizing-gate) as a full create path
+   - ⊗ Auto-delete PROJECT-DEFINITION without scrap confirm
+   - ⊗ Rename Proceed to "Update" without changing behavior
 
 **Preparatory strategies** (type: `preparatory` — loops back to this gate on completion):
 - Research — investigate the domain, find libraries, identify pitfalls
@@ -79,8 +101,26 @@ See `strategies/map.md` for standalone behavior.
 - ! Append all new artifact paths to the flat `artifacts` array
 - ! The next strategy and eventual spec generation MUST load all artifacts
   listed in `plan.vbrief.json`
+- ! On brownfield **Add scope** or **Update project definition**, load existing
+  PROJECT-DEFINITION identity and preparatory artifacts before asking questions
+
+### Write Guards (interview)
+
+! Interview is a **spec-generating** strategy and MUST follow
+[artifact-guards.md](./artifact-guards.md) before emission (Light or Full path).
+
+- ! **Before writing** scope records to `proposed/`: [Preparatory Guard](./artifact-guards.md#preparatory-guard-light)
+- ! **Before writing** or updating `PROJECT-DEFINITION` (xbrief or legacy vbrief): [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full)
+- ! Prefer enrich/merge when the user declines replace
+- ⊗ Silently overwrite PROJECT-DEFINITION or same-slug proposed scopes
+- ⊗ Rely on write-time guards alone without the brownfield Chaining Gate menu above
+
+Surface this obligation **inside `interview.md`** so agents that load only this
+file still hit the guards (#2925; incomplete closeout of #82/#387).
 
 ### Example Prompt
+
+**Greenfield:**
 
 ```
 Ready to generate the specification. Before we proceed, would you like to:
@@ -98,6 +138,28 @@ Ready to generate the specification. Before we proceed, would you like to:
 7. Switch to speckit — formal spec process with story readiness before implementation
 
 8. Other (specify)
+```
+
+**Brownfield:**
+
+```
+This repo already has a project definition and/or scopes. Before we proceed:
+
+1. Add scope to this project (default) — keep identity; add one new proposed scope
+2. Update project definition — delta interview; merge narratives (Spec-Generating Guard)
+3. Replace specification (scrap) — requires explicit yes/confirmed; full recreate
+
+--- Preparatory (loops back) ---
+4. Run a research phase — investigate the domain, find libraries, identify pitfalls
+5. Run a discuss phase — lock key decisions using Feynman technique
+6. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
+7. Run a map phase — analyze existing codebase conventions
+
+--- Switch strategy ---
+8. Switch to yolo — auto-pilot picks all answers
+9. Switch to speckit — formal spec process with story readiness before implementation
+
+10. Other (specify)
 ```
 
 ---
@@ -200,6 +262,8 @@ Interview → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFINITION.vb
 6. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
 7. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
 
+! **Before writing** scope vBRIEF(s) or updating `PROJECT-DEFINITION` on the Light path, follow [artifact-guards.md](./artifact-guards.md): Preparatory Guard for `proposed/` scopes; Spec-Generating Guard for PROJECT-DEFINITION. Prefer enrich/merge when the user declines replace.
+
 ! At the emission step (step 3 above), after writing the scope vBRIEF(s) to `./vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### SPECIFICATION Structure (Light)
@@ -264,6 +328,8 @@ Interview → PRD → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFIN
 6. Summarize decisions, ask user to review
 7. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
 8. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
+
+! **Before writing** PRD, scope vBRIEF(s), or updating `PROJECT-DEFINITION` on the Full path, follow [artifact-guards.md](./artifact-guards.md): Preparatory Guard for `proposed/` scopes; Spec-Generating Guard for PROJECT-DEFINITION. Prefer enrich/merge when the user declines replace.
 
 ! At the emission step (step 4 above), after writing the scope vBRIEF(s) to `./vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
