@@ -26,6 +26,7 @@ const EXIT_CONFIG = 2;
 const PACKAGE_MANIFESTS = [
   "package.json",
   "packages/cli/package.json",
+  "packages/content/package.json",
   "packages/core/package.json",
   "packages/types/package.json",
 ];

@@ -35,6 +35,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:rule-ownership",
   "verify:biome-config",
   "verify:content-manifest",
+  "verify:license-sync",
   "verify:skill-external-fetch-gate",
   "verify:contract-drift",
   "verify:cursor-tier1",

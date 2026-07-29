@@ -59,6 +59,13 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-content-manifest --project-root "{{.DEFT_ROOT}}"'
 
+  license-sync:
+    desc: "Drift guard for root LICENSE ↔ content/LICENSE.md and published package.json license fields (#2902). Three-state exit (0 clean / 1 drift / 2 config). Framework-source only."
+    # Framework-source-only gate: reads THIS repo's LICENSE + package manifests.
+    # Plain node script (no engine build required).
+    cmds:
+      - node "{{.DEFT_ROOT}}/scripts/verify-license-sync.mjs" --project-root "{{.DEFT_ROOT}}"
+
   skill-external-fetch-gate:
     desc: "Verify shipped skills do not pair external fetch/follow-through with execute/install without Security context mitigation (#1936 / #1532)."
     deps:
