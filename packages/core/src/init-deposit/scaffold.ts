@@ -19,7 +19,7 @@ import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { platform } from "node:os";
 import { dirname, join, relative } from "node:path";
 import {
-  assertProjectionContained,
+  assertDestinationNotSymlink,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
@@ -32,10 +32,14 @@ export type { InitDepositIo };
 export { CANONICAL_INSTALL_ROOT };
 export const CORE_GLOB = ".deft/core/**";
 
-/** Refuse init/update projection writes that escape via repo-controlled symlinks (#2446). */
+/**
+ * Refuse init/update projection writes that escape via repo-controlled symlinks
+ * (#2446) OR that would follow an in-tree destination symlink on the write path
+ * (#2912). Every consumer projection sink in this module routes through here.
+ */
 function projectionTarget(projectDir: string, ...relSegments: string[]): string {
   const target = join(projectDir, ...relSegments);
-  assertProjectionContained(projectDir, target);
+  assertDestinationNotSymlink(projectDir, target);
   return target;
 }
 

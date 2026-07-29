@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { assertProjectionContained } from "../fs/projection-containment.js";
+import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { stripGitignoreInlineComment } from "../triage/bootstrap/gitignore.js";
 import type { InitDepositIo } from "./constants.js";
 
@@ -29,7 +29,7 @@ export interface EnsurePrettierIgnoreResult {
 
 function projectionTarget(projectDir: string): string {
   const target = join(projectDir, ".prettierignore");
-  assertProjectionContained(projectDir, target);
+  assertDestinationNotSymlink(projectDir, target);
   return target;
 }
 

@@ -167,6 +167,51 @@ export function assertWriteTargetSafe(projectDir: string, targetPath: string): v
 }
 
 /**
+ * Refuse projection writes that would follow an IN-TREE destination symlink on
+ * the write path (#2912).
+ *
+ * {@link assertProjectionContained} only rejects symlinks that ESCAPE the
+ * project tree, so an in-tree symlink (leaf or parent) pointing at another
+ * checked-in path is silently followed — letting a malicious or mistaken repo
+ * symlink divert a consumer projection write (AGENTS.md, .githooks/**,
+ * .gitattributes, .github/**, .agents/**, vbrief|xbrief/**, package.json, …)
+ * onto an unintended file under operator credentials.
+ *
+ * This guard first runs the escape checks in {@link assertProjectionContained},
+ * then walks every EXISTING component from the project root down to the write
+ * target and refuses the write if ANY of them is a symlink — regardless of
+ * whether the link resolves inside the tree. Call it BEFORE any projection
+ * read/write/mkdir/append on consumer deposit sinks.
+ */
+export function assertDestinationNotSymlink(projectDir: string, targetPath: string): void {
+  assertProjectionContained(projectDir, targetPath);
+
+  const projectAbs = resolve(projectDir);
+  const targetAbs = resolve(targetPath);
+  const rel = relative(projectAbs, targetAbs);
+  const segments = rel.split(/[\\/]+/).filter((segment) => segment.length > 0);
+
+  let current = projectAbs;
+  for (const segment of segments) {
+    current = join(current, segment);
+    let info: ReturnType<typeof lstatSync>;
+    try {
+      info = lstatSync(current);
+    } catch {
+      // Component does not exist yet; nothing deeper can exist to follow.
+      break;
+    }
+    if (info.isSymbolicLink()) {
+      throw new ProjectionContainmentError(
+        `projection write refused: ${current} is a symlink on the destination path ` +
+          `(in-tree destination symlinks are refused)`,
+        { projectDir: projectAbs, targetPath: targetAbs, offendingPath: current },
+      );
+    }
+  }
+}
+
+/**
  * Refuse when a lifecycle corpus root is itself a symlink (#2626 category-b).
  */
 export function assertDirectoryNotSymlink(

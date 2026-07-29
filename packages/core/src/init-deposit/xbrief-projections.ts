@@ -16,7 +16,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, relative } from "node:path";
-import { assertProjectionContained } from "../fs/projection-containment.js";
+import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
@@ -70,7 +70,7 @@ export function assertProjectedSchemaDescriptionsRooted(
   projectDir: string,
   destinationDir: string,
 ): void {
-  assertProjectionContained(projectDir, destinationDir);
+  assertDestinationNotSymlink(projectDir, destinationDir);
   if (!isDirectory(destinationDir)) return;
 
   for (const rel of collectSchemaFiles(destinationDir)) {
@@ -85,7 +85,7 @@ export function assertProjectedSchemaDescriptionsRooted(
 }
 
 function writeFileIfChanged(projectDir: string, target: string, content: Buffer | string): boolean {
-  assertProjectionContained(projectDir, target);
+  assertDestinationNotSymlink(projectDir, target);
   const desired = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf8");
   try {
     if (readFileSync(target).equals(desired)) return false;
@@ -112,7 +112,7 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
   }
 
   const destinationDir = join(projectDir, MIGRATED_ARTIFACT_DIR, "schemas");
-  assertProjectionContained(projectDir, destinationDir);
+  assertDestinationNotSymlink(projectDir, destinationDir);
   mkdirSync(destinationDir, { recursive: true });
 
   let changed = false;
@@ -125,7 +125,7 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
   }
 
   const obsoleteDestination = join(destinationDir, OBSOLETE_CORE_SCHEMA);
-  assertProjectionContained(projectDir, obsoleteDestination);
+  assertDestinationNotSymlink(projectDir, obsoleteDestination);
   if (existsSync(obsoleteDestination)) {
     rmSync(obsoleteDestination, { force: true });
     changed = true;
@@ -146,7 +146,7 @@ function syncBareVersionMarkerWithPolicy(
 
   const canonicalRoot = join(projectDir, MIGRATED_ARTIFACT_DIR);
   if (existsSync(canonicalRoot)) {
-    assertProjectionContained(projectDir, join(canonicalRoot, ".deft-version"));
+    assertDestinationNotSymlink(projectDir, join(canonicalRoot, ".deft-version"));
   }
   let targetDir = projectDir;
   try {

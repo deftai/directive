@@ -337,4 +337,17 @@ describe("init-deposit gitignore projection containment (#2839)", () => {
       expect(readFileSync(escapeFile, "utf8")).toBe("victim\n");
     },
   );
+
+  itSymlink("ensureInitGitignoreLines refuses an IN-TREE .gitignore dest symlink (#2912)", () => {
+    const root = freshRoot("gitignore-intree-symlink-");
+    const victim = join(root, "real-notes.txt");
+    writeFileSync(victim, "KEEP\n", "utf8");
+    symlinkSync(victim, join(root, ".gitignore"));
+
+    expect(() => ensureInitGitignoreLines(root, { printf: () => {} })).toThrow(
+      ProjectionContainmentError,
+    );
+    // The in-tree victim the symlink pointed at is never diverted-onto.
+    expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
+  });
 });

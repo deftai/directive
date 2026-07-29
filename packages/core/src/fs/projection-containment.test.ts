@@ -11,7 +11,11 @@ import {
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
 } from "../triage/bootstrap/gitignore.js";
-import { assertProjectionContained, ProjectionContainmentError } from "./projection-containment.js";
+import {
+  assertDestinationNotSymlink,
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "./projection-containment.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -91,6 +95,74 @@ describe("assertProjectionContained (#2413)", () => {
     expect(() =>
       assertProjectionContained(projectDir, join(projectDir, ".planning", "codebase", "MAP.md")),
     ).not.toThrow();
+  });
+});
+
+describe("assertDestinationNotSymlink (#2912)", () => {
+  it("passes for a greenfield project with no destination symlinks", () => {
+    const projectDir = freshDir("dest-nosym-clean-");
+    expect(() =>
+      assertDestinationNotSymlink(projectDir, join(projectDir, "AGENTS.md")),
+    ).not.toThrow();
+  });
+
+  it("passes when the destination is a real nested file", () => {
+    const projectDir = freshDir("dest-nosym-real-");
+    mkdirSync(join(projectDir, ".github", "codeql"), { recursive: true });
+    expect(() =>
+      assertDestinationNotSymlink(
+        projectDir,
+        join(projectDir, ".github", "codeql", "codeql-config.yml"),
+      ),
+    ).not.toThrow();
+  });
+
+  itSymlink(
+    "refuses an IN-TREE destination leaf symlink (assertProjectionContained allows it)",
+    () => {
+      const projectDir = freshDir("dest-nosym-intree-leaf-");
+      const victim = join(projectDir, "real-agents.md");
+      writeFileSync(victim, "KEEP\n", "utf8");
+      symlinkSync(victim, join(projectDir, "AGENTS.md"));
+
+      // Baseline: the legacy escape-only guard follows the in-tree symlink.
+      expect(() =>
+        assertProjectionContained(projectDir, join(projectDir, "AGENTS.md")),
+      ).not.toThrow();
+      // The #2912 guard fails closed.
+      expect(() => assertDestinationNotSymlink(projectDir, join(projectDir, "AGENTS.md"))).toThrow(
+        /in-tree destination symlinks are refused/,
+      );
+    },
+  );
+
+  itSymlink("refuses an IN-TREE parent-directory symlink on the destination path", () => {
+    const projectDir = freshDir("dest-nosym-intree-parent-");
+    const realDir = join(projectDir, ".deft", "core");
+    mkdirSync(realDir, { recursive: true });
+    symlinkSync(realDir, join(projectDir, ".github"), "dir");
+
+    expect(() =>
+      assertProjectionContained(
+        projectDir,
+        join(projectDir, ".github", "codeql", "codeql-config.yml"),
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertDestinationNotSymlink(
+        projectDir,
+        join(projectDir, ".github", "codeql", "codeql-config.yml"),
+      ),
+    ).toThrow(/symlink on the destination path/);
+  });
+
+  itSymlink("still refuses an escaping destination symlink", () => {
+    const projectDir = freshDir("dest-nosym-escape-");
+    const escapeTarget = freshDir("dest-nosym-escape-out-");
+    escapingSymlinkAtTarget(projectDir, ".gitattributes", join(escapeTarget, "evil.gitattributes"));
+    expect(() =>
+      assertDestinationNotSymlink(projectDir, join(projectDir, ".gitattributes")),
+    ).toThrow(ProjectionContainmentError);
   });
 });
 
