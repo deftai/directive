@@ -147,10 +147,53 @@ function productSignalNeedsForceOn(raw: unknown): boolean {
   return !readTypedBoolean(raw, "enabled", false);
 }
 
+/** Classic #2822 pre-migration all-false valueFeedback baseline (statusreport). */
+export const PRE_MIGRATION_VALUE_FEEDBACK_BASELINE = {
+  enabled: false,
+  emitEvents: false,
+  sessionLine: false,
+  upstreamPrompt: false,
+} as const;
+
+/** True when current VF looks like discarded pre-migration state (legacy markers). */
+export function looksLikePreMigrationValueFeedback(raw: unknown): boolean {
+  if (raw === undefined || raw === null) {
+    return true;
+  }
+  return deepEqualPolicySnapshot(raw, PRE_MIGRATION_VALUE_FEEDBACK_BASELINE);
+}
+
+/** True when current PS looks like discarded pre-migration state (legacy markers). */
+export function looksLikePreMigrationProductSignal(raw: unknown): boolean {
+  if (raw === undefined || raw === null) {
+    return true;
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return false;
+  }
+  const block = raw as Record<string, unknown>;
+  if (block.enabled !== false) {
+    return false;
+  }
+  const keys = Object.keys(block);
+  // Bare {enabled:false} or default sink only — custom sinkRepo implies intent.
+  if (keys.length === 1) {
+    return true;
+  }
+  if (
+    keys.length === 2 &&
+    typeof block.sinkRepo === "string" &&
+    block.sinkRepo.trim() === DEFAULT_PRODUCT_SIGNAL_SINK
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Incomplete migration (#2903): marker present, PD still needs force-on, and
  * current typed block still equals the pre-migration snapshot (or legacy marker
- * has no previous* field — treat still-needs as incomplete for fleet recovery).
+ * has no previous* field and current still looks like the classic baseline).
  *
  * Exact restore of the pre-migration snapshot is treated as incomplete by design
  * (company policy #2376 / #2822 / #2903): discarded working-tree force-on and
@@ -158,20 +201,26 @@ function productSignalNeedsForceOn(raw: unknown): boolean {
  * and trusted-org local collection should stay ON. True intentional opt-out must
  * use a shape that differs from previous*, `policy:clear-value-feedback`, or
  * root `.no-deft-directive`. Outbound product-signal still requires D17 consent.
+ *
+ * Legacy markers without previous*: only re-apply fields that still look like the
+ * classic pre-migration baseline so a distinct intentional sibling opt-out is kept.
  */
 export function isIncompleteForceOnField(
   needsForceOn: boolean,
   current: unknown,
   previousSnapshot: unknown | undefined,
   previousFieldPresent: boolean,
+  field: "valueFeedback" | "productSignal" = "valueFeedback",
 ): boolean {
   if (!needsForceOn) {
     return false;
   }
-  // Legacy markers written before #2903 lack previous* — re-apply once so
-  // discarded-PD checkouts (statusreport-class) recover automatically.
+  // Legacy markers written before #2903 lack previous* — recover only classic
+  // baseline shapes (statusreport-class), not distinct intentional opt-outs.
   if (!previousFieldPresent) {
-    return true;
+    return field === "valueFeedback"
+      ? looksLikePreMigrationValueFeedback(current)
+      : looksLikePreMigrationProductSignal(current);
   }
   return deepEqualPolicySnapshot(current, previousSnapshot);
 }
@@ -305,12 +354,14 @@ export function runOrgForceOnMigration(
       snapshots.vfRaw,
       existingMarker.previousValueFeedback,
       previousVfPresent,
+      "valueFeedback",
     );
     const incompletePs = isIncompleteForceOnField(
       snapshots.needsPs,
       snapshots.psRaw,
       existingMarker.previousProductSignal,
       previousPsPresent,
+      "productSignal",
     );
 
     // Marker present and either already force-on shaped, or intentional opt-out
@@ -425,12 +476,14 @@ function applyForceOn(
         previousVf,
         existing.previousValueFeedback,
         previousVfPresent,
+        "valueFeedback",
       );
       needsPs = isIncompleteForceOnField(
         productSignalNeedsForceOn(previousPs),
         previousPs,
         existing.previousProductSignal,
         previousPsPresent,
+        "productSignal",
       );
     } else {
       needsVf = valueFeedbackNeedsForceOn(previousVf);
@@ -478,16 +531,19 @@ function applyForceOn(
     // Marker previous*: forced fields record pre-apply current; unforced fields
     // keep the prior marker snapshot so intentional opt-outs are not rewritten
     // into the incomplete-migration equality path on the next update (#2903 P1).
+    // When the prior marker had no previous* (legacy) and the field was not forced,
+    // store null — do NOT adopt the live intentional shape as previous*, or the
+    // next update would deep-equal and re-force it.
     const markerPreviousVf = needsVf
       ? previousVf
       : existing && "previousValueFeedback" in existing
         ? existing.previousValueFeedback
-        : previousVf;
+        : null;
     const markerPreviousPs = needsPs
       ? previousPs
       : existing && "previousProductSignal" in existing
         ? existing.previousProductSignal
-        : previousPs;
+        : null;
 
     const actor = options.actor ?? "directive-update";
     appendAuditLog(

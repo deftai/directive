@@ -344,6 +344,52 @@ describe("runOrgForceOnMigration", () => {
     expect(marker?.previousProductSignal).toEqual({ enabled: false });
   });
 
+  it("legacy marker recovers baseline VF without overwriting distinct PS opt-out (#2903)", () => {
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const intentionalPs = { enabled: false, sinkRepo: "acme/keep-off" };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: intentionalPs,
+      },
+    });
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(
+      join(root, ORG_FORCE_ON_MARKER_REL),
+      `${JSON.stringify({
+        version: 1,
+        appliedAt: "2026-07-29T14:13:31Z",
+        originOrg: "deftai",
+        valueFeedback: true,
+        productSignal: true,
+        directiveVersion: "0.87.0",
+      })}\n`,
+      "utf8",
+    );
+
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.ran).toBe(true);
+    expect(result.valueFeedbackChanged).toBe(true);
+    expect(result.productSignalChanged).toBe(false);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
+    expect(resolveProductSignal(root).enabled).toBe(false);
+
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    expect(policyBlock.productSignal).toEqual(intentionalPs);
+
+    // Subsequent update keeps intentional PS off.
+    const second = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(second.ran).toBe(false);
+    expect(resolveProductSignal(root).enabled).toBe(false);
+  });
+
   it("skips non-trusted org repos", () => {
     const root = makeTrustedRepo({
       policy: { valueFeedback: { enabled: false, emitEvents: false, sessionLine: false } },
