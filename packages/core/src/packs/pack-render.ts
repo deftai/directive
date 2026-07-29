@@ -1,7 +1,14 @@
 /** Port of scripts/pack_render.py — content-pack projection renderer (#1294, #1295). */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
 
@@ -79,6 +86,187 @@ export interface RenderRegistryEntry {
   readonly name_field?: string;
   readonly description_field?: string;
   readonly path_field?: string;
+  /**
+   * Pack-schema path pattern (mirrors content/vbrief/schemas/<pack>-pack.schema.json
+   * `path.pattern`). Enforced fail-closed before render so a malicious pack JSON
+   * cannot smuggle an off-shape projection path. Refs #2914 / #2904.
+   */
+  readonly path_pattern?: RegExp;
+}
+
+/** Non-zero exit code for a pack-render containment / schema refusal. */
+export const PACK_RENDER_REFUSED_EXIT_CODE = 2;
+
+/**
+ * Thrown, fail-closed, when a pack record's projection path escapes CONTENT_ROOT,
+ * violates the pack path schema, or a frontmatter field carries an injection
+ * payload (null byte / newline). Remediates AppSec finding skill-pack-supply-01
+ * from tracker #2904. Refs #2914.
+ */
+export class PackRenderContainmentError extends Error {
+  readonly pack: string;
+  readonly field: string;
+  readonly offendingValue: string;
+
+  constructor(message: string, details: { pack: string; field: string; offendingValue: string }) {
+    super(message);
+    this.name = "PackRenderContainmentError";
+    this.pack = details.pack;
+    this.field = details.field;
+    this.offendingValue = details.offendingValue;
+  }
+}
+
+/**
+ * Path-SEGMENT containment: is `child` equal to `parent` or nested under it?
+ * Uses `path.relative` so `/foo` is NOT treated as containing `/foobar`
+ * (mirrors deposit/contain.ts).
+ */
+function isContained(parent: string, child: string): boolean {
+  if (parent === child) {
+    return true;
+  }
+  const rel = relative(parent, child);
+  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+/** realpath with a resolve() fallback when the path does not exist yet. */
+function safeRealpath(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return resolve(p);
+  }
+}
+
+/**
+ * Defense-in-depth: walk each EXISTING component from CONTENT_ROOT down to the
+ * resolved output and refuse any symlink that escapes CONTENT_ROOT. Mirrors the
+ * realpath-anchored segment walk in deposit/contain.ts so a symlinked content
+ * subtree cannot redirect a projection write outside the shippable-content root.
+ */
+function assertAncestorContained(
+  packName: string,
+  field: string,
+  rawPath: string,
+  rootReal: string,
+  outPath: string,
+): void {
+  const rel = relative(rootReal, outPath);
+  const segments = rel.split(/[\\/]+/).filter((segment) => segment.length > 0);
+  let current = rootReal;
+  for (const segment of segments) {
+    current = join(current, segment);
+    let info: ReturnType<typeof lstatSync>;
+    try {
+      info = lstatSync(current);
+    } catch {
+      // Component does not exist yet; nothing below it can exist either.
+      break;
+    }
+    if (info.isSymbolicLink()) {
+      let linkReal: string;
+      try {
+        linkReal = realpathSync(current);
+      } catch {
+        throw new PackRenderContainmentError(
+          `pack-render refused: ${packName} ${field} path component ${current} is a broken symlink`,
+          { pack: packName, field, offendingValue: rawPath },
+        );
+      }
+      if (!isContained(rootReal, linkReal)) {
+        throw new PackRenderContainmentError(
+          `pack-render refused: ${packName} ${field} path component ${current} is a symlink ` +
+            `escaping CONTENT_ROOT (resolves to ${linkReal}, outside ${rootReal})`,
+          { pack: packName, field, offendingValue: rawPath },
+        );
+      }
+      current = linkReal;
+    }
+  }
+}
+
+/**
+ * Resolve a pack record's projection path against CONTENT_ROOT and refuse,
+ * fail-closed, any value that: is missing/empty/non-string, carries a null
+ * byte, is absolute, violates the pack's schema path pattern, or resolves
+ * outside CONTENT_ROOT (a `..` escape). Returns the contained absolute output
+ * path. Mirrors deposit/contain.ts segment containment. Refs #2914 / #2904.
+ */
+export function containedOutPath(
+  packName: string,
+  rawPath: unknown,
+  cfg: RenderRegistryEntry,
+): string {
+  const field = cfg.path_field ?? "path";
+  if (typeof rawPath !== "string" || rawPath.length === 0) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} entry has a missing/empty ${field}`,
+      { pack: packName, field, offendingValue: String(rawPath) },
+    );
+  }
+  if (rawPath.includes("\0")) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} ${field} contains a null byte`,
+      { pack: packName, field, offendingValue: rawPath },
+    );
+  }
+  if (isAbsolute(rawPath) || /^[\\/]/.test(rawPath)) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} ${field} must be a relative path (got absolute ${JSON.stringify(rawPath)})`,
+      { pack: packName, field, offendingValue: rawPath },
+    );
+  }
+  if (cfg.path_pattern && !cfg.path_pattern.test(rawPath)) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} ${field} ${JSON.stringify(rawPath)} violates the ` +
+        `${packName}-pack schema path pattern ${String(cfg.path_pattern)}`,
+      { pack: packName, field, offendingValue: rawPath },
+    );
+  }
+  // Resolve with realpath semantics on the trusted root, then confirm segment
+  // containment. `resolve` collapses `..`, so an escape lands outside rootReal
+  // and is refused here even when it slipped past the schema pattern (where `.`
+  // can match a path separator).
+  const rootReal = safeRealpath(CONTENT_ROOT);
+  const outPath = resolve(rootReal, rawPath);
+  if (!isContained(rootReal, outPath)) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} ${field} ${JSON.stringify(rawPath)} escapes CONTENT_ROOT ` +
+        `(resolves to ${outPath}, outside ${rootReal})`,
+      { pack: packName, field, offendingValue: rawPath },
+    );
+  }
+  assertAncestorContained(packName, field, rawPath, rootReal, outPath);
+  return outPath;
+}
+
+/** Refuse a frontmatter field value that embeds a null byte. Refs #2914. */
+function assertNoNullByte(value: string, packName: string, field: string): string {
+  if (value.includes("\0")) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} frontmatter field ${field} contains a null byte`,
+      { pack: packName, field, offendingValue: value },
+    );
+  }
+  return value;
+}
+
+/**
+ * Sanitize a single-line YAML frontmatter field (skill `name`): refuse null
+ * bytes and any CR/LF. An unescaped newline would inject arbitrary YAML keys or
+ * a premature `---` document break into the generated frontmatter. Refs #2914.
+ */
+function sanitizeSingleLineField(value: string, packName: string, field: string): string {
+  assertNoNullByte(value, packName, field);
+  if (/[\r\n]/.test(value)) {
+    throw new PackRenderContainmentError(
+      `pack-render refused: ${packName} frontmatter field ${field} must not contain a newline ` +
+        `(YAML frontmatter injection)`,
+      { pack: packName, field, offendingValue: value },
+    );
+  }
+  return value;
 }
 
 export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
@@ -100,6 +288,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
     name_field: "id",
     description_field: "description",
     path_field: "path",
+    path_pattern: /^skills\/.+\/SKILL\.md$/,
     body_field: "body",
     banner: SKILLS_BANNER,
   },
@@ -109,6 +298,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
     source: join(CONTENT_ROOT, "packs", "rules", "rules-pack-0.1.json"),
     items_field: "rules",
     path_field: "path",
+    path_pattern: /^(?:coding\/.+\.md|AGENTS\.md|main\.md)$/,
     body_field: "body",
     banner: RULES_BANNER,
   },
@@ -118,6 +308,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
     source: join(CONTENT_ROOT, "packs", "strategies", "strategies-pack-0.1.json"),
     items_field: "strategies",
     path_field: "path",
+    path_pattern: /^strategies\/.+\.md$/,
     body_field: "body",
     banner: STRATEGIES_BANNER,
   },
@@ -127,6 +318,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
     source: join(CONTENT_ROOT, "packs", "patterns", "patterns-pack-0.1.json"),
     items_field: "patterns",
     path_field: "path",
+    path_pattern: /^patterns\/.+\.md$/,
     body_field: "body",
     banner: PATTERNS_BANNER,
   },
@@ -136,6 +328,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
     source: join(CONTENT_ROOT, "packs", "swarm-spec", "swarm-spec-pack-0.1.json"),
     items_field: "entries",
     path_field: "path",
+    path_pattern: /^swarm\/.+\.md$/,
     body_field: "body",
     banner: SWARM_SPEC_BANNER,
   },
@@ -200,12 +393,19 @@ export function renderSkillDocument(
   entry: Record<string, unknown>,
   cfg: RenderRegistryEntry,
 ): string {
-  const name = entry[cfg.name_field ?? "id"];
-  const description = entry[cfg.description_field ?? "description"];
+  // Sanitize every YAML frontmatter field so a malicious pack cannot inject
+  // unescaped frontmatter (newline -> extra key / premature `---`) or a null
+  // byte. Refs #2914 / #2904 (skill-pack-supply-01).
+  const nameField = cfg.name_field ?? "id";
+  const descriptionField = cfg.description_field ?? "description";
+  const name = sanitizeSingleLineField(String(entry[nameField]), "skills", nameField);
+  const description = assertNoNullByte(String(entry[descriptionField]), "skills", descriptionField);
   const body = entry[cfg.body_field] ?? "";
   const extra = entry.frontmatter_extra;
-  const extraBlock = typeof extra === "string" && extra.length > 0 ? `${extra}\n` : "";
-  const frontmatter = `---\nname: ${String(name)}\n${emitDescription(String(description))}\n${extraBlock}---\n`;
+  const extraStr =
+    typeof extra === "string" ? assertNoNullByte(extra, "skills", "frontmatter_extra") : "";
+  const extraBlock = extraStr.length > 0 ? `${extraStr}\n` : "";
+  const frontmatter = `---\nname: ${name}\n${emitDescription(description)}\n${extraBlock}---\n`;
   return `${frontmatter}${bannerText(cfg.banner)}\n${String(body)}`;
 }
 
@@ -225,7 +425,8 @@ const DOCUMENT_RENDERERS: Record<
   markdown: renderMarkdownDocument,
 };
 
-function targetsForPack(
+export function targetsForPack(
+  packName: string,
   pack: Record<string, unknown>,
   cfg: RenderRegistryEntry,
 ): Array<[string, string]> {
@@ -249,7 +450,10 @@ function targetsForPack(
     const pathField = cfg.path_field ?? "path";
     // Document projection targets (skills/rules/strategies/patterns) are
     // shippable content -- they live under content/ in the source repo (#1875).
-    const outPath = join(CONTENT_ROOT, String(record[pathField]));
+    // #2914: contain the pack-supplied path under CONTENT_ROOT and enforce the
+    // pack schema path pattern BEFORE render so a malicious pack JSON cannot
+    // write outside content/ via an absolute / `..` / null-byte path.
+    const outPath = containedOutPath(packName, record[pathField], cfg);
     targets.push([outPath, docRenderer(record, cfg)]);
   }
   return targets;
@@ -265,7 +469,7 @@ export function collectTargets(packFilter?: string | null): Array<[string, strin
       throw new Error(`pack source not found: ${cfg.source}`);
     }
     const pack = JSON.parse(readFileSync(cfg.source, "utf8")) as Record<string, unknown>;
-    for (const [outPath, text] of targetsForPack(pack, cfg)) {
+    for (const [outPath, text] of targetsForPack(name, pack, cfg)) {
       targets.push([name, outPath, text]);
     }
   }

@@ -6,14 +6,17 @@ import { contentRoot } from "../content-root.js";
 import {
   checkDrift,
   collectTargets,
+  containedOutPath,
   DEFAULT_SOURCE,
   main,
+  PackRenderContainmentError,
   RENDER_REGISTRY,
   render,
   renderCollection,
   renderFile,
   renderMarkdownDocument,
   renderSkillDocument,
+  targetsForPack,
   writeRender,
 } from "./pack-render.js";
 
@@ -333,5 +336,153 @@ describe("packRender.main", () => {
 describe("packRender defaults", () => {
   it("exposes default source path", () => {
     expect(DEFAULT_SOURCE).toContain("lessons-pack-0.1.json");
+  });
+});
+
+// #2914 / tracker #2904 (skill-pack-supply-01): pack-render must contain
+// projection paths under CONTENT_ROOT, enforce pack schema path patterns, and
+// refuse frontmatter injection -- all fail-closed.
+describe("packRender.containedOutPath (#2914 path containment + schema)", () => {
+  const skillsCfg = RENDER_REGISTRY.skills as NonNullable<(typeof RENDER_REGISTRY)["skills"]>;
+  const rulesCfg = RENDER_REGISTRY.rules as NonNullable<(typeof RENDER_REGISTRY)["rules"]>;
+
+  it("returns a CONTENT_ROOT-contained path for a schema-valid entry", () => {
+    const out = containedOutPath("skills", "skills/deft-alpha/SKILL.md", skillsCfg);
+    expect(out.replace(/\\/g, "/")).toContain("skills/deft-alpha/SKILL.md");
+    expect(out.startsWith(CONTENT_ROOT) || out.includes("content")).toBe(true);
+  });
+
+  it("refuses an absolute path (escape)", () => {
+    expect(() => containedOutPath("skills", "/etc/cron.d/evil", skillsCfg)).toThrow(
+      PackRenderContainmentError,
+    );
+    expect(() => containedOutPath("skills", "/etc/cron.d/evil", skillsCfg)).toThrow(
+      /must be a relative path/,
+    );
+  });
+
+  it("refuses a leading-slash / backslash path", () => {
+    expect(() => containedOutPath("rules", "\\\\server\\share\\x.md", rulesCfg)).toThrow(
+      PackRenderContainmentError,
+    );
+  });
+
+  it("refuses a `../` traversal escape even if it satisfies the schema glob", () => {
+    // `.+` in the schema pattern can match a separator, so the pattern alone is
+    // insufficient; the resolved-containment check is the real guard.
+    const evil = "skills/../../../../../../tmp/evil/SKILL.md";
+    expect(skillsCfg.path_pattern?.test(evil)).toBe(true);
+    expect(() => containedOutPath("skills", evil, skillsCfg)).toThrow(/escapes CONTENT_ROOT/);
+  });
+
+  it("refuses a null byte in the path", () => {
+    expect(() => containedOutPath("skills", "skills/a\u0000b/SKILL.md", skillsCfg)).toThrow(
+      /null byte/,
+    );
+  });
+
+  it("refuses a path that violates the pack schema pattern", () => {
+    expect(() => containedOutPath("skills", "notskills/x/SKILL.md", skillsCfg)).toThrow(
+      /violates the skills-pack schema path pattern/,
+    );
+    expect(() => containedOutPath("rules", "secrets/passwd", rulesCfg)).toThrow(
+      /violates the rules-pack schema path pattern/,
+    );
+  });
+
+  it("refuses a missing / non-string path", () => {
+    expect(() => containedOutPath("skills", undefined, skillsCfg)).toThrow(/missing\/empty/);
+    expect(() => containedOutPath("skills", "", skillsCfg)).toThrow(/missing\/empty/);
+    expect(() => containedOutPath("skills", 42, skillsCfg)).toThrow(/missing\/empty/);
+  });
+});
+
+describe("packRender.targetsForPack refuses malicious pack entries (#2914)", () => {
+  const skillsCfg = RENDER_REGISTRY.skills as NonNullable<(typeof RENDER_REGISTRY)["skills"]>;
+
+  it("refuses render when any entry escapes CONTENT_ROOT", () => {
+    const pack = {
+      skills: [
+        {
+          id: "evil",
+          description: "pwn",
+          path: "skills/../../../../../../tmp/evil/SKILL.md",
+          body: "# owned\n",
+        },
+      ],
+    };
+    expect(() => targetsForPack("skills", pack, skillsCfg)).toThrow(PackRenderContainmentError);
+  });
+
+  it("refuses render on an absolute path entry", () => {
+    const pack = {
+      skills: [{ id: "evil", description: "pwn", path: "/etc/evil/SKILL.md", body: "x" }],
+    };
+    expect(() => targetsForPack("skills", pack, skillsCfg)).toThrow(/must be a relative path/);
+  });
+
+  it("renders a well-formed entry to a contained path", () => {
+    const pack = {
+      skills: [
+        { id: "deft-alpha", description: "ok", path: "skills/deft-alpha/SKILL.md", body: "# A\n" },
+      ],
+    };
+    const targets = targetsForPack("skills", pack, skillsCfg);
+    expect(targets.length).toBe(1);
+    const [outPath, text] = targets[0] as [string, string];
+    expect(outPath.replace(/\\/g, "/")).toContain("skills/deft-alpha/SKILL.md");
+    expect(text).toContain("name: deft-alpha");
+  });
+});
+
+describe("packRender.renderSkillDocument frontmatter sanitization (#2914)", () => {
+  const cfg = RENDER_REGISTRY.skills as NonNullable<(typeof RENDER_REGISTRY)["skills"]>;
+
+  it("refuses a newline in the skill name (YAML frontmatter injection)", () => {
+    expect(() =>
+      renderSkillDocument(
+        { id: "evil\ninjected: true", description: "d", path: "skills/x/SKILL.md", body: "b" },
+        cfg,
+      ),
+    ).toThrow(/must not contain a newline/);
+  });
+
+  it("refuses a null byte in the skill name", () => {
+    expect(() => renderSkillDocument({ id: "a\u0000b", description: "d", body: "b" }, cfg)).toThrow(
+      /null byte/,
+    );
+  });
+
+  it("refuses a null byte in the description", () => {
+    expect(() =>
+      renderSkillDocument({ id: "ok", description: "d\u0000x", body: "b" }, cfg),
+    ).toThrow(/null byte/);
+  });
+
+  it("refuses a null byte in frontmatter_extra", () => {
+    expect(() =>
+      renderSkillDocument(
+        { id: "ok", description: "d", frontmatter_extra: "triggers:\u0000", body: "b" },
+        cfg,
+      ),
+    ).toThrow(/null byte/);
+  });
+
+  it("still renders a clean entry unchanged", () => {
+    const text = renderSkillDocument(
+      { id: "deft-alpha", description: "Alpha does things.", body: "# Alpha\n" },
+      cfg,
+    );
+    expect(text.split("\n")[1]).toBe("name: deft-alpha");
+  });
+});
+
+describe("packRender.collectTargets stays contained on real packs (#2914)", () => {
+  it("every real projection target resolves under CONTENT_ROOT or REPO_ROOT", () => {
+    const targets = collectTargets();
+    for (const [, outPath] of targets) {
+      const norm = outPath.replace(/\\/g, "/");
+      expect(norm.includes("..")).toBe(false);
+    }
   });
 });
