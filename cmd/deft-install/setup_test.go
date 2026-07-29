@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1769,6 +1771,112 @@ func TestExtractTarGzBinaries_PathTraversalMembersStayInDestDir(t *testing.T) {
 		if e.Name() != "bin" {
 			t.Fatalf("unexpected path outside destDir: %s", e.Name())
 		}
+	}
+}
+
+// TestFetchLinuxBootstrapURL_RejectsOversizedContentLength fails closed when
+// the server advertises a Content-Length above the archive ceiling, without
+// writing a temp archive (#2931 Greptile P2).
+func TestFetchLinuxBootstrapURL_RejectsOversizedContentLength(t *testing.T) {
+	origMax := linuxBootstrapMaxArchiveBytes
+	linuxBootstrapMaxArchiveBytes = 64
+	defer func() { linuxBootstrapMaxArchiveBytes = origMax }()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "1000")
+		w.WriteHeader(http.StatusOK)
+		// Body should not be needed; client must refuse on Content-Length.
+		_, _ = w.Write(bytes.Repeat([]byte("x"), 1000))
+	}))
+	defer srv.Close()
+
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	path, err := fetchLinuxBootstrapURL(w, srv.URL)
+	if path != "" {
+		os.Remove(path)
+		t.Fatalf("expected empty path on oversized Content-Length, got %q", path)
+	}
+	if err == nil {
+		t.Fatal("expected error for oversized Content-Length")
+	}
+	if !strings.Contains(err.Error(), "Content-Length") {
+		t.Errorf("expected Content-Length error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "exceeds max") {
+		t.Errorf("expected exceeds-max wording, got: %v", err)
+	}
+}
+
+// TestFetchLinuxBootstrapURL_EnforcesHardReadLimit rejects a body that streams
+// past the ceiling when Content-Length is absent, and removes the temp file
+// (#2931 Greptile P2).
+func TestFetchLinuxBootstrapURL_EnforcesHardReadLimit(t *testing.T) {
+	origMax := linuxBootstrapMaxArchiveBytes
+	linuxBootstrapMaxArchiveBytes = 32
+	defer func() { linuxBootstrapMaxArchiveBytes = origMax }()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Flush chunked writes so httptest does not auto-set Content-Length from a
+		// fully-buffered body; this exercises the LimitReader path only.
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "ResponseWriter does not support Flush", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
+		chunk := bytes.Repeat([]byte("y"), 40)
+		for i := 0; i < 8; i++ {
+			if _, err := w.Write(chunk); err != nil {
+				return
+			}
+			flusher.Flush()
+		}
+	}))
+	defer srv.Close()
+
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	path, err := fetchLinuxBootstrapURL(w, srv.URL)
+	if path != "" {
+		if _, statErr := os.Stat(path); statErr == nil {
+			os.Remove(path)
+			t.Fatalf("oversized download left temp file at %q", path)
+		}
+	}
+	if err == nil {
+		t.Fatal("expected error when body exceeds hard read limit")
+	}
+	if !strings.Contains(err.Error(), "exceeds max size") {
+		t.Errorf("expected max-size error, got: %v", err)
+	}
+}
+
+// TestFetchLinuxBootstrapURL_AcceptsWithinLimit writes a body at/under the
+// ceiling and returns a readable temp path the caller owns.
+func TestFetchLinuxBootstrapURL_AcceptsWithinLimit(t *testing.T) {
+	origMax := linuxBootstrapMaxArchiveBytes
+	linuxBootstrapMaxArchiveBytes = 64
+	defer func() { linuxBootstrapMaxArchiveBytes = origMax }()
+
+	want := []byte("pinned-bootstrap-archive-bytes")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/gzip")
+		_, _ = w.Write(want)
+	}))
+	defer srv.Close()
+
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	path, err := fetchLinuxBootstrapURL(w, srv.URL)
+	if err != nil {
+		t.Fatalf("fetchLinuxBootstrapURL: %v", err)
+	}
+	defer os.Remove(path)
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read temp archive: %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("archive bytes = %q, want %q", got, want)
 	}
 }
 

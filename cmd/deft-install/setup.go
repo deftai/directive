@@ -1392,7 +1392,19 @@ const (
 	// pinnedGhVersion / pinnedGhTag are the cli/cli release coordinates.
 	pinnedGhVersion = "2.96.0"
 	pinnedGhTag     = "v2.96.0"
+
+	// defaultLinuxBootstrapMaxArchiveBytes is the production ceiling for one
+	// pinned uv/task/gh release tarball written under TempDir. Current pinned
+	// assets are roughly 5–25 MiB compressed; 100 MiB leaves headroom for
+	// natural growth while rejecting multi-GB DoS / continuously streaming
+	// bodies that would fill the installer's temp filesystem (#2931 Greptile P2).
+	defaultLinuxBootstrapMaxArchiveBytes int64 = 100 << 20 // 100 MiB
 )
+
+// linuxBootstrapMaxArchiveBytes is the hard read/Content-Length ceiling for
+// fetchLinuxBootstrapURL. Var (not const) so unit tests can lower it without
+// streaming 100 MiB; production never mutates this value.
+var linuxBootstrapMaxArchiveBytes = defaultLinuxBootstrapMaxArchiveBytes
 
 // pinnedUVSHA256 maps GOARCH -> lowercase hex SHA-256 of the pinned uv
 // linux-gnu (amd64/arm64) or linux-musleabihf (arm) release tarball. Vars (not
@@ -1635,6 +1647,11 @@ func installGhLinux(w *Wizard) error {
 // fetchLinuxBootstrapURL downloads url to a unique temp file and returns its
 // path. The caller owns cleanup. On any error the partial temp file is removed
 // so a failed download never leaves an unverified archive on disk.
+//
+// Size bound (#2931 Greptile P2): reject an advertised Content-Length above
+// linuxBootstrapMaxArchiveBytes before creating the temp file, and stream the
+// body through io.LimitReader so a missing/lying Content-Length cannot fill
+// TempDir. Oversized bodies fail closed (no partial archive returned).
 func fetchLinuxBootstrapURL(w *Wizard, url string) (string, error) {
 	w.printf("  GET %s\n", url)
 	// Reuse the installer download client (transport-level timeouts + generous
@@ -1649,15 +1666,36 @@ func fetchLinuxBootstrapURL(w *Wizard, url string) (string, error) {
 		return "", fmt.Errorf("GET %s: HTTP %s", url, resp.Status)
 	}
 
+	// ContentLength < 0 means unknown; only reject when the server advertises
+	// an implausible size up front (no point streaming into TempDir).
+	if resp.ContentLength > linuxBootstrapMaxArchiveBytes {
+		return "", fmt.Errorf(
+			"bootstrap archive Content-Length %d exceeds max %d bytes",
+			resp.ContentLength, linuxBootstrapMaxArchiveBytes,
+		)
+	}
+
 	f, err := os.CreateTemp(os.TempDir(), "deft-linux-bootstrap-*.tgz")
 	if err != nil {
 		return "", fmt.Errorf("could not create temp file: %w", err)
 	}
 	tmpPath := f.Name()
-	if _, err := io.Copy(f, resp.Body); err != nil {
+	// Read at most max+1 bytes so we can distinguish "exactly max" (OK) from
+	// "more than max" (reject). LimitReader alone stops at N without error.
+	limited := io.LimitReader(resp.Body, linuxBootstrapMaxArchiveBytes+1)
+	n, err := io.Copy(f, limited)
+	if err != nil {
 		f.Close()
 		os.Remove(tmpPath)
 		return "", fmt.Errorf("download interrupted: %w", err)
+	}
+	if n > linuxBootstrapMaxArchiveBytes {
+		f.Close()
+		os.Remove(tmpPath)
+		return "", fmt.Errorf(
+			"bootstrap archive exceeds max size of %d bytes",
+			linuxBootstrapMaxArchiveBytes,
+		)
 	}
 	if err := f.Close(); err != nil {
 		os.Remove(tmpPath)
