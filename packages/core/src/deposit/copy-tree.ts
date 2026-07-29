@@ -12,17 +12,7 @@
  */
 
 import { constants } from "node:fs";
-import {
-  lstat,
-  mkdir,
-  mkdtemp,
-  open,
-  readdir,
-  readFile,
-  rename,
-  rm,
-  stat,
-} from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, open, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -36,7 +26,10 @@ async function assertDestinationIsNotSymlink(path: string, label = "copyTree"): 
       throw new Error(`${label}: refusing to write through destination symlink ${path}`);
     }
   } catch (err) {
-    if (err instanceof Error && err.message.includes("refusing to write through destination symlink")) {
+    if (
+      err instanceof Error &&
+      err.message.includes("refusing to write through destination symlink")
+    ) {
       throw err;
     }
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
