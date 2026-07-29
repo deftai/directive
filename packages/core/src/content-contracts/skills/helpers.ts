@@ -40,6 +40,40 @@ export function readSkill(relPath: string): string {
   return readRepoFile(relPath);
 }
 
+/**
+ * Progressive-disclosure surface for deft-directive-swarm (#2928).
+ * Thin SKILL.md is the dispatch card; operative depth lives under references/.
+ * Content contracts assert against this ordered join so host adapters can leave
+ * the always-loaded SKILL without dropping coverage.
+ */
+export const SWARM_SKILL_REL = "skills/deft-directive-swarm/SKILL.md";
+
+/** Stable load order: core phases, then host launch adapters, then ops. */
+export const SWARM_REFERENCE_ORDER = [
+  "core-phase-0.md",
+  "core-phase-1-2.md",
+  "core-phase-3.md",
+  "host-warp.md",
+  "host-generic.md",
+  "host-grok-build.md",
+  "host-cursor.md",
+  "host-openclaw.md",
+  "core-phase-4.md",
+  "core-phase-5-6.md",
+  "core-ops.md",
+] as const;
+
+export function readSwarmSkillSurface(): string {
+  const parts: string[] = [readRepoFile(SWARM_SKILL_REL)];
+  for (const name of SWARM_REFERENCE_ORDER) {
+    const rel = `skills/deft-directive-swarm/references/${name}`;
+    if (repoFileExists(rel)) {
+      parts.push(readRepoFile(rel));
+    }
+  }
+  return parts.join("\n\n");
+}
+
 export function readAgentsMd(): string {
   return readRepoFile("AGENTS.md");
 }

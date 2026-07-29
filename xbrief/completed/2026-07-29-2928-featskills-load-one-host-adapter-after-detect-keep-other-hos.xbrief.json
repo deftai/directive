@@ -1,0 +1,61 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Split deft-directive-swarm into thin SKILL + core/host adapter refs; write-skill convention; openclaw doc links.",
+    "updated": "2026-07-29T21:04:41Z"
+  },
+  "plan": {
+    "title": "feat(skills): load one host adapter after detect; keep other hosts out of context",
+    "status": "completed",
+    "narratives": {
+      "Description": "Split deft-directive-swarm into thin SKILL + core/host adapter refs; write-skill convention; openclaw doc links.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2928",
+      "Overview": "Split deft-directive-swarm into thin SKILL + core/host adapter refs; write-skill convention; openclaw doc links.",
+      "Labels": "enhancement, swarm, skills, context-engineering, agent-experience, harness:openclaw",
+      "ImplementationPlan": "Pack body thinned with detect/route table; hand-authored references/core-*.md and host-*.md; content contracts read ordered surface; openclaw-tier1/cursor-tier1 multi-file markers; CHANGELOG."
+    },
+    "items": [
+      {
+        "title": "Write-skill / skill convention documents host-neutral core + per-host adapter refs",
+        "status": "completed"
+      },
+      {
+        "title": "At least one exemplar skill split (prefer `deft-directive-swarm` or a vertical slice of Phase 3 launch)",
+        "status": "completed"
+      },
+      {
+        "title": "Thin SKILL route table: detect → load core + one `references/host-*.md`",
+        "status": "completed"
+      },
+      {
+        "title": "Explicit anti-pattern: load all host adapters “just in case”",
+        "status": "completed"
+      },
+      {
+        "title": "OpenClaw adapter encodes worktree-before-spawn and babysit → `sessions_spawn` as MUST",
+        "status": "completed"
+      },
+      {
+        "title": "Links from OpenClaw host doc (`content/docs/openclaw-agent-host.md`) stay accurate; skill text remains source of truth",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "swarm",
+      "skills",
+      "context-engineering",
+      "agent-experience",
+      "harness:openclaw"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2928",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2928: feat(skills): load one host adapter after detect; keep other hosts out of context"
+      }
+    ],
+    "updated": "2026-07-29T21:04:41Z",
+    "id": "2026-07-29-2928-featskills-load-one-host-adapter-after-detect-keep-other-hos.xbrief"
+  }
+}

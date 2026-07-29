@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile, repoFileExists } from "./helpers.js";
+import { readRepoFile, repoFileExists,
+  readSwarmSkillSurface
+} from "./helpers.js";
 
 /** Port of tests/content/test_agent_prompt_preamble_template.py (#1838 #1530) */
 
@@ -132,7 +134,7 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("do not force concurrency=1 because of #2563");
   });
   it("swarm_skill_windows_2563_does_not_prefer_cloud_or_concurrency_one", () => {
-    const swarmSkill = readRepoFile("skills/deft-directive-swarm/SKILL.md");
+    const swarmSkill = readSwarmSkillSurface();
     const bulletMatch = swarmSkill.match(
       /! \*\*Windows \+ Cursor Task-tool console windows \(#2563\):\*\*[^\n]+/,
     );

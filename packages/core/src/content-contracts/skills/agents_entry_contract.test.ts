@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { EVAL_READBACK_SUPPRESSION_HOURS } from "../../eval/readback.js";
 import { VALUE_READBACK_SUPPRESSION_HOURS } from "../../value/readback.js";
-import { readRepoFile, repoFileExists, resolveRepoPath } from "./helpers.js";
+import { readRepoFile, readSwarmSkillSurface, repoFileExists, resolveRepoPath } from "./helpers.js";
 
 /** Port of tests/content/test_agents_entry_contract.py (#768, #1309, #2111, #2371). */
 
@@ -596,7 +596,10 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   if (!repoFileExists(spec.canonicalHome)) {
     errors.push(`${spec.id}: canonical home missing at ${spec.canonicalHome}`);
   } else {
-    const homeText = readRepoFile(spec.canonicalHome);
+    const homeText =
+      spec.canonicalHome === "skills/deft-directive-swarm/SKILL.md"
+        ? readSwarmSkillSurface()
+        : readRepoFile(spec.canonicalHome);
     const missingBody = missingMarkers(homeText, spec.canonicalBodyMarkers);
     if (missingBody.length > 0) {
       errors.push(

@@ -1,0 +1,61 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "OpenClaw parallel swarm MUST worktree/worktree-map before sessions_spawn; block shared-root DIY dispatch.",
+    "updated": "2026-07-29T21:04:41Z"
+  },
+  "plan": {
+    "title": "feat(swarm,openclaw): require worktree before sessions_spawn; block shared-checkout parallel dispatch",
+    "status": "completed",
+    "narratives": {
+      "Description": "OpenClaw parallel swarm MUST worktree/worktree-map before sessions_spawn; block shared-root DIY dispatch.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2929",
+      "Overview": "OpenClaw parallel swarm MUST worktree/worktree-map before sessions_spawn; block shared-root DIY dispatch.",
+      "Labels": "bug, enhancement, swarm, operational, agent-experience, harness:openclaw",
+      "ImplementationPlan": "host-openclaw.md hard MUST/MUST NOT; thin SKILL hard gates; openclaw-agent-host.md swarm section points at skill SoT."
+    },
+    "items": [
+      {
+        "title": "OpenClaw parallel swarm docs/skill: worktree (or worktree-map) **before** `sessions_spawn` is MUST",
+        "status": "completed"
+      },
+      {
+        "title": "Explicit MUST NOT: multi-leaf DIY spawn on shared repo root",
+        "status": "completed"
+      },
+      {
+        "title": "Launch or verify path fails loud when isolation is missing for parallel cohort",
+        "status": "completed"
+      },
+      {
+        "title": "Exemplar or test covers the fail path (engine and/or skill checklist)",
+        "status": "completed"
+      },
+      {
+        "title": "Link from `content/docs/openclaw-agent-host.md` without duplicating a second source of truth",
+        "status": "completed"
+      },
+      {
+        "title": "Cross-link #2928; do not merge the two scopes into one vague epic without splitting deliverables",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "swarm",
+      "operational",
+      "agent-experience",
+      "harness:openclaw"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2929",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2929: feat(swarm,openclaw): require worktree before sessions_spawn; block shared-checkout parallel dispatch"
+      }
+    ],
+    "updated": "2026-07-29T21:04:41Z",
+    "id": "2026-07-29-2929-featswarmopenclaw-require-worktree-before-sessions-spawn-blo.xbrief"
+  }
+}

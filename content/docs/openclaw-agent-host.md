@@ -33,7 +33,7 @@ OpenClaw’s native background-spawn tool is **`sessions_spawn`**. Operator inte
 
 ! Gate tiers, allowed register primitives, dispatch detection, and review Approaches are defined **only** in shipped skill + engine text:
 
-- Swarm capability matrix + launch path: [`skills/deft-directive-swarm/SKILL.md`](../skills/deft-directive-swarm/SKILL.md) (Phase 3 runtime detection / launch adapter).
+- Swarm capability matrix + launch path: [`skills/deft-directive-swarm/SKILL.md`](../skills/deft-directive-swarm/SKILL.md) (thin skill: detect + route table) and OpenClaw adapter [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md) (Step 2f launch, worktree-before-spawn #2929, phase handoff #2934). Skill text remains source of truth.
 - PR babysit / shepherd / watch: [`skills/deft-directive-review-cycle/SKILL.md`](../skills/deft-directive-review-cycle/SKILL.md) → **Review Monitoring**.
 - Provider-neutral dispatch envelope: [`templates/agent-prompt-preamble.md`](../templates/agent-prompt-preamble.md).
 - Review-owner lease: `task review-monitor:register` / `task verify:review-monitor` (only `--platform-primitive` values those commands accept in your install).
@@ -117,6 +117,21 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 
 ---
 
+
+---
+
+## Swarm on OpenClaw (#2929 / #2934)
+
+! For **parallel** swarm leaves on OpenClaw:
+
+1. Create worktrees (or consume a worktree-map) **before** any `sessions_spawn`.
+2. Set each worker cwd to that worktree — not the shared repo root.
+3. Prefer `task swarm:launch` + manifest; DIY multi-leaf `sessions_spawn` without worktree prep is forbidden.
+
+! After a coding cohort completes, dispatch the next phase with a **real tool call in the same turn**, or write explicit terminal status (`blocked` / `awaiting-human` / `done`). Do not end on narrative-only “I will spawn…”.
+
+Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md) and the thin swarm SKILL hard-gates block. This page does not fork a second source of truth.
+
 ## Anti-patterns
 
 - ⊗ Main-session `gh` poll + **cron** as the default babysit path when the installed skill offers a Tier 1 / background monitor.
@@ -134,4 +149,5 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 - [skill-pin-policy.md](./skill-pin-policy.md) — always-pin process skills (includes review-cycle)
 - [`skills/deft-directive-review-cycle/SKILL.md`](../skills/deft-directive-review-cycle/SKILL.md)
 - [`skills/deft-directive-swarm/SKILL.md`](../skills/deft-directive-swarm/SKILL.md)
+- [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md) — OpenClaw swarm adapter
 - [`templates/agent-prompt-preamble.md`](../templates/agent-prompt-preamble.md)

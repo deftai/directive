@@ -162,6 +162,23 @@ The description is **the only thing the agent sees** when deciding whether to lo
 
 - ⊗ Omitting RFC2119 notation — deft skills use it consistently
 - ⊗ Putting all content in SKILL.md when it exceeds 150 lines — split into `references/*.md` or `REFERENCE.md`
+
+- ⊗ Putting every agent-host branch (Warp, Cursor, OpenClaw, Grok Build, generic) in one always-loaded SKILL body when a host-neutral core + per-host adapter split is feasible (#2928)
+
+---
+
+## Host-adapter skills (multi-host) (#2928)
+
+Large skills that branch on **agent host** (the runtime: Warp, Cursor, OpenClaw, Grok Build, generic-terminal) SHOULD use progressive host adapters:
+
+1. ! Keep a **thin host-neutral core** in `SKILL.md` (triggers, phase overview, detect, route table, cross-host MUST gates).
+2. ! Put shared depth in `references/core-*.md`.
+3. ! Put each host path in `references/host-<id>.md` (spawn primitive, cwd rules, monitor liveness, host MUST NOT list).
+4. ! Default load path: detect host → read core + **one** adapter. 
+5. ⊗ Load all host adapters “just in case.”
+
+Exemplar: `skills/deft-directive-swarm/` (route table in SKILL + `references/host-openclaw.md` etc.).
+
 - ⊗ Vague trigger phrases — use phrases the user would actually type
 - ⊗ Overlapping triggers without negative triggers — add `Do NOT trigger on …` to the description
 - ⊗ Naming a GitHub-integrated skill without `gh` in the name

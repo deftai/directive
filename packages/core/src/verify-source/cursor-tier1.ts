@@ -21,13 +21,18 @@ export interface CursorTier1Target {
 export const CURSOR_TIER1_TARGETS: readonly CursorTier1Target[] = [
   {
     path: "content/skills/deft-directive-swarm/SKILL.md",
-    label: "swarm Phase 3 capability matrix",
+    label: "swarm Phase 3 capability matrix (thin skill)",
     markers: [
       "Probe for the Cursor `Task` tool",
       "cursor-composer",
       "cursor-cloud-agent",
-      "Step 2e: Cursor Launch",
+      "host-cursor.md",
     ],
+  },
+  {
+    path: "content/skills/deft-directive-swarm/references/host-cursor.md",
+    label: "swarm Cursor host adapter",
+    markers: ["Step 2e: Cursor Launch", "cursor-composer", "Task"],
   },
   {
     path: "content/skills/deft-directive-review-cycle/SKILL.md",

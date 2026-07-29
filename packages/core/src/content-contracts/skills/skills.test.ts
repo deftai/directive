@@ -8,6 +8,7 @@ import {
   repoFileExists,
   resolveRepoPath,
   USER_MD_GATE_HEADING,
+  readSwarmSkillSurface,
 } from "./helpers.js";
 
 /** Port of tests/content/test_skills.py (#1838 #1530) */
@@ -185,36 +186,36 @@ describe("test_skills", () => {
     expect(repoFileExists(_SWARM_PATH)).toBeTruthy();
   });
   it("deft_directive_swarm_rfc2119_legend", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain(RFC2119_LEGEND);
   });
   it("deft_directive_swarm_phase0_allocate_heading", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("## Phase 0");
     expect(text).toContain("Allocate");
   });
   it("deft_directive_swarm_phase0_scans_vbrief_active", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("xbrief/active/");
     expect(text).toContain("xbrief.json");
   });
   it("deft_directive_swarm_phase0_surfaces_blockers", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("blocked");
     expect(text.toLowerCase()).toContain("incomplete");
   });
   it("deft_directive_swarm_phase0_approval_gate", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("yes");
     expect(text).toContain("confirmed");
     expect(text).toContain("approve");
   });
   it("deft_directive_swarm_phase0_antipattern", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Phase 1 (Select) without completing Phase 0");
   });
   it("deft_directive_swarm_flexible_allocation", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(
       text.toLowerCase().includes("no fixed per-agent limit") ||
         text.toLowerCase().includes("no hardcoded 1:1 rule"),
@@ -225,15 +226,15 @@ describe("test_skills", () => {
     expect(text.toLowerCase()).toContain("dedicated");
   });
   it("deft_directive_swarm_runtime_start_agent_detection", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("start_agent");
   });
   it("deft_directive_swarm_warp_env_detection", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.includes("WARP_*") || text.includes("WARP_TERMINAL_SESSION")).toBe(true);
   });
   it("deft_directive_swarm_spawn_subagent_grok_build_detection", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("spawn_subagent");
     expect(text.includes("grok-build") || text.includes("spawn_subagent")).toBe(true);
     expect(text.toLowerCase().includes("absence") || text.toLowerCase().includes("absences")).toBe(
@@ -241,7 +242,7 @@ describe("test_skills", () => {
     );
   });
   it("deft_directive_swarm_platform_descriptor_matrix", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(
       text.toLowerCase().includes("stable platform descriptor") ||
         text.toLowerCase().includes("platform descriptor") ||
@@ -250,52 +251,52 @@ describe("test_skills", () => {
     expect(text.includes("grok-build") || text.includes("spawn_subagent")).toBe(true);
   });
   it("deft_directive_swarm_no_static_abc_antipattern", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(
       text.toLowerCase().includes("static launch options") ||
         text.includes("static launch options (A/B/C)"),
     ).toBe(true);
   });
   it("deft_directive_swarm_cloud_escape_hatch_only", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("explicit");
     expect(text.toLowerCase()).toContain("user");
     expect(text).toContain("run-cloud");
   });
   it("deft_directive_swarm_phase6_merge_authority", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Merge authority");
     expect(text).toContain("user approves");
   });
   it("deft_directive_swarm_phase6_rebase_ownership", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Rebase cascade ownership");
     expect(text).toContain("Monitor owns");
   });
   it("deft_directive_swarm_phase6_git_editor", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("GIT_EDITOR");
   });
   it("deft_directive_swarm_phase6_post_merge_verification", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("verify issues actually closed");
   });
   it("deft_directive_swarm_push_autonomy", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Push Autonomy");
     expect(text.toLowerCase()).toContain("task check");
   });
   it("deft_directive_swarm_phase5_6_gate_heading", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Phase 5→6 Gate");
   });
   it("deft_directive_swarm_phase5_6_version_bump_approval", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("version bump");
     expect(text).toContain("confirmed");
   });
   it("deft_directive_swarm_greptile_rebase_latency", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Greptile re-review");
     expect(text).toContain("2-5");
   });
@@ -565,16 +566,16 @@ describe("test_skills", () => {
     expect(text.toLowerCase()).toContain("softer-strength");
   });
   it("deft_directive_swarm_phase5_6_context_pressure_callout", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("context-pressure bypass prohibition");
   });
   it("deft_directive_swarm_takeover_prespawn_verification", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("pre-spawn verification");
     expect(text.toLowerCase()).toContain("lifecycle event");
   });
   it("deft_directive_swarm_duplicate_tab_failure_mode", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Duplicate-Tab Failure Mode");
     expect(text).toContain("tool_use");
     expect(text).toContain("tool_result");
@@ -582,22 +583,22 @@ describe("test_skills", () => {
     expect(text.includes("spawn_subagent") || text.includes("Grok Build")).toBe(true);
   });
   it("deft_directive_swarm_context_length_warning", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Context-Length Warning");
     expect(text.toLowerCase()).toContain("conversation corruption");
   });
   it("deft_directive_swarm_crash_recovery_section", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("## Crash Recovery");
     expect(text).toContain("gh pr list");
     expect(text).toContain("gh pr view");
   });
   it("deft_directive_swarm_antipattern_no_spawn_without_lifecycle", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("spawn a replacement sub-agent without confirming");
   });
   it("deft_directive_swarm_antipattern_no_skip_phase5_gate", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     const lower = text.toLowerCase();
     expect(lower).toContain("skip phase 5");
     expect(lower).toContain("time pressure");
@@ -698,47 +699,47 @@ describe("test_skills", () => {
     expect(phase2_text).toContain("deft-directive-interview");
   });
   it("deft_directive_swarm_phase6_readback_verification", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Read-back verification");
     expect(text.toLowerCase()).toContain("conflict markers");
   });
   it("deft_directive_swarm_phase6_prefer_edit_files_for_conflicts", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("edit_files");
     expect(text).toContain("CHANGELOG.md");
   });
   it("deft_directive_swarm_phase6_slack_announcement_step", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Slack");
     expect(text.toLowerCase()).toContain("announcement");
   });
   it("deft_directive_swarm_phase6_slack_required_fields", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Key Changes");
     expect(text).toContain("PRs*:");
     expect(text).toContain("Release*:");
   });
   it("deft_directive_swarm_phase5_vbrief_completion", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("scope:complete");
     expect(text).toContain("xbrief/completed/");
   });
   it("deft_directive_swarm_phase6_origin_update", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("references");
     expect(text.toLowerCase()).toContain("update each origin");
   });
   it("deft_directive_swarm_no_old_name_references", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     const oldRefs = [...text.matchAll(/(?<!directive-)deft-swarm/g)];
     expect(oldRefs.length).toBe(0);
   });
   it("deft_directive_swarm_frontmatter_name", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("name: deft-directive-swarm");
   });
   it("deft_directive_swarm_no_hardcoded_allocation_antipattern", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(
       text.toLowerCase().includes("hardcode a 1:1") || text.toLowerCase().includes("hardcoded 1:1"),
     ).toBe(true);
@@ -823,19 +824,19 @@ describe("test_skills", () => {
     expect(nonDirective).toEqual([]);
   });
   it("deft_directive_swarm_see_also_link_correct", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("../deft-directive-review-cycle/SKILL.md");
     expect(text).not.toContain("../deft-review-cycle/SKILL.md");
     const oldRefs = [...text.matchAll(/(?<!directive-)deft-review-cycle\/SKILL\.md/g)];
     expect(oldRefs.length).toBe(0);
   });
   it("deft_directive_swarm_configurable_base_branch_phase0", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("base branch");
     expect(text.toLowerCase()).toContain("configured base branch");
   });
   it("deft_directive_swarm_worktree_no_hardcoded_master", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     for (const line of text.split("\n")) {
       if (line.includes("git worktree add") && line.includes("-b")) {
         expect(line).not.toContain("master");
@@ -843,28 +844,28 @@ describe("test_skills", () => {
     }
   });
   it("deft_directive_swarm_auto_generate_vbriefs_from_issues", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("gh issue view");
     expect(text.toLowerCase()).toContain("issue numbers");
   });
   it("deft_directive_swarm_antipattern_no_hardcoded_master", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("hardcode `master` as the base branch");
   });
   it("deft_directive_swarm_phase6_greptile_errored_detection", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Greptile encountered an error while reviewing this PR");
     expect(text).toContain("COMPLETED/NEUTRAL");
     expect(text).toContain("do NOT interpret that as passing");
   });
   it("deft_directive_swarm_phase6_greptile_errored_retry_once", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Retry ONCE");
     expect(text).toContain("@greptileai review");
     expect(text).toContain("10-minute cap");
   });
   it("deft_directive_swarm_phase6_greptile_errored_three_way_escalation", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text.toLowerCase()).toContain("wait longer");
     expect(
       text.includes("empty `chore: retrigger greptile` commit") ||
@@ -875,27 +876,27 @@ describe("test_skills", () => {
     expect(text).toContain("not just the PR body");
   });
   it("deft_directive_swarm_phase6_gate_errored_extension", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("an errored review is also not sufficient");
   });
   it("deft_directive_swarm_phase6_monitor_exit_errored", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("⊗ Loop the monitor indefinitely on the errored state");
     expect(text).toContain("explicit `errored` report");
   });
   it("deft_directive_swarm_phase6_no_merge_on_neutral_alone", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("⊗ Merge on the basis of the NEUTRAL CheckRun alone");
   });
   it("deft_directive_swarm_phase6_polling_subagent_contract", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("PR #<N> Greptile errored");
     const lower = text.toLowerCase();
     expect(lower).toContain("last-reviewed sha");
     expect(lower).toContain("errored on current head");
   });
   it("deft_directive_swarm_antipattern_neutral_checkrun", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     const needle =
       "⊗ Treat a Greptile GitHub CheckRun of COMPLETED/NEUTRAL as equivalent to a passing review";
     expect(text).toContain(needle);
@@ -903,14 +904,14 @@ describe("test_skills", () => {
     expect(text).toContain("opposite responses");
   });
   it("deft_directive_swarm_antipattern_errored_loop_and_override_logging", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("Loop the monitor indefinitely on the Greptile-service-errored state");
     expect(text).toContain(
       "Omit override-merged PRs from the Phase 6 Step 5 Slack release announcement",
     );
   });
   it("deft_directive_swarm_phase6_slack_override_merge_callout", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("*Override merges*");
     expect(text).toContain("Greptile-service-errored override path");
   });
@@ -948,7 +949,7 @@ describe("test_skills", () => {
     expect(text).toContain("No P0 or P1");
   });
   it("swarm_skill_references_poller_template", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("templates/swarm-greptile-poller-prompt.md");
   });
   it.each([
@@ -958,7 +959,7 @@ describe("test_skills", () => {
     "Destructive commands run alone",
     "Commit-message temp file is leave-alone",
   ])("swarm_skill_role_separation_must_rules_present %s", (token) => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain(token);
   });
   it.each([
@@ -967,11 +968,11 @@ describe("test_skills", () => {
     'Spawn a "pure poller" sub-agent for a PR that has likely findings',
     "Chain `rm` (or any destructive command) with `git commit`",
   ])("swarm_skill_role_separation_antipatterns_present %s", (token) => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain(token);
   });
   it("swarm_skill_role_separation_subsection_heading", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     expect(text).toContain("### Sub-Agent Role Separation");
   });
 });

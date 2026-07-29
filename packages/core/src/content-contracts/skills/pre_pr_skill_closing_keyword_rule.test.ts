@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile,
+  readSwarmSkillSurface
+} from "./helpers.js";
 
 /** Port of tests/content/test_pre_pr_skill_closing_keyword_rule.py (#1838 #1530) */
 
@@ -37,7 +39,7 @@ describe("test_pre_pr_skill_closing_keyword_rule", () => {
     expect(text).toContain("Skip `task pr:check-closing-keywords`");
   });
   it("swarm_skill_phase6_layer0_cross_reference_present", () => {
-    const text = readRepoFile("skills/deft-directive-swarm/SKILL.md");
+    const text = readSwarmSkillSurface();
     expect(text).toContain("### Step 1: Merge");
     expect(text).toContain("Layer 0");
     expect(text).toContain("Layer 3");

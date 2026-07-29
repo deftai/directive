@@ -25,13 +25,18 @@ export interface OpenclawTier1Target {
 export const OPENCLAW_TIER1_TARGETS: readonly OpenclawTier1Target[] = [
   {
     path: "content/skills/deft-directive-swarm/SKILL.md",
-    label: "swarm Phase 3 capability matrix",
+    label: "swarm Phase 3 capability matrix (thin skill)",
     markers: [
       "Probe for the OpenClaw `sessions_spawn` tool",
       "sessions_spawn",
       "openclaw",
-      "Step 2f: OpenClaw Launch",
+      "host-openclaw.md",
     ],
+  },
+  {
+    path: "content/skills/deft-directive-swarm/references/host-openclaw.md",
+    label: "swarm OpenClaw host adapter",
+    markers: ["Step 2f: OpenClaw Launch", "sessions_spawn", "openclaw"],
   },
   {
     path: "packages/core/src/swarm/routing.ts",

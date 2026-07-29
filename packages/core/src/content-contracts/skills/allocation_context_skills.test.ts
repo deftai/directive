@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile,
+  readSwarmSkillSurface
+} from "./helpers.js";
 
 /** Port of tests/content/test_allocation_context_skills.py (#1838 #1530) */
 
@@ -118,16 +120,16 @@ describe("test_allocation_context_skills", () => {
     "operator_approval_evidence",
     "build-skill Step 0 recognizes mechanically (#1378 Story B)",
   ])("swarm_phase3_population_token_present %s", (token) => {
-    const block = _swarm_phase3_step0_block(readRepoFile(_SWARM_PATH));
+    const block = _swarm_phase3_step0_block(readSwarmSkillSurface());
     expect(block).toContain(token);
   });
   it("swarm_phase3_population_is_must_step", () => {
-    const block = _swarm_phase3_step0_block(readRepoFile(_SWARM_PATH));
+    const block = _swarm_phase3_step0_block(readSwarmSkillSurface());
     expect(block).toContain("! Before dispatching ANY worker prompt");
     expect(block).toContain("MUST populate a `## Allocation context` section");
   });
   it("swarm_phase3_population_has_absent_section_prohibition", () => {
-    const block = _swarm_phase3_step0_block(readRepoFile(_SWARM_PATH));
+    const block = _swarm_phase3_step0_block(readSwarmSkillSurface());
     let found = false;
     for (const line of block.split("\n")) {
       if (
@@ -153,11 +155,11 @@ describe("test_allocation_context_skills", () => {
     "Trusted `gh` command allowlisting",
     "Injected-token handoff",
   ])("swarm_phase3_step1a_sandbox_auth_token_present %s", (token) => {
-    const block = _swarm_phase3_step1a_block(readRepoFile(_SWARM_PATH));
+    const block = _swarm_phase3_step1a_block(readSwarmSkillSurface());
     expect(block).toContain(token);
   });
   it("swarm_phase3_step1a_is_must_step", () => {
-    const block = _swarm_phase3_step1a_block(readRepoFile(_SWARM_PATH));
+    const block = _swarm_phase3_step1a_block(readSwarmSkillSurface());
     expect(block).toContain("! Before dispatching workers that will call `gh`");
   });
 });

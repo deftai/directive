@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile, readSkill } from "./helpers.js";
+import { readRepoFile, readSkill, readSwarmSkillSurface } from "./helpers.js";
 
 /** Port of tests/content/test_setup_swarm_bridge.py (#1838 #1530) */
 
@@ -74,7 +74,7 @@ describe("test_setup_swarm_bridge", () => {
     "skills/deft-directive-refinement/SKILL.md",
     "Invalid transition",
   ])("swarm_step0_5_must_tokens_present %s", (token) => {
-    const block = _swarm_step0_5_block(readSkill(_SWARM_PATH));
+    const block = _swarm_step0_5_block(readSwarmSkillSurface());
     expect(block).toContain(token);
   });
   it.each([
@@ -84,11 +84,11 @@ describe("test_setup_swarm_bridge", () => {
     "Skip the lifecycle bridge",
     "outside the user's stated swarm scope",
   ])("swarm_step0_5_must_not_tokens_present %s", (token) => {
-    const block = _swarm_step0_5_block(readSkill(_SWARM_PATH));
+    const block = _swarm_step0_5_block(readSwarmSkillSurface());
     expect(block).toContain(token);
   });
   it("swarm_step0_5_bridge_uses_canonical_glyph", () => {
-    const block = _swarm_step0_5_block(readSkill(_SWARM_PATH));
+    const block = _swarm_step0_5_block(readSwarmSkillSurface());
     expect(block).not.toContain("Γèù");
   });
   it.each([
@@ -97,14 +97,14 @@ describe("test_setup_swarm_bridge", () => {
     "lifecycle bridge",
     "⊗",
   ])("swarm_anti_patterns_1025_bullet_tokens_present %s", (token) => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     const anti_start = text.indexOf("## Anti-Patterns");
     expect(anti_start).not.toBe(-1);
     const anti_block = text.slice(anti_start, undefined);
     expect(anti_block).toContain(token);
   });
   it("swarm_anti_patterns_1025_bullet_is_prohibition", () => {
-    const text = readSkill(_SWARM_PATH);
+    const text = readSwarmSkillSurface();
     const anti_start = text.indexOf("## Anti-Patterns");
     expect(anti_start).not.toBe(-1);
     const anti_block = text.slice(anti_start, undefined);
@@ -139,7 +139,7 @@ describe("test_setup_swarm_bridge", () => {
     expect(block).not.toContain("Γèù");
   });
   it("swarm_phase0_5_references_setup_skill", () => {
-    const block = _swarm_step0_5_block(readSkill(_SWARM_PATH));
+    const block = _swarm_step0_5_block(readSwarmSkillSurface());
     expect(block).toContain("skills/deft-directive-setup/SKILL.md");
   });
   it("setup_phase3_bridge_references_swarm_skill", () => {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile,
+  readSwarmSkillSurface
+} from "./helpers.js";
 
 /** Port of tests/content/test_story_start_gate.py (#1838 #1530) */
 
@@ -71,7 +73,7 @@ describe("test_story_start_gate", () => {
     expect(text).toContain("task scope:complete -- <active-story-path>");
   });
   it("swarm_skill_requires_approval_before_multi_story_batching", () => {
-    const text = readRepoFile("skills/deft-directive-swarm/SKILL.md");
+    const text = readSwarmSkillSurface();
     expect(text).toContain("only after explicit operator approval or an approved allocation plan");
     expect(text).toContain("record the batching rationale");
   });

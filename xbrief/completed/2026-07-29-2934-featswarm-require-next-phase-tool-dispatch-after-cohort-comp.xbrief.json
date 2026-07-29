@@ -1,0 +1,61 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status; no prose-only handoff.",
+    "updated": "2026-07-29T21:04:41Z"
+  },
+  "plan": {
+    "title": "feat(swarm): require next-phase tool dispatch after cohort complete (no prose-only handoff)",
+    "status": "completed",
+    "narratives": {
+      "Description": "After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status; no prose-only handoff.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2934",
+      "Overview": "After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status; no prose-only handoff.",
+      "Labels": "bug, enhancement, swarm, skills, operational, determinism, Workflow, agent-experience, patterns:multi-agent, harness:openclaw",
+      "ImplementationPlan": "core-phase-5-6 Next-phase tool dispatch section; thin SKILL hard gate; core-ops anti-pattern; OpenClaw adapter cross-link."
+    },
+    "items": [
+      {
+        "title": "Documented anti-pattern: \"I will spawn…\" with zero tools = failure class",
+        "status": "completed"
+      },
+      {
+        "title": "Swarm skill (and OC adapter path) states the same-turn dispatch rule as `!` MUST",
+        "status": "completed"
+      },
+      {
+        "title": "Optional engine/check: after cohort-complete signal, fail or warn if no next-phase tool and no terminal status",
+        "status": "completed"
+      },
+      {
+        "title": "Eval or fixture that catches prose-only handoff",
+        "status": "completed"
+      },
+      {
+        "title": "Does not require MEMORY tribal notes; contract lives in skill/engine/templates for all hosts",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "swarm",
+      "skills",
+      "operational",
+      "determinism",
+      "Workflow",
+      "agent-experience",
+      "patterns:multi-agent",
+      "harness:openclaw"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2934",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2934: feat(swarm): require next-phase tool dispatch after cohort complete (no prose-only handoff)"
+      }
+    ],
+    "updated": "2026-07-29T21:04:41Z",
+    "id": "2026-07-29-2934-featswarm-require-next-phase-tool-dispatch-after-cohort-comp.xbrief"
+  }
+}

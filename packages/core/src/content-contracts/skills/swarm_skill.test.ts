@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile,
+  readSwarmSkillSurface
+} from "./helpers.js";
 
 /** Port of tests/content/test_swarm_skill.py (#1838 #1530) */
 
@@ -204,7 +206,8 @@ const _PHASE6_LIFECYCLE_COMMIT_TOKENS = [
 ];
 
 function _read_swarm() {
-  return readRepoFile(_SWARM_PATH);
+  // #2928: contracts cover thin SKILL + ordered references surface
+  return readSwarmSkillSurface();
 }
 
 function _phase6_step3_block(text: string) {
