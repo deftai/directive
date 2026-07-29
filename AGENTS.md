@@ -98,6 +98,8 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ! Controlled English for docs/issues/PRs — `content/docs/writing-ste100.md` (#2927). ⊗ Full STE cert; ⊗ big-bang rewrite; ⊗ red CI style gate v1.
 
+! Per-project Directive opt-out — root `.no-deft-directive` (#2926). Presence → skip install/session/setup; see `content/docs/no-deft-directive.md`. Flag wins locally over org force-on. Flag+deposit → doctor warns; init/update fail closed.
+
 ## Contextual guardrails (runtime-detect lazy-load)
 
 Same as managed below; `task verify:encoding`, `task verify:scm-boundary`, `task pr:wait-mergeable-and-merge`; `content/scm/github.md` (#2157 / #2369).

@@ -1,0 +1,56 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Official per-project .no-deft-directive opt-out flag; session/doctor/init/update short-circuit; docs+tests+CHANGELOG.",
+    "updated": "2026-07-29T21:42:00Z"
+  },
+  "plan": {
+    "title": "feat(policy/setup): official per-project .no-deft-directive opt-out flag",
+    "status": "completed",
+    "narratives": {
+      "Description": "Official root .no-deft-directive flag; session/doctor/setup short-circuit; docs+tests+CHANGELOG; inconsistent flag+deposit diagnosed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2926",
+      "Overview": "Define an official per-project file flag that marks a repository as not using Deft Directive. Presence of root `.no-deft-directive` disables install pressure, session ritual, doctor setup path, and init/update mutations. Flag wins locally over trusted-org force-on. Flag+deposit is inconsistent: doctor warns; mutating paths fail closed.",
+      "Labels": "agent-experience, area:installer, doctor, enhancement, tooling",
+      "ImplementationPlan": "policy/no-deft-directive.ts detection + create/remove; wire session:start, doctor, init, update; org-force-on skip; content/docs/no-deft-directive.md + pointers; setup skill early check; policy:disable-directive / enable-directive; targeted vitest 33/33; CLI smoke; CHANGELOG; skills-pack body update."
+    },
+    "items": [
+      {
+        "title": "Root .no-deft-directive documented presence semantics",
+        "status": "completed"
+      },
+      {
+        "title": "session:start / doctor / init detect flag and skip Directive setup/ritual",
+        "status": "completed"
+      },
+      {
+        "title": "setup: decline install creates flag; enable removes flag",
+        "status": "completed"
+      },
+      {
+        "title": "flag+deposit inconsistent state diagnosed (warn / fail closed)",
+        "status": "completed"
+      },
+      {
+        "title": "tests + CHANGELOG cite #2926",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "agent-experience",
+      "area:installer",
+      "doctor",
+      "enhancement",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2926",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2926: feat(policy/setup): official per-project .no-deft-directive opt-out flag"
+      }
+    ],
+    "updated": "2026-07-29T21:42:00Z",
+    "id": "2026-07-29-2926-featpolicysetup-official-per-project-no-deft-directive-opt-o"
+  }
+}

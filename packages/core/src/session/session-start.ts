@@ -9,6 +9,12 @@ import {
   formatEnvironmentContext,
 } from "../platform/shell-context.js";
 import { disclosureLine } from "../policy/disclosure.js";
+import {
+  detectNoDeftDirective,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_FLAG_NAME,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+} from "../policy/no-deft-directive.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
@@ -319,6 +325,31 @@ export function runSessionStart(
   const deferrals = options.deferrals ?? {};
   const runGit = options.runGit ?? defaultGitRunner;
   const environment = (options.probeEnvironment ?? detectEnvironmentContext)();
+
+  // #2926: official root opt-out wins locally — skip Directive session ritual.
+  const optOut = detectNoDeftDirective(projectRoot);
+  if (optOut.present) {
+    const lines = [NO_DEFT_DIRECTIVE_DISABLED_MESSAGE];
+    if (optOut.inconsistent) {
+      lines.push(NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE);
+    }
+    const code = optOut.inconsistent ? 1 : 0;
+    return {
+      code,
+      payload: {
+        ready: code === 0,
+        exit_code: code,
+        disabled: true,
+        disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
+        inconsistent: optOut.inconsistent,
+        deposit_present: optOut.depositPresent,
+        posture,
+        environment: environmentContextToDict(environment),
+        message: NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+      },
+      lines,
+    };
+  }
 
   if (posture === READ_ONLY_POSTURE) {
     return runReadOnlySessionStart(projectRoot, options, instant, environment);

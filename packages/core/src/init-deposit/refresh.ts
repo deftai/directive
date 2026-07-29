@@ -20,6 +20,12 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  detectNoDeftDirective,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_FLAG_NAME,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+} from "../policy/no-deft-directive.js";
 import { runOrgForceOnMigration } from "../policy/org-force-on-migration.js";
 import {
   type ClassifySeams,
@@ -866,6 +872,35 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
   // Legacy layouts keep their existing refusal path (thrown by runRefreshDeposit
   // and handled below), so classification is skipped for them.
   const projectDir = resolve(options.projectDir);
+
+  // #2926: root opt-out wins over update/refresh and ambient force-on.
+  const optOut = detectNoDeftDirective(projectDir);
+  if (optOut.present) {
+    const message = optOut.inconsistent
+      ? NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE
+      : NO_DEFT_DIRECTIVE_DISABLED_MESSAGE;
+    io.printf(`${message}\n`);
+    if (options.jsonOut) {
+      options.writeOut(
+        `${JSON.stringify(
+          {
+            success: false,
+            action: "update",
+            disabled: true,
+            disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
+            inconsistent: optOut.inconsistent,
+            deposit_present: optOut.depositPresent,
+            project_dir: projectDir,
+            message,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    }
+    return UPDATE_REFUSED_EXIT_CODE;
+  }
+
   const detectLegacy = options.seams?.detectLegacy ?? detectLegacyLayout;
   let classification: UpdateClassification | null = null;
   if (!detectLegacy(projectDir).legacy) {

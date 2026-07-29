@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Official per-project `.no-deft-directive` opt-out flag (#2926).** Root-only file presence disables Directive install pressure, `session:start` ritual, doctor setup path, and `init`/`update` mutations, with one-line message `Directive disabled via ".no-deft-directive"`. Flag wins locally over trusted-org/product-signal force-on in v1. Flag+deposit is inconsistent: doctor warns; mutating paths fail closed. Docs in `content/docs/no-deft-directive.md`; optional `directive policy:disable-directive` / `policy:enable-directive`. Setup skill checks the flag early. Closes #2926.
 - **Controlled English writing bar for docs and issues (#2927).** Canonical short page states four pragmatic rules (short sentences, active voice, one term = one meaning, first-use definitions) plus non-goals (no full STE certification, no big-bang rewrite, no red CI style gate in v1). Linked from `AGENTS.md`, `content/docs/getting-started.md`, and `content/QUICK-START.md`. Closes #2927.
 
 ### Changed

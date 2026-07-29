@@ -3,6 +3,12 @@ import { join, resolve } from "node:path";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import { contentRoot } from "../content-root.js";
 import {
+  detectNoDeftDirective,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_FLAG_NAME,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+} from "../policy/no-deft-directive.js";
+import {
   describeShadowedPlanExtension,
   detectShadowedPlanExtensions,
 } from "../policy/plan-extensions.js";
@@ -106,6 +112,50 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const consumerContext = resolve(projectRoot) !== resolve(frameworkRoot);
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());
+
+  // #2926: official root opt-out — short-circuit Directive doctor when clean;
+  // diagnose flag+deposit inconsistency (warn; exit dirty).
+  const optOut = detectNoDeftDirective(projectRoot);
+  if (optOut.present) {
+    if (optOut.inconsistent) {
+      const message = `${NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE} (${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE})`;
+      if (jsonMode) {
+        const payload = {
+          status: "disabled-inconsistent",
+          disabled: true,
+          disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
+          inconsistent: true,
+          deposit_present: true,
+          message,
+          findings: [
+            {
+              severity: "warning",
+              message,
+              check: "no-deft-directive",
+            },
+          ],
+        };
+        process.stdout.write(`${pythonJsonDump(payload)}\n`);
+      } else if (!quietMode) {
+        process.stderr.write(`${message}\n`);
+      }
+      return 1;
+    }
+    if (jsonMode) {
+      const payload = {
+        status: "disabled",
+        disabled: true,
+        disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
+        inconsistent: false,
+        deposit_present: false,
+        message: NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+      };
+      process.stdout.write(`${pythonJsonDump(payload)}\n`);
+    } else if (!quietMode) {
+      process.stdout.write(`${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE}\n`);
+    }
+    return 0;
+  }
 
   if (!fullMode) {
     const state = (seams.readState ?? readState)(projectRoot);

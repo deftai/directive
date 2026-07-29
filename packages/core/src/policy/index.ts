@@ -29,6 +29,7 @@ export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./disclosure.js";
 export * from "./host-hooks.js";
+export * from "./no-deft-directive.js";
 export * from "./org-force-on-migration.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";

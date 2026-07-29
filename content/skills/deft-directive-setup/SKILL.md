@@ -24,6 +24,21 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - User asks to create USER.md, PROJECT-DEFINITION.xbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
 
+## Opt-out flag (`.no-deft-directive`) (#2926)
+
+! Before Pre-Cutover Detection Guard, Phase 1, or any install/setup step, check the **project root** for `.no-deft-directive` (exact lowercase name; presence = flag; empty or short `#` comment OK).
+
+| Condition | Action |
+|-----------|--------|
+| Flag **present** | Stop. Tell the human: "Directive disabled via `.no-deft-directive`". ⊗ Offer install, session ritual, or setup interview. |
+| Flag **absent**, no Directive deposit (`.deft/core`) | ? Ask whether to use Directive. On **no** → create root `.no-deft-directive` (optional one-line rationale) and stop. On **yes** → continue setup and ⊗ create the flag. |
+| Operator says **stop using DD** | Create `.no-deft-directive`. ⊗ Auto-delete `.deft/` (explicit cleanup only). |
+| Operator says **start using DD** | Remove `.no-deft-directive` and ensure install (`directive init` / deposit). |
+
+! Flag is **root-only** (workspace root opened). Nested monorepo package roots are out of scope for v1.
+! Flag **wins locally** over trusted-org / product-signal force-on (v1).
+! Flag + deposit = inconsistent: warn loudly; doctor diagnoses; do not silently refresh. See `content/docs/no-deft-directive.md`.
+
 ## Consumer-first default (#1813)
 
 ! Assume the operator is **using Deft in their project** (consumer path). Proceed directly to the Pre-Cutover Detection Guard and Phase 1 — do NOT open with a contributor-vs-consumer fork.

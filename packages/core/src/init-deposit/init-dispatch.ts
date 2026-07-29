@@ -23,6 +23,12 @@
 
 import { resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
+import {
+  detectNoDeftDirective,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_FLAG_NAME,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+} from "../policy/no-deft-directive.js";
 import { type ClassifySeams, classify, plan } from "../resolution/index.js";
 import { type RunInitDepositCliOptions, runInitDepositCli } from "./init-deposit.js";
 import { type RunMigrateCliOptions, runMigrateCli } from "./migrate.js";
@@ -179,6 +185,37 @@ export async function runInitDispatchCli(options: RunInitDispatchCliOptions): Pr
       else options.writeOut(text);
     },
   };
+
+  // #2926: root opt-out — do not scaffold/install/refresh when flag is present.
+  const optOut = detectNoDeftDirective(projectDir);
+  if (optOut.present) {
+    io.printf(`\n[directive init] ${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE}\n`);
+    if (optOut.inconsistent) {
+      io.printf(`[directive init] ${NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE}\n`);
+    }
+    if (options.jsonOut) {
+      options.writeOut(
+        `${JSON.stringify(
+          {
+            success: false,
+            action: "init",
+            disabled: true,
+            disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
+            inconsistent: optOut.inconsistent,
+            deposit_present: optOut.depositPresent,
+            project_dir: projectDir,
+            message: optOut.inconsistent
+              ? NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE
+              : NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    }
+    // Clean opt-out is a successful short-circuit; inconsistent state fails closed.
+    return optOut.inconsistent ? 1 : 0;
+  }
 
   const classification = classifyInitDispatch(projectDir, seams.classifySeams ?? {});
   const { decision, plan: resolutionPlan } = classification;

@@ -6,6 +6,7 @@ import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
 } from "../vbrief-build/project-definition-io.js";
+import { isNoDeftDirectivePresent } from "./no-deft-directive.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
 import {
@@ -162,6 +163,15 @@ export function runOrgForceOnMigration(
   projectRoot: string,
   options: RunOrgForceOnMigrationOptions = {},
 ): OrgForceOnMigrationResult {
+  // #2926: per-project opt-out wins over ambient trusted-org force-on (v1).
+  if (isNoDeftDirectivePresent(projectRoot)) {
+    return {
+      ran: false,
+      skippedReason: "no-deft-directive",
+      valueFeedbackChanged: false,
+      productSignalChanged: false,
+    };
+  }
   if (readOrgForceOnMarker(projectRoot) !== null) {
     return {
       ran: false,

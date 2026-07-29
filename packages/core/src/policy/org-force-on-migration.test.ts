@@ -140,6 +140,17 @@ describe("runOrgForceOnMigration", () => {
     expect(readOrgForceOnMarker(root)).toBeNull();
   });
 
+  it("skips when root .no-deft-directive is present (#2926)", () => {
+    const root = makeTrustedRepo({
+      policy: { valueFeedback: { enabled: false, emitEvents: false, sessionLine: false } },
+    });
+    writeFileSync(join(root, ".no-deft-directive"), "", "utf8");
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.ran).toBe(false);
+    expect(result.skippedReason).toBe("no-deft-directive");
+    expect(readOrgForceOnMarker(root)).toBeNull();
+  });
+
   it("policy:show reports install-force-on source", () => {
     const root = makeTrustedRepo({
       policy: {

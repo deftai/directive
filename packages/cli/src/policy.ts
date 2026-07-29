@@ -8,7 +8,9 @@ import { resolve as pathResolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   clearValueFeedback,
+  createNoDeftDirectiveFlag,
   describeShadowedPlanExtension,
+  detectNoDeftDirective,
   detectShadowedPlanExtensions,
   disclosureLine,
   enableValueFeedback,
@@ -18,11 +20,15 @@ import {
   inspectAllPolicies,
   inspectOnePolicy,
   loadProjectDefinition,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_FLAG_NAME,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
   policyColonInvocation,
   projectDefinitionPath,
   pythonListRepr,
   pythonStringRepr,
   registeredPolicyNames,
+  removeNoDeftDirectiveFlag,
   renderJson,
   renderText,
   resolvePolicy,
@@ -59,6 +65,8 @@ interface SetArgs {
     | "allow-direct-commits"
     | "enable-value-feedback"
     | "clear-value-feedback"
+    | "disable-directive"
+    | "enable-directive"
     | "resolve";
   confirm: boolean;
   actor: string;
@@ -160,7 +168,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|clear-value-feedback|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|clear-value-feedback|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -199,7 +207,9 @@ export function parseArgs(argv: string[]): SetArgs {
     cmd === "enforce-branches" ||
     cmd === "allow-direct-commits" ||
     cmd === "enable-value-feedback" ||
-    cmd === "clear-value-feedback"
+    cmd === "clear-value-feedback" ||
+    cmd === "disable-directive" ||
+    cmd === "enable-directive"
   ) {
     let confirm = false;
     let actor =
@@ -209,7 +219,11 @@ export function parseArgs(argv: string[]): SetArgs {
           ? policyColonInvocation("allow-direct-commits")
           : cmd === "enable-value-feedback"
             ? policyColonInvocation("enable-value-feedback")
-            : policyColonInvocation("clear-value-feedback");
+            : cmd === "clear-value-feedback"
+              ? policyColonInvocation("clear-value-feedback")
+              : cmd === "disable-directive"
+                ? policyColonInvocation("disable-directive")
+                : policyColonInvocation("enable-directive");
     let note = "";
     let projectRoot = ".";
     for (let i = 1; i < argv.length; i += 1) {
@@ -399,6 +413,46 @@ function runClearValueFeedback(args: SetArgs): number {
   return result.exitCode;
 }
 
+/** Create root `.no-deft-directive` opt-out flag (#2926). Does not delete deposits. */
+function runDisableDirective(args: SetArgs): number {
+  const projectRoot = pathResolve(args.projectRoot);
+  const before = detectNoDeftDirective(projectRoot);
+  if (before.present) {
+    process.stdout.write(`${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE} (already present)\n`);
+    if (before.inconsistent) {
+      process.stderr.write(`${NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE}\n`);
+      return 1;
+    }
+    return 0;
+  }
+  const path = createNoDeftDirectiveFlag(projectRoot, {
+    rationale: args.note.trim().length > 0 ? args.note.trim() : undefined,
+  });
+  process.stdout.write(`Created ${NO_DEFT_DIRECTIVE_FLAG_NAME} at ${path}\n`);
+  process.stdout.write(`${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE}\n`);
+  const after = detectNoDeftDirective(projectRoot);
+  if (after.inconsistent) {
+    process.stderr.write(`${NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE}\n`);
+    return 1;
+  }
+  return 0;
+}
+
+/** Remove root `.no-deft-directive` so Directive may be installed/used again (#2926). */
+function runEnableDirective(args: SetArgs): number {
+  const projectRoot = pathResolve(args.projectRoot);
+  const removed = removeNoDeftDirectiveFlag(projectRoot);
+  if (removed) {
+    process.stdout.write(`Removed ${NO_DEFT_DIRECTIVE_FLAG_NAME}\n`);
+  } else {
+    process.stdout.write(`${NO_DEFT_DIRECTIVE_FLAG_NAME} was not present\n`);
+  }
+  process.stdout.write(
+    "Directive opt-out cleared. Run `directive init` or `directive update` to ensure install.\n",
+  );
+  return 0;
+}
+
 /** Run the policy CLI; returns process exit code. */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
@@ -425,6 +479,12 @@ export function run(argv: string[]): number {
   }
   if (args.cmd === "clear-value-feedback") {
     return runClearValueFeedback(args);
+  }
+  if (args.cmd === "disable-directive") {
+    return runDisableDirective(args);
+  }
+  if (args.cmd === "enable-directive") {
+    return runEnableDirective(args);
   }
   return 2;
 }

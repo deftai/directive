@@ -78,6 +78,8 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "cache:prune": ["cache", "prune"],
   "cache:clear": ["cache", "clear"],
   "policy:show": ["policy", "show"],
+  "policy:disable-directive": ["policy", "disable-directive"],
+  "policy:enable-directive": ["policy", "enable-directive"],
   "policy:enforce-branches": ["policy", "enforce-branches"],
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],
   "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
