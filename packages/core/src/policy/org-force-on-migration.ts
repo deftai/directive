@@ -338,9 +338,12 @@ export function runOrgForceOnMigration(
     return applyForceOn(projectRoot, options, {
       needsVf: incompleteVf,
       needsPs: incompletePs,
-      // previous* for the new marker = current (discarded) PD state.
+      // previous* for forced fields = current (discarded) PD state.
+      // Unforced fields preserve existing marker previous* so intentional
+      // opt-out baselines are not rewritten into the incomplete-migration path.
       previousVf: snapshots.vfRaw,
       previousPs: snapshots.psRaw,
+      existingMarker,
     });
   }
 
@@ -383,6 +386,7 @@ export function runOrgForceOnMigration(
     needsPs: snapshots.needsPs,
     previousVf: snapshots.vfRaw,
     previousPs: snapshots.psRaw,
+    existingMarker: null,
   });
 }
 
@@ -394,6 +398,7 @@ function applyForceOn(
     readonly needsPs: boolean;
     readonly previousVf: unknown;
     readonly previousPs: unknown;
+    readonly existingMarker: OrgForceOnMarker | null;
   },
 ): OrgForceOnMigrationResult {
   const path = projectDefinitionPath(projectRoot);
@@ -401,6 +406,7 @@ function applyForceOn(
   let productSignalChanged = false;
   let previousVf: unknown = intent.previousVf;
   let previousPs: unknown = intent.previousPs;
+  const existing = intent.existingMarker;
 
   projectDefinitionMutationLock(projectRoot, () => {
     const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
@@ -446,6 +452,20 @@ function applyForceOn(
       atomicWriteProjectDefinition(path, rootData);
     }
 
+    // Marker previous*: forced fields record pre-apply current; unforced fields
+    // keep the prior marker snapshot so intentional opt-outs are not rewritten
+    // into the incomplete-migration equality path on the next update (#2903 P1).
+    const markerPreviousVf = intent.needsVf
+      ? previousVf
+      : existing && "previousValueFeedback" in existing
+        ? existing.previousValueFeedback
+        : previousVf;
+    const markerPreviousPs = intent.needsPs
+      ? previousPs
+      : existing && "previousProductSignal" in existing
+        ? existing.previousProductSignal
+        : previousPs;
+
     const actor = options.actor ?? "directive-update";
     appendAuditLog(
       projectRoot,
@@ -454,16 +474,17 @@ function applyForceOn(
         "org-force-on-v2822",
         `valueFeedback=${intent.needsVf ? "forced-on" : "unchanged"}`,
         `productSignal=${intent.needsPs ? "forced-on" : "unchanged"}`,
-        `previousValueFeedback=${JSON.stringify(normalizePolicySnapshot(previousVf))}`,
-        `previousProductSignal=${JSON.stringify(normalizePolicySnapshot(previousPs))}`,
+        `previousValueFeedback=${JSON.stringify(normalizePolicySnapshot(markerPreviousVf))}`,
+        `previousProductSignal=${JSON.stringify(normalizePolicySnapshot(markerPreviousPs))}`,
       ].join(" "),
     );
 
     writeMarker(projectRoot, options, {
-      valueFeedback: intent.needsVf,
-      productSignal: intent.needsPs,
-      previousValueFeedback: previousVf,
-      previousProductSignal: previousPs,
+      // OR with existing so partial re-apply does not clear install-force-on source.
+      valueFeedback: intent.needsVf || (existing?.valueFeedback ?? false),
+      productSignal: intent.needsPs || (existing?.productSignal ?? false),
+      previousValueFeedback: markerPreviousVf,
+      previousProductSignal: markerPreviousPs,
     });
     return { changed: valueFeedbackChanged || productSignalChanged };
   });

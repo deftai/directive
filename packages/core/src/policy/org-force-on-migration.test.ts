@@ -259,6 +259,54 @@ describe("runOrgForceOnMigration", () => {
     expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
   });
 
+  it("partial recovery preserves intentional opt-out baseline on the other field (#2903)", () => {
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const baselinePs = { enabled: false };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: baselinePs,
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+
+    // Discard only valueFeedback (incomplete); intentionally disable productSignal
+    // with a shape that differs from previous*.
+    const intentionalPs = { enabled: false, sinkRepo: "acme/keep-off" };
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    policyBlock.valueFeedback = { ...baselineVf };
+    policyBlock.productSignal = intentionalPs;
+    writeFileSync(pdPath, JSON.stringify(pd), "utf8");
+
+    const second = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(second.ran).toBe(true);
+    expect(second.valueFeedbackChanged).toBe(true);
+    expect(second.productSignalChanged).toBe(false);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
+    expect(resolveProductSignal(root).enabled).toBe(false);
+
+    // Marker must keep previousProductSignal = original baseline, not intentionalPs.
+    const marker = readOrgForceOnMarker(root);
+    expect(marker?.previousProductSignal).toEqual(baselinePs);
+    expect(marker?.productSignal).toBe(true);
+
+    // Next update must NOT force productSignal on (intentional still differs from previous*).
+    const third = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(third.ran).toBe(false);
+    expect(third.skippedReason).toBe("marker-present");
+    expect(resolveProductSignal(root).enabled).toBe(false);
+    const pdAfter = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyAfter = readPlanPolicy(pdAfter.plan) as Record<string, unknown>;
+    expect(policyAfter.productSignal).toEqual(intentionalPs);
+  });
+
   it("re-applies for legacy markers without previous* when PD still needs force-on (#2903)", () => {
     const baselineVf = {
       enabled: false,
