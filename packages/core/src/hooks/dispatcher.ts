@@ -2,6 +2,11 @@ import { realpathSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
+  detectNoDeftDirective,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+} from "../policy/no-deft-directive.js";
+import {
   evaluateRuntimeAuthorityDirectWrite,
   loadRuntimeAuthorityFromProject,
   type RuntimeAuthorityPolicy,
@@ -40,6 +45,7 @@ export const COMPACT_HOOK_SKIP_HOSTS = ["codex"] as const;
 export type HookVerdict = "allow" | "deny";
 export type HookDecisionCode =
   | "session-start"
+  | "session-start-disabled"
   | "session-start-degraded"
   | "session-compact-rearm"
   | "session-compact-rearm-degraded"
@@ -90,6 +96,8 @@ export interface HookPolicySeams {
   readonly inspectRitual?: (projectRoot: string) => VerifyResult;
   readonly inspectScope?: (projectRoot: string) => ActiveScopeInspection;
   readonly sessionStart?: (projectRoot: string) => { code: number; stdout: string; stderr: string };
+  /** Test seam for #2926 root opt-out on SessionStart. */
+  readonly detectNoDeftDirective?: typeof detectNoDeftDirective;
   readonly markCompactStale?: (projectRoot: string) => {
     changed: boolean;
     statePath: string;
@@ -596,6 +604,24 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
   }
 
   if (input.event === "session.start") {
+    // #2926: root `.no-deft-directive` wins — skip host SessionStart bookkeeping.
+    const detectOptOut = seams.detectNoDeftDirective ?? detectNoDeftDirective;
+    const optOut = detectOptOut(projectRoot);
+    if (optOut.present) {
+      const message = optOut.inconsistent
+        ? `${NO_DEFT_DIRECTIVE_DISABLED_MESSAGE}. ${NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE}`
+        : NO_DEFT_DIRECTIVE_DISABLED_MESSAGE;
+      return {
+        verdict: "allow",
+        code: "session-start-disabled",
+        event: input.event,
+        host: input.host,
+        toolName: null,
+        projectRoot,
+        message,
+        scopePath: null,
+      };
+    }
     try {
       const result = (seams.sessionStart ?? runSessionStartHookWrite)(projectRoot);
       if (result.code !== 0) {

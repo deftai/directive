@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runSessionStartHookWrite } from "./session-start-hook.js";
 
 describe("session start hook", () => {
@@ -29,6 +29,43 @@ describe("session start hook", () => {
     });
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("last-session.json");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("skips sentinel write when .no-deft-directive is present (#2926)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-opt-out-"));
+    writeFileSync(join(root, ".no-deft-directive"), "", "utf8");
+    const writeSentinelFn = vi.fn(() => {
+      throw new Error("sentinel must not run under opt-out");
+    });
+    const result = runSessionStartHookWrite(root, {
+      detectBranchFn: () => "feat/x",
+      detectLatestActiveVbriefFn: () => "xbrief/active/a.xbrief.json",
+      resolveVersionFn: () => "0.9.0",
+      writeSentinelFn,
+    });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Directive disabled via `.no-deft-directive`");
+    expect(writeSentinelFn).not.toHaveBeenCalled();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("returns exit 1 and skips write when opt-out is inconsistent with deposit (#2926)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-opt-out-inc-"));
+    writeFileSync(join(root, ".no-deft-directive"), "", "utf8");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    const writeSentinelFn = vi.fn(() => {
+      throw new Error("sentinel must not run under inconsistent opt-out");
+    });
+    const result = runSessionStartHookWrite(root, {
+      detectBranchFn: () => "feat/x",
+      detectLatestActiveVbriefFn: () => "xbrief/active/a.xbrief.json",
+      resolveVersionFn: () => "0.9.0",
+      writeSentinelFn,
+    });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("Inconsistent state");
+    expect(writeSentinelFn).not.toHaveBeenCalled();
     rmSync(root, { recursive: true, force: true });
   });
 });

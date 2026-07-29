@@ -108,6 +108,11 @@ export function createNoDeftDirectiveFlag(
 ): string {
   const path = noDeftDirectiveFlagPath(projectRoot);
   assertWriteTargetSafe(projectRoot, path);
+  if (defaultIsDir(path)) {
+    throw new Error(
+      `${NO_DEFT_DIRECTIVE_FLAG_NAME} exists as a directory at ${path}; remove it before creating the opt-out flag file.`,
+    );
+  }
   const rationale = options.rationale?.trim() ?? "";
   const body = rationale.length > 0 ? `# ${rationale}\n` : "";
   writeFileSync(path, body, "utf8");
@@ -124,6 +129,11 @@ export function removeNoDeftDirectiveFlag(projectRoot: string): boolean {
     return false;
   }
   assertWriteTargetSafe(projectRoot, path);
+  if (defaultIsDir(path)) {
+    throw new Error(
+      `${NO_DEFT_DIRECTIVE_FLAG_NAME} exists as a directory at ${path}; remove the directory manually before enabling Directive.`,
+    );
+  }
   unlinkSync(path);
   return true;
 }

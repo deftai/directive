@@ -20,7 +20,7 @@ Tracker: [#2926](https://github.com/deftai/directive/issues/2926).
 
 | Condition | Behavior |
 |-----------|----------|
-| Flag **present** | Directive **off** for this project. Do not install. Do not run session ritual. Do not offer setup. |
+| Flag **present** | Directive **off** for this project. Do not install. Do not run session ritual (CLI `session:start` **and** installed host SessionStart hooks). Do not offer setup. |
 | Flag **absent**, no deposit | Tools **may** ask whether to install. On decline, create the flag. On enable, install and do **not** create the flag. |
 | Operator stops using DD | Create `.no-deft-directive`. Do **not** auto-delete an existing deposit. |
 | Operator starts using DD | Remove the flag, then run `directive init` or `directive update` so install is present. |
@@ -37,6 +37,7 @@ If **both** `.no-deft-directive` and a deposit (`.deft/core`) exist:
 
 - **Doctor:** **warns** and exits dirty (exit 1)
 - **`session:start`:** short-circuits with the disabled message plus the inconsistency warning (exit 1)
+- **Host SessionStart hooks:** skip ritual bookkeeping (allow with `session-start-disabled`); never write `.deft/last-session.json` under opt-out
 - **`init` / `update`:** **fail closed** (no scaffold/refresh)
 
 **Product choice (v1):** warn in doctor; fail closed on mutating install paths (`warn-and-fail-closed`).

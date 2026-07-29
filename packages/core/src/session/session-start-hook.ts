@@ -1,4 +1,9 @@
 import { resolveVersion } from "../doctor/paths.js";
+import {
+  detectNoDeftDirective,
+  NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+} from "../policy/no-deft-directive.js";
 import { detectBranch } from "./git.js";
 import { detectLatestActiveVbrief, writeSentinel } from "./ritual-sentinel.js";
 
@@ -7,6 +12,8 @@ export interface SessionStartHookOptions {
   readonly detectBranchFn?: (projectRoot: string) => string | null;
   readonly detectLatestActiveVbriefFn?: (projectRoot: string) => string | null;
   readonly writeSentinelFn?: typeof writeSentinel;
+  /** Test seam for #2926 opt-out detection. */
+  readonly detectNoDeftDirectiveFn?: typeof detectNoDeftDirective;
 }
 
 /** Write ``.deft/last-session.json`` from current git state (#1269). */
@@ -14,6 +21,21 @@ export function runSessionStartHookWrite(
   projectRoot: string,
   options: SessionStartHookOptions = {},
 ): { code: number; stdout: string; stderr: string } {
+  const detectOptOut = options.detectNoDeftDirectiveFn ?? detectNoDeftDirective;
+  // #2926: root opt-out wins — host SessionStart must not write ritual bookkeeping.
+  const optOut = detectOptOut(projectRoot);
+  if (optOut.present) {
+    const lines = [NO_DEFT_DIRECTIVE_DISABLED_MESSAGE];
+    if (optOut.inconsistent) {
+      lines.push(NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE);
+    }
+    return {
+      code: optOut.inconsistent ? 1 : 0,
+      stdout: `${lines.join("\n")}\n`,
+      stderr: optOut.inconsistent ? `${NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE}\n` : "",
+    };
+  }
+
   const detectBranchFn = options.detectBranchFn ?? detectBranch;
   const detectVbriefFn = options.detectLatestActiveVbriefFn ?? detectLatestActiveVbrief;
   const resolveVersionFn = options.resolveVersionFn ?? resolveVersion;

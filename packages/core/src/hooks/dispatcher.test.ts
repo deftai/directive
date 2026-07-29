@@ -649,6 +649,58 @@ describe("direct-write hook policy", () => {
     expect(decision.message).toBe("SessionStart bookkeeping completed on a non-blocking path.");
   });
 
+  it("skips SessionStart bookkeeping when .no-deft-directive is present (#2926)", () => {
+    const sessionStart = vi.fn(() => {
+      throw new Error("sessionStart must not run under opt-out");
+    });
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({
+        sessionStart,
+        detectNoDeftDirective: () => ({
+          present: true,
+          flagPath: "/project/.no-deft-directive",
+          depositPresent: false,
+          inconsistent: false,
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-start-disabled" });
+    expect(decision.message).toContain("Directive disabled via `.no-deft-directive`");
+    expect(sessionStart).not.toHaveBeenCalled();
+  });
+
+  it("skips SessionStart bookkeeping on inconsistent opt-out without blocking (#2926)", () => {
+    const sessionStart = vi.fn(() => ({ code: 0, stdout: "", stderr: "" }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({
+        sessionStart,
+        detectNoDeftDirective: () => ({
+          present: true,
+          flagPath: "/project/.no-deft-directive",
+          depositPresent: true,
+          inconsistent: true,
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-start-disabled" });
+    expect(decision.message).toContain("Inconsistent state");
+    expect(sessionStart).not.toHaveBeenCalled();
+  });
+
   it("re-arms ritual state on session.compact without blocking the host (#2113)", () => {
     const markCompactStale = vi.fn(() => ({
       changed: true,
