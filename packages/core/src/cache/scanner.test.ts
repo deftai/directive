@@ -15,6 +15,16 @@ describe("scan", () => {
     expect(result.flags.some((f) => f.category === "credentials")).toBe(true);
   });
 
+  it("hard-fails fine-grained github_pat_ tokens (#2910)", () => {
+    // Synthetic fine-grained PAT split across literals so no live secret ships.
+    const finePat = `github_pat_${"11ABCDEFG"}${"0123456789_ABCDEFGHIJKL"}`;
+    const result = scan(`gh token: ${finePat}`);
+    expect(result.passed).toBe(false);
+    const credFlag = result.flags.find((f) => f.category === "credentials");
+    expect(credFlag?.severity).toBe("hard-fail");
+    expect(credFlag?.detail).toContain("github-fine-grained-pat");
+  });
+
   it("strips invisible unicode", () => {
     const result = scan("hello\u200bworld");
     expect(result.passed).toBe(true);

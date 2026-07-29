@@ -10,6 +10,8 @@ const OLD_BODY_VECTOR_RE =
 // Synthetic credential-shaped fixtures split across literals (#2792 / #1070 precedent).
 const SYNTHETIC_GHP_TOKEN = `ghp_${"12345678901234567890123456789012"}`;
 const SYNTHETIC_SK_TOKEN = `sk-${"1234567890123456789012"}`;
+// #2910: fine-grained PAT (`github_pat_...`), split across literals.
+const SYNTHETIC_FINE_GRAINED_PAT = `github_pat_${"11ABCDE"}${"0123456789_abcXYZ"}`;
 
 describe("scanner branches", () => {
   it("handles empty and whitespace-only bodies", () => {
@@ -39,8 +41,17 @@ describe("scanner branches", () => {
     expect(result.flags.find((f) => f.category === "injection-heading")).toBeUndefined();
   });
 
+  it("hard-fails fine-grained github_pat_ tokens (#2910)", () => {
+    const result = scan(`token ${SYNTHETIC_FINE_GRAINED_PAT}`);
+    expect(result.passed).toBe(false);
+    const credFlag = result.flags.find((f) => f.category === "credentials");
+    expect(credFlag?.severity).toBe("hard-fail");
+    expect(credFlag?.detail).toContain("github-fine-grained-pat");
+  });
+
   it("detects assorted credential shapes", () => {
     expect(scan(SYNTHETIC_GHP_TOKEN).passed).toBe(false);
+    expect(scan(SYNTHETIC_FINE_GRAINED_PAT).passed).toBe(false);
     expect(scan("sk-ant-api03-1234567890123456789012").passed).toBe(false);
     expect(scan("xoxb-1234567890123456789012345678901234567890").passed).toBe(false);
     expect(scan("Bearer abcdefghijklmnopqrstuvwxyz").passed).toBe(false);

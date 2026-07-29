@@ -4,7 +4,7 @@ import { parseMarkdownHeading } from "../text/redos-safe.js";
  * Quarantine scanner v2 port (mirrors `scripts/cache_scanner.py`).
  * SCANNER_VERSION must stay in lockstep with the Python module.
  */
-export const SCANNER_VERSION = "2.1.0";
+export const SCANNER_VERSION = "2.2.0";
 
 export interface ScanFlag {
   category: string;
@@ -23,6 +23,9 @@ export interface ScanResult {
 
 const CREDENTIAL_PATTERNS: ReadonlyArray<[string, RegExp]> = [
   ["github-pat", /\bgh[pousr]_[A-Za-z0-9]{30,}\b/],
+  // #2910: fine-grained PATs (`github_pat_...`) — aligned with product-signal
+  // SECRET_PATTERNS so cache/ingest fail-closes on modern GitHub tokens.
+  ["github-fine-grained-pat", /\bgithub_pat_[A-Za-z0-9_]{20,}\b/],
   ["anthropic-api-key", /\bsk-ant-[A-Za-z0-9_-]{20,}\b/],
   ["openai-api-key", /\bsk-[A-Za-z0-9]{20,}\b/],
   ["slack-token", /\bxox[bp]-[A-Za-z0-9-]{20,}\b/],
@@ -337,7 +340,7 @@ function detectInjectionHeading(text: string): [string, ScanFlag | null] {
     {
       category: "injection-heading",
       severity: "fence-and-pass",
-      detail: `wrapped ${sectionsWrapped} injection-shaped section(s) in \`quarantined\` fence (v2.1.0 strict-signal policy)`,
+      detail: `wrapped ${sectionsWrapped} injection-shaped section(s) in \`quarantined\` fence (v2.2.0 strict-signal policy)`,
       match_count: sectionsWrapped,
     },
   ];
