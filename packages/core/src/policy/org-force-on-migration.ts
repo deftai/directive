@@ -335,16 +335,9 @@ export function runOrgForceOnMigration(
       };
     }
 
-    return applyForceOn(projectRoot, options, {
-      needsVf: incompleteVf,
-      needsPs: incompletePs,
-      // previous* for forced fields = current (discarded) PD state.
-      // Unforced fields preserve existing marker previous* so intentional
-      // opt-out baselines are not rewritten into the incomplete-migration path.
-      previousVf: snapshots.vfRaw,
-      previousPs: snapshots.psRaw,
-      existingMarker,
-    });
+    // Pre-lock incomplete check is a fast path only; applyForceOn revalidates
+    // under the mutation lock against the latest PD (#2903 TOCTOU).
+    return applyForceOn(projectRoot, options, { existingMarker });
   }
 
   if (!isTrustedOrgAutoEnable(projectRoot, options.autoEnable)) {
@@ -381,31 +374,21 @@ export function runOrgForceOnMigration(
     };
   }
 
-  return applyForceOn(projectRoot, options, {
-    needsVf: snapshots.needsVf,
-    needsPs: snapshots.needsPs,
-    previousVf: snapshots.vfRaw,
-    previousPs: snapshots.psRaw,
-    existingMarker: null,
-  });
+  return applyForceOn(projectRoot, options, { existingMarker: null });
 }
 
 function applyForceOn(
   projectRoot: string,
   options: RunOrgForceOnMigrationOptions,
   intent: {
-    readonly needsVf: boolean;
-    readonly needsPs: boolean;
-    readonly previousVf: unknown;
-    readonly previousPs: unknown;
     readonly existingMarker: OrgForceOnMarker | null;
   },
 ): OrgForceOnMigrationResult {
   const path = projectDefinitionPath(projectRoot);
   let valueFeedbackChanged = false;
   let productSignalChanged = false;
-  let previousVf: unknown = intent.previousVf;
-  let previousPs: unknown = intent.previousPs;
+  let ran = false;
+  let skippedReason: string | null = null;
   const existing = intent.existingMarker;
 
   projectDefinitionMutationLock(projectRoot, () => {
@@ -427,15 +410,55 @@ function applyForceOn(
     }
     const plan = rootData.plan as Record<string, unknown>;
     const policy = ensurePolicyBlock(plan);
-    previousVf = policy.valueFeedback;
-    previousPs = policy.productSignal;
+    const previousVf = policy.valueFeedback;
+    const previousPs = policy.productSignal;
 
-    if (intent.needsVf) {
+    // Revalidate under lock so a concurrent intentional opt-out between the
+    // unlocked snapshot check and lock acquisition is not overwritten (#2903).
+    let needsVf: boolean;
+    let needsPs: boolean;
+    if (existing !== null) {
+      const previousVfPresent = "previousValueFeedback" in existing;
+      const previousPsPresent = "previousProductSignal" in existing;
+      needsVf = isIncompleteForceOnField(
+        valueFeedbackNeedsForceOn(previousVf),
+        previousVf,
+        existing.previousValueFeedback,
+        previousVfPresent,
+      );
+      needsPs = isIncompleteForceOnField(
+        productSignalNeedsForceOn(previousPs),
+        previousPs,
+        existing.previousProductSignal,
+        previousPsPresent,
+      );
+    } else {
+      needsVf = valueFeedbackNeedsForceOn(previousVf);
+      needsPs = productSignalNeedsForceOn(previousPs);
+    }
+
+    if (!needsVf && !needsPs) {
+      // Under-lock state no longer needs force-on (concurrent opt-out or already ON).
+      if (existing === null) {
+        writeMarker(projectRoot, options, {
+          valueFeedback: false,
+          productSignal: false,
+          previousValueFeedback: previousVf,
+          previousProductSignal: previousPs,
+        });
+        skippedReason = "already-enabled";
+      } else {
+        skippedReason = "marker-present";
+      }
+      return { changed: false };
+    }
+
+    if (needsVf) {
       policy.valueFeedback = { ...FORCE_ON_VALUE_FEEDBACK_BLOCK };
       valueFeedbackChanged = valueFeedbackNeedsForceOn(previousVf);
     }
 
-    if (intent.needsPs) {
+    if (needsPs) {
       const prevObj =
         typeof previousPs === "object" && previousPs !== null && !Array.isArray(previousPs)
           ? (previousPs as Record<string, unknown>)
@@ -455,12 +478,12 @@ function applyForceOn(
     // Marker previous*: forced fields record pre-apply current; unforced fields
     // keep the prior marker snapshot so intentional opt-outs are not rewritten
     // into the incomplete-migration equality path on the next update (#2903 P1).
-    const markerPreviousVf = intent.needsVf
+    const markerPreviousVf = needsVf
       ? previousVf
       : existing && "previousValueFeedback" in existing
         ? existing.previousValueFeedback
         : previousVf;
-    const markerPreviousPs = intent.needsPs
+    const markerPreviousPs = needsPs
       ? previousPs
       : existing && "previousProductSignal" in existing
         ? existing.previousProductSignal
@@ -472,8 +495,8 @@ function applyForceOn(
       [
         `actor=${actor}`,
         "org-force-on-v2822",
-        `valueFeedback=${intent.needsVf ? "forced-on" : "unchanged"}`,
-        `productSignal=${intent.needsPs ? "forced-on" : "unchanged"}`,
+        `valueFeedback=${needsVf ? "forced-on" : "unchanged"}`,
+        `productSignal=${needsPs ? "forced-on" : "unchanged"}`,
         `previousValueFeedback=${JSON.stringify(normalizePolicySnapshot(markerPreviousVf))}`,
         `previousProductSignal=${JSON.stringify(normalizePolicySnapshot(markerPreviousPs))}`,
       ].join(" "),
@@ -481,13 +504,23 @@ function applyForceOn(
 
     writeMarker(projectRoot, options, {
       // OR with existing so partial re-apply does not clear install-force-on source.
-      valueFeedback: intent.needsVf || (existing?.valueFeedback ?? false),
-      productSignal: intent.needsPs || (existing?.productSignal ?? false),
+      valueFeedback: needsVf || (existing?.valueFeedback ?? false),
+      productSignal: needsPs || (existing?.productSignal ?? false),
       previousValueFeedback: markerPreviousVf,
       previousProductSignal: markerPreviousPs,
     });
+    ran = true;
     return { changed: valueFeedbackChanged || productSignalChanged };
   });
+
+  if (!ran) {
+    return {
+      ran: false,
+      skippedReason: skippedReason ?? "marker-present",
+      valueFeedbackChanged: false,
+      productSignalChanged: false,
+    };
+  }
 
   return {
     ran: true,
