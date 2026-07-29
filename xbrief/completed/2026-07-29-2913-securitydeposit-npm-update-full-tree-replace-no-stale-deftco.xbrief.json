@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2913",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T20:41:11Z"
   },
   "plan": {
     "title": "security(deposit): npm update full-tree replace \u2014 no stale .deft/core survival (install-deposit-06)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(deposit): npm update full-tree replace \u2014 no stale .deft/core survival (install-deposit-06). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2913",
@@ -19,7 +19,7 @@
       {
         "id": "update-leaves-no-dst-only-agent-content",
         "title": "Update leaves no dst-only agent content under `.deft/core` after refresh",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2913, when verification runs, then: Update leaves no dst-only agent content under `.deft/core` after refresh."
         }
@@ -27,7 +27,7 @@
       {
         "id": "parity-with-go-full-swap-integrity-model",
         "title": "Parity with Go full-swap integrity model (or documented intentional residual)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2913, when verification runs, then: Parity with Go full-swap integrity model (or documented intentional residual)."
         }
@@ -35,7 +35,7 @@
       {
         "id": "tests-changelog",
         "title": "Tests / CHANGELOG",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2913, when verification runs, then: Tests / CHANGELOG."
         }
@@ -52,7 +52,7 @@
         "title": "Issue #2913: security(deposit): npm update full-tree replace \u2014 no stale .deft/core survival (install-deposit-06)"
       }
     ],
-    "updated": "2026-07-29T15:00:05Z",
+    "updated": "2026-07-29T20:41:11Z",
     "id": "story-2913",
     "metadata": {
       "kind": "story",
@@ -79,7 +79,8 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2913."
-      }
+      },
+      "completedAt": "2026-07-29T20:41:11Z"
     }
   }
 }
