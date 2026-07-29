@@ -141,3 +141,5 @@ Full command reference for every triage and cache verb lives in [`commands.md` �
 <!-- TODO: Cover AGENTS.md, skill routing, Warp Drive integration, and cloud agent dispatch -->
 
 **OpenClaw:** If your agent host is OpenClaw (persistent-memory agents, Control UI, `sessions_spawn`), read [openclaw-agent-host.md](./openclaw-agent-host.md) for the host mental model, executable babysit path (installed skills), and the epic babysit → `sessions_spawn` Approach 1 expectation. Skill gate text remains in `deft-directive-review-cycle` / `deft-directive-swarm` — the host doc only points.
+
+**Writing:** For docs, issues, and PR prose, follow [writing-ste100.md](./writing-ste100.md) (short controlled English; #2927).

@@ -153,6 +153,8 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 
 **OpenClaw agent-host pointer:** Running Directive under OpenClaw persistent-memory agents? See [docs/openclaw-agent-host.md](./docs/openclaw-agent-host.md) for Control UI / identity notes, the executable babysit path (installed review-cycle skill), and the epic babysit → `sessions_spawn` Approach 1 expectation — skill and register contracts stay in shipped skills (#2877 / epic #2874).
 
+**Writing pointer:** For docs, issues, and PR prose that maintainers or agents author, follow [docs/writing-ste100.md](./docs/writing-ste100.md) (short controlled English; #2927).
+
 **Contributor pointer (non-blocking):** Working on Deft itself (a `deftai/directive` source checkout)? See [CONTRIBUTING.md](../CONTRIBUTING.md) and use the maintainer install path (`deft-install --yes --upgrade --maintainer --repo-root . --json`). The repo's root `AGENTS.md` has contributor instructions — you do not need the consumer first-session flow above.
 
 ## Update notifications

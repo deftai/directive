@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF completed for GitHub issue #2927",
+    "updated": "2026-07-29T20:59:05Z"
+  },
+  "plan": {
+    "title": "docs: use short controlled English for docs and issues (ASD-STE100)",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs: use short controlled English for docs and issues (ASD-STE100)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2927",
+      "Overview": "## Summary\n\n**Request (Scott 2026-07-29):** Apply **ASD-STE100** pragmatically to Directive writing.\n\n**ASD-STE100** = Simplified Technical English (aerospace controlled language). Here it means a practical subset, not full certification.\n\n## Scope\n\nApply to:\n\n- Agent and maintainer communications about Directive\n- Product docs\n- GitHub issues, PRs, and review comments that agents or maintainers author for this repo\n- Skill and strategy prose where clarity matters for agent load\n\n## Pragmatic rules (minimum bar)\n\n1. **Short sentences.** Prefer one main idea per sentence.\n2. **Active voice.** Prefer \"The agent runs the gate\" over \"The gate is run by the agent.\"\n3. **One term = one meaning.** Especially product terms (`xbrief`, host, skill pack, swarm, deposit). Do not reuse one word for two concepts.\n4. **First-use definitions.** Define tech terms the first time they appear in a doc or issue body when the reader may not share the jargon.\n\n## Non-goals\n\n- Full ASD-STE100 dictionary compliance or formal STE tooling certification\n- Rewriting the entire historical issue corpus in one pass\n- Blocking merges solely on STE style nitpicks without a written standard\n\n## Why\n\nLong multi-clause prose and shifting terms raise agent misread risk and human review cost. Controlled English cuts that cost without a new process religion.\n\n## Proposed approach\n\n1. Add a short writing note (e.g. `docs/writing-ste100.md` or a section under contribution / coding docs) with the four rules above.\n2. Link it from contributor / agent entry points (README or AGENTS / main.md as appropriate).\n3. Apply on new and touched prose; no big-bang rewrite required.\n4. Optional later: light checklist in write-skill or article-review \u2014 only if it stays small (see token-tax patterns #865).\n\n## Acceptance\n\n- [ ] Canonical short page or section states the four pragmatic rules + non-goals\n- [ ] Discoverable from maintainer/agent entry docs\n- [ ] New issues/docs from maintainers and agents follow the bar by default (process expectation, not a red CI gate in v1)\n\n## Related\n\n- #740 plain-English UX pass (closed; interview-focused)\n- #865 every-rule-is-a-token-tax\n- #847 lean-context-first\n- #2484 progressive disclosure for large skills\n- #2905 category terms (host vs skill pack vs practice layer)\n\n## Source\n\nOperator request to APE 2026-07-29: standing preference for all communications with Scott and for documents/issues APE authors; file as product request.",
+      "Labels": "documentation, docs, agent-experience, urgent"
+    },
+    "items": [
+      {
+        "title": "Canonical short page or section states the four pragmatic rules + non-goals",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given #2927, when verification runs, then: Canonical short page or section states the four pragmatic rules + non-goals."
+        }
+      },
+      {
+        "title": "Discoverable from maintainer/agent entry docs",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given #2927, when verification runs, then: Discoverable from maintainer/agent entry docs."
+        }
+      },
+      {
+        "title": "New issues/docs from maintainers and agents follow the bar by default (process expectation, not a red CI gate in v1)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given #2927, when verification runs, then: New issues/docs from maintainers and agents follow the bar by default (process expectation, not a red CI gate in v1)."
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "docs",
+      "agent-experience",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2927",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2927: docs: use short controlled English for docs and issues (ASD-STE100)"
+      }
+    ],
+    "updated": "2026-07-29T20:59:05Z",
+    "id": "story-2927",
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-07-29T20:59:05Z"
+    }
+  }
+}

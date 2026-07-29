@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Controlled English writing bar for docs and issues (#2927).** Canonical short page states four pragmatic rules (short sentences, active voice, one term = one meaning, first-use definitions) plus non-goals (no full STE certification, no big-bang rewrite, no red CI style gate in v1). Linked from `AGENTS.md`, `content/docs/getting-started.md`, and `content/QUICK-START.md`. Closes #2927.
+
 ### Changed
 
 ### Fixed
