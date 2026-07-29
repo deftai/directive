@@ -537,7 +537,7 @@ func CheckWritePermission(dir string) error {
 	// static `.deft-install-write-test` filename. The `*` in the pattern
 	// is expanded to a unique suffix; defer os.Remove on the returned
 	// path so cleanup runs on every exit (success or failure), mirroring
-	// the git-installer fix in cmd/deft-install/git.go:235-249.
+	// the git-installer fix in cmd/deft-install/git.go (fetchInstallerToTemp).
 	f, err := os.CreateTemp(check, ".deft-install-write-test-*")
 	if err != nil {
 		// Wrap the underlying os.CreateTemp error so callers can match

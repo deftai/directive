@@ -2,8 +2,12 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -179,5 +183,259 @@ func TestEnsureGit_RefreshErrorsAreNonFatal(t *testing.T) {
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 	if err := EnsureGit(w); err != nil {
 		t.Errorf("EnsureGit must not propagate refresh errors when git is present, got %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// #2908 -- pin + SHA-256 verify Git-for-Windows installer before silent exec
+// (tracker #2904, finding install-deposit-01)
+// ---------------------------------------------------------------------------
+
+// TestPinnedGitForWindowsSHA256_WellFormed guards the trust anchor's shape: a
+// bare, lowercase, 64-hex-char SHA-256 with no "sha256:" prefix creep and no
+// accidental truncation. A malformed pin would either never match (bricking
+// every Windows download install) or, worse, be silently mishandled.
+func TestPinnedGitForWindowsSHA256_WellFormed(t *testing.T) {
+	got := pinnedGitForWindowsSHA256
+	if len(got) != 64 {
+		t.Fatalf("pinned SHA-256 must be 64 hex chars, got %d (%q)", len(got), got)
+	}
+	if strings.HasPrefix(got, "sha256:") {
+		t.Fatalf("pinned SHA-256 must not carry a sha256: prefix: %q", got)
+	}
+	if _, err := hex.DecodeString(got); err != nil {
+		t.Fatalf("pinned SHA-256 is not valid hex: %v", err)
+	}
+	if got != strings.ToLower(got) {
+		t.Errorf("pinned SHA-256 should be lowercase for stable comparison: %q", got)
+	}
+}
+
+// TestPinnedGitConstants_Consistent pins the invariant that the winget version
+// and the asset name are derived from the same underlying git version, so a
+// future bump cannot update the tag while leaving a stale winget version or
+// asset name behind.
+func TestPinnedGitConstants_Consistent(t *testing.T) {
+	// winget version "2.55.0.3" splits into base "2.55.0" + windows revision
+	// "3"; the git-for-windows tag is "v<base>.windows.<rev>" and the asset is
+	// "Git-<version>-64-bit.exe". A future bump must keep all four aligned.
+	idx := strings.LastIndex(pinnedGitForWindowsVersion, ".")
+	if idx <= 0 || idx == len(pinnedGitForWindowsVersion)-1 {
+		t.Fatalf("pinned version %q is not of the form base.rev", pinnedGitForWindowsVersion)
+	}
+	base := pinnedGitForWindowsVersion[:idx]
+	rev := pinnedGitForWindowsVersion[idx+1:]
+	wantTag := "v" + base + ".windows." + rev
+	if pinnedGitForWindowsTag != wantTag {
+		t.Errorf("tag %q inconsistent with version %q (expected %q)",
+			pinnedGitForWindowsTag, pinnedGitForWindowsVersion, wantTag)
+	}
+	wantAsset := "Git-" + pinnedGitForWindowsVersion + "-64-bit.exe"
+	if pinnedGitForWindowsAsset != wantAsset {
+		t.Errorf("asset %q inconsistent with version %q (expected %q)",
+			pinnedGitForWindowsAsset, pinnedGitForWindowsVersion, wantAsset)
+	}
+	if !strings.HasSuffix(pinnedGitForWindowsAsset, "-64-bit.exe") {
+		t.Errorf("pinned asset %q should be the 64-bit installer", pinnedGitForWindowsAsset)
+	}
+}
+
+// TestVerifyFileSHA256_Match verifies the trust gate accepts a file whose
+// digest matches the expected hash.
+func TestVerifyFileSHA256_Match(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "installer.exe")
+	content := []byte("pretend git-for-windows installer bytes")
+	if err := os.WriteFile(p, content, 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	sum := sha256.Sum256(content)
+	if err := verifyFileSHA256(p, hex.EncodeToString(sum[:])); err != nil {
+		t.Fatalf("expected match, got error: %v", err)
+	}
+}
+
+// TestVerifyFileSHA256_MatchWithPrefixAndCase verifies the gate tolerates a
+// "sha256:" prefix and uppercase hex (defensive normalization) so a correct
+// digest expressed in a different textual form still verifies.
+func TestVerifyFileSHA256_MatchWithPrefixAndCase(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "installer.exe")
+	content := []byte("another installer payload")
+	if err := os.WriteFile(p, content, 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	sum := sha256.Sum256(content)
+	want := "sha256:" + strings.ToUpper(hex.EncodeToString(sum[:]))
+	if err := verifyFileSHA256(p, want); err != nil {
+		t.Fatalf("expected match with prefixed/uppercase digest, got: %v", err)
+	}
+}
+
+// TestVerifyFileSHA256_Mismatch is the core fail-closed assertion: a file whose
+// digest does not match the expected hash MUST be rejected with a clear
+// mismatch error.
+func TestVerifyFileSHA256_Mismatch(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "installer.exe")
+	if err := os.WriteFile(p, []byte("tampered payload"), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	err := verifyFileSHA256(p, pinnedGitForWindowsSHA256)
+	if err == nil {
+		t.Fatal("expected mismatch error, got nil")
+	}
+	if !strings.Contains(err.Error(), "mismatch") {
+		t.Errorf("expected a mismatch error, got: %v", err)
+	}
+}
+
+// TestVerifyFileSHA256_MissingFile ensures an unreadable/missing installer is a
+// verification failure (fail closed), never a silent pass.
+func TestVerifyFileSHA256_MissingFile(t *testing.T) {
+	err := verifyFileSHA256(filepath.Join(t.TempDir(), "does-not-exist.exe"), pinnedGitForWindowsSHA256)
+	if err == nil {
+		t.Fatal("expected error for missing file, got nil")
+	}
+}
+
+// TestDownloadGitInstaller_FailClosedOnDigestMismatch is the end-to-end
+// fail-closed contract: when the downloaded bytes do not match the pinned
+// SHA-256, downloadGitInstaller MUST return an error, MUST NOT execute the
+// installer, and MUST remove the rejected temp file.
+func TestDownloadGitInstaller_FailClosedOnDigestMismatch(t *testing.T) {
+	origResolve := resolvePinnedInstallerURLFunc
+	origFetch := fetchInstallerToTempFunc
+	origRun := runCmdFunc
+	defer func() {
+		resolvePinnedInstallerURLFunc = origResolve
+		fetchInstallerToTempFunc = origFetch
+		runCmdFunc = origRun
+	}()
+
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, "deft-git-installer-XXXX.exe")
+	// Bytes that will NOT hash to the pinned digest -> must be refused.
+	if err := os.WriteFile(tmpPath, []byte("MALICIOUS or corrupted installer"), 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	resolvePinnedInstallerURLFunc = func(w *Wizard) (string, error) {
+		return "https://example.invalid/pinned.exe", nil
+	}
+	fetchInstallerToTempFunc = func(w *Wizard, url string) (string, error) {
+		return tmpPath, nil
+	}
+	ran := false
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		ran = true
+		return nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	err := downloadGitInstaller(w)
+	if err == nil {
+		t.Fatal("expected fail-closed error on digest mismatch, got nil")
+	}
+	if ran {
+		t.Fatal("SECURITY: installer was executed despite a SHA-256 mismatch")
+	}
+	if _, statErr := os.Stat(tmpPath); !os.IsNotExist(statErr) {
+		t.Errorf("rejected installer temp file should be removed, stat err = %v", statErr)
+	}
+}
+
+// TestDownloadGitInstaller_RunsOnDigestMatch verifies the happy path: when the
+// downloaded bytes match the (test-substituted) pinned digest, the installer is
+// executed exactly once with the silent flags, and the temp file is cleaned up.
+func TestDownloadGitInstaller_RunsOnDigestMatch(t *testing.T) {
+	origResolve := resolvePinnedInstallerURLFunc
+	origFetch := fetchInstallerToTempFunc
+	origRun := runCmdFunc
+	origPin := pinnedGitForWindowsSHA256
+	defer func() {
+		resolvePinnedInstallerURLFunc = origResolve
+		fetchInstallerToTempFunc = origFetch
+		runCmdFunc = origRun
+		pinnedGitForWindowsSHA256 = origPin
+	}()
+
+	dir := t.TempDir()
+	tmpPath := filepath.Join(dir, "deft-git-installer-YYYY.exe")
+	content := []byte("verified good installer bytes")
+	if err := os.WriteFile(tmpPath, content, 0o600); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	sum := sha256.Sum256(content)
+	pinnedGitForWindowsSHA256 = hex.EncodeToString(sum[:]) // substitute pin for fixture
+
+	resolvePinnedInstallerURLFunc = func(w *Wizard) (string, error) {
+		return "https://example.invalid/pinned.exe", nil
+	}
+	fetchInstallerToTempFunc = func(w *Wizard, url string) (string, error) {
+		return tmpPath, nil
+	}
+	var gotName string
+	var gotArgs []string
+	runCount := 0
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		runCount++
+		gotName = name
+		gotArgs = args
+		return nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := downloadGitInstaller(w); err != nil {
+		t.Fatalf("expected success on digest match, got: %v", err)
+	}
+	if runCount != 1 {
+		t.Fatalf("expected installer to run exactly once, ran %d times", runCount)
+	}
+	if gotName != tmpPath {
+		t.Errorf("expected to exec the downloaded temp file %q, got %q", tmpPath, gotName)
+	}
+	wantArgs := []string{"/SILENT", "/NORESTART"}
+	if len(gotArgs) != len(wantArgs) || gotArgs[0] != wantArgs[0] || gotArgs[1] != wantArgs[1] {
+		t.Errorf("expected silent install args %v, got %v", wantArgs, gotArgs)
+	}
+	if _, statErr := os.Stat(tmpPath); !os.IsNotExist(statErr) {
+		t.Errorf("installer temp file should be removed after run, stat err = %v", statErr)
+	}
+}
+
+// TestInstallGitWindows_WingetUsesPinnedVersion verifies the preferred winget
+// path is pinned to the known-good package version (#2908) rather than
+// resolving whatever winget's "latest" happens to be.
+func TestInstallGitWindows_WingetUsesPinnedVersion(t *testing.T) {
+	origRun := runCmdFunc
+	origDl := downloadGitInstallerFunc
+	defer func() {
+		runCmdFunc = origRun
+		downloadGitInstallerFunc = origDl
+	}()
+
+	var gotArgs []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		if name == "winget" {
+			gotArgs = append([]string{name}, args...)
+		}
+		return nil // winget "succeeds" so download is not reached
+	}
+	downloadGitInstallerFunc = func(w *Wizard) error {
+		t.Fatal("download path must not run when winget succeeds")
+		return nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := installGitWindows(w); err != nil {
+		t.Fatalf("installGitWindows returned error: %v", err)
+	}
+	joined := strings.Join(gotArgs, " ")
+	if !strings.Contains(joined, "--version "+pinnedGitForWindowsVersion) {
+		t.Errorf("winget invocation should pin --version %s, got: %s", pinnedGitForWindowsVersion, joined)
+	}
+	if !strings.Contains(joined, "--id Git.Git") {
+		t.Errorf("winget invocation should target Git.Git, got: %s", joined)
 	}
 }
