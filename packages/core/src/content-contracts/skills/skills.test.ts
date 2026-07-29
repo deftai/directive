@@ -750,8 +750,12 @@ describe("test_skills", () => {
   });
   it("deft_directive_setup_phase3_onboarding_question", () => {
     const text = readSkill(_SETUP_PATH);
-    expect(text.toLowerCase()).toContain("adding a scope");
+    // #2925 — align with Chaining Gate add-scope / update / replace vocabulary
+    expect(text.toLowerCase()).toContain("add scope to this project");
+    expect(text.toLowerCase()).toContain("update project definition");
+    expect(text.toLowerCase()).toContain("replace specification");
     expect(text.toLowerCase()).toContain("starting a new");
+    expect(text.toLowerCase()).toContain("brownfield detector");
   });
   it("deft_directive_setup_full_path_rich_narratives", () => {
     const text = readSkill(_SETUP_PATH);

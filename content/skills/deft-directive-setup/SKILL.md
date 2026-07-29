@@ -647,7 +647,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Lifecycle Bridge to Downstream Skills (#1025)
 
-! Scope xBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Adding scope to existing project" branch land in `xbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task xbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate xBRIEFs to live in `xbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.
+! Scope xBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Add scope to this project" branch land in `xbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task xbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate xBRIEFs to live in `xbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.
 
 ! Surface this bridge to the user in the Phase 3 → next-skill handoff so they are not surprised by a wholesale preflight rejection downstream:
 
