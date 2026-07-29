@@ -14,7 +14,7 @@ import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
 import { assertDepositContained } from "../deposit/contain.js";
-import { copyTree } from "../deposit/copy-tree.js";
+import { replaceTree } from "../deposit/copy-tree.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
@@ -42,7 +42,7 @@ import {
   depositStagePaths,
   isInstallerManagedPath,
   printCommitGuidance,
-  prunePackageAbsentDepositPaths,
+  reconcileDepositToContentPackage,
 } from "./hygiene.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
@@ -585,7 +585,9 @@ export async function runRefreshDeposit(
   assertDepositContained(projectDir, deftDir);
 
   const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
-  const copyContent = seams.copyContent ?? copyTree;
+  // #2913: default is full-tree replace (Go swapInCore parity), not additive copyTree.
+  // Injected seams.copyContent still wins (tests / specialized callers).
+  const copyContent = seams.copyContent ?? replaceTree;
   const readEngine = seams.readEngineVersion ?? readCorePackageVersion;
   const readPackageVersion = seams.readPackageVersion ?? readCorePackageVersion;
 
@@ -606,14 +608,18 @@ export async function runRefreshDeposit(
 
   if (alreadyCurrent) {
     io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
+    // #2913: still fail-closed reconcile so dst-only leftovers cannot linger when
+    // VERSION already matches (e.g. pre-#2804 additive deposits). Does not re-stamp.
+    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
     migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
   } else {
+    // Full-tree replace (or injected seam). Additive copy is no longer the default.
     await copyContent(contentRoot, deftDir);
     await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-    // #2804 / #2347: prune deposit paths absent from the content package. The
-    // additive file-swap never removes them, causing stale bridge-era files to
-    // survive across upgrades until manually cleaned.
-    await prunePackageAbsentDepositPaths(deftDir, contentRoot, io);
+    // #2913 / #2804 / #2347: fail-closed delete-not-in-source BEFORE VERSION stamp.
+    // replaceTree already drops dst-only paths; reconcile verifies and covers
+    // additive seams. Throws => no VERSION rewrite (refuse stamp until clean).
+    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
 
     const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
     const manifestFields: InstallManifestFields = {

@@ -5,24 +5,38 @@
  * directories are created mode 0o755; files keep their source permission bits
  * (including the executable bit for hooks and the `run` launcher).
  *
- * Refs #1942 S1, #1477.
+ * `replaceTree` is the npm-path counterpart of Go `swapInCore` (#2913): full
+ * destination replace so dst-only agent content cannot survive a refresh.
+ *
+ * Refs #1942 S1, #1477, #2913.
  */
 
 import { constants } from "node:fs";
-import { lstat, mkdir, open, readdir, readFile, stat } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 const DEFAULT_FILE_MODE = 0o644;
 const DEFAULT_DIR_MODE = 0o755;
 
-async function assertDestinationIsNotSymlink(path: string): Promise<void> {
+async function assertDestinationIsNotSymlink(path: string, label = "copyTree"): Promise<void> {
   try {
     const info = await lstat(path);
     if (info.isSymbolicLink()) {
-      throw new Error(`copyTree: refusing to write through destination symlink ${path}`);
+      throw new Error(`${label}: refusing to write through destination symlink ${path}`);
     }
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith("copyTree: refusing")) {
+    if (err instanceof Error && err.message.includes("refusing to write through destination symlink")) {
       throw err;
     }
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
@@ -84,6 +98,8 @@ async function copyDirContents(src: string, dst: string): Promise<void> {
  * Recursively copy `src` into `dst`, preserving nested structure and file modes.
  *
  * The contents of `src` are placed under `dst` (equivalent to Go `copyDir`).
+ * This is **additive** — pre-existing destination entries not present in `src`
+ * survive. Prefer {@link replaceTree} for deposit refresh integrity (#2913).
  */
 export async function copyTree(src: string, dst: string): Promise<void> {
   const srcInfo = await stat(src);
@@ -91,4 +107,110 @@ export async function copyTree(src: string, dst: string): Promise<void> {
     throw new Error(`copyTree: source ${src} is not a directory`);
   }
   await copyDirContents(src, dst);
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await lstat(path);
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw err;
+  }
+}
+
+/**
+ * Move `src` to `dst`, falling back to copy+remove across devices (EXDEV),
+ * mirroring Go `movePayload` used by `swapInCore`.
+ */
+async function moveTree(src: string, dst: string): Promise<void> {
+  await mkdir(dirname(dst), { recursive: true, mode: DEFAULT_DIR_MODE });
+  try {
+    await rename(src, dst);
+    return;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "EXDEV" && code !== "EPERM") {
+      // On some platforms rename across volumes raises EXDEV; fall through only
+      // for cross-device / permission cases that still allow a copy fallback.
+      if (code !== "EINVAL") throw err;
+    }
+  }
+  await copyDirContents(src, dst);
+  await rm(src, { recursive: true, force: true });
+}
+
+/**
+ * Full-tree replace of `dst` with the contents of `src` (Go `swapInCore` parity).
+ *
+ * Stages the new tree out-of-line, moves any existing `dst` aside, then moves
+ * the staged tree into place. On failure after the old tree was moved, restores
+ * the previous payload. Destination-only files (stale or malicious) do **not**
+ * survive — unlike additive {@link copyTree}.
+ *
+ * Refuses to operate when `dst` itself is a symlink (#2305 / #2912).
+ *
+ * Refs #2913, #2904 (install-deposit-06).
+ */
+export async function replaceTree(src: string, dst: string): Promise<void> {
+  const srcInfo = await stat(src);
+  if (!srcInfo.isDirectory()) {
+    throw new Error(`replaceTree: source ${src} is not a directory`);
+  }
+
+  await assertDestinationIsNotSymlink(dst, "replaceTree");
+
+  const parent = dirname(dst);
+  await mkdir(parent, { recursive: true, mode: DEFAULT_DIR_MODE });
+
+  const staging = await mkdtemp(join(tmpdir(), "deft-core-stage-"));
+  let backup: string | null = null;
+  /** When true, leave `backup` on disk so an operator can recover after dual failure. */
+  let preserveBackupOnExit = false;
+  try {
+    await copyDirContents(src, staging);
+
+    if (await pathExists(dst)) {
+      backup = await mkdtemp(join(tmpdir(), "deft-core-bak-"));
+      // mkdtemp created an empty dir; remove it so moveTree can rename onto the path.
+      await rm(backup, { recursive: true, force: true });
+      await moveTree(dst, backup);
+    }
+
+    try {
+      await moveTree(staging, dst);
+    } catch (err) {
+      if (backup !== null) {
+        try {
+          if (await pathExists(dst)) {
+            await rm(dst, { recursive: true, force: true });
+          }
+          await moveTree(backup, dst);
+          backup = null;
+        } catch (restoreErr) {
+          preserveBackupOnExit = true;
+          const installMsg = err instanceof Error ? err.message : String(err);
+          const restoreMsg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+          throw new Error(
+            `replaceTree: install new payload failed (${installMsg}); ROLLBACK ALSO FAILED (${restoreMsg})` +
+              (backup ? ` — previous payload preserved at ${backup}` : ""),
+          );
+        }
+      }
+      throw err instanceof Error
+        ? err
+        : new Error(`replaceTree: install new payload failed: ${String(err)}`);
+    }
+    // Successful install — drop the backup (Go keeps it for operator rollback;
+    // the npm path does not surface a backup path today and must not litter TEMP).
+    if (backup !== null) {
+      await rm(backup, { recursive: true, force: true });
+      backup = null;
+    }
+  } finally {
+    await rm(staging, { recursive: true, force: true }).catch(() => undefined);
+    if (backup !== null && !preserveBackupOnExit) {
+      await rm(backup, { recursive: true, force: true }).catch(() => undefined);
+    }
+  }
 }

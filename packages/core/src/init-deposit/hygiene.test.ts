@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -13,6 +21,7 @@ import {
   isInstallerManagedPath,
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
+  reconcileDepositToContentPackage,
   stageFrameworkPaths,
 } from "./hygiene.js";
 import { CANONICAL_TASKFILE_INCLUDE } from "./scaffold.js";
@@ -415,5 +424,70 @@ describe("package-absent deposit prune (#2804)", () => {
 
     expect(result.pruned).toContain("packages/core/index.ts");
     expect(await findPackageAbsentDepositPaths(deftDir, contentRoot)).toEqual([]);
+  });
+});
+
+describe("reconcileDepositToContentPackage fail-closed (#2913)", () => {
+  const created: string[] = [];
+  const itUnix = it.skipIf(process.platform === "win32");
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      try {
+        // Best-effort restore perms so cleanup can delete locked fixtures.
+        chmodSync(dir, 0o755);
+      } catch {
+        // ignore
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  it("prunes dst-only leftovers and returns clean", async () => {
+    const root = freshRoot("reconcile-ok-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "agents"), { recursive: true });
+    writeFileSync(join(deftDir, "agents", "stale-skill.md"), "EVIL\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "tag: 'v0.87.0'\n", "utf8");
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const result = await reconcileDepositToContentPackage(deftDir, contentRoot, {
+      printf: () => {},
+    });
+
+    expect(result.pruned).toContain("agents/stale-skill.md");
+    expect(existsSync(join(deftDir, "agents", "stale-skill.md"))).toBe(false);
+    expect(existsSync(join(deftDir, "VERSION"))).toBe(true);
+  });
+
+  itUnix("throws when a package-absent path cannot be removed (refuse VERSION stamp)", async () => {
+    const root = freshRoot("reconcile-locked-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    const lockedDir = join(deftDir, "locked");
+    mkdirSync(lockedDir, { recursive: true });
+    writeFileSync(join(lockedDir, "stale.md"), "EVIL\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "tag: 'v0.87.0'\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    // Directory without owner write/execute → unlink of children fails.
+    chmodSync(lockedDir, 0o555);
+
+    await expect(
+      reconcileDepositToContentPackage(deftDir, contentRoot, { printf: () => {} }),
+    ).rejects.toThrow(/Refusing VERSION stamp|#2913|deposit reconcile failed/);
+
+    // Restore perms so afterEach can clean up.
+    chmodSync(lockedDir, 0o755);
   });
 });

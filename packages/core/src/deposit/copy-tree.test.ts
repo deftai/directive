@@ -18,7 +18,7 @@ const itSymlink = it.skipIf(process.platform === "win32");
 // chmod mode bits are not reliably preserved by Node on Windows.
 const itChmod = it.skipIf(process.platform === "win32");
 
-import { copyTree } from "./copy-tree.js";
+import { copyTree, replaceTree } from "./copy-tree.js";
 
 describe("copyTree (#1477 mode-preserving recursive copy)", () => {
   const created: string[] = [];
@@ -112,5 +112,81 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
     writeFileSync(file, "x", "utf-8");
 
     await expect(copyTree(file, join(workspace, "dst"))).rejects.toThrow(/not a directory/);
+  });
+});
+
+describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  it("removes destination-only files that additive copyTree would leave behind", async () => {
+    const workspace = freshRoot("replace-tree-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(join(dst, "nested"), { recursive: true });
+    writeFileSync(join(src, "kept.md"), "new\n", "utf-8");
+    writeFileSync(join(dst, "kept.md"), "old\n", "utf-8");
+    writeFileSync(join(dst, "nested", "stale-or-malicious.md"), "EVIL\n", "utf-8");
+
+    await replaceTree(src, dst);
+
+    expect(readFileSync(join(dst, "kept.md"), "utf-8")).toBe("new\n");
+    expect(existsSync(join(dst, "nested", "stale-or-malicious.md"))).toBe(false);
+    expect(existsSync(join(dst, "nested"))).toBe(false);
+  });
+
+  itSymlink("drops a destination-only symlink entry (not just regular files)", async () => {
+    const workspace = freshRoot("replace-tree-symlink-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    const outside = join(workspace, "outside.txt");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(dst, { recursive: true });
+    writeFileSync(join(src, "ok.md"), "ok\n", "utf-8");
+    writeFileSync(outside, "secret\n", "utf-8");
+    symlinkSync(outside, join(dst, "planted-link"));
+
+    await replaceTree(src, dst);
+
+    expect(readFileSync(join(dst, "ok.md"), "utf-8")).toBe("ok\n");
+    expect(existsSync(join(dst, "planted-link"))).toBe(false);
+    // Link target outside the deposit is untouched.
+    expect(readFileSync(outside, "utf-8")).toBe("secret\n");
+  });
+
+  itSymlink("refuses when the destination root itself is a symlink", async () => {
+    const workspace = freshRoot("replace-tree-dst-root-symlink-");
+    const src = join(workspace, "src");
+    const realDst = join(workspace, "real-dst");
+    const dst = join(workspace, "dst");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(realDst, { recursive: true });
+    writeFileSync(join(src, "ok.md"), "ok\n", "utf-8");
+    writeFileSync(join(realDst, "keep.md"), "keep\n", "utf-8");
+    symlinkSync(realDst, dst, "dir");
+
+    await expect(replaceTree(src, dst)).rejects.toThrow(/destination symlink/);
+    expect(readFileSync(join(realDst, "keep.md"), "utf-8")).toBe("keep\n");
+    expect(existsSync(join(realDst, "ok.md"))).toBe(false);
+  });
+
+  it("rejects a non-directory source", async () => {
+    const workspace = freshRoot("replace-tree-file-");
+    const file = join(workspace, "not-a-dir");
+    writeFileSync(file, "x", "utf-8");
+
+    await expect(replaceTree(file, join(workspace, "dst"))).rejects.toThrow(/not a directory/);
   });
 });

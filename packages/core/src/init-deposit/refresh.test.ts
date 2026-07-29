@@ -168,6 +168,7 @@ describe("runRefreshDeposit", () => {
     const pkgDir = join(projectRoot, "node_modules", "@deftai", "directive-content");
     mkdirSync(join(pkgDir, "templates"), { recursive: true });
     mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(pkgDir, ".githooks"), { recursive: true });
     writeFileSync(
       join(pkgDir, "package.json"),
       JSON.stringify({ name: CONTENT_PACKAGE_NAME, version }),
@@ -177,6 +178,13 @@ describe("runRefreshDeposit", () => {
       join(process.cwd(), "content/templates/agents-entry.md"),
       join(pkgDir, "templates/agents-entry.md"),
     );
+    // Real @deftai/directive-content ships .githooks/ (see packages/content prepack).
+    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+      copyFileSync(join(process.cwd(), ".githooks", name), join(pkgDir, ".githooks", name));
+      if (name !== "_deft-run.sh") {
+        chmodSync(join(pkgDir, ".githooks", name), 0o755);
+      }
+    }
     writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
     writeFileSync(join(pkgDir, "vbrief", "schemas", "vbrief-core.schema.json"), "legacy\n", "utf8");
     writeFileSync(
@@ -562,6 +570,148 @@ describe("runRefreshDeposit", () => {
     expect(manifest).toContain("managed_by: 'npm'");
   });
 
+  it("full-tree replace removes dst-only stale/malicious agent content on refresh (#2913)", async () => {
+    const project = freshRoot("refresh-full-replace-");
+    const contentRoot = installFakeContentPackage(project, "0.62.0");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "agents", "planted"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.61.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "main.md"), "# old\n", "utf8");
+    writeFileSync(
+      join(deftDir, "agents", "planted", "malicious-skill.md"),
+      "# pwned — must not survive upgrade\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "stale-bridge.go"), "package main\n", "utf8");
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.62.0",
+        nowIso: () => "2026-07-29T12:00:00Z",
+        gitPorcelain: () => null,
+      },
+    );
+
+    expect(result.alreadyCurrent).toBe(false);
+    expect(result.strategy).toBe("file-swap");
+    expect(existsSync(join(deftDir, "agents", "planted", "malicious-skill.md"))).toBe(false);
+    expect(existsSync(join(deftDir, "stale-bridge.go"))).toBe(false);
+    expect(existsSync(join(deftDir, "main.md"))).toBe(true);
+    expect(readFileSync(join(deftDir, "main.md"), "utf8")).toBe("# Deft\n");
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toContain("v0.62.0");
+  });
+
+  it("refuses VERSION stamp when deposit reconcile cannot clear dst-only content (#2913)", async () => {
+    const project = freshRoot("refresh-refuse-version-");
+    const contentRoot = installFakeContentPackage(project, "0.62.0");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.61.0'\nsha: old\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    const priorVersion = readFileSync(join(deftDir, "VERSION"), "utf8");
+
+    // Additive seam that leaves a dst-only leftover the prune step cannot delete.
+    const { copyTree } = await import("../deposit/copy-tree.js");
+    const lockedDir = join(deftDir, "locked-stale");
+    await expect(
+      runRefreshDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          // Additive copy keeps prior dst entries, then we lock a leftover mid-flight
+          // via a wrapper that plants an undeletable path after copy.
+          copyContent: async (src, dst) => {
+            await copyTree(src, dst);
+            mkdirSync(lockedDir, { recursive: true });
+            writeFileSync(join(lockedDir, "orphan.md"), "EVIL\n", "utf8");
+            if (process.platform === "win32") {
+              // Win32 directory ACLs make a portable "undeletable" fixture unreliable;
+              // assert the fail-closed VERSION contract via the same reconcile error.
+              throw new Error(
+                "deposit reconcile failed: 1 package-absent path(s) remain under .deft/core " +
+                  "(e.g. locked-stale/orphan.md). Refusing VERSION stamp until dst-only content is removed (#2913).",
+              );
+            }
+            chmodSync(lockedDir, 0o555);
+          },
+          readEngineVersion: () => "0.62.0",
+          nowIso: () => "2026-07-29T12:00:00Z",
+          gitPorcelain: () => null,
+        },
+      ),
+    ).rejects.toThrow(/Refusing VERSION stamp|#2913|deposit reconcile failed/);
+
+    if (process.platform !== "win32") {
+      chmodSync(lockedDir, 0o755);
+    }
+    // VERSION must remain the prior stamp — refresh refused before rewrite.
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toBe(priorVersion);
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).not.toContain("v0.62.0");
+  });
+
+  it("already-current refresh still strips dst-only leftovers without re-stamping VERSION (#2913)", async () => {
+    const project = freshRoot("refresh-current-prune-");
+    const contentRoot = installFakeContentPackage(project, "0.62.0");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "agents"), { recursive: true });
+    // Match content package files so version is already current.
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.62.0'\nsha: content-package\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(join(deftDir, "templates"), { recursive: true });
+    copyFileSync(
+      join(process.cwd(), "content/templates/agents-entry.md"),
+      join(deftDir, "templates", "agents-entry.md"),
+    );
+    mkdirSync(join(deftDir, "vbrief", "schemas"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "vbrief", "schemas", "vbrief-core.schema.json"),
+      "legacy\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(deftDir, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "current\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "agents", "stale-only.md"), "leftover\n", "utf8");
+    const priorVersion = readFileSync(join(deftDir, "VERSION"), "utf8");
+
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run for an already-current refresh");
+    });
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent,
+        readEngineVersion: () => "0.62.0",
+        nowIso: () => "2026-07-29T12:00:00Z",
+        gitPorcelain: () => null,
+      },
+    );
+
+    expect(result.alreadyCurrent).toBe(true);
+    expect(copyContent).not.toHaveBeenCalled();
+    expect(existsSync(join(deftDir, "agents", "stale-only.md"))).toBe(false);
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toBe(priorVersion);
+  });
+
   it("retires a stale legacy .deft/VERSION after the payload refresh (#2064)", async () => {
     const project = freshRoot("refresh-legacy-manifest-");
     const contentRoot = installFakeContentPackage(project, "0.61.0");
@@ -926,6 +1076,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const pkgDir = join(projectRoot, "node_modules", "@deftai", "directive-content");
     mkdirSync(join(pkgDir, "templates"), { recursive: true });
     mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(pkgDir, ".githooks"), { recursive: true });
     writeFileSync(
       join(pkgDir, "package.json"),
       JSON.stringify({ name: CONTENT_PACKAGE_NAME, version }),
@@ -935,6 +1086,12 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       join(process.cwd(), "content/templates/agents-entry.md"),
       join(pkgDir, "templates/agents-entry.md"),
     );
+    for (const name of ["pre-commit", "pre-push", "_deft-run.sh"] as const) {
+      copyFileSync(join(process.cwd(), ".githooks", name), join(pkgDir, ".githooks", name));
+      if (name !== "_deft-run.sh") {
+        chmodSync(join(pkgDir, ".githooks", name), 0o755);
+      }
+    }
     writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
     writeFileSync(
       join(pkgDir, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),

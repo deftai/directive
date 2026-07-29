@@ -315,6 +315,10 @@ async function pruneEmptyParentsForFile(
  * Remove deposit files not shipped by `@deftai/directive-content`, preserving
  * generated deposit metadata such as `VERSION` (#2804). Subsumes the legacy
  * hard-coded `packages/` prune (#2347).
+ *
+ * Individual removal failures are reported but do not throw — callers that must
+ * refuse a VERSION stamp until the deposit matches the content package should
+ * use {@link reconcileDepositToContentPackage} (#2913).
  */
 export async function prunePackageAbsentDepositPaths(
   deftDir: string,
@@ -340,6 +344,35 @@ export async function prunePackageAbsentDepositPaths(
     );
   }
   return { pruned, prunedDirs };
+}
+
+/**
+ * Fail-closed deposit reconcile against the installed content package (#2913).
+ *
+ * Runs {@link prunePackageAbsentDepositPaths}, then re-scans. If any
+ * package-absent path remains, throws so callers refuse the VERSION stamp
+ * (dst-only stale/malicious agent content must not survive a refresh).
+ *
+ * After a successful {@link replaceTree} full-swap this is typically a no-op
+ * verification; it also covers additive copy seams and the already-current
+ * refresh path that skips payload copy.
+ */
+export async function reconcileDepositToContentPackage(
+  deftDir: string,
+  contentRoot: string,
+  io: InitDepositIo,
+): Promise<PrunePackageAbsentDepositPathsResult> {
+  const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, io);
+  const remaining = await findPackageAbsentDepositPaths(deftDir, contentRoot);
+  if (remaining.length > 0) {
+    const sample = remaining.slice(0, 5).join(", ");
+    const more = remaining.length > 5 ? ` (+${remaining.length - 5} more)` : "";
+    throw new Error(
+      `deposit reconcile failed: ${remaining.length} package-absent path(s) remain under .deft/core ` +
+        `(e.g. ${sample}${more}). Refusing VERSION stamp until dst-only content is removed (#2913).`,
+    );
+  }
+  return result;
 }
 
 export interface PruneStrayDepositPathsResult {
