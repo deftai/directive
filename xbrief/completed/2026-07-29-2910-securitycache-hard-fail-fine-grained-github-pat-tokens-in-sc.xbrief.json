@@ -2,15 +2,15 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2910",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T18:40:32Z"
   },
   "plan": {
     "title": "security(cache): hard-fail fine-grained github_pat_ tokens in scanner (cache-quarantine-01)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(cache): hard-fail fine-grained github_pat_ tokens in scanner (cache-quarantine-01). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2910",
-      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch B** (Windows shell + PAT scanner).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-01` |\n| **Severity** | **High** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/cache/scanner.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/cache/scanner.ts) |\n\n## Issue\n`CREDENTIAL_PATTERNS` matches classic `gh[pousr]_\u2026` but **not** fine-grained `github_pat_\u2026`. Product-signal already knows `github_pat_` \u2014 inconsistent coverage. Fine-grained PATs pass into `content.md` and xBRIEF narratives.\n\n## Impact\nLeaked fine-grained PAT in issue title/body/comment lands in LLM-facing cache/ingest instead of fail-closed.\n\n## Remediation\n1. Add `github_pat_` pattern aligned with product-signal.\n2. Extend scanner tests; bump `SCANNER_VERSION`.\n3. Optionally re-scan existing cache on version skew.\n\n## Acceptance\n- [ ] `github_pat_` hard-fails in `scan()` / detectCredentials\n- [ ] Tests cover fine-grained PAT fixtures\n- [ ] `SCANNER_VERSION` bumped; sinks (cache put, issue:ingest, umbrella) inherit fail-closed\n\n## Refs\n- Tracker #2904\n- Batch B sibling: subprocess-scm-01\n- `packages/core/src/product-signal/payload.ts` SECRET_PATTERNS",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch B** (Windows shell + PAT scanner).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-01` |\n| **Severity** | **High** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/cache/scanner.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/cache/scanner.ts) |\n\n## Issue\n`CREDENTIAL_PATTERNS` matches classic `gh[pousr]_…` but **not** fine-grained `github_pat_…`. Product-signal already knows `github_pat_` — inconsistent coverage. Fine-grained PATs pass into `content.md` and xBRIEF narratives.\n\n## Impact\nLeaked fine-grained PAT in issue title/body/comment lands in LLM-facing cache/ingest instead of fail-closed.\n\n## Remediation\n1. Add `github_pat_` pattern aligned with product-signal.\n2. Extend scanner tests; bump `SCANNER_VERSION`.\n3. Optionally re-scan existing cache on version skew.\n\n## Acceptance\n- [ ] `github_pat_` hard-fails in `scan()` / detectCredentials\n- [ ] Tests cover fine-grained PAT fixtures\n- [ ] `SCANNER_VERSION` bumped; sinks (cache put, issue:ingest, umbrella) inherit fail-closed\n\n## Refs\n- Tracker #2904\n- Batch B sibling: subprocess-scm-01\n- `packages/core/src/product-signal/payload.ts` SECRET_PATTERNS",
       "Labels": "bug, security, urgent",
       "UserStory": "As a security engineer, I want hard-fail fine-grained github_pat_ tokens in the cache scanner, so that issue ingest and cache content cannot persist modern GitHub PATs for agents.",
       "ImplementationPlan": "1. Open the source module files under packages/core/src/cache/scanner.ts (and related paths: packages/core/src/cache/scanner.ts, packages/core/src/cache/, packages/core/src/product-signal/payload.ts, CHANGELOG.md) and implement the fail-closed fix described in issue #2910. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: task test -- packages/core/src/cache; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
@@ -19,7 +19,7 @@
       {
         "id": "github-pat-hard-fails-in-scan-detectcre",
         "title": "`github_pat_` hard-fails in `scan()` / detectCredentials",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2910, when verification runs, then: `github_pat_` hard-fails in `scan()` / detectCredentials."
         }
@@ -27,7 +27,7 @@
       {
         "id": "tests-cover-fine-grained-pat-fixtures",
         "title": "Tests cover fine-grained PAT fixtures",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2910, when verification runs, then: Tests cover fine-grained PAT fixtures."
         }
@@ -35,7 +35,7 @@
       {
         "id": "scanner-version-bumped-sinks-cache-put",
         "title": "`SCANNER_VERSION` bumped; sinks (cache put, issue:ingest, umbrella) inherit fail-closed",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2910, when verification runs, then: `SCANNER_VERSION` bumped; sinks (cache put, issue:ingest, umbrella) inherit fail-closed."
         }
@@ -53,7 +53,7 @@
         "title": "Issue #2910: security(cache): hard-fail fine-grained github_pat_ tokens in scanner (cache-quarantine-01)"
       }
     ],
-    "updated": "2026-07-29T15:00:04Z",
+    "updated": "2026-07-29T18:40:32Z",
     "id": "story-2910",
     "metadata": {
       "kind": "story",
@@ -80,7 +80,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2910."
-      }
+      },
+      "completedAt": "2026-07-29T18:40:32Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
