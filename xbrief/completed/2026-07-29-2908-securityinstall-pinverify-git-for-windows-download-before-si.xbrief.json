@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2908",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T18:49:32Z"
   },
   "plan": {
     "title": "security(install): pin+verify Git-for-Windows download before silent exec (install-deposit-01)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(install): pin+verify Git-for-Windows download before silent exec (install-deposit-01). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2908",
@@ -19,7 +19,7 @@
       {
         "id": "no-git-for-windows-download-and-exec-pat",
         "title": "No Git-for-Windows download-and-exec path runs without pinned digest (or documented residual + non-silent opt-in)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2908, when verification runs, then: No Git-for-Windows download-and-exec path runs without pinned digest (or documented residual + non-silent opt-in)."
         }
@@ -27,7 +27,7 @@
       {
         "id": "tests-or-installer-dry-run-fixtures-cove",
         "title": "Tests or installer dry-run fixtures cover fail-closed mismatch",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2908, when verification runs, then: Tests or installer dry-run fixtures cover fail-closed mismatch."
         }
@@ -35,7 +35,7 @@
       {
         "id": "changelog-docs-security-md-updated-as-ne",
         "title": "CHANGELOG / docs/security.md updated as needed",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2908, when verification runs, then: CHANGELOG / docs/security.md updated as needed."
         }
@@ -53,7 +53,7 @@
         "title": "Issue #2908: security(install): pin+verify Git-for-Windows download before silent exec (install-deposit-01)"
       }
     ],
-    "updated": "2026-07-29T15:00:03Z",
+    "updated": "2026-07-29T18:49:32Z",
     "id": "story-2908",
     "metadata": {
       "kind": "story",
@@ -80,7 +80,8 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2908."
-      }
+      },
+      "completedAt": "2026-07-29T18:49:32Z"
     }
   }
 }
