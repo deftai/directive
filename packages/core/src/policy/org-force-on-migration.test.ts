@@ -344,6 +344,52 @@ describe("runOrgForceOnMigration", () => {
     expect(marker?.previousProductSignal).toEqual({ enabled: false });
   });
 
+  it("legacy partial recovery then clear-value-feedback is not re-forced (#2903)", () => {
+    // Legacy marker + baseline VF discarded + PS already force-on shaped.
+    // Recover VF only; then clear VF typed key; next migration must keep skip.
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: { enabled: true, sinkRepo: "deftai/product-signal" },
+      },
+    });
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(
+      join(root, ORG_FORCE_ON_MARKER_REL),
+      `${JSON.stringify({
+        version: 1,
+        appliedAt: "2026-07-29T14:13:31Z",
+        originOrg: "deftai",
+        valueFeedback: true,
+        productSignal: true,
+        directiveVersion: "0.87.0",
+      })}\n`,
+      "utf8",
+    );
+
+    const first = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(first.ran).toBe(true);
+    expect(first.valueFeedbackChanged).toBe(true);
+    expect(first.productSignalChanged).toBe(false);
+
+    const cleared = clearValueFeedback(root);
+    expect(cleared.exitCode).toBe(0);
+
+    const second = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(second.ran).toBe(false);
+    expect(second.skippedReason).toBe("marker-present");
+    // Cleared typed key → org-auto ON for trusted org, not install-force-on rewrite.
+    const resolved = resolveValueFeedback(root, trustedAutoEnable);
+    expect(resolved.source).toBe("org-auto");
+    expect(resolved.enabled).toBe(true);
+  });
+
   it("legacy marker recovers baseline VF without overwriting distinct PS opt-out (#2903)", () => {
     const baselineVf = {
       enabled: false,

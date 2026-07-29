@@ -147,6 +147,15 @@ function productSignalNeedsForceOn(raw: unknown): boolean {
   return !readTypedBoolean(raw, "enabled", false);
 }
 
+/**
+ * Sentinel previous* for an unforced field that had no stored baseline (legacy
+ * partial recovery). Must not deep-equal any real policy snapshot — including
+ * null/undefined after clear-value-feedback — or the next update would re-force.
+ */
+export const ORG_FORCE_ON_NO_BASELINE = {
+  "x-directive/org-force-on": "no-baseline",
+} as const;
+
 /** Classic #2822 pre-migration all-false valueFeedback baseline (statusreport). */
 export const PRE_MIGRATION_VALUE_FEEDBACK_BASELINE = {
   enabled: false,
@@ -532,18 +541,18 @@ function applyForceOn(
     // keep the prior marker snapshot so intentional opt-outs are not rewritten
     // into the incomplete-migration equality path on the next update (#2903 P1).
     // When the prior marker had no previous* (legacy) and the field was not forced,
-    // store null — do NOT adopt the live intentional shape as previous*, or the
-    // next update would deep-equal and re-force it.
+    // store ORG_FORCE_ON_NO_BASELINE — not null/live shape — so clear-value-feedback
+    // (undefined→null) and intentional opt-outs never deep-equal previous*.
     const markerPreviousVf = needsVf
       ? previousVf
       : existing && "previousValueFeedback" in existing
         ? existing.previousValueFeedback
-        : null;
+        : ORG_FORCE_ON_NO_BASELINE;
     const markerPreviousPs = needsPs
       ? previousPs
       : existing && "previousProductSignal" in existing
         ? existing.previousProductSignal
-        : null;
+        : ORG_FORCE_ON_NO_BASELINE;
 
     const actor = options.actor ?? "directive-update";
     appendAuditLog(
