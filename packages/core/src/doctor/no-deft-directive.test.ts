@@ -7,6 +7,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
 import { cmdDoctor } from "./main.js";
 
@@ -80,5 +81,30 @@ describe("cmdDoctor — .no-deft-directive short-circuit (#2926)", () => {
     stderrSpy.mockRestore();
     expect(code).toBe(1);
     expect(stderr.join("")).toContain(NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE);
+    expect(stderr.join("")).toContain(NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY);
+  });
+
+  it("surfaces inconsistent_policy in JSON when flag+deposit conflict", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, NO_DEFT_DIRECTIVE_FLAG_NAME), "", "utf8");
+    mkdirSync(join(root, CANONICAL_INSTALL_ROOT), { recursive: true });
+    const stdout: string[] = [];
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
+      chunk: string | Uint8Array,
+    ) => {
+      stdout.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write);
+    const code = cmdDoctor(["--project-root", root, "--json"]);
+    stdoutSpy.mockRestore();
+    expect(code).toBe(1);
+    const payload = JSON.parse(stdout.join("")) as {
+      status: string;
+      inconsistent_policy: string;
+      findings: Array<{ policy?: string }>;
+    };
+    expect(payload.status).toBe("disabled-inconsistent");
+    expect(payload.inconsistent_policy).toBe(NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY);
+    expect(payload.findings[0]?.policy).toBe(NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY);
   });
 });

@@ -95,10 +95,8 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 ## CHANGELOG entry style (#1242)
 
 ! Brief release-notes — `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CHANGELOG entry style (#1242).
-
 ! Controlled English for docs/issues/PRs — `content/docs/writing-ste100.md` (#2927). ⊗ Full STE cert; ⊗ big-bang rewrite; ⊗ red CI style gate v1.
-
-! Per-project Directive opt-out — root `.no-deft-directive` (#2926). Presence → skip install/session/setup; see `content/docs/no-deft-directive.md`. Flag wins locally over org force-on. Flag+deposit → doctor warns; init/update fail closed.
+! Per-project opt-out — root `.no-deft-directive` (#2926) skips install/session/setup (`content/docs/no-deft-directive.md`); flag wins locally over org force-on; flag+deposit → doctor warns, init/update fail closed.
 
 ## Contextual guardrails (runtime-detect lazy-load)
 

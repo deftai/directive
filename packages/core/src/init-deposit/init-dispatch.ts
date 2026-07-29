@@ -28,6 +28,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
 import { type ClassifySeams, classify, plan } from "../resolution/index.js";
 import { type RunInitDepositCliOptions, runInitDepositCli } from "./init-deposit.js";
@@ -202,6 +203,9 @@ export async function runInitDispatchCli(options: RunInitDispatchCliOptions): Pr
             disabled: true,
             disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
             inconsistent: optOut.inconsistent,
+            ...(optOut.inconsistent
+              ? { inconsistent_policy: NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY }
+              : {}),
             deposit_present: optOut.depositPresent,
             project_dir: projectDir,
             message: optOut.inconsistent

@@ -45,6 +45,8 @@ describe("runSessionStart — .no-deft-directive short-circuit (#2926)", () => {
     expect(result.payload.disabled).toBe(true);
     expect(result.payload.disabled_via).toBe(NO_DEFT_DIRECTIVE_FLAG_NAME);
     expect(result.payload.inconsistent).toBe(false);
+    // Fail-closed for automation: opt-out skips ritual and is not "ready for work".
+    expect(result.payload.ready).toBe(false);
     expect(result.payload.message).toBe(NO_DEFT_DIRECTIVE_DISABLED_MESSAGE);
   });
 

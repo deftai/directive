@@ -25,6 +25,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
 import { runOrgForceOnMigration } from "../policy/org-force-on-migration.js";
 import {
@@ -889,6 +890,9 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
             disabled: true,
             disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
             inconsistent: optOut.inconsistent,
+            ...(optOut.inconsistent
+              ? { inconsistent_policy: NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY }
+              : {}),
             deposit_present: optOut.depositPresent,
             project_dir: projectDir,
             message,

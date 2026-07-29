@@ -14,6 +14,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
@@ -327,6 +328,8 @@ export function runSessionStart(
   const environment = (options.probeEnvironment ?? detectEnvironmentContext)();
 
   // #2926: official root opt-out wins locally — skip Directive session ritual.
+  // disabled = skip ritual (exit 0 clean / 1 inconsistent). ready stays false so
+  // automation does not treat opt-out as "session fully initialized for work".
   const optOut = detectNoDeftDirective(projectRoot);
   if (optOut.present) {
     const lines = [NO_DEFT_DIRECTIVE_DISABLED_MESSAGE];
@@ -337,11 +340,14 @@ export function runSessionStart(
     return {
       code,
       payload: {
-        ready: code === 0,
+        ready: false,
         exit_code: code,
         disabled: true,
         disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
         inconsistent: optOut.inconsistent,
+        inconsistent_policy: optOut.inconsistent
+          ? NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY
+          : undefined,
         deposit_present: optOut.depositPresent,
         posture,
         environment: environmentContextToDict(environment),

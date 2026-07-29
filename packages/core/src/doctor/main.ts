@@ -7,6 +7,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
 import {
   describeShadowedPlanExtension,
@@ -125,6 +126,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
           disabled: true,
           disabled_via: NO_DEFT_DIRECTIVE_FLAG_NAME,
           inconsistent: true,
+          inconsistent_policy: NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
           deposit_present: true,
           message,
           findings: [
@@ -132,12 +134,13 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
               severity: "warning",
               message,
               check: "no-deft-directive",
+              policy: NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
             },
           ],
         };
         process.stdout.write(`${pythonJsonDump(payload)}\n`);
       } else if (!quietMode) {
-        process.stderr.write(`${message}\n`);
+        process.stderr.write(`${message} [policy=${NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY}]\n`);
       }
       return 1;
     }
