@@ -32,6 +32,26 @@ export const SUSPICIOUS_TOKENS: readonly string[] = [
 export const QUARANTINE_FENCE_OPEN = "```quarantined";
 export const QUARANTINE_FENCE_CLOSE = "```";
 
+/**
+ * Neutralize a body line so it cannot act as a CommonMark fence open/close.
+ * Used on content placed inside a ```quarantined wrapper (#2915 / cache-quarantine-03).
+ *
+ * A nested bare ``` (or longer run, optional ≤3-space indent) would otherwise
+ * early-close the outer fence and let following attacker text render outside
+ * the quarantined info-string. Break the delimiter run by inserting a backslash
+ * after the first fence character: ``` → `\`` , ~~~ → ~\~~ .
+ */
+export function neutralizeFenceLine(line: string): string {
+  const match = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+  if (match === null) return line;
+  const indent = match[1] ?? "";
+  const delim = match[2] ?? "";
+  const rest = match[3] ?? "";
+  // One backslash after the first fence char breaks the delimiter run.
+  // Concat (not a template literal) so "\\" is unambiguously a single "\".
+  return indent + delim[0] + "\\" + delim.slice(1) + rest;
+}
+
 function isWordChar(ch: string): boolean {
   return (
     (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9") || ch === "_"
@@ -150,7 +170,10 @@ export function quarantineBody(rawMd: string): string {
         sectionEnd += 1;
       }
       out.push(QUARANTINE_FENCE_OPEN);
-      out.push(...lines.slice(i, sectionEnd));
+      // #2915: neutralize nested fence lines so they cannot early-close.
+      for (const bodyLine of lines.slice(i, sectionEnd)) {
+        out.push(neutralizeFenceLine(bodyLine));
+      }
       out.push(QUARANTINE_FENCE_CLOSE);
       i = sectionEnd;
       continue;
@@ -158,7 +181,8 @@ export function quarantineBody(rawMd: string): string {
 
     if (isSuspicious(line)) {
       out.push(QUARANTINE_FENCE_OPEN);
-      out.push(line);
+      // #2915: neutralize in case the single line itself is fence-shaped.
+      out.push(neutralizeFenceLine(line));
       out.push(QUARANTINE_FENCE_CLOSE);
       i += 1;
       continue;

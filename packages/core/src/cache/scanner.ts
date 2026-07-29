@@ -178,6 +178,26 @@ const FENCE_RE = /^(```|~~~)/;
 const QUARANTINE_FENCE_OPEN = "```quarantined";
 const QUARANTINE_FENCE_CLOSE = "```";
 
+/**
+ * Neutralize a body line so it cannot act as a CommonMark fence open/close.
+ * Used on content placed inside a ```quarantined wrapper (#2915 / cache-quarantine-03).
+ *
+ * A nested bare ``` (or longer run, optional ≤3-space indent) would otherwise
+ * early-close the outer fence and let following attacker text render outside
+ * the quarantined info-string. Break the delimiter run by inserting a backslash
+ * after the first fence character: ``` → `\`` , ~~~ → ~\~~ .
+ */
+export function neutralizeFenceLine(line: string): string {
+  const match = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+  if (match === null) return line;
+  const indent = match[1] ?? "";
+  const delim = match[2] ?? "";
+  const rest = match[3] ?? "";
+  // One backslash after the first fence char breaks the delimiter run.
+  // Concat (not a template literal) so "\\" is unambiguously a single "\".
+  return indent + delim[0] + "\\" + delim.slice(1) + rest;
+}
+
 function isInvisible(ch: string): boolean {
   const cp = ch.codePointAt(0);
   if (cp === undefined) return false;
@@ -303,7 +323,8 @@ function detectInjectionHeading(text: string): [string, ScanFlag | null] {
       if (hSignal || bSignal) {
         out.push(QUARANTINE_FENCE_OPEN);
         for (let j = i; j < sectionEnd; j += 1) {
-          out.push(lines[j] ?? "");
+          // #2915: neutralize nested fence lines so they cannot early-close.
+          out.push(neutralizeFenceLine(lines[j] ?? ""));
         }
         out.push(QUARANTINE_FENCE_CLOSE);
         sectionsWrapped += 1;
@@ -320,7 +341,8 @@ function detectInjectionHeading(text: string): [string, ScanFlag | null] {
 
     if (headingSignal(line) || lineHasShellVector(line)) {
       out.push(QUARANTINE_FENCE_OPEN);
-      out.push(line);
+      // #2915: neutralize in case the single line itself is fence-shaped.
+      out.push(neutralizeFenceLine(line));
       out.push(QUARANTINE_FENCE_CLOSE);
       sectionsWrapped += 1;
       i += 1;
