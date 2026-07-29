@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { sortKeysDeep } from "../codebase/json.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import {
@@ -47,12 +48,16 @@ function markerPath(projectRoot: string): string {
   return resolve(projectRoot, ORG_FORCE_ON_MARKER_REL);
 }
 
-/** Normalize undefined → null so marker snapshots compare stably with JSON. */
+/** Normalize undefined → null and deep-sort keys so marker snapshots compare stably. */
 export function normalizePolicySnapshot(raw: unknown): unknown {
-  return raw === undefined ? null : raw;
+  return sortKeysDeep(raw === undefined ? null : raw);
 }
 
-/** Structural equality via stable JSON (policy blocks are plain JSON values). */
+/**
+ * Structural equality for policy snapshots (#2903).
+ * Key order independent via sortKeysDeep — discarded-PD recovery must not miss
+ * semantically equal blocks written with different JSON key order.
+ */
 export function deepEqualPolicySnapshot(a: unknown, b: unknown): boolean {
   return JSON.stringify(normalizePolicySnapshot(a)) === JSON.stringify(normalizePolicySnapshot(b));
 }
@@ -146,6 +151,13 @@ function productSignalNeedsForceOn(raw: unknown): boolean {
  * Incomplete migration (#2903): marker present, PD still needs force-on, and
  * current typed block still equals the pre-migration snapshot (or legacy marker
  * has no previous* field — treat still-needs as incomplete for fleet recovery).
+ *
+ * Exact restore of the pre-migration snapshot is treated as incomplete by design
+ * (company policy #2376 / #2822 / #2903): discarded working-tree force-on and
+ * "put the old all-false block back" are not distinguishable without git history,
+ * and trusted-org local collection should stay ON. True intentional opt-out must
+ * use a shape that differs from previous*, `policy:clear-value-feedback`, or
+ * root `.no-deft-directive`. Outbound product-signal still requires D17 consent.
  */
 export function isIncompleteForceOnField(
   needsForceOn: boolean,

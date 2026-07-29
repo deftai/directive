@@ -13,6 +13,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import { inspectOnePolicy } from "./index.js";
 import {
+  deepEqualPolicySnapshot,
   FORCE_ON_VALUE_FEEDBACK_BLOCK,
   isForceOnValueFeedbackBlock,
   ORG_FORCE_ON_MARKER_REL,
@@ -192,6 +193,70 @@ describe("runOrgForceOnMigration", () => {
     const policyAfter = readPlanPolicy(pdAfter.plan) as Record<string, unknown>;
     expect(policyAfter.valueFeedback).toEqual(intentionalVf);
     expect(policyAfter.productSignal).toEqual({ enabled: false, sinkRepo: "acme/keep-off" });
+  });
+
+  it("re-applies when discarded PD has same fields in different key order (#2903)", () => {
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: { enabled: false },
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+
+    // Same semantic values, different key insertion order than the marker snapshot.
+    const reorderedVf = {
+      upstreamPrompt: false,
+      sessionLine: false,
+      emitEvents: false,
+      enabled: false,
+    };
+    expect(deepEqualPolicySnapshot(baselineVf, reorderedVf)).toBe(true);
+
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    policyBlock.valueFeedback = reorderedVf;
+    policyBlock.productSignal = { enabled: false };
+    writeFileSync(pdPath, JSON.stringify(pd), "utf8");
+
+    const second = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(second.ran).toBe(true);
+    expect(second.valueFeedbackChanged).toBe(true);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
+  });
+
+  it("exact restore of pre-migration snapshot re-applies by company policy (#2903)", () => {
+    // Restoring the exact previous all-false block is treated as incomplete migration
+    // (discarded PD), not intentional opt-out — intentional opt-out must differ from previous*.
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: { enabled: false },
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    policyBlock.valueFeedback = { ...baselineVf };
+    policyBlock.productSignal = { enabled: false };
+    writeFileSync(pdPath, JSON.stringify(pd), "utf8");
+    const second = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(second.ran).toBe(true);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
   });
 
   it("re-applies for legacy markers without previous* when PD still needs force-on (#2903)", () => {
