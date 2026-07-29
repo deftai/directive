@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "license": "MIT",
   "description": "TypeScript engine monorepo for the deft directive framework (Wave-1 scaffold, #1717).",
   "packageManager": "pnpm@11.8.0",
   "engines": {
@@ -14,7 +15,8 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "lint": "biome check .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "verify:license-sync": "node ./scripts/verify-license-sync.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.0",

@@ -2,6 +2,7 @@
   "name": "@deftai/directive",
   "version": "0.0.0",
   "description": "Directive CLI — npm install path for the Deft Directive framework.",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

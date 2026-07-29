@@ -338,4 +338,4 @@ Deft embodies:
 ---
 
 Copyright © 2025-2026 Jonathan "visionik" Taylor — https://deft.md
-Licensed under the [MIT License](./content/LICENSE.md)
+License: [MIT](./LICENSE)

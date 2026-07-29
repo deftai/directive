@@ -2,6 +2,7 @@
   "name": "@deftai/directive-types",
   "version": "0.0.0",
   "description": "Shared TypeScript types for the Directive framework engine.",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
