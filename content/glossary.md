@@ -72,6 +72,8 @@ Terms describing how directive itself is structured and governed.
 
 **Ubiquitous language** — The shared, precisely defined vocabulary used consistently across all directive files and by all agents. This glossary is the source of truth. Synonyms and informal restatements of defined terms are not permitted.
 
+**Coding host** (host) · **skill pack** · **practice layer** · **orchestrator** — Buyer/evaluator category map (not framework internals). Hosts run agents; skill packs improve one session and **stack**; Directive is the repo **practice layer**; **orchestrators** run multi-agent apps (≠ Directive swarm skills). Canonical aid: [docs/CATEGORY.md](../docs/CATEGORY.md) (#2905).
+
 ---
 
 ## Hygiene Terms

@@ -38,6 +38,8 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 
 **Context-efficient:** Deft keeps AI context windows lean through the [Notation Legend](#-notation-legend) above and lazy-loading — agents only read the files relevant to the current task, not everything at once.
 
+**Category fit:** Directive is a **repo practice layer** (standards + durable work state + gates) — not a coding host, not only a skill pack, and not an app orchestrator. See **[docs/CATEGORY.md](./docs/CATEGORY.md)** before you compare substitutes by star count.
+
 **📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
 
 ## Deft & Directive (naming)
@@ -45,6 +47,8 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 **Deft is the company; Directive is the product.** In docs and on npm, *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` scope, `deft.md`). *Directive* names the framework you install and run — the published npm package is `@deftai/directive`, and the primary CLI command is `directive` (`deft` is retained as an alias). Existing `deft-install` / `deft` wording in older paths refers to the same product during the staged transition to the npm-first channel ([#423](https://github.com/deftai/directive/issues/423), [#11](https://github.com/deftai/directive/issues/11)).
 
 ## 🚀 Getting Started
+
+**New here?** Read **[docs/CATEGORY.md](./docs/CATEGORY.md)** first — the four-way map (coding host vs skill pack vs Directive practice layer vs orchestrator) so you install the right job.
 
 Directive is driven by **three commands** — `init`, `update`, and `doctor`. You never have to choose between a half-dozen setup verbs; pick the single command that matches your situation:
 
@@ -307,6 +311,7 @@ Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-t
 
 ## 📚 Learn More
 
+- **[docs/CATEGORY.md](./docs/CATEGORY.md)** — Category decision aid: hosts vs skill packs vs practice layer vs orchestrators
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — Current Taskfile-first architecture, rule authority, vBRIEF state, installer layout, and codeStructure projection boundary
 - **[docs/CONCEPTS.md](./docs/CONCEPTS.md)** — Current operating concepts: vBRIEF source of truth, deterministic gates, cache-backed triage, lifecycle folders, and projections
 - **[docs/FILES.md](./docs/FILES.md)** — Current directory tree, task includes, skills, vBRIEF state, and consumer artifact locations
