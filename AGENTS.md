@@ -96,9 +96,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ! Brief release-notes — `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CHANGELOG entry style (#1242).
 
-## Controlled English (#2927)
-
-! Short sentences, active voice, one term = one meaning, first-use definitions for docs/issues/PRs — `content/docs/writing-ste100.md` (#2927). ⊗ Full STE certification theater; ⊗ big-bang corpus rewrite; ⊗ red CI style gate in v1.
+! Controlled English for docs/issues/PRs — `content/docs/writing-ste100.md` (#2927). ⊗ Full STE cert; ⊗ big-bang rewrite; ⊗ red CI style gate v1.
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
