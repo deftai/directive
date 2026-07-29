@@ -57,6 +57,8 @@ Before rendering menu options, classify the repo (align with setup Phase 3):
 
 ### Options
 
+! Numbered Chaining Gate menus (greenfield and brownfield examples below) MUST end with `Discuss` and `Back` as the final two options per [deterministic-questions.md](../contracts/deterministic-questions.md).
+
 Present groups sourced from the `Type` column in
 [strategies/README.md](./README.md#strategy-types). The **default path** depends
 on the brownfield detector:
@@ -110,7 +112,7 @@ See `strategies/map.md` for standalone behavior.
 [artifact-guards.md](./artifact-guards.md) before emission (Light or Full path).
 
 - ! **Before writing** scope records to `proposed/`: [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) (xbrief-first: `./xbrief/proposed/`, else legacy `./vbrief/proposed/`)
-- ! **Before writing** or updating `PROJECT-DEFINITION`: [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full) against the **live** identity file (`./xbrief/PROJECT-DEFINITION.xbrief.json` when present; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`)
+- ! **Before writing** or updating `PROJECT-DEFINITION`: [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full) against the **single live** identity file only — `./xbrief/PROJECT-DEFINITION.xbrief.json` when present (or after `deft migrate:xbrief`); else, until migrated, the existing legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`. ⊗ Dual-write both roots
 - ! Prefer enrich/merge when the user declines replace
 - ⊗ Silently overwrite PROJECT-DEFINITION or same-slug proposed scopes
 - ⊗ Guard only the legacy `vbrief/` path while an `xbrief/` PROJECT-DEFINITION is the live identity
@@ -137,8 +139,9 @@ Ready to generate the specification. Before we proceed, would you like to:
 --- Switch strategy ---
 6. Switch to yolo — auto-pilot picks all answers
 7. Switch to speckit — formal spec process with story readiness before implementation
-
 8. Other (specify)
+9. Discuss
+10. Back
 ```
 
 **Brownfield:**
@@ -159,8 +162,9 @@ This repo already has a project definition and/or scopes. Before we proceed:
 --- Switch strategy ---
 8. Switch to yolo — auto-pilot picks all answers
 9. Switch to speckit — formal spec process with story readiness before implementation
-
 10. Other (specify)
+11. Discuss
+12. Back
 ```
 
 ---
@@ -258,7 +262,7 @@ Interview → scope records (date-prefixed in proposed/) + live PROJECT-DEFINITI
 1. Sizing gate selects Light
 2. Interview (rules above)
 3. Write scope record(s) to the live lifecycle root — `./xbrief/proposed/YYYY-MM-DD-<slug>.xbrief.json` when `./xbrief/` is live; else legacy `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` — date-prefixed with `status: proposed`
-4. Run `task project:render` to create/update the **live** PROJECT-DEFINITION (`./xbrief/PROJECT-DEFINITION.xbrief.json` when present/intended; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) and ensure all five lifecycle folders exist under that root
+4. Run `task project:render` to create/update the **live** PROJECT-DEFINITION under the resolved layout root (`./xbrief/PROJECT-DEFINITION.xbrief.json`). Engine layout resolution requires `xbrief/` (#2112); if the repo is legacy-only `./vbrief/`, run `deft migrate:xbrief` first, then render. Ensure all five lifecycle folders exist under the live root. ⊗ Write a second PROJECT-DEFINITION under legacy `vbrief/` when `xbrief/` is live
 5. Summarize decisions, ask user to review
 6. On approval, use `task scope:promote` (or equivalent) to move scope record(s) to `pending/` under the **same** live root with `status: pending` / `approved`
 7. Run `task project:export-spec` / `task spec:render` as appropriate (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` / `specification.xbrief.json` are legacy and are NOT written by this strategy on the v0.20 path)
@@ -326,7 +330,7 @@ Interview → PRD → scope records (date-prefixed in proposed/) + live PROJECT-
 2. Interview (rules above)
 3. Generate `PRD.md` — user approval gate
 4. Write scope record(s) to the live lifecycle root — `./xbrief/proposed/YYYY-MM-DD-<slug>.xbrief.json` when `./xbrief/` is live; else legacy `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` — date-prefixed with `status: proposed`
-5. Run `task project:render` to create/update the **live** PROJECT-DEFINITION (`./xbrief/PROJECT-DEFINITION.xbrief.json` when present/intended; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) and ensure all five lifecycle folders exist under that root
+5. Run `task project:render` to create/update the **live** PROJECT-DEFINITION under the resolved layout root (`./xbrief/PROJECT-DEFINITION.xbrief.json`). Engine layout resolution requires `xbrief/` (#2112); if the repo is legacy-only `./vbrief/`, run `deft migrate:xbrief` first, then render. Ensure all five lifecycle folders exist under the live root. ⊗ Write a second PROJECT-DEFINITION under legacy `vbrief/` when `xbrief/` is live
 6. Summarize decisions, ask user to review
 7. On approval, use `task scope:promote` (or equivalent) to move scope record(s) to `pending/` under the **same** live root with `status: pending` / `approved`
 8. Run `task project:export-spec` / `task spec:render` as appropriate (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` / `specification.xbrief.json` are legacy and are NOT written by this strategy on the v0.20 path)

@@ -81,6 +81,9 @@ describe("test_strategy_chaining.py", () => {
       expect(chaining).toContain("confirmed");
       // Greenfield keeps Proceed default; brownfield must not default only to Proceed.
       expect(chaining).toContain("Proceed to specification");
+      // Deterministic-questions: example menus end with Discuss + Back (#2925 greptile).
+      expect(chaining).toContain("Discuss");
+      expect(chaining).toMatch(/Other \(specify\)[\s\S]*Discuss[\s\S]*Back/);
     });
 
     it("test_spec_generating_roster_includes_interview_and_yolo", () => {

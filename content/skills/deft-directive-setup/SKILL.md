@@ -513,8 +513,8 @@ omit = [
 > 2. **Update project definition** — delta interview → Spec-Generating Guard → merge narratives into existing PROJECT-DEFINITION
 > 3. **Replace specification (scrap)** — only after explicit affirmative (`yes` / `confirmed`); then full new-spec path
 > 4. **Starting a new project specification** [default when greenfield] — proceed to the Strategy Gate below
-> 5. **Discuss**
-> 6. **Back**
+> 5. **Discuss** — explore these options before choosing
+> 6. **Back** — return to the previous setup question
 
 - ! Default based on repo state via the brownfield detector above (brownfield → Add scope; greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)

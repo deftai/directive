@@ -116,7 +116,7 @@ describe("test_strategy_outputs.py", () => {
     });
     it("test_no_primary_write_of_specification_vbrief", () => {
       expect(text).not.toContain("Write `./vbrief/specification.vbrief.json`");
-      expect(text).toContain("Write scope vBRIEF");
+      expect(text).toContain("Write scope record(s)");
     });
     it("test_artifacts_table_mentions_v0_20_and_legacy", () => {
       expect(text.includes("v0.20 contract") || text.includes("Legacy artifact")).toBe(true);
