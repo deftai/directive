@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2909",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T20:34:48Z"
   },
   "plan": {
     "title": "security(install): pin+verify Linux --yes uv/task/gh bootstrap (install-deposit-02)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(install): pin+verify Linux --yes uv/task/gh bootstrap (install-deposit-02). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2909",
@@ -19,7 +19,7 @@
       {
         "id": "uv-task-gh-bootstrap-paths-under-cmd-def",
         "title": "uv/task/gh bootstrap paths under `cmd/deft-install` require pinned digests (or explicit documented residual)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2909, when verification runs, then: uv/task/gh bootstrap paths under `cmd/deft-install` require pinned digests (or explicit documented residual)."
         }
@@ -27,7 +27,7 @@
       {
         "id": "fail-closed-on-verify-failure",
         "title": "Fail closed on verify failure",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2909, when verification runs, then: Fail closed on verify failure."
         }
@@ -35,7 +35,7 @@
       {
         "id": "changelog-docs-security-md-as-needed",
         "title": "CHANGELOG / docs/security.md as needed",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2909, when verification runs, then: CHANGELOG / docs/security.md as needed."
         }
@@ -53,7 +53,7 @@
         "title": "Issue #2909: security(install): pin+verify Linux --yes uv/task/gh bootstrap (install-deposit-02)"
       }
     ],
-    "updated": "2026-07-29T15:00:03Z",
+    "updated": "2026-07-29T20:34:48Z",
     "id": "story-2909",
     "metadata": {
       "kind": "story",
@@ -80,7 +80,8 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2909."
-      }
+      },
+      "completedAt": "2026-07-29T20:34:48Z"
     }
   }
 }
