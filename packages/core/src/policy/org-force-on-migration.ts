@@ -166,8 +166,11 @@ export const PRE_MIGRATION_VALUE_FEEDBACK_BASELINE = {
 
 /** True when current VF looks like discarded pre-migration state (legacy markers). */
 export function looksLikePreMigrationValueFeedback(raw: unknown): boolean {
+  // Missing key (undefined/null) is NOT the classic baseline — that is the
+  // clear-value-feedback / never-typed shape. statusreport-class discard keeps
+  // an explicit all-false object in PROJECT-DEFINITION.
   if (raw === undefined || raw === null) {
-    return true;
+    return false;
   }
   return deepEqualPolicySnapshot(raw, PRE_MIGRATION_VALUE_FEEDBACK_BASELINE);
 }

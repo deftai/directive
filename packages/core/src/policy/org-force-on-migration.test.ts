@@ -344,6 +344,39 @@ describe("runOrgForceOnMigration", () => {
     expect(marker?.previousProductSignal).toEqual({ enabled: false });
   });
 
+  it("legacy marker does not re-force after clear-value-feedback (missing key) (#2903)", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        // No valueFeedback key — same as post clear-value-feedback.
+        productSignal: { enabled: false },
+      },
+    });
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(
+      join(root, ORG_FORCE_ON_MARKER_REL),
+      `${JSON.stringify({
+        version: 1,
+        appliedAt: "2026-07-29T14:13:31Z",
+        originOrg: "deftai",
+        valueFeedback: true,
+        productSignal: true,
+        directiveVersion: "0.87.0",
+      })}\n`,
+      "utf8",
+    );
+
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    // PS baseline recovers; missing VF key is not treated as classic baseline.
+    expect(result.valueFeedbackChanged).toBe(false);
+    expect(result.productSignalChanged).toBe(true);
+    const pd = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    expect("valueFeedback" in policyBlock).toBe(false);
+    expect(resolveValueFeedback(root, trustedAutoEnable).source).toBe("org-auto");
+  });
+
   it("legacy partial recovery then clear-value-feedback is not re-forced (#2903)", () => {
     // Legacy marker + baseline VF discarded + PS already force-on shaped.
     // Recover VF only; then clear VF typed key; next migration must keep skip.
