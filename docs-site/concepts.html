@@ -67,13 +67,17 @@
           lifecycle folders with matching <code>plan.status</code>:
         </p>
         <pre><code>proposed → pending → active → completed
-                 ↘ cancelled / failed</code></pre>
+    │          │         │
+    └─ cancel  └─ cancel └─ cancel or fail</code></pre>
         <p>
           Use framework verbs (<code>scope:promote</code>,
-          <code>scope:activate</code>, <code>scope:complete</code>, …) rather
-          than moving files by hand. Implementation intent is gated
-          (<code>xbrief:preflight</code>) so agents do not edit code before a
-          running brief exists.
+          <code>scope:activate</code>, <code>scope:complete</code>,
+          <code>scope:cancel</code>, <code>scope:fail</code>) rather than moving
+          files by hand. <code>scope:fail</code> applies to an
+          <strong>active</strong> scope. Implementation intent is gated with
+          <code>task xbrief:preflight -- <path></code> (or
+          <code>directive xbrief:preflight</code>) so agents do not edit code
+          before a running brief exists.
         </p>
       </article>
 

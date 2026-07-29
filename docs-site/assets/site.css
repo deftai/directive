@@ -258,6 +258,7 @@ code {
 
 pre {
   overflow-x: auto;
+  overflow-y: hidden;
   background: var(--bg-code);
   border: 1px solid var(--border);
   border-radius: var(--radius);

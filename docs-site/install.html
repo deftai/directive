@@ -61,10 +61,11 @@
           <pre><code>cd /path/to/your-project
 directive init</code></pre>
           <p class="muted" style="margin: 0.6rem 0 0">
-            <code>init</code> classifies the current working directory (empty,
-            brownfield app, existing Directive deposit, or legacy layout) and
-            takes exactly one path. It does not reach outside the directory you
-            run it in.
+            By default <code>init</code> classifies the current working directory
+            (empty, brownfield app, existing Directive deposit, or legacy layout)
+            and takes exactly one path. Use
+            <code>--repo-root <path></code> only when you intentionally
+            target another tree.
           </p>
         </li>
         <li>
@@ -115,9 +116,10 @@ npx @deftai/directive init</code></pre>
           project xBRIEF sources you author.
         </li>
         <li>
-          <strong>Gitignored local artifacts:</strong>
-          <code>.deft/core/</code> deposit, <code>.deft/.cli/</code> engine cache,
-          session/ritual state, <code>.deft-cache/</code>.
+          <strong>Usually gitignored local artifacts:</strong>
+          <code>.deft/core/</code> deposit (when not already tracked as a vendored
+          tree), <code>.deft/.cli/</code> engine cache, session/ritual state,
+          <code>.deft-cache/</code>.
         </li>
       </ul>
 
