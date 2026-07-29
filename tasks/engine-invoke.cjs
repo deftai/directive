@@ -12,6 +12,29 @@
 
 const { spawnSync } = require("node:child_process");
 
+/**
+ * cmd.exe command separators / metacharacters. Free-text DEFT_ENGINE_CMD_JSON
+ * tokens (release --summary text, CLI_ARGS, #2547) may legitimately contain
+ * these; double-quoting renders them literal to cmd.exe's parser so a token can
+ * never break out of its argv slot (subprocess-scm-01 / #2911).
+ */
+const WIN32_CMD_METACHAR_RE = /[\s"&|<>^()%!]/;
+
+/**
+ * Quote a single argument for `cmd.exe /d /s /c` so that shell metacharacters
+ * stay inside one argv token. Mirrors tasks/engine-pm-run.cjs quoteWin32Arg but
+ * also quotes cmd.exe separators (& | < > ^ ( ) % !) because engine-invoke
+ * forwards operator free-text, not an allowlisted command.
+ * @param {string} arg
+ */
+function quoteWin32Arg(arg) {
+  const s = String(arg);
+  if (s.length > 0 && !WIN32_CMD_METACHAR_RE.test(s)) {
+    return s;
+  }
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 /** Minimal POSIX-ish shell word splitter (double/single quotes, escapes). */
 function shellSplit(input) {
   const out = [];
@@ -75,15 +98,8 @@ function main() {
     process.exit(2);
   }
 
-  let execPath;
-  let execArgv;
-  if (mode === "vendored") {
-    execPath = process.execPath;
-    execArgv = [target, ...argv];
-  } else if (mode === "global") {
-    execPath = target;
-    execArgv = argv;
-  } else {
+  const plan = buildSpawnPlan(mode, target, argv);
+  if (!plan) {
     console.error(`deft: engine-invoke unknown mode ${JSON.stringify(mode)}`);
     process.exit(2);
   }
@@ -97,11 +113,12 @@ function main() {
   // stdio inherit (not pipe): piped stdout/stderr deadlocks when the child emits
   // more than the OS pipe buffer before exit — observed as greenfield smoke
   // hanging then CI SIGTERM exit 143 with no output (#2554 / #2547).
-  const result = spawnSync(execPath, execArgv, {
+  const result = spawnSync(plan.command, plan.args, {
     stdio: "inherit",
     env: childEnv,
-    // Global deft/directive on Windows are .cmd shims; shell:false cannot spawn them (#2415).
-    shell: mode === "global" && process.platform === "win32",
+    // Never shell:true — even on win32 global (subprocess-scm-01 / #2911). The
+    // win32 .cmd shim is reached through a tightly quoted cmd.exe wrapper below.
+    shell: plan.shell,
     // CREATE_NO_WINDOW: hide console windows from Cursor Task / nested shells (#2563).
     windowsHide: true,
   });
@@ -109,8 +126,47 @@ function main() {
   process.exit(code === null ? 1 : code);
 }
 
+/**
+ * Resolve the concrete spawn command/args for a mode+target without ever using
+ * shell:true. On the win32 global path the target is a `.cmd` shim that Node
+ * refuses to spawn with shell:false (CVE-2024-27980 / #2415); shell:true would
+ * let cmd.exe re-parse free-text DEFT_ENGINE_CMD_JSON tokens (subprocess-scm-01
+ * / #2911). Instead route through `cmd.exe /d /s /c` with every token tightly
+ * quoted so metacharacters stay inside a single argv token — aligned with
+ * tasks/engine-pm-run.cjs executeAllowlisted().
+ *
+ * @param {string} mode
+ * @param {string} target
+ * @param {string[]} argv
+ * @param {{ platform?: string, nodePath?: string }} [opts]
+ * @returns {{ command: string, args: string[], shell: false } | null}
+ */
+function buildSpawnPlan(mode, target, argv, opts = {}) {
+  const platform = opts.platform || process.platform;
+  const nodePath = opts.nodePath || process.execPath;
+
+  let execPath;
+  let execArgv;
+  if (mode === "vendored") {
+    execPath = nodePath;
+    execArgv = [target, ...argv];
+  } else if (mode === "global") {
+    execPath = target;
+    execArgv = argv;
+  } else {
+    return null;
+  }
+
+  if (mode === "global" && platform === "win32") {
+    const commandLine = [execPath, ...execArgv].map(quoteWin32Arg).join(" ");
+    return { command: "cmd.exe", args: ["/d", "/s", "/c", commandLine], shell: false };
+  }
+
+  return { command: execPath, args: execArgv, shell: false };
+}
+
 if (require.main === module) {
   main();
 }
 
-module.exports = { shellSplit };
+module.exports = { shellSplit, quoteWin32Arg, buildSpawnPlan, WIN32_CMD_METACHAR_RE };
