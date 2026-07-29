@@ -97,6 +97,24 @@ describe("test_strategy_chaining.py", () => {
       expect(guards.toLowerCase()).toContain("xbrief-first");
       expect(guards).toContain("live identity");
     });
+
+    it("test_interview_light_full_paths_are_xbrief_first", () => {
+      const light = interview.split("## Light Path")[1]?.split("## Full Path")[0] ?? "";
+      const full =
+        interview.split("## Full Path")[1]?.split("## SPECIFICATION Guidelines")[0] ?? "";
+      for (const section of [light, full, interview]) {
+        expect(section.toLowerCase()).toContain("xbrief-first");
+        expect(section).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+        expect(section).toContain("xbrief/proposed/");
+      }
+      // Must not hardcode only the legacy write target on Light/Full emission steps.
+      expect(light).not.toContain(
+        "Write scope vBRIEF(s) to `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json`",
+      );
+      expect(full).not.toContain(
+        "Write scope vBRIEF(s) to `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json`",
+      );
+    });
   });
 
   describe("TestReadmeTypeColumn", () => {

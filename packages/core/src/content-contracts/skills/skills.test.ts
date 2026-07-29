@@ -757,7 +757,9 @@ describe("test_skills", () => {
     expect(text.toLowerCase()).toContain("starting a new");
     expect(text.toLowerCase()).toContain("brownfield detector");
     // deterministic-questions: final two options Discuss then Back
-    expect(text).toMatch(/Starting a new project specification[\s\S]*\*\*Discuss\*\*[\s\S]*\*\*Back\*\*/i);
+    expect(text).toMatch(
+      /Starting a new project specification[\s\S]*\*\*Discuss\*\*[\s\S]*\*\*Back\*\*/i,
+    );
     // Add-scope must not dead-end before lifecycle bridge / export / handoff
     expect(text.toLowerCase()).toContain("lifecycle bridge");
     expect(text.toLowerCase()).not.toContain("then exit");

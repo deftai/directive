@@ -251,21 +251,22 @@ flowchart LR
 
 ## Light Path (small/medium projects)
 
-Interview → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFINITION.vbrief.json + rendered SPECIFICATION (v0.20 contract).
+Interview → scope records (date-prefixed in proposed/) + live PROJECT-DEFINITION + rendered SPECIFICATION (v0.20 contract). Paths are **xbrief-first**: use `./xbrief/` when that root is the live project layout; else legacy `./vbrief/`.
 
 ### Flow
 
 1. Sizing gate selects Light
 2. Interview (rules above)
-3. Write scope vBRIEF(s) to `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` (date-prefixed per vbrief filename convention) with `status: proposed`
-4. Run `task project:render` to create/update `./vbrief/PROJECT-DEFINITION.vbrief.json` (full project identity + items registry) and ensure all five lifecycle folders exist
+3. Write scope record(s) to the live lifecycle root — `./xbrief/proposed/YYYY-MM-DD-<slug>.xbrief.json` when `./xbrief/` is live; else legacy `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` — date-prefixed with `status: proposed`
+4. Run `task project:render` to create/update the **live** PROJECT-DEFINITION (`./xbrief/PROJECT-DEFINITION.xbrief.json` when present/intended; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) and ensure all five lifecycle folders exist under that root
 5. Summarize decisions, ask user to review
-6. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
-7. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
+6. On approval, use `task scope:promote` (or equivalent) to move scope record(s) to `pending/` under the **same** live root with `status: pending` / `approved`
+7. Run `task project:export-spec` / `task spec:render` as appropriate (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` / `specification.xbrief.json` are legacy and are NOT written by this strategy on the v0.20 path)
 
-! **Before writing** scope vBRIEF(s) or updating `PROJECT-DEFINITION` on the Light path, follow [artifact-guards.md](./artifact-guards.md): Preparatory Guard for `proposed/` scopes; Spec-Generating Guard for PROJECT-DEFINITION. Prefer enrich/merge when the user declines replace.
+! **Before writing** scope records or updating `PROJECT-DEFINITION` on the Light path, follow [artifact-guards.md](./artifact-guards.md): Preparatory Guard for `proposed/` scopes; Spec-Generating Guard against the **live** identity file (xbrief-first). Prefer enrich/merge when the user declines replace.
+! ⊗ Write a second PROJECT-DEFINITION under legacy `vbrief/` when `./xbrief/PROJECT-DEFINITION.xbrief.json` is already the live identity.
 
-! At the emission step (step 3 above), after writing the scope vBRIEF(s) to `./vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+! At the emission step (step 3 above), after writing the scope record(s) to the live `proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### SPECIFICATION Structure (Light)
 
@@ -317,22 +318,23 @@ How to ship it.
 
 ## Full Path (large/complex projects)
 
-Interview → PRD → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFINITION.vbrief.json + rendered SPECIFICATION (v0.20 contract).
+Interview → PRD → scope records (date-prefixed in proposed/) + live PROJECT-DEFINITION + rendered SPECIFICATION (v0.20 contract). Paths are **xbrief-first**: use `./xbrief/` when that root is the live project layout; else legacy `./vbrief/`.
 
 ### Flow
 
 1. Sizing gate selects Full
 2. Interview (rules above)
 3. Generate `PRD.md` — user approval gate
-4. Write scope vBRIEF(s) to `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` (date-prefixed per vbrief filename convention) with `status: proposed`
-5. Run `task project:render` to create/update `./vbrief/PROJECT-DEFINITION.vbrief.json` (full project identity + items registry) and ensure all five lifecycle folders exist
+4. Write scope record(s) to the live lifecycle root — `./xbrief/proposed/YYYY-MM-DD-<slug>.xbrief.json` when `./xbrief/` is live; else legacy `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` — date-prefixed with `status: proposed`
+5. Run `task project:render` to create/update the **live** PROJECT-DEFINITION (`./xbrief/PROJECT-DEFINITION.xbrief.json` when present/intended; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) and ensure all five lifecycle folders exist under that root
 6. Summarize decisions, ask user to review
-7. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
-8. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
+7. On approval, use `task scope:promote` (or equivalent) to move scope record(s) to `pending/` under the **same** live root with `status: pending` / `approved`
+8. Run `task project:export-spec` / `task spec:render` as appropriate (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` / `specification.xbrief.json` are legacy and are NOT written by this strategy on the v0.20 path)
 
-! **Before writing** PRD, scope vBRIEF(s), or updating `PROJECT-DEFINITION` on the Full path, follow [artifact-guards.md](./artifact-guards.md): Preparatory Guard for `proposed/` scopes; Spec-Generating Guard for PROJECT-DEFINITION. Prefer enrich/merge when the user declines replace.
+! **Before writing** PRD, scope records, or updating `PROJECT-DEFINITION` on the Full path, follow [artifact-guards.md](./artifact-guards.md): Preparatory Guard for `proposed/` scopes; Spec-Generating Guard against the **live** identity file (xbrief-first). Prefer enrich/merge when the user declines replace.
+! ⊗ Write a second PROJECT-DEFINITION under legacy `vbrief/` when `./xbrief/PROJECT-DEFINITION.xbrief.json` is already the live identity.
 
-! At the emission step (step 4 above), after writing the scope vBRIEF(s) to `./vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+! At the emission step (step 4 above), after writing the scope record(s) to the live `proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### PRD Structure (Full path only)
 
@@ -484,9 +486,9 @@ Each task SHOULD include:
 
 - ! All requirements mapped to tasks
 - ! Dependencies form a valid DAG (no cycles)
-- ! Scope vBRIEF(s) exist in `./vbrief/proposed/` (with date-prefixed filenames and `status: "proposed"`) or promoted to pending/active (with `status: "approved" / "pending"`)
-- ! `./vbrief/PROJECT-DEFINITION.vbrief.json` is present (populated via `task project:render`)
-- ! `SPECIFICATION.md` has been rendered via `task spec:render`
+- ! Scope records exist in the live `proposed/` root (`./xbrief/proposed/` when live; else legacy `./vbrief/proposed/`) with date-prefixed filenames and `status: "proposed"`, or promoted to pending/active (with `status: "approved" / "pending"`)
+- ! Live PROJECT-DEFINITION is present (`./xbrief/PROJECT-DEFINITION.xbrief.json` when that is the identity; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) populated via `task project:render`
+- ! `SPECIFICATION.md` has been rendered via export/`task spec:render`
 - ! Proceed to [Acceptance Gate](#acceptance-gate)
 
 ---
@@ -584,20 +586,20 @@ diff only on the second pass or when the user explicitly asks for it.
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json` | Scope story vBRIEFs (date-prefixed, v0.20 contract) | Interview |
-| `./vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
-| `SPECIFICATION.md` | Generated plan with embedded Requirements (rendered derivative; deprecation sentinel) | `task spec:render` |
-| (no `specification.vbrief.json`) | Legacy artifact — omitted on v0.20 path | — |
+| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Interview |
+| `./xbrief/PROJECT-DEFINITION.xbrief.json` (else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
+| `SPECIFICATION.md` | Generated plan with embedded Requirements (rendered derivative; deprecation sentinel) | export / `task spec:render` |
+| (no `specification.*.json`) | Legacy artifact — omitted on v0.20 path | — |
 
 **Full path:**
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
 | `PRD.md` | What to build (approval gate) | Interview |
-| `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json` | Scope story vBRIEFs (date-prefixed, v0.20 contract) | Post-PRD interview |
-| `./vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
-| `SPECIFICATION.md` | Generated implementation plan (rendered derivative; deprecation sentinel) | `task spec:render` |
-| (no `specification.vbrief.json`) | Legacy artifact — omitted on v0.20 path | — |
+| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Post-PRD interview |
+| `./xbrief/PROJECT-DEFINITION.xbrief.json` (else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
+| `SPECIFICATION.md` | Generated implementation plan (rendered derivative; deprecation sentinel) | export / `task spec:render` |
+| (no `specification.*.json`) | Legacy artifact — omitted on v0.20 path | — |
 
 ## Invoking This Strategy
 
@@ -614,5 +616,5 @@ Use the interview strategy to plan [project].
 After completion:
 
 ```
-implement the scope vBRIEFs in ./vbrief/active/
+implement the scope records in ./xbrief/active/ (or legacy ./vbrief/active/)
 ```

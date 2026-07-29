@@ -1,0 +1,73 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Make Chaining Gate brownfield-aware (Add scope default); wire interview+yolo to Spec-Generating roster and Before-writing guards; align setup Phase 3 vocabulary.",
+    "updated": "2026-07-29T21:32:07Z"
+  },
+  "plan": {
+    "title": "bug(strategies): chaining gate Proceed is artifact-blind - interview create-vs-update",
+    "status": "completed",
+    "narratives": {
+      "Description": "Make Chaining Gate brownfield-aware (Add scope default); wire interview+yolo to Spec-Generating roster and Before-writing guards; align setup Phase 3 vocabulary.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2925",
+      "Overview": "Make Chaining Gate brownfield-aware (Add scope default); wire interview+yolo to Spec-Generating roster and Before-writing guards; align setup Phase 3 vocabulary. Greptile follow-up: Light/Full emission paths are xbrief-first against the live PROJECT-DEFINITION identity.",
+      "Labels": "bug, strategies",
+      "ImplementationPlan": "1. Brownfield Chaining Gate default Add scope. 2. interview+yolo Spec-Generating roster + Before-writing guards. 3. setup Phase 3 Discuss/Back + lifecycle bridge. 4. Light/Full paths xbrief-first. 5. content contracts + completed xbrief conformance."
+    },
+    "items": [
+      {
+        "id": "impl",
+        "title": "Make Chaining Gate brownfield-aware and xbrief-first write guards",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given #2925, when verification runs, then brownfield default is Add scope; guards and Light/Full paths are xbrief-first; setup Phase 3 has Discuss/Back and lifecycle handoff."
+        }
+      },
+      {
+        "id": "contracts",
+        "title": "Content contracts cover chaining gate, setup onboarding, and Light/Full xbrief-first paths",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "skills.test and strategy_chaining.test assert vocabulary, Discuss/Back, lifecycle bridge, and xbrief-first Light/Full paths."
+        }
+      },
+      {
+        "id": "conformance",
+        "title": "Completed xbrief conforms (xBRIEFInfo, plan.title, item titles, ASCII filename)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Completed #2925 xbrief filename is ASCII-hyphen slug and validates under merge-gate xbrief conformance."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "strategies"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2925",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2925: bug(strategies): chaining gate Proceed is artifact-blind - interview create-vs-update"
+      }
+    ],
+    "updated": "2026-07-29T21:32:07Z",
+    "id": "story-2925",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/strategies/interview.md",
+          "content/strategies/artifact-guards.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "packages/core/src/content-contracts/"
+        ],
+        "missing_traces_justification": "Operator-activated #2925 remediation; file_scope from PR touch list."
+      },
+      "completedAt": "2026-07-29T21:32:07Z"
+    }
+  }
+}
