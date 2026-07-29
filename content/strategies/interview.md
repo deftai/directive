@@ -109,10 +109,11 @@ See `strategies/map.md` for standalone behavior.
 ! Interview is a **spec-generating** strategy and MUST follow
 [artifact-guards.md](./artifact-guards.md) before emission (Light or Full path).
 
-- ! **Before writing** scope records to `proposed/`: [Preparatory Guard](./artifact-guards.md#preparatory-guard-light)
-- ! **Before writing** or updating `PROJECT-DEFINITION` (xbrief or legacy vbrief): [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full)
+- ! **Before writing** scope records to `proposed/`: [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) (xbrief-first: `./xbrief/proposed/`, else legacy `./vbrief/proposed/`)
+- ! **Before writing** or updating `PROJECT-DEFINITION`: [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full) against the **live** identity file (`./xbrief/PROJECT-DEFINITION.xbrief.json` when present; else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`)
 - ! Prefer enrich/merge when the user declines replace
 - ⊗ Silently overwrite PROJECT-DEFINITION or same-slug proposed scopes
+- ⊗ Guard only the legacy `vbrief/` path while an `xbrief/` PROJECT-DEFINITION is the live identity
 - ⊗ Rely on write-time guards alone without the brownfield Chaining Gate menu above
 
 Surface this obligation **inside `interview.md`** so agents that load only this

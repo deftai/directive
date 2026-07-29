@@ -513,14 +513,18 @@ omit = [
 > 2. **Update project definition** — delta interview → Spec-Generating Guard → merge narratives into existing PROJECT-DEFINITION
 > 3. **Replace specification (scrap)** — only after explicit affirmative (`yes` / `confirmed`); then full new-spec path
 > 4. **Starting a new project specification** [default when greenfield] — proceed to the Strategy Gate below
+> 5. **Discuss**
+> 6. **Back**
 
 - ! Default based on repo state via the brownfield detector above (brownfield → Add scope; greenfield → Starting new)
-- ! If **Add scope**: skip the full interview, create a new scope xBRIEF in `./xbrief/proposed/` with the user's description, apply Preparatory Guard on write, then exit
-- ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard; merge narratives (do not wholesale replace unless the user confirmed scrap)
+- ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
+- ! If **Add scope**: skip the full interview, create a new scope xBRIEF in `./xbrief/proposed/` with the user's description, apply Preparatory Guard on write, then surface the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
 - ! If **Starting new**: proceed to the Strategy Gate below
 - ⊗ Treat brownfield repos as "Starting new" by default
 - ⊗ Accept vague confirmation (`proceed`, `ok`) for Replace/scrap
+- ⊗ Exit immediately after Add-scope write without the lifecycle bridge / export / handoff guidance
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 

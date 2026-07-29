@@ -90,6 +90,13 @@ describe("test_strategy_chaining.py", () => {
         /\*\*speckit\*\*, \*\*enterprise\*\*, \*\*rapid\*\*, \*\*interview\*\*, \*\*yolo\*\*/,
       );
     });
+
+    it("test_spec_generating_guard_is_xbrief_first", () => {
+      expect(guards).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+      expect(guards).toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
+      expect(guards.toLowerCase()).toContain("xbrief-first");
+      expect(guards).toContain("live identity");
+    });
   });
 
   describe("TestReadmeTypeColumn", () => {

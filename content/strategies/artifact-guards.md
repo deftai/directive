@@ -32,11 +32,16 @@ This file is not a standalone strategy — it is a shared guard referenced by ot
 
 ## Spec-Generating Guard (Full)
 
-Applies to strategies that write to `PROJECT-DEFINITION.vbrief.json` (⊗ never `specification.vbrief.json` per [v0-20-contract.md](./v0-20-contract.md)): **speckit**, **enterprise**, **rapid**, **interview**, **yolo**.
+Applies to strategies that write project identity as `PROJECT-DEFINITION` (⊗ never `specification.vbrief.json` / `specification.xbrief.json` per [v0-20-contract.md](./v0-20-contract.md)): **speckit**, **enterprise**, **rapid**, **interview**, **yolo**.
 
-! Before writing to `vbrief/PROJECT-DEFINITION.vbrief.json`, the strategy MUST perform the following checks (⊗ Never target the legacy `specification.vbrief.json`):
+! **Target resolution (xbrief-first)**: guard the file that is the live project identity:
+1. `./xbrief/PROJECT-DEFINITION.xbrief.json` when it exists (canonical current layout)
+2. else `./vbrief/PROJECT-DEFINITION.vbrief.json` when it exists (legacy layout)
+3. else the intended write path for a greenfield create (usually `./xbrief/PROJECT-DEFINITION.xbrief.json`)
 
-1. ! **Check existence**: Does the target file already exist?
+! Before writing or updating that target, the strategy MUST perform the following checks (⊗ Never target the legacy `specification.*.json`):
+
+1. ! **Check existence**: Does the resolved target file already exist?
    - If NO: proceed with the write — no guard needed.
    - If YES: continue to step 2.
 
@@ -51,35 +56,40 @@ Applies to strategies that write to `PROJECT-DEFINITION.vbrief.json` (⊗ never 
    - ! Display: "A `{status}` version of this artifact already exists. Replace it? (yes/no)"
    - ~ If the user declines, offer to enrich (merge narratives) instead of replacing
 
-5. ! **Narrative preservation**: When overwriting `PROJECT-DEFINITION.vbrief.json`, read existing `narratives` keys first. If the strategy only writes a subset of narratives (e.g. speckit Phase 1 writes only `Principles`), merge the new narrative into the existing set — do NOT replace all narratives with only the new key.
-   - ⊗ Overwrite all `PROJECT-DEFINITION.vbrief.json` narratives when the strategy only produces a single narrative key
+5. ! **Narrative preservation**: When overwriting `PROJECT-DEFINITION`, read existing `narratives` keys first. If the strategy only writes a subset of narratives (e.g. speckit Phase 1 writes only `Principles`), merge the new narrative into the existing set — do NOT replace all narratives with only the new key.
+   - ⊗ Overwrite all `PROJECT-DEFINITION` narratives when the strategy only produces a single narrative key
+   - ⊗ Guard only the legacy `vbrief/` path while an `xbrief/PROJECT-DEFINITION.xbrief.json` is the live identity
 
 ---
 
 ## Preparatory Guard (Light)
 
-Applies to strategies that write scoped vBRIEFs to `vbrief/proposed/`: **bdd**, **discuss**, **research**, **map**.
+Applies to strategies that write scoped records to `proposed/`: **bdd**, **discuss**, **research**, **map**, **probe**, and brownfield **Add scope** paths from interview/setup.
 
-! Before writing a scope vBRIEF to `vbrief/proposed/`, the strategy MUST check for existing files with the same scope or feature name:
+! **Target folder resolution (xbrief-first)**: scan `./xbrief/proposed/` when it exists; else legacy `./vbrief/proposed/`. Prefer writing new scopes under the same root the project already uses.
 
-1. ! **Check for existing file**: Scan `vbrief/proposed/` for files matching the target scope/feature slug (e.g. `*-{feature}-bdd.vbrief.json`, `*-{scope}-context.vbrief.json`).
+! Before writing a scope record to `proposed/`, the strategy MUST check for existing files with the same scope or feature name:
+
+1. ! **Check for existing file**: Scan the resolved `proposed/` folder for files matching the target scope/feature slug (e.g. `*-{feature}-bdd.xbrief.json`, `*-{scope}-context.vbrief.json`).
    - If NO match: proceed with the write — no guard needed.
    - If a match exists: continue to step 2.
 
-2. ! **Warn and ask**: Display: "A vBRIEF for this scope already exists at `{path}`. Replace it, or create a new version? (replace/new)"
+2. ! **Warn and ask**: Display: "A scope record for this feature already exists at `{path}`. Replace it, or create a new version? (replace/new)"
    - ! If replace: overwrite the existing file
    - ! If new: append a numeric suffix or use today's date to create a distinct file
 
 3. ~ **Read existing decisions**: If the existing file contains a `LockedDecisions` or similar narrative, surface those decisions to the agent context so they are not lost even if the user chooses to replace.
 
-⊗ Silently overwrite an existing scope vBRIEF with the same feature/scope name without warning the user.
+⊗ Silently overwrite an existing scope record with the same feature/scope name without warning the user.
+⊗ Scan only legacy `vbrief/proposed/` when `xbrief/proposed/` is the live lifecycle root.
 
 ---
 
 ## Anti-Patterns
 
-- ⊗ Writing to `PROJECT-DEFINITION.vbrief.json` without checking the file's current status (⊗ never write `specification.vbrief.json` at all per v0-20-contract.md)
+- ⊗ Writing to `PROJECT-DEFINITION` without checking the file's current status (⊗ never write `specification.vbrief.json` / `specification.xbrief.json` at all per v0-20-contract.md)
+- ⊗ Guarding only `vbrief/PROJECT-DEFINITION.vbrief.json` while `xbrief/PROJECT-DEFINITION.xbrief.json` is the live identity
 - ⊗ Silently overwriting an `approved` or `completed` artifact — this discards locked decisions and approval state
-- ⊗ Replacing all `PROJECT-DEFINITION.vbrief.json` narratives when the strategy only contributes one narrative key (e.g. `Principles`)
-- ⊗ Overwriting a scope vBRIEF in `vbrief/proposed/` without checking if one already exists for the same scope
+- ⊗ Replacing all `PROJECT-DEFINITION` narratives when the strategy only contributes one narrative key (e.g. `Principles`)
+- ⊗ Overwriting a scope record in `proposed/` without checking if one already exists for the same scope
 - ⊗ Accepting vague confirmation (`proceed`, `ok`) when the guard requires explicit confirmation for approved/completed artifacts

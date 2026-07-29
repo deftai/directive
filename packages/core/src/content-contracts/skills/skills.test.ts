@@ -756,6 +756,11 @@ describe("test_skills", () => {
     expect(text.toLowerCase()).toContain("replace specification");
     expect(text.toLowerCase()).toContain("starting a new");
     expect(text.toLowerCase()).toContain("brownfield detector");
+    // deterministic-questions: final two options Discuss then Back
+    expect(text).toMatch(/Starting a new project specification[\s\S]*\*\*Discuss\*\*[\s\S]*\*\*Back\*\*/i);
+    // Add-scope must not dead-end before lifecycle bridge / export / handoff
+    expect(text.toLowerCase()).toContain("lifecycle bridge");
+    expect(text.toLowerCase()).not.toContain("then exit");
   });
   it("deft_directive_setup_full_path_rich_narratives", () => {
     const text = readSkill(_SETUP_PATH);
