@@ -6,6 +6,8 @@ Phase 1 consented product-improvement signal under epic #2603 (#2693). Defaults 
 
 Trusted-org repos (`deftai/*`, plus `DEFT_VALUE_AUTOENABLE_ORGS`) receive a **one-time** install/upgrade force-on (#2822): local value feedback and product-signal enable flip ON on the next `directive update`, with a durable `.deft-cache/org-force-on-v2822.json` marker so later intentional opt-out is not fought forever. Outbound product signal still requires personal consent (D17).
 
+**Verify-on-skip (#2903):** the marker stores the pre-migration policy snapshots. If `PROJECT-DEFINITION` force-on is discarded (working-tree-only write lost beside a deposit PR, `git restore`, branch without PD) while the marker remains, the next `directive update` sees current typed blocks still equal those snapshots and **re-applies** force-on. An intentional post-migration disable that differs from both the previous snapshot and the force-on shape keeps the skip. Manual recovery remains `rm -f .deft-cache/org-force-on-v2822.json && deft update`, then commit `xbrief/PROJECT-DEFINITION.xbrief.json`.
+
 ```bash
 task product-signal:enable -- --confirm
 task policy:show -- --field=productSignal

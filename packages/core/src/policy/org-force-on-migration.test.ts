@@ -97,36 +97,138 @@ describe("runOrgForceOnMigration", () => {
     expect(policyBlock.valueFeedback).toEqual(FORCE_ON_VALUE_FEEDBACK_BLOCK);
   });
 
-  it("does not re-run after marker is consumed even when typed false returns", () => {
-    const root = makeTrustedRepo({
-      policy: {
-        valueFeedback: {
-          enabled: false,
-          emitEvents: false,
-          sessionLine: false,
-          upstreamPrompt: false,
-        },
-        productSignal: { enabled: false },
-      },
-    });
-    runOrgForceOnMigration(root, trustedAutoEnable);
-
-    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
-    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
-    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
-    policyBlock.valueFeedback = {
+  it("persists previous* snapshots on the marker at successful apply (#2903)", () => {
+    const baselineVf = {
       enabled: false,
       emitEvents: false,
       sessionLine: false,
       upstreamPrompt: false,
     };
-    policyBlock.productSignal = { enabled: false };
+    const baselinePs = { enabled: false };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: baselinePs,
+      },
+    });
+
+    runOrgForceOnMigration(root, trustedAutoEnable);
+    const marker = readOrgForceOnMarker(root);
+    expect(marker?.previousValueFeedback).toEqual(baselineVf);
+    expect(marker?.previousProductSignal).toEqual(baselinePs);
+  });
+
+  it("re-applies when marker present but PD restored to previous snapshot (#2903 discarded PD)", () => {
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const baselinePs = { enabled: false };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: baselinePs,
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
+
+    // Simulate discarded working-tree PROJECT-DEFINITION (marker left in place).
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    policyBlock.valueFeedback = { ...baselineVf };
+    policyBlock.productSignal = { ...baselinePs };
+    writeFileSync(pdPath, JSON.stringify(pd), "utf8");
+
+    const second = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(second.ran).toBe(true);
+    expect(second.valueFeedbackChanged).toBe(true);
+    expect(second.productSignalChanged).toBe(true);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
+    expect(resolveValueFeedback(root, trustedAutoEnable).source).toBe("install-force-on");
+    expect(resolveProductSignal(root).enabled).toBe(true);
+  });
+
+  it("does not re-apply intentional post-migration disable that differs from previous (#2903)", () => {
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: { enabled: false },
+      },
+    });
+    runOrgForceOnMigration(root, trustedAutoEnable);
+
+    // Intentional opt-out: shape differs from pre-migration snapshot AND force-on.
+    const intentionalVf = {
+      enabled: false,
+      emitEvents: true,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const pd = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
+    policyBlock.valueFeedback = intentionalVf;
+    policyBlock.productSignal = { enabled: false, sinkRepo: "acme/keep-off" };
     writeFileSync(pdPath, JSON.stringify(pd), "utf8");
 
     const second = runOrgForceOnMigration(root, trustedAutoEnable);
     expect(second.ran).toBe(false);
     expect(second.skippedReason).toBe("marker-present");
     expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(false);
+    expect(resolveValueFeedback(root, trustedAutoEnable).source).toBe("typed");
+    expect(resolveProductSignal(root).enabled).toBe(false);
+
+    const pdAfter = JSON.parse(readFileSync(pdPath, "utf8")) as { plan: Record<string, unknown> };
+    const policyAfter = readPlanPolicy(pdAfter.plan) as Record<string, unknown>;
+    expect(policyAfter.valueFeedback).toEqual(intentionalVf);
+    expect(policyAfter.productSignal).toEqual({ enabled: false, sinkRepo: "acme/keep-off" });
+  });
+
+  it("re-applies for legacy markers without previous* when PD still needs force-on (#2903)", () => {
+    const baselineVf = {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    };
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: baselineVf,
+        productSignal: { enabled: false },
+      },
+    });
+    // Pre-#2903 marker shape (no previous* snapshots) + discarded PD.
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    writeFileSync(
+      join(root, ORG_FORCE_ON_MARKER_REL),
+      `${JSON.stringify({
+        version: 1,
+        appliedAt: "2026-07-29T14:13:31Z",
+        originOrg: "deftai",
+        valueFeedback: true,
+        productSignal: true,
+        directiveVersion: "0.87.0",
+      })}\n`,
+      "utf8",
+    );
+
+    const result = runOrgForceOnMigration(root, trustedAutoEnable);
+    expect(result.ran).toBe(true);
+    expect(resolveValueFeedback(root, trustedAutoEnable).enabled).toBe(true);
+    expect(resolveProductSignal(root).enabled).toBe(true);
+    const marker = readOrgForceOnMarker(root);
+    expect(marker?.previousValueFeedback).toEqual(baselineVf);
+    expect(marker?.previousProductSignal).toEqual({ enabled: false });
   });
 
   it("skips non-trusted org repos", () => {
