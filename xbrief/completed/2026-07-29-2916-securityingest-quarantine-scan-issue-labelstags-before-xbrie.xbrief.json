@@ -2,15 +2,15 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2916",
-    "updated": "2026-07-29T15:06:46Z"
+    "updated": "2026-07-29T18:36:46Z"
   },
   "plan": {
     "title": "security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06). This story remediates a confirmed AppSec finding from tracker #2904 with fail-closed tests and CHANGELOG citation. Parent umbrella remains open until all batch children merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2916",
-      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch D** (quarantine completeness).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-06` |\n| **Severity** | **Low** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/intake/issue-ingest.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/intake/issue-ingest.ts) |\n\n## Issue\n`buildIssueVbrief` scans title/body/comments/plan-item titles but copies **label names unchanged** into `narratives.Labels` and `plan.tags` \u2014 unscanned agent-authoritative fields.\n\n## Remediation\n1. Run label strings through `scanUntrustedIngestText` (hard-fail credentials; fence/omit injection-shaped labels) before writing Labels/tags.\n2. Tests for credential-shaped / injection-shaped labels.\n\n## Acceptance\n- [ ] Labels follow same hard-fail/fence contract as titles\n- [ ] Tests assert label scan\n- [ ] CHANGELOG if needed\n\n## Refs\n- Tracker #2904\n- Batch D sibling: cache-quarantine-03",
+      "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch D** (quarantine completeness).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-06` |\n| **Severity** | **Low** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/intake/issue-ingest.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/intake/issue-ingest.ts) |\n\n## Issue\n`buildIssueVbrief` scans title/body/comments/plan-item titles but copies **label names unchanged** into `narratives.Labels` and `plan.tags` — unscanned agent-authoritative fields.\n\n## Remediation\n1. Run label strings through `scanUntrustedIngestText` (hard-fail credentials; fence/omit injection-shaped labels) before writing Labels/tags.\n2. Tests for credential-shaped / injection-shaped labels.\n\n## Acceptance\n- [ ] Labels follow same hard-fail/fence contract as titles\n- [ ] Tests assert label scan\n- [ ] CHANGELOG if needed\n\n## Refs\n- Tracker #2904\n- Batch D sibling: cache-quarantine-03",
       "Labels": "bug, security",
       "UserStory": "As a security engineer, I want quarantine-scan issue labels and tags before they enter xBRIEF Labels/tags, so that credential- or injection-shaped labels cannot bypass title/body scanning.",
       "ImplementationPlan": "1. Open the source module files under packages/core/src/intake/issue-ingest.ts (and related paths: packages/core/src/intake/issue-ingest.ts, packages/core/src/intake/, CHANGELOG.md) and implement the fail-closed fix described in issue #2916. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: task test -- packages/core/src/intake; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
@@ -19,7 +19,7 @@
       {
         "id": "labels-follow-same-hard-fail-fence-contr",
         "title": "Labels follow same hard-fail/fence contract as titles",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2916, when verification runs, then: Labels follow same hard-fail/fence contract as titles."
         }
@@ -27,7 +27,7 @@
       {
         "id": "tests-assert-label-scan",
         "title": "Tests assert label scan",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2916, when verification runs, then: Tests assert label scan."
         }
@@ -35,7 +35,7 @@
       {
         "id": "changelog-if-needed",
         "title": "CHANGELOG if needed",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the #2904 remediation for #2916, when verification runs, then: CHANGELOG if needed."
         }
@@ -52,7 +52,7 @@
         "title": "Issue #2916: security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06)"
       }
     ],
-    "updated": "2026-07-29T15:00:07Z",
+    "updated": "2026-07-29T18:36:46Z",
     "id": "story-2916",
     "metadata": {
       "kind": "story",
@@ -78,7 +78,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2916."
-      }
+      },
+      "completedAt": "2026-07-29T18:36:46Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
