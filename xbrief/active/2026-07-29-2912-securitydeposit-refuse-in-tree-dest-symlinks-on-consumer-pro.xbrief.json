@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2912",
-    "updated": "2026-07-29T15:01:56Z"
+    "updated": "2026-07-29T15:06:46Z"
   },
   "plan": {
     "title": "security(deposit): refuse in-tree dest symlinks on consumer projection writers (install-deposit-04)",
@@ -13,8 +13,7 @@
       "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch C** (deposit write integrity).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `install-deposit-04` |\n| **Severity** | **Medium** |\n| **Dimension** | `install-deposit` |\n| **Files** | Consumer projection writers (AGENTS.md, .githooks, .gitignore, etc.) |\n\n## Issue\nConsumer projection writers follow **in-tree destination symlinks**, so a malicious or mistaken symlink can divert writes outside intended projection targets under operator credentials.\n\n## Remediation\n1. `assertWriteTargetSafe` / `assertDestinationNotSymlink` / `O_NOFOLLOW` on every projection sink including `.gitignore`.\n2. Tests for in-tree dest symlinks.\n\n## Acceptance\n- [ ] No projection sink follows dest leaf/parent symlink escapes\n- [ ] Regression tests for AGENTS.md / .githooks / .gitignore class sinks\n- [ ] CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch C siblings: install-deposit-06, skill-pack-supply-01",
       "Labels": "bug, security",
       "UserStory": "As a security engineer, I want refuse in-tree destination symlinks on every consumer projection write, so that init/update cannot overwrite arbitrary project files via planted symlinks.",
-      "ImplementationPlan": "Apply assertWriteTargetSafe / assertDestinationNotSymlink (or O_NOFOLLOW) on TS scaffold projection writes (AGENTS.md, .githooks, Taskfile, gitignore) and Go writers that still only contain. Align Go copyFile with TS copyTree. Add tests for in-tree dest symlink refusal. CHANGELOG cites #2912.",
-      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2912; file paths named in ImplementationPlan are the authoritative touch list."
+      "ImplementationPlan": "1. Open the source module files under packages/core/src/init-deposit/scaffold.ts (and related paths: packages/core/src/init-deposit/scaffold.ts, packages/core/src/fs/projection-containment.ts, packages/core/src/deposit/, cmd/deft-install/, CHANGELOG.md) and implement the fail-closed fix described in issue #2912. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: task test -- packages/core/src/init-deposit; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
     },
     "items": [
       {
@@ -64,8 +63,7 @@
           "packages/core/src/init-deposit/scaffold.ts",
           "packages/core/src/fs/projection-containment.ts",
           "packages/core/src/deposit/",
-          "cmd/deft-install/",
-          "CHANGELOG.md"
+          "cmd/deft-install/"
         ],
         "verify_commands": [
           "task test -- packages/core/src/init-deposit",
@@ -80,7 +78,8 @@
         "conflict_group": "appsec-deposit-ts",
         "size": "M",
         "file_scope_confidence": "high",
-        "model_tier": "standard"
+        "model_tier": "standard",
+        "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2912."
       }
     }
   }

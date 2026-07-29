@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2915",
-    "updated": "2026-07-29T15:01:56Z"
+    "updated": "2026-07-29T15:06:46Z"
   },
   "plan": {
     "title": "security(cache): neutralize nested fences inside quarantine wrappers (cache-quarantine-03)",
@@ -13,8 +13,7 @@
       "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch D** (quarantine completeness).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-03` |\n| **Severity** | **Low** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/cache/scanner.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/cache/scanner.ts) (also packs quarantine-ext) |\n\n## Issue\nQuarantine wraps sections with `` `quarantined `` fences but includes body lines verbatim. A nested bare `` ` `` can **early-close** the fence so following attacker text renders outside the quarantined info-string.\n\n## Remediation\n1. Escape/neutralize triple-backtick lines inside wrapped sections.\n2. Regression tests for nested fence pairs inside injection sections.\n\n## Acceptance\n- [ ] Nested ` cannot early-close quarantine in transformed content\n- [ ] Regression tests pass\n- [ ] CHANGELOG if user-visible\n\n## Refs\n- Tracker #2904\n- Batch D sibling: cache-quarantine-06",
       "Labels": "bug, security",
       "UserStory": "As a security engineer, I want neutralize nested triple-backtick lines inside quarantine wrappers, so that attacker body cannot early-close quarantined fences in agent-facing markdown.",
-      "ImplementationPlan": "In packages/core/src/cache/scanner.ts (and packs/quarantine-ext.ts if shared), escape/neutralize ``` lines inside wrapped sections. Add regression tests for nested fence pairs remaining enclosed. CHANGELOG cites #2915.",
-      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2915; file paths named in ImplementationPlan are the authoritative touch list."
+      "ImplementationPlan": "1. Open the source module files under packages/core/src/cache/scanner.ts (and related paths: packages/core/src/cache/scanner.ts, packages/core/src/packs/quarantine-ext.ts, packages/core/src/cache/, CHANGELOG.md) and implement the fail-closed fix described in issue #2915. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: task test -- packages/core/src/cache; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
     },
     "items": [
       {
@@ -58,13 +57,12 @@
     "metadata": {
       "kind": "story",
       "swarm": {
-        "readiness": "ready",
+        "readiness": "sequential",
         "parallel_safe": false,
         "file_scope": [
           "packages/core/src/cache/scanner.ts",
           "packages/core/src/packs/quarantine-ext.ts",
-          "packages/core/src/cache/",
-          "CHANGELOG.md"
+          "packages/core/src/cache/"
         ],
         "verify_commands": [
           "task test -- packages/core/src/cache",
@@ -79,7 +77,8 @@
         "conflict_group": "appsec-cache-scanner",
         "size": "S",
         "file_scope_confidence": "high",
-        "model_tier": "standard"
+        "model_tier": "standard",
+        "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2915."
       }
     }
   }

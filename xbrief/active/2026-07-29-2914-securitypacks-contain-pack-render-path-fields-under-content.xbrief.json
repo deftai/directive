@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2914",
-    "updated": "2026-07-29T15:01:56Z"
+    "updated": "2026-07-29T15:06:46Z"
   },
   "plan": {
     "title": "security(packs): contain pack-render path fields under CONTENT_ROOT + schema (skill-pack-supply-01)",
@@ -13,8 +13,7 @@
       "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch C** (deposit write integrity).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `skill-pack-supply-01` |\n| **Severity** | **Medium** |\n| **Dimension** | `skill-pack-supply` |\n| **Surface** | multipack `packs:render` path fields |\n\n## Issue\nPack-render builds `outPath` as `join(CONTENT_ROOT, record[pathField])` **without** containment/schema. Absolute/`../` paths can escape or overwrite agent-policy files when render runs without `--check`.\n\n## Remediation\n1. Resolve each `outPath` with realpath semantics; refuse unless contained under `CONTENT_ROOT` (mirror `deposit/contain.ts`).\n2. Enforce pack schemas (path patterns) before render.\n3. Sanitize YAML frontmatter fields; deny absolute paths / null bytes.\n\n## Acceptance\n- [ ] Multipack render refuses escape paths\n- [ ] Schema/path tests; no write outside CONTENT_ROOT\n- [ ] CHANGELOG\n\n## Refs\n- Tracker #2904\n- Batch C siblings: install-deposit-04, install-deposit-06",
       "Labels": "bug, security",
       "UserStory": "As a security engineer, I want contain pack-render output paths under CONTENT_ROOT and enforce pack schema, so that malicious pack JSON cannot write outside content/ or inject unescaped frontmatter.",
-      "ImplementationPlan": "In packages/core/src/packs/pack-render.ts, resolve outPath with containment under CONTENT_ROOT; refuse absolute paths and .. escapes. Enforce pack schema path patterns before render. Sanitize YAML frontmatter fields. Tests for escape attempts. CHANGELOG cites #2914.",
-      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2914; file paths named in ImplementationPlan are the authoritative touch list."
+      "ImplementationPlan": "1. Open the source module files under packages/core/src/packs/pack-render.ts (and related paths: packages/core/src/packs/pack-render.ts, packages/core/src/packs/, CHANGELOG.md) and implement the fail-closed fix described in issue #2914. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: task test -- packages/core/src/packs; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
     },
     "items": [
       {
@@ -62,8 +61,7 @@
         "parallel_safe": true,
         "file_scope": [
           "packages/core/src/packs/pack-render.ts",
-          "packages/core/src/packs/",
-          "CHANGELOG.md"
+          "packages/core/src/packs/"
         ],
         "verify_commands": [
           "task test -- packages/core/src/packs",
@@ -78,7 +76,8 @@
         "conflict_group": "appsec-packs",
         "size": "M",
         "file_scope_confidence": "high",
-        "model_tier": "standard"
+        "model_tier": "standard",
+        "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2914."
       }
     }
   }

@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2910",
-    "updated": "2026-07-29T15:01:56Z"
+    "updated": "2026-07-29T15:06:46Z"
   },
   "plan": {
     "title": "security(cache): hard-fail fine-grained github_pat_ tokens in scanner (cache-quarantine-01)",
@@ -13,8 +13,7 @@
       "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch B** (Windows shell + PAT scanner).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `cache-quarantine-01` |\n| **Severity** | **High** |\n| **Dimension** | `cache-quarantine` |\n| **File** | [`packages/core/src/cache/scanner.ts`](https://github.com/deftai/directive/blob/master/packages/core/src/cache/scanner.ts) |\n\n## Issue\n`CREDENTIAL_PATTERNS` matches classic `gh[pousr]_\u2026` but **not** fine-grained `github_pat_\u2026`. Product-signal already knows `github_pat_` \u2014 inconsistent coverage. Fine-grained PATs pass into `content.md` and xBRIEF narratives.\n\n## Impact\nLeaked fine-grained PAT in issue title/body/comment lands in LLM-facing cache/ingest instead of fail-closed.\n\n## Remediation\n1. Add `github_pat_` pattern aligned with product-signal.\n2. Extend scanner tests; bump `SCANNER_VERSION`.\n3. Optionally re-scan existing cache on version skew.\n\n## Acceptance\n- [ ] `github_pat_` hard-fails in `scan()` / detectCredentials\n- [ ] Tests cover fine-grained PAT fixtures\n- [ ] `SCANNER_VERSION` bumped; sinks (cache put, issue:ingest, umbrella) inherit fail-closed\n\n## Refs\n- Tracker #2904\n- Batch B sibling: subprocess-scm-01\n- `packages/core/src/product-signal/payload.ts` SECRET_PATTERNS",
       "Labels": "bug, security, urgent",
       "UserStory": "As a security engineer, I want hard-fail fine-grained github_pat_ tokens in the cache scanner, so that issue ingest and cache content cannot persist modern GitHub PATs for agents.",
-      "ImplementationPlan": "Add github_pat_ pattern to CREDENTIAL_PATTERNS in packages/core/src/cache/scanner.ts aligned with product-signal SECRET_PATTERNS. Bump SCANNER_VERSION. Extend unit tests with fine-grained PAT fixtures. Confirm cache put / issue-ingest / umbrella sinks inherit hard-fail. CHANGELOG cites #2910.",
-      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2910; file paths named in ImplementationPlan are the authoritative touch list."
+      "ImplementationPlan": "1. Open the source module files under packages/core/src/cache/scanner.ts (and related paths: packages/core/src/cache/scanner.ts, packages/core/src/cache/, packages/core/src/product-signal/payload.ts, CHANGELOG.md) and implement the fail-closed fix described in issue #2910. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: task test -- packages/core/src/cache; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
     },
     "items": [
       {
@@ -64,8 +63,7 @@
         "file_scope": [
           "packages/core/src/cache/scanner.ts",
           "packages/core/src/cache/",
-          "packages/core/src/product-signal/payload.ts",
-          "CHANGELOG.md"
+          "packages/core/src/product-signal/payload.ts"
         ],
         "verify_commands": [
           "task test -- packages/core/src/cache",
@@ -80,7 +78,8 @@
         "conflict_group": "appsec-cache-scanner",
         "size": "S",
         "file_scope_confidence": "high",
-        "model_tier": "standard"
+        "model_tier": "standard",
+        "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2910."
       }
     }
   }

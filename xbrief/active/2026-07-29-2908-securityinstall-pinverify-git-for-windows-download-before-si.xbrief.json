@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2908",
-    "updated": "2026-07-29T15:01:56Z"
+    "updated": "2026-07-29T15:06:46Z"
   },
   "plan": {
     "title": "security(install): pin+verify Git-for-Windows download before silent exec (install-deposit-01)",
@@ -13,8 +13,7 @@
       "Overview": "## Parent\nPart of AppSec scan tracker **#2904** (2026-07-29). Remediation **Batch A** (installer authenticity).\n\n## Finding\n| | |\n| --- | --- |\n| **ID** | `install-deposit-01` |\n| **Severity** | **High** |\n| **Dimension** | `install-deposit` |\n| **File** | [`cmd/deft-install/git.go`](https://github.com/deftai/directive/blob/master/cmd/deft-install/git.go) |\n\n## Issue\nOn Windows, when winget fails, `deft-install` downloads the latest git-for-windows 64-bit `.exe` via GitHub API and runs it `/SILENT` `/NORESTART` with **no SHA-256 or Authenticode pin**. Trust is TLS+GitHub-latest only.\n\n## Impact\nCompromised git-for-windows release, asset, or MitM yields arbitrary code execution as the installing user during automated install.\n\n## Remediation\n1. Pin a known-good Git.Git version; verify SHA-256 (and ideally Authenticode) before exec.\n2. Prefer winget with a pinned package version.\n3. Refuse silent install when verification fails.\n4. Document trust boundary if pinning is deferred.\n\n## Acceptance\n- [ ] No Git-for-Windows download-and-exec path runs without pinned digest (or documented residual + non-silent opt-in)\n- [ ] Tests or installer dry-run fixtures cover fail-closed mismatch\n- [ ] CHANGELOG / docs/security.md updated as needed\n\n## Refs\n- Tracker #2904\n- Batch A sibling: install-deposit-02\n- Prior partial harden: #1303 (non-2xx/timeout only)",
       "Labels": "bug, security, urgent",
       "UserStory": "As a security engineer, I want pin and SHA-256 verify Git-for-Windows installer assets before silent exec, so that Windows deft-install cannot run a compromised latest release.",
-      "ImplementationPlan": "Locate installGitWindows / downloadGitInstaller in cmd/deft-install/git.go. Add a pinned version + expected SHA-256 (and optional Authenticode note) for the 64-bit non-portable exe. Verify digest after download; refuse silent install on mismatch. Prefer winget pinned path when available. Add tests or table-driven verify helpers; document trust boundary in docs/security.md. CHANGELOG cites #2908.",
-      "missing_traces_justification": "Acceptance derived from #2904 confirmed finding and child issue #2908; file paths named in ImplementationPlan are the authoritative touch list."
+      "ImplementationPlan": "1. Open the source module files under cmd/deft-install/git.go (and related paths: cmd/deft-install/git.go, cmd/deft-install/, docs/security.md, CHANGELOG.md) and implement the fail-closed fix described in issue #2908. 2. Add or extend unit tests/fixtures that assert the security property; run verify commands: cd cmd/deft-install && go test ./...; task check:merge. 3. Update CHANGELOG.md and docs/security.md when the finding changes documented trust boundaries; collect evidence from test output before opening the PR."
     },
     "items": [
       {
@@ -64,8 +63,7 @@
         "file_scope": [
           "cmd/deft-install/git.go",
           "cmd/deft-install/",
-          "docs/security.md",
-          "CHANGELOG.md"
+          "docs/security.md"
         ],
         "verify_commands": [
           "cd cmd/deft-install && go test ./...",
@@ -80,7 +78,8 @@
         "conflict_group": "appsec-install-go",
         "size": "M",
         "file_scope_confidence": "high",
-        "model_tier": "standard"
+        "model_tier": "standard",
+        "missing_traces_justification": "No formal FR identifiers; remediation acceptance is defined by #2904 finding text and GitHub issue #2908."
       }
     }
   }
