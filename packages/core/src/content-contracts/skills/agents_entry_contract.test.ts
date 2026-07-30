@@ -301,7 +301,13 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Implementation Intent Gate (#810 / #1193)",
     canonicalHome: "commands.md",
-    pointerHints: ["deft xbrief:preflight", "action-verb", "#810", "#1193", "DEFT_SESSION_SLASH_VERB"],
+    pointerHints: [
+      "deft xbrief:preflight",
+      "action-verb",
+      "#810",
+      "#1193",
+      "DEFT_SESSION_SLASH_VERB",
+    ],
     canonicalBodyMarkers: [
       "xbrief:preflight",
       'plan.status == "running"',
@@ -320,17 +326,8 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Human merge gate (#1193)",
     canonicalHome: "commands.md",
-    pointerHints: [
-      "requireHumanMerge",
-      "policy:allow-bot-merge",
-      "DEFT_ALLOW_BOT_MERGE",
-      "#1193",
-    ],
-    canonicalBodyMarkers: [
-      "requireHumanMerge",
-      "allow-bot-merge",
-      "DEFT_ALLOW_BOT_MERGE",
-    ],
+    pointerHints: ["requireHumanMerge", "policy:allow-bot-merge", "DEFT_ALLOW_BOT_MERGE", "#1193"],
+    canonicalBodyMarkers: ["requireHumanMerge", "allow-bot-merge", "DEFT_ALLOW_BOT_MERGE"],
     retiredFullTextMarkers: [],
   },
   {

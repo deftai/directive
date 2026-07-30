@@ -114,7 +114,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -137,7 +137,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -157,7 +157,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(1, capReachedPayload()),
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -175,7 +175,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(1, null, "Error: Cannot find module '/tmp/missing/pr-monitor.js'"),
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -193,7 +193,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(2, null, "monitor script not found: /tmp/missing/pr-monitor.js"),
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -210,7 +210,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(3, prClosedPayload()),
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -234,7 +234,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -260,7 +260,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -284,7 +284,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -308,7 +308,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -329,9 +329,7 @@ describe("waitMergeableAndMerge", () => {
       capMinutes: 30,
       protected: [],
       protectedFn: makeProtectedFn(0),
-      monitorFn: makeMonitorFn(2, { monitor_result: "CONFIG-ERROR" ,
-      skipHumanMergeGate: true,
-    }),
+      monitorFn: makeMonitorFn(2, { monitor_result: "CONFIG-ERROR", skipHumanMergeGate: true }),
       mergeFn,
     });
 
@@ -349,7 +347,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(2, "", "Error: gh CLI not found."),
       monitorFn,
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -366,7 +364,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(0, cleanMonitorPayload()),
       mergeFn: makeMergeFn(1, "", "branch protection refused"),
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -383,7 +381,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(3, prMergedBySiblingPayload()),
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -402,7 +400,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(0, cleanMonitorPayload()),
       mergeFn,
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -419,7 +417,7 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(1, capReachedPayload(), "poll stderr tail marker"),
       mergeFn: makeMergeFn(0),
-    
+
       skipHumanMergeGate: true,
     });
 
@@ -451,7 +449,7 @@ describe("waitMergeableAndMerge", () => {
       monitorFn,
       mergeFn,
       semanticGreenFn,
-    
+
       skipHumanMergeGate: true,
     });
 
