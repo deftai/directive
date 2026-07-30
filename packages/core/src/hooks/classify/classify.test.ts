@@ -62,7 +62,7 @@ describe("classifyHookPayload (pure, #2950)", () => {
   });
 });
 
-describe("shared fixture corpus (#2950 Phase A)", () => {
+describe("shared fixture corpus (#2950 Phase B)", () => {
   it("includes Cursor × win32/posix × Write/ApplyPatch/Task coverage", () => {
     const need = [
       ["cursor", "posix", "Write"],
@@ -79,7 +79,7 @@ describe("shared fixture corpus (#2950 Phase A)", () => {
   });
 
   it("every fixture case matches pure classify (and stdin parse when raw)", () => {
-    expect(HOOK_FIXTURE_CASES.length).toBeGreaterThanOrEqual(12);
+    expect(HOOK_FIXTURE_CASES.length).toBeGreaterThanOrEqual(24);
 
     for (const c of HOOK_FIXTURE_CASES) {
       let payload = c.payload;

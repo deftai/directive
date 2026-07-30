@@ -1,8 +1,8 @@
 /**
- * Shared host × OS × tool fixture corpus skeleton (#2950 Phase A).
+ * Shared host × OS × tool fixture corpus (#2950 Phase A skeleton, Phase B matrix expansion).
  *
  * Cases are pure data: raw stdin or structured payload → expected classification.
- * Core tests import this module; CLI may re-use the same cases later (Phase C).
+ * Core tests and CLI hook-dispatch tests import this module (shared corpus collapse).
  */
 
 import type { ClassifyHookHost, HookWriteIntent } from "../classify/types.js";
@@ -49,9 +49,26 @@ const freeFormUpdateWin32 = [
   "*** End Patch",
 ].join("\n");
 
+const freeFormUpdatePosix = [
+  "*** Begin Patch",
+  "*** Update File: src/example.ts",
+  "@@",
+  "-old",
+  "+new",
+  "*** End Patch",
+].join("\n");
+
+const freeFormAddWin32 = [
+  "*** Begin Patch",
+  "*** Add File: xbrief\\proposed\\_probe-win32.txt",
+  "+probe",
+  "*** End Patch",
+].join("\n");
+
 /**
- * Phase A skeleton: Cursor × {win32, posix} × {Write, ApplyPatch, Task}
+ * Cursor × {win32, posix} × {Write, ApplyPatch, Task, StrReplace}
  * plus recent regression classes (BOM, free-form, missing tool name, outside-root).
+ * Phase B expands Write/ApplyPatch depth and shares this corpus with CLI tests.
  */
 export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
   // --- Cursor × posix × Write ---
@@ -106,6 +123,58 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
       writeIntent: "direct-write",
       writeTargetPath: "/home/user/.claude/projects/slug/memory/note.md",
     },
+  },
+  {
+    id: "cursor-posix-write-filePath-camel",
+    host: "cursor",
+    os: "posix",
+    tool: "Write",
+    regression: ["#2625", "#2950"],
+    payload: {
+      tool_name: "Write",
+      tool_input: { content: "body", filePath: "docs/note.md" },
+      cwd: "/project",
+    },
+    expected: {
+      toolName: "Write",
+      writeIntent: "direct-write",
+      writeTargetPath: "docs/note.md",
+    },
+    notes: "camelCase filePath spelling on tool_input",
+  },
+  {
+    id: "cursor-posix-write-text-field-infer",
+    host: "cursor",
+    os: "posix",
+    tool: "Write",
+    regression: ["#2628", "#2669"],
+    payload: {
+      tool_input: { text: "hello", path: "scratch/out.txt" },
+    },
+    expected: {
+      toolName: "Write",
+      writeIntent: "direct-write",
+      writeTargetPath: "scratch/out.txt",
+    },
+    notes: "Cursor omits tool_name; infer Write from text+path",
+  },
+  {
+    id: "cursor-posix-write-edit-alias",
+    host: "cursor",
+    os: "posix",
+    tool: "Write",
+    regression: ["#2669", "#2950"],
+    payload: {
+      tool_name: "Edit",
+      tool_input: { path: "src/legacy.ts", contents: "x" },
+      cwd: "/project",
+    },
+    expected: {
+      toolName: "Edit",
+      writeIntent: "direct-write",
+      writeTargetPath: "src/legacy.ts",
+    },
+    notes: "Edit is a direct-write host spelling (Cursor maps Claude Edit → Write)",
   },
 
   // --- Cursor × win32 × Write ---
@@ -167,6 +236,68 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
       parseFailed: false,
     },
   },
+  {
+    id: "cursor-win32-write-mixed-separators",
+    host: "cursor",
+    os: "win32",
+    tool: "Write",
+    regression: ["#2787", "#2950"],
+    payload: {
+      tool_name: "Write",
+      tool_input: {
+        content: "x",
+        file_path: "C:/Repos/deft/statusreport/src/b.ts",
+      },
+      workspace_roots: ["C:\\Repos\\deft\\statusreport"],
+    },
+    expected: {
+      toolName: "Write",
+      writeIntent: "direct-write",
+      writeTargetPath: "C:/Repos/deft/statusreport/src/b.ts",
+    },
+    notes: "Forward-slash Windows path kept raw at classify layer",
+  },
+  {
+    id: "cursor-win32-write-infer-content",
+    host: "cursor",
+    os: "win32",
+    tool: "Write",
+    regression: ["#2628", "#2669"],
+    payload: {
+      tool_input: {
+        content: "x",
+        file_path: "C:\\Repos\\proj\\notes.md",
+      },
+      workspace_roots: ["C:\\Repos\\proj"],
+    },
+    expected: {
+      toolName: "Write",
+      writeIntent: "direct-write",
+      writeTargetPath: "C:\\Repos\\proj\\notes.md",
+    },
+    notes: "Cursor omits tool_name; infer Write from content+file_path",
+  },
+  {
+    id: "cursor-win32-write-doubled-drive-raw",
+    host: "cursor",
+    os: "win32",
+    tool: "Write",
+    regression: ["#2787", "#2764"],
+    payload: {
+      tool_name: "Write",
+      tool_input: {
+        content: "x",
+        file_path: "C:\\c:\\Repos\\deft\\statusreport\\src\\a.ts",
+      },
+      workspace_roots: ["C:\\Repos\\deft\\statusreport"],
+    },
+    expected: {
+      toolName: "Write",
+      writeIntent: "direct-write",
+      writeTargetPath: "C:\\c:\\Repos\\deft\\statusreport\\src\\a.ts",
+    },
+    notes: "Doubled-drive prefix stays raw here; normalizeHookProjectRoot is dispatcher-owned",
+  },
 
   // --- Cursor × posix × ApplyPatch ---
   {
@@ -217,6 +348,54 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
       writeTargetPath: "src/a.ts",
     },
   },
+  {
+    id: "cursor-posix-applypatch-freeform-update",
+    host: "cursor",
+    os: "posix",
+    tool: "ApplyPatch",
+    regression: ["#2738", "#2950"],
+    raw: freeFormUpdatePosix,
+    expected: {
+      toolName: "ApplyPatch",
+      writeIntent: "direct-write",
+      writeTargetPath: "src/example.ts",
+      parseFailed: false,
+    },
+  },
+  {
+    id: "cursor-posix-applypatch-unified-diff-key",
+    host: "cursor",
+    os: "posix",
+    tool: "ApplyPatch",
+    regression: ["#2669", "#2950"],
+    payload: {
+      tool_input: {
+        path: "lib/b.ts",
+        unified_diff: "*** Begin Patch\n*** Update File: lib/b.ts\n*** End Patch",
+      },
+    },
+    expected: {
+      toolName: "ApplyPatch",
+      writeIntent: "direct-write",
+      writeTargetPath: "lib/b.ts",
+    },
+    notes: "Cursor omits tool_name; infer ApplyPatch from unified_diff",
+  },
+  {
+    id: "cursor-posix-applypatch-delete-only-fail-closed",
+    host: "cursor",
+    os: "posix",
+    tool: "ApplyPatch",
+    regression: ["#2738"],
+    raw: ["*** Begin Patch", "*** Delete File: src/a.ts", "*** End Patch"].join("\n"),
+    expected: {
+      toolName: null,
+      writeIntent: "unknown",
+      writeTargetPath: null,
+      parseFailed: true,
+    },
+    notes: "Delete-only free-form is fail-closed at parse (no synthesize)",
+  },
 
   // --- Cursor × win32 × ApplyPatch ---
   {
@@ -251,6 +430,60 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
       writeIntent: "direct-write",
       writeTargetPath: "src\\example.ts",
       parseFailed: false,
+    },
+  },
+  {
+    id: "cursor-win32-applypatch-freeform-add",
+    host: "cursor",
+    os: "win32",
+    tool: "ApplyPatch",
+    regression: ["#2738", "#2950"],
+    raw: freeFormAddWin32,
+    expected: {
+      toolName: "ApplyPatch",
+      writeIntent: "direct-write",
+      writeTargetPath: "xbrief\\proposed\\_probe-win32.txt",
+      parseFailed: false,
+    },
+  },
+  {
+    id: "cursor-win32-applypatch-infer-from-patch",
+    host: "cursor",
+    os: "win32",
+    tool: "ApplyPatch",
+    regression: ["#2669", "#2950"],
+    payload: {
+      tool_input: {
+        path: "C:\\Repos\\proj\\src\\patch-me.ts",
+        patch: "diff",
+      },
+      workspace_roots: ["C:\\Repos\\proj"],
+    },
+    expected: {
+      toolName: "ApplyPatch",
+      writeIntent: "direct-write",
+      writeTargetPath: "C:\\Repos\\proj\\src\\patch-me.ts",
+    },
+  },
+  {
+    id: "cursor-win32-applypatch-multifile-fail-closed",
+    host: "cursor",
+    os: "win32",
+    tool: "ApplyPatch",
+    regression: ["#2738"],
+    raw: [
+      "*** Begin Patch",
+      "*** Add File: a.txt",
+      "+a",
+      "*** Add File: b.txt",
+      "+b",
+      "*** End Patch",
+    ].join("\n"),
+    expected: {
+      toolName: null,
+      writeIntent: "unknown",
+      writeTargetPath: null,
+      parseFailed: true,
     },
   },
 
@@ -289,6 +522,48 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
       toolName: "Task",
       writeIntent: "spawn",
       writeTargetPath: null,
+    },
+  },
+
+  // --- Cursor × posix/win32 × StrReplace (direct-write family) ---
+  {
+    id: "cursor-posix-strreplace-infer",
+    host: "cursor",
+    os: "posix",
+    tool: "StrReplace",
+    regression: ["#2628", "#2669", "#2950"],
+    payload: {
+      tool_input: {
+        path: "src/edit-me.ts",
+        old_string: "a",
+        new_string: "b",
+      },
+    },
+    expected: {
+      toolName: "StrReplace",
+      writeIntent: "direct-write",
+      writeTargetPath: "src/edit-me.ts",
+    },
+  },
+  {
+    id: "cursor-win32-strreplace-structured",
+    host: "cursor",
+    os: "win32",
+    tool: "StrReplace",
+    regression: ["#2628", "#2950"],
+    payload: {
+      tool_name: "StrReplace",
+      tool_input: {
+        file_path: "C:\\Repos\\proj\\src\\edit-me.ts",
+        old_string: "a",
+        new_string: "b",
+      },
+      workspace_roots: ["C:\\Repos\\proj"],
+    },
+    expected: {
+      toolName: "StrReplace",
+      writeIntent: "direct-write",
+      writeTargetPath: "C:\\Repos\\proj\\src\\edit-me.ts",
     },
   },
 
@@ -354,4 +629,9 @@ export function fixtureCasesFor(filter: {
     if (filter.tool !== undefined && c.tool !== filter.tool) return false;
     return true;
   });
+}
+
+/** Look up a single case by stable id (CLI/core shared helpers). */
+export function fixtureCaseById(id: string): HookFixtureCase | undefined {
+  return HOOK_FIXTURE_CASES.find((c) => c.id === id);
 }
