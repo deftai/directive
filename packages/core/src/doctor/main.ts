@@ -2,6 +2,8 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import { contentRoot } from "../content-root.js";
+import { VBRIEF_VERSION } from "@deftai/directive-types";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import {
   detectNoDeftDirective,
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
@@ -23,9 +25,11 @@ import {
   reconcileVersions,
   plan as resolvePlan,
 } from "../resolution/index.js";
+import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
+import { readDeclaredArtifactVersion } from "../xbrief-migrate/transforms.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { runChecks } from "./checks.js";
 import {
@@ -70,6 +74,9 @@ import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
 import { defaultWhich } from "./which.js";
 
 const DEFAULT_RESOLUTION_PLATFORMS = ["linux", "darwin", "win32"] as const;
+
+/** Next-action command for project-envelope behind-major (#2971). */
+const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief";
 
 /**
  * Read the `packageManager` field (Corepack) from a project package.json, or
@@ -420,6 +427,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   sink.info("Checking gates-surface readiness (Taskfile include for deep-think agent gates)...");
   runTaskfileIncludeCheck(projectRoot, fixMode, jsonMode, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking xBRIEF project envelope version...");
+  runXbriefEnvelopeVersionCheck(projectRoot, sink, addFinding, seams);
 
   let resolution: ResolutionSummary | null = null;
   if (!runningInsideDeftRepo(projectRoot, seams)) {
@@ -911,6 +924,185 @@ function runTaskfileIncludeCheck(
     check: "taskfile-include",
     file: taskfilePath,
     suggestion: GATES_SURFACE_DEFT_REMEDIATION,
+  });
+}
+
+/**
+ * Fail closed when PROJECT-DEFINITION under an xbrief/ layout still declares
+ * envelope 0.6 while the framework schema is 0.8 (#2971). Greenfield (no
+ * project definition yet) and current 0.8 envelopes pass. Unreadable paths
+ * (test seams / permission) skip rather than false-positive fail. Behind-major
+ * records `deft migrate:xbrief` as the next action — layout rename alone is not
+ * enough. Distinct from deposited-schema (`stale-xbrief-schema-deposit`) which
+ * must NOT route to migrate:xbrief when only framework schema files are stale.
+ */
+export function runXbriefEnvelopeVersionCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): void {
+  const checkName = "xbrief-envelope-version";
+  const isFile = seams.isFile ?? ((p: string) => existsSync(p));
+  const readText = seams.readText ?? readTextSafe;
+  const targetVersion = VBRIEF_VERSION;
+
+  if (seams.probeXbriefEnvelope) {
+    const probe = seams.probeXbriefEnvelope(projectRoot);
+    emitXbriefEnvelopeFinding(checkName, probe, sink, addFinding);
+    return;
+  }
+
+  let definitionPath: string;
+  try {
+    definitionPath = resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    // Pure vbrief/-only trees are already covered by layout migrate signposts.
+    const skipMessage = `${checkName}: skip -- legacy-only layout (use layout migrate first)`;
+    sink.info(skipMessage);
+    addFinding({
+      severity: "skip",
+      message: skipMessage,
+      check: checkName,
+      status: "skip",
+      reason: "legacy-only-layout",
+    });
+    return;
+  }
+
+  if (!isFile(definitionPath)) {
+    const skipMessage = `${checkName}: skip -- no PROJECT-DEFINITION yet (greenfield)`;
+    sink.info(skipMessage);
+    addFinding({
+      severity: "skip",
+      message: skipMessage,
+      check: checkName,
+      status: "skip",
+      reason: "no-project-definition",
+    });
+    return;
+  }
+
+  const text = readText(definitionPath);
+  if (text === null) {
+    // Unreadable path (permissions or injectable seams) is not proof of 0.6.
+    const skipMessage = `${checkName}: skip -- PROJECT-DEFINITION unreadable`;
+    sink.info(skipMessage);
+    addFinding({
+      severity: "skip",
+      message: skipMessage,
+      check: checkName,
+      status: "skip",
+      reason: "unreadable",
+    });
+    return;
+  }
+
+  let declaredVersion: string | null = null;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      declaredVersion = readDeclaredArtifactVersion(parsed as Record<string, unknown>);
+    } else {
+      const skipMessage = `${checkName}: skip -- PROJECT-DEFINITION is not a JSON object`;
+      sink.info(skipMessage);
+      addFinding({
+        severity: "skip",
+        message: skipMessage,
+        check: checkName,
+        status: "skip",
+        reason: "invalid-json-shape",
+      });
+      return;
+    }
+  } catch {
+    const skipMessage = `${checkName}: skip -- PROJECT-DEFINITION JSON parse failed`;
+    sink.info(skipMessage);
+    addFinding({
+      severity: "skip",
+      message: skipMessage,
+      check: checkName,
+      status: "skip",
+      reason: "parse-error",
+    });
+    return;
+  }
+
+  const distance = classifyXbriefSchemaDistance(declaredVersion, targetVersion);
+  emitXbriefEnvelopeFinding(
+    checkName,
+    {
+      declaredVersion,
+      targetVersion,
+      distance,
+      stale: distance !== "current",
+    },
+    sink,
+    addFinding,
+  );
+}
+
+function emitXbriefEnvelopeFinding(
+  checkName: string,
+  probe: {
+    readonly declaredVersion: string | null;
+    readonly targetVersion: string;
+    readonly distance: "current" | "behind-minor" | "behind-major";
+    readonly stale: boolean;
+  },
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+): void {
+  if (probe.distance === "current") {
+    const okMessage =
+      `${checkName}: current -- xBRIEFInfo@${probe.declaredVersion ?? probe.targetVersion} ` +
+      `(framework ${probe.targetVersion})`;
+    sink.success(okMessage);
+    addFinding({
+      severity: "skip",
+      message: okMessage,
+      check: checkName,
+      status: "current",
+      declared_version: probe.declaredVersion,
+      target_version: probe.targetVersion,
+    });
+    return;
+  }
+
+  if (probe.distance === "behind-minor") {
+    const warnMessage =
+      `${checkName}: behind-minor -- declared ${probe.declaredVersion ?? "unknown"}, ` +
+      `framework ${probe.targetVersion}. Prefer \`deft migrate:xbrief\` when convenient.`;
+    sink.warn(warnMessage);
+    addFinding({
+      severity: "warning",
+      message: warnMessage,
+      check: checkName,
+      status: "behind-minor",
+      suggestion: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+      declared_version: probe.declaredVersion,
+      target_version: probe.targetVersion,
+      next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+    });
+    return;
+  }
+
+  // behind-major (declared 0.6 vs framework 0.8, dual half-state, missing version)
+  const nextCommand = XBRIEF_ENVELOPE_MIGRATE_COMMAND;
+  const message =
+    `${checkName}: behind-major -- declared ${probe.declaredVersion ?? "unknown"}, ` +
+    `framework ${probe.targetVersion}. Next action: run \`${nextCommand}\` to bump project ` +
+    `JSON envelopes to xBRIEFInfo@${probe.targetVersion} (layout rename alone is not enough).`;
+  sink.error(message);
+  addFinding({
+    severity: "error",
+    message,
+    check: checkName,
+    status: "behind-major",
+    suggestion: nextCommand,
+    declared_version: probe.declaredVersion,
+    target_version: probe.targetVersion,
+    next_command: nextCommand,
   });
 }
 

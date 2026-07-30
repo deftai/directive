@@ -458,12 +458,12 @@ omit = [
 
 ### Template
 
-! The output MUST conform to the canonical xBRIEF v0.6 schema (`xbrief/schemas/xbrief-core.schema.json`, strict `const: "0.6"`). See [`../../conventions/references.md`](../../conventions/references.md).
+! The output MUST conform to the canonical xBRIEF v0.8 schema (`xbrief/schemas/xbrief-core-0.8.schema.json`, strict `const: "0.8"`). See [`../../conventions/references.md`](../../conventions/references.md). Write-path default is **0.8 only** (#2971); legacy 0.6 remains read-accepted until `deft migrate:xbrief`.
 
 ```json
 {
   "xBRIEFInfo": {
-    "version": "0.6",
+    "version": "0.8",
     "author": "agent:deft-directive-setup",
     "description": "Project identity gestalt",
     "created": "{ISO-8601 timestamp}"
@@ -611,12 +611,12 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Output — Light Path
 
-1. ! Write `./xbrief/specification.xbrief.json` with `"xBRIEFInfo": { "version": "0.6" }`, `status: draft`, and slim narratives:
+1. ! Write `./xbrief/specification.xbrief.json` with `"xBRIEFInfo": { "version": "0.8" }`, `status: draft`, and slim narratives:
    - `Overview`: Brief project summary
    - `Architecture`: System design description
 2. ! Create scope xBRIEFs in `./xbrief/proposed/` for each identified work item
    - Each scope xBRIEF follows the `YYYY-MM-DD-descriptive-slug.xbrief.json` filename convention (slug rules in [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
-   - Each MUST use `"xBRIEFInfo": { "version": "0.6" }`
+   - Each MUST use `"xBRIEFInfo": { "version": "0.8" }`
    - Each MUST include embedded Requirements (FR-N, NFR-N) in its `narrative`
    - Each task SHOULD reference which FR/NFR it implements via `narrative.Traces`
    - When the scope originates from a GitHub issue, include a `references` entry in the canonical form (see [`../../conventions/references.md`](../../conventions/references.md)):
@@ -634,15 +634,16 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Create a separate PRD.md on the Light path
 - ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
-! The xBRIEF files MUST conform to `xbrief/schemas/xbrief-core.schema.json` (v0.6):
+! The xBRIEF files MUST conform to `xbrief/schemas/xbrief-core-0.8.schema.json` (v0.8):
 
 - ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
-- ! Nested children within a PlanItem use `items` (v0.6 preferred field); `subItems` is the deprecated legacy alias kept for backward compatibility only
+- ! Nested children within a PlanItem use `items` (preferred field); `subItems` is the deprecated legacy alias kept for backward compatibility only
 - ⊗ Mix `items` and `subItems` on the same PlanItem — pick one (prefer `items`)
+- ⊗ Emit `"version": "0.6"` on any new write path — current engine write-default is `0.8` only (#2971)
 
 ### Output — Full Path
 
-1. ! Write rich narratives to `./xbrief/specification.xbrief.json` with `"xBRIEFInfo": { "version": "0.6" }`, `plan.status: draft`, and these narrative keys:
+1. ! Write rich narratives to `./xbrief/specification.xbrief.json` with `"xBRIEFInfo": { "version": "0.8" }`, `plan.status: draft`, and these narrative keys:
    - `ProblemStatement`: What problem this project solves
    - `Goals`: High-level project goals
    - `UserStories`: User stories in standard format

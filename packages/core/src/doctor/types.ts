@@ -159,4 +159,15 @@ export interface DoctorSeams {
   readonly evaluateAgentHooks?: (projectRoot: string) => AgentHookHealthResult;
   /** Live hook spawn probe for doctor --full (#2852). */
   readonly probeAgentHooksLive?: (projectRoot: string) => AgentHookLiveProbeResult;
+  /**
+   * xBRIEF project-envelope staleness probe (#2971). Injected so doctor can
+   * fail closed on 0.6 project JSON under an xbrief/ layout without re-deriving
+   * the shared `probeXbriefStaleness` path in tests.
+   */
+  readonly probeXbriefEnvelope?: (projectRoot: string) => {
+    readonly declaredVersion: string | null;
+    readonly targetVersion: string;
+    readonly distance: "current" | "behind-minor" | "behind-major";
+    readonly stale: boolean;
+  };
 }

@@ -1,0 +1,104 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Interview/setup/templates still model 0.6; init deposits 0.8 schema without upgrading existing project JSON. Make write-path 0.8-only; dogfood PROJECT-DEFINITION; doctor/init next-action for envelope upgrade. Does not re-implement #2970 transform — depends on hybrid migrate if needed. Closes #2971 when write defaults + init path + dogfood converge.",
+    "created": "2026-07-30T19:03:21.400Z",
+    "updated": "2026-07-30T19:05:41.298Z"
+  },
+  "plan": {
+    "id": "2026-07-30-2971-emit-xbrief-08-default",
+    "title": "fix(setup,xbrief): emit/write xBRIEF 0.8 by default; init path for existing docs",
+    "status": "running",
+    "narratives": {
+      "Description": "Interview/setup/templates still model 0.6; init deposits 0.8 schema without upgrading existing project JSON. Make write-path 0.8-only; dogfood PROJECT-DEFINITION; doctor/init next-action for envelope upgrade. Does not re-implement #2970 transform — depends on hybrid migrate if needed. Closes #2971 when write defaults + init path + dogfood converge.",
+      "Overview": "Write-default still 0.6 while schema const is 0.8.",
+      "Origin": "https://github.com/deftai/directive/issues/2971",
+      "UserStory": "As a new Directive consumer, I want init and templates to write xBRIEFInfo version 0.8, so that the first doctor session does not report behind-major against schema 0.8.",
+      "ImplementationPlan": "Step 1: Update content/templates/project.md.template and setup skill samples so copy sources emit xBRIEFInfo 0.8. Step 2: Ensure packages/cli/src/init-cli writers stamp 0.8. Step 3: packages/core/src/doctor/main.ts surfaces migrate:xbrief next action for 0.6 docs. Step 4: Convert xbrief/PROJECT-DEFINITION.xbrief.json dogfood to xBRIEFInfo@0.8. Verify with vitest doctor tests. drive-to: merge-ready. Closes #2971. CHANGELOG.md may be edited last with unique Unreleased bullets (shared non-exclusive).",
+      "Labels": "bug, setup, xbrief",
+      "Traces": "Closes #2971; coordinates #2970"
+    },
+    "items": [
+      {
+        "title": "Templates stamp 0.8",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an agent copies content/templates project template text, the sample JSON emits xBRIEFInfo.version 0.8 not 0.6."
+        }
+      },
+      {
+        "title": "Init path stamps 0.8",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When init creates project xBRIEF JSON via packages/cli/src/init-cli, the written file returns xBRIEFInfo.version 0.8."
+        }
+      },
+      {
+        "title": "Doctor next action",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project JSON at 0.6 under xbrief layout, doctor fails closed with a message that records migrate:xbrief as the next action."
+        }
+      },
+      {
+        "title": "Dogfood converges",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When dogfood PROJECT-DEFINITION is opened, it returns a single xBRIEFInfo.version 0.8 without dual vBRIEFInfo half-state."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "setup",
+      "xbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2971",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2970",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2971",
+        "decomposition_origin": "#2971"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/project.md.template",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/cli/src/init-cli/migrate.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/types.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor"
+        ],
+        "expected_outputs": [
+          "Templates stamp 0.8",
+          "Init path stamps 0.8",
+          "Doctor next action",
+          "Dogfood converges"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2971",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "bug-fix"
+    },
+    "updated": "2026-07-30T19:05:41.298Z"
+  }
+}

@@ -39,6 +39,12 @@ cp secrets/[example].example secrets/[example]  # [Description]
 - **API**: [api.md](./docs/api.md)
 - **Deployment**: [deployment.md](./docs/deployment.md)
 
+## xBRIEF envelope (#2971)
+
+<!-- Copy sources for project identity / scope JSON must write 0.8 only. -->
+- ! New `xbrief/*.xbrief.json` MUST use `"xBRIEFInfo": { "version": "0.8" }` (schema const)
+- ⊗ Emit `"version": "0.6"` on any new write path — run `deft migrate:xbrief` for existing 0.6 docs
+
 ## Branching
 
 <!-- Uncomment the line below to allow direct commits to master (trunk-based workflow). -->

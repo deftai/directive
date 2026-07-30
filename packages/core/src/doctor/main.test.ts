@@ -12,6 +12,7 @@ import {
   resolveReconciliationLine,
   resolveTaskfileWiring,
   runResolutionDecision,
+  runXbriefEnvelopeVersionCheck,
 } from "./main.js";
 import { createPlainSink } from "./output.js";
 import type { DoctorSeams, Finding } from "./types.js";
@@ -486,6 +487,95 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(summary.mode).toBe("update");
     expect(summary.nextCommand).toBe("npx @deftai/directive update");
     expect(summary.reconciliation).toContain("ahead");
+  });
+});
+
+describe("xbrief envelope version check (#2971)", () => {
+  function writeProjectDefinition(
+    root: string,
+    envelope: Record<string, unknown>,
+  ): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(envelope),
+      "utf8",
+    );
+  }
+
+  function runEnvelope(
+    root: string,
+    seams: DoctorSeams = {},
+  ): { findings: Finding[]; text: string } {
+    const lines: string[] = [];
+    const sink = createPlainSink({ write: (t) => lines.push(t) });
+    const findings: Finding[] = [];
+    runXbriefEnvelopeVersionCheck(root, sink, (f) => findings.push(f), seams);
+    return { findings, text: lines.join("") };
+  }
+
+  it("skips greenfield when PROJECT-DEFINITION is absent", () => {
+    const root = makeRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const { findings, text } = runEnvelope(root);
+    expect(findings[0]?.severity).toBe("skip");
+    expect(findings[0]?.status).toBe("skip");
+    expect(text).toContain("no PROJECT-DEFINITION");
+  });
+
+  it("passes for single xBRIEFInfo@0.8", () => {
+    const root = makeRoot();
+    writeProjectDefinition(root, {
+      xBRIEFInfo: { version: "0.8", description: "current" },
+      plan: { title: "t", status: "running", narratives: {}, items: [] },
+    });
+    const { findings, text } = runEnvelope(root);
+    expect(findings[0]?.status).toBe("current");
+    expect(text).toContain("xBRIEFInfo@0.8");
+  });
+
+  it("fails closed on 0.6 under xbrief layout with migrate:xbrief next action", () => {
+    const root = makeRoot();
+    writeProjectDefinition(root, {
+      xBRIEFInfo: { version: "0.6", description: "stale write-path" },
+      plan: { title: "t", status: "running", narratives: {}, items: [] },
+    });
+    const { findings, text } = runEnvelope(root);
+    expect(findings[0]?.severity).toBe("error");
+    expect(findings[0]?.status).toBe("behind-major");
+    expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
+    expect(findings[0]?.suggestion).toBe("deft migrate:xbrief");
+    expect(text).toContain("migrate:xbrief");
+    expect(text).toContain("behind-major");
+  });
+
+  it("fails closed on dual vBRIEFInfo@0.6 + half xBRIEFInfo state", () => {
+    const root = makeRoot();
+    writeProjectDefinition(root, {
+      vBRIEFInfo: { version: "0.6", description: "dogfood half-state" },
+      xBRIEFInfo: { updated: "2026-07-24T16:05:43Z" },
+      plan: { title: "t", status: "running", narratives: {}, items: [] },
+    });
+    const { findings } = runEnvelope(root);
+    expect(findings[0]?.severity).toBe("error");
+    expect(findings[0]?.status).toBe("behind-major");
+    expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
+  });
+
+  it("cmdDoctor exits non-zero when project JSON is behind-major", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    writeProjectDefinition(root, {
+      vBRIEFInfo: { version: "0.6" },
+      plan: { title: "t", status: "running", narratives: {}, items: [] },
+    });
+    const exit = cmdDoctor(["--full", "--json", "--project-root", root], {
+      whichFn: () => "/usr/bin/x",
+      engineProbe: engineAt("0.68.0"),
+      writeState: () => null,
+    });
+    expect(exit).toBe(1);
   });
 });
 
