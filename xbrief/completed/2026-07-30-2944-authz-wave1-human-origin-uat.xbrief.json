@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope: Wave 1 human-origin approval provenance + UAT mutation lease (#2944)",
-    "updated": "2026-07-30T05:00:00Z"
+    "updated": "2026-07-30T19:17:42Z"
   },
   "plan": {
     "title": "bug(authz): self-authored consent tokens and active UAT runs do not prevent unauthorized mutation",
-    "status": "running",
-    "updated": "2026-07-30T05:00:00Z",
+    "status": "completed",
+    "updated": "2026-07-30T19:17:42Z",
     "id": "2026-07-30-2944-authz-wave1-human-origin-uat",
     "narratives": {
       "Description": "Wave 1 of epic #2948: human-origin approval grants agents cannot self-mint via lifecycle/dispatch, fail-closed UAT mutation lease, structural binding to plan/surfaces/ops, denials+audit, regression that first unauthorized edit is blocked. Compose with runtimeAuthority (#2711); stay out of #1193/#1095 full scopes.",
@@ -19,34 +19,39 @@
     "items": [
       {
         "title": "Human-origin grant model + reject self-authored evidence",
-        "status": "running",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Agent cannot satisfy implement gates with only xBRIEF/lifecycle/dispatch tokens"
         }
       },
       {
         "title": "Fail-closed UAT mutation lease",
-        "status": "running",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Active UAT denies product edit/push/PR/merge without named fix cohort; test/issue OK"
         }
       },
       {
         "title": "Dispatcher enforcement + audit + regression",
-        "status": "running",
+        "status": "completed",
         "narrative": {
           "Acceptance": "First unauthorized edit blocked; audit records humanApprovalRef/scope/op/result"
         }
       },
       {
         "title": "CLI docs CHANGELOG #2944",
-        "status": "running",
+        "status": "completed",
         "narrative": {
           "Acceptance": "authz:* CLI + human-origin-authz.md + CHANGELOG cite #2944"
         }
       }
     ],
-    "tags": ["bug", "authz", "harness", "agent-experience"],
+    "tags": [
+      "bug",
+      "authz",
+      "harness",
+      "agent-experience"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/2944",
@@ -88,7 +93,8 @@
         "size": "M",
         "file_scope_confidence": "high"
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-07-30T19:17:42Z"
     }
   }
 }

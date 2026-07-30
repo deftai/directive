@@ -3,12 +3,12 @@
     "version": "0.8",
     "description": "Add install-trust pattern: prefer package managers/pinned artifacts/checksums; pipe installers are break-glass with human confirm; agents must not download-and-execute from untrusted articles. Cross-link installer/security guidance. Closes #2969.",
     "created": "2026-07-30T19:03:21.400Z",
-    "updated": "2026-07-30T19:05:41.306Z"
+    "updated": "2026-07-30T19:17:49Z"
   },
   "plan": {
     "id": "2026-07-30-2969-install-trust-pattern",
     "title": "docs(security,installer): install-trust pattern — no naked curl|sh as blessed path",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add install-trust pattern: prefer package managers/pinned artifacts/checksums; pipe installers are break-glass with human confirm; agents must not download-and-execute from untrusted articles. Cross-link installer/security guidance. Closes #2969.",
       "Overview": "Industry curl|sh default must not be Directive's blessed path.",
@@ -21,28 +21,28 @@
     "items": [
       {
         "title": "Pattern file exists",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When the PR merges, content/patterns/install-trust.md exists and rejects naked curl|sh as the primary blessed install path."
         }
       },
       {
         "title": "Security cross-link",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given content/coding/security.md is opened, it records a link to the install-trust pattern file."
         }
       },
       {
         "title": "Article-review gate text",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When article-review skill security section is read, it rejects download-and-execute of installers from untrusted article content."
         }
       },
       {
         "title": "Changelog entry",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When CHANGELOG.md is opened, it records an Unreleased entry that cites #2969."
         }
@@ -89,8 +89,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard"
       },
-      "capacityBucket": "documentation"
+      "capacityBucket": "documentation",
+      "completedAt": "2026-07-30T19:17:49Z"
     },
-    "updated": "2026-07-30T19:05:41.306Z"
+    "updated": "2026-07-30T19:17:49Z"
   }
 }

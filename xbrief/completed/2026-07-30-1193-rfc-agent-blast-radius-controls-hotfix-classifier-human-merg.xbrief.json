@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 2 of #2948: intent ceiling — slash-command containment, hotfix classifier, human merge gate (#1193)",
-    "updated": "2026-07-30T14:43:06Z"
+    "updated": "2026-07-30T19:17:40Z"
   },
   "plan": {
     "title": "feat(authz): agent blast-radius controls — intent ceiling (Wave 2 / #1193)",
-    "status": "running",
-    "updated": "2026-07-30T14:43:06Z",
+    "status": "completed",
+    "updated": "2026-07-30T19:17:40Z",
     "id": "2026-07-30-1193-wave2-intent-ceiling",
     "narratives": {
       "Description": "Wave 2 of epic #2948. Implement R1 slash-command intent containment, R2 typed hotfixCriteria classifier, R3 requireHumanMerge human merge gate. Do not absorb UAT/provenance (#2944 Wave 1, already shipped). Parent program #2948.",
@@ -21,35 +21,35 @@
     "items": [
       {
         "title": "Typed policy fields hotfixCriteria + requireHumanMerge",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a PROJECT-DEFINITION policy object, loaders return typed hotfixCriteria and requireHumanMerge and validate their shapes."
         }
       },
       {
         "title": "R1 slash-command intent containment",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When a session inherits a non-implement slash verb, the intent gate blocks implement push PR merge and deploy tool authorization."
         }
       },
       {
         "title": "R2 hotfix classifier (typed predicates)",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "evaluateHotfixEligibility returns eligible only for small-fix and pure-revert cases and rejects refactor large-surface and forbidden-path diffs."
         }
       },
       {
         "title": "R3 human merge gate three-surface enforcement",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When requireHumanMerge is true, agent-initiated merge fails closed and session-start emits the human-merge disclosure line."
         }
       },
       {
         "title": "Tests docs CHANGELOG #1193",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the eligibility fixture table, unit tests returns green for each row and CHANGELOG Unreleased records #1193 under Added."
         }
@@ -108,7 +108,8 @@
         "file_scope_confidence": "medium",
         "model_tier": "default"
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-07-30T19:17:40Z"
     }
   }
 }
