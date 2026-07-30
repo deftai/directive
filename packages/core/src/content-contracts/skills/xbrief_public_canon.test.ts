@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { REPO_ROOT, readRepoFile } from "./helpers.js";
@@ -43,7 +43,10 @@ function currentGuidanceVbriefHits(text: string, rel: string): string[] {
       continue;
     }
     // Schema package still lives under content/vbrief/ (historical path); links are not current product naming.
-    if (/vbrief\/vbrief\.md|content\/vbrief\/|vbrief\/schemas\//.test(line) && !/\bvbrief\/(?:proposed|pending|active)\//.test(line)) {
+    if (
+      /vbrief\/vbrief\.md|content\/vbrief\/|vbrief\/schemas\//.test(line) &&
+      !/\bvbrief\/(?:proposed|pending|active)\//.test(line)
+    ) {
       continue;
     }
     // Table header row in UPGRADING that maps Legacy → Current is OK
