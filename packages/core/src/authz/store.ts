@@ -2,9 +2,14 @@
  * Disk store for authz state + grants under `.deft/authz/` (#2944).
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedWrite,
+} from "../fs/contained-write.js";
 import { isHumanOrigin } from "./origin.js";
 import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
 import {
@@ -31,32 +36,46 @@ function record(value: unknown): Record<string, unknown> | null {
 }
 
 /**
- * Contained atomic JSON write for authz state/grants (#2980 wave B / Greptile P1).
- * Temp payload under parent dir via containedWrite, then rename onto the final path
- * so crash mid-write cannot leave a truncated final document.
+ * Contained atomic JSON write for authz state/grants (#2980 / Greptile P1).
+ * Containment root is projectRoot (not dirname(target)) so parent-symlink escape fails closed.
+ * Unique random temp names avoid PID-reuse collisions; rename is the atomic publish step.
  */
-function writeJsonContained(_projectRoot: string, targetPath: string, payload: unknown): void {
+function writeJsonContained(projectRoot: string, targetPath: string, payload: unknown): void {
+  const root = resolve(projectRoot);
   const abs = resolve(targetPath);
   const dir = dirname(abs);
-  mkdirSync(dir, { recursive: true });
-  const tmpBase = `.${basename(abs)}.${process.pid}.tmp`;
-  const tmp = join(dir, tmpBase);
-  try {
-    containedWrite({
-      root: resolve(dir),
-      target: tmpBase,
-      data: `${JSON.stringify(payload, null, 2)}\n`,
-      mode: "create",
-    });
-    renameSync(tmp, abs);
-  } catch (err) {
+  const data = `${JSON.stringify(payload, null, 2)}\n`;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const tmpBase = `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+    const tmp = join(dir, tmpBase);
     try {
-      rmSync(tmp, { force: true });
-    } catch {
-      /* best-effort cleanup */
+      containedWrite({
+        root,
+        target: tmp,
+        data,
+        mode: "create",
+      });
+      renameSync(tmp, abs);
+      return;
+    } catch (err) {
+      lastErr = err;
+      try {
+        rmSync(tmp, { force: true });
+      } catch {
+        /* best-effort cleanup */
+      }
+      if (
+        err instanceof ContainedWriteError &&
+        err.code === ContainedWriteErrorCode.EXISTS &&
+        attempt < 3
+      ) {
+        continue;
+      }
+      throw err;
     }
-    throw err;
   }
+  throw lastErr;
 }
 
 function readString(rec: Record<string, unknown>, key: string): string | null {
