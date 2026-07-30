@@ -3,12 +3,12 @@
     "version": "0.8",
     "description": "Phase A pure classifier + fixture skeleton is on master (#2957). Phase B: expand host×OS×tool matrix CI coverage, deepen core+CLI shared corpus collapse, expand decision-code documentation as stable API. Does not close epic unless full AC met.",
     "created": "2026-07-30T19:03:21.400Z",
-    "updated": "2026-07-30T19:05:41.310Z"
+    "updated": "2026-07-30T21:35:44Z"
   },
   "plan": {
     "id": "2026-07-30-2950-hooks-phase-b-matrix",
     "title": "feat(hooks): Phase B matrix CI expansion + decision-code docs (epic #2950)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Phase A pure classifier + fixture skeleton is on master (#2957). Phase B: expand host×OS×tool matrix CI coverage, deepen core+CLI shared corpus collapse, expand decision-code documentation as stable API. Does not close epic unless full AC met.",
       "Overview": "Continue TPA surprise_rework paydown after Phase A.",
@@ -92,8 +92,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard"
       },
-      "capacityBucket": "technical-debt"
+      "capacityBucket": "technical-debt",
+      "completedAt": "2026-07-30T21:35:44Z"
     },
-    "updated": "2026-07-30T19:05:41.310Z"
+    "updated": "2026-07-30T21:35:44Z"
   }
 }

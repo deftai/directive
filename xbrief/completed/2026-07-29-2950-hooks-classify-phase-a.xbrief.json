@@ -3,12 +3,12 @@
     "version": "0.8",
     "description": "Phase A of epic #2950: pure hook payload classifier extraction + host×OS×tool fixture matrix skeleton.",
     "created": "2026-07-29T12:00:00Z",
-    "updated": "2026-07-30T04:40:11Z"
+    "updated": "2026-07-30T21:35:41Z"
   },
   "plan": {
     "id": "2026-07-29-2950-hooks-classify-phase-a",
     "title": "feat(hooks): pure classifier extraction + fixture matrix skeleton (Phase A of #2950)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Extract pure parse/classify (payload → tool identity + write intent + paths, no process I/O) under packages/core/src/hooks/classify/, thin the dispatcher over it, land a Cursor×win32/posix×Write/ApplyPatch/Task fixture skeleton shared by core tests, document the coupled-surface rule, and CHANGELOG #2950. Full epic AC (CLI share, decision-code docs expansion) remains for later phases.",
       "Overview": "TPA surprise_rework cluster 4: stabilize hooks thrash triad via pure classifier + shared fixtures.",
@@ -105,8 +105,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard"
       },
-      "capacityBucket": "technical-debt"
+      "capacityBucket": "technical-debt",
+      "completedAt": "2026-07-30T21:35:41Z"
     },
-    "updated": "2026-07-30T04:40:11Z"
+    "updated": "2026-07-30T21:35:41Z"
   }
 }
