@@ -84,7 +84,45 @@ describe("authz CLI (#2944)", () => {
       return true;
     });
     expect(main(["grant", "--project-root", root])).toBe(2);
-    expect(err.join("")).toMatch(/operations/);
+    expect(err.join("")).toMatch(/operations|template/);
+  });
+
+  it("grant --template release-publish --target mints operator-cli grant", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    expect(
+      main([
+        "grant",
+        "--project-root",
+        root,
+        "--template",
+        "release-publish",
+        "--target",
+        "0.30.0",
+        "--actor",
+        "op",
+      ]),
+    ).toBe(0);
+    const joined = out.join("");
+    expect(joined).toMatch(/grant minted/);
+    expect(joined).toMatch(/template=release-publish/);
+    expect(joined).toMatch(/release-publish/);
+    expect(joined).toMatch(/Wave 1 grant store/);
+  });
+
+  it("grant --template requires --target", () => {
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(main(["grant", "--project-root", root, "--template", "release-cut"])).toBe(2);
+    expect(err.join("")).toMatch(/--target/);
   });
 
   it("help and unknown subcommand", () => {

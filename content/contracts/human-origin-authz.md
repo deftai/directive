@@ -92,7 +92,17 @@ deft authz:revoke -- grant-…
 | Shell/MCP push/merge matchers alone | #2711 |
 | Slash-command intent ceiling / human merge | #1193 |
 | Path write fence schema | #516 / #2443 |
-| AFK session-auth / release verbs | #1095 |
+| AFK session-auth / release verbs | #1095 — see `content/contracts/closed-verb-authz.md` (Wave 4; consumes these grants) |
 | HMAC / hardware-keyed grants | non-goal for MVP |
 
-Refs #2948 #2711 #1394 #1378 #2176 #2402.
+## Wave 4 consumers
+
+Release-class closed verbs (`release-cut`, `release-publish`, `release-rollback`)
+evaluate via `evaluateClosedVerb` and accept only:
+
+- `DEFT_ALLOW_<VERB>=1` ephemeral bypass, or
+- a **human-origin** grant from this store (templates: `deft authz:grant -- --template release-publish --target <ver>`)
+
+They do not mint grants of their own. Full finish-loop product remains #871 (Wave 5).
+
+Refs #2948 #2711 #1394 #1378 #2176 #2402 #1095.

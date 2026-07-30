@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "description": "Closed-verb classification for release-class AFK gates (#1095 Wave 4 / #2948). Consumed by evaluateClosedVerb; grants mint via authz:grant only.",
+  "verbs": {
+    "release-cut": {
+      "closure_set": [
+        "changelog-promote",
+        "roadmap-render",
+        "tag-create",
+        "tag-push",
+        "gh-release-create-draft"
+      ],
+      "explicit_required": ["release-publish", "release-rollback"],
+      "irreversibility": "reversible-via-release-rollback",
+      "wildcard_allowed": false,
+      "recurring_allowed": false,
+      "default_expiry": "4h",
+      "skill": "content/skills/deft-directive-release/SKILL.md",
+      "phase": "Phase 4",
+      "authz_operations": ["release-cut", "deployment"],
+      "env_bypass": "DEFT_ALLOW_RELEASE_CUT"
+    },
+    "release-publish": {
+      "closure_set": [],
+      "explicit_required": [],
+      "irreversibility": "destructive",
+      "wildcard_allowed": false,
+      "recurring_allowed": false,
+      "default_expiry": "1h",
+      "skill": "content/skills/deft-directive-release/SKILL.md",
+      "phase": "Phase 5",
+      "authz_operations": ["release-publish", "deployment"],
+      "env_bypass": "DEFT_ALLOW_RELEASE_PUBLISH"
+    },
+    "release-rollback": {
+      "closure_set": [],
+      "explicit_required": [],
+      "irreversibility": "destructive",
+      "wildcard_allowed": false,
+      "recurring_allowed": false,
+      "default_expiry": "1h",
+      "skill": "content/skills/deft-directive-release/SKILL.md",
+      "phase": "Phase 7",
+      "authz_operations": ["release-rollback", "deployment"],
+      "env_bypass": "DEFT_ALLOW_RELEASE_ROLLBACK"
+    }
+  }
+}

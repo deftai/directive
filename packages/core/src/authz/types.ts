@@ -6,7 +6,7 @@
  * Local-file forgery by a credential-compromised agent remains #983-class OOS.
  */
 
-/** Operation classes bound on a grant (Wave 1 structural binding). */
+/** Operation classes bound on a grant (Wave 1 structural binding + Wave 4 closed verbs). */
 export const AUTHZ_OPERATIONS = [
   "edit",
   "push",
@@ -15,6 +15,10 @@ export const AUTHZ_OPERATIONS = [
   "settings",
   "deployment",
   "issue_mutation",
+  /** Release-class closed verbs (#1095 Wave 4) — also satisfied by `deployment`. */
+  "release-cut",
+  "release-publish",
+  "release-rollback",
 ] as const;
 
 export type AuthzOperation = (typeof AUTHZ_OPERATIONS)[number];
@@ -107,6 +111,29 @@ export type AuthzDecisionCode =
   | "authz-grant-expired"
   | "authz-grant-revoked"
   | "authz-grant-single-use-spent";
+
+/** Structured codes for release-class closed-verb gates (#1095 Wave 4). */
+export type ClosedVerbDecisionCode =
+  | "closed-verb-allow"
+  | "closed-verb-env-bypass"
+  | "closed-verb-deny-missing"
+  | "closed-verb-deny-origin"
+  | "closed-verb-deny-scope"
+  | "closed-verb-deny-expired"
+  | "closed-verb-deny-revoked"
+  | "closed-verb-deny-spent"
+  | "closed-verb-unknown";
+
+export interface ClosedVerbDecision {
+  readonly allowed: boolean;
+  readonly code: ClosedVerbDecisionCode;
+  readonly reason: string;
+  readonly verb: string;
+  readonly target: string | null;
+  readonly humanApprovalRef: string | null;
+  readonly envBypassKey: string | null;
+  readonly skillPointer: string | null;
+}
 
 export interface AuthzDecision {
   readonly allowed: boolean;
