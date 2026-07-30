@@ -5,7 +5,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { CONTAINED_WRITES_ALLOWLIST, evaluateContainedWrites } from "./contained-writes.js";
+import {
+  CONTAINED_WRITES_ALLOWLIST,
+  evaluateContainedWrites,
+  NON_PRODUCT_HARNESS_PATH_MARKERS,
+} from "./contained-writes.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -104,5 +108,38 @@ describe("evaluateContainedWrites (#2951)", () => {
     const result = evaluateContainedWrites({ projectRoot: root, enforce: true });
     expect(result.code).toBe(1);
     expect(result.findings.length).toBeGreaterThan(0);
+  });
+
+  it("excludes release-e2e, integration-e2e, and parity-scenarios harness paths (#2980)", () => {
+    expect(NON_PRODUCT_HARNESS_PATH_MARKERS).toEqual(
+      expect.arrayContaining(["/release-e2e/", "/integration-e2e/", "parity-scenarios.ts"]),
+    );
+    const root = freshDir("cw-verify-harness-");
+    const base = join(root, "packages", "core", "src");
+    const releaseE2e = join(base, "release-e2e");
+    const integrationE2e = join(base, "integration-e2e");
+    const vbrief = join(base, "vbrief-validation");
+    const product = join(base, "product");
+    mkdirSync(releaseE2e, { recursive: true });
+    mkdirSync(integrationE2e, { recursive: true });
+    mkdirSync(vbrief, { recursive: true });
+    mkdirSync(product, { recursive: true });
+    writeFileSync(join(releaseE2e, "npm-ops.ts"), 'writeFileSync("/tmp/e2e", "x");\n', "utf8");
+    writeFileSync(join(integrationE2e, "helpers.ts"), 'writeFileSync("/tmp/ie2e", "x");\n', "utf8");
+    writeFileSync(join(vbrief, "parity-scenarios.ts"), 'writeFileSync("/tmp/parity", "x");\n', "utf8");
+    writeFileSync(join(product, "sink.ts"), 'writeFileSync("/tmp/product", "x");\n', "utf8");
+
+    const open = evaluateContainedWrites({ projectRoot: root });
+    expect(open.findings.every((f) => !f.path.includes("release-e2e"))).toBe(true);
+    expect(open.findings.every((f) => !f.path.includes("integration-e2e"))).toBe(true);
+    expect(open.findings.every((f) => !f.path.includes("parity-scenarios"))).toBe(true);
+    expect(open.findings.some((f) => f.path.includes("product/sink.ts"))).toBe(true);
+
+    const enforced = evaluateContainedWrites({ projectRoot: root, enforce: true });
+    expect(enforced.code).toBe(1);
+    expect(enforced.findings.some((f) => f.path.includes("product/sink.ts"))).toBe(true);
+    expect(enforced.findings.some((f) => f.path.includes("release-e2e"))).toBe(false);
+    expect(enforced.findings.some((f) => f.path.includes("integration-e2e"))).toBe(false);
+    expect(enforced.findings.some((f) => f.path.includes("parity-scenarios"))).toBe(false);
   });
 });

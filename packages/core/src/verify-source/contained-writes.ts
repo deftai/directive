@@ -14,7 +14,7 @@
  *   1 — findings under `--enforce` (fail-closed)
  *   2 — config error (project root missing)
  *
- * Refs #2951.
+ * Refs #2951, #2980 (e2e/parity harness exclusions).
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -65,6 +65,18 @@ const TEST_PATH_MARKERS: readonly string[] = [
   "\\fixtures\\",
 ];
 
+/**
+ * Non-product harness path markers excluded from the product inventory (#2980).
+ * Prefer exclusion over permanent CONTAINED_WRITES_ALLOWLIST entries for e2e/parity noise.
+ * Paths are matched as posix substrings after `toPosix` (always `/` separators).
+ */
+export const NON_PRODUCT_HARNESS_PATH_MARKERS: readonly string[] = [
+  "/release-e2e/",
+  "/integration-e2e/",
+  "parity-scenarios.ts",
+  "parity-scenarios.tsx",
+];
+
 export interface ContainedWriteFinding {
   readonly path: string;
   readonly line: number;
@@ -98,6 +110,11 @@ function isTestPath(relPosix: string): boolean {
   return TEST_PATH_MARKERS.some((m) => relPosix.includes(m.replace(/\\/g, "/")));
 }
 
+/** E2E / parity harness under src/ — not product sinks (#2980 scanner hygiene). */
+function isNonProductHarnessPath(relPosix: string): boolean {
+  return NON_PRODUCT_HARNESS_PATH_MARKERS.some((m) => relPosix.includes(m));
+}
+
 /** Strip trailing `/` without regex (CodeQL js/polynomial-redos safe). */
 function stripTrailingSlashes(path: string): string {
   let end = path.length;
@@ -108,7 +125,7 @@ function stripTrailingSlashes(path: string): string {
 }
 
 function isAllowlisted(relPosix: string, allow: readonly string[]): boolean {
-  if (isTestPath(relPosix)) {
+  if (isTestPath(relPosix) || isNonProductHarnessPath(relPosix)) {
     return true;
   }
   return allow.some((entry) => {
