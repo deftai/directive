@@ -1,5 +1,6 @@
 export * from "./biome-config.js";
 export * from "./code-structure-validate.js";
+export * from "./contained-writes.js";
 export * from "./content-manifest.js";
 export {
   CANONICAL_SCHEMA_REL,

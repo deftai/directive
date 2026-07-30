@@ -1,0 +1,116 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Phase 1 of epic #2951: mandatory contained-write API (TS) + tests + docs + gate skeleton",
+    "updated": "2026-07-30T04:42:18Z"
+  },
+  "plan": {
+    "title": "Phase 1: containedWrite API + tests + docs + verify skeleton (#2951)",
+    "status": "running",
+    "narratives": {
+      "Description": "Implement Phase 1 of epic #2951: a single TS containedWrite API (root, target, data, mode create|replace|append) that refuses symlink escape and out-of-root targets with stable error codes; unit tests; agent/maintainer docs; optional verify:contained-writes fail-open skeleton; migrate at least one high-risk product sink onto the API; CHANGELOG cites #2951. Does not close the full epic.",
+      "Origin": "https://github.com/deftai/directive/issues/2951",
+      "Overview": "## Parent\nEpic **#2951** — mandatory contained-write API + ban raw write sinks.\n\n## Phase 1 scope\n1. TS `containedWrite` API\n2. Unit tests for escape and symlink-outside-root\n3. Docs for agents/maintainers\n4. Optional `task verify:contained-writes` skeleton (fail-open ok if documented)\n5. Migrate ≥1 real high-risk sink onto the API if practical\n6. CHANGELOG cites #2951\n\n## Non-goals this phase\n- Mass migration of all sinks\n- Fail-closed enforcement in `task check`\n- Go installer contained-write API\n- Closing the full epic AC\n\n## Acceptance\n- [ ] `containedWrite` with stable error codes\n- [ ] Escape + symlink-outside-root tests\n- [ ] Agent/maintainer contract docs\n- [ ] verify:contained-writes skeleton (fail-open documented)\n- [ ] ≥1 product sink migrated\n- [ ] CHANGELOG + PR cites Implements Phase 1 of #2951",
+      "Labels": "security, epic-phase",
+      "UserStory": "As a maintainer, I want a single contained-write primitive so new product write sinks cannot reintroduce symlink/path-escape mediums without using the API.",
+      "ImplementationPlan": "1. Add packages/core/src/fs/contained-write.ts (+ tests) building on assertWriteTargetSafe. 2. Document contract in docs/ + CONTRIBUTING. 3. Add verify:contained-writes skeleton with allowlist start (fail-open). 4. Migrate createNoDeftDirectiveFlag (or similar AppSec-touched sink). 5. CHANGELOG Unreleased. 6. PR Implements Phase 1 of #2951; epic comment; merge; scope:complete."
+    },
+    "items": [
+      {
+        "id": "contained-write-api",
+        "title": "TS containedWrite API with stable error codes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given root/target/data/mode, when containedWrite runs, then it writes only under root and refuses symlink escape / out-of-root with machine-readable codes."
+        }
+      },
+      {
+        "id": "escape-symlink-tests",
+        "title": "Unit tests for path escape and symlink-outside-root",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given crafted targets (../ escape and symlink-to-outside-root), when tests run, then containedWrite fails closed and does not overwrite outside files."
+        }
+      },
+      {
+        "id": "agent-maintainer-docs",
+        "title": "Document contract: new sinks must use containedWrite",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given docs for agents/maintainers, when a new write sink is added, then the contract states it must use the API (not bespoke per-sink checks as the preferred fix)."
+        }
+      },
+      {
+        "id": "verify-skeleton",
+        "title": "verify:contained-writes skeleton (fail-open ok)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given task verify:contained-writes, when run, then it scans raw write sinks, reports findings, and exits 0 while fail-open (documented) until a later phase."
+        }
+      },
+      {
+        "id": "migrate-one-sink",
+        "title": "Migrate at least one high-risk product sink",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a product write sink historically near AppSec containment, when Phase 1 lands, then it calls containedWrite instead of bare writeFileSync."
+        }
+      },
+      {
+        "id": "changelog-pr",
+        "title": "CHANGELOG cites #2951; PR Implements Phase 1",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CHANGELOG Unreleased cites #2951; PR body uses Implements Phase 1 of #2951 (not Closes) unless full epic AC done."
+        }
+      }
+    ],
+    "tags": [
+      "security",
+      "epic-phase"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2951",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2951: epic(security): mandatory contained-write API + ban raw write sinks"
+      }
+    ],
+    "updated": "2026-07-30T04:42:18Z",
+    "id": "story-2951-phase1",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/fs/",
+          "packages/core/src/policy/no-deft-directive.ts",
+          "packages/core/src/verify-source/",
+          "packages/cli/src/",
+          "tasks/verify.yml",
+          "docs/",
+          "CONTRIBUTING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/fs",
+          "task check:merge"
+        ],
+        "expected_outputs": [
+          "containedWrite API",
+          "tests",
+          "docs",
+          "verify skeleton",
+          "CHANGELOG #2951 Phase 1"
+        ],
+        "depends_on": [],
+        "conflict_group": "appsec-contained-write",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Phase 1 AC defined by epic #2951 phasing section and dispatch envelope."
+      }
+    }
+  }
+}

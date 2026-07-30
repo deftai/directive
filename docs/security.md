@@ -43,6 +43,25 @@ AppSec scan tracker **#2904** flagged `deft-install` bootstrap authenticity risk
 - **Pin provenance.** Digests were captured from each GitHub release asset `digest` field at pin time and cross-checked by hashing the downloaded bytes locally before commit. Bumping a tool pin requires updating version/tag/URL and the per-arch digest map together (guarded by `TestPinnedLinuxBootstrapDigests_WellFormed` / `TestPinnedLinuxBootstrapAssets_URLAndVersionConsistent`).
 - **Residual risk / follow-ups.** Verification is SHA-256 pin only (no cosign/sigstore attestation consumed yet). Pinned releases do not auto-track upstream security patches -- freshness requires a deliberate pin bump (intentional authenticity-over-latest trade, same class as #2908). Architectures outside the pin maps fail closed with a structured bootstrap error rather than falling back to an unpinned script. Fail-closed behaviour is covered by `TestInstallPinnedLinuxTool_FailClosedOnDigestMismatch` and related tests in `cmd/deft-install/setup_test.go`.
 
+## Contained write API (#2951 Phase 1)
+
+Recurring AppSec mediums (symlink / path-escape write sinks) are addressed by a
+**mandatory contained-write primitive** rather than unbounded per-sink patches.
+
+- **Contract (agents + maintainers):** [`docs/reference/contained-write.md`](reference/contained-write.md)
+- **TS API:** `containedWrite({ root, target, data, mode })` in
+  `packages/core/src/fs/contained-write.ts` — modes `create` | `replace` |
+  `append`; stable codes such as `CONTAINED_WRITE_ESCAPE` /
+  `CONTAINED_WRITE_SYMLINK`.
+- **Rule:** new product write sinks MUST use the API; prefer migrating call
+  sites onto it over bespoke checks when equivalent.
+- **Inventory gate:** `task verify:contained-writes` (Phase 1 **fail-open** /
+  advisory; `--enforce` available; not in `task check` yet).
+- **Phase 1 residual:** mass migration and Go installer API are later phases;
+  TOCTOU residual risk is documented in the contract page.
+
+Epic: https://github.com/deftai/directive/issues/2951
+
 ## Audit cadence
 
 - **Quarterly** -- a full scanner run (`osv-scanner` + `gitleaks` + `trivy fs` once added) is executed at the start of each quarter and the result recorded as a new `## YYYY-MM-DD audit baseline` section in this document.

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF from GitHub issue #2953 (manual ingest)",
-    "updated": "2026-07-30T04:42:57.480Z"
+    "updated": "2026-07-30T05:12:04Z"
   },
   "plan": {
     "title": "perf(release): speed up routine cuts — skip scratch scans, document Step 5 modes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Release Step 5 content/link/path walks still enumerate .deft-scratch worktrees in some scanners, slowing routine cuts. Default-exclude scratch/worktree noise, document routine vs hard Step 5 modes without silent coverage soft-pass, and add build-dist progress ticks.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2953",
@@ -55,7 +55,7 @@
         "title": "Issue #2953: perf(release): speed up routine cuts"
       }
     ],
-    "updated": "2026-07-30T04:42:57.480Z",
+    "updated": "2026-07-30T05:12:04Z",
     "id": "2953-release-perf",
     "metadata": {
       "kind": "story",
@@ -88,7 +88,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Issue #2953 operator-observed release wall-clock; localized exclude + docs."
-      }
+      },
+      "completedAt": "2026-07-30T05:12:04Z",
+      "capacityBucket": "new-capability"
     }
   }
 }
