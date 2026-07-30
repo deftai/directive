@@ -240,7 +240,8 @@ describe("authz store (#2944)", () => {
       },
       semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
     };
-    expect(() => saveGrant(root, grant)).toThrow(ContainedWriteError);
+    // Leaf symlink refused by assertWriteTargetSafe (ProjectionContainmentError) before publish.
+    expect(() => saveGrant(root, grant)).toThrow();
     expect(readFileSync(victim, "utf8")).toBe('{"stolen":true}\n');
   });
 

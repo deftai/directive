@@ -10,6 +10,7 @@ import {
   ContainedWriteErrorCode,
   containedWrite,
 } from "../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { escalationPath, escalationsDir } from "./paths.js";
 import {
   DEFAULT_SLA_HOURS,
@@ -44,6 +45,8 @@ function record(value: unknown): Record<string, unknown> | null {
 function writeJsonContained(projectRoot: string, targetPath: string, payload: unknown): void {
   const root = resolve(projectRoot);
   const abs = resolve(targetPath);
+  // Refuse leaf/parent symlinks on the final path before temp+rename publish.
+  assertWriteTargetSafe(root, abs);
   const dir = dirname(abs);
   const data = `${JSON.stringify(payload, null, 2)}\n`;
   let lastErr: unknown;
