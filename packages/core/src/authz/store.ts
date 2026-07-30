@@ -5,11 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import {
-  ContainedWriteError,
-  ContainedWriteErrorCode,
-  containedWrite,
-} from "../fs/contained-write.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { isHumanOrigin } from "./origin.js";
 import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
@@ -47,38 +43,24 @@ function writeJsonContained(projectRoot: string, targetPath: string, payload: un
   // Refuse leaf/parent symlinks on the final path before temp+rename publish.
   assertWriteTargetSafe(root, abs);
   const dir = dirname(abs);
-  const data = `${JSON.stringify(payload, null, 2)}\n`;
-  let lastErr: unknown;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const tmpBase = `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-    const tmp = join(dir, tmpBase);
+  const tmpBase = `.${basename(abs)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+  const tmp = join(dir, tmpBase);
+  try {
+    containedWrite({
+      root,
+      target: tmp,
+      data: `${JSON.stringify(payload, null, 2)}\n`,
+      mode: "create",
+    });
+    renameSync(tmp, abs);
+  } catch (err) {
     try {
-      containedWrite({
-        root,
-        target: tmp,
-        data,
-        mode: "create",
-      });
-      renameSync(tmp, abs);
-      return;
-    } catch (err) {
-      lastErr = err;
-      try {
-        rmSync(tmp, { force: true });
-      } catch {
-        /* best-effort cleanup */
-      }
-      if (
-        err instanceof ContainedWriteError &&
-        err.code === ContainedWriteErrorCode.EXISTS &&
-        attempt < 3
-      ) {
-        continue;
-      }
-      throw err;
+      rmSync(tmp, { force: true });
+    } catch {
+      /* best-effort cleanup */
     }
+    throw err;
   }
-  throw lastErr;
 }
 
 function readString(rec: Record<string, unknown>, key: string): string | null {

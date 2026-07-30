@@ -1,12 +1,8 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  ContainedWriteError,
-  ContainedWriteErrorCode,
-  containedWrite,
-} from "../fs/contained-write.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.js";
 import { authzStatePath } from "./paths.js";
 import {
@@ -21,14 +17,6 @@ import {
   saveGrant,
 } from "./store.js";
 import type { HumanOriginGrant } from "./types.js";
-
-vi.mock("../fs/contained-write.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../fs/contained-write.js")>();
-  return {
-    ...actual,
-    containedWrite: vi.fn(actual.containedWrite),
-  };
-});
 
 const roots: string[] = [];
 afterEach(() => {
@@ -300,33 +288,5 @@ describe("authz store (#2944)", () => {
       semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
     };
     expect(() => saveGrant(root, grant)).toThrow();
-  });
-
-  it("retries when temp create collides with EXISTS then succeeds (#2980 atomic)", async () => {
-    const root = tempRoot();
-    const mocked = vi.mocked(containedWrite);
-    const actual = await vi.importActual<typeof import("../fs/contained-write.js")>(
-      "../fs/contained-write.js",
-    );
-    let calls = 0;
-    mocked.mockImplementation((input) => {
-      calls += 1;
-      if (calls === 1) {
-        throw new ContainedWriteError("exists", {
-          code: ContainedWriteErrorCode.EXISTS,
-          root: String(input.root),
-          target: String(input.target),
-        });
-      }
-      // Second attempt: real write so rename has a file, or stub + write via actual.
-      return actual.containedWrite(input);
-    });
-    try {
-      saveAuthzState(root, { schemaVersion: 1, uat: null, activeGrantIds: ["retry"] });
-      expect(calls).toBeGreaterThanOrEqual(2);
-      expect(loadAuthzState(root).activeGrantIds).toEqual(["retry"]);
-    } finally {
-      mocked.mockImplementation(actual.containedWrite);
-    }
   });
 });
