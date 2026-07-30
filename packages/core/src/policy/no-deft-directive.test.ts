@@ -76,10 +76,7 @@ describe("detectNoDeftDirective (#2926)", () => {
     // Flag path uses resolve() (absolute); deposit probe uses join() — match both
     // so the seam sets hit on win32 where join("/virtual/...") !== resolve(...).
     const root = "/virtual/project";
-<<<<<<< HEAD
     // Flag path uses path.resolve (absolute); deposit probe uses path.join — match both (#2926 / win32).
-=======
->>>>>>> e8dffc22 (docs(strategies): Graduation Now+Later dual-path locks Wave A (#2899))
     const files = new Set([resolve(root, NO_DEFT_DIRECTIVE_FLAG_NAME)]);
     const dirs = new Set([join(root, CANONICAL_INSTALL_ROOT)]);
     const state = detectNoDeftDirective(root, {
