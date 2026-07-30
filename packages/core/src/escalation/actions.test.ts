@@ -83,4 +83,51 @@ describe("escalation actions (#518)", () => {
     expect(listEscalationsFiltered(root, { openOnly: true })).toHaveLength(0);
     expect(listEscalationsFiltered(root)).toHaveLength(1);
   });
+
+  it("resolveEscalation not-found and empty actor defaults", () => {
+    const root = tempRoot();
+    const missing = resolveEscalation({
+      projectRoot: root,
+      id: "nope",
+      decision: "approved",
+    });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.code).toBe("not-found");
+
+    fileEscalation({ projectRoot: root, type: "external", title: "wait", id: "ext1" });
+    const ok = resolveEscalation({
+      projectRoot: root,
+      id: "ext1",
+      decision: "dismissed",
+      actor: "   ",
+      note: null,
+    });
+    expect(ok.ok).toBe(true);
+    if (ok.ok) {
+      expect(ok.event.resolution?.resolvedBy).toBe("operator");
+    }
+  });
+
+  it("fileEscalation uses custom sla and agent defaults", () => {
+    const root = tempRoot();
+    const e = fileEscalation({
+      projectRoot: root,
+      type: "cmd_approval",
+      title: "ls",
+      slaHours: 2,
+      agentId: "  ",
+      body: "cmd",
+      contextRefs: ["#1"],
+    });
+    expect(e.slaHours).toBe(2);
+    expect(e.agentId).toBe("agent");
+    expect(e.contextRefs).toEqual(["#1"]);
+  });
+
+  it("listEscalationsFiltered by type", () => {
+    const root = tempRoot();
+    fileEscalation({ projectRoot: root, type: "question", title: "q", id: "q1" });
+    fileEscalation({ projectRoot: root, type: "approval", title: "a", id: "a1" });
+    expect(listEscalationsFiltered(root, { type: "question" })).toHaveLength(1);
+  });
 });

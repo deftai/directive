@@ -15,7 +15,7 @@ import {
   parseEscalation,
   validateEscalationType,
 } from "./store.js";
-import { ESCALATION_TYPES } from "./types.js";
+import { DEFAULT_SLA_HOURS, ESCALATION_TYPES } from "./types.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -179,5 +179,59 @@ describe("escalation store + actions (#518)", () => {
     mkdirSync(join(root, ".deft", "escalations"), { recursive: true });
     writeFileSync(join(root, ".deft", "escalations", "bad.json"), "{not-json", "utf8");
     expect(listOpenEscalations(root)).toEqual([]);
+  });
+
+  it("parseEscalation covers resolution snake_case, invalid status, non-string body, zero sla", () => {
+    expect(
+      parseEscalation({
+        id: "e1",
+        agentId: "a",
+        type: "question",
+        title: "q",
+        status: "nope",
+      }),
+    ).toBeNull();
+    const withRes = parseEscalation({
+      id: "e2",
+      agentId: "a",
+      type: "approval",
+      title: "merge",
+      body: 42,
+      status: "resolved",
+      slaHours: 0,
+      resolution: {
+        decision: "approved",
+        resolved_at: "2026-01-01T00:00:00Z",
+        resolved_by: "op",
+        note: "ok",
+        answer: null,
+      },
+    });
+    expect(withRes?.body).toBe("");
+    expect(withRes?.slaHours).toBe(DEFAULT_SLA_HOURS.approval);
+    expect(withRes?.resolution?.resolvedBy).toBe("op");
+    expect(
+      parseEscalation({ id: "e3", agentId: "a", type: "external", title: "x", resolution: "bad" })
+        ?.resolution,
+    ).toBeNull();
+    expect(
+      parseEscalation({
+        id: "e4",
+        agentId: "a",
+        type: "resource",
+        title: "key",
+        resolution: { decision: "invalid" },
+      })?.resolution,
+    ).toBeNull();
+    expect(parseEscalation(null)).toBeNull();
+    expect(parseEscalation([])).toBeNull();
+  });
+
+  it("loadEscalation returns null for missing and corrupt files", () => {
+    const root = tempRoot();
+    expect(loadEscalation(root, "missing")).toBeNull();
+    mkdirSync(join(root, ".deft", "escalations"), { recursive: true });
+    writeFileSync(join(root, ".deft", "escalations", "broken.json"), "{", "utf8");
+    expect(loadEscalation(root, "broken")).toBeNull();
   });
 });

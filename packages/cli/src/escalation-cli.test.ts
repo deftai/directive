@@ -120,4 +120,121 @@ describe("escalation CLI (#518)", () => {
     expect(main(["file", "--project-root", root, "--type", "blocked", "--title", "x"])).toBe(1);
     expect(err.join("")).toMatch(/invalid escalation type/);
   });
+
+  it("help and unknown subcommand", () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(main(["--help"])).toBe(0);
+    expect(out.join("")).toMatch(/Usage/);
+    expect(main(["nope"])).toBe(2);
+    expect(err.join("")).toMatch(/unknown escalation subcommand/);
+  });
+
+  it("file json + list filters + resolve errors + batch json", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main([
+        "file",
+        "--project-root",
+        root,
+        "--type",
+        "cmd_approval",
+        "--title",
+        "t",
+        "--body",
+        "b",
+        "--dangerous",
+        "--context",
+        "#1,#2",
+        "--sla-hours",
+        "3",
+        "--format",
+        "json",
+      ]),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/"dangerous": true/);
+
+    expect(main(["list", "--project-root", root, "--type", "blocked"])).toBe(2);
+    expect(main(["list", "--project-root", root, "--type", "cmd_approval"])).toBe(0);
+    expect(main(["list", "--project-root", root, "--open"])).toBe(0);
+
+    expect(main(["resolve", "--project-root", root, "--decision", "approved"])).toBe(2);
+    expect(main(["resolve", "--project-root", root, "missing-id"])).toBe(2);
+    expect(main(["resolve", "--project-root", root, "missing-id", "--decision", "approved"])).toBe(
+      1,
+    );
+
+    out.length = 0;
+    expect(
+      main(["batch-approve", "--project-root", root, "--include-dangerous", "--format", "json"]),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/approved/);
+    expect(main(["list", "--project-root", root])).toBe(0);
+  });
+
+  it("resolve with positional id and json format", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    main([
+      "file",
+      "--project-root",
+      root,
+      "--type",
+      "design_decision",
+      "--title",
+      "d",
+      "--id",
+      "esc-pos",
+    ]);
+    expect(
+      main([
+        "resolve",
+        "--project-root",
+        root,
+        "esc-pos",
+        "--decision",
+        "denied",
+        "--note",
+        "no",
+        "--format",
+        "json",
+      ]),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/"decision": "denied"/);
+  });
+
+  it("list empty open and empty disk messages", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    expect(main(["list", "--project-root", root, "--open"])).toBe(0);
+    expect(out.join("")).toMatch(/No open escalations/);
+    expect(main(["list", "--project-root", root])).toBe(0);
+    expect(out.join("")).toMatch(/No escalations on disk/);
+  });
 });
