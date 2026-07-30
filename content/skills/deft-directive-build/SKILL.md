@@ -311,14 +311,6 @@ feat(phase-2): add REST API endpoints with integration tests
 
 > "The project is built and all quality checks pass. Describe any new features you'd like to add — I'll follow the deft standards we've set up."
 
-## Path write fence (#516 / #2443 / #2948 Wave 3)
-
-! When `plan.policy.runtimeAuthority` is enabled and/or the active story declares `plan.metadata.swarm.file_scope`, PreToolUse and product sinks refuse direct writes outside the resolved fence (`resolveWriteFence` → `evaluateRuntimeAuthorityDirectWrite`). Contract: `content/contracts/path-write-fence.md`.
-
-- ! Prefer declaring intended write paths in `plan.metadata.swarm.file_scope` before autonomous edit loops.
-- ! On a fence deny, surface the reason (project allowPaths / story file_scope / denyPaths) and either re-scope the story or stop — do not bypass by editing outside the fence.
-- ⊗ Invent a second writeScope evaluation engine; legacy `writeScope` is a read-time alias only.
-
 ## Anti-Patterns
 
 - ⊗ Skip tests or write them after implementation
@@ -335,4 +327,3 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Skip the Change Lifecycle Gate because the user said "proceed" -- broad approval does not satisfy the confirmation gate
 - ⊗ Commit or push directly to the default branch -- always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT-DEFINITION.xbrief.json` narratives contain `Allow direct commits to master: true`
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term
-- ⊗ Write outside an active write fence (`runtimeAuthority` / story `file_scope`) when PreToolUse or the path-write-fence contract refuses the path (#516 / #2443)

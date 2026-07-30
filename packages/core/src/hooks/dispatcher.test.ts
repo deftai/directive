@@ -1173,6 +1173,31 @@ describe("runtime authority policy (#1394)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toMatch(/story file_scope/);
   });
+
+  it("still enforces story fence when project policy load throws (#516 P1)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/docs/outside.md", contents: "x" },
+        },
+      },
+      readySeams({
+        loadRuntimeAuthority: () => {
+          throw new Error("policy read failed");
+        },
+        loadStoryWriteFence: () => ({
+          fileScope: ["src/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision.message).toMatch(/story file_scope/);
+  });
 });
 
 describe("provider codecs", () => {
