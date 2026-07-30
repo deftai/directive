@@ -1,0 +1,112 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Phase A of epic #2950: pure hook payload classifier extraction + host×OS×tool fixture matrix skeleton.",
+    "created": "2026-07-29T12:00:00Z",
+    "updated": "2026-07-30T04:40:11Z"
+  },
+  "plan": {
+    "id": "2026-07-29-2950-hooks-classify-phase-a",
+    "title": "feat(hooks): pure classifier extraction + fixture matrix skeleton (Phase A of #2950)",
+    "status": "running",
+    "narratives": {
+      "Description": "Extract pure parse/classify (payload → tool identity + write intent + paths, no process I/O) under packages/core/src/hooks/classify/, thin the dispatcher over it, land a Cursor×win32/posix×Write/ApplyPatch/Task fixture skeleton shared by core tests, document the coupled-surface rule, and CHANGELOG #2950. Full epic AC (CLI share, decision-code docs expansion) remains for later phases.",
+      "Overview": "TPA surprise_rework cluster 4: stabilize hooks thrash triad via pure classifier + shared fixtures.",
+      "Origin": "https://github.com/deftai/directive/issues/2950",
+      "UserStory": "As a maintainer fixing host harness edge cases, I want a pure classifier and shared fixture corpus so host×OS×tool regressions land as fixtures first instead of one-off dispatcher patches.",
+      "ImplementationPlan": "1) packages/core/src/hooks/classify/ pure module (types, payload helpers, tool-name, paths, stdin parse including free-form ApplyPatch, classifyHookPayload). 2) dispatcher.ts re-exports and uses classify. 3) packages/cli hook-dispatch delegates parsePayload to core. 4) fixtures/{host}/{os}/ corpus + matrix loader tests. 5) brief coupled-surface doc. 6) CHANGELOG cites #2950. Verification: vitest on hooks/classify + dispatcher; task check:merge scoped if available.",
+      "Labels": "feat, harness, tooling, tech-debt",
+      "Traces": "Phase A AC of #2950; leave epic open unless full AC met."
+    },
+    "items": [
+      {
+        "title": "Pure classify module under hooks/classify/",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "packages/core/src/hooks/classify/ exports classifyHookPayload / parseHookStdin / hookToolName / hookWriteTargetPath with no fs/process I/O in the pure path; unit-tested without spawning CLI."
+        }
+      },
+      {
+        "title": "Dispatcher uses classify (thin orchestration)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "dispatcher.ts imports tool-name/path/parse helpers from classify (re-export for compat); decideHook still owns policy/ritual/scope seams."
+        }
+      },
+      {
+        "title": "Fixture corpus skeleton Cursor×win32/posix×Write/ApplyPatch/Task",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Shared fixtures cover at least Cursor win32 and posix for Write, ApplyPatch (structured + free-form), and Task; regression classes (BOM, doubled drive, missing tool name, outside-root) represented."
+        }
+      },
+      {
+        "title": "Shared fixtures used by core tests + coupled-surface rule",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Core tests load fixtures via a single import path; README or coding note states hooks thrash triad (dispatcher + dispatcher.test + hook-dispatch.test) is a coupled surface."
+        }
+      },
+      {
+        "title": "CHANGELOG cites #2950 Phase A",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CHANGELOG [Unreleased] Added entry cites #2950 and describes pure classifier + fixture skeleton."
+        }
+      }
+    ],
+    "tags": [
+      "feat",
+      "harness",
+      "tooling",
+      "tech-debt"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2950",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2950",
+        "decomposition_origin": "#2950"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/hooks/classify/",
+          "packages/core/src/hooks/fixtures/",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/index.ts",
+          "packages/cli/src/hook-dispatch.ts",
+          "packages/cli/src/hook-dispatch.test.ts",
+          "CHANGELOG.md",
+          "content/coding/hygiene.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks",
+          "pnpm exec vitest run packages/cli/src/hook-dispatch.test.ts"
+        ],
+        "expected_outputs": [
+          "Pure classify module under hooks/classify/",
+          "Dispatcher uses classify (thin orchestration)",
+          "Fixture corpus skeleton Cursor×win32/posix×Write/ApplyPatch/Task",
+          "Shared fixtures used by core tests + coupled-surface rule",
+          "CHANGELOG cites #2950 Phase A"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2950-phase-a",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-07-30T04:40:11Z"
+  }
+}

@@ -1,0 +1,63 @@
+/**
+ * Pure stdin → payload parse for hook-dispatch (#2734 / #2738 / #2950).
+ * No process I/O — operates on an already-read string.
+ */
+
+import type { ParsedHookPayload } from "./types.js";
+
+const UTF8_BOM = "\uFEFF";
+const APPLY_PATCH_BEGIN_MARKER = "*** Begin Patch";
+/** Single-file Add/Update only — other *** … File: ops must fail closed (#2738 Greptile). */
+const APPLY_PATCH_MUTATION_LINE_RE =
+  /^\*\*\* (Add File|Update File|Delete File|Move File|Rename File): (.+)$/gm;
+
+export function stripUtf8Bom(raw: string): string {
+  return raw.startsWith(UTF8_BOM) ? raw.slice(UTF8_BOM.length) : raw;
+}
+
+function trySynthesizeFreeFormApplyPatch(normalized: string): ParsedHookPayload | null {
+  if (!normalized.includes(APPLY_PATCH_BEGIN_MARKER)) return null;
+  const mutations: { op: string; path: string }[] = [];
+  for (const match of normalized.matchAll(APPLY_PATCH_MUTATION_LINE_RE)) {
+    const op = match[1];
+    const path = match[2]?.trim();
+    if (op === undefined || !path) continue;
+    mutations.push({ op, path });
+  }
+  if (mutations.length !== 1) return null;
+  const sole = mutations[0];
+  if (sole === undefined || (sole.op !== "Add File" && sole.op !== "Update File")) return null;
+  return {
+    payload: {
+      tool_name: "ApplyPatch",
+      tool_input: {
+        path: sole.path,
+        patch: normalized,
+      },
+    },
+    context: {},
+  };
+}
+
+/**
+ * Parse host hook stdin text into a payload + parse context.
+ * Empty → stdinEmpty; invalid JSON without free-form ApplyPatch → parseFailed.
+ */
+export function parseHookStdin(raw: string): ParsedHookPayload {
+  if (raw.trim().length === 0) {
+    return { payload: {}, context: { stdinEmpty: true } };
+  }
+  const normalized = stripUtf8Bom(raw);
+  if (normalized.trim().length === 0) {
+    return { payload: {}, context: { stdinEmpty: true } };
+  }
+  try {
+    return { payload: JSON.parse(normalized) as unknown, context: {} };
+  } catch {
+    const synthesized = trySynthesizeFreeFormApplyPatch(normalized);
+    if (synthesized !== null) return synthesized;
+    // tool.before is installed only on direct-write matchers, so an unreadable
+    // payload becomes a missing-tool denial rather than a fail-open crash.
+    return { payload: {}, context: { parseFailed: true } };
+  }
+}

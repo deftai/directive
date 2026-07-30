@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hooks pure classifier + host×OS×tool fixture skeleton (Phase A of #2950).** Extract `packages/core/src/hooks/classify/` (payload → tool identity + write intent + path set, no process I/O), including stdin parse (BOM strip, free-form ApplyPatch). Dispatcher is thin orchestration over classify for tool-name/path helpers; CLI `parsePayload` delegates to `parseHookStdin`. Shared fixture corpus under `packages/core/src/hooks/fixtures/` covers Cursor × win32/posix × Write/ApplyPatch/Task plus recent regression classes; coupled-surface rule documented in fixtures README. Implements Phase A of #2950 (epic remains open for Phase B/C).
+
 ### Changed
 
 ### Fixed
