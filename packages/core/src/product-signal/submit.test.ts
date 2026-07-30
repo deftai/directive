@@ -724,7 +724,7 @@ describe("product-signal last-submit symlink containment (#2807)", () => {
       });
       expect(result.outcome).toBe("error-config");
       expect(result.exitCode).toBe(2);
-      expect(result.message).toMatch(/projection write refused|symlink/);
+      expect(result.message).toMatch(/projection write refused|contained write refused|symlink/);
       expect(readFileSync(victim, "utf8")).toBe("victim\n");
       rmSync(escapeDir, { recursive: true, force: true });
     },

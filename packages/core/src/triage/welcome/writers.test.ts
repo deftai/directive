@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ProjectionContainmentError } from "../../fs/projection-containment.js";
+import { ContainedWriteError } from "../../fs/contained-write.js";
 import { DEFAULT_WIP_CAP } from "./constants.js";
 import {
   appendAuditEntry,
@@ -105,7 +105,7 @@ describe("welcome audit containment (#2470)", () => {
       mkdirSync(join(projectDir, "meta"), { recursive: true });
       writeFileSync(escapeFile, "victim\n", { encoding: "utf8" });
       symlinkSync(escapeFile, join(projectDir, "meta", "policy-changes.log"));
-      expect(() => appendAuditEntry(projectDir, "injected")).toThrow(ProjectionContainmentError);
+      expect(() => appendAuditEntry(projectDir, "injected")).toThrow(ContainedWriteError);
       expect(readFileSync(escapeFile, { encoding: "utf8" })).toBe("victim\n");
     } finally {
       rmSync(projectDir, { recursive: true, force: true });

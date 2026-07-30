@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ProjectionContainmentError } from "../fs/projection-containment.js";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import {
   dispatchProviderFromRuntime,
   loadRoutingFile,
@@ -278,7 +278,7 @@ describe("writeModelDecision symlink containment (#2781)", () => {
       writeModelDecision(root, routePath, "cursor", "leaf-implementation", {
         model: "composer-2.5-fast",
       }),
-    ).toThrow(ProjectionContainmentError);
+    ).toThrow(ContainedWriteError);
     expect(readFileSync(victim, "utf8")).toBe("victim\n");
     rmSync(root, { recursive: true, force: true });
     rmSync(escapeDir, { recursive: true, force: true });

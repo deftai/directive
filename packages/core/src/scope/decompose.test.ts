@@ -7,7 +7,7 @@ import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { ProjectionContainmentError } from "../fs/projection-containment.js";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import {
   acceptanceTextsFromItems,
   applyDecomposition,
@@ -436,7 +436,7 @@ describe("applyDecomposition symlink containment (#2781)", () => {
           checkOnly: false,
           date: "2026-06-01",
         }),
-      ).toThrow(ProjectionContainmentError);
+      ).toThrow(ContainedWriteError);
       const victimAfter = JSON.parse(readFileSync(victim, "utf8")) as Record<string, unknown>;
       expect((victimAfter.plan as Record<string, unknown>).references).toEqual([]);
     },

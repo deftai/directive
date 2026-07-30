@@ -76,8 +76,12 @@ function recordLastSubmit(
       })}\n`,
       mode: "append",
     });
-  } catch {
-    // observability only
+  } catch (err) {
+    // Containment refusals must fail closed (tests + product path) (#2807 / #2980).
+    if (err instanceof ContainedWriteError || err instanceof ProjectionContainmentError) {
+      throw err;
+    }
+    // other observability I/O failures only
   }
 }
 
