@@ -65,8 +65,11 @@ describe("human-origin provenance (#2944)", () => {
     expect(isHumanOriginKind(null)).toBe(false);
     expect(isHumanOriginKind(undefined)).toBe(false);
     expect(isHumanOriginKind("")).toBe(false);
+    expect(isHumanOriginKind("  OPERATOR-CLI  ")).toBe(true);
     expect(isRejectedOriginKind(null)).toBe(false);
+    expect(isRejectedOriginKind(undefined)).toBe(false);
     expect(isRejectedOriginKind("")).toBe(false);
+    expect(isRejectedOriginKind("  SELF-ASSERTED  ")).toBe(true);
     expect(isHumanOriginGrant(null)).toBe(false);
     expect(isHumanOriginGrant(undefined)).toBe(false);
     expect(isHumanOrigin(null)).toBe(false);
@@ -89,6 +92,16 @@ describe("human-origin provenance (#2944)", () => {
         eventRef: null,
       }),
     ).toBe(false);
+    expect(
+      isHumanOrigin({
+        kind: "operator-cli",
+        actor: "  ",
+        mintedAt: "t",
+        mintedVia: "x",
+        eventRef: null,
+      }),
+    ).toBe(false);
+    expect(evidenceSatisfiesImplementationApproval({})).toBe(false);
   });
 
   it("self-authored lifecycle / dispatch evidence never satisfies implement gates", () => {
