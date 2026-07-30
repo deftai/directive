@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Phase 1 of epic #2951: mandatory contained-write API (TS) + tests + docs + gate skeleton",
-    "updated": "2026-07-30T04:42:18Z"
+    "updated": "2026-07-30T05:16:40Z"
   },
   "plan": {
     "title": "Phase 1: containedWrite API + tests + docs + verify skeleton (#2951)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Implement Phase 1 of epic #2951: a single TS containedWrite API (root, target, data, mode create|replace|append) that refuses symlink escape and out-of-root targets with stable error codes; unit tests; agent/maintainer docs; optional verify:contained-writes fail-open skeleton; migrate at least one high-risk product sink onto the API; CHANGELOG cites #2951. Does not close the full epic.",
       "Origin": "https://github.com/deftai/directive/issues/2951",
@@ -76,7 +76,7 @@
         "title": "Issue #2951: epic(security): mandatory contained-write API + ban raw write sinks"
       }
     ],
-    "updated": "2026-07-30T04:42:18Z",
+    "updated": "2026-07-30T05:16:40Z",
     "id": "story-2951-phase1",
     "metadata": {
       "kind": "story",
@@ -110,7 +110,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Phase 1 AC defined by epic #2951 phasing section and dispatch envelope."
-      }
+      },
+      "completedAt": "2026-07-30T05:16:40Z",
+      "capacityBucket": "new-capability"
     }
   }
 }
