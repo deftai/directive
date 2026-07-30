@@ -151,14 +151,25 @@ describe("attribution + overuse warning", () => {
   });
 
   it("sanitizes embedded newlines in attribution metrics (#2952)", () => {
+    // Force multi-line metric strings via toFixed override so sanitizeMetric's
+    // newline strip is exercised (plain numbers never contain \r/\n).
+    const branches = {
+      valueOf() {
+        return 84.9;
+      },
+      toFixed(_digits?: number) {
+        return "84.90\nINJECTED";
+      },
+    };
     const text = formatCoverageAttribution(2952, {
-      lines: Number.NaN,
-      branches: 84.9,
+      lines: 84.5,
+      branches: branches as unknown as number,
       functions: 90,
       statements: 84.5,
     });
     expect(text).toContain("#2952");
-    expect(text).not.toMatch(/\n\n/);
+    expect(text).toContain("84.90 INJECTED");
+    expect(text).not.toMatch(/84\.90\nINJECTED/);
   });
 
   it("warns when multiple recent releases cite coverage debt", () => {
