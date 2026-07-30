@@ -105,7 +105,12 @@ describe("build-dist helpers", () => {
 
   it("emitBuildProgress formats stage ticks (#2953)", () => {
     const chunks: string[] = [];
-    const stream = { write: (s: string) => { chunks.push(s); return true; } };
+    const stream = {
+      write: (s: string) => {
+        chunks.push(s);
+        return true;
+      },
+    };
     emitBuildProgress(
       { stage: "pack", current: 5, total: 20, detail: "zip" },
       stream as { write: (s: string) => boolean },
