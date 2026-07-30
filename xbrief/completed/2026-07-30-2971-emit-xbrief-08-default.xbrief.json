@@ -3,12 +3,12 @@
     "version": "0.8",
     "description": "Interview/setup/templates still model 0.6; init deposits 0.8 schema without upgrading existing project JSON. Make write-path 0.8-only; dogfood PROJECT-DEFINITION; doctor/init next-action for envelope upgrade. Does not re-implement #2970 transform — depends on hybrid migrate if needed. Closes #2971 when write defaults + init path + dogfood converge.",
     "created": "2026-07-30T19:03:21.400Z",
-    "updated": "2026-07-30T19:05:41.298Z"
+    "updated": "2026-07-30T19:26:03Z"
   },
   "plan": {
     "id": "2026-07-30-2971-emit-xbrief-08-default",
     "title": "fix(setup,xbrief): emit/write xBRIEF 0.8 by default; init path for existing docs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Interview/setup/templates still model 0.6; init deposits 0.8 schema without upgrading existing project JSON. Make write-path 0.8-only; dogfood PROJECT-DEFINITION; doctor/init next-action for envelope upgrade. Does not re-implement #2970 transform — depends on hybrid migrate if needed. Closes #2971 when write defaults + init path + dogfood converge.",
       "Overview": "Write-default still 0.6 while schema const is 0.8.",
@@ -21,28 +21,28 @@
     "items": [
       {
         "title": "Templates stamp 0.8",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an agent copies content/templates project template text, the sample JSON emits xBRIEFInfo.version 0.8 not 0.6."
         }
       },
       {
         "title": "Init path stamps 0.8",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When init creates project xBRIEF JSON via packages/cli/src/init-cli, the written file returns xBRIEFInfo.version 0.8."
         }
       },
       {
         "title": "Doctor next action",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a project JSON at 0.6 under xbrief layout, doctor fails closed with a message that records migrate:xbrief as the next action."
         }
       },
       {
         "title": "Dogfood converges",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When dogfood PROJECT-DEFINITION is opened, it returns a single xBRIEFInfo.version 0.8 without dual vBRIEFInfo half-state."
         }
@@ -97,8 +97,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard"
       },
-      "capacityBucket": "bug-fix"
+      "capacityBucket": "bug-fix",
+      "completedAt": "2026-07-30T19:26:03Z"
     },
-    "updated": "2026-07-30T19:05:41.298Z"
+    "updated": "2026-07-30T19:26:03Z"
   }
 }
