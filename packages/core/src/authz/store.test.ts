@@ -2,7 +2,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ContainedWriteError } from "../fs/contained-write.js";
 import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.js";
 import { authzStatePath } from "./paths.js";
 import {
