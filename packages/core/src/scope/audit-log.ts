@@ -1,15 +1,7 @@
 import { randomUUID } from "node:crypto";
-import {
-  closeSync,
-  existsSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-  writeSync,
-} from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { utcNowIso } from "./vbrief-json.js";
 
@@ -42,6 +34,13 @@ const DEMOTE_META_REQUIRED = [
 ] as const;
 
 let threadLock = false;
+
+/** Ensure parent exists and return it as the containment root for log writes. */
+function containmentRootForLog(logPath: string): string {
+  const parent = dirname(logPath);
+  mkdirSync(parent, { recursive: true });
+  return resolve(parent);
+}
 
 function replacerSortKeys(_key: string, value: unknown): unknown {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -137,32 +136,15 @@ export function canonicalLogPath(projectRoot: string): string {
   return resolveTriageCachePath(resolve(projectRoot), "scope-lifecycle.jsonl");
 }
 
-function withAppendLock(logPath: string, fn: () => void): void {
-  const lockPath = `${logPath}.lock`;
-  mkdirSync(dirname(logPath), { recursive: true });
+function withAppendLock(fn: () => void): void {
   while (threadLock) {
     /* spin-wait for in-process serialization */
   }
   threadLock = true;
-  let fd: number | null = null;
   try {
-    fd = openSync(lockPath, "a+");
-    if (readFileSync(lockPath).length === 0) {
-      writeSync(fd, "\0");
-    }
     fn();
   } finally {
     threadLock = false;
-    if (fd !== null) {
-      closeSync(fd);
-    }
-    try {
-      if (existsSync(lockPath)) {
-        unlinkSync(lockPath);
-      }
-    } catch {
-      /* best-effort lock cleanup */
-    }
   }
 }
 
@@ -173,14 +155,19 @@ export function append(entry: Record<string, unknown>, logPath: string): string 
   }
   validateEntry(entry);
   const logFile = resolve(logPath);
-  mkdirSync(join(logFile, ".."), { recursive: true });
+  const root = containmentRootForLog(logFile);
   const line = JSON.stringify(entry, replacerSortKeys);
-  withAppendLock(logFile, () => {
-    writeFileSync(logFile, `${line}\n`, { encoding: "utf8", flag: "a" });
+  // #2980 wave B: product write sink routes through containedWrite.
+  withAppendLock(() => {
+    containedWrite({
+      root,
+      target: logFile,
+      data: `${line}\n`,
+      mode: "append",
+    });
   });
   return String(entry.decision_id);
 }
-
 /** Read all well-formed audit entries in insertion order. */
 export function readAll(logPath: string): Record<string, unknown>[] {
   if (logPath.length === 0) {

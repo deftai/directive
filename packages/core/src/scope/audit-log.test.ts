@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import {
   append,
   canonicalLogPath,
@@ -90,9 +91,27 @@ describe("audit-log", () => {
     root = mkdtempSync(join(tmpdir(), "audit-"));
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
-    const { writeFileSync } = require("node:fs") as typeof import("node:fs");
     writeFileSync(logPath, "not-json\n", "utf8");
     append(validDemoteEntry(), logPath);
     expect(readAll(logPath)).toHaveLength(1);
+  });
+
+  it("refuses symlink leaf on append (#2980 wave B)", () => {
+    root = mkdtempSync(join(tmpdir(), "audit-symlink-"));
+    const outside = mkdtempSync(join(tmpdir(), "audit-out-"));
+    const victim = join(outside, "victim.jsonl");
+    writeFileSync(victim, "keep\n", "utf8");
+    const cacheDir = join(root, "xbrief", ".triage-cache");
+    mkdirSync(cacheDir, { recursive: true });
+    const logPath = canonicalLogPath(root);
+    try {
+      symlinkSync(victim, logPath);
+    } catch {
+      rmSync(outside, { recursive: true, force: true });
+      return;
+    }
+    expect(() => append(validDemoteEntry(), logPath)).toThrow(ContainedWriteError);
+    expect(readAll(logPath)).toEqual([]);
+    rmSync(outside, { recursive: true, force: true });
   });
 });

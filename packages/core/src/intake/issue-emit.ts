@@ -1,22 +1,18 @@
 import { createHash } from "node:crypto";
 import {
   chmodSync,
-  closeSync,
-  constants,
   globSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
-  openSync,
   readFileSync,
   rmSync,
   unlinkSync,
-  writeFileSync,
-  writeSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -114,7 +110,8 @@ export function recoverySidecarPath(vbriefAbsPath: string): string {
 
 /**
  * Write recovery sidecar without following symlinks (#2880 Greptile P1).
- * Trusted per-uid dir (ownership + mode) + O_EXCL|O_NOFOLLOW create.
+ * Trusted per-uid dir (ownership + mode) + containedWrite create (O_EXCL|O_NOFOLLOW).
+ * #2980 wave B: product write sink routes through containedWrite.
  */
 function writeRecoverySidecarSafe(sidePath: string, payload: string): void {
   const dir = ensureTrustedRecoveryDir();
@@ -136,16 +133,12 @@ function writeRecoverySidecarSafe(sidePath: string, payload: string): void {
       throw err;
     }
   }
-  let flags = constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL;
-  if (typeof constants.O_NOFOLLOW === "number") {
-    flags |= constants.O_NOFOLLOW;
-  }
-  const fd = openSync(sidePath, flags, 0o600);
-  try {
-    writeSync(fd, payload, undefined, "utf8");
-  } finally {
-    closeSync(fd);
-  }
+  containedWrite({
+    root: dir,
+    target: sidePath,
+    data: payload,
+    mode: "create",
+  });
 }
 
 /**
@@ -296,16 +289,21 @@ export function loadPendingEmitUrls(projectRoot: string): Record<string, string>
 }
 
 export function savePendingEmitUrl(projectRoot: string, vbriefAbsPath: string, url: string): void {
+  const root = resolve(projectRoot);
   const ledger = pendingEmitLedgerPath(projectRoot);
-  assertWriteTargetSafe(projectRoot, ledger);
-  mkdirSync(dirname(ledger), { recursive: true });
   const map = loadPendingEmitUrls(projectRoot);
   map[resolve(vbriefAbsPath)] = url;
-  assertWriteTargetSafe(projectRoot, ledger);
-  writeFileSync(ledger, `${JSON.stringify(map, null, 2)}\n`, "utf8");
+  // #2980 wave B: product write sink routes through containedWrite.
+  containedWrite({
+    root,
+    target: ledger,
+    data: `${JSON.stringify(map, null, 2)}\n`,
+    mode: "replace",
+  });
 }
 
 export function clearPendingEmitUrl(projectRoot: string, vbriefAbsPath: string): void {
+  const root = resolve(projectRoot);
   const ledger = pendingEmitLedgerPath(projectRoot);
   const key = resolve(vbriefAbsPath);
   const map = loadPendingEmitUrls(projectRoot);
@@ -314,9 +312,13 @@ export function clearPendingEmitUrl(projectRoot: string, vbriefAbsPath: string):
   }
   delete map[key];
   try {
-    assertWriteTargetSafe(projectRoot, ledger);
-    mkdirSync(dirname(ledger), { recursive: true });
-    writeFileSync(ledger, `${JSON.stringify(map, null, 2)}\n`, "utf8");
+    // #2980 wave B: product write sink routes through containedWrite.
+    containedWrite({
+      root,
+      target: ledger,
+      data: `${JSON.stringify(map, null, 2)}\n`,
+      mode: "replace",
+    });
   } catch {
     // Best-effort clear; next successful stamp still works via existingGithubIssueRef.
   }
@@ -363,14 +365,20 @@ export function assertVbriefWriteTargetSafe(path: string, projectRoot?: string |
 /**
  * Persist an xBRIEF/vBRIEF JSON document. Gates the write target so a leaf or
  * parent-directory symlink cannot divert the stamped file outside the project (#2869).
+ * #2980 wave B: product write sink routes through containedWrite.
  */
 export function writeVbrief(
   path: string,
   data: Record<string, unknown>,
   projectRoot?: string | null,
 ): void {
-  assertVbriefWriteTargetSafe(path, projectRoot);
-  writeFileSync(resolve(path), `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  const root = assertVbriefWriteTargetSafe(path, projectRoot);
+  containedWrite({
+    root,
+    target: resolve(path),
+    data: `${JSON.stringify(data, null, 2)}\n`,
+    mode: "replace",
+  });
 }
 
 export function vbriefTitle(data: Record<string, unknown>): string {
@@ -494,7 +502,13 @@ export function fileIssue(
   const tmpDir = mkdtempSync(join(tmpdir(), "deft-issue-emit-"));
   const bodyPath = join(tmpDir, "body.md");
   try {
-    writeFileSync(bodyPath, body, "utf8");
+    // #2980 wave B: temp body file via containedWrite under the OS-temp dir.
+    containedWrite({
+      root: tmpDir,
+      target: "body.md",
+      data: body,
+      mode: "create",
+    });
     const result = scmCall(
       "github-issue",
       "issue",

@@ -1,6 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { type Finding, renderFinding, scanLine } from "../encoding/scan.js";
 import { pythonSplitlines, stripMarkdownQuotes } from "../encoding/text.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { defaultWhich } from "../scm/binary.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 
@@ -358,10 +360,18 @@ export function writeIssueBodyToFile(
 ): string {
   const body = fetchIssueBody(repo, issue, options);
   // UTF-8 no BOM (Node default for encoding: "utf8").
-  writeFileSync(outFile, body, { encoding: "utf8" });
+  // #2980 wave B: product write sink routes through containedWrite under out-file parent.
+  const abs = resolve(outFile);
+  const parent = dirname(abs);
+  mkdirSync(parent, { recursive: true });
+  containedWrite({
+    root: parent,
+    target: abs,
+    data: body,
+    mode: "replace",
+  });
   return body;
 }
-
 /**
  * Lint a live issue body for mojibake. Returns findings (empty = clean).
  * Does not throw on hits — callers decide exit code.

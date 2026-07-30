@@ -1,0 +1,105 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Residual #2980 wave B: migrate intake, authz store, escalation store, and scope audit-log product writes onto containedWrite.",
+    "created": "2026-07-30T21:21:38.720Z",
+    "updated": "2026-07-30T21:22:28.062Z"
+  },
+  "plan": {
+    "id": "2026-07-30-2980-wave-b-ledgers",
+    "title": "feat(security): migrate intake/authz/escalation/scope ledgers to containedWrite (#2980 wave B)",
+    "status": "running",
+    "narratives": {
+      "Description": "Residual #2980 wave B migrates intake, authz, escalation, and scope audit product write sinks onto containedWrite. These are durable ledger and grant paths that still use raw openSync/writeFileSync after Phase 2. Engine-only; siblings own init-deposit and eval.",
+      "Overview": "Durable ledger and grant/escalation write sinks.",
+      "Origin": "https://github.com/deftai/directive/issues/2980",
+      "UserStory": "As a security maintainer, I want intake and authz/escalation ledger writes on containedWrite, so that durable side files and grants refuse path escape.",
+      "ImplementationPlan": "Step 1: Migrate packages/core/src/intake/issue-emit.ts, candidates-log.ts, github-body.ts product writes to containedWrite. Step 2: Migrate packages/core/src/authz/store.ts and packages/core/src/escalation/store.ts openSync/writeSync patterns to containedWrite or thin contained helpers. Step 3: Migrate packages/core/src/scope/audit-log.ts. Step 4: Tests + CHANGELOG #2980 wave B. Verify vitest on those packages and inventory drop. drive-to: merge-ready.",
+      "Labels": "security, engine, #2980",
+      "Traces": "Wave B of #2980"
+    },
+    "items": [
+      {
+        "title": "Intake product writes migrate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given intake issue-emit and candidates-log write paths run, they call containedWrite (or approved contained helper) and tests return pass."
+        }
+      },
+      {
+        "title": "Authz and escalation stores migrate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When authz/store and escalation/store persist records, they no longer use raw writeFileSync/openSync product paths without containment; tests return pass."
+        }
+      },
+      {
+        "title": "Scope audit log migrates",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When scope audit-log appends, it uses containedWrite and inventory no longer flags scope/audit-log.ts."
+        }
+      },
+      {
+        "title": "CHANGELOG wave B",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When CHANGELOG.md is opened, it records an Unreleased entry that cites #2980 wave B."
+        }
+      }
+    ],
+    "tags": [
+      "security",
+      "engine"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2980",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2951",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2980",
+        "decomposition_origin": "#2980",
+        "epic": "#2951"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/issue-emit.ts",
+          "packages/core/src/intake/candidates-log.ts",
+          "packages/core/src/intake/github-body.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/escalation/store.ts",
+          "packages/core/src/scope/audit-log.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intake packages/core/src/authz packages/core/src/escalation packages/core/src/scope",
+          "task verify:contained-writes"
+        ],
+        "expected_outputs": [
+          "Intake product writes migrate",
+          "Authz and escalation stores migrate",
+          "Scope audit log migrates",
+          "CHANGELOG wave B"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2980-wave-b",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "security"
+    },
+    "updated": "2026-07-30T21:22:28.062Z"
+  }
+}

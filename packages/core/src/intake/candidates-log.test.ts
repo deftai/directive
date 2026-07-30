@@ -1,7 +1,8 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import {
   append,
   CandidatesLogError,
@@ -68,5 +69,25 @@ describe("candidates-log", () => {
     expect(latest?.decision).toBe("defer");
     expect(findByIssue(7, "deftai/directive", { path: log })).toHaveLength(2);
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("refuses symlink leaf on append (#2980 wave B)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "candidates-sym-"));
+    const outside = mkdtempSync(join(tmpdir(), "candidates-out-"));
+    const victim = join(outside, "victim.jsonl");
+    writeFileSync(victim, "keep\n", "utf8");
+    mkdirSync(dir, { recursive: true });
+    const log = join(dir, "candidates.jsonl");
+    try {
+      symlinkSync(victim, log);
+    } catch {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+      return;
+    }
+    expect(() => append(entry(), { path: log })).toThrow(ContainedWriteError);
+    expect(readFileSync(victim, "utf8")).toBe("keep\n");
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   });
 });

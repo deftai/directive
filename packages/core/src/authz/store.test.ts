@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.js";
 import { authzStatePath } from "./paths.js";
 import {
@@ -12,6 +13,7 @@ import {
   loadGrant,
   markGrantUsed,
   parseGrant,
+  saveAuthzState,
   saveGrant,
 } from "./store.js";
 import type { HumanOriginGrant } from "./types.js";
@@ -199,5 +201,52 @@ describe("authz store (#2944)", () => {
     });
     markGrantUsed(root, su.id);
     markGrantUsed(root, su.id);
+  });
+
+  it("refuses symlink leaf on grant write (#2980 wave B)", () => {
+    const root = tempRoot();
+    const outside = tempRoot();
+    const victim = join(outside, "victim.json");
+    writeFileSync(victim, '{"stolen":true}\n', "utf8");
+    const grantsDir = join(root, ".deft", "authz", "grants");
+    mkdirSync(grantsDir, { recursive: true });
+    const linkPath = join(grantsDir, "linked.json");
+    try {
+      symlinkSync(victim, linkPath);
+    } catch {
+      // Platform may forbid symlink without elevation — skip.
+      return;
+    }
+    const grant: HumanOriginGrant = {
+      schemaVersion: 1,
+      id: "linked",
+      origin: {
+        kind: "operator-cli",
+        actor: "op",
+        mintedAt: "2026-07-30T00:00:00Z",
+        mintedVia: "test",
+        eventRef: null,
+      },
+      scope: {
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations: ["edit"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: "c",
+      },
+      semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
+    };
+    expect(() => saveGrant(root, grant)).toThrow(ContainedWriteError);
+    expect(readFileSync(victim, "utf8")).toBe('{"stolen":true}\n');
+  });
+
+  it("saveAuthzState round-trips via containedWrite (#2980 wave B)", () => {
+    const root = tempRoot();
+    saveAuthzState(root, { schemaVersion: 1, uat: null, activeGrantIds: ["g1"] });
+    expect(loadAuthzState(root).activeGrantIds).toEqual(["g1"]);
   });
 });

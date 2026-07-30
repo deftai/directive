@@ -2,18 +2,9 @@
  * Disk store for typed escalations under `.deft/escalations/` (#518).
  */
 
-import {
-  closeSync,
-  existsSync,
-  fdatasyncSync,
-  mkdirSync,
-  openSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  writeSync,
-} from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { escalationPath, escalationsDir } from "./paths.js";
 import {
   DEFAULT_SLA_HOURS,
@@ -40,23 +31,17 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function atomicWriteJson(targetPath: string, payload: unknown, prefix: string): void {
-  mkdirSync(join(targetPath, ".."), { recursive: true });
-  const dir = join(targetPath, "..");
-  const tmpName = join(dir, `${prefix}${process.pid}.json.tmp`);
-  const fd = openSync(tmpName, "w");
-  try {
-    const text = `${JSON.stringify(payload, null, 2)}\n`;
-    writeSync(fd, text, undefined, "utf8");
-    try {
-      fdatasyncSync(fd);
-    } catch {
-      // best-effort on platforms without fdatasync
-    }
-  } finally {
-    closeSync(fd);
-  }
-  renameSync(tmpName, targetPath);
+/**
+ * Contained JSON write for escalations (#2980 wave B).
+ * Uses containedWrite replace so final symlink / escape targets are refused.
+ */
+function writeJsonContained(projectRoot: string, targetPath: string, payload: unknown): void {
+  containedWrite({
+    root: resolve(projectRoot),
+    target: resolve(targetPath),
+    data: `${JSON.stringify(payload, null, 2)}\n`,
+    mode: "replace",
+  });
 }
 
 function readString(rec: Record<string, unknown>, key: string): string | null {
@@ -149,9 +134,8 @@ export function validateEscalationType(type: string): EscalationType {
 }
 
 export function saveEscalation(projectRoot: string, event: EscalationEvent): void {
-  atomicWriteJson(escalationPath(projectRoot, event.id), event, ".esc.");
+  writeJsonContained(projectRoot, escalationPath(projectRoot, event.id), event);
 }
-
 export function loadEscalation(projectRoot: string, escalationId: string): EscalationEvent | null {
   const path = escalationPath(projectRoot, escalationId);
   if (!existsSync(path)) return null;

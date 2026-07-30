@@ -1,15 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 import {
-  closeSync,
-  existsSync,
-  fsyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  unlinkSync,
-  writeSync,
-} from "node:fs";
-import { dirname, join, resolve } from "node:path";
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedWrite,
+} from "../fs/contained-write.js";
 import { pyRepr } from "../scm/py-format.js";
 import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 
@@ -160,40 +156,46 @@ function resolvePath(path: string | null | undefined): string {
   return path !== undefined && path !== null ? resolve(path) : defaultLogPath();
 }
 
-function acquireAppendLock(logPath: string): () => void {
+/**
+ * Cross-process exclusive lock via containedWrite mode=create (O_EXCL).
+ * #2980 wave B: lock + product appends route through containedWrite.
+ */
+function acquireAppendLock(logPath: string, containmentRoot: string): () => void {
   while (threadLocked) {
     // spin-wait for in-process serialization
   }
   threadLocked = true;
 
-  const lockPath = join(dirname(logPath), `${logPath.split(/[/\\]/).pop()}.lock`);
+  const lockPath = resolve(dirname(logPath), `${basename(logPath)}.lock`);
   mkdirSync(dirname(lockPath), { recursive: true });
   const deadline = Date.now() + 30_000;
-  let fd: number | null = null;
-  while (fd === null) {
+  while (true) {
     try {
-      fd = openSync(lockPath, "wx");
-    } catch {
-      if (Date.now() > deadline) {
-        threadLocked = false;
-        throw new CandidatesLogError("timed out acquiring candidates log lock");
+      containedWrite({
+        root: containmentRoot,
+        target: lockPath,
+        data: "\0",
+        mode: "create",
+      });
+      break;
+    } catch (err) {
+      if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+        if (Date.now() > deadline) {
+          threadLocked = false;
+          throw new CandidatesLogError("timed out acquiring candidates log lock");
+        }
+        const spinEnd = Date.now() + 20;
+        while (Date.now() < spinEnd) {
+          // brief spin
+        }
+        continue;
       }
-      const spinEnd = Date.now() + 20;
-      while (Date.now() < spinEnd) {
-        // brief spin
-      }
+      threadLocked = false;
+      throw err;
     }
   }
-  writeSync(fd, Buffer.from("\0"));
 
   return () => {
-    try {
-      if (fd !== null) {
-        closeSync(fd);
-      }
-    } catch {
-      // ignore
-    }
     try {
       unlinkSync(lockPath);
     } catch {
@@ -201,6 +203,13 @@ function acquireAppendLock(logPath: string): () => void {
     }
     threadLocked = false;
   };
+}
+
+/** Ensure parent exists and return it as the containment root for log writes. */
+function containmentRootForLog(logPath: string): string {
+  const parent = dirname(logPath);
+  mkdirSync(parent, { recursive: true });
+  return resolve(parent);
 }
 
 export function validateCandidatesEntry(entry: unknown): void {
@@ -213,17 +222,17 @@ export function append(
 ): string {
   validateEntry(entry);
   const logPath = resolvePath(options.path);
-  mkdirSync(dirname(logPath), { recursive: true });
+  const root = containmentRootForLog(logPath);
   const line = JSON.stringify(entry, Object.keys(entry).sort());
-  const release = acquireAppendLock(logPath);
+  const release = acquireAppendLock(logPath, root);
   try {
-    const fd = openSync(logPath, "a");
-    try {
-      writeSync(fd, Buffer.from(`${line}\n`, "utf8"));
-      fsyncSync(fd);
-    } finally {
-      closeSync(fd);
-    }
+    // #2980 wave B: product write sink routes through containedWrite.
+    containedWrite({
+      root,
+      target: logPath,
+      data: `${line}\n`,
+      mode: "append",
+    });
   } finally {
     release();
   }
