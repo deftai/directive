@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
+import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
@@ -1308,6 +1309,76 @@ describe("provider codecs", () => {
       permission: "allow",
       code: "spawn-ready",
     });
+  });
+});
+
+describe("shared hooks fixture corpus (Phase B of #2950)", () => {
+  it("loads the expanded Cursor Write/ApplyPatch matrix", () => {
+    expect(HOOK_FIXTURE_CASES.length).toBeGreaterThanOrEqual(24);
+    for (const tool of ["Write", "ApplyPatch"] as const) {
+      for (const os of ["win32", "posix"] as const) {
+        expect(
+          fixtureCasesFor({ host: "cursor", os, tool }).length,
+          `cursor/${os}/${tool}`,
+        ).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it("decideHook uses fixture Task payload and emits spawn-ready code", () => {
+    const task = fixtureCaseById("cursor-posix-task-spawn");
+    expect(task?.payload).toBeDefined();
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: task?.payload,
+      },
+      readySeams(),
+    );
+    expect(decision.code).toBe("spawn-ready");
+    expect(JSON.parse(renderHostDecision("cursor", decision))).toEqual({
+      permission: "allow",
+      code: "spawn-ready",
+    });
+  });
+
+  it("decideHook uses fixture outside-root Write and does not emit scope-not-ready (#2885)", () => {
+    const outside = fixtureCaseById("cursor-posix-write-outside-root");
+    expect(outside?.payload).toBeDefined();
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: outside?.payload,
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("scope-not-ready");
+  });
+
+  it("maps missing-tool-name fixture payload to invalid-input decision code", () => {
+    const missing = fixtureCaseById("cursor-posix-missing-tool-name-keys");
+    expect(missing?.payload).toBeDefined();
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: missing?.payload,
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "invalid-input" });
   });
 });
 

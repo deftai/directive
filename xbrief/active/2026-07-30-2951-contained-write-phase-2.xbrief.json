@@ -1,0 +1,98 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Phase 1 API is on master (#2956). Phase 2: migrate a batch of high-risk product write sinks onto containedWrite; shrink allowlist; move verify:contained-writes toward fail-closed (or staged enforce in check). Go installer may be residual. Leave epic open if mass migration incomplete.",
+    "created": "2026-07-30T19:03:21.400Z",
+    "updated": "2026-07-30T19:05:41.313Z"
+  },
+  "plan": {
+    "id": "2026-07-30-2951-contained-write-phase-2",
+    "title": "feat(security): Phase 2 contained-write migrate high-risk sinks + enforce path (epic #2951)",
+    "status": "running",
+    "narratives": {
+      "Description": "Phase 1 API is on master (#2956). Phase 2: migrate a batch of high-risk product write sinks onto containedWrite; shrink allowlist; move verify:contained-writes toward fail-closed (or staged enforce in check). Go installer may be residual. Leave epic open if mass migration incomplete.",
+      "Overview": "End medium-symlink series by migrating sinks onto Phase 1 API.",
+      "Origin": "https://github.com/deftai/directive/issues/2951",
+      "UserStory": "As a security maintainer, I want high-risk write sinks on containedWrite with stricter verification, so that symlink path-escape mediums stop recurring at new call sites.",
+      "ImplementationPlan": "Step 1: Migrate at least three product write sinks to packages/core/src/fs/contained-write.ts API. Step 2: Shrink allowlist in packages/core/src/verify-source/contained-writes.ts module. Step 3: Add enforce-path test evidence in contained-writes.test.ts. Step 4: CHANGELOG.md Phase 2 of #2951. Verify with vitest packages/core/src/fs and task verify:contained-writes. drive-to: merge-ready. CHANGELOG.md may be edited last with unique Unreleased bullets (shared non-exclusive).",
+      "Labels": "security, epic-slice",
+      "Traces": "Phase 2 of #2951; Phase 1 #2956"
+    },
+    "items": [
+      {
+        "title": "Sinks migrated",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the PR merges, at least three former raw write call sites call containedWrite and tests return pass for those paths."
+        }
+      },
+      {
+        "title": "Allowlist shrinks",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given verify-source contained-writes inventory, the allowlist deletes migrated paths or records fewer exemptions than before."
+        }
+      },
+      {
+        "title": "Enforce path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When verify:contained-writes runs with --enforce against a fixture raw write, the command fails closed with a non-zero exit."
+        }
+      },
+      {
+        "title": "Changelog Phase 2",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When CHANGELOG.md is opened, it records an Unreleased entry that cites Phase 2 of #2951."
+        }
+      }
+    ],
+    "tags": [
+      "security",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2951",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2951",
+        "decomposition_origin": "#2951"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/fs/contained-write.test.ts",
+          "packages/core/src/verify-source/contained-writes.ts",
+          "packages/core/src/verify-source/contained-writes.test.ts",
+          "docs/reference/contained-write.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/fs",
+          "task verify:contained-writes"
+        ],
+        "expected_outputs": [
+          "Sinks migrated",
+          "Allowlist shrinks",
+          "Enforce path",
+          "Changelog Phase 2"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2951-phase-2",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "security"
+    },
+    "updated": "2026-07-30T19:05:41.313Z"
+  }
+}

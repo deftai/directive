@@ -1,19 +1,11 @@
 import { randomBytes } from "node:crypto";
-import {
-  closeSync,
-  constants,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  writeSync,
-} from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
 import { ATTRIBUTION_REQUIRED_PAYLOAD } from "../events/attribution-constants.js";
-import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { containedWrite } from "../fs/contained-write.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 
 /** Default event log location (project-local). */
 export const DEFAULT_EVENT_LOG = join(".deft-cache", "events.jsonl");
@@ -215,26 +207,32 @@ function assertPathComponentsNotSymlinks(projectDir: string, targetPath: string)
   }
 }
 
-/** Refuse symlink write targets for project-owned and explicit event logs (#2766). */
-function assertEventLogTargetSafe(projectRoot: string, targetPath: string): void {
-  if (isNestedUnder(projectRoot, targetPath)) {
-    assertWriteTargetSafe(projectRoot, targetPath);
+/**
+ * Append one event log line via containedWrite (#2951 Phase 2).
+ * Project-nested logs use projectRoot as containment root; explicit external
+ * logs still refuse symlink path components, then contain under the log parent.
+ */
+function appendEventLogLine(projectRoot: string, targetPath: string, line: string): void {
+  const targetAbs = resolve(targetPath);
+  if (isNestedUnder(projectRoot, targetAbs)) {
+    containedWrite({
+      root: resolve(projectRoot),
+      target: targetAbs,
+      data: line,
+      mode: "append",
+    });
     return;
   }
-  assertPathComponentsNotSymlinks(projectRoot, targetPath);
-}
-
-function appendLineNoFollow(target: string, line: string): void {
-  const fd = openSync(
-    target,
-    constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND | constants.O_NOFOLLOW,
-    0o644,
-  );
-  try {
-    writeSync(fd, Buffer.from(line, "utf8"));
-  } finally {
-    closeSync(fd);
-  }
+  // Explicit --log / DEFT_EVENT_LOG outside the project tree.
+  assertPathComponentsNotSymlinks(projectRoot, targetAbs);
+  const parent = dirname(targetAbs);
+  mkdirSync(parent, { recursive: true });
+  containedWrite({
+    root: resolve(parent),
+    target: basename(targetAbs),
+    data: line,
+    mode: "append",
+  });
 }
 
 function newEventId(): string {
@@ -284,9 +282,7 @@ export function emit(
 
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
   const target = resolveLogPath(options.logPath, projectRoot);
-  assertEventLogTargetSafe(projectRoot, target);
-  mkdirSync(dirname(target), { recursive: true });
-  appendLineNoFollow(target, `${jsonStringifySorted(record)}\n`);
+  appendEventLogLine(projectRoot, target, `${jsonStringifySorted(record)}\n`);
   return record;
 }
 

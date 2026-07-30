@@ -12,7 +12,7 @@ AppSec mediums kept reappearing as “N more symlink / path-escape write sinks�
 2. Migration of product sinks onto that API.
 3. Enforcement so new raw `writeFileSync` / similar outside an allowlist cannot land silently.
 
-Phase 1 lands the **TS API + tests + docs + fail-open inventory gate** and migrates at least one product sink. Later phases migrate remaining sinks and turn the gate fail-closed.
+Phase 1 landed the **TS API + tests + docs + fail-open inventory gate** and one product sink. **Phase 2** migrates additional high-risk product sinks onto `containedWrite`, shrinks the allowlist, and keeps `--enforce` as the fail-closed path (still optional until mass migration completes).
 
 ## Contract (normative)
 
@@ -72,29 +72,29 @@ Containment helpers (escape/symlink walk): `packages/core/src/fs/projection-cont
 
 ```bash
 task verify:contained-writes
-task verify:contained-writes -- --enforce   # fail closed (later phases)
+task verify:contained-writes -- --enforce   # fail closed on findings
 ```
 
 - Scans `packages/core/src` for raw write patterns (`writeFileSync`, `appendFileSync`, `fs.writeFile`, `createWriteStream`, …).
-- Skips `*.test.ts` and a **seed allowlist** of implementation modules.
-- **Phase 1 default: fail-open** — prints an advisory report and exits **0** even when findings remain. Documented so CI is not red while migration is incomplete.
-- Pass `--enforce` to exit **1** on findings (intended for a later phase once the allowlist has shrunk).
-- Not wired into `task check` in Phase 1.
+- Skips `*.test.ts` and a **shrinking allowlist** of residual implementation modules.
+- **Default: fail-open** — prints an advisory report and exits **0** even when findings remain (mass migration incomplete).
+- Pass `--enforce` to exit **1** on findings (Phase 2 path; not yet wired into `task check`).
+- Phase 2 removed `cache/io.ts` and `lifecycle/events.ts` from the allowlist after migration.
 
-Allowlist seed lives in `packages/core/src/verify-source/contained-writes.ts` (`CONTAINED_WRITES_ALLOWLIST`). New exceptions need a comment + allowlist entry with issue citation.
+Allowlist lives in `packages/core/src/verify-source/contained-writes.ts` (`CONTAINED_WRITES_ALLOWLIST`). New exceptions need a comment + allowlist entry with issue citation.
 
 ## Residual risk
 
 - TOCTOU between check and open is mitigated on platforms that honor `O_NOFOLLOW` on open; residual races can remain on some Windows paths. Document rather than claim zero residual risk (epic non-goal).
-- Go installer / `cmd/deft-install` sinks are **out of Phase 1** (epic still lists a Go equivalent for a later phase).
+- Go installer / `cmd/deft-install` sinks remain residual (epic still lists a Go equivalent for a later phase).
 - Reads are not covered by this API.
 
-## Migration checklist (later phases)
+## Migration checklist
 
 1. Inventory via `task verify:contained-writes`.
-2. Migrate highest-risk AppSec-touched sinks (policy, migrate, deposit, scope/cache).
-3. Shrink allowlist; enable `--enforce` in CI / `task check`.
-4. Remove allowlist entries as migration completes.
+2. Migrate highest-risk AppSec-touched sinks (policy, migrate, deposit, scope/cache) — Phase 2 batch landed several of these.
+3. Shrink allowlist further; enable `--enforce` in CI / `task check` when residual count is acceptable.
+4. Remove remaining allowlist entries as migration completes.
 
 ## Related
 

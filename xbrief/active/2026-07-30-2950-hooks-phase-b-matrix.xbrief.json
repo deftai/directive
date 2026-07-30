@@ -1,0 +1,99 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Phase A pure classifier + fixture skeleton is on master (#2957). Phase B: expand host×OS×tool matrix CI coverage, deepen core+CLI shared corpus collapse, expand decision-code documentation as stable API. Does not close epic unless full AC met.",
+    "created": "2026-07-30T19:03:21.400Z",
+    "updated": "2026-07-30T19:05:41.310Z"
+  },
+  "plan": {
+    "id": "2026-07-30-2950-hooks-phase-b-matrix",
+    "title": "feat(hooks): Phase B matrix CI expansion + decision-code docs (epic #2950)",
+    "status": "running",
+    "narratives": {
+      "Description": "Phase A pure classifier + fixture skeleton is on master (#2957). Phase B: expand host×OS×tool matrix CI coverage, deepen core+CLI shared corpus collapse, expand decision-code documentation as stable API. Does not close epic unless full AC met.",
+      "Overview": "Continue TPA surprise_rework paydown after Phase A.",
+      "Origin": "https://github.com/deftai/directive/issues/2950",
+      "UserStory": "As a hooks maintainer, I want expanded fixture matrix coverage and decision-code docs, so that host edge bugs land as fixtures and stable codes instead of one-off matcher patches.",
+      "ImplementationPlan": "Step 1: Expand packages/core/src/hooks/fixtures/cases.ts matrix cases. Step 2: Share fixture load path in packages/cli/src/hook-dispatch.test.ts and dispatcher.test.ts. Step 3: Document decision codes in packages/core/src/hooks/fixtures/README.md. Step 4: CHANGELOG.md Phase B of #2950. Verify with vitest on hooks fixtures and hook-dispatch tests. drive-to: merge-ready. CHANGELOG.md may be edited last with unique Unreleased bullets (shared non-exclusive).",
+      "Labels": "feat, harness, tech-debt",
+      "Traces": "Phase B of #2950; Phase A #2957"
+    },
+    "items": [
+      {
+        "title": "Matrix expansion",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the expanded fixtures corpus, cases.test.ts returns pass for additional Cursor win32 and posix Write and ApplyPatch cases."
+        }
+      },
+      {
+        "title": "Shared CLI corpus",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When hook-dispatch.test.ts runs, it imports at least one fixture case from packages/core/src/hooks/fixtures and the test returns pass."
+        }
+      },
+      {
+        "title": "Decision codes documented",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given fixtures/README.md is opened, it records stable decision codes agents may depend on for permission outcomes."
+        }
+      },
+      {
+        "title": "Changelog Phase B",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When CHANGELOG.md is opened, it records an Unreleased entry that cites Phase B of #2950."
+        }
+      }
+    ],
+    "tags": [
+      "feat",
+      "harness",
+      "tech-debt"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2950",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2950",
+        "decomposition_origin": "#2950"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/fixtures/cases.ts",
+          "packages/core/src/hooks/fixtures/cases.test.ts",
+          "packages/core/src/hooks/fixtures/README.md",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/cli/src/hook-dispatch.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks",
+          "pnpm exec vitest run packages/cli/src/hook-dispatch.test.ts"
+        ],
+        "expected_outputs": [
+          "Matrix expansion",
+          "Shared CLI corpus",
+          "Decision codes documented",
+          "Changelog Phase B"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2950-phase-b",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-07-30T19:05:41.310Z"
+  }
+}

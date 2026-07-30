@@ -1,17 +1,17 @@
 /**
- * contained-writes.ts — inventory gate skeleton for raw product write sinks (#2951 Phase 1).
+ * contained-writes.ts — inventory gate for raw product write sinks (#2951).
  *
  * Scans TypeScript under packages/core/src (and optional roots) for raw write
  * call patterns (`writeFileSync`, `appendFileSync`, `fs.writeFile`, etc.)
- * outside an allowlist. Phase 1 is **fail-open**: findings are reported but
- * exit code is always 0 unless `--enforce` is passed (Phase 2+).
+ * outside an allowlist. Default remains **fail-open** (advisory exit 0) while
+ * mass migration continues; pass `--enforce` to fail closed (Phase 2+).
  *
- * Allowlist starts with the contained-write implementation itself, projection
- * helpers, deposit copy primitives, and test files.
+ * Allowlist is the residual set of modules not yet migrated onto containedWrite.
+ * Phase 2 removed cache/io + lifecycle/events after sink migration.
  *
  * Exit codes:
- *   0 — clean OR fail-open with findings (default Phase 1)
- *   1 — findings under `--enforce` (future fail-closed)
+ *   0 — clean OR fail-open with findings (default)
+ *   1 — findings under `--enforce` (fail-closed)
  *   2 — config error (project root missing)
  *
  * Refs #2951.
@@ -44,18 +44,16 @@ export const RAW_WRITE_PATTERNS: readonly RegExp[] = [
 
 /**
  * Relative path prefixes (posix-style) allowed to use raw write sinks.
- * Phase 1 seed allowlist — shrink in later phases as sinks migrate.
+ * Shrink as sinks migrate onto containedWrite (#2951 Phase 2+).
  */
 export const CONTAINED_WRITES_ALLOWLIST: readonly string[] = [
   // Implementation modules for containment + contained write.
   "packages/core/src/fs/contained-write.ts",
   "packages/core/src/fs/projection-containment.ts",
+  // Deposit tree copy / contain primitives (low-level install sinks; residual).
   "packages/core/src/deposit/copy-tree.ts",
   "packages/core/src/deposit/contain.ts",
-  // Cache atomic helper (migration candidate; grandfathered Phase 1).
-  "packages/core/src/cache/io.ts",
-  // Lifecycle O_NOFOLLOW append (migration candidate).
-  "packages/core/src/lifecycle/events.ts",
+  // Phase 2 removed: cache/io.ts, lifecycle/events.ts (migrated to containedWrite).
 ];
 
 /** Path segments that mark a file as test or fixture (always allowlisted). */
@@ -184,7 +182,8 @@ function scanFile(absPath: string, relPosix: string): ContainedWriteFinding[] {
 }
 
 /**
- * Inventory raw write sinks under scan roots; fail-open by default (#2951 Phase 1).
+ * Inventory raw write sinks under scan roots; fail-open by default (#2951).
+ * Pass `enforce: true` / `--enforce` to fail closed on findings (Phase 2 path).
  */
 export function evaluateContainedWrites(options: ContainedWritesOptions): ContainedWritesResult {
   const root = resolve(options.projectRoot);
@@ -254,7 +253,7 @@ export function evaluateContainedWrites(options: ContainedWritesOptions): Contai
   }
 
   lines.push(
-    "ADVISORY (fail-open Phase 1): exit 0. Prefer containedWrite() for new sinks; pass --enforce to fail closed. See docs/reference/contained-write.md (#2951).",
+    "ADVISORY (fail-open): exit 0. Prefer containedWrite() for new sinks; pass --enforce to fail closed. See docs/reference/contained-write.md (#2951 Phase 2).",
   );
   return {
     code: EXIT_OK,

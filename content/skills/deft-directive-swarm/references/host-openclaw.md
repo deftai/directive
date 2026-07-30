@@ -8,6 +8,29 @@ Load this file only after detect selects OpenClaw. Do not load other host adapte
 
 Operator host guide: [`../../docs/openclaw-agent-host.md`](../../docs/openclaw-agent-host.md). Skill text remains source of truth for dispatch rules.
 
+Host lifecycle duty list (all hosts): [`../../../contracts/host-lifecycle-duties.md`](../../../contracts/host-lifecycle-duties.md) (#2968 A3).
+
+## Cold-start — Directive load on OpenClaw (#2968 / A7)
+
+OpenClaw is a **session-first** host: the agent may wake in a workspace home where `available_skills` is **not** the Directive Skills Index. IDE deposit rails do not run automatically.
+
+! When user intent is **Deft-shaped** (skills, review, triage, swarm, build, pre-PR, article-review, xBRIEF / consumer-repo Directive work, or equivalent process verbs), complete cold-start **before** freestyle host tools:
+
+1. ! **Resolve project root.** Prefer the git worktree or repo that holds `AGENTS.md` / `.deft/core/` / `xbrief/` (framework checkout: repo root with `content/`). On WSL dual-path setups, use the path that is source of truth for that checkout — do not freestyle from a sibling home folder.
+2. ! **Load Skills Index before freestyle tools.** Scan Level-0 Skills Index (`REFERENCES.md` under deposit `.deft/core/` or framework `content/` / root) and open the matching Directive `SKILL.md` **before** host-global skills, raw `gh` poll loops, or improvised shell.
+3. ! **Prefer pinned Directive skills** over same-named host skills. Always-pins: `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` (#2508). On-demand examples: `deft-directive-article-review`, `deft-directive-triage`. Cursor `/review` or a host skill named “review” is **not** a substitute for the Directive skill that matches the intent.
+4. ~ **Record the gate** in session notes / MEMORY when the host supports durable notes (which skill path ran, project root used) so APE continuity does not re-miss the route.
+
+### Regression note (2026-07-30 miss class)
+
+Live miss: operator said “use review skill” + URL; agent stayed on host freestyle / same-named host path and **never entered** `deft-directive-article-review` via Skills Index.
+
+! On review / article-review / babysit / shepherd intent under OpenClaw: open the matching Directive skill (`deft-directive-article-review` or `deft-directive-review-cycle` per intent) from Skills Index **first**.
+
+⊗ Treat host `available_skills` alone as the Directive Skills Index.
+⊗ Answer Deft-shaped intent with freestyle tools only when a Directive skill is indexed for that intent.
+⊗ Skip project-root resolution and improvise from workspace home outside the target checkout.
+
 ## Hard isolation before spawn (#2929)
 
 ! For **parallel** OpenClaw leaves (cohort size > 1):

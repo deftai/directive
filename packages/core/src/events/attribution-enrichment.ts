@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { inferRepoFromGit } from "../triage/queue/repo.js";
 
 /** Record-shape version for attribution ledger entries (#2376). Bump on shape changes. */
@@ -40,8 +41,13 @@ export function resolveInstallId(projectRoot: string): string | null {
   }
   try {
     const id = randomUUID();
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, `${id}\n`, "utf8");
+    // #2951 Phase 2: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectRoot),
+      target: path,
+      data: `${id}\n`,
+      mode: "replace",
+    });
     return id;
   } catch {
     return null;

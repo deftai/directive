@@ -1,3 +1,4 @@
+import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "@deftai/directive-core/hooks";
 import { describe, expect, it } from "vitest";
 import { resolveCanonicalVerb } from "./dispatch.js";
 import {
@@ -551,5 +552,66 @@ describe("hook-dispatch CLI", () => {
     });
     expect(argvExit).toBe(2);
     expect(argvErr.join("")).toContain("unsupported event");
+  });
+});
+
+describe("shared hooks fixture corpus (Phase B of #2950)", () => {
+  it("imports the core HOOK_FIXTURE_CASES matrix", () => {
+    expect(HOOK_FIXTURE_CASES.length).toBeGreaterThanOrEqual(24);
+    expect(fixtureCasesFor({ host: "cursor", tool: "Write" }).length).toBeGreaterThanOrEqual(3);
+    expect(fixtureCaseById("cursor-posix-applypatch-freeform")?.raw).toBeDefined();
+  });
+
+  it("parsePayload agrees with every raw fixture case", () => {
+    const rawCases = HOOK_FIXTURE_CASES.filter((c) => c.raw !== undefined);
+    expect(rawCases.length).toBeGreaterThan(0);
+    for (const c of rawCases) {
+      const parsed = parsePayload(c.raw as string);
+      if (c.expected.stdinEmpty) {
+        expect(parsed.context.stdinEmpty, c.id).toBe(true);
+      }
+      if (c.expected.parseFailed) {
+        expect(parsed.context.parseFailed, c.id).toBe(true);
+      }
+      if (c.expected.parseFailed !== true && c.expected.stdinEmpty !== true) {
+        // Successful free-form / BOM JSON synthesis — CLI and core share the same parse.
+        expect(parsed.context.parseFailed, c.id).toBeUndefined();
+        expect(parsed.context.stdinEmpty, c.id).toBeUndefined();
+      }
+    }
+  });
+
+  it("runs Cursor free-form ApplyPatch fixture without JSON parse denial", () => {
+    const freeForm = fixtureCaseById("cursor-posix-applypatch-freeform");
+    expect(freeForm?.raw).toBeDefined();
+    const out: string[] = [];
+    const code = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => freeForm?.raw ?? "",
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    const rendered = out.join("");
+    expect(rendered).not.toContain("not valid JSON");
+    expect(rendered).not.toContain("omitted a recognizable tool name");
+  });
+
+  it("surfaces stdin-empty decision code from the empty-stdin fixture (#2864)", () => {
+    const empty = fixtureCaseById("cursor-posix-stdin-empty");
+    expect(empty?.raw).toBe("");
+    const out: string[] = [];
+    const exit = run(["--host=cursor", "--event=tool.before"], {
+      readStdin: () => empty?.raw ?? "",
+      stdinEmptyRetryMs: 0,
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(exit).toBe(0);
+    expect(JSON.parse(out.join(""))).toMatchObject({
+      permission: "deny",
+      code: "stdin-empty",
+    });
   });
 });

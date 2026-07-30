@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
-import { ProjectionContainmentError } from "../fs/projection-containment.js";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import { inspectOnePolicy } from "./index.js";
 import {
   deepEqualPolicySnapshot,
@@ -727,9 +727,7 @@ describe("org-force-on marker projection containment (#2839)", () => {
     mkdirSync(join(root, ".deft-cache"), { recursive: true });
     symlinkSync(escapeFile, join(root, ORG_FORCE_ON_MARKER_REL));
 
-    expect(() => runOrgForceOnMigration(root, trustedAutoEnable)).toThrow(
-      ProjectionContainmentError,
-    );
+    expect(() => runOrgForceOnMigration(root, trustedAutoEnable)).toThrow(ContainedWriteError);
     expect(readFileSync(escapeFile, "utf8")).toBe('{"victim":true}\n');
   });
 });
