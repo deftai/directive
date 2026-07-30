@@ -126,7 +126,11 @@ describe("evaluateContainedWrites (#2951)", () => {
     mkdirSync(product, { recursive: true });
     writeFileSync(join(releaseE2e, "npm-ops.ts"), 'writeFileSync("/tmp/e2e", "x");\n', "utf8");
     writeFileSync(join(integrationE2e, "helpers.ts"), 'writeFileSync("/tmp/ie2e", "x");\n', "utf8");
-    writeFileSync(join(vbrief, "parity-scenarios.ts"), 'writeFileSync("/tmp/parity", "x");\n', "utf8");
+    writeFileSync(
+      join(vbrief, "parity-scenarios.ts"),
+      'writeFileSync("/tmp/parity", "x");\n',
+      "utf8",
+    );
     writeFileSync(join(product, "sink.ts"), 'writeFileSync("/tmp/product", "x");\n', "utf8");
 
     const open = evaluateContainedWrites({ projectRoot: root });
