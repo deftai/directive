@@ -23,14 +23,15 @@
  * (never a crash or a partial write).
  */
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import type { ResolutionEncoding, ResolutionFacts, ResolutionFile } from "@deftai/directive-types";
 import {
   ContentPackageNotFoundError,
   resolveInstalledContentRoot,
 } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { plan } from "../resolution/plan.js";
 import { CANONICAL_INSTALL_ROOT } from "./constants.js";
@@ -308,8 +309,15 @@ export async function runInitHeadlessCli(options: RunInitHeadlessCliOptions): Pr
       const writeFile =
         options.writeFile ??
         ((path, data) => {
-          mkdirSync(dirname(path), { recursive: true });
-          writeFileSync(path, data);
+          // Contain under the output parent (arbitrary --output path; #2980 wave A).
+          const parent = dirname(path);
+          mkdirSync(parent, { recursive: true });
+          containedWrite({
+            root: resolve(parent),
+            target: basename(path),
+            data,
+            mode: "replace",
+          });
         });
       writeFile(abs, serialized);
       options.writeErr(

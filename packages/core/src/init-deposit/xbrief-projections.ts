@@ -6,16 +6,9 @@
  * these repairs.
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
@@ -85,6 +78,7 @@ export function assertProjectedSchemaDescriptionsRooted(
 }
 
 function writeFileIfChanged(projectDir: string, target: string, content: Buffer | string): boolean {
+  // Keep early containment so ProjectionContainmentError type is preserved for callers/tests.
   assertDestinationNotSymlink(projectDir, target);
   const desired = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf8");
   try {
@@ -92,8 +86,13 @@ function writeFileIfChanged(projectDir: string, target: string, content: Buffer 
   } catch {
     // Missing or unreadable target is replaced below.
   }
-  mkdirSync(join(target, ".."), { recursive: true });
-  writeFileSync(target, desired);
+  // #2980 wave A: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectDir),
+    target,
+    data: desired,
+    mode: "replace",
+  });
   return true;
 }
 

@@ -10,8 +10,9 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   FORBIDDEN_BLANKET_EVAL_LINES,
@@ -246,8 +247,15 @@ function reconcileGitignoreFile(
   }
 
   try {
+    // Keep early containment so ProjectionContainmentError type is preserved for callers/tests.
     assertWriteTargetSafe(projectDir, path);
-    writeFileSync(path, body, { encoding: "utf8", mode: 0o644 });
+    // #2980 wave A: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectDir),
+      target: path,
+      data: body,
+      mode: "replace",
+    });
   } catch (cause) {
     if (cause instanceof ProjectionContainmentError) {
       throw cause;

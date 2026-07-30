@@ -8,8 +8,9 @@
  * Refs #2534, #670.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { stripGitignoreInlineComment } from "../triage/bootstrap/gitignore.js";
 import type { InitDepositIo } from "./constants.js";
@@ -91,7 +92,13 @@ export function ensurePrettierIgnoreLines(
   }
 
   try {
-    writeFileSync(path, body, { encoding: "utf8", mode: 0o644 });
+    // #2980 wave A: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectDir),
+      target: path,
+      data: body,
+      mode: "replace",
+    });
   } catch (cause) {
     throw new Error(`could not write .prettierignore: ${String(cause)}`);
   }

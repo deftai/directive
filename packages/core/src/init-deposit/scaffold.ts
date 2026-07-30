@@ -6,18 +6,11 @@
  */
 
 import { execFileSync } from "node:child_process";
-import {
-  chmodSync,
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { platform } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   assertDestinationNotSymlink,
   ProjectionContainmentError,
@@ -41,6 +34,20 @@ function projectionTarget(projectDir: string, ...relSegments: string[]): string 
   const target = join(projectDir, ...relSegments);
   assertDestinationNotSymlink(projectDir, target);
   return target;
+}
+
+/**
+ * Product write sink: containment root is the project, then containedWrite
+ * (#2951 / #2980 wave A). Call after projectionTarget / assertDestinationNotSymlink
+ * when the early ProjectionContainmentError type is required by tests.
+ */
+function containedProjectWrite(projectDir: string, target: string, data: string | Buffer): void {
+  containedWrite({
+    root: resolve(projectDir),
+    target,
+    data,
+    mode: "replace",
+  });
 }
 
 const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
@@ -270,9 +277,9 @@ export function writeInstallManifest(
     relative(projectDir, deftDir).split("\\").join("/") ||
     CANONICAL_INSTALL_ROOT;
   const body = buildInstallManifestText({ ...fields, installRoot });
-  mkdirSync(deftDir, { recursive: true });
   const path = join(deftDir, "VERSION");
-  writeFileSync(path, body, "utf8");
+  // #2980 wave A: product write sink routes through containedWrite.
+  containedProjectWrite(projectDir, path, body);
   return path;
 }
 
@@ -343,7 +350,7 @@ export function ensurePackageJsonPin(
   devDeps[PIN_DEPENDENCY_NAME] = pinVersion;
   pkg.devDependencies = devDeps;
 
-  writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  containedProjectWrite(projectDir, path, `${JSON.stringify(pkg, null, 2)}\n`);
   io.printf(
     existed
       ? `package.json updated: pinned ${PIN_DEPENDENCY_NAME}@${pinVersion} (exact).\n`
@@ -367,7 +374,7 @@ export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepos
     throw new Error("AGENTS.md render produced no content");
   }
   const path = projectionTarget(projectDir, "AGENTS.md");
-  writeFileSync(path, newContent, "utf8");
+  containedProjectWrite(projectDir, path, newContent);
   if (state === "absent") {
     io.printf("AGENTS.md created.\n");
   } else {
@@ -389,7 +396,7 @@ async function ensureVbriefLifecycleDirs(projectDir: string): Promise<void> {
     }
     const entries = await readdir(dir);
     if (entries.length > 0) continue;
-    await writeFile(gitkeep, VBRIEF_LIFECYCLE_GITKEEP, "utf8");
+    containedProjectWrite(projectDir, gitkeep, VBRIEF_LIFECYCLE_GITKEEP);
   }
 }
 
@@ -432,7 +439,7 @@ export async function writeConsumerVbrief(
     if (existsSync(fwVbriefMd)) {
       copyFileSync(fwVbriefMd, vbriefMdDst);
     } else {
-      writeFileSync(vbriefMdDst, VBRIEF_README_BODY, "utf8");
+      containedProjectWrite(projectDir, vbriefMdDst, VBRIEF_README_BODY);
     }
   }
 
@@ -453,11 +460,9 @@ export function writeAgentsSkills(projectDir: string, io: InitDepositIo): boolea
   }
 
   for (const skill of AGENTS_SKILLS) {
-    const dir = projectionTarget(projectDir, ".agents", "skills", skill.dir);
-    mkdirSync(dir, { recursive: true });
     const path = projectionTarget(projectDir, ".agents", "skills", skill.dir, "SKILL.md");
     if (existsSync(path)) continue;
-    writeFileSync(path, skill.content, "utf8");
+    containedProjectWrite(projectDir, path, skill.content);
   }
 
   io.printf(".agents/skills/ created — deft skills will be auto-discovered.\n");
@@ -547,14 +552,13 @@ export function ensureTaskfile(projectDir: string, io: InitDepositIo): boolean {
     io.printf("Appended new `includes:` block with deft entry to Taskfile.yml (Epic-4).\n");
   }
 
-  writeFileSync(path, resultText, "utf8");
+  containedProjectWrite(projectDir, path, resultText);
   return true;
 }
 
 const HOOK_FILENAMES = ["pre-commit", "pre-push"] as const;
 const HOOK_SUPPORT_FILENAMES = ["_deft-run.sh"] as const;
 const HOOK_FILE_MODE = 0o755;
-const HOOK_SUPPORT_FILE_MODE = 0o644;
 
 export interface GitHooksSeams {
   getHooksPath?: (projectDir: string) => string | null;
@@ -573,8 +577,8 @@ export function writeConsumerGitHooks(
     return false;
   }
 
-  const dstDir = projectionTarget(projectDir, ".githooks");
-  mkdirSync(dstDir, { recursive: true });
+  // Ensure parent path is containment-checked before any file write.
+  projectionTarget(projectDir, ".githooks");
 
   let filesDeposited = false;
   for (const name of [...HOOK_FILENAMES, ...HOOK_SUPPORT_FILENAMES]) {
@@ -585,8 +589,8 @@ export function writeConsumerGitHooks(
     const existing = existsSync(dst) ? readFileSync(dst) : null;
     const isHookScript = HOOK_FILENAMES.includes(name as (typeof HOOK_FILENAMES)[number]);
     if (!existing?.equals(data)) {
-      const mode = isHookScript ? HOOK_FILE_MODE : HOOK_SUPPORT_FILE_MODE;
-      writeFileSync(dst, data, { mode });
+      // #2980 wave A: containedWrite (mode is applied via chmod below for hooks).
+      containedProjectWrite(projectDir, dst, data);
       filesDeposited = true;
     }
     if (platform() !== "win32" && isHookScript) {
@@ -796,7 +800,7 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
   for (const add of additions) {
     body += `${add}\n`;
   }
-  writeFileSync(path, body, "utf8");
+  containedProjectWrite(projectDir, path, body);
   io.printf(`.gitattributes updated with Deft core markers: ${additions.join(", ")}\n`);
   return true;
 }
@@ -838,7 +842,7 @@ export function ensureGreptileIgnore(projectDir: string, io: InitDepositIo): boo
     return false;
   }
   obj.ignorePatterns = appendGreptilePattern(patterns, CORE_GLOB);
-  writeFileSync(path, `${JSON.stringify(obj, null, 2)}\n`, "utf8");
+  containedProjectWrite(projectDir, path, `${JSON.stringify(obj, null, 2)}\n`);
   io.printf(
     fileExisted
       ? `greptile.json updated: bot review now ignores ${CORE_GLOB}.\n`
@@ -893,8 +897,7 @@ function insertCodeqlPathsIgnore(content: string, glob: string): { content: stri
 export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): boolean {
   const path = projectionTarget(projectDir, CODEQL_CONFIG_REL);
   if (!existsSync(path)) {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, codeqlConfigDefault(), "utf8");
+    containedProjectWrite(projectDir, path, codeqlConfigDefault());
     io.printf(`${CODEQL_CONFIG_REL} created: CodeQL ignores ${CORE_GLOB}.\n`);
     return true;
   }
@@ -907,7 +910,7 @@ export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): 
   const updated = inserted.ok
     ? inserted.content
     : `${existing}${existing.endsWith("\n") ? "" : "\n"}paths-ignore:\n  - '${CORE_GLOB}'\n`;
-  writeFileSync(path, updated, "utf8");
+  containedProjectWrite(projectDir, path, updated);
   io.printf(`${CODEQL_CONFIG_REL} updated: CodeQL now ignores ${CORE_GLOB}.\n`);
   return true;
 }
@@ -926,12 +929,11 @@ export function ensureCoreGuardWorkflow(projectDir: string, io: InitDepositIo): 
       io.printf(`${CORE_GUARD_WORKFLOW_REL} already current — skipping.\n`);
       return false;
     }
-    writeFileSync(path, refreshed, "utf8");
+    containedProjectWrite(projectDir, path, refreshed);
     io.printf(`${CORE_GUARD_WORKFLOW_REL} refreshed: deft-core-guard allowlist updated (#1478).\n`);
     return true;
   }
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, desired, "utf8");
+  containedProjectWrite(projectDir, path, desired);
   io.printf(
     `${CORE_GUARD_WORKFLOW_REL} created: CI refuses PRs mixing ${CORE_GLOB} with app files.\n`,
   );

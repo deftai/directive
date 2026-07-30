@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
+import { containedWrite } from "../fs/contained-write.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -268,13 +269,33 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   return { ...config, version: 1, hooks };
 }
 
-function writeJsonIfChanged(path: string, payload: Record<string, unknown>): boolean {
+function writeJsonIfChanged(
+  projectRoot: string,
+  path: string,
+  payload: Record<string, unknown>,
+): boolean {
   const next = `${JSON.stringify(payload, null, 2)}\n`;
   if (existsSync(path) && readFileSync(path, "utf8") === next) return false;
-  mkdirSync(dirname(path), { recursive: true });
-  const temporary = `${path}.deft-${process.pid}.tmp`;
-  writeFileSync(temporary, next, "utf8");
-  renameSync(temporary, path);
+  // Atomic replace via temp under project root (#2951 / #2980 wave A).
+  const parent = dirname(path);
+  const tmpName = `${basename(path)}.deft-${process.pid}.tmp`;
+  const temporary = join(parent, tmpName);
+  try {
+    containedWrite({
+      root: resolve(projectRoot),
+      target: temporary,
+      data: next,
+      mode: "replace",
+    });
+    renameSync(temporary, path);
+  } catch (err) {
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
   return true;
 }
 
@@ -349,7 +370,7 @@ export function writeAgentHookDeposit(
 
   for (const item of prepared) {
     if (item.mode === "skip") continue;
-    if (writeJsonIfChanged(item.absolute, item.payload)) {
+    if (writeJsonIfChanged(projectRoot, item.absolute, item.payload)) {
       if (item.mode === "strip") strippedPaths.push(item.path);
       else changedPaths.push(item.path);
     }

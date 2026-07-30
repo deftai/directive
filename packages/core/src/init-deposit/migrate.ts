@@ -25,11 +25,12 @@
  * Refs #1941, #1912 (freeze prerequisite b), #1933 (never-first-start), #1670.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveContentPackageRoot } from "../content-root.js";
 import { locateManifest, parseInstallManifest } from "../doctor/manifest.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { CANONICAL_INSTALL_ROOT } from "./scaffold.js";
 
 /**
@@ -66,7 +67,7 @@ export interface MigrateSeams {
   isFile?: (path: string) => boolean;
   /** Text read returning null on failure (default: node:fs readFileSync, utf8). */
   readText?: (path: string) => string | null;
-  /** Text write (default: node:fs writeFileSync, utf8). */
+  /** Text write (default: containedWrite under projectRoot; #2980 wave A). */
   writeText?: (path: string, text: string) => void;
   /** ISO-8601 UTC timestamp source for the backup filename (default: Date.now). */
   nowIso?: () => string;
@@ -145,7 +146,16 @@ export function runMigrate(projectRoot: string, seams: MigrateSeams = {}): Migra
   const isFile = seams.isFile ?? existsSync;
   const readText = seams.readText ?? defaultReadText;
   const writeText =
-    seams.writeText ?? ((path: string, text: string) => writeFileSync(path, text, "utf8"));
+    seams.writeText ??
+    ((path: string, text: string) => {
+      // #2980 wave A: product write sink routes through containedWrite.
+      containedWrite({
+        root: resolve(projectRoot),
+        target: path,
+        data: text,
+        mode: "replace",
+      });
+    });
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const resolveEngine = seams.resolveEngine ?? defaultResolveEngine;
 
