@@ -106,6 +106,15 @@ describe("github-body", () => {
     expect(scanBodyText(`\`\`\`\n${MOJIBAKE_EM_DASH}\n\`\`\`\n`)).toEqual([]);
   });
 
+  it("scanBodyText flags prose mojibake after a fenced block at the correct line", () => {
+    // Same shape as encoding/scan.test.ts fenced.md fixture (#2960 Greptile P1).
+    const body = `intro\n\`\`\`\nignored ${MOJIBAKE_EM_DASH}\n\`\`\`\nreal ${MOJIBAKE_EM_DASH} hit\n`;
+    const findings = scanBodyText(body);
+    expect(findings.length).toBe(1);
+    expect(findings[0]?.line).toBe(5);
+    expect(findings[0]?.label).toMatch(/U\+2014/);
+  });
+
   it("scanBodyText accepts clean em dash", () => {
     expect(scanBodyText(`title ${CLEAN_EM_DASH} body`)).toEqual([]);
   });

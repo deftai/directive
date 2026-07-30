@@ -26,6 +26,12 @@ function parseArgs(argv: string[]): GitHubBodyCliArgs {
   return out;
 }
 
+/**
+ * Production entry for `task scm:body:*` / `directive github-body <subcommand>`.
+ * Dispatch peels the `github-body` verb; argv[0] is the subcommand
+ * (`issue-lint`, `pr-lint`, `issue-edit`, …). Wired through githubBodyMain
+ * so create/edit fail closed and lint commands share one encoding gate (#2960).
+ */
 export function mainEntry(argv: string[] = process.argv.slice(2)): number {
   const parsed = parseArgs(argv);
   return githubBodyMain(parsed);
