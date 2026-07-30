@@ -26,7 +26,7 @@ Taskfile is the discoverable command contract for the framework. Start with:
 ```bash
 task --list
 task check
-task xbrief:validate
+task vbrief:validate
 task codebase:validate-structure
 ```
 
@@ -90,7 +90,7 @@ Good specifications expose decisions, dependencies, non-goals, and acceptance cr
 Deft favors enforceable rules over remembered rules:
 
 1. Deterministic checks: tests, scripts, hooks, CI.
-2. Taskfile targets: `task check`, `task verify:*`, `task xbrief:*`.
+2. Taskfile targets: `task check`, `task verify:*`, `task vbrief:validate`, `task xbrief:preflight` (and related lifecycle verbs).
 3. xBRIEF policy and lifecycle metadata.
 4. RFC2119 instructions in `AGENTS.md`, skills, and standards.
 5. Plain prose and rationale.
@@ -108,11 +108,11 @@ task check:framework-source
 task check:consumer
 task check:slow
 task verify:session-ritual
-task verify:story-ready -- --xbrief-path <path>
+task verify:story-ready -- --vbrief-path <path>
 task xbrief:preflight -- <path>
 ```
 
-New source files require forward coverage. Documentation-only changes still need validation appropriate to the touched surface, usually `task xbrief:validate`, `task codebase:validate-structure` when architecture metadata changes, and enough content checks to catch broken links or stale generated files.
+New source files require forward coverage. Documentation-only changes still need validation appropriate to the touched surface, usually `task vbrief:validate`, `task codebase:validate-structure` when architecture metadata changes, and enough content checks to catch broken links or stale generated files.
 
 ## Test-Driven Development
 

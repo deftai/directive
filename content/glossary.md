@@ -64,11 +64,11 @@ These concepts originate from [GSD](https://github.com/gsd-build/get-shit-done) 
 
 ## Framework Design Terms
 
-**Bounded context** (framework sense) — A file or directory in directive that owns a specific rule domain. Other files reference it; they do not restate its rules.
+**Bounded context** (framework sense) — A file or directory in directive that owns a specific rule domain. Other files reference it; they do not restate its rules. Prevents rule drift through duplication. Examples: `coding/hygiene.md` owns hygiene rules; `coding/testing.md` owns universal testing standards.
 
-**Rule ownership** — Each concept has exactly one owning file. Link to the owner rather than duplicating the rule.
+**Rule ownership** — The principle that each concept in directive has exactly one owning file. When multiple files need to reference the concept, they link to the owner rather than duplicating the rule.
 
-**Ubiquitous language** — The shared vocabulary across all directive files. This glossary is the source of truth.
+**Ubiquitous language** — The shared, precisely defined vocabulary used consistently across all directive files and by all agents. This glossary is the source of truth. Synonyms and informal restatements of defined terms are not permitted.
 
 **Coding host** (host) · **skill pack** · **practice layer** · **orchestrator** — Buyer/evaluator category map. Canonical aid: [docs/CATEGORY.md](../docs/CATEGORY.md) (#2905).
 

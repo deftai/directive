@@ -42,6 +42,10 @@ function currentGuidanceVbriefHits(text: string, rel: string): string[] {
     ) {
       continue;
     }
+    // Shipped Taskfile/CLI ids still use vbrief:validate / --vbrief-path even when product prose says xBRIEF.
+    if (/task vbrief:|vbrief:validate|vbrief:preflight|--vbrief-path|verify:vbrief/.test(line)) {
+      continue;
+    }
     // Schema package still lives under content/vbrief/ (historical path); links are not current product naming.
     if (
       /vbrief\/vbrief\.md|content\/vbrief\/|vbrief\/schemas\//.test(line) &&

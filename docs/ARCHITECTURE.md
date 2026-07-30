@@ -56,7 +56,7 @@ Rules use the strongest applicable layer:
 
 ```mermaid
 flowchart TD
-    D["Deterministic checks<br/>tests, scripts, hooks, CI"] --> T["Taskfile targets<br/>task check, verify:*, xbrief:*"]
+    D["Deterministic checks<br/>tests, scripts, hooks, CI"] --> T["Taskfile targets<br/>task check, verify:*, vbrief:validate, xbrief:preflight"]
     T --> V["xBRIEF metadata<br/>project policy, lifecycle state"]
     V --> R["RFC2119 rules<br/>AGENTS.md, main.md, skills"]
     R --> P["Plain prose<br/>explanation and rationale"]
@@ -131,7 +131,7 @@ The command graph is broad; use `task --list` for the exact current surface. The
 
 - `task check`, `task check:framework-source`, `task check:consumer`, `task check:slow` for quality gates.
 - `task verify:*` for branch, hooks, encoding, xBRIEF conformance, session ritual, story readiness, capacity, cache freshness, and investigation gates.
-- `task xbrief:*`, `task spec:*`, `task project:*`, `task roadmap:*`, and `task prd:*` for source validation and generated views.
+- `task vbrief:validate`, `task xbrief:preflight` (prefer; `vbrief:preflight` remains as alias), `task spec:*`, `task project:*`, `task roadmap:*`, and `task prd:*` for source validation and generated views.
 - `task scope:*` and `task scope:undo:*` for lifecycle movement.
 - `task triage:*` and `task cache:*` for cache-backed backlog work.
 - `task codebase:*` for authored `codeStructure` validation, default extraction, provider-map validation, MAP generation, and projection registry lookup.
