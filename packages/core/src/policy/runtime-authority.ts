@@ -264,12 +264,58 @@ function isShellEnvAssignToken(token: string): boolean {
 
 /**
  * Normalize a shell token for classification (#2711).
- * Shell strips quote characters and concatenates fragments (`g''it` → `git`,
- * `'push'` → `push`). Dropping `'`/`"` after whitespace split closes that bypass
- * without nested-quantifier regex. Linear O(n).
+ * Shell strips quotes, empty quote pairs, and backslash escapes before exec
+ * (`g''it` / `g\it` / `'push'` → `git` / `push`). Dropping `'`/`"`/`\` after
+ * whitespace split closes those bypasses without nested-quantifier regex. O(n).
  */
 function normalizeShellToken(token: string): string {
-  return token.replace(/['"]/g, "");
+  return token.replace(/['"\\]/g, "");
+}
+
+/**
+ * Split a shell command into list/pipeline/newline segments without splitting
+ * on separators that appear inside single- or double-quoted spans (#2711).
+ * Prevents `printf '%s' ';' 'git push'` from being classified as an executable push.
+ */
+function splitShellSegments(command: string): string[] {
+  const segments: string[] = [];
+  let cur = "";
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === undefined) break;
+    if (quote !== null) {
+      if (c === quote) quote = null;
+      cur += c;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      quote = c;
+      cur += c;
+      continue;
+    }
+    // Outside quotes: list/pipeline separators and newlines start a new segment.
+    if (c === "&" && command[i + 1] === "&") {
+      segments.push(cur);
+      cur = "";
+      i++;
+      continue;
+    }
+    if (c === "|" && command[i + 1] === "|") {
+      segments.push(cur);
+      cur = "";
+      i++;
+      continue;
+    }
+    if (c === ";" || c === "|" || c === "&" || c === "\n" || c === "\r") {
+      segments.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += c;
+  }
+  segments.push(cur);
+  return segments;
 }
 
 /**
@@ -365,8 +411,8 @@ export function listShellOps(command: string): RuntimeAuthorityShellOp[] {
   const cmd = command.trim();
   if (cmd.length === 0) return [];
   const found = new Set<RuntimeAuthorityShellOp>();
-  // Split on shell list/pipeline ops and newlines (not prose inside a single segment).
-  for (const raw of cmd.split(/(?:&&|\|\||[;&|\n\r])+/)) {
+  // Quote-aware split so separators inside quotes are not treated as list ops.
+  for (const raw of splitShellSegments(cmd)) {
     const op = classifyShellSegment(raw);
     if (op !== null) found.add(op);
   }

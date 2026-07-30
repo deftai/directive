@@ -154,16 +154,22 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
     expect(classifyShellCommand("g''it push origin HEAD")).toBe("push");
     expect(classifyShellCommand("git p''ush origin HEAD")).toBe("push");
     expect(classifyShellCommand("gh pr m''erge 12")).toBe("merge");
+    expect(classifyShellCommand("g\\it push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("git p\\ush origin HEAD")).toBe("push");
     // Compound / multi-line: list every op so enforcement can deny any out-of-scope step.
     expect(listShellOps("gh pr merge 1 --squash && git push")).toEqual(["push", "merge"]);
     expect(listShellOps("ls\ngit push origin HEAD")).toEqual(["push"]);
     expect(listShellOps("git status && echo ok")).toEqual([]);
+    // Quoted separators must not invent executable segments (false-deny).
+    expect(listShellOps("printf '%s' ';' 'git push'")).toEqual([]);
+    expect(classifyShellCommand("printf '%s' ';' 'git push'")).toBeNull();
   });
 
   it("classifies MCP merge/push tool names", () => {
     expect(classifyMcpTool("mcp__github__merge_pull_request")).toBe("merge");
     expect(classifyMcpTool("merge_pull_request")).toBe("merge");
     expect(classifyMcpTool("mcp__git__git_push")).toBe("push");
+    expect(classifyMcpTool("server__push_to_remote")).toBe("push");
     expect(classifyMcpTool("list_issues")).toBeNull();
     expect(classifyMcpTool("mcp__github__create_issue", '{"title":"x"}')).toBeNull();
   });

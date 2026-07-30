@@ -98,12 +98,24 @@ export const SPAWN_HOOK_MATCHER = SPAWN_TOOL_NAMES.join("|");
 export const SHELL_HOOK_MATCHER = SHELL_TOOL_NAMES.join("|");
 /**
  * PreToolUse matcher for MCP-class push/merge tools (#2711).
- * Regex-friendly for Claude/nested hosts: mcp prefixes, bare names, and
- * `server__tool` suffixes that classifyMcpTool recognizes.
+ * Regex-friendly for Claude/nested hosts. Prefer broad install match +
+ * fail-open classify in the dispatcher over missing a classifiable push/merge
+ * tool name (e.g. `server__push_to_remote` via push+remote).
  */
 export const MCP_HOOK_MATCHER = [
+  // Prefixed / server-bridge styles (isMcpTool); dispatcher fail-opens non-ops.
   "mcp__.*",
   "mcp_.*",
+  ".*__.*",
+  // Bare names classifyMcpTool recognizes without prefixes.
   ...MCP_PUSH_MERGE_BARE_NAMES,
-  ".*__(?:merge_pull_request|pull_request_merge|merge_pr|pr_merge|git_push|push_branch|merge-pull-request|pull-request-merge|git-push|push-branch)",
+  // Name fragments for hosts that strip server prefixes differently.
+  ".*merge[_-]?pull[_-]?request.*",
+  ".*pull[_-]?request[_-]?merge.*",
+  ".*(?:^|[_-])merge_pr(?:$|[_-]).*",
+  ".*pr[_-]?merge.*",
+  ".*git[_-]?push.*",
+  ".*push[_-]?branch.*",
+  ".*push.*(?:git|branch|remote|ref).*",
+  ".*(?:git|branch|remote|ref).*push.*",
 ].join("|");
