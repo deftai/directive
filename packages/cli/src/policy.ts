@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { resolve as pathResolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  ALLOW_BOT_MERGE_CAPABILITY_COST,
   clearValueFeedback,
   createNoDeftDirectiveFlag,
   describeShadowedPlanExtension,
@@ -17,6 +18,7 @@ import {
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,
   formatValueFeedbackStatusLine,
+  humanMergeDisclosureLine,
   inspectAllPolicies,
   inspectOnePolicy,
   loadProjectDefinition,
@@ -31,9 +33,11 @@ import {
   removeNoDeftDirectiveFlag,
   renderJson,
   renderText,
+  resolveHumanMergePolicy,
   resolvePolicy,
   resolveValueFeedback,
   setPolicy,
+  setRequireHumanMerge,
 } from "@deftai/directive-core/policy";
 
 const CAPABILITY_COST_DISCLOSURE =
@@ -63,6 +67,7 @@ interface SetArgs {
     | "show"
     | "enforce-branches"
     | "allow-direct-commits"
+    | "allow-bot-merge"
     | "enable-value-feedback"
     | "clear-value-feedback"
     | "disable-directive"
@@ -168,7 +173,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|clear-value-feedback|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -206,6 +211,7 @@ export function parseArgs(argv: string[]): SetArgs {
   if (
     cmd === "enforce-branches" ||
     cmd === "allow-direct-commits" ||
+    cmd === "allow-bot-merge" ||
     cmd === "enable-value-feedback" ||
     cmd === "clear-value-feedback" ||
     cmd === "disable-directive" ||
@@ -217,13 +223,15 @@ export function parseArgs(argv: string[]): SetArgs {
         ? policyColonInvocation("enforce-branches")
         : cmd === "allow-direct-commits"
           ? policyColonInvocation("allow-direct-commits")
-          : cmd === "enable-value-feedback"
-            ? policyColonInvocation("enable-value-feedback")
-            : cmd === "clear-value-feedback"
-              ? policyColonInvocation("clear-value-feedback")
-              : cmd === "disable-directive"
-                ? policyColonInvocation("disable-directive")
-                : policyColonInvocation("enable-directive");
+          : cmd === "allow-bot-merge"
+            ? policyColonInvocation("allow-bot-merge")
+            : cmd === "enable-value-feedback"
+              ? policyColonInvocation("enable-value-feedback")
+              : cmd === "clear-value-feedback"
+                ? policyColonInvocation("clear-value-feedback")
+                : cmd === "disable-directive"
+                  ? policyColonInvocation("disable-directive")
+                  : policyColonInvocation("enable-directive");
     let note = "";
     let projectRoot = ".";
     for (let i = 1; i < argv.length; i += 1) {
@@ -453,6 +461,54 @@ function runEnableDirective(args: SetArgs): number {
   return 0;
 }
 
+/** Allow agent/bot merge by writing requireHumanMerge=false (#1193). */
+function runAllowBotMerge(args: SetArgs): number {
+  const projectRoot = pathResolve(args.projectRoot);
+  if (!args.confirm) {
+    process.stdout.write(`${ALLOW_BOT_MERGE_CAPABILITY_COST}\n\n`);
+    process.stdout.write(
+      `Re-run with --confirm to apply: ${policyColonInvocation("allow-bot-merge", " -- --confirm")}\n`,
+    );
+    return 1;
+  }
+  try {
+    const { changed, auditEntry } = setRequireHumanMerge(projectRoot, {
+      requireHumanMerge: false,
+      actor: args.actor,
+      note: args.note,
+    });
+    process.stdout.write(
+      `\u2713 plan.policy.requireHumanMerge=false (human merge gate OFF; agent may merge).\n`,
+    );
+    if (changed) {
+      process.stdout.write(`  audit: meta/policy-changes.log :: ${auditEntry}\n`);
+    } else {
+      process.stdout.write(
+        "  no-op: value already matched (audit entry still appended for trail).\n",
+      );
+    }
+    const line = humanMergeDisclosureLine(resolveHumanMergePolicy(projectRoot));
+    if (line !== null) {
+      process.stdout.write(`${line}\n`);
+    } else {
+      process.stdout.write(
+        "[deft policy] Human merge gate is OFF; agent may merge when other gates allow.\n",
+      );
+    }
+    return 0;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("PROJECT-DEFINITION not found")) {
+      process.stderr.write(`\u274c ${message}\n`);
+      const pdRel = relative(projectRoot, projectDefinitionPath(projectRoot));
+      process.stderr.write(`  Recovery: run \`task setup\` to generate ${pdRel}.\n`);
+      return 2;
+    }
+    process.stderr.write(`\u274c Config error: ${message}\n`);
+    return 2;
+  }
+}
+
 /** Run the policy CLI; returns process exit code. */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
@@ -473,6 +529,9 @@ export function run(argv: string[]): number {
   }
   if (args.cmd === "enforce-branches" || args.cmd === "allow-direct-commits") {
     return runSet(args);
+  }
+  if (args.cmd === "allow-bot-merge") {
+    return runAllowBotMerge(args);
   }
   if (args.cmd === "enable-value-feedback") {
     return runEnableValueFeedback(args);

@@ -93,9 +93,13 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Development Process
 
-### Implementation Intent Gate (#810)
+### Implementation Intent Gate (#810 / #1193)
 
-! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — `commands.md` § Scope xBRIEF Lifecycle.
+! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810). Slash-command sessions inherit that command as the only authorized verb (`DEFT_SESSION_SLASH_VERB`); non-implement verbs (`/github-issue`, `/triage`, `/refine`, `/discuss`, `/research`) MUST NOT authorize implement/push/PR/merge/deploy (#1193) — `commands.md` § Scope xBRIEF Lifecycle.
+
+## Human merge gate (#1193)
+
+! When `plan.policy.requireHumanMerge` is true (default when `autoDeployOnMerge` is true), agents may open PRs but must not merge. Session-start discloses the gate; override: `deft policy:allow-bot-merge -- --confirm` or `DEFT_ALLOW_BOT_MERGE=1` — `commands.md` § Scope xBRIEF Lifecycle / `contracts/intent-ceiling.md`.
 
 ### Story Start Gate
 

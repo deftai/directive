@@ -82,6 +82,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:enable-directive": ["policy", "enable-directive"],
   "policy:enforce-branches": ["policy", "enforce-branches"],
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],
+  "policy:allow-bot-merge": ["policy", "allow-bot-merge"],
   "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
   "policy:clear-value-feedback": ["policy", "clear-value-feedback"],
   "authz:show": ["authz", "show"],

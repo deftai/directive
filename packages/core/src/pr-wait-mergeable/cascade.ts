@@ -1,3 +1,8 @@
+import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
+import {
+  type AgentMergeEvaluateResult,
+  evaluateAgentMerge,
+} from "../policy/require-human-merge.js";
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { makeResult } from "./result.js";
@@ -26,6 +31,15 @@ export interface WaitMergeableOptions {
   readonly requireMasterCiGreen?: boolean;
   /** Target branch override for stale-base comparison (defaults to PR base.ref). */
   readonly baseBranch?: string | null;
+  /**
+   * Project root for human-merge + intent-ceiling preflight (#1193).
+   * Defaults to process.cwd(). Pass explicitly in tests.
+   */
+  readonly projectRoot?: string;
+  /** Inject agent-merge evaluator (unit tests). */
+  readonly agentMergeFn?: (projectRoot: string) => AgentMergeEvaluateResult;
+  /** When true, skip human-merge / intent preflight (tests only). */
+  readonly skipHumanMergeGate?: boolean;
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -42,6 +56,33 @@ export function waitMergeableAndMerge(
   const mergeFn = options.mergeFn ?? runGhMerge;
   const semanticGreenFn = options.semanticGreenFn ?? evaluateSemanticGreen;
   const protectedIssues = options.protected;
+  const projectRoot = options.projectRoot ?? process.cwd();
+
+  // #1193 surface (1): refuse agent merge when requireHumanMerge is true,
+  // and refuse when slash-command intent ceiling does not authorize merge.
+  if (options.skipHumanMergeGate !== true) {
+    const intent = evaluateIntentCeilingFromEnv("merge");
+    if (!intent.allowed) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "config-error",
+        exitCode: EXIT_CONFIG_ERROR,
+        error: intent.reason,
+      });
+    }
+    const agentMergeFn = options.agentMergeFn ?? evaluateAgentMerge;
+    const hm = agentMergeFn(projectRoot);
+    if (!hm.allowed) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "config-error",
+        exitCode: EXIT_CONFIG_ERROR,
+        error: hm.message,
+      });
+    }
+  }
 
   let protectedCheckPayload: Record<string, unknown> = {};
 

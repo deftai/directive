@@ -16,6 +16,10 @@ import {
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
   NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
+import {
+  humanMergeDisclosureLine,
+  resolveHumanMergePolicy,
+} from "../policy/require-human-merge.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
@@ -426,6 +430,12 @@ export function runSessionStart(
       exitCode: ok ? 0 : 2,
     });
     lines.push(message);
+    // Human merge gate disclosure (#1193) — surface when ON (or env bypass active).
+    const humanMerge = resolveHumanMergePolicy(projectRoot);
+    const humanMergeLine = humanMergeDisclosureLine(humanMerge);
+    if (humanMergeLine !== null) {
+      lines.push(humanMergeLine);
+    }
     const branchSync = defaultBranchSync(projectRoot, runGit);
     if (branchSync.warning) {
       lines.push(branchSync.warning);

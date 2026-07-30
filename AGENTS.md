@@ -75,9 +75,9 @@ See managed `## Skills` below and the **Skills Index** in `REFERENCES.md`; maint
 
 ## Development Process (always follow)
 
-### Implementation Intent Gate (#810)
+### Implementation Intent Gate (#810 / #1193)
 
-Same as managed below; `task xbrief:preflight -- <path>` — `content/commands.md` § Scope xBRIEF Lifecycle (#810).
+Same as managed below; `task xbrief:preflight -- <path>`; slash-command intent ceiling via `DEFT_SESSION_SLASH_VERB` (#1193) — `content/commands.md` § Scope xBRIEF Lifecycle / `content/contracts/intent-ceiling.md`.
 
 ### Story Start Gate
 
@@ -90,7 +90,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md`. Before committing: `task verify:forward-coverage` (#1310); `task coverage:hotspots` for branch headroom steering (#2683); CHANGELOG `[Unreleased]`.
 
-! Branching: feature branches only (`task verify:branch`, `.githooks/pre-commit` / `.githooks/pre-push`, `branch-gate` workflow). Override: `task policy:allow-direct-commits -- --confirm`; emergency `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. When `plan.policy.allowDirectCommitsToMaster = true`, surface via `task policy:show --field=allowDirectCommitsToMaster` (Branch Policy Disclosure).
+! Branching: feature branches only (`task verify:branch`, `.githooks/pre-commit` / `.githooks/pre-push`, `branch-gate` workflow). Override: `task policy:allow-direct-commits -- --confirm`; emergency `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. When `plan.policy.allowDirectCommitsToMaster = true`, surface via `task policy:show --field=allowDirectCommitsToMaster` (Branch Policy Disclosure). Human merge gate: `plan.policy.requireHumanMerge` / `task policy:allow-bot-merge` (#1193).
 
 ## CHANGELOG entry style (#1242)
 
@@ -254,9 +254,13 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Development Process
 
-### Implementation Intent Gate (#810)
+### Implementation Intent Gate (#810 / #1193)
 
-! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810) — `commands.md` § Scope xBRIEF Lifecycle.
+! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810). Slash-command sessions inherit that command as the only authorized verb (`DEFT_SESSION_SLASH_VERB`); non-implement verbs (`/github-issue`, `/triage`, `/refine`, `/discuss`, `/research`) MUST NOT authorize implement/push/PR/merge/deploy (#1193) — `commands.md` § Scope xBRIEF Lifecycle.
+
+## Human merge gate (#1193)
+
+! When `plan.policy.requireHumanMerge` is true (default when `autoDeployOnMerge` is true), agents may open PRs but must not merge. Session-start discloses the gate; override: `deft policy:allow-bot-merge -- --confirm` or `DEFT_ALLOW_BOT_MERGE=1` — `commands.md` § Scope xBRIEF Lifecycle / `contracts/intent-ceiling.md`.
 
 ### Story Start Gate
 

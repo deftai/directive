@@ -388,7 +388,7 @@ describe("inspectAllPolicies", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    expect(inspectAllPolicies(r)).toHaveLength(14);
+    expect(inspectAllPolicies(r)).toHaveLength(16);
   });
 
   it("surfaces typed allowDirectCommits", () => {

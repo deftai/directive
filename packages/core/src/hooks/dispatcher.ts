@@ -15,6 +15,7 @@ import {
   utcIso,
 } from "../authz/index.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { evaluateIntentCeilingFromEnv, type IntentCeilingOp } from "../policy/intent-ceiling.js";
 import {
   detectNoDeftDirective,
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
@@ -112,7 +113,9 @@ export type HookDecisionCode =
   | "authz-grant-scope-deny"
   | "authz-grant-expired"
   | "authz-grant-revoked"
-  | "authz-grant-single-use-spent";
+  | "authz-grant-single-use-spent"
+  /** Slash-command intent ceiling denial (#1193). */
+  | "intent-ceiling-deny";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -543,6 +546,24 @@ function decideShellOrMcpRuntimeAuthority(
   });
   if (authzDeny !== null) return authzDeny;
 
+  // #1193 intent ceiling: non-implement slash verbs cannot authorize push/merge (and deploy via merge).
+  const env = input.environ ?? process.env;
+  const shellOpsPreview: RuntimeAuthorityShellOp[] = [];
+  if (isShellTool(toolName)) {
+    const command = hookShellCommand(input.payload);
+    if (command !== null) shellOpsPreview.push(...listShellOps(command));
+  } else {
+    const mcpOp = classifyMcpTool(toolName, hookMcpArgsText(input.payload));
+    if (mcpOp !== null) shellOpsPreview.push(mcpOp);
+  }
+  for (const shellOp of shellOpsPreview) {
+    const intentOp: IntentCeilingOp = shellOp === "push" ? "push" : "merge";
+    const intent = evaluateIntentCeilingFromEnv(intentOp, env);
+    if (!intent.allowed) {
+      return deny(input, "intent-ceiling-deny", toolName, intent.reason);
+    }
+  }
+
   const policy = loadRuntimeAuthorityPolicySafe(input, seams);
   if (policy === null) {
     return {
@@ -711,6 +732,13 @@ function inspectMutationGates(
   }
 
   const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
+  // #1193: non-implement slash verbs must not authorize implement/spawn tooling.
+  {
+    const intent = evaluateIntentCeilingFromEnv("implement", input.environ ?? process.env);
+    if (!intent.allowed) {
+      return deny(input, "intent-ceiling-deny", toolName, intent.reason);
+    }
+  }
   if (!isSpawnTool(toolName)) {
     const writeTarget = hookWriteTargetPath(input.payload);
     const relPath = writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;

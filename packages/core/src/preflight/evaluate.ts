@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from "node:fs";
 import { basename, dirname } from "node:path";
+import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 
 /** Canonical eligibility folder — only vbrief/active/ may spawn implementation. */
 export const ACTIVE_FOLDER = "active";
@@ -155,6 +156,16 @@ export function evaluate(vbriefPath: string): EvaluateResult {
         path,
         `plan.status is '${status}' -- only '${ELIGIBLE_STATUS}' is eligible for implementation.`,
       ),
+    };
+  }
+
+  // Slash-command intent containment (#1193 / extends #810): non-implement session
+  // verbs must not authorize implementation preflight even when the xBRIEF is active.
+  const intent = evaluateIntentCeilingFromEnv("implement");
+  if (!intent.allowed) {
+    return {
+      exitCode: 1,
+      message: buildReject(path, intent.reason),
     };
   }
 

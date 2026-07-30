@@ -7,6 +7,19 @@ export interface TriageScopeRule {
   readonly [key: string]: unknown;
 }
 
+/**
+ * Typed hotfix eligibility thresholds (#1193 / Wave 2 of #2948).
+ * Agent may propose `hotfix-candidate` only; a human promotes to `hotfix`.
+ */
+export interface HotfixCriteria {
+  /** Max changed lines for a small fix (default 10). */
+  readonly maxLines?: number;
+  /** Max changed files for a small fix (default 2). */
+  readonly maxFiles?: number;
+  /** Paths that never qualify as hotfix (default includes deploy/CI/migrations). */
+  readonly forbiddenPathGlobs?: readonly string[];
+}
+
 export interface PlanPolicy {
   readonly allowDirectCommitsToMaster?: boolean;
   readonly wipCap?: number;
@@ -28,6 +41,19 @@ export interface PlanPolicy {
   readonly projectionProviders?: Record<string, ProjectionProviderPolicy>;
   /** Per-host Directive hook deposit toggles (#2752). Default: all true. */
   readonly hostHooks?: Partial<Record<"claude" | "cursor" | "grok" | "codex", boolean>>;
+  /**
+   * When true, agents may open PRs but must not merge (#1193). Defaults true
+   * when `autoDeployOnMerge` is also true. Override: `policy:allow-bot-merge`
+   * or `DEFT_ALLOW_BOT_MERGE=1`.
+   */
+  readonly requireHumanMerge?: boolean;
+  /**
+   * When true, merges to the default branch auto-deploy to production.
+   * Couples with requireHumanMerge defaulting (#1193 Shadowlogic profile).
+   */
+  readonly autoDeployOnMerge?: boolean;
+  /** Structural hotfix eligibility thresholds (#1193). */
+  readonly hotfixCriteria?: HotfixCriteria;
   readonly [key: `x-${string}`]: unknown;
 }
 
@@ -57,4 +83,7 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.triageHoldMarkers",
   "plan.policy.swarmSubagentBackend",
   "plan.policy.engineSkewWindow",
+  "plan.policy.requireHumanMerge",
+  "plan.policy.hotfixCriteria",
+  "plan.policy.autoDeployOnMerge",
 ] as const;

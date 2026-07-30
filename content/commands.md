@@ -113,6 +113,12 @@ Gate 0 `task verify:story-ready` machine-checks working-tree cleanliness (or `--
 
 The implementation gate succeeds only for active scope xBRIEFs with `plan.status == "running"`. Do not infer implementation intent from lifecycle vocabulary — require explicit action-verb directives (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) per #810.
 
+**Slash-command intent containment (#1193):** When a session is originated by a slash command, that command is the *only* authorized verb for the session. Set `DEFT_SESSION_SLASH_VERB` (e.g. `/github-issue`) so `task xbrief:preflight` and PreToolUse hooks enforce the ceiling. Non-implement verbs (`/github-issue`, `/triage`, `/refine`, `/discuss`, `/research`, …) MUST NOT authorize implement, push, PR, merge, or deploy — adjacent bugs noticed during RCA become a second filed issue, not a second PR. Implement verbs: `/build`, `/ship`, `/ship-hotfix`, `/swarm`, `/implement`.
+
+**Human merge gate (#1193):** Typed `plan.policy.requireHumanMerge` (defaults true when `plan.policy.autoDeployOnMerge` is true). Agents may open PRs but must not merge when the gate is ON. Surfaces: (1) `task pr:wait-mergeable-and-merge` refuses agent merge, (2) `task verify:branch` advisory note, (3) branch-protection / setup requiring ≥1 human reviewer. Session-start discloses when ON. Override: `task policy:allow-bot-merge -- --confirm` or `DEFT_ALLOW_BOT_MERGE=1`.
+
+**Hotfix classifier (#1193):** Typed `plan.policy.hotfixCriteria` + pure `evaluateHotfixEligibility`. Small fix / pure revert may propose label `hotfix-candidate` only; a human promotes to `hotfix`. Refactors, new exports/handlers, and forbidden paths (Dockerfile, fly.toml, workflows, migrations, auth/secrets) never qualify.
+
 ```mermaid
 flowchart TD
     Candidate["Scope xBRIEF exists"] --> Promote{"In proposed?"}

@@ -114,6 +114,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -135,6 +137,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -153,6 +157,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(1, capReachedPayload()),
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -169,6 +175,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(1, null, "Error: Cannot find module '/tmp/missing/pr-monitor.js'"),
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -185,6 +193,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(2, null, "monitor script not found: /tmp/missing/pr-monitor.js"),
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -200,6 +210,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(3, prClosedPayload()),
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -222,6 +234,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -246,6 +260,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -268,6 +284,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -290,6 +308,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -309,7 +329,9 @@ describe("waitMergeableAndMerge", () => {
       capMinutes: 30,
       protected: [],
       protectedFn: makeProtectedFn(0),
-      monitorFn: makeMonitorFn(2, { monitor_result: "CONFIG-ERROR" }),
+      monitorFn: makeMonitorFn(2, { monitor_result: "CONFIG-ERROR" ,
+      skipHumanMergeGate: true,
+    }),
       mergeFn,
     });
 
@@ -327,6 +349,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(2, "", "Error: gh CLI not found."),
       monitorFn,
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -342,6 +366,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(0, cleanMonitorPayload()),
       mergeFn: makeMergeFn(1, "", "branch protection refused"),
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -357,6 +383,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(3, prMergedBySiblingPayload()),
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -374,6 +402,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(0, cleanMonitorPayload()),
       mergeFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -389,6 +419,8 @@ describe("waitMergeableAndMerge", () => {
       protectedFn: makeProtectedFn(0),
       monitorFn: makeMonitorFn(1, capReachedPayload(), "poll stderr tail marker"),
       mergeFn: makeMergeFn(0),
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.error).toContain("stderr tail:");
@@ -419,6 +451,8 @@ describe("waitMergeableAndMerge", () => {
       monitorFn,
       mergeFn,
       semanticGreenFn,
+    
+      skipHumanMergeGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);

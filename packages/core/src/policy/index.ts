@@ -1,10 +1,20 @@
 import { FIELD_HOST_HOOKS, FIELD_HOST_HOOKS_CLI_ALIAS, inspectHostHooks } from "./host-hooks.js";
+import {
+  FIELD_HOTFIX_CRITERIA,
+  FIELD_HOTFIX_CRITERIA_CLI_ALIAS,
+  inspectHotfixCriteria,
+} from "./hotfix-criteria.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import {
   FIELD_PRODUCT_SIGNAL,
   FIELD_PRODUCT_SIGNAL_CLI_ALIAS,
   inspectProductSignal,
 } from "./product-signal.js";
+import {
+  FIELD_REQUIRE_HUMAN_MERGE,
+  FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS,
+  inspectRequireHumanMerge,
+} from "./require-human-merge.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import {
   FIELD_RUNTIME_AUTHORITY,
@@ -29,11 +39,14 @@ export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./disclosure.js";
 export * from "./host-hooks.js";
+export * from "./hotfix-criteria.js";
+export * from "./intent-ceiling.js";
 export * from "./no-deft-directive.js";
 export * from "./org-force-on-migration.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
 export * from "./product-signal.js";
+export * from "./require-human-merge.js";
 export * from "./resolve.js";
 export * from "./runtime-authority.js";
 export * from "./staleness-tickler.js";
@@ -328,6 +341,29 @@ function inspectHostHooksField(data: Record<string, unknown> | null): PolicyFiel
   };
 }
 
+function inspectRequireHumanMergeField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectRequireHumanMerge(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
+function inspectHotfixCriteriaField(data: Record<string, unknown> | null): PolicyField {
+  const field = inspectHotfixCriteria(data);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -364,6 +400,8 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectRuntimeAuthorityField,
   inspectProductSignalField,
   inspectValueFeedbackField,
+  inspectRequireHumanMergeField,
+  inspectHotfixCriteriaField,
 ];
 
 /** Walk registered inspectors and return one row per field (#1148). */
@@ -385,7 +423,11 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
             ? FIELD_RUNTIME_AUTHORITY
             : name === FIELD_HOST_HOOKS_CLI_ALIAS
               ? FIELD_HOST_HOOKS
-              : name;
+              : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
+                ? FIELD_REQUIRE_HUMAN_MERGE
+                : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
+                  ? FIELD_HOTFIX_CRITERIA
+                  : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

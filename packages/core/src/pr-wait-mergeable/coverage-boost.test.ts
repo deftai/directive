@@ -42,6 +42,8 @@ describe("coverage boost", () => {
       capMinutes: 1,
       protected: [],
       monitorFn,
+    
+      skipHumanMergeGate: true,
     });
     expect(result.error).toBe("monitor exited 1 (outcome=cap-reached)");
   });
@@ -55,7 +57,9 @@ describe("coverage boost", () => {
         JSON.stringify({
           monitor_result: "CLEAN",
           readiness: { merge_ready: true, via: "primary" },
-        }),
+        
+      skipHumanMergeGate: true,
+    }),
         "",
       ],
       mergeFn: () => [2, "", ""],
@@ -72,7 +76,9 @@ describe("coverage boost", () => {
         JSON.stringify({
           monitor_result: "CLEAN",
           readiness: { merge_ready: true, via: "primary" },
-        }),
+        
+      skipHumanMergeGate: true,
+    }),
         "",
       ],
       mergeFn: () => [-1, "", ""],
@@ -181,6 +187,8 @@ describe("coverage boost", () => {
       capMinutes: 1,
       protected: [1119],
       protectedFn: () => [2, "", "protected boom"],
+    
+      skipHumanMergeGate: true,
     });
     expect(result.outcome).toBe("config-error");
     expect(result.error).toContain("protected boom");

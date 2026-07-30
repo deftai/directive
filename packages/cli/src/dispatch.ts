@@ -243,6 +243,7 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:show": "show",
   "policy:enforce-branches": "enforce-branches",
   "policy:allow-direct-commits": "allow-direct-commits",
+  "policy:allow-bot-merge": "allow-bot-merge",
   "policy:enable-value-feedback": "enable-value-feedback",
   "policy:clear-value-feedback": "clear-value-feedback",
   "policy:disable-directive": "disable-directive",

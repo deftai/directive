@@ -32,6 +32,7 @@ export {
 } from "./gate.js";
 
 export {
+  type HotfixCriteria,
   type PlanPolicy,
   type ProjectionProviderExpectation,
   type ProjectionProviderPolicy,

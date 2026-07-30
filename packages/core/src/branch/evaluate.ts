@@ -1,6 +1,7 @@
 import { recordBypassSignal, recordGateCatch } from "../events/attribution-ledger.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
+import { humanMergeBranchNote, resolveHumanMergePolicy } from "../policy/require-human-merge.js";
 import { ENV_BYPASS, type PolicyResult, resolvePolicy } from "../policy/resolve.js";
 import { type BranchState, currentBranch, GitNotFoundError } from "./git.js";
 
@@ -135,9 +136,13 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   }
 
   if (!isDefaultBranch(branch, defaultBranches)) {
+    // Surface (2) human-merge gate: advisory note on feature branches (#1193).
+    const hm = resolveHumanMergePolicy(projectRoot);
+    const hmNote = humanMergeBranchNote(hm);
+    const base = `✓ deft branch-protection: feature branch '${branch}' -- proceeding.`;
     return {
       exitCode: 0,
-      message: `✓ deft branch-protection: feature branch '${branch}' -- proceeding.`,
+      message: hmNote !== null ? `${base}\n${hmNote}` : base,
     };
   }
 

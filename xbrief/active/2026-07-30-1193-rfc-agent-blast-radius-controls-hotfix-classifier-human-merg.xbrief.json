@@ -1,0 +1,114 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Wave 2 of #2948: intent ceiling — slash-command containment, hotfix classifier, human merge gate (#1193)",
+    "updated": "2026-07-30T14:43:06Z"
+  },
+  "plan": {
+    "title": "feat(authz): agent blast-radius controls — intent ceiling (Wave 2 / #1193)",
+    "status": "running",
+    "updated": "2026-07-30T14:43:06Z",
+    "id": "2026-07-30-1193-wave2-intent-ceiling",
+    "narratives": {
+      "Description": "Wave 2 of epic #2948. Implement R1 slash-command intent containment, R2 typed hotfixCriteria classifier, R3 requireHumanMerge human merge gate. Do not absorb UAT/provenance (#2944 Wave 1, already shipped). Parent program #2948.",
+      "UserStory": "As an operator, I want slash-command sessions and merge/hotfix policy enforced as typed intent ceilings, so that unattended agents cannot escalate a weak verb into a prod deploy.",
+      "ImplementationPlan": "Step 1: Add plan.policy.hotfixCriteria and plan.policy.requireHumanMerge typed fields (packages/types policy + schema; read-time narrative deprecation like #746). Step 2 R1: extend #810 intent gate for slash-command provenance (session inherits command verb; non-implement verbs cannot authorize implement/push/PR/merge/deploy); AGENTS/agents-entry + TS preflight (not dead Python path if already ported). Step 3 R2: evaluateHotfixEligibility pure function + tests for eligibility table (small fix, revert OK; large surface/refactor/forbidden path never). Agent may label hotfix-candidate only; human promotes hotfix. Step 4 R3: three-surface requireHumanMerge (merge preflight refuse agent merge; verify:branch aggregate; branch-protection/setup notes); session-start disclosure; policy:allow-bot-merge --confirm + DEFT_ALLOW_BOT_MERGE=1. Step 5: CHANGELOG [Unreleased] cites #1193/#2948. Verification: unit tests for classifier + merge gate + intent; task check:merge when green. drive-to: merge-ready.",
+      "Origin": "https://github.com/deftai/directive/issues/1193",
+      "Labels": "rfc, skills, security, determinism",
+      "Program": "https://github.com/deftai/directive/issues/2948 Wave 2",
+      "Traces": "Wave 2 ACs of #2948 / #1193 R1+R2+R3"
+    },
+    "items": [
+      {
+        "title": "Typed policy fields hotfixCriteria + requireHumanMerge",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a PROJECT-DEFINITION policy object, loaders return typed hotfixCriteria and requireHumanMerge and validate their shapes."
+        }
+      },
+      {
+        "title": "R1 slash-command intent containment",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When a session inherits a non-implement slash verb, the intent gate blocks implement push PR merge and deploy tool authorization."
+        }
+      },
+      {
+        "title": "R2 hotfix classifier (typed predicates)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "evaluateHotfixEligibility returns eligible only for small-fix and pure-revert cases and rejects refactor large-surface and forbidden-path diffs."
+        }
+      },
+      {
+        "title": "R3 human merge gate three-surface enforcement",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When requireHumanMerge is true, agent-initiated merge fails closed and session-start emits the human-merge disclosure line."
+        }
+      },
+      {
+        "title": "Tests docs CHANGELOG #1193",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the eligibility fixture table, unit tests returns green for each row and CHANGELOG Unreleased records #1193 under Added."
+        }
+      }
+    ],
+    "tags": [
+      "rfc",
+      "skills",
+      "security",
+      "determinism",
+      "authz",
+      "wave-2"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1193",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2948",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/types/src/policy.ts",
+          "packages/types/schemas/vbrief-core-0.6.schema.json",
+          "packages/core/src/policy/",
+          "packages/core/src/branch/",
+          "packages/core/src/session/",
+          "packages/core/src/authz/",
+          "packages/cli/src/",
+          "content/templates/agents-entry.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/contracts/",
+          "Agents.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/policy",
+          "task test -- packages/core/src/branch"
+        ],
+        "expected_outputs": [
+          "hotfixCriteria + requireHumanMerge typed",
+          "slash intent containment enforced",
+          "human merge gate + disclosure"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-1193-wave2",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "default"
+      },
+      "capacityBucket": "new-capability"
+    }
+  }
+}

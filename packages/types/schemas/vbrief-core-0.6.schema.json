@@ -609,8 +609,41 @@
           "minimum": 1,
           "description": "Maximum age, in hours, for .deft/ritual-state.json before the fail-closed session ritual verifier requires task session:start to run again. Default: 4."
         },
+        "requireHumanMerge": {
+          "type": "boolean",
+          "description": "When true, agents may open PRs but must not merge (#1193). Defaults true when autoDeployOnMerge is also true. Override: policy:allow-bot-merge --confirm or DEFT_ALLOW_BOT_MERGE=1."
+        },
+        "autoDeployOnMerge": {
+          "type": "boolean",
+          "description": "When true, merges to the default branch auto-deploy to production. Couples with requireHumanMerge defaulting (#1193)."
+        },
+        "hotfixCriteria": {
+          "$ref": "#/$defs/HotfixCriteria"
+        },
         "projectionProviders": {
           "$ref": "#/$defs/ProjectionProviderPolicies"
+        }
+      },
+      "additionalProperties": true
+    },
+    "HotfixCriteria": {
+      "type": "object",
+      "description": "Structural hotfix eligibility thresholds (#1193). Agent may label hotfix-candidate only; human promotes hotfix.",
+      "properties": {
+        "maxLines": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Max changed lines for a small-fix hotfix candidate. Default: 10."
+        },
+        "maxFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Max changed files for a small-fix hotfix candidate. Default: 2."
+        },
+        "forbiddenPathGlobs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Path globs that never qualify as hotfix (deploy/CI/migrations/auth defaults apply when omitted)."
         }
       },
       "additionalProperties": true

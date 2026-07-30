@@ -93,6 +93,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
   "plan.policy.allowDirectCommitsToMaster",
   "plan.policy.sessionRitualStalenessHours",
   "plan.policy.valueFeedback",
+  "plan.policy.requireHumanMerge",
 ] as const;
 
 const PROPAGATION_HEADER_MARKERS = [
@@ -298,17 +299,39 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
   {
     id: "implementation-intent-810",
     shape: "doc",
-    header: "Implementation Intent Gate (#810)",
+    header: "Implementation Intent Gate (#810 / #1193)",
     canonicalHome: "commands.md",
-    pointerHints: ["deft xbrief:preflight", "action-verb", "#810"],
-    canonicalBodyMarkers: ["xbrief:preflight", 'plan.status == "running"', "implementation intent"],
+    pointerHints: ["deft xbrief:preflight", "action-verb", "#810", "#1193", "DEFT_SESSION_SLASH_VERB"],
+    canonicalBodyMarkers: [
+      "xbrief:preflight",
+      'plan.status == "running"',
+      "Slash-command intent containment",
+      "DEFT_SESSION_SLASH_VERB",
+    ],
     retiredFullTextMarkers: [
       "Workflow-shape vocabulary is NOT authorization",
       "Broad approval is not a substitute",
       "pre-`start_agent` gate stack (#1149/#1348)",
-      'plan.status == "running"',
       "deft verify:cache-fresh` is gate-stack step 3",
     ],
+  },
+  {
+    id: "human-merge-1193",
+    shape: "doc",
+    header: "Human merge gate (#1193)",
+    canonicalHome: "commands.md",
+    pointerHints: [
+      "requireHumanMerge",
+      "policy:allow-bot-merge",
+      "DEFT_ALLOW_BOT_MERGE",
+      "#1193",
+    ],
+    canonicalBodyMarkers: [
+      "requireHumanMerge",
+      "allow-bot-merge",
+      "DEFT_ALLOW_BOT_MERGE",
+    ],
+    retiredFullTextMarkers: [],
   },
   {
     id: "story-start-1378",
