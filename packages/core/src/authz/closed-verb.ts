@@ -205,13 +205,14 @@ function grantValidity(
   }
   if (grant.semantics.expiresAt !== null) {
     const exp = Date.parse(grant.semantics.expiresAt);
-    if (!Number.isNaN(exp) && exp <= now.getTime()) {
+    // Fail closed on unparseable expiresAt (malformed must not count as forever-valid).
+    if (Number.isNaN(exp) || exp <= now.getTime()) {
       return {
         ok: false,
         code: "closed-verb-deny-expired",
         reason:
-          `Directive denied closed verb: grant ${grant.id} expired at ${grant.semantics.expiresAt}. ` +
-          "Human action required: mint a fresh grant via `deft authz:grant`.",
+          `Directive denied closed verb: grant ${grant.id} expired or has unparseable expiresAt ` +
+          `(${grant.semantics.expiresAt}). Human action required: mint a fresh grant via \`deft authz:grant\`.`,
       };
     }
   }

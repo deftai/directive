@@ -1,6 +1,7 @@
-import { type EnvMap, evaluateClosedVerb } from "../authz/closed-verb.js";
+import { closedVerbEnvBypassKey, type EnvMap, evaluateClosedVerb } from "../authz/closed-verb.js";
 import { listActiveHumanGrants, loadAuthzState, markGrantUsed } from "../authz/store.js";
 import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
+import { loadVerbClassification } from "../authz/verb-classification.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
 import { editReleasePublish, viewRelease } from "./gh-api.js";
 import type { PublishConfig, ReleasePublishSeams } from "./types.js";
@@ -24,6 +25,8 @@ export function evaluateReleasePublishGate(
     readonly repo?: string | null;
   } = {},
 ): ClosedVerbDecision {
+  // Production load of classification SoT (conventions/verb-classification.json).
+  const classification = loadVerbClassification(projectRoot);
   const state = loadAuthzState(projectRoot);
   const grants = options.grants ?? listActiveHumanGrants(projectRoot, state);
   return evaluateClosedVerb({
@@ -33,6 +36,7 @@ export function evaluateReleasePublishGate(
     env: options.env ?? (process.env as EnvMap),
     projectRoot,
     repo: options.repo ?? null,
+    classification,
   });
 }
 
@@ -80,9 +84,13 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
     repo,
   });
   if (!gate.allowed) {
+    const bypassKey =
+      gate.envBypassKey ??
+      closedVerbEnvBypassKey("release-publish", projectRoot) ??
+      "DEFT_ALLOW_RELEASE_PUBLISH";
     emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${gate.code}: ${gate.reason})`);
     process.stderr.write(
-      `[publish] denied code=${gate.code} — set DEFT_ALLOW_RELEASE_PUBLISH=1 or ` +
+      `[publish] denied code=${gate.code} — set ${bypassKey}=1 or ` +
         `mint \`deft authz:grant -- --template release-publish --target ${version}\`\n`,
     );
     return EXIT_VIOLATION;

@@ -211,6 +211,23 @@ describe("evaluateClosedVerb (#1095)", () => {
     expect(d.code).toBe("closed-verb-deny-expired");
   });
 
+  it("rejects unparseable expiresAt fail-closed", () => {
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.30.0",
+      grants: [
+        grant({
+          operations: ["release-publish"],
+          surfaces: [],
+          expiresAt: "not-a-date",
+        }),
+      ],
+      env: {},
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.code).toBe("closed-verb-deny-expired");
+  });
+
   it("unknown verb fails closed", () => {
     const d = evaluateClosedVerb({
       verb: "repo-delete",
