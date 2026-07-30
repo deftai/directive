@@ -35,10 +35,13 @@ export function atomicWriteText(path: string, text: string): void {
 /**
  * Append one JSON audit record (mirrors `_append_audit`).
  * #2951 Phase 2: product write sink routes through containedWrite.
+ * Create cacheRoot first — containedWrite requires the containment root to exist.
  */
 export function appendAudit(record: Record<string, unknown>, cacheRoot: string): void {
+  const root = resolve(cacheRoot);
+  mkdirSync(root, { recursive: true });
   containedWrite({
-    root: resolve(cacheRoot),
+    root,
     target: "quarantine-audit.jsonl",
     data: `${pythonJsonLine(record)}\n`,
     mode: "append",
