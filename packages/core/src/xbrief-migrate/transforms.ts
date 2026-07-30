@@ -101,9 +101,49 @@ function isAlreadyV08Artifact(artifact: JsonObject): boolean {
 }
 
 /**
+ * Resolve a v0.6 info block from classic `vBRIEFInfo` or hybrid `xBRIEFInfo@0.6`.
+ * Prefer the classic key when both are present. Layout rename ≠ envelope bump (#2970).
+ */
+function resolveV06InfoBlock(artifact: JsonObject): JsonObject {
+  if (LEGACY_INFO_ROOT_KEY in artifact) {
+    const legacyInfo = artifact[LEGACY_INFO_ROOT_KEY];
+    if (!isPlainObject(legacyInfo)) {
+      throw new TransformError(`'${LEGACY_INFO_ROOT_KEY}' must be an object`);
+    }
+    const declaredVersion = legacyInfo.version;
+    if (declaredVersion !== LEGACY_VBRIEF_VERSION) {
+      throw new TransformError(
+        `expected ${LEGACY_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION}, got ${String(declaredVersion)}`,
+      );
+    }
+    return legacyInfo;
+  }
+
+  if (MIGRATED_INFO_ROOT_KEY in artifact) {
+    const hybridInfo = artifact[MIGRATED_INFO_ROOT_KEY];
+    if (!isPlainObject(hybridInfo)) {
+      throw new TransformError(`'${MIGRATED_INFO_ROOT_KEY}' must be an object`);
+    }
+    const declaredVersion = hybridInfo.version;
+    if (declaredVersion !== LEGACY_VBRIEF_VERSION) {
+      throw new TransformError(
+        `expected hybrid ${MIGRATED_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION} (or ${VBRIEF_VERSION} for already-migrated), got ${String(declaredVersion)}`,
+      );
+    }
+    return hybridInfo;
+  }
+
+  throw new TransformError(
+    `missing required legacy info block '${LEGACY_INFO_ROOT_KEY}' or hybrid '${MIGRATED_INFO_ROOT_KEY}'@${LEGACY_VBRIEF_VERSION} for v0.6 -> v0.8 transform`,
+  );
+}
+
+/**
  * Convert a single v0.6 in-document artifact to v0.8 semantics.
- * Idempotent: v0.8 artifacts are returned unchanged (deep-cloned).
- * Transactional: on failure the original input object is not mutated.
+ * Accepts classic `vBRIEFInfo@0.6` or hybrid `xBRIEFInfo@0.6` (layout renamed,
+ * envelope not bumped — #2970). Idempotent: v0.8 artifacts are returned
+ * unchanged (deep-cloned). Transactional: on failure the original input
+ * object is not mutated.
  */
 export function transformArtifactV06ToV08(input: JsonObject): JsonObject {
   const working = structuredClone(input) as JsonObject;
@@ -112,27 +152,13 @@ export function transformArtifactV06ToV08(input: JsonObject): JsonObject {
     return working;
   }
 
-  if (!(LEGACY_INFO_ROOT_KEY in working)) {
-    throw new TransformError(
-      `missing required legacy info block '${LEGACY_INFO_ROOT_KEY}' for v0.6 -> v0.8 transform`,
-    );
-  }
+  const info = resolveV06InfoBlock(working);
 
-  const legacyInfo = working[LEGACY_INFO_ROOT_KEY];
-  if (!isPlainObject(legacyInfo)) {
-    throw new TransformError(`'${LEGACY_INFO_ROOT_KEY}' must be an object`);
-  }
-
-  const declaredVersion = legacyInfo.version;
-  if (declaredVersion !== LEGACY_VBRIEF_VERSION) {
-    throw new TransformError(
-      `expected ${LEGACY_INFO_ROOT_KEY}.version ${LEGACY_VBRIEF_VERSION}, got ${String(declaredVersion)}`,
-    );
-  }
-
+  // Drop both keys so a dual-key hybrid cannot leave a stale vBRIEFInfo behind.
   delete working[LEGACY_INFO_ROOT_KEY];
+  delete working[MIGRATED_INFO_ROOT_KEY];
   working[MIGRATED_INFO_ROOT_KEY] = {
-    ...legacyInfo,
+    ...info,
     version: VBRIEF_VERSION,
   };
 

@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 2 of #2948: intent ceiling — slash-command containment, hotfix classifier, human merge gate (#1193)",
-    "updated": "2026-07-30T19:17:40Z"
+    "updated": "2026-07-30T19:16:22Z"
   },
   "plan": {
     "title": "feat(authz): agent blast-radius controls — intent ceiling (Wave 2 / #1193)",
     "status": "completed",
-    "updated": "2026-07-30T19:17:40Z",
+    "updated": "2026-07-30T19:16:22Z",
     "id": "2026-07-30-1193-wave2-intent-ceiling",
     "narratives": {
       "Description": "Wave 2 of epic #2948. Implement R1 slash-command intent containment, R2 typed hotfixCriteria classifier, R3 requireHumanMerge human merge gate. Do not absorb UAT/provenance (#2944 Wave 1, already shipped). Parent program #2948.",
@@ -109,7 +109,7 @@
         "model_tier": "default"
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-07-30T19:17:40Z"
+      "completedAt": "2026-07-30T19:16:22Z"
     }
   }
 }

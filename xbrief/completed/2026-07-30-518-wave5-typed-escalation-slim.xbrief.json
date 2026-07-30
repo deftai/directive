@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 5 of #2948: typed escalation channel slim — schema + CLI queue (#518)",
-    "updated": "2026-07-30T19:17:44Z"
+    "updated": "2026-07-30T19:16:26Z"
   },
   "plan": {
     "title": "feat(authz): typed escalation events + CLI batch queue (#518 slim)",
     "status": "completed",
-    "updated": "2026-07-30T19:17:44Z",
+    "updated": "2026-07-30T19:16:26Z",
     "id": "2026-07-30-518-wave5-typed-escalation-slim",
     "narratives": {
       "Description": "Wave 5 optional UX of #2948. Slim #518: versioned typed escalation event schema, local queue store, CLI file/list/resolve/batch-approve for cmd_approval and question types. Full web/Warp UI is residual — first cut is CLI + file queue so grants and finish-loop have a structured escalation channel. Compose with human-origin grants when resolution mints approvals.",
@@ -84,7 +84,7 @@
         "file_scope_confidence": "high"
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-07-30T19:17:44Z"
+      "completedAt": "2026-07-30T19:16:26Z"
     }
   }
 }

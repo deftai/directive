@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope: Wave 1 human-origin approval provenance + UAT mutation lease (#2944)",
-    "updated": "2026-07-30T19:17:42Z"
+    "updated": "2026-07-30T19:16:24Z"
   },
   "plan": {
     "title": "bug(authz): self-authored consent tokens and active UAT runs do not prevent unauthorized mutation",
     "status": "completed",
-    "updated": "2026-07-30T19:17:42Z",
+    "updated": "2026-07-30T19:16:24Z",
     "id": "2026-07-30-2944-authz-wave1-human-origin-uat",
     "narratives": {
       "Description": "Wave 1 of epic #2948: human-origin approval grants agents cannot self-mint via lifecycle/dispatch, fail-closed UAT mutation lease, structural binding to plan/surfaces/ops, denials+audit, regression that first unauthorized edit is blocked. Compose with runtimeAuthority (#2711); stay out of #1193/#1095 full scopes.",
@@ -94,7 +94,7 @@
         "file_scope_confidence": "high"
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-07-30T19:17:42Z"
+      "completedAt": "2026-07-30T19:16:24Z"
     }
   }
 }
