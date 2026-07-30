@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **xBRIEF is the sole public work-state name; vBRIEF is legacy (#2907).** Product guidance (README, CONCEPTS, ARCHITECTURE, glossary, UPGRADING, getting-started) teaches `xbrief/` / `.xbrief.json` / scope xBRIEF only. Single authoritative rename/history note in `content/UPGRADING.md` (migrate path, old extensions, deprecated `vbrief:*` aliases). Glossary lifecycle terms rewritten under xBRIEF with a **vBRIEF (legacy)** pointer. Schema reference `content/vbrief/vbrief.md` labeled legacy/schema-lineage. Content contracts guard public-canon surfaces. Closes #2907. Refs #2034, #2110.
 - **Swarm skill host-adapter progressive load + OpenClaw isolation/handoff gates (#2928, #2929, #2934).** `deft-directive-swarm` is split into a thin SKILL (detect + route table + hard gates) and hand-authored `references/core-*.md` + `references/host-*.md` adapters. Default load is core + **one** host adapter after detect; loading all hosts “just in case” is forbidden. OpenClaw adapter hard-requires worktree/worktree-map before parallel `sessions_spawn` and blocks shared-checkout DIY dispatch (#2929). After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status is required — prose-only “I will spawn…” handoff is forbidden (#2934). Write-skill documents the multi-host convention; `openclaw-agent-host.md` links the adapter without forking SoT. Content contracts read the ordered skill surface. Closes #2928. Closes #2929. Closes #2934.
 
 ### Fixed

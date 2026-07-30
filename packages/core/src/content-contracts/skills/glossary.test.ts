@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { readRepoFile, repoFileExists } from "./helpers.js";
 
-/** Port of tests/content/test_glossary.py (#1838 #457) */
+/** Port of tests/content/test_glossary.py (#1838 #457); xbrief public canon (#2907) */
 
 const REQUIRED_TERMS = [
-  "Scope vBRIEF",
+  "Scope xBRIEF",
   "Lifecycle folder",
   "Plan-level narrative",
   "Item-level narrative",
@@ -55,6 +55,16 @@ describe("test_glossary", () => {
         const block = stop === -1 ? remainder : remainder.slice(0, stop);
         expect(block).toContain("](");
       }
+    });
+
+    it("lifecycle_terms_use_xbrief_public_canon", () => {
+      expect(glossaryText).toContain("## xBRIEF Lifecycle Terms");
+      expect(glossaryText).toContain("xbrief/");
+      expect(glossaryText).toContain(".xbrief.json");
+      expect(glossaryText).toMatch(/\*\*vBRIEF \(legacy\)\*\*/);
+      expect(glossaryText).toContain("#2907");
+      // Current-guidance term names must not keep Scope vBRIEF as the bold canon
+      expect(glossaryText).not.toContain("**Scope vBRIEF**");
     });
   });
 

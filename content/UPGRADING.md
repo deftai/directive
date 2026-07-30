@@ -8,7 +8,29 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 <!-- xbrief-backcompat-2111 -->
 
-> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+### xBRIEF rename (#2034 / #2110 / #2907)
+
+> **Single authoritative rename/history note.** Public product voice uses **xBRIEF** / `xbrief/` only. **vBRIEF** is **legacy**.
+
+| Legacy (historical) | Current public canon |
+| --- | --- |
+| `vbrief/` lifecycle root | `xbrief/` |
+| `*.vbrief.json` | `*.xbrief.json` |
+| `vBRIEF` / “scope vBRIEF” in guidance | `xBRIEF` / “scope xBRIEF” |
+| `x-vbrief/*` reference tokens | `x-xbrief/*` (and migrate-accepted legacy tokens) |
+| `task vbrief:*` / `migrate:vbrief` aliases | Prefer `task xbrief:*` / `deft migrate:xbrief`; keep `vbrief:*` only as deprecated aliases when required for back-compat |
+| Envelope keys `vBRIEFInfo` | `xBRIEFInfo` (legacy keys still read-accepted on unmigrated files) |
+
+**Why two names existed:** consumer layout and disk SoT moved to `xbrief/` while docs, glossary, and marketing still taught vBRIEF as current. That dual present-day naming is retired (#2907). Schema lineage, fixtures, migrate paths, changelog history, and archive prose may still say vBRIEF — always as **legacy/historical**, never as competing current guidance.
+
+**What to do:**
+
+1. Prefer `xbrief/` and `.xbrief.json` in all new docs, skills, CLI help, and agent prose.
+2. On projects still on disk under `vbrief/`, run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+3. Do **not** tell users to “prefer vBRIEF” or treat xbrief and vBRIEF as two current models.
+4. Deep schema conventions still live under `content/vbrief/` (path name is historical for the schema package); public work-state name remains xBRIEF.
+
+Refs: [#2034](https://github.com/deftai/directive/issues/2034), [#2110](https://github.com/deftai/directive/issues/2110), [#2907](https://github.com/deftai/directive/issues/2907).
 
 ---
 
@@ -927,7 +949,7 @@ After you update `deft/` to v0.20.0, `vbrief/*.vbrief.json` files are the source
 - [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) — detailed brownfield adoption / migration walkthrough.
 - [QUICK-START.md](./QUICK-START.md) — agent-facing bootstrap + upgrade detection.
 - [vbrief/vbrief.md](./vbrief/vbrief.md) — canonical vBRIEF file taxonomy.
-- [glossary.md](./glossary.md) — canonical v0.20 vocabulary (Scope vBRIEF, lifecycle folder, canonical narrative keys, rendered export, source of truth, ...).
+- [glossary.md](./glossary.md) — canonical xBRIEF / v0.20+ vocabulary (Scope xBRIEF, lifecycle folder, canonical narrative keys, rendered export, source of truth; vBRIEF marked legacy).
 - [CHANGELOG.md](../CHANGELOG.md) — full v0.20.0 change list.
 
 ---

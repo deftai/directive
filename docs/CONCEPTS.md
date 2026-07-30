@@ -1,8 +1,10 @@
 # Deft Key Concepts
 
-Core principles behind the current Deft workflow: Taskfile-first automation, vBRIEF as source of truth, deterministic gates, cache-backed triage, source/projection boundaries, and small auditable changes.
+Core principles behind the current Deft workflow: Taskfile-first automation, **xBRIEF** as durable work-state source of truth, deterministic gates, cache-backed triage, source/projection boundaries, and small auditable changes.
 
 > **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) | [FILES.md](./FILES.md) | [codebase-map-source-of-truth.md](./codebase-map-source-of-truth.md) | [directive-lifecycle.md](../content/docs/directive-lifecycle.md) | [../README.md](../README.md)
+
+> **Naming (#2907):** **xBRIEF** / `xbrief/` is the sole public canonical work-state name. **vBRIEF** / `vbrief/` is **legacy** (schema lineage, migrate paths, old extensions). Authoritative rename/history: [UPGRADING.md — xBRIEF rename](../content/UPGRADING.md#xbrief-rename-2034--2110--2907).
 
 ## From Vibe To Repeatable Practice
 
@@ -12,7 +14,7 @@ The current implementation expresses that idea with stronger machinery:
 
 - Modular guidance instead of one overloaded prompt.
 - Lazy loading instead of reading every standard every time.
-- vBRIEF state instead of transient chat memory.
+- xBRIEF state instead of transient chat memory.
 - Taskfile gates instead of "remember to run checks" prose.
 - Small, reversible scopes instead of unbounded work sessions.
 - Lessons, ideas, and suggestions that let the framework improve over time.
@@ -24,7 +26,7 @@ Taskfile is the discoverable command contract for the framework. Start with:
 ```bash
 task --list
 task check
-task vbrief:validate
+task xbrief:validate
 task codebase:validate-structure
 ```
 
@@ -43,7 +45,7 @@ flowchart LR
     Core --> Decide{"What kind of work?"}
     Decide -->|"Python code"| Py["languages/python.md"]
     Decide -->|"GitHub/PR work"| SCM["scm/github.md<br/>skills/deft-directive-pre-pr"]
-    Decide -->|"Spec or scope"| Strategy["strategies/interview.md<br/>vbrief/vbrief.md"]
+    Decide -->|"Spec or scope"| Strategy["strategies/interview.md<br/>xBRIEF lifecycle"]
     Decide -->|"Release"| Release["skills/deft-directive-release"]
     Py --> Gate["task check"]
     SCM --> Gate
@@ -53,26 +55,28 @@ flowchart LR
 
 This keeps context focused while preserving consistent standards across projects.
 
-## vBRIEF Is The Durable State
+## xBRIEF Is The Durable State
 
-Deft uses vBRIEF files for project and work state:
+Deft uses **xBRIEF** files for project and work state (public canonical name; on-disk root `xbrief/`):
 
-- `vbrief/PROJECT-DEFINITION.vbrief.json` -- project identity, policy, scope registry, and authored architecture metadata.
-- `vbrief/specification.vbrief.json` -- project specification source.
-- `vbrief/plan.vbrief.json` -- tactical session plan when present.
-- `vbrief/continue.vbrief.json` -- interruption recovery checkpoint when present.
-- `vbrief/{proposed,pending,active,completed,cancelled}/` -- scope lifecycle folders.
+- `xbrief/PROJECT-DEFINITION.xbrief.json` -- project identity, policy, scope registry, and authored architecture metadata.
+- `xbrief/specification.xbrief.json` -- project specification source.
+- `xbrief/plan.xbrief.json` -- tactical session plan when present.
+- `xbrief/continue.xbrief.json` -- interruption recovery checkpoint when present.
+- `xbrief/{proposed,pending,active,completed,cancelled}/` -- scope lifecycle folders.
 
-Markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The safe pattern is: edit vBRIEF source, run the render task, then validate.
+Markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The safe pattern is: edit xBRIEF source, run the render task, then validate.
+
+**Legacy:** `vbrief/`, `*.vbrief.json`, and older `vbrief:*` task aliases remain read-accepted until `deft migrate:xbrief` (or `task migrate:xbrief`). Do not teach them as the current model.
 
 ## Spec-Driven Development
 
-Deft still treats specification as a first-class act. The exact storage format evolved from early markdown/spec examples into vBRIEF sources and lifecycle scopes, but the core idea is unchanged: clarify work before implementation so agents can execute with less ambiguity.
+Deft still treats specification as a first-class act. The exact storage format evolved from early markdown/spec examples into xBRIEF sources and lifecycle scopes, but the core idea is unchanged: clarify work before implementation so agents can execute with less ambiguity.
 
 ```mermaid
 flowchart LR
     Idea["Idea or issue"] --> Interview["Interview, discuss, research, or triage"]
-    Interview --> Spec["vBRIEF source<br/>specification or scope"]
+    Interview --> Spec["xBRIEF source<br/>specification or scope"]
     Spec --> Plan["Accepted scope<br/>pending or active"]
     Plan --> Build["Implementation"]
     Build --> Render["Rendered views<br/>SPECIFICATION, PRD, ROADMAP"]
@@ -86,8 +90,8 @@ Good specifications expose decisions, dependencies, non-goals, and acceptance cr
 Deft favors enforceable rules over remembered rules:
 
 1. Deterministic checks: tests, scripts, hooks, CI.
-2. Taskfile targets: `task check`, `task verify:*`, `task vbrief:*`.
-3. vBRIEF policy and lifecycle metadata.
+2. Taskfile targets: `task check`, `task verify:*`, `task xbrief:*`.
+3. xBRIEF policy and lifecycle metadata.
 4. RFC2119 instructions in `AGENTS.md`, skills, and standards.
 5. Plain prose and rationale.
 
@@ -95,7 +99,7 @@ This keeps high-impact behavior out of fragile narrative-only guidance.
 
 ## Quality Gates
 
-`task check` is the directive repo's pre-commit gate. It combines regression checks with structural checks such as branch policy, encoding, vBRIEF validation, and content tests.
+`task check` is the directive repo's pre-commit gate. It combines regression checks with structural checks such as branch policy, encoding, xBRIEF validation, and content tests.
 
 Use narrower gates while developing:
 
@@ -104,11 +108,11 @@ task check:framework-source
 task check:consumer
 task check:slow
 task verify:session-ritual
-task verify:story-ready -- --vbrief-path <path>
-task vbrief:preflight -- <path>
+task verify:story-ready -- --xbrief-path <path>
+task xbrief:preflight -- <path>
 ```
 
-New source files require forward coverage. Documentation-only changes still need validation appropriate to the touched surface, usually `task vbrief:validate`, `task codebase:validate-structure` when architecture metadata changes, and enough content checks to catch broken links or stale generated files.
+New source files require forward coverage. Documentation-only changes still need validation appropriate to the touched surface, usually `task xbrief:validate`, `task codebase:validate-structure` when architecture metadata changes, and enough content checks to catch broken links or stale generated files.
 
 ## Test-Driven Development
 
@@ -125,7 +129,7 @@ For source changes, that usually means adding or updating tests before relying o
 
 ## Scope Lifecycle
 
-Work is represented as a scope vBRIEF. The normal path is:
+Work is represented as a scope xBRIEF. The normal path is:
 
 ```mermaid
 flowchart LR
@@ -157,9 +161,9 @@ flowchart TD
     External["External issue body<br/>untrusted data"] --> Cache["Content cache"]
     Cache --> Queue["triage queue"]
     Queue --> Decision{"Decision"}
-    Decision -->|"accept"| VBrief["proposed scope vBRIEF"]
-    Decision -->|"reject/defer/needs-ac"| Eval["vbrief/.eval audit log"]
-    VBrief --> Eval
+    Decision -->|"accept"| XBrief["proposed scope xBRIEF"]
+    Decision -->|"reject/defer/needs-ac"| Eval["xbrief/.eval audit log"]
+    XBrief --> Eval
 ```
 
 ## Source Of Truth Vs Projection
@@ -168,8 +172,8 @@ Deft keeps authored source and generated views separate.
 
 | Source of truth | Projection |
 | --- | --- |
-| `vbrief/specification.vbrief.json` | `SPECIFICATION.md`, `PRD.md` |
-| lifecycle scope vBRIEFs | `ROADMAP.md` |
+| `xbrief/specification.xbrief.json` | `SPECIFICATION.md`, `PRD.md` |
+| lifecycle scope xBRIEFs | `ROADMAP.md` |
 | `plan.architecture.codeStructure` | `.planning/codebase/MAP.md` |
 | skills and standards | rendered content packs |
 
@@ -212,7 +216,7 @@ Deft's early docs emphasized self-improving guidelines. That remains true, but t
 ```mermaid
 flowchart TD
     Work["Daily work"] --> Lesson["Observed pattern or failure"]
-    Lesson --> Record["meta/lessons, ideas, suggestions<br/>or a scope vBRIEF"]
+    Lesson --> Record["meta/lessons, ideas, suggestions<br/>or a scope xBRIEF"]
     Record --> Rule{"Should this become enforceable?"}
     Rule -->|"yes"| Strong["Task, test, hook, schema, or skill rule"]
     Rule -->|"not yet"| Prose["Documentation or content-pack guidance"]
@@ -226,7 +230,7 @@ The important distinction is promotion. A useful observation can start as prose,
 
 For implementation work:
 
-1. Resolve or create a scope vBRIEF.
+1. Resolve or create a scope xBRIEF.
 2. Promote and activate it.
 3. Run story/session preflight gates.
 4. Implement the smallest coherent change.
@@ -237,7 +241,7 @@ For implementation work:
 For documentation work:
 
 1. Identify the authoritative source.
-2. Update source docs or vBRIEF narratives.
+2. Update source docs or xBRIEF narratives.
 3. Regenerate derived views.
-4. Validate links, vBRIEF shape, and any touched architecture profile.
+4. Validate links, xBRIEF shape, and any touched architecture profile.
 5. Keep stale historical notes clearly labeled.

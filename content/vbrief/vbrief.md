@@ -1,10 +1,12 @@
 # vBRIEF Usage in Deft
 
-Canonical reference for vBRIEF file conventions within Deft-managed projects.
+> **Public name (#2907):** The sole current work-state name is **xBRIEF** under `xbrief/` (`.xbrief.json`). **vBRIEF** / `vbrief/` / `.vbrief.json` in this document are **legacy / schema-lineage** names (this path still hosts core schemas). Prefer xbrief in product docs and new guidance. Authoritative rename/history: [UPGRADING.md — xBRIEF rename](../UPGRADING.md#xbrief-rename-2034--2110--2907). Migrate on-disk layouts with `deft migrate:xbrief`.
+
+Canonical **schema and convention** reference for durable work-state files within Deft-managed projects (historical filename: vBRIEF).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [context/working-memory.md](../context/working-memory.md) | [resilience/continue-here.md](../resilience/continue-here.md) | [context/long-horizon.md](../context/long-horizon.md) | [glossary.md](../glossary.md)
+**⚠️ See also**: [glossary.md](../glossary.md) | [UPGRADING.md — xBRIEF rename](../UPGRADING.md#xbrief-rename-2034--2110--2907) | [context/working-memory.md](../context/working-memory.md) | [resilience/continue-here.md](../resilience/continue-here.md)
 
 ---
 

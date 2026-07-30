@@ -171,12 +171,12 @@ deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json
 
 This mode checks maintainer tooling without projecting consumer-managed files
 such as `AGENTS.md`, `.gitignore`, `.gitattributes`, guard workflows, or
-consumer `vbrief/` scaffolding into the framework repository. See
+consumer `xbrief/` scaffolding into the framework repository. See
 [`CONTRIBUTING.md`](./CONTRIBUTING.md) for maintainer setup details.
 
 ### 2. Set Up Your Preferences
 
-Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PROJECT-DEFINITION.vbrief.json` + scope vBRIEFs) but adapt to different users:
+Deft offers two setup paths that produce the same output (`USER.md` + `xbrief/PROJECT-DEFINITION.xbrief.json` + scope xBRIEFs) but adapt to different users:
 
 - **Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it`, or run `directive bootstrap` to deposit the framework and hand off to the setup skill.
 - **CLI launcher** (for terminal operators) — `directive bootstrap` deposits `.deft/core/` when absent and routes into the agent-driven setup flow (Phases 1–3). Use `--project` or `--strategy <name>` to jump to a later phase; `--reconfigure` / `--force` control re-entry when artifacts already exist.
@@ -187,16 +187,16 @@ Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PR
 - Windows: `%APPDATA%\deft\USER.md`
 - Override: set `DEFT_USER_PATH` environment variable
 
-### 3. Generate a Scope vBRIEF
+### 3. Generate a Scope xBRIEF
 
-`directive bootstrap` walks the full setup chain (user preferences → project definition → scope vBRIEF interview). Jump to a later phase when re-entering:
+`directive bootstrap` walks the full setup chain (user preferences → project definition → scope xBRIEF interview). Jump to a later phase when re-entering:
 
 ```bash
-directive bootstrap --strategy interview   # Phase 3 — scope vBRIEF interview
+directive bootstrap --strategy interview   # Phase 3 — scope xBRIEF interview
 directive bootstrap --project              # Phase 2 — project configuration only
 ```
 
-The interview writes a **scope vBRIEF** to `vbrief/proposed/`. `vbrief/*.vbrief.json` files are the source of truth; `.md` files (`PRD.md`, `SPECIFICATION.md`, `ROADMAP.md`) are rendered views generated on demand via `task *:render`. Direct edits to the rendered `.md` files are overwritten on the next render — edit the underlying `.vbrief.json` instead.
+The interview writes a **scope xBRIEF** to `xbrief/proposed/`. `xbrief/*.xbrief.json` files are the source of truth; `.md` files (`PRD.md`, `SPECIFICATION.md`, `ROADMAP.md`) are rendered views generated on demand via `task *:render`. Direct edits to the rendered `.md` files are overwritten on the next render — edit the underlying `.xbrief.json` instead.
 
 Other commands:
 
@@ -209,17 +209,17 @@ directive agents:refresh       # Refresh AGENTS.md managed section
 
 ### 4. Build With AI
 
-Ask your AI to build the product/project from your scope vBRIEFs and away you go:
+Ask your AI to build the product/project from your scope xBRIEFs and away you go:
 
 ```
-Read vbrief/PROJECT-DEFINITION.vbrief.json and the scope vBRIEFs in
-vbrief/active/ (or vbrief/pending/ if none are active yet) and implement
+Read xbrief/PROJECT-DEFINITION.xbrief.json and the scope xBRIEFs in
+xbrief/active/ (or xbrief/pending/ if none are active yet) and implement
 the project following deft/main.md standards.
 ```
 
 ### 5. Backlog triage (working an existing backlog)
 
-Already have a populated backlog — an existing project, a brownfield migration, or an upstream issue tracker that has been accumulating? Trigger the refinement workflow's pre-ingest **Phase 0 action menu** with words like **"triage"**, **"work the cache"**, or **"pre-ingest"**. The agent walks each cached candidate through the menu (`accept | reject | defer | needs-ac | mark-duplicate`) and only **accepted** items land in `vbrief/proposed/` — rejected and deferred items are recorded in the audit log without polluting the backlog.
+Already have a populated backlog — an existing project, a brownfield migration, or an upstream issue tracker that has been accumulating? Trigger the refinement workflow's pre-ingest **Phase 0 action menu** with words like **"triage"**, **"work the cache"**, or **"pre-ingest"**. The agent walks each cached candidate through the menu (`accept | reject | defer | needs-ac | mark-duplicate`) and only **accepted** items land in `xbrief/proposed/` — rejected and deferred items are recorded in the audit log without polluting the backlog.
 
 First populate is scoped via flags so the upstream rate limit does not bite:
 
@@ -239,7 +239,7 @@ When a spec, PRD, or plan is ready to hand off — especially to multiple agents
 - **AFK vs HITL** — each slice is tagged AFK (mergeable with no human interaction — preferred) or HITL (needs a decision/review first), and declares what blocks it so issues are filed in dependency order.
 - **Durable cohorts** — when a plan slices into an umbrella + child issues, the cohort is recorded in `<lifecycle-root>/.triage-cache/slices.jsonl` (e.g. `xbrief/.triage-cache/slices.jsonl`; tracked in git, with per-child wave numbers). This lets `task triage:audit --orphans | --slice-stalled | --slice-coverage` detect children stranded when an umbrella closes early, stalled siblings, and per-umbrella completion. Hand-filed cohorts are backfilled with `task slice:record-existing`; list recorded cohorts with `task slice:list`.
 
-Slices become GitHub issues, which triage into vBRIEFs, which flow through the `proposed/ → pending/ → active/ → completed/` lifecycle and can be allocated to parallel agents (the [`deft-directive-swarm`](./content/skills/deft-directive-swarm/SKILL.md) skill). Architectural refactors follow the same slicing path via [`deft-directive-gh-arch`](./content/skills/deft-directive-gh-arch/SKILL.md).
+Slices become GitHub issues, which triage into xBRIEFs, which flow through the `proposed/ → pending/ → active/ → completed/` lifecycle and can be allocated to parallel agents (the [`deft-directive-swarm`](./content/skills/deft-directive-swarm/SKILL.md) skill). Architectural refactors follow the same slicing path via [`deft-directive-gh-arch`](./content/skills/deft-directive-gh-arch/SKILL.md).
 
 ## 🪜 Layered Architecture (at a glance)
 
@@ -250,16 +250,16 @@ Deft separates **how the AI behaves** (the rule ladder) from **what to build** (
 Rules cascade with precedence (highest first). This is the **how-the-AI-behaves** ladder:
 
 1. **USER.md** (highest) — your personal overrides (`~/.config/deft/USER.md` on Unix/macOS, `%APPDATA%\deft\USER.md` on Windows)
-2. **vbrief/PROJECT-DEFINITION.vbrief.json** — project-specific rules and identity gestalt
+2. **xbrief/PROJECT-DEFINITION.xbrief.json** — project-specific rules and identity gestalt
 3. **Language files** (`languages/python.md`, `languages/go.md`, ...) — language standards
 4. **Tool files** (`tools/taskfile.md`, ...) — tool guidelines
 5. **main.md** (lowest) — general AI behavior
 
-Note: project **requirements** (`vbrief/specification.vbrief.json` + scope vBRIEFs in `vbrief/{proposed,pending,active,completed,cancelled}/`) describe **what to build** and are deliberately kept on a separate ladder from the rule cascade above. `ROADMAP.md` is the rendered backlog view of those requirements.
+Note: project **requirements** (`xbrief/specification.xbrief.json` + scope xBRIEFs in `xbrief/{proposed,pending,active,completed,cancelled}/`) describe **what to build** and are deliberately kept on a separate ladder from the rule cascade above. `ROADMAP.md` is the rendered backlog view of those requirements.
 
 ## 🌲 Branch policy
 
-Deft enforces a feature-branch policy by default (#746, #747): direct commits to `master`/`main` are blocked and PRs whose `head_ref` equals `base_ref` are refused at the CI gate. The policy is governed by a typed flag on `vbrief/PROJECT-DEFINITION.vbrief.json`:
+Deft enforces a feature-branch policy by default (#746, #747): direct commits to `master`/`main` are blocked and PRs whose `head_ref` equals `base_ref` are refused at the CI gate. The policy is governed by a typed flag on `xbrief/PROJECT-DEFINITION.xbrief.json`:
 
 ```json
 {
@@ -295,7 +295,7 @@ Security posture, audit cadence, and vulnerability-reporting flow live in [`docs
 
 **ghx (recommended proxy):** When `gh` is on PATH, Deft automatically prefers [ghx](https://github.com/brunoborges/ghx) — a read-only cache proxy for `gh` — if it is installed. ghx speeds up repeated GitHub API reads and helps multi-agent swarms stay under rate limits. Install it with consent via `directive setup:ghx` (or `task setup:ghx`); `task setup` nudges you when `gh` is present but `ghx` is missing. Consumer projects only require `gh`; ghx is optional but supported.
 
-The migration script (`task migrate:vbrief`) defaults origin provenance to `x-vbrief/github-issue` type. Non-GitHub users should manually adjust `references[].type` in generated vBRIEFs after migration.
+The migration path (`deft migrate:xbrief`; legacy `task migrate:vbrief` alias) remains for historical layouts. Non-GitHub users should manually adjust `references[].type` in generated xBRIEFs after migration. **vBRIEF** is legacy — see [UPGRADING.md — xBRIEF rename](./content/UPGRADING.md#xbrief-rename-2034--2110--2907).
 
 ## 📦 Content packs
 
@@ -312,15 +312,15 @@ Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-t
 ## 📚 Learn More
 
 - **[docs/CATEGORY.md](./docs/CATEGORY.md)** — Category decision aid: hosts vs skill packs vs practice layer vs orchestrators
-- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — Current Taskfile-first architecture, rule authority, vBRIEF state, installer layout, and codeStructure projection boundary
-- **[docs/CONCEPTS.md](./docs/CONCEPTS.md)** — Current operating concepts: vBRIEF source of truth, deterministic gates, cache-backed triage, lifecycle folders, and projections
-- **[docs/FILES.md](./docs/FILES.md)** — Current directory tree, task includes, skills, vBRIEF state, and consumer artifact locations
+- **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — Current Taskfile-first architecture, rule authority, xBRIEF state, installer layout, and codeStructure projection boundary
+- **[docs/CONCEPTS.md](./docs/CONCEPTS.md)** — Current operating concepts: xBRIEF source of truth, deterministic gates, cache-backed triage, lifecycle folders, and projections
+- **[docs/FILES.md](./docs/FILES.md)** — Current directory tree, task includes, skills, xBRIEF state, and consumer artifact locations
 - **[docs/RELEASING.md](./docs/RELEASING.md)** — Release & smoke-test workflow
-- **[docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md)** — Brownfield adoption (pre-v0.20 → vBRIEF migration)
+- **[docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md)** — Brownfield adoption (pre-v0.20 → xBRIEF migration; vBRIEF layout is legacy)
 - **[docs/security.md](./docs/security.md)** — Security posture, audit baseline, cadence, vulnerability-reporting flow
 - **[main.md](./main.md)** — Comprehensive AI guidelines (general behavior layer)
 - **[commands.md](./content/commands.md)** — Taskfile-first command lifecycle with compatibility `run` surfaces
-- **[glossary.md](./content/glossary.md)** — Canonical v0.20 vocabulary
+- **[glossary.md](./content/glossary.md)** — Canonical xBRIEF / v0.20+ vocabulary
 
 ## 🎓 Philosophy
 

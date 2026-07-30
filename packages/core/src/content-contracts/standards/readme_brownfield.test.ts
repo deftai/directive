@@ -19,17 +19,18 @@ function gitignoreClaim(): string {
 
 describe("test_readme_brownfield.py", () => {
   describe("TestReadmeVbriefCentric", () => {
+    // #2907: public README teaches xbrief sole canon (vBRIEF is legacy elsewhere).
     it("test_setup_step_references_vbrief_project_definition", () => {
-      expect(readme()).toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
+      expect(readme()).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
     });
     it("test_scope_vbrief_section_replaces_specification_md_language", () => {
       const content = readme();
-      expect(content).toContain("Generate a Scope vBRIEF");
+      expect(content).toContain("Generate a Scope xBRIEF");
       expect(content).not.toContain("creating a `SPECIFICATION.md`");
     });
     it("test_build_example_reads_project_definition_not_specification", () => {
       const content = readme();
-      expect(content).toContain("Read vbrief/PROJECT-DEFINITION.vbrief.json");
+      expect(content).toContain("Read xbrief/PROJECT-DEFINITION.xbrief.json");
       expect(content).not.toContain("Read SPECIFICATION.md and implement");
     });
     it("test_source_of_truth_note_exists", () => {
@@ -41,8 +42,8 @@ describe("test_readme_brownfield.py", () => {
       const m = readme().match(/### Rule Hierarchy\s*\n(.+?)(?=\n### |\n## )/s);
       expect(m).not.toBeNull();
       const section = m?.[1] ?? "";
-      expect(section).toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
-      expect(section).toContain("vbrief/specification.vbrief.json");
+      expect(section).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+      expect(section).toContain("xbrief/specification.xbrief.json");
     });
     it("test_brownfield_link_from_readme", () => {
       expect(readme()).toContain("docs/BROWNFIELD.md");
