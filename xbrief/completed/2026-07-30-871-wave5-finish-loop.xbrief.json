@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 5 of #2948: walk-away finish-loop tasks consuming Wave 0+1+4 grants (#871)",
-    "updated": "2026-07-30T16:51:22Z"
+    "updated": "2026-07-30T19:16:29Z"
   },
   "plan": {
     "title": "feat(tasks): directive:finish-loop + pr:finish-loop walk-away product (#871)",
-    "status": "running",
-    "updated": "2026-07-30T16:51:22Z",
+    "status": "completed",
+    "updated": "2026-07-30T19:16:29Z",
     "id": "2026-07-30-871-wave5-finish-loop",
     "narratives": {
       "Description": "Wave 5 of #2948. Implement task directive:finish-loop and task pr:finish-loop as the walk-away product. Every high-blast step routes through Wave 1 human-origin grants and Wave 4 closed-verb gates (finish-loop template). Halt cleanly on grant expiry, exhaustion, or scope refusal. Heartbeat to .deft-cache/finish-loop-progress.jsonl. Do not invent a second mint path. Compose with pr:watch, review-cycle, and existing scope lifecycle.",
@@ -21,28 +21,28 @@
     "items": [
       {
         "title": "finish-loop grant template + classification",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When authz:grant uses template finish-loop, mintHumanOriginGrant returns an operator-cli grant covering loop operations and unit tests reject agent-authored grants as authorization."
         }
       },
       {
         "title": "pr:finish-loop watches and addresses until CLEAN",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When grants are present, pr:finish-loop returns CLEAN via pr:watch integration and when grants are missing the command fails closed with a BLOCKED code."
         }
       },
       {
         "title": "directive:finish-loop outer cascade + progress log",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an authorized finish-loop session, directive:finish-loop appends finish-loop-progress.jsonl per iteration and stops when the queue is empty or a gate returns deny."
         }
       },
       {
         "title": "Docs CLI CHANGELOG #871",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "content/contracts/finish-loop.md records the walk-away path and CHANGELOG Unreleased records #871 under #2948 Wave 5."
         }
@@ -104,7 +104,8 @@
         "size": "L",
         "file_scope_confidence": "medium"
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-07-30T19:16:29Z"
     }
   }
 }
