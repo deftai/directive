@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 4 of #2948: #1095 slim — release-class closed verbs + AFK templates consuming Wave 1 human-origin grants",
-    "updated": "2026-07-30T19:19:15Z"
+    "updated": "2026-07-30T19:16:19Z"
   },
   "plan": {
     "title": "feat(authz): closed-verb release gates + AFK templates consuming human-origin grants (#1095 slim)",
     "status": "completed",
-    "updated": "2026-07-30T19:19:15Z",
+    "updated": "2026-07-30T19:16:19Z",
     "id": "2026-07-30-1095-wave4-closed-verb-session-auth-slim",
     "narratives": {
       "Description": "Wave 4 of epic #2948. Slim delivery of #1095: release-class closed-verb gates and AFK session-auth *templates* that mint/consume Wave 1 human-origin grants (packages/core authz). Do NOT invent a second mint path or parallel session-auth SoT that agents can self-satisfy. Rebase on TS engine + hooks/runtimeAuthority. Full #871 finish-loop product is Wave 5 — out of scope here. Non-verb product-edit provenance stays Wave 1.",
@@ -117,7 +117,7 @@
         "file_scope_confidence": "medium"
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-07-30T19:19:15Z"
+      "completedAt": "2026-07-30T19:16:19Z"
     }
   }
 }

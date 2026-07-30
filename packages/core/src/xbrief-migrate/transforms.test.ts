@@ -49,6 +49,33 @@ const SAMPLE_V06 = {
   },
 } as const;
 
+/** Hybrid: layout already xbrief / xBRIEFInfo key, envelope still 0.6 (#2970). */
+const SAMPLE_HYBRID_V06 = {
+  xBRIEFInfo: {
+    version: "0.6",
+    description: "hybrid fixture",
+    created: "2026-06-30T00:00:00Z",
+    updated: "2026-06-30T00:00:00Z",
+  },
+  plan: {
+    title: "Hybrid story",
+    status: "running",
+    items: [],
+    references: [
+      {
+        uri: "https://github.com/deftai/directive/issues/2970",
+        type: "x-vbrief/github-issue",
+        title: "Issue #2970",
+      },
+      {
+        uri: "xbrief/active/2026-06-30-child.xbrief.json",
+        type: "x-vbrief/plan",
+        title: "Child",
+      },
+    ],
+  },
+} as const;
+
 describe("transformArtifactV06ToV08", () => {
   it("converts v0.6 to valid v0.8 and is idempotent on rerun", () => {
     const first = transformArtifactV06ToV08(structuredClone(SAMPLE_V06) as Record<string, unknown>);
@@ -73,6 +100,43 @@ describe("transformArtifactV06ToV08", () => {
 
     const second = transformArtifactV06ToV08(first);
     expect(second).toEqual(first);
+  });
+
+  it("accepts hybrid xBRIEFInfo@0.6 and emits xBRIEFInfo@0.8", () => {
+    const first = transformArtifactV06ToV08(
+      structuredClone(SAMPLE_HYBRID_V06) as Record<string, unknown>,
+    );
+    expect(first).not.toHaveProperty("vBRIEFInfo");
+    expect(first).toMatchObject({
+      xBRIEFInfo: { version: "0.8", description: "hybrid fixture" },
+      plan: {
+        references: [
+          {
+            type: "x-xbrief/github-issue",
+            uri: "https://github.com/deftai/directive/issues/2970",
+          },
+          {
+            type: "x-xbrief/plan",
+            uri: "xbrief/active/2026-06-30-child.xbrief.json",
+          },
+        ],
+      },
+    });
+    expect(validateVbriefSchema(first, "hybrid-transformed.json")).toEqual([]);
+  });
+
+  it("is idempotent on a second pass of hybrid xBRIEFInfo@0.6 input", () => {
+    const input = structuredClone(SAMPLE_HYBRID_V06) as Record<string, unknown>;
+    const first = transformArtifactV06ToV08(input);
+    const second = transformArtifactV06ToV08(first);
+    expect(second).toEqual(first);
+    expect(second).toMatchObject({ xBRIEFInfo: { version: "0.8" } });
+  });
+
+  it("does not require vBRIEFInfo when hybrid xBRIEFInfo@0.6 is present", () => {
+    const input = structuredClone(SAMPLE_HYBRID_V06) as Record<string, unknown>;
+    expect(input).not.toHaveProperty("vBRIEFInfo");
+    expect(() => transformArtifactV06ToV08(input)).not.toThrow();
   });
 
   it("rewrites embedded tokens idempotently", () => {

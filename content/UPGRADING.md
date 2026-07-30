@@ -225,6 +225,16 @@ deft migrate:xbrief
 
 Post-migration behavior check (#2149): on xbrief-only projects (`vbrief/` removed), `task issue:ingest -- <N>` now emits `xbrief/proposed/*.xbrief.json` with `xBRIEFInfo.version` from `xbrief/PROJECT-DEFINITION.xbrief.json` (fallback `0.8`), while legacy `vbrief/` projects keep `.vbrief.json` + `vBRIEFInfo.version: "0.6"` until migrated. `task project:render` / `project-render` also stays on `xbrief/PROJECT-DEFINITION.xbrief.json` and no longer recreates `vbrief/` in migrated trees.
 
+### Hybrid envelope: layout rename ≠ schema bump (#2970)
+
+Folder rename (`vbrief/` → `xbrief/`, `*.vbrief.json` → `*.xbrief.json`) and the in-document info-key rename (`vBRIEFInfo` → `xBRIEFInfo`) can land **without** bumping `version` from `0.6` to `0.8`. That hybrid state looks like:
+
+```json
+{ "xBRIEFInfo": { "version": "0.6", "description": "..." }, "plan": { } }
+```
+
+It is common after a manual folder rename or when agents stamp the current key name while copying old `0.6` examples. `transformArtifactV06ToV08` / `deft migrate:xbrief` accept **either** classic `vBRIEFInfo@0.6` **or** hybrid `xBRIEFInfo@0.6` and emit `xBRIEFInfo@0.8` (with path/token rewrites). A second pass is idempotent. Layout migration alone does not imply envelope migration — re-run `deft migrate:xbrief` (or rely on schema-distance / staleness prompts) until declared version is `0.8`.
+
 ### AGENTS.md: managed vs unmanaged header (#2154)
 
 `migrate:xbrief` touches your `AGENTS.md` in two distinct regions:

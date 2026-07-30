@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 5 of #2948: walk-away finish-loop tasks consuming Wave 0+1+4 grants (#871)",
-    "updated": "2026-07-30T19:19:25Z"
+    "updated": "2026-07-30T19:16:29Z"
   },
   "plan": {
     "title": "feat(tasks): directive:finish-loop + pr:finish-loop walk-away product (#871)",
     "status": "completed",
-    "updated": "2026-07-30T19:19:25Z",
+    "updated": "2026-07-30T19:16:29Z",
     "id": "2026-07-30-871-wave5-finish-loop",
     "narratives": {
       "Description": "Wave 5 of #2948. Implement task directive:finish-loop and task pr:finish-loop as the walk-away product. Every high-blast step routes through Wave 1 human-origin grants and Wave 4 closed-verb gates (finish-loop template). Halt cleanly on grant expiry, exhaustion, or scope refusal. Heartbeat to .deft-cache/finish-loop-progress.jsonl. Do not invent a second mint path. Compose with pr:watch, review-cycle, and existing scope lifecycle.",
@@ -105,7 +105,7 @@
         "file_scope_confidence": "medium"
       },
       "capacityBucket": "new-capability",
-      "completedAt": "2026-07-30T19:19:25Z"
+      "completedAt": "2026-07-30T19:16:29Z"
     }
   }
 }
