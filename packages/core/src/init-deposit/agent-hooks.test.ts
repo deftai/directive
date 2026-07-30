@@ -21,6 +21,7 @@ import {
   AGENT_HOOK_PATHS,
   DIRECT_WRITE_HOOK_MATCHER,
   inspectAgentHookDeposit,
+  SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
 } from "./agent-hooks.js";
@@ -81,6 +82,8 @@ describe("writeAgentHookDeposit", () => {
     expect(DIRECT_WRITE_HOOK_MATCHER.split("|").every(isDirectWriteTool)).toBe(true);
     expect(SPAWN_HOOK_MATCHER.split("|").every(isSpawnTool)).toBe(true);
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(SPAWN_HOOK_MATCHER);
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain(SHELL_HOOK_MATCHER);
+    expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toContain(SHELL_HOOK_MATCHER);
     expect(lines.join("")).toContain("agent hooks");
     expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "codex")).toMatchObject({
@@ -217,7 +220,8 @@ describe("writeAgentHookDeposit", () => {
     expect(codex).toContain("./resume-check.sh");
     expect(codex).toContain("./custom-codex-check.sh");
     expect(codex).not.toContain("--old");
-    expect(codex.match(/--host codex --event tool\.before/g)).toHaveLength(2);
+    // direct-write + spawn + shell (#2711) managed PreToolUse groups
+    expect(codex.match(/--host codex --event tool\.before/g)).toHaveLength(3);
   });
 
   it("refuses to overwrite malformed user JSON", () => {

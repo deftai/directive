@@ -2,7 +2,11 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { dirname, join } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
-import { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
+import {
+  DIRECT_WRITE_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+} from "../hooks/tools.js";
 import {
   type HostHooksPolicy,
   isHostHookDepositEnabled,
@@ -10,7 +14,11 @@ import {
 } from "../policy/host-hooks.js";
 import type { InitDepositIo } from "./constants.js";
 
-export { DIRECT_WRITE_HOOK_MATCHER, SPAWN_HOOK_MATCHER } from "../hooks/tools.js";
+export {
+  DIRECT_WRITE_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+} from "../hooks/tools.js";
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";
 export const LEGACY_DEFT_HOOK_COMMAND_MARKER = "deft hook:dispatch";
 export const AGENT_HOOK_PATHS = [
@@ -156,6 +164,8 @@ function mergeNestedConfig(
     ...preTool,
     nestedGroup(host, "tool.before", DIRECT_WRITE_HOOK_MATCHER),
     nestedGroup(host, "tool.before", SPAWN_HOOK_MATCHER),
+    // Shell/Bash for runtimeAuthority scopes.push / scopes.merge (#2711)
+    nestedGroup(host, "tool.before", SHELL_HOOK_MATCHER),
   ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
@@ -234,6 +244,12 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
     {
       command: command("cursor", "tool.before"),
       matcher: SPAWN_HOOK_MATCHER,
+      failClosed: true,
+      timeout: 5,
+    },
+    {
+      command: command("cursor", "tool.before"),
+      matcher: SHELL_HOOK_MATCHER,
       failClosed: true,
       timeout: 5,
     },
@@ -386,6 +402,10 @@ function hasNestedRegistration(
     preTool.some((entry) => {
       const group = object(entry);
       return group?.matcher === SPAWN_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
+    }) &&
+    preTool.some((entry) => {
+      const group = object(entry);
+      return group?.matcher === SHELL_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
     });
   if (!base) return false;
   if (!options.compact) return true;
@@ -418,6 +438,14 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
       return (
         hook?.command === command("cursor", "tool.before") &&
         hook.matcher === SPAWN_HOOK_MATCHER &&
+        hook.failClosed === true
+      );
+    }) &&
+    preTool.some((entry) => {
+      const hook = object(entry);
+      return (
+        hook?.command === command("cursor", "tool.before") &&
+        hook.matcher === SHELL_HOOK_MATCHER &&
         hook.failClosed === true
       );
     }) &&

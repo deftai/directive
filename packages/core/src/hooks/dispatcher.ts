@@ -543,8 +543,7 @@ function decideShellOrMcpRuntimeAuthority(
       input,
       verdict.code ?? "runtime-policy-deny-scope",
       toolName,
-      verdict.reason ??
-        "Directive denied this shell/MCP operation under runtime authority policy.",
+      verdict.reason ?? "Directive denied this shell/MCP operation under runtime authority policy.",
     );
   }
   if (verdict.unclassifiable) {

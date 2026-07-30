@@ -137,6 +137,9 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
     expect(classifyShellCommand("git push origin HEAD")).toBe("push");
     expect(classifyShellCommand("git.exe push --force-with-lease")).toBe("push");
     expect(classifyShellCommand("cd pkg && git push")).toBe("push");
+    expect(classifyShellCommand("git -C /project push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push")).toBe("push");
+    expect(classifyShellCommand("FOO=1 BAR=2 git -C repo push")).toBe("push");
     expect(classifyShellCommand("gh pr merge 12 --squash")).toBe("merge");
     expect(classifyShellCommand("gh.exe pr merge 12")).toBe("merge");
     expect(classifyShellCommand("git status")).toBeNull();

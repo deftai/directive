@@ -264,10 +264,23 @@ export type RuntimeAuthorityShellOp = "push" | "merge";
 export function classifyShellCommand(command: string): RuntimeAuthorityShellOp | null {
   const cmd = command.trim();
   if (cmd.length === 0) return null;
-  // Match command starts or pipeline/list segments (&&, ||, ;, |), not prose like "echo git push".
-  const segment = String.raw`(?:^|(?:&&|\|\||[;&|])\s*)`;
-  if (new RegExp(`${segment}git(?:\\.exe)?\\s+push\\b`, "i").test(cmd)) return "push";
-  if (new RegExp(`${segment}gh(?:\\.exe)?\\s+pr\\s+merge\\b`, "i").test(cmd)) return "merge";
+  // Split pipeline/list segments so "cd x && git push" classifies; prose "echo git push" does not.
+  for (const raw of cmd.split(/(?:&&|\|\||[;&|])/)) {
+    let segment = raw.trim();
+    if (segment.length === 0) continue;
+    // Leading env assignments: FOO=1 git push / DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push
+    segment = segment.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, "");
+    // Optional sudo / env / command wrappers
+    segment = segment.replace(/^(?:sudo|env|command)\s+/, "");
+    segment = segment.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, "");
+    // git with optional -C <path> / -c key=value before the subcommand (#2711 Greptile P1)
+    if (/^git(?:\.exe)?(?:\s+(?:-[Cc]\s+\S+|-[a-zA-Z](?:=|\s+\S+)?))*\s+push\b/i.test(segment)) {
+      return "push";
+    }
+    if (/^gh(?:\.exe)?(?:\s+--\S+)*\s+pr\s+merge\b/i.test(segment)) {
+      return "merge";
+    }
+  }
   return null;
 }
 
