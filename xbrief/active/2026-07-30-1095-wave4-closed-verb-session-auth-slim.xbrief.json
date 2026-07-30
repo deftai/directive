@@ -7,7 +7,7 @@
   "plan": {
     "title": "feat(authz): closed-verb release gates + AFK templates consuming human-origin grants (#1095 slim)",
     "status": "running",
-    "updated": "2026-07-30T16:10:11Z",
+    "updated": "2026-07-30T16:25:07.607Z",
     "id": "2026-07-30-1095-wave4-closed-verb-session-auth-slim",
     "narratives": {
       "Description": "Wave 4 of epic #2948. Slim delivery of #1095: release-class closed-verb gates and AFK session-auth *templates* that mint/consume Wave 1 human-origin grants (packages/core authz). Do NOT invent a second mint path or parallel session-auth SoT that agents can self-satisfy. Rebase on TS engine + hooks/runtimeAuthority. Full #871 finish-loop product is Wave 5 — out of scope here. Non-verb product-edit provenance stays Wave 1.",
@@ -21,35 +21,35 @@
     "items": [
       {
         "title": "verb-classification data for release-class closed verbs",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "conventions/verb-classification.json (or equivalent) records release-cut release-publish release-rollback with closure_set explicit_required irreversibility and skill pointers and unit tests validate the schema shape."
         }
       },
       {
         "title": "TS closed-verb evaluator consumes Wave 1 grants",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "evaluateClosedVerb returns allow only when DEFT_ALLOW_* is set or a matching human-origin grant satisfies the verb target and rejects agent-authored or missing grants with a stable deny code."
         }
       },
       {
         "title": "release-publish fails closed without grant or bypass",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When no grant and no DEFT_ALLOW_RELEASE_PUBLISH, release-publish fails closed before draft-to-public and when a matching operator-cli grant is present the gate returns allow."
         }
       },
       {
         "title": "AFK templates mint via authz:grant only",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "authz grant template path for release-class verbs creates operator-cli human-origin grants only and unit tests reject a second independent session-auth mint engine as authorization SoT."
         }
       },
       {
         "title": "Docs CHANGELOG #1095 #2948 Wave 4",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Contract docs record closed-verb + grant consumption and CHANGELOG Unreleased records #1095 under #2948 Wave 4 without claiming full #871 finish-loop."
         }
@@ -119,4 +119,4 @@
       "capacityBucket": "new-capability"
     }
   }
-}
+}\n

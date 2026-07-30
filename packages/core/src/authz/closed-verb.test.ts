@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  closedVerbEnvBypassKey,
   evaluateClosedVerb,
   normaliseClosedVerbTarget,
   targetSurfaceCandidates,
@@ -223,9 +224,182 @@ describe("evaluateClosedVerb (#1095)", () => {
 
   it("target helpers normalise v-prefix", () => {
     expect(normaliseClosedVerbTarget("v0.30.0")).toBe("0.30.0");
+    expect(normaliseClosedVerbTarget("")).toBeNull();
+    expect(normaliseClosedVerbTarget(null)).toBeNull();
     expect(targetSurfaceCandidates("0.30.0")).toEqual(
       expect.arrayContaining(["0.30.0", "v0.30.0"]),
     );
+    expect(targetSurfaceCandidates(null)).toEqual([]);
+  });
+
+  it("rejects revoked and single-use spent grants", () => {
+    const revoked = evaluateClosedVerb({
+      verb: "release-rollback",
+      target: "0.1.0",
+      grants: [
+        grant({
+          operations: ["release-rollback"],
+          surfaces: [],
+          revokedAt: "2026-07-01T00:00:00Z",
+        }),
+      ],
+      env: {},
+    });
+    expect(revoked.code).toBe("closed-verb-deny-revoked");
+
+    const spent = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.1.0",
+      grants: [
+        grant({
+          operations: ["release-publish"],
+          surfaces: [],
+          singleUse: true,
+          usedAt: "2026-07-01T00:00:00Z",
+        }),
+      ],
+      env: {},
+    });
+    expect(spent.code).toBe("closed-verb-deny-spent");
+  });
+
+  it("rejects grant with mismatched repo binding", () => {
+    const g = grant({ operations: ["release-publish"], surfaces: [] });
+    const bound: HumanOriginGrant = {
+      ...g,
+      scope: { ...g.scope, repo: "other/repo" },
+    };
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.30.0",
+      grants: [bound],
+      env: {},
+      repo: "deftai/directive",
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.code).toBe("closed-verb-deny-scope");
+    expect(d.reason).toMatch(/repo\/branch/);
+  });
+
+  it("allows grant when repo binding matches", () => {
+    const g = grant({ operations: ["release-publish"], surfaces: [] });
+    const bound: HumanOriginGrant = {
+      ...g,
+      scope: { ...g.scope, repo: "deftai/directive" },
+    };
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.30.0",
+      grants: [bound],
+      env: {},
+      repo: "deftai/directive",
+    });
+    expect(d.allowed).toBe(true);
+  });
+
+  it("env true/yes bypass and closedVerbEnvBypassKey", () => {
+    expect(
+      evaluateClosedVerb({
+        verb: "release-cut",
+        target: "1.0.0",
+        grants: [],
+        env: { DEFT_ALLOW_RELEASE_CUT: "true" },
+      }).code,
+    ).toBe("closed-verb-env-bypass");
+    expect(
+      evaluateClosedVerb({
+        verb: "release-rollback",
+        target: "1.0.0",
+        grants: [],
+        env: { DEFT_ALLOW_RELEASE_ROLLBACK: "yes" },
+      }).code,
+    ).toBe("closed-verb-env-bypass");
+    expect(closedVerbEnvBypassKey("release-publish")).toBe("DEFT_ALLOW_RELEASE_PUBLISH");
+    expect(closedVerbEnvBypassKey("nope")).toBeNull();
+  });
+
+  it("loads classification from projectRoot when present", () => {
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.30.0",
+      grants: [],
+      env: {},
+      projectRoot: process.cwd(),
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.envBypassKey).toBe("DEFT_ALLOW_RELEASE_PUBLISH");
+  });
+
+  it("sanitises newlines in verb key", () => {
+    const d = evaluateClosedVerb({
+      verb: "release-publish\n",
+      target: "0.1.0",
+      grants: [],
+      env: {},
+    });
+    expect(d.verb).not.toMatch(/\n/);
+  });
+
+  it("rejects missing target when surfaces pinned", () => {
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: null,
+      grants: [grant({ operations: ["release-publish"], surfaces: ["0.1.0"] })],
+      env: {},
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.code).toBe("closed-verb-deny-scope");
+  });
+
+  it("rejects non-human origin kinds without rejected set", () => {
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.1.0",
+      grants: [grant({ kind: "mystery", actor: "someone", operations: ["release-publish"] })],
+      env: {},
+    });
+    expect(d.code).toBe("closed-verb-deny-origin");
+  });
+
+  it("honors branch binding and wildcard surfaces when allowed by table", () => {
+    const g = grant({ operations: ["release-publish"], surfaces: ["*"] });
+    const bound: HumanOriginGrant = {
+      ...g,
+      scope: { ...g.scope, branch: "master", surfaces: ["*"] },
+    };
+    expect(
+      evaluateClosedVerb({
+        verb: "release-publish",
+        target: "9.9.9",
+        grants: [bound],
+        env: {},
+        branch: "develop",
+      }).code,
+    ).toBe("closed-verb-deny-scope");
+
+    const table = builtinReleaseVerbClassification();
+    const publishRow = table.verbs["release-publish"];
+    expect(publishRow).toBeDefined();
+    const wildTable = {
+      ...table,
+      verbs: {
+        ...table.verbs,
+        "release-publish": { ...publishRow, wildcard_allowed: true },
+      },
+    };
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "9.9.9",
+      grants: [bound],
+      env: {},
+      branch: "master",
+      classification: wildTable,
+    });
+    expect(d.allowed).toBe(true);
+  });
+
+  it("closedVerbEnvBypassKey loads from projectRoot", () => {
+    expect(closedVerbEnvBypassKey("release-cut", process.cwd())).toBe("DEFT_ALLOW_RELEASE_CUT");
   });
 });
 
@@ -241,6 +415,15 @@ describe("AFK templates (#1095)", () => {
     expect(r.expiresAt).toMatch(/2026-07-30T01:00:00Z/);
   });
 
+  it("resolveClosedVerbTemplate rejects unknown template and empty target", () => {
+    expect(() => resolveClosedVerbTemplate({ template: "finish-loop", target: "x" })).toThrow(
+      /unknown closed-verb template/,
+    );
+    expect(() => resolveClosedVerbTemplate({ template: "release-cut", target: "  " })).toThrow(
+      /non-empty --target/,
+    );
+  });
+
   it("mintClosedVerbTemplateGrant uses operator-cli origin only", () => {
     const root = mkdtempSync(join(tmpdir(), "authz-tpl-"));
     try {
@@ -249,10 +432,14 @@ describe("AFK templates (#1095)", () => {
         template: "release-publish",
         target: "0.31.0",
         actor: "msadams",
+        singleUse: true,
+        expiresAt: "2026-12-01T00:00:00Z",
       });
       expect(g.origin.kind).toBe("operator-cli");
       expect(g.scope.operations).toEqual(["release-publish"]);
       expect(g.scope.surfaces).toEqual(expect.arrayContaining(["0.31.0", "v0.31.0"]));
+      expect(g.semantics.singleUse).toBe(true);
+      expect(g.semantics.expiresAt).toBe("2026-12-01T00:00:00Z");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -262,5 +449,92 @@ describe("AFK templates (#1095)", () => {
     const guard = assertNoIndependentSessionAuthMint();
     expect(guard.mintPath).toBe("mintHumanOriginGrant");
     expect(guard.sessionAuthIsAuthority).toBe(false);
+  });
+});
+
+describe("verb-classification parse branches", () => {
+  it("rejects invalid schema shapes", () => {
+    expect(() => parseVerbClassification(null)).toThrow(/root must be an object/);
+    expect(() => parseVerbClassification({ schemaVersion: 0, verbs: {} })).toThrow(/schemaVersion/);
+    expect(() => parseVerbClassification({ schemaVersion: 1, verbs: "nope" })).toThrow(/verbs/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: {
+          x: {
+            closure_set: "bad",
+            explicit_required: [],
+            irreversibility: "destructive",
+            wildcard_allowed: false,
+            recurring_allowed: false,
+            default_expiry: "1h",
+            skill: "s",
+            phase: "p",
+            authz_operations: ["deployment"],
+            env_bypass: "DEFT_ALLOW_X",
+          },
+        },
+      }),
+    ).toThrow(/array of strings/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: {
+          x: {
+            closure_set: [],
+            explicit_required: [],
+            irreversibility: "destructive",
+            wildcard_allowed: false,
+            recurring_allowed: false,
+            default_expiry: "1h",
+            skill: "s",
+            phase: "p",
+            authz_operations: [],
+            env_bypass: "DEFT_ALLOW_X",
+          },
+        },
+      }),
+    ).toThrow(/authz_operations must be non-empty/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: {
+          x: {
+            closure_set: [],
+            explicit_required: [],
+            irreversibility: "destructive",
+            wildcard_allowed: false,
+            recurring_allowed: false,
+            default_expiry: "1h",
+            skill: "s",
+            phase: "p",
+            authz_operations: ["deployment"],
+            env_bypass: "NOT_DEFT",
+          },
+        },
+      }),
+    ).toThrow(/env_bypass/);
+  });
+
+  it("loadVerbClassification fails closed on corrupt JSON", () => {
+    const root = mkdtempSync(join(tmpdir(), "verb-class-"));
+    try {
+      const dir = join(root, "conventions");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "verb-classification.json"), "{not-json", "utf8");
+      expect(() => loadVerbClassification(root)).toThrow(/failed to parse|verb-class-parse/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("loadVerbClassification falls back to builtin when no file", () => {
+    const root = mkdtempSync(join(tmpdir(), "verb-class-empty-"));
+    try {
+      const table = loadVerbClassification(root);
+      expect(table.verbs["release-publish"]).toBeDefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

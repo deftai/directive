@@ -116,6 +116,13 @@ export function resolveClosedVerbTemplate(input: {
  * **Sole mint path:** mintHumanOriginGrant (operator-cli). No session-auth SoT.
  */
 export function mintClosedVerbTemplateGrant(input: MintClosedVerbTemplateInput): HumanOriginGrant {
+  // Production dual-mint guard: templates never open an independent session-auth mint.
+  const dualMint = assertNoIndependentSessionAuthMint();
+  if (dualMint.sessionAuthIsAuthority || dualMint.mintPath !== "mintHumanOriginGrant") {
+    throw new Error(
+      "closed-verb template mint refused: dual authorization SoT is forbidden (#1095)",
+    );
+  }
   const resolved = resolveClosedVerbTemplate({
     template: input.template,
     target: input.target,

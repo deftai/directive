@@ -19,8 +19,11 @@ import type { ClosedVerbDecision, ClosedVerbDecisionCode, HumanOriginGrant } fro
 import {
   builtinReleaseVerbClassification,
   getVerbRow,
+  loadVerbClassification,
   type VerbClassificationTable,
 } from "./verb-classification.js";
+
+export type EnvMap = Readonly<Record<string, string | undefined>>;
 
 export interface EvaluateClosedVerbInput {
   readonly verb: string;
@@ -28,11 +31,19 @@ export interface EvaluateClosedVerbInput {
   readonly target: string | null;
   readonly grants: readonly HumanOriginGrant[];
   /** Env map; defaults to process.env when omitted. */
-  readonly env?: NodeJS.ProcessEnv | Readonly<Record<string, string | undefined>>;
+  readonly env?: EnvMap;
   readonly now?: Date;
-  /** Injected table for unit tests; otherwise load/builtin. */
+  /** Injected table for unit tests; otherwise load from projectRoot or builtin. */
   readonly classification?: VerbClassificationTable;
+  /** Project root — loads conventions/verb-classification.json when set. */
   readonly projectRoot?: string | null;
+  /** Optional structural context — when grant pins repo/branch, must match. */
+  readonly repo?: string | null;
+  readonly branch?: string | null;
+}
+
+function sanitize(text: string): string {
+  return text.replace(/[\r\n]+/g, " ");
 }
 
 function deny(
@@ -48,9 +59,9 @@ function deny(
   return {
     allowed: false,
     code,
-    reason,
-    verb: input.verb,
-    target: input.target,
+    reason: sanitize(reason),
+    verb: sanitize(input.verb),
+    target: input.target === null ? null : sanitize(input.target),
     humanApprovalRef: extra.humanApprovalRef ?? null,
     envBypassKey: extra.envBypassKey ?? null,
     skillPointer: extra.skillPointer ?? null,
@@ -70,9 +81,9 @@ function allow(
   return {
     allowed: true,
     code,
-    reason,
-    verb: input.verb,
-    target: input.target,
+    reason: sanitize(reason),
+    verb: sanitize(input.verb),
+    target: input.target === null ? null : sanitize(input.target),
     humanApprovalRef: extra.humanApprovalRef ?? null,
     envBypassKey: extra.envBypassKey ?? null,
     skillPointer: extra.skillPointer ?? null,
@@ -140,6 +151,20 @@ function grantCoversTarget(
   return false;
 }
 
+/** When a grant pins repo/branch, the attempt must supply a matching value. */
+function grantContextMatches(grant: HumanOriginGrant, input: EvaluateClosedVerbInput): boolean {
+  const s = grant.scope;
+  if (s.repo !== null) {
+    if (input.repo === null || input.repo === undefined) return false;
+    if (s.repo.toLowerCase() !== input.repo.toLowerCase()) return false;
+  }
+  if (s.branch !== null) {
+    if (input.branch === null || input.branch === undefined) return false;
+    if (s.branch !== input.branch) return false;
+  }
+  return true;
+}
+
 function grantValidity(
   grant: HumanOriginGrant,
   now: Date,
@@ -193,12 +218,25 @@ function grantValidity(
   return { ok: true };
 }
 
+function resolveClassification(input: EvaluateClosedVerbInput): VerbClassificationTable {
+  if (input.classification !== undefined) return input.classification;
+  if (
+    input.projectRoot !== null &&
+    input.projectRoot !== undefined &&
+    input.projectRoot.length > 0
+  ) {
+    return loadVerbClassification(input.projectRoot);
+  }
+  return builtinReleaseVerbClassification();
+}
+
 /**
- * Pure closed-verb gate. Fail closed for unknown verbs and missing grants.
+ * Closed-verb gate. Fail closed for unknown verbs and missing grants.
+ * Loads conventions/verb-classification.json when projectRoot is provided.
  */
 export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDecision {
-  const table = input.classification ?? builtinReleaseVerbClassification();
-  const verbKey = input.verb.trim().toLowerCase();
+  const table = resolveClassification(input);
+  const verbKey = sanitize(input.verb.trim().toLowerCase());
   const row = getVerbRow(table, verbKey);
   if (row === null) {
     return deny(
@@ -209,9 +247,9 @@ export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDe
     );
   }
 
-  const skillPointer = `${row.skill} ${row.phase}`;
+  const skillPointer = sanitize(`${row.skill} ${row.phase}`);
   const envBypassKey = row.env_bypass;
-  const env = input.env ?? process.env;
+  const env: EnvMap = input.env ?? (process.env as EnvMap);
   if (envTruthy(env[envBypassKey])) {
     return allow(
       "closed-verb-env-bypass",
@@ -226,19 +264,19 @@ export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDe
   let lastReject: { code: ClosedVerbDecisionCode; reason: string; id?: string } | null = null;
 
   for (const grant of input.grants) {
+    // evidenceSatisfiesImplementationApproval and grantValidity both reject
+    // non-human origins; run full validity (origin + expiry + single-use + revoked).
     if (!evidenceSatisfiesImplementationApproval({ grant })) {
       const validity = grantValidity(grant, now);
-      if (!validity.ok) {
-        lastReject = { code: validity.code, reason: validity.reason, id: grant.id };
-        continue;
-      }
-      lastReject = {
-        code: "closed-verb-deny-origin",
-        reason:
-          `Directive denied closed verb: grant ${grant.id} does not satisfy human-origin ` +
-          "implementation approval (self-authored lifecycle/dispatch tokens never count).",
-        id: grant.id,
-      };
+      lastReject = validity.ok
+        ? {
+            code: "closed-verb-deny-origin",
+            reason:
+              `Directive denied closed verb: grant ${grant.id} does not satisfy human-origin ` +
+              "implementation approval (self-authored lifecycle/dispatch tokens never count).",
+            id: grant.id,
+          }
+        : { code: validity.code, reason: validity.reason, id: grant.id };
       continue;
     }
     const validity = grantValidity(grant, now);
@@ -266,6 +304,16 @@ export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDe
           `[${grant.scope.surfaces.join("|") || "*"}] do not cover target ` +
           `'${input.target ?? "(none)"}'. Human action required: remint with ` +
           `\`--template ${verbKey} --target ${input.target ?? "<ver>"}\`.`,
+        id: grant.id,
+      };
+      continue;
+    }
+    if (!grantContextMatches(grant, input)) {
+      lastReject = {
+        code: "closed-verb-deny-scope",
+        reason:
+          `Directive denied closed verb: grant ${grant.id} is bound to a different ` +
+          "repo/branch context than the attempted operation.",
         id: grant.id,
       };
       continue;
@@ -303,8 +351,12 @@ export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDe
   );
 }
 
-/** Map verb name → DEFT_ALLOW_* key (from builtin table). */
-export function closedVerbEnvBypassKey(verb: string): string | null {
-  const row = getVerbRow(builtinReleaseVerbClassification(), verb);
+/** Map verb name → DEFT_ALLOW_* key (from loaded/builtin table). */
+export function closedVerbEnvBypassKey(verb: string, projectRoot?: string | null): string | null {
+  const table =
+    projectRoot !== null && projectRoot !== undefined && projectRoot.length > 0
+      ? loadVerbClassification(projectRoot)
+      : builtinReleaseVerbClassification();
+  const row = getVerbRow(table, verb);
   return row?.env_bypass ?? null;
 }

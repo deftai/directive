@@ -1,5 +1,5 @@
-import { evaluateClosedVerb } from "../authz/closed-verb.js";
-import { listActiveHumanGrants, loadAuthzState } from "../authz/store.js";
+import { type EnvMap, evaluateClosedVerb } from "../authz/closed-verb.js";
+import { listActiveHumanGrants, loadAuthzState, markGrantUsed } from "../authz/store.js";
 import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
 import { editReleasePublish, viewRelease } from "./gh-api.js";
@@ -12,6 +12,7 @@ export function emit(label: string, status: string): void {
 /**
  * Fail-closed gate before draft→public (#1095 Wave 4).
  * Allow only DEFT_ALLOW_RELEASE_PUBLISH=1 or a matching human-origin grant.
+ * Loads conventions/verb-classification.json from projectRoot when present.
  * Test seam: pass grants / env via optional overrides on seams when present.
  */
 export function evaluateReleasePublishGate(
@@ -19,7 +20,8 @@ export function evaluateReleasePublishGate(
   projectRoot: string,
   options: {
     readonly grants?: readonly HumanOriginGrant[];
-    readonly env?: NodeJS.ProcessEnv | Readonly<Record<string, string | undefined>>;
+    readonly env?: EnvMap;
+    readonly repo?: string | null;
   } = {},
 ): ClosedVerbDecision {
   const state = loadAuthzState(projectRoot);
@@ -28,8 +30,9 @@ export function evaluateReleasePublishGate(
     verb: "release-publish",
     target: version,
     grants,
-    env: options.env ?? process.env,
+    env: options.env ?? (process.env as EnvMap),
     projectRoot,
+    repo: options.repo ?? null,
   });
 }
 
@@ -69,11 +72,12 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
   // Closed-verb gate: refuse draft→public without grant or env bypass (#1095).
   const gateSeams = seams as ReleasePublishSeams & {
     closedVerbGrants?: readonly HumanOriginGrant[];
-    closedVerbEnv?: NodeJS.ProcessEnv | Readonly<Record<string, string | undefined>>;
+    closedVerbEnv?: EnvMap;
   };
   const gate = evaluateReleasePublishGate(version, projectRoot, {
     grants: gateSeams.closedVerbGrants,
     env: gateSeams.closedVerbEnv,
+    repo,
   });
   if (!gate.allowed) {
     emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${gate.code}: ${gate.reason})`);
@@ -106,6 +110,11 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
     return EXIT_VIOLATION;
   }
   emit(verifyLabel, `OK (${tag} is now public)`);
+
+  // Consume single-use grant after successful draft→public (#1095).
+  if (gate.humanApprovalRef !== null && gate.code === "closed-verb-allow") {
+    markGrantUsed(projectRoot, gate.humanApprovalRef);
+  }
 
   process.stderr.write(`Release ${tag} published successfully on ${repo}.\n`);
   return EXIT_OK;
