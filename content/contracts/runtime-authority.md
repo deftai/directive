@@ -20,8 +20,9 @@ Gitignore-style globs via the shared `matchPath` helper (`src/**`, `**/AGENTS.md
 ## Evaluation order (PreToolUse)
 
 1. Ritual / scope / read-only / spawn gates (existing #2438 / #1185 stack)
-2. Runtime authority path + `scopes.edits` for direct-write tools
-3. Runtime authority `scopes.push` / `scopes.merge` for Shell/Bash and classifiable MCP tools (#2711)
+2. **Human-origin authz / UAT lease** (#2944 Wave 1) — when UAT is active, product mutations require a named fix-cohort human-origin grant (see `content/contracts/human-origin-authz.md`). Composes with this policy; does not re-own Shell matchers.
+3. Runtime authority path + `scopes.edits` for direct-write tools
+4. Runtime authority `scopes.push` / `scopes.merge` for Shell/Bash and classifiable MCP tools (#2711)
 
 Policy load failures fail open (host crash behavior unchanged).
 

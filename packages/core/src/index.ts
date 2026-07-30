@@ -12,6 +12,7 @@ import { readCorePackageVersion } from "./engine-version.js";
  * avoid colliding on those shared symbol names.
  */
 
+export * as authz from "./authz/index.js";
 export * as branch from "./branch/index.js";
 export * as cache from "./cache/index.js";
 export * as capacity from "./capacity/index.js";

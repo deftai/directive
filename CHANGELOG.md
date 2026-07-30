@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Human-origin approval provenance + fail-closed UAT mutation lease (#2944, Wave 1 of #2948).** Implementation-approval gates no longer accept self-authored xBRIEF/lifecycle/dispatch/allocation-context tokens. Operator-minted grants (`.deft/authz/grants/`, `deft authz:grant`) carry structural binding to plan/repo/branch/surfaces/operation classes/story ids/expiry (no crypto/HMAC). Active UAT (`deft authz:uat-start`) denies product/UI edits, push, PR create/advance, and merge without a named fix-cohort grant while allowing tests, evidence capture, and issue filing. PreToolUse composes before runtimeAuthority; denials name the missing permission and required human action; audit records land in `.deft/authz/audit.jsonl`. Contract: `content/contracts/human-origin-authz.md`. Closes #2944. Refs #2948, #2711, #1394.
+
 ### Changed
 
 ### Fixed

@@ -1,5 +1,16 @@
 import { realpathSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import {
+  type AuthzDecision,
+  type AuthzState,
+  appendAuthzAudit,
+  classifyHookAuthzOps,
+  evaluateAuthzMutation,
+  type HumanOriginGrant,
+  listActiveHumanGrants,
+  loadAuthzState,
+  utcIso,
+} from "../authz/index.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   detectNoDeftDirective,
@@ -77,7 +88,15 @@ export type HookDecisionCode =
   /** Shell/MCP classifiable push/merge allowed under runtimeAuthority (#2711). */
   | "shell-op-ready"
   /** Shell/MCP tool seen but command/tool not classifiable as push/merge — fail open (#2711). */
-  | "shell-op-unclassifiable";
+  | "shell-op-unclassifiable"
+  /** UAT lease / human-origin grant denial (#2944). */
+  | "authz-uat-deny"
+  | "authz-grant-missing"
+  | "authz-grant-origin-reject"
+  | "authz-grant-scope-deny"
+  | "authz-grant-expired"
+  | "authz-grant-revoked"
+  | "authz-grant-single-use-spent";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -118,6 +137,14 @@ export interface HookPolicySeams {
     message: string;
   };
   readonly loadRuntimeAuthority?: (projectRoot: string) => RuntimeAuthorityPolicy;
+  /** Test seam for #2944 UAT lease + human-origin grants. */
+  readonly loadAuthzState?: (projectRoot: string) => AuthzState;
+  readonly loadAuthzGrants?: (
+    projectRoot: string,
+    state: AuthzState,
+  ) => readonly HumanOriginGrant[];
+  /** When false, skip writing `.deft/authz/audit.jsonl` (tests). Default true. */
+  readonly authzAudit?: boolean;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -467,6 +494,117 @@ function runtimeAuthorityForDirectWrite(
   );
 }
 
+function loadAuthzContext(
+  projectRoot: string,
+  seams: HookPolicySeams,
+): { state: AuthzState; grants: readonly HumanOriginGrant[] } {
+  const state = (seams.loadAuthzState ?? loadAuthzState)(projectRoot);
+  const grants = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, state);
+  return { state, grants };
+}
+
+function authzCodeToHook(code: AuthzDecision["code"]): HookDecisionCode {
+  switch (code) {
+    case "authz-uat-deny":
+      return "authz-uat-deny";
+    case "authz-grant-missing":
+      return "authz-grant-missing";
+    case "authz-grant-origin-reject":
+      return "authz-grant-origin-reject";
+    case "authz-grant-scope-deny":
+      return "authz-grant-scope-deny";
+    case "authz-grant-expired":
+      return "authz-grant-expired";
+    case "authz-grant-revoked":
+      return "authz-grant-revoked";
+    case "authz-grant-single-use-spent":
+      return "authz-grant-single-use-spent";
+    default:
+      return "authz-uat-deny";
+  }
+}
+
+function recordAuthzAudit(
+  projectRoot: string,
+  decision: AuthzDecision,
+  state: AuthzState,
+  seams: HookPolicySeams,
+): void {
+  if (seams.authzAudit === false) return;
+  // Only audit when UAT is active or a deny occurred under an authz code.
+  const uatActive = state.uat?.active === true;
+  if (!uatActive && decision.allowed) return;
+  try {
+    appendAuthzAudit(projectRoot, {
+      schemaVersion: 1,
+      ts: utcIso(),
+      humanApprovalRef: decision.humanApprovalRef,
+      approvedScope: decision.approvedScope,
+      attemptedOp: String(decision.attemptedOp),
+      path: decision.path,
+      result: decision.allowed ? "allow" : "deny",
+      code: decision.code,
+      message: decision.reason,
+      campaignId: state.uat?.campaignId ?? null,
+    });
+  } catch {
+    // Audit write must not crash the host tool gate.
+  }
+}
+
+/**
+ * UAT lease + human-origin grant gate (#2944). Returns deny decision or null when allowed.
+ * Composes before runtimeAuthority path/scope checks for direct writes and shell/MCP.
+ */
+function authzForMutation(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+  options: { isDirectWrite: boolean; relPath: string | null; scopePath: string | null },
+): HookDecision | null {
+  const projectRoot = resolve(input.projectRoot);
+  let state: AuthzState;
+  let grants: readonly HumanOriginGrant[];
+  try {
+    ({ state, grants } = loadAuthzContext(projectRoot, seams));
+  } catch {
+    // Fail open when store is unreadable outside intentional UAT posture.
+    return null;
+  }
+
+  const shellCommand = isShellTool(toolName) ? hookShellCommand(input.payload) : null;
+  const ops = classifyHookAuthzOps({
+    toolName,
+    shellCommand,
+    isDirectWrite: options.isDirectWrite,
+    mcpArgsText: options.isDirectWrite ? null : hookMcpArgsText(input.payload),
+  });
+
+  // No classifiable authz ops (unrelated tools) — leave to other gates.
+  if (ops.length === 0) return null;
+
+  // Evaluate each op; first deny wins (compound shell must not short-circuit).
+  for (const op of ops) {
+    const decision = evaluateAuthzMutation({
+      state,
+      grants,
+      op,
+      path: options.relPath,
+    });
+    recordAuthzAudit(projectRoot, decision, state, seams);
+    if (!decision.allowed) {
+      return deny(
+        input,
+        authzCodeToHook(decision.code),
+        toolName,
+        decision.reason,
+        options.scopePath,
+      );
+    }
+  }
+  return null;
+}
+
 /**
  * Best-effort shell command string from host PreToolUse payloads (#2711).
  * Hosts disagree on nesting (`tool_input.command` vs top-level `command`).
@@ -519,6 +657,16 @@ function decideShellOrMcpRuntimeAuthority(
   seams: HookPolicySeams,
 ): HookDecision {
   const projectRoot = resolve(input.projectRoot);
+
+  // Wave 1 authz first: UAT lease denies push/PR/merge/settings/deploy without cohort (#2944).
+  // Composes with #2711 shell matchers; does not re-implement them.
+  const authzDeny = authzForMutation(input, toolName, seams, {
+    isDirectWrite: false,
+    relPath: null,
+    scopePath: null,
+  });
+  if (authzDeny !== null) return authzDeny;
+
   const policy = loadRuntimeAuthorityPolicySafe(input, seams);
   if (policy === null) {
     return {
@@ -623,6 +771,15 @@ function inspectMutationGates(
   if (options.proposedLifecycleExempt) {
     const writeTarget = hookWriteTargetPath(input.payload);
     if (isProposedLifecycleWrite(projectRoot, writeTarget)) {
+      const relPath =
+        writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+      // UAT still allows xbrief/proposed/** as evidence/defect capture (#2944).
+      const authzDeny = authzForMutation(input, toolName, seams, {
+        isDirectWrite: true,
+        relPath,
+        scopePath: null,
+      });
+      if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
       if (runtimeDeny !== null) return runtimeDeny;
       return {
@@ -679,6 +836,15 @@ function inspectMutationGates(
 
   const allowCode = isSpawnTool(toolName) ? "spawn-ready" : "write-ready";
   if (!isSpawnTool(toolName)) {
+    const writeTarget = hookWriteTargetPath(input.payload);
+    const relPath = writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+    // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
+    const authzDeny = authzForMutation(input, toolName, seams, {
+      isDirectWrite: true,
+      relPath,
+      scopePath: scope.path,
+    });
+    if (authzDeny !== null) return authzDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, scope.path);
     if (runtimeDeny !== null) return runtimeDeny;
   }

@@ -76,6 +76,7 @@ _Interface/behavioral contracts the framework enforces._
 - `deterministic-questions.md` — Canonical rule for every structured `ask_user_question` prompt, every agent-initiated ad-hoc structured question outside any skill (orchestration approvals, dispatch confirmations, decision walkthroughs), and every numbered-menu prompt…
 - `hierarchy.md` — Two lenses for reasoning about what to invest in — durability (what survives) and generation (what to write first).
 - `runtime-authority.md` — Typed session-level enforcement under `plan.policy.runtimeAuthority` in `xbrief/PROJECT-DEFINITION.xbrief.json`.
+- `human-origin-authz.md` — Human-origin approval grants + UAT mutation lease (#2944 Wave 1 / #2948 L1–L2).
 
 ### conventions
 

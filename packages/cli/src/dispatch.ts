@@ -92,6 +92,7 @@ export const CLI_MODULE_VERBS = [
   "commit-lint",
   "coverage-hotspots",
   "policy",
+  "authz",
   "pr-closing-keywords",
   "pr-merge-readiness",
   "pr-monitor",
@@ -251,6 +252,19 @@ const POLICY_ACTION_COLON_ALIASES = Object.fromEntries(
   Object.keys(POLICY_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "policy"]),
 ) as Record<string, string>;
 
+/** Colon aliases for authz subcommands (#2944). */
+export const AUTHZ_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "authz:show": "show",
+  "authz:uat-start": "uat-start",
+  "authz:uat-suspend": "uat-suspend",
+  "authz:grant": "grant",
+  "authz:revoke": "revoke",
+};
+
+const AUTHZ_ACTION_COLON_ALIASES = Object.fromEntries(
+  Object.keys(AUTHZ_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "authz"]),
+) as Record<string, string>;
+
 /** Colon aliases for plan-sequence subcommands (#2402). */
 export const PLAN_SEQUENCE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
   "plan-sequence:set": "set",
@@ -335,6 +349,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:scope": "triage-scope",
   ...TRIAGE_ACTION_COLON_ALIASES,
   ...POLICY_ACTION_COLON_ALIASES,
+  ...AUTHZ_ACTION_COLON_ALIASES,
   ...PRODUCT_SIGNAL_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
   "migrate:preflight": "migrate-preflight",
@@ -3012,6 +3027,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const handler = await loadHandler(canonical, io);
     const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const authzSubcommand = verb !== undefined ? AUTHZ_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const planSequenceSubcommand =
       verb !== undefined ? PLAN_SEQUENCE_ALIAS_SUBCOMMANDS[verb] : undefined;
     const productSignalSubcommand =
@@ -3023,11 +3039,13 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
           ? [triageSubcommand, ...rest]
           : policySubcommand !== undefined && canonical === "policy"
             ? [policySubcommand, ...rest]
-            : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
-              ? [planSequenceSubcommand, ...rest]
-              : productSignalSubcommand !== undefined && canonical === "product-signal"
-                ? [productSignalSubcommand, ...rest]
-                : rest;
+            : authzSubcommand !== undefined && canonical === "authz"
+              ? [authzSubcommand, ...rest]
+              : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
+                ? [planSequenceSubcommand, ...rest]
+                : productSignalSubcommand !== undefined && canonical === "product-signal"
+                  ? [productSignalSubcommand, ...rest]
+                  : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

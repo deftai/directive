@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope: Wave 1 human-origin approval provenance + UAT mutation lease (#2944)",
+    "updated": "2026-07-30T05:00:00Z"
+  },
+  "plan": {
+    "title": "bug(authz): self-authored consent tokens and active UAT runs do not prevent unauthorized mutation",
+    "status": "running",
+    "updated": "2026-07-30T05:00:00Z",
+    "id": "2026-07-30-2944-authz-wave1-human-origin-uat",
+    "narratives": {
+      "Description": "Wave 1 of epic #2948: human-origin approval grants agents cannot self-mint via lifecycle/dispatch, fail-closed UAT mutation lease, structural binding to plan/surfaces/ops, denials+audit, regression that first unauthorized edit is blocked. Compose with runtimeAuthority (#2711); stay out of #1193/#1095 full scopes.",
+      "UserStory": "As an operator running UAT, I want product mutations denied unless I mint a named fix-cohort human-origin grant so agents cannot treat self-authored workflow state as permission.",
+      "ImplementationPlan": "Step 1: authz types/origin/store/evaluate/classify/actions under packages/core/src/authz. Step 2: wire PreToolUse dispatcher before runtimeAuthority. Step 3: CLI authz:* + routes. Step 4: unit + incident regression tests. Step 5: contract docs + CHANGELOG #2944. Verification: vitest authz + dispatcher tests.",
+      "Origin": "https://github.com/deftai/directive/issues/2944",
+      "Labels": "bug, authz, harness, agent-experience"
+    },
+    "items": [
+      {
+        "title": "Human-origin grant model + reject self-authored evidence",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Agent cannot satisfy implement gates with only xBRIEF/lifecycle/dispatch tokens"
+        }
+      },
+      {
+        "title": "Fail-closed UAT mutation lease",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "Active UAT denies product edit/push/PR/merge without named fix cohort; test/issue OK"
+        }
+      },
+      {
+        "title": "Dispatcher enforcement + audit + regression",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "First unauthorized edit blocked; audit records humanApprovalRef/scope/op/result"
+        }
+      },
+      {
+        "title": "CLI docs CHANGELOG #2944",
+        "status": "running",
+        "narrative": {
+          "Acceptance": "authz:* CLI + human-origin-authz.md + CHANGELOG cite #2944"
+        }
+      }
+    ],
+    "tags": ["bug", "authz", "harness", "agent-experience"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2944",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2948",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/**",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/cli/src/authz.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/contracts/runtime-authority.md",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/authz",
+          "task test -- packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "expected_outputs": [
+          "UAT denies first unauthorized edit",
+          "human-origin grant path works"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2944",
+        "size": "M",
+        "file_scope_confidence": "high"
+      },
+      "capacityBucket": "new-capability"
+    }
+  }
+}
