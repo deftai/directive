@@ -5,8 +5,9 @@
  * `.eval/` namespace can be reclaimed for version-eval results (#1703 Tier 2).
  */
 
-import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, mkdirSync, renameSync, unlinkSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertProjectionContained } from "../fs/projection-containment.js";
 import {
   MIGRATED_ARTIFACT_DIR,
@@ -121,7 +122,13 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
         unlinkSync(legacyPath);
         removedLegacyFiles.push(name);
       } else {
-        writeFileSync(targetPath, generateTriageCacheReadmeBody(projectRoot), "utf8");
+        // #2980 wave D: product write sink routes through containedWrite.
+        containedWrite({
+          root: resolve(projectRoot),
+          target: targetPath,
+          data: generateTriageCacheReadmeBody(projectRoot),
+          mode: "create",
+        });
         unlinkSync(legacyPath);
         regeneratedFiles.push(name);
       }

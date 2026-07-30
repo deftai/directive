@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertProjectionContained } from "../fs/projection-containment.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { extractCodeStructure, loadJsonFile } from "../verify-source/code-structure-validate.js";
@@ -303,8 +304,14 @@ export function writeCodebaseMap(
     artifactPath: options.artifactPath,
   });
   const document = renderCodebaseMap(selection.artifact);
-  mkdirSync(dirname(resolvedOutput), { recursive: true });
-  writeFileSync(resolvedOutput, document, { encoding: "utf8" });
+  // #2980 wave D: product write sink routes through containedWrite.
+  const root = resolve(projectRoot);
+  containedWrite({
+    root,
+    target: resolvedOutput,
+    data: document,
+    mode: "replace",
+  });
   return resolvedOutput;
 }
 

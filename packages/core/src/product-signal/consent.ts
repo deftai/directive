@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { DEFAULT_PRODUCT_SIGNAL_SINK_REPO } from "../policy/product-signal.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 
@@ -196,8 +197,15 @@ export function grantProductSignalConsent(
     sinkRepo,
   };
   const path = resolveProductSignalConsentPath(options);
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  containedWrite({
+    root: resolve(dir),
+    target: basename(path),
+    data: `${JSON.stringify(record, null, 2)}\n`,
+    mode: "replace",
+  });
   return record;
 }
 
@@ -221,6 +229,14 @@ export function revokeProductSignalConsent(options: WriteConsentOptions = {}): b
     ...existing,
     revokedAt: now.toISOString().replace(/\.\d{3}Z$/, "Z"),
   };
-  writeFileSync(path, `${JSON.stringify(revoked, null, 2)}\n`, "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  containedWrite({
+    root: resolve(dir),
+    target: basename(path),
+    data: `${JSON.stringify(revoked, null, 2)}\n`,
+    mode: "replace",
+  });
   return true;
 }

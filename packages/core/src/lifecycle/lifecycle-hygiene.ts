@@ -1,14 +1,8 @@
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { computeReport } from "../capacity/show.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { resolveCapacityAllocation } from "../policy/capacity.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -261,14 +255,19 @@ export function recordTechDebtAcceptance(
     throw new Error("follow_up_ref must be a non-empty reference string");
   }
   const path = techDebtLedgerPath(projectRoot);
-  mkdirSync(resolve(path, ".."), { recursive: true });
   const record = {
     accepted_at: utcIso(options.now ?? null),
     actor: options.actor ?? DEFAULT_ACTOR,
     epic: epicKey,
     follow_up_ref: followUpRef.trim(),
   };
-  appendFileSync(path, `${JSON.stringify(sortKeys(record))}\n`, "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: `${JSON.stringify(sortKeys(record))}\n`,
+    mode: "append",
+  });
   return path;
 }
 

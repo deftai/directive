@@ -1,0 +1,111 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Residual #2980 wave D: migrate remaining product raw writes after waves A–C, then enable fail-closed verify:contained-writes in task check (or CI with promote path). Depends on sibling waves merging first when possible; if launching solo, complete residual product findings then enforce.",
+    "created": "2026-07-30T21:21:38.720Z",
+    "updated": "2026-07-30T21:22:28.072Z"
+  },
+  "plan": {
+    "id": "2026-07-30-2980-wave-d-leftovers-enforce",
+    "title": "feat(security): #2980 leftovers sweep + fail-closed contained-writes in task check",
+    "status": "running",
+    "narratives": {
+      "Description": "Residual #2980 wave D sweeps remaining product raw write sinks after waves A–C, then enables fail-closed verify:contained-writes in task check. Engine work in packages/core and tasks; docs record residual complete and Go deferred.",
+      "Overview": "Close residual #2980 with enforce.",
+      "Origin": "https://github.com/deftai/directive/issues/2980",
+      "UserStory": "As a security maintainer, I want remaining product sinks migrated and the inventory fail-closed in task check, so that new raw product writes cannot land silently.",
+      "ImplementationPlan": "Step 1: Run task verify:contained-writes and migrate remaining product modules under packages/core/src (triage writers, task-surface, capacity, category-b, codebase map, policy, swarm, packs, session, product-signal, scm, etc.) to packages/core/src/fs/contained-write.ts. Step 2: Confirm e2e/parity exclusions from hygiene story in packages/core/src/verify-source/contained-writes.ts. Step 3: Wire verify:contained-writes --enforce into task check via tasks/verify.yml and the check aggregate task. Step 4: Update docs/reference/contained-write.md residual section. Step 5: CHANGELOG cites #2980 residual complete. Verify with task verify:contained-writes -- --enforce and vitest packages/core/src/verify-source. drive-to: merge-ready. Closes #2980 when AC met.",
+      "Labels": "security, engine, #2980",
+      "Traces": "Wave D + enforce of #2980; closes #2980 when full residual AC met"
+    },
+    "items": [
+      {
+        "title": "Remaining product sinks migrated",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task verify:contained-writes runs after this PR, product findings outside allowlisted primitives are zero (or only temporary cited allowlist entries remain)."
+        }
+      },
+      {
+        "title": "Fail-closed in check",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When task check runs (or staged CI job documents promotion), verify:contained-writes --enforce fails closed on a deliberate product raw write fixture and passes on clean tree."
+        }
+      },
+      {
+        "title": "Allowlist residual minimal",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When CONTAINED_WRITES_ALLOWLIST is opened, it lists only containment primitives plus any temporary cited residual entries."
+        }
+      },
+      {
+        "title": "Docs and CHANGELOG close residual",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When docs and CHANGELOG are opened, they record residual complete for #2980 and Go still deferred; issue #2980 can close."
+        }
+      }
+    ],
+    "tags": [
+      "security",
+      "engine",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2980",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2951",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2980",
+        "decomposition_origin": "#2980",
+        "epic": "#2951"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/verify.yml",
+          "tasks/check.yml",
+          "packages/core/src/triage/welcome/writers.ts",
+          "packages/core/src/triage/bootstrap/gitignore.ts",
+          "packages/core/src/task-surface/index.ts",
+          "packages/core/src/capacity/backfill.ts",
+          "packages/core/src/category-b-namespace/index.ts",
+          "packages/core/src/codebase/map.ts",
+          "packages/core/src/policy/org-force-on-migration.ts",
+          "packages/core/src/packs/pack-render.ts",
+          "packages/core/src/session/ritual-state.ts"
+        ],
+        "verify_commands": [
+          "task verify:contained-writes -- --enforce",
+          "pnpm exec vitest run packages/core/src/verify-source/contained-writes.test.ts"
+        ],
+        "expected_outputs": [
+          "Remaining product sinks migrated",
+          "Fail-closed in check",
+          "Allowlist residual minimal",
+          "Docs and CHANGELOG close residual"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2980-wave-d",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "security"
+    },
+    "updated": "2026-07-30T21:22:28.072Z"
+  }
+}

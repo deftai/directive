@@ -1,5 +1,6 @@
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import {
   hasArtifactSuffix,
   resolveLifecycleFolder,
@@ -319,8 +320,14 @@ export function appendHistory(historyPath: string, result: SummaryResult, line: 
     reconcilable: result.reconcilable,
   };
   try {
-    mkdirSync(join(historyPath, ".."), { recursive: true });
-    appendFileSync(historyPath, `${JSON.stringify(record)}\n`, "utf8");
+    // #2980 wave D: product write sink routes through containedWrite.
+    const dir = dirname(historyPath);
+    containedWrite({
+      root: resolve(dir),
+      target: basename(historyPath),
+      data: `${JSON.stringify(record)}\n`,
+      mode: "append",
+    });
   } catch {
     // observability only
   }

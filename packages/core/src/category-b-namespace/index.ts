@@ -9,16 +9,10 @@
  * order-preserving (the namespaced key takes the legacy key's slot, keeping
  * artifact diffs minimal).
  */
-import {
-  type Dirent,
-  existsSync,
-  lstatSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { type Dirent, existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { assertDirectoryNotSymlink, assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { containedWrite } from "../fs/contained-write.js";
+import { assertDirectoryNotSymlink } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   LEGACY_PLAN_COMPLETED_NOTE_KEY,
@@ -182,7 +176,13 @@ export function migrateCategoryBCorpus(projectRoot: string): CorpusMigrationResu
     }
     if (result.changed) {
       try {
-        assertWriteTargetSafe(root, file);
+        // #2980 wave D: product write sink routes through containedWrite.
+        containedWrite({
+          root,
+          target: file,
+          data: `${JSON.stringify(result.doc, null, 2)}\n`,
+          mode: "replace",
+        });
       } catch (err) {
         conflicts.push({
           path: relPath,
@@ -190,7 +190,6 @@ export function migrateCategoryBCorpus(projectRoot: string): CorpusMigrationResu
         });
         continue;
       }
-      writeFileSync(file, `${JSON.stringify(result.doc, null, 2)}\n`, "utf8");
       changed.push(relPath);
     }
   }

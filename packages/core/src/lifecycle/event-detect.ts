@@ -1,7 +1,8 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
 
 /** Sentinel used by SKILL.md redirect stubs. */
@@ -110,9 +111,16 @@ export function emit(
   const logTarget = process.env[logPathEnv];
   if (logTarget !== undefined && logTarget.length > 0) {
     try {
+      // #2980 wave D: product write sink routes through containedWrite.
       const logPath = resolve(logTarget);
-      mkdirSync(dirname(logPath), { recursive: true });
-      appendFileSync(logPath, `${JSON.stringify(record)}\n`, "utf8");
+      const dir = dirname(logPath);
+      mkdirSync(dir, { recursive: true });
+      containedWrite({
+        root: dir,
+        target: basename(logPath),
+        data: `${JSON.stringify(record)}\n`,
+        mode: "append",
+      });
     } catch {
       // Swallow log-write failures.
     }

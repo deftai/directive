@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { inferGithubAuthMode } from "../intake/github-auth-modes.js";
 import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
 import {
@@ -748,7 +749,16 @@ export function swarmLaunch(args: LaunchArgs): {
 
   if (args.output !== undefined && args.output !== null) {
     try {
-      writeFileSync(args.output, rendered, "utf8");
+      // #2980 wave D: product write sink routes through containedWrite.
+      const abs = resolve(args.output);
+      const dir = dirname(abs);
+      mkdirSync(dir, { recursive: true });
+      containedWrite({
+        root: dir,
+        target: basename(abs),
+        data: rendered,
+        mode: "replace",
+      });
     } catch (exc: unknown) {
       return {
         exitCode: EXIT_CONFIG_ERROR,

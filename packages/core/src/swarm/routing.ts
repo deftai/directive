@@ -14,8 +14,9 @@
  * explicit default.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 
 /**
@@ -294,6 +295,11 @@ export function writeModelDecision(
     decidedAt: decision.decidedAt ?? new Date().toISOString(),
   };
   file[provider] = block;
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(file, null, 2)}\n`, "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: `${JSON.stringify(file, null, 2)}\n`,
+    mode: "replace",
+  });
 }

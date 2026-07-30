@@ -1,16 +1,23 @@
 /** Port of scripts/pack_render.py — content-pack projection renderer (#1294, #1295). */
 
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
+import { containedWrite } from "../fs/contained-write.js";
+
+/** Write under the parent directory as containment root (#2980 wave D). */
+function writeContainedFile(output: string, text: string): void {
+  const abs = resolve(output);
+  const dir = dirname(abs);
+  mkdirSync(dir, { recursive: true });
+  containedWrite({
+    root: dir,
+    target: basename(abs),
+    data: text,
+    mode: "replace",
+  });
+}
 
 export function resolveRepoRoot(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
@@ -490,8 +497,8 @@ export function renderFile(source: string): string {
 
 export function writeRender(source: string, output: string): string {
   const text = renderFile(source);
-  mkdirSync(dirname(output), { recursive: true });
-  writeFileSync(output, text, "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  writeContainedFile(output, text);
   return text;
 }
 
@@ -557,9 +564,9 @@ function runMultipack(packFilter: string | null, check: boolean): number {
     process.stdout.write(`pack-drift: all ${targets.length} projection(s) in sync.\n`);
     return 0;
   }
+  // #2980 wave D: product write sinks route through containedWrite.
   for (const [_name, outPath, text] of targets) {
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, text, "utf8");
+    writeContainedFile(outPath, text);
   }
   process.stdout.write(
     `Rendered ${targets.length} projection(s) across ${Object.keys(RENDER_REGISTRY).length} pack(s).\n`,

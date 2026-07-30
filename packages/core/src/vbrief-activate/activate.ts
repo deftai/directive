@@ -3,11 +3,12 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   statSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
-import { basename, dirname } from "node:path";
+import { basename, dirname, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { utcNowIso } from "../scope/vbrief-json.js";
 import { pythonJsonPretty } from "../vbrief-build/json.js";
 import {
@@ -202,14 +203,21 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     };
   }
 
+  const tmpBase = `${fileName}.tmp`;
   const tmp = `${dest}.tmp`;
   try {
-    writeFileSync(tmp, pythonJsonPretty(payload), "utf8");
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(activeDir),
+      target: tmpBase,
+      data: pythonJsonPretty(payload),
+      mode: "create",
+    });
     renameSync(tmp, dest);
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException;
     try {
-      unlinkSync(tmp);
+      rmSync(tmp, { force: true });
     } catch {
       /* best-effort cleanup */
     }

@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, relative } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import {
   assertProjectionContained,
   ProjectionContainmentError,
@@ -244,7 +245,14 @@ function ensureGitignoreLine(
       );
     }
     try {
-      writeFileSync(gitignorePath, `${line}\n`, { encoding: "utf8" });
+      // #2980 wave D: product write sink routes through containedWrite.
+      const root = resolve(projectRoot);
+      containedWrite({
+        root,
+        target: gitignorePath,
+        data: `${line}\n`,
+        mode: "create",
+      });
     } catch (exc) {
       return stepOutcome(stepName, false, "could not create .gitignore", {}, String(exc));
     }
@@ -282,7 +290,13 @@ function ensureGitignoreLine(
   const suffix = existing.endsWith("\n") || existing === "" ? "" : "\n";
   const newContent = `${existing + suffix + rationaleBlock + line}\n`;
   try {
-    writeFileSync(gitignorePath, newContent, { encoding: "utf8" });
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectRoot),
+      target: gitignorePath,
+      data: newContent,
+      mode: "replace",
+    });
   } catch (exc) {
     return stepOutcome(stepName, false, "could not write .gitignore", {}, String(exc));
   }
@@ -382,7 +396,13 @@ function ensureGitignoreSelectiveEntries(
     : `${EVAL_ENTRIES_RATIONALE}${missing.join("\n")}\n`;
   const newContent = existing + suffix + appendedBlock;
   try {
-    writeFileSync(gitignorePath, newContent, { encoding: "utf8" });
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectRoot),
+      target: gitignorePath,
+      data: newContent,
+      mode: "replace",
+    });
   } catch (exc) {
     return stepOutcome(
       stepName,
@@ -441,7 +461,13 @@ function ensureGitattributesMergeUnion(
     const suffix = existing.endsWith("\n") || existing === "" ? "" : "\n";
     const newContent = `${existing + suffix + GITATTRIBUTES_EVAL_RATIONALE + ruleLine}\n`;
     try {
-      writeFileSync(gitattributesPath, newContent, { encoding: "utf8" });
+      // #2980 wave D: product write sink routes through containedWrite.
+      containedWrite({
+        root: resolve(projectRoot),
+        target: gitattributesPath,
+        data: newContent,
+        mode: "replace",
+      });
     } catch (exc) {
       return stepOutcome(
         stepName,
@@ -459,7 +485,13 @@ function ensureGitattributesMergeUnion(
 
   const newContent = `${GITATTRIBUTES_EVAL_RATIONALE + ruleLine}\n`;
   try {
-    writeFileSync(gitattributesPath, newContent, { encoding: "utf8" });
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectRoot),
+      target: gitattributesPath,
+      data: newContent,
+      mode: "create",
+    });
   } catch (exc) {
     return stepOutcome(
       stepName,
@@ -501,8 +533,13 @@ function ensureEvalReadme(options: EnsureEvalReadmeOptions): StepOutcome {
   }
 
   try {
-    mkdirSync(dirname(readmePath), { recursive: true });
-    writeFileSync(readmePath, generateTriageCacheReadmeBody(projectRoot), { encoding: "utf8" });
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectRoot),
+      target: readmePath,
+      data: generateTriageCacheReadmeBody(projectRoot),
+      mode: "create",
+    });
   } catch (exc) {
     return stepOutcome(
       stepName,
@@ -606,7 +643,13 @@ export function stepSeedCandidatesLog(projectRoot: string): StepOutcome {
   }
 
   try {
-    writeFileSync(auditPath, "", { encoding: "utf8" });
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(projectRoot),
+      target: auditPath,
+      data: "",
+      mode: "create",
+    });
   } catch (exc) {
     return stepOutcome(
       "seed_candidates_log",

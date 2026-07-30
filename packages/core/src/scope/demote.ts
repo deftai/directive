@@ -5,9 +5,9 @@ import {
   readFileSync,
   renameSync,
   statSync,
-  writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
@@ -121,7 +121,13 @@ export function demoteOne(
   const timestamp = utcNowIso(now);
   planObj.status = TARGET_STATUS;
   planObj.updated = timestamp;
-  writeFileSync(resolved, formatBriefJson(data), "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: resolved,
+    data: formatBriefJson(data),
+    mode: "replace",
+  });
 
   const vbriefRoot = dirname(dirname(resolved));
   const targetDir = join(vbriefRoot, TARGET_FOLDER);

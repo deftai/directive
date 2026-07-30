@@ -1,15 +1,14 @@
 import {
-  appendFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   statSync,
-  writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { assertProjectionContained } from "../../fs/projection-containment.js";
+import { containedWrite } from "../../fs/contained-write.js";
 import {
   hasArtifactSuffix,
   resolveLifecycleFolder,
@@ -34,27 +33,50 @@ function utcIso(): string {
 }
 
 export function appendAuditEntry(projectRoot: string, entry: string): string {
-  const logPath = join(resolve(projectRoot), AUDIT_LOG_REL_PATH);
-  assertProjectionContained(projectRoot, logPath);
-  mkdirSync(dirname(logPath), { recursive: true });
-  const line = `${utcIso()} ${entry}\n`;
+  const root = resolve(projectRoot);
+  const logPath = join(root, AUDIT_LOG_REL_PATH);
+  // #2980 wave D: product write sink routes through containedWrite.
+  mkdirSync(root, { recursive: true });
   if (!existsSync(logPath)) {
-    writeFileSync(
-      logPath,
-      "# meta/policy-changes.log -- audit trail for PROJECT-DEFINITION plan.policy.* mutations (#746 / #1143)\n",
-      "utf8",
-    );
+    containedWrite({
+      root,
+      target: AUDIT_LOG_REL_PATH,
+      data: "# meta/policy-changes.log -- audit trail for PROJECT-DEFINITION plan.policy.* mutations (#746 / #1143)\n",
+      mode: "create",
+    });
   }
-  appendFileSync(logPath, line, "utf8");
+  containedWrite({
+    root,
+    target: AUDIT_LOG_REL_PATH,
+    data: `${utcIso()} ${entry}\n`,
+    mode: "append",
+  });
   return logPath;
 }
 
-function atomicWrite(path: string, data: Record<string, unknown>): void {
-  mkdirSync(dirname(path), { recursive: true });
+function atomicWrite(_projectRoot: string, path: string, data: Record<string, unknown>): void {
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
   const payload = `${JSON.stringify(data, null, 2)}\n`;
-  const tmp = join(dirname(path), `.${Date.now()}.tmp`);
-  writeFileSync(tmp, payload, "utf8");
-  renameSync(tmp, path);
+  const tmpName = `.${Date.now()}.tmp`;
+  const tmp = join(dir, tmpName);
+  try {
+    // #2980 wave D: temp payload write uses containedWrite under the parent dir.
+    containedWrite({
+      root: resolve(dir),
+      target: tmpName,
+      data: payload,
+      mode: "create",
+    });
+    renameSync(tmp, path);
+  } catch (err) {
+    try {
+      rmSync(tmp, { force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
 }
 
 export function writeTriageScope(
@@ -85,7 +107,7 @@ export function writeTriageScope(
     const policyRec = policy as Record<string, unknown>;
     const previous = policyRec.triageScope;
     policyRec.triageScope = rules;
-    atomicWrite(path, data);
+    atomicWrite(projectRoot, path, data);
     const changed = JSON.stringify(previous) !== JSON.stringify(rules);
     const actor = options.actor ?? WELCOME_AUDIT_TAG;
     const auditEntry = [
@@ -137,7 +159,7 @@ export function writeWipCap(
     }
     if (previous !== undefined && wipCap === DEFAULT_WIP_CAP) {
       delete policyRec.wipCap;
-      atomicWrite(path, data);
+      atomicWrite(projectRoot, path, data);
       const auditEntry =
         `actor=${actor} field=plan.policy.wipCap action=cleared-to-default value=${wipCap} ` +
         `previous=${JSON.stringify(previous)} changed=true`;
@@ -145,7 +167,7 @@ export function writeWipCap(
       return [true, auditEntry];
     }
     policyRec.wipCap = wipCap;
-    atomicWrite(path, data);
+    atomicWrite(projectRoot, path, data);
     const changed = previous !== wipCap;
     const auditEntry =
       `actor=${actor} field=plan.policy.wipCap value=${wipCap} previous=${JSON.stringify(previous)} ` +

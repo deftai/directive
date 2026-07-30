@@ -7,10 +7,11 @@
  * that draft, writes the child story vBRIEFs, and updates the parent scope references.
  */
 
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { containedWrite } from "../fs/contained-write.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -71,9 +72,13 @@ function loadJson(path: string): JsonObj {
 }
 
 function writeJson(projectRoot: string, path: string, data: JsonObj): void {
-  assertWriteTargetSafe(projectRoot, path);
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, formatBriefJson(data), "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: formatBriefJson(data),
+    mode: "replace",
+  });
 }
 
 // ---------------------------------------------------------------------------

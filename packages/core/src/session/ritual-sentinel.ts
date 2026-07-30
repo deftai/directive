@@ -1,16 +1,14 @@
 import {
-  closeSync,
   existsSync,
-  fdatasyncSync,
   mkdirSync,
-  openSync,
   readdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   statSync,
-  writeSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -161,22 +159,28 @@ function atomicWriteJson(
   payload: Record<string, unknown>,
   prefix: string,
 ): void {
-  mkdirSync(join(targetPath, ".."), { recursive: true });
   const dir = join(targetPath, "..");
-  const tmpName = join(dir, `${prefix}${process.pid}.json.tmp`);
-  const fd = openSync(tmpName, "w");
+  mkdirSync(dir, { recursive: true });
+  const tmpBase = `${prefix}${process.pid}.json.tmp`;
+  const tmpName = join(dir, tmpBase);
+  const text = `${stableJson(payload, 2)}\n`;
   try {
-    const text = `${stableJson(payload, 2)}\n`;
-    writeSync(fd, text, undefined, "utf8");
+    // #2980 wave D: ritual-state product write routes through containedWrite.
+    containedWrite({
+      root: resolve(dir),
+      target: tmpBase,
+      data: text,
+      mode: "create",
+    });
+    renameSync(tmpName, targetPath);
+  } catch (err) {
     try {
-      fdatasyncSync(fd);
+      rmSync(tmpName, { force: true });
     } catch {
-      // best-effort
+      /* best-effort cleanup */
     }
-  } finally {
-    closeSync(fd);
+    throw err;
   }
-  renameSync(tmpName, targetPath);
 }
 
 export function readRitualState(projectRoot: string): [RitualState | null, string | null] {

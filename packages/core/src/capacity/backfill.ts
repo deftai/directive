@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { sortedStringifyCompact } from "../codebase/json.js";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import {
   classifyBucket,
@@ -196,7 +196,7 @@ function writeMetadata(
   metadata: Record<string, unknown>,
   options: { bucket?: string; source?: string; completedAt?: string },
 ): void {
-  assertWriteTargetSafe(projectRoot, path);
+  // #2980 wave D: product write sink routes through containedWrite.
   if (typeof plan.metadata !== "object" || plan.metadata === null || Array.isArray(plan.metadata)) {
     plan.metadata = metadata;
   }
@@ -209,7 +209,13 @@ function writeMetadata(
       metadata.capacityBucketSource = options.source;
     }
   }
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, { encoding: "utf8" });
+  const root = resolve(projectRoot);
+  containedWrite({
+    root,
+    target: path,
+    data: `${JSON.stringify(data, null, 2)}\n`,
+    mode: "replace",
+  });
 }
 
 export interface BackfillOptions {

@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { locateManifest, parseInstallManifest } from "../doctor/manifest.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { evaluateReleaseAvailability } from "../doctor/release-availability.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveTriageCachePath } from "../triage/cache-path.js";
 
 const THROTTLE_MS = 24 * 60 * 60 * 1000;
@@ -82,10 +83,27 @@ function isThrottled(state: ReleaseAvailabilityState, latestVersion: string, now
 }
 
 function defaultWriteState(path: string, content: string): void {
-  mkdirSync(dirname(path), { recursive: true });
-  const temporary = `${path}.${process.pid}.tmp`;
-  writeFileSync(temporary, content, "utf8");
-  renameSync(temporary, path);
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  const tmpBase = `${basename(path)}.${process.pid}.tmp`;
+  const temporary = join(dir, tmpBase);
+  try {
+    // #2980 wave D: product write sink routes through containedWrite.
+    containedWrite({
+      root: resolve(dir),
+      target: tmpBase,
+      data: content,
+      mode: "create",
+    });
+    renameSync(temporary, path);
+  } catch (err) {
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
 }
 
 /**

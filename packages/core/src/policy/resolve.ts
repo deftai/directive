@@ -1,5 +1,6 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import {
   atomicWriteProjectDefinition,
@@ -205,16 +206,26 @@ function nowIso(): string {
 
 /** Append a one-line audit entry to meta/policy-changes.log (#746). */
 export function appendAuditLog(projectRoot: string, entry: string): string {
-  const logPath = join(pathResolve(projectRoot), AUDIT_LOG_REL_PATH);
-  mkdirSync(join(logPath, ".."), { recursive: true });
-  const line = `${nowIso()} ${entry}\n`;
+  const root = pathResolve(projectRoot);
+  const logPath = join(root, AUDIT_LOG_REL_PATH);
+  // #2980 wave D: product write sink routes through containedWrite.
   if (!existsSync(logPath)) {
     const header =
       "# meta/policy-changes.log -- audit trail for " +
       "policy.allowDirectCommitsToMaster transitions (#746)\n";
-    writeFileSync(logPath, header, { encoding: "utf8" });
+    containedWrite({
+      root,
+      target: AUDIT_LOG_REL_PATH,
+      data: header,
+      mode: "create",
+    });
   }
-  appendFileSync(logPath, line, { encoding: "utf8" });
+  containedWrite({
+    root,
+    target: AUDIT_LOG_REL_PATH,
+    data: `${nowIso()} ${entry}\n`,
+    mode: "append",
+  });
   return logPath;
 }
 

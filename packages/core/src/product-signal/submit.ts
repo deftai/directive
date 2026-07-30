@@ -1,5 +1,6 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   enableProductSignal,
@@ -62,18 +63,19 @@ function recordLastSubmit(
   url: string | null,
 ): void {
   const path = resolve(projectRoot, PRODUCT_SIGNAL_LAST_SUBMIT_REL);
-  assertWriteTargetSafe(projectRoot, path);
   try {
-    mkdirSync(join(path, ".."), { recursive: true });
-    appendFileSync(
-      path,
-      `${JSON.stringify({
+    // #2980 wave D: product write sink routes through containedWrite.
+    const root = resolve(projectRoot);
+    containedWrite({
+      root,
+      target: path,
+      data: `${JSON.stringify({
         outcome,
         issueUrl: url,
         at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
       })}\n`,
-      "utf8",
-    );
+      mode: "append",
+    });
   } catch {
     // observability only
   }

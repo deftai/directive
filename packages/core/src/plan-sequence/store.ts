@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { PLAN_SEQUENCE_FILENAME, type PlanSequence, parsePlanSequence } from "./types.js";
 
 export function planSequencePath(projectRoot: string): string {
@@ -17,8 +18,14 @@ export function readPlanSequence(projectRoot: string): PlanSequence | null {
 
 export function writePlanSequence(projectRoot: string, sequence: PlanSequence): string {
   const path = planSequencePath(projectRoot);
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(sequence, null, 2)}\n`, "utf8");
+  // #2980 wave D: product write sink routes through containedWrite.
+  const root = resolve(projectRoot);
+  containedWrite({
+    root,
+    target: path,
+    data: `${JSON.stringify(sequence, null, 2)}\n`,
+    mode: "replace",
+  });
   return path;
 }
 

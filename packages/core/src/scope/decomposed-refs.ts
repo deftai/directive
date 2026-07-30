@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { containedWrite } from "../fs/contained-write.js";
 import { formatBriefJson } from "./vbrief-json.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "./vbrief-ref.js";
 
@@ -65,7 +66,14 @@ function rewriteParentChildReference(
   }
   if (changed) {
     try {
-      writeFileSync(parentPath, formatBriefJson(parentData), "utf8");
+      // #2980 wave D: product write sink routes through containedWrite.
+      const dir = dirname(parentPath);
+      containedWrite({
+        root: resolve(dir),
+        target: parentPath,
+        data: formatBriefJson(parentData),
+        mode: "replace",
+      });
     } catch {
       return false;
     }
@@ -158,7 +166,14 @@ function rewriteChildParentReference(
   }
   if (changed) {
     try {
-      writeFileSync(childPath, formatBriefJson(childData), "utf8");
+      // #2980 wave D: product write sink routes through containedWrite.
+      const dir = dirname(childPath);
+      containedWrite({
+        root: resolve(dir),
+        target: childPath,
+        data: formatBriefJson(childData),
+        mode: "replace",
+      });
     } catch {
       return false;
     }
