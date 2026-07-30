@@ -156,13 +156,17 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
     expect(classifyShellCommand("gh pr m''erge 12")).toBe("merge");
     expect(classifyShellCommand("g\\it push origin HEAD")).toBe("push");
     expect(classifyShellCommand("git p\\ush origin HEAD")).toBe("push");
+    expect(classifyShellCommand("git --git-dir /repo push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("git --git-dir=/repo push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("git --work-tree /wt -C /repo push")).toBe("push");
     // Compound / multi-line: list every op so enforcement can deny any out-of-scope step.
     expect(listShellOps("gh pr merge 1 --squash && git push")).toEqual(["push", "merge"]);
     expect(listShellOps("ls\ngit push origin HEAD")).toEqual(["push"]);
     expect(listShellOps("git status && echo ok")).toEqual([]);
-    // Quoted separators must not invent executable segments (false-deny).
+    // Quoted / escaped separators must not invent executable segments (false-deny).
     expect(listShellOps("printf '%s' ';' 'git push'")).toEqual([]);
     expect(classifyShellCommand("printf '%s' ';' 'git push'")).toBeNull();
+    expect(listShellOps("printf '%s\\n' hello\\; git push")).toEqual([]);
   });
 
   it("classifies MCP merge/push tool names", () => {

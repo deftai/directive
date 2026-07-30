@@ -274,8 +274,8 @@ function normalizeShellToken(token: string): string {
 
 /**
  * Split a shell command into list/pipeline/newline segments without splitting
- * on separators that appear inside single- or double-quoted spans (#2711).
- * Prevents `printf '%s' ';' 'git push'` from being classified as an executable push.
+ * on separators that appear inside quotes or after a backslash escape (#2711).
+ * Prevents `printf '%s' ';' 'git push'` and `hello\; git push` false denials.
  */
 function splitShellSegments(command: string): string[] {
   const segments: string[] = [];
@@ -287,6 +287,13 @@ function splitShellSegments(command: string): string[] {
     if (quote !== null) {
       if (c === quote) quote = null;
       cur += c;
+      continue;
+    }
+    // Outside quotes: backslash escapes the next character (including separators).
+    if (c === "\\" && i + 1 < command.length) {
+      cur += c;
+      cur += command[i + 1] ?? "";
+      i++;
       continue;
     }
     if (c === "'" || c === '"') {
@@ -317,6 +324,18 @@ function splitShellSegments(command: string): string[] {
   segments.push(cur);
   return segments;
 }
+
+/** Git global options that take a separate value token (not `--opt=value`). */
+const GIT_GLOBAL_VALUE_OPTS = new Set([
+  "-C",
+  "-c",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--config-env",
+  "--super-prefix",
+  "--list-cmds",
+]);
 
 /**
  * Classify one shell list/pipeline segment for push/merge (#2711).
@@ -352,7 +371,7 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
   const bin = normalizeShellToken(binTok).toLowerCase();
   if (bin === "git" || bin === "git.exe") {
     i++;
-    // Skip git global options before the subcommand (-C path, -c key=value, --flag, -x).
+    // Skip git global options before the subcommand (-C, --git-dir, -c, …).
     while (i < tokens.length) {
       const raw = tokens[i];
       if (raw === undefined) return null;
@@ -361,16 +380,22 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
       if (!t.startsWith("-")) {
         return lower === "push" ? "push" : null;
       }
-      // -C <path> / -c <name>=<value> consume the next token when not glued.
-      if (t === "-C" || t === "-c") {
+      // --opt=value forms never consume a following token.
+      if (t.startsWith("--") && t.includes("=")) {
+        i++;
+        continue;
+      }
+      // Value-taking globals: -C path, --git-dir /repo, -c name=value, …
+      if (GIT_GLOBAL_VALUE_OPTS.has(t)) {
         i += 2;
         continue;
       }
-      // Glued forms: -C/path, -cname=value
+      // Glued short forms: -C/path, -cname=value
       if (t.startsWith("-C") || t.startsWith("-c")) {
         i++;
         continue;
       }
+      // Boolean / other short/long flags without a separate value.
       i++;
     }
     return null;
