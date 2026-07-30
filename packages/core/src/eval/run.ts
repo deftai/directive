@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join, resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveEvalPath } from "../layout/resolve.js";
 import { BYTE_DIFF_WHOLE_FILE_THRESHOLD, InstrumentedVbriefCrud } from "./crud-telemetry.js";
 import { evaluateHealth } from "./health.js";
@@ -179,9 +179,12 @@ function gradeCrudSurgicalUpdate(context: GoldenTaskContext): GoldenTaskGrade {
 }
 
 function seedHealthFixture(tempDir: string): void {
-  writeFileSync(
-    join(tempDir, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
-    JSON.stringify({
+  const root = resolve(tempDir);
+  // #2980 wave C: product fixture seed routes through containedWrite.
+  containedWrite({
+    root,
+    target: join("xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    data: JSON.stringify({
       xBRIEFInfo: { version: "0.6" },
       plan: {
         title: "Golden health fixture",
@@ -190,13 +193,14 @@ function seedHealthFixture(tempDir: string): void {
         "x-directive/policy": { triageScope: [{ rule: "all-open" }] },
       },
     }),
-    "utf8",
-  );
-  writeFileSync(
-    join(tempDir, "AGENTS.md"),
-    "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
-    "utf8",
-  );
+    mode: "replace",
+  });
+  containedWrite({
+    root,
+    target: "AGENTS.md",
+    data: "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
+    mode: "replace",
+  });
 }
 
 function gradeHealthFixture(context: GoldenTaskContext): GoldenTaskGrade {
@@ -294,9 +298,13 @@ export function goldenRunsHistoryPath(projectRoot: string): string {
 /** Append one golden run to the versioned ledger (#1703 Tier 2). */
 export function persistGoldenRun(projectRoot: string, record: GoldenRunRecord): void {
   const path = goldenRunsHistoryPath(projectRoot);
-  assertWriteTargetSafe(projectRoot, path);
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, `${JSON.stringify(record)}\n`, "utf8");
+  // #2980 wave C: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: `${JSON.stringify(record)}\n`,
+    mode: "append",
+  });
 }
 
 /** Stable hash for rotating holdout selection (#1703 Goodhart mitigation). */

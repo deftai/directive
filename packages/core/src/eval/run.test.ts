@@ -110,7 +110,9 @@ describe("runGoldenEval", () => {
     });
 
     expect(result.code).toBe(2);
-    expect(result.message).toMatch(/projection write refused|symlink escaping/);
+    expect(result.message).toMatch(
+      /contained write refused|projection write refused|symlink escaping|symlink on the write path/,
+    );
     expect(readFileSync(escapeLedger, "utf8")).toBe("victim\n");
   });
 });
@@ -144,7 +146,9 @@ describe("persistGoldenRun containment (#2626)", () => {
           holdoutTotal: 0,
         },
       }),
-    ).toThrow(/projection write refused|symlink escaping/);
+    ).toThrow(
+      /contained write refused|projection write refused|symlink escaping|symlink on the write path/,
+    );
     expect(readFileSync(escapeLedger, "utf8")).toBe("victim\n");
   });
 });

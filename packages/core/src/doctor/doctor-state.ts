@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { CLEAN_WINDOW_HOURS, DIRTY_WINDOW_HOURS, ENV_STATE_PATH } from "./constants.js";
 import type { DoctorState, ThrottleDecision } from "./types.js";
@@ -71,8 +72,30 @@ export function writeState(
   };
   const path = statePath(projectRoot);
   try {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, `${JSON.stringify(body, null, 2)}\n`, "utf8");
+    // #2980 wave C: product write sink routes through containedWrite.
+    // Default path is under the project triage cache; ENV_STATE_PATH may point outside.
+    const projectAbs = resolve(projectRoot);
+    const pathAbs = resolve(path);
+    const rel = relative(projectAbs, pathAbs);
+    const nested = rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+    const payload = `${JSON.stringify(body, null, 2)}\n`;
+    if (nested) {
+      containedWrite({
+        root: projectAbs,
+        target: pathAbs,
+        data: payload,
+        mode: "replace",
+      });
+    } else {
+      const parent = dirname(pathAbs);
+      mkdirSync(parent, { recursive: true });
+      containedWrite({
+        root: resolve(parent),
+        target: basename(pathAbs),
+        data: payload,
+        mode: "replace",
+      });
+    }
     return path;
   } catch {
     return null;

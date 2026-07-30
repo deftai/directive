@@ -1,13 +1,6 @@
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
@@ -101,20 +94,31 @@ function mapRelativePath(relativePath: string): string {
     .join("/");
 }
 
-function writeMigratedFile(srcPath: string, destPath: string): void {
-  mkdirSync(dirname(destPath), { recursive: true });
+function writeMigratedFile(projectRoot: string, srcPath: string, destPath: string): void {
+  // #2980 wave C: product write sink routes through containedWrite.
+  const root = resolve(projectRoot);
   if (srcPath.endsWith(LEGACY_ARTIFACT_SUFFIX)) {
     const parsed = JSON.parse(readFileSync(srcPath, "utf8")) as JsonObject;
     const result = transformArtifactV06ToV08Transactional(parsed);
     if (!result.ok) {
       throw new Error(result.error);
     }
-    writeFileSync(destPath, `${JSON.stringify(result.artifact, null, 2)}\n`, "utf8");
+    containedWrite({
+      root,
+      target: destPath,
+      data: `${JSON.stringify(result.artifact, null, 2)}\n`,
+      mode: "replace",
+    });
     return;
   }
 
   const raw = readFileSync(srcPath, "utf8");
-  writeFileSync(destPath, rewriteEmbeddedTokens(raw), "utf8");
+  containedWrite({
+    root,
+    target: destPath,
+    data: rewriteEmbeddedTokens(raw),
+    mode: "replace",
+  });
 }
 
 function backupMigrationInputs(
@@ -167,7 +171,7 @@ function migrateLegacyTree(
       const rel = relative(legacyDir, srcPath);
       if (shouldOmitLegacyMigrationFile(rel)) continue;
       const destPath = join(stagedDir, mapRelativePath(rel));
-      writeMigratedFile(srcPath, destPath);
+      writeMigratedFile(projectRoot, srcPath, destPath);
     }
     overlayCanonicalTriageCache(migratedDir, stagedDir);
     renameOrReplace(stagedDir, migratedDir);
@@ -189,14 +193,16 @@ function migrateLegacyTree(
 /** Idempotently write the legacy-root deprecation marker (#2270 / #2869). */
 function writeVbriefDeprecationMarker(projectRoot: string, legacyDir: string): void {
   const markerPath = join(legacyDir, VBRIEF_DEPRECATION_MARKER_FILENAME);
-  // Refuse leaf or parent-dir symlink escapes before mkdir/write (#2869).
-  assertWriteTargetSafe(projectRoot, legacyDir);
-  assertWriteTargetSafe(projectRoot, markerPath);
-  mkdirSync(legacyDir, { recursive: true });
+  // Refuse leaf or parent-dir symlink escapes via containedWrite (#2869 / #2980 wave C).
   if (hasVbriefDeprecationMarker(legacyDir)) {
     return;
   }
-  writeFileSync(markerPath, VBRIEF_DEPRECATION_MARKER_BODY, "utf8");
+  containedWrite({
+    root: resolve(projectRoot),
+    target: markerPath,
+    data: VBRIEF_DEPRECATION_MARKER_BODY,
+    mode: "replace",
+  });
 }
 
 /**

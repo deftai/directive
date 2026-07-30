@@ -80,6 +80,7 @@ task verify:contained-writes -- --enforce   # fail closed on findings
 - **Default: fail-open** — prints an advisory report and exits **0** even when findings remain (mass migration incomplete).
 - Pass `--enforce` to exit **1** on findings (Phase 2 path; not yet wired into `task check`).
 - Phase 2 removed `cache/io.ts` and `lifecycle/events.ts` from the allowlist after migration.
+- Residual wave C (#2980) migrates eval ledgers, doctor-state, residual cache self-heal, xbrief-migrate product writes, and PROJECT-DEFINITION atomic write onto `containedWrite` (no allowlist growth). Lock/temp `openSync` patterns (e.g. project-definition mutation lock) remain residual for later hygiene.
 
 Allowlist lives in `packages/core/src/verify-source/contained-writes.ts` (`CONTAINED_WRITES_ALLOWLIST`). New exceptions need a comment + allowlist entry with issue citation.
 

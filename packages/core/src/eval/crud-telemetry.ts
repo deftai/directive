@@ -1,13 +1,7 @@
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { helpedMetricsHistoryPath } from "../metrics/resolve-metrics-home.js";
 import { scanVbrief } from "../vbrief-validate/conformance.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
@@ -139,8 +133,19 @@ function sanitizeInlineMessage(message: string): string {
   return message.replace(/\r?\n/g, " ");
 }
 
-function ensureParentDir(path: string): void {
-  mkdirSync(dirname(path), { recursive: true });
+/**
+ * Contained replace under the target's parent directory (#2980 wave C).
+ * Metrics/CRUD sinks may live outside the project tree (platform metrics home).
+ */
+function containedReplaceAt(path: string, content: string): void {
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  containedWrite({
+    root: resolve(dir),
+    target: basename(path),
+    data: content,
+    mode: "replace",
+  });
 }
 
 /** Absolute path to the versioned CRUD metrics ledger (#1703 Tier 1 / #2545). */
@@ -160,9 +165,17 @@ export function persistCrudMetrics(
   if (path === null) {
     return;
   }
-  mkdirSync(dirname(path), { recursive: true });
+  // #2980 wave C: product write sink routes through containedWrite.
+  // Metrics home is often outside the project tree (#2545) — contain under ledger parent.
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
   for (const metric of metrics) {
-    appendFileSync(path, `${JSON.stringify(metric)}\n`, "utf8");
+    containedWrite({
+      root: resolve(dir),
+      target: basename(path),
+      data: `${JSON.stringify(metric)}\n`,
+      mode: "append",
+    });
   }
 }
 
@@ -223,8 +236,8 @@ export class InstrumentedVbriefCrud {
       return { ok: false, error: assessment.schemaErrors.join("; ") };
     }
 
-    ensureParentDir(path);
-    writeFileSync(path, content, "utf8");
+    // #2980 wave C: product write sink routes through containedWrite.
+    containedReplaceAt(path, content);
     return { ok: true };
   }
 
@@ -322,8 +335,8 @@ export class InstrumentedVbriefCrud {
       return { ok: false, error: assessment.schemaErrors.join("; ") };
     }
 
-    ensureParentDir(path);
-    writeFileSync(path, content, "utf8");
+    // #2980 wave C: product write sink routes through containedWrite.
+    containedReplaceAt(path, content);
     return { ok: true };
   }
 

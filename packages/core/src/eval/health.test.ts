@@ -174,7 +174,9 @@ describe("persistHealthRun", () => {
           gates: [],
           contradictions: [],
         }),
-      ).toThrow(/projection write refused|symlink escaping/);
+      ).toThrow(
+        /contained write refused|projection write refused|symlink escaping|symlink on the write path/,
+      );
       expect(readFileSync(escapeLedger, "utf8")).toBe("victim\n");
     },
   );

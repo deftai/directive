@@ -1,6 +1,6 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   GhRestError,
   InvalidRepoError,
@@ -795,8 +795,13 @@ function readSelfHealState(cacheRoot: string): Date | null {
 
 function writeSelfHealState(projectRoot: string, cacheRoot: string, when: Date): void {
   const path = join(resolve(cacheRoot), SELF_HEAL_STATE_FILENAME);
-  assertWriteTargetSafe(projectRoot, path);
-  writeFileSync(path, `${JSON.stringify({ last_reconcile_at: when.toISOString() })}\n`, "utf8");
+  // #2980 wave C: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: `${JSON.stringify({ last_reconcile_at: when.toISOString() })}\n`,
+    mode: "replace",
+  });
 }
 
 /** TTL-bounded closed-reconcile for session ritual / triage:welcome self-healing (#1886). */
@@ -877,7 +882,7 @@ export function maybeSelfHealCache(
       try {
         writeSelfHealState(projectRoot, cacheRoot, now);
       } catch (err) {
-        if (err instanceof ProjectionContainmentError) {
+        if (err instanceof ContainedWriteError) {
           return { skipped: true, skipReason: "containment-refused", drift, refresh: null };
         }
         throw err;

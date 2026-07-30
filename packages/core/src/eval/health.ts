@@ -1,9 +1,9 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { agentsRefreshPlan } from "../doctor/agents-md.js";
 import { evaluate as evaluateEncoding } from "../encoding/evaluate.js";
 import { readCorePackageVersion } from "../engine-version.js";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { healthMetricsHistoryPath } from "../metrics/resolve-metrics-home.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -225,14 +225,29 @@ export function persistHealthRun(projectRoot: string, report: HealthReport): voi
   if (path === null) {
     return;
   }
+  // #2980 wave C: product write sink routes through containedWrite.
+  // Project-local metrics: contain under projectRoot. Platform/env home: under ledger parent.
   const projectAbs = resolve(projectRoot);
   const targetAbs = resolve(path);
   const rel = relative(projectAbs, targetAbs);
-  if (rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel)) {
-    assertWriteTargetSafe(projectRoot, path);
+  const nested = rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+  if (nested) {
+    containedWrite({
+      root: projectAbs,
+      target: targetAbs,
+      data: `${JSON.stringify(report)}\n`,
+      mode: "append",
+    });
+    return;
   }
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, `${JSON.stringify(report)}\n`, "utf8");
+  const parent = dirname(targetAbs);
+  mkdirSync(parent, { recursive: true });
+  containedWrite({
+    root: resolve(parent),
+    target: basename(targetAbs),
+    data: `${JSON.stringify(report)}\n`,
+    mode: "append",
+  });
 }
 
 function collectStaticGates(projectRoot: string, frameworkSource: boolean): GateProbeResult[] {

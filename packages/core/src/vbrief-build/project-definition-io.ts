@@ -7,10 +7,10 @@ import {
   readFileSync,
   renameSync,
   unlinkSync,
-  writeFileSync,
   writeSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { pythonJsonPretty } from "./json.js";
 import type { JsonObject } from "./types.js";
@@ -131,15 +131,19 @@ export function loadProjectDefinitionForMutation(projectRoot: string): [JsonObje
 
 /** Atomically write ``data`` to ``path`` as pretty-printed JSON. */
 export function atomicWriteProjectDefinition(path: string, data: JsonObject): void {
-  mkdirSync(dirname(path), { recursive: true });
+  // #2980 wave C: product write sink routes through containedWrite (temp under parent).
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
   const payload = pythonJsonPretty(data).replace(/\n$/, "");
-  const tmp = join(
-    dirname(path),
-    `${path.split(/[/\\]/).pop()}.${randomBytes(4).toString("hex")}.tmp`,
-  );
+  const body = payload.endsWith("\n") ? payload : `${payload}\n`;
+  const tmpName = `${basename(path)}.${randomBytes(4).toString("hex")}.tmp`;
+  const tmp = join(dir, tmpName);
   try {
-    writeFileSync(tmp, payload.endsWith("\n") ? payload : `${payload}\n`, {
-      encoding: "utf8",
+    containedWrite({
+      root: resolve(dir),
+      target: tmpName,
+      data: body,
+      mode: "create",
     });
     renameSync(tmp, path);
   } catch (err) {
