@@ -162,12 +162,18 @@ export function emitBuildProgress(
   stream.write(`${line}\n`);
 }
 
+function isExtraExcludesList(
+  options: readonly string[] | BuildArchiveOptions,
+): options is readonly string[] {
+  return Array.isArray(options);
+}
+
 function resolveBuildOptions(options: readonly string[] | BuildArchiveOptions = {}): {
   extraExcludes: readonly string[];
   onProgress: (p: BuildProgress) => void;
 } {
   // Backward-compatible: 4th arg may be a bare extra-excludes array (pre-#2953).
-  if (Array.isArray(options)) {
+  if (isExtraExcludesList(options)) {
     return { extraExcludes: options, onProgress: () => {} };
   }
   return {
