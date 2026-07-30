@@ -2,9 +2,14 @@
  * Disk store for typed escalations under `.deft/escalations/` (#518).
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedWrite,
+} from "../fs/contained-write.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { escalationPath, escalationsDir } from "./paths.js";
 import {
   DEFAULT_SLA_HOURS,
@@ -31,17 +36,60 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/** Map projection containment refusals onto ContainedWriteError (stable codes). */
+function refuseUnsafeTarget(root: string, targetAbs: string): void {
+  try {
+    assertWriteTargetSafe(root, targetAbs);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      const isSymlink = /symlink/i.test(err.message);
+      throw new ContainedWriteError(
+        err.message.replace(/^projection write refused:/i, "contained write refused:"),
+        {
+          code: isSymlink ? ContainedWriteErrorCode.SYMLINK : ContainedWriteErrorCode.ESCAPE,
+          root,
+          target: targetAbs,
+          offendingPath: err.offendingPath,
+        },
+      );
+    }
+    throw err;
+  }
+}
+
 /**
- * Contained JSON write for escalations (#2980 wave B).
- * Uses containedWrite replace so final symlink / escape targets are refused.
+ * Atomic JSON write via containedWrite create + rename (#2980 wave B).
+ * Refuses symlink/escape on the final target before publish; temp payload is
+ * contained under project root so partial crash does not truncate live state.
  */
-function writeJsonContained(projectRoot: string, targetPath: string, payload: unknown): void {
-  containedWrite({
-    root: resolve(projectRoot),
-    target: resolve(targetPath),
-    data: `${JSON.stringify(payload, null, 2)}\n`,
-    mode: "replace",
-  });
+function writeJsonContained(
+  projectRoot: string,
+  targetPath: string,
+  payload: unknown,
+  prefix: string,
+): void {
+  const root = resolve(projectRoot);
+  const absTarget = resolve(targetPath);
+  refuseUnsafeTarget(root, absTarget);
+  const dir = dirname(absTarget);
+  const tmp = join(dir, `${prefix}${process.pid}-${Date.now()}.json.tmp`);
+  try {
+    containedWrite({
+      root,
+      target: tmp,
+      data: `${JSON.stringify(payload, null, 2)}\n`,
+      mode: "create",
+    });
+    refuseUnsafeTarget(root, absTarget);
+    renameSync(tmp, absTarget);
+  } catch (err) {
+    try {
+      rmSync(tmp, { force: true });
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
 }
 
 function readString(rec: Record<string, unknown>, key: string): string | null {
@@ -134,8 +182,9 @@ export function validateEscalationType(type: string): EscalationType {
 }
 
 export function saveEscalation(projectRoot: string, event: EscalationEvent): void {
-  writeJsonContained(projectRoot, escalationPath(projectRoot, event.id), event);
+  writeJsonContained(projectRoot, escalationPath(projectRoot, event.id), event, ".esc.");
 }
+
 export function loadEscalation(projectRoot: string, escalationId: string): EscalationEvent | null {
   const path = escalationPath(projectRoot, escalationId);
   if (!existsSync(path)) return null;
