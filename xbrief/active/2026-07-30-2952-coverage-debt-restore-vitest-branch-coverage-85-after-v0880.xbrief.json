@@ -1,0 +1,39 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2952",
+    "updated": "2026-07-30T04:37:39Z"
+  },
+  "plan": {
+    "title": "coverage-debt: restore vitest branch coverage >=85% after v0.88.0 hairline (84.9%)",
+    "status": "running",
+    "narratives": {
+      "Description": "coverage-debt: restore vitest branch coverage >=85% after v0.88.0 hairline (84.9%)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2952",
+      "Overview": "## coverage-debt\n\nRelease Step 5 (v0.88.0 cut) failed with **branch coverage hairline only**:\n- Measured branches: **84.9%** (global threshold **85%**)\n- Other metrics (lines/functions/statements): assume ≥85% per release failure mode (branch-only trigger #2866)\n\n### Marker\n`--allow-coverage-debt` for open-issue ledger hatch (#2866 / #2573).\n\n### Acceptance\n- [ ] Restore **all four** Vitest coverage metrics (lines, functions, branches, statements) to **≥ 85%**\n- [ ] Close this issue without leaving consecutive soft-pass debt open for the next cut\n\n### Context\n- Command: `task release -- 0.88.0` Step 5 preflight CI (`task check` fallback)\n- Error: `ERROR: Coverage for branches (84.9%) does not meet global threshold (85%)`\n- Hatch: file this issue → continue with `task release -- 0.88.0 --allow-coverage-debt=<N>`\n\nRefs #2866 #2573 #2865"
+    },
+    "items": [
+      {
+        "title": "Restore **all four** Vitest coverage metrics (lines, functions, branches, statements) to **≥ 85%**",
+        "status": "proposed"
+      },
+      {
+        "title": "Close this issue without leaving consecutive soft-pass debt open for the next cut",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2952",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2952: coverage-debt: restore vitest branch coverage >=85% after v0.88.0 hairline (84.9%)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2866",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2866"
+      }
+    ],
+    "updated": "2026-07-30T04:37:39Z"
+  }
+}

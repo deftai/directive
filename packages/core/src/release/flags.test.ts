@@ -75,6 +75,41 @@ describe("parseReleaseFlags", () => {
     expect(flags.unknown.some((u) => u.includes("allow-coverage-debt"))).toBe(true);
   });
 
+  it("covers coverage-debt and equals-form edge branches (#2952)", () => {
+    // spaced form with valid N
+    expect(
+      parseReleaseFlags(["0.21.0", "--allow-coverage-debt", "2952"]).allowCoverageDebtIssue,
+    ).toBe(2952);
+    // missing value for spaced form
+    const missing = parseReleaseFlags(["0.21.0", "--allow-coverage-debt"]);
+    expect(missing.allowCoverageDebtIssue).toBeNull();
+    expect(missing.unknown.some((u) => u.includes("allow-coverage-debt"))).toBe(true);
+    // malformed spaced value
+    const badSpaced = parseReleaseFlags(["0.21.0", "--allow-coverage-debt", "abc"]);
+    expect(badSpaced.allowCoverageDebtIssue).toBeNull();
+    expect(badSpaced.unknown.some((u) => u.includes("malformed"))).toBe(true);
+    // empty equals-form values
+    const emptyEq = parseReleaseFlags([
+      "0.21.0",
+      "--repo=",
+      "--base-branch=",
+      "--project-root=",
+      "--summary=",
+    ]);
+    expect(emptyEq.repo).toBeNull();
+    expect(emptyEq.unknown.some((u) => u.includes("--repo="))).toBe(true);
+    expect(emptyEq.unknown.some((u) => u.includes("--base-branch="))).toBe(true);
+    expect(emptyEq.unknown.some((u) => u.includes("--project-root="))).toBe(true);
+    expect(emptyEq.unknown.some((u) => u.includes("--summary="))).toBe(true);
+    // sparse argv hole while scanning
+    const sparse: string[] = [];
+    sparse[0] = "0.21.0";
+    sparse[2] = "--dry-run";
+    expect(parseReleaseFlags(sparse).dryRun).toBe(true);
+    // --allow-skip-ci spaced form advances past the value
+    expect(parseReleaseFlags(["0.21.0", "--allow-skip-ci", "716"]).allowSkipCiIssue).toBe(716);
+  });
+
   it("records malformed --allow-skip-ci values as unknown (#2652)", () => {
     const flags = parseReleaseFlags(["0.21.0", "--allow-skip-ci=#"]);
     expect(flags.allowSkipCiIssue).toBeNull();

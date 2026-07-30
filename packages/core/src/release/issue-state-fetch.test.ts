@@ -180,4 +180,82 @@ describe("issue-state-fetch", () => {
     }
     expect(sleep).not.toHaveBeenCalled();
   });
+
+  it("probeGithubRateLimit fails open on throw, non-zero, empty, and bad JSON (#2952)", () => {
+    expect(
+      probeGithubRateLimit(
+        vi.fn().mockImplementation(() => {
+          throw new Error("boom");
+        }),
+      ),
+    ).toBeNull();
+    expect(probeGithubRateLimit(vi.fn().mockReturnValue(completed("", "err", 1)))).toBeNull();
+    expect(probeGithubRateLimit(vi.fn().mockReturnValue(completed("   ", "", 0)))).toBeNull();
+    expect(probeGithubRateLimit(vi.fn().mockReturnValue(completed("not-json", "", 0)))).toBeNull();
+    expect(probeGithubRateLimit(vi.fn().mockReturnValue(completed("null", "", 0)))).toBeNull();
+    expect(probeGithubRateLimit(vi.fn().mockReturnValue(completed("[]", "", 0)))).toBeNull();
+    expect(
+      probeGithubRateLimit(
+        vi.fn().mockReturnValue(completed(JSON.stringify({ resources: null }), "", 0)),
+      ),
+    ).toBeNull();
+    expect(
+      probeGithubRateLimit(
+        vi
+          .fn()
+          .mockReturnValue(
+            completed(JSON.stringify({ resources: { core: null, graphql: {} } }), "", 0),
+          ),
+      ),
+    ).toBeNull();
+    expect(
+      probeGithubRateLimit(
+        vi.fn().mockReturnValue(
+          completed(
+            JSON.stringify({
+              resources: { core: { remaining: "nope" }, graphql: { remaining: 1 } },
+            }),
+            "",
+            0,
+          ),
+        ),
+      ),
+    ).toBeNull();
+    // Missing remaining fields yield nulls (not NaN).
+    expect(
+      probeGithubRateLimit(
+        vi
+          .fn()
+          .mockReturnValue(
+            completed(JSON.stringify({ resources: { core: { reset: 100 }, graphql: {} } }), "", 0),
+          ),
+      ),
+    ).toEqual({ coreRemaining: null, coreResetUnix: 100, graphqlRemaining: null });
+  });
+
+  it("computeRateLimitSleepSeconds uses probe reset when header absent (#2952)", () => {
+    const nowSec = 1_000;
+    const probe = { coreRemaining: 0, coreResetUnix: nowSec + 30, graphqlRemaining: 1 };
+    // detectRateLimit must see a rate-limit stderr shape without X-RateLimit-Reset.
+    const sleepS = computeRateLimitSleepSeconds(
+      "gh: API rate limit exceeded for user (HTTP 403)",
+      probe,
+      nowSec,
+    );
+    expect(sleepS).toBeGreaterThanOrEqual(1);
+    expect(sleepS).toBeLessThanOrEqual(MAX_RATE_LIMIT_RETRY_SLEEP_S);
+  });
+
+  it("formatRateLimitFailureDetails covers probe-null and non-rate-limit paths (#2952)", () => {
+    const noProbe = formatRateLimitFailureDetails(null, false);
+    expect(noProbe).toContain("Probe `gh api rate_limit`");
+    expect(noProbe).not.toContain("Recovery:");
+    const noReset = formatRateLimitFailureDetails(
+      { coreRemaining: null, coreResetUnix: null, graphqlRemaining: null },
+      true,
+    );
+    expect(noReset).toContain("core.remaining=?");
+    expect(noReset).toContain("gh api rate_limit");
+    expect(noReset).toContain("Recovery:");
+  });
 });

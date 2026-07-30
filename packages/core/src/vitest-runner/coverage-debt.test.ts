@@ -150,6 +150,17 @@ describe("attribution + overuse warning", () => {
     expect(text).toContain(`${COVERAGE_GOAL.branches}%`);
   });
 
+  it("sanitizes embedded newlines in attribution metrics (#2952)", () => {
+    const text = formatCoverageAttribution(2952, {
+      lines: Number.NaN,
+      branches: 84.9,
+      functions: 90,
+      statements: 84.5,
+    });
+    expect(text).toContain("#2952");
+    expect(text).not.toMatch(/\n\n/);
+  });
+
   it("warns when multiple recent releases cite coverage debt", () => {
     const changelog =
       "## [Unreleased]\n\n## [0.2.0]\ncoverage-debt soft-pass\n\n## [0.1.0]\nallow-coverage-debt=#1234\n";
@@ -183,5 +194,51 @@ describe("readCoverageTotalsFromReport", () => {
     );
     const totals = readCoverageTotalsFromReport(dir);
     expect(totals?.branches).toBe(100);
+  });
+
+  it("returns null when coverage-final.json is malformed JSON", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cov-debt-bad-"));
+    writeFileSync(join(dir, "coverage-final.json"), "{not-json", "utf8");
+    expect(readCoverageTotalsFromReport(dir)).toBeNull();
+  });
+});
+
+describe("summarizeCoverageFinal partial maps + metricsBelowGoal edges (#2952)", () => {
+  it("aggregates files that only expose some of s/f/b", () => {
+    const totals = summarizeCoverageFinal({
+      "only-s.ts": { s: { "0": 1, "1": 1 } },
+      "only-f.ts": { f: { "0": 0 } },
+      "only-b.ts": { b: { "0": [1, 0, 1] } },
+      "empty.ts": {},
+    });
+    expect(totals.statements).toBe(100);
+    expect(totals.functions).toBe(0);
+    expect(totals.branches).toBeCloseTo((2 / 3) * 100, 5);
+    expect(totals.lines).toBe(totals.statements);
+  });
+
+  it("treats exact goal as met (epsilon path)", () => {
+    const totals = {
+      lines: 85,
+      functions: 85,
+      branches: 85,
+      statements: 85,
+    };
+    expect(metricsBelowGoal(totals)).toEqual([]);
+  });
+
+  it("rejects #0 and negative-looking issue strings", () => {
+    expect(parseCoverageDebtIssueNumber("#0")).toBeNull();
+    expect(parseCoverageDebtIssueNumber("-1")).toBeNull();
+    expect(parseCoverageDebtIssueNumber("  ")).toBeNull();
+  });
+
+  it("ignores empty DEFT_ALLOW_COVERAGE_DEBT even under release preflight", () => {
+    expect(
+      resolveCoverageDebtIssue(["vitest"], {
+        DEFT_ALLOW_COVERAGE_DEBT: "",
+        DEFT_RELEASE_PREFLIGHT: "1",
+      }),
+    ).toEqual({ kind: "none" });
   });
 });

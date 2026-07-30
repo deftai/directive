@@ -1416,6 +1416,63 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       "gh pr merge 1",
     );
   });
+
+  it("fails open when runtimeAuthority policy load throws (#2952)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git push" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => {
+          throw new Error("policy boom");
+        },
+      },
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+    expect(decision.message).toMatch(/policy load failed/);
+  });
+
+  it("fails open when Shell payload has no command string (#2952)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: {} },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+
+  it("allows classifiable MCP push when scopes.push is true (#2952)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "mcp__git__git_push", tool_input: { remote: "origin" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => ({
+          ...denyPushPolicy,
+          scopes: { edits: true, push: true, merge: false },
+        }),
+      },
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-ready");
+  });
 });
 
 describe("provider input normalization", () => {
