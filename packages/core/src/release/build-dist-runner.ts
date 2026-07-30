@@ -15,7 +15,7 @@ if (!version || !root) {
 const fmt = selectFormat(process.env.DEFT_BUILD_FORMAT);
 try {
   process.stderr.write(`build-dist-runner: start version=${version} format=${fmt}\n`);
-  const out = await buildArchive(root, version, fmt, [], emitBuildProgress);
+  const out = await buildArchive(root, version, fmt, { onProgress: emitBuildProgress });
   process.stdout.write(`${out}\n`);
 } catch (err) {
   process.stderr.write(`${String(err)}\n`);

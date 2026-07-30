@@ -138,6 +138,12 @@ export type BuildProgress = {
   readonly total?: number;
 };
 
+export type BuildArchiveOptions = {
+  readonly extraExcludes?: readonly string[];
+  /** Progress sink; default silent so unit tests stay quiet (#2953). */
+  readonly onProgress?: (p: BuildProgress) => void;
+};
+
 /**
  * Emit human-readable stage progress for long release packaging runs (#2953).
  * Writes to stderr so stdout stays the archive path for pipeline capture.
@@ -156,14 +162,27 @@ export function emitBuildProgress(
   stream.write(`${line}\n`);
 }
 
+function resolveBuildOptions(options: readonly string[] | BuildArchiveOptions = {}): {
+  extraExcludes: readonly string[];
+  onProgress: (p: BuildProgress) => void;
+} {
+  // Backward-compatible: 4th arg may be a bare extra-excludes array (pre-#2953).
+  if (Array.isArray(options)) {
+    return { extraExcludes: options, onProgress: () => {} };
+  }
+  return {
+    extraExcludes: options.extraExcludes ?? [],
+    onProgress: options.onProgress ?? (() => {}),
+  };
+}
+
 export async function buildArchive(
   root: string,
   version: string,
   fmt: "tar" | "zip",
-  extraExcludes: readonly string[] = [],
-  // Default silent so unit tests stay quiet; build-dist-runner opts into ticks (#2953).
-  onProgress: (p: BuildProgress) => void = () => {},
+  options: readonly string[] | BuildArchiveOptions = {},
 ): Promise<string> {
+  const { extraExcludes, onProgress } = resolveBuildOptions(options);
   const excludes = new Set([...DEFAULT_EXCLUDES, ...extraExcludes]);
   const output = outputPath(root, version, fmt);
   mkdirSync(dirname(output), { recursive: true });
@@ -243,13 +262,10 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
   const fmt = selectFormat(fmtArg);
   try {
-    const out = await buildArchive(
-      projectRoot,
-      version,
-      fmt,
-      parseExtraExcludes(extra),
-      emitBuildProgress,
-    );
+    const out = await buildArchive(projectRoot, version, fmt, {
+      extraExcludes: parseExtraExcludes(extra),
+      onProgress: emitBuildProgress,
+    });
     const printable = relative(projectRoot, out) || out;
     process.stdout.write(`Created ${printable}\n`);
     return 0;

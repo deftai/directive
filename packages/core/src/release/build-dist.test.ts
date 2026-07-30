@@ -125,8 +125,10 @@ describe("build-dist helpers", () => {
     writeFileSync(join(root, "README.md"), "# fixture\n");
     writeFileSync(join(root, "content", "doc.md"), "hello\n");
     const stages: string[] = [];
-    await buildArchive(root, "1.0.0", "zip", [], (p) => {
-      stages.push(p.stage);
+    await buildArchive(root, "1.0.0", "zip", {
+      onProgress: (p) => {
+        stages.push(p.stage);
+      },
     });
     expect(stages).toContain("scan");
     expect(stages).toContain("pack");
