@@ -98,13 +98,25 @@ task scm:body:issue:edit -- \
   --body-file "$bodyFile"
 ```
 
-`scm:body:issue:edit` re-fetches after PATCH and fails closed when the live body is flattened, mojibaked, or otherwise mismatched vs the intended payload (#2607).
+`scm:body:issue:edit` re-fetches after PATCH and fails closed when the live body is flattened, mojibaked, or otherwise mismatched vs the intended payload (#2607). Writers also reject intended payloads that already contain CP1252/CP437-as-UTF-8 mojibake before PATCH, with stable error code `scm-body-encoding` (#2960).
 
 - ! For issue-body RMW on win32, MUST use `task scm:body:issue:fetch --out-file` then file edit then `task scm:body:issue:edit --body-file` — never rebuild the body from PowerShell-captured `gh api --jq .body` output
+- ! Issue body RMW on win32 MUST use `task scm:body:issue:fetch` + `edit --body-file`; raw `gh issue edit --body` / PS capture of `gh api --jq .body` is forbidden (#2960 / #2744 / #2646)
+- ! After any non-`scm:body` issue/PR body mutation, run `task scm:body:issue:lint -- --repo OWNER/REPO --issue <N>` (or `task scm:body:pr:lint -- --repo OWNER/REPO --pr <N>`) — same mojibake patterns as `verify:encoding`; exit non-zero with repair hint on hit (#2960)
 - ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` (or `$body = (gh api ... | ConvertFrom-Json).body`) into PowerShell variables for amendment — the string[]/$OFS join destroys multi-line Markdown bodies silently
 - ⊗ Treat a successful `gh api -X PATCH` exit code as proof the body survived intact without read-back — use `scm:body:issue:edit` postcondition verify instead
+- ⊗ Persist a body that contains classic UTF-8→CP1252 mojibake (e.g. em dash `—` rendered as `ΓÇö`) — `scm:body` create/edit fail closed with `scm-body-encoding` before and after write (#2960)
 
-**Incident record:** #2087 (automation-declaration body corruption), #2741 (win32 RMW flattening during issue amend), #1492 (issue-body integrity class). Parent helper: #2607 / PR #2750.
+**Live body lint (#2960):**
+
+```bash
+task scm:body:issue:lint -- --repo OWNER/REPO --issue <N>
+task scm:body:pr:lint -- --repo OWNER/REPO --pr <N>
+```
+
+On hit, repair via the fetch → UTF-8 file edit → edit path above. `verify:encoding` still covers **repo files only**; remote issue/PR bodies are this lint surface.
+
+**Incident record:** #2087 (automation-declaration body corruption), #2741 (win32 RMW flattening during issue amend), #1492 (issue-body integrity class), #2948 / #2944 body rewrite 2026-07-30 (`ΓÇö` / `ΓåÆ` / `Γëá` class). Parent helpers: #2607 / PR #2750; gate #2960.
 
 ## PR Workflow Conventions
 

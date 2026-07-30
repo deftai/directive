@@ -13,6 +13,15 @@ function parseArgs(argv: string[]): GitHubBodyCliArgs {
     else if (arg === "--pr") out.pr = Number.parseInt(argv[++i] as string, 10);
     else if (arg === "--body-file") out.bodyFile = argv[++i];
     else if (arg === "--out-file") out.outFile = argv[++i];
+    else if (/^\d+$/.test(arg)) {
+      // Positional number: issue-lint / issue-* use --issue; pr-lint / pr-* use --pr (#2960).
+      const n = Number.parseInt(arg, 10);
+      if (out.command.startsWith("pr-")) {
+        if (out.pr === undefined) out.pr = n;
+      } else if (out.issue === undefined) {
+        out.issue = n;
+      }
+    }
   }
   return out;
 }

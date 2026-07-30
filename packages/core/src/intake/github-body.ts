@@ -1,13 +1,21 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { type Finding, renderFinding, scanLine } from "../encoding/scan.js";
+import { pythonSplitlines, stripMarkdownQuotes } from "../encoding/text.js";
 import { defaultWhich } from "../scm/binary.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 
 export const DEFAULT_TIMEOUT_SECONDS = 60;
 
+/** Stable error code for CP1252/CP437-as-UTF-8 / U+FFFD body corruption (#2960). */
+export const SCM_BODY_ENCODING_CODE = "scm-body-encoding";
+
 export class GitHubBodyError extends Error {
-  constructor(message: string) {
+  readonly code?: string;
+
+  constructor(message: string, options?: { code?: string }) {
     super(message);
     this.name = "GitHubBodyError";
+    this.code = options?.code;
   }
 }
 
@@ -36,9 +44,61 @@ export function resolveLiveGh(): string {
 
 export function readBody(bodyFile: string, stdinText?: string | null): string {
   if (bodyFile === "-") {
-    return stdinText ?? "";
+    return stripUtf8Bom(stdinText ?? "");
   }
-  return readFileSync(bodyFile, "utf8");
+  return stripUtf8Bom(readFileSync(bodyFile, "utf8"));
+}
+
+/** Strip a leading UTF-8 BOM so body-file writers stay UTF-8 no BOM (#2960 / #798). */
+export function stripUtf8Bom(text: string): string {
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+/**
+ * Scan body text with the same mojibake pattern set as verify:encoding
+ * (`packages/core/src/encoding/patterns.ts` / scanLine). Issue/PR bodies are
+ * Markdown: strip fenced blocks and inline code spans so documented examples
+ * of the corruption class (e.g. `#2960` fixtures) are not false positives —
+ * matches `scanFile` .md behavior.
+ */
+export function scanBodyText(body: string, source = "body"): Finding[] {
+  const findings: Finding[] = [];
+  const scanText = stripMarkdownQuotes(body);
+  const originalLines = pythonSplitlines(body);
+  const strippedLines = pythonSplitlines(scanText);
+  if (originalLines.length === 0 && body.length > 0) {
+    findings.push(...scanLine(source, 1, scanText, body));
+    return findings;
+  }
+  // Preserve line alignment when strip blanks fenced blocks (newline-for-newline).
+  while (strippedLines.length < originalLines.length) {
+    strippedLines.push("");
+  }
+  originalLines.forEach((orig, idx) => {
+    const stripped = strippedLines[idx] ?? "";
+    findings.push(...scanLine(source, idx + 1, stripped, orig));
+  });
+  return findings;
+}
+
+function formatEncodingFindings(findings: Finding[]): string {
+  return findings.map((f) => renderFinding(f).trim()).join("; ");
+}
+
+/**
+ * Fail closed when body text already contains CP1252/CP437-as-UTF-8 mojibake
+ * or U+FFFD (before PATCH and as a live-body diagnostic).
+ */
+export function assertBodyEncoding(body: string, phase: string): void {
+  const findings = scanBodyText(body, phase);
+  if (findings.length === 0) {
+    return;
+  }
+  const detail = formatEncodingFindings(findings);
+  throw new GitHubBodyError(
+    `body encoding failed (${phase}): ${detail}. Repair: task scm:body:issue:fetch -- --repo OWNER/REPO --issue N --out-file <path>, fix as UTF-8 (no BOM), task scm:body:issue:edit -- --body-file <path> (#2960 / #2948 / #2944).`,
+    { code: SCM_BODY_ENCODING_CODE },
+  );
 }
 
 function jsonInput(payload: Record<string, unknown>): string {
@@ -95,10 +155,14 @@ function requireIntField(obj: Record<string, unknown>, field: string): number {
   return value;
 }
 
-function requireStringField(obj: Record<string, unknown>, field: string): string {
-  const value = obj[field];
+/** Body may be null on empty GitHub issues/PRs — treat as empty string for lint/fetch. */
+function bodyFieldOrEmpty(obj: Record<string, unknown>): string {
+  const value = obj.body;
+  if (value === null || value === undefined) {
+    return "";
+  }
   if (typeof value !== "string") {
-    throw new GitHubBodyError(`response did not include string field ${JSON.stringify(field)}`);
+    throw new GitHubBodyError(`response did not include string field "body"`);
   }
   return value;
 }
@@ -115,7 +179,7 @@ function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
 }
 
-/** Fail closed when live read-back body is flattened or mojibaked vs intended payload (#2607). */
+/** Fail closed when live read-back body is flattened or mojibaked vs intended payload (#2607 / #2960). */
 export function verifyBodyPostcondition(intended: string, live: string): void {
   if (intended === live) {
     return;
@@ -128,6 +192,14 @@ export function verifyBodyPostcondition(intended: string, live: string): void {
   if (live.includes("\uFFFD") && !intended.includes("\uFFFD")) {
     diagnoses.push(
       "live body contains U+FFFD replacement character not present in intended payload",
+    );
+  }
+
+  const liveFindings = scanBodyText(live, "live");
+  const intendedFindings = scanBodyText(intended, "intended");
+  if (liveFindings.length > 0 && intendedFindings.length === 0) {
+    diagnoses.push(
+      `live body contains mojibake not present in intended payload (${formatEncodingFindings(liveFindings)})`,
     );
   }
 
@@ -144,7 +216,12 @@ export function verifyBodyPostcondition(intended: string, live: string): void {
   }
 
   if (diagnoses.length > 0) {
-    throw new GitHubBodyError(`body postcondition failed: ${diagnoses.join("; ")}`);
+    const isEncoding = diagnoses.some(
+      (d) => d.includes("U+FFFD") || d.includes("mojibake") || d.includes("encoding"),
+    );
+    throw new GitHubBodyError(`body postcondition failed: ${diagnoses.join("; ")}`, {
+      code: isEncoding ? SCM_BODY_ENCODING_CODE : undefined,
+    });
   }
 
   throw new GitHubBodyError(
@@ -160,6 +237,10 @@ function mutateWithReadback(
   options: { binary?: string | null; runFn?: RunGhApiFn } = {},
 ): Record<string, unknown> {
   const intendedBody = typeof payload.body === "string" ? payload.body : undefined;
+  if (intendedBody !== undefined) {
+    // Fail closed before PATCH when the intended payload is already corrupted (#2960).
+    assertBodyEncoding(intendedBody, "pre-write");
+  }
   const mutation = runGhApiJson([mutationEndpoint, "--method", method, "--input", "-"], {
     inputText: jsonInput(payload),
     binary: options.binary,
@@ -169,7 +250,10 @@ function mutateWithReadback(
     typeof readbackEndpoint === "function" ? readbackEndpoint(mutation) : readbackEndpoint;
   const readback = runGhApiJson([endpoint], { binary: options.binary, runFn: options.runFn });
   if (intendedBody !== undefined) {
-    verifyBodyPostcondition(intendedBody, requireStringField(readback, "body"));
+    const liveBody = bodyFieldOrEmpty(readback);
+    verifyBodyPostcondition(intendedBody, liveBody);
+    // Defense in depth: live body must also be free of encoding corruption.
+    assertBodyEncoding(liveBody, "post-write-readback");
   }
   return readback;
 }
@@ -252,7 +336,18 @@ export function fetchIssueBody(
   const [owner, name] = splitRepo(repo);
   const endpoint = `repos/${owner}/${name}/issues/${issue}`;
   const response = runGhApiJson([endpoint], { binary: options.binary, runFn: options.runFn });
-  return requireStringField(response, "body");
+  return bodyFieldOrEmpty(response);
+}
+
+export function fetchPrBody(
+  repo: string,
+  pr: number,
+  options: { binary?: string | null; runFn?: RunGhApiFn } = {},
+): string {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/pulls/${pr}`;
+  const response = runGhApiJson([endpoint], { binary: options.binary, runFn: options.runFn });
+  return bodyFieldOrEmpty(response);
 }
 
 export function writeIssueBodyToFile(
@@ -262,8 +357,34 @@ export function writeIssueBodyToFile(
   options: { binary?: string | null; runFn?: RunGhApiFn } = {},
 ): string {
   const body = fetchIssueBody(repo, issue, options);
+  // UTF-8 no BOM (Node default for encoding: "utf8").
   writeFileSync(outFile, body, { encoding: "utf8" });
   return body;
+}
+
+/**
+ * Lint a live issue body for mojibake. Returns findings (empty = clean).
+ * Does not throw on hits — callers decide exit code.
+ */
+export function lintIssueBody(
+  repo: string,
+  issue: number,
+  options: { binary?: string | null; runFn?: RunGhApiFn } = {},
+): Finding[] {
+  const body = fetchIssueBody(repo, issue, options);
+  return scanBodyText(body, `issue/${issue}`);
+}
+
+/**
+ * Lint a live PR body for mojibake. Returns findings (empty = clean).
+ */
+export function lintPrBody(
+  repo: string,
+  pr: number,
+  options: { binary?: string | null; runFn?: RunGhApiFn } = {},
+): Finding[] {
+  const body = fetchPrBody(repo, pr, options);
+  return scanBodyText(body, `pr/${pr}`);
 }
 
 export interface GitHubBodyCliArgs {
@@ -277,7 +398,22 @@ export interface GitHubBodyCliArgs {
   outFile?: string;
 }
 
-export function githubBodyMain(args: GitHubBodyCliArgs): number {
+function writeLintFailure(kind: string, id: number, findings: Finding[]): void {
+  process.stderr.write(
+    `error [${SCM_BODY_ENCODING_CODE}]: ${kind} #${id} body contains encoding mojibake (${findings.length} hit(s)):\n`,
+  );
+  for (const f of findings) {
+    process.stderr.write(`${renderFinding(f)}\n`);
+  }
+  process.stderr.write(
+    `Repair: task scm:body:issue:fetch -- --repo OWNER/REPO --issue ${id} --out-file <path>, fix as UTF-8 (no BOM), task scm:body:issue:edit -- --body-file <path>. After non-scm:body mutations, re-run lint (#2960; recurrence #2948/#2944).\n`,
+  );
+}
+
+export function githubBodyMain(
+  args: GitHubBodyCliArgs,
+  options: { runFn?: RunGhApiFn; binary?: string | null } = {},
+): number {
   try {
     switch (args.command) {
       case "issue-fetch": {
@@ -285,7 +421,44 @@ export function githubBodyMain(args: GitHubBodyCliArgs): number {
           process.stderr.write("error: issue-fetch requires --repo, --issue, and --out-file\n");
           return 1;
         }
-        writeIssueBodyToFile(args.repo, args.issue, args.outFile);
+        writeIssueBodyToFile(args.repo, args.issue, args.outFile, {
+          runFn: options.runFn,
+          binary: options.binary,
+        });
+        return 0;
+      }
+      case "issue-lint": {
+        if (args.repo === undefined || args.issue === undefined) {
+          process.stderr.write("error: issue-lint requires --repo and --issue\n");
+          return 1;
+        }
+        const findings = lintIssueBody(args.repo, args.issue, {
+          runFn: options.runFn,
+          binary: options.binary,
+        });
+        if (findings.length > 0) {
+          writeLintFailure("issue", args.issue, findings);
+          return 1;
+        }
+        process.stdout.write(
+          `ok: issue #${args.issue} body has no CP1252/CP437-as-UTF-8 mojibake\n`,
+        );
+        return 0;
+      }
+      case "pr-lint": {
+        if (args.repo === undefined || args.pr === undefined) {
+          process.stderr.write("error: pr-lint requires --repo and --pr\n");
+          return 1;
+        }
+        const findings = lintPrBody(args.repo, args.pr, {
+          runFn: options.runFn,
+          binary: options.binary,
+        });
+        if (findings.length > 0) {
+          writeLintFailure("pr", args.pr, findings);
+          return 1;
+        }
+        process.stdout.write(`ok: pr #${args.pr} body has no CP1252/CP437-as-UTF-8 mojibake\n`);
         return 0;
       }
       default: {
@@ -293,19 +466,40 @@ export function githubBodyMain(args: GitHubBodyCliArgs): number {
         let result: Record<string, unknown>;
         switch (args.command) {
           case "issue-create":
-            result = createIssue(args.repo as string, { title: args.title as string, body });
+            result = createIssue(args.repo as string, {
+              title: args.title as string,
+              body,
+              runFn: options.runFn,
+              binary: options.binary,
+            });
             break;
           case "issue-edit":
-            result = editIssueBody(args.repo as string, args.issue as number, { body });
+            result = editIssueBody(args.repo as string, args.issue as number, {
+              body,
+              runFn: options.runFn,
+              binary: options.binary,
+            });
             break;
           case "comment-create":
-            result = createIssueComment(args.repo as string, args.issue as number, { body });
+            result = createIssueComment(args.repo as string, args.issue as number, {
+              body,
+              runFn: options.runFn,
+              binary: options.binary,
+            });
             break;
           case "comment-edit":
-            result = editIssueCommentBody(args.repo as string, args.comment as number, { body });
+            result = editIssueCommentBody(args.repo as string, args.comment as number, {
+              body,
+              runFn: options.runFn,
+              binary: options.binary,
+            });
             break;
           case "pr-edit":
-            result = editPrBody(args.repo as string, args.pr as number, { body });
+            result = editPrBody(args.repo as string, args.pr as number, {
+              body,
+              runFn: options.runFn,
+              binary: options.binary,
+            });
             break;
           default:
             process.stderr.write(`error: unknown command ${JSON.stringify(args.command)}\n`);
@@ -316,7 +510,11 @@ export function githubBodyMain(args: GitHubBodyCliArgs): number {
       }
     }
   } catch (exc) {
-    process.stderr.write(`error: ${String(exc)}\n`);
+    if (exc instanceof GitHubBodyError && exc.code !== undefined) {
+      process.stderr.write(`error [${exc.code}]: ${exc.message}\n`);
+    } else {
+      process.stderr.write(`error: ${String(exc)}\n`);
+    }
     return 1;
   }
 }

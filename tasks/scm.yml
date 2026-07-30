@@ -123,6 +123,26 @@ tasks:
         vars:
           ENGINE_CMD: 'github-body issue-fetch {{.CLI_ARGS}}'
 
+  body:issue:lint:
+    desc: "[#2960] Lint live issue body for CP1252/CP437-as-UTF-8 mojibake (same patterns as verify:encoding)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body issue-lint {{.CLI_ARGS}}'
+
+  body:pr:lint:
+    desc: "[#2960] Lint live PR body for CP1252/CP437-as-UTF-8 mojibake (same patterns as verify:encoding)"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body pr-lint {{.CLI_ARGS}}'
+
   body:comment:create:
     desc: "[#1555] Safely create an issue/PR comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'

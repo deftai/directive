@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Issue/PR body mojibake is lintable and fail-closed on scm:body writers (#2960).** `task scm:body:issue:lint` / `pr:lint` fetch the live REST body and scan with the same CP1252/CP437-as-UTF-8 patterns as `verify:encoding`; create/edit reject corrupted payloads before PATCH and on read-back with stable code `scm-body-encoding`. Docs pin the MUST RMW path in `content/scm/github.md`. Recurrence: #2948 / #2944 body rewrite 2026-07-30 (`ΓÇö` class). Closes #2960. Refs #798, #2646, #2744, #2607, #1555.
 - **Vitest branch coverage restored above 85% (#2952).** Focused shell/MCP classify edge tests, hooks tool-classifier coverage, and coverage-debt report edge cases clear the v0.88.0 84.9% hairline so the next release Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2952.
 
 ### Removed
