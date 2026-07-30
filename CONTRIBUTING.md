@@ -85,6 +85,23 @@ When running tests with Windows-native Node (not WSL), a few extra steps help:
    Developer Mode or an elevated shell. They are automatically skipped on Windows
    via `it.skipIf(process.platform === "win32")` so a standard shell is fine.
 
+## Contained writes (#2951)
+
+Product write sinks under `packages/core/src/**` must use the shared
+`containedWrite` API instead of bare `writeFileSync` / `appendFileSync` /
+`createWriteStream`. The API resolves the target under an explicit root,
+refuses symlink escape and out-of-root paths, then writes with an explicit
+mode (`create` | `replace` | `append`) and stable error codes.
+
+- **Contract + agent rules:** [`docs/reference/contained-write.md`](docs/reference/contained-write.md)
+- **Implementation:** `packages/core/src/fs/contained-write.ts`
+- **Inventory (fail-open Phase 1):** `task verify:contained-writes`  
+  Pass `--enforce` only when intentionally fail-closing. Not in `task check` yet.
+
+AppSec “one more medium sink” fixes should prefer migrating the call site onto
+`containedWrite` over another bespoke containment helper + raw write pair when
+behavior is equivalent. Tests and fixtures may keep using raw writes.
+
 4. **`chmod`-based tests** — Windows does not honour POSIX `chmod` semantics;
    those tests are likewise skipped automatically.
 

@@ -14,8 +14,9 @@
  * - Creating the flag does **not** delete an existing deposit.
  */
 
-import { existsSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, statSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 
@@ -107,7 +108,6 @@ export function createNoDeftDirectiveFlag(
   options: { rationale?: string } = {},
 ): string {
   const path = noDeftDirectiveFlagPath(projectRoot);
-  assertWriteTargetSafe(projectRoot, path);
   if (defaultIsDir(path)) {
     throw new Error(
       `${NO_DEFT_DIRECTIVE_FLAG_NAME} exists as a directory at ${path}; remove it before creating the opt-out flag file.`,
@@ -115,7 +115,14 @@ export function createNoDeftDirectiveFlag(
   }
   const rationale = options.rationale?.trim() ?? "";
   const body = rationale.length > 0 ? `# ${rationale}\n` : "";
-  writeFileSync(path, body, "utf8");
+  // #2951: product write sinks route through containedWrite (create|replace).
+  // Use replace so re-running with a new rationale updates the flag file.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: body,
+    mode: "replace",
+  });
   return path;
 }
 

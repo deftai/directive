@@ -47,6 +47,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-biome-config --project-root "{{.DEFT_ROOT}}"'
 
+  contained-writes:
+    desc: "Inventory raw product write sinks outside the contained-write allowlist (#2951 Phase 1). Fail-open by default (exit 0 + advisory report); pass --enforce to fail closed (exit 1). Not in task check until a later phase. -- task verify:contained-writes [-- --enforce]"
+    deps:
+      - task: :engine:_ts-build
+    # Framework-source-only gate: scans packages/core/src in THIS repo.
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-contained-writes --project-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
+
   content-manifest:
     desc: "Verify the Content Manifest (conventions/content-manifest.json) classifies every git-tracked top-level entry (#1821). Fails on an unclassified entry, a stale classified path, an invalid bucket, or a duplicate path. Wave-1 shippability audit for the engine/content split (#1669)."
     deps:
