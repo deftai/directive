@@ -15,6 +15,9 @@ export interface RuntimeAuthorityScopes {
   readonly merge: boolean;
 }
 
+/** Layers that contribute to a resolved write fence (#516 / #2443 / #2948 Wave 3). */
+export type WriteFenceSource = "project" | "story";
+
 export interface RuntimeAuthorityPolicy {
   readonly enabled: boolean;
   /** When non-empty, write targets must match at least one pattern. Empty = allow all paths. */
@@ -22,6 +25,17 @@ export interface RuntimeAuthorityPolicy {
   /** Deny wins over allow. */
   readonly denyPaths: readonly string[];
   readonly scopes: RuntimeAuthorityScopes;
+  /**
+   * Optional story-layer allow globs from `plan.metadata.swarm.file_scope`
+   * (populated by `resolveWriteFence` only). When non-empty, path must match
+   * project allowPaths (if any) **and** this layer. Empty/undefined = no story narrowing.
+   */
+  readonly storyAllowPaths?: readonly string[];
+  /**
+   * Which layers contributed to this policy (for stable deny reason codes).
+   * Set by `resolveWriteFence`; absent for bare project policy from disk.
+   */
+  readonly fenceSources?: readonly WriteFenceSource[];
 }
 
 export const DEFAULT_RUNTIME_AUTHORITY_SCOPES: RuntimeAuthorityScopes = {
@@ -179,9 +193,13 @@ export function loadRuntimeAuthorityFromProject(projectRoot: string): RuntimeAut
   return loadRuntimeAuthorityPolicy(data);
 }
 
-export type RuntimeAuthorityPathVerdict = "allow" | "deny-allowlist" | "deny-denylist";
+export type RuntimeAuthorityPathVerdict =
+  | "allow"
+  | "deny-allowlist"
+  | "deny-denylist"
+  | "deny-story-scope";
 
-/** Evaluate a project-relative POSIX path against allow/deny globs. */
+/** Evaluate a project-relative POSIX path against allow/deny globs (+ optional story layer). */
 export function evaluateRuntimeAuthorityPath(
   policy: RuntimeAuthorityPolicy,
   relPathPosix: string,
@@ -191,7 +209,19 @@ export function evaluateRuntimeAuthorityPath(
   if (policy.allowPaths.length > 0 && !matchAny(policy.allowPaths, relPathPosix)) {
     return "deny-allowlist";
   }
+  // Story file_scope layer (#516 / #2443): path must match when non-empty.
+  const storyAllow = policy.storyAllowPaths ?? [];
+  if (storyAllow.length > 0 && !matchAny(storyAllow, relPathPosix)) {
+    return "deny-story-scope";
+  }
   return "allow";
+}
+
+/** Human-readable fence source label for deny reasons. */
+function fenceSourceLabel(policy: RuntimeAuthorityPolicy): string {
+  const sources = policy.fenceSources;
+  if (sources === undefined || sources.length === 0) return "project";
+  return sources.join("+");
 }
 
 export interface RuntimeAuthorityDirectWriteInput {
@@ -235,7 +265,7 @@ export function evaluateRuntimeAuthorityDirectWrite(
       code: "runtime-policy-deny-path",
       reason:
         `Directive denied this direct write: path ${relPathPosix} matches ` +
-        "plan.policy.runtimeAuthority.denyPaths.",
+        `write-fence denyPaths (source: ${fenceSourceLabel(policy)}).`,
     };
   }
   if (pathVerdict === "deny-allowlist") {
@@ -244,7 +274,16 @@ export function evaluateRuntimeAuthorityDirectWrite(
       code: "runtime-policy-deny-path",
       reason:
         `Directive denied this direct write: path ${relPathPosix} is outside ` +
-        "plan.policy.runtimeAuthority.allowPaths.",
+        `write fence project allowPaths (source: ${fenceSourceLabel(policy)}).`,
+    };
+  }
+  if (pathVerdict === "deny-story-scope") {
+    return {
+      allowed: false,
+      code: "runtime-policy-deny-path",
+      reason:
+        `Directive denied this direct write: path ${relPathPosix} is outside ` +
+        `write fence story file_scope (source: ${fenceSourceLabel(policy)}).`,
     };
   }
   return { allowed: true, reason: null, code: null };

@@ -1102,6 +1102,77 @@ describe("runtime authority policy (#1394)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
   });
+
+  it("intersects project allowPaths with story file_scope (#516 / #2443)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/index.ts", contents: "x" },
+        },
+      },
+      policySeams(ENABLED_POLICY, {
+        loadStoryWriteFence: () => ({
+          fileScope: ["packages/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision.message).toMatch(/story file_scope/);
+  });
+
+  it("allows path inside project+story intersection", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/src/index.ts", contents: "x" },
+        },
+      },
+      policySeams(ENABLED_POLICY, {
+        loadStoryWriteFence: () => ({
+          fileScope: ["src/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("enforces story-only fence when project runtimeAuthority is disabled", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { path: "/project/docs/readme.md", contents: "x" },
+        },
+      },
+      readySeams({
+        loadRuntimeAuthority: () => ({
+          enabled: false,
+          allowPaths: [],
+          denyPaths: [],
+          scopes: { edits: true, push: false, merge: false },
+        }),
+        loadStoryWriteFence: () => ({
+          fileScope: ["src/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision.message).toMatch(/story file_scope/);
+  });
 });
 
 describe("provider codecs", () => {

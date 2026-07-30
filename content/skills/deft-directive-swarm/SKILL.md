@@ -145,6 +145,13 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! Follow phases in order. Depth files hold the operative MUST rules; this page is the dispatch card.
 
+## Path write fence (#516 / #2443 / #2948 Wave 3)
+
+! Per-agent write allowlists come from each story’s `plan.metadata.swarm.file_scope`, intersected with project `plan.policy.runtimeAuthority.allowPaths` / `denyPaths` via `resolveWriteFence` (single evaluation SoT). PreToolUse refuses out-of-fence direct writes when a fence is set. Contract: [`../../contracts/path-write-fence.md`](../../contracts/path-write-fence.md).
+
+- ! Dispatch envelopes and readiness already use `file_scope` for overlap; runtime enforcement uses the same list — do not invent a parallel writeScope matcher.
+- ⊗ Expect workers to edit outside their declared `file_scope` when the write fence is active.
+
 ## Critical anti-patterns (dispatch card)
 
 - ⊗ Load all host adapters “just in case” (#2928)
@@ -156,5 +163,6 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Merge before Greptile exit condition (score > 3, no P0/P1)
 - ⊗ Skip Phase 0 approval before Phase 1
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
+- ⊗ Dual write-scope engines or unconstrained tree-wide autonomous edits when `file_scope` / runtimeAuthority fence is set (#516 / #2443)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

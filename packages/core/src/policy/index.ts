@@ -53,6 +53,7 @@ export * from "./staleness-tickler.js";
 export * from "./value-feedback.js";
 export * from "./value-feedback-autoenable.js";
 export * from "./wip.js";
+export * from "./write-fence.js";
 
 export const FIELD_ALLOW_DIRECT_COMMITS = "plan.policy.allowDirectCommitsToMaster";
 export const FIELD_WIP_CAP = "plan.policy.wipCap";
