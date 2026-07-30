@@ -66,6 +66,44 @@ The hatch is **release-scoped only** — not the default for ordinary PR / `task
 
 Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)**.
 
+## Routine vs hard cut for Step 5 (#2953)
+
+Release Step 5 (`task check` with Vitest coverage) is the longest local gate. Two operator modes share the **same safety bar for coverage** — they differ in hygiene and intent, not in silent soft-pass.
+
+### Hard cut (default)
+
+- Run full Step 5: `task release -- <version>` with **no** `--skip-ci`.
+- Use when the tip is unproven, the change set is large, or you need maximum local certainty before the tag.
+- Coverage soft-pass remains **only** via the explicit hatches already documented:
+  - branch-only hairline → `--allow-coverage-debt=#N` (#2866 / #2573)
+  - incident hang / untested ship → `--skip-ci` + `--allow-skip-ci=#N` (#2652)
+- ⊗ Silent soft-pass of coverage (no `#N`, no loud WARN) is forbidden in every mode.
+
+### Routine cut (faster wall-clock, same gates)
+
+Speed comes from **not scanning junk trees** and from **pre-cut hygiene**, not from skipping coverage:
+
+1. **Default-exclude scratch / worktree noise (#2953).** Content, link, stub, codebase-map, and build-dist walks skip `.deft-scratch/` (and legacy `swarm-worktrees/`) by default. Release Step 5 must not enumerate `.deft-scratch/worktrees/**` unless you are deliberately debugging those trees.
+2. **Prefer a clean tip.** Confirm required CI checks are green on the `master` tip you will tag (`gh run list` / required status). Green tip CI is a **precondition for calm routine cuts**, not a substitute for Step 5.
+3. **Prune stale worktrees before the cut** when a maintainer clone is heavy: `git worktree list`, remove abandoned `.deft-scratch/worktrees/*` entries, or cut from a clean clone. This is operator hygiene, not a flag.
+4. **Still run full Step 5** unless you are in an explicit incident path (`--skip-ci` + `--allow-skip-ci=#N`). Routine does **not** mean “trust CI and skip coverage.”
+
+### Trust CI vs full local check
+
+| Mode | When | Step 5 coverage | Soft-pass rule |
+| --- | --- | --- | --- |
+| **Hard cut** | Default; large / risky tip | Full `task check` + coverage | Only #2866 hatch or #2652 skip-ci with `#N` |
+| **Routine cut** | Calm tip; scratch excluded; CI green on tip | Full `task check` + coverage (same) | Same — no silent soft-pass |
+| **Incident skip** | Tracked hang / unblock with review | Skipped via `--skip-ci` | Requires `--allow-skip-ci=#N` + loud WARN |
+
+Optional future: a explicit “trust recent green required checks on tip” flag may land as a separate story. Until then, **hard cut = full Step 5** and **routine cut = full Step 5 + scratch exclude + hygiene**. Do not invent a silent lighter path that zeros coverage thresholds without `#N`.
+
+### Debugging scratch inclusion
+
+If you need to inspect markdown under a worktree, open that worktree path as cwd for `task validate-links` / tools — do not re-enable repo-root walks into `.deft-scratch/` for production cuts.
+
+Pointer: `skills/deft-directive-release/SKILL.md` § Routine vs hard cut (#2953).
+
 ## What the Smoke Tests Verify
 
 Every build is tested on its native platform (including `macos-latest` and `ubuntu-24.04-arm`):

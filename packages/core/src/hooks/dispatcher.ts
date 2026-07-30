@@ -18,9 +18,21 @@ import {
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
+import {
+  type HookPayloadContext,
+  hookMcpArgsText,
+  hookShellCommand,
+  hookToolName,
+  hookWriteTargetPath,
+  missingToolNameMessage,
+  record,
+} from "./classify/index.js";
 import { isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
+
+// Pure parse/classify helpers are defined in ./classify/ and re-exported from
+// ./index.ts (#2950). Dispatcher is orchestration: classify → policy → decision.
 
 export { hookReadOnlyFromPayload, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
 export {
@@ -90,12 +102,6 @@ export interface HookDecision {
   readonly scopePath: string | null;
 }
 
-/** Stdin parse metadata from hook-dispatch; absent when callers supply payload directly. */
-export interface HookPayloadContext {
-  readonly stdinEmpty?: boolean;
-  readonly parseFailed?: boolean;
-}
-
 export interface HookDispatchInput {
   readonly host: HookHost;
   readonly event: HookEvent;
@@ -118,167 +124,6 @@ export interface HookPolicySeams {
     message: string;
   };
   readonly loadRuntimeAuthority?: (projectRoot: string) => RuntimeAuthorityPolicy;
-}
-
-function record(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-/** First non-empty trimmed string from candidates (array form — clear arity for static tools). */
-function firstString(values: readonly unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim().length > 0) return value.trim();
-  }
-  return null;
-}
-
-function fieldPresent(input: Record<string, unknown>, key: string): boolean {
-  return key in input;
-}
-
-function fieldString(input: Record<string, unknown>, key: string): string | null {
-  const value = input[key];
-  if (typeof value === "string" && value.trim().length > 0) return value.trim();
-  return null;
-}
-
-function toolInputRecord(payload: Record<string, unknown>): Record<string, unknown> | null {
-  const toolCall = record(payload.tool_call) ?? record(payload.toolCall);
-  return (
-    record(payload.tool_input) ??
-    record(payload.toolInput) ??
-    record(payload.input) ??
-    record(payload.arguments) ??
-    (toolCall !== null ? record(toolCall.arguments) : null)
-  );
-}
-
-/**
- * Cursor preToolUse payloads sometimes omit `tool_name` even when the hook matcher
- * fired for a direct-write tool (#2628). Infer from nested tool input when possible.
- */
-function inferCursorDirectWriteToolName(payload: Record<string, unknown>): string | null {
-  const toolInput = toolInputRecord(payload);
-  if (toolInput !== null) {
-    if (
-      fieldPresent(toolInput, "new_string") ||
-      fieldPresent(toolInput, "newString") ||
-      fieldPresent(toolInput, "old_string") ||
-      fieldPresent(toolInput, "oldString")
-    ) {
-      return "StrReplace";
-    }
-
-    if (
-      fieldString(toolInput, "contents") !== null ||
-      fieldString(toolInput, "content") !== null ||
-      fieldString(toolInput, "text") !== null
-    ) {
-      return "Write";
-    }
-
-    if (
-      fieldString(toolInput, "patch") !== null ||
-      fieldString(toolInput, "unified_diff") !== null ||
-      fieldString(toolInput, "diff") !== null
-    ) {
-      return "ApplyPatch";
-    }
-
-    if (Array.isArray(toolInput.edits)) return "MultiEdit";
-    if (Array.isArray(toolInput.cells) || toolInput.cell_id != null) {
-      return "NotebookEdit";
-    }
-  }
-
-  // Cursor maps Claude Edit → Write; a write target without contents is still a direct write.
-  if (hookWriteTargetPath(payload) !== null) return "Write";
-
-  return null;
-}
-
-export function hookPayloadTopLevelKeys(payload: unknown): string[] {
-  const input = record(payload);
-  if (input === null) return [];
-  return Object.keys(input).sort();
-}
-
-export function hookToolName(payload: unknown, host?: HookHost): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const toolObject = record(input.tool);
-  const toolCall = record(input.tool_call) ?? record(input.toolCall);
-  // OpenAI-style nestings are host-agnostic; checked before Cursor-only inference.
-  const direct =
-    fieldString(input, "tool_name") ??
-    fieldString(input, "toolName") ??
-    fieldString(input, "tool") ??
-    (toolObject !== null ? fieldString(toolObject, "name") : null) ??
-    (toolCall !== null ? fieldString(toolCall, "name") : null);
-  if (direct !== null) return direct;
-  if (host === "cursor") return inferCursorDirectWriteToolName(input);
-  return null;
-}
-
-interface MissingToolNameInput {
-  readonly host: HookHost;
-  readonly payload: unknown;
-  readonly context?: HookPayloadContext;
-}
-
-function missingToolNameMessage(input: MissingToolNameInput): string {
-  const { host, payload, context } = input;
-  if (host === "cursor") {
-    if (context?.stdinEmpty) {
-      return (
-        "Directive denied this Cursor preToolUse event because the host sent an empty payload " +
-        "(stdin was empty — not a session ritual or scope failure). " +
-        "If write tools should pass, update Directive or report the payload shape from Cursor."
-      );
-    }
-    if (context?.parseFailed) {
-      return (
-        "Directive denied this Cursor preToolUse event because the host payload was not valid JSON " +
-        "(host-integration mismatch — not a session ritual or scope failure). " +
-        "If write tools should pass, update Directive or report the payload shape from Cursor."
-      );
-    }
-    const keys = hookPayloadTopLevelKeys(payload);
-    if (keys.length > 0) {
-      return (
-        "Directive denied this Cursor preToolUse event because the host payload omitted a " +
-        "recognizable tool name (host-integration mismatch — not a session ritual or scope failure). " +
-        `Top-level payload keys: ${keys.join(", ")}. ` +
-        "If write tools should pass, update Directive or report the payload shape from Cursor."
-      );
-    }
-    return (
-      "Directive denied this Cursor preToolUse event because the host payload omitted a " +
-      "recognizable tool name (host-integration mismatch — not a session ritual or scope failure). " +
-      "If write tools should pass, update Directive or report the payload shape from Cursor."
-    );
-  }
-  return "Directive denied this matched write event because the host payload omitted its tool name.";
-}
-
-/**
- * Best-effort write-target path from host PreToolUse payloads (#2625).
- * Hosts disagree on nesting (`tool_input.file_path` vs top-level `path`).
- */
-export function hookWriteTargetPath(payload: unknown): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const toolInput = toolInputRecord(input);
-  return firstString([
-    toolInput?.file_path,
-    toolInput?.filePath,
-    toolInput?.path,
-    input.file_path,
-    input.filePath,
-    input.path,
-  ]);
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -465,36 +310,6 @@ function runtimeAuthorityForDirectWrite(
     verdict.reason ?? "Directive denied this direct write under runtime authority policy.",
     scopePath,
   );
-}
-
-/**
- * Best-effort shell command string from host PreToolUse payloads (#2711).
- * Hosts disagree on nesting (`tool_input.command` vs top-level `command`).
- */
-export function hookShellCommand(payload: unknown): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const toolInput = toolInputRecord(input);
-  return firstString([
-    toolInput !== null ? toolInput.command : null,
-    toolInput !== null ? toolInput.cmd : null,
-    toolInput !== null ? toolInput.shell_command : null,
-    input.command,
-    input.cmd,
-  ]);
-}
-
-/** Serialize tool args for MCP classification when nested objects are present (#2711). */
-function hookMcpArgsText(payload: unknown): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const toolInput = toolInputRecord(input);
-  if (toolInput === null) return null;
-  try {
-    return JSON.stringify(toolInput);
-  } catch {
-    return null;
-  }
 }
 
 function loadRuntimeAuthorityPolicySafe(

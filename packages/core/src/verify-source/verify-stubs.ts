@@ -12,6 +12,9 @@ export const EXCLUDE_DIRS = new Set([
   "__pycache__",
   "dist",
   "scripts",
+  // Swarm / agent worktrees are not product source (#2953, #1656).
+  ".deft-scratch",
+  "swarm-worktrees",
 ]);
 
 export const EXTENSIONS = new Set([".py", ".go", ".sh"]);

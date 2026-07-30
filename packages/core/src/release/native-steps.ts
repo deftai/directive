@@ -100,15 +100,21 @@ export function runBuildNative(
     return [false, "build requires a release version"];
   }
   const env = { ...process.env, DEFT_RELEASE_VERSION: version };
+  // Inherit stderr so build-dist-runner progress ticks stream live during
+  // release Step 8; capture stdout only for the archive path (#2953).
   const result = spawnSync(process.execPath, [BUILD_DIST_RUNNER, version, projectRoot], {
     cwd: projectRoot,
     encoding: "utf8",
     env,
+    stdio: ["ignore", "pipe", "inherit"],
   });
   if (result.status !== 0) {
-    const msg = (result.stderr ?? result.stdout ?? "").trim() || `exit ${result.status ?? 1}`;
+    const captured =
+      (typeof result.stderr === "string" ? result.stderr : "") ||
+      (typeof result.stdout === "string" ? result.stdout : "");
+    const msg = captured.trim() || `exit ${result.status ?? 1}`;
     return [false, `build failed: ${msg}`];
   }
-  const out = (result.stdout ?? "").trim();
+  const out = (typeof result.stdout === "string" ? result.stdout : "").trim();
   return [true, `build ran clean (DEFT_RELEASE_VERSION=${version}) -> ${out}`];
 }

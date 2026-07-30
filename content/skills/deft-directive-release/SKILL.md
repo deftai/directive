@@ -140,6 +140,21 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure d
 
 See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch during release.
 
+### Routine vs hard cut for Step 5 (#2953)
+
+! Treat **hard cut** as the default: full Step 5 (`task check` + Vitest coverage) with no `--skip-ci`.
+
+~ Treat **routine cut** as the same full Step 5, sped up by default-excluding `.deft-scratch/` (and legacy `swarm-worktrees/`) from content/link/path/build-dist walks, plus pre-cut hygiene (green required checks on the tip SHA; prune stale `.deft-scratch/worktrees`).
+
+! Confirm required CI is green on the tip you will tag when aiming for a calm routine cut — green tip CI is a precondition, not a replacement for Step 5.
+
+⊗ Invent a silent lighter Step 5 that skips or soft-passes coverage without an explicit hatch (`--allow-coverage-debt=#N` for branch-only hairlines, or `--skip-ci` + `--allow-skip-ci=#N` for incidents). Silent soft-pass is forbidden in every mode.
+
+~ Prefer pruning abandoned worktrees / cutting from a clean clone over re-scanning scratch noise.
+
+See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Routine vs hard cut for Step 5 (#2953).
+
+
 ~ **Frozen Go-installer bridge (#1912 / #1972 / #1987):** by default a release tag *above* the frozen line (the `LAST_GO_INSTALLER` constant in `packages/core/src/legacy-bridge/sot.ts`) will NOT rebuild the 6 Go binaries -- the CI `freeze-gate` job in `.github/workflows/release.yml` skips the build (the run stays green; npm still ships from the separate `npm-publish.yml`). If this release must rebuild the Go installer, follow the runbook in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge: roll `LAST_GO_INSTALLER` forward to the cut tag BEFORE tagging (pinning to the exact cut tag both releases the gate AND re-freezes at the new line), then see that section's "After the release" step for the re-pin.
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
