@@ -81,4 +81,33 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("gh -R owner/repo pr create --title t")).toContain("pr");
     expect(classifyShellAuthzOps("gh --repo owner/repo pr merge 1")).toContain("merge");
   });
+
+  it("covers deploy/settings/api and env-prefixed shell", () => {
+    expect(classifyShellAuthzOps("FOO=1 gh issue create --title t")).toContain("issue_mutation");
+    expect(classifyShellAuthzOps("env FOO=1 cargo test")).toContain("test");
+    expect(classifyShellAuthzOps("npm test")).toContain("test");
+    expect(classifyShellAuthzOps("yarn test")).toContain("test");
+    expect(classifyShellAuthzOps("task test")).toContain("test");
+    expect(classifyShellAuthzOps("helm upgrade chart")).toContain("deployment");
+    expect(classifyShellAuthzOps("kubectl apply -f x.yaml")).toContain("deployment");
+    expect(classifyShellAuthzOps("vercel deploy")).toContain("deployment");
+    expect(classifyShellAuthzOps("gh api repos/o/r/issues")).toContain("issue_mutation");
+    expect(classifyShellAuthzOps("gh api repos/o/r/settings")).toContain("settings");
+    expect(classifyShellAuthzOps("gh pr reopen 1")).toContain("pr");
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Shell",
+        shellCommand: "git status",
+        isDirectWrite: false,
+      }),
+    ).toEqual([]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "mcp__github__merge_pull_request",
+        shellCommand: null,
+        isDirectWrite: false,
+        mcpArgsText: "{}",
+      }),
+    ).toContain("merge");
+  });
 });

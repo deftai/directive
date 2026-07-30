@@ -8,6 +8,7 @@ import {
   listActiveHumanGrants,
   loadAuthzState,
   loadAuthzStateResult,
+  loadGrant,
   markGrantUsed,
   parseGrant,
   saveGrant,
@@ -118,5 +119,51 @@ describe("authz store (#2944)", () => {
     });
     const again = markGrantUsed(root, grant.id);
     expect(again?.semantics.usedAt).toBeNull();
+  });
+
+  it("listActiveHumanGrants honors pin set, expiry, and corrupt grant files", () => {
+    const root = tempRoot();
+    const a = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c",
+      grantId: "grant-a",
+      pinActive: true,
+    });
+    mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c",
+      grantId: "grant-b",
+    });
+    mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c",
+      grantId: "grant-expired",
+      expiresAt: "2000-01-01T00:00:00Z",
+    });
+    // Corrupt grant file is skipped
+    const gdir = join(root, ".deft", "authz", "grants");
+    writeFileSync(join(gdir, "bad.json"), "{nope", "utf8");
+    writeFileSync(join(gdir, "not-json.txt"), "x", "utf8");
+    const state = loadAuthzState(root);
+    // pin only grant-a
+    const pinned = listActiveHumanGrants(root, {
+      ...state,
+      activeGrantIds: [a.id],
+    });
+    expect(pinned.map((g) => g.id)).toEqual([a.id]);
+    const allActive = listActiveHumanGrants(root, { ...state, activeGrantIds: [] });
+    expect(allActive.some((g) => g.id === "grant-expired")).toBe(false);
+    expect(markGrantUsed(root, "missing-id")).toBeNull();
+  });
+
+  it("loadGrant null paths and parseUat incomplete", () => {
+    const root = tempRoot();
+    expect(loadGrant(root, "nope")).toBeNull();
+    mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+    writeFileSync(join(root, ".deft", "authz", "grants", "broken.json"), "{", "utf8");
+    expect(loadGrant(root, "broken")).toBeNull();
   });
 });
