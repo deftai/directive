@@ -8,11 +8,12 @@ import {
 } from "../policy/no-deft-directive.js";
 import {
   classifyMcpTool,
-  classifyShellCommand,
   evaluateRuntimeAuthorityDirectWrite,
   evaluateRuntimeAuthorityShellOp,
+  listShellOps,
   loadRuntimeAuthorityFromProject,
   type RuntimeAuthorityPolicy,
+  type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
@@ -123,7 +124,8 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function firstString(...values: unknown[]): string | null {
+/** First non-empty trimmed string from candidates (array form — clear arity for static tools). */
+function firstString(values: readonly unknown[]): string | null {
   for (const value of values) {
     if (typeof value === "string" && value.trim().length > 0) return value.trim();
   }
@@ -267,14 +269,14 @@ export function hookWriteTargetPath(payload: unknown): string | null {
   const input = record(payload);
   if (input === null) return null;
   const toolInput = toolInputRecord(input);
-  return firstString(
+  return firstString([
     toolInput?.file_path,
     toolInput?.filePath,
     toolInput?.path,
     input.file_path,
     input.filePath,
     input.path,
-  );
+  ]);
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -471,13 +473,13 @@ export function hookShellCommand(payload: unknown): string | null {
   const input = record(payload);
   if (input === null) return null;
   const toolInput = toolInputRecord(input);
-  return firstString(
+  return firstString([
     toolInput !== null ? toolInput.command : null,
     toolInput !== null ? toolInput.cmd : null,
     toolInput !== null ? toolInput.shell_command : null,
     input.command,
     input.cmd,
-  );
+  ]);
 }
 
 /** Serialize tool args for MCP classification when nested objects are present (#2711). */
@@ -529,24 +531,18 @@ function decideShellOrMcpRuntimeAuthority(
     };
   }
 
-  let op = null as ReturnType<typeof classifyShellCommand>;
+  // Shell: evaluate every classifiable op in compound/multi-line commands (#2711 Greptile).
+  // MCP: single tool name maps to at most one op.
+  const ops: RuntimeAuthorityShellOp[] = [];
   if (isShellTool(toolName)) {
     const command = hookShellCommand(input.payload);
-    op = command !== null ? classifyShellCommand(command) : null;
+    if (command !== null) ops.push(...listShellOps(command));
   } else if (isMcpTool(toolName)) {
-    op = classifyMcpTool(toolName, hookMcpArgsText(input.payload));
+    const mcpOp = classifyMcpTool(toolName, hookMcpArgsText(input.payload));
+    if (mcpOp !== null) ops.push(mcpOp);
   }
 
-  const verdict = evaluateRuntimeAuthorityShellOp({ policy, op });
-  if (!verdict.allowed) {
-    return deny(
-      input,
-      verdict.code ?? "runtime-policy-deny-scope",
-      toolName,
-      verdict.reason ?? "Directive denied this shell/MCP operation under runtime authority policy.",
-    );
-  }
-  if (verdict.unclassifiable) {
+  if (ops.length === 0) {
     return {
       verdict: "allow",
       code: "shell-op-unclassifiable",
@@ -560,6 +556,22 @@ function decideShellOrMcpRuntimeAuthority(
       scopePath: null,
     };
   }
+
+  // Deny if any classifiable op is out of scope (compound commands must not short-circuit).
+  for (const op of ops) {
+    const verdict = evaluateRuntimeAuthorityShellOp({ policy, op });
+    if (!verdict.allowed) {
+      return deny(
+        input,
+        verdict.code ?? "runtime-policy-deny-scope",
+        toolName,
+        verdict.reason ??
+          "Directive denied this shell/MCP operation under runtime authority policy.",
+      );
+    }
+  }
+
+  const opsLabel = ops.join("+");
   return {
     verdict: "allow",
     code: "shell-op-ready",
@@ -567,7 +579,7 @@ function decideShellOrMcpRuntimeAuthority(
     host: input.host,
     toolName,
     projectRoot,
-    message: `Directive runtimeAuthority allowed classifiable ${op} via ${toolName}.`,
+    message: `Directive runtimeAuthority allowed classifiable ${opsLabel} via ${toolName}.`,
     scopePath: null,
   };
 }

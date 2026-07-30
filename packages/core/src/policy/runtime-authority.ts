@@ -338,23 +338,40 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
 }
 
 /**
+ * List all classifiable push/merge ops in a shell command (#2711).
+ * Scans every list/pipeline/newline segment so compound commands like
+ * `gh pr merge 1 && git push` surface both ops (dispatcher evaluates each).
+ * Newlines are delimiters so multi-line scripts cannot hide a later push/merge.
+ */
+export function listShellOps(command: string): RuntimeAuthorityShellOp[] {
+  const cmd = command.trim();
+  if (cmd.length === 0) return [];
+  const found = new Set<RuntimeAuthorityShellOp>();
+  // Split on shell list/pipeline ops and newlines (not prose inside a single segment).
+  for (const raw of cmd.split(/(?:&&|\|\||[;&|\n\r])+/)) {
+    const op = classifyShellSegment(raw);
+    if (op !== null) found.add(op);
+  }
+  const out: RuntimeAuthorityShellOp[] = [];
+  // Stable order for deterministic multi-op evaluation.
+  if (found.has("push")) out.push("push");
+  if (found.has("merge")) out.push("merge");
+  return out;
+}
+
+/**
  * Classify a shell command string for push/merge scopes (#2711).
  * Unclassifiable commands return null (fail open at the gate).
+ * When a compound command has multiple ops, returns the first of listShellOps
+ * (push before merge); prefer listShellOps + evaluate-each for enforcement.
  *
  * Patterns (intentionally narrow; prefer false-open over false-deny):
  * - push: `git push`, `git.exe push`, with optional env / -C / -c prefixes
  * - merge: `gh pr merge`, `gh.exe pr merge`
- * Segments split on `&&` / `||` / `;` / `|` / `&` so prose like `echo git push` does not match.
  */
 export function classifyShellCommand(command: string): RuntimeAuthorityShellOp | null {
-  const cmd = command.trim();
-  if (cmd.length === 0) return null;
-  // Split pipeline/list segments so "cd x && git push" classifies; prose "echo git push" does not.
-  for (const raw of cmd.split(/(?:&&|\|\||[;&|])/)) {
-    const op = classifyShellSegment(raw);
-    if (op !== null) return op;
-  }
-  return null;
+  const ops = listShellOps(command);
+  return ops[0] ?? null;
 }
 
 /**

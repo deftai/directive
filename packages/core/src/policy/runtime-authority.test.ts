@@ -7,6 +7,7 @@ import {
   evaluateRuntimeAuthorityPath,
   evaluateRuntimeAuthorityShellOp,
   inspectRuntimeAuthority,
+  listShellOps,
   loadRuntimeAuthorityPolicy,
   resolveRuntimeAuthorityPolicy,
   validateRuntimeAuthority,
@@ -145,6 +146,10 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
     expect(classifyShellCommand("git status")).toBeNull();
     expect(classifyShellCommand("echo git push is cool")).toBeNull();
     expect(classifyShellCommand("")).toBeNull();
+    // Compound / multi-line: list every op so enforcement can deny any out-of-scope step.
+    expect(listShellOps("gh pr merge 1 --squash && git push")).toEqual(["push", "merge"]);
+    expect(listShellOps("ls\ngit push origin HEAD")).toEqual(["push"]);
+    expect(listShellOps("git status && echo ok")).toEqual([]);
   });
 
   it("classifies MCP merge/push tool names", () => {

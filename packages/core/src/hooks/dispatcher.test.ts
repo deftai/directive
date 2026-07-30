@@ -1343,6 +1343,30 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(decision.code).toBe("shell-op-ready");
   });
 
+  it("denies compound merge&&push when push is out of scope even if merge is allowed", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "gh pr merge 1 --squash && git push origin HEAD" },
+        },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => ({
+          ...denyPushPolicy,
+          scopes: { edits: true, push: false, merge: true },
+        }),
+      },
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("runtime-policy-deny-scope");
+    expect(decision.message).toMatch(/scopes\.push is false/);
+  });
+
   it("extracts shell command from tool_input", () => {
     expect(hookShellCommand({ tool_name: "Bash", tool_input: { command: "git push" } })).toBe(
       "git push",
