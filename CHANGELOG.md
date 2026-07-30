@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#2952).** Focused shell/MCP classify edge tests, hooks tool-classifier coverage, and coverage-debt report edge cases clear the v0.88.0 84.9% hairline so the next release Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2952.
+
 ### Removed
 
 ## [0.88.0] - 2026-07-30

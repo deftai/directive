@@ -222,5 +222,81 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
       scopes: { edits: true, push: false, merge: false },
     });
     expect(evaluateRuntimeAuthorityShellOp({ policy: disabled, op: "push" }).allowed).toBe(true);
+    // Disabled policy with null op still reports unclassifiable for callers.
+    expect(evaluateRuntimeAuthorityShellOp({ policy: disabled, op: null }).unclassifiable).toBe(
+      true,
+    );
+  });
+
+  it("covers shell classify edge branches (wrappers, ||, glued opts, gh flags) (#2952)", () => {
+    // sudo / env / command wrappers + further env assigns after the wrapper.
+    expect(classifyShellCommand("sudo git push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("env FOO=1 git push")).toBe("push");
+    expect(classifyShellCommand("command gh pr merge 9")).toBe("merge");
+    // || pipeline separator (&& already covered).
+    expect(classifyShellCommand("false || git push origin HEAD")).toBe("push");
+    expect(listShellOps("false || gh pr merge 1")).toEqual(["merge"]);
+    // Git global value opts and glued short forms.
+    expect(classifyShellCommand("git -c user.name=x push")).toBe("push");
+    expect(classifyShellCommand("git --namespace=ns push")).toBe("push");
+    expect(classifyShellCommand("git -C/repo push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("git -cname=value push")).toBe("push");
+    expect(classifyShellCommand("git --bare push")).toBe("push");
+    // git with only global flags (no subcommand) fails open.
+    expect(classifyShellCommand("git -C /repo --bare")).toBeNull();
+    // gh boolean / equals-form flags before the pr verb (value-taking spaced flags stay fail-open).
+    expect(classifyShellCommand("gh --repo=o/r pr merge 3")).toBe("merge");
+    expect(classifyShellCommand("gh --json pr merge 3")).toBe("merge");
+    expect(classifyShellCommand("gh -R o/r pr merge 3")).toBeNull();
+    expect(classifyShellCommand("gh pr view 3")).toBeNull();
+    // Env-assign false positive: token without valid name rejects env skip path.
+    expect(classifyShellCommand("1=bad git push")).toBeNull();
+    // Carriage-return as segment delimiter.
+    expect(listShellOps("ls\rgit push origin HEAD")).toEqual(["push"]);
+  });
+
+  it("covers MCP classify edge patterns and args-blob paths (#2952)", () => {
+    expect(classifyMcpTool("")).toBeNull();
+    expect(classifyMcpTool("   ")).toBeNull();
+    expect(classifyMcpTool("pull_request_merge")).toBe("merge");
+    expect(classifyMcpTool("host__merge_pr__extra")).toBe("merge");
+    expect(classifyMcpTool("tools_pr-merge")).toBe("merge");
+    expect(classifyMcpTool("push_branch")).toBe("push");
+    expect(classifyMcpTool("push-branch")).toBe("push");
+    // push + (git|branch|remote|ref) conjunction.
+    expect(classifyMcpTool("remote_push_refs")).toBe("push");
+    // Args blob: only consulted when the tool name itself is not a known op.
+    expect(classifyMcpTool("run_shell", "git push origin main")).toBe("push");
+    expect(classifyMcpTool("run_shell", "gh pr merge 12 --squash")).toBe("merge");
+    expect(classifyMcpTool("run_shell", "git.exe push --force")).toBe("push");
+    expect(classifyMcpTool("run_shell", "gh.exe pr merge 1")).toBe("merge");
+    expect(classifyMcpTool("run_shell", null)).toBeNull();
+    expect(classifyMcpTool("run_shell", "")).toBeNull();
+  });
+
+  it("covers quote-aware segment split and evaluate allow-all path (#2952)", () => {
+    // Double-quoted separators must not invent segments.
+    expect(listShellOps('echo "git push" && true')).toEqual([]);
+    expect(listShellOps("git push origin HEAD | cat")).toEqual(["push"]);
+    expect(listShellOps("git push ; gh pr merge 1")).toEqual(["push", "merge"]);
+    // Both scopes granted evaluates to allow (unclassifiable false).
+    const full = resolveRuntimeAuthorityPolicy({
+      enabled: true,
+      scopes: { edits: true, push: true, merge: true },
+    });
+    const allowPush = evaluateRuntimeAuthorityShellOp({ policy: full, op: "push" });
+    expect(allowPush).toMatchObject({
+      allowed: true,
+      code: null,
+      unclassifiable: false,
+    });
+    const allowMerge = evaluateRuntimeAuthorityShellOp({ policy: full, op: "merge" });
+    expect(allowMerge.allowed).toBe(true);
+    // git --work-tree=/wt form (equals, not separate value token).
+    expect(classifyShellCommand("git --work-tree=/wt push")).toBe("push");
+    expect(classifyShellCommand("git --namespace ns push")).toBe("push");
+    // Only one wrapper layer is consumed (sudo|env|command); chained wrappers stay fail-open.
+    expect(classifyShellCommand("sudo env FOO=1 command git push")).toBeNull();
+    expect(classifyShellCommand("sudo FOO=1 git push")).toBe("push");
   });
 });

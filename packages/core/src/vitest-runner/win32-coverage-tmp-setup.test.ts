@@ -91,6 +91,31 @@ describe("win32-coverage-tmp-setup (#2634)", () => {
     expect(() => teardown()).not.toThrow();
     platformSpy.mockRestore();
   });
+
+  it("isCoverageTmpChunkPath rejects non-coverage tmp spellings (#2952)", () => {
+    // Regex requires a path separator before `coverage` (posix or win32).
+    expect(isCoverageTmpChunkPath("/repo/coverage/.tmp/coverage-0.json")).toBe(true);
+    expect(isCoverageTmpChunkPath("C:\\repo\\coverage\\.tmp\\coverage-999.json")).toBe(true);
+    expect(isCoverageTmpChunkPath("coverage/.tmp/coverage-0.json")).toBe(false);
+    expect(isCoverageTmpChunkPath("/repo/coverage/.tmp/coverage-0.txt")).toBe(false);
+    expect(isCoverageTmpChunkPath("/repo/coverage/tmp/coverage-0.json")).toBe(false);
+    expect(isCoverageTmpChunkPath("")).toBe(false);
+  });
+
+  it("installCoverageTmpWriteGuard is idempotent across uninstall (#2952)", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cov-idem-"));
+    tempRoots.push(root);
+    const chunkPath = join(root, "coverage", ".tmp", "coverage-1.json");
+    const uninstallA = installCoverageTmpWriteGuard();
+    const uninstallB = installCoverageTmpWriteGuard();
+    try {
+      await fsPromisesWrite(chunkPath, '{"idem":true}\n');
+      expect(readFileSync(chunkPath, "utf8")).toBe('{"idem":true}\n');
+    } finally {
+      uninstallB();
+      uninstallA();
+    }
+  });
 });
 
 async function fsPromisesWrite(path: string, data: string): Promise<void> {
