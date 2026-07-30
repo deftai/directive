@@ -57,6 +57,10 @@ export function isShellTool(toolName: string): boolean {
  * Best-effort MCP tool detection for runtimeAuthority push/merge scopes (#2711).
  * Host spellings vary (`mcp__*`, `server__tool`, bare MCP-looking names).
  * Unclassifiable MCP tools fail open at the operation classifier.
+ *
+ * Bare push/merge names (e.g. `merge_pull_request`) are NOT detected here —
+ * they are classified by `classifyMcpTool` and routed from `decideHook` so
+ * tools.ts stays free of policy imports (#2711 Greptile conf holdout).
  */
 export function isMcpTool(toolName: string): boolean {
   const raw = toolName.trim();
@@ -70,6 +74,36 @@ export function isMcpTool(toolName: string): boolean {
   return false;
 }
 
+/**
+ * Bare tool names that hosts may emit without mcp__/server__ prefixes and that
+ * `classifyMcpTool` treats as push or merge (#2711).
+ * Keep in sync with classifyMcpTool name patterns (narrow list for PreToolUse matchers).
+ */
+export const MCP_PUSH_MERGE_BARE_NAMES = [
+  "merge_pull_request",
+  "merge-pull-request",
+  "pull_request_merge",
+  "pull-request-merge",
+  "merge_pr",
+  "pr_merge",
+  "pr-merge",
+  "git_push",
+  "git-push",
+  "push_branch",
+  "push-branch",
+] as const;
+
 export const DIRECT_WRITE_HOOK_MATCHER = DIRECT_WRITE_TOOL_NAMES.join("|");
 export const SPAWN_HOOK_MATCHER = SPAWN_TOOL_NAMES.join("|");
 export const SHELL_HOOK_MATCHER = SHELL_TOOL_NAMES.join("|");
+/**
+ * PreToolUse matcher for MCP-class push/merge tools (#2711).
+ * Regex-friendly for Claude/nested hosts: mcp prefixes, bare names, and
+ * `server__tool` suffixes that classifyMcpTool recognizes.
+ */
+export const MCP_HOOK_MATCHER = [
+  "mcp__.*",
+  "mcp_.*",
+  ...MCP_PUSH_MERGE_BARE_NAMES,
+  ".*__(?:merge_pull_request|pull_request_merge|merge_pr|pr_merge|git_push|push_branch|merge-pull-request|pull-request-merge|git-push|push-branch)",
+].join("|");

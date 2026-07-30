@@ -30,6 +30,8 @@ export {
   isMcpTool,
   isShellTool,
   isSpawnTool,
+  MCP_HOOK_MATCHER,
+  MCP_PUSH_MERGE_BARE_NAMES,
   READ_ONLY_HOOK_ENV,
   SHELL_HOOK_MATCHER,
   SHELL_TOOL_NAMES,
@@ -532,12 +534,13 @@ function decideShellOrMcpRuntimeAuthority(
   }
 
   // Shell: evaluate every classifiable op in compound/multi-line commands (#2711 Greptile).
-  // MCP: single tool name maps to at most one op.
+  // MCP / bare push-merge names: single tool name maps to at most one op
+  // (includes bare `merge_pull_request` etc. that isMcpTool does not flag).
   const ops: RuntimeAuthorityShellOp[] = [];
   if (isShellTool(toolName)) {
     const command = hookShellCommand(input.payload);
     if (command !== null) ops.push(...listShellOps(command));
-  } else if (isMcpTool(toolName)) {
+  } else {
     const mcpOp = classifyMcpTool(toolName, hookMcpArgsText(input.payload));
     if (mcpOp !== null) ops.push(mcpOp);
   }
@@ -852,9 +855,14 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
   }
 
   // Shell/Bash and classifiable MCP: enforce scopes.push / scopes.merge (#2711).
-  // Does not require active-scope ritual (same session-time residual as path policy for
-  // non-write tools) — only runtimeAuthority when enabled.
-  if (isShellTool(toolName) || isMcpTool(toolName)) {
+  // Route bare push/merge MCP names (merge_pull_request, git_push, …) even when
+  // isMcpTool is false — classifyMcpTool is the gate (dispatcher-side, no tools↔policy cycle).
+  // Does not require active-scope ritual — only runtimeAuthority when enabled.
+  if (
+    isShellTool(toolName) ||
+    isMcpTool(toolName) ||
+    classifyMcpTool(toolName, hookMcpArgsText(input.payload)) !== null
+  ) {
     return decideShellOrMcpRuntimeAuthority(input, toolName, seams);
   }
 

@@ -4,6 +4,7 @@ import { assertDepositContained } from "../deposit/contain.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
@@ -16,6 +17,7 @@ import type { InitDepositIo } from "./constants.js";
 
 export {
   DIRECT_WRITE_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
@@ -166,6 +168,8 @@ function mergeNestedConfig(
     nestedGroup(host, "tool.before", SPAWN_HOOK_MATCHER),
     // Shell/Bash for runtimeAuthority scopes.push / scopes.merge (#2711)
     nestedGroup(host, "tool.before", SHELL_HOOK_MATCHER),
+    // MCP push/merge (mcp__*, bare merge_pull_request / git_push, …) (#2711)
+    nestedGroup(host, "tool.before", MCP_HOOK_MATCHER),
   ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
@@ -250,6 +254,12 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
     {
       command: command("cursor", "tool.before"),
       matcher: SHELL_HOOK_MATCHER,
+      failClosed: true,
+      timeout: 5,
+    },
+    {
+      command: command("cursor", "tool.before"),
+      matcher: MCP_HOOK_MATCHER,
       failClosed: true,
       timeout: 5,
     },
@@ -406,6 +416,10 @@ function hasNestedRegistration(
     preTool.some((entry) => {
       const group = object(entry);
       return group?.matcher === SHELL_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
+    }) &&
+    preTool.some((entry) => {
+      const group = object(entry);
+      return group?.matcher === MCP_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
     });
   if (!base) return false;
   if (!options.compact) return true;
@@ -446,6 +460,14 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
       return (
         hook?.command === command("cursor", "tool.before") &&
         hook.matcher === SHELL_HOOK_MATCHER &&
+        hook.failClosed === true
+      );
+    }) &&
+    preTool.some((entry) => {
+      const hook = object(entry);
+      return (
+        hook?.command === command("cursor", "tool.before") &&
+        hook.matcher === MCP_HOOK_MATCHER &&
         hook.failClosed === true
       );
     }) &&

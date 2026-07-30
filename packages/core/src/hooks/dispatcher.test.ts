@@ -1242,6 +1242,8 @@ describe("direct-write classifier", () => {
     expect(isShellTool("Write")).toBe(false);
     expect(isMcpTool("mcp__github__merge_pull_request")).toBe(true);
     expect(isMcpTool("Write")).toBe(false);
+    // Bare push/merge names are not isMcpTool — decideHook routes via classifyMcpTool.
+    expect(isMcpTool("merge_pull_request")).toBe(false);
   });
 });
 
@@ -1321,6 +1323,45 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     );
     expect(decision.verdict).toBe("deny");
     expect(decision.code).toBe("runtime-policy-deny-scope");
+  });
+
+  it("denies bare MCP merge_pull_request when scopes.merge is false (#2711)", () => {
+    // isMcpTool("merge_pull_request") is false; classifyMcpTool still returns "merge".
+    expect(isMcpTool("merge_pull_request")).toBe(false);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "merge_pull_request", tool_input: { pull_number: 1 } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("runtime-policy-deny-scope");
+    expect(decision.message).toMatch(/scopes\.merge is false/);
+  });
+
+  it("denies bare git_push when scopes.push is false (#2711)", () => {
+    expect(isMcpTool("git_push")).toBe(false);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "git_push", tool_input: { remote: "origin" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("runtime-policy-deny-scope");
+    expect(decision.message).toMatch(/scopes\.push is false/);
   });
 
   it("allows push when scopes.push is true", () => {
