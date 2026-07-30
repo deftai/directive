@@ -3,6 +3,7 @@ import {
   evidenceSatisfiesImplementationApproval,
   isHumanOrigin,
   isHumanOriginGrant,
+  isHumanOriginKind,
   isRejectedOriginKind,
 } from "./origin.js";
 import type { HumanOriginGrant } from "./types.js";
@@ -58,6 +59,36 @@ describe("human-origin provenance (#2944)", () => {
     expect(isHumanOriginGrant(grant({ kind: "operator-cli", actor: "agent" }))).toBe(false);
     expect(isHumanOriginGrant(grant({ kind: "operator-cli", actor: "agent:worker" }))).toBe(false);
     expect(isHumanOrigin(grant({ kind: "operator-cli", actor: "self" }).origin)).toBe(false);
+  });
+
+  it("null/empty origin kinds and grants", () => {
+    expect(isHumanOriginKind(null)).toBe(false);
+    expect(isHumanOriginKind(undefined)).toBe(false);
+    expect(isHumanOriginKind("")).toBe(false);
+    expect(isRejectedOriginKind(null)).toBe(false);
+    expect(isRejectedOriginKind("")).toBe(false);
+    expect(isHumanOriginGrant(null)).toBe(false);
+    expect(isHumanOriginGrant(undefined)).toBe(false);
+    expect(isHumanOrigin(null)).toBe(false);
+    expect(isHumanOrigin(undefined)).toBe(false);
+    expect(
+      isHumanOrigin({
+        kind: "",
+        actor: "op",
+        mintedAt: "t",
+        mintedVia: "x",
+        eventRef: null,
+      }),
+    ).toBe(false);
+    expect(
+      isHumanOrigin({
+        kind: "operator-cli",
+        actor: "",
+        mintedAt: "t",
+        mintedVia: "x",
+        eventRef: null,
+      }),
+    ).toBe(false);
   });
 
   it("self-authored lifecycle / dispatch evidence never satisfies implement gates", () => {

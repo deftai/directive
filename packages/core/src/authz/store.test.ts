@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.js";
 import { authzStatePath } from "./paths.js";
 import {
+  appendAuthzAudit,
   listActiveHumanGrants,
   loadAuthzState,
   loadAuthzStateResult,
@@ -165,5 +166,38 @@ describe("authz store (#2944)", () => {
     mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
     writeFileSync(join(root, ".deft", "authz", "grants", "broken.json"), "{", "utf8");
     expect(loadGrant(root, "broken")).toBeNull();
+  });
+
+  it("grant id path sanitization and append audit", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c",
+      grantId: "grant/with:weird*chars",
+    });
+    expect(g.id).toContain("grant");
+    appendAuthzAudit(root, {
+      schemaVersion: 1,
+      ts: "2026-07-30T00:00:00Z",
+      humanApprovalRef: g.id,
+      approvedScope: g.scope,
+      attemptedOp: "edit",
+      path: "src/a.ts",
+      result: "deny",
+      code: "authz-uat-deny",
+      message: "test",
+      campaignId: "c",
+    });
+    // second markGrantUsed on already-used single-use is no-op path
+    const su = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      cohortId: "c2",
+      singleUse: true,
+      grantId: "su-1",
+    });
+    markGrantUsed(root, su.id);
+    markGrantUsed(root, su.id);
   });
 });
