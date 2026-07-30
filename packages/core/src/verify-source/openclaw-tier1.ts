@@ -49,12 +49,7 @@ export const OPENCLAW_TIER1_TARGETS: readonly OpenclawTier1Target[] = [
   {
     path: "content/contracts/host-lifecycle-duties.md",
     label: "host lifecycle duty list contract (#2968 A3)",
-    markers: [
-      "Session start",
-      "Deft-shaped user intent",
-      "Skills Index",
-      "project root",
-    ],
+    markers: ["Session start", "Deft-shaped user intent", "Skills Index", "project root"],
   },
   {
     path: "packages/core/src/swarm/routing.ts",
