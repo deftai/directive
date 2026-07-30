@@ -379,24 +379,14 @@ export function shouldConsumeSingleUseGrant(decision: AuthzDecision): boolean {
   return decision.allowed && decision.humanApprovalRef !== null && decision.code === "authz-allow";
 }
 
-/**
- * Pure check: does this grant record alone satisfy implementation approval?
- * Used by unit tests and future intent-ceiling consumers (#1193).
- */
-export function grantSatisfiesImplementationApproval(
-  grant: HumanOriginGrant | null | undefined,
-): boolean {
-  return isHumanOriginGrant(grant ?? null);
-}
-
 /** Snapshot of approved scope for audit/deny messages. */
 export function describeScope(scope: GrantScope | null): string {
   if (scope === null) return "(none)";
   const parts = [
     `ops=[${scope.operations.join(",")}]`,
-    `surfaces=${scope.surfaces.length > 0 ? scope.surfaces.join("|") : "*"}`,
-    scope.cohortId !== null ? `cohort=${scope.cohortId}` : null,
-    scope.planRef !== null ? `plan=${scope.planRef}` : null,
+    `surfaces=${scope.surfaces.length === 0 ? "*" : scope.surfaces.join("|")}`,
+    scope.cohortId === null ? null : `cohort=${scope.cohortId}`,
+    scope.planRef === null ? null : `plan=${scope.planRef}`,
   ].filter((p): p is string => p !== null);
   return parts.join(" ");
 }

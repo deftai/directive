@@ -9,11 +9,8 @@ import {
   startUatLease,
   suspendUatLease,
 } from "./actions.js";
-import {
-  describeScope,
-  grantSatisfiesImplementationApproval,
-  shouldConsumeSingleUseGrant,
-} from "./evaluate.js";
+import { describeScope, shouldConsumeSingleUseGrant } from "./evaluate.js";
+import { isHumanOriginGrant } from "./origin.js";
 import { authzGrantPath } from "./paths.js";
 
 const roots: string[] = [];
@@ -96,7 +93,7 @@ describe("authz actions + helpers (#2944)", () => {
         cohortId: "c",
       }),
     ).toMatch(/ops=\[edit\]/);
-    expect(grantSatisfiesImplementationApproval(null)).toBe(false);
+    expect(isHumanOriginGrant(null)).toBe(false);
     expect(
       shouldConsumeSingleUseGrant({
         allowed: true,
