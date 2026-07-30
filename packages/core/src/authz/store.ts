@@ -176,18 +176,86 @@ export function parseAuthzState(raw: unknown): AuthzState {
   };
 }
 
-export function loadAuthzState(projectRoot: string): AuthzState {
+/**
+ * Load result distinguishes missing state (inactive) from corrupt state
+ * (fail-closed deny-all under UAT posture — #2944 Greptile/SLizard).
+ */
+export type AuthzStateLoad =
+  | { readonly ok: true; readonly state: AuthzState; readonly corrupt: false }
+  | {
+      readonly ok: false;
+      readonly state: AuthzState;
+      readonly corrupt: true;
+      readonly reason: string;
+    };
+
+/** Synthetic fail-closed state: active UAT with no human origin (evaluate treats corrupt separately). */
+function corruptFailClosedState(): AuthzState {
+  return {
+    schemaVersion: 1,
+    uat: {
+      active: true,
+      campaignId: "__corrupt_authz_state__",
+      startedAt: "1970-01-01T00:00:00Z",
+      startedBy: {
+        kind: "operator-cli",
+        actor: "system",
+        mintedAt: "1970-01-01T00:00:00Z",
+        mintedVia: "corrupt-state-fail-closed",
+        eventRef: null,
+      },
+      suspendedAt: null,
+      note: "authz state unreadable — fail closed",
+    },
+    activeGrantIds: [],
+  };
+}
+
+export function loadAuthzStateResult(projectRoot: string): AuthzStateLoad {
   const path = authzStatePath(projectRoot);
   if (!existsSync(path)) {
-    return { schemaVersion: 1, uat: null, activeGrantIds: [] };
+    return {
+      ok: true,
+      corrupt: false,
+      state: { schemaVersion: 1, uat: null, activeGrantIds: [] },
+    };
   }
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
-    return parseAuthzState(raw);
-  } catch {
-    // Fail closed for UAT posture: treat as no lease rather than inventing active UAT.
-    return { schemaVersion: 1, uat: null, activeGrantIds: [] };
+    return { ok: true, corrupt: false, state: parseAuthzState(raw) };
+  } catch (err) {
+    return {
+      ok: false,
+      corrupt: true,
+      reason: `authz state unreadable at ${path}: ${String(err)}`,
+      state: corruptFailClosedState(),
+    };
   }
+}
+
+export function loadAuthzState(projectRoot: string): AuthzState {
+  return loadAuthzStateResult(projectRoot).state;
+}
+
+/** Persist single-use grant consumption after an allow decision (#2944). */
+export function markGrantUsed(
+  projectRoot: string,
+  grantId: string,
+  now: Date = new Date(),
+): HumanOriginGrant | null {
+  const grant = loadGrant(projectRoot, grantId);
+  if (grant === null) return null;
+  if (!grant.semantics.singleUse) return grant;
+  if (grant.semantics.usedAt !== null) return grant;
+  const used: HumanOriginGrant = {
+    ...grant,
+    semantics: {
+      ...grant.semantics,
+      usedAt: utcIso(now),
+    },
+  };
+  saveGrant(projectRoot, used);
+  return used;
 }
 
 export function saveAuthzState(projectRoot: string, state: AuthzState): void {

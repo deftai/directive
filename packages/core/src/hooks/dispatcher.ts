@@ -8,7 +8,9 @@ import {
   evaluateAuthzMutation,
   type HumanOriginGrant,
   listActiveHumanGrants,
-  loadAuthzState,
+  loadAuthzStateResult,
+  markGrantUsed,
+  shouldConsumeSingleUseGrant,
   utcIso,
 } from "../authz/index.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
@@ -497,10 +499,25 @@ function runtimeAuthorityForDirectWrite(
 function loadAuthzContext(
   projectRoot: string,
   seams: HookPolicySeams,
-): { state: AuthzState; grants: readonly HumanOriginGrant[] } {
-  const state = (seams.loadAuthzState ?? loadAuthzState)(projectRoot);
-  const grants = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, state);
-  return { state, grants };
+): {
+  state: AuthzState;
+  grants: readonly HumanOriginGrant[];
+  corrupt: boolean;
+  corruptReason: string | null;
+} {
+  if (seams.loadAuthzState !== undefined) {
+    const state = seams.loadAuthzState(projectRoot);
+    const grants = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, state);
+    return { state, grants, corrupt: false, corruptReason: null };
+  }
+  const loaded = loadAuthzStateResult(projectRoot);
+  const grants = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, loaded.state);
+  return {
+    state: loaded.state,
+    grants,
+    corrupt: loaded.corrupt,
+    corruptReason: loaded.ok ? null : loaded.reason,
+  };
 }
 
 function authzCodeToHook(code: AuthzDecision["code"]): HookDecisionCode {
@@ -565,11 +582,20 @@ function authzForMutation(
   const projectRoot = resolve(input.projectRoot);
   let state: AuthzState;
   let grants: readonly HumanOriginGrant[];
+  let corrupt: boolean;
+  let corruptReason: string | null;
   try {
-    ({ state, grants } = loadAuthzContext(projectRoot, seams));
-  } catch {
-    // Fail open when store is unreadable outside intentional UAT posture.
-    return null;
+    ({ state, grants, corrupt, corruptReason } = loadAuthzContext(projectRoot, seams));
+  } catch (err) {
+    // Fail closed: unreadable authz store must not disable UAT enforcement (#2944).
+    return deny(
+      input,
+      "authz-uat-deny",
+      toolName,
+      `Directive denied this mutation: authz store unreadable (${String(err)}). ` +
+        "Human action required: repair `.deft/authz/state.json` or re-run `deft authz:uat-start`.",
+      options.scopePath,
+    );
   }
 
   const shellCommand = isShellTool(toolName) ? hookShellCommand(input.payload) : null;
@@ -580,8 +606,22 @@ function authzForMutation(
     mcpArgsText: options.isDirectWrite ? null : hookMcpArgsText(input.payload),
   });
 
-  // No classifiable authz ops (unrelated tools) — leave to other gates.
-  if (ops.length === 0) return null;
+  // No classifiable authz ops (unrelated tools) — leave to other gates,
+  // except corrupt state still fails closed on direct writes / classifiable shell.
+  if (ops.length === 0) {
+    if (corrupt && (options.isDirectWrite || isShellTool(toolName))) {
+      return deny(
+        input,
+        "authz-uat-deny",
+        toolName,
+        `Directive denied this mutation: ${corruptReason ?? "authz state corrupt"}. ` +
+          "Fail closed while UAT authority cannot be verified. " +
+          "Human action required: repair `.deft/authz/state.json`.",
+        options.scopePath,
+      );
+    }
+    return null;
+  }
 
   // Evaluate each op; first deny wins (compound shell must not short-circuit).
   for (const op of ops) {
@@ -600,6 +640,15 @@ function authzForMutation(
         decision.reason,
         options.scopePath,
       );
+    }
+    // Consume single-use grants after allow (persist usedAt).
+    if (shouldConsumeSingleUseGrant(decision) && decision.humanApprovalRef !== null) {
+      try {
+        markGrantUsed(projectRoot, decision.humanApprovalRef);
+      } catch {
+        // Persistence failure must not flip allow → deny after a successful check;
+        // next load will still see unused if write failed (prefer allow-once risk over deadlock).
+      }
     }
   }
   return null;

@@ -153,21 +153,38 @@ describe("evaluateAuthzMutation UAT lease (#2944)", () => {
       grants,
       op: "edit",
       path: "packages/app/src/fix/bug.ts",
+      storyIds: ["2944"],
     });
     expect(allowed.allowed).toBe(true);
     expect(allowed.humanApprovalRef).toBeTruthy();
+
+    // Bound story id required when grant pins storyIds (fail closed).
+    const missingStory = evaluateAuthzMutation({
+      state,
+      grants,
+      op: "edit",
+      path: "packages/app/src/fix/bug.ts",
+    });
+    expect(missingStory.allowed).toBe(false);
 
     const adjacent = evaluateAuthzMutation({
       state,
       grants,
       op: "edit",
       path: "packages/app/src/ui/Header.tsx",
+      storyIds: ["2944"],
     });
     expect(adjacent.allowed).toBe(false);
     expect(adjacent.code).toBe("authz-grant-scope-deny");
 
     // Approving edit cohort does not authorize push.
-    const push = evaluateAuthzMutation({ state, grants, op: "push", path: null });
+    const push = evaluateAuthzMutation({
+      state,
+      grants,
+      op: "push",
+      path: null,
+      storyIds: ["2944"],
+    });
     expect(push.allowed).toBe(false);
   });
 

@@ -6,7 +6,12 @@
  */
 
 import { matchAny } from "../orchestration/pathspec.js";
-import { isHumanOrigin, isHumanOriginGrant, isRejectedOriginKind } from "./origin.js";
+import {
+  evidenceSatisfiesImplementationApproval,
+  isHumanOrigin,
+  isHumanOriginGrant,
+  isRejectedOriginKind,
+} from "./origin.js";
 import type {
   AuthzDecision,
   AuthzDecisionCode,
@@ -102,27 +107,39 @@ function grantCoversSurface(grant: HumanOriginGrant, path: string | null): boole
   return matchAny(grant.scope.surfaces, path);
 }
 
+/**
+ * Structural context binding: when a grant pins a field, the attempt must supply
+ * a matching value. Missing attempt context does NOT skip the check (fail closed).
+ */
 function grantContextMatches(grant: HumanOriginGrant, input: EvaluateAuthzInput): boolean {
   const s = grant.scope;
-  if (s.repo !== null && input.repo !== null && input.repo !== undefined) {
+  if (s.repo !== null) {
+    if (input.repo === null || input.repo === undefined) return false;
     if (s.repo.toLowerCase() !== input.repo.toLowerCase()) return false;
   }
-  if (s.branch !== null && input.branch !== null && input.branch !== undefined) {
+  if (s.branch !== null) {
+    if (input.branch === null || input.branch === undefined) return false;
     if (s.branch !== input.branch) return false;
   }
-  if (s.worktree !== null && input.worktree !== null && input.worktree !== undefined) {
+  if (s.worktree !== null) {
+    if (input.worktree === null || input.worktree === undefined) return false;
     if (s.worktree !== input.worktree) return false;
   }
-  if (s.planRef !== null && input.planRef !== null && input.planRef !== undefined) {
+  if (s.planRef !== null) {
+    if (input.planRef === null || input.planRef === undefined) return false;
     if (s.planRef !== input.planRef) return false;
   }
-  if (s.storyIds.length > 0 && input.storyIds !== undefined && input.storyIds.length > 0) {
+  if (s.storyIds.length > 0) {
+    const attempt = input.storyIds ?? [];
+    if (attempt.length === 0) return false;
     const want = new Set(s.storyIds);
-    if (!input.storyIds.some((id) => want.has(id))) return false;
+    if (!attempt.some((id) => want.has(id))) return false;
   }
-  if (s.issueIds.length > 0 && input.issueIds !== undefined && input.issueIds.length > 0) {
+  if (s.issueIds.length > 0) {
+    const attempt = input.issueIds ?? [];
+    if (attempt.length === 0) return false;
     const want = new Set(s.issueIds);
-    if (!input.issueIds.some((id) => want.has(id))) return false;
+    if (!attempt.some((id) => want.has(id))) return false;
   }
   return true;
 }
@@ -187,18 +204,34 @@ function grantValidity(
 function findCoveringGrant(
   input: EvaluateAuthzInput,
   op: AuthzOperation,
-  requireCohort: boolean,
 ): { grant: HumanOriginGrant } | { grant: null; code: AuthzDecisionCode; reason: string } {
   const now = input.now ?? new Date();
   let lastReject: { code: AuthzDecisionCode; reason: string } | null = null;
 
   for (const grant of input.grants) {
+    // Production path: only human-origin grants satisfy implementation approval (#2944).
+    if (!evidenceSatisfiesImplementationApproval({ grant })) {
+      const validity = grantValidity(grant, now);
+      if (!validity.ok) {
+        lastReject = { code: validity.code, reason: validity.reason };
+        continue;
+      }
+      lastReject = {
+        code: "authz-grant-origin-reject",
+        reason:
+          `Directive denied this mutation: grant ${grant.id} does not satisfy human-origin ` +
+          "implementation approval (self-authored lifecycle/dispatch tokens never count). " +
+          "Human action required: run `deft authz:grant`.",
+      };
+      continue;
+    }
     const validity = grantValidity(grant, now);
     if (!validity.ok) {
       lastReject = { code: validity.code, reason: validity.reason };
       continue;
     }
-    if (requireCohort && (grant.scope.cohortId === null || grant.scope.cohortId.length === 0)) {
+    // Under active UAT, product mutations require a named fix cohort.
+    if (grant.scope.cohortId === null || grant.scope.cohortId.length === 0) {
       lastReject = {
         code: "authz-grant-scope-deny",
         reason:
@@ -317,7 +350,7 @@ export function evaluateAuthzMutation(input: EvaluateAuthzInput): AuthzDecision 
     );
   }
 
-  const covered = findCoveringGrant(input, input.op, true);
+  const covered = findCoveringGrant(input, input.op);
   if (covered.grant === null) {
     return deny(
       covered.code,
@@ -335,6 +368,14 @@ export function evaluateAuthzMutation(input: EvaluateAuthzInput): AuthzDecision 
     input,
     covered.grant,
   );
+}
+
+/**
+ * Whether a decision should mark a single-use grant spent after allow.
+ * Callers (dispatcher) persist via markGrantUsed.
+ */
+export function shouldConsumeSingleUseGrant(decision: AuthzDecision): boolean {
+  return decision.allowed && decision.humanApprovalRef !== null && decision.code === "authz-allow";
 }
 
 /**
