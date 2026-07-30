@@ -3,7 +3,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ContainedWriteError } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   dispatchProviderFromRuntime,
