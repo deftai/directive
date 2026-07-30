@@ -240,4 +240,23 @@ describe("native release steps", () => {
     expect(ok).toBe(true);
     expect(msg).toContain("DEFT_RELEASE_VERSION=1.2.3");
   });
+
+  it("runBuildNative inherits stderr so progress ticks stream live (#2953)", () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: "/proj/dist/deft-1.2.3.zip\n",
+      stderr: null,
+      pid: 1,
+      output: [null, "/proj/dist/deft-1.2.3.zip\n", null],
+      signal: null,
+      error: undefined,
+    } as ReturnType<typeof spawnSync>);
+    const [ok] = runBuildNative("/proj", "1.2.3");
+    expect(ok).toBe(true);
+    expect(vi.mocked(spawnSync)).toHaveBeenCalledWith(
+      process.execPath,
+      expect.any(Array),
+      expect.objectContaining({ stdio: ["ignore", "pipe", "inherit"] }),
+    );
+  });
 });

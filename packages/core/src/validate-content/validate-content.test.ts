@@ -91,6 +91,19 @@ describe("validate-links", () => {
     writeFileSync(join(archive, "old.md"), "See [gone](deleted.md).\n");
     expect(evaluateLinks({ cwd: root, strict: true }).code).toBe(0);
   });
+
+  it("excludes .deft-scratch worktrees from link walks (#2953)", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "README.md"), "ok\n");
+    const scratch = join(root, ".deft-scratch", "worktrees", "story-1");
+    mkdirSync(scratch, { recursive: true });
+    writeFileSync(join(scratch, "broken.md"), "See [gone](missing.md).\n");
+    // Broken links under scratch must not fail or warn — tree is not scanned.
+    expect(evaluateLinks({ cwd: root, strict: true }).code).toBe(0);
+    expect(evaluateLinks({ cwd: root, strict: true }).message).toContain(
+      "All internal markdown links valid",
+    );
+  });
 });
 
 describe("validate-strategy-output", () => {

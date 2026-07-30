@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildArchive,
   DEFAULT_EXCLUDES,
+  emitBuildProgress,
   iterSourceFiles,
   main,
   outputPath,
@@ -62,6 +63,22 @@ describe("build-dist helpers", () => {
     expect(DEFAULT_EXCLUDES.has(".coverage")).toBe(true);
   });
 
+  it("DEFAULT_EXCLUDES includes .deft-scratch worktree roots (#2953)", () => {
+    expect(DEFAULT_EXCLUDES.has(".deft-scratch")).toBe(true);
+    expect(DEFAULT_EXCLUDES.has("swarm-worktrees")).toBe(true);
+  });
+
+  it("iterSourceFiles skips .deft-scratch worktrees (#2953)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-scratch-"));
+    mkdirSync(join(root, ".deft-scratch", "worktrees", "story"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "# hi\n");
+    writeFileSync(join(root, ".deft-scratch", "worktrees", "story", "noise.md"), "x\n");
+
+    const rels = iterSourceFiles(root).map((e) => e.archiveRel);
+    expect(rels).toContain("README.md");
+    expect(rels.some((r) => r.includes(".deft-scratch"))).toBe(false);
+  });
+
   it("iterSourceFiles excludes coverage/.tmp Vitest artifacts", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-build-dist-coverage-"));
     mkdirSync(join(root, "coverage", ".tmp"), { recursive: true });
@@ -84,6 +101,39 @@ describe("build-dist helpers", () => {
 
     const out = await buildArchive(root, "9.9.9", "zip");
     expect(statSync(out).size).toBeGreaterThan(0);
+  });
+
+  it("emitBuildProgress formats stage ticks (#2953)", () => {
+    const chunks: string[] = [];
+    const stream = {
+      write: (s: string) => {
+        chunks.push(s);
+        return true;
+      },
+    };
+    emitBuildProgress(
+      { stage: "pack", current: 5, total: 20, detail: "zip" },
+      stream as { write: (s: string) => boolean },
+    );
+    expect(chunks.join("")).toContain("build-dist: pack 5/20 (25%)");
+    expect(chunks.join("")).toContain("zip");
+  });
+
+  it("buildArchive reports progress stages (#2953)", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-progress-"));
+    mkdirSync(join(root, "content"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "# fixture\n");
+    writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    const stages: string[] = [];
+    await buildArchive(root, "1.0.0", "zip", {
+      onProgress: (p) => {
+        stages.push(p.stage);
+      },
+    });
+    expect(stages).toContain("scan");
+    expect(stages).toContain("pack");
+    expect(stages).toContain("finalize");
+    expect(stages).toContain("done");
   });
 
   it("iterSourceFiles honors extra excludes and empty prefix list", () => {
