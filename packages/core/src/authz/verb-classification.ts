@@ -170,11 +170,11 @@ export function parseVerbClassification(raw: unknown): VerbClassificationTable {
   };
 }
 
-/** Built-in Wave 4 release-class rows used when the file is unavailable (tests / install). */
+/** Built-in Wave 4/5 rows used when the file is unavailable (tests / install). */
 export function builtinReleaseVerbClassification(): VerbClassificationTable {
   return parseVerbClassification({
     schemaVersion: 1,
-    description: "builtin release-class closed verbs (#1095)",
+    description: "builtin release-class + finish-loop closed verbs (#1095 / #871)",
     verbs: {
       "release-cut": {
         closure_set: [
@@ -217,6 +217,26 @@ export function builtinReleaseVerbClassification(): VerbClassificationTable {
         phase: "Phase 7",
         authz_operations: ["release-rollback", "deployment"],
         env_bypass: "DEFT_ALLOW_RELEASE_ROLLBACK",
+      },
+      "finish-loop": {
+        closure_set: [
+          "edit",
+          "push",
+          "pr",
+          "merge",
+          "pr-watch",
+          "pr-finish-loop",
+          "directive-finish-loop",
+        ],
+        explicit_required: ["release-cut", "release-publish", "release-rollback"],
+        irreversibility: "reversible-via-git-revert",
+        wildcard_allowed: false,
+        recurring_allowed: true,
+        default_expiry: "8h",
+        skill: "content/contracts/finish-loop.md",
+        phase: "walk-away",
+        authz_operations: ["edit", "push", "pr", "merge"],
+        env_bypass: "DEFT_ALLOW_FINISH_LOOP",
       },
     },
   });

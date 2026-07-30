@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Closed-verb classification for release-class AFK gates (#1095 Wave 4 / #2948). Consumed by evaluateClosedVerb; grants mint via authz:grant only.",
+  "description": "Closed-verb + AFK finish-loop classification (#1095 Wave 4 / #871 Wave 5 / #2948). Consumed by evaluateClosedVerb and finish-loop gates; grants mint via authz:grant only.",
   "verbs": {
     "release-cut": {
       "closure_set": [
@@ -43,6 +43,26 @@
       "phase": "Phase 7",
       "authz_operations": ["release-rollback", "deployment"],
       "env_bypass": "DEFT_ALLOW_RELEASE_ROLLBACK"
+    },
+    "finish-loop": {
+      "closure_set": [
+        "edit",
+        "push",
+        "pr",
+        "merge",
+        "pr-watch",
+        "pr-finish-loop",
+        "directive-finish-loop"
+      ],
+      "explicit_required": ["release-cut", "release-publish", "release-rollback"],
+      "irreversibility": "reversible-via-git-revert",
+      "wildcard_allowed": false,
+      "recurring_allowed": true,
+      "default_expiry": "8h",
+      "skill": "content/contracts/finish-loop.md",
+      "phase": "walk-away",
+      "authz_operations": ["edit", "push", "pr", "merge"],
+      "env_bypass": "DEFT_ALLOW_FINISH_LOOP"
     }
   }
 }

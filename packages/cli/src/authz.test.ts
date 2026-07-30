@@ -125,6 +125,23 @@ describe("authz CLI (#2944)", () => {
     expect(err.join("")).toMatch(/--target/);
   });
 
+  it("grant --template finish-loop mints edit/push/pr/merge without --target (#871)", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    expect(
+      main(["grant", "--project-root", root, "--template", "finish-loop", "--actor", "op"]),
+    ).toBe(0);
+    const joined = out.join("");
+    expect(joined).toMatch(/template=finish-loop/);
+    expect(joined).toMatch(/edit/);
+    expect(joined).toMatch(/merge/);
+    expect(joined).toMatch(/release-\* NOT authorized|finish-loop walk-away/);
+  });
+
   it("help and unknown subcommand", () => {
     expect(main(["--help"])).toBe(0);
     const err: string[] = [];

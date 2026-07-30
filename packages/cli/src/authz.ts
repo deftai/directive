@@ -8,14 +8,19 @@
  *   deft authz:uat-suspend
  *   deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> ...
  *   deft authz:grant -- --template release-publish --target 0.30.0
+ *   deft authz:grant -- --template finish-loop
  *   deft authz:revoke -- <grant-id>
  */
 import {
+  AFK_TEMPLATE_NAMES,
   AUTHZ_OPERATIONS,
   type AuthzOperation,
   CLOSED_VERB_TEMPLATE_NAMES,
+  FINISH_LOOP_TEMPLATE_NAME,
+  isAfkTemplateName,
   isClosedVerbTemplateName,
-  mintClosedVerbTemplateGrant,
+  isFinishLoopTemplateName,
+  mintAfkTemplateGrant,
   mintHumanOriginGrant,
   revokeGrant,
   showAuthzSnapshot,
@@ -219,14 +224,17 @@ function helpText(): string {
     "  deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> \\",
     "      [--stories 2944] [--plan-ref <id>] [--repo owner/name] [--branch <b>] [--expires ISO]",
     "  deft authz:grant -- --template release-publish --target 0.30.0 [--actor <name>] [--expires ISO]",
+    "  deft authz:grant -- --template finish-loop [--actor <name>] [--expires ISO]",
     "  deft authz:revoke -- <grant-id>",
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
     "",
-    `AFK closed-verb templates (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")}`,
+    `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
+    `  Closed-verb (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")} — require --target`,
+    `  Finish-loop (#871): ${FINISH_LOOP_TEMPLATE_NAME} — edit/push/pr/merge (no release ops)`,
     "  Templates call mintHumanOriginGrant only — no second session-auth mint engine.",
-    "  Env bypass for a single shell: DEFT_ALLOW_RELEASE_PUBLISH=1 (etc.).",
+    "  Env bypass for a single shell: DEFT_ALLOW_RELEASE_PUBLISH=1 / DEFT_ALLOW_FINISH_LOOP=1.",
   ].join("\n");
 }
 
@@ -310,21 +318,24 @@ export function main(argv: string[] = process.argv.slice(2)): number {
         return 0;
       }
       case "grant": {
-        // AFK template path (#1095): presets only — still mintHumanOriginGrant.
+        // AFK template path (#1095 / #871): presets only — still mintHumanOriginGrant.
         if (args.template !== null && args.template.trim().length > 0) {
-          if (!isClosedVerbTemplateName(args.template)) {
+          if (!isAfkTemplateName(args.template)) {
             process.stderr.write(
-              `authz:grant unknown --template '${args.template}'; expected one of: ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")}\n`,
+              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}\n`,
             );
             return 2;
           }
-          if (args.target === null || args.target.trim().length === 0) {
+          if (
+            isClosedVerbTemplateName(args.template) &&
+            (args.target === null || args.target.trim().length === 0)
+          ) {
             process.stderr.write(
               `authz:grant --template ${args.template} requires --target <version>\n`,
             );
             return 2;
           }
-          const grant = mintClosedVerbTemplateGrant({
+          const grant = mintAfkTemplateGrant({
             projectRoot: args.projectRoot,
             template: args.template,
             target: args.target,
@@ -334,14 +345,25 @@ export function main(argv: string[] = process.argv.slice(2)): number {
             planRef: args.planRef,
             repo: args.repo,
             branch: args.branch,
+            surfaces: args.surfaces,
+            storyIds: args.storyIds,
+            issueIds: args.issueIds,
+            cohortId: args.cohort,
           });
           process.stdout.write(
             `✓ human-origin grant minted id=${grant.id} origin=${grant.origin.kind} ` +
               `template=${args.template}\n`,
           );
-          process.stdout.write(
-            `  ops=[${grant.scope.operations.join(",")}] target surfaces=${grant.scope.surfaces.join(", ")}\n`,
-          );
+          if (isFinishLoopTemplateName(args.template)) {
+            process.stdout.write(
+              `  ops=[${grant.scope.operations.join(",")}] ` +
+                `(finish-loop walk-away; release-* NOT authorized)\n`,
+            );
+          } else {
+            process.stdout.write(
+              `  ops=[${grant.scope.operations.join(",")}] target surfaces=${grant.scope.surfaces.join(", ")}\n`,
+            );
+          }
           process.stdout.write(
             "  Authorization SoT: Wave 1 grant store (.deft/authz/grants) — not session-auth.\n",
           );
@@ -349,7 +371,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...> or --template <release-*> --target <ver>\n",
+            "authz:grant requires --operations <edit,push,...> or --template <finish-loop|release-*> \n",
           );
           return 2;
         }

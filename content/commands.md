@@ -207,6 +207,22 @@ Use `task --list` for the exact current verify namespace.
 
 Use `task pr:watch -- <N>` as the blocking terminal-verdict wait for a `drive-to: merge-ready` Cursor `Task` leaf. A Cursor leaf cannot reliably spawn a nested `Task` review-monitor; do not replace the blocking wait with a background shell process or claim that it is monitoring.
 
+### Walk-away finish-loop (#871 / #2948 Wave 5)
+
+Mint a human-origin grant, then run the cascade:
+
+```bash
+deft authz:grant -- --template finish-loop
+task directive:finish-loop --
+task pr:finish-loop -- <N>          # after a PR is open
+# optional: task pr:finish-loop -- <N> --merge   # respects requireHumanMerge
+```
+
+- **Grant:** `edit` / `push` / `pr` / `merge` only (default 8h). Never authorizes release-*.
+- **Progress:** `.deft-cache/finish-loop-progress.jsonl`
+- **Exit codes:** `0` clean/empty queue · `1` agent address / AGENT_STEP / human-merge · `2` BLOCKED (no grant / error)
+- Full contract: `content/contracts/finish-loop.md`. Typed escalation UX is sibling **#518**.
+
 When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: pr-open`. The orchestrator that owns the Task primitive must spawn the sibling review-monitor and claim the PR-anchored lease with `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive cursor-task`; `task verify:review-monitor -- --pr <N>` remains the fail-closed proof of active GitHub ownership (sticky `<!-- deft:review-owner -->` comment — not local JSON). Release with `task review-monitor:release -- --pr <N>` when done. See `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring and `skills/deft-directive-swarm/SKILL.md` Phase 3.
 
 **Worker liveness (#2824):** For in-flight `drive-to: merge*` Cursor leaves, monitors run `task verify:subagent-alive -- --require-agent <agent-id> [--scratch-dir <worktree>/.deft-scratch/subagent-status]` each poll iteration. Exit `1` prints `REDISPATCH_OK` — authorize takeover when the host still reports running but heartbeats are missing/STALE. Raw heartbeat sweep: `task agent:monitor`. See `docs/subagent-heartbeat.md` § Cursor false-alive.
@@ -226,7 +242,8 @@ When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: p
 - Directive writes only `.codex/hooks.json`; it does not parse or modify `.codex/config.toml`. Codex can also load inline hooks from `config.toml`, so avoid defining duplicate Directive commands there or they may run more than once. See the [Codex hooks documentation](https://learn.chatgpt.com/docs/hooks).
 - The P0 hook slice does not classify shell-mediated *file* writes, richer unified-exec calls, or WebSearch by default. **Runtime authority (#1394 / #2711)** adds opt-in path allow/deny lists and graduated `scopes` (`edits`, `push`, `merge`) under `plan.policy.runtimeAuthority` — inspect with `deft policy:show --field=runtimeAuthority`. When `enabled: true`, PreToolUse denies classifiable direct-write targets outside `allowPaths` or matching `denyPaths` after ritual/scope/read-only gates; `scopes.edits` gates all direct writes. `scopes.push` / `scopes.merge` deny classifiable Shell/Bash (`git push`, `gh pr merge`) and classifiable MCP push/merge tool names; unclassifiable shell/MCP calls fail open (see `content/contracts/runtime-authority.md`). **Unified path write fence (#516 / #2443 / #2948 Wave 3):** PreToolUse also intersects project allow/deny with the active story’s `plan.metadata.swarm.file_scope` via `resolveWriteFence` (single evaluation SoT; optional `writeScope` alias normalizes at read-time only). Full contract: `content/contracts/path-write-fence.md`.
 - **Human-origin authz + UAT mutation lease (#2944 / #2948 Wave 1)** — `deft authz:uat-start` / `authz:grant` / `authz:show`. When UAT is active, PreToolUse denies product/UI edits, push, PR create/advance, and merge without a named fix-cohort human-origin grant; tests, issue filing, and evidence/defect-capture writes stay allowed. Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates. Contract: `content/contracts/human-origin-authz.md`.
-- **Closed-verb release gates + AFK templates (#1095 / #2948 Wave 4)** — `deft authz:grant -- --template release-publish --target <ver>` (also `release-cut`, `release-rollback`) mints Wave 1 operator-cli grants only. `deft release-publish` / `task release:publish` fails closed before draft→public unless a matching grant exists or `DEFT_ALLOW_RELEASE_PUBLISH=1`. No second session-auth mint engine. Full finish-loop remains #871 Wave 5. Contract: `content/contracts/closed-verb-authz.md`.
+- **Closed-verb release gates + AFK templates (#1095 / #2948 Wave 4)** — `deft authz:grant -- --template release-publish --target <ver>` (also `release-cut`, `release-rollback`) mints Wave 1 operator-cli grants only. `deft release-publish` / `task release:publish` fails closed before draft→public unless a matching grant exists or `DEFT_ALLOW_RELEASE_PUBLISH=1`. No second session-auth mint engine. Contract: `content/contracts/closed-verb-authz.md`.
+- **Walk-away finish-loop (#871 / #2948 Wave 5)** — `deft authz:grant -- --template finish-loop`; `task directive:finish-loop` / `task pr:finish-loop -- <N>`. Progress log `.deft-cache/finish-loop-progress.jsonl`. Contract: `content/contracts/finish-loop.md`.
 - **Typed escalation queue (#518 slim / #2948 Wave 5)** — `deft escalation:file` / `list` / `resolve` / `batch-approve`. Fixed types (`cmd_approval`, `design_decision`, `approval`, `resource`, `external`, `question`) under `.deft/escalations/`. Bulk approve only for non-dangerous `cmd_approval` + `question`. Full priority-inbox web UI residual. Contract: `content/contracts/escalation.md`.
 
 ## Session-start ritual (#1149)

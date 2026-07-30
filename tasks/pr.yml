@@ -124,3 +124,19 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'pr-watch {{.CLI_ARGS}}'
+
+  # pr:finish-loop -- walk-away PR shepherd (#871 Wave 5 / #2948).
+  # Grant-gated wrap of pr:watch until CLEAN; address path is agent-
+  # orchestrated (exit 1 on NEW_P0_P1). Respects requireHumanMerge —
+  # never force bot merge. Fail closed without finish-loop grant.
+  #
+  # Companion module: packages/core/src/finish-loop/
+  # Contract: content/contracts/finish-loop.md
+  finish-loop:
+    desc: "Walk-away PR finish loop: grant gate + pr:watch until CLEAN; exit 1 address / human-merge; exit 2 BLOCKED without grant (#871)"
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pr-finish-loop {{.CLI_ARGS}}'

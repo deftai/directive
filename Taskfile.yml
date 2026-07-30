@@ -152,6 +152,9 @@ includes:
   pr:
     taskfile: ./tasks/pr.yml
     optional: true
+  directive:
+    taskfile: ./tasks/directive.yml
+    optional: true
   policy:
     taskfile: ./tasks/policy.yml
     optional: true

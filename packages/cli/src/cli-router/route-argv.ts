@@ -42,6 +42,7 @@ export const PR_VERB_MAP: Readonly<Record<string, string>> = {
   "check-closing-keywords": "pr-closing-keywords",
   "wait-mergeable-and-merge": "pr-wait-mergeable",
   watch: "pr-watch",
+  "finish-loop": "pr-finish-loop",
 };
 
 /** verify:* aliases that map to non-verify-* handler stems. */

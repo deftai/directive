@@ -432,8 +432,12 @@ describe("AFK templates (#1095)", () => {
     expect(r.expiresAt).toMatch(/2026-07-30T01:00:00Z/);
   });
 
-  it("resolveClosedVerbTemplate rejects unknown template and empty target", () => {
+  it("resolveClosedVerbTemplate rejects non-release templates and empty target", () => {
+    // finish-loop is an AFK template (#871) but not a closed-verb release template
     expect(() => resolveClosedVerbTemplate({ template: "finish-loop", target: "x" })).toThrow(
+      /unknown closed-verb template|finish-loop/,
+    );
+    expect(() => resolveClosedVerbTemplate({ template: "not-a-template", target: "x" })).toThrow(
       /unknown closed-verb template/,
     );
     expect(() => resolveClosedVerbTemplate({ template: "release-cut", target: "  " })).toThrow(

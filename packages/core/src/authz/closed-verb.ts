@@ -346,7 +346,8 @@ export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDe
       (input.target !== null ? ` --target ${input.target}` : " --target <ver>") +
       `\` or set ${envBypassKey}=1 for a single-shell ephemeral bypass. ` +
       `Skill precondition: ${skillPointer}. ` +
-      "Note: #871 finish-loop remains Wave 5 — not authorized by this gate.",
+      "Note: walk-away finish-loop uses `authz:grant --template finish-loop` (#871), " +
+      "not this release-class closed-verb template.",
     input,
     { envBypassKey, skillPointer },
   );

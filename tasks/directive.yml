@@ -1,0 +1,22 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# directive:* walk-away product surfaces (#871 Wave 5 / #2948).
+#
+# Companion module: packages/core/src/finish-loop/
+# Contract: content/contracts/finish-loop.md
+#
+# Per conventions/task-caching.md (#574): NO sources/generates — user-facing
+# flags must not be swallowed by go-task incremental cache.
+
+tasks:
+  finish-loop:
+    desc: "Outer walk-away cascade: finish-loop grant gate + queue scan + progress JSONL + optional pr:finish-loop; agent owns implement steps (#871)"
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'directive-finish-loop {{.CLI_ARGS}}'

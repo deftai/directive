@@ -1,0 +1,110 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Wave 5 of #2948: walk-away finish-loop tasks consuming Wave 0+1+4 grants (#871)",
+    "updated": "2026-07-30T16:51:22Z"
+  },
+  "plan": {
+    "title": "feat(tasks): directive:finish-loop + pr:finish-loop walk-away product (#871)",
+    "status": "running",
+    "updated": "2026-07-30T16:51:22Z",
+    "id": "2026-07-30-871-wave5-finish-loop",
+    "narratives": {
+      "Description": "Wave 5 of #2948. Implement task directive:finish-loop and task pr:finish-loop as the walk-away product. Every high-blast step routes through Wave 1 human-origin grants and Wave 4 closed-verb gates (finish-loop template). Halt cleanly on grant expiry, exhaustion, or scope refusal. Heartbeat to .deft-cache/finish-loop-progress.jsonl. Do not invent a second mint path. Compose with pr:watch, review-cycle, and existing scope lifecycle.",
+      "UserStory": "As an operator, I want finish-loop grant templates and directive and pr finish-loop tasks, so that I can walk away while authorized implement PR review merge continues until the queue is empty.",
+      "ImplementationPlan": "Step 1: Add finish-loop verb rows / authz template that mints operator-cli grants covering implement edit push pr merge closure verbs needed for the loop (map to Wave 1 AuthzOperation + closed-verb where applicable). Step 2: packages/core finish-loop engine: iterate active/pending queue (or plan-sequence), implement boundary is agent-owned — CLI orchestrates gates + progress log + BLOCKED messages. Step 3: pr:finish-loop wraps pr:watch until CLEAN then optional wait-mergeable-and-merge when policy allows (respect requireHumanMerge). Step 4: directive:finish-loop outer loop calls pr:finish-loop per PR, logs progress, stops on empty queue / grant fail / max iterations. Step 5: CLI routes + Taskfile + content/contracts/finish-loop.md + CHANGELOG #871 #2948. Tests for grant-required, progress append, halt conditions. drive-to: merge-ready.",
+      "Origin": "https://github.com/deftai/directive/issues/871",
+      "Program": "https://github.com/deftai/directive/issues/2948 Wave 5",
+      "Labels": "enhancement, Workflow, review-cycle",
+      "Traces": "Wave 5 #871 AC of #2948; consumes Wave 1+4 grants"
+    },
+    "items": [
+      {
+        "title": "finish-loop grant template + classification",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When authz:grant uses template finish-loop, mintHumanOriginGrant returns an operator-cli grant covering loop operations and unit tests reject agent-authored grants as authorization."
+        }
+      },
+      {
+        "title": "pr:finish-loop watches and addresses until CLEAN",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When grants are present, pr:finish-loop returns CLEAN via pr:watch integration and when grants are missing the command fails closed with a BLOCKED code."
+        }
+      },
+      {
+        "title": "directive:finish-loop outer cascade + progress log",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an authorized finish-loop session, directive:finish-loop appends finish-loop-progress.jsonl per iteration and stops when the queue is empty or a gate returns deny."
+        }
+      },
+      {
+        "title": "Docs CLI CHANGELOG #871",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "content/contracts/finish-loop.md records the walk-away path and CHANGELOG Unreleased records #871 under #2948 Wave 5."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "Workflow",
+      "review-cycle",
+      "wave-5"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/871",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2948",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1095",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "model_tier": "default",
+        "file_scope": [
+          "packages/core/src/authz/",
+          "packages/core/src/finish-loop/",
+          "packages/core/src/pr-watch/",
+          "packages/cli/src/authz.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "conventions/verb-classification.json",
+          "content/contracts/finish-loop.md",
+          "content/contracts/closed-verb-authz.md",
+          "content/commands.md",
+          "tasks/",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/finish-loop",
+          "task test -- packages/core/src/authz"
+        ],
+        "expected_outputs": [
+          "finish-loop template + pr:finish-loop + directive:finish-loop",
+          "progress jsonl + grant gates"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-871-wave5-finish-loop",
+        "size": "L",
+        "file_scope_confidence": "medium"
+      },
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -187,6 +187,10 @@
       "types": "./dist/pr-watch/index.d.ts",
       "default": "./dist/pr-watch/index.js"
     },
+    "./finish-loop": {
+      "types": "./dist/finish-loop/index.d.ts",
+      "default": "./dist/finish-loop/index.js"
+    },
     "./vbrief-build": {
       "types": "./dist/vbrief-build/index.d.ts",
       "default": "./dist/vbrief-build/index.js"

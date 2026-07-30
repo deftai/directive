@@ -103,6 +103,7 @@ evaluate via `evaluateClosedVerb` and accept only:
 - `DEFT_ALLOW_<VERB>=1` ephemeral bypass, or
 - a **human-origin** grant from this store (templates: `deft authz:grant -- --template release-publish --target <ver>`)
 
-They do not mint grants of their own. Full finish-loop product remains #871 (Wave 5).
+They do not mint grants of their own. Walk-away finish-loop product: #871 (Wave 5) —
+`authz:grant --template finish-loop` and `content/contracts/finish-loop.md`.
 
 Refs #2948 #2711 #1394 #1378 #2176 #2402 #1095.

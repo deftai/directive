@@ -95,11 +95,12 @@ that only **references** grant ids is non-authority documentation, not a second 
 | Session-auth JSON files | **No** — not accepted as approval evidence |
 | xBRIEF / dispatch / allocation_context | **No** — Wave 1 rejection kinds |
 
-## Explicit non-goals (Wave 5 / residual)
+## Explicit non-goals / related product
 
 | Concern | Owner |
 | --- | --- |
-| Full `directive:finish-loop` / `pr:finish-loop` product | **#871** (Wave 5) |
+| Full `directive:finish-loop` / `pr:finish-loop` product | **#871** (Wave 5) — `content/contracts/finish-loop.md` |
+| Typed escalation / batched approval UX | **#518** (Wave 5 sibling) |
 | Post-session audit of consumed closed verbs | residual / PR-D of original RFC |
 | HMAC / hardware-keyed grants | non-goal (misalignment-not-malice) |
 | Python-only preflight as sole enforcement | non-goal; TS engine is required |
