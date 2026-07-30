@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
-import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
+import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   enableProductSignal,
   formatProductSignalStatusLine,
@@ -197,7 +197,7 @@ export async function submitProductSignal(
     try {
       recordLastSubmit(root, result.outcome, result.issueUrl ?? null);
     } catch (err) {
-      if (err instanceof ProjectionContainmentError) {
+      if (err instanceof ProjectionContainmentError || err instanceof ContainedWriteError) {
         return {
           outcome: "error-config",
           exitCode: 2,

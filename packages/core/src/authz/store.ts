@@ -2,14 +2,9 @@
  * Disk store for authz state + grants under `.deft/authz/` (#2944).
  */
 
-import { existsSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import {
-  ContainedWriteError,
-  ContainedWriteErrorCode,
-  containedWrite,
-} from "../fs/contained-write.js";
-import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { isHumanOrigin } from "./origin.js";
 import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
 import {
@@ -35,52 +30,25 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/** Map projection containment refusals onto ContainedWriteError (stable codes). */
-function refuseUnsafeTarget(root: string, targetAbs: string): void {
-  try {
-    assertWriteTargetSafe(root, targetAbs);
-  } catch (err) {
-    if (err instanceof ProjectionContainmentError) {
-      const isSymlink = /symlink/i.test(err.message);
-      throw new ContainedWriteError(
-        err.message.replace(/^projection write refused:/i, "contained write refused:"),
-        {
-          code: isSymlink ? ContainedWriteErrorCode.SYMLINK : ContainedWriteErrorCode.ESCAPE,
-          root,
-          target: targetAbs,
-          offendingPath: err.offendingPath,
-        },
-      );
-    }
-    throw err;
-  }
-}
-
 /**
- * Atomic JSON write via containedWrite create + rename (#2980 wave B).
- * Refuses symlink/escape on the final target before publish; temp payload is
- * contained under project root so partial crash does not truncate live state.
+ * Contained atomic JSON write for authz state/grants (#2980 wave B / Greptile P1).
+ * Temp payload under parent dir via containedWrite, then rename onto the final path
+ * so crash mid-write cannot leave a truncated final document.
  */
-function writeJsonContained(
-  projectRoot: string,
-  targetPath: string,
-  payload: unknown,
-  prefix: string,
-): void {
-  const root = resolve(projectRoot);
-  const absTarget = resolve(targetPath);
-  refuseUnsafeTarget(root, absTarget);
-  const dir = dirname(absTarget);
-  const tmp = join(dir, `${prefix}${process.pid}-${Date.now()}.json.tmp`);
+function writeJsonContained(_projectRoot: string, targetPath: string, payload: unknown): void {
+  const abs = resolve(targetPath);
+  const dir = dirname(abs);
+  mkdirSync(dir, { recursive: true });
+  const tmpBase = `.${basename(abs)}.${process.pid}.tmp`;
+  const tmp = join(dir, tmpBase);
   try {
     containedWrite({
-      root,
-      target: tmp,
+      root: resolve(dir),
+      target: tmpBase,
       data: `${JSON.stringify(payload, null, 2)}\n`,
       mode: "create",
     });
-    refuseUnsafeTarget(root, absTarget);
-    renameSync(tmp, absTarget);
+    renameSync(tmp, abs);
   } catch (err) {
     try {
       rmSync(tmp, { force: true });
@@ -291,7 +259,7 @@ export function markGrantUsed(
 }
 
 export function saveAuthzState(projectRoot: string, state: AuthzState): void {
-  writeJsonContained(projectRoot, authzStatePath(projectRoot), state, ".authz-state.");
+  writeJsonContained(projectRoot, authzStatePath(projectRoot), state);
 }
 
 export function loadGrant(projectRoot: string, grantId: string): HumanOriginGrant | null {
@@ -305,7 +273,7 @@ export function loadGrant(projectRoot: string, grantId: string): HumanOriginGran
 }
 
 export function saveGrant(projectRoot: string, grant: HumanOriginGrant): void {
-  writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant, ".authz-grant.");
+  writeJsonContained(projectRoot, authzGrantPath(projectRoot, grant.id), grant);
 }
 
 export function listGrants(projectRoot: string): HumanOriginGrant[] {
