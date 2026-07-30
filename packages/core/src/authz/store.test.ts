@@ -249,5 +249,44 @@ describe("authz store (#2944)", () => {
     const root = tempRoot();
     saveAuthzState(root, { schemaVersion: 1, uat: null, activeGrantIds: ["g1"] });
     expect(loadAuthzState(root).activeGrantIds).toEqual(["g1"]);
+    // Replace path exercises atomic temp+rename publish twice.
+    saveAuthzState(root, { schemaVersion: 1, uat: null, activeGrantIds: ["g1", "g2"] });
+    expect(loadAuthzState(root).activeGrantIds).toEqual(["g1", "g2"]);
+  });
+
+  it("refuses grant write when grants dir parent is a symlink escape (#2980)", () => {
+    const root = tempRoot();
+    const outside = tempRoot();
+    const authz = join(root, ".deft", "authz");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    try {
+      symlinkSync(outside, authz);
+    } catch {
+      return;
+    }
+    const grant: HumanOriginGrant = {
+      schemaVersion: 1,
+      id: "escape",
+      origin: {
+        kind: "operator-cli",
+        actor: "op",
+        mintedAt: "2026-07-30T00:00:00Z",
+        mintedVia: "test",
+        eventRef: null,
+      },
+      scope: {
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations: ["edit"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: "c",
+      },
+      semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
+    };
+    expect(() => saveGrant(root, grant)).toThrow();
   });
 });
