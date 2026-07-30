@@ -7,7 +7,10 @@ import {
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
 } from "../policy/no-deft-directive.js";
 import {
+  classifyMcpTool,
+  classifyShellCommand,
   evaluateRuntimeAuthorityDirectWrite,
+  evaluateRuntimeAuthorityShellOp,
   loadRuntimeAuthorityFromProject,
   type RuntimeAuthorityPolicy,
 } from "../policy/runtime-authority.js";
@@ -16,15 +19,19 @@ import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
 import { isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
-import { isDirectWriteTool, isSpawnTool } from "./tools.js";
+import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
 export { hookReadOnlyFromPayload, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
 export {
   DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
   isDirectWriteTool,
+  isMcpTool,
+  isShellTool,
   isSpawnTool,
   READ_ONLY_HOOK_ENV,
+  SHELL_HOOK_MATCHER,
+  SHELL_TOOL_NAMES,
   SPAWN_HOOK_MATCHER,
   SPAWN_TOOL_NAMES,
 } from "./tools.js";
@@ -63,7 +70,11 @@ export type HookDecisionCode =
   | "spawn-ready"
   | "spawn-not-ready"
   | "runtime-policy-deny-path"
-  | "runtime-policy-deny-scope";
+  | "runtime-policy-deny-scope"
+  /** Shell/MCP classifiable push/merge allowed under runtimeAuthority (#2711). */
+  | "shell-op-ready"
+  /** Shell/MCP tool seen but command/tool not classifiable as push/merge — fail open (#2711). */
+  | "shell-op-unclassifiable";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -452,6 +463,116 @@ function runtimeAuthorityForDirectWrite(
   );
 }
 
+/**
+ * Best-effort shell command string from host PreToolUse payloads (#2711).
+ * Hosts disagree on nesting (`tool_input.command` vs top-level `command`).
+ */
+export function hookShellCommand(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  return firstString(
+    toolInput !== null ? toolInput.command : null,
+    toolInput !== null ? toolInput.cmd : null,
+    toolInput !== null ? toolInput.shell_command : null,
+    input.command,
+    input.cmd,
+  );
+}
+
+/** Serialize tool args for MCP classification when nested objects are present (#2711). */
+function hookMcpArgsText(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  if (toolInput === null) return null;
+  try {
+    return JSON.stringify(toolInput);
+  } catch {
+    return null;
+  }
+}
+
+function loadRuntimeAuthorityPolicySafe(
+  input: HookDispatchInput,
+  seams: HookPolicySeams,
+): RuntimeAuthorityPolicy | null {
+  const projectRoot = resolve(input.projectRoot);
+  try {
+    return (seams.loadRuntimeAuthority ?? loadRuntimeAuthorityFromProject)(projectRoot);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Evaluate scopes.push / scopes.merge for Shell/Bash or classifiable MCP tools (#2711).
+ * Returns a full HookDecision (allow or deny). Unclassifiable ops fail open.
+ */
+function decideShellOrMcpRuntimeAuthority(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+): HookDecision {
+  const projectRoot = resolve(input.projectRoot);
+  const policy = loadRuntimeAuthorityPolicySafe(input, seams);
+  if (policy === null) {
+    return {
+      verdict: "allow",
+      code: "shell-op-unclassifiable",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message: `Directive allowed ${toolName}: runtimeAuthority policy load failed (fail open).`,
+      scopePath: null,
+    };
+  }
+
+  let op = null as ReturnType<typeof classifyShellCommand>;
+  if (isShellTool(toolName)) {
+    const command = hookShellCommand(input.payload);
+    op = command !== null ? classifyShellCommand(command) : null;
+  } else if (isMcpTool(toolName)) {
+    op = classifyMcpTool(toolName, hookMcpArgsText(input.payload));
+  }
+
+  const verdict = evaluateRuntimeAuthorityShellOp({ policy, op });
+  if (!verdict.allowed) {
+    return deny(
+      input,
+      verdict.code ?? "runtime-policy-deny-scope",
+      toolName,
+      verdict.reason ??
+        "Directive denied this shell/MCP operation under runtime authority policy.",
+    );
+  }
+  if (verdict.unclassifiable) {
+    return {
+      verdict: "allow",
+      code: "shell-op-unclassifiable",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message:
+        `${toolName} is classifiable as Shell/MCP but the command/tool was not recognized as ` +
+        "push or merge — fail open (host gap; see runtime-authority.md).",
+      scopePath: null,
+    };
+  }
+  return {
+    verdict: "allow",
+    code: "shell-op-ready",
+    event: input.event,
+    host: input.host,
+    toolName,
+    projectRoot,
+    message: `Directive runtimeAuthority allowed classifiable ${op} via ${toolName}.`,
+    scopePath: null,
+  };
+}
+
 function inspectMutationGates(
   input: HookDispatchInput,
   toolName: string,
@@ -719,6 +840,13 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: false });
   }
 
+  // Shell/Bash and classifiable MCP: enforce scopes.push / scopes.merge (#2711).
+  // Does not require active-scope ritual (same session-time residual as path policy for
+  // non-write tools) — only runtimeAuthority when enabled.
+  if (isShellTool(toolName) || isMcpTool(toolName)) {
+    return decideShellOrMcpRuntimeAuthority(input, toolName, seams);
+  }
+
   if (!isDirectWriteTool(toolName)) {
     return {
       verdict: "allow",
@@ -727,7 +855,7 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
       host: input.host,
       toolName,
       projectRoot,
-      message: `${toolName} is outside the P0 direct-write/spawn enforcement slice.`,
+      message: `${toolName} is outside the P0 direct-write/spawn/shell enforcement slice.`,
       scopePath: null,
     };
   }

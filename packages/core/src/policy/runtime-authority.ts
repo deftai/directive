@@ -249,3 +249,107 @@ export function evaluateRuntimeAuthorityDirectWrite(
   }
   return { allowed: true, reason: null, code: null };
 }
+
+/** Classifiable shell/MCP operation for scopes.push / scopes.merge (#2711). */
+export type RuntimeAuthorityShellOp = "push" | "merge";
+
+/**
+ * Classify a shell command string for push/merge scopes (#2711).
+ * Unclassifiable commands return null (fail open at the gate).
+ *
+ * Patterns (intentionally narrow; prefer false-open over false-deny):
+ * - push: `git push`, `git.exe push`, optional leading path/env noise via word-boundary match
+ * - merge: `gh pr merge`, `gh.exe pr merge`
+ */
+export function classifyShellCommand(command: string): RuntimeAuthorityShellOp | null {
+  const cmd = command.trim();
+  if (cmd.length === 0) return null;
+  // Match command starts or pipeline/list segments (&&, ||, ;, |), not prose like "echo git push".
+  const segment = String.raw`(?:^|(?:&&|\|\||[;&|])\s*)`;
+  if (new RegExp(`${segment}git(?:\\.exe)?\\s+push\\b`, "i").test(cmd)) return "push";
+  if (new RegExp(`${segment}gh(?:\\.exe)?\\s+pr\\s+merge\\b`, "i").test(cmd)) return "merge";
+  return null;
+}
+
+/**
+ * Classify an MCP (or MCP-like) tool name + optional argument blob for push/merge (#2711).
+ * Returns null when the tool is not a known push/merge mutation (fail open).
+ */
+export function classifyMcpTool(
+  toolName: string,
+  argsText: string | null = null,
+): RuntimeAuthorityShellOp | null {
+  const name = toolName.trim().toLowerCase();
+  if (name.length === 0) return null;
+  // Common GitHub MCP / bridge spellings for merge
+  if (
+    /merge[_-]?pull[_-]?request/.test(name) ||
+    /pull[_-]?request[_-]?merge/.test(name) ||
+    /(^|__)merge_pr($|__)/.test(name) ||
+    /pr[_-]?merge/.test(name)
+  ) {
+    return "merge";
+  }
+  // Push-like tool names (narrow — prefer fail-open)
+  if (/(^|__)git[_-]?push($|__)/.test(name) || /push[_-]?branch/.test(name)) {
+    return "push";
+  }
+  if (/push/.test(name) && /(git|branch|remote|ref)/.test(name)) return "push";
+
+  const blob = (argsText ?? "").toLowerCase();
+  if (blob.length > 0) {
+    if (/\bgit(?:\.exe)?\s+push\b/.test(blob)) return "push";
+    if (/\bgh(?:\.exe)?\s+pr\s+merge\b/.test(blob)) return "merge";
+  }
+  return null;
+}
+
+export interface RuntimeAuthorityShellOpInput {
+  readonly policy: RuntimeAuthorityPolicy;
+  readonly op: RuntimeAuthorityShellOp | null;
+}
+
+export interface RuntimeAuthorityShellOpResult {
+  readonly allowed: boolean;
+  readonly reason: string | null;
+  readonly code: "runtime-policy-deny-scope" | null;
+  /** True when op was null — gate should fail open. */
+  readonly unclassifiable: boolean;
+}
+
+/**
+ * Evaluate scopes.push / scopes.merge for a classifiable shell/MCP operation (#2711).
+ * null op → allow (unclassifiable fail-open). disabled policy → allow.
+ */
+export function evaluateRuntimeAuthorityShellOp(
+  input: RuntimeAuthorityShellOpInput,
+): RuntimeAuthorityShellOpResult {
+  const { policy, op } = input;
+  if (!policy.enabled) {
+    return { allowed: true, reason: null, code: null, unclassifiable: op === null };
+  }
+  if (op === null) {
+    return { allowed: true, reason: null, code: null, unclassifiable: true };
+  }
+  if (op === "push" && !policy.scopes.push) {
+    return {
+      allowed: false,
+      code: "runtime-policy-deny-scope",
+      unclassifiable: false,
+      reason:
+        "Directive denied this shell/MCP operation: plan.policy.runtimeAuthority.scopes.push is false. " +
+        "Grant the push scope in PROJECT-DEFINITION or disable runtimeAuthority.",
+    };
+  }
+  if (op === "merge" && !policy.scopes.merge) {
+    return {
+      allowed: false,
+      code: "runtime-policy-deny-scope",
+      unclassifiable: false,
+      reason:
+        "Directive denied this shell/MCP operation: plan.policy.runtimeAuthority.scopes.merge is false. " +
+        "Grant the merge scope in PROJECT-DEFINITION or disable runtimeAuthority.",
+    };
+  }
+  return { allowed: true, reason: null, code: null, unclassifiable: false };
+}

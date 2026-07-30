@@ -1,0 +1,90 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope: runtimeAuthority Shell/MCP matchers for scopes.push and scopes.merge (#2711)",
+    "updated": "2026-07-30T02:10:39Z"
+  },
+  "plan": {
+    "title": "feat(harness): Shell/MCP PreToolUse matchers for runtimeAuthority scopes.push / scopes.merge",
+    "status": "running",
+    "updated": "2026-07-30T02:10:39Z",
+    "id": "2026-07-29-2711-runtime-authority-shell-mcp-push-merge",
+    "narratives": {
+      "Description": "Make plan.policy.runtimeAuthority.scopes.push and scopes.merge enforceable in PreToolUse via Shell/Bash and classifiable MCP matchers, not schema-only.",
+      "UserStory": "As an operator with runtimeAuthority enabled, I want git push and gh pr merge denied when scopes.push/merge are false so agents cannot bypass path policy via Shell.",
+      "ImplementationPlan": "Step 1: Add classifyShellCommand and classifyMcpTool plus evaluateRuntimeAuthorityShellOp in packages/core/src/policy/runtime-authority.ts. Step 2: Mark Shell/Bash (and classifiable MCP) tools in packages/core/src/hooks/tools.ts and wire decideHook in dispatcher.ts. Step 3: Unit tests for classifier and deny/allow. Step 4: Update content/contracts/runtime-authority.md and content/commands.md; CHANGELOG Unreleased Fixed/Added cites #2711. Verification: vitest packages/core runtime-authority and hooks dispatcher tests; task check:merge if green.",
+      "Origin": "https://github.com/deftai/directive/issues/2711",
+      "Labels": "enhancement, harness, determinism, agent-experience"
+    },
+    "items": [
+      {
+        "title": "Classifier + evaluate scopes.push/merge",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "git push and gh pr merge classifiable; deny when scope false and enabled true"
+        }
+      },
+      {
+        "title": "Dispatcher wire for Shell/MCP",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "PreToolUse denys classifiable push/merge; unclassifiable fail-open"
+        }
+      },
+      {
+        "title": "Tests docs CHANGELOG #2711",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Unit tests + contract docs + CHANGELOG cite #2711"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "harness",
+      "determinism",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2711",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2948",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/runtime-authority.ts",
+          "packages/core/src/policy/runtime-authority.test.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "content/contracts/runtime-authority.md",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/policy/runtime-authority.test.ts",
+          "task test -- packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "expected_outputs": [
+          "scopes.push/merge enforced on Shell",
+          "docs no longer schema-only for push/merge"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-2711",
+        "size": "S",
+        "file_scope_confidence": "high"
+      }
+    }
+  }
+}

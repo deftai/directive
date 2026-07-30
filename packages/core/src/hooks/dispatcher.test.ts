@@ -8,14 +8,17 @@ import {
   decideHook,
   type HookPolicySeams,
   hookPayloadTopLevelKeys,
+  hookShellCommand,
   hookToolName,
   hookWriteTargetPath,
   isDirectWriteTool,
   isHookEvent,
   isHookHost,
   isLexicalOutsideProjectRoot,
+  isMcpTool,
   isOutsideProjectRootWrite,
   isProposedLifecycleWrite,
+  isShellTool,
   isSpawnTool,
   normalizeHookProjectRoot,
   projectRootFromHookPayload,
@@ -1231,6 +1234,122 @@ describe("direct-write classifier", () => {
   it("does not classify Task as a direct write", () => {
     expect(isDirectWriteTool("Task")).toBe(false);
     expect(isSpawnTool("Task")).toBe(true);
+  });
+
+  it("classifies Shell/Bash as shell tools (#2711)", () => {
+    expect(isShellTool("Shell")).toBe(true);
+    expect(isShellTool("Bash")).toBe(true);
+    expect(isShellTool("Write")).toBe(false);
+    expect(isMcpTool("mcp__github__merge_pull_request")).toBe(true);
+    expect(isMcpTool("Write")).toBe(false);
+  });
+});
+
+describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
+  const denyPushPolicy = {
+    enabled: true,
+    allowPaths: [] as string[],
+    denyPaths: [] as string[],
+    scopes: { edits: true, push: false, merge: false },
+  };
+
+  it("denies Shell git push when scopes.push is false", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git push origin HEAD" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("runtime-policy-deny-scope");
+    expect(decision.message).toMatch(/scopes\.push is false/);
+  });
+
+  it("denies Shell gh pr merge when scopes.merge is false", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Shell", tool_input: { command: "gh pr merge 12 --squash" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("runtime-policy-deny-scope");
+    expect(decision.message).toMatch(/scopes\.merge is false/);
+  });
+
+  it("allows Shell git status (unclassifiable) fail-open", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git status" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+
+  it("denies classifiable MCP merge tools when scopes.merge is false", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "mcp__github__merge_pull_request", tool_input: { pull_number: 1 } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => denyPushPolicy,
+      },
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("runtime-policy-deny-scope");
+  });
+
+  it("allows push when scopes.push is true", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git push" } },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => ({
+          ...denyPushPolicy,
+          scopes: { edits: true, push: true, merge: false },
+        }),
+      },
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-ready");
+  });
+
+  it("extracts shell command from tool_input", () => {
+    expect(hookShellCommand({ tool_name: "Bash", tool_input: { command: "git push" } })).toBe(
+      "git push",
+    );
+    expect(hookShellCommand({ tool_name: "Bash", tool_input: { cmd: "gh pr merge 1" } })).toBe(
+      "gh pr merge 1",
+    );
   });
 });
 
