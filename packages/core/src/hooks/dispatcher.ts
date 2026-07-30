@@ -367,24 +367,19 @@ function loadAuthzContext(
 }
 
 function authzCodeToHook(code: AuthzDecision["code"]): HookDecisionCode {
-  switch (code) {
-    case "authz-uat-deny":
-      return "authz-uat-deny";
-    case "authz-grant-missing":
-      return "authz-grant-missing";
-    case "authz-grant-origin-reject":
-      return "authz-grant-origin-reject";
-    case "authz-grant-scope-deny":
-      return "authz-grant-scope-deny";
-    case "authz-grant-expired":
-      return "authz-grant-expired";
-    case "authz-grant-revoked":
-      return "authz-grant-revoked";
-    case "authz-grant-single-use-spent":
-      return "authz-grant-single-use-spent";
-    default:
-      return "authz-uat-deny";
+  // Map authz decision codes onto HookDecisionCode (same string values for denials).
+  if (
+    code === "authz-uat-deny" ||
+    code === "authz-grant-missing" ||
+    code === "authz-grant-origin-reject" ||
+    code === "authz-grant-scope-deny" ||
+    code === "authz-grant-expired" ||
+    code === "authz-grant-revoked" ||
+    code === "authz-grant-single-use-spent"
+  ) {
+    return code;
   }
+  return "authz-uat-deny";
 }
 
 function recordAuthzAudit(

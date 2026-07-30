@@ -296,24 +296,13 @@ function findCoveringGrant(
 export function evaluateAuthzMutation(input: EvaluateAuthzInput): AuthzDecision {
   const uat = activeUat(input.state);
 
-  // Always-allowed under UAT (and outside UAT).
-  if (input.op === "test" || input.op === "evidence") {
+  // Always-allowed under UAT (and outside UAT): tests, evidence, issue filing.
+  if (input.op === "test" || input.op === "evidence" || input.op === "issue_mutation") {
     return allow(
       uat !== null ? "authz-allow" : "authz-inactive",
       uat !== null
         ? `Directive allowed ${input.op} under active UAT campaign ${uat.campaignId}.`
-        : `Directive authz inactive; ${input.op} is unrestricted by Wave 1 gates.`,
-      input,
-    );
-  }
-
-  // Issue filing remains allowed during UAT without a fix cohort.
-  if (input.op === "issue_mutation") {
-    return allow(
-      uat !== null ? "authz-allow" : "authz-inactive",
-      uat !== null
-        ? `Directive allowed issue filing under active UAT campaign ${uat.campaignId}.`
-        : "Directive authz inactive; issue_mutation unrestricted by Wave 1 gates.",
+        : `Directive authz inactive; ${input.op} unrestricted by Wave 1 gates.`,
       input,
     );
   }
