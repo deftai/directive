@@ -529,6 +529,12 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 
 ⊗ Emit `DONE` from a `drive-to: merge-ready` worker while merge-ready is false — a false-terminal `DONE` pulls the cohort monitor into inline Greptile fixes and violates Gap D (#2843 monitor-as-implementer recurrence).
 
+! **Thin DONE is not success (#2943):** A terminal message that lacks PR URL / merge evidence (no `PR #N`, no PR URL, no merge confirmation) is a **thin DONE** / failed-leaf signal for the parent monitor — re-dispatch or take over after ground truth. Prefer structured completion fields when the host supplies them (`prUrl`, `mergeStatus`, `emptyDiff`). Workers MUST NOT exit with mid-edit prose and call it `DONE` when the envelope required a PR or merge-ready outcome.
+
+! **Parent tool-first after leaf completion (#2943):** When a parent / monitor receives a leaf completion event (`subagent_announce`, parent-push, or host completion notify), its **first response** MUST be a **tool-first** ground-truth batch (`gh` / `git` / worktree or file status) **or** a host **yield** (`sessions_yield` on OpenClaw, or equivalent). ⊗ Multi-sentence progress-only first response with zero tools / yield — the OpenClaw text-repetition hang class (#2943).
+
+⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
+
 Per-step acks during the run are noise. ONE start message, ONE final message; intermediate messages only on `BLOCKED` / `FAILED`. The final message lets the dispatcher distinguish a clean exit from a silent timeout when the lifecycle event arrives.
 
 ## 12. Session ritual + `task verify:cache-fresh` gates before `start_agent` (#1348 / #1127)

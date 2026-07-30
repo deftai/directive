@@ -27,11 +27,15 @@ For each agent's PR:
    - **Tier 3 only** (no sub-agent primitive): the monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself after explicit operator consent — or offer serial self-execution downgrade from Phase 3.
    - ⊗ Split review polling and fix batches across separate leaf agents for the same PR (#727 + #1880 Gap C).
 
-! **Completion-notification decision tree (#2843):** When a background leaf completion notification arrives, parse the terminal message per preamble §11:
+! **Completion-notification decision tree (#2843 / #2943):** When a background leaf completion notification arrives, parse the terminal message per preamble §11:
    - `DONE` + merge-ready verified (`task pr:merge-ready -- <N>` exit 0): may proceed to merge / `task scope:complete` per Phase 5→6 / Phase 6.
    - `BLOCKED` (+ optional `REDISPATCH_OK`): resume the same leaf if the host supports it, OR background-dispatch ONE continuation leaf with the cited PR/SHA/worktree — no monitor-inline fixes on Tier 1.
    - `FAILED` / silent (no terminal message): run `task verify:subagent-alive`; on exit 1 print `REDISPATCH_OK` and background-dispatch ONE continuation leaf.
+   - **Thin DONE (#2943):** completion without PR URL / merge evidence (mid-edit text, empty status, no `PR #N` / URL) is a **failed leaf** — re-dispatch or take over after a tool-first ground-truth batch. It is **not** success.
    - ⊗ Treat `DONE` without merge-ready verification as success — that is the false-terminal pattern §11 closes.
+   - ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
+
+! **Parent tool-first after leaf announce (#2943):** On the first parent turn after a leaf completion event (`subagent_announce` / parent-push / host completion notify), the parent MUST either (a) emit a **tool-first** ground-truth batch (`gh` / `git` / worktree or file status), or (b) **yield** (`sessions_yield` on OpenClaw, or host equivalent). ⊗ Multi-sentence progress-only first response with zero tools / yield — the text-repetition hang class.
 
 ### Complete xBRIEFs
 

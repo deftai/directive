@@ -687,10 +687,38 @@ describe("test_swarm_skill", () => {
   it("swarm_phase5_blocked_leaf_continuation_2843", () => {
     const text = _read_swarm();
     expect(text).toContain("Blocked-leaf continuation (#1880 / #2843)");
-    expect(text).toContain("Completion-notification decision tree (#2843)");
+    // Header may cite #2843 alone or with follow-ons (#2943 thin-DONE extension).
+    expect(text).toMatch(/Completion-notification decision tree \(#2843(?:\s*\/\s*#\d+)*\)/);
     expect(text).not.toContain(
       "monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner",
     );
+  });
+
+  it("swarm_parent_monitor_tool_first_after_leaf_announce_2943", () => {
+    const text = _read_swarm();
+    expect(text).toContain("Parent-monitor after leaf announce (#2943)");
+    expect(text).toContain("Parent-monitor after `subagent_announce` (#2943)");
+    expect(text).toContain("Parent tool-first after leaf announce (#2943)");
+    expect(text).toContain("tool-first");
+    expect(text).toContain("sessions_yield");
+    expect(text).toContain("Thin DONE = failed leaf");
+    expect(text).toContain("Thin DONE (#2943)");
+    expect(text).toContain("prUrl");
+    expect(text).toContain("mergeStatus");
+    expect(text).toContain("emptyDiff");
+    // Anti-patterns must forbid progress-only first response and thin-DONE success.
+    expect(text).toMatch(/⊗[^\n]*progress-only[^\n]*#2943/);
+    expect(text).toMatch(/⊗[^\n]*[Tt]hin DONE[^\n]*success[^\n]*#2943/);
+  });
+
+  it("openclaw_agent_host_parent_monitor_policy_2943", () => {
+    const doc = readRepoFile("docs/openclaw-agent-host.md");
+    expect(doc).toContain("Parent-monitor after `subagent_announce` (#2943)");
+    expect(doc).toContain("tool-first");
+    expect(doc).toContain("sessions_yield");
+    expect(doc).toContain("Thin DONE = failed leaf");
+    expect(doc).toContain("#2943");
+    expect(doc).toMatch(/⊗[^\n]*progress-only[^\n]*#2943/);
   });
 
   it("gates_surface_dual_invoke_order (#2893)", () => {

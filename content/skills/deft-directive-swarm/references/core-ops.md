@@ -140,3 +140,5 @@ CONSTRAINTS:
 - ⊗ Load all host adapters “just in case” — detect host, then load core + **one** `references/host-*.md` only (#2928)
 - ⊗ DIY parallel `sessions_spawn` (or any multi-leaf OpenClaw dispatch) on the shared repo root without worktree prep or a worktree-map (#2929)
 - ⊗ End a cohort phase-boundary turn with only narrative “I will spawn…” / “review next” and zero next-phase tool calls and no explicit terminal status (`blocked` / `awaiting-human` / `done`) (#2934)
+- ⊗ Multi-sentence progress-only first response after leaf completion announce (`subagent_announce` / parent-push) with zero tools / yield — tool-first ground-truth batch or host yield only (#2943 text-repetition hang)
+- ⊗ Treat thin DONE (completion without PR URL / merge evidence) as success — re-dispatch or take over after ground truth (#2943)

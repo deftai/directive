@@ -52,6 +52,19 @@ Operator host guide: [`../../docs/openclaw-agent-host.md`](../../docs/openclaw-a
 ! Long pollers MUST honour on-disk heartbeats (`docs/subagent-heartbeat.md`, #1166).
 ! Pre-spawn verification and Duplicate-Agent rules in `references/core-phase-4.md` apply; resume the same OpenClaw session when possible rather than spawning a replacement on the same worktree.
 
+### Parent-monitor after `subagent_announce` (#2943)
+
+! When a leaf completion arrives via `subagent_announce` (parent-push completion), the parent’s **first response** MUST be **tool-first** or **yield** — never multi-sentence progress-only prose with zero tools:
+
+1. ! **Tool-first ground-truth batch** in the same turn: inspect worktrees / open PRs / xBRIEF state via `gh`, `git`, or file reads, **or**
+2. ! **`sessions_yield`** (or host yield) so the Control UI stays steerable without narrating unfinished work.
+
+⊗ Open the first post-announce turn with multi-sentence status narration only (“Checking worktrees and open PRs next…”, “Two leaves look unfinished…”) and zero tool calls / yield — that is the #2943 text-repetition hang class (`stopReason: length` / abort with no tools).
+
+! **Thin DONE = failed leaf (#2943):** completion text without PR URL / merge evidence (and not a structured `BLOCKED` / `FAILED` terminal per preamble §11) is a **failed leaf**, not success. After the ground-truth batch, re-dispatch or take over. ⊗ Treat thin DONE as shipped / success.
+
+~ Prefer structured completion fields when the host supplies them (`prUrl`, `mergeStatus`, `emptyDiff`); free-text thin DONE never counts as merge-ready success.
+
 ## Phase handoff (see also core #2934)
 
 ! After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status — see `references/core-phase-5-6.md` and the thin SKILL MUST block. ⊗ End the turn with only narrative “I will spawn…”.

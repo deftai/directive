@@ -104,6 +104,17 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ⊗ End the turn with only narrative “I will spawn…” / “review next” and zero tools (#2934).
 ~ Keep a small phase-state note: `cohort_id → phase → next_action|terminal`.
 
+### Parent-monitor after leaf announce (#2943)
+
+! After any leaf completion event (`subagent_announce` / parent-push / host completion notify), the parent’s **first response** MUST be **tool-first** or **yield**:
+- tool-first ground-truth batch (`gh` / `git` / worktree or file status), **or**
+- host yield (`sessions_yield` on OpenClaw, or equivalent).
+
+! **Thin DONE = failed leaf:** completion without PR URL / merge evidence is **failed** (re-dispatch or take over) — not success. Prefer structured fields when present (`prUrl`, `mergeStatus`, `emptyDiff`).
+
+⊗ Multi-sentence progress-only first response after announce with zero tools / yield (#2943 text-repetition hang).
+⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
+
 ## Runtime Capability Detection (summary)
 
 ! Before selecting a launch method, probe the environment. Full probe text: [`references/core-phase-3.md`](references/core-phase-3.md).
@@ -139,6 +150,8 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Load all host adapters “just in case” (#2928)
 - ⊗ Parallel OpenClaw `sessions_spawn` on shared repo root without worktrees (#2929)
 - ⊗ Prose-only phase handoff after cohort complete (“I will spawn…”) (#2934)
+- ⊗ Multi-sentence progress-only first response after leaf announce with zero tools / yield (#2943)
+- ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943)
 - ⊗ Assign overlapping files to multiple agents
 - ⊗ Merge before Greptile exit condition (score > 3, no P0/P1)
 - ⊗ Skip Phase 0 approval before Phase 1

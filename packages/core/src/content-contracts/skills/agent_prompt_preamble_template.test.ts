@@ -92,6 +92,20 @@ describe("test_agent_prompt_preamble_template", () => {
       "Emit `DONE` from a `drive-to: merge-ready` worker while merge-ready is false",
     );
   });
+  it("template_thin_done_and_parent_tool_first_2943", () => {
+    expect(templateText).toContain("Thin DONE is not success (#2943)");
+    expect(templateText).toContain("Parent tool-first after leaf completion (#2943)");
+    expect(templateText).toContain("subagent_announce");
+    expect(templateText).toContain("tool-first");
+    expect(templateText).toContain("sessions_yield");
+    expect(templateText).toContain("prUrl");
+    expect(templateText).toContain("mergeStatus");
+    expect(templateText).toContain("emptyDiff");
+    expect(templateText).toContain(
+      "Treat thin DONE (no PR URL / merge evidence) as success (#2943)",
+    );
+    expect(templateText).toMatch(/⊗[^\n]*progress-only[^\n]*#2943|⊗[^\n]*Thin DONE[^\n]*#2943/);
+  });
   it("template_rate_limit_probe_uses_gh_not_ghx_with_q_flag", () => {
     expect(/gh\s+api\s+rate_limit\s+-q\s+'/.test(templateText)).toBeTruthy();
     expect(!/ghx\s+api\s+rate_limit\s+-q\b/.test(templateText)).toBe(true);

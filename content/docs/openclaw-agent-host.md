@@ -33,7 +33,7 @@ OpenClaw’s native background-spawn tool is **`sessions_spawn`**. Operator inte
 
 ! Gate tiers, allowed register primitives, dispatch detection, and review Approaches are defined **only** in shipped skill + engine text:
 
-- Swarm capability matrix + launch path: [`skills/deft-directive-swarm/SKILL.md`](../skills/deft-directive-swarm/SKILL.md) (thin skill: detect + route table) and OpenClaw adapter [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md) (Step 2f launch, worktree-before-spawn #2929, phase handoff #2934). Skill text remains source of truth.
+- Swarm capability matrix + launch path: [`skills/deft-directive-swarm/SKILL.md`](../skills/deft-directive-swarm/SKILL.md) (thin skill: detect + route table) and OpenClaw adapter [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md) (Step 2f launch, worktree-before-spawn #2929, phase handoff #2934, parent-monitor tool-first after announce #2943). Skill text remains source of truth.
 - PR babysit / shepherd / watch: [`skills/deft-directive-review-cycle/SKILL.md`](../skills/deft-directive-review-cycle/SKILL.md) → **Review Monitoring**.
 - Provider-neutral dispatch envelope: [`templates/agent-prompt-preamble.md`](../templates/agent-prompt-preamble.md).
 - Review-owner lease: `task review-monitor:register` / `task verify:review-monitor` (only `--platform-primitive` values those commands accept in your install).
@@ -120,7 +120,7 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 
 ---
 
-## Swarm on OpenClaw (#2929 / #2934)
+## Swarm on OpenClaw (#2929 / #2934 / #2943)
 
 ! For **parallel** swarm leaves on OpenClaw:
 
@@ -130,7 +130,22 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 
 ! After a coding cohort completes, dispatch the next phase with a **real tool call in the same turn**, or write explicit terminal status (`blocked` / `awaiting-human` / `done`). Do not end on narrative-only “I will spawn…”.
 
-Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md) and the thin swarm SKILL hard-gates block. This page does not fork a second source of truth.
+### Parent-monitor after `subagent_announce` (#2943)
+
+OpenClaw parents can lock into a **text-only repetition hang** after thin leaf completions: the model regenerates the same “checking worktrees / open PRs next” sentence with **zero tool calls** until length cap or abort. Subagents may still be healthy; only the parent appears hung.
+
+! After any leaf completion event (`subagent_announce` / parent-push completion), the parent’s **first response** MUST be **tool-first** or **yield**:
+
+1. **Tool-first ground-truth batch** — one same-turn tool batch that inspects reality (`gh` PR/issue status, `git` / worktree status, or file/xBRIEF state), **or**
+2. **`sessions_yield`** (or host equivalent yield) — leave the turn steerable without narrating unfinished work.
+
+⊗ Open the first response after announce with multi-sentence progress-only prose (“Two leaves look unfinished…”, “Checking worktrees next…”, “Implementing both myself…”) and **zero** tool calls / yield.
+
+! **Thin DONE = failed leaf:** a completion without PR URL / merge evidence (and without a structured `BLOCKED` / `FAILED` terminal) is **not** success. Treat as failed: re-dispatch or take over after the ground-truth batch. Do not celebrate thin DONE as shipped.
+
+~ Prefer structured completion fields when present (`prUrl`, `mergeStatus`, `emptyDiff`); never model free-text thin DONE as success.
+
+Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md), thin swarm SKILL hard-gates, and [`templates/agent-prompt-preamble.md`](../templates/agent-prompt-preamble.md) §11. This page does not fork a second source of truth.
 
 ## Anti-patterns
 
@@ -139,6 +154,8 @@ Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skill
 - ⊗ Treating `content/platforms/` hardware packs as the home for agent-host OpenClaw guidance.
 - ⊗ Substituting host-native review theater for `deft-directive-review-cycle` on Deft-managed repos.
 - ⊗ Claiming this doc alone makes `sessions_spawn` a shipped register/matrix primitive — that is epic skill/engine work (#2875 / #2876).
+- ⊗ Multi-sentence progress-only first response after `subagent_announce` with zero tools / yield (#2943 text-repetition hang).
+- ⊗ Treating thin DONE (no PR URL / merge evidence) as success (#2943).
 
 ---
 
