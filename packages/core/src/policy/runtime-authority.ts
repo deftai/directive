@@ -253,33 +253,106 @@ export function evaluateRuntimeAuthorityDirectWrite(
 /** Classifiable shell/MCP operation for scopes.push / scopes.merge (#2711). */
 export type RuntimeAuthorityShellOp = "push" | "merge";
 
+/** True when token is a shell env assignment (FOO=1 / FOO=). Linear; no nested quantifiers. */
+function isShellEnvAssignToken(token: string): boolean {
+  const eq = token.indexOf("=");
+  if (eq <= 0) return false;
+  const name = token.slice(0, eq);
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return false;
+  return true;
+}
+
+/**
+ * Classify one shell list/pipeline segment for push/merge (#2711).
+ * Token walk is O(n) — avoids nested-quantifier ReDoS that CodeQL flags on
+ * `git (?:options)* push` style regexes (alerts #77 / #78 on this PR).
+ */
+function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
+  const tokens = segment
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
+  let i = 0;
+  while (i < tokens.length) {
+    const tok = tokens[i];
+    if (tok === undefined || !isShellEnvAssignToken(tok)) break;
+    i++;
+  }
+  const wrapTok = tokens[i];
+  if (wrapTok !== undefined) {
+    const wrap = wrapTok.toLowerCase();
+    if (wrap === "sudo" || wrap === "env" || wrap === "command") {
+      i++;
+      while (i < tokens.length) {
+        const tok = tokens[i];
+        if (tok === undefined || !isShellEnvAssignToken(tok)) break;
+        i++;
+      }
+    }
+  }
+  const binTok = tokens[i];
+  if (binTok === undefined) return null;
+
+  const bin = binTok.toLowerCase();
+  if (bin === "git" || bin === "git.exe") {
+    i++;
+    // Skip git global options before the subcommand (-C path, -c key=value, --flag, -x).
+    while (i < tokens.length) {
+      const t = tokens[i];
+      if (t === undefined) return null;
+      const lower = t.toLowerCase();
+      if (!t.startsWith("-")) {
+        return lower === "push" ? "push" : null;
+      }
+      // -C <path> / -c <name>=<value> consume the next token when not glued.
+      if (t === "-C" || t === "-c") {
+        i += 2;
+        continue;
+      }
+      // Glued forms: -C/path, -cname=value
+      if (t.startsWith("-C") || t.startsWith("-c")) {
+        i++;
+        continue;
+      }
+      i++;
+    }
+    return null;
+  }
+
+  if (bin === "gh" || bin === "gh.exe") {
+    i++;
+    while (i < tokens.length) {
+      const flag = tokens[i];
+      if (flag === undefined || !flag.startsWith("-")) break;
+      i++;
+    }
+    const pr = tokens[i];
+    const merge = tokens[i + 1];
+    if (pr?.toLowerCase() === "pr" && merge?.toLowerCase() === "merge") {
+      return "merge";
+    }
+    return null;
+  }
+
+  return null;
+}
+
 /**
  * Classify a shell command string for push/merge scopes (#2711).
  * Unclassifiable commands return null (fail open at the gate).
  *
  * Patterns (intentionally narrow; prefer false-open over false-deny):
- * - push: `git push`, `git.exe push`, optional leading path/env noise via word-boundary match
+ * - push: `git push`, `git.exe push`, with optional env / -C / -c prefixes
  * - merge: `gh pr merge`, `gh.exe pr merge`
+ * Segments split on `&&` / `||` / `;` / `|` / `&` so prose like `echo git push` does not match.
  */
 export function classifyShellCommand(command: string): RuntimeAuthorityShellOp | null {
   const cmd = command.trim();
   if (cmd.length === 0) return null;
   // Split pipeline/list segments so "cd x && git push" classifies; prose "echo git push" does not.
   for (const raw of cmd.split(/(?:&&|\|\||[;&|])/)) {
-    let segment = raw.trim();
-    if (segment.length === 0) continue;
-    // Leading env assignments: FOO=1 git push / DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push
-    segment = segment.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, "");
-    // Optional sudo / env / command wrappers
-    segment = segment.replace(/^(?:sudo|env|command)\s+/, "");
-    segment = segment.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+/, "");
-    // git with optional -C <path> / -c key=value before the subcommand (#2711 Greptile P1)
-    if (/^git(?:\.exe)?(?:\s+(?:-[Cc]\s+\S+|-[a-zA-Z](?:=|\s+\S+)?))*\s+push\b/i.test(segment)) {
-      return "push";
-    }
-    if (/^gh(?:\.exe)?(?:\s+--\S+)*\s+pr\s+merge\b/i.test(segment)) {
-      return "merge";
-    }
+    const op = classifyShellSegment(raw);
+    if (op !== null) return op;
   }
   return null;
 }
