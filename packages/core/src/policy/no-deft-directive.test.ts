@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
@@ -74,7 +74,8 @@ describe("detectNoDeftDirective (#2926)", () => {
 
   it("honors injectable seams without touching the filesystem", () => {
     const root = "/virtual/project";
-    const files = new Set([join(root, NO_DEFT_DIRECTIVE_FLAG_NAME)]);
+    // Flag path uses path.resolve (absolute); deposit probe uses path.join — match both (#2926 / win32).
+    const files = new Set([resolve(root, NO_DEFT_DIRECTIVE_FLAG_NAME)]);
     const dirs = new Set([join(root, CANONICAL_INSTALL_ROOT)]);
     const state = detectNoDeftDirective(root, {
       isFile: (p) => files.has(p),
