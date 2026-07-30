@@ -146,11 +146,14 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
     expect(classifyShellCommand("git status")).toBeNull();
     expect(classifyShellCommand("echo git push is cool")).toBeNull();
     expect(classifyShellCommand("")).toBeNull();
-    // Quoted tokens: shell strips quotes; classifier must match after unquote (#2711).
+    // Quoted / fragmented tokens: shell strips quotes and concatenates (#2711).
     expect(classifyShellCommand("git 'push' origin HEAD")).toBe("push");
     expect(classifyShellCommand('git "push" --force-with-lease')).toBe("push");
     expect(classifyShellCommand("gh pr 'merge' 12")).toBe("merge");
     expect(classifyShellCommand(`'git' push origin HEAD`)).toBe("push");
+    expect(classifyShellCommand("g''it push origin HEAD")).toBe("push");
+    expect(classifyShellCommand("git p''ush origin HEAD")).toBe("push");
+    expect(classifyShellCommand("gh pr m''erge 12")).toBe("merge");
     // Compound / multi-line: list every op so enforcement can deny any out-of-scope step.
     expect(listShellOps("gh pr merge 1 --squash && git push")).toEqual(["push", "merge"]);
     expect(listShellOps("ls\ngit push origin HEAD")).toEqual(["push"]);

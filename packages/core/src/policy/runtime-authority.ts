@@ -263,18 +263,13 @@ function isShellEnvAssignToken(token: string): boolean {
 }
 
 /**
- * Strip one layer of matching single/double quotes from a shell token (#2711).
- * Shell removes quotes before exec; fail-open on `'push'` would bypass scopes.
- * Linear O(n); no nested quantifiers.
+ * Normalize a shell token for classification (#2711).
+ * Shell strips quote characters and concatenates fragments (`g''it` → `git`,
+ * `'push'` → `push`). Dropping `'`/`"` after whitespace split closes that bypass
+ * without nested-quantifier regex. Linear O(n).
  */
-function unquoteShellToken(token: string): string {
-  if (token.length < 2) return token;
-  const first = token[0];
-  const last = token[token.length - 1];
-  if ((first === "'" || first === '"') && first === last) {
-    return token.slice(1, -1);
-  }
-  return token;
+function normalizeShellToken(token: string): string {
+  return token.replace(/['"]/g, "");
 }
 
 /**
@@ -295,7 +290,7 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
   }
   const wrapTok = tokens[i];
   if (wrapTok !== undefined) {
-    const wrap = unquoteShellToken(wrapTok).toLowerCase();
+    const wrap = normalizeShellToken(wrapTok).toLowerCase();
     if (wrap === "sudo" || wrap === "env" || wrap === "command") {
       i++;
       while (i < tokens.length) {
@@ -308,14 +303,14 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
   const binTok = tokens[i];
   if (binTok === undefined) return null;
 
-  const bin = unquoteShellToken(binTok).toLowerCase();
+  const bin = normalizeShellToken(binTok).toLowerCase();
   if (bin === "git" || bin === "git.exe") {
     i++;
     // Skip git global options before the subcommand (-C path, -c key=value, --flag, -x).
     while (i < tokens.length) {
       const raw = tokens[i];
       if (raw === undefined) return null;
-      const t = unquoteShellToken(raw);
+      const t = normalizeShellToken(raw);
       const lower = t.toLowerCase();
       if (!t.startsWith("-")) {
         return lower === "push" ? "push" : null;
@@ -340,7 +335,7 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
     while (i < tokens.length) {
       const flagRaw = tokens[i];
       if (flagRaw === undefined) break;
-      const flag = unquoteShellToken(flagRaw);
+      const flag = normalizeShellToken(flagRaw);
       if (!flag.startsWith("-")) break;
       i++;
     }
@@ -349,8 +344,8 @@ function classifyShellSegment(segment: string): RuntimeAuthorityShellOp | null {
     if (
       pr !== undefined &&
       merge !== undefined &&
-      unquoteShellToken(pr).toLowerCase() === "pr" &&
-      unquoteShellToken(merge).toLowerCase() === "merge"
+      normalizeShellToken(pr).toLowerCase() === "pr" &&
+      normalizeShellToken(merge).toLowerCase() === "merge"
     ) {
       return "merge";
     }
