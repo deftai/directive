@@ -28,6 +28,7 @@ import {
   type RuntimeAuthorityPolicy,
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
+import { detectBranch } from "../session/git.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
@@ -623,6 +624,15 @@ function authzForMutation(
     return null;
   }
 
+  // Structural context for bound grants (branch from git; repo optional env).
+  let branch: string | null = null;
+  try {
+    branch = detectBranch(projectRoot);
+  } catch {
+    branch = null;
+  }
+  const repo = (process.env.DEFT_AUTHZ_REPO ?? process.env.GITHUB_REPOSITORY ?? "").trim() || null;
+
   // Evaluate each op; first deny wins (compound shell must not short-circuit).
   for (const op of ops) {
     const decision = evaluateAuthzMutation({
@@ -630,6 +640,9 @@ function authzForMutation(
       grants,
       op,
       path: options.relPath,
+      branch,
+      repo,
+      worktree: projectRoot,
     });
     recordAuthzAudit(projectRoot, decision, state, seams);
     if (!decision.allowed) {

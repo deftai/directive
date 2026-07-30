@@ -51,6 +51,9 @@ function isEnvAssign(token: string): boolean {
  * Walk tokens looking for `gh [opts] <resource> <verb>` patterns (O(n)).
  * Returns the resource+verb pair when found.
  */
+/** gh global flags that take a separate value token. */
+const GH_VALUE_FLAGS = new Set(["-R", "--repo", "-a", "--app", "-h", "--hostname", "-p", "--jq"]);
+
 function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb: string } | null {
   let i = 0;
   while (i < tokens.length && isEnvAssign(tokens[i] as string)) i++;
@@ -67,6 +70,16 @@ function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb
     if (t === undefined) break;
     const n = normalizeToken(t);
     if (!n.startsWith("-")) break;
+    // --flag=value form consumes one token.
+    if (n.startsWith("--") && n.includes("=")) {
+      i++;
+      continue;
+    }
+    // Value-taking short/long flags: -R owner/repo, --repo owner/repo
+    if (GH_VALUE_FLAGS.has(t) || GH_VALUE_FLAGS.has(n)) {
+      i += 2;
+      continue;
+    }
     i++;
   }
   const resource = tokens[i] !== undefined ? normalizeToken(tokens[i] as string) : "";
@@ -159,6 +172,10 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
     ) {
       found.add("pr");
     }
+    // Surface merge when listShellOps misses global flags like --repo (#2711 compose).
+    if (gh.resource === "pr" && gh.verb === "merge") {
+      found.add("merge");
+    }
     if (gh.resource === "issue" && gh.verb === "create") {
       found.add("issue_mutation");
     }
@@ -214,11 +231,6 @@ export function classifyHookAuthzOps(input: {
 
   // Unrelated tools — not gated by Wave 1 authz (prefer fail-open over false deny).
   return [];
-}
-
-/** Map RuntimeAuthority shell op into AuthzOperation (identity for push/merge). */
-export function runtimeOpToAuthz(op: RuntimeAuthorityShellOp): AuthzOperation {
-  return op;
 }
 
 /** Re-export #2711 classifiers for composition docs/tests. */

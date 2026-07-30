@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyHookAuthzOps, classifyShellAuthzOps, runtimeOpToAuthz } from "./classify.js";
+import { classifyHookAuthzOps, classifyShellAuthzOps } from "./classify.js";
 
 describe("classifyShellAuthzOps (#2944)", () => {
   it("classifies push/merge via #2711 reuse", () => {
@@ -77,8 +77,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     ).toEqual([]);
   });
 
-  it("runtimeOpToAuthz is identity for push/merge", () => {
-    expect(runtimeOpToAuthz("push")).toBe("push");
-    expect(runtimeOpToAuthz("merge")).toBe("merge");
+  it("classifies gh with -R/--repo value flags before resource verb", () => {
+    expect(classifyShellAuthzOps("gh -R owner/repo pr create --title t")).toContain("pr");
+    expect(classifyShellAuthzOps("gh --repo owner/repo pr merge 1")).toContain("merge");
   });
 });

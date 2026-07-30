@@ -246,8 +246,9 @@ function findCoveringGrant(
         code: "authz-grant-scope-deny",
         reason:
           `Directive denied this mutation: grant ${grant.id} does not include operation ` +
-          `'${op}'. Human action required: mint/extend a grant with operations including ${op} ` +
-          `(\`deft authz:grant -- --operations ${op},...\`).`,
+          `'${String(op).replace(/[\r\n]/g, " ")}'. Human action required: mint/extend a grant ` +
+          `with operations including ${String(op).replace(/[\r\n]/g, " ")} ` +
+          `(\`deft authz:grant -- --operations ${String(op).replace(/[\r\n]/g, " ")},...\`).`,
       };
       continue;
     }
