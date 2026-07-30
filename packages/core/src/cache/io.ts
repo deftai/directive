@@ -1,26 +1,26 @@
 import { randomBytes } from "node:crypto";
-import {
-  appendFileSync,
-  mkdirSync,
-  renameSync,
-  rmSync,
-  statSync,
-  utimesSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { pythonJsonLine } from "./json.js";
 
-/** Write text via tempfile + rename (mirrors Python `_atomic_write_text`). */
+/**
+ * Write text via tempfile + rename (mirrors Python `_atomic_write_text`).
+ * #2951 Phase 2: temp payload write uses containedWrite under the parent dir.
+ */
 export function atomicWriteText(path: string, text: string): void {
-  mkdirSync(dirname(path), { recursive: true });
-  const tmp = join(
-    dirname(path),
-    `${path.split(/[/\\]/).pop() ?? "file"}.${randomBytes(4).toString("hex")}.tmp`,
-  );
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  const tmpName = `${basename(path)}.${randomBytes(4).toString("hex")}.tmp`;
+  const tmp = join(dir, tmpName);
   try {
-    writeFileSync(tmp, text, { encoding: "utf8" });
+    containedWrite({
+      root: resolve(dir),
+      target: tmpName,
+      data: text,
+      mode: "create",
+    });
     renameSync(tmp, path);
   } catch (err) {
     try {
@@ -32,11 +32,17 @@ export function atomicWriteText(path: string, text: string): void {
   }
 }
 
-/** Append one JSON audit record (mirrors `_append_audit`). */
+/**
+ * Append one JSON audit record (mirrors `_append_audit`).
+ * #2951 Phase 2: product write sink routes through containedWrite.
+ */
 export function appendAudit(record: Record<string, unknown>, cacheRoot: string): void {
-  const path = join(cacheRoot, "quarantine-audit.jsonl");
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, `${pythonJsonLine(record)}\n`, { encoding: "utf8" });
+  containedWrite({
+    root: resolve(cacheRoot),
+    target: "quarantine-audit.jsonl",
+    data: `${pythonJsonLine(record)}\n`,
+    mode: "append",
+  });
 }
 
 /** Touch mtime for LRU signal; failures swallowed. */

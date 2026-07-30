@@ -3,8 +3,8 @@
  * Append-only JSONL at `.deft-cache/finish-loop-progress.jsonl`.
  */
 
-import { appendFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import type { FinishLoopProgressLine } from "./types.js";
 
 export const FINISH_LOOP_PROGRESS_REL = join(".deft-cache", "finish-loop-progress.jsonl");
@@ -38,18 +38,21 @@ export function makeProgressLine(
 }
 
 /**
- * Append one progress line. Creates parent dirs. Never throws on empty message.
+ * Append one progress line. Creates parent dirs via containedWrite.
+ * #2951 Phase 2: product write sink routes through containedWrite.
  */
 export function appendFinishLoopProgress(
   projectRoot: string,
   line: FinishLoopProgressLine,
 ): string {
-  const path = finishLoopProgressPath(projectRoot);
-  const dir = dirname(path);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+  const root = resolve(projectRoot);
+  const path = finishLoopProgressPath(root);
   const payload = { ...line };
-  appendFileSync(path, `${JSON.stringify(payload)}\n`, "utf8");
+  containedWrite({
+    root,
+    target: path,
+    data: `${JSON.stringify(payload)}\n`,
+    mode: "append",
+  });
   return path;
 }

@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import { DEFAULT_TASK_CACHE_ROOT, TASK_CACHE_MANIFEST } from "./constants.js";
 import type { CachedTaskRecord } from "./types.js";
 
@@ -38,12 +38,16 @@ export function writeCachedTaskRecord(
   if (record.exitCode !== 0) {
     return;
   }
+  const root = resolve(projectRoot);
   const dir = entryDir(projectRoot, cacheKey, cacheRoot);
   const manifest = join(dir, TASK_CACHE_MANIFEST);
-  assertWriteTargetSafe(resolve(projectRoot), dir);
-  mkdirSync(dirname(manifest), { recursive: true });
-  assertWriteTargetSafe(resolve(projectRoot), manifest);
-  writeFileSync(manifest, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  // #2951 Phase 2: product write sink routes through containedWrite (mkdir + replace).
+  containedWrite({
+    root,
+    target: manifest,
+    data: `${JSON.stringify(record, null, 2)}\n`,
+    mode: "replace",
+  });
 }
 
 export interface ClearTaskCacheResult {

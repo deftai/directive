@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ProjectionContainmentError } from "../fs/projection-containment.js";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import {
   clearRegistryCache,
   DEFAULT_EVENT_LOG,
@@ -377,7 +377,7 @@ describe("behavioral emit symlink containment (#2766)", () => {
     symlinkSync(victim, join(root, ".deft-cache", "events.jsonl"));
     expect(() =>
       emit("session:interrupted", { reason: "probe", session_id: "s1" }, { projectRoot: root }),
-    ).toThrow(ProjectionContainmentError);
+    ).toThrow(ContainedWriteError);
     expect(readFileSync(victim, "utf8")).toBe("victim\n");
     rmSync(root, { recursive: true, force: true });
     rmSync(escapeDir, { recursive: true, force: true });
@@ -391,7 +391,7 @@ describe("behavioral emit symlink containment (#2766)", () => {
     symlinkSync(escapeDir, join(root, ".deft-cache"));
     expect(() =>
       emit("session:interrupted", { reason: "probe", session_id: "s1" }, { projectRoot: root }),
-    ).toThrow(/projection write refused|symlink escaping/);
+    ).toThrow(/contained write refused|projection write refused|symlink escaping/);
     expect(readFileSync(victim, "utf8")).toBe("victim\n");
     rmSync(root, { recursive: true, force: true });
     rmSync(escapeDir, { recursive: true, force: true });
@@ -407,7 +407,7 @@ describe("behavioral emit symlink containment (#2766)", () => {
         { reason: "probe", session_id: "s1" },
         { logPath: dangling, projectRoot: root },
       ),
-    ).toThrow(/projection write refused|symlink on the write path/);
+    ).toThrow(/contained write refused|projection write refused|symlink on the write path/);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -426,7 +426,7 @@ describe("behavioral emit symlink containment (#2766)", () => {
           { reason: "probe", session_id: "s1" },
           { logPath: symlinkLog, projectRoot: root },
         ),
-      ).toThrow(/projection write refused|symlink on the write path/);
+      ).toThrow(/contained write refused|projection write refused|symlink on the write path/);
       expect(readFileSync(victim, "utf8")).toBe("victim\n");
       rmSync(root, { recursive: true, force: true });
       rmSync(outsideRoot, { recursive: true, force: true });

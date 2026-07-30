@@ -1,5 +1,5 @@
 /**
- * Tests for verify:contained-writes skeleton (#2951 Phase 1).
+ * Tests for verify:contained-writes inventory + --enforce path (#2951 Phase 2).
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -42,7 +42,7 @@ describe("evaluateContainedWrites (#2951)", () => {
     expect(result.message).toMatch(/fail-open|ADVISORY/i);
   });
 
-  it("fails closed with exit 1 under --enforce", () => {
+  it("fails closed with exit 1 under --enforce on a fixture raw write sink", () => {
     const root = freshDir("cw-verify-enforce-");
     const src = join(root, "packages", "core", "src", "evil");
     mkdirSync(src, { recursive: true });
@@ -54,7 +54,17 @@ describe("evaluateContainedWrites (#2951)", () => {
     const result = evaluateContainedWrites({ projectRoot: root, enforce: true });
     expect(result.code).toBe(1);
     expect(result.failOpen).toBe(false);
+    expect(result.enforce).toBe(true);
     expect(result.findings.length).toBeGreaterThan(0);
+    expect(result.findings.some((f) => f.path.includes("evil/sink.ts"))).toBe(true);
+    expect(result.message).toMatch(/FAIL: --enforce/i);
+    expect(result.stream).toBe("stderr");
+  });
+
+  it("Phase 2 allowlist no longer grandfathers cache/io or lifecycle/events", () => {
+    expect(CONTAINED_WRITES_ALLOWLIST).not.toContain("packages/core/src/cache/io.ts");
+    expect(CONTAINED_WRITES_ALLOWLIST).not.toContain("packages/core/src/lifecycle/events.ts");
+    expect(CONTAINED_WRITES_ALLOWLIST).toContain("packages/core/src/fs/contained-write.ts");
   });
 
   it("skips test files and allowlisted modules", () => {
