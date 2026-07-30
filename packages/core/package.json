@@ -79,6 +79,10 @@
       "types": "./dist/authz/index.d.ts",
       "default": "./dist/authz/index.js"
     },
+    "./escalation": {
+      "types": "./dist/escalation/index.d.ts",
+      "default": "./dist/escalation/index.js"
+    },
     "./plan-sequence": {
       "types": "./dist/plan-sequence/index.d.ts",
       "default": "./dist/plan-sequence/index.js"

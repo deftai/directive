@@ -352,6 +352,18 @@ Anti-pattern: reading only the issue body and building a dispatch envelope from 
 
 Reference: AGENTS.md `## Issue body→comments reading (#2143)`, `## Umbrella current-shape convention (#1152)`, issue #2143.
 
+## 5.6.1 Typed escalation channel (#518 slim / #2948 Wave 5)
+
+When blocked on human input under multi-agent load, file a **typed** escalation instead of a synchronous interrupt storm:
+
+- Types: `cmd_approval` | `design_decision` | `approval` | `resource` | `external` | `question`
+- CLI: `deft escalation:file` / `list` / `resolve` / `batch-approve` (bulk only for non-dangerous `cmd_approval` + `question`)
+- Store: `.deft/escalations/<id>.json`
+- Mark write-scope shell / merge / release requests `dangerous: true` so they stay individual
+- Escalations are **not** implement authority — compose with `deft authz:grant` (Wave 1) after approval
+
+Contract + residual full priority-inbox UI: `content/contracts/escalation.md`.
+
 ## 5.7 Value feedback opt-in and gap escalation (#1709)
 
 Value attribution, budgeted session readbacks, and upstream gap escalation are gated on `plan.policy.valueFeedback` (default OFF). Workers MUST NOT emit value claims, session readback lines, or file upstream framework-gap issues unless the relevant sub-flag is ON and the operator has confirmed enablement where required.

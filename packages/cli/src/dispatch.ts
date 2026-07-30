@@ -93,6 +93,7 @@ export const CLI_MODULE_VERBS = [
   "coverage-hotspots",
   "policy",
   "authz",
+  "escalation-cli",
   "pr-closing-keywords",
   "pr-merge-readiness",
   "pr-monitor",
@@ -267,6 +268,18 @@ const AUTHZ_ACTION_COLON_ALIASES = Object.fromEntries(
   Object.keys(AUTHZ_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "authz"]),
 ) as Record<string, string>;
 
+/** Colon aliases for escalation subcommands (#518). */
+export const ESCALATION_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "escalation:file": "file",
+  "escalation:list": "list",
+  "escalation:resolve": "resolve",
+  "escalation:batch-approve": "batch-approve",
+};
+
+const ESCALATION_ACTION_COLON_ALIASES = Object.fromEntries(
+  Object.keys(ESCALATION_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "escalation-cli"]),
+) as Record<string, string>;
+
 /** Colon aliases for plan-sequence subcommands (#2402). */
 export const PLAN_SEQUENCE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
   "plan-sequence:set": "set",
@@ -353,6 +366,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   ...TRIAGE_ACTION_COLON_ALIASES,
   ...POLICY_ACTION_COLON_ALIASES,
   ...AUTHZ_ACTION_COLON_ALIASES,
+  ...ESCALATION_ACTION_COLON_ALIASES,
   ...PRODUCT_SIGNAL_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
   "migrate:preflight": "migrate-preflight",
@@ -3032,6 +3046,8 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const authzSubcommand = verb !== undefined ? AUTHZ_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const escalationSubcommand =
+      verb !== undefined ? ESCALATION_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const planSequenceSubcommand =
       verb !== undefined ? PLAN_SEQUENCE_ALIAS_SUBCOMMANDS[verb] : undefined;
     const productSignalSubcommand =
@@ -3045,11 +3061,13 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
             ? [policySubcommand, ...rest]
             : authzSubcommand !== undefined && canonical === "authz"
               ? [authzSubcommand, ...rest]
-              : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
-                ? [planSequenceSubcommand, ...rest]
-                : productSignalSubcommand !== undefined && canonical === "product-signal"
-                  ? [productSignalSubcommand, ...rest]
-                  : rest;
+              : escalationSubcommand !== undefined && canonical === "escalation-cli"
+                ? [escalationSubcommand, ...rest]
+                : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
+                  ? [planSequenceSubcommand, ...rest]
+                  : productSignalSubcommand !== undefined && canonical === "product-signal"
+                    ? [productSignalSubcommand, ...rest]
+                    : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

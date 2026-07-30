@@ -77,6 +77,7 @@ _Interface/behavioral contracts the framework enforces._
 - `hierarchy.md` — Two lenses for reasoning about what to invest in — durability (what survives) and generation (what to write first).
 - `runtime-authority.md` — Typed session-level enforcement under `plan.policy.runtimeAuthority` in `xbrief/PROJECT-DEFINITION.xbrief.json`.
 - `human-origin-authz.md` — Human-origin approval grants + UAT mutation lease (#2944 Wave 1 / #2948 L1–L2).
+- `escalation.md` — Typed escalation events + CLI batch queue (#518 slim / #2948 Wave 5); residual full priority-inbox UI.
 
 ### conventions
 

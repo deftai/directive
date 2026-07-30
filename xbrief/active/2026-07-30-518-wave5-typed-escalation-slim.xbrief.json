@@ -1,0 +1,89 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Wave 5 of #2948: typed escalation channel slim — schema + CLI queue (#518)",
+    "updated": "2026-07-30T16:51:24Z"
+  },
+  "plan": {
+    "title": "feat(authz): typed escalation events + CLI batch queue (#518 slim)",
+    "status": "running",
+    "updated": "2026-07-30T16:51:24Z",
+    "id": "2026-07-30-518-wave5-typed-escalation-slim",
+    "narratives": {
+      "Description": "Wave 5 optional UX of #2948. Slim #518: versioned typed escalation event schema, local queue store, CLI file/list/resolve/batch-approve for cmd_approval and question types. Full web/Warp UI is residual — first cut is CLI + file queue so grants and finish-loop have a structured escalation channel. Compose with human-origin grants when resolution mints approvals.",
+      "UserStory": "As an operator running multi-agent work, I want typed escalations in a batchable CLI queue, so that cmd_approval and questions do not each require a synchronous interrupt.",
+      "ImplementationPlan": "Step 1: Escalation schema (types: cmd_approval design_decision approval resource external question) under packages/core/src/escalation/ + content/contracts/escalation.md. Step 2: Store .deft/escalations/<id>.json + list open. Step 3: CLI escalation:file list resolve batch-approve (bulk only for cmd_approval/question; dangerous ops stay individual). Step 4: Swarm skill/preamble pointer for typed escalation. Step 5: Tests + CHANGELOG #518 #2948. Explicit residual: full priority-inbox web UI. drive-to: merge-ready.",
+      "Origin": "https://github.com/deftai/directive/issues/518",
+      "Program": "https://github.com/deftai/directive/issues/2948 Wave 5",
+      "Labels": "enhancement, design, swarm",
+      "Traces": "Wave 5 #518 slim AC of #2948; optional UX"
+    },
+    "items": [
+      {
+        "title": "Typed escalation schema + store",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "packages/core exports a versioned escalation schema and persists open escalations under .deft/escalations while unit tests reject invalid types."
+        }
+      },
+      {
+        "title": "CLI list file resolve batch-approve",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "escalation:list returns open items and batch-approve resolves only cmd_approval or question types while individual resolve handles design_decision approval and resource."
+        }
+      },
+      {
+        "title": "Docs skill pointer CHANGELOG #518",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "content/contracts/escalation.md records types and residual full-UI and CHANGELOG Unreleased records #518 under #2948 Wave 5."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "swarm",
+      "wave-5"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/518",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2948",
+        "type": "x-xbrief/github-issue",
+        "TrustLevel": "external"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "model_tier": "default",
+        "file_scope": [
+          "packages/core/src/escalation/",
+          "packages/cli/src/escalation-cli.ts",
+          "packages/cli/src/escalation-cli.test.ts",
+          "content/contracts/escalation.md"
+        ],
+        "verify_commands": [
+          "task test -- packages/core/src/escalation"
+        ],
+        "expected_outputs": [
+          "typed escalation schema + CLI queue",
+          "docs residual full UI"
+        ],
+        "depends_on": [],
+        "conflict_group": "story-518-wave5-escalation",
+        "size": "M",
+        "file_scope_confidence": "high"
+      },
+      "capacityBucket": "new-capability"
+    }
+  }
+}
