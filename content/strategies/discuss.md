@@ -72,6 +72,7 @@ Adapt question focus to what's being built:
 
 - ! Produce a `vbrief/proposed/{scope}-context.vbrief.json` scope vBRIEF with a `LockedDecisions` narrative
 - ! Each decision includes: **what** was decided, **why**, and **alternatives considered**
+- ! When the lock is an intentional under-build (weaker Now + decided end-product Later), the decision MUST also include dual-path graduation fields: `now`, `later`, `graduationRef`, `trigger`, and `status` (`open` | `shipped` | `cancelled`) — see [Graduation (Now+Later)](#graduation-nowlater-dual-path-locks-2899)
 - ! This vBRIEF is injected into all downstream work: planning, execution, verification
 - ! Persist decisions as vBRIEF narratives on the relevant plan items
 - ⊗ Write decisions to a hand-authored markdown context file -- use vBRIEF narratives for token-efficient agent consumption
@@ -84,6 +85,44 @@ Adapt question focus to what's being built:
 - ! If a locked decision needs revisiting, explicitly flag it as unlocked with justification
 - ⊗ Silently making a different choice because the agent forgot what was decided
 - ⊗ Re-debating a settled decision without explicit user approval
+
+## Graduation (Now+Later) dual-path locks (#2899)
+
+**Graduation** (alias: Now+Later) is a first-class decision shape for intentional under-builds:
+
+> We *decided* to ship a weaker path **now**, and we also decided what the end-product path is **later**.
+
+It is **not** the same as other "later" concepts:
+
+| Concept | Meaning |
+|---|---|
+| `DeferredDecisions` (probe) | Not decided yet; open question with justification |
+| deferred plan item / `triage:defer` | Out of scope, or not accepted into the workspace backlog |
+| rapid **graduate** | Spike / prototype → fresh full interview/spec cycle |
+| **Graduation** | Decided weaker **Now** + decided end-product **Later** |
+
+Glossary naming for this term is owned by sibling work (#2907). Strategy prose here is the Wave A contract agents must follow until the glossary entry lands.
+
+### When a lock is an under-build
+
+- ! When a `LockedDecisions` entry chooses a temporary, weaker, MVP, or shortcut approach **and** a stronger end-product approach is also decided, the entry MUST record a dual-path graduation shape with all of:
+  - `now` — what this scope ships
+  - `later` — the end-product approach
+  - `graduationRef` — GitHub issue URL and/or scope xBRIEF path that tracks Later work
+  - `trigger` — free-text condition that makes Later required (examples are illustrative only, e.g. "before multi-tenant customers", "when latency SLO is adopted")
+  - `status` — `open` | `shipped` | `cancelled` (cancellation MUST include justification)
+- ! A permanent approach lock (no weaker temporary path) does **not** require graduation fields
+- ! Chat-only "we'll harden this later" is insufficient — same anti-pattern as decisions that exist only in conversation history
+- ~ Emitting `graduationRef` SHOULD use existing [emit-hints](./emit-hints.md) patterns (none / `--umbrella` / `--per-vbrief`) rather than a parallel SCM ontology
+- ⊗ Routing a *decided* under-build into `DeferredDecisions`, a deferred plan item, or `triage:defer` — those surfaces mean undecided or out-of-scope, not dual-path delivery
+- ⊗ Treating rapid prototype **graduate** as Graduation dual-path tracking inside a normal production build
+
+### Lifecycle: Now complete ≠ Later closed
+
+- ! `task scope:complete` on the Now story MUST NOT imply closure of linked graduation work (`graduationRef` issue and/or Later scope xBRIEF stay open until Later ships or is explicitly cancelled)
+- ⊗ Closing a graduation ticket solely because the MVP / Now story completed
+- ~ Wave A (soft): when completing a story whose `LockedDecisions` contain an open graduation, warn and audit if `graduationRef` is missing or invalid — hard fail / policy flag is Wave B follow-on
+- ! Durable surfaces for graduation are: (1) strategy output narratives (this contract), (2) optional always-loadable ProjectRules for stricter consumer policy — ⊗ Cursor-rule-only as the sole persistence path
 
 ---
 
@@ -115,7 +154,7 @@ run additional preparatory strategies or proceed to spec generation.
 
 1. **Open** -- Start with the user's goal statement; restate it in your own words
 2. **Explore** -- Follow energy, challenge vagueness, ask domain-sensitive questions
-3. **Lock** -- Record each decision in `vbrief/proposed/{scope}-context.vbrief.json` `LockedDecisions` narrative with what/why/alternatives
+3. **Lock** -- Record each decision in `vbrief/proposed/{scope}-context.vbrief.json` `LockedDecisions` narrative with what/why/alternatives (and dual-path graduation fields when the lock is an under-build; #2899)
 4. **Verify** -- Explain the full picture back to the user (Feynman check)
 5. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [standalone-context rule](#then-chaining-gate) above
 

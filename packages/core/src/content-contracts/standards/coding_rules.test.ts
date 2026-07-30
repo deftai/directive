@@ -83,6 +83,20 @@ describe("test_coding_rules.py", () => {
       expect(text).toContain("#1006");
       expect(/- ! .*Fail-loud.*#1006/i.test(text) || /- ! .*#1006/.test(text)).toBe(true);
     });
+    it("test_fail_loud_requires_open_graduation_disclosure", () => {
+      const body = failBody(readText(CODING));
+      expect(body).toContain("graduationRef");
+      expect(body).toContain("#2899");
+      expect(body.toLowerCase()).toContain("production-ready");
+      expect(body.toLowerCase()).toMatch(/open graduation|open graduations/);
+    });
+    it("test_fail_loud_allows_explicit_graduation_skip", () => {
+      const body = failBody(readText(CODING)).toLowerCase();
+      expect(body.includes("skipped") || body.includes("skip")).toBe(true);
+    });
+    it("test_coding_md_anti_pattern_mentions_graduation", () => {
+      expect(readText(CODING)).toMatch(/open graduations.*#2899|#2899.*open graduations/s);
+    });
   });
   describe("TestLessonsCrossReference", () => {
     for (const issueTag of ["#1005", "#1006"]) {

@@ -125,9 +125,12 @@ This rule is the OPERATIONAL complement to the EPISTEMIC honesty rules elsewhere
 - ⊗ MUST NOT use successful-sounding completion phrasing to paper over uncertainty -- default to surfacing uncertainty, not hiding it
 - ⊗ MUST NOT suppress error output (`2>$null`, `2>/dev/null`, `try/except: pass` around the verification command) and then claim completion based on the resulting silence
 
+- ! Before claiming "feature complete", "ready for real users", "production-ready", or equivalent area-complete language for a surface that has open graduations (Now+Later dual-path locks; #2899), MUST name the open `graduationRef`s, **or** explicitly state that graduation review was skipped and why — otherwise the claim is outcome-blind under this rule
+- ⊗ MUST NOT claim "feature complete" / "production-ready" / "ready for real users" for an area with open graduations without naming those `graduationRef`s or an explicit skip-with-reason
+
 The rule applies to agent completion claims during task execution. It applies equally to claims to the user, claims in commit messages, claims in PR bodies, claims in CHANGELOG entries, and claims in status messages to a parent agent. A short, honest "the migration completed; I did not verify the per-record count" is strictly preferred over a confident "migration completed successfully" that hides the gap.
 
-**Cross-references:** `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).
+**Cross-references:** strategies discuss/probe Graduation dual-path locks (#2899); `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).
 
 ## Calling LLM APIs (#481)
 
@@ -231,5 +234,6 @@ See [debugging.md](debugging.md) for the full four-phase process, evidence disci
 - ⊗ Circular imports between modules
 - ⊗ Duplicate logic across 2+ call sites without shared abstraction
 - ⊗ Outcome-blind completion claims: "tests pass" with skipped tests, "migration completed" without per-record counts, "feature works" without naming the verified edge case (#1006 -- see `## Fail Loud` above)
+- ⊗ Outcome-blind "feature complete" / "production-ready" claims that ignore open graduations (`graduationRef`s) without naming them or an explicit skip (#2899 / #1006 -- see `## Fail Loud` above)
 - ⊗ Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)
 - ⊗ Debugging by guess-and-check: fixing before reproducing, treating the first plausible hypothesis as confirmed, or presenting a duration/exit-status as a root cause (#1621 -- see `debugging.md`)

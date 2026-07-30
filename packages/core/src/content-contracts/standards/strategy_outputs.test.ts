@@ -95,6 +95,53 @@ describe("test_strategy_outputs.py", () => {
       }
       expect(found).toBe(true);
     });
+    it("test_graduation_dual_path_section_present", () => {
+      expect(text).toContain("## Graduation (Now+Later) dual-path locks (#2899)");
+    });
+    it("test_graduation_requires_dual_path_fields_on_underbuild", () => {
+      expect(text).toContain("graduationRef");
+      expect(text).toContain("`now`");
+      expect(text).toContain("`later`");
+      expect(text).toContain("`trigger`");
+      expect(text).toContain("`status`");
+      expect(text).toContain("open");
+      expect(text).toContain("shipped");
+      expect(text).toContain("cancelled");
+    });
+    it("test_graduation_distinct_from_deferred_and_triage_and_rapid", () => {
+      expect(text).toContain("DeferredDecisions");
+      expect(text).toContain("triage:defer");
+      expect(text.toLowerCase()).toContain("rapid");
+      expect(text).toContain("Graduation");
+    });
+    it("test_scope_complete_does_not_close_graduation", () => {
+      expect(text).toContain("scope:complete");
+      expect(text.toLowerCase()).toMatch(
+        /must not imply closure|must not.*close linked graduation/,
+      );
+    });
+  });
+
+  describe("TestProbeGraduationContract2899", () => {
+    const text = readText("strategies/probe.md");
+    it("test_graduation_section_present", () => {
+      expect(text).toContain("## Graduation (Now+Later) when locking an under-build (#2899)");
+    });
+    it("test_graduation_fields_on_underbuild_lock", () => {
+      expect(text).toContain("graduationRef");
+      expect(text).toContain("`now`");
+      expect(text).toContain("`later`");
+      expect(text).toContain("`trigger`");
+      expect(text).toContain("`status`");
+    });
+    it("test_graduation_not_collapsed_into_deferred", () => {
+      expect(text).toContain("DeferredDecisions");
+      expect(text.toLowerCase()).toMatch(/must not collapse|not collapse into/);
+    });
+    it("test_scope_complete_now_leaves_later_open", () => {
+      expect(text).toContain("scope:complete");
+      expect(text.toLowerCase()).toMatch(/must not close linked graduation|later stays open/);
+    });
   });
 
   describe("TestInterviewV020Output", () => {

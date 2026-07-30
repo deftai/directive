@@ -104,7 +104,7 @@ feature/component name if probing a sub-scope. Use the same value consistently
 throughout the session. Examples: `my-app-probe`, `auth-probe`.
 
 - ! Produce a `vbrief/proposed/{scope}-probe.vbrief.json` scope vBRIEF with three mandatory narratives:
-  - `LockedDecisions` — what was resolved and why
+  - `LockedDecisions` — what was resolved and why (when the lock is an intentional under-build, include dual-path graduation fields: `now`, `later`, `graduationRef`, `trigger`, `status` — see [Graduation (Now+Later)](#graduation-nowlater-when-locking-an-under-build-2899))
   - `SurfacedRisks` — concerns raised, even if not fully resolved
   - `DeferredDecisions` — explicitly acknowledged items with justification
 - ! Each entry in a narrative includes: **question asked**, **answer given**, **status** (locked / deferred / risk-accepted)
@@ -113,6 +113,30 @@ throughout the session. Examples: `my-app-probe`, `auth-probe`.
 - ⊗ Write probe output to a hand-authored markdown file — use vBRIEF narratives for token-efficient, machine-consumable agent consumption (mirrors the [discuss](./discuss.md) and [research](./research.md) output contracts so the chaining-gate flow-through guarantee is mechanical, not aspirational)
 
 ! After emitting the probe scope vBRIEF to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
+## Graduation (Now+Later) when locking an under-build (#2899)
+
+Probe already separates **locked**, **deferred**, and **risk-accepted** branches. **Graduation** is a fourth case that must not collapse into `DeferredDecisions`:
+
+| Concept | Probe role |
+|---|---|
+| `LockedDecisions` (permanent) | Approach is decided and is the end-product path |
+| `DeferredDecisions` | *Undecided* open question with justification |
+| **Graduation** on a lock | *Decided* weaker **Now** + *decided* end-product **Later** |
+| rapid **graduate** | Strategy-level spike → fresh spec; not dual-path tracking here |
+
+Glossary naming for Graduation is owned by sibling work (#2907); this section is the Wave A probe contract.
+
+- ! When probe **locks** a temporary / weaker approach and the end-product approach is also decided, record the dual-path shape on that `LockedDecisions` entry (not as a `DeferredDecisions` open question):
+  - `now` — what ships in the near path
+  - `later` — end-product approach
+  - `graduationRef` — GitHub issue and/or scope xBRIEF path for Later work
+  - `trigger` — condition that makes Later required (free text)
+  - `status` — `open` | `shipped` | `cancelled` (cancel with justification)
+- ! Permanent locks and true open questions do **not** gain graduation fields — do not ticket-spam every `DeferredDecisions` item into a graduation
+- ! `task scope:complete` on a Now story MUST NOT close linked graduation work; Later stays open until shipped or explicitly cancelled
+- ⊗ Accepting "we'll harden it later" as a locked under-build without dual-path fields, or filing it only as `DeferredDecisions`
+- ⊗ Closing graduation work solely because the MVP / Now story completed
 
 ---
 
@@ -143,6 +167,8 @@ written, return to the [chaining gate](./interview.md#chaining-gate).
 ## Anti-Patterns
 
 - ⊗ Accepting "we'll figure it out later" without marking it as explicitly deferred
+- ⊗ Recording a *decided* weaker-Now + stronger-Later path only as `DeferredDecisions` (or chat) instead of dual-path graduation fields on the lock (#2899)
+- ⊗ Treating Now-story `scope:complete` as closure of linked graduation work (#2899)
 - ⊗ Asking generic checklist questions instead of following the decision tree
 - ⊗ Letting vague answers pass without pushing for concrete specifics
 - ⊗ Using codebase exploration as a substitute for asking the user about deliberate design choices
