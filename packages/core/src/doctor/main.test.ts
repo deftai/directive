@@ -491,10 +491,7 @@ describe("runResolutionDecision state matrix (#2267)", () => {
 });
 
 describe("xbrief envelope version check (#2971)", () => {
-  function writeProjectDefinition(
-    root: string,
-    envelope: Record<string, unknown>,
-  ): void {
+  function writeProjectDefinition(root: string, envelope: Record<string, unknown>): void {
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),

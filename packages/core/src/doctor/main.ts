@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import { contentRoot } from "../content-root.js";
-import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import {
   detectNoDeftDirective,
