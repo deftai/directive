@@ -50,9 +50,44 @@ export const CONTAINED_WRITES_ALLOWLIST: readonly string[] = [
   // Implementation modules for containment + contained write.
   "packages/core/src/fs/contained-write.ts",
   "packages/core/src/fs/projection-containment.ts",
-  // Deposit tree copy / contain primitives (low-level install sinks; residual).
+  // Deposit tree copy / contain primitives (low-level install sinks).
   "packages/core/src/deposit/copy-tree.ts",
   "packages/core/src/deposit/contain.ts",
+  // Lock / stream primitives (not product payload writers) — #2980 residual.
+  "packages/core/src/slice/lock.ts",
+  "packages/core/src/vbrief-build/project-definition-io.ts", // openSync mutation lock only
+  "packages/core/src/release/build-dist.ts", // createWriteStream archive packer
+  // Temporary residual product sinks (#2980 wave D). Shrink as modules migrate.
+  "packages/core/src/doctor/main.ts",
+  "packages/core/src/eval-health-relocation/evaluate.ts",
+  "packages/core/src/intake/issue-ingest.ts",
+  "packages/core/src/intake/reconcile-issues.ts",
+  "packages/core/src/issue-sync/sync-from-xbrief.ts",
+  "packages/core/src/orchestration/probe-session.ts",
+  "packages/core/src/orchestration/verify-judgment-gates.ts",
+  "packages/core/src/platform/changelog-cli.ts",
+  "packages/core/src/release/gh.ts",
+  "packages/core/src/release/pipeline-fixture.ts",
+  "packages/core/src/release/pipeline.ts",
+  "packages/core/src/render/export-spec.ts",
+  "packages/core/src/render/prd-render.ts",
+  "packages/core/src/render/roadmap-render.ts",
+  "packages/core/src/render/rule-map.ts",
+  "packages/core/src/render/spec-render.ts",
+  "packages/core/src/scm/gh-rest.ts",
+  "packages/core/src/triage/actions/candidates-log.ts",
+  "packages/core/src/triage/bootstrap/index.ts",
+  "packages/core/src/triage/reconcile/reconcile.ts",
+  "packages/core/src/triage/scope-drift/add-ignore.ts",
+  "packages/core/src/triage/scope/coverage.ts",
+  "packages/core/src/triage/scope/mutations-core.ts",
+  "packages/core/src/triage/smoketest/index.ts",
+  "packages/core/src/triage/subscribe/index.ts",
+  "packages/core/src/triage/summary/index.ts",
+  "packages/core/src/vbrief-build/speckit.ts",
+  "packages/core/src/vbrief-reconcile/reconciliation.ts",
+  "packages/core/src/vbrief-validation/safety.ts",
+  "packages/core/src/xbrief-migrate/agents-header.ts",
   // Phase 2 removed: cache/io.ts, lifecycle/events.ts (migrated to containedWrite).
 ];
 

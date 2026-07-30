@@ -432,8 +432,20 @@ tasks:
       - codebase:validate-structure
       - verify:codebase-map-fresh
       - verify-strategy-output
+      # #2980 residual: fail-closed product raw-write inventory (allowlist primitives + temporary residual).
+      - verify-contained-writes-enforce
     cmds:
       - echo "All checks passed"
+
+  # Framework self-check shim so check:framework-source can pass --enforce without
+  # changing the default fail-open CLI for `task verify:contained-writes` alone.
+  verify-contained-writes-enforce:
+    internal: true
+    desc: "Fail-closed contained-writes inventory for task check (#2980 residual)."
+    cmds:
+      - task: verify:contained-writes
+        vars:
+          CLI_ARGS: "--enforce"
 
   check:consumer:
     desc: "Run the consumer-safe Deft quality gate for vendored installs (#1519)."

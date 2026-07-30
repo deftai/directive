@@ -77,26 +77,26 @@ task verify:contained-writes -- --enforce   # fail closed on findings
 
 - Scans `packages/core/src` for raw write patterns (`writeFileSync`, `appendFileSync`, `fs.writeFile`, `createWriteStream`, …).
 - Skips `*.test.ts`, fixtures, and **non-product harness** path markers (`release-e2e/**`, `integration-e2e/**`, `**/parity-scenarios.ts`) so e2e/parity noise does not block `--enforce` (#2980).
-- Skips a **shrinking allowlist** of residual implementation modules (containment primitives).
-- **Default: fail-open** — prints an advisory report and exits **0** even when findings remain (mass migration incomplete).
-- Pass `--enforce` to exit **1** on findings (Phase 2+ path; not yet wired into `task check`).
-- Phase 2 removed `cache/io.ts` and `lifecycle/events.ts` from the allowlist after migration.
-- Residual wave C (#2980) migrates eval ledgers, doctor-state, residual cache self-heal, xbrief-migrate product writes, and PROJECT-DEFINITION atomic write onto `containedWrite` (no allowlist growth). Lock/temp `openSync` patterns (e.g. project-definition mutation lock) remain residual for later hygiene.
+- Skips a **shrinking allowlist** of containment primitives plus temporary residual product modules (#2980 wave D).
+- **CLI default remains fail-open** — prints an advisory report and exits **0** even when findings remain (local inventory).
+- Pass `--enforce` to exit **1** on findings. **`task check` / `check:framework-source` wire `--enforce`** via `verify-contained-writes-enforce` (#2980 residual complete).
+- Phase 2 removed `cache/io.ts` and `lifecycle/events.ts` after migration. Waves A–D migrate high-volume product sinks (init-deposit, ledgers, eval/doctor, triage/session/scope leftovers). Temporary allowlist entries remain for lower-volume residual modules and lock/stream primitives — shrink further in follow-ups.
 
 Allowlist lives in `packages/core/src/verify-source/contained-writes.ts` (`CONTAINED_WRITES_ALLOWLIST`). Harness exclusions live in `NON_PRODUCT_HARNESS_PATH_MARKERS` (prefer exclusion over permanent product allowlist). New allowlist exceptions need a comment + entry with issue citation.
 
 ## Residual risk and scope (#2980)
 
-- **Residual scope for epic close:** TypeScript **product** sinks under `packages/core/src` + fail-closed inventory (`--enforce`, then CI / `task check` when findings are near zero). E2E/parity harness paths are excluded by design (#2980 scanner hygiene), not treated as product.
-- **Go installer / `cmd/deft-install` contained-write API is deferred/frozen.** It is **not** required to close residual #2980 / finish #2951 for the TS engine. A Go equivalent may return as a later optional issue if the freeze lifts.
+- **Residual complete for #2980:** TypeScript **product** sinks under `packages/core/src` migrate onto `containedWrite` (waves A–D); inventory is **fail-closed in `task check`** (`verify:contained-writes --enforce`). E2E/parity harness paths are excluded by design (#2980 scanner hygiene), not treated as product.
+- **Go installer / `cmd/deft-install` contained-write API is deferred/frozen.** It is **not** required to close residual #2980 for the TS engine. A Go equivalent may return as a later optional issue if the freeze lifts.
+- Temporary allowlist entries (non-primitive) are residual shrink targets — do not add new raw product writes; migrate and remove the entry instead.
 - TOCTOU between check and open is mitigated on platforms that honor `O_NOFOLLOW` on open; residual races can remain on some Windows paths. Document rather than claim zero residual risk (epic non-goal).
 - Reads are not covered by this API.
 
 ## Migration checklist
 
-1. Inventory via `task verify:contained-writes`.
-2. Migrate highest-risk AppSec-touched sinks (policy, migrate, deposit, scope/cache) — Phase 2 batch landed several of these.
-3. Shrink allowlist further; enable `--enforce` in CI / `task check` when residual count is acceptable.
+1. Inventory via `task verify:contained-writes` (or `task check` for enforce).
+2. Migrate product sinks onto `containedWrite` (high-risk batches landed in Phase 2 + residual waves A–D).
+3. Shrink `CONTAINED_WRITES_ALLOWLIST` temporary residual entries; primitives stay (containment, deposit copy/contain, lock/stream).
 4. Remove remaining allowlist entries as migration completes.
 
 ## Related

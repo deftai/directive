@@ -48,7 +48,7 @@ tasks:
           ENGINE_CMD: 'verify-biome-config --project-root "{{.DEFT_ROOT}}"'
 
   contained-writes:
-    desc: "Inventory raw product write sinks outside the contained-write allowlist (#2951 Phase 1). Fail-open by default (exit 0 + advisory report); pass --enforce to fail closed (exit 1). Not in task check until a later phase. -- task verify:contained-writes [-- --enforce]"
+    desc: "Inventory raw product write sinks outside the contained-write allowlist (#2951 / #2980). Default CLI remains fail-open; task check wires --enforce fail-closed. -- task verify:contained-writes [-- --enforce]"
     deps:
       - task: :engine:_ts-build
     # Framework-source-only gate: scans packages/core/src in THIS repo.
