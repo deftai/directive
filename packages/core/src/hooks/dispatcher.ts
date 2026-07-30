@@ -6,6 +6,7 @@ import {
   appendAuthzAudit,
   classifyHookAuthzOps,
   evaluateAuthzMutation,
+  evidenceSatisfiesImplementationApproval,
   type HumanOriginGrant,
   listActiveHumanGrants,
   loadAuthzStateResult,
@@ -353,11 +354,14 @@ function loadAuthzContext(
 } {
   if (seams.loadAuthzState !== undefined) {
     const state = seams.loadAuthzState(projectRoot);
-    const grants = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, state);
+    const raw = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, state);
+    // Production filter: self-authored grants never enter the implement gate (#2944).
+    const grants = raw.filter((g) => evidenceSatisfiesImplementationApproval({ grant: g }));
     return { state, grants, corrupt: false, corruptReason: null };
   }
   const loaded = loadAuthzStateResult(projectRoot);
-  const grants = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, loaded.state);
+  const raw = (seams.loadAuthzGrants ?? listActiveHumanGrants)(projectRoot, loaded.state);
+  const grants = raw.filter((g) => evidenceSatisfiesImplementationApproval({ grant: g }));
   return {
     state: loaded.state,
     grants,
