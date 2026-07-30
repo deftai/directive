@@ -78,6 +78,9 @@ describe("scanFileForStubs branch coverage", () => {
 
   it("skips paths nested inside an excluded directory", () => {
     expect(scanFileForStubs("node_modules/pkg/a.py", join(root, "a.py"))).toEqual([]);
+    expect(
+      scanFileForStubs(".deft-scratch/worktrees/x/a.py", join(root, "a.py")),
+    ).toEqual([]);
   });
 
   it("returns no findings when the file cannot be read", () => {

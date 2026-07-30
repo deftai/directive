@@ -40,6 +40,9 @@ export const DEFAULT_EXCLUDES = new Set([
   ".ruff_cache",
   ".coverage",
   "coverage",
+  // Scratch worktrees are never shippable framework content (#2953).
+  ".deft-scratch",
+  "swarm-worktrees",
 ]);
 
 export const DEFAULT_EXCLUDED_PATH_PREFIXES = [
@@ -128,11 +131,38 @@ export function outputPath(root: string, version: string, fmt: "tar" | "zip"): s
   return join(root, "dist", `deft-${version}.${suffix}`);
 }
 
+export type BuildProgress = {
+  readonly stage: string;
+  readonly detail?: string;
+  readonly current?: number;
+  readonly total?: number;
+};
+
+/**
+ * Emit human-readable stage progress for long release packaging runs (#2953).
+ * Writes to stderr so stdout stays the archive path for pipeline capture.
+ */
+export function emitBuildProgress(
+  progress: BuildProgress,
+  stream: { write: (chunk: string) => unknown } = process.stderr,
+): void {
+  const { stage, detail, current, total } = progress;
+  let line = `build-dist: ${stage}`;
+  if (typeof current === "number" && typeof total === "number" && total > 0) {
+    const pct = Math.min(100, Math.floor((current / total) * 100));
+    line += ` ${current}/${total} (${pct}%)`;
+  }
+  if (detail) line += ` - ${detail}`;
+  stream.write(`${line}\n`);
+}
+
 export async function buildArchive(
   root: string,
   version: string,
   fmt: "tar" | "zip",
   extraExcludes: readonly string[] = [],
+  // Default silent so unit tests stay quiet; build-dist-runner opts into ticks (#2953).
+  onProgress: (p: BuildProgress) => void = () => {},
 ): Promise<string> {
   const excludes = new Set([...DEFAULT_EXCLUDES, ...extraExcludes]);
   const output = outputPath(root, version, fmt);
@@ -140,7 +170,10 @@ export async function buildArchive(
   if (existsSync(output)) {
     unlinkSync(output);
   }
+  onProgress({ stage: "scan", detail: "enumerating source files" });
   const entries = iterSourceFiles(root, excludes);
+  const total = entries.length;
+  onProgress({ stage: "scan", detail: `found ${total} files`, current: total, total });
 
   await new Promise<void>((resolvePromise, reject) => {
     const out = createWriteStream(output);
@@ -152,12 +185,22 @@ export async function buildArchive(
     out.on("error", (err: Error) => reject(err));
     archive.on("error", (err: Error) => reject(err));
     archive.pipe(out);
+    onProgress({ stage: "pack", detail: `format=${fmt}`, current: 0, total });
+    // Progress ticks every ~5% (or every 250 files) so long packs do not look hung.
+    const tickEvery = Math.max(1, Math.min(250, Math.ceil(total / 20)));
+    let i = 0;
     for (const { absPath, archiveRel } of entries) {
       archive.file(absPath, { name: `${ARCHIVE_ROOT}/${archiveRel}` });
+      i += 1;
+      if (i === total || i % tickEvery === 0) {
+        onProgress({ stage: "pack", current: i, total });
+      }
     }
+    onProgress({ stage: "finalize", detail: output });
     void archive.finalize();
   });
 
+  onProgress({ stage: "done", detail: output, current: total, total });
   return output;
 }
 
@@ -200,7 +243,13 @@ export async function main(argv: readonly string[]): Promise<number> {
   }
   const fmt = selectFormat(fmtArg);
   try {
-    const out = await buildArchive(projectRoot, version, fmt, parseExtraExcludes(extra));
+    const out = await buildArchive(
+      projectRoot,
+      version,
+      fmt,
+      parseExtraExcludes(extra),
+      emitBuildProgress,
+    );
     const printable = relative(projectRoot, out) || out;
     process.stdout.write(`Created ${printable}\n`);
     return 0;

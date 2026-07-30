@@ -17,8 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Hooks pure classifier + host×OS×tool fixture skeleton (Phase A of #2950).** Extract `packages/core/src/hooks/classify/` (payload → tool identity + write intent + path set, no process I/O), including stdin parse (BOM strip, free-form ApplyPatch). Dispatcher is thin orchestration over classify for tool-name/path helpers; CLI `parsePayload` delegates to `parseHookStdin`. Shared fixture corpus under `packages/core/src/hooks/fixtures/` covers Cursor × win32/posix × Write/ApplyPatch/Task plus recent regression classes; coupled-surface rule documented in fixtures README. Implements Phase A of #2950 (epic remains open for Phase B/C).
+- **Release packaging progress ticks (#2953).** `build-dist-runner` / `buildArchive` emit stage progress on stderr (scan → pack % → finalize → done) so long Step 8 packs do not look hung. Refs #2953.
 
 ### Changed
+
+- **Routine release cuts skip scratch/worktree noise by default (#2953).** Content/link, codebase-map, stub, and build-dist walks default-exclude `.deft-scratch/` and legacy `swarm-worktrees/` so Step 5 / Step 8 no longer enumerate swarm worktrees. Docs in `docs/RELEASING.md` and the release skill describe routine vs hard cut: both keep full Step 5 coverage unless an explicit hatch (`--allow-coverage-debt=#N` or incident `--skip-ci` + `--allow-skip-ci=#N`) is used — no silent soft-pass. Closes #2953.
 
 ### Fixed
 

@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #2953 (manual ingest)",
+    "updated": "2026-07-30T04:42:57.480Z"
+  },
+  "plan": {
+    "title": "perf(release): speed up routine cuts — skip scratch scans, document Step 5 modes",
+    "status": "running",
+    "narratives": {
+      "Description": "Release Step 5 content/link/path walks still enumerate .deft-scratch worktrees in some scanners, slowing routine cuts. Default-exclude scratch/worktree noise, document routine vs hard Step 5 modes without silent coverage soft-pass, and add build-dist progress ticks.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2953",
+      "Overview": "## Problem\n\nRoutine release cuts walk large .deft-scratch/worktrees trees during Step 5 content/link scans and feel stuck. Need default exclude + docs for routine vs hard cut; no silent coverage soft-pass.\n\n## Scope (this PR)\n\nA: Default-exclude .deft-scratch from remaining scanners (validate-links, codebase extractor, verify-stubs, build-dist).\nB: Document routine vs hard cut in docs/RELEASING.md + release skill.\nC: build-dist-runner progress ticks (low risk).\nCHANGELOG [Unreleased] cites #2953.\n",
+      "Labels": "performance, release, dx, tooling",
+      "UserStory": "As a maintainer cutting a routine release, I want Step 5 not to scan swarm scratch worktrees and clear routine vs hard-cut guidance, so cuts finish faster without weakening coverage safety.",
+      "ImplementationPlan": "1. Create branch feat/2953-release-perf.\n2. Exclude .deft-scratch from validate-links, default-extractor, verify-stubs, build-dist DEFAULT_EXCLUDES; tests.\n3. Document routine vs hard Step 5 in RELEASING.md and release skill (no silent soft-pass).\n4. Progress ticks on build-dist-runner / buildArchive.\n5. CHANGELOG Unreleased #2953.\n6. Pre-PR, PR Closes #2953, merge, scope:complete.",
+      "Acceptance": "1. Release-related content/link/path walks skip .deft-scratch by default\n2. Documented routine vs hard cut for Step 5; no silent coverage soft-pass\n3. build-dist-runner reports stage progress\n4. CHANGELOG Unreleased cites #2953\n5. Closes #2953"
+    },
+    "items": [
+      {
+        "title": "Default-exclude .deft-scratch from Step 5 scanners",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given markdown/link/path scanners used during task check / release Step 5, when walking a tree with .deft-scratch/worktrees/**, then those paths are not enumerated unless an explicit include-debug path is documented."
+        },
+        "completed": "2026-07-30T04:42:57.480Z"
+      },
+      {
+        "title": "Document routine vs hard cut Step 5 modes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given docs/RELEASING.md and the release skill, when an operator reads Step 5 guidance, then routine vs hard cut is explicit and coverage soft-pass remains only via existing hatch / skip-ci incident paths (no silent soft-pass)."
+        },
+        "completed": "2026-07-30T04:42:57.480Z"
+      },
+      {
+        "title": "build-dist progress ticks + CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given build-dist-runner, when packaging, then stage progress is visible; CHANGELOG [Unreleased] cites #2953."
+        },
+        "completed": "2026-07-30T04:42:57.480Z"
+      }
+    ],
+    "tags": [
+      "performance",
+      "release",
+      "dx",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2953",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2953: perf(release): speed up routine cuts"
+      }
+    ],
+    "updated": "2026-07-30T04:42:57.480Z",
+    "id": "2953-release-perf",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/validate-content/validate-links.ts",
+          "packages/core/src/codebase/default-extractor.ts",
+          "packages/core/src/verify-source/verify-stubs.ts",
+          "packages/core/src/release/build-dist.ts",
+          "packages/core/src/release/build-dist-runner.ts",
+          "docs/RELEASING.md",
+          "content/skills/deft-directive-release/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test -- validate-content",
+          "pnpm --filter @deftai/directive-core test -- build-dist"
+        ],
+        "expected_outputs": [
+          ".deft-scratch excluded from remaining scanners",
+          "routine vs hard cut docs",
+          "build-dist progress ticks",
+          "CHANGELOG cites #2953"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-step5-perf",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #2953 operator-observed release wall-clock; localized exclude + docs."
+      }
+    }
+  }
+}

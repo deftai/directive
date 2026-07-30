@@ -12,6 +12,11 @@ const EXCLUDE_DIRS = new Set([
   "dist",
   ".planning",
   "specs",
+  // Swarm / agent worktrees are not framework content; walking them
+  // during release Step 5 / task check is pure wall-clock waste (#2953, #1656).
+  ".deft-scratch",
+  // Legacy swarm worktree root name (pre-.deft-scratch layout).
+  "swarm-worktrees",
 ]);
 
 export interface BrokenLink {

@@ -34,6 +34,9 @@ export const SKIP_DIRS = new Set([
   "build",
   "dist",
   "node_modules",
+  // Swarm / agent worktrees are not source modules (#2953, #1656).
+  ".deft-scratch",
+  // Legacy swarm worktree root name (pre-.deft-scratch layout).
   "swarm-worktrees",
 ]);
 
