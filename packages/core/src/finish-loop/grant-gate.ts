@@ -5,12 +5,9 @@
  * Agent-authored grants never satisfy. No second mint path.
  */
 
-import {
-  FINISH_LOOP_OPERATIONS,
-  FINISH_LOOP_TEMPLATE_NAME,
-} from "../authz/templates.js";
 import { isHumanOriginGrant, isRejectedOriginKind } from "../authz/origin.js";
 import { listActiveHumanGrants, listGrants, loadAuthzState } from "../authz/store.js";
+import { FINISH_LOOP_OPERATIONS, FINISH_LOOP_TEMPLATE_NAME } from "../authz/templates.js";
 import type { AuthzOperation, HumanOriginGrant } from "../authz/types.js";
 import type { FinishLoopGrantGateResult } from "./types.js";
 
@@ -24,7 +21,10 @@ function envTruthy(value: string | undefined): boolean {
   return v === "1" || v === "true" || v === "yes";
 }
 
-function grantLive(grant: HumanOriginGrant, now: Date): {
+function grantLive(
+  grant: HumanOriginGrant,
+  now: Date,
+): {
   ok: boolean;
   code: FinishLoopGrantGateResult["code"];
   reason: string;

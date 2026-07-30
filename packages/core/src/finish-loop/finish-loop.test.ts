@@ -1,26 +1,22 @@
 /**
  * Unit tests for finish-loop grant gate, progress, queue, and loops (#871).
  */
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { mintHumanOriginGrant } from "../authz/actions.js";
 import {
+  FINISH_LOOP_OPERATIONS,
   mintFinishLoopTemplateGrant,
   resolveFinishLoopTemplate,
-  FINISH_LOOP_OPERATIONS,
 } from "../authz/templates.js";
 import { EXIT_CLEAN, EXIT_NEW_P0_P1 } from "../pr-watch/constants.js";
 import type { WatchResult } from "../pr-watch/types.js";
 import { runDirectiveFinishLoop } from "./directive-finish-loop.js";
 import { evaluateFinishLoopGrant, grantCoversFinishLoopOps } from "./grant-gate.js";
 import { runPrFinishLoop } from "./pr-finish-loop.js";
-import {
-  appendFinishLoopProgress,
-  finishLoopProgressPath,
-  makeProgressLine,
-} from "./progress.js";
+import { appendFinishLoopProgress, finishLoopProgressPath, makeProgressLine } from "./progress.js";
 import { scanFinishLoopQueue } from "./queue.js";
 import { EXIT_ACTION_REQUIRED, EXIT_BLOCKED, EXIT_OK } from "./types.js";
 

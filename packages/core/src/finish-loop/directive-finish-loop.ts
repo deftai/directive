@@ -13,18 +13,14 @@
  */
 
 import { evaluateFinishLoopGrant } from "./grant-gate.js";
-import {
-  appendFinishLoopProgress,
-  finishLoopProgressPath,
-  makeProgressLine,
-} from "./progress.js";
-import { runPrFinishLoop, type PrFinishLoopOptions } from "./pr-finish-loop.js";
+import { type PrFinishLoopOptions, runPrFinishLoop } from "./pr-finish-loop.js";
+import { appendFinishLoopProgress, finishLoopProgressPath, makeProgressLine } from "./progress.js";
 import { scanFinishLoopQueue } from "./queue.js";
 import {
+  type DirectiveFinishLoopResult,
   EXIT_ACTION_REQUIRED,
   EXIT_BLOCKED,
   EXIT_OK,
-  type DirectiveFinishLoopResult,
   type FinishLoopHaltReason,
 } from "./types.js";
 

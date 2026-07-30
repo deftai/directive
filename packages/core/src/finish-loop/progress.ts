@@ -3,7 +3,7 @@
  * Append-only JSONL at `.deft-cache/finish-loop-progress.jsonl`.
  */
 
-import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { FinishLoopProgressLine } from "./types.js";
 

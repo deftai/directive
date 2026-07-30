@@ -20,12 +20,7 @@ import type { WatchOptions, WatchResult } from "../pr-watch/types.js";
 import { watch } from "../pr-watch/watch.js";
 import { evaluateFinishLoopGrant } from "./grant-gate.js";
 import { appendFinishLoopProgress, makeProgressLine } from "./progress.js";
-import {
-  EXIT_ACTION_REQUIRED,
-  EXIT_BLOCKED,
-  EXIT_OK,
-  type PrFinishLoopResult,
-} from "./types.js";
+import { EXIT_ACTION_REQUIRED, EXIT_BLOCKED, EXIT_OK, type PrFinishLoopResult } from "./types.js";
 
 export interface PrFinishLoopOptions {
   readonly projectRoot: string;
@@ -40,11 +35,7 @@ export interface PrFinishLoopOptions {
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly now?: Date;
   /** Inject watch for tests. */
-  readonly watchFn?: (
-    prNumber: number,
-    repo: string | null,
-    options?: WatchOptions,
-  ) => WatchResult;
+  readonly watchFn?: (prNumber: number, repo: string | null, options?: WatchOptions) => WatchResult;
   /** Inject merge cascade for tests; returns exit code. */
   readonly mergeFn?: (prNumber: number, repo: string | null) => number;
   readonly agentMergeFn?: typeof evaluateAgentMerge;
@@ -97,8 +88,7 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
           makeProgressLine({
             phase: "halt",
             iteration,
-            haltReason:
-              gate.code === "authz-grant-expired" ? "grant-expired" : "grant-missing",
+            haltReason: gate.code === "authz-grant-expired" ? "grant-expired" : "grant-missing",
             message,
             prNumber,
             grantId: gate.grantId,
