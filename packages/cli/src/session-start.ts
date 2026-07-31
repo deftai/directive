@@ -14,6 +14,8 @@ export interface ParsedSessionStartArgs {
   emitJson: boolean;
   noHistory: boolean;
   readOnly: boolean;
+  /** #2991: opt into optional network (release probe + triage cache hydrate). */
+  withNetwork: boolean;
   error?: string;
 }
 
@@ -25,6 +27,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     emitJson: false,
     noHistory: false,
     readOnly: false,
+    withNetwork: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -34,6 +37,8 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
       parsed.noHistory = true;
     } else if (arg === "--read-only") {
       parsed.readOnly = true;
+    } else if (arg === "--with-network") {
+      parsed.withNetwork = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -97,6 +102,7 @@ export function run(argv: readonly string[]): number {
       deferrals,
       writeHistory: !args.noHistory,
       posture: args.readOnly ? READ_ONLY_POSTURE : undefined,
+      allowOptionalNetwork: args.withNetwork ? true : undefined,
     });
   } finally {
     process.stdout.write = prevWrite;

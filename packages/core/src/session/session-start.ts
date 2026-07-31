@@ -51,6 +51,20 @@ export const READ_ONLY_RESULT_MESSAGE =
 export const QUICK_STEPS = ["alignment", "branch_policy", "triage_welcome"] as const;
 export const GATED_STEPS = ["doctor", "cache_fresh"] as const;
 
+/** Env opt-in for optional session:start network (release probe + triage cache hydrate) (#2991). */
+export const ENV_SESSION_START_NETWORK = "DEFT_SESSION_START_NETWORK";
+
+/** Human-readable skip notice when optional network is off the hot path (#2991). */
+export const OPTIONAL_NETWORK_SKIPPED_MESSAGE =
+  "[deft session] optional network skipped (release probe, triage cache hydrate/self-heal); " +
+  "pass --with-network or set DEFT_SESSION_START_NETWORK=1 to enable.";
+
+export interface SessionStartStepTiming {
+  readonly name: string;
+  readonly duration_ms: number;
+  readonly skipped?: boolean;
+}
+
 const STEP_ALIASES: Record<string, string> = {
   branch: "branch_policy",
   "branch-policy": "branch_policy",
@@ -97,6 +111,29 @@ export interface SessionStartOptions {
     projectRoot: string,
     options: { now?: Date },
   ) => { lines: readonly string[]; prompted: boolean };
+  /**
+   * #2991: when true, run optional network (npm release probe + triage cache
+   * empty-hydrate / self-heal) before ritual-state write. Default false so the
+   * mutation hot path does not block on GitHub/npm. CLI: `--with-network`;
+   * env: `DEFT_SESSION_START_NETWORK=1`.
+   */
+  readonly allowOptionalNetwork?: boolean;
+  /** Process env for network opt-in resolution (tests inject). */
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+/** Resolve whether optional session:start network work is enabled (#2991). */
+export function resolveSessionStartOptionalNetwork(
+  options: Pick<SessionStartOptions, "allowOptionalNetwork" | "env"> = {},
+): boolean {
+  if (options.allowOptionalNetwork === true) return true;
+  if (options.allowOptionalNetwork === false) return false;
+  const env = options.env ?? process.env;
+  return env[ENV_SESSION_START_NETWORK] === "1";
+}
+
+function elapsedMs(started: number): number {
+  return Math.max(0, Math.round(performance.now() - started));
 }
 
 function normaliseStepName(name: string): string {
@@ -364,6 +401,10 @@ export function runSessionStart(
   if (posture === READ_ONLY_POSTURE) {
     return runReadOnlySessionStart(projectRoot, options, instant, environment);
   }
+  const overallStarted = performance.now();
+  const stepTimings: SessionStartStepTiming[] = [];
+  const allowOptionalNetwork = resolveSessionStartOptionalNetwork(options);
+
   const { head: gitHeadValue, error: gitError } = gitHead(projectRoot, runGit);
   if (gitHeadValue === null) {
     const payload = {
@@ -399,6 +440,7 @@ export function runSessionStart(
   const userMd = resolveUserMd(projectRoot);
 
   if (!quickSteps.alignment) {
+    const stepStarted = performance.now();
     const message = "Deft Directive active -- AGENTS.md loaded.";
     // Sanitize newlines on the data-derived path/diagnostic before they land in
     // the ritual-step message / terminal output (matches doctor's CWE-116
@@ -409,26 +451,26 @@ export function runSessionStart(
     const userMdLine = userMd.found
       ? `USER.md resolved (${userMd.rung}): ${safePath}`
       : safeDiagnostic;
+    const durationMs = elapsedMs(stepStarted);
     quickSteps.alignment = ritualStep({
       ok: true,
       ts: instant,
       message: `${message} ${userMdLine}`,
+      durationMs,
     });
+    stepTimings.push({ name: "alignment", duration_ms: durationMs });
     lines.push(message);
     lines.push(userMdLine);
+  } else {
+    stepTimings.push({ name: "alignment", duration_ms: 0, skipped: true });
   }
   lines.push(formatEnvironmentContext(environment));
 
   if (!quickSteps.branch_policy) {
+    const stepStarted = performance.now();
     const result = resolvePolicy(projectRoot);
     const message = disclosureLine(result);
     const ok = result.error === null || result.source === "default-fail-closed";
-    quickSteps.branch_policy = ritualStep({
-      ok,
-      ts: instant,
-      message,
-      exitCode: ok ? 0 : 2,
-    });
     lines.push(message);
     // Human merge gate disclosure (#1193) — surface when ON (or env bypass active).
     const humanMerge = resolveHumanMergePolicy(projectRoot);
@@ -440,21 +482,37 @@ export function runSessionStart(
     if (branchSync.warning) {
       lines.push(branchSync.warning);
     }
+    const durationMs = elapsedMs(stepStarted);
+    quickSteps.branch_policy = ritualStep({
+      ok,
+      ts: instant,
+      message,
+      exitCode: ok ? 0 : 2,
+      durationMs,
+    });
+    stepTimings.push({ name: "branch_policy", duration_ms: durationMs });
+  } else {
+    stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
   }
 
-  const verifyToolsFn =
-    options.verifyTools ??
-    ((output) => {
-      const toolLines: string[] = [];
-      const result = verifyRequiredTools({ outputFn: (line) => toolLines.push(line) });
-      for (const line of toolLines) {
-        output(line);
-      }
-      return { exitCode: result.exitCode };
-    });
-  verifyToolsFn((line) => lines.push(line));
+  {
+    const stepStarted = performance.now();
+    const verifyToolsFn =
+      options.verifyTools ??
+      ((output) => {
+        const toolLines: string[] = [];
+        const result = verifyRequiredTools({ outputFn: (line) => toolLines.push(line) });
+        for (const line of toolLines) {
+          output(line);
+        }
+        return { exitCode: result.exitCode };
+      });
+    verifyToolsFn((line) => lines.push(line));
+    stepTimings.push({ name: "verify_tools", duration_ms: elapsedMs(stepStarted) });
+  }
 
   if (!quickSteps.triage_welcome) {
+    const stepStarted = performance.now();
     const captured: string[] = [];
     const triageCommand = ["triage_welcome.run_default_mode", "--project-root", projectRoot];
     try {
@@ -464,6 +522,13 @@ export function runSessionStart(
           const outcome = runDefaultMode(root, {
             output: welcomeOpts.output,
             writeHistory: welcomeOpts.writeHistory,
+            now: welcomeOpts.now,
+            // #2991: default hot path skips ensureTriageCacheHydrated / maybeSelfHealCache.
+            selfHealFn: allowOptionalNetwork
+              ? undefined
+              : () => {
+                  /* no network cache work on hot path */
+                },
           });
           return { exitCode: outcome.exitCode };
         });
@@ -474,34 +539,50 @@ export function runSessionStart(
       });
       const ok = outcome.exitCode === 0;
       const message = captured.join("\n").trim() || "triage welcome completed";
+      const durationMs = elapsedMs(stepStarted);
       quickSteps.triage_welcome = ritualStep({
         ok,
         ts: instant,
         message,
         exitCode: outcome.exitCode,
         command: triageCommand,
+        durationMs,
       });
+      stepTimings.push({ name: "triage_welcome", duration_ms: durationMs });
       lines.push(...captured);
     } catch (exc) {
       const message = `triage welcome failed: ${String(exc)}`;
+      const durationMs = elapsedMs(stepStarted);
       quickSteps.triage_welcome = ritualStep({
         ok: false,
         ts: instant,
         message,
         exitCode: 2,
         command: triageCommand,
+        durationMs,
       });
+      stepTimings.push({ name: "triage_welcome", duration_ms: durationMs });
       lines.push(message);
     }
+  } else {
+    stepTimings.push({ name: "triage_welcome", duration_ms: 0, skipped: true });
   }
 
-  try {
-    const releaseAvailability = (
-      options.probeReleaseAvailability ?? probeSessionReleaseAvailability
-    )(projectRoot, { now: instant });
-    lines.push(...releaseAvailability.lines);
-  } catch {
-    // Release availability is a best-effort operator advisory, never a session blocker.
+  // #2991: npm release probe is optional network — off by default so ritual write is not blocked.
+  if (allowOptionalNetwork) {
+    const stepStarted = performance.now();
+    try {
+      const releaseAvailability = (
+        options.probeReleaseAvailability ?? probeSessionReleaseAvailability
+      )(projectRoot, { now: instant });
+      lines.push(...releaseAvailability.lines);
+    } catch {
+      // Release availability is a best-effort operator advisory, never a session blocker.
+    }
+    stepTimings.push({ name: "release_probe", duration_ms: elapsedMs(stepStarted) });
+  } else {
+    stepTimings.push({ name: "release_probe", duration_ms: 0, skipped: true });
+    lines.push(OPTIONAL_NETWORK_SKIPPED_MESSAGE);
   }
 
   try {
@@ -540,6 +621,7 @@ export function runSessionStart(
     lines.push(consentPrompt.trimEnd());
   }
 
+  const writeStarted = performance.now();
   const payload = newRitualStatePayload({
     sessionId: (options.newSessionId ?? randomUUID)(),
     gitHead: gitHeadValue,
@@ -549,16 +631,22 @@ export function runSessionStart(
     gatedSteps,
   });
   const statePath = writeRitualState(projectRoot, payload);
+  stepTimings.push({ name: "ritual_write", duration_ms: elapsedMs(writeStarted) });
+
   const failed = Object.entries(quickSteps)
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
   const code = failed.length > 0 ? 1 : 0;
+  const totalMs = elapsedMs(overallStarted);
   const resultPayload = {
     ready: code === 0,
     exit_code: code,
     state_path: statePath,
     quick_steps: quickSteps,
     gated_steps: gatedSteps,
+    steps: stepTimings,
+    duration_ms: totalMs,
+    optional_network: allowOptionalNetwork,
     user_md: {
       path: userMd.path,
       rung: userMd.rung,

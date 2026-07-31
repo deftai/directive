@@ -72,6 +72,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       verifyTools: () => ({ exitCode: 0 }),
       runTriageWelcome: () => ({ exitCode: 0 }),
       probeEnvironment: () => environment,
+      allowOptionalNetwork: true,
       probeReleaseAvailability: () => ({
         lines: ["[deft release] Newer Directive release available: v1.0.1"],
       }),
@@ -89,5 +90,50 @@ describe("runSessionStart read-only posture (#2176)", () => {
     expect(result.payload.posture).toBeUndefined();
     expect(existsSync(ritualStatePath(root))).toBe(true);
     expect(result.lines.join("\n")).toContain("Newer Directive release available");
+  });
+
+  it("mutation hot path skips release probe by default and still writes ritual-state (#2991)", () => {
+    const root = tempRoot();
+    let releaseProbeCalls = 0;
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      resolveUserMd: () => userMdResult(),
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      probeEnvironment: () => environment,
+      probeReleaseAvailability: () => {
+        releaseProbeCalls += 1;
+        return { lines: ["unexpected release probe"] };
+      },
+      runGit: (_r, args) => {
+        if (args[0] === "rev-parse" && args.includes("HEAD")) {
+          return { code: 0, stdout: "abc123", stderr: "" };
+        }
+        if (args[0] === "rev-parse" && args.includes("--show-toplevel")) {
+          return { code: 0, stdout: root, stderr: "" };
+        }
+        return { code: 1, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(existsSync(ritualStatePath(root))).toBe(true);
+    expect(releaseProbeCalls).toBe(0);
+    expect(result.payload.optional_network).toBe(false);
+    expect(result.lines.join("\n")).toContain("optional network skipped");
+    const steps = result.payload.steps as Array<{
+      name: string;
+      duration_ms: number;
+      skipped?: boolean;
+    }>;
+    expect(steps.map((s) => s.name)).toEqual([
+      "alignment",
+      "branch_policy",
+      "verify_tools",
+      "triage_welcome",
+      "release_probe",
+      "ritual_write",
+    ]);
+    expect(steps.find((s) => s.name === "release_probe")?.skipped).toBe(true);
+    expect(typeof result.payload.duration_ms).toBe("number");
   });
 });

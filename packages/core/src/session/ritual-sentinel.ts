@@ -53,6 +53,8 @@ export interface RitualStepInput {
   readonly exitCode?: number | null;
   readonly message?: string | null;
   readonly command?: readonly string[] | null;
+  /** Wall-clock ms for this step when measured (#2991). */
+  readonly durationMs?: number | null;
 }
 
 export function ritualStatePath(projectRoot: string): string {
@@ -79,6 +81,9 @@ export function ritualStep(input: RitualStepInput): Record<string, unknown> {
   }
   if (input.command && input.command.length > 0) {
     payload.command = input.command.map(String);
+  }
+  if (input.durationMs !== null && input.durationMs !== undefined) {
+    payload.duration_ms = Math.max(0, Math.round(input.durationMs));
   }
   return payload;
 }
