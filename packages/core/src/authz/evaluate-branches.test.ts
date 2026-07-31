@@ -371,24 +371,23 @@ describe("evaluateAuthzMutation branch coverage (#2944)", () => {
     ).toBe("authz-inactive");
 
     // op not covered by grant (push grant, edit attempt).
+    const pushOnlyGrant = grant({
+      scope: {
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations: ["push"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: "c",
+      },
+    });
     expect(
       evaluateAuthzMutation({
         state: uatState(),
-        grants: [
-          grant({
-            scope: {
-              planRef: null,
-              repo: null,
-              branch: null,
-              worktree: null,
-              surfaces: [],
-              operations: ["push"],
-              storyIds: [],
-              issueIds: [],
-              cohortId: "c",
-            },
-          }),
-        ],
+        grants: [pushOnlyGrant],
         op: "edit",
         path: "src/a.ts",
       }).code,
