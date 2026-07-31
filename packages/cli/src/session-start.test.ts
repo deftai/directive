@@ -19,6 +19,7 @@ describe("session-start parseArgs", () => {
       emitJson: false,
       noHistory: false,
       readOnly: false,
+      withNetwork: false,
     });
   });
 
@@ -38,6 +39,7 @@ describe("session-start parseArgs", () => {
       emitJson: true,
       noHistory: true,
       readOnly: false,
+      withNetwork: false,
     });
   });
 
@@ -48,6 +50,7 @@ describe("session-start parseArgs", () => {
       emitJson: false,
       noHistory: false,
       readOnly: false,
+      withNetwork: false,
     });
   });
 
@@ -58,6 +61,18 @@ describe("session-start parseArgs", () => {
       emitJson: false,
       noHistory: false,
       readOnly: true,
+      withNetwork: false,
+    });
+  });
+
+  it("parses --with-network (#2991)", () => {
+    expect(parseArgs(["--with-network", "--json"])).toEqual({
+      projectRoot: ".",
+      deferValues: [],
+      emitJson: true,
+      noHistory: false,
+      readOnly: false,
+      withNetwork: true,
     });
   });
 

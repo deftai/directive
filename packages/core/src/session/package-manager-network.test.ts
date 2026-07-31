@@ -108,13 +108,31 @@ describe("package-manager network scope (#2182)", () => {
     expect(packageManagerCalls(spawnSyncMock)).toEqual([]);
   });
 
-  it("session:start probes only the disclosed public npm registry", () => {
+  it("session:start default hot path invokes no npm/pnpm (#2991)", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 
     const result = runSessionStart(root, {
       writeHistory: false,
       runStalenessTickler: () => ({ lines: [], prompted: false }),
+      // Keep triage on a no-op so the assertion is about release probe only.
+      runTriageWelcome: () => ({ exitCode: 0 }),
+    });
+
+    expect(result.code === 0 || result.code === 1).toBe(true);
+    expect(packageManagerCalls(spawnSyncMock)).toEqual([]);
+    expect(result.payload.optional_network).toBe(false);
+  });
+
+  it("session:start --with-network probes only the disclosed public npm registry", () => {
+    const { root } = initPrivateScopeRepo();
+    temps.push(root);
+
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      allowOptionalNetwork: true,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
     });
 
     expect(result.code === 0 || result.code === 1).toBe(true);

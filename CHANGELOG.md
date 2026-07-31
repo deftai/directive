@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Slim mutation `session:start` hot path + step timings (#2991).** Optional network (npm release probe, triage cache empty-hydrate / self-heal) no longer blocks ritual-state write by default. Opt in with `--with-network` or `DEFT_SESSION_START_NETWORK=1`. `--json` exposes per-step `duration_ms` (`steps[]` + total) for attribution. Docs: `content/commands.md` § Mutable ritual. Closes #2991. Parent epic #2990.
+
 ### Fixed
 
 - **Vitest branch coverage restored above 85% (#2986).** Focused authz verb-classification / AFK-template / classify / evaluate edge tests, hooks read-only payload shapes, and authz CLI argv branches clear the v0.89.0 84.9% hairline so the next release Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2986.
