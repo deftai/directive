@@ -4,15 +4,12 @@
  * Always-on, best-effort appends to `.deft-cache/events.jsonl`.
  * Not gated on valueFeedback (distinct from #1709 attribution).
  * No remote / Product Insights upload (#2603 not required).
+ *
+ * Types are declared locally (not imported from session-start) so this module
+ * does not form an import cycle with session-start call sites.
  */
-import { resolve } from "node:path";
-import {
-  type BehavioralEventRecord,
-  DEFAULT_EVENT_LOG,
-  emit,
-} from "../lifecycle/events.js";
+import { type BehavioralEventRecord, emit } from "../lifecycle/events.js";
 import { PROCESS_COST_EVENT_NAMES } from "./process-cost-constants.js";
-import type { SessionCeremonyTier, SessionStartStepTiming } from "./session-start.js";
 
 export {
   PROCESS_COST_EVENT_NAMES,
@@ -20,18 +17,32 @@ export {
   type ProcessCostEventName,
 } from "./process-cost-constants.js";
 
+/** Ceremony tier labels mirror session-start cold|rearm (#2992 / #2994). */
+export type ProcessCostCeremonyTier = "cold" | "rearm";
+
+export interface ProcessCostStepTiming {
+  readonly name: string;
+  readonly duration_ms: number;
+  readonly skipped?: boolean;
+}
+
 export interface EmitProcessCostOptions {
   readonly projectRoot: string;
+  /**
+   * Optional explicit log path for tests.
+   * When omitted, `emit` resolves via DEFT_EVENT_LOG then `.deft-cache/events.jsonl`
+   * (must not pre-resolve the default here or DEFT_EVENT_LOG is bypassed).
+   */
   readonly logPath?: string | null;
 }
 
 export interface SessionStartProcessCostInput {
-  readonly ceremonyTier: SessionCeremonyTier;
+  readonly ceremonyTier: ProcessCostCeremonyTier;
   readonly durationMs: number;
   readonly exitCode: number;
   readonly ready?: boolean;
   readonly optionalNetwork?: boolean;
-  readonly steps?: readonly SessionStartStepTiming[];
+  readonly steps?: readonly ProcessCostStepTiming[];
 }
 
 export interface SessionRitualBlockedProcessCostInput {
@@ -41,15 +52,8 @@ export interface SessionRitualBlockedProcessCostInput {
   readonly detail?: string;
 }
 
-function resolveProcessCostLogPath(projectRoot: string, logPath?: string | null): string {
-  if (logPath !== undefined && logPath !== null) {
-    return resolve(logPath);
-  }
-  return resolve(projectRoot, DEFAULT_EVENT_LOG);
-}
-
 /**
- * Emit `session:start` after cold/re-arm ceremony completes.
+ * Emit `session:start` after cold/re-arm ceremony completes (or fails early).
  * Returns null on any failure (telemetry must not interrupt session:start).
  */
 export function emitSessionStartProcessCost(
@@ -57,7 +61,6 @@ export function emitSessionStartProcessCost(
   options: EmitProcessCostOptions,
 ): BehavioralEventRecord | null {
   try {
-    const logPath = resolveProcessCostLogPath(options.projectRoot, options.logPath);
     const payload: Record<string, unknown> = {
       ceremony_tier: input.ceremonyTier,
       duration_ms: input.durationMs,
@@ -81,10 +84,15 @@ export function emitSessionStartProcessCost(
         return entry;
       });
     }
-    return emit(PROCESS_COST_EVENT_NAMES.sessionStart, payload, {
-      logPath,
-      projectRoot: options.projectRoot,
-    });
+    // Pass logPath only when caller overrides; otherwise emit honors DEFT_EVENT_LOG.
+    const emitOptions: {
+      projectRoot: string;
+      logPath?: string | null;
+    } = { projectRoot: options.projectRoot };
+    if (options.logPath !== undefined) {
+      emitOptions.logPath = options.logPath;
+    }
+    return emit(PROCESS_COST_EVENT_NAMES.sessionStart, payload, emitOptions);
   } catch {
     return null;
   }
@@ -99,7 +107,6 @@ export function emitSessionRitualBlockedProcessCost(
   options: EmitProcessCostOptions,
 ): BehavioralEventRecord | null {
   try {
-    const logPath = resolveProcessCostLogPath(options.projectRoot, options.logPath);
     const payload: Record<string, unknown> = {
       tool_name: input.toolName,
       code: input.code ?? "ritual-not-ready",
@@ -109,12 +116,17 @@ export function emitSessionRitualBlockedProcessCost(
     }
     if (input.detail !== undefined && input.detail.length > 0) {
       // Cap free-form detail so JSONL lines stay bounded.
-      payload.detail = input.detail.length > 240 ? `${input.detail.slice(0, 237)}...` : input.detail;
+      payload.detail =
+        input.detail.length > 240 ? `${input.detail.slice(0, 237)}...` : input.detail;
     }
-    return emit(PROCESS_COST_EVENT_NAMES.sessionRitualBlocked, payload, {
-      logPath,
-      projectRoot: options.projectRoot,
-    });
+    const emitOptions: {
+      projectRoot: string;
+      logPath?: string | null;
+    } = { projectRoot: options.projectRoot };
+    if (options.logPath !== undefined) {
+      emitOptions.logPath = options.logPath;
+    }
+    return emit(PROCESS_COST_EVENT_NAMES.sessionRitualBlocked, payload, emitOptions);
   } catch {
     return null;
   }

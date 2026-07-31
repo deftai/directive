@@ -483,6 +483,17 @@ function runSessionRearm(
   if (!eligibility.eligible) {
     const coldCmd = formatSessionStartRecoveryCommand("cold");
     const message = `${REARM_INELIGIBLE_PREFIX} ${eligibility.reason}. Run \`${coldCmd}\`.`;
+    // #2994: still record failed attempt duration for process-cost rollups.
+    emitSessionStartProcessCost(
+      {
+        ceremonyTier: REARM_CEREMONY_TIER,
+        durationMs: elapsedMs(overallStarted),
+        exitCode: 1,
+        ready: false,
+        optionalNetwork: false,
+      },
+      { projectRoot },
+    );
     return {
       code: 1,
       payload: {
@@ -676,9 +687,22 @@ export function runSessionStart(
   if (gitHeadValue === null) {
     const payload = {
       ready: false,
+      exit_code: 2,
+      ceremony_tier: COLD_CEREMONY_TIER,
       environment: environmentContextToDict(environment),
       message: gitError ?? "could not resolve git HEAD",
     };
+    // #2994: still record failed attempt duration for process-cost rollups.
+    emitSessionStartProcessCost(
+      {
+        ceremonyTier: COLD_CEREMONY_TIER,
+        durationMs: elapsedMs(overallStarted),
+        exitCode: 2,
+        ready: false,
+        optionalNetwork: allowOptionalNetwork,
+      },
+      { projectRoot },
+    );
     return {
       code: 2,
       payload,

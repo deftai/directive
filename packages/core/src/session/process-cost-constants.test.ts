@@ -22,8 +22,9 @@ describe("process-cost-constants (#2994)", () => {
   });
 
   it("requires tool_name/code on session:ritual-blocked", () => {
-    expect(
-      PROCESS_COST_REQUIRED_PAYLOAD[PROCESS_COST_EVENT_NAMES.sessionRitualBlocked],
-    ).toEqual(["tool_name", "code"]);
+    expect(PROCESS_COST_REQUIRED_PAYLOAD[PROCESS_COST_EVENT_NAMES.sessionRitualBlocked]).toEqual([
+      "tool_name",
+      "code",
+    ]);
   });
 });

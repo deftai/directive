@@ -34,10 +34,7 @@ describe("process-cost constants (#2994)", () => {
       "duration_ms",
       "exit_code",
     ]);
-    expect(PROCESS_COST_REQUIRED_PAYLOAD["session:ritual-blocked"]).toEqual([
-      "tool_name",
-      "code",
-    ]);
+    expect(PROCESS_COST_REQUIRED_PAYLOAD["session:ritual-blocked"]).toEqual(["tool_name", "code"]);
   });
 });
 
@@ -91,6 +88,32 @@ describe("emitSessionStartProcessCost (#2994)", () => {
       { projectRoot: root, logPath: join(badLog, "events.jsonl") },
     );
     expect(record).toBeNull();
+  });
+
+  it("honors DEFT_EVENT_LOG when logPath is omitted", () => {
+    const root = tempRoot();
+    const envLog = join(root, "custom-events.jsonl");
+    const prev = process.env.DEFT_EVENT_LOG;
+    process.env.DEFT_EVENT_LOG = envLog;
+    try {
+      const record = emitSessionStartProcessCost(
+        {
+          ceremonyTier: "cold",
+          durationMs: 3,
+          exitCode: 0,
+          ready: true,
+        },
+        { projectRoot: root },
+      );
+      expect(record).not.toBeNull();
+      expect(readEvents(envLog)).toHaveLength(1);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_EVENT_LOG;
+      } else {
+        process.env.DEFT_EVENT_LOG = prev;
+      }
+    }
   });
 });
 
