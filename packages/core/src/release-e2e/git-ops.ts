@@ -29,9 +29,7 @@ export function formatGitOpFailure(
     return `${op} failed: ${stderr}`;
   }
   const timeoutHint =
-    options.timeoutMs !== undefined
-      ? `; possible timeout after ${options.timeoutMs}ms`
-      : "";
+    options.timeoutMs !== undefined ? `; possible timeout after ${options.timeoutMs}ms` : "";
   return `${op} failed: no stderr (exit ${result.status ?? "null"}${timeoutHint})`;
 }
 
