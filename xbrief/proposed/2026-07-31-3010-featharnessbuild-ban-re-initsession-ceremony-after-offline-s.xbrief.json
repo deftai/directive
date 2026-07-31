@@ -1,0 +1,47 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3010"
+  },
+  "plan": {
+    "title": "feat(harness,build): ban re-init/session ceremony after offline seed",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(harness,build): ban re-init/session ceremony after offline seed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3010",
+      "Overview": "## Problem\n\nDevHammer multi-scope trials burned agent turns on `directive init`, full cold `session:start`, migrate, and re-copy scopes **after** offline init/seed already ran ritual + pin seed. Each re-invoke still costs a **turn** (and re-reads the prefix) even when v0.90 made ceremony **faster** (#2991–#2993).\n\n## Goal\n\nWhen seed + session ritual are already complete for the engagement, agents **must not** re-run install-phase ceremony.\n\n## Acceptance\n\n- [ ] Multi-scope / build / app-bank style preambles (or documented consumer contract) state absolutely: session ritual and pin seed are done — do **not** run `directive init`, full cold `session:start` (unless hooks require recovery via `session:ready` / re-arm), `directive migrate`, or re-copy scopes\n- [ ] Recovery path remains: `session:ready` or re-arm when PreToolUse denies — not full re-init\n- [ ] Docs distinguish offline seed phase vs agent implement phase\n- [ ] CHANGELOG if user-facing\n\n## Non-goals\n\n- Widening `DEFT_SESSION_RITUAL_SKIP` for interactive product sessions without policy\n- Removing hooks or gated ritual at true mutation boundaries\n\n## Parent\n\nPart of multi-scope turn/cache budget epic (post-v0.90 ceremony).\n\n## Source\n\nDevHammer trajectory: ceremony re-entry after offline init.\n\n## Parent epic\n\nParent: https://github.com/deftai/directive/issues/3009\n\n",
+      "Labels": "enhancement, agent-experience, process, harness"
+    },
+    "items": [
+      {
+        "title": "Multi-scope / build / app-bank style preambles (or documented consumer contract) state absolutely: session ritual and pin seed are done — do **not** run `directive init`, full cold `session:start` (unless hooks require recovery via `session:ready` / re-arm), `directive migrate`, or re-copy scopes",
+        "status": "proposed"
+      },
+      {
+        "title": "Recovery path remains: `session:ready` or re-arm when PreToolUse denies — not full re-init",
+        "status": "proposed"
+      },
+      {
+        "title": "Docs distinguish offline seed phase vs agent implement phase",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG if user-facing",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "process",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3010",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3010: feat(harness,build): ban re-init/session ceremony after offline seed"
+      }
+    ]
+  }
+}

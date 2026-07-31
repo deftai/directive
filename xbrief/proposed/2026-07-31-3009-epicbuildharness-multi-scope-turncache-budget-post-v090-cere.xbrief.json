@@ -1,0 +1,30 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3009"
+  },
+  "plan": {
+    "title": "epic(build,harness): multi-scope turn/cache budget (post-v0.90 ceremony)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "epic(build,harness): multi-scope turn/cache budget (post-v0.90 ceremony)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3009",
+      "Overview": "## Summary\n\nMulti-scope greenfield work (e.g. 12-scope app pins) pays **prompt-cache cost as turns × re-read prefix**, not as \"more app LOC.\" Pre-v0.90 DevHammer data (Directive vs baseline vs Spec Kit) showed ~2.6× turns and ~5× cache read vs baseline, with process-shaped tooling (scope lifecycle, project:render, check, AGENTS/skills injection).\n\n**Ceremony wall-clock** (multi-minute `session:start`, recovery dance) was addressed in **v0.90.0 / epic #2990** (#2991–#2994). This epic is the **next lever: turn budget and seed identity**, without undoing one-active-scope safety or write fences.\n\n## Evidence (assumed pre-v0.90; DevHammer / Grok analysis)\n\n| Arm | Turns | Cache read (rel) | Notes |\n|-----|-------|------------------|--------|\n| baseline | ~13 | 1× | Thin preamble |\n| spec_kit | ~14 | ~1.9× | Artifact-heavy, not turn-heavy |\n| directive | ~34 | ~5.1× | Lifecycle + check + fat always-on prefix |\n\n## Children (P0)\n\n| # | Issue | Role |\n|---|--------|------|\n| A | #3010 | No re-ceremony after offline seed |\n| B | #3011 | Batch promote; one active implement |\n| C | #3012 | Quality check once at end of multi-scope batch |\n| E | #3013 | Minimal render-ready PROJECT-DEFINITION / one-shot render |\n\n## Research (not blocking)\n\n| Issue | Role |\n|--------|------|\n| #3014 | Opt-in minimal consumer AGENTS profile (prefix mass) — research only |\n\n## Out of scope\n\n- Ceremony wall-clock (#2990 / v0.90 done)\n- **DevHammer retest** (external after this epic lands)\n- Default strip of all process; remove one-active-scope\n\n## Success themes\n\n- Fewer agent turns for the same multi-scope pin rigor\n- No re-install/session thrash after seed\n- Check and render thrash bounded\n- Hooks and one-active-scope remain enforceable\n\n## Related\n\n- #2990 ceremony wall-clock (done)\n- #2508 skill pin policy\n- #1772 / #848 / #788 (adjacent token/context)\n\n## Source\n\nInternal DevHammer trial write-up + Grok recommendations; article-review against current Directive (v0.90.0+).",
+      "Labels": "epic, agent-experience, process, harness"
+    },
+    "items": [],
+    "tags": [
+      "epic",
+      "agent-experience",
+      "process",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3009",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3009: epic(build,harness): multi-scope turn/cache budget (post-v0.90 ceremony)"
+      }
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 export * from "./audit-log.js";
+export * from "./batch-promote.js";
 export * from "./constants.js";
 export * from "./decomposed-refs.js";
 export * from "./demote.js";

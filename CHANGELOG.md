@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Multi-scope turn/cache budget (epic #3009):** post-v0.90 ceremony lever for greenfield pins.
+  - **`task scope:promote -- --batch` (#3011).** Promotes all `proposed/` scopes (or an explicit path list) to `pending/` in one command with a single WIP-cap check for the batch size; `--force` overrides. Activate+implement remains one-at-a-time. Core: `packages/core/src/scope/batch-promote.ts`.
+  - **Minimal render-ready PROJECT-DEFINITION on init (#3013).** Greenfield `directive init` / deposit seeds `xbrief/PROJECT-DEFINITION.xbrief.json` via `renderProjectDefinition` when missing (does not overwrite operator identity). Next-steps text points at one-shot `project:render` for lifecycle item refresh.
+  - **Build skill multi-scope contract (#3010 / #3012).** `deft-directive-build` documents offline-seed vs implement (no re-init/cold session thrash; recover with `session:ready`), check-once-at-end of multi-scope batch unless last check failed, and one-shot render. Docs: `content/commands.md` § Scope xBRIEF Lifecycle.
+  - **Research note only (#3014):** opt-in minimal consumer AGENTS profile remains deferred research (not default). See `docs/analysis/2026-07-31-minimal-consumer-agents-profile-research.md`.
+  Closes #3010, #3011, #3012, #3013. Refs #3009, #3014, #2990.
+
 ### Changed
 
 ### Fixed

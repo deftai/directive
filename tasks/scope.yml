@@ -36,7 +36,10 @@ vars:
 tasks:
 
   promote:
-    desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending)"
+    # Single: task scope:promote -- xbrief/proposed/<file>.xbrief.json
+    # Batch (#3011): task scope:promote -- --batch  (all proposed/)
+    #                task scope:promote -- --batch path1 path2 [--force]
+    desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending). Batch: --batch [paths...] (#3011)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

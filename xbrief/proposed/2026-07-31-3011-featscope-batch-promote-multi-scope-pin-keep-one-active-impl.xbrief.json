@@ -1,0 +1,51 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3011"
+  },
+  "plan": {
+    "title": "feat(scope): batch promote multi-scope pin; keep one active implement",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(scope): batch promote multi-scope pin; keep one active implement",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3011",
+      "Overview": "## Problem\n\nStrict one-scope-at-a-time **promote → activate → implement** for N scopes multiplies tool turns (e.g. 12 scopes × several lifecycle commands). That is the largest structural turn cost for multi-scope greenfield. Parallel swarm is not the single-agent app-bank path.\n\n## Goal\n\nAllow **batch promote** of the pin (or explicit list) while preserving **one active implement** (hooks, file_scope, story-ready).\n\n## Acceptance\n\n- [ ] Documented (and preferably CLI-supported) path to batch-promote `xbrief/proposed/` → `pending/` for a multi-scope pin\n- [ ] Implement path remains: one `scope:activate` + implement at a time; no multi-active write fence\n- [ ] Build skill / multi-scope guidance: do not re-list the entire tree every scope when order is known\n- [ ] Tests for batch promote if new CLI surface\n- [ ] CHANGELOG / commands.md\n\n## Non-goals\n\n- Activating all scopes at once\n- Dropping xBRIEF lifecycle or WIP cap\n- Replacing swarm for true parallel worktrees\n\n## Parent\n\nPart of multi-scope turn/cache budget epic (post-v0.90 ceremony).\n\n## Parent epic\n\nParent: https://github.com/deftai/directive/issues/3009\n\n",
+      "Labels": "enhancement, agent-experience, process, area:cli"
+    },
+    "items": [
+      {
+        "title": "Documented (and preferably CLI-supported) path to batch-promote `xbrief/proposed/` → `pending/` for a multi-scope pin",
+        "status": "proposed"
+      },
+      {
+        "title": "Implement path remains: one `scope:activate` + implement at a time; no multi-active write fence",
+        "status": "proposed"
+      },
+      {
+        "title": "Build skill / multi-scope guidance: do not re-list the entire tree every scope when order is known",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests for batch promote if new CLI surface",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG / commands.md",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "process",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3011",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3011: feat(scope): batch promote multi-scope pin; keep one active implement"
+      }
+    ]
+  }
+}

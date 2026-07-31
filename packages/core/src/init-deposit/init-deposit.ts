@@ -8,12 +8,13 @@
 
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import { copyTree } from "../deposit/copy-tree.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { renderProjectDefinition } from "../render/project-render.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
 import { depositStagePaths, printCommitGuidance } from "./hygiene.js";
@@ -170,10 +171,42 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf("  2. Deft skill auto-discovery is partially implemented — if your agent doesn't\n");
   io.printf('     start setup automatically, tell it: "Use AGENTS.md"\n');
   io.printf(
-    "  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.vbrief.json\n",
+    "  3. On first session, the agent will guide you through USER.md (if missing).\n",
+  );
+  io.printf(
+    "  4. PROJECT-DEFINITION is seeded at init (#3013) — run `task project:render` once to refresh items from lifecycle folders; do not multi-turn invent project identity.\n",
   );
   printMigrateNudgeIfNeeded(result.projectDir, io);
   io.printf("\n");
+}
+
+/**
+ * Ensure a minimal render-ready PROJECT-DEFINITION exists after lifecycle dirs
+ * are deposited (#3013 / epic #3009). Idempotent: never overwrites existing identity.
+ */
+export function seedMinimalProjectDefinition(projectDir: string, io: InitDepositIo): boolean {
+  const xbriefDir = join(projectDir, "xbrief");
+  const legacyDir = join(projectDir, "vbrief");
+  const root = existsSync(xbriefDir) ? xbriefDir : existsSync(legacyDir) ? legacyDir : null;
+  if (root === null) {
+    return false;
+  }
+  const isXbrief = basename(root) === "xbrief";
+  const projectDefPath = join(
+    root,
+    isXbrief ? "PROJECT-DEFINITION.xbrief.json" : "PROJECT-DEFINITION.vbrief.json",
+  );
+  if (existsSync(projectDefPath)) {
+    io.printf("PROJECT-DEFINITION already present — leaving identity intact (#3013).\n");
+    return false;
+  }
+  const [ok, message] = renderProjectDefinition(root);
+  if (ok) {
+    io.printf(`${message} (minimal seed for one-shot project:render; #3013)\n`);
+    return true;
+  }
+  io.printf(`PROJECT-DEFINITION seed skipped: ${message}\n`);
+  return false;
 }
 
 export async function runInitDeposit(
@@ -226,6 +259,7 @@ export async function runInitDeposit(
   const skillsCreated = writeAgentsSkills(projectDir, io);
   await depositNeutralization(projectDir, io);
   await writeConsumerVbrief(projectDir, deftDir, io);
+  seedMinimalProjectDefinition(projectDir, io);
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
   writeAgentHookDeposit(projectDir, io);
 

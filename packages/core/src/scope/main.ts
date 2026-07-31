@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
+import { batchPromote } from "./batch-promote.js";
 import { TRANSITIONS } from "./constants.js";
 import {
   batchDemote,
@@ -33,6 +34,8 @@ export interface LifecycleArgs {
   file: string;
   projectRoot?: string;
   force?: boolean;
+  batch?: boolean;
+  batchFiles?: string[];
 }
 
 export interface DemoteArgs {
@@ -55,13 +58,14 @@ export interface UndoArgs {
 }
 
 const LIFECYCLE_USAGE_STDERR =
-  "usage: scope_lifecycle.py [-h] [--project-root PROJECT_ROOT] [--force]\n" +
+  "usage: scope_lifecycle.py [-h] [--project-root PROJECT_ROOT] [--force] [--batch]\n" +
   "                          {activate,block,cancel,complete,fail,promote,restore,unblock}\n" +
-  "                          file\n" +
-  "scope_lifecycle.py: error: the following arguments are required: action, file\n";
+  "                          [file ...]\n" +
+  "scope_lifecycle.py: error: the following arguments are required: action, file\n" +
+  "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n";
 
 function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error?: string } {
-  if (argv.length < 2) {
+  if (argv.length < 1) {
     return { args: null, error: "usage" };
   }
   const action = argv[0] ?? "";
@@ -71,6 +75,8 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let file = "";
   let projectRoot: string | undefined;
   let force = false;
+  let batch = false;
+  const batchFiles: string[] = [];
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === undefined) {
@@ -78,16 +84,39 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
     }
     if (arg === "--force") {
       force = true;
+    } else if (arg === "--batch") {
+      batch = true;
     } else if (arg === "--project-root") {
       projectRoot = argv[i + 1];
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
       projectRoot = arg.slice("--project-root=".length);
-    } else if (!arg.startsWith("-") && file.length === 0) {
-      file = arg;
+    } else if (!arg.startsWith("-")) {
+      if (batch) {
+        batchFiles.push(arg);
+      } else if (file.length === 0) {
+        file = arg;
+      } else {
+        return { args: null, error: "usage" };
+      }
     } else {
       return { args: null, error: "usage" };
     }
+  }
+  if (batch) {
+    if (action !== "promote") {
+      return { args: null, error: "usage" };
+    }
+    return {
+      args: {
+        action,
+        file: file.length > 0 ? file : "",
+        projectRoot,
+        force,
+        batch: true,
+        batchFiles: batchFiles.length > 0 ? batchFiles : file.length > 0 ? [file] : [],
+      },
+    };
   }
   if (file.length === 0) {
     return { args: null, error: "usage" };
@@ -104,7 +133,30 @@ export function lifecycleMain(argv: string[]): number {
     }
     return 2;
   }
-  const { action, file, projectRoot, force } = parsed.args;
+  const { action, file, projectRoot, force, batch, batchFiles } = parsed.args;
+
+  if (batch === true && action === "promote") {
+    const result = batchPromote({
+      files: batchFiles && batchFiles.length > 0 ? batchFiles : undefined,
+      force: force === true,
+      projectRoot,
+    });
+    for (const line of result.messages) {
+      process.stdout.write(`${line}\n`);
+    }
+    for (const line of result.skipped) {
+      process.stdout.write(`  skipped: ${line}\n`);
+    }
+    if (!result.ok && result.exitCode !== 0) {
+      for (const line of result.messages) {
+        if (line.startsWith("ERROR:") || line.includes("WIP cap")) {
+          process.stderr.write(`${line}\n`);
+        }
+      }
+    }
+    return result.exitCode;
+  }
+
   const [filePath, error] = resolveFilePath(file, projectRoot);
   if (error !== null || filePath === null) {
     process.stderr.write(`Error: ${error}\n`);

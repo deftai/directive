@@ -27,6 +27,42 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Ordered-plan / cohort exhaustion (#2402)
 
+## Multi-scope turn/cache budget (epic #3009)
+
+Multi-scope greenfield (app-bank pins, N story scopes) multiplies agent turns when ceremony, promote, check, and render are re-run per scope. Apply the following after offline seed.
+
+### Offline seed vs implement phase (#3010)
+
+! Distinguish **offline seed** (operator or harness already ran `directive init` / deposit, pin-copied scopes into `xbrief/proposed/`, and recorded session ritual) from the **agent implement phase**.
+
+! When seed + session ritual are already complete for the engagement:
+- ⊗ Run `directive init` again
+- ⊗ Run full cold `session:start` unless hooks deny writes and recovery is required
+- ⊗ Run `directive migrate` or re-copy scopes already present
+- ! Prefer recovery via `session:ready` (or re-arm) when PreToolUse denies — not full re-init
+- ! Documented consumer/harness contract: seed is done once; implement agents only activate+implement
+
+### Batch promote; one active implement (#3011)
+
+! For a multi-scope pin, batch-stage scopes with `task scope:promote -- --batch` (all `proposed/`) or `task scope:promote -- --batch <path>…`.
+! Implement path remains **one** `scope:activate` + implement at a time — no multi-active write fence.
+! When pin order is known, do **not** re-list the entire lifecycle tree every scope; walk the known ordered list.
+⊗ Activate all scopes at once or drop the one-active-scope / story-ready stack.
+
+### Quality check once at end of multi-scope batch (#3012)
+
+! On an approved multi-scope batch (operator-approved multi-story branch, swarm cohort, or pin walk): run full `task check` (merge chokepoint) **once at the end of the batch** (or after the last scope), not after every scope.
+! Exception: if the last full check **failed**, fix loops MAY re-run check until green.
+! Pre-PR / merge-ready gates remain end-of-unit — this does not weaken them.
+! Iteration lane (affected tests / `verify:forward-coverage` / `coverage:hotspots`) still applies **per scope** during implementation (#1704).
+⊗ Spam full `directive check` / `task check` after every scope when the batch is still mid-flight and the last merge-chokepoint check was green.
+
+### One-shot project:render (#3013)
+
+! Greenfield init seeds a minimal render-ready `PROJECT-DEFINITION`. Treat `task project:render` as a **refresh of items from lifecycle folders**, not multi-turn identity research.
+⊗ Invent project identity across many turns when seed already stamped the skeleton.
+
+
 ! When processing an approved multi-story cohort or an active ordered-plan sequence, stop after the final approved entry. Do not promote or dispatch adjacent stories from queue intuition. Continuation language advances only within the approved order; skill-chaining is non-authorizing.
 
 ## Step 0 -- Implementation Preflight (#810)
@@ -39,7 +75,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! **Swarm-cohort dispatch carve-out**: when this skill is invoked as part of a swarm cohort allocated by `skills/deft-directive-swarm/SKILL.md`, the approved Phase 5 allocation plan satisfies the "explicit operator approval and short rationale recorded in the handoff" requirement above -- the dispatched xBRIEF paths and allocation rationale ARE the consent token. Process each assigned story sequentially under the checkpoint-commit + `task scope:complete` discipline below. Do NOT re-prompt the parent for batching approval mid-cohort -- the all-or-nothing dispatch envelope rule (`AGENTS.md` `## Multi-agent orchestration discipline (#954)`) forbids mid-scope user-approval gates.
 - ! **Structured consent-token recognition (#1378)**: the canonical recognition path for the carve-out above is the structured `## Allocation context` section of the dispatch envelope (the frozen schema in `templates/agent-prompt-preamble.md`, Story A of #1378). When that section reports `dispatch_kind: swarm-cohort` with a non-null `allocation_plan_id` AND a non-null `batching_rationale`, the consent token is satisfied mechanically -- read `cohort_vbriefs` as the authoritative file boundary and process each entry sequentially under the checkpoint-commit + `task scope:complete` discipline below, without re-prompting the parent for batching approval mid-cohort. When the `## Allocation context` section is ABSENT (pre-#1378 dispatches, solo-interactive sessions), fall back to the #1371 prose carve-out immediately above -- the prose carve-out remains the recognition path of record for un-elevated envelopes.
 - ! **Within a cohort, between stories**: the working tree MUST be clean after each story's checkpoint commit + `task scope:complete`. If `git status --short` shows uncommitted state between stories (e.g. a missed `task scope:complete` move, an unstaged file from the prior story), checkpoint-commit it and proceed -- do NOT pause to ask the operator. The dirty-tree "ask the operator" branch above applies only at the FIRST story-start of a fresh branch, where uncommitted operator work might legitimately exist.
-- ! If the target story is in `xbrief/proposed/`, run `task scope:promote -- <path>` first; if it is in `xbrief/pending/`, run `task scope:activate -- <path>`. After activation, update the path to the active-file location before preflight.
+- ! If the target story is in `xbrief/proposed/`, run `task scope:promote -- <path>` first (or `task scope:promote -- --batch` for a multi-scope pin — #3011); if it is in `xbrief/pending/`, run `task scope:activate -- <path>`. After activation, update the path to the active-file location before preflight.
 - ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `task xbrief:preflight -- <active-story-path>` (the structural intent gate; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory).
 
 The gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. Any other state (pending/, proposed/, completed/, active/-with-non-running-status, malformed JSON, missing keys) exits 1 with an actionable redirect to `task xbrief:activate <path>`.
@@ -255,6 +291,9 @@ task test:coverage  # >=85% or PROJECT-DEFINITION.xbrief.json override
 - ! Phase checkpoint commits MAY use the iteration lane; phase is NOT done for PR handoff until full `task check` passes at the merge chokepoint
 - ⊗ Skip quality gates or claim they passed without running
 - ⊗ Treat iteration-lane green as merge-ready without full `task check`
+- ! **Multi-scope batch (#3012):** when implementing an approved multi-scope pin/cohort, reserve full `task check` for end-of-batch (or after last scope) unless the last full check failed — then re-run on the fix loop. Do not run full check after every intermediate scope.
+- ⊗ Re-run full install/session ceremony after offline seed when ritual is already complete (#3010) — use `session:ready` for recovery only.
+
 
 ## Coding Standards (Summary)
 
@@ -320,6 +359,10 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Move to next phase before current passes checks
 - ⊗ Make commits without running iteration-lane validation; ⊗ skip full `task check` at PR/merge chokepoint (#1704)
 - ⊗ Proceed without USER.md -- always run the USER.md Gate first
+- ⊗ Re-run `directive init`, cold `session:start`, migrate, or re-copy pin scopes after offline seed when ritual is already complete (#3010)
+- ⊗ Run full `task check` after every intermediate scope of an approved multi-scope batch when the last merge-chokepoint check was green (#3012)
+- ⊗ Promote scopes one-by-one for a known multi-scope pin when `scope:promote --batch` would stage them in one turn (#3011)
+
 - ⊗ Spawn an implementation agent or invoke a code-writing tool against a xBRIEF that has not passed `task xbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task xbrief:activate <path>`
 - ⊗ Proceed without `COST-ESTIMATE.md` and a recorded build / rescope / no-build / skip(+reason) decision -- always run the Cost Phase Gate (#739) first
 - ⊗ Proceed with implementation when the build or test toolchain is unavailable -- always run the Toolchain Gate (Step 2) first

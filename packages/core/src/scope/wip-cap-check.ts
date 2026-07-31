@@ -10,10 +10,26 @@ export interface WipCapCheck {
 
 /** Resolve WIP cap and decide if promotion is allowed (#1124). */
 export function checkWipCap(projectRoot: string, force = false): WipCapCheck {
+  return checkWipCapForAdditional(projectRoot, 1, force);
+}
+
+/**
+ * WIP check for promoting `additional` scopes in one batch (#3011).
+ * Single promote is `additional = 1` (same as historic count >= cap refuse).
+ * Batch of N refuses when `count + N > cap` unless `--force`.
+ */
+export function checkWipCapForAdditional(
+  projectRoot: string,
+  additional: number,
+  force = false,
+): WipCapCheck {
   const capResult = resolveWipCap(projectRoot);
   const cap = capResult.cap;
   const count = countVbriefWip(projectRoot);
-  const overCap = count >= cap;
+  const add = Math.max(0, Math.floor(additional));
+  // Single-promote parity: refuse when already at/over cap before adding one.
+  // Batch: refuse when current + additional would exceed the cap.
+  const overCap = add <= 1 ? count >= cap : count + add > cap;
   if (!overCap) {
     return { allowed: true, cap, count, source: capResult.source, forceOverride: false };
   }
@@ -29,6 +45,7 @@ export function formatWipCapRefusal(check: WipCapCheck): string {
     "Either:\n" +
     "  task scope:demote <existing>                              # return one to proposed/\n" +
     "  task scope:demote --batch --older-than-days 30            # bulk relief (D9 folded into D1)\n" +
-    "  task scope:promote <file> --force                          # override (logged)"
+    "  task scope:promote <file> --force                          # override (logged)\n" +
+    "  task scope:promote --batch --force                         # batch override (#3011)"
   );
 }

@@ -1,0 +1,51 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3013"
+  },
+  "plan": {
+    "title": "feat(setup,seed): minimal render-ready PROJECT-DEFINITION for one-shot project:render",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(setup,seed): minimal render-ready PROJECT-DEFINITION for one-shot project:render",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3013",
+      "Overview": "## Problem\n\nAgents spent turns exploring / fixing PROJECT-DEFINITION and re-running `project:render` as identity research. For seeded multi-scope greenfield, render should be a **refresh from lifecycle folders**, not \"who is this project?\"\n\n## Goal\n\nShip a **minimal valid, render-ready PROJECT-DEFINITION** on init/seed paths so `project:render` is one-shot (non-exploratory).\n\n## Acceptance\n\n- [ ] Greenfield init/seed produces a PROJECT-DEFINITION skeleton that passes validation for render (structure + enough identity; items registry may be empty/rebuildable)\n- [ ] Documented contract: render rebuilds items from lifecycle folders; do not multi-turn invent project identity\n- [ ] App-bank / multi-scope pins can consume this (Directive owns the seed contract; external harnesses do not invent a parallel SoT)\n- [ ] Does not replace setup interview for narrative gestalt when the operator wants full setup\n- [ ] Tests + CHANGELOG as appropriate\n\n## Non-goals\n\n- Fully filling product PRD/spec via seed\n- Dual source of truth: seed must not fight \"render from folders\" (stamp identity; items from lifecycle)\n\n## Parent\n\nPart of multi-scope turn/cache budget epic (post-v0.90 ceremony).\n\n## Source\n\nDevHammer: project:render thrash; article-review recommendation E.\n\n## Parent epic\n\nParent: https://github.com/deftai/directive/issues/3009\n\n",
+      "Labels": "enhancement, agent-experience, process, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Greenfield init/seed produces a PROJECT-DEFINITION skeleton that passes validation for render (structure + enough identity; items registry may be empty/rebuildable)",
+        "status": "proposed"
+      },
+      {
+        "title": "Documented contract: render rebuilds items from lifecycle folders; do not multi-turn invent project identity",
+        "status": "proposed"
+      },
+      {
+        "title": "App-bank / multi-scope pins can consume this (Directive owns the seed contract; external harnesses do not invent a parallel SoT)",
+        "status": "proposed"
+      },
+      {
+        "title": "Does not replace setup interview for narrative gestalt when the operator wants full setup",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests + CHANGELOG as appropriate",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "process",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3013",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3013: feat(setup,seed): minimal render-ready PROJECT-DEFINITION for one-shot project:render"
+      }
+    ]
+  }
+}

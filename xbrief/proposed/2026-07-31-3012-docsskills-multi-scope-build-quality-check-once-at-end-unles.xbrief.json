@@ -1,0 +1,51 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3012"
+  },
+  "plan": {
+    "title": "docs(skills): multi-scope build — quality check once at end unless failed",
+    "status": "proposed",
+    "narratives": {
+      "Description": "docs(skills): multi-scope build — quality check once at end unless failed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3012",
+      "Overview": "## Problem\n\nMulti-scope trials showed `directive check` / quality-gate spam (~17 in one DevHammer run). Framework doctrine wants check before **finish/merge**, not after every scope. Each check adds a turn and often large tool observation into the prompt-cache chain.\n\n## Goal\n\nEncode a multi-scope build contract: **run the quality check once at the end of the batch** (or after the last scope), and only re-run if the last check failed.\n\n## Acceptance\n\n- [ ] `deft-directive-build` (and related multi-scope preambles) state check-once-at-end unless last failed\n- [ ] Explicit exception: fix loops after a failed check may re-run check\n- [ ] Does not weaken pre-PR / merge-ready gates (those remain end-of-unit)\n- [ ] Docs / skill text only is OK for v1 if no new CLI\n- [ ] CHANGELOG if skill/user-facing\n\n## Non-goals\n\n- Removing `task check` from merge/PR path\n- Auto-suppressing check when hooks require story-ready stack\n\n## Parent\n\nPart of multi-scope turn/cache budget epic (post-v0.90 ceremony).\n\n## Parent epic\n\nParent: https://github.com/deftai/directive/issues/3009\n\n",
+      "Labels": "enhancement, process, area:skills, area:guidance"
+    },
+    "items": [
+      {
+        "title": "`deft-directive-build` (and related multi-scope preambles) state check-once-at-end unless last failed",
+        "status": "proposed"
+      },
+      {
+        "title": "Explicit exception: fix loops after a failed check may re-run check",
+        "status": "proposed"
+      },
+      {
+        "title": "Does not weaken pre-PR / merge-ready gates (those remain end-of-unit)",
+        "status": "proposed"
+      },
+      {
+        "title": "Docs / skill text only is OK for v1 if no new CLI",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG if skill/user-facing",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "process",
+      "area:skills",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3012",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3012: docs(skills): multi-scope build — quality check once at end unless failed"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3014"
+  },
+  "plan": {
+    "title": "research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield",
+    "status": "proposed",
+    "narratives": {
+      "Description": "research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3014",
+      "Overview": "## Summary\n\n**Research** (not P0 implementation): evaluate an **opt-in minimal consumer AGENTS profile** for app-bank / multi-scope greenfield so the always-on prompt-cache prefix is not a full framework routing dump.\n\nPre-v0.90 DevHammer saw ~9k AGENTS.md + skills list injected after `directive init` (baseline/spec_kit had none). Under prompt caching, prefix mass × turn count multiplies cache cost.\n\n## Hypothesis\n\nA short always-on surface (alignment + four process pins #2508 + index pointers) can preserve \"real enough Directive\" for product greenfield while cutting cache prefix — **if** the arm is explicitly labeled.\n\n## Non-goals\n\n- Making minimal AGENTS the default for all consumers without product decision\n- Claiming parity with baseline by stripping process unlabeled\n- Replacing skill-pin policy (#2508) or undoing AGENTS budgets already shipped (#645 / #2455 / #2490 / #2492)\n\n## Research questions\n\n1. What is the minimum always-on set that still routes build / pre-pr / review-cycle / swarm without false negatives?\n2. Opt-in deposit vs image-only policy vs `plan.policy` flag?\n3. Tension with post-compact AGENTS re-read (#2769)?\n4. After multi-scope turn-budget epic lands, how much residual gain remains from prefix shrink alone?\n\n## Related\n\n- Multi-scope turn/cache budget epic (P0 A–C–E) — implement turn cuts first\n- #2508 skill pin policy\n- #2769 post-compact AGENTS re-read (tension)\n- Closed budget work: #645, #2455, #2490, #2492\n\n## Recommendation\n\nDo **not** block the turn-budget epic on this. Revisit after turn cuts land and external DevHammer retest on v0.90+.\n\n## Source\n\nDevHammer AGENTS injection observation; article-review D held as research.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-31T23:19:20Z)\n\n## Tracking\n\nParent product epic (turn budget, does **not** block on this research): https://github.com/deftai/directive/issues/3009\n\nP0 children: #3010 #3011 #3012 #3013",
+      "Labels": "research-strategy, type:research, agent-experience, area:guidance"
+    },
+    "items": [],
+    "tags": [
+      "research-strategy",
+      "type:research",
+      "agent-experience",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3014",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3014: research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield"
+      }
+    ]
+  }
+}
