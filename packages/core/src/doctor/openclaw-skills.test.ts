@@ -125,6 +125,32 @@ describe("assessOpenClawPins (#3001)", () => {
     const assessment = assessOpenClawPins(skills);
     expect(assessment.divergent).toContain("deft-directive-build");
   });
+
+  it("classifies plain file path as divergent (#3003)", () => {
+    const skills = join(makeTemp("oc-file-"), "skills");
+    mkdirSync(skills, { recursive: true });
+    writeFileSync(join(skills, "deft-directive-build"), "not-a-dir", "utf8");
+    const assessment = assessOpenClawPins(skills);
+    expect(assessment.divergent).toContain("deft-directive-build");
+    expect(assessment.missing).not.toContain("deft-directive-build");
+  });
+});
+
+describe("listInScopeSkillsDirs edges (#3003)", () => {
+  it("skips workspace-* names that are not directories", () => {
+    const state = makeTemp("oc-scope-file-");
+    writeFileSync(join(state, "workspace-notdir"), "x", "utf8");
+    const dirs = listInScopeSkillsDirs(state, true);
+    expect(dirs).toEqual([resolveMainSkillsDir(state)]);
+  });
+
+  it("dedupes main skills when already listed", () => {
+    const state = makeTemp("oc-scope-dedupe-");
+    mkdirSync(join(state, "workspace-main-ish"), { recursive: true });
+    const dirs = listInScopeSkillsDirs(state, true);
+    const main = resolveMainSkillsDir(state);
+    expect(dirs.filter((d) => d === main)).toHaveLength(1);
+  });
 });
 
 describe("installOpenClawPin (#3001)", () => {

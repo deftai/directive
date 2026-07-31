@@ -154,6 +154,43 @@ describe("emitSessionRitualBlockedProcessCost (#2994)", () => {
     expect((record?.payload.detail as string).endsWith("...")).toBe(true);
   });
 
+  it("omits empty detail and default code when code provided (#3003)", () => {
+    const root = tempRoot();
+    const log = join(root, "events.jsonl");
+    const record = emitSessionRitualBlockedProcessCost(
+      { toolName: "Write", code: "ritual-stale", detail: "" },
+      { projectRoot: root, logPath: log },
+    );
+    expect(record).not.toBeNull();
+    expect(record?.payload).toEqual({
+      tool_name: "Write",
+      code: "ritual-stale",
+    });
+    expect(record?.payload).not.toHaveProperty("detail");
+    expect(record?.payload).not.toHaveProperty("recovery_tier");
+  });
+
+  it("includes non-skipped steps without skipped flag (#3003)", () => {
+    const root = tempRoot();
+    const log = join(root, "events.jsonl");
+    const record = emitSessionStartProcessCost(
+      {
+        ceremonyTier: "cold",
+        durationMs: 5,
+        exitCode: 0,
+        steps: [
+          { name: "alignment", duration_ms: 2, skipped: false },
+          { name: "branch_policy", duration_ms: 3 },
+        ],
+      },
+      { projectRoot: root, logPath: log },
+    );
+    expect(record?.payload.steps).toEqual([
+      { name: "alignment", duration_ms: 2 },
+      { name: "branch_policy", duration_ms: 3 },
+    ]);
+  });
+
   it("returns null without throwing on failure", () => {
     const root = tempRoot();
     const bad = join(root, "file-not-dir");

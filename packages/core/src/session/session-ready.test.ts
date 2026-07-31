@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   inferSessionReadyRepo,
   isCacheFreshFailure,
+  isGatedVerifyActuallyReady,
   runSessionReady,
   SESSION_READY_FAILED,
   SESSION_READY_FAST_PATH,
@@ -42,6 +43,14 @@ describe("isCacheFreshFailure", () => {
 
   it("does not match doctor-only failures", () => {
     expect(isCacheFreshFailure("session ritual gated step 'doctor' failed")).toBe(false);
+  });
+});
+
+describe("isGatedVerifyActuallyReady (#3003 hairline)", () => {
+  it("requires code 0 and not bypassed", () => {
+    expect(isGatedVerifyActuallyReady(okVerify())).toBe(true);
+    expect(isGatedVerifyActuallyReady(okVerify({ bypassed: true, wouldFailCode: 1 }))).toBe(false);
+    expect(isGatedVerifyActuallyReady(failVerify("nope"))).toBe(false);
   });
 });
 
@@ -289,5 +298,72 @@ describe("runSessionReady (#2993)", () => {
     expect(result.path).toBe(SESSION_READY_FAILED);
     expect(result.message).toContain("rate limited");
     expect(result.message).toContain("cache fetch-all");
+  });
+
+  it("skipCacheRecovery leaves cache_fresh as blocker without fetch (#3003)", () => {
+    const inspectRitual = vi
+      .fn()
+      .mockReturnValueOnce(failVerify("gated"))
+      .mockReturnValueOnce(okVerify({ tier: "quick" }));
+    const verifyRitual = vi.fn(() => failVerify("session ritual gated step 'cache_fresh' failed"));
+    const fetchAll = vi.fn();
+
+    const result = runSessionReady("/proj", {
+      inspectRitual,
+      verifyRitual,
+      fetchAll,
+      repo: "o/r",
+      skipCacheRecovery: true,
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.path).toBe(SESSION_READY_FAILED);
+    expect(fetchAll).not.toHaveBeenCalled();
+    expect(result.message).toContain("cache_fresh");
+  });
+
+  it("surfaces non-Error fetch throw as string cause (#3003)", () => {
+    const inspectRitual = vi
+      .fn()
+      .mockReturnValueOnce(failVerify("gated"))
+      .mockReturnValueOnce(okVerify({ tier: "quick" }));
+    const verifyRitual = vi.fn(() => failVerify("session ritual gated step 'cache_fresh' failed"));
+    const fetchAll = vi.fn(() => {
+      throw "boom-string";
+    });
+
+    const result = runSessionReady("/proj", {
+      inspectRitual,
+      verifyRitual,
+      fetchAll,
+      repo: "o/r",
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("boom-string");
+  });
+
+  it("uses empty bypass message fallback when verify message blank (#3003)", () => {
+    const inspectRitual = vi
+      .fn()
+      .mockReturnValueOnce(failVerify("gated"))
+      .mockReturnValueOnce(okVerify({ tier: "quick" }));
+    const verifyRitual = vi.fn(() =>
+      okVerify({
+        bypassed: true,
+        wouldFailCode: 1,
+        message: "   ",
+      }),
+    );
+
+    const result = runSessionReady("/proj", {
+      inspectRitual,
+      verifyRitual,
+      fetchAll: vi.fn(),
+      repo: "a/b",
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/bypassed|DEFT_SESSION_RITUAL_SKIP/i);
   });
 });

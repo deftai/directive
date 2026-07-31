@@ -20,7 +20,7 @@ import { runWorkerEntrypoint } from "./entrypoint-worker.js";
 import { generateRepoSlug, parseE2EFlags } from "./flags.js";
 import * as ghOps from "./gh-ops.js";
 import * as gitOps from "./git-ops.js";
-import { pushMirror, setOriginToTempRepo } from "./git-ops.js";
+import { formatGitOpFailure, pushMirror, setOriginToTempRepo } from "./git-ops.js";
 import * as mainModule from "./main.js";
 import { cmdReleaseE2e, runE2e } from "./main.js";
 import * as rehearsalModule from "./rehearsal.js";
@@ -49,6 +49,18 @@ describe("release-e2e branch coverage boost", () => {
     expect(ok).toBe(false);
     expect(reason).toMatch(/no stderr/);
     expect(reason).toMatch(/300000|timeout/i);
+  });
+
+  it("formatGitOpFailure prefers stderr over timeout hint (#3003)", () => {
+    expect(
+      formatGitOpFailure(
+        "git push",
+        { status: 1, stdout: "", stderr: "  denied  " },
+        {
+          timeoutMs: 1000,
+        },
+      ),
+    ).toBe("git push failed: denied");
   });
 
   it("generateRepoSlug seam override", () => {
