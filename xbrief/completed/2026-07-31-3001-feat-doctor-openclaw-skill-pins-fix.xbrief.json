@@ -3,12 +3,12 @@
     "version": "0.8",
     "description": "Doctor detect + --fix wire always-pin skills into OpenClaw workspaces (#3001).",
     "created": "2026-07-31T18:00:00Z",
-    "updated": "2026-07-31T17:55:33Z"
+    "updated": "2026-07-31T18:14:42Z"
   },
   "plan": {
     "id": "3001-doctor-openclaw-skill-pins",
     "title": "feat(doctor,openclaw): detect missing host skill pins + doctor --fix wire",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "OpenClaw can have Directive 0.89+ adapter content but missing always-pin skills under ~/.openclaw/workspace/skills. Extend doctor detect + --fix to deposit/link the four pins (build, pre-pr, review-cycle, swarm) into the main OpenClaw workspace skills root. Cohort add-on alongside ceremony wave (orthogonal).",
       "ImplementationPlan": "1. Detect OpenClaw via env/OPENCLAW_STATE_DIR/~/.openclaw. 2. Check main workspace skills for four always-pins. 3. doctor default: finding + remediation. 4. doctor --fix: symlink or copy from @deftai/directive-content skills; safe non-destructive; multi-seat only with explicit flag. 5. Docs openclaw-agent-host wire step. 6. Tests with temp HOME. 7. CHANGELOG #3001.",
@@ -72,8 +72,9 @@
         "depends_on": [],
         "conflict_group": "doctor-openclaw-3001",
         "wave": 3
-      }
+      },
+      "completedAt": "2026-07-31T18:14:42Z"
     },
-    "updated": "2026-07-31T17:55:33Z"
+    "updated": "2026-07-31T18:14:42Z"
   }
 }
