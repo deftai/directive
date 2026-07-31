@@ -20,6 +20,7 @@ describe("session-start parseArgs", () => {
       noHistory: false,
       readOnly: false,
       withNetwork: false,
+      ceremonyTier: "cold",
     });
   });
 
@@ -40,6 +41,7 @@ describe("session-start parseArgs", () => {
       noHistory: true,
       readOnly: false,
       withNetwork: false,
+      ceremonyTier: "cold",
     });
   });
 
@@ -51,6 +53,7 @@ describe("session-start parseArgs", () => {
       noHistory: false,
       readOnly: false,
       withNetwork: false,
+      ceremonyTier: "cold",
     });
   });
 
@@ -62,6 +65,7 @@ describe("session-start parseArgs", () => {
       noHistory: false,
       readOnly: true,
       withNetwork: false,
+      ceremonyTier: "cold",
     });
   });
 
@@ -73,7 +77,20 @@ describe("session-start parseArgs", () => {
       noHistory: false,
       readOnly: false,
       withNetwork: true,
+      ceremonyTier: "cold",
     });
+  });
+
+  it("parses --rearm and --tier=rearm (#2992)", () => {
+    expect(parseArgs(["--rearm"]).ceremonyTier).toBe("rearm");
+    expect(parseArgs(["--tier", "rearm"]).ceremonyTier).toBe("rearm");
+    expect(parseArgs(["--tier=rearm"]).ceremonyTier).toBe("rearm");
+    expect(parseArgs(["--tier=cold"]).ceremonyTier).toBe("cold");
+  });
+
+  it("rejects invalid --tier values", () => {
+    expect(parseArgs(["--tier", "hot"]).error).toContain("expected cold|rearm");
+    expect(parseArgs(["--tier"]).error).toContain("expected one argument");
   });
 
   it("rejects unknown flags", () => {
