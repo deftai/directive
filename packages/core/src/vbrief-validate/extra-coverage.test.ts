@@ -323,7 +323,12 @@ describe("vbrief-validate extra coverage", () => {
       extra: true,
     });
     expect(findings.length).toBeGreaterThan(3);
-    expect(renderFinding(findings[0]!)).toContain("bare key");
+    const first = findings[0];
+    expect(first).toBeDefined();
+    if (first === undefined) {
+      throw new Error("expected at least one finding");
+    }
+    expect(renderFinding(first)).toContain("bare key");
 
     const root = mkdtempSync(join(tmpdir(), "vb-conf-full-"));
     mkdirSync(join(root, "xbrief"), { recursive: true });
