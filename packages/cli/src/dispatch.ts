@@ -113,6 +113,7 @@ export const CLI_MODULE_VERBS = [
   "lifecycle-event",
   "lifecycle-stats",
   "session-start",
+  "session-ready",
   "plan-sequence",
   "slice",
   "subagent-monitor",
@@ -380,6 +381,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "issue:sync-from-xbrief": "issue-sync-from-xbrief",
   upgrade: "install-upgrade",
   "session:start": "session-start",
+  "session:ready": "session-ready",
   "lifecycle:event": "lifecycle-event",
   "lifecycle:stats": "lifecycle-stats",
   "toolchain:check": "toolchain-check",
@@ -2921,6 +2923,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
     title: "Session & ritual",
     commands: [
       { name: "session:start", summary: "Record session-start ritual state" },
+      {
+        name: "session:ready",
+        summary: "One-shot recovery to gated write-ready (session + ritual + cache)",
+      },
       {
         name: "lifecycle:event",
         summary: "Record review-cycle plan:approved approval events",

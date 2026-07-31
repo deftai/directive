@@ -3,6 +3,7 @@ export * from "./json.js";
 export * from "./posture.js";
 export * from "./resume-conditions.js";
 export * from "./ritual-sentinel.js";
+export * from "./session-ready.js";
 export * from "./session-start.js";
 export * from "./session-start-hook.js";
 export * from "./time.js";

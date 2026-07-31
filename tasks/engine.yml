@@ -97,6 +97,7 @@ tasks:
           is_runtime_verb=0
           case " ${first_token} " in
             " session:start "|" session-start "|\
+            " session:ready "|" session-ready "|\
             " lifecycle:event "|" lifecycle-event "|\
             " verify:session-ritual "|" verify-session-ritual "|\
             " verify:tools "|" verify-tools "|\

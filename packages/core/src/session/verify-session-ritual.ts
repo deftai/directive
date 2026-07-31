@@ -97,17 +97,22 @@ function failedStepMessage(tierName: string, stepName: string, step: unknown): s
   return `session ritual ${tierName} step '${stepName}' failed${suffix}`;
 }
 
-/** Human recovery line after a failed ritual probe (#2992). */
+/** Human recovery line after a failed ritual probe (#2992 / #2993). */
 export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "cold"): string {
+  const ready = formatFrameworkCommand(["session:ready"]);
   const start = formatSessionStartRecoveryCommand(tier);
   const verify = formatFrameworkCommand(["verify:session-ritual", "--", "--tier=gated"]);
   if (tier === "rearm") {
     return (
-      `Recovery: run \`${start}\` (or full \`${formatSessionStartRecoveryCommand("cold")}\` ` +
-      `if worktree/HEAD changed), then \`${verify}\`.`
+      `Recovery: run ${ready} (one-shot), or ${start} ` +
+      `(or full ${formatSessionStartRecoveryCommand("cold")} if worktree/HEAD changed), ` +
+      `then ${verify}.`
     );
   }
-  return `Recovery: run \`${start}\`, then \`${verify}\`.`;
+  return (
+    `Recovery: run ${ready} ` +
+    `(one-shot: session:start + gated ritual + cache recovery as needed).`
+  );
 }
 
 function runGatedStep(

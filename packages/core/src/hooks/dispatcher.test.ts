@@ -100,8 +100,8 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
-    expect(decision.message).toContain("deft session:start");
-    expect(decision.message).toContain("deft verify:session-ritual -- --tier=gated");
+    expect(decision.message).toContain("deft session:ready");
+    expect(decision.message).toContain("one-shot");
   });
 
   it("denies a direct write when no active running scope passes preflight", () => {
