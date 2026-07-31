@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Cold vs re-arm session ceremony tiers (#2992).** `session:start --rearm` (or `--tier=rearm`) refreshes ritual clock + HEAD/worktree bind without fat cold path (`verify:tools`, triage welcome, release probe, tickler) when prior state is on the same worktree with continuous HEAD and passing quick steps. Compact (#2113) marks `rearm_needed`; inspect/verify and PreToolUse denials prefer re-arm recovery messaging when full cold is unnecessary (missing state, worktree change, discontinuous HEAD still force cold). Docs: `content/commands.md` § Mutable ritual. Closes #2992. Parent epic #2990. Refs #2991, #2113.
 - **Slim mutation `session:start` hot path + step timings (#2991).** Optional network (npm release probe, triage cache empty-hydrate / self-heal) no longer blocks ritual-state write by default. Opt in with `--with-network` or `DEFT_SESSION_START_NETWORK=1`. `--json` exposes per-step `duration_ms` (`steps[]` + total) for attribution. Docs: `content/commands.md` § Mutable ritual. Closes #2991. Parent epic #2990.
 
 ### Fixed

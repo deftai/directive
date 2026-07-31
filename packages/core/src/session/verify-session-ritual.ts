@@ -13,11 +13,17 @@ import { defaultRitualRunner } from "./ritual-entrypoint.js";
 import {
   type RitualState,
   readRitualState,
+  ritualStateMarksRearmNeeded,
   ritualStatePath,
   ritualStep,
   writeRitualState,
 } from "./ritual-sentinel.js";
-import { GATED_STEPS, QUICK_STEPS } from "./session-start.js";
+import {
+  formatSessionStartRecoveryCommand,
+  GATED_STEPS,
+  QUICK_STEPS,
+  type SessionCeremonyTier,
+} from "./session-start.js";
 import { resolveSessionRitualStalenessHours } from "./staleness.js";
 
 export {
@@ -44,6 +50,11 @@ export interface VerifyResult {
   readonly wouldFailCode: number | null;
   readonly posture: DirectivePosture;
   readonly ritualStateRequired: boolean;
+  /**
+   * Preferred session:start recovery when code !== 0 (#2992).
+   * `rearm` when age/compact stale on an otherwise valid bind; `cold` otherwise.
+   */
+  readonly recoveryTier?: SessionCeremonyTier | null;
 }
 
 export type RitualRunner = (
@@ -66,10 +77,11 @@ function stepPasses(step: Record<string, unknown> | undefined | null): boolean {
 }
 
 function failedStepMessage(tierName: string, stepName: string, step: unknown): string {
+  const coldCmd = formatSessionStartRecoveryCommand("cold");
   if (step === null || step === undefined) {
     return (
       `session ritual ${tierName} step '${stepName}' is missing. ` +
-      `Run \`${formatFrameworkCommand(["session:start"])}\` before implementation dispatch.`
+      `Run \`${coldCmd}\` before implementation dispatch.`
     );
   }
   if (
@@ -83,6 +95,19 @@ function failedStepMessage(tierName: string, stepName: string, step: unknown): s
     typeof step === "object" && step !== null ? (step as Record<string, unknown>).message : null;
   const suffix = typeof message === "string" && message.length > 0 ? `: ${message}` : "";
   return `session ritual ${tierName} step '${stepName}' failed${suffix}`;
+}
+
+/** Human recovery line after a failed ritual probe (#2992). */
+export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "cold"): string {
+  const start = formatSessionStartRecoveryCommand(tier);
+  const verify = formatFrameworkCommand(["verify:session-ritual", "--", "--tier=gated"]);
+  if (tier === "rearm") {
+    return (
+      `Recovery: run \`${start}\` (or full \`${formatSessionStartRecoveryCommand("cold")}\` ` +
+      `if worktree/HEAD changed), then \`${verify}\`.`
+    );
+  }
+  return `Recovery: run \`${start}\`, then \`${verify}\`.`;
 }
 
 function runGatedStep(
@@ -113,73 +138,120 @@ function runGatedStep(
 }
 
 function headDriftRecoveryMessage(): string {
+  const coldCmd = formatSessionStartRecoveryCommand("cold");
   return (
     `session ritual state is stale because git HEAD changed discontinuously. ` +
-    `Run \`${formatFrameworkCommand(["session:start"])}\` again.`
+    `Run \`${coldCmd}\` again (full cold ceremony required).`
   );
 }
+
+type EvaluateLoadedResult = {
+  code: number;
+  message: string;
+  recoveryTier: SessionCeremonyTier | null;
+};
 
 function evaluateLoadedState(
   projectRoot: string,
   state: RitualState,
   input: { tier: string; now: Date; runGit?: GitRunner; rebindForwardHead?: boolean },
-): [number, string] {
+): EvaluateLoadedResult {
   const runGit = input.runGit ?? defaultGitRunner;
+  const coldCmd = formatSessionStartRecoveryCommand("cold");
+  const rearmCmd = formatSessionStartRecoveryCommand("rearm");
   const { head: currentHead, error: headError } = gitHead(projectRoot, runGit);
   if (currentHead === null) {
-    return [2, headError ?? "could not resolve git HEAD"];
+    return {
+      code: 2,
+      message: headError ?? "could not resolve git HEAD",
+      recoveryTier: "cold",
+    };
   }
   const currentWorktree = worktreePath(projectRoot, runGit);
   if (state.worktreePath !== currentWorktree) {
-    return [
-      1,
-      `session ritual state belongs to a different worktree (${state.worktreePath}); run \`${formatFrameworkCommand(["session:start"])}\` here.`,
-    ];
+    return {
+      code: 1,
+      message:
+        `session ritual state belongs to a different worktree (${state.worktreePath}); ` +
+        `run \`${coldCmd}\` here (full cold ceremony required).`,
+      recoveryTier: "cold",
+    };
   }
   if (state.gitHead !== currentHead) {
     const forward = gitIsAncestor(projectRoot, state.gitHead, currentHead, runGit);
     if (forward === null) {
-      return [2, "could not verify git history for session ritual"];
+      return {
+        code: 2,
+        message: "could not verify git history for session ritual",
+        recoveryTier: "cold",
+      };
     }
     if (!forward) {
-      return [1, headDriftRecoveryMessage()];
+      return { code: 1, message: headDriftRecoveryMessage(), recoveryTier: "cold" };
     }
     if (input.rebindForwardHead) {
       const payload = { ...state.raw, git_head: currentHead };
       try {
         writeRitualState(projectRoot, payload);
       } catch (exc) {
-        return [2, `could not rebind session ritual git HEAD: ${String(exc)}`];
+        return {
+          code: 2,
+          message: `could not rebind session ritual git HEAD: ${String(exc)}`,
+          recoveryTier: "cold",
+        };
       }
     }
   }
   const staleness = resolveSessionRitualStalenessHours(projectRoot);
   if (staleness.source === "default-on-error") {
-    return [2, staleness.error ?? "session ritual staleness policy is invalid"];
+    return {
+      code: 2,
+      message: staleness.error ?? "session ritual staleness policy is invalid",
+      recoveryTier: "cold",
+    };
   }
   const maxAgeMs = staleness.hours * 60 * 60 * 1000;
   if (input.now.getTime() - state.startedAt.getTime() > maxAgeMs) {
-    const startCommand = formatFrameworkCommand(["session:start"]);
-    return [
-      1,
-      `session ritual state is stale (older than ${staleness.hours}h). Run \`${startCommand}\` again.`,
-    ];
+    // Age / compact stale on same worktree + continuous HEAD → prefer re-arm (#2992).
+    // compact_resume_at / rearm_needed amplify the same recovery path.
+    const compactNote = ritualStateMarksRearmNeeded(state)
+      ? " Compact/resume marked re-arm needed."
+      : "";
+    return {
+      code: 1,
+      message:
+        `session ritual state is stale (older than ${staleness.hours}h).${compactNote} ` +
+        `Run \`${rearmCmd}\` to re-arm (or \`${coldCmd}\` for a full cold ceremony).`,
+      recoveryTier: "rearm",
+    };
   }
   for (const stepName of QUICK_STEPS) {
     const step = state.quickSteps[stepName];
     if (!stepPasses(step)) {
-      return [1, failedStepMessage("quick", stepName, step)];
+      return {
+        code: 1,
+        message: failedStepMessage("quick", stepName, step),
+        recoveryTier: "cold",
+      };
     }
   }
   if (input.tier === "gated") {
     for (const stepName of GATED_STEPS) {
       const step = state.gatedSteps[stepName];
       if (!stepPasses(step)) {
-        return [1, failedStepMessage("gated", stepName, step)];
+        return {
+          code: 1,
+          message: failedStepMessage("gated", stepName, step),
+          recoveryTier: "cold",
+        };
       }
     }
   }
-  return [0, `OK session ritual ${input.tier} tier is fresh.`];
+  return {
+    code: 0,
+    message: `OK session ritual ${input.tier} tier is fresh.`,
+    recoveryTier: null,
+  };
 }
 
 export interface VerifySessionRitualOptions {
@@ -241,7 +313,7 @@ export function inspectSessionRitual(
   const [state, err] = readRitualState(projectRoot);
   if (state === null) {
     const code = missingStateFile ? 1 : 2;
-    const startCommand = formatFrameworkCommand(["session:start"]);
+    const startCommand = formatSessionStartRecoveryCommand("cold");
     return {
       code,
       message:
@@ -254,24 +326,26 @@ export function inspectSessionRitual(
       wouldFailCode: null,
       posture,
       ritualStateRequired,
+      recoveryTier: "cold",
     };
   }
 
-  const [code, message] = evaluateLoadedState(projectRoot, state, {
+  const evaluated = evaluateLoadedState(projectRoot, state, {
     tier,
     now: options.now ?? new Date(),
     runGit: options.runGit,
     rebindForwardHead: false,
   });
   return {
-    code,
-    message,
+    code: evaluated.code,
+    message: evaluated.message,
     tier,
     statePath,
     bypassed: false,
     wouldFailCode: null,
     posture,
     ritualStateRequired,
+    recoveryTier: evaluated.recoveryTier,
   };
 }
 
@@ -325,7 +399,7 @@ export function verifySessionRitual(
   let [state, err] = readRitualState(projectRoot);
   if (state === null) {
     const code = missingStateFile ? 1 : 2;
-    const startCommand = formatFrameworkCommand(["session:start"]);
+    const startCommand = formatSessionStartRecoveryCommand("cold");
     const message =
       code === 1
         ? `${err}. Run \`${startCommand}\` before implementation dispatch.`
@@ -340,6 +414,7 @@ export function verifySessionRitual(
         wouldFailCode: code,
         posture,
         ritualStateRequired,
+        recoveryTier: "cold",
       };
     }
     return {
@@ -351,26 +426,28 @@ export function verifySessionRitual(
       wouldFailCode: null,
       posture,
       ritualStateRequired,
+      recoveryTier: "cold",
     };
   }
 
   if (tier === "gated" && !isBypassed) {
-    const [precheckCode, precheckMessage] = evaluateLoadedState(projectRoot, state, {
+    const precheck = evaluateLoadedState(projectRoot, state, {
       tier: "quick",
       now: instant,
       runGit: options.runGit,
       rebindForwardHead: true,
     });
-    if (precheckCode !== 0) {
+    if (precheck.code !== 0) {
       return {
-        code: precheckCode,
-        message: precheckMessage,
+        code: precheck.code,
+        message: precheck.message,
         tier,
         statePath,
         bypassed: false,
         wouldFailCode: null,
         posture,
         ritualStateRequired,
+        recoveryTier: precheck.recoveryTier,
       };
     }
 
@@ -429,7 +506,7 @@ export function verifySessionRitual(
     }
   }
 
-  const [code, message] = evaluateLoadedState(projectRoot, state, {
+  const evaluated = evaluateLoadedState(projectRoot, state, {
     tier,
     now: instant,
     runGit: options.runGit,
@@ -438,24 +515,26 @@ export function verifySessionRitual(
   if (isBypassed) {
     return {
       code: 0,
-      message,
+      message: evaluated.message,
       tier,
       statePath,
       bypassed: true,
-      wouldFailCode: code === 0 ? null : code,
+      wouldFailCode: evaluated.code === 0 ? null : evaluated.code,
       posture,
       ritualStateRequired,
+      recoveryTier: evaluated.recoveryTier,
     };
   }
   return {
-    code,
-    message,
+    code: evaluated.code,
+    message: evaluated.message,
     tier,
     statePath,
     bypassed: false,
     wouldFailCode: null,
     posture,
     ritualStateRequired,
+    recoveryTier: evaluated.recoveryTier,
   };
 }
 

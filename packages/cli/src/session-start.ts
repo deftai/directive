@@ -2,10 +2,14 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  COLD_CEREMONY_TIER,
   parseDeferrals,
   READ_ONLY_POSTURE,
+  REARM_CEREMONY_TIER,
   ritualStatePath,
   runSessionStart,
+  SESSION_CEREMONY_TIERS,
+  type SessionCeremonyTier,
 } from "@deftai/directive-core/session";
 
 export interface ParsedSessionStartArgs {
@@ -16,7 +20,17 @@ export interface ParsedSessionStartArgs {
   readOnly: boolean;
   /** #2991: opt into optional network (release probe + triage cache hydrate). */
   withNetwork: boolean;
+  /** #2992: cold (full) vs rearm (clock/HEAD refresh without fat path). */
+  ceremonyTier: SessionCeremonyTier;
   error?: string;
+}
+
+function parseCeremonyTier(raw: string): SessionCeremonyTier | null {
+  const value = raw.trim().toLowerCase();
+  if ((SESSION_CEREMONY_TIERS as readonly string[]).includes(value)) {
+    return value as SessionCeremonyTier;
+  }
+  return null;
 }
 
 /** Parse session:start CLI args, mirroring scripts/session_start.py. */
@@ -28,6 +42,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     noHistory: false,
     readOnly: false,
     withNetwork: false,
+    ceremonyTier: COLD_CEREMONY_TIER,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -39,6 +54,33 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
       parsed.readOnly = true;
     } else if (arg === "--with-network") {
       parsed.withNetwork = true;
+    } else if (arg === "--rearm") {
+      // #2992: shortcut for --tier=rearm
+      parsed.ceremonyTier = REARM_CEREMONY_TIER;
+    } else if (arg === "--tier") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --tier: expected one argument (cold|rearm)" };
+      }
+      const tier = parseCeremonyTier(value);
+      if (tier === null) {
+        return {
+          ...parsed,
+          error: `argument --tier: expected cold|rearm, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.ceremonyTier = tier;
+      i += 1;
+    } else if (arg?.startsWith("--tier=")) {
+      const value = arg.slice("--tier=".length);
+      const tier = parseCeremonyTier(value);
+      if (tier === null) {
+        return {
+          ...parsed,
+          error: `argument --tier: expected cold|rearm, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.ceremonyTier = tier;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -103,6 +145,7 @@ export function run(argv: readonly string[]): number {
       writeHistory: !args.noHistory,
       posture: args.readOnly ? READ_ONLY_POSTURE : undefined,
       allowOptionalNetwork: args.withNetwork ? true : undefined,
+      ceremonyTier: args.ceremonyTier,
     });
   } finally {
     process.stdout.write = prevWrite;

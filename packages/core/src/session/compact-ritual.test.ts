@@ -99,7 +99,8 @@ describe("markRitualStaleAfterCompact (#2113)", () => {
 
     const result = markRitualStaleAfterCompact(root, { now });
     expect(result.changed).toBe(true);
-    expect(result.message).toContain("session:start");
+    expect(result.message).toContain("session:start --rearm");
+    expect(result.message).toContain("re-arm");
 
     const stale = inspectSessionRitual(root, {
       tier: "gated",
@@ -109,6 +110,8 @@ describe("markRitualStaleAfterCompact (#2113)", () => {
     });
     expect(stale.code).toBe(1);
     expect(stale.message).toContain("stale");
+    expect(stale.recoveryTier).toBe("rearm");
+    expect(stale.message).toContain("session:start --rearm");
 
     rmSync(root, { recursive: true, force: true });
   });

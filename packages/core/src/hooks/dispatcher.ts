@@ -35,7 +35,11 @@ import { loadStoryWriteFenceFromPath, resolveWriteFence } from "../policy/write-
 import { detectBranch } from "../session/git.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
-import { inspectSessionRitual, type VerifyResult } from "../session/verify-session-ritual.js";
+import {
+  formatRitualRecoveryInstruction,
+  inspectSessionRitual,
+  type VerifyResult,
+} from "../session/verify-session-ritual.js";
 import {
   type HookPayloadContext,
   hookMcpArgsText,
@@ -683,17 +687,17 @@ function inspectMutationGates(
       "ritual-not-ready",
       toolName,
       `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
-        "Run `deft session:start`, then `deft verify:session-ritual -- --tier=gated`.",
+        formatRitualRecoveryInstruction("cold"),
     );
   }
   if (ritual.code !== 0) {
+    // #2992: prefer re-arm recovery when age/compact stale; cold when bind invalid.
+    const recoveryTier = ritual.recoveryTier === "rearm" ? "rearm" : "cold";
     return deny(
       input,
       "ritual-not-ready",
       toolName,
-      `Directive denied ${toolName}: ${ritual.message} ` +
-        "Recovery: run `deft session:start`, then " +
-        "`deft verify:session-ritual -- --tier=gated`.",
+      `Directive denied ${toolName}: ${ritual.message} ${formatRitualRecoveryInstruction(recoveryTier)}`,
     );
   }
 

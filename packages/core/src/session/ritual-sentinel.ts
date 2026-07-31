@@ -273,6 +273,7 @@ export interface MarkRitualStaleAfterCompactResult {
 /**
  * Invalidate an existing mutation ritual after host context compaction/resume (#2113).
  * Reuses ritual-state age semantics — no parallel policy stack.
+ * Marks rearm_needed so recovery messaging prefers session:start --rearm when cold is unnecessary (#2992).
  */
 export function markRitualStaleAfterCompact(
   projectRoot: string,
@@ -291,14 +292,22 @@ export function markRitualStaleAfterCompact(
   const payload = { ...state.raw };
   payload.started_at = timestampIso(RITUAL_STALE_EPOCH);
   payload.compact_resume_at = timestampIso(now);
+  // #2992: compact invalidates the ritual clock only — prefer re-arm recovery when worktree/HEAD allow.
+  payload.rearm_needed = true;
   writeRitualState(projectRoot, payload);
   return {
     changed: true,
     statePath,
     message:
-      "Marked session ritual stale after context compaction; run session:start and " +
+      "Marked session ritual re-arm needed after context compaction; run " +
+      "session:start --rearm (or full session:start if worktree/HEAD changed) and " +
       "verify:session-ritual -- --tier=gated before direct writes.",
   };
+}
+
+/** Whether ritual-state.json marks compact/age recovery as re-arm preferred (#2992). */
+export function ritualStateMarksRearmNeeded(state: RitualState): boolean {
+  return state.raw.rearm_needed === true || typeof state.raw.compact_resume_at === "string";
 }
 
 export function recordRitualStep(

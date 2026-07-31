@@ -22,19 +22,22 @@ import {
 } from "../policy/require-human-merge.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
+import { formatFrameworkCommand } from "../render/framework-commands.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import type { GitRunner } from "./git.js";
-import { defaultGitRunner, gitHead, worktreePath } from "./git.js";
+import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 import {
   probeSessionReleaseAvailability,
   type ReleaseAvailabilityProbeOptions,
 } from "./release-availability.js";
 import {
   newRitualStatePayload,
+  type RitualState,
+  readRitualState,
   ritualStatePath,
   ritualStep,
   writeRitualState,
@@ -48,6 +51,12 @@ export const READ_ONLY_ALIGNMENT_MESSAGE = "Deft Directive active -- AGENTS.md l
 export const READ_ONLY_RESULT_MESSAGE =
   "read-only session posture (alignment only; no ritual-state write)";
 
+/** Cold (full) vs re-arm (clock/HEAD refresh) ceremony tiers (#2992). */
+export const SESSION_CEREMONY_TIERS = ["cold", "rearm"] as const;
+export type SessionCeremonyTier = (typeof SESSION_CEREMONY_TIERS)[number];
+export const COLD_CEREMONY_TIER: SessionCeremonyTier = "cold";
+export const REARM_CEREMONY_TIER: SessionCeremonyTier = "rearm";
+
 export const QUICK_STEPS = ["alignment", "branch_policy", "triage_welcome"] as const;
 export const GATED_STEPS = ["doctor", "cache_fresh"] as const;
 
@@ -58,6 +67,14 @@ export const ENV_SESSION_START_NETWORK = "DEFT_SESSION_START_NETWORK";
 export const OPTIONAL_NETWORK_SKIPPED_MESSAGE =
   "[deft session] optional network skipped (release probe, triage cache hydrate/self-heal); " +
   "pass --with-network or set DEFT_SESSION_START_NETWORK=1 to enable.";
+
+/** Re-arm skips fat cold-path work when prior ritual is still structurally valid (#2992). */
+export const REARM_SKIPPED_FAT_PATH_MESSAGE =
+  "[deft session] re-arm tier: refreshed ritual clock + HEAD/worktree bind; " +
+  "skipped verify:tools, triage welcome, release probe, and staleness tickler.";
+
+/** When --rearm is requested but state requires a full cold ceremony (#2992). */
+export const REARM_INELIGIBLE_PREFIX = "session re-arm refused — full cold session:start required:";
 
 export interface SessionStartStepTiming {
   readonly name: string;
@@ -91,6 +108,12 @@ export interface SessionStartResult {
 export interface SessionStartOptions {
   /** #2176: read-only records alignment only; mutation runs the full quick tier. */
   readonly posture?: SessionPosture;
+  /**
+   * #2992: `rearm` refreshes ritual clock/HEAD/worktree without fat cold path
+   * (no verify:tools, triage welcome, release probe, tickler). Default `cold`.
+   * CLI: `--rearm` or `--tier=rearm`.
+   */
+  readonly ceremonyTier?: SessionCeremonyTier;
   readonly deferrals?: Readonly<Record<string, string>>;
   readonly now?: Date;
   readonly writeHistory?: boolean;
@@ -116,10 +139,99 @@ export interface SessionStartOptions {
    * empty-hydrate / self-heal) before ritual-state write. Default false so the
    * mutation hot path does not block on GitHub/npm. CLI: `--with-network`;
    * env: `DEFT_SESSION_START_NETWORK=1`.
+   * Ignored on re-arm tier (always skips optional network).
    */
   readonly allowOptionalNetwork?: boolean;
   /** Process env for network opt-in resolution (tests inject). */
   readonly env?: NodeJS.ProcessEnv;
+}
+
+/** Format preferred `session:start` recovery command for cold vs re-arm (#2992). */
+export function formatSessionStartRecoveryCommand(tier: SessionCeremonyTier = "cold"): string {
+  if (tier === "rearm") {
+    return formatFrameworkCommand(["session:start", "--rearm"]);
+  }
+  return formatFrameworkCommand(["session:start"]);
+}
+
+function stepPassesForRearm(step: Record<string, unknown> | undefined): boolean {
+  if (!step || typeof step !== "object") return false;
+  if (step.deferred_reason) return true;
+  return step.ok === true;
+}
+
+export type RearmEligibility =
+  | {
+      eligible: true;
+      state: RitualState;
+      currentHead: string;
+      currentWorktree: string;
+    }
+  | { eligible: false; reason: string };
+
+/**
+ * Whether a prior ritual can be re-armed without a full cold ceremony (#2992).
+ * Requires valid state, same worktree, continuous (or identical) HEAD, and
+ * previously-passing quick steps.
+ */
+export function assessRearmEligibility(
+  projectRoot: string,
+  options: { runGit?: GitRunner } = {},
+): RearmEligibility {
+  const runGit = options.runGit ?? defaultGitRunner;
+  const [state, err] = readRitualState(projectRoot);
+  if (state === null) {
+    return {
+      eligible: false,
+      reason: err ?? "ritual state missing (first install / cold path required)",
+    };
+  }
+  const { head: currentHead, error: headError } = gitHead(projectRoot, runGit);
+  if (currentHead === null) {
+    return { eligible: false, reason: headError ?? "could not resolve git HEAD" };
+  }
+  const currentWorktree = worktreePath(projectRoot, runGit);
+  if (state.worktreePath !== currentWorktree) {
+    return {
+      eligible: false,
+      reason: `ritual state belongs to a different worktree (${state.worktreePath})`,
+    };
+  }
+  if (state.gitHead !== currentHead) {
+    const forward = gitIsAncestor(projectRoot, state.gitHead, currentHead, runGit);
+    if (forward === null) {
+      return { eligible: false, reason: "could not verify git history for session re-arm" };
+    }
+    if (!forward) {
+      return {
+        eligible: false,
+        reason: "git HEAD changed discontinuously (full cold session:start required)",
+      };
+    }
+  }
+  for (const stepName of QUICK_STEPS) {
+    if (!stepPassesForRearm(state.quickSteps[stepName])) {
+      return {
+        eligible: false,
+        reason: `quick step '${stepName}' is missing or failed (full cold session:start required)`,
+      };
+    }
+  }
+  return { eligible: true, state, currentHead, currentWorktree };
+}
+
+function restampSteps(
+  steps: Record<string, Record<string, unknown>>,
+  now: Date,
+): Record<string, Record<string, unknown>> {
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [name, step] of Object.entries(steps)) {
+    out[name] = {
+      ...step,
+      ts: ritualStep({ ok: step.ok === true, ts: now }).ts,
+    };
+  }
+  return out;
 }
 
 /** Resolve whether optional session:start network work is enabled (#2991). */
@@ -358,6 +470,141 @@ function runReadOnlySessionStart(
   return { code: 0, payload: resultPayload, lines };
 }
 
+function runSessionRearm(
+  projectRoot: string,
+  options: SessionStartOptions,
+  instant: Date,
+  environment: EnvironmentContext,
+): SessionStartResult {
+  const overallStarted = performance.now();
+  const runGit = options.runGit ?? defaultGitRunner;
+  const eligibility = assessRearmEligibility(projectRoot, { runGit });
+  if (!eligibility.eligible) {
+    const coldCmd = formatSessionStartRecoveryCommand("cold");
+    const message = `${REARM_INELIGIBLE_PREFIX} ${eligibility.reason}. Run \`${coldCmd}\`.`;
+    return {
+      code: 1,
+      payload: {
+        ready: false,
+        exit_code: 1,
+        ceremony_tier: REARM_CEREMONY_TIER,
+        rearm_eligible: false,
+        environment: environmentContextToDict(environment),
+        message,
+      },
+      lines: [formatEnvironmentContext(environment), message],
+    };
+  }
+
+  const resolveUserMd =
+    options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
+  const userMd = resolveUserMd(projectRoot);
+  const safePath = userMd.path.replace(/\r?\n/g, " ");
+  const safeDiagnostic = userMd.diagnostic.replace(/\r?\n/g, " ");
+  const userMdLine = userMd.found
+    ? `USER.md resolved (${userMd.rung}): ${safePath}`
+    : safeDiagnostic;
+  const alignmentMessage = `${READ_ONLY_ALIGNMENT_MESSAGE} ${userMdLine}`;
+
+  const lines: string[] = [
+    READ_ONLY_ALIGNMENT_MESSAGE,
+    userMdLine,
+    formatEnvironmentContext(environment),
+    REARM_SKIPPED_FAT_PATH_MESSAGE,
+  ];
+
+  // Light branch-policy disclosure (local only) so re-arm still surfaces policy state.
+  const policyResult = resolvePolicy(projectRoot);
+  const policyMessage = disclosureLine(policyResult);
+  lines.push(policyMessage);
+  const humanMerge = resolveHumanMergePolicy(projectRoot);
+  const humanMergeLine = humanMergeDisclosureLine(humanMerge);
+  if (humanMergeLine !== null) {
+    lines.push(humanMergeLine);
+  }
+
+  const priorQuick = eligibility.state.quickSteps;
+  const priorTriage = priorQuick.triage_welcome ?? ritualStep({ ok: true, ts: instant });
+  const policyOk = policyResult.error === null || policyResult.source === "default-fail-closed";
+  const quickSteps: Record<string, Record<string, unknown>> = {
+    alignment: ritualStep({
+      ok: true,
+      ts: instant,
+      message: alignmentMessage,
+      durationMs: 0,
+    }),
+    branch_policy: ritualStep({
+      ok: policyOk,
+      ts: instant,
+      message: policyMessage,
+      exitCode: policyOk ? 0 : 2,
+      durationMs: 0,
+    }),
+    // Preserve prior triage outcome; do not re-run welcome / self-heal on re-arm.
+    triage_welcome: {
+      ...priorTriage,
+      ts: ritualStep({ ok: priorTriage.ok === true, ts: instant }).ts,
+      message:
+        typeof priorTriage.message === "string"
+          ? priorTriage.message
+          : "triage welcome preserved on re-arm",
+    },
+  };
+  const gatedSteps = restampSteps(eligibility.state.gatedSteps, instant);
+
+  const writeStarted = performance.now();
+  // Fresh payload (no rearm_needed / compact_resume_at) clears compact markers (#2992).
+  const writePayload: Record<string, unknown> = {
+    ...newRitualStatePayload({
+      sessionId: (options.newSessionId ?? randomUUID)(),
+      gitHead: eligibility.currentHead,
+      worktreePath: eligibility.currentWorktree,
+      startedAt: instant,
+      quickSteps,
+      gatedSteps,
+    }),
+    ceremony_tier: REARM_CEREMONY_TIER,
+  };
+  const statePath = writeRitualState(projectRoot, writePayload);
+  const stepTimings: SessionStartStepTiming[] = [
+    { name: "alignment", duration_ms: 0 },
+    { name: "branch_policy", duration_ms: 0 },
+    { name: "verify_tools", duration_ms: 0, skipped: true },
+    { name: "triage_welcome", duration_ms: 0, skipped: true },
+    { name: "release_probe", duration_ms: 0, skipped: true },
+    { name: "ritual_write", duration_ms: elapsedMs(writeStarted) },
+  ];
+  const totalMs = elapsedMs(overallStarted);
+  const failed = Object.entries(quickSteps)
+    .filter(([, step]) => !step.ok && !step.deferred_reason)
+    .map(([name]) => name);
+  const code = failed.length > 0 ? 1 : 0;
+  return {
+    code,
+    payload: {
+      ready: code === 0,
+      exit_code: code,
+      ceremony_tier: REARM_CEREMONY_TIER,
+      rearm_eligible: true,
+      state_path: statePath,
+      quick_steps: quickSteps,
+      gated_steps: gatedSteps,
+      steps: stepTimings,
+      duration_ms: totalMs,
+      optional_network: false,
+      user_md: {
+        path: userMd.path,
+        rung: userMd.rung,
+        found: userMd.found,
+        diagnostic: userMd.diagnostic,
+      },
+      environment: environmentContextToDict(environment),
+      message: code === 0 ? "session ritual re-armed" : "session ritual re-arm failed",
+    },
+    lines,
+  };
+}
+
 export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
@@ -367,6 +614,7 @@ export function runSessionStart(
   const deferrals = options.deferrals ?? {};
   const runGit = options.runGit ?? defaultGitRunner;
   const environment = (options.probeEnvironment ?? detectEnvironmentContext)();
+  const ceremonyTier = options.ceremonyTier ?? COLD_CEREMONY_TIER;
 
   // #2926: official root opt-out wins locally — skip Directive session ritual.
   // disabled = skip ritual (exit 0 clean / 1 inconsistent). ready stays false so
@@ -401,6 +649,12 @@ export function runSessionStart(
   if (posture === READ_ONLY_POSTURE) {
     return runReadOnlySessionStart(projectRoot, options, instant, environment);
   }
+
+  // #2992: re-arm path refreshes clock/bind without fat cold ceremony.
+  if (ceremonyTier === REARM_CEREMONY_TIER) {
+    return runSessionRearm(projectRoot, options, instant, environment);
+  }
+
   const overallStarted = performance.now();
   const stepTimings: SessionStartStepTiming[] = [];
   const allowOptionalNetwork = resolveSessionStartOptionalNetwork(options);
@@ -641,6 +895,7 @@ export function runSessionStart(
   const resultPayload = {
     ready: code === 0,
     exit_code: code,
+    ceremony_tier: COLD_CEREMONY_TIER,
     state_path: statePath,
     quick_steps: quickSteps,
     gated_steps: gatedSteps,
