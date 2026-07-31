@@ -577,7 +577,31 @@ function runSessionRearm(
     }),
     ceremony_tier: REARM_CEREMONY_TIER,
   };
-  const statePath = writeRitualState(projectRoot, writePayload);
+  let statePath: string;
+  try {
+    statePath = writeRitualState(projectRoot, writePayload);
+  } catch (cause) {
+    // #2994: still record failed attempt when ritual-state write throws.
+    emitSessionStartProcessCost(
+      {
+        ceremonyTier: REARM_CEREMONY_TIER,
+        durationMs: elapsedMs(overallStarted),
+        exitCode: 2,
+        ready: false,
+        optionalNetwork: false,
+        steps: [
+          { name: "alignment", duration_ms: 0 },
+          { name: "branch_policy", duration_ms: 0 },
+          { name: "verify_tools", duration_ms: 0, skipped: true },
+          { name: "triage_welcome", duration_ms: 0, skipped: true },
+          { name: "release_probe", duration_ms: 0, skipped: true },
+          { name: "ritual_write", duration_ms: elapsedMs(writeStarted) },
+        ],
+      },
+      { projectRoot },
+    );
+    throw cause;
+  }
   const stepTimings: SessionStartStepTiming[] = [
     { name: "alignment", duration_ms: 0 },
     { name: "branch_policy", duration_ms: 0 },
@@ -921,7 +945,25 @@ export function runSessionStart(
     quickSteps,
     gatedSteps,
   });
-  const statePath = writeRitualState(projectRoot, payload);
+  let statePath: string;
+  try {
+    statePath = writeRitualState(projectRoot, payload);
+  } catch (cause) {
+    // #2994: still record failed attempt when ritual-state write throws.
+    stepTimings.push({ name: "ritual_write", duration_ms: elapsedMs(writeStarted) });
+    emitSessionStartProcessCost(
+      {
+        ceremonyTier: COLD_CEREMONY_TIER,
+        durationMs: elapsedMs(overallStarted),
+        exitCode: 2,
+        ready: false,
+        optionalNetwork: allowOptionalNetwork,
+        steps: stepTimings,
+      },
+      { projectRoot },
+    );
+    throw cause;
+  }
   stepTimings.push({ name: "ritual_write", duration_ms: elapsedMs(writeStarted) });
 
   const failed = Object.entries(quickSteps)
