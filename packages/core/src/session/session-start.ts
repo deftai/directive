@@ -30,6 +30,7 @@ import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
+import { emitSessionStartProcessCost } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
   type ReleaseAvailabilityProbeOptions,
@@ -579,6 +580,18 @@ function runSessionRearm(
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
   const code = failed.length > 0 ? 1 : 0;
+  // #2994: local process-cost event (best-effort; never blocks ceremony).
+  emitSessionStartProcessCost(
+    {
+      ceremonyTier: REARM_CEREMONY_TIER,
+      durationMs: totalMs,
+      exitCode: code,
+      ready: code === 0,
+      optionalNetwork: false,
+      steps: stepTimings,
+    },
+    { projectRoot },
+  );
   return {
     code,
     payload: {
@@ -911,6 +924,18 @@ export function runSessionStart(
     environment: environmentContextToDict(environment),
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
+  // #2994: local process-cost event (best-effort; never blocks ceremony).
+  emitSessionStartProcessCost(
+    {
+      ceremonyTier: COLD_CEREMONY_TIER,
+      durationMs: totalMs,
+      exitCode: code,
+      ready: code === 0,
+      optionalNetwork: allowOptionalNetwork,
+      steps: stepTimings,
+    },
+    { projectRoot },
+  );
   return { code, payload: resultPayload, lines };
 }
 

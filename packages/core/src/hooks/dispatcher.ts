@@ -33,6 +33,7 @@ import {
 } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath, resolveWriteFence } from "../policy/write-fence.js";
 import { detectBranch } from "../session/git.js";
+import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
@@ -682,6 +683,16 @@ function inspectMutationGates(
       ((root) => inspectSessionRitual(root, { tier: "gated", posture: "mutation" }))
     )(projectRoot);
   } catch (cause) {
+    // #2994: best-effort local process-cost; never changes deny verdict.
+    emitSessionRitualBlockedProcessCost(
+      {
+        toolName,
+        code: "ritual-not-ready",
+        recoveryTier: "cold",
+        detail: `inspect threw: ${String(cause)}`,
+      },
+      { projectRoot },
+    );
     return deny(
       input,
       "ritual-not-ready",
@@ -693,6 +704,16 @@ function inspectMutationGates(
   if (ritual.code !== 0) {
     // #2992: prefer re-arm recovery when age/compact stale; cold when bind invalid.
     const recoveryTier = ritual.recoveryTier === "rearm" ? "rearm" : "cold";
+    // #2994: best-effort local process-cost; never changes deny verdict.
+    emitSessionRitualBlockedProcessCost(
+      {
+        toolName,
+        code: "ritual-not-ready",
+        recoveryTier,
+        detail: ritual.message,
+      },
+      { projectRoot },
+    );
     return deny(
       input,
       "ritual-not-ready",

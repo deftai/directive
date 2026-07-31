@@ -6,6 +6,7 @@ import { contentRoot } from "../content-root.js";
 import { ATTRIBUTION_REQUIRED_PAYLOAD } from "../events/attribution-constants.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
+import { PROCESS_COST_REQUIRED_PAYLOAD } from "../session/process-cost-constants.js";
 
 /** Default event log location (project-local). */
 export const DEFAULT_EVENT_LOG = join(".deft-cache", "events.jsonl");
@@ -14,6 +15,7 @@ const BEHAVIORAL_CATEGORY = "behavioral";
 
 const REQUIRED_BEHAVIORAL_PAYLOAD: Readonly<Record<string, readonly string[]>> = {
   ...ATTRIBUTION_REQUIRED_PAYLOAD,
+  ...PROCESS_COST_REQUIRED_PAYLOAD,
   "session:interrupted": ["session_id", "reason"],
   "session:resumed": ["session_id", "interrupted_id"],
   "plan:approved": ["plan_ref", "approver"],

@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import type { GitRunResult } from "./git.js";
@@ -21,6 +22,7 @@ const environment: EnvironmentContext = {
   shell: { name: "zsh", path: "/bin/zsh", kind: "default", source: "SHELL" },
 };
 afterEach(() => {
+  clearRegistryCache();
   for (const t of temps) rmSync(t, { recursive: true, force: true });
   temps.length = 0;
 });
@@ -222,6 +224,26 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     expect(payload.quick_steps.alignment.duration_ms).toBeGreaterThanOrEqual(0);
     expect(payload.quick_steps.branch_policy.duration_ms).toBeGreaterThanOrEqual(0);
     expect(payload.quick_steps.triage_welcome.duration_ms).toBeGreaterThanOrEqual(0);
+  });
+
+  it("emits local session:start process-cost event (#2994)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () =>
+        userMdResult({ path: join(root, "USER.md"), rung: "workspace-local" }),
+      ),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const logPath = join(root, DEFAULT_EVENT_LOG);
+    expect(existsSync(logPath)).toBe(true);
+    const events = readEvents(logPath);
+    const start = events.find((e) => e.event === "session:start");
+    expect(start).toBeDefined();
+    expect(start?.payload.ceremony_tier).toBe("cold");
+    expect(typeof start?.payload.duration_ms).toBe("number");
+    expect(start?.payload.exit_code).toBe(0);
+    expect(Array.isArray(start?.payload.steps)).toBe(true);
   });
 
   it("runs release probe when allowOptionalNetwork is true", () => {

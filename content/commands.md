@@ -265,6 +265,7 @@ Full always-on contract for the interactive session-start ritual and its gated v
 - ! **Cold vs re-arm ceremony tiers (#2992):** default `session:start` is the **cold** (full) path. After age staleness or compact re-arm (#2113) on the **same worktree** with continuous HEAD and previously-passing quick steps, prefer `deft session:start --rearm` (alias `--tier=rearm`) to refresh the ritual clock + HEAD/worktree bind without `verify:tools`, triage welcome, release probe, or staleness tickler. Full cold remains required for missing/invalid state, worktree change, discontinuous HEAD, first install, or failed/missing quick steps. Compact marks `rearm_needed`; PreToolUse denial and inspect/verify messages prefer re-arm recovery when cold is unnecessary.
 - ? Opt into optional network: `deft session:start -- --with-network` or `DEFT_SESSION_START_NETWORK=1`. When enabled, the bounded release-availability probe runs against the public npm registry (skips framework source checkouts, non-release pins, and `DEFT_NO_NETWORK=1`; identical latest-version notices throttle for 24 hours in `xbrief/.triage-cache/release-availability-state.json`). Default-mode triage welcome then also hydrates/self-heals the triage cache. This is separate from `deft doctor`, whose bare and gated invocations remain offline by default (#2182). Refs #1692 / #2991. Re-arm never runs optional network.
 - ~ `session:start --json` includes `steps[]` with `name` + `duration_ms` for major phases (`alignment`, `branch_policy`, `verify_tools`, `triage_welcome`, `release_probe`, `ritual_write`), plus total `duration_ms`, `optional_network`, and `ceremony_tier` (`cold` | `rearm`). Skipped optional steps report `skipped: true` and `duration_ms: 0`. Use this for attribution when investigating ceremony wall-clock.
+- ~ **Process-cost events (#2994):** on mutation `session:start` completion (cold or re-arm), Directive appends a local `session:start` behavioral event to `.deft-cache/events.jsonl` with `ceremony_tier`, `duration_ms`, `exit_code`, and optional `steps[]` (same labels as `--json`). When PreToolUse denies for `ritual-not-ready`, a local `session:ritual-blocked` event records `tool_name`, `code`, and optional `recovery_tier` / `detail`. Always-on best-effort (never blocks ceremony or deny path); not gated on `valueFeedback`; **no remote upload** (Product Insights #2603 is a separate opt-in). See § Process-cost events below.
 - ~ At safe idle points (clean tree, no in-flight story), mutation session start and `deft scope:complete` may also run the staleness tickler: an interactive, consent-based offer to upgrade Directive (`npm i -g @deftai/directive@latest`) and/or migrate xBRIEF (`deft migrate:xbrief`). Escalation tiers, snooze windows, and opt-out live under `plan.policy.stalenessTickler` — inspect with `deft policy:show --field=stalenessTickler`. State persists in `xbrief/.triage-cache/staleness-tickler-state.json`. Skips framework source checkouts, dirty trees, CI/headless (`DEFT_SESSION_RITUAL_SKIP=1`), and typed opt-out. Refs #2488 / #2489.
 - ! Before any code-writing tool call or `start_agent` implementation dispatch, run `deft verify:session-ritual -- --tier=gated`. Gated tier fails closed unless quick-tier state is fresh; lazily records `deft doctor` and `deft verify:cache-fresh` entrypoints. Step 0 of the pre-`start_agent` gate stack.
 - ! **One-shot recovery (#2993):** when PreToolUse denies writes for a stale/missing gated ritual, run `deft session:ready` (or `task session:ready`). It composes `session:start` (only when quick-tier is not green) + `verify:session-ritual -- --tier=gated` + `cache fetch-all --force` when `cache_fresh` is the remaining blocker, then re-verifies. Idempotent fast path when gated inspect is already fresh (no unnecessary fetch-all). Flags: `--json`, `--repo OWNER/NAME`, `--with-network` (forwarded to session:start). Prefer this over juggling the multi-step recovery sequence under hook pressure.
@@ -289,6 +290,23 @@ flowchart TD
     Cache --> Branch["task verify:branch"]
     Branch --> Check["task check"]
 ```
+
+---
+
+## Process-cost events (#2994)
+
+Local ceremony cost signal for WWYSYDH / weekly process rollups. Emits to `.deft-cache/events.jsonl` only (same ledger as other behavioral events). Does **not** require Product Insights (#2603).
+
+| WWYSYDH / ceremony label | Event name | When | Key payload fields |
+|---|---|---|---|
+| Session start (cold) | `session:start` | Mutation `session:start` cold path finishes | `ceremony_tier=cold`, `duration_ms`, `exit_code`, `steps[]` |
+| Session re-arm | `session:start` | `session:start --rearm` finishes | `ceremony_tier=rearm`, `duration_ms`, `exit_code`, `steps[]` |
+| PreToolUse ritual deny | `session:ritual-blocked` | Hook blocks write/spawn because gated ritual is not ready | `tool_name`, `code=ritual-not-ready`, `recovery_tier` (`cold`\|`rearm`) |
+| Per-step wall-clock | (field on `session:start`) | Same emit as session start | `steps[].name` + `steps[].duration_ms` (`alignment`, `branch_policy`, `verify_tools`, `triage_welcome`, `release_probe`, `ritual_write`) |
+
+CLI mirror (no JSONL required): `deft session:start --json` already exposes the same `steps` / `duration_ms` / `ceremony_tier` fields for one-shot inspection.
+
+Registry: `content/events/registry.json`. Helper: `packages/core/src/session/process-cost.ts`.
 
 ---
 

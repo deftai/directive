@@ -238,6 +238,42 @@
         "packages/core/src/events/attribution-ledger.ts",
         "(deferred) task deft:feedback:file / deft-directive-feedback skill (#1709 child 5)"
       ]
+    },
+    {
+      "name": "session:start",
+      "category": "behavioral",
+      "description": "Mutation session:start ceremony finished (cold or re-arm). Local process-cost observability for ceremony wall-clock (#2994 / WWYSYDH pilot). Always-on best-effort local JSONL; not gated on valueFeedback; no remote upload.",
+      "trigger": "packages/core/src/session/process-cost.ts::emitSessionStartProcessCost from packages/core/src/session/session-start.ts after cold or re-arm ceremony completes and ritual state is written.",
+      "payload": {
+        "ceremony_tier": "string enum -- cold | rearm",
+        "duration_ms": "integer -- total ceremony wall-clock milliseconds",
+        "exit_code": "integer -- 0 when ready, non-zero when a quick step failed",
+        "ready": "boolean (optional) -- true when exit_code is 0",
+        "optional_network": "boolean (optional) -- whether optional network steps ran (#2991)",
+        "steps": "array (optional) -- { name, duration_ms, skipped? } per major phase from session:start --json"
+      },
+      "consumers": [
+        "packages/core/src/session/process-cost.ts -- emit helper",
+        "packages/core/src/session/session-start.ts -- cold + re-arm completion call sites",
+        "content/commands.md § Process-cost events -- WWYSYDH ceremony label mapping (#2994)"
+      ]
+    },
+    {
+      "name": "session:ritual-blocked",
+      "category": "behavioral",
+      "description": "PreToolUse denied a mutation tool because the gated session ritual was not ready (missing/stale/invalid). Local process-cost / friction signal for ceremony blocks (#2994). Always-on best-effort local JSONL; not gated on valueFeedback; no remote upload.",
+      "trigger": "packages/core/src/session/process-cost.ts::emitSessionRitualBlockedProcessCost from packages/core/src/hooks/dispatcher.ts::inspectMutationGates when inspectSessionRitual returns non-zero or throws (ritual-not-ready deny path).",
+      "payload": {
+        "tool_name": "string -- host tool name that was denied",
+        "code": "string -- always ritual-not-ready for this event",
+        "recovery_tier": "string enum (optional) -- cold | rearm -- preferred recovery path (#2992)",
+        "detail": "string (optional) -- one-line inspect message (not the full recovery instruction)"
+      },
+      "consumers": [
+        "packages/core/src/session/process-cost.ts -- emit helper",
+        "packages/core/src/hooks/dispatcher.ts -- PreToolUse ritual deny path",
+        "content/commands.md § Process-cost events -- WWYSYDH ceremony label mapping (#2994)"
+      ]
     }
   ]
 }
