@@ -40,6 +40,8 @@ const EXPECTED_EVENT_NAMES = new Set([
   "bypass:off-flow",
   "adoption:unused-capability",
   "friction:directive-gap",
+  "session:start",
+  "session:ritual-blocked",
 ]);
 
 const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
