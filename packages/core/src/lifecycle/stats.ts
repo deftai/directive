@@ -6,7 +6,11 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLayoutRootOrCanonical } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+} from "../layout/resolve.js";
 import { parseDurationMs } from "../triage/scope/duration.js";
 
 /** Lifecycle folders scanned for stats. */
@@ -36,7 +40,7 @@ export const LIFECYCLE_STATS_SEMANTICS = {
     "whose event time falls inside the --since window.",
   still_active: "snapshot count of all xbriefs currently in active/ (not filtered by --since).",
   event_time:
-    "event time = plan.metadata.completedAt, else plan.updated, else xBRIEFInfo/vBRIEFInfo.updated, " +
+    "event time = most recent of plan.metadata.completedAt, plan.updated, and xBRIEFInfo/vBRIEFInfo.updated; " +
     "else file mtime. Window is [as_of - since, as_of] inclusive of as_of.",
   note:
     "Counts are current-folder membership, not full transition history. A brief that was " +
@@ -135,28 +139,62 @@ function completedAt(plan: Record<string, unknown>): Date | null {
   return parseIso((metadata as Record<string, unknown>).completedAt);
 }
 
+/**
+ * Event time for window membership: most recent of completedAt / plan.updated /
+ * info.updated, else mtime. Preferring max (not completedAt-first) so a later
+ * cancel/restore transition is not stuck on a stale completion stamp.
+ */
 function eventTimeFor(
   data: Record<string, unknown>,
   plan: Record<string, unknown>,
   path: string,
 ): Date | null {
+  const candidates: Date[] = [];
   const completed = completedAt(plan);
   if (completed !== null) {
-    return completed;
+    candidates.push(completed);
   }
   const planUpdated = parseIso(plan.updated);
   if (planUpdated !== null) {
-    return planUpdated;
+    candidates.push(planUpdated);
   }
   const info = infoUpdated(data);
   if (info !== null) {
-    return info;
+    candidates.push(info);
+  }
+  if (candidates.length > 0) {
+    return new Date(Math.max(...candidates.map((d) => d.getTime())));
   }
   try {
     return new Date(statSync(path).mtimeMs);
   } catch {
     return null;
   }
+}
+
+/** Stats root: xbrief/ if present, else legacy vbrief/ (read-only inventory), else canonical xbrief path. */
+function resolveStatsLifecycleRoot(projectRoot: string): string {
+  const migrated = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  if (existsSync(migrated)) {
+    try {
+      if (statSync(migrated).isDirectory()) {
+        return migrated;
+      }
+    } catch {
+      // fall through
+    }
+  }
+  const legacy = join(projectRoot, LEGACY_ARTIFACT_DIR);
+  if (existsSync(legacy)) {
+    try {
+      if (statSync(legacy).isDirectory()) {
+        return legacy;
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return migrated;
 }
 
 function statusOf(plan: Record<string, unknown>, folder: StatsLifecycleFolder): string {
@@ -246,7 +284,7 @@ export function collectLifecycleStats(options: CollectLifecycleStatsOptions): Li
   const asOf = options.now ?? new Date();
   const windowStart = new Date(asOf.getTime() - sinceMs);
   const projectRoot = resolve(options.projectRoot);
-  const lifecycleRoot = resolveLayoutRootOrCanonical(projectRoot);
+  const lifecycleRoot = resolveStatsLifecycleRoot(projectRoot);
 
   const folder_totals = emptyFolderTotals();
   let promoted = 0;
@@ -274,10 +312,11 @@ export function collectLifecycleStats(options: CollectLifecycleStatsOptions): Li
     } else if (rec.folder === "completed") {
       if (rec.status === "failed") {
         cancelled_or_failed += 1;
-      } else {
-        // completed, or any non-failed terminal status under completed/
+      } else if (rec.status === "completed") {
         completed += 1;
       }
+      // Inconsistent statuses under completed/ (e.g. stale "running") are
+      // counted in folder_totals only — not in window metrics.
     }
   }
 

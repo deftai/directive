@@ -301,7 +301,7 @@ Writes a `plan:approved` record to `.deft-cache/events.jsonl` with repository (d
 
 ## Lifecycle folder stats (#2995)
 
-Local, offline inventory of `xbrief/{proposed,pending,active,completed,cancelled}/` for weekly process rollups (WWYSYDH Section C). No network.
+Local, offline inventory of existing `xbrief/` (or legacy `vbrief/`) lifecycle folders `{proposed,pending,active,completed,cancelled}/` for weekly process rollups (WWYSYDH Section C). No network.
 
 ```bash
 deft lifecycle:stats --since=7d
@@ -317,7 +317,7 @@ task lifecycle:stats -- --since=7d --json
 | `cancelled_or_failed` | Currently in `cancelled/`, or `completed/` with status `failed`, event time inside window |
 | `still_active` | Snapshot of all briefs in `active/` (not filtered by `--since`) |
 
-**Event time:** `plan.metadata.completedAt`, else `plan.updated`, else `xBRIEFInfo`/`vBRIEFInfo`.`updated`, else file mtime. Window is `[as_of - since, as_of]`.
+**Event time:** most recent of `plan.metadata.completedAt`, `plan.updated`, and `xBRIEFInfo`/`vBRIEFInfo`.`updated`; else file mtime. Window is `[as_of - since, as_of]`.
 
 **Limitation:** counts are **current-folder membership**, not full transition history. A brief promoted then activated in the same week appears under `activated` / `still_active`, not `promoted`. Default `--since` is `7d` (`24h`, `1w`, ISO-8601 durations accepted).
 

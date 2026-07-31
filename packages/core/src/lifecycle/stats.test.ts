@@ -152,15 +152,73 @@ describe("collectLifecycleStats", () => {
     expect(stats.as_of).toBe("2026-07-31T12:00:00Z");
   });
 
-  it("prefers completedAt over plan.updated for terminal briefs", () => {
+  it("uses the most recent stamp so completedAt does not override a later transition", () => {
     const root = fixtureRoot();
+    // completedAt inside window but plan.updated (cancel) is more recent — still in window
+    writeBrief(root, "cancelled", "re-cancelled.xbrief.json", {
+      status: "cancelled",
+      updated: "2026-07-30T18:00:00Z",
+      completedAt: "2026-07-28T00:00:00Z",
+    });
+    // completedAt outside window; plan.updated inside → use max → in window as cancelled
+    writeBrief(root, "cancelled", "stale-completedAt.xbrief.json", {
+      status: "cancelled",
+      updated: "2026-07-29T00:00:00Z",
+      completedAt: "2026-01-01T00:00:00Z",
+    });
+    // completedAt inside window wins over older plan.updated for a still-completed brief
     writeBrief(root, "completed", "stale-plan.xbrief.json", {
       status: "completed",
       updated: "2026-01-01T00:00:00Z",
       completedAt: "2026-07-30T00:00:00Z",
     });
     const stats = collectLifecycleStats({ projectRoot: root, since: "7d", now: NOW });
+    expect(stats.cancelled_or_failed).toBe(2);
     expect(stats.completed).toBe(1);
+  });
+
+  it("scans legacy vbrief/ when xbrief/ is absent", () => {
+    const root = fixtureRoot();
+    const dir = join(root, "vbrief", "pending");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "legacy.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: {
+          version: "0.6",
+          description: "t",
+          created: "2026-07-30T00:00:00Z",
+          updated: "2026-07-30T00:00:00Z",
+        },
+        plan: {
+          id: "legacy",
+          title: "legacy",
+          status: "pending",
+          updated: "2026-07-30T00:00:00Z",
+          metadata: {},
+        },
+      }),
+      "utf8",
+    );
+    const stats = collectLifecycleStats({ projectRoot: root, since: "7d", now: NOW });
+    expect(stats.promoted).toBe(1);
+    expect(stats.lifecycle_root.replace(/\\/g, "/")).toMatch(/\/vbrief$/);
+  });
+
+  it("omits inconsistent non-completed statuses under completed/ from completed metric", () => {
+    const root = fixtureRoot();
+    writeBrief(root, "completed", "stale-running.xbrief.json", {
+      status: "running",
+      updated: "2026-07-30T00:00:00Z",
+    });
+    writeBrief(root, "completed", "ok.xbrief.json", {
+      status: "completed",
+      updated: "2026-07-30T00:00:00Z",
+      completedAt: "2026-07-30T00:00:00Z",
+    });
+    const stats = collectLifecycleStats({ projectRoot: root, since: "7d", now: NOW });
+    expect(stats.completed).toBe(1);
+    expect(stats.folder_totals.completed).toBe(2);
   });
 
   it("skips unreadable / non-plan artifacts", () => {
