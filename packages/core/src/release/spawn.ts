@@ -35,6 +35,17 @@ export function spawnText(
   if (status === null) {
     if (result.signal !== null && result.signal !== undefined) {
       status = 128;
+      // Timeout kills leave stderr empty; surface timeout so e2e never reports
+      // "failed: " with a blank reason (#3004 / #1867).
+      if (stderr.trim().length === 0) {
+        if (result.error) {
+          stderr = result.error.message;
+        } else if (options.timeoutMs !== undefined) {
+          stderr = `process terminated by signal ${result.signal} (timeout ${options.timeoutMs}ms)`;
+        } else {
+          stderr = `process terminated by signal ${result.signal}`;
+        }
+      }
     } else if (result.error) {
       status = 2;
       // ENOBUFS (stdout over maxBuffer) and similar spawn failures leave stderr

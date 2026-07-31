@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **release:e2e push-mirror no longer dies on the generic 30s `runGit` timeout (#3004).** First full heads+tags mirror of a large repo (many tags / ~30MB pack) exceeded `packages/core/src/release/git.ts` default 30s, killing the push with empty stderr (`failed: `). `pushMirror` now uses a 300s timeout (same order as clone) and surfaces a non-blank timeout/exit reason; `spawnText` also fills empty stderr on signal/timeout kills. Closes #3004.
 - **Vitest branch coverage restored above 85% (#2986).** Focused authz verb-classification / AFK-template / classify / evaluate edge tests, hooks read-only payload shapes, and authz CLI argv branches clear the v0.89.0 84.9% hairline so the next release Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2986.
 
 ### Removed

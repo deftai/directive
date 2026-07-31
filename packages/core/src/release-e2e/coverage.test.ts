@@ -42,6 +42,15 @@ describe("release-e2e branch coverage boost", () => {
     expect(ok).toBe(true);
   });
 
+  it("pushMirror empty-stderr failure includes timeout hint (#3004)", () => {
+    const [ok, reason] = pushMirror("/clone", {
+      runGit: () => ({ status: 128, stdout: "", stderr: "" }),
+    });
+    expect(ok).toBe(false);
+    expect(reason).toMatch(/no stderr/);
+    expect(reason).toMatch(/300000|timeout/i);
+  });
+
   it("generateRepoSlug seam override", () => {
     expect(generateRepoSlug({ generateRepoSlug: () => "custom-slug" })).toBe("custom-slug");
   });
