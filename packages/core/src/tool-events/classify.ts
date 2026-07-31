@@ -37,8 +37,9 @@ function shellTokens(command: string): string[] {
 }
 
 function normalizeToken(token: string): string {
-  // Strip common quoting / path noise; keep alnum for matching.
-  return token.replace(/^['"`]+|['"`]+$/g, "").toLowerCase();
+  // O(n) character-class strip (quotes only) — avoid anchored `+` quantifiers
+  // (CodeQL js/polynomial-redos). Path separators stay for stripPathNoise.
+  return token.replace(/['"`]/g, "").toLowerCase();
 }
 
 function stripPathNoise(token: string): string {
