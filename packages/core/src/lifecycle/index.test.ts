@@ -6,5 +6,7 @@ describe("lifecycle index exports", () => {
     expect(typeof lifecycle.lifecycleHygiene.detectLifecycleNudges).toBe("function");
     expect(typeof lifecycle.eventDetect.emit).toBe("function");
     expect(typeof lifecycle.events.emit).toBe("function");
+    expect(typeof lifecycle.collectLifecycleStats).toBe("function");
+    expect(typeof lifecycle.formatLifecycleStatsText).toBe("function");
   });
 });

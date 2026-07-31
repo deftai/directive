@@ -1,9 +1,11 @@
 version: '3'
 
-# tasks/lifecycle.yml -- behavioral framework event recorder (#2631 / #635).
+# tasks/lifecycle.yml -- behavioral framework event recorder (#2631 / #635)
+# and lifecycle folder stats (#2995).
 # Consumer npm deposits invoke via engine:invoke without a local build (#2181).
 #
 # Review-cycle merge-gate approval uses `task lifecycle:event -- emit plan:approved ...`.
+# Weekly process rollups use `task lifecycle:stats -- --since=7d [--json]`.
 # Per conventions/task-caching.md: no sources/generates because the task forwards
 # user-facing flags via CLI_ARGS.
 
@@ -21,3 +23,14 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'lifecycle:event {{.CLI_ARGS}}'
+
+  stats:
+    desc: "Local xBRIEF lifecycle folder counts for process rollups (#2995). -- task lifecycle:stats -- --since=7d [--json] [--project-root <path>]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps: [':engine:_ts-build']
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'lifecycle:stats --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

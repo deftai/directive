@@ -111,6 +111,7 @@ export const CLI_MODULE_VERBS = [
   "release-rollback",
   "scope-lifecycle",
   "lifecycle-event",
+  "lifecycle-stats",
   "session-start",
   "plan-sequence",
   "slice",
@@ -380,6 +381,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   upgrade: "install-upgrade",
   "session:start": "session-start",
   "lifecycle:event": "lifecycle-event",
+  "lifecycle:stats": "lifecycle-stats",
   "toolchain:check": "toolchain-check",
   "ts:check-lane": "ts-check-lane",
   "spec:validate": "spec-validate",
@@ -2922,6 +2924,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "lifecycle:event",
         summary: "Record review-cycle plan:approved approval events",
+      },
+      {
+        name: "lifecycle:stats",
+        summary: "Local xBRIEF lifecycle folder counts for process rollups",
       },
     ],
   },
