@@ -169,7 +169,7 @@ Pattern and research issues attach to this contract. They do **not** invent a se
 - [x] Retarget map for #688, #978, #832, #833, #834, #835, #479 (§6)
 - [x] Discovery pointer (`content/docs/inter-run-learning.md`, `REFERENCES.md`) + CHANGELOG [Unreleased]
 - [x] No storage backend implementation in this change set
-- [ ] Epic #2741 current-shape link (post-PR / comment edit deliverable)
+- [x] Epic #2741 current-shape link (pass-2 comment edit on issue #2741)
 
 ---
 
