@@ -35,6 +35,8 @@ export const DOCTOR_ALLOWED_FLAGS = [
   "--full",
   "--network",
   "--project-root",
+  "--force",
+  "--openclaw-all-agents",
   "-h",
   "--help",
 ] as const;

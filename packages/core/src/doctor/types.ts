@@ -84,6 +84,10 @@ export interface DoctorFlags {
   readonly network: boolean;
   readonly help: boolean;
   readonly projectRoot: string | null;
+  /** Replace divergent OpenClaw pin dirs during doctor --fix (#3001). */
+  readonly force: boolean;
+  /** Wire always-pins into main + every workspace-* seat (#3001). */
+  readonly openclawAllAgents: boolean;
   readonly unknown: readonly string[];
 }
 
@@ -170,4 +174,11 @@ export interface DoctorSeams {
     readonly distance: "current" | "behind-minor" | "behind-major";
     readonly stale: boolean;
   };
+  /**
+   * OpenClaw skill-pin seams (#3001). Injected so detect/fix stays offline +
+   * deterministic in tests (fake HOME / env / fs).
+   */
+  readonly openclawEnv?: NodeJS.ProcessEnv;
+  readonly openclawHomeDir?: () => string;
+  readonly openclawContentRootFor?: (frameworkRoot: string) => string;
 }

@@ -31,6 +31,10 @@ Live miss: operator said “use review skill” + URL; agent stayed on host free
 ⊗ Answer Deft-shaped intent with freestyle tools only when a Directive skill is indexed for that intent.
 ⊗ Skip project-root resolution and improvise from workspace home outside the target checkout.
 
+### Pin wire into OpenClaw workspace skills (#3001)
+
+Package install alone does not put always-pins into `~/.openclaw/workspace/skills`. Operators / agents SHOULD run `deft doctor` (detect) and `deft doctor --fix` (symlink or copy the four pins) when main-workspace pins are missing. Multi-seat only with `--openclaw-all-agents`. Operator steps: [`../../docs/openclaw-agent-host.md`](../../docs/openclaw-agent-host.md) § Wire skills into OpenClaw workspace.
+
 ## Hard isolation before spawn (#2929)
 
 ! For **parallel** OpenClaw leaves (cohort size > 1):

@@ -173,6 +173,13 @@ describe("parseDoctorFlags", () => {
     expect(parseDoctorFlags(["--project-root=/tmp"]).projectRoot).toBe("/tmp");
     expect(parseDoctorFlags(["--project-root"]).unknown[0]).toContain("missing value");
   });
+
+  it("parses OpenClaw pin wire flags (#3001)", () => {
+    expect(parseDoctorFlags(["--force"]).force).toBe(true);
+    expect(parseDoctorFlags(["--openclaw-all-agents"]).openclawAllAgents).toBe(true);
+    expect(parseDoctorFlags([]).force).toBe(false);
+    expect(parseDoctorFlags([]).openclawAllAgents).toBe(false);
+  });
 });
 
 describe("createPlainSink", () => {

@@ -111,12 +111,50 @@ OpenClaw agents often act under a **bot / service identity** (e.g. `ape-deft`-cl
 
 1. Install / refresh Directive like any other host ([QUICK-START.md](../QUICK-START.md), `directive init` / `directive update`).
 2. Confirm skills resolve under the deposit (consumer: `.deft/core/.agents/skills/…`; framework checkout: `content/skills/…`).
-3. On first PR shepherding request, open **`deft-directive-review-cycle`** and follow its Review Monitoring section for **your** install. Remember the epic expectation: OpenClaw → Approach 1 via `sessions_spawn` once skill wiring ships (#2875 / #2876).
-4. For multi-story parallel work, follow **`deft-directive-swarm`** — do not hand-roll worktree orchestration outside the skill.
-5. Keep CHANGELOG / xBRIEF / branch gates the same as on Cursor or Warp; the host changes the **spawn surface**, not the Directive lifecycle.
+3. **Wire always-pin skills into the OpenClaw workspace** (see next section) so session `available_skills` can load cold-start paths.
+4. On first PR shepherding request, open **`deft-directive-review-cycle`** and follow its Review Monitoring section for **your** install. Remember the epic expectation: OpenClaw → Approach 1 via `sessions_spawn` once skill wiring ships (#2875 / #2876).
+5. For multi-story parallel work, follow **`deft-directive-swarm`** — do not hand-roll worktree orchestration outside the skill.
+6. Keep CHANGELOG / xBRIEF / branch gates the same as on Cursor or Warp; the host changes the **spawn surface**, not the Directive lifecycle.
 
 ---
 
+## Wire skills into OpenClaw workspace (#3001)
+
+OpenClaw is a **session-first** host: installing `@deftai/directive` puts pin skills in the content package / deposit, but the **main** OpenClaw workspace may still only list host-global skills until something bridges them into `~/.openclaw/workspace/skills` (or `$OPENCLAW_STATE_DIR/workspace/skills`).
+
+Always-pins required for cold-start / process gates ([skill-pin-policy.md](./skill-pin-policy.md) #2508):
+
+- `deft-directive-build`
+- `deft-directive-pre-pr`
+- `deft-directive-review-cycle`
+- `deft-directive-swarm`
+
+### Detect
+
+When OpenClaw signals are present (`OPENCLAW` / `DEFT_PROBE_OPENCLAW` / `DEFT_AGENT_RUNTIME=openclaw`, or `~/.openclaw` / `OPENCLAW_STATE_DIR`), `deft doctor` checks the **main** workspace skills root for those four pins.
+
+- **Miss:** warning + remediation `deft doctor --fix` (plus pointers to this page and [host-lifecycle-duties.md](../contracts/host-lifecycle-duties.md)).
+- **Hit:** success line — OpenClaw host pins present.
+
+### Fix
+
+```text
+deft doctor --fix
+```
+
+Doctor links (preferred) or copies the four pin directories from the installed content package (`@deftai/directive-content` / `content/skills/…`) into the main OpenClaw skills root. It does **not** delete other user skills (e.g. a local `vbrief` skill stays). Divergent same-named directories are left alone unless you pass `--force` or confirm on a TTY.
+
+After a successful wire: **restart the OpenClaw gateway or start a new session** so host `available_skills` refreshes.
+
+### Multi-seat / crew workspaces
+
+Default scope is **main only** (`workspace/skills`). Crew seats (`workspace-scotty`, `workspace-pike`, …) are **not** rewritten unless you opt in:
+
+```text
+deft doctor --fix --openclaw-all-agents
+```
+
+⊗ Silent rewrite of every `workspace-*` seat without that flag.
 
 ---
 
@@ -156,6 +194,8 @@ Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skill
 - ⊗ Claiming this doc alone makes `sessions_spawn` a shipped register/matrix primitive — that is epic skill/engine work (#2875 / #2876).
 - ⊗ Multi-sentence progress-only first response after `subagent_announce` with zero tools / yield (#2943 text-repetition hang).
 - ⊗ Treating thin DONE (no PR URL / merge evidence) as success (#2943).
+- ⊗ Assuming package install alone populates OpenClaw `available_skills` — wire main workspace pins via `deft doctor --fix` (#3001).
+- ⊗ Auto-enumerating every `workspace-*` seat without `--openclaw-all-agents` (#3001).
 
 ---
 

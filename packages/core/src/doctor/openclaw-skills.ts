@@ -1,0 +1,601 @@
+/**
+ * OpenClaw always-pin skill detect + doctor --fix wire (#3001).
+ *
+ * When OpenClaw signals are present, doctor checks the main workspace skills
+ * root for the four always-pin skills (#2508). Missing pins emit a warning with
+ * remediation `deft doctor --fix`. Under fixMode, pins are symlinked (preferred)
+ * or copied from the installed content package into the target skills dir.
+ *
+ * Multi-seat (`workspace-*`) targets only when `--openclaw-all-agents` is set.
+ */
+
+import {
+  cpSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
+import { contentRoot } from "../content-root.js";
+import type { OutputSink } from "./output.js";
+import type { DoctorSeams, Finding } from "./types.js";
+
+/** Stable doctor check id for JSON findings. */
+export const OPENCLAW_SKILL_PINS_CHECK = "openclaw-skill-pins";
+
+/** Always-pin skill directory names (#2508 / cold-start). */
+export const OPENCLAW_ALWAYS_PIN_SKILLS = [
+  "deft-directive-build",
+  "deft-directive-pre-pr",
+  "deft-directive-review-cycle",
+  "deft-directive-swarm",
+] as const;
+
+export type OpenClawAlwaysPinSkill = (typeof OPENCLAW_ALWAYS_PIN_SKILLS)[number];
+
+/** Env keys that count as strong OpenClaw signals (#3001). */
+export const OPENCLAW_ENV_SIGNAL_KEYS = [
+  "OPENCLAW",
+  "DEFT_PROBE_OPENCLAW",
+  "DEFT_AGENT_RUNTIME",
+  "OPENCLAW_STATE_DIR",
+] as const;
+
+const DOC_OPENCLAW_HOST = "docs/openclaw-agent-host.md";
+const DOC_HOST_LIFECYCLE = "contracts/host-lifecycle-duties.md";
+const DOC_SKILL_PINS = "docs/skill-pin-policy.md";
+const REMEDIATION_FIX = "deft doctor --fix";
+const REMEDIATION_ALL_AGENTS = "deft doctor --fix --openclaw-all-agents";
+
+export interface OpenClawSkillPinsSeams {
+  readonly env?: NodeJS.ProcessEnv;
+  readonly homeDir?: () => string;
+  readonly isDir?: (path: string) => boolean;
+  readonly isFile?: (path: string) => boolean;
+  readonly pathExists?: (path: string) => boolean;
+  readonly readDir?: (path: string) => string[];
+  readonly lstatKind?: (path: string) => "file" | "dir" | "symlink" | "other" | "missing";
+  readonly mkdirp?: (path: string) => void;
+  readonly symlinkDir?: (target: string, path: string) => void;
+  readonly copyDir?: (src: string, dst: string) => void;
+  readonly removePath?: (path: string) => void;
+  readonly contentRootFor?: (frameworkRoot: string) => string;
+  readonly isTty?: () => boolean;
+  readonly readYn?: (prompt: string, defaultYes: boolean) => boolean;
+}
+
+export interface OpenClawPinAssessment {
+  readonly skillsDir: string;
+  readonly present: readonly OpenClawAlwaysPinSkill[];
+  readonly missing: readonly OpenClawAlwaysPinSkill[];
+  readonly divergent: readonly OpenClawAlwaysPinSkill[];
+}
+
+export interface OpenClawDetectResult {
+  readonly detected: boolean;
+  readonly reasons: readonly string[];
+  readonly stateDir: string;
+  readonly mainSkillsDir: string;
+}
+
+export type PinInstallMethod = "symlink" | "copy" | "skipped" | "already-present";
+
+export interface PinInstallResult {
+  readonly skillId: OpenClawAlwaysPinSkill;
+  readonly method: PinInstallMethod;
+  readonly target: string;
+  readonly source: string;
+  readonly detail?: string;
+}
+
+function defaultIsDir(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function defaultIsFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function defaultPathExists(path: string): boolean {
+  return existsSync(path);
+}
+
+function defaultLstatKind(path: string): "file" | "dir" | "symlink" | "other" | "missing" {
+  try {
+    const st = lstatSync(path);
+    if (st.isSymbolicLink()) return "symlink";
+    if (st.isDirectory()) return "dir";
+    if (st.isFile()) return "file";
+    return "other";
+  } catch {
+    return "missing";
+  }
+}
+
+function defaultReadDir(path: string): string[] {
+  try {
+    return readdirSync(path);
+  } catch {
+    return [];
+  }
+}
+
+function envTruthy(value: string | undefined): boolean {
+  if (value === undefined) return false;
+  const v = value.trim().toLowerCase();
+  if (v === "" || v === "0" || v === "false" || v === "no" || v === "off") return false;
+  return true;
+}
+
+/**
+ * Resolve OpenClaw state directory: OPENCLAW_STATE_DIR or ~/.openclaw.
+ */
+export function resolveOpenClawStateDir(
+  env: NodeJS.ProcessEnv = process.env,
+  home: string = homedir(),
+): string {
+  const fromEnv = env.OPENCLAW_STATE_DIR?.trim();
+  if (fromEnv) return resolve(fromEnv);
+  return resolve(home, ".openclaw");
+}
+
+/**
+ * Main agent workspace skills root under the state dir.
+ */
+export function resolveMainSkillsDir(stateDir: string): string {
+  return join(stateDir, "workspace", "skills");
+}
+
+/**
+ * Detect OpenClaw from env signals and/or presence of the state directory.
+ */
+export function detectOpenClaw(
+  env: NodeJS.ProcessEnv = process.env,
+  options: { homeDir?: string; isDir?: (path: string) => boolean } = {},
+): OpenClawDetectResult {
+  const home = options.homeDir ?? homedir();
+  const isDir = options.isDir ?? defaultIsDir;
+  const stateDir = resolveOpenClawStateDir(env, home);
+  const reasons: string[] = [];
+
+  if (envTruthy(env.OPENCLAW)) reasons.push("env:OPENCLAW");
+  if (envTruthy(env.DEFT_PROBE_OPENCLAW)) reasons.push("env:DEFT_PROBE_OPENCLAW");
+  if ((env.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase() === "openclaw") {
+    reasons.push("env:DEFT_AGENT_RUNTIME=openclaw");
+  }
+  if (env.OPENCLAW_STATE_DIR?.trim()) reasons.push("env:OPENCLAW_STATE_DIR");
+  if (isDir(stateDir)) reasons.push(`dir:${stateDir}`);
+
+  return {
+    detected: reasons.length > 0,
+    reasons,
+    stateDir,
+    mainSkillsDir: resolveMainSkillsDir(stateDir),
+  };
+}
+
+/**
+ * List in-scope skills directories. Default: main only.
+ * With allAgents: main + every workspace- star /skills under the state dir.
+ */
+export function listInScopeSkillsDirs(
+  stateDir: string,
+  allAgents: boolean,
+  seams: Pick<OpenClawSkillPinsSeams, "isDir" | "readDir"> = {},
+): string[] {
+  const isDir = seams.isDir ?? defaultIsDir;
+  const readDir = seams.readDir ?? defaultReadDir;
+  const main = resolveMainSkillsDir(stateDir);
+  const dirs = [main];
+  if (!allAgents) return dirs;
+
+  for (const name of readDir(stateDir)) {
+    if (!name.startsWith("workspace-")) continue;
+    const workspaceDir = join(stateDir, name);
+    if (!isDir(workspaceDir)) continue;
+    const skillsDir = join(workspaceDir, "skills");
+    if (!dirs.includes(skillsDir)) dirs.push(skillsDir);
+  }
+  return dirs;
+}
+
+/**
+ * Resolve content package skills/<id> for a pin.
+ */
+export function resolvePinSourceDir(contentBase: string, skillId: string): string {
+  return join(contentBase, "skills", skillId);
+}
+
+function skillHasBody(
+  skillDir: string,
+  isFile: (path: string) => boolean,
+  isDir: (path: string) => boolean,
+): boolean {
+  if (!isDir(skillDir) && !existsSync(skillDir)) return false;
+  // Accept dir or symlink-to-dir that contains SKILL.md
+  return isFile(join(skillDir, "SKILL.md"));
+}
+
+/**
+ * Assess which always-pins are present / missing / divergent in a skills root.
+ *
+ * - present: directory (or symlink) with SKILL.md
+ * - missing: path does not exist
+ * - divergent: path exists but is not a usable pin (file, empty dir, broken link)
+ */
+export function assessOpenClawPins(
+  skillsDir: string,
+  seams: Pick<OpenClawSkillPinsSeams, "isDir" | "isFile" | "pathExists" | "lstatKind"> = {},
+): OpenClawPinAssessment {
+  const isDir = seams.isDir ?? defaultIsDir;
+  const isFile = seams.isFile ?? defaultIsFile;
+  const pathExists = seams.pathExists ?? defaultPathExists;
+  const lstatKind = seams.lstatKind ?? defaultLstatKind;
+
+  const present: OpenClawAlwaysPinSkill[] = [];
+  const missing: OpenClawAlwaysPinSkill[] = [];
+  const divergent: OpenClawAlwaysPinSkill[] = [];
+
+  for (const skillId of OPENCLAW_ALWAYS_PIN_SKILLS) {
+    const target = join(skillsDir, skillId);
+    const kind = lstatKind(target);
+    if (kind === "missing") {
+      missing.push(skillId);
+      continue;
+    }
+    if (skillHasBody(target, isFile, isDir)) {
+      present.push(skillId);
+      continue;
+    }
+    // Path exists but is not a usable pin body (file, empty dir, broken link).
+    if (kind === "file" || kind === "other" || kind === "dir" || kind === "symlink") {
+      divergent.push(skillId);
+      continue;
+    }
+    if (!pathExists(target)) {
+      missing.push(skillId);
+      continue;
+    }
+    divergent.push(skillId);
+  }
+
+  return { skillsDir, present, missing, divergent };
+}
+
+function trySymlinkDir(target: string, path: string): boolean {
+  try {
+    symlinkSync(target, path, "dir");
+    return true;
+  } catch {
+    // Windows: junctions do not require elevated privileges for directories.
+    try {
+      symlinkSync(target, path, "junction");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function defaultCopyDir(src: string, dst: string): void {
+  cpSync(src, dst, { recursive: true });
+}
+
+/**
+ * Install one pin into a skills root. Prefer symlink; copy on failure.
+ * Never deletes user skills. Divergent targets require force or TTY confirm.
+ */
+export function installOpenClawPin(
+  skillId: OpenClawAlwaysPinSkill,
+  sourceDir: string,
+  skillsDir: string,
+  options: {
+    force?: boolean;
+    allowOverwrite?: boolean;
+  } = {},
+  seams: OpenClawSkillPinsSeams = {},
+): PinInstallResult {
+  const isFile = seams.isFile ?? defaultIsFile;
+  const isDir = seams.isDir ?? defaultIsDir;
+  const lstatKind = seams.lstatKind ?? defaultLstatKind;
+  const mkdirp = seams.mkdirp ?? ((p: string) => mkdirSync(p, { recursive: true }));
+  const symlinkDir =
+    seams.symlinkDir ??
+    ((target: string, path: string) => {
+      if (!trySymlinkDir(target, path)) {
+        throw new Error(`symlink failed for ${path}`);
+      }
+    });
+  const copyDir = seams.copyDir ?? defaultCopyDir;
+  const removePath =
+    seams.removePath ?? ((p: string) => rmSync(p, { recursive: true, force: true }));
+
+  const target = join(skillsDir, skillId);
+  const force = options.force === true || options.allowOverwrite === true;
+
+  if (!isDir(sourceDir) || !isFile(join(sourceDir, "SKILL.md"))) {
+    return {
+      skillId,
+      method: "skipped",
+      target,
+      source: sourceDir,
+      detail: `source pin missing or incomplete: ${sourceDir}`,
+    };
+  }
+
+  mkdirp(skillsDir);
+
+  const kind = lstatKind(target);
+  if (kind !== "missing") {
+    if (skillHasBody(target, isFile, isDir)) {
+      return {
+        skillId,
+        method: "already-present",
+        target,
+        source: sourceDir,
+      };
+    }
+    if (!force) {
+      return {
+        skillId,
+        method: "skipped",
+        target,
+        source: sourceDir,
+        detail: "divergent target exists; re-run with --force or confirm on TTY to replace",
+      };
+    }
+    removePath(target);
+  }
+
+  try {
+    symlinkDir(sourceDir, target);
+    return { skillId, method: "symlink", target, source: sourceDir };
+  } catch {
+    try {
+      copyDir(sourceDir, target);
+      return { skillId, method: "copy", target, source: sourceDir };
+    } catch (err) {
+      return {
+        skillId,
+        method: "skipped",
+        target,
+        source: sourceDir,
+        detail: `install failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+}
+
+export interface RunOpenClawSkillPinsOptions {
+  readonly frameworkRoot: string;
+  readonly fixMode: boolean;
+  readonly jsonMode: boolean;
+  readonly force: boolean;
+  readonly allAgents: boolean;
+  readonly seams?: DoctorSeams & OpenClawSkillPinsSeams;
+}
+
+/**
+ * Doctor check: detect OpenClaw + missing always-pins; optionally fix.
+ * No-ops when OpenClaw signals are absent.
+ */
+export function runOpenClawSkillPinsCheck(
+  sink: OutputSink,
+  addFinding: (finding: Finding) => void,
+  options: RunOpenClawSkillPinsOptions,
+): void {
+  const seams = options.seams ?? {};
+  const env = seams.env ?? process.env;
+  const homeDir = seams.homeDir ?? (() => homedir());
+  const isDir = seams.isDir ?? defaultIsDir;
+  const isFile = seams.isFile ?? defaultIsFile;
+  const detect = detectOpenClaw(env, { homeDir: homeDir(), isDir });
+
+  if (!detect.detected) {
+    sink.info(`${OPENCLAW_SKILL_PINS_CHECK}: skip -- OpenClaw not detected`);
+    addFinding({
+      severity: "skip",
+      message: "OpenClaw not detected",
+      check: OPENCLAW_SKILL_PINS_CHECK,
+      status: "skip",
+      reason: "openclaw-not-detected",
+    });
+    return;
+  }
+
+  const contentBase = (seams.contentRootFor ?? contentRoot)(options.frameworkRoot);
+  const skillsDirs = listInScopeSkillsDirs(detect.stateDir, options.allAgents, {
+    isDir,
+    readDir: seams.readDir,
+  });
+
+  const missingByDir: Array<{ skillsDir: string; missing: OpenClawAlwaysPinSkill[] }> = [];
+  const divergentByDir: Array<{ skillsDir: string; divergent: OpenClawAlwaysPinSkill[] }> = [];
+  let allPresent = true;
+
+  for (const skillsDir of skillsDirs) {
+    const assessment = assessOpenClawPins(skillsDir, { isDir, isFile, lstatKind: seams.lstatKind });
+    if (assessment.missing.length > 0) {
+      allPresent = false;
+      missingByDir.push({ skillsDir, missing: [...assessment.missing] });
+    }
+    if (assessment.divergent.length > 0) {
+      allPresent = false;
+      divergentByDir.push({ skillsDir, divergent: [...assessment.divergent] });
+    }
+  }
+
+  if (allPresent) {
+    const scope = options.allAgents ? "main + workspace-* seats" : "main workspace";
+    const message =
+      `${OPENCLAW_SKILL_PINS_CHECK}: OpenClaw host always-pins present ` +
+      `(${OPENCLAW_ALWAYS_PIN_SKILLS.join(", ")}) in ${scope}`;
+    sink.success(message);
+    addFinding({
+      severity: "skip",
+      message,
+      check: OPENCLAW_SKILL_PINS_CHECK,
+      status: "present",
+      skills_dirs: skillsDirs,
+      pins: [...OPENCLAW_ALWAYS_PIN_SKILLS],
+      detect_reasons: detect.reasons,
+    });
+    return;
+  }
+
+  // Optional fix path
+  const installResults: PinInstallResult[] = [];
+  if (options.fixMode) {
+    const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
+    const readYn = seams.readYn ?? (() => false);
+    let allowFix = true;
+    if (!options.jsonMode && isTty()) {
+      allowFix = readYn(
+        `Wire missing OpenClaw always-pin skills into ${skillsDirs.join(", ")} now?`,
+        true,
+      );
+      if (!allowFix) {
+        sink.info("Skipped OpenClaw pin wire -- re-run `deft doctor --fix` when ready.");
+      }
+    }
+    // Non-interactive --fix applies additive installs (safe); divergent needs --force.
+    if (allowFix) {
+      for (const skillsDir of skillsDirs) {
+        const assessment = assessOpenClawPins(skillsDir, {
+          isDir,
+          isFile,
+          lstatKind: seams.lstatKind,
+        });
+        const toInstall = new Set<OpenClawAlwaysPinSkill>([
+          ...assessment.missing,
+          ...(options.force ? assessment.divergent : []),
+        ]);
+        if (!options.force && assessment.divergent.length > 0 && isTty() && !options.jsonMode) {
+          for (const skillId of assessment.divergent) {
+            if (
+              readYn(
+                `Replace divergent OpenClaw skill dir ${join(skillsDir, skillId)} with pin from content package?`,
+                false,
+              )
+            ) {
+              toInstall.add(skillId);
+            }
+          }
+        }
+        for (const skillId of toInstall) {
+          const sourceDir = resolvePinSourceDir(contentBase, skillId);
+          const result = installOpenClawPin(
+            skillId,
+            sourceDir,
+            skillsDir,
+            { force: options.force || assessment.divergent.includes(skillId) },
+            seams,
+          );
+          installResults.push(result);
+          if (result.method === "symlink" || result.method === "copy") {
+            sink.success(
+              `OpenClaw pin ${skillId}: ${result.method} → ${result.target}${
+                result.method === "symlink" ? ` (from ${result.source})` : ""
+              }`,
+            );
+          } else if (result.method === "already-present") {
+            sink.info(`OpenClaw pin ${skillId}: already present at ${result.target}`);
+          } else {
+            sink.warn(
+              `OpenClaw pin ${skillId}: skipped${result.detail ? ` -- ${result.detail}` : ""}`,
+            );
+          }
+        }
+      }
+    }
+
+    // Re-assess after fix
+    let stillMissing = false;
+    const postMissing: string[] = [];
+    for (const skillsDir of skillsDirs) {
+      const post = assessOpenClawPins(skillsDir, { isDir, isFile, lstatKind: seams.lstatKind });
+      if (post.missing.length > 0 || post.divergent.length > 0) {
+        stillMissing = true;
+        postMissing.push(
+          ...post.missing.map((id) => `${skillsDir}/${id}`),
+          ...post.divergent.map((id) => `${skillsDir}/${id} (divergent)`),
+        );
+      }
+    }
+    if (!stillMissing) {
+      const message =
+        `${OPENCLAW_SKILL_PINS_CHECK}: wired OpenClaw always-pins; ` +
+        "restart the OpenClaw gateway or start a new session so available_skills refreshes";
+      sink.success(message);
+      addFinding({
+        severity: "skip",
+        message,
+        check: OPENCLAW_SKILL_PINS_CHECK,
+        status: "fixed",
+        skills_dirs: skillsDirs,
+        installs: installResults,
+        detect_reasons: detect.reasons,
+      });
+      return;
+    }
+    // Fall through to warning with remaining gaps
+    missingByDir.length = 0;
+    divergentByDir.length = 0;
+    for (const skillsDir of skillsDirs) {
+      const post = assessOpenClawPins(skillsDir, { isDir, isFile, lstatKind: seams.lstatKind });
+      if (post.missing.length > 0) missingByDir.push({ skillsDir, missing: [...post.missing] });
+      if (post.divergent.length > 0)
+        divergentByDir.push({ skillsDir, divergent: [...post.divergent] });
+    }
+  }
+
+  const missingIds = [...new Set(missingByDir.flatMap((m) => m.missing))];
+  const divergentIds = [...new Set(divergentByDir.flatMap((d) => d.divergent))];
+  const targetSummary = skillsDirs.join(", ");
+  const sourceHint = join(contentBase, "skills", "<pin-id>");
+  const multiHint = options.allAgents ? "" : ` Multi-seat workspaces: ${REMEDIATION_ALL_AGENTS}.`;
+  const message =
+    `${OPENCLAW_SKILL_PINS_CHECK}: missing OpenClaw always-pin skill(s) ` +
+    `[${missingIds.join(", ") || "(none)"}]` +
+    (divergentIds.length > 0 ? `; divergent: [${divergentIds.join(", ")}]` : "") +
+    ` under ${targetSummary}. ` +
+    `Source: ${sourceHint}. ` +
+    `Remediation: ${REMEDIATION_FIX}. ` +
+    `See ${DOC_OPENCLAW_HOST}, ${DOC_HOST_LIFECYCLE}, ${DOC_SKILL_PINS}.` +
+    multiHint;
+
+  sink.warn(message);
+  if (!options.jsonMode) {
+    sink.info(
+      "After wiring pins, restart the OpenClaw gateway or open a new session so host available_skills refreshes.",
+    );
+  }
+  addFinding({
+    severity: "warning",
+    message,
+    check: OPENCLAW_SKILL_PINS_CHECK,
+    status: "missing",
+    missing: missingIds,
+    divergent: divergentIds,
+    skills_dirs: skillsDirs,
+    main_skills_dir: detect.mainSkillsDir,
+    source_content_root: contentBase,
+    suggestion: REMEDIATION_FIX,
+    docs: [DOC_OPENCLAW_HOST, DOC_HOST_LIFECYCLE, DOC_SKILL_PINS],
+    detect_reasons: detect.reasons,
+    ...(installResults.length > 0 ? { installs: installResults } : {}),
+  });
+}

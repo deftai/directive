@@ -10,6 +10,8 @@ export function parseDoctorFlags(args: readonly string[]): DoctorFlags {
   let network = false;
   let help = false;
   let projectRoot: string | null = null;
+  let force = false;
+  let openclawAllAgents = false;
   const unknown: string[] = [];
   let i = 0;
   while (i < args.length) {
@@ -26,6 +28,10 @@ export function parseDoctorFlags(args: readonly string[]): DoctorFlags {
       full = true;
     } else if (token === "--network") {
       network = true;
+    } else if (token === "--force") {
+      force = true;
+    } else if (token === "--openclaw-all-agents") {
+      openclawAllAgents = true;
     } else if (token === "-h" || token === "--help") {
       help = true;
     } else if (token === "--project-root") {
@@ -47,7 +53,19 @@ export function parseDoctorFlags(args: readonly string[]): DoctorFlags {
     }
     i += 1;
   }
-  return { session, fix, json, quiet, full, network, help, projectRoot, unknown };
+  return {
+    session,
+    fix,
+    json,
+    quiet,
+    full,
+    network,
+    help,
+    projectRoot,
+    force,
+    openclawAllAgents,
+    unknown,
+  };
 }
 
 export function formatUnknownFlagsError(unknown: readonly string[]): string {

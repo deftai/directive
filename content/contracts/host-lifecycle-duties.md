@@ -67,6 +67,16 @@ OpenClaw cold-start steps live in the swarm host adapter (source of truth for sp
 
 Operator map (non-authoritative discovery): [`../docs/openclaw-agent-host.md`](../docs/openclaw-agent-host.md).
 
+### OpenClaw pin wire (doctor) (#3001)
+
+Session-first hosts still need a **bridge** from the installed content package into the host workspace skills root. On OpenClaw:
+
+- ! `deft doctor` detects missing always-pins under `$OPENCLAW_STATE_DIR/workspace/skills` or `~/.openclaw/workspace/skills` when OpenClaw signals are present.
+- ! `deft doctor --fix` deposits/links the four always-pins (build, pre-pr, review-cycle, swarm) into that main skills root (symlink preferred; copy fallback). Non-destructive of other user skills.
+- ⊗ Rewrite every `workspace-*` crew seat by default — multi-seat only with `deft doctor --fix --openclaw-all-agents`.
+
+Full operator steps: [`../docs/openclaw-agent-host.md`](../docs/openclaw-agent-host.md) § Wire skills into OpenClaw workspace.
+
 ## Extension notes (out of first ship)
 
 | Host / class | Note |

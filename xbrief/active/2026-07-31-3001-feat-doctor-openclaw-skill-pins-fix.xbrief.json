@@ -1,0 +1,79 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Doctor detect + --fix wire always-pin skills into OpenClaw workspaces (#3001).",
+    "created": "2026-07-31T18:00:00Z",
+    "updated": "2026-07-31T17:55:33Z"
+  },
+  "plan": {
+    "id": "3001-doctor-openclaw-skill-pins",
+    "title": "feat(doctor,openclaw): detect missing host skill pins + doctor --fix wire",
+    "status": "running",
+    "narratives": {
+      "Description": "OpenClaw can have Directive 0.89+ adapter content but missing always-pin skills under ~/.openclaw/workspace/skills. Extend doctor detect + --fix to deposit/link the four pins (build, pre-pr, review-cycle, swarm) into the main OpenClaw workspace skills root. Cohort add-on alongside ceremony wave (orthogonal).",
+      "ImplementationPlan": "1. Detect OpenClaw via env/OPENCLAW_STATE_DIR/~/.openclaw. 2. Check main workspace skills for four always-pins. 3. doctor default: finding + remediation. 4. doctor --fix: symlink or copy from @deftai/directive-content skills; safe non-destructive; multi-seat only with explicit flag. 5. Docs openclaw-agent-host wire step. 6. Tests with temp HOME. 7. CHANGELOG #3001.",
+      "UserStory": "As an OpenClaw operator, I want doctor to detect and fix missing Directive pin skills so available_skills loads cold-start paths.",
+      "Overview": "Closes #3001. Related #2874 #2968 #2508. Cohort: ceremony-wallclock-2990 active swarm batch (orthogonal leaf)."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Detect missing pins",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given OpenClaw signals and missing main pins, when deft doctor runs, then a clear finding lists missing skill ids and remediation (doctor --fix)."
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "doctor --fix wires pins",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given fixMode and OpenClaw detect with missing pins, when deft doctor --fix runs, then the four always-pins are linked or copied into default main workspace skills dir without deleting user skills; re-run doctor is clean for that check."
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Docs + multi-workspace flag + tests",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Docs cover wire step; multi-workspace only via explicit flag; unit tests cover miss/hit/fix with fake HOME; CHANGELOG cites #3001; PR closes #3001."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "new-capability",
+      "x-tracking": {
+        "parent_issue": "#3001",
+        "decomposition_origin": "#3001",
+        "cohort": "ceremony-wallclock-2990-extended"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/",
+          "packages/cli/src/doctor.ts",
+          "packages/cli/src/doctor.test.ts",
+          "content/docs/",
+          "content/contracts/host-lifecycle-duties.md",
+          "content/skills/deft-directive-swarm/references/host-openclaw.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor --reporter=dot"
+        ],
+        "expected_outputs": [
+          "doctor OpenClaw pin detect + fix",
+          "docs wire step",
+          "CHANGELOG #3001"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-openclaw-3001",
+        "wave": 3
+      }
+    },
+    "updated": "2026-07-31T17:55:33Z"
+  }
+}

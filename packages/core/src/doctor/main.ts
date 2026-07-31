@@ -52,6 +52,7 @@ import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } fro
 import { pythonJsonDump } from "./json.js";
 import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { runNpmRegistryMirrorCheck } from "./npm-registry.js";
+import { runOpenClawSkillPinsCheck } from "./openclaw-skills.js";
 import { createPlainSink } from "./output.js";
 import {
   readTextSafe,
@@ -427,6 +428,28 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   sink.info("Checking gates-surface readiness (Taskfile include for deep-think agent gates)...");
   runTaskfileIncludeCheck(projectRoot, fixMode, jsonMode, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking OpenClaw always-pin skills...");
+  runOpenClawSkillPinsCheck(sink, addFinding, {
+    frameworkRoot,
+    fixMode,
+    jsonMode,
+    force: flags.force,
+    allAgents: flags.openclawAllAgents,
+    seams: {
+      ...seams,
+      env: seams.openclawEnv,
+      homeDir: seams.openclawHomeDir,
+      contentRootFor: seams.openclawContentRootFor,
+      isDir: seams.isDir,
+      isFile: seams.isFile,
+      isTty: seams.isTty,
+      readYn: seams.readYn,
+    },
+  });
 
   if (!jsonMode) {
     sink.blank();
