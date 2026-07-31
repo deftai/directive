@@ -93,6 +93,26 @@ export function isCacheFreshFailure(message: string): boolean {
   );
 }
 
+/**
+ * True readiness for PreToolUse: exit 0 without DEFT_SESSION_RITUAL_SKIP bypass.
+ * Bypassed code 0 does not make inspectSessionRitual green (#2993 Greptile P1).
+ */
+export function isGatedVerifyActuallyReady(result: VerifyResult): boolean {
+  return result.code === 0 && !result.bypassed;
+}
+
+function bypassedReadyFailure(result: VerifyResult): string {
+  const detail =
+    result.message.trim().length > 0
+      ? result.message
+      : "session ritual verification was bypassed (DEFT_SESSION_RITUAL_SKIP)";
+  return (
+    `${detail}\n` +
+    `  session:ready refuses bypassed verification (would not pass PreToolUse inspect). ` +
+    `Unset DEFT_SESSION_RITUAL_SKIP and re-run \`${readyCommand()}\`.`
+  );
+}
+
 function normaliseRepoUrl(url: string): string | null {
   if (!url) return null;
   const cleaned = url
@@ -218,13 +238,25 @@ export function runSessionReady(
     runner: options.runner,
   };
   let verifyResult = verify(projectRoot, verifyOpts);
-  if (verifyResult.code === 0) {
+  if (isGatedVerifyActuallyReady(verifyResult)) {
     const message = "OK session ready (gated ritual verified).";
     lines.push(message);
     return {
       code: 0,
       message,
       path: SESSION_READY_VERIFIED,
+      lines,
+      steps,
+      duration_ms: elapsedMs(started),
+    };
+  }
+  if (verifyResult.code === 0 && verifyResult.bypassed) {
+    const message = bypassedReadyFailure(verifyResult);
+    lines.push(message);
+    return {
+      code: 1,
+      message,
+      path: SESSION_READY_FAILED,
       lines,
       steps,
       duration_ms: elapsedMs(started),
@@ -276,13 +308,25 @@ export function runSessionReady(
 
     steps.push("verify:session-ritual:gated:retry");
     verifyResult = verify(projectRoot, verifyOpts);
-    if (verifyResult.code === 0) {
+    if (isGatedVerifyActuallyReady(verifyResult)) {
       const message = "OK session ready (recovered via cache refresh).";
       lines.push(message);
       return {
         code: 0,
         message,
         path: SESSION_READY_RECOVERED,
+        lines,
+        steps,
+        duration_ms: elapsedMs(started),
+      };
+    }
+    if (verifyResult.code === 0 && verifyResult.bypassed) {
+      const message = bypassedReadyFailure(verifyResult);
+      lines.push(message);
+      return {
+        code: 1,
+        message,
+        path: SESSION_READY_FAILED,
         lines,
         steps,
         duration_ms: elapsedMs(started),

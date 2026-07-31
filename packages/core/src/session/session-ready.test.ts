@@ -242,6 +242,32 @@ describe("runSessionReady (#2993)", () => {
     expect(result.message).toContain("DEFT_TRIAGE_REPO");
   });
 
+  it("refuses DEFT_SESSION_RITUAL_SKIP bypass as false readiness (Greptile P1)", () => {
+    const inspectRitual = vi
+      .fn()
+      .mockReturnValueOnce(failVerify("gated not ready"))
+      .mockReturnValueOnce(okVerify({ tier: "quick" }));
+    const verifyRitual = vi.fn(() =>
+      okVerify({
+        bypassed: true,
+        wouldFailCode: 1,
+        message: "session ritual gated step 'cache_fresh' failed",
+      }),
+    );
+
+    const result = runSessionReady("/proj", {
+      inspectRitual,
+      verifyRitual,
+      fetchAll: vi.fn(),
+      repo: "a/b",
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.path).toBe(SESSION_READY_FAILED);
+    expect(result.message).toContain("refuses bypassed verification");
+    expect(result.message).toContain("DEFT_SESSION_RITUAL_SKIP");
+  });
+
   it("surfaces fetch-all throw as recovery failure", () => {
     const inspectRitual = vi
       .fn()
