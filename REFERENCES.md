@@ -191,7 +191,8 @@ Load as needed:
 - **[context/deterministic-split.md](./content/context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
 - **[context/fractal-summaries.md](./content/context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
 - **[context/examples.md](./content/context/examples.md)** - Few-shot and behavioral example guidance
-- Load: When tasks are complex, multi-phase, or when context budget is a concern
+- **[docs/inter-run-learning.md](./content/docs/inter-run-learning.md)** - Inter-run learning surface pointer (#2742 / epic #2741); hot/cold/operator-gated contract over USER.md, packs, triage cache, session ritual, decision/continue — load before inventing agent-memory patterns
+- Load: When tasks are complex, multi-phase, multi-session, or when context budget / cross-run memory is a concern
 
 ### When Verifying Agent Work
 
