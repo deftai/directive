@@ -110,4 +110,54 @@ describe("classifyShellAuthzOps (#2944)", () => {
       }),
     ).toContain("merge");
   });
+
+  it("covers gh flag forms and hook name variants (#2986)", () => {
+    // --flag=value form and remaining GH_VALUE_FLAGS spellings.
+    expect(classifyShellAuthzOps("gh --repo=owner/repo pr create --title t")).toContain("pr");
+    expect(classifyShellAuthzOps("gh --hostname github.com pr merge 1")).toContain("merge");
+    expect(classifyShellAuthzOps("gh -a app pr create --title t")).toContain("pr");
+    expect(classifyShellAuthzOps("gh --app app pr edit 3")).toContain("pr");
+    expect(classifyShellAuthzOps("gh --jq . pr ready 2")).toContain("pr");
+    expect(classifyShellAuthzOps("sudo gh pr create --title t")).toContain("pr");
+    expect(classifyShellAuthzOps("command gh pr merge 9")).toContain("merge");
+    expect(classifyShellAuthzOps("pytest")).toContain("test");
+    // Boolean short flags before resource are skipped without consuming a value.
+    expect(classifyShellAuthzOps("gh --json pr merge 4")).toContain("merge");
+
+    expect(
+      classifyHookAuthzOps({
+        toolName: "run_terminal_cmd",
+        shellCommand: "git push origin HEAD",
+        isDirectWrite: false,
+      }),
+    ).toContain("push");
+    expect(
+      classifyHookAuthzOps({
+        toolName: "pull_request_create",
+        shellCommand: null,
+        isDirectWrite: false,
+      }),
+    ).toEqual(["pr"]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "mcp__x__pr_create",
+        shellCommand: null,
+        isDirectWrite: false,
+      }),
+    ).toEqual(["pr"]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "issue_create",
+        shellCommand: null,
+        isDirectWrite: false,
+      }),
+    ).toEqual(["issue_mutation"]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "mcp__github__create_issue",
+        shellCommand: null,
+        isDirectWrite: false,
+      }),
+    ).toEqual(["issue_mutation"]);
+  });
 });

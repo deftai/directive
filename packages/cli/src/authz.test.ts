@@ -262,4 +262,104 @@ describe("authz CLI (#2944)", () => {
     // Use grant with operations that mint to invalid path by using a file-as-root if possible.
     expect(main(["-h"])).toBe(0);
   });
+
+  it("covers remaining argv/template CLI branches (#2986)", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+
+    // Leading -- separators + camelCase projectRoot + ops alias + format text.
+    expect(
+      main([
+        "--",
+        "grant",
+        "--",
+        "--projectRoot",
+        root,
+        "--ops",
+        "edit push",
+        "--cohort",
+        "c",
+        "--surfaces",
+        "src/**,pkg/**",
+        "--stories",
+        "1,2",
+        "--issues",
+        "10 11",
+        "--planRef",
+        "plan-1",
+        "--repo",
+        "o/r",
+        "--branch",
+        "feat",
+        "--expires-at",
+        "2099-01-01T00:00:00Z",
+        "--format",
+        "text",
+      ]),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/grant minted/);
+
+    // grant- prefix id path maps to revoke with grantId preset.
+    expect(main(["grant-not-found", "--project-root", root])).toBe(1);
+
+    // Unknown template + closed-verb without target already covered; finish-loop surfaces path.
+    out.length = 0;
+    expect(
+      main([
+        "grant",
+        "--project-root",
+        root,
+        "--template",
+        "finish-loop",
+        "--surfaces",
+        "src/**",
+        "--stories",
+        "s1",
+        "--issues",
+        "99",
+        "--cohort",
+        "walk",
+        "--single-use",
+      ]),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/finish-loop walk-away/);
+
+    // release-publish template with target (closed-verb branch of mintAfk).
+    out.length = 0;
+    expect(
+      main([
+        "grant",
+        "--project-root",
+        root,
+        "--template",
+        "release-publish",
+        "--target",
+        "0.50.0",
+        "--actor",
+        "op",
+      ]),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/target surfaces=/);
+
+    // format json on show with inactive UAT.
+    out.length = 0;
+    const empty = tempRoot();
+    expect(main(["show", "--project-root", empty, "--format", "json"])).toBe(0);
+    expect(out.join("")).toMatch(/"uat"/);
+
+    // Unknown format falls back to text.
+    expect(main(["show", "--project-root", empty, "--format", "yaml"])).toBe(0);
+
+    // grant-id positional already tested; unknown flag is ignored without error.
+    expect(main(["show", "--project-root", empty, "--bogus-flag"])).toBe(0);
+  });
 });

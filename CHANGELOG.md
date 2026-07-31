@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#2986).** Focused authz verb-classification / AFK-template / classify / evaluate edge tests, hooks read-only payload shapes, and authz CLI argv branches clear the v0.89.0 84.9% hairline so the next release Step 5 passes without a consecutive `--allow-coverage-debt` soft-pass. Closes #2986.
+
 ### Removed
 
 ## [0.89.0] - 2026-07-30

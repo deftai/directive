@@ -10,14 +10,22 @@ import {
 } from "./closed-verb.js";
 import {
   assertNoIndependentSessionAuthMint,
+  isAfkTemplateName,
+  isClosedVerbTemplateName,
+  isFinishLoopTemplateName,
+  mintAfkTemplateGrant,
   mintClosedVerbTemplateGrant,
+  mintFinishLoopTemplateGrant,
   resolveClosedVerbTemplate,
+  resolveFinishLoopTemplate,
 } from "./templates.js";
 import type { HumanOriginGrant } from "./types.js";
 import {
   builtinReleaseVerbClassification,
+  getVerbRow,
   loadVerbClassification,
   parseVerbClassification,
+  resolveVerbClassificationPath,
 } from "./verb-classification.js";
 
 function grant(partial: {
@@ -471,6 +479,128 @@ describe("AFK templates (#1095)", () => {
     expect(guard.mintPath).toBe("mintHumanOriginGrant");
     expect(guard.sessionAuthIsAuthority).toBe(false);
   });
+
+  it("template name guards and finish-loop resolve edges (#2986)", () => {
+    expect(isClosedVerbTemplateName("release-cut")).toBe(true);
+    expect(isClosedVerbTemplateName("finish-loop")).toBe(false);
+    expect(isFinishLoopTemplateName(" Finish-Loop ")).toBe(true);
+    expect(isAfkTemplateName("release-publish")).toBe(true);
+    expect(isAfkTemplateName("nope")).toBe(false);
+
+    const fl = resolveFinishLoopTemplate({
+      now: new Date("2026-07-30T00:00:00Z"),
+      durationHours: 0.4,
+      surfaces: ["src/**"],
+    });
+    expect(fl.operations).toEqual(["edit", "push", "pr", "merge"]);
+    expect(fl.surfaces).toEqual(["src/**"]);
+    // durationHours < 1 floors to 1h via Math.max(1, floor(...)).
+    expect(fl.expiresAt).toMatch(/2026-07-30T01:00:00Z/);
+
+    const flExplicit = resolveFinishLoopTemplate({
+      expiresAt: "2099-01-01T00:00:00Z",
+    });
+    expect(flExplicit.expiresAt).toBe("2099-01-01T00:00:00Z");
+    expect(flExplicit.surfaces).toEqual([]);
+  });
+
+  it("mintAfkTemplateGrant dispatches finish-loop vs closed-verb vs rejects (#2986)", () => {
+    const root = mkdtempSync(join(tmpdir(), "authz-afk-"));
+    try {
+      const fl = mintAfkTemplateGrant({
+        projectRoot: root,
+        template: "finish-loop",
+        actor: "op",
+        durationHours: 2,
+        storyIds: ["s1"],
+        issueIds: [1],
+        cohortId: "c1",
+      });
+      expect(fl.origin.kind).toBe("operator-cli");
+      expect(fl.scope.operations).toEqual(["edit", "push", "pr", "merge"]);
+      expect(fl.scope.storyIds).toEqual(["s1"]);
+
+      const cut = mintAfkTemplateGrant({
+        projectRoot: root,
+        template: "release-cut",
+        target: "0.40.0",
+        actor: "op",
+      });
+      expect(cut.scope.operations).toEqual(["release-cut"]);
+      expect(cut.scope.surfaces).toEqual(expect.arrayContaining(["0.40.0", "v0.40.0"]));
+
+      expect(() => mintAfkTemplateGrant({ projectRoot: root, template: "not-a-template" })).toThrow(
+        /unknown AFK template/,
+      );
+      expect(() =>
+        mintAfkTemplateGrant({ projectRoot: root, template: "release-publish", target: "  " }),
+      ).toThrow(/non-empty --target/);
+      expect(() =>
+        mintAfkTemplateGrant({ projectRoot: root, template: "release-publish", target: null }),
+      ).toThrow(/non-empty --target/);
+
+      // Custom classification missing the template row fails closed.
+      expect(() =>
+        resolveClosedVerbTemplate({
+          template: "release-publish",
+          target: "1.0.0",
+          classification: parseVerbClassification({
+            schemaVersion: 1,
+            verbs: {
+              "release-cut": {
+                closure_set: [],
+                explicit_required: [],
+                irreversibility: "destructive",
+                wildcard_allowed: false,
+                recurring_allowed: false,
+                default_expiry: "not-hours",
+                skill: "s",
+                phase: "p",
+                authz_operations: ["release-cut"],
+                env_bypass: "DEFT_ALLOW_RELEASE_CUT",
+              },
+            },
+          }),
+        }),
+      ).toThrow(/missing row/);
+
+      // Non-Xh default_expiry falls through parseExpiryHours to 1h.
+      const odd = resolveClosedVerbTemplate({
+        template: "release-cut",
+        target: "1.0.0",
+        now: new Date("2026-07-30T00:00:00Z"),
+        classification: parseVerbClassification({
+          schemaVersion: 1,
+          verbs: {
+            "release-cut": {
+              closure_set: [],
+              explicit_required: [],
+              irreversibility: "destructive",
+              wildcard_allowed: false,
+              recurring_allowed: false,
+              default_expiry: "not-hours",
+              skill: "s",
+              phase: "p",
+              authz_operations: ["release-cut"],
+              env_bypass: "DEFT_ALLOW_RELEASE_CUT",
+            },
+          },
+        }),
+      });
+      expect(odd.expiresAt).toMatch(/2026-07-30T01:00:00Z/);
+
+      const flDirect = mintFinishLoopTemplateGrant({
+        projectRoot: root,
+        actor: "op",
+        expiresAt: "2099-06-01T00:00:00Z",
+        singleUse: true,
+      });
+      expect(flDirect.semantics.singleUse).toBe(true);
+      expect(flDirect.semantics.expiresAt).toBe("2099-06-01T00:00:00Z");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("verb-classification parse branches", () => {
@@ -557,5 +687,91 @@ describe("verb-classification parse branches", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  it("covers remaining schema field reject branches (#2986)", () => {
+    const baseRow = {
+      closure_set: [],
+      explicit_required: [],
+      irreversibility: "destructive",
+      wildcard_allowed: false,
+      recurring_allowed: false,
+      default_expiry: "1h",
+      skill: "s",
+      phase: "p",
+      authz_operations: ["deployment"],
+      env_bypass: "DEFT_ALLOW_X",
+    };
+    // Non-object verb row.
+    expect(() => parseVerbClassification({ schemaVersion: 1, verbs: { x: "nope" } })).toThrow(
+      /must be an object/,
+    );
+    // Missing / empty scalar fields.
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, irreversibility: "" } },
+      }),
+    ).toThrow(/irreversibility/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, wildcard_allowed: "yes" } },
+      }),
+    ).toThrow(/wildcard_allowed/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, recurring_allowed: "no" } },
+      }),
+    ).toThrow(/recurring_allowed/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, default_expiry: "  " } },
+      }),
+    ).toThrow(/default_expiry/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, skill: "" } },
+      }),
+    ).toThrow(/skill/);
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, phase: "" } },
+      }),
+    ).toThrow(/phase/);
+    // Empty-string array entries + empty verbs map + empty verb name.
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { x: { ...baseRow, closure_set: ["ok", "  "] } },
+      }),
+    ).toThrow(/non-empty strings/);
+    expect(() => parseVerbClassification({ schemaVersion: 1, verbs: {} })).toThrow(
+      /at least one row/,
+    );
+    expect(() =>
+      parseVerbClassification({
+        schemaVersion: 1,
+        verbs: { "  ": baseRow },
+      }),
+    ).toThrow(/verb name must be non-empty/);
+    // description optional string + case-insensitive getVerbRow.
+    const table = parseVerbClassification({
+      schemaVersion: 1,
+      description: "test table",
+      verbs: {
+        "Release-Publish": baseRow,
+      },
+    });
+    expect(table.description).toBe("test table");
+    expect(getVerbRow(table, "release-publish")?.env_bypass).toBe("DEFT_ALLOW_X");
+    expect(getVerbRow(table, "missing")).toBeNull();
+    // Non-Error JSON parse failure path is hard; empty projectRoot still resolves cwd candidates.
+    expect(resolveVerbClassificationPath("")).not.toBeNull();
+    expect(resolveVerbClassificationPath(null)).not.toBeNull();
   });
 });

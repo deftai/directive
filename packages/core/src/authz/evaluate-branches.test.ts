@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateAuthzMutation, shouldConsumeSingleUseGrant } from "./evaluate.js";
+import { describeScope, evaluateAuthzMutation, shouldConsumeSingleUseGrant } from "./evaluate.js";
 import type { AuthzState, HumanOriginGrant } from "./types.js";
 
 function uatState(active = true): AuthzState {
@@ -312,5 +312,114 @@ describe("evaluateAuthzMutation branch coverage (#2944)", () => {
       path: "incidents/2026-uat.md",
     });
     expect(d.allowed).toBe(true);
+  });
+
+  it("empty cohortId under UAT is scope-deny; describeScope edges (#2986)", () => {
+    const emptyCohort = grant({
+      scope: {
+        planRef: "plan-x",
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations: ["edit", "push"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: "",
+      },
+    });
+    const d = evaluateAuthzMutation({
+      state: uatState(),
+      grants: [emptyCohort],
+      op: "edit",
+      path: "src/a.ts",
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.code).toBe("authz-grant-scope-deny");
+    expect(d.reason).toMatch(/named fix cohort|cohortId/);
+
+    const nullCohort = grant({
+      scope: {
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations: ["push"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: null,
+      },
+    });
+    expect(
+      evaluateAuthzMutation({
+        state: uatState(),
+        grants: [nullCohort],
+        op: "push",
+        path: null,
+      }).allowed,
+    ).toBe(false);
+
+    // issue_mutation outside UAT takes the inactive allow branch.
+    expect(
+      evaluateAuthzMutation({
+        state: uatState(false),
+        grants: [],
+        op: "issue_mutation",
+        path: null,
+      }).code,
+    ).toBe("authz-inactive");
+
+    // op not covered by grant (push grant, edit attempt).
+    expect(
+      evaluateAuthzMutation({
+        state: uatState(),
+        grants: [
+          grant({
+            scope: {
+              planRef: null,
+              repo: null,
+              branch: null,
+              worktree: null,
+              surfaces: [],
+              operations: ["push"],
+              storyIds: [],
+              issueIds: [],
+              cohortId: "c",
+            },
+          }),
+        ],
+        op: "edit",
+        path: "src/a.ts",
+      }).code,
+    ).toBe("authz-grant-scope-deny");
+
+    expect(describeScope(null)).toBe("(none)");
+    expect(
+      describeScope({
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations: ["edit"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: null,
+      }),
+    ).toMatch(/ops=\[edit\]/);
+    expect(
+      describeScope({
+        planRef: "p1",
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: ["src/**"],
+        operations: ["push"],
+        storyIds: [],
+        issueIds: [],
+        cohortId: "c1",
+      }),
+    ).toMatch(/cohort=c1/);
   });
 });
