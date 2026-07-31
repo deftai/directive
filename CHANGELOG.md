@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Inter-run learning surface design (Wave 0 bridge for epic #2741) (#2742).** Canonical design note `docs/analysis/2026-07-31-inter-run-learning-surface.md` inventories existing Directive memory SoTs (USER.md Personal, lessons/packs, triage cache, session ritual, decision/continue), defines hot/cold/operator-gated tiers with freeze-at-session-start and budgets, lists non-goals (no Mem0-default RAG, no revived #2700 agent-memory artifacts, no mid-session mutable hot memory), and retargets #688 #978 #832–#835 #479. Discovery pointer: `content/docs/inter-run-learning.md` + `REFERENCES.md`. Design + docs only; storage backends out of scope. Closes #2742. Refs #2741, #2700.
+
 ### Changed
 
 ### Fixed
