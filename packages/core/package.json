@@ -263,6 +263,10 @@
       "types": "./dist/swarm/index.d.ts",
       "default": "./dist/swarm/index.js"
     },
+    "./tool-events": {
+      "types": "./dist/tool-events/index.d.ts",
+      "default": "./dist/tool-events/index.js"
+    },
     "./review-monitor": {
       "types": "./dist/review-monitor/index.d.ts",
       "default": "./dist/review-monitor/index.js"

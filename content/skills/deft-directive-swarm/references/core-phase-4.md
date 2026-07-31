@@ -40,6 +40,26 @@ Track each agent through these stages:
 6. **PR Created** — PR visible via `gh pr list --head <branch>`
 7. **Review Cycling** — additional commits after PR creation (Greptile fix rounds)
 
+### Tool-event mix status line (#2967)
+
+! When the monitor has a sequence of tool names (and optional shell commands) for a leaf — host transcript, heartbeat sidecar, or operator-supplied log — classify with the pure `#2967` taxonomy and include the status line in the **next monitor status** (chat heartbeat or sticky cohort note). Do not invent counts; only report when events are available.
+
+Buckets: `explore` | `commit` | `verify` | `coordinate` | `unknown`. Misclassification policy: prefer `unknown` over wrong `verify`. Canonical docs: [`content/patterns/tool-call-taxonomy.md`](../../../patterns/tool-call-taxonomy.md). API: `@deftai/directive-core/tool-events` (`classifyToolEvent`, `summarizeToolEvents`).
+
+```
+# Status line shape (from summarizeToolEvents(...).statusLine)
+tools: explore=12 commit=4 verify=2 coordinate=1 unknown=0
+tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-without-explore,verify-skipped
+```
+
+! Surface anomalies when present:
+- `commit-without-explore` — mutators without any explore events (possible blind edit)
+- `verify-skipped` — commit events with zero verify gates (ship without check/test)
+- `explore-only` — thrash signal (explore-only, no commit/verify, ≥3 events)
+
+~ Pair the status line with worktree git checks and `task pr:merge-ready` so operators see progress **and** tool mix without reading raw tool logs.
+⊗ Treat raw “ran N tools” as a structured mix — always bucket when events are available (#2967).
+
 ### Takeover Triggers
 
 ! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event — verified via worktree state (`git status`, `git log --oneline -3`) and sub-agent lifecycle signals showing no in-flight work (for grok-build / spawn_subagent agents: polling is via worktree state + `get_command_or_subagent_output` rather than tab observation; for openclaw / sessions_spawn agents: worktree state + parent completion announce / heartbeat records, not Grok Build poll output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original agents (Warp tabs, spawn_subagent processes, or OpenClaw sessions) can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).

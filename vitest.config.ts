@@ -136,6 +136,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/review-monitor": sub("core", "review-monitor"),
   "@deftai/directive-core/packs": sub("core", "packs"),
   "@deftai/directive-core/swarm": sub("core", "swarm"),
+  "@deftai/directive-core/tool-events": sub("core", "tool-events"),
   "@deftai/directive-core/platform": sub("core", "platform"),
   "@deftai/directive-core/init-deposit": sub("core", "init-deposit"),
   "@deftai/directive-core/migrate-preflight": sub("core", "migrate-preflight"),
