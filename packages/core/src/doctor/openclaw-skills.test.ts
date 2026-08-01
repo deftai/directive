@@ -153,13 +153,27 @@ describe("listInScopeSkillsDirs edges (#3003)", () => {
   });
 });
 
-describe("installOpenClawPin (#3001)", () => {
-  it("symlinks or copies a missing pin", () => {
+describe("installOpenClawPin (#3001 / #3008)", () => {
+  it("copies a missing pin by default (OpenClaw symlink-escape safe)", () => {
     const root = makeTemp("oc-install-");
     const content = makeContentPackage(root);
     const skills = join(root, "skills");
     const source = resolvePinSourceDir(content, "deft-directive-build");
     const result = installOpenClawPin("deft-directive-build", source, skills);
+    expect(result.method).toBe("copy");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
+      "deft-directive-build",
+    );
+  });
+
+  it("can still prefer symlink when preferSymlink is true", () => {
+    const root = makeTemp("oc-install-sym-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    const result = installOpenClawPin("deft-directive-build", source, skills, {
+      preferSymlink: true,
+    });
     expect(["symlink", "copy"]).toContain(result.method);
     expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
       "deft-directive-build",
@@ -178,7 +192,7 @@ describe("installOpenClawPin (#3001)", () => {
     expect(readFileSync(join(skills, "deft-directive-build", "OTHER.md"), "utf8")).toBe("user");
   });
 
-  it("replaces divergent target with force", () => {
+  it("replaces divergent target with force using copy", () => {
     const root = makeTemp("oc-force-");
     const content = makeContentPackage(root);
     const skills = join(root, "skills");
@@ -186,7 +200,7 @@ describe("installOpenClawPin (#3001)", () => {
     writeFileSync(join(skills, "deft-directive-build", "OTHER.md"), "user", "utf8");
     const source = resolvePinSourceDir(content, "deft-directive-build");
     const result = installOpenClawPin("deft-directive-build", source, skills, { force: true });
-    expect(["symlink", "copy"]).toContain(result.method);
+    expect(result.method).toBe("copy");
     expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
       "deft-directive-build",
     );
@@ -200,6 +214,55 @@ describe("installOpenClawPin (#3001)", () => {
     const source = resolvePinSourceDir(content, "deft-directive-pre-pr");
     installOpenClawPin("deft-directive-pre-pr", source, skills);
     expect(readFileSync(join(skills, "vbrief", "SKILL.md"), "utf8")).toContain("user skill");
+  });
+});
+
+describe("escaping symlink pins (#3008)", () => {
+  it("classifies content-package symlink as divergent, not present", () => {
+    const root = makeTemp("oc-escape-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    mkdirSync(skills, { recursive: true });
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    // Prefer symlink into content package (the pre-#3008 install shape).
+    installOpenClawPin("deft-directive-build", source, skills, { preferSymlink: true });
+    // On platforms that can symlink, assessment must not treat escape as present.
+    const assessment = assessOpenClawPins(skills);
+    if (assessment.present.includes("deft-directive-build")) {
+      // Symlink failed and fell back to copy — already OpenClaw-safe.
+      expect(assessment.divergent).not.toContain("deft-directive-build");
+    } else {
+      expect(assessment.divergent).toContain("deft-directive-build");
+    }
+  });
+
+  it("force-replaces escaping symlink with a real copy", () => {
+    const root = makeTemp("oc-escape-fix-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    mkdirSync(skills, { recursive: true });
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    // Force a symlink into the content package (the broken pre-#3008 shape).
+    const target = join(skills, "deft-directive-build");
+    try {
+      symlinkSync(source, target, "dir");
+    } catch {
+      try {
+        symlinkSync(source, target, "junction");
+      } catch {
+        // Platform cannot symlink — copy-default install is already safe.
+        const fallback = installOpenClawPin("deft-directive-build", source, skills);
+        expect(fallback.method).toBe("copy");
+        return;
+      }
+    }
+    const mid = assessOpenClawPins(skills);
+    expect(mid.divergent).toContain("deft-directive-build");
+    const result = installOpenClawPin("deft-directive-build", source, skills, { force: true });
+    expect(result.method).toBe("copy");
+    const post = assessOpenClawPins(skills);
+    expect(post.present).toContain("deft-directive-build");
+    expect(post.divergent).not.toContain("deft-directive-build");
   });
 });
 
@@ -376,8 +439,8 @@ describe("runOpenClawSkillPinsCheck (#3001)", () => {
   });
 });
 
-describe("symlink pin body is accepted as present", () => {
-  it("treats symlink-to-content as present", () => {
+describe("symlink pin body OpenClaw load policy (#3008)", () => {
+  it("treats symlink-to-content-package as divergent (symlink-escape)", () => {
     const root = makeTemp("oc-link-");
     const content = makeContentPackage(root);
     const skills = join(root, "skills");
@@ -386,10 +449,16 @@ describe("symlink pin body is accepted as present", () => {
     try {
       symlinkSync(source, join(skills, "deft-directive-swarm"), "dir");
     } catch {
-      // Windows without symlink privilege: skip assertion path
-      symlinkSync(source, join(skills, "deft-directive-swarm"), "junction");
+      try {
+        symlinkSync(source, join(skills, "deft-directive-swarm"), "junction");
+      } catch {
+        // No symlink privilege — nothing to assert for escape classification.
+        return;
+      }
     }
     const assessment = assessOpenClawPins(skills);
-    expect(assessment.present).toContain("deft-directive-swarm");
+    // Escaping content-package link is not OpenClaw-loadable (#3008).
+    expect(assessment.divergent).toContain("deft-directive-swarm");
+    expect(assessment.present).not.toContain("deft-directive-swarm");
   });
 });

@@ -142,9 +142,9 @@ When OpenClaw signals are present (`OPENCLAW` / `DEFT_PROBE_OPENCLAW` / `DEFT_AG
 deft doctor --fix
 ```
 
-Doctor links (preferred) or copies the four pin directories from the installed content package (`@deftai/directive-content` / `content/skills/…`) into the main OpenClaw skills root. It does **not** delete other user skills (e.g. a local `vbrief` skill stays). Divergent same-named directories are left alone unless you pass `--force` or confirm on a TTY.
+Doctor **copies** the four pin directories from the installed content package (`@deftai/directive-content` / `content/skills/…`) into the main OpenClaw skills root as **real directories** (#3008). It does **not** symlink into the npm tree — OpenClaw 2026.7.x skips workspace skills that resolve outside the skills root (`reason=symlink-escape`), which made pre-#3008 symlink installs look healthy in doctor while `openclaw skills list` never loaded the pins. It does **not** delete other user skills (e.g. a local `vbrief` skill stays). Divergent same-named directories **and escaping symlinks** are left alone unless you pass `--force` or confirm on a TTY (then replaced with a real copy).
 
-After a successful wire: **restart the OpenClaw gateway or start a new session** so host `available_skills` refreshes.
+After a successful wire: **restart the OpenClaw gateway or start a new session** so host `available_skills` refreshes. Confirm with `openclaw skills list` that the four always-pins are **ready**, not skipped.
 
 ### Multi-seat / crew workspaces
 

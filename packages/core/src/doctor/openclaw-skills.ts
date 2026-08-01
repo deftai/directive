@@ -1,10 +1,16 @@
 /**
- * OpenClaw always-pin skill detect + doctor --fix wire (#3001).
+ * OpenClaw always-pin skill detect + doctor --fix wire (#3001 / #3008).
  *
  * When OpenClaw signals are present, doctor checks the main workspace skills
  * root for the four always-pin skills (#2508). Missing pins emit a warning with
- * remediation `deft doctor --fix`. Under fixMode, pins are symlinked (preferred)
- * or copied from the installed content package into the target skills dir.
+ * remediation `deft doctor --fix`. Under fixMode, pins are **copied** into the
+ * workspace skills root (not symlinked into the npm content package).
+ *
+ * OpenClaw 2026.7.x rejects workspace skills that resolve outside the configured
+ * skills root (`reason=symlink-escape`). A pin that is only a symlink into
+ * `@deftai/directive-content` therefore looks "present" on disk while the host
+ * never loads it (#3008). Prefer real directory copies; treat escaping
+ * symlinks as divergent so `--fix` can replace them.
  *
  * Multi-seat (`workspace-*`) targets only when `--openclaw-all-agents` is set.
  */
@@ -15,12 +21,13 @@ import {
   lstatSync,
   mkdirSync,
   readdirSync,
+  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { contentRoot } from "../content-root.js";
 import type { OutputSink } from "./output.js";
 import type { DoctorSeams, Finding } from "./types.js";
@@ -230,11 +237,35 @@ function skillHasBody(
 }
 
 /**
+ * True when `path` is a symlink whose resolved real path is outside `skillsDir`
+ * (OpenClaw `symlink-escape` / #3008).
+ */
+export function isEscapingSkillSymlink(
+  skillsDir: string,
+  path: string,
+  seams: Pick<OpenClawSkillPinsSeams, "lstatKind"> = {},
+): boolean {
+  const lstatKind = seams.lstatKind ?? defaultLstatKind;
+  if (lstatKind(path) !== "symlink") return false;
+  try {
+    const skillsReal = realpathSync(skillsDir);
+    const pathReal = realpathSync(path);
+    const rel = relative(skillsReal, pathReal);
+    // Outside root, or walks up with ".."
+    return rel === "" || rel.startsWith(`..${sep}`) || rel.startsWith("..") || rel === "..";
+  } catch {
+    // Broken symlink / unreadable realpath — treat as escape / unusable.
+    return true;
+  }
+}
+
+/**
  * Assess which always-pins are present / missing / divergent in a skills root.
  *
- * - present: directory (or symlink) with SKILL.md
+ * - present: real directory (or non-escaping symlink) with SKILL.md
  * - missing: path does not exist
- * - divergent: path exists but is not a usable pin (file, empty dir, broken link)
+ * - divergent: path exists but is not a usable OpenClaw pin (file, empty dir,
+ *   broken link, or **escaping symlink** into content package — #3008)
  */
 export function assessOpenClawPins(
   skillsDir: string,
@@ -254,6 +285,11 @@ export function assessOpenClawPins(
     const kind = lstatKind(target);
     if (kind === "missing") {
       missing.push(skillId);
+      continue;
+    }
+    // Escaping symlink: SKILL.md may resolve, but OpenClaw skips load (#3008).
+    if (kind === "symlink" && isEscapingSkillSymlink(skillsDir, target, { lstatKind })) {
+      divergent.push(skillId);
       continue;
     }
     if (skillHasBody(target, isFile, isDir)) {
@@ -295,8 +331,14 @@ function defaultCopyDir(src: string, dst: string): void {
 }
 
 /**
- * Install one pin into a skills root. Prefer symlink; copy on failure.
- * Never deletes user skills. Divergent targets require force or TTY confirm.
+ * Install one pin into a skills root.
+ *
+ * Default: **copy** into the workspace skills root (#3008). OpenClaw rejects
+ * skills that resolve outside the workspace skills root via symlink-escape, so
+ * symlinking into the npm content package leaves pins unloaded while doctor
+ * reports "present". Opt into legacy symlink-first with `preferSymlink: true`
+ * (still falls back to copy). Never deletes unrelated user skills. Divergent
+ * targets (including escaping symlinks) require force or TTY confirm.
  */
 export function installOpenClawPin(
   skillId: OpenClawAlwaysPinSkill,
@@ -305,6 +347,8 @@ export function installOpenClawPin(
   options: {
     force?: boolean;
     allowOverwrite?: boolean;
+    /** When true, try symlink first (legacy #3001). Default false — copy (#3008). */
+    preferSymlink?: boolean;
   } = {},
   seams: OpenClawSkillPinsSeams = {},
 ): PinInstallResult {
@@ -325,6 +369,7 @@ export function installOpenClawPin(
 
   const target = join(skillsDir, skillId);
   const force = options.force === true || options.allowOverwrite === true;
+  const preferSymlink = options.preferSymlink === true;
 
   if (!isDir(sourceDir) || !isFile(join(sourceDir, "SKILL.md"))) {
     return {
@@ -340,7 +385,8 @@ export function installOpenClawPin(
 
   const kind = lstatKind(target);
   if (kind !== "missing") {
-    if (skillHasBody(target, isFile, isDir)) {
+    const escaping = kind === "symlink" && isEscapingSkillSymlink(skillsDir, target, { lstatKind });
+    if (!escaping && skillHasBody(target, isFile, isDir)) {
       return {
         skillId,
         method: "already-present",
@@ -354,28 +400,34 @@ export function installOpenClawPin(
         method: "skipped",
         target,
         source: sourceDir,
-        detail: "divergent target exists; re-run with --force or confirm on TTY to replace",
+        detail: escaping
+          ? "escaping symlink (OpenClaw symlink-escape); re-run with --force to replace with a real copy (#3008)"
+          : "divergent target exists; re-run with --force or confirm on TTY to replace",
       };
     }
     removePath(target);
   }
 
-  try {
-    symlinkDir(sourceDir, target);
-    return { skillId, method: "symlink", target, source: sourceDir };
-  } catch {
+  if (preferSymlink) {
     try {
-      copyDir(sourceDir, target);
-      return { skillId, method: "copy", target, source: sourceDir };
-    } catch (err) {
-      return {
-        skillId,
-        method: "skipped",
-        target,
-        source: sourceDir,
-        detail: `install failed: ${err instanceof Error ? err.message : String(err)}`,
-      };
+      symlinkDir(sourceDir, target);
+      return { skillId, method: "symlink", target, source: sourceDir };
+    } catch {
+      // fall through to copy
     }
+  }
+
+  try {
+    copyDir(sourceDir, target);
+    return { skillId, method: "copy", target, source: sourceDir };
+  } catch (err) {
+    return {
+      skillId,
+      method: "skipped",
+      target,
+      source: sourceDir,
+      detail: `install failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
 }
 

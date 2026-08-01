@@ -1,0 +1,25 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3008",
+    "updated": "2026-08-01T00:48:37Z"
+  },
+  "plan": {
+    "title": "doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape",
+    "status": "running",
+    "narratives": {
+      "Description": "doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3008",
+      "Overview": "## Summary\n`deft doctor --fix` OpenClaw always-pin install (#3001) prefers **symlinks** from `$OPENCLAW_STATE_DIR/workspace/skills/<pin>` → `@deftai/directive-content/skills/<pin>`.\n\nOn OpenClaw **2026.7.2-beta.4**, those pins are **not loaded**:\n\n```\n[skills] Skipping escaped skill path outside its configured root:\n  source=openclaw-workspace\n  root=~/.openclaw/workspace-*/skills\n  reason=symlink-escape\n  resolved=~/.local/lib/node_modules/@deftai/directive/node_modules/@deftai/directive-content/skills/...\n```\n\nDoctor still reports **present** (lstat + SKILL.md via symlink resolves), so the host looks healthy while the agent never sees the skills.\n\n## Expected\nAlways-pins should be **ready** in `openclaw skills list` after `deft doctor --full --fix`.\n\n## Actual\n- Disk: symlink present; `deft doctor` ✓\n- OpenClaw: skips as `symlink-escape`\n- Only non-escaping workspace dirs load (e.g. local `vbrief/`, enterprize thin-attach stub dirs)\n\n## Workaround that works\nReplace pin symlinks with **real directory copies** under the workspace skills root (or thin-attach stubs that are real dirs pointing at deposit via absolute path in SKILL.md text — not FS symlinks outside root).\n\n## Suggested fix\n1. Prefer **copy** on OpenClaw hosts (detect OpenClaw + known symlink-escape policy), or\n2. Attempt symlink then **verify** with a load-policy check / document that OpenClaw requires copy, or\n3. Install thin real-dir stubs (SKILL.md only) instead of whole-tree symlink to content package.\n\n## Environment\n- OpenClaw 2026.7.2-beta.4\n- Directive 0.90.0\n- WSL Linux host\n\nRefs: #3001, #2874, #2968"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3008",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3008: doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape"
+      }
+    ],
+    "updated": "2026-08-01T00:48:37Z"
+  }
+}

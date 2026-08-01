@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Dependabot high: PostCSS path traversal via sourceMappingURL (alert #8).** Force `postcss@8.5.25` (>= 8.5.18 patched) through the pnpm 11 workspace override so the vite/vitest transitive pin clears the vulnerable `<= 8.5.17` range. Same pattern as the prior esbuild / brace-expansion pins in `pnpm-workspace.yaml`.
+- **OpenClaw always-pins prefer real copies, not content-package symlinks (#3008).** OpenClaw 2026.7.x skips skills that resolve outside the workspace skills root (`symlink-escape`). `deft doctor --fix` now **copies** pins by default; escaping symlinks are assessed as **divergent** so fix/`--force` can replace them. Docs: `content/docs/openclaw-agent-host.md`. Closes #3008. Refs #3001.
 
 ### Removed
 
