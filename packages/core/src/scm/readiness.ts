@@ -445,10 +445,21 @@ export function requireScmReady(
   if (!options.force && cachedReadyReport !== null && cachedReadyReport.ready) {
     return cachedReadyReport;
   }
+  // Hermetic unit tests (vitest) and DEFT_SCM_SKIP_AUTH_PROBE only require
+  // binary presence so CI cloud-headless without injected tokens can exercise
+  // CLI argv/REST seams. Production agents get full shallow auth probing.
+  // Session-start / scm:status always report full auth state regardless.
+  const hermeticAuthSkip =
+    options.checkAuthStatus === undefined &&
+    (process.env.VITEST === "true" || process.env.DEFT_SCM_SKIP_AUTH_PROBE === "1");
   const report = probeScmReadiness({
-    depth: "shallow",
-    checkAuthStatus: true,
     ...options,
+    depth: options.depth ?? "shallow",
+    checkAuthStatus: options.checkAuthStatus ?? (hermeticAuthSkip ? false : true),
+    // Binary gate under hermetic skip must not flip to missing-token solely
+    // because CI sets cloud-headless / injected-token inference.
+    githubAuthMode:
+      options.githubAuthMode ?? (hermeticAuthSkip ? GITHUB_AUTH_MODE_HOST_GH : undefined),
   });
   if (!report.ready) {
     throw scmNotReadyError(report);
