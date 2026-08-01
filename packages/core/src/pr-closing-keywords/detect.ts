@@ -165,8 +165,11 @@ export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
  * (not commit messages): `deft-close-intent: full` allows real closing keywords
  * in intent mode (#3015). Rejects code fences, blockquotes, quotation wrappers,
  * and mid-body example lines with content after them.
+ *
+ * Horizontal whitespace only (`[ \\t]`) — never `\\s`, which would let `^\\s*`
+ * swallow a preceding blank line and mis-locate the trailer boundary.
  */
-export const CLOSE_INTENT_FULL_RE = /^\s*deft-close-intent\s*:\s*full\s*$/gim;
+export const CLOSE_INTENT_FULL_RE = /^[ \t]*deft-close-intent[ \t]*:[ \t]*full[ \t]*$/gim;
 
 export function hasFullCloseIntent(text: string): boolean {
   const re = new RegExp(CLOSE_INTENT_FULL_RE.source, CLOSE_INTENT_FULL_RE.flags);
