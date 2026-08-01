@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { CompletedProcess } from "./call.js";
+import { ScmStubError } from "./errors.js";
 import {
+  assertScmBinaryPresent,
   formatScmReadinessLines,
   probeScmReadiness,
+  SCM_DEPENDENT_GATES,
   scmNotReadyError,
   scmReadinessToDict,
-  SCM_DEPENDENT_GATES,
-  assertScmBinaryPresent,
 } from "./readiness.js";
-import { ScmStubError } from "./errors.js";
-import type { CompletedProcess } from "./call.js";
 
 function okProc(stdout = ""): CompletedProcess {
   return { args: [], returncode: 0, stdout, stderr: "" };

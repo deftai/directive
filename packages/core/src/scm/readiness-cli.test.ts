@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  mainEntry,
-  parseScmReadinessArgs,
-  scmReadinessMain,
-} from "./readiness-cli.js";
 import type { ScmReadinessReport } from "./readiness.js";
+import { mainEntry, parseScmReadinessArgs, scmReadinessMain } from "./readiness-cli.js";
 
 function readyReport(overrides: Partial<ScmReadinessReport> = {}): ScmReadinessReport {
   return {
