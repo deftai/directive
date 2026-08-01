@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3008",
-    "updated": "2026-08-01T00:48:37Z"
+    "updated": "2026-08-01T01:18:12Z"
   },
   "plan": {
     "title": "doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3008",
@@ -20,6 +20,10 @@
         "title": "Issue #3008: doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape"
       }
     ],
-    "updated": "2026-08-01T00:48:37Z"
+    "updated": "2026-08-01T01:18:12Z",
+    "metadata": {
+      "completedAt": "2026-08-01T01:18:12Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
