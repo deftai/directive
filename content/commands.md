@@ -282,6 +282,17 @@ Full always-on contract for the interactive session-start ritual and its gated v
 
 Agents use this signal to prefer portable syntax and quote zsh-sensitive data such as globs, tildes, `~N`, `!`, and `#`. When a command requires Bash, zsh, PowerShell, or another shell's behavior, invoke that explicit shell rather than relying on implicit execution semantics.
 
+### SCM readiness orientation (#2275)
+
+`session:start` also reports whether GitHub SCM tooling is usable **in this execution env** (not the install host). Human output includes `[deft scm]` lines; `--json` includes a `scm` object (`ready`, `binary`, `auth_state`, `github_auth_mode`, `runtime_mode`, `injected_token_present`, `skipped_gates`, `detail`, ...). Cold mutation records a `scm_readiness` step in `steps[]`.
+
+- Shallow probe (default hot path): PATH ladder `ghx` > `gh`, injected-token env presence, short `gh auth status`.
+- Deep probe when `--with-network` / `DEFT_SESSION_START_NETWORK=1`: full `github-auth-modes` validation (API + optional repo).
+- Session-start never hard-blocks on SCM absence (framework-local gates still run). When not ready it lists skipped SCM-dependent gates (`triage:queue`, `issue:ingest`, `pr:*`, `reconcile:issues`, `cache:fetch-all`, `scm:*`, ...).
+- Explicit probe: `deft scm:status` (alias `scm:readiness`) -- exit `0` ready / `1` not ready / `2` config; flags `--json`, `--deep` / `--shallow`.
+- Credential bridging: host-gh (`gh auth login` in the execution env) or injected-token (`GH_TOKEN` / `GITHUB_TOKEN` / `GH_ENTERPRISE_TOKEN`). Never put token values in prompts or transcripts.
+- Contract: `content/contracts/scm-readiness.md`; operator docs: `content/scm/github.md` § Mismatched/headless SCM readiness.
+
 **Pre-`start_agent` gate stack (#1149/#1348):** (0) `deft verify:session-ritual -- --tier=gated` → (1) `deft verify:story-ready` → (2) `deft xbrief:preflight` → (3) `deft verify:cache-fresh` → (4) `deft verify:branch` + hooks → (5) `start_agent`.
 
 ```mermaid
@@ -305,7 +316,7 @@ Local ceremony cost signal for WWYSYDH / weekly process rollups. Emits to `.deft
 | Session start (cold) | `session:start` | Mutation `session:start` cold path finishes | `ceremony_tier=cold`, `duration_ms`, `exit_code`, `steps[]` |
 | Session re-arm | `session:start` | `session:start --rearm` finishes | `ceremony_tier=rearm`, `duration_ms`, `exit_code`, `steps[]` |
 | PreToolUse ritual deny | `session:ritual-blocked` | Hook blocks write/spawn because gated ritual is not ready | `tool_name`, `code=ritual-not-ready`, `recovery_tier` (`cold`\|`rearm`) |
-| Per-step wall-clock | (field on `session:start`) | Same emit as session start | `steps[].name` + `steps[].duration_ms` (`alignment`, `branch_policy`, `verify_tools`, `triage_welcome`, `release_probe`, `ritual_write`) |
+| Per-step wall-clock | (field on `session:start`) | Same emit as session start | `steps[].name` + `steps[].duration_ms` (`alignment`, `scm_readiness`, `branch_policy`, `verify_tools`, `triage_welcome`, `release_probe`, `ritual_write`) |
 
 CLI mirror (no JSONL required): `deft session:start --json` already exposes the same `steps` / `duration_ms` / `ceremony_tier` fields for one-shot inspection.
 

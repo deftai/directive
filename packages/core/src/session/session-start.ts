@@ -23,6 +23,13 @@ import {
 import { resolvePolicy } from "../policy/resolve.js";
 import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
+import {
+  formatScmReadinessLines,
+  type ProbeScmReadinessOptions,
+  probeScmReadiness,
+  type ScmReadinessReport,
+  scmReadinessToDict,
+} from "../scm/readiness.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
@@ -145,6 +152,12 @@ export interface SessionStartOptions {
   readonly allowOptionalNetwork?: boolean;
   /** Process env for network opt-in resolution (tests inject). */
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * #2275: SCM tooling + auth readiness probe for mismatched/headless envs.
+   * Defaults to probeScmReadiness; shallow on hot path, deep when optional
+   * network is enabled. Inject in tests.
+   */
+  readonly probeScm?: (options: ProbeScmReadinessOptions) => ScmReadinessReport;
 }
 
 /** Format preferred `session:start` recovery command for cold vs re-arm (#2992). */
@@ -428,6 +441,47 @@ export function defaultBranchSync(
   return { branch, upstream, ahead, behind, warning };
 }
 
+/**
+ * Resolve SCM readiness for session orientation (#2275).
+ * Shallow by default (PATH + auth status); deep when optional network is on.
+ * Never throws — session:start must not hard-block on SCM absence.
+ */
+function resolveSessionScmReadiness(
+  options: SessionStartOptions,
+  allowOptionalNetwork: boolean,
+): ScmReadinessReport {
+  const probe = options.probeScm ?? probeScmReadiness;
+  try {
+    return probe({
+      depth: allowOptionalNetwork ? "deep" : "shallow",
+      env: options.env,
+    });
+  } catch {
+    return {
+      ready: false,
+      binary: null,
+      binaryPath: null,
+      authState: "unknown",
+      githubAuthMode: "host-gh",
+      runtimeMode: "local-unsandboxed",
+      injectedTokenPresent: false,
+      depth: allowOptionalNetwork ? "deep" : "shallow",
+      detail: "SCM readiness probe failed unexpectedly; treating SCM-dependent gates as skipped",
+      remediation: null,
+      skippedGates: [
+        "triage:queue",
+        "issue:ingest",
+        "pr:*",
+        "reconcile:issues",
+        "cache:fetch-all",
+        "scm:*",
+      ],
+      login: null,
+      failureKind: "probe_error",
+    };
+  }
+}
+
 function runReadOnlySessionStart(
   projectRoot: string,
   options: SessionStartOptions,
@@ -443,9 +497,12 @@ function runReadOnlySessionStart(
   const userMdLine = userMd.found
     ? `USER.md resolved (${userMd.rung}): ${safePath}`
     : safeDiagnostic;
+  // #2275: report SCM availability even on read-only alignment (shallow; no network).
+  const scm = resolveSessionScmReadiness(options, false);
   lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
   lines.push(userMdLine);
   lines.push(formatEnvironmentContext(environment));
+  lines.push(...formatScmReadinessLines(scm));
   const resultPayload = {
     ready: true,
     exit_code: 0,
@@ -466,6 +523,7 @@ function runReadOnlySessionStart(
       diagnostic: userMd.diagnostic,
     },
     environment: environmentContextToDict(environment),
+    scm: scmReadinessToDict(scm),
     message: READ_ONLY_RESULT_MESSAGE,
   };
   return { code: 0, payload: resultPayload, lines };
@@ -517,11 +575,14 @@ function runSessionRearm(
     ? `USER.md resolved (${userMd.rung}): ${safePath}`
     : safeDiagnostic;
   const alignmentMessage = `${READ_ONLY_ALIGNMENT_MESSAGE} ${userMdLine}`;
+  // #2275: re-arm still reports SCM state (shallow; no network).
+  const scm = resolveSessionScmReadiness(options, false);
 
   const lines: string[] = [
     READ_ONLY_ALIGNMENT_MESSAGE,
     userMdLine,
     formatEnvironmentContext(environment),
+    ...formatScmReadinessLines(scm),
     REARM_SKIPPED_FAT_PATH_MESSAGE,
   ];
 
@@ -647,6 +708,7 @@ function runSessionRearm(
         diagnostic: userMd.diagnostic,
       },
       environment: environmentContextToDict(environment),
+      scm: scmReadinessToDict(scm),
       message: code === 0 ? "session ritual re-armed" : "session ritual re-arm failed",
     },
     lines,
@@ -780,6 +842,13 @@ export function runSessionStart(
     stepTimings.push({ name: "alignment", duration_ms: 0, skipped: true });
   }
   lines.push(formatEnvironmentContext(environment));
+
+  // #2275: SCM tooling + auth readiness — shallow on hot path, deep with --with-network.
+  // Never fails session:start; reports which SCM-dependent gates are skipped.
+  const scmStepStarted = performance.now();
+  const scm = resolveSessionScmReadiness(options, allowOptionalNetwork);
+  lines.push(...formatScmReadinessLines(scm));
+  stepTimings.push({ name: "scm_readiness", duration_ms: elapsedMs(scmStepStarted) });
 
   if (!quickSteps.branch_policy) {
     const stepStarted = performance.now();
@@ -988,6 +1057,7 @@ export function runSessionStart(
       diagnostic: userMd.diagnostic,
     },
     environment: environmentContextToDict(environment),
+    scm: scmReadinessToDict(scm),
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
   // #2994: local process-cost event (best-effort; never blocks ceremony).

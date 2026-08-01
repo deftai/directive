@@ -290,6 +290,53 @@ Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § SC
 
 See also § ghx cache proxy (#884) for install surfaces and read-only vs mutation rules.
 
+## Mismatched/headless SCM readiness (#2275)
+
+Follow-up to adoption epic #2203 (Decision 7). Framework-local gates
+(`session:start`, `verify:*`, `xbrief:preflight`, `doctor`, `scope:*`,
+local `cache-fresh` checks) run with zero SCM tooling. SCM-dependent gates
+need `gh`/`ghx` **in the execution env** (not only on the install host) plus
+auth.
+
+### Probe contract
+
+- ! `session:start` (read-only, cold, and re-arm) reports SCM readiness via
+  `[deft scm]` lines and a `scm` object in `--json`. Shallow by default
+  (PATH + token presence + short `gh auth status`); deep API validation when
+  `--with-network` / `DEFT_SESSION_START_NETWORK=1`.
+- ! `deft scm:status` (alias `scm:readiness`) is the explicit probe verb:
+  exit `0` ready / `1` not ready / `2` config. Flags: `--json`,
+  `--deep` / `--shallow` / `--depth shallow|deep`.
+- ! When not ready, diagnostics MUST name the reason
+  (`binary-absent` | `missing-token` | `unauthenticated` | ...) and list
+  skipped gates (`triage:queue`, `issue:ingest`, `pr:*`, `reconcile:issues`,
+  `cache:fetch-all`, `scm:*`, ...). Never fail opaquely on a missing binary.
+- ! Session-start itself MUST NOT hard-block when SCM is unavailable
+  (framework-local orientation still succeeds).
+- ! SCM-dependent verbs that actually need the network MUST fail loud with
+  the #2275 diagnostic (exit non-zero / `ScmStubError`) rather than hang on
+  auth prompts or emit an unhelpful spawn error.
+- ⊗ Echo `GH_TOKEN` / `GITHUB_TOKEN` / `GH_ENTERPRISE_TOKEN` values into
+  prompts, transcripts, logs, or `--json` payloads -- report presence only
+  (`injected_token_present`).
+
+### Making SCM gates runnable in a mismatched env
+
+1. **Host-gh (local / unsandboxed):** install GitHub CLI (or `task setup:ghx`)
+   in the *execution* environment, then `gh auth login`. Host credential
+   stores are not shared into agent sandboxes.
+2. **Injected-token (cloud / headless):** set `GH_TOKEN`, `GITHUB_TOKEN`, or
+   `GH_ENTERPRISE_TOKEN` in the execution env via host secrets. Runtime mode
+   `cloud-headless` infers `github_auth_mode=injected-token` (#1557).
+3. **Run SCM elsewhere:** keep framework-local work in the sandbox; run
+   `triage:*` / `pr:*` / `issue:ingest` from a matched authenticated shell.
+4. **Deep check:** `deft scm:status --deep` or
+   `deft github-auth-modes --json` validates API reachability and optional
+   repo access.
+
+Contract file: `content/contracts/scm-readiness.md`. Implementation:
+`packages/core/src/scm/readiness.ts`.
+
 ## Windows / ASCII Conventions for Machine-Editable Sections
 
 Agent `edit_files` operations can fail when structured file sections contain Unicode characters that do not round-trip cleanly through Windows toolchains (xref warpdotdev/warp#9022). The following rules apply to **machine-editable structured sections**: ROADMAP.md phase bodies, CHANGELOG.md entries, and Open Issues Index rows.

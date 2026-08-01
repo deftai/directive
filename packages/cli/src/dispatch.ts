@@ -185,6 +185,7 @@ export const CLI_MODULE_VERBS = [
 /** Core-only CLI entrypoints without a packages/cli wrapper. */
 export const CORE_MODULE_VERBS = [
   "scm",
+  "scm-readiness",
   "github-auth-modes",
   "github-body",
   "issue-emit",
@@ -405,6 +406,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "eval:report": "eval-report",
   build: "framework-commands",
   "setup:ghx": "setup-ghx",
+  "scm:status": "scm-readiness",
+  "scm:readiness": "scm-readiness",
 };
 
 /** CLI modules living under verify-source-cli/ or content-validate-cli/ subdirs. */
@@ -2626,6 +2629,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       const { main } = await import("@deftai/directive-core/dist/scm/main.js");
       return (argv) => main(argv);
     }
+    case "scm-readiness": {
+      const { mainEntry } = await import("@deftai/directive-core/dist/scm/readiness-cli.js");
+      return mainEntry;
+    }
     case "github-auth-modes": {
       const { mainEntry } = await import(
         "@deftai/directive-core/dist/intake/github-auth-modes-cli.js"
@@ -2926,6 +2933,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "session:ready",
         summary: "One-shot recovery to gated write-ready (session + ritual + cache)",
+      },
+      {
+        name: "scm:status",
+        summary: "Probe gh/ghx + auth readiness in this execution env (#2275)",
       },
       {
         name: "lifecycle:event",

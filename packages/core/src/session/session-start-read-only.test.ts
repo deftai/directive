@@ -64,6 +64,22 @@ describe("runSessionStart read-only posture (#2176)", () => {
     });
   });
 
+  const probeScmOk = () => ({
+    ready: true as const,
+    binary: "gh" as const,
+    binaryPath: "/usr/bin/gh",
+    authState: "authenticated" as const,
+    githubAuthMode: "host-gh",
+    runtimeMode: "local-unsandboxed",
+    injectedTokenPresent: false,
+    depth: "shallow" as const,
+    detail: "SCM ready: gh present, host-gh authenticated (shallow)",
+    remediation: null,
+    skippedGates: [] as string[],
+    login: null,
+    failureKind: null,
+  });
+
   it("mutation posture still writes ritual-state by default", () => {
     const root = tempRoot();
     const result = runSessionStart(root, {
@@ -72,6 +88,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       verifyTools: () => ({ exitCode: 0 }),
       runTriageWelcome: () => ({ exitCode: 0 }),
       probeEnvironment: () => environment,
+      probeScm: probeScmOk,
       allowOptionalNetwork: true,
       probeReleaseAvailability: () => ({
         lines: ["[deft release] Newer Directive release available: v1.0.1"],
@@ -101,6 +118,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       verifyTools: () => ({ exitCode: 0 }),
       runTriageWelcome: () => ({ exitCode: 0 }),
       probeEnvironment: () => environment,
+      probeScm: probeScmOk,
       probeReleaseAvailability: () => {
         releaseProbeCalls += 1;
         return { lines: ["unexpected release probe"] };
@@ -127,6 +145,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
     }>;
     expect(steps.map((s) => s.name)).toEqual([
       "alignment",
+      "scm_readiness",
       "branch_policy",
       "verify_tools",
       "triage_welcome",

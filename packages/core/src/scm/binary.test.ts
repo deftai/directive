@@ -17,6 +17,8 @@ describe("resolveBinary", () => {
   it("raises ScmStubError when neither binary is present", () => {
     expect(() => resolveBinary(() => null)).toThrow(ScmStubError);
     expect(() => resolveBinary(() => null)).toThrow(/neither 'ghx' nor 'gh'/);
+    // #2275: fail-loud diagnostic names execution-env boundary + SCM gates.
+    expect(() => resolveBinary(() => null)).toThrow(/#2275|execution env|SCM-dependent/);
   });
 
   it("pins the preference order", () => {

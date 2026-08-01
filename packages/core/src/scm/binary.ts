@@ -25,6 +25,9 @@ export function defaultWhich(name: string): string | null {
 /**
  * Return `"ghx"` if on PATH, else `"gh"`; raise if neither is present.
  * Mirrors `scripts/scm.py::resolve_binary`.
+ *
+ * On failure the message is the #2275 fail-loud diagnostic (execution-env
+ * boundary + remediation), not an opaque spawn error.
  */
 export function resolveBinary(whichFn: WhichFn = defaultWhich): string {
   for (const candidate of BINARY_PREFERENCE) {
@@ -32,8 +35,13 @@ export function resolveBinary(whichFn: WhichFn = defaultWhich): string {
       return candidate;
     }
   }
+  // Keep the historical substring for existing tests / triage mappers, then
+  // append the #2275 execution-env remediation so agents see a named reason.
   throw new ScmStubError(
-    "neither 'ghx' nor 'gh' found on PATH; install GitHub CLI " +
-      "(https://cli.github.com/) or the ghx proxy (#884)",
+    "neither 'ghx' nor 'gh' found on PATH in this execution env; " +
+      "install GitHub CLI (https://cli.github.com/) or the ghx proxy (#884), " +
+      "or pass GH_TOKEN into a matched env and re-run; SCM-dependent gates " +
+      "(triage:queue, issue:ingest, pr:*, reconcile:issues, cache:fetch-all, scm:*) " +
+      "cannot run here. Framework-local gates do not need SCM. Refs #2275.",
   );
 }

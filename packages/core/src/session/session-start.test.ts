@@ -58,6 +58,22 @@ function baseOptions(
     runTriageWelcome: () => ({ exitCode: 0 }),
     resolveUserMd,
     probeEnvironment: () => environment,
+    // #2275: inject deterministic SCM probe so suite never shells out to gh.
+    probeScm: () => ({
+      ready: true,
+      binary: "gh",
+      binaryPath: "/usr/bin/gh",
+      authState: "authenticated",
+      githubAuthMode: "host-gh",
+      runtimeMode: "local-unsandboxed",
+      injectedTokenPresent: false,
+      depth: "shallow",
+      detail: "SCM ready: gh present, host-gh authenticated (shallow)",
+      remediation: null,
+      skippedGates: [],
+      login: null,
+      failureKind: null,
+    }),
   };
 }
 
@@ -210,6 +226,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     const names = payload.steps.map((s) => s.name);
     expect(names).toEqual([
       "alignment",
+      "scm_readiness",
       "branch_policy",
       "verify_tools",
       "triage_welcome",
