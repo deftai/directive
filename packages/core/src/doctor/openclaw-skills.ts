@@ -27,7 +27,6 @@ import {
   rmSync,
   statSync,
   symlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
@@ -478,41 +477,26 @@ export function installOpenClawPin(
   }
 
   // Exclusive lock dir serializes concurrent doctor --fix on the same pin
-  // (non-recursive mkdir fails with EEXIST — atomic on win32 + posix). Owner
-  // PID is recorded; only dead-owner locks are reclaimed (no wall-clock steal
-  // of a live long-running install) (#3008 Greptile P1).
+  // (non-recursive mkdir fails with EEXIST — atomic on win32 + posix). No
+  // writeFileSync (contained-writes #2951). Crash recovery: reclaim locks older
+  // than 10 minutes (pin install is seconds; long steal window is intentional).
   const lockDir = `${target}.deft-lock`;
-  const lockPidPath = join(lockDir, "owner.pid");
-  const isPidAlive = (pid: number): boolean => {
-    if (!Number.isFinite(pid) || pid <= 0) return false;
-    try {
-      process.kill(pid, 0);
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  const STALE_LOCK_MS = 10 * 60 * 1000;
   const tryAcquireLock = (): boolean => {
     try {
       mkdirSync(lockDir);
-      writeFileSync(lockPidPath, String(process.pid), "utf8");
       return true;
     } catch {
       try {
-        const ownerRaw = readFileSync(lockPidPath, "utf8").trim();
-        const ownerPid = Number.parseInt(ownerRaw, 10);
-        if (!isPidAlive(ownerPid)) {
+        const ageMs = Date.now() - statSync(lockDir).mtimeMs;
+        if (ageMs >= STALE_LOCK_MS) {
           rmSync(lockDir, { recursive: true, force: true });
           mkdirSync(lockDir);
-          writeFileSync(lockPidPath, String(process.pid), "utf8");
           return true;
         }
       } catch {
-        // Missing/corrupt owner or vanished lock — one reclaim attempt.
         try {
-          rmSync(lockDir, { recursive: true, force: true });
           mkdirSync(lockDir);
-          writeFileSync(lockPidPath, String(process.pid), "utf8");
           return true;
         } catch {
           return false;
