@@ -8,7 +8,11 @@ import {
 import { resolveSpecAuthority } from "../spec-authority/resolver.js";
 import { type IncludeScopesMode, LEGACY_ARTIFACTS_NARRATIVE_KEY } from "./constants.js";
 import { buildScopeOutlookSection } from "./scope-outlook.js";
-import { normalizeIncludeScopesMode } from "./spec-render.js";
+import {
+  normalizeIncludeScopesMode,
+  tryParseIncludeScopesMode,
+  tryParseOnOffFlag,
+} from "./spec-render.js";
 import { validateSpec } from "./spec-validate.js";
 import { stripTrailingWhitespace } from "./text-utils.js";
 
@@ -143,7 +147,15 @@ export function parseExportSpecArgv(argv: readonly string[]): {
       continue;
     }
     if (arg.startsWith("--include-scopes=")) {
-      options.includeScopes = normalizeIncludeScopesMode(arg.split("=", 2)[1] ?? "");
+      const value = arg.split("=", 2)[1] ?? "";
+      const parsed = tryParseIncludeScopesMode(value);
+      if (parsed === undefined) {
+        errors.push(
+          `Invalid --include-scopes=${value} (expected off|current|all|active|on|true|1|yes|false|0|no)`,
+        );
+      } else {
+        options.includeScopes = parsed;
+      }
       continue;
     }
     if (arg === "--include-legacy-artifacts") {
@@ -151,9 +163,15 @@ export function parseExportSpecArgv(argv: readonly string[]): {
       continue;
     }
     if (arg.startsWith("--include-legacy-artifacts=")) {
-      const value = (arg.split("=", 2)[1] ?? "").toLowerCase();
-      options.includeLegacyArtifacts =
-        value === "on" || value === "true" || value === "1" || value === "yes";
+      const value = arg.split("=", 2)[1] ?? "";
+      const parsed = tryParseOnOffFlag(value);
+      if (parsed === undefined) {
+        errors.push(
+          `Invalid --include-legacy-artifacts=${value} (expected on|off|true|false|1|0|yes|no)`,
+        );
+      } else {
+        options.includeLegacyArtifacts = parsed;
+      }
       continue;
     }
     if (arg.startsWith("--")) {

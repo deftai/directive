@@ -31,9 +31,38 @@ function splitAcceptance(value: unknown): string[] {
   return parts;
 }
 
+const INCLUDE_SCOPES_OFF = new Set(["off", "false", "0", "no"]);
+const INCLUDE_SCOPES_CURRENT = new Set(["current", "active"]);
+const INCLUDE_SCOPES_ALL = new Set(["all", "on", "true", "1", "yes"]);
+const LEGACY_ARTIFACTS_ON = new Set(["on", "true", "1", "yes"]);
+const LEGACY_ARTIFACTS_OFF = new Set(["off", "false", "0", "no"]);
+
+/**
+ * Parse a string include-scopes token. Returns undefined when the token is not a known mode
+ * (callers MUST fail closed rather than silently omitting content — #1566 Greptile P1).
+ */
+export function tryParseIncludeScopesMode(value: string): IncludeScopesMode | undefined {
+  const v = value.trim().toLowerCase();
+  if (INCLUDE_SCOPES_OFF.has(v)) return "off";
+  if (INCLUDE_SCOPES_CURRENT.has(v)) return "current";
+  if (INCLUDE_SCOPES_ALL.has(v)) return "all";
+  return undefined;
+}
+
+/**
+ * Parse include-legacy-artifacts on/off tokens. undefined = invalid token.
+ */
+export function tryParseOnOffFlag(value: string): boolean | undefined {
+  const v = value.trim().toLowerCase();
+  if (LEGACY_ARTIFACTS_ON.has(v)) return true;
+  if (LEGACY_ARTIFACTS_OFF.has(v)) return false;
+  return undefined;
+}
+
 /**
  * Normalize CLI / API include-scopes values to a mode (#1566).
  * Default is compact (`off`) so completed lifecycle is not dumped into SPECIFICATION.md.
+ * Unknown string tokens throw — do not silently drop requested content.
  */
 export function normalizeIncludeScopesMode(
   value: boolean | IncludeScopesMode | string | undefined,
@@ -42,11 +71,11 @@ export function normalizeIncludeScopesMode(
   if (value === undefined) return defaultMode;
   if (value === true) return "all";
   if (value === false) return "off";
-  const v = String(value).trim().toLowerCase();
-  if (v === "off" || v === "false" || v === "0" || v === "no") return "off";
-  if (v === "current" || v === "active") return "current";
-  if (v === "all" || v === "on" || v === "true" || v === "1" || v === "yes") return "all";
-  return defaultMode;
+  const parsed = tryParseIncludeScopesMode(String(value));
+  if (parsed === undefined) {
+    throw new Error(`Invalid include-scopes mode '${String(value)}' (expected off|current|all)`);
+  }
+  return parsed;
 }
 
 export type RenderSpecResult = readonly [boolean, string];
@@ -193,10 +222,12 @@ export function parseIncludeScopesFlag(argv: readonly string[]): {
   includeScopes: IncludeScopesMode;
   includeLegacyArtifacts: boolean;
   remaining: string[];
+  errors: string[];
 } {
   let includeScopes: IncludeScopesMode = DEFAULT_INCLUDE_SCOPES_MODE;
   let includeLegacyArtifacts = false;
   const remaining: string[] = [];
+  const errors: string[] = [];
   for (const arg of argv) {
     if (arg === "--include-scopes") {
       includeScopes = "all";
@@ -204,7 +235,14 @@ export function parseIncludeScopesFlag(argv: readonly string[]): {
     }
     if (arg.startsWith("--include-scopes=")) {
       const value = arg.split("=", 2)[1] ?? "";
-      includeScopes = normalizeIncludeScopesMode(value);
+      const parsed = tryParseIncludeScopesMode(value);
+      if (parsed === undefined) {
+        errors.push(
+          `Invalid --include-scopes=${value} (expected off|current|all|active|on|true|1|yes|false|0|no)`,
+        );
+      } else {
+        includeScopes = parsed;
+      }
       continue;
     }
     if (arg === "--include-legacy-artifacts") {
@@ -212,19 +250,33 @@ export function parseIncludeScopesFlag(argv: readonly string[]): {
       continue;
     }
     if (arg.startsWith("--include-legacy-artifacts=")) {
-      const value = (arg.split("=", 2)[1] ?? "").toLowerCase();
-      includeLegacyArtifacts =
-        value === "on" || value === "true" || value === "1" || value === "yes";
+      const value = arg.split("=", 2)[1] ?? "";
+      const parsed = tryParseOnOffFlag(value);
+      if (parsed === undefined) {
+        errors.push(
+          `Invalid --include-legacy-artifacts=${value} (expected on|off|true|false|1|0|yes|no)`,
+        );
+      } else {
+        includeLegacyArtifacts = parsed;
+      }
       continue;
     }
     remaining.push(arg);
   }
-  return { includeScopes, includeLegacyArtifacts, remaining };
+  return { includeScopes, includeLegacyArtifacts, remaining, errors };
 }
 
 /** CLI entry (mirrors ``scripts/spec_render.main``). */
 export function main(argv: readonly string[]): number {
-  const { includeScopes, includeLegacyArtifacts, remaining } = parseIncludeScopesFlag(argv);
+  const { includeScopes, includeLegacyArtifacts, remaining, errors } = parseIncludeScopesFlag(argv);
+  if (errors.length > 0) {
+    for (const err of errors) process.stderr.write(`${err}\n`);
+    process.stderr.write(
+      "Usage: spec-render <spec_file> [out_file] " +
+        "[--include-scopes=off|current|all] [--include-legacy-artifacts=on|off]\n",
+    );
+    return 2;
+  }
   if (remaining.length === 0) {
     process.stderr.write(
       "Usage: spec-render <spec_file> [out_file] " +

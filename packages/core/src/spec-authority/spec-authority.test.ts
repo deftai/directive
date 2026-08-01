@@ -258,6 +258,15 @@ describe("spec-authority resolver", () => {
     expect(errors).toContain("Unknown flag: --bogus-flag");
   });
 
+  it("parseExportSpecArgv rejects mistyped include-scopes / legacy values (#1566)", () => {
+    const scopes = parseExportSpecArgv(["--include-scopes=curret"]);
+    expect(scopes.errors.some((e) => e.includes("Invalid --include-scopes=curret"))).toBe(true);
+    const legacy = parseExportSpecArgv(["--include-legacy-artifacts=onn"]);
+    expect(legacy.errors.some((e) => e.includes("Invalid --include-legacy-artifacts=onn"))).toBe(
+      true,
+    );
+  });
+
   it("parseExportSpecArgv accepts audience, limit, no-scopes, and positional paths", () => {
     const { options, errors } = parseExportSpecArgv([
       "/proj",

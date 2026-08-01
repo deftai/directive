@@ -47,6 +47,8 @@ export {
   normalizeIncludeScopesMode,
   parseIncludeScopesFlag,
   renderSpec,
+  tryParseIncludeScopesMode,
+  tryParseOnOffFlag,
 } from "./spec-render.js";
 export * as specValidate from "./spec-validate.js";
 export { main as specValidateMain, validateSpec } from "./spec-validate.js";

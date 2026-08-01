@@ -256,6 +256,16 @@ describe("spec-render", () => {
     expect(normalizeIncludeScopesMode("active")).toBe("current");
   });
 
+  it("rejects mistyped include-scopes / legacy flags instead of silent omit (#1566)", () => {
+    const badScopes = parseIncludeScopesFlag(["--include-scopes=curret", "spec.json"]);
+    expect(badScopes.errors.length).toBe(1);
+    expect(badScopes.errors[0]).toContain("Invalid --include-scopes=curret");
+    const badLegacy = parseIncludeScopesFlag(["--include-legacy-artifacts=onn", "spec.json"]);
+    expect(badLegacy.errors.length).toBe(1);
+    expect(badLegacy.errors[0]).toContain("Invalid --include-legacy-artifacts=onn");
+    expect(() => normalizeIncludeScopesMode("curret")).toThrow(/Invalid include-scopes/);
+  });
+
   it("strips trailing whitespace from rendered markdown (#1566)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-sr-ws-"));
     const vbrief = join(dir, "xbrief");

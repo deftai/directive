@@ -70,11 +70,21 @@ export function phaseSortKey(phaseName: string): [number, number, string] {
 
 /**
  * Strip trailing horizontal whitespace from each line (#1566).
+ * Linear scan (no regex) so long runs of tabs/spaces cannot trip ReDoS scanners.
  * Preserves newline structure (including a final trailing newline).
  */
 export function stripTrailingWhitespace(text: string): string {
-  return text
-    .split("\n")
-    .map((line) => line.replace(/[ \t\u00a0]+$/u, ""))
-    .join("\n");
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    let end = line.length;
+    while (end > 0) {
+      const code = line.charCodeAt(end - 1);
+      // space, tab, non-breaking space
+      if (code === 0x20 || code === 0x09 || code === 0xa0) end -= 1;
+      else break;
+    }
+    if (end !== line.length) lines[i] = line.slice(0, end);
+  }
+  return lines.join("\n");
 }
