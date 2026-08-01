@@ -14,14 +14,18 @@ describe("main", () => {
 
   it("returns 2 for unknown namespace", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(main(["isue", "list"], { whichFn: () => "/usr/bin/gh" })).toBe(2);
+    expect(main(["isue", "list"], { whichFn: () => "/usr/bin/gh", skipReadiness: true })).toBe(2);
     expect(stderr.mock.calls.join("")).toContain("unknown scm namespace");
     stderr.mockRestore();
   });
 
   it("rejects --rest on close", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(main(["issue", "close", "--rest", "1", "--repo", "deftai/directive"])).toBe(2);
+    expect(
+      main(["issue", "close", "--rest", "1", "--repo", "deftai/directive"], {
+        skipReadiness: true,
+      }),
+    ).toBe(2);
     expect(stderr.mock.calls.join("")).toContain("--rest is only supported");
     stderr.mockRestore();
   });
@@ -33,7 +37,11 @@ describe("main", () => {
       stderr: "",
     });
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    expect(main(["issue", "view", "--rest", "1", "--repo", "deftai/directive"])).toBe(0);
+    expect(
+      main(["issue", "view", "--rest", "1", "--repo", "deftai/directive"], {
+        skipReadiness: true,
+      }),
+    ).toBe(0);
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
     stdout.mockRestore();
@@ -46,7 +54,9 @@ describe("main", () => {
       stderr: "",
     });
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    expect(main(["issue", "list", "--rest", "--repo", "deftai/directive"])).toBe(0);
+    expect(
+      main(["issue", "list", "--rest", "--repo", "deftai/directive"], { skipReadiness: true }),
+    ).toBe(0);
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
     stdout.mockRestore();

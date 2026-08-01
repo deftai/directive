@@ -24,7 +24,6 @@ describe("call", () => {
     const result = call("github-issue", "auth", [], {
       binary: "/usr/bin/true",
       captureOutput: true,
-      skipReadiness: true,
     });
     expect(result.args).toEqual(["/usr/bin/true", "auth"]);
     expect(result.returncode).toBe(0);
