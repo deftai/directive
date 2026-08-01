@@ -19,6 +19,7 @@
  * is opt-in via `deep: true` (session:start --with-network).
  */
 
+import { spawnSync } from "node:child_process";
 import {
   findInjectedToken,
   type GhRunner,
@@ -34,7 +35,7 @@ import {
   type RuntimeCapabilityReport,
 } from "../intake/platform-capabilities.js";
 import { defaultWhich, type WhichFn } from "./binary.js";
-import { type CompletedProcess, call } from "./call.js";
+import type { CompletedProcess } from "./call.js";
 import { BINARY_PREFERENCE } from "./constants.js";
 import { ScmStubError } from "./errors.js";
 
@@ -137,17 +138,34 @@ function resolveBinaryPresence(whichFn: WhichFn): {
   return { binary: null, binaryPath: null };
 }
 
+/**
+ * Run gh/ghx argv directly (not via scm.call) so readiness probing never
+ * re-enters call() / readiness and cannot mis-route `auth status` (#2275 P1).
+ */
 function defaultShallowRunGh(
   args: readonly string[],
   environ: NodeJS.ProcessEnv,
+  whichFn: WhichFn = defaultWhich,
 ): CompletedProcess {
-  const verb = args[0] as string;
+  const { binary } = resolveBinaryPresence(whichFn);
+  const resolved = binary ?? "gh";
   try {
-    return call("github-issue", verb, args.slice(1), { env: environ, timeout: 15 });
+    const result = spawnSync(resolved, [...args], {
+      env: environ,
+      encoding: "utf8",
+      timeout: 15_000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return {
+      args: [resolved, ...args],
+      returncode: result.status ?? 1,
+      stdout: typeof result.stdout === "string" ? result.stdout : "",
+      stderr: typeof result.stderr === "string" ? result.stderr : "",
+    };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return {
-      args: ["gh", verb, ...args.slice(1)],
+      args: [resolved, ...args],
       returncode: 1,
       stdout: "",
       stderr: message,
@@ -289,7 +307,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
     };
   }
 
-  const runner = options.runGh ?? defaultShallowRunGh;
+  const runner = options.runGh ?? ((args, environ) => defaultShallowRunGh(args, environ, whichFn));
   const authStatus = runner(["auth", "status"], env);
   if (authStatus.returncode !== 0) {
     const detail =
@@ -408,6 +426,40 @@ export function assertScmBinaryPresent(whichFn: WhichFn = defaultWhich): ScmBina
     throw scmNotReadyError(report);
   }
   return report.binary;
+}
+
+/**
+ * Fail-loud gate for SCM-dependent verbs (#2275).
+ * Throws ScmStubError when binary is absent or auth is not ready so agents
+ * never fall through into opaque gh spawn/auth-prompt failures.
+ *
+ * Process-scoped cache: the first successful probe is reused for the rest of
+ * the process so hot call paths do not re-run `gh auth status` every time.
+ * Pass `force: true` to re-probe (tests / after credential injection).
+ */
+let cachedReadyReport: ScmReadinessReport | null = null;
+
+export function requireScmReady(
+  options: ProbeScmReadinessOptions & { force?: boolean } = {},
+): ScmReadinessReport {
+  if (!options.force && cachedReadyReport !== null && cachedReadyReport.ready) {
+    return cachedReadyReport;
+  }
+  const report = probeScmReadiness({
+    depth: "shallow",
+    checkAuthStatus: true,
+    ...options,
+  });
+  if (!report.ready) {
+    throw scmNotReadyError(report);
+  }
+  cachedReadyReport = report;
+  return report;
+}
+
+/** Test helper: clear the process-scoped readiness cache. */
+export function clearScmReadyCache(): void {
+  cachedReadyReport = null;
 }
 
 export { findInjectedToken, GITHUB_AUTH_MODE_HOST_GH, GITHUB_AUTH_MODE_INJECTED_TOKEN };

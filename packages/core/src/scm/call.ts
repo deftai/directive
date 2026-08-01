@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { resolveBinary } from "./binary.js";
 import { SUPPORTED_CALL_SOURCES } from "./constants.js";
 import { pyRepr } from "./py-format.js";
+import { requireScmReady } from "./readiness.js";
 
 /** Mirrors Python `subprocess.CompletedProcess`. */
 export interface CompletedProcess {
@@ -21,11 +22,21 @@ export interface CallOptions {
   readonly whichFn?: Parameters<typeof resolveBinary>[0];
   readonly env?: NodeJS.ProcessEnv;
   readonly input?: string;
+  /**
+   * Skip the #2275 readiness gate (binary + auth). Default false so
+   * SCM-dependent callers fail loud with a named diagnostic. Tests that
+   * inject `binary` may set this true when the probe is not meaningful.
+   */
+  readonly skipReadiness?: boolean;
 }
 
 /**
  * Source-aware SCM invocation -- partial down-payment on #445 / #935 Workstream 6.
  * Mirrors `scripts/scm.py::call`.
+ *
+ * #2275: by default probes SCM readiness (binary + auth) once per process
+ * and throws ScmStubError with a named diagnostic when not ready, instead of
+ * failing opaquely inside gh/ghx.
  */
 export function call(
   source: string,
@@ -38,6 +49,10 @@ export function call(
       `source=${pyRepr(source)} not yet supported; ` +
         "see #445 / #935 Workstream 6 for the abstraction.",
     );
+  }
+
+  if (!options.skipReadiness) {
+    requireScmReady({ whichFn: options.whichFn, env: options.env });
   }
 
   const resolved: string = options.binary ?? resolveBinary(options.whichFn);

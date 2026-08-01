@@ -4,6 +4,7 @@ import { buildCommand } from "./build-command.js";
 import { REST_OPT_IN_VERBS } from "./constants.js";
 import { ScmStubError } from "./errors.js";
 import type { GhRestSeams } from "./gh-rest.js";
+import { requireScmReady } from "./readiness.js";
 import { runRestList, runRestView } from "./rest-dispatch.js";
 
 export interface MainOptions {
@@ -31,6 +32,17 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
   let extra = argv.slice(2);
   const [restMode, afterRest] = extractFlag(extra, "--rest");
   extra = afterRest;
+
+  // #2275: fail loud before opaque gh spawn when binary/auth is missing.
+  try {
+    requireScmReady({ whichFn: options.whichFn });
+  } catch (err: unknown) {
+    if (err instanceof ScmStubError) {
+      process.stderr.write(`error: ${err.message}\n`);
+      return 2;
+    }
+    throw err;
+  }
 
   if (restMode) {
     if (

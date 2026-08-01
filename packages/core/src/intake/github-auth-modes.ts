@@ -69,7 +69,13 @@ export function inferGithubAuthMode(runtimeReport: RuntimeCapabilityReport): str
 
 function defaultRunGh(args: readonly string[], environ: NodeJS.ProcessEnv): CompletedProcess {
   const verb = args[0] as string;
-  return call("github-issue", verb, args.slice(1), { env: environ, timeout: 30 });
+  // skipReadiness: auth-mode validation *is* the readiness probe; re-entering
+  // requireScmReady here would recurse / short-circuit failure kinds (#2275).
+  return call("github-issue", verb, args.slice(1), {
+    env: environ,
+    timeout: 30,
+    skipReadiness: true,
+  });
 }
 
 function splitRepo(repo: string): [string, string] {

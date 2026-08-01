@@ -203,6 +203,35 @@ describe("probeScmReadiness (#2275)", () => {
     expect(() => assertScmBinaryPresent(() => null)).toThrow(/#2275|execution env/);
   });
 
+  it("requireScmReady throws when unauthenticated and caches when ready", async () => {
+    const { requireScmReady, clearScmReadyCache } = await import("./readiness.js");
+    clearScmReadyCache();
+    expect(() =>
+      requireScmReady({
+        force: true,
+        whichFn: () => null,
+        env: {},
+        githubAuthMode: "host-gh",
+        runtimeReport: { runtimeMode: "local-unsandboxed" },
+      }),
+    ).toThrow(ScmStubError);
+
+    clearScmReadyCache();
+    const report = requireScmReady({
+      force: true,
+      whichFn: (n) => (n === "gh" ? "/bin/gh" : null),
+      env: {},
+      githubAuthMode: "host-gh",
+      runtimeReport: { runtimeMode: "local-unsandboxed" },
+      runGh: () => ({ args: [], returncode: 0, stdout: "ok", stderr: "" }),
+    });
+    expect(report.ready).toBe(true);
+    // Cached path returns same ready report without re-running.
+    const again = requireScmReady();
+    expect(again.ready).toBe(true);
+    clearScmReadyCache();
+  });
+
   it("scmReadinessToDict uses snake_case and never includes secrets", () => {
     const report = probeScmReadiness({
       whichFn: (name) => (name === "gh" ? "/bin/gh" : null),

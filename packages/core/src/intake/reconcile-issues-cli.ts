@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
+import { ScmStubError } from "../scm/errors.js";
+import { requireScmReady } from "../scm/readiness.js";
 import { reconcileMain } from "./reconcile-issues.js";
 
 function parseArgs(argv: string[]) {
@@ -27,6 +29,16 @@ function parseArgs(argv: string[]) {
 }
 
 export function mainEntry(argv: string[] = process.argv.slice(2)): number {
+  // #2275: fail loud when gh/auth is missing in this execution env.
+  try {
+    requireScmReady();
+  } catch (err: unknown) {
+    if (err instanceof ScmStubError) {
+      process.stderr.write(`error: ${err.message}\n`);
+      return 2;
+    }
+    throw err;
+  }
   return reconcileMain(parseArgs(argv));
 }
 
