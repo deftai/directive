@@ -145,5 +145,12 @@ describe("intent mode (#3015 class D)", () => {
     expect(
       hasFullCloseIntent("Note the trailer form:\ndeft-close-intent: full\nThen more prose.\n"),
     ).toBe(false);
+    // Markdown indented code block (4 spaces) must not authorize.
+    expect(hasFullCloseIntent("Closes #1\n\n    deft-close-intent: full\n")).toBe(false);
+  });
+
+  it("accepts bare trailer after a closed code fence", () => {
+    const text = "Example:\n```\nCloses #9\n```\n\nCloses #1\n\ndeft-close-intent: full\n";
+    expect(hasFullCloseIntent(text)).toBe(true);
   });
 });

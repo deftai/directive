@@ -52,9 +52,17 @@ function lineStartingAt(text: string, offset: number): string {
 }
 
 function isInsideCodeFence(text: string, offset: number): boolean {
+  // Count ALL fence openers before offset (must use /g — a non-global match only
+  // sees the first fence and permanently classifies the rest of the body as inside).
   const prefix = text.slice(0, offset);
-  const matches = prefix.match(CODE_FENCE_RE);
-  return matches !== null && matches.length % 2 === 1;
+  const re = new RegExp(CODE_FENCE_RE.source, "gm");
+  let count = 0;
+  let m: RegExpExecArray | null = re.exec(prefix);
+  while (m !== null) {
+    count += 1;
+    m = re.exec(prefix);
+  }
+  return count % 2 === 1;
 }
 
 function classifyHit(text: string, match: RegExpExecArray): string | null {
@@ -171,6 +179,11 @@ export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
  */
 export const CLOSE_INTENT_FULL_RE = /^[ \t]*deft-close-intent[ \t]*:[ \t]*full[ \t]*$/gim;
 
+/** Markdown indented code block: 4+ spaces or a leading tab (CommonMark). */
+function isIndentedCodeLine(line: string): boolean {
+  return /^(?: {4,}|\t)/.test(line);
+}
+
 export function hasFullCloseIntent(text: string): boolean {
   const re = new RegExp(CLOSE_INTENT_FULL_RE.source, CLOSE_INTENT_FULL_RE.flags);
   let match: RegExpExecArray | null = re.exec(text);
@@ -178,7 +191,8 @@ export function hasFullCloseIntent(text: string): boolean {
     const start = match.index ?? 0;
     if (!isInsideCodeFence(text, start)) {
       const line = lineStartingAt(text, start);
-      if (!BLOCKQUOTE_RE.test(line)) {
+      // Bare trailer only: no blockquote, indented code, or quoted wrappers.
+      if (!BLOCKQUOTE_RE.test(line) && !isIndentedCodeLine(line)) {
         const trimmed = line.trim();
         const wrappedInQuotes =
           trimmed.length >= 2 &&
