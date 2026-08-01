@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(setup,seed): minimal render-ready PROJECT-DEFINITION for one-shot project:render",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "feat(setup,seed): minimal render-ready PROJECT-DEFINITION for one-shot project:render",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3013",
@@ -15,23 +15,23 @@
     "items": [
       {
         "title": "Greenfield init/seed produces a PROJECT-DEFINITION skeleton that passes validation for render (structure + enough identity; items registry may be empty/rebuildable)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Documented contract: render rebuilds items from lifecycle folders; do not multi-turn invent project identity",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "App-bank / multi-scope pins can consume this (Directive owns the seed contract; external harnesses do not invent a parallel SoT)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Does not replace setup interview for narrative gestalt when the operator wants full setup",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Tests + CHANGELOG as appropriate",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -49,3 +49,4 @@
     ]
   }
 }
+

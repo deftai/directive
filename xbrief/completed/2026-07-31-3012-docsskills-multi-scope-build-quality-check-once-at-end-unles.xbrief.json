@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "docs(skills): multi-scope build — quality check once at end unless failed",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "docs(skills): multi-scope build — quality check once at end unless failed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3012",
@@ -15,23 +15,23 @@
     "items": [
       {
         "title": "`deft-directive-build` (and related multi-scope preambles) state check-once-at-end unless last failed",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Explicit exception: fix loops after a failed check may re-run check",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Does not weaken pre-PR / merge-ready gates (those remain end-of-unit)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Docs / skill text only is OK for v1 if no new CLI",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "CHANGELOG if skill/user-facing",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -49,3 +49,4 @@
     ]
   }
 }
+

@@ -1,11 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #3009"
+    "description": "Scope xBRIEF ingested from GitHub issue #3009",
+    "updated": "2026-08-01T04:19:39Z"
   },
   "plan": {
     "title": "epic(build,harness): multi-scope turn/cache budget (post-v0.90 ceremony)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "epic(build,harness): multi-scope turn/cache budget (post-v0.90 ceremony)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3009",
@@ -25,6 +26,11 @@
         "type": "x-xbrief/github-issue",
         "title": "Issue #3009: epic(build,harness): multi-scope turn/cache budget (post-v0.90 ceremony)"
       }
-    ]
+    ],
+    "updated": "2026-08-01T04:19:39Z",
+    "metadata": {
+      "completedAt": "2026-08-01T04:19:39Z",
+      "capacityBucket": "agentic-debt"
+    }
   }
 }

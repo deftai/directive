@@ -1,11 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #3011"
+    "description": "Scope xBRIEF ingested from GitHub issue #3011",
+    "updated": "2026-08-01T04:24:48Z"
   },
   "plan": {
     "title": "feat(scope): batch promote multi-scope pin; keep one active implement",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "feat(scope): batch promote multi-scope pin; keep one active implement",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3011",
@@ -15,23 +16,23 @@
     "items": [
       {
         "title": "Documented (and preferably CLI-supported) path to batch-promote `xbrief/proposed/` → `pending/` for a multi-scope pin",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Implement path remains: one `scope:activate` + implement at a time; no multi-active write fence",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Build skill / multi-scope guidance: do not re-list the entire tree every scope when order is known",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Tests for batch promote if new CLI surface",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "CHANGELOG / commands.md",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -46,6 +47,11 @@
         "type": "x-xbrief/github-issue",
         "title": "Issue #3011: feat(scope): batch promote multi-scope pin; keep one active implement"
       }
-    ]
+    ],
+    "updated": "2026-08-01T04:24:48Z",
+    "metadata": {
+      "completedAt": "2026-08-01T04:24:48Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

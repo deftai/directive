@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3015",
-    "updated": "2026-08-01T02:13:04Z"
+    "updated": "2026-08-01T04:24:51Z"
   },
   "plan": {
     "title": "pr:check-closing-keywords misses multi-phase / conditional Closes #N (enterprize#29 false complete)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pr:check-closing-keywords misses multi-phase / conditional Closes #N (enterprize#29 false complete)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3015",
@@ -15,47 +15,47 @@
     "items": [
       {
         "title": "**Slice 1 — Policy:** skill + docs ⊗ partial/conditional `Closes`; default `Tracking: #N`",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "**Slice 2 — Intent lint:** any closing keyword fails unless `--allow-close` / `deft-close-intent: full`",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "**Slice 3 — CI:** both lints on PR",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "**Slice 4 — Merge wrapper:** live re-check + sticky unlink + explicit squash body",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "**Slice 5 — Post-merge audit:** checklist / multi-phase / protected → auto-reopen + comment",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "**Slice 6 — Protect multi-phase by default** + optional rewrite helper + lessons",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Fixture body = enterprize PR #30 text → intent mode **exit 1**",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Same body → FP mode still exit 0 (documents class split)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "`Closes #N` + `deft-close-intent: full` (or allowlist) → exit 0",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "`DOES NOT CLOSE #N` → FP mode exit 1 (no regression on #735)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Post-merge audit: issue with open checkbox closed by PR → reopen path (hermetic)",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "references": [
@@ -65,6 +65,10 @@
         "title": "Issue #3015: pr:check-closing-keywords misses multi-phase / conditional Closes #N (enterprize#29 false complete)"
       }
     ],
-    "updated": "2026-08-01T02:13:04Z"
+    "updated": "2026-08-01T04:24:51Z",
+    "metadata": {
+      "completedAt": "2026-08-01T04:24:51Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

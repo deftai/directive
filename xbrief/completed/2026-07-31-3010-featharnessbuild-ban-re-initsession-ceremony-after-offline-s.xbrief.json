@@ -1,11 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #3010"
+    "description": "Scope xBRIEF ingested from GitHub issue #3010",
+    "updated": "2026-08-01T04:19:47Z"
   },
   "plan": {
     "title": "feat(harness,build): ban re-init/session ceremony after offline seed",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "feat(harness,build): ban re-init/session ceremony after offline seed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3010",
@@ -15,19 +16,19 @@
     "items": [
       {
         "title": "Multi-scope / build / app-bank style preambles (or documented consumer contract) state absolutely: session ritual and pin seed are done — do **not** run `directive init`, full cold `session:start` (unless hooks require recovery via `session:ready` / re-arm), `directive migrate`, or re-copy scopes",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Recovery path remains: `session:ready` or re-arm when PreToolUse denies — not full re-init",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Docs distinguish offline seed phase vs agent implement phase",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "CHANGELOG if user-facing",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -42,6 +43,11 @@
         "type": "x-xbrief/github-issue",
         "title": "Issue #3010: feat(harness,build): ban re-init/session ceremony after offline seed"
       }
-    ]
+    ],
+    "updated": "2026-08-01T04:19:47Z",
+    "metadata": {
+      "completedAt": "2026-08-01T04:19:47Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
