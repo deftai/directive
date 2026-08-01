@@ -28,7 +28,8 @@ const EXAMPLE_MARKERS: readonly RegExp[] = [
 ];
 
 const BLOCKQUOTE_RE = /^\s*>\s/m;
-const CODE_FENCE_RE = /^```/m;
+/** CommonMark fenced code: 3+ backticks or 3+ tildes at line start. */
+const CODE_FENCE_RE = /^(?:`{3,}|~{3,})/m;
 
 function findAllMatches(text: string, re: RegExp): RegExpExecArray[] {
   const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;

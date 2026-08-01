@@ -154,4 +154,8 @@ describe("intent mode (#3015 class D)", () => {
     const text = "Example:\n```\nCloses #9\n```\n\nCloses #1\n\ndeft-close-intent: full\n";
     expect(hasFullCloseIntent(text)).toBe(true);
   });
+
+  it("rejects trailer inside unclosed tilde fence", () => {
+    expect(hasFullCloseIntent("Closes #1\n~~~\ndeft-close-intent: full\n")).toBe(false);
+  });
 });
