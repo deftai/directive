@@ -184,7 +184,9 @@ describe("session readback silence and budget", () => {
     expect(lines).toEqual([]);
   });
 
-  it("probes adoption and friction at the session boundary when emitEvents is allowed (#2339)", () => {
+  it("session boundary friction probe stays silent on the fixed #1694 omit-by-design seed (#2339 / #1694)", () => {
+    // Pre-fix this seed fired friction:directive-gap via wipCap-unsatisfiable-nudge.
+    // After decision-provenance, greenfield incomplete is not a contradictory gate.
     const enabledPolicy = {
       enabled: true,
       emitEvents: true,
@@ -214,13 +216,13 @@ describe("session readback silence and budget", () => {
 
     renderSessionReadback(root, { writeHistory: false, policyOverride: enabledPolicy });
     const events = readAttributionEvents({ projectRoot: root });
-    expect(events.some((entry) => entry.event === "friction:directive-gap")).toBe(true);
+    expect(events.some((entry) => entry.event === "friction:directive-gap")).toBe(false);
 
     const lineResult = renderSessionReadback(root, {
       writeHistory: false,
       policyOverride: enabledPolicy,
     });
-    expect(lineResult.line).toMatch(/^\[friction\]/);
+    expect(lineResult.line).toBeNull();
   });
 });
 
