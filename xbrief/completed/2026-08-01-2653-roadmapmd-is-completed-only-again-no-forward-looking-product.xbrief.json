@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2653",
-    "updated": "2026-08-01T02:09:58Z"
+    "updated": "2026-08-01T02:33:49Z"
   },
   "plan": {
     "title": "ROADMAP.md is Completed-only again — no forward-looking product roadmap (#632 recurrence)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "ROADMAP.md is Completed-only again — no forward-looking product roadmap (#632 recurrence)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2653",
@@ -29,6 +29,10 @@
         "title": "Issue #2653: ROADMAP.md is Completed-only again — no forward-looking product roadmap (#632 recurrence)"
       }
     ],
-    "updated": "2026-08-01T02:09:58Z"
+    "updated": "2026-08-01T02:33:49Z",
+    "metadata": {
+      "completedAt": "2026-08-01T02:33:49Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

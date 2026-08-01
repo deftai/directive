@@ -40,8 +40,22 @@ export {
 } from "./roadmap-render.js";
 export { main as ruleMapMain } from "./rule-map.js";
 export { aggregateScopeSection, buildScopeOutlookSection } from "./scope-outlook.js";
+export type { RenderSpecOptions } from "./spec-render.js";
 export * as specRender from "./spec-render.js";
-export { main as specRenderMain, parseIncludeScopesFlag, renderSpec } from "./spec-render.js";
+export {
+  main as specRenderMain,
+  normalizeIncludeScopesMode,
+  parseIncludeScopesFlag,
+  renderSpec,
+  tryParseIncludeScopesMode,
+  tryParseOnOffFlag,
+} from "./spec-render.js";
 export * as specValidate from "./spec-validate.js";
 export { main as specValidateMain, validateSpec } from "./spec-validate.js";
-export { parsePhaseNumber, phaseSortKey, splitCamel, splitWords } from "./text-utils.js";
+export {
+  parsePhaseNumber,
+  phaseSortKey,
+  splitCamel,
+  splitWords,
+  stripTrailingWhitespace,
+} from "./text-utils.js";

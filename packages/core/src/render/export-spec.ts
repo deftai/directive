@@ -6,8 +6,15 @@ import {
   resolveExportNarratives,
 } from "../spec-authority/narratives.js";
 import { resolveSpecAuthority } from "../spec-authority/resolver.js";
+import { type IncludeScopesMode, LEGACY_ARTIFACTS_NARRATIVE_KEY } from "./constants.js";
 import { buildScopeOutlookSection } from "./scope-outlook.js";
+import {
+  normalizeIncludeScopesMode,
+  tryParseIncludeScopesMode,
+  tryParseOnOffFlag,
+} from "./spec-render.js";
 import { validateSpec } from "./spec-validate.js";
+import { stripTrailingWhitespace } from "./text-utils.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -17,7 +24,12 @@ export interface ExportSpecOptions {
   readonly projectRoot?: string;
   readonly outPath?: string;
   readonly audience?: ExportAudience;
-  readonly includeScopes?: boolean;
+  /**
+   * Lifecycle scope aggregation (#1566). Default `off` (compact).
+   * `current` = pending+active; `all` / true = include completed archive.
+   */
+  readonly includeScopes?: boolean | IncludeScopesMode;
+  readonly includeLegacyArtifacts?: boolean;
   readonly proposedLimit?: number;
 }
 
@@ -36,12 +48,26 @@ function loadPlanTitle(path: string, fallback: string): string {
   return fallback;
 }
 
+function filterLegacyArtifacts(
+  narratives: Record<string, string>,
+  includeLegacyArtifacts: boolean,
+): Record<string, string> {
+  if (includeLegacyArtifacts) return narratives;
+  const filtered: Record<string, string> = {};
+  for (const [key, val] of Object.entries(narratives)) {
+    if (key === LEGACY_ARTIFACTS_NARRATIVE_KEY) continue;
+    filtered[key] = val;
+  }
+  return filtered;
+}
+
 /** Unified spec export (#2013 / #1502). */
 export function exportSpec(options: ExportSpecOptions = {}): ExportSpecResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
   const outPath = options.outPath ?? join(projectRoot, "SPECIFICATION.md");
   const audience = options.audience ?? "stakeholder";
-  const includeScopes = options.includeScopes ?? true;
+  const includeScopesMode = normalizeIncludeScopesMode(options.includeScopes);
+  const includeLegacyArtifacts = options.includeLegacyArtifacts ?? false;
   const includeProposed = audience === "internal";
 
   const authority = resolveSpecAuthority(projectRoot);
@@ -59,7 +85,10 @@ export function exportSpec(options: ExportSpecOptions = {}): ExportSpecResult {
     ];
   }
 
-  const narratives = resolveExportNarratives(authority);
+  const narratives = filterLegacyArtifacts(
+    resolveExportNarratives(authority),
+    includeLegacyArtifacts,
+  );
   const title =
     authority.kind === "full-spec" && authority.specPath
       ? loadPlanTitle(authority.specPath, "Specification")
@@ -71,15 +100,16 @@ export function exportSpec(options: ExportSpecOptions = {}): ExportSpecResult {
     ...renderNarrativeSections(narratives),
   ];
 
-  if (includeScopes) {
+  if (includeScopesMode !== "off") {
     const scopeLines = buildScopeOutlookSection(authority.vbriefDir, {
       includeProposed,
       proposedLimit: options.proposedLimit,
+      includeCompleted: includeScopesMode === "all",
     });
     if (scopeLines.length > 0) lines.push(...scopeLines);
   }
 
-  writeFileSync(outPath, lines.join("\n"), "utf8");
+  writeFileSync(outPath, stripTrailingWhitespace(lines.join("\n")), "utf8");
   return [true, `✓ Exported spec to ${outPath}`];
 }
 
@@ -91,7 +121,8 @@ export function parseExportSpecArgv(argv: readonly string[]): {
     projectRoot?: string;
     outPath?: string;
     audience?: ExportAudience;
-    includeScopes?: boolean;
+    includeScopes?: boolean | IncludeScopesMode;
+    includeLegacyArtifacts?: boolean;
     proposedLimit?: number;
   } = {};
   const errors: string[] = [];
@@ -108,7 +139,39 @@ export function parseExportSpecArgv(argv: readonly string[]): {
       continue;
     }
     if (arg === "--no-scopes") {
-      options.includeScopes = false;
+      options.includeScopes = "off";
+      continue;
+    }
+    if (arg === "--include-scopes") {
+      options.includeScopes = "all";
+      continue;
+    }
+    if (arg.startsWith("--include-scopes=")) {
+      const value = arg.split("=", 2)[1] ?? "";
+      const parsed = tryParseIncludeScopesMode(value);
+      if (parsed === undefined) {
+        errors.push(
+          `Invalid --include-scopes=${value} (expected off|current|all|active|on|true|1|yes|false|0|no)`,
+        );
+      } else {
+        options.includeScopes = parsed;
+      }
+      continue;
+    }
+    if (arg === "--include-legacy-artifacts") {
+      options.includeLegacyArtifacts = true;
+      continue;
+    }
+    if (arg.startsWith("--include-legacy-artifacts=")) {
+      const value = arg.split("=", 2)[1] ?? "";
+      const parsed = tryParseOnOffFlag(value);
+      if (parsed === undefined) {
+        errors.push(
+          `Invalid --include-legacy-artifacts=${value} (expected on|off|true|false|1|0|yes|no)`,
+        );
+      } else {
+        options.includeLegacyArtifacts = parsed;
+      }
       continue;
     }
     if (arg.startsWith("--")) {

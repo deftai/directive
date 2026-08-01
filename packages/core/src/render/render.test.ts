@@ -11,7 +11,7 @@ import {
 import { renderPrd } from "./prd-render.js";
 import { renderProjectDefinition } from "./project-render.js";
 import { generateRoadmapContent } from "./roadmap-render.js";
-import { renderSpec } from "./spec-render.js";
+import { normalizeIncludeScopesMode, parseIncludeScopesFlag, renderSpec } from "./spec-render.js";
 import { validateSpec } from "./spec-validate.js";
 
 const MINIMAL_SPEC = {
@@ -58,6 +58,21 @@ describe("spec-validate", () => {
   });
 });
 
+function writeScopeBrief(
+  vbriefDir: string,
+  folder: string,
+  filename: string,
+  plan: Record<string, unknown>,
+): void {
+  const dir = join(vbriefDir, folder);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, filename),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }),
+    "utf8",
+  );
+}
+
 describe("spec-render", () => {
   it("renders approved spec with banner and narratives", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-sr-"));
@@ -87,6 +102,195 @@ describe("spec-render", () => {
     const [ok, msg] = renderSpec(specPath, join(dir, "out.md"));
     expect(ok).toBe(false);
     expect(msg).toContain("draft");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("defaults to compact render: no Scope outlook and no LegacyArtifacts (#1566)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sr-compact-"));
+    const vbrief = join(dir, "xbrief");
+    for (const folder of ["pending", "active", "completed"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    const specPath = join(vbrief, "specification.xbrief.json");
+    writeFileSync(
+      specPath,
+      JSON.stringify({
+        ...MINIMAL_SPEC,
+        plan: {
+          ...MINIMAL_SPEC.plan,
+          narratives: {
+            Overview: "Overview body",
+            LegacyArtifacts: "Huge migration dump that must stay out by default.",
+          },
+        },
+      }),
+      "utf8",
+    );
+    writeScopeBrief(vbrief, "pending", "2026-01-01-pending.xbrief.json", {
+      title: "Pending story",
+      status: "pending",
+      narratives: { Overview: "Pending overview" },
+    });
+    writeScopeBrief(vbrief, "active", "2026-01-02-active.xbrief.json", {
+      title: "Active story",
+      status: "running",
+      narratives: { Overview: "Active overview" },
+    });
+    writeScopeBrief(vbrief, "completed", "2026-01-03-done.xbrief.json", {
+      title: "Completed archive story",
+      status: "completed",
+      narratives: { Overview: "Completed archive that must not bloat default render" },
+    });
+    const outPath = join(dir, "SPECIFICATION.md");
+    const [ok] = renderSpec(specPath, outPath);
+    expect(ok).toBe(true);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("## Overview");
+    expect(content).not.toContain("## Scope outlook");
+    expect(content).not.toContain("Completed archive story");
+    expect(content).not.toContain("## LegacyArtifacts");
+    expect(content).not.toContain("Huge migration dump");
+    for (const line of content.split("\n")) {
+      expect(line).toBe(line.replace(/[ \t\u00a0]+$/u, ""));
+    }
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("include-scopes=current emits pending+active but not completed (#1566)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sr-current-"));
+    const vbrief = join(dir, "xbrief");
+    for (const folder of ["pending", "active", "completed"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    const specPath = join(vbrief, "specification.xbrief.json");
+    writeFileSync(specPath, JSON.stringify(MINIMAL_SPEC), "utf8");
+    writeScopeBrief(vbrief, "pending", "2026-01-01-pending.xbrief.json", {
+      title: "Pending story",
+      status: "pending",
+      narratives: { Overview: "Pending overview" },
+    });
+    writeScopeBrief(vbrief, "active", "2026-01-02-active.xbrief.json", {
+      title: "Active story",
+      status: "running",
+      narratives: { Overview: "Active overview" },
+    });
+    writeScopeBrief(vbrief, "completed", "2026-01-03-done.xbrief.json", {
+      title: "Completed archive story",
+      status: "completed",
+      narratives: { Overview: "Completed archive" },
+    });
+    const outPath = join(dir, "SPECIFICATION.md");
+    const [ok] = renderSpec(specPath, outPath, { includeScopes: "current" });
+    expect(ok).toBe(true);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("## Scope outlook");
+    expect(content).toContain("Pending story");
+    expect(content).toContain("Active story");
+    expect(content).not.toContain("Completed archive story");
+    expect(content).not.toContain("### Completed");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("include-scopes=all restores completed lifecycle aggregation (#1566)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sr-all-"));
+    const vbrief = join(dir, "xbrief");
+    for (const folder of ["pending", "active", "completed"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    const specPath = join(vbrief, "specification.xbrief.json");
+    writeFileSync(specPath, JSON.stringify(MINIMAL_SPEC), "utf8");
+    writeScopeBrief(vbrief, "completed", "2026-01-03-done.xbrief.json", {
+      title: "Completed archive story",
+      status: "completed",
+      narratives: { Overview: "Completed archive" },
+    });
+    const outPath = join(dir, "SPECIFICATION.md");
+    const [ok] = renderSpec(specPath, outPath, { includeScopes: "all" });
+    expect(ok).toBe(true);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("## Scope outlook");
+    expect(content).toContain("Completed archive story");
+    expect(content).toContain("### Completed");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("includeLegacyArtifacts=true emits LegacyArtifacts narrative (#1566)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sr-legacy-"));
+    const vbrief = join(dir, "xbrief");
+    mkdirSync(vbrief, { recursive: true });
+    const specPath = join(vbrief, "specification.xbrief.json");
+    writeFileSync(
+      specPath,
+      JSON.stringify({
+        ...MINIMAL_SPEC,
+        plan: {
+          ...MINIMAL_SPEC.plan,
+          narratives: {
+            Overview: "Overview body",
+            LegacyArtifacts: "Preserved migration section",
+          },
+        },
+      }),
+      "utf8",
+    );
+    const outPath = join(dir, "SPECIFICATION.md");
+    const [ok] = renderSpec(specPath, outPath, { includeLegacyArtifacts: true });
+    expect(ok).toBe(true);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("## LegacyArtifacts");
+    expect(content).toContain("Preserved migration section");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("parseIncludeScopesFlag defaults off and accepts modes (#1566)", () => {
+    expect(parseIncludeScopesFlag(["spec.json"]).includeScopes).toBe("off");
+    expect(parseIncludeScopesFlag(["--include-scopes=current", "spec.json"]).includeScopes).toBe(
+      "current",
+    );
+    expect(parseIncludeScopesFlag(["--include-scopes", "spec.json"]).includeScopes).toBe("all");
+    expect(
+      parseIncludeScopesFlag(["--include-legacy-artifacts=on", "spec.json"]).includeLegacyArtifacts,
+    ).toBe(true);
+    expect(normalizeIncludeScopesMode(undefined)).toBe("off");
+    expect(normalizeIncludeScopesMode(true)).toBe("all");
+    expect(normalizeIncludeScopesMode("active")).toBe("current");
+  });
+
+  it("rejects mistyped include-scopes / legacy flags instead of silent omit (#1566)", () => {
+    const badScopes = parseIncludeScopesFlag(["--include-scopes=curret", "spec.json"]);
+    expect(badScopes.errors.length).toBe(1);
+    expect(badScopes.errors[0]).toContain("Invalid --include-scopes=curret");
+    const badLegacy = parseIncludeScopesFlag(["--include-legacy-artifacts=onn", "spec.json"]);
+    expect(badLegacy.errors.length).toBe(1);
+    expect(badLegacy.errors[0]).toContain("Invalid --include-legacy-artifacts=onn");
+    expect(() => normalizeIncludeScopesMode("curret")).toThrow(/Invalid include-scopes/);
+  });
+
+  it("strips trailing whitespace from rendered markdown (#1566)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sr-ws-"));
+    const vbrief = join(dir, "xbrief");
+    mkdirSync(vbrief, { recursive: true });
+    const specPath = join(vbrief, "specification.xbrief.json");
+    writeFileSync(
+      specPath,
+      JSON.stringify({
+        ...MINIMAL_SPEC,
+        plan: {
+          ...MINIMAL_SPEC.plan,
+          narratives: {
+            Overview: "Line with hard break  \nNext line   ",
+          },
+        },
+      }),
+      "utf8",
+    );
+    const outPath = join(dir, "SPECIFICATION.md");
+    const [ok] = renderSpec(specPath, outPath);
+    expect(ok).toBe(true);
+    const content = readFileSync(outPath, "utf8");
+    for (const line of content.split("\n")) {
+      expect(line).toBe(line.replace(/[ \t\u00a0]+$/u, ""));
+    }
     rmSync(dir, { recursive: true, force: true });
   });
 });
