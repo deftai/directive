@@ -35,9 +35,16 @@ import {
   type RuntimeCapabilityReport,
 } from "../intake/platform-capabilities.js";
 import { defaultWhich, type WhichFn } from "./binary.js";
-import type { CompletedProcess } from "./call.js";
 import { BINARY_PREFERENCE } from "./constants.js";
 import { ScmStubError } from "./errors.js";
+
+/** Local completed-process shape (avoids importing call.ts and creating a cycle). */
+interface CompletedProcess {
+  readonly args: readonly string[];
+  readonly returncode: number;
+  readonly stdout: string;
+  readonly stderr: string;
+}
 
 /** Named SCM-dependent surfaces that need gh/ghx + auth (#2275). */
 export const SCM_DEPENDENT_GATES = [
@@ -242,11 +249,35 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
   }
 
   if (depth === "deep") {
+    // Prefer live `gh` for auth/API validation — ghx is a cached GET proxy and
+    // rejects multi-arg api forms used by github-auth-modes (#2275 / #954).
+    const deepRunner =
+      options.runGh ??
+      ((args, environ) => {
+        const ghPath = whichFn("gh") ?? binary ?? "gh";
+        try {
+          const result = spawnSync(ghPath, [...args], {
+            env: environ,
+            encoding: "utf8",
+            timeout: 30_000,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+          return {
+            args: [ghPath, ...args],
+            returncode: result.status ?? 1,
+            stdout: typeof result.stdout === "string" ? result.stdout : "",
+            stderr: typeof result.stderr === "string" ? result.stderr : "",
+          };
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          return { args: [ghPath, ...args], returncode: 1, stdout: "", stderr: message };
+        }
+      });
     const deep = validateGithubAuthForWorker(githubAuthMode, {
       environ: env,
       runtimeReport,
       repo: options.repo,
-      runGh: options.runGh,
+      runGh: deepRunner,
     });
     if (deep.ok) {
       const loginPart = deep.login ? ` as ${deep.login}` : "";
@@ -452,14 +483,31 @@ export function requireScmReady(
   const hermeticAuthSkip =
     options.checkAuthStatus === undefined &&
     (process.env.VITEST === "true" || process.env.DEFT_SCM_SKIP_AUTH_PROBE === "1");
+  if (hermeticAuthSkip) {
+    // Production path uses assertScmBinaryPresent (not test-only).
+    const binary = assertScmBinaryPresent(options.whichFn);
+    const report: ScmReadinessReport = {
+      ready: true,
+      binary,
+      binaryPath: options.whichFn?.(binary) ?? null,
+      authState: "unknown",
+      githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
+      runtimeMode: (options.runtimeReport ?? getPlatformCapabilities()).runtimeMode,
+      injectedTokenPresent: findInjectedToken(options.env ?? process.env) !== null,
+      depth: "shallow",
+      detail: `SCM binary present (${binary}); auth status not checked (hermetic)`,
+      remediation: null,
+      skippedGates: [],
+      login: null,
+      failureKind: null,
+    };
+    cachedReadyReport = report;
+    return report;
+  }
   const report = probeScmReadiness({
     ...options,
     depth: options.depth ?? "shallow",
-    checkAuthStatus: options.checkAuthStatus ?? (hermeticAuthSkip ? false : true),
-    // Binary gate under hermetic skip must not flip to missing-token solely
-    // because CI sets cloud-headless / injected-token inference.
-    githubAuthMode:
-      options.githubAuthMode ?? (hermeticAuthSkip ? GITHUB_AUTH_MODE_HOST_GH : undefined),
+    checkAuthStatus: options.checkAuthStatus ?? true,
   });
   if (!report.ready) {
     throw scmNotReadyError(report);
@@ -468,7 +516,10 @@ export function requireScmReady(
   return report;
 }
 
-/** Test helper: clear the process-scoped readiness cache. */
+/**
+ * Clear the process-scoped readiness cache.
+ * Used by tests and by long-running processes after credential injection.
+ */
 export function clearScmReadyCache(): void {
   cachedReadyReport = null;
 }
