@@ -15,6 +15,7 @@ import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { renderProjectDefinition } from "../render/project-render.js";
+import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
 import { depositStagePaths, printCommitGuidance } from "./hygiene.js";
@@ -40,6 +41,7 @@ import {
   writeConsumerVbrief,
   writeInstallManifest,
 } from "./scaffold.js";
+import { syncBareVersionMarker } from "./xbrief-projections.js";
 
 export interface InitDepositArgs {
   readonly projectDir: string;
@@ -170,9 +172,7 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf(`  1. Open your AI coding assistant in ${result.projectDir}\n`);
   io.printf("  2. Deft skill auto-discovery is partially implemented — if your agent doesn't\n");
   io.printf('     start setup automatically, tell it: "Use AGENTS.md"\n');
-  io.printf(
-    "  3. On first session, the agent will guide you through USER.md (if missing).\n",
-  );
+  io.printf("  3. On first session, the agent will guide you through USER.md (if missing).\n");
   io.printf(
     "  4. PROJECT-DEFINITION is seeded at init (#3013) — run `task project:render` once to refresh items from lifecycle folders; do not multi-turn invent project identity.\n",
   );
@@ -260,6 +260,11 @@ export async function runInitDeposit(
   await depositNeutralization(projectDir, io);
   await writeConsumerVbrief(projectDir, deftDir, io);
   seedMinimalProjectDefinition(projectDir, io);
+  // Seeding PROJECT-DEFINITION.xbrief.json makes resolveLifecycleRoot succeed.
+  // Align the same consumer derivatives update repairs (#2595 / #2806) so
+  // init + git add -A is already clean under core.autocrlf=true (#2118 / #3013).
+  syncBareVersionMarker(projectDir, version);
+  removeStaleMigratedFrameworkNarrative(projectDir);
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
   writeAgentHookDeposit(projectDir, io);
 

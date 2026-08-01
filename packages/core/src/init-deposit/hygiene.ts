@@ -54,6 +54,9 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     // `deft update` framework-deposit PR trips no-mixed-core-and-app (#2277).
     { exact: "xbrief/.deft-version" },
     { exact: "xbrief/xbrief.md" },
+    // Minimal render-ready seed from init (#3013); operator may later edit identity.
+    { exact: "xbrief/PROJECT-DEFINITION.xbrief.json" },
+    { exact: "vbrief/PROJECT-DEFINITION.vbrief.json" },
     { prefix: "xbrief/schemas/" },
     { prefix: "xbrief/migration/" },
     ...VBRIEF_LIFECYCLE_DIRS.map((sub) => ({ exact: `xbrief/${sub}/.gitkeep` })),
