@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1695",
-    "updated": "2026-08-01T02:11:54Z"
+    "updated": "2026-08-01T03:07:50Z"
   },
   "plan": {
     "title": "meta(coding-standards): codify 'no in-band signaling / absence is not a decision' — separate value from decision-provenance",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "meta(coding-standards): codify 'no in-band signaling / absence is not a decision' — separate value from decision-provenance",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1695",
@@ -27,6 +27,10 @@
         "title": "Issue #1695: meta(coding-standards): codify 'no in-band signaling / absence is not a decision' — separate value from decision-provenance"
       }
     ],
-    "updated": "2026-08-01T02:11:54Z"
+    "updated": "2026-08-01T03:07:50Z",
+    "metadata": {
+      "completedAt": "2026-08-01T03:07:50Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

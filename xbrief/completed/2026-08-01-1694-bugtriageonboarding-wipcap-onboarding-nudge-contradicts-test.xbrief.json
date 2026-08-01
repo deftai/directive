@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1694",
-    "updated": "2026-08-01T02:11:52Z"
+    "updated": "2026-08-01T03:07:18Z"
   },
   "plan": {
     "title": "bug(triage,onboarding): wipCap onboarding nudge contradicts test_policy_omits_wip_cap on deft's own repo (unsatisfiable nudge + self-check trap)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(triage,onboarding): wipCap onboarding nudge contradicts test_policy_omits_wip_cap on deft's own repo (unsatisfiable nudge + self-check trap)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1694",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "#1695 — codify the general rule in coding standards + `patterns/in-band-signaling.md`",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -31,6 +31,10 @@
         "title": "Issue #1694: bug(triage,onboarding): wipCap onboarding nudge contradicts test_policy_omits_wip_cap on deft's own repo (unsatisfiable nudge + self-check trap)"
       }
     ],
-    "updated": "2026-08-01T02:11:52Z"
+    "updated": "2026-08-01T03:07:18Z",
+    "metadata": {
+      "completedAt": "2026-08-01T03:07:18Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
