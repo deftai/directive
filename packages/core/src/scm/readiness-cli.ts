@@ -79,6 +79,9 @@ export function scmReadinessMain(
     return 0;
   }
   const depth: ScmProbeDepth = args.depth ?? (args.deep ? "deep" : "shallow");
+  // Explicit probe always re-evaluates (credentials may have changed since
+  // session:start). Clears the process-scoped requireScmReady cache too.
+  clearScmReadyCache();
   const probe = options.probe ?? probeScmReadiness;
   const report = probe({ depth });
   if (args.json) {

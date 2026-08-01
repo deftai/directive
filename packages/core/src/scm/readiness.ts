@@ -149,13 +149,22 @@ function resolveBinaryPresence(whichFn: WhichFn): {
  * Run gh/ghx argv directly (not via scm.call) so readiness probing never
  * re-enters call() / readiness and cannot mis-route `auth status` (#2275 P1).
  */
+/**
+ * Prefer live `gh` for auth/status/api probes. ghx is a cached GET proxy
+ * (#884 / #954) and is not a full passthrough for `auth status` / multi-arg
+ * api forms — using it here false-negatives readiness when only ghx is
+ * preferred on PATH.
+ */
+function resolveAuthProbeBinary(whichFn: WhichFn): string {
+  return whichFn("gh") ?? whichFn("ghx") ?? "gh";
+}
+
 function defaultShallowRunGh(
   args: readonly string[],
   environ: NodeJS.ProcessEnv,
   whichFn: WhichFn = defaultWhich,
 ): CompletedProcess {
-  const { binary } = resolveBinaryPresence(whichFn);
-  const resolved = binary ?? "gh";
+  const resolved = resolveAuthProbeBinary(whichFn);
   try {
     const result = spawnSync(resolved, [...args], {
       env: environ,
