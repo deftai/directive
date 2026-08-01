@@ -478,7 +478,9 @@ export function installOpenClawPin(
 
   // Stage copy first so a failed install never deletes the prior target without
   // a replacement ready (#3008 Greptile P1: failed copies lose replaced targets).
-  const staging = `${target}.deft-installing`;
+  // Unique suffix avoids concurrent doctor --fix races on shared .deft-* names.
+  const swapId = `${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const staging = `${target}.deft-installing-${swapId}`;
   try {
     removePath(staging);
   } catch {
@@ -501,7 +503,7 @@ export function installOpenClawPin(
     };
   }
 
-  const backup = kind !== "missing" ? `${target}.deft-backup` : null;
+  const backup = kind !== "missing" ? `${target}.deft-backup-${swapId}` : null;
   try {
     if (backup !== null) {
       try {

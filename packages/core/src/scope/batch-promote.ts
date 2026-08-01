@@ -5,7 +5,7 @@
  * Activate + implement remain one-at-a-time.
  */
 
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
@@ -13,12 +13,32 @@ import { resolveProjectRoot } from "./project-context.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { checkWipCapForAdditional, formatWipCapRefusal } from "./wip-cap-check.js";
 
-/** True when abs path is inside projectRoot (no escape via .. or other drives). */
+/** True when path (and its realpath, if resolvable) stay inside projectRoot. */
 function isPathInsideProject(projectRoot: string, absPath: string): boolean {
   const root = resolve(projectRoot);
   const abs = resolve(absPath);
   const rel = relative(root, abs);
-  return rel !== "" && !rel.startsWith(`..${sep}`) && !rel.startsWith("..") && !isAbsolute(rel);
+  if (rel === "" || rel.startsWith(`..${sep}`) || rel.startsWith("..") || isAbsolute(rel)) {
+    return false;
+  }
+  // Reject in-project symlinks that resolve outside the tree (#3011 Greptile P1).
+  try {
+    const realRoot = realpathSync(root);
+    const realAbs = realpathSync(abs);
+    const realRel = relative(realRoot, realAbs);
+    if (
+      realRel === "" ||
+      realRel.startsWith(`..${sep}`) ||
+      realRel.startsWith("..") ||
+      isAbsolute(realRel)
+    ) {
+      return false;
+    }
+  } catch {
+    // Unreadable realpath — refuse rather than promote through a broken link.
+    return false;
+  }
+  return true;
 }
 
 export interface BatchPromoteOptions {

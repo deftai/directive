@@ -174,3 +174,4 @@
 2026-07-31T20:48:14Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True
 2026-08-01T03:57:41Z actor=deft policy:allow-direct-commits allowDirectCommitsToMaster=true previous=False
 2026-08-01T03:57:55Z actor=deft policy:allow-direct-commits allowDirectCommitsToMaster=true previous=True
+2026-08-01T04:35:46Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True reason=PR-3026 greptile P1 restore before merge
