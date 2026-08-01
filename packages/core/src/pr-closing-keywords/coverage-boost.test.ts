@@ -46,6 +46,8 @@ describe("coverage boost branches", () => {
     expect(parseArgs(["--allow-known-false-positives"]).error).toContain(
       "--allow-known-false-positives",
     );
+    expect(parseArgs(["--allow-close"]).error).toContain("--allow-close");
+    expect(parseArgs(["--mode"]).error).toContain("--mode");
     expect(parseArgs(["--repo"]).error).toContain("--repo");
   });
 
@@ -54,11 +56,15 @@ describe("coverage boost branches", () => {
       parseArgs([
         "--commits-file=commits.txt",
         "--allow-known-false-positives=1,2",
+        "--allow-close=9",
+        "--mode=fp",
         "--repo=org/repo",
       ]),
     ).toMatchObject({
       commitsFile: "commits.txt",
       allowKnownFalsePositives: ["1,2"],
+      allowClose: ["9"],
+      mode: "fp",
       repo: "org/repo",
     });
   });
@@ -112,13 +118,29 @@ describe("coverage boost branches", () => {
     }
   });
 
-  it("run emits suppressed OK message", () => {
+  it("run emits suppressed OK message (FP mode)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "Intentionally not Closes #100 and not Closes #200.\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body, "--allow-known-false-positives", "100,200"])).toBe(0);
+      expect(
+        run(["--body-file", body, "--mode", "fp", "--allow-known-false-positives", "100,200"]),
+      ).toBe(0);
+      expect(stderr.mock.calls.join("")).toContain("suppressed");
+      stderr.mockRestore();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("run emits intent suppressed OK when allow-close used", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      writeFileSync(body, "Closes #100\n", "utf8");
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      expect(run(["--body-file", body, "--mode", "intent", "--allow-close", "100"])).toBe(0);
       expect(stderr.mock.calls.join("")).toContain("suppressed");
       stderr.mockRestore();
     } finally {

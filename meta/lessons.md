@@ -306,6 +306,17 @@ The existing post-merge verification rule (Lesson: PR Merge Hygiene #1, #167) wa
 
 **Cross-reference:** existing lesson "PR Merge Hygiene" #1 (#167); `scm/github.md` PR conventions; `skills/deft-directive-review-cycle/SKILL.md` Post-Merge Verification; `skills/deft-directive-pre-pr/SKILL.md` Phase 4 (Layer 0 prevention, #737); `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 (Layer 3 recovery, #701).
 
+**4. Class D (#3015): premature *real* `Closes #N` with conditional / multi-phase English is a different failure than class A negation FP**
+
+enterprize PR #30 body contained `Closes #29 Phase A intake only if you want intake closed…`. Layer 0 FP mode (#737) exited 0 (no negation/quote/example/code context). GitHub still matched `Closes #29` and completed multi-phase issue #29 while Phase B/C remained undone.
+
+- Class A = keyword in negation/quote/example/code (FP) — #737
+- Class D = bare or conditional real closing keyword without full DoD — #3015 intent mode
+
+**Rule:** Default PR body uses `Tracking: #N` / `Related: #N` / `Refs #N`. Use `Closes`/`Fixes`/`Resolves #N` only at full issue DoD, with either `deft-close-intent: full` in the body or `--allow-close N` on the lint. ⊗ `Closes #N Phase A` / `only if` / partial English around a real closing keyword.
+
+`task pr:check-closing-keywords` default mode is `both` (FP + intent). `--mode fp` is the class-A-only regression path.
+
 ## GitHub Closing-Keyword False-Positive Layer 3 -- Persistent closingIssuesReferences Link (2026-04)
 
 **Source:** PR #700 squash-merge auto-closed #233; PR #401 squash-merge auto-closed #642 -- both with PR bodies amended to use only `Refs` and no closing keywords in commit messages or the explicit `--subject` / `--body-file` squash payload. Root cause: GitHub's `closingIssuesReferences` link is durable -- it is recorded the moment a closing keyword first appears in a PR body (or an issue is attached via the Development sidebar) and survives every subsequent body / commit-message / squash-payload edit. On squash merge, GitHub iterates the persistent link list and closes every linked issue regardless of the current text.

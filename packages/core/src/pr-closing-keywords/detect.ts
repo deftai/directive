@@ -110,6 +110,13 @@ export function renderHit(hit: Hit): string {
   );
 }
 
+function snippetAround(text: string, match: RegExpExecArray): string {
+  const snippetStart = Math.max(0, (match.index ?? 0) - 30);
+  const snippetEnd = Math.min(text.length, (match.index ?? 0) + match[0].length + 30);
+  return text.slice(snippetStart, snippetEnd).replace(/\n/g, " ");
+}
+
+/** Layer 0 FP hits only (#737): keyword in negation / quotation / example / code-block / blockquote. */
 export function findHits(text: string, source: string): Hit[] {
   const hits: Hit[] = [];
   const re = new RegExp(CLOSING_KEYWORD_RE.source, CLOSING_KEYWORD_RE.flags);
@@ -117,18 +124,45 @@ export function findHits(text: string, source: string): Hit[] {
   while (match !== null) {
     const category = classifyHit(text, match);
     if (category !== null) {
-      const snippetStart = Math.max(0, (match.index ?? 0) - 30);
-      const snippetEnd = Math.min(text.length, (match.index ?? 0) + match[0].length + 30);
-      const context = text.slice(snippetStart, snippetEnd).replace(/\n/g, " ");
       hits.push({
         source,
         keyword: match[1] ?? "",
         issueNumber: Number(match[2]),
-        context,
+        context: snippetAround(text, match),
         reason: category,
       });
     }
     match = re.exec(text);
   }
   return hits;
+}
+
+/**
+ * Intent-mode hits (#3015 class D): every closing-keyword + `#N` match, regardless of
+ * surrounding prose. GitHub closes on token presence; conditional English is ignored.
+ * reason is the FP category when present, otherwise `intent`.
+ */
+export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
+  const hits: Hit[] = [];
+  const re = new RegExp(CLOSING_KEYWORD_RE.source, CLOSING_KEYWORD_RE.flags);
+  let match: RegExpExecArray | null = re.exec(text);
+  while (match !== null) {
+    const category = classifyHit(text, match);
+    hits.push({
+      source,
+      keyword: match[1] ?? "",
+      issueNumber: Number(match[2]),
+      context: snippetAround(text, match),
+      reason: category ?? "intent",
+    });
+    match = re.exec(text);
+  }
+  return hits;
+}
+
+/** Machine trailer: `deft-close-intent: full` allows real closing keywords in intent mode (#3015). */
+export const CLOSE_INTENT_FULL_RE = /^\s*deft-close-intent\s*:\s*full\s*$/im;
+
+export function hasFullCloseIntent(text: string): boolean {
+  return CLOSE_INTENT_FULL_RE.test(text);
 }

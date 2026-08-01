@@ -26,6 +26,10 @@ describe("parseArgs", () => {
         "commits.txt",
         "--allow-known-false-positives",
         "1,2",
+        "--allow-close",
+        "9,10",
+        "--mode",
+        "intent",
         "--repo",
         "deftai/directive",
       ]),
@@ -34,7 +38,17 @@ describe("parseArgs", () => {
       commitsFile: "commits.txt",
       repo: "deftai/directive",
       allowKnownFalsePositives: ["1,2"],
+      allowClose: ["9,10"],
+      mode: "intent",
     });
+  });
+
+  it("defaults mode to both", () => {
+    expect(parseArgs(["--body-file", "b.md"]).mode).toBe("both");
+  });
+
+  it("rejects invalid mode", () => {
+    expect(parseArgs(["--mode", "all"]).error).toMatch(/invalid --mode/);
   });
 
   it("errors on missing input source at run time", () => {
@@ -46,14 +60,87 @@ describe("parseArgs", () => {
 });
 
 describe("run CLI offline", () => {
-  it("exits zero for clean body", () => {
+  it("exits zero for clean body with only Refs (both modes)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      writeFileSync(body, "feat: lint introduction.\n\nRefs #1234\n", "utf8");
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      expect(run(["--body-file", body])).toBe(EXIT_OK);
+      stderr.mockRestore();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("FP-only mode still accepts bare Closes as true-positive control (#737)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      writeFileSync(body, "feat: lint introduction.\n\nCloses #1234\n", "utf8");
+      expect(run(["--body-file", body, "--mode", "fp"])).toBe(EXIT_OK);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("default both mode fails bare Closes without allowlist (#3015)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "feat: lint introduction.\n\nCloses #1234\n", "utf8");
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-      expect(run(["--body-file", body])).toBe(EXIT_OK);
+      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(stderr.mock.calls.join("")).toMatch(/intent mode|#3015/);
       stderr.mockRestore();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("enterprize PR#30 body fails intent, passes FP-only (#3015 class D)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      writeFileSync(
+        body,
+        [
+          "## Summary",
+          "",
+          "Closes #29 Phase A intake only if you want intake closed on merge — otherwise leave #29 open for Phase B/C distill.",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+      expect(run(["--body-file", body, "--mode", "fp"])).toBe(EXIT_OK);
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      expect(run(["--body-file", body, "--mode", "intent"])).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(stderr.mock.calls.join("")).toContain("29");
+      stderr.mockRestore();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("allow-close suppresses intent hit (#3015)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      writeFileSync(body, "feat: done.\n\nCloses #55\n", "utf8");
+      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      expect(run(["--body-file", body, "--allow-close", "55"])).toBe(EXIT_OK);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("deft-close-intent: full trailer suppresses all intent hits (#3015)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      writeFileSync(body, "feat: done.\n\nCloses #55\n\ndeft-close-intent: full\n", "utf8");
+      expect(run(["--body-file", body])).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -90,13 +177,15 @@ describe("run CLI offline", () => {
     expect(run(["--body-file", join(tmpdir(), "does-not-exist.md")])).toBe(EXIT_CONFIG_ERROR);
   });
 
-  it("allow list suppresses hits", () => {
+  it("FP allow list suppresses FP hits in fp mode", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "Body. Intentionally not `Closes #999` (test fixture).\n", "utf8");
-      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
-      expect(run(["--body-file", body, "--allow-known-false-positives", "999"])).toBe(EXIT_OK);
+      expect(run(["--body-file", body, "--mode", "fp"])).toBe(EXIT_HITS_FOUND);
+      expect(
+        run(["--body-file", body, "--mode", "fp", "--allow-known-false-positives", "999"]),
+      ).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -126,7 +215,7 @@ describe("run CLI --pr mode", () => {
         return {
           returncode: 0,
           stdout: JSON.stringify({
-            commits: [{ messageHeadline: "feat: implement", messageBody: "Closes #1\n" }],
+            commits: [{ messageHeadline: "feat: implement", messageBody: "Refs #1\n" }],
           }),
           stderr: "",
         };

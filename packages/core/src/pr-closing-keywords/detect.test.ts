@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findHits } from "./detect.js";
+import { findAllClosingKeywordHits, findHits, hasFullCloseIntent } from "./detect.js";
 
 describe("negation detection", () => {
   it("flags DOES NOT CLOSE", () => {
@@ -100,7 +100,7 @@ describe("blockquote detection", () => {
 });
 
 describe("true positive control", () => {
-  it("returns no hits for legit Closes", () => {
+  it("returns no FP hits for legit Closes (FP mode only)", () => {
     const text = "feat(core): land the gate.\n\nCloses #734\n\nDescription continues...";
     expect(findHits(text, "pr-body")).toEqual([]);
   });
@@ -108,5 +108,31 @@ describe("true positive control", () => {
   it("returns no hits when no keyword present", () => {
     const text = "Refs #642 (umbrella; remains open).";
     expect(findHits(text, "pr-body")).toEqual([]);
+  });
+});
+
+describe("intent mode (#3015 class D)", () => {
+  it("flags bare Closes as intent", () => {
+    const text = "feat(core): land the gate.\n\nCloses #734\n\nDescription continues...";
+    const hits = findAllClosingKeywordHits(text, "pr-body");
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.reason).toBe("intent");
+    expect(hits[0]?.issueNumber).toBe(734);
+  });
+
+  it("flags enterprize PR #30-style conditional Closes", () => {
+    // Exact shape from enterprize PR #30 (class D premature complete of multi-phase #29).
+    const text =
+      "Closes #29 Phase A intake only if you want intake closed on merge — otherwise leave #29 open for Phase B/C distill.";
+    const hits = findAllClosingKeywordHits(text, "pr-body");
+    expect(hits.some((h) => h.issueNumber === 29 && h.reason === "intent")).toBe(true);
+    // FP mode must still pass (class split documentation: class D ≠ class A)
+    expect(findHits(text, "pr-body")).toEqual([]);
+  });
+
+  it("detects deft-close-intent: full trailer", () => {
+    expect(hasFullCloseIntent("Closes #1\n\ndeft-close-intent: full\n")).toBe(true);
+    expect(hasFullCloseIntent("Closes #1\n")).toBe(false);
+    expect(hasFullCloseIntent("  deft-close-intent: full  ")).toBe(true);
   });
 });

@@ -430,6 +430,7 @@ flowchart TD
 
 - `task packs:*` -- render and verify content packs.
 - `task pr:*` -- protected issue checks, closing-keyword checks, merge readiness, and merge helpers.
+  - `task pr:check-closing-keywords` -- Layer 0 FP lint (#737) **plus intent mode** (#3015 class D). Default `--mode both`: fails on negation/quote/example/code-block hits **and** on any real `Closes|Fixes|Resolves #N` unless allowlisted via `--allow-close N,M` or a PR-body trailer `deft-close-intent: full`. Offline: `--body-file` / `--commits-file`. Prefer `Tracking: #N` / `Refs #N` until full issue DoD.
 - `task release:*` -- release, publish, rollback, and e2e release rehearsal.
   - Step 3 (`Pre-flight vBRIEF lifecycle sync`) fetches GitHub issue states via REST. On HTTP 403 rate-limit exhaustion it sleeps once (capped at 120s) and retries before failing.
   - When Step 3 still fails with rate-limit exhaustion, stderr includes a `gh api rate_limit` probe (`core.remaining`, reset time) and recovery guidance. After local `task vbrief:validate` (or `task xbrief:validate`) exits 0, operators may pass `--allow-vbrief-drift` to skip Step 3 for that cut — reserved for transient SCM bucket stalls, not unreviewed lifecycle drift.

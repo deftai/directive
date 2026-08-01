@@ -1,0 +1,70 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3015",
+    "updated": "2026-08-01T02:13:04Z"
+  },
+  "plan": {
+    "title": "pr:check-closing-keywords misses multi-phase / conditional Closes #N (enterprize#29 false complete)",
+    "status": "running",
+    "narratives": {
+      "Description": "pr:check-closing-keywords misses multi-phase / conditional Closes #N (enterprize#29 false complete)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3015",
+      "Overview": "## Summary\n\nDirective documents a **Layer 0** gate: `task pr:check-closing-keywords` (#737) — agents **must** run it in pre-pr before push. It is supposed to stop GitHub auto-close footguns.\n\nOn **deftai/enterprize** PR #30 (2026-07-31), the PR body contained:\n\n```text\nCloses #29 Phase A intake only if you want intake closed on merge — otherwise leave #29 open for Phase B/C distill.\n```\n\nGitHub still matched **`Closes #29`** and closed multi-phase issue **#29** as COMPLETED on squash merge. Phase B/C were **not** done.\n\n## Reproduce (consumer deposit 0.90.0)\n\n```bash\n# body file = exact PR #30 body (includes the Closes #29 line above)\ntask deft:pr:check-closing-keywords -- --body-file /tmp/pr30-body.md --commits-file /tmp/pr30-commits.txt\n# → OK: no closing-keyword negation/quotation/example/code-block hits found.\n# → exit 0\n```\n\nSo the gate **passed** while GitHub **would and did** close the issue.\n\n## Root cause (stacked)\n\n| Layer | What happened |\n| --- | --- |\n| **GitHub** | Closing keywords match `Closes #N` even with trailing prose (“Phase A…”, “only if…”). Conditional English is ignored. |\n| **Agent body** | Author wrote `Closes #29…` intending a *partial* phase note. Wrong pattern; should be `Tracking: #29` / no close keyword until full DoD. |\n| **Directive Layer 0 (#737)** | Lint scope is **negation / quotation / example / code-block** contexts only (e.g. `DOES NOT CLOSE #734`). A bare/conditional **real** `Closes #N` on a multi-phase umbrella is **out of scope** → exit 0. |\n| **Directive Layer 3 (#701)** | `pr:check-protected-issues` only helps if the issue is registered **protected / staying-OPEN**. #29 was a normal multi-phase issue, not protected. |\n| **Process** | Pre-pr skill says ! run the lint — even perfect compliance would not have blocked this body. Babysit/merge path does not re-lint body at merge. |\n\n## Failure classes (extend the existing stack)\n\n| Class | Example | Coverage today |\n| --- | --- | --- |\n| A. Negation / quote FP | `DOES NOT CLOSE #734` | Layer 0 #737 |\n| B. Sticky Development link | body fixed, link remains | Layer 3 #701 |\n| C. Squash body / commit concat | `Closes` only in commits | #701 + controlled squash body |\n| **D. Premature real close** | `Closes #29 Phase A…` | **this issue — gap** |\n| E. Should have closed, didn’t | merge with no keyword | Layer 1 #167 verify |\n\n#29 / PR #30 = **class D**. Existing layers target A–C and E, not premature intentional-looking closes.\n\n---\n\n## Proposed fix (Admiral design capture 2026-07-31)\n\nGoal: catch class D **before** it occurs, **at merge**, and **after** with automatic safe repair (reopen — not silent history rewrite).\n\n### Asymmetry\n\n- **Auto-reopen** premature closes = safe default.\n- **Auto-close** from heuristics = ⊗ (too dangerous).\n- Do not try to change GitHub’s keyword parser.\n\n### P0 — Before (prevention)\n\n#### P0.1 Agent / skill policy\n\nIn pre-pr, review-cycle, and scm body helpers:\n\n- Default PR body: `Tracking: #N` / `Related: #N` only.\n- `Closes` / `Fixes` / `Resolves #N` only when **full issue DoD** is met.\n- ⊗ `Closes #N Phase A` / `only if` / `partial` / conditional English around a real closing keyword.\n\n#### P0.2 Expand Layer 0 into two modes\n\n| Mode | Fail when |\n| --- | --- |\n| **FP mode** (existing #737) | keyword in negation / quotation / example / code-block |\n| **Intent mode** (new) | **any** closing keyword unless explicitly allowlisted |\n\nAllowlist (pick one default-strict; document both):\n\n1. CLI: `--allow-close N,M` on the lint, **or**\n2. Machine trailer in PR body, e.g. `deft-close-intent: full`, required beside any `Closes #N`.\n\nBare / conditional `Closes #N` without allowlist → exit 1.\n\n#### P0.3 CI on every PR\n\nDo not rely on agent memory alone. Workflow step runs FP + intent modes on live PR body + commits.\n\n### P1 — At merge (last mechanical gate)\n\nWire into `pr:wait-mergeable-and-merge` / finish-loop **before** `gh pr merge`:\n\n1. Re-fetch **live** body + commits + `closingIssuesReferences`.\n2. Run FP + intent lints.\n3. Run `pr:check-protected-issues` (#701).\n4. If sticky bad links: auto-unlink (GraphQL) or fail with exact unlink command.\n5. Squash-merge only with explicit `--body-file` (never default squash = commit concat).\n\nCatches body edits after pre-pr and babysit paths that skip skills.\n\n### P1 — After (detect + auto-repair)\n\n#### Post-merge close audit (extend #167)\n\nFor each issue closed by / linked from the merged PR:\n\n| Signal | Action |\n| --- | --- |\n| Unchecked `- [ ]` remaining in issue body / open Phase B–C language | **auto-reopen** + sticky comment |\n| Label `multi-phase` / `protected` / `staying-open` | same |\n| Machine policy e.g. `deft-close-policy: stay-open-until: …` | same |\n| Expected close, still open (class E) | comment + fail audit |\n\n#### Auto-fix playbook (deterministic)\n\n```text\non premature-close detected:\n  1. gh issue reopen N\n  2. sticky comment: PR #, keyword snippet, policy cite, audit id\n  3. optional: note on PR (historical)\n  4. triage / product-signal audit row\n  5. if running in merge job: exit 1 so the failure is visible\n```\n\n#### Optional reconcile\n\n`task pr:audit-closes --since 24h` (or extend `reconcile:issues`) for merges that bypassed the wrapper (UI / raw `gh pr merge`).\n\n### P2 — Hardening\n\n- Auto-label multi-phase / umbrella issues → protected set (Layer 3 always on for them).\n- `scm:body:pr:edit` helper: rewrite accidental `Closes` → `Tracking` before merge.\n- Lesson row in `meta/lessons.md`: class D ≠ class A; cite enterprize #29 / PR #30.\n\n---\n\n## Implementation order (suggested acceptance slices)\n\n- [ ] **Slice 1 — Policy:** skill + docs ⊗ partial/conditional `Closes`; default `Tracking: #N`\n- [ ] **Slice 2 — Intent lint:** any closing keyword fails unless `--allow-close` / `deft-close-intent: full`\n- [ ] **Slice 3 — CI:** both lints on PR\n- [ ] **Slice 4 — Merge wrapper:** live re-check + sticky unlink + explicit squash body\n- [ ] **Slice 5 — Post-merge audit:** checklist / multi-phase / protected → auto-reopen + comment\n- [ ] **Slice 6 — Protect multi-phase by default** + optional rewrite helper + lessons\n\nEach slice independently valuable; P0 slices stop recurrence even without auto-reopen.\n\n## Tests / fixtures\n\n- [ ] Fixture body = enterprize PR #30 text → intent mode **exit 1**\n- [ ] Same body → FP mode still exit 0 (documents class split)\n- [ ] `Closes #N` + `deft-close-intent: full` (or allowlist) → exit 0\n- [ ] `DOES NOT CLOSE #N` → FP mode exit 1 (no regression on #735)\n- [ ] Post-merge audit: issue with open checkbox closed by PR → reopen path (hermetic)\n\n## Actual (incident)\n\nLayer 0 green + merge → GitHub closed enterprize #29 COMPLETED; manual reopen/re-close + clean follow-up required.\n\n## Evidence\n\n- enterprize PR #30 body (merged)\n- enterprize #29 closed at `2026-07-31T21:06:32Z` by merge event\n- Pre-pr skill Phase 4 Diff requires `task pr:check-closing-keywords` (#737); recurrence stack #167 / #697 / #698 / #401 / #700 / #735\n- Live check exit 0 on the offending body (0.90.0 consumer)\n- Design discussion: Admiral + Number One 2026-07-31 (~18:28–18:36 CDT)\n\n## Related\n\n- #737 Layer 0 lint (FP / negation)\n- #701 protected issues (Layer 3)\n- #167 post-merge close verify (Layer 1)\n- #735 squash `DOES NOT CLOSE` (class A — different from this class D)\n- enterprize #29 (Phase A intake; premature complete)\n- enterprize #34 (clean hardening follow-up; not a reopen of #29)\n- enterprize PR #30\n\n## Non-goals\n\n- Changing GitHub’s keyword parser (out of our control)\n- Auto-closing issues from heuristics\n- Silent rewrite of git/GitHub history to hide a bad close\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @ape-deft (2026-07-31T23:37:42Z)\n\n## Update (2026-07-31 ~18:36 CDT)\n\nIssue body expanded with Admiral-facing design:\n\n- Failure **class D** (premature real close) vs existing A–C/E stack\n- Fix stack: **before** (policy + intent-mode lint + CI) · **at merge** (live re-check / sticky unlink / explicit squash body) · **after** (auto-**reopen** premature closes — not auto-close heuristics)\n- P0→P2 slices + fixture acceptance\n- Asymmetry: reopen safe; auto-close from heuristics forbidden\n\nRefs: enterprize #29 / PR #30 / #34"
+    },
+    "items": [
+      {
+        "title": "**Slice 1 — Policy:** skill + docs ⊗ partial/conditional `Closes`; default `Tracking: #N`",
+        "status": "proposed"
+      },
+      {
+        "title": "**Slice 2 — Intent lint:** any closing keyword fails unless `--allow-close` / `deft-close-intent: full`",
+        "status": "proposed"
+      },
+      {
+        "title": "**Slice 3 — CI:** both lints on PR",
+        "status": "proposed"
+      },
+      {
+        "title": "**Slice 4 — Merge wrapper:** live re-check + sticky unlink + explicit squash body",
+        "status": "proposed"
+      },
+      {
+        "title": "**Slice 5 — Post-merge audit:** checklist / multi-phase / protected → auto-reopen + comment",
+        "status": "proposed"
+      },
+      {
+        "title": "**Slice 6 — Protect multi-phase by default** + optional rewrite helper + lessons",
+        "status": "proposed"
+      },
+      {
+        "title": "Fixture body = enterprize PR #30 text → intent mode **exit 1**",
+        "status": "proposed"
+      },
+      {
+        "title": "Same body → FP mode still exit 0 (documents class split)",
+        "status": "proposed"
+      },
+      {
+        "title": "`Closes #N` + `deft-close-intent: full` (or allowlist) → exit 0",
+        "status": "proposed"
+      },
+      {
+        "title": "`DOES NOT CLOSE #N` → FP mode exit 1 (no regression on #735)",
+        "status": "proposed"
+      },
+      {
+        "title": "Post-merge audit: issue with open checkbox closed by PR → reopen path (hermetic)",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3015",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3015: pr:check-closing-keywords misses multi-phase / conditional Closes #N (enterprize#29 false complete)"
+      }
+    ],
+    "updated": "2026-08-01T02:13:04Z"
+  }
+}

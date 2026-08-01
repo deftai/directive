@@ -28,18 +28,17 @@ tasks:
         vars:
           ENGINE_CMD: 'pr-protected-issues {{.CLI_ARGS}}'
 
-  # pr:check-closing-keywords -- Layer 0 (prevention) closing-keyword
-  # negation-context lint introduced by #737. Refuses to push when the
-  # PR body or any commit message contains a closing-keyword token in a
-  # negation / quotation / example / code-block context. Pairs with the
-  # existing Layer 3 (recovery) ``pr:check-protected-issues`` (#701).
+  # pr:check-closing-keywords -- Layer 0 prevention (#737 FP + #3015 intent).
+  # Default --mode both: FP (negation/quote/example/code) + intent (any real
+  # Closes/Fixes/Resolves #N unless --allow-close or deft-close-intent: full).
+  # Pairs with Layer 3 recovery ``pr:check-protected-issues`` (#701).
   #
   # Per ``conventions/task-caching.md`` (#574): NO ``sources:`` /
   # ``generates:`` because user-facing recovery flags (``--pr``,
-  # ``--body-file``, ``--commits-file``, ``--allow-known-false-positives``)
-  # MUST NOT be silently swallowed by go-task's incremental-build cache.
+  # ``--body-file``, ``--commits-file``, ``--allow-known-false-positives``,
+  # ``--allow-close``, ``--mode``) MUST NOT be silently swallowed by go-task cache.
   check-closing-keywords:
-    desc: "Scan PR body + commit messages for closing-keyword substrings in negation/quotation/example contexts that would trigger Layer 0 false-positive auto-closes (#737)"
+    desc: "Scan PR body + commits for closing-keyword FP contexts (#737) and unallowlisted real closes / intent mode (#3015 class D). Default --mode both."
     dir: '{{.USER_WORKING_DIR}}'
     deps: [":engine:_ts-build"]
     env:
