@@ -21714,6 +21714,12 @@
         "sinkRepo": "deftai/product-signal"
       }
     },
-    "updated": "2026-07-02T14:32:31Z"
+    "updated": "2026-07-02T14:32:31Z",
+    "x-directive/onboarding": {
+      "wipCapDecided": true,
+      "acceptedDefault": true,
+      "decidedAt": "2026-08-01T00:00:00Z",
+      "actor": "maintainer-#1694"
+    }
   }
 }

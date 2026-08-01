@@ -62,6 +62,25 @@ describe("runOnboardMode (#2295)", () => {
     expect(out.some((l) => l.includes("triage:bootstrap"))).toBe(true);
   });
 
+  it("records wipCap default decision without materializing the field (#1694)", () => {
+    const { root, out } = seedProject();
+    const outcome = runOnboardMode(root, {
+      writeHistory: false,
+      selfHealFn: noHeal,
+      output: (l) => out.push(l),
+    });
+    expect(outcome.exitCode).toBe(0);
+    expect(readPolicy(root).wipCap).toBeUndefined();
+    const payload: unknown = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    );
+    const plan = (payload as { plan?: Record<string, unknown> }).plan ?? {};
+    expect(plan["x-directive/onboarding"]).toMatchObject({
+      wipCapDecided: true,
+      acceptedDefault: true,
+    });
+  });
+
   it("honors an explicit --preset", () => {
     const { root, out } = seedProject();
     const outcome = runOnboardMode(root, {

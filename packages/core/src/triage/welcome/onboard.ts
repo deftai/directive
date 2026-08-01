@@ -7,7 +7,13 @@ import { DEFAULT_WIP_CAP, SUBSCRIPTION_PRESETS, TRIAGE_SKILL_PATH } from "./cons
 import { formatWelcomeCommand } from "./default-mode.js";
 import { detectPriorState } from "./prior-state.js";
 import { emitOneliner } from "./summary.js";
-import { previewWipRelief, subscriptionPreset, writeTriageScope, writeWipCap } from "./writers.js";
+import {
+  previewWipRelief,
+  subscriptionPreset,
+  writeTriageScope,
+  writeWipCap,
+  writeWipCapDecision,
+} from "./writers.js";
 
 /** Default triage-scope preset applied when `--onboard` is run without `--preset`. */
 export const DEFAULT_ONBOARD_PRESET = "small";
@@ -102,7 +108,12 @@ export function runOnboardMode(projectRoot: string, options: OnboardOptions = {}
 
   let wipCapChanged = false;
   if (wipCap !== null) {
+    // writeWipCap also records out-of-band decision-provenance (#1694).
     [wipCapChanged] = writeWipCap(projectRoot, wipCap);
+  } else {
+    // Accepting the framework default is a real onboarding decision: record it
+    // without materializing plan.policy.wipCap (#1694 / #1186 D1 / #1250).
+    writeWipCapDecision(projectRoot, { acceptedDefault: true });
   }
 
   emitOneliner(projectRoot, {

@@ -78,19 +78,18 @@ describe("recordFrictionFromContradictoryGates (#2339)", () => {
     error: null,
   };
 
-  it("records friction:directive-gap when eval:health finds a contradiction", () => {
+  it("does not invent friction from the fixed #1694 omit-by-design seed", () => {
+    // Pre-#1694 this seed fired wipCap-unsatisfiable-nudge. After the fix,
+    // greenfield incomplete is satisfiable via out-of-band decision provenance,
+    // so eval:health no longer reports a contradiction for this shape.
     const root = seedContradictionRepo();
     const log = logPath(root);
     const recorded = recordFrictionFromContradictoryGates(root, {
       logPath: log,
       policyOverride: enabledPolicy,
     });
-    expect(recorded).toBe(1);
-    const entries = readEvents(log).filter((record) => record.event === "friction:directive-gap");
-    expect(entries).toHaveLength(1);
-    expect(entries[0]?.payload.signal_class).toBe("friction");
-    expect(entries[0]?.payload.source).toBe("eval:health");
-    expect(String(entries[0]?.payload.detail)).toContain("wipCap-unsatisfiable-nudge");
+    expect(recorded).toBe(0);
+    expect(existsSync(log)).toBe(false);
   });
 
   it("stays silent when value feedback is disabled", () => {

@@ -105,12 +105,26 @@ describe("computeHealthScore", () => {
 });
 
 describe("detectWipCapUnsatisfiableNudge", () => {
-  it("reports the canonical #1694 contradiction when wipCap is omitted but onboarding expects it", () => {
+  it("no longer treats omit-by-design absence as an unsatisfiable contradiction (#1694)", () => {
     const root = seedRepo();
-    const evidence = detectWipCapUnsatisfiableNudge(root);
-    expect(evidence).not.toBeNull();
-    expect(evidence?.id).toBe("wipCap-unsatisfiable-nudge");
-    expect(evidence?.kind).toBe("unsatisfiable-nudge");
+    // Greenfield incomplete (no decision marker) is satisfiable via writeWipCapDecision.
+    expect(detectWipCapUnsatisfiableNudge(root)).toBeNull();
+  });
+
+  it("returns null when decision marker records default-accept without materializing wipCap", () => {
+    const root = seedRepo();
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const raw: unknown = JSON.parse(readFileSync(pdPath, "utf8"));
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error("fixture PROJECT-DEFINITION must be an object");
+    }
+    const data = raw as Record<string, unknown>;
+    (data.plan as Record<string, unknown>)["x-directive/onboarding"] = {
+      wipCapDecided: true,
+      acceptedDefault: true,
+    };
+    writeFileSync(pdPath, JSON.stringify(data), "utf8");
+    expect(detectWipCapUnsatisfiableNudge(root)).toBeNull();
   });
 
   it("returns null when wipCap is materialized", () => {

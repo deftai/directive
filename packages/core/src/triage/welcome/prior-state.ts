@@ -6,7 +6,7 @@ import {
   resolveLifecycleRoot,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
-import { readPlanPolicy } from "../../policy/plan-extensions.js";
+import { readPlanOnboarding, readPlanPolicy } from "../../policy/plan-extensions.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 import {
   CACHE_DIR_NAME,
@@ -21,7 +21,14 @@ export interface PriorState {
   readonly triageScopeSummary: string;
   readonly cacheEmpty: boolean;
   readonly cacheEntryCount: number;
+  /** True when plan.policy.wipCap is materialized (deliberate non-default override). */
   readonly wipCapSet: boolean;
+  /**
+   * True when an out-of-band decision-provenance marker records that the
+   * operator considered WIP cap (#1694). Orthogonal to {@link wipCapSet}:
+   * accepting the framework default sets this without materializing the field.
+   */
+  readonly wipCapDecided: boolean;
   readonly wipCap: number;
   readonly wipCount: number;
   readonly auditLogPresent: boolean;
@@ -173,6 +180,18 @@ export function detectPriorState(projectRoot: string): PriorState {
     }
   }
 
+  // Decision-provenance is out-of-band from the value field (#1694 / #1695).
+  // Accepting the framework default records wipCapDecided without materializing
+  // plan.policy.wipCap. A materialized override also counts as a decision.
+  const onboarding = readPlanOnboarding(plan);
+  let wipCapDecided = false;
+  if (typeof onboarding === "object" && onboarding !== null && !Array.isArray(onboarding)) {
+    wipCapDecided = (onboarding as Record<string, unknown>).wipCapDecided === true;
+  }
+  if (wipCapSet) {
+    wipCapDecided = true;
+  }
+
   const [scopeSet, scopeLabel] = summarizeScope(scopeRules);
   const cacheCount = countCacheEntries(projectRoot);
   return {
@@ -181,6 +200,7 @@ export function detectPriorState(projectRoot: string): PriorState {
     cacheEmpty: cacheCount === 0,
     cacheEntryCount: cacheCount,
     wipCapSet,
+    wipCapDecided,
     wipCap,
     wipCount: countWip(projectRoot),
     auditLogPresent: existsSync(candidatesLogPath(projectRoot)),
@@ -189,10 +209,12 @@ export function detectPriorState(projectRoot: string): PriorState {
 }
 
 export function classifyOnboarding(state: PriorState): [string, string[]] {
+  // wipCap onboarding completeness is decision-provenance, not field presence
+  // (#1694). Omission of plan.policy.wipCap with wipCapDecided=true is fully set up.
   const signals: Record<string, boolean> = {
     "candidates.jsonl": state.auditLogPresent,
     triageScope: state.triageScopeSet,
-    wipCap: state.wipCapSet,
+    wipCap: state.wipCapDecided,
   };
   const present = Object.keys(signals).filter((k) => signals[k]);
   const missing = Object.keys(signals).filter((k) => !signals[k]);

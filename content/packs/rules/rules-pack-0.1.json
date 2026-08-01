@@ -65,7 +65,7 @@
       "domain": "coding",
       "text": "All *.md in `docs/` directory (except README.md, AGENTS.md, WARP.md)",
       "path": "coding/coding.md",
-      "body": "# Coding Guidelines\n\nSoftware development specific guidelines for AI agents.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n**⚠️ See also** (load only when needed):\n- [../main.md](../../main.md) - General AI behavior and agent persona\n- [PROJECT.md](../../PROJECT.md) - For project-specific overrides\n- [../tools/telemetry.md](../tools/telemetry.md) - When implementing logging/tracing/metrics\n\n## Code Organization\n\n**Documentation:**\n- ! All *.md in `docs/` directory (except README.md, AGENTS.md, WARP.md)\n- ! Prior tasks/plans in `history/`\n\n**Filenames:**\n- ~ Use hyphens not underscores (unless language idiom)\n\n**Secrets:**\n- ! ALL secrets in `secrets/` dir as .env files\n- ⊗ Secrets in code\n\n## Code Search\n\n- ! use `rg`, or `ast-grep` (when available) instead of grep\n- ! Use Warp's built-in grep (which is rg) when running on warp\n- ~ Install if missing\n- ? Fall back to `grep` command only if tools cannot be installed\n\n## Version Control\n\nSee [../scm/git.md](../scm/git.md) for:\n- Commit conventions (Conventional Commits)\n- Safety rules (no force-push without permission)\n- Branch workflows\n\n## Code Design\n\n**Modularity:**\n- ! One responsibility per file/module\n- ~ Files <300 lines ideal; <500 lines recommended; <1000 lines a review trigger — split when exceeded unless genuinely single-responsibility (size is a smell, not a hard cap; #1488)\n- ! Explicit scope in task descriptions\n- ~ DRY: extract shared abstractions when logic is duplicated across 2+ call sites\n- ⊗ Copy-paste logic with minor variations — parameterise instead\n\n**Dependency Direction:**\n- ⊗ Circular imports between modules/packages\n- ~ Layered architecture: high-level modules depend on low-level ones, never the reverse\n- ! Use dependency inversion (interfaces/protocols) to break coupling across layers\n- See [hygiene.md](hygiene.md) for detection tools (madge, pydeps, Go compiler)\n\n**Contract-First:**\n- ! Define interfaces/types/protocols before implementation\n- ! Changes to public interfaces require explicit versioning or deprecation path\n- ! Document all public API contracts clearly\n\n**Immutability:**\n- ~ Prefer immutable data + pure functions\n- ~ When mutation needed, use narrow owned scopes (context managers, RAII)\n- ⊗ Global or singleton mutable state (almost always)\n\n**Error Handling:**\n- ~ Prefer Result/Option types or explicit exceptions over None/null/undefined\n- ! Document possible exceptions/error codes for all public functions\n- ! Validate all inputs at API boundaries\n- ⊗ Trust caller without validation\n- ⊗ Empty catch/except/recover blocks that swallow errors silently\n- ⊗ Returning neutral/zero values (None, {}, [], 0, false, \"\") to mask errors — propagate explicitly\n- ⊗ Log-and-continue: catching an error and proceeding as if it didn't happen, unless provably non-fatal and documented\n- See [hygiene.md](hygiene.md) for full error-hiding anti-pattern catalogue\n\n**Readability:**\n- ! Follow language idioms strictly\n- ! Meaningful names over short names\n- ! Comments explain **why**, code shows **what**\n- ⊗ Clever code over clear code\n\n## Quality Standards\n\n**General:**\n- ! Run all relevant checks (lint, fmt, quality, build, test) before submitting changes\n- ⊗ Claim checks passed without running them\n- ! If checks cannot run, explicitly state why and what would have been executed\n- ~ Prioritize code quality and readability over backwards compatibility\n\n**Testing:**\n- ! Implementation is INCOMPLETE until tests written AND `task test:coverage` passes\n- See [../coding/testing.md](../coding/testing.md) for universal requirements\n\n**Security:**\n- ! Apply baseline security standards to every project from day one\n- See [../coding/security.md](../coding/security.md) for input validation, authn/authz, secrets, dependency, TOCTOU / mutable-external-resource rules (#1938), and agent-specific threats (#661)\n\n**Codebase Hygiene:**\n- See [hygiene.md](hygiene.md) for: dead code removal, circular dependency detection, error hiding patterns, legacy/deprecated code cleanup\n\n**Telemetry:**\n- See [../tools/telemetry.md](../tools/telemetry.md) for recommendations\n- ~ Structured logging for production\n- ~ Error tracking (Sentry.io or equivalent)\n- ? Distributed tracing for complex systems\n\n## Fail Loud: Completion Claims Require Outcome Verification (#1006)\n\nThe failure mode is the agent stating completion at the level of **intent** (\"I ran the migration\", \"the tests pass\", \"the feature works\") rather than at the level of **outcome verification** (\"all 167 records migrated, 0 skipped\", \"42 tests collected, 42 passed, 0 skipped, 0 xfailed\", \"the edge case asked about was reproduced and now returns the expected value\"). Outcome-blind completion claims hide silent skips, swallowed exceptions, suppressed errors, and unverified edge cases behind successful-sounding language. The example from the source: a database migration that completed \"successfully\" had silently skipped 14% of records on a constraint violation; the skip was logged but not surfaced; the bad reports were discovered 11 days later.\n\nThis rule is the OPERATIONAL complement to the EPISTEMIC honesty rules elsewhere in the framework (`main.md` morals section: don't present speculation as fact; label unverified claims). Morals.md says \"don't lie\". Fail-loud says \"count the records, check the logs, run the edge case, **then** claim completion.\" It is also the output-side complement to goal-gate-determinism (the gate specifies what evidence is required) and machine-verifiable-spec (verification commands prevent silent skips) -- without fail-loud, an agent can satisfy the letter of a gate (\"tests pass\") while hiding the gap (\"some tests were skipped\").\n\n- ! Before claiming a batch operation succeeded, MUST verify the record count and surface it in the claim (\"migrated 167/167 records, 0 skipped, 0 errored\" -- not \"migration completed\")\n- ! Before claiming \"tests pass\", MUST report the count of collected / passed / skipped / xfailed / errored tests (\"42 collected, 42 passed, 0 skipped\" -- not \"tests pass\"). A skipped or xfailed test is NOT a passing test for the purpose of this claim\n- ! Before claiming \"the feature works\", MUST report the specific edge case that was verified (if the user asked about a specific edge case, that edge case MUST be in the verification report; \"the happy path works\" is not equivalent to \"the feature works\")\n- ! Before claiming a migration / data transform / batch job completed, MUST check the error log AND the skip log AND the constraint-violation surface; surface the counts even when zero (\"0 skipped, 0 errored\" is the load-bearing claim, not silence)\n- ! When uncertainty exists about whether something worked, MUST surface the uncertainty explicitly (\"the migration completed and reported success but I have not verified the per-record count -- recommend running `<verification-command>` before declaring done\")\n- ⊗ MUST NOT claim \"tests pass\" when any test was skipped, xfailed, or run with errors suppressed -- report the full counts instead\n- ⊗ MUST NOT claim \"migration completed\" / \"batch succeeded\" / \"job finished\" without checking and reporting the per-record outcome counts\n- ⊗ MUST NOT claim \"feature works\" when only the happy path was verified -- name the edge case that was tested, or surface that it wasn't\n- ⊗ MUST NOT use successful-sounding completion phrasing to paper over uncertainty -- default to surfacing uncertainty, not hiding it\n- ⊗ MUST NOT suppress error output (`2>$null`, `2>/dev/null`, `try/except: pass` around the verification command) and then claim completion based on the resulting silence\n\n- ! Before claiming \"feature complete\", \"ready for real users\", \"production-ready\", or equivalent area-complete language for a surface that has open graduations (Now+Later dual-path locks; #2899), MUST name the open `graduationRef`s, **or** explicitly state that graduation review was skipped and why — otherwise the claim is outcome-blind under this rule\n- ⊗ MUST NOT claim \"feature complete\" / \"production-ready\" / \"ready for real users\" for an area with open graduations without naming those `graduationRef`s or an explicit skip-with-reason\n\nThe rule applies to agent completion claims during task execution. It applies equally to claims to the user, claims in commit messages, claims in PR bodies, claims in CHANGELOG entries, and claims in status messages to a parent agent. A short, honest \"the migration completed; I did not verify the per-record count\" is strictly preferred over a confident \"migration completed successfully\" that hides the gap.\n\n**Cross-references:** strategies discuss/probe Graduation dual-path locks (#2899); `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).\n\n## Calling LLM APIs (#481)\n\nWhen the project calls LLM APIs (OpenAI, Anthropic, Cohere, local models, etc.) or builds agentic functionality, the architectural standards in `patterns/llm-app.md` apply alongside the coding rules above. In the directive maintainer repo this section is **guidance for consumer projects** — provider names are illustrative labels under the framework instruction hierarchy, not runtime SDK surfaces (#2414; see `meta/security.md` `## Informational AppSec findings`). The short form:\n\n- ! User input is NEVER placed in the system prompt; the system prompt is the trust boundary\n- ! External content is ALWAYS wrapped in explicit delimiters (`<user_input>`, `<document>`, `<tool_result>`) and surfaces its trust tier\n- ! Tool call arguments are validated against a schema BEFORE execution (the LLM is a confused deputy)\n- ! LLM outputs are validated against expected schemas before being acted upon (no eval-of-output, no shell-of-output, no SQL-of-output)\n- ⊗ MUST NOT write LLM outputs back into the retrieval corpus in the same session without validation (RAG poisoning vector)\n\nSee [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: prompt construction, trust tiers, tool/function-call validation, RAG hygiene, output handling, multi-agent orchestration, and LLM-specific observability. See [../tools/telemetry.md](../tools/telemetry.md) `## LLM-specific observability (#481)` for the matching observability surface.\n\n## Debugging and Root-Cause Investigation (#1621)\n\nWhen a bug, failure, or unexpected behaviour needs diagnosis, the root-cause standards in `debugging.md` apply. The short form:\n\n- ! No fixes without root-cause investigation first (the Iron Law)\n- ! Reproduce the failure consistently before proposing a fix — a non-reproducible bug is not yet understood\n- ! Every factual claim cites evidence; an uncited claim is a `[HYPOTHESIS]`, not a finding (evidence before narrative)\n- ! Runtime/config values are proven from the runtime, never inferred from source code (config is not code)\n- ⊗ MUST NOT present a duration or an exit status (\"slow because phase X took N minutes\", \"failed because it timed out\") as a root cause — name a mechanism (no tautologies)\n- ! After 3 failed distinct fixes, STOP and escalate for architectural review (the 3-fix gate)\n\nSee [debugging.md](debugging.md) for the full four-phase process, evidence discipline, Fact vs Hypothesis labeling (#1580), the observability-gap loop, and the rationalization table. For a sustained multi-agent investigation posture, see the `deft-directive-debug` skill.\n\n## Build Automation\n\n**Taskfile:**\n- ! Use Task ([go-task](https://taskfile.dev)) for all repeatable operations\n- ! If `task` not found, attempt to install go-task\n- ! If installation fails, stop and ask user for help\n- See [../tools/taskfile.md](../tools/taskfile.md) for standards and common commands\n\n**Toolchain Validation:**\n- See [../coding/toolchain.md](../coding/toolchain.md) for rules on verifying required tools are installed before implementation begins\n\n**Build Output Validation:**\n- See [../coding/build-output.md](../coding/build-output.md) for rules on verifying `dist/` artifacts and non-compiled assets after custom build scripts run\n\n## Change Management\n\n**Impact Awareness:**\n- ! Before changing shared code, identify affected downstream modules/files\n- ~ Prefer additive changes (new functions, fields with defaults) over breaking renames\n- ! Make small, reversible changes\n- ! Explain impact and migration path for breaking changes\n\n**Production Safety:**\n- ! Assume production impact unless stated otherwise\n- ! Call out risk when touching: auth, billing, data, APIs, build systems\n- ⊗ Silent breaking behavior\n- ~ Test changes in staging/dev environment when possible\n\n## Language-Specific Guidelines\n\n**Languages:**\n- C++: [../languages/cpp.md](../languages/cpp.md)\n- Go: [../languages/go.md](../languages/go.md)\n- Office.js: [../languages/officejs.md](../languages/officejs.md)\n- Python: [../languages/python.md](../languages/python.md)\n- TypeScript: [../languages/typescript.md](../languages/typescript.md)\n- VBA: [../languages/vba.md](../languages/vba.md)\n\n**Interface Types:**\n- CLI: [../interfaces/cli.md](../interfaces/cli.md)\n- TUI: [../interfaces/tui.md](../interfaces/tui.md)\n- Web: [../interfaces/web.md](../interfaces/web.md)\n- REST API: [../interfaces/rest.md](../interfaces/rest.md)\n\n## Development Workflow\n\n**Localhost:**\n- No permission needed for curl localhost\n\n**Plans:**\n- ~ Create both:\n  1. Warp plan (using `create_plan` tool)\n  2. Archive copy in `history/plan-YYYY-MM-DD-description.md`\n\n## Project Context\n\n- ! Check [PROJECT.md](../../PROJECT.md) for project-specific overrides\n- ~ Inspect project config (package.json, pyproject.toml, etc.) for available scripts\n- ! Follow project-specific testing, coverage, and quality requirements\n\n## Anti-Patterns\n\n- ⊗ Secrets in code or version control\n- ⊗ Claiming checks passed without running them\n- ⊗ Single files mixing multiple responsibilities (large line count, e.g. >1000 lines, is a trigger to check cohesion — not a defect by itself; #1488)\n- ⊗ Skipping quality checks\n- ⊗ Breaking changes without explicit approval\n- ⊗ Using `grep` command when `rg` or Warp grep available\n- ⊗ Implementing code without tests\n- ⊗ Claiming \"done\" before running test:coverage\n- ⊗ Ignoring coverage drops\n- ⊗ Weak types (`any`, `interface{}`, untyped `object`) where concrete types are knowable\n- ⊗ Dead code: unused functions, unreachable branches, stale feature flags, commented-out blocks\n- ⊗ Error hiding: empty catch blocks, silent fallbacks, swallowed exceptions\n- ⊗ Circular imports between modules\n- ⊗ Duplicate logic across 2+ call sites without shared abstraction\n- ⊗ Outcome-blind completion claims: \"tests pass\" with skipped tests, \"migration completed\" without per-record counts, \"feature works\" without naming the verified edge case (#1006 -- see `## Fail Loud` above)\n- ⊗ Outcome-blind \"feature complete\" / \"production-ready\" claims that ignore open graduations (`graduationRef`s) without naming them or an explicit skip (#2899 / #1006 -- see `## Fail Loud` above)\n- ⊗ Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)\n- ⊗ Debugging by guess-and-check: fixing before reproducing, treating the first plausible hypothesis as confirmed, or presenting a duration/exit-status as a root cause (#1621 -- see `debugging.md`)\n"
+      "body": "\n# Coding Guidelines\n\nSoftware development specific guidelines for AI agents.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n**⚠️ See also** (load only when needed):\n- [../main.md](../../main.md) - General AI behavior and agent persona\n- [PROJECT.md](../../PROJECT.md) - For project-specific overrides\n- [../tools/telemetry.md](../tools/telemetry.md) - When implementing logging/tracing/metrics\n\n## Code Organization\n\n**Documentation:**\n- ! All *.md in `docs/` directory (except README.md, AGENTS.md, WARP.md)\n- ! Prior tasks/plans in `history/`\n\n**Filenames:**\n- ~ Use hyphens not underscores (unless language idiom)\n\n**Secrets:**\n- ! ALL secrets in `secrets/` dir as .env files\n- ⊗ Secrets in code\n\n## Code Search\n\n- ! use `rg`, or `ast-grep` (when available) instead of grep\n- ! Use Warp's built-in grep (which is rg) when running on warp\n- ~ Install if missing\n- ? Fall back to `grep` command only if tools cannot be installed\n\n## Version Control\n\nSee [../scm/git.md](../scm/git.md) for:\n- Commit conventions (Conventional Commits)\n- Safety rules (no force-push without permission)\n- Branch workflows\n\n## Code Design\n\n**Modularity:**\n- ! One responsibility per file/module\n- ~ Files <300 lines ideal; <500 lines recommended; <1000 lines a review trigger — split when exceeded unless genuinely single-responsibility (size is a smell, not a hard cap; #1488)\n- ! Explicit scope in task descriptions\n- ~ DRY: extract shared abstractions when logic is duplicated across 2+ call sites\n- ⊗ Copy-paste logic with minor variations — parameterise instead\n\n**Dependency Direction:**\n- ⊗ Circular imports between modules/packages\n- ~ Layered architecture: high-level modules depend on low-level ones, never the reverse\n- ! Use dependency inversion (interfaces/protocols) to break coupling across layers\n- See [hygiene.md](hygiene.md) for detection tools (madge, pydeps, Go compiler)\n\n**Contract-First:**\n- ! Define interfaces/types/protocols before implementation\n- ! Changes to public interfaces require explicit versioning or deprecation path\n- ! Document all public API contracts clearly\n\n**Immutability:**\n- ~ Prefer immutable data + pure functions\n- ~ When mutation needed, use narrow owned scopes (context managers, RAII)\n- ⊗ Global or singleton mutable state (almost always)\n\n**Error Handling:**\n- ~ Prefer Result/Option types or explicit exceptions over None/null/undefined\n- ! Document possible exceptions/error codes for all public functions\n- ! Validate all inputs at API boundaries\n- ⊗ Trust caller without validation\n- ⊗ Empty catch/except/recover blocks that swallow errors silently\n- ⊗ Returning neutral/zero values (None, {}, [], 0, false, \"\") to mask errors — propagate explicitly\n- ⊗ Log-and-continue: catching an error and proceeding as if it didn't happen, unless provably non-fatal and documented\n- See [hygiene.md](hygiene.md) for full error-hiding anti-pattern catalogue\n\n**Readability:**\n- ! Follow language idioms strictly\n- ! Meaningful names over short names\n- ! Comments explain **why**, code shows **what**\n- ⊗ Clever code over clear code\n\n**State & Data Modeling (#1695):**\n- ! A field MUST encode exactly one fact. Do NOT overload a field's value — or its presence/absence — to also signal a second orthogonal concern. Smuggling decision-, config-, lifecycle-, or control-state through a data field is *in-band signaling*; give that signal its own out-of-band field.\n- ! \"Absence is not a decision.\" Distinguish \"unset / never considered\" from \"deliberately set to the default.\" If a workflow must know a human made a choice, record the choice explicitly — never infer it from whether a value-field is present.\n- ~ Orthogonality test: if two facts can vary independently (e.g. value==default while decided ∈ {true,false}), they MUST live in separate slots. If one fact strictly implies the other (true Optional<T>, tombstones), sharing a slot is fine.\n- ⊗ Infer decision / onboarding / configuration state from the presence of a value field. Use an explicit out-of-band marker — cf. the resolver `source` provenance pattern (typed | default | default-on-error) directive already uses for *value*-provenance.\n- See [../patterns/in-band-signaling.md](../patterns/in-band-signaling.md) for the full model, orthogonality procedure, and the wipCap worked example (#1694).\n\n## Quality Standards\n\n**General:**\n- ! Run all relevant checks (lint, fmt, quality, build, test) before submitting changes\n- ⊗ Claim checks passed without running them\n- ! If checks cannot run, explicitly state why and what would have been executed\n- ~ Prioritize code quality and readability over backwards compatibility\n\n**Testing:**\n- ! Implementation is INCOMPLETE until tests written AND `task test:coverage` passes\n- See [../coding/testing.md](../coding/testing.md) for universal requirements\n\n**Security:**\n- ! Apply baseline security standards to every project from day one\n- See [../coding/security.md](../coding/security.md) for input validation, authn/authz, secrets, dependency, TOCTOU / mutable-external-resource rules (#1938), and agent-specific threats (#661)\n\n**Codebase Hygiene:**\n- See [hygiene.md](hygiene.md) for: dead code removal, circular dependency detection, error hiding patterns, legacy/deprecated code cleanup\n\n**Telemetry:**\n- See [../tools/telemetry.md](../tools/telemetry.md) for recommendations\n- ~ Structured logging for production\n- ~ Error tracking (Sentry.io or equivalent)\n- ? Distributed tracing for complex systems\n\n## Fail Loud: Completion Claims Require Outcome Verification (#1006)\n\nThe failure mode is the agent stating completion at the level of **intent** (\"I ran the migration\", \"the tests pass\", \"the feature works\") rather than at the level of **outcome verification** (\"all 167 records migrated, 0 skipped\", \"42 tests collected, 42 passed, 0 skipped, 0 xfailed\", \"the edge case asked about was reproduced and now returns the expected value\"). Outcome-blind completion claims hide silent skips, swallowed exceptions, suppressed errors, and unverified edge cases behind successful-sounding language. The example from the source: a database migration that completed \"successfully\" had silently skipped 14% of records on a constraint violation; the skip was logged but not surfaced; the bad reports were discovered 11 days later.\n\nThis rule is the OPERATIONAL complement to the EPISTEMIC honesty rules elsewhere in the framework (`main.md` morals section: don't present speculation as fact; label unverified claims). Morals.md says \"don't lie\". Fail-loud says \"count the records, check the logs, run the edge case, **then** claim completion.\" It is also the output-side complement to goal-gate-determinism (the gate specifies what evidence is required) and machine-verifiable-spec (verification commands prevent silent skips) -- without fail-loud, an agent can satisfy the letter of a gate (\"tests pass\") while hiding the gap (\"some tests were skipped\").\n\n- ! Before claiming a batch operation succeeded, MUST verify the record count and surface it in the claim (\"migrated 167/167 records, 0 skipped, 0 errored\" -- not \"migration completed\")\n- ! Before claiming \"tests pass\", MUST report the count of collected / passed / skipped / xfailed / errored tests (\"42 collected, 42 passed, 0 skipped\" -- not \"tests pass\"). A skipped or xfailed test is NOT a passing test for the purpose of this claim\n- ! Before claiming \"the feature works\", MUST report the specific edge case that was verified (if the user asked about a specific edge case, that edge case MUST be in the verification report; \"the happy path works\" is not equivalent to \"the feature works\")\n- ! Before claiming a migration / data transform / batch job completed, MUST check the error log AND the skip log AND the constraint-violation surface; surface the counts even when zero (\"0 skipped, 0 errored\" is the load-bearing claim, not silence)\n- ! When uncertainty exists about whether something worked, MUST surface the uncertainty explicitly (\"the migration completed and reported success but I have not verified the per-record count -- recommend running `<verification-command>` before declaring done\")\n- ⊗ MUST NOT claim \"tests pass\" when any test was skipped, xfailed, or run with errors suppressed -- report the full counts instead\n- ⊗ MUST NOT claim \"migration completed\" / \"batch succeeded\" / \"job finished\" without checking and reporting the per-record outcome counts\n- ⊗ MUST NOT claim \"feature works\" when only the happy path was verified -- name the edge case that was tested, or surface that it wasn't\n- ⊗ MUST NOT use successful-sounding completion phrasing to paper over uncertainty -- default to surfacing uncertainty, not hiding it\n- ⊗ MUST NOT suppress error output (`2>$null`, `2>/dev/null`, `try/except: pass` around the verification command) and then claim completion based on the resulting silence\n\n- ! Before claiming \"feature complete\", \"ready for real users\", \"production-ready\", or equivalent area-complete language for a surface that has open graduations (Now+Later dual-path locks; #2899), MUST name the open `graduationRef`s, **or** explicitly state that graduation review was skipped and why — otherwise the claim is outcome-blind under this rule\n- ⊗ MUST NOT claim \"feature complete\" / \"production-ready\" / \"ready for real users\" for an area with open graduations without naming those `graduationRef`s or an explicit skip-with-reason\n\nThe rule applies to agent completion claims during task execution. It applies equally to claims to the user, claims in commit messages, claims in PR bodies, claims in CHANGELOG entries, and claims in status messages to a parent agent. A short, honest \"the migration completed; I did not verify the per-record count\" is strictly preferred over a confident \"migration completed successfully\" that hides the gap.\n\n**Cross-references:** strategies discuss/probe Graduation dual-path locks (#2899); `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).\n\n## Calling LLM APIs (#481)\n\nWhen the project calls LLM APIs (OpenAI, Anthropic, Cohere, local models, etc.) or builds agentic functionality, the architectural standards in `patterns/llm-app.md` apply alongside the coding rules above. In the directive maintainer repo this section is **guidance for consumer projects** — provider names are illustrative labels under the framework instruction hierarchy, not runtime SDK surfaces (#2414; see `meta/security.md` `## Informational AppSec findings`). The short form:\n\n- ! User input is NEVER placed in the system prompt; the system prompt is the trust boundary\n- ! External content is ALWAYS wrapped in explicit delimiters (`<user_input>`, `<document>`, `<tool_result>`) and surfaces its trust tier\n- ! Tool call arguments are validated against a schema BEFORE execution (the LLM is a confused deputy)\n- ! LLM outputs are validated against expected schemas before being acted upon (no eval-of-output, no shell-of-output, no SQL-of-output)\n- ⊗ MUST NOT write LLM outputs back into the retrieval corpus in the same session without validation (RAG poisoning vector)\n\nSee [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: prompt construction, trust tiers, tool/function-call validation, RAG hygiene, output handling, multi-agent orchestration, and LLM-specific observability. See [../tools/telemetry.md](../tools/telemetry.md) `## LLM-specific observability (#481)` for the matching observability surface.\n\n## Debugging and Root-Cause Investigation (#1621)\n\nWhen a bug, failure, or unexpected behaviour needs diagnosis, the root-cause standards in `debugging.md` apply. The short form:\n\n- ! No fixes without root-cause investigation first (the Iron Law)\n- ! Reproduce the failure consistently before proposing a fix — a non-reproducible bug is not yet understood\n- ! Every factual claim cites evidence; an uncited claim is a `[HYPOTHESIS]`, not a finding (evidence before narrative)\n- ! Runtime/config values are proven from the runtime, never inferred from source code (config is not code)\n- ⊗ MUST NOT present a duration or an exit status (\"slow because phase X took N minutes\", \"failed because it timed out\") as a root cause — name a mechanism (no tautologies)\n- ! After 3 failed distinct fixes, STOP and escalate for architectural review (the 3-fix gate)\n\nSee [debugging.md](debugging.md) for the full four-phase process, evidence discipline, Fact vs Hypothesis labeling (#1580), the observability-gap loop, and the rationalization table. For a sustained multi-agent investigation posture, see the `deft-directive-debug` skill.\n\n## Build Automation\n\n**Taskfile:**\n- ! Use Task ([go-task](https://taskfile.dev)) for all repeatable operations\n- ! If `task` not found, attempt to install go-task\n- ! If installation fails, stop and ask user for help\n- See [../tools/taskfile.md](../tools/taskfile.md) for standards and common commands\n\n**Toolchain Validation:**\n- See [../coding/toolchain.md](../coding/toolchain.md) for rules on verifying required tools are installed before implementation begins\n\n**Build Output Validation:**\n- See [../coding/build-output.md](../coding/build-output.md) for rules on verifying `dist/` artifacts and non-compiled assets after custom build scripts run\n\n## Change Management\n\n**Impact Awareness:**\n- ! Before changing shared code, identify affected downstream modules/files\n- ~ Prefer additive changes (new functions, fields with defaults) over breaking renames\n- ! Make small, reversible changes\n- ! Explain impact and migration path for breaking changes\n\n**Production Safety:**\n- ! Assume production impact unless stated otherwise\n- ! Call out risk when touching: auth, billing, data, APIs, build systems\n- ⊗ Silent breaking behavior\n- ~ Test changes in staging/dev environment when possible\n\n## Language-Specific Guidelines\n\n**Languages:**\n- C++: [../languages/cpp.md](../languages/cpp.md)\n- Go: [../languages/go.md](../languages/go.md)\n- Office.js: [../languages/officejs.md](../languages/officejs.md)\n- Python: [../languages/python.md](../languages/python.md)\n- TypeScript: [../languages/typescript.md](../languages/typescript.md)\n- VBA: [../languages/vba.md](../languages/vba.md)\n\n**Interface Types:**\n- CLI: [../interfaces/cli.md](../interfaces/cli.md)\n- TUI: [../interfaces/tui.md](../interfaces/tui.md)\n- Web: [../interfaces/web.md](../interfaces/web.md)\n- REST API: [../interfaces/rest.md](../interfaces/rest.md)\n\n## Development Workflow\n\n**Localhost:**\n- No permission needed for curl localhost\n\n**Plans:**\n- ~ Create both:\n  1. Warp plan (using `create_plan` tool)\n  2. Archive copy in `history/plan-YYYY-MM-DD-description.md`\n\n## Project Context\n\n- ! Check [PROJECT.md](../../PROJECT.md) for project-specific overrides\n- ~ Inspect project config (package.json, pyproject.toml, etc.) for available scripts\n- ! Follow project-specific testing, coverage, and quality requirements\n\n## Anti-Patterns\n\n- ⊗ Secrets in code or version control\n- ⊗ Claiming checks passed without running them\n- ⊗ Single files mixing multiple responsibilities (large line count, e.g. >1000 lines, is a trigger to check cohesion — not a defect by itself; #1488)\n- ⊗ Skipping quality checks\n- ⊗ Breaking changes without explicit approval\n- ⊗ Using `grep` command when `rg` or Warp grep available\n- ⊗ Implementing code without tests\n- ⊗ Claiming \"done\" before running test:coverage\n- ⊗ Ignoring coverage drops\n- ⊗ Weak types (`any`, `interface{}`, untyped `object`) where concrete types are knowable\n- ⊗ Dead code: unused functions, unreachable branches, stale feature flags, commented-out blocks\n- ⊗ Error hiding: empty catch blocks, silent fallbacks, swallowed exceptions\n- ⊗ Circular imports between modules\n- ⊗ Duplicate logic across 2+ call sites without shared abstraction\n- ⊗ Outcome-blind completion claims: \"tests pass\" with skipped tests, \"migration completed\" without per-record counts, \"feature works\" without naming the verified edge case (#1006 -- see `## Fail Loud` above)\n- ⊗ Outcome-blind \"feature complete\" / \"production-ready\" claims that ignore open graduations (`graduationRef`s) without naming them or an explicit skip (#2899 / #1006 -- see `## Fail Loud` above)\n- ⊗ Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)\n- ⊗ Debugging by guess-and-check: fixing before reproducing, treating the first plausible hypothesis as confirmed, or presenting a duration/exit-status as a root cause (#1621 -- see `debugging.md`)\n"
     },
     {
       "id": "coding-002",
@@ -335,31 +335,31 @@
       "id": "coding-035",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Run all relevant checks (lint, fmt, quality, build, test) before submitting changes",
+      "text": "A field MUST encode exactly one fact. Do NOT overload a field's value — or its presence/absence — to also signal a second orthogonal concern. Smuggling decision-, config-, lifecycle-, or control-state through a data field is *in-band signaling*; give that signal its own out-of-band field.",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-036",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Claim checks passed without running them",
+      "text": "\"Absence is not a decision.\" Distinguish \"unset / never considered\" from \"deliberately set to the default.\" If a workflow must know a human made a choice, record the choice explicitly — never infer it from whether a value-field is present.",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-037",
-      "tier": "MUST",
+      "tier": "SHOULD",
       "domain": "coding",
-      "text": "If checks cannot run, explicitly state why and what would have been executed",
+      "text": "Orthogonality test: if two facts can vary independently (e.g. value==default while decided ∈ {true,false}), they MUST live in separate slots. If one fact strictly implies the other (true Optional<T>, tombstones), sharing a slot is fine.",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-038",
-      "tier": "SHOULD",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Prioritize code quality and readability over backwards compatibility",
+      "text": "Infer decision / onboarding / configuration state from the presence of a value field. Use an explicit out-of-band marker — cf. the resolver `source` provenance pattern (typed | default | default-on-error) directive already uses for *value*-provenance.",
       "path": "coding/coding.md",
       "body": null
     },
@@ -367,23 +367,23 @@
       "id": "coding-039",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Implementation is INCOMPLETE until tests written AND `task test:coverage` passes",
+      "text": "Run all relevant checks (lint, fmt, quality, build, test) before submitting changes",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-040",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Apply baseline security standards to every project from day one",
+      "text": "Claim checks passed without running them",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-041",
-      "tier": "SHOULD",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Structured logging for production",
+      "text": "If checks cannot run, explicitly state why and what would have been executed",
       "path": "coding/coding.md",
       "body": null
     },
@@ -391,15 +391,15 @@
       "id": "coding-042",
       "tier": "SHOULD",
       "domain": "coding",
-      "text": "Error tracking (Sentry.io or equivalent)",
+      "text": "Prioritize code quality and readability over backwards compatibility",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-043",
-      "tier": "MAY",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Distributed tracing for complex systems",
+      "text": "Implementation is INCOMPLETE until tests written AND `task test:coverage` passes",
       "path": "coding/coding.md",
       "body": null
     },
@@ -407,31 +407,31 @@
       "id": "coding-044",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Before claiming a batch operation succeeded, MUST verify the record count and surface it in the claim (\"migrated 167/167 records, 0 skipped, 0 errored\" -- not \"migration completed\")",
+      "text": "Apply baseline security standards to every project from day one",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-045",
-      "tier": "MUST",
+      "tier": "SHOULD",
       "domain": "coding",
-      "text": "Before claiming \"tests pass\", MUST report the count of collected / passed / skipped / xfailed / errored tests (\"42 collected, 42 passed, 0 skipped\" -- not \"tests pass\"). A skipped or xfailed test is NOT a passing test for the purpose of this claim",
+      "text": "Structured logging for production",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-046",
-      "tier": "MUST",
+      "tier": "SHOULD",
       "domain": "coding",
-      "text": "Before claiming \"the feature works\", MUST report the specific edge case that was verified (if the user asked about a specific edge case, that edge case MUST be in the verification report; \"the happy path works\" is not equivalent to \"the feature works\")",
+      "text": "Error tracking (Sentry.io or equivalent)",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-047",
-      "tier": "MUST",
+      "tier": "MAY",
       "domain": "coding",
-      "text": "Before claiming a migration / data transform / batch job completed, MUST check the error log AND the skip log AND the constraint-violation surface; surface the counts even when zero (\"0 skipped, 0 errored\" is the load-bearing claim, not silence)",
+      "text": "Distributed tracing for complex systems",
       "path": "coding/coding.md",
       "body": null
     },
@@ -439,39 +439,39 @@
       "id": "coding-048",
       "tier": "MUST",
       "domain": "coding",
-      "text": "When uncertainty exists about whether something worked, MUST surface the uncertainty explicitly (\"the migration completed and reported success but I have not verified the per-record count -- recommend running `<verification-command>` before declaring done\")",
+      "text": "Before claiming a batch operation succeeded, MUST verify the record count and surface it in the claim (\"migrated 167/167 records, 0 skipped, 0 errored\" -- not \"migration completed\")",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-049",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "MUST NOT claim \"tests pass\" when any test was skipped, xfailed, or run with errors suppressed -- report the full counts instead",
+      "text": "Before claiming \"tests pass\", MUST report the count of collected / passed / skipped / xfailed / errored tests (\"42 collected, 42 passed, 0 skipped\" -- not \"tests pass\"). A skipped or xfailed test is NOT a passing test for the purpose of this claim",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-050",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "MUST NOT claim \"migration completed\" / \"batch succeeded\" / \"job finished\" without checking and reporting the per-record outcome counts",
+      "text": "Before claiming \"the feature works\", MUST report the specific edge case that was verified (if the user asked about a specific edge case, that edge case MUST be in the verification report; \"the happy path works\" is not equivalent to \"the feature works\")",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-051",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "MUST NOT claim \"feature works\" when only the happy path was verified -- name the edge case that was tested, or surface that it wasn't",
+      "text": "Before claiming a migration / data transform / batch job completed, MUST check the error log AND the skip log AND the constraint-violation surface; surface the counts even when zero (\"0 skipped, 0 errored\" is the load-bearing claim, not silence)",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-052",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "MUST NOT use successful-sounding completion phrasing to paper over uncertainty -- default to surfacing uncertainty, not hiding it",
+      "text": "When uncertainty exists about whether something worked, MUST surface the uncertainty explicitly (\"the migration completed and reported success but I have not verified the per-record count -- recommend running `<verification-command>` before declaring done\")",
       "path": "coding/coding.md",
       "body": null
     },
@@ -479,55 +479,55 @@
       "id": "coding-053",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "MUST NOT suppress error output (`2>$null`, `2>/dev/null`, `try/except: pass` around the verification command) and then claim completion based on the resulting silence",
+      "text": "MUST NOT claim \"tests pass\" when any test was skipped, xfailed, or run with errors suppressed -- report the full counts instead",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-054",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "User input is NEVER placed in the system prompt; the system prompt is the trust boundary",
+      "text": "MUST NOT claim \"migration completed\" / \"batch succeeded\" / \"job finished\" without checking and reporting the per-record outcome counts",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-055",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "External content is ALWAYS wrapped in explicit delimiters (`<user_input>`, `<document>`, `<tool_result>`) and surfaces its trust tier",
+      "text": "MUST NOT claim \"feature works\" when only the happy path was verified -- name the edge case that was tested, or surface that it wasn't",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-056",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Tool call arguments are validated against a schema BEFORE execution (the LLM is a confused deputy)",
+      "text": "MUST NOT use successful-sounding completion phrasing to paper over uncertainty -- default to surfacing uncertainty, not hiding it",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-057",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "LLM outputs are validated against expected schemas before being acted upon (no eval-of-output, no shell-of-output, no SQL-of-output)",
+      "text": "MUST NOT suppress error output (`2>$null`, `2>/dev/null`, `try/except: pass` around the verification command) and then claim completion based on the resulting silence",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-058",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "MUST NOT write LLM outputs back into the retrieval corpus in the same session without validation (RAG poisoning vector)",
+      "text": "Before claiming \"feature complete\", \"ready for real users\", \"production-ready\", or equivalent area-complete language for a surface that has open graduations (Now+Later dual-path locks; #2899), MUST name the open `graduationRef`s, **or** explicitly state that graduation review was skipped and why — otherwise the claim is outcome-blind under this rule",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-059",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "No fixes without root-cause investigation first (the Iron Law)",
+      "text": "MUST NOT claim \"feature complete\" / \"production-ready\" / \"ready for real users\" for an area with open graduations without naming those `graduationRef`s or an explicit skip-with-reason",
       "path": "coding/coding.md",
       "body": null
     },
@@ -535,7 +535,7 @@
       "id": "coding-060",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Reproduce the failure consistently before proposing a fix — a non-reproducible bug is not yet understood",
+      "text": "User input is NEVER placed in the system prompt; the system prompt is the trust boundary",
       "path": "coding/coding.md",
       "body": null
     },
@@ -543,7 +543,7 @@
       "id": "coding-061",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Every factual claim cites evidence; an uncited claim is a `[HYPOTHESIS]`, not a finding (evidence before narrative)",
+      "text": "External content is ALWAYS wrapped in explicit delimiters (`<user_input>`, `<document>`, `<tool_result>`) and surfaces its trust tier",
       "path": "coding/coding.md",
       "body": null
     },
@@ -551,23 +551,23 @@
       "id": "coding-062",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Runtime/config values are proven from the runtime, never inferred from source code (config is not code)",
+      "text": "Tool call arguments are validated against a schema BEFORE execution (the LLM is a confused deputy)",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-063",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "MUST NOT present a duration or an exit status (\"slow because phase X took N minutes\", \"failed because it timed out\") as a root cause — name a mechanism (no tautologies)",
+      "text": "LLM outputs are validated against expected schemas before being acted upon (no eval-of-output, no shell-of-output, no SQL-of-output)",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-064",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "After 3 failed distinct fixes, STOP and escalate for architectural review (the 3-fix gate)",
+      "text": "MUST NOT write LLM outputs back into the retrieval corpus in the same session without validation (RAG poisoning vector)",
       "path": "coding/coding.md",
       "body": null
     },
@@ -575,7 +575,7 @@
       "id": "coding-065",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Use Task ([go-task](https://taskfile.dev)) for all repeatable operations",
+      "text": "No fixes without root-cause investigation first (the Iron Law)",
       "path": "coding/coding.md",
       "body": null
     },
@@ -583,7 +583,7 @@
       "id": "coding-066",
       "tier": "MUST",
       "domain": "coding",
-      "text": "If `task` not found, attempt to install go-task",
+      "text": "Reproduce the failure consistently before proposing a fix — a non-reproducible bug is not yet understood",
       "path": "coding/coding.md",
       "body": null
     },
@@ -591,7 +591,7 @@
       "id": "coding-067",
       "tier": "MUST",
       "domain": "coding",
-      "text": "If installation fails, stop and ask user for help",
+      "text": "Every factual claim cites evidence; an uncited claim is a `[HYPOTHESIS]`, not a finding (evidence before narrative)",
       "path": "coding/coding.md",
       "body": null
     },
@@ -599,15 +599,15 @@
       "id": "coding-068",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Before changing shared code, identify affected downstream modules/files",
+      "text": "Runtime/config values are proven from the runtime, never inferred from source code (config is not code)",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-069",
-      "tier": "SHOULD",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Prefer additive changes (new functions, fields with defaults) over breaking renames",
+      "text": "MUST NOT present a duration or an exit status (\"slow because phase X took N minutes\", \"failed because it timed out\") as a root cause — name a mechanism (no tautologies)",
       "path": "coding/coding.md",
       "body": null
     },
@@ -615,7 +615,7 @@
       "id": "coding-070",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Make small, reversible changes",
+      "text": "After 3 failed distinct fixes, STOP and escalate for architectural review (the 3-fix gate)",
       "path": "coding/coding.md",
       "body": null
     },
@@ -623,7 +623,7 @@
       "id": "coding-071",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Explain impact and migration path for breaking changes",
+      "text": "Use Task ([go-task](https://taskfile.dev)) for all repeatable operations",
       "path": "coding/coding.md",
       "body": null
     },
@@ -631,7 +631,7 @@
       "id": "coding-072",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Assume production impact unless stated otherwise",
+      "text": "If `task` not found, attempt to install go-task",
       "path": "coding/coding.md",
       "body": null
     },
@@ -639,15 +639,15 @@
       "id": "coding-073",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Call out risk when touching: auth, billing, data, APIs, build systems",
+      "text": "If installation fails, stop and ask user for help",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-074",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Silent breaking behavior",
+      "text": "Before changing shared code, identify affected downstream modules/files",
       "path": "coding/coding.md",
       "body": null
     },
@@ -655,15 +655,15 @@
       "id": "coding-075",
       "tier": "SHOULD",
       "domain": "coding",
-      "text": "Test changes in staging/dev environment when possible",
+      "text": "Prefer additive changes (new functions, fields with defaults) over breaking renames",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-076",
-      "tier": "SHOULD",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Create both:",
+      "text": "Make small, reversible changes",
       "path": "coding/coding.md",
       "body": null
     },
@@ -671,15 +671,15 @@
       "id": "coding-077",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Check [PROJECT.md](../../PROJECT.md) for project-specific overrides",
+      "text": "Explain impact and migration path for breaking changes",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-078",
-      "tier": "SHOULD",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Inspect project config (package.json, pyproject.toml, etc.) for available scripts",
+      "text": "Assume production impact unless stated otherwise",
       "path": "coding/coding.md",
       "body": null
     },
@@ -687,7 +687,7 @@
       "id": "coding-079",
       "tier": "MUST",
       "domain": "coding",
-      "text": "Follow project-specific testing, coverage, and quality requirements",
+      "text": "Call out risk when touching: auth, billing, data, APIs, build systems",
       "path": "coding/coding.md",
       "body": null
     },
@@ -695,47 +695,47 @@
       "id": "coding-080",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Secrets in code or version control",
+      "text": "Silent breaking behavior",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-081",
-      "tier": "MUST_NOT",
+      "tier": "SHOULD",
       "domain": "coding",
-      "text": "Claiming checks passed without running them",
+      "text": "Test changes in staging/dev environment when possible",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-082",
-      "tier": "MUST_NOT",
+      "tier": "SHOULD",
       "domain": "coding",
-      "text": "Single files mixing multiple responsibilities (large line count, e.g. >1000 lines, is a trigger to check cohesion — not a defect by itself; #1488)",
+      "text": "Create both:",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-083",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Skipping quality checks",
+      "text": "Check [PROJECT.md](../../PROJECT.md) for project-specific overrides",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-084",
-      "tier": "MUST_NOT",
+      "tier": "SHOULD",
       "domain": "coding",
-      "text": "Breaking changes without explicit approval",
+      "text": "Inspect project config (package.json, pyproject.toml, etc.) for available scripts",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-085",
-      "tier": "MUST_NOT",
+      "tier": "MUST",
       "domain": "coding",
-      "text": "Using `grep` command when `rg` or Warp grep available",
+      "text": "Follow project-specific testing, coverage, and quality requirements",
       "path": "coding/coding.md",
       "body": null
     },
@@ -743,7 +743,7 @@
       "id": "coding-086",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Implementing code without tests",
+      "text": "Secrets in code or version control",
       "path": "coding/coding.md",
       "body": null
     },
@@ -751,7 +751,7 @@
       "id": "coding-087",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Claiming \"done\" before running test:coverage",
+      "text": "Claiming checks passed without running them",
       "path": "coding/coding.md",
       "body": null
     },
@@ -759,7 +759,7 @@
       "id": "coding-088",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Ignoring coverage drops",
+      "text": "Single files mixing multiple responsibilities (large line count, e.g. >1000 lines, is a trigger to check cohesion — not a defect by itself; #1488)",
       "path": "coding/coding.md",
       "body": null
     },
@@ -767,7 +767,7 @@
       "id": "coding-089",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Weak types (`any`, `interface{}`, untyped `object`) where concrete types are knowable",
+      "text": "Skipping quality checks",
       "path": "coding/coding.md",
       "body": null
     },
@@ -775,7 +775,7 @@
       "id": "coding-090",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Dead code: unused functions, unreachable branches, stale feature flags, commented-out blocks",
+      "text": "Breaking changes without explicit approval",
       "path": "coding/coding.md",
       "body": null
     },
@@ -783,7 +783,7 @@
       "id": "coding-091",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Error hiding: empty catch blocks, silent fallbacks, swallowed exceptions",
+      "text": "Using `grep` command when `rg` or Warp grep available",
       "path": "coding/coding.md",
       "body": null
     },
@@ -791,7 +791,7 @@
       "id": "coding-092",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Circular imports between modules",
+      "text": "Implementing code without tests",
       "path": "coding/coding.md",
       "body": null
     },
@@ -799,7 +799,7 @@
       "id": "coding-093",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Duplicate logic across 2+ call sites without shared abstraction",
+      "text": "Claiming \"done\" before running test:coverage",
       "path": "coding/coding.md",
       "body": null
     },
@@ -807,7 +807,7 @@
       "id": "coding-094",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Outcome-blind completion claims: \"tests pass\" with skipped tests, \"migration completed\" without per-record counts, \"feature works\" without naming the verified edge case (#1006 -- see `## Fail Loud` above)",
+      "text": "Ignoring coverage drops",
       "path": "coding/coding.md",
       "body": null
     },
@@ -815,7 +815,7 @@
       "id": "coding-095",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)",
+      "text": "Weak types (`any`, `interface{}`, untyped `object`) where concrete types are knowable",
       "path": "coding/coding.md",
       "body": null
     },
@@ -823,15 +823,15 @@
       "id": "coding-096",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Debugging by guess-and-check: fixing before reproducing, treating the first plausible hypothesis as confirmed, or presenting a duration/exit-status as a root cause (#1621 -- see `debugging.md`)",
+      "text": "Dead code: unused functions, unreachable branches, stale feature flags, commented-out blocks",
       "path": "coding/coding.md",
       "body": null
     },
     {
       "id": "coding-097",
-      "tier": "MUST",
+      "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "Before claiming \"feature complete\", \"ready for real users\", \"production-ready\", or equivalent area-complete language for a surface that has open graduations (Now+Later dual-path locks; #2899), MUST name the open `graduationRef`s, or explicitly state that graduation review was skipped and why — otherwise the claim is outcome-blind under Fail Loud (#1006)",
+      "text": "Error hiding: empty catch blocks, silent fallbacks, swallowed exceptions",
       "path": "coding/coding.md",
       "body": null
     },
@@ -839,7 +839,7 @@
       "id": "coding-098",
       "tier": "MUST_NOT",
       "domain": "coding",
-      "text": "MUST NOT claim \"feature complete\" / \"production-ready\" / \"ready for real users\" for an area with open graduations without naming those `graduationRef`s or an explicit skip-with-reason (#2899 / #1006)",
+      "text": "Circular imports between modules",
       "path": "coding/coding.md",
       "body": null
     },
@@ -847,7 +847,39 @@
       "id": "coding-099",
       "tier": "MUST_NOT",
       "domain": "coding",
+      "text": "Duplicate logic across 2+ call sites without shared abstraction",
+      "path": "coding/coding.md",
+      "body": null
+    },
+    {
+      "id": "coding-100",
+      "tier": "MUST_NOT",
+      "domain": "coding",
+      "text": "Outcome-blind completion claims: \"tests pass\" with skipped tests, \"migration completed\" without per-record counts, \"feature works\" without naming the verified edge case (#1006 -- see `## Fail Loud` above)",
+      "path": "coding/coding.md",
+      "body": null
+    },
+    {
+      "id": "coding-101",
+      "tier": "MUST_NOT",
+      "domain": "coding",
       "text": "Outcome-blind \"feature complete\" / \"production-ready\" claims that ignore open graduations (`graduationRef`s) without naming them or an explicit skip (#2899 / #1006 -- see `## Fail Loud` above)",
+      "path": "coding/coding.md",
+      "body": null
+    },
+    {
+      "id": "coding-102",
+      "tier": "MUST_NOT",
+      "domain": "coding",
+      "text": "Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)",
+      "path": "coding/coding.md",
+      "body": null
+    },
+    {
+      "id": "coding-103",
+      "tier": "MUST_NOT",
+      "domain": "coding",
+      "text": "Debugging by guess-and-check: fixing before reproducing, treating the first plausible hypothesis as confirmed, or presenting a duration/exit-status as a root cause (#1621 -- see `debugging.md`)",
       "path": "coding/coding.md",
       "body": null
     },

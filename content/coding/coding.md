@@ -83,6 +83,13 @@ See [../scm/git.md](../scm/git.md) for:
 - ! Comments explain **why**, code shows **what**
 - ⊗ Clever code over clear code
 
+**State & Data Modeling (#1695):**
+- ! A field MUST encode exactly one fact. Do NOT overload a field's value — or its presence/absence — to also signal a second orthogonal concern. Smuggling decision-, config-, lifecycle-, or control-state through a data field is *in-band signaling*; give that signal its own out-of-band field.
+- ! "Absence is not a decision." Distinguish "unset / never considered" from "deliberately set to the default." If a workflow must know a human made a choice, record the choice explicitly — never infer it from whether a value-field is present.
+- ~ Orthogonality test: if two facts can vary independently (e.g. value==default while decided ∈ {true,false}), they MUST live in separate slots. If one fact strictly implies the other (true Optional<T>, tombstones), sharing a slot is fine.
+- ⊗ Infer decision / onboarding / configuration state from the presence of a value field. Use an explicit out-of-band marker — cf. the resolver `source` provenance pattern (typed | default | default-on-error) directive already uses for *value*-provenance.
+- See [../patterns/in-band-signaling.md](../patterns/in-band-signaling.md) for the full model, orthogonality procedure, and the wipCap worked example (#1694).
+
 ## Quality Standards
 
 **General:**

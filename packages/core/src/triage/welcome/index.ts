@@ -33,4 +33,5 @@ export {
   subscriptionPreset,
   writeTriageScope,
   writeWipCap,
+  writeWipCapDecision,
 } from "./writers.js";

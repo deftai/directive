@@ -10,6 +10,7 @@ import {
   subscriptionPreset,
   writeTriageScope,
   writeWipCap,
+  writeWipCapDecision,
 } from "./writers.js";
 
 function seedPd(root: string): void {
@@ -36,11 +37,33 @@ describe("welcome writers", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("default wip cap confirm does not materialize field", () => {
+  it("default wip cap confirm does not materialize field but records decision (#1694)", () => {
     const root = mkdtempSync(join(tmpdir(), "writers-"));
     seedPd(root);
     const [changed] = writeWipCap(root, DEFAULT_WIP_CAP);
-    expect(changed).toBe(false);
+    expect(changed).toBe(true);
+    const data = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    );
+    expect(data.plan["x-directive/policy"]?.wipCap).toBeUndefined();
+    expect(data.plan["x-directive/onboarding"]?.wipCapDecided).toBe(true);
+    expect(data.plan["x-directive/onboarding"]?.acceptedDefault).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("writeWipCapDecision records provenance without materializing wipCap (#1694)", () => {
+    const root = mkdtempSync(join(tmpdir(), "writers-decision-"));
+    seedPd(root);
+    writeWipCapDecision(root, { acceptedDefault: true, actor: "test" });
+    const data = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    );
+    expect(data.plan["x-directive/policy"]?.wipCap).toBeUndefined();
+    expect(data.plan["x-directive/onboarding"]).toMatchObject({
+      wipCapDecided: true,
+      acceptedDefault: true,
+      actor: "test",
+    });
     rmSync(root, { recursive: true, force: true });
   });
 

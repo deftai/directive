@@ -20,6 +20,15 @@ export const PLAN_POLICY_KEY = "x-directive/policy";
 /** Namespaced directive scope-completion note key. */
 export const PLAN_COMPLETED_NOTE_KEY = "x-directive/completedNote";
 
+/**
+ * Namespaced onboarding decision-provenance block (#1694 / #1695).
+ *
+ * Holds facts that must NOT be smuggled through policy value fields (e.g.
+ * `plan.policy.wipCap` presence must not mean "operator decided a WIP cap").
+ * Out-of-band from `x-directive/policy` so value and decision stay orthogonal.
+ */
+export const PLAN_ONBOARDING_KEY = "x-directive/onboarding";
+
 /** Legacy bare policy key (pre-#1650); read-side fallback / write-side migration source. */
 export const LEGACY_PLAN_POLICY_KEY = "policy";
 
@@ -49,6 +58,15 @@ export function readPlanPolicy(plan: unknown): unknown {
 /** Read the directive completedNote from a plan (namespaced first, bare fallback). */
 export function readPlanCompletedNote(plan: unknown): unknown {
   return readPlanExtension(plan, PLAN_COMPLETED_NOTE_KEY, LEGACY_PLAN_COMPLETED_NOTE_KEY);
+}
+
+/** Read the namespaced onboarding decision-provenance block (#1694). */
+export function readPlanOnboarding(plan: unknown): unknown {
+  const planObj = asPlanObject(plan);
+  if (planObj === null) {
+    return undefined;
+  }
+  return planObj[PLAN_ONBOARDING_KEY];
 }
 
 /**

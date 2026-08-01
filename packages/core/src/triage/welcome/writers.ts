@@ -14,7 +14,11 @@ import {
   resolveLifecycleFolder,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
-import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
+import {
+  migrateLegacyPolicyKey,
+  PLAN_ONBOARDING_KEY,
+  PLAN_POLICY_KEY,
+} from "../../policy/plan-extensions.js";
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 import {
   AUDIT_LOG_REL_PATH,
@@ -122,6 +126,65 @@ export function writeTriageScope(
   });
 }
 
+/**
+ * Record out-of-band WIP-cap decision provenance without materializing
+ * `plan.policy.wipCap` (#1694). Accepting the framework default is a real
+ * onboarding decision and MUST be representable without writing the value field.
+ */
+export function writeWipCapDecision(
+  projectRoot: string,
+  options: {
+    actor?: string;
+    acceptedDefault?: boolean;
+    value?: number | null;
+  } = {},
+): [boolean, string] {
+  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
+    const path = projectDefinitionPath(projectRoot);
+    if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
+    }
+    const data = parsed as Record<string, unknown>;
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+    }
+    const planRec = plan as Record<string, unknown>;
+    const previous = planRec[PLAN_ONBOARDING_KEY];
+    const previousRec =
+      typeof previous === "object" && previous !== null && !Array.isArray(previous)
+        ? (previous as Record<string, unknown>)
+        : {};
+    const alreadyDecided = previousRec.wipCapDecided === true;
+    const acceptedDefault = options.acceptedDefault ?? true;
+    const actor = options.actor ?? WELCOME_AUDIT_TAG;
+    const next: Record<string, unknown> = {
+      ...previousRec,
+      wipCapDecided: true,
+      acceptedDefault,
+      decidedAt: utcIso(),
+      actor,
+    };
+    if (options.value !== undefined && options.value !== null) {
+      next.value = options.value;
+    }
+    planRec[PLAN_ONBOARDING_KEY] = next;
+    atomicWrite(projectRoot, path, data);
+    const changed = !alreadyDecided || previousRec.acceptedDefault !== acceptedDefault;
+    const auditEntry = [
+      `actor=${actor}`,
+      `field=${PLAN_ONBOARDING_KEY}.wipCapDecided`,
+      "value=true",
+      `acceptedDefault=${acceptedDefault ? "true" : "false"}`,
+      `changed=${changed ? "true" : "false"}`,
+    ].join(" ");
+    appendAuditEntry(projectRoot, auditEntry);
+    return [changed, auditEntry];
+  });
+}
+
 export function writeWipCap(
   projectRoot: string,
   wipCap: number,
@@ -154,8 +217,32 @@ export function writeWipCap(
     const previous = policyRec.wipCap;
     const actor = options.actor ?? WELCOME_AUDIT_TAG;
 
+    // Always record decision-provenance out-of-band (#1694). Accepting the
+    // default omits the value field but still marks the decision complete.
+    const previousOnboarding = planRec[PLAN_ONBOARDING_KEY];
+    const previousOnboardingRec =
+      typeof previousOnboarding === "object" &&
+      previousOnboarding !== null &&
+      !Array.isArray(previousOnboarding)
+        ? (previousOnboarding as Record<string, unknown>)
+        : {};
+    const acceptedDefault = wipCap === DEFAULT_WIP_CAP;
+    planRec[PLAN_ONBOARDING_KEY] = {
+      ...previousOnboardingRec,
+      wipCapDecided: true,
+      acceptedDefault,
+      decidedAt: utcIso(),
+      actor,
+      ...(acceptedDefault ? {} : { value: wipCap }),
+    };
+
     if (previous === undefined && wipCap === DEFAULT_WIP_CAP) {
-      return [false, ""];
+      atomicWrite(projectRoot, path, data);
+      const auditEntry =
+        `actor=${actor} field=${PLAN_ONBOARDING_KEY}.wipCapDecided value=true ` +
+        `acceptedDefault=true changed=true note=default-no-materialize`;
+      appendAuditEntry(projectRoot, auditEntry);
+      return [true, auditEntry];
     }
     if (previous !== undefined && wipCap === DEFAULT_WIP_CAP) {
       delete policyRec.wipCap;

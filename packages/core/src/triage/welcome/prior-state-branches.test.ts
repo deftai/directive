@@ -49,6 +49,7 @@ describe("prior-state branches", () => {
       cacheEmpty: false,
       cacheEntryCount: 1,
       wipCapSet: true,
+      wipCapDecided: true,
       wipCap: 10,
       wipCount: 0,
       auditLogPresent: true,
@@ -61,12 +62,56 @@ describe("prior-state branches", () => {
       cacheEmpty: false,
       cacheEntryCount: 1,
       wipCapSet: true,
+      wipCapDecided: true,
       wipCap: 10,
       wipCount: 0,
       auditLogPresent: true,
       pendingDecisions: 0,
     });
     expect(incomplete[0]).toBe("incomplete");
+  });
+
+  it("treats default-accepted decision marker as wipCap complete without materializing (#1694)", () => {
+    const root = mkdtempSync(join(tmpdir(), "prior-wipcap-decided-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          policy: { triageScope: SUBSCRIPTION_PRESETS.small },
+          "x-directive/onboarding": { wipCapDecided: true, acceptedDefault: true },
+        },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "{}\n", "utf8");
+    const state = detectPriorState(root);
+    expect(state.wipCapSet).toBe(false);
+    expect(state.wipCapDecided).toBe(true);
+    expect(classifyOnboarding(state)[0]).toBe("fully-set-up");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("still prompts greenfield consumers that have never decided wipCap (#1694)", () => {
+    const root = mkdtempSync(join(tmpdir(), "prior-wipcap-undecided-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: { policy: { triageScope: SUBSCRIPTION_PRESETS.small } },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "{}\n", "utf8");
+    const state = detectPriorState(root);
+    expect(state.wipCapSet).toBe(false);
+    expect(state.wipCapDecided).toBe(false);
+    const [label, missing] = classifyOnboarding(state);
+    expect(label).toBe("incomplete");
+    expect(missing).toContain("wipCap");
+    rmSync(root, { recursive: true, force: true });
   });
 
   it("detects custom scope rules", () => {

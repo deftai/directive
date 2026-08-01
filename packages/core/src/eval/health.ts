@@ -6,7 +6,6 @@ import { readCorePackageVersion } from "../engine-version.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { healthMetricsHistoryPath } from "../metrics/resolve-metrics-home.js";
-import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { classifyOnboarding, detectPriorState } from "../triage/welcome/prior-state.js";
 import { validateLinks } from "../validate-content/index.js";
 import { evaluateConformance } from "../vbrief-validate/conformance.js";
@@ -157,29 +156,29 @@ export function healthHistoryPath(projectRoot: string): string | null {
   return healthMetricsHistoryPath(projectRoot);
 }
 
-/** Detect the canonical wipCap unsatisfiable-nudge contradiction (#1694). */
+/**
+ * Residual regression detector for the #1694 wipCap unsatisfiable-nudge.
+ *
+ * Pre-fix: classify treated absent `plan.policy.wipCap` as incomplete while
+ * omit-by-design (#1186 D1) made materializing the default a self-check trap.
+ * The fix records decision-provenance out-of-band (`x-directive/onboarding`),
+ * so greenfield "missing wipCap decision" is satisfiable without materializing
+ * the value field. This detector now only fires if a decision marker is set
+ * but classify still lists wipCap as missing (classifier regression).
+ */
 export function detectWipCapUnsatisfiableNudge(projectRoot: string): ContradictionEvidence | null {
   const loaded = loadPlan(projectRoot);
   if (loaded === null) {
     return null;
   }
-  const { plan, filepath } = loaded;
-  const policy = readPlanPolicy(plan);
-  const wipCapPresent =
-    typeof policy === "object" &&
-    policy !== null &&
-    !Array.isArray(policy) &&
-    "wipCap" in (policy as Record<string, unknown>);
-  if (wipCapPresent) {
-    return null;
-  }
 
   const state = detectPriorState(projectRoot);
   const [, missing] = classifyOnboarding(state);
-  if (!missing.includes("wipCap")) {
+  if (!(state.wipCapDecided && missing.includes("wipCap"))) {
     return null;
   }
 
+  const { plan, filepath } = loaded;
   const validatorErrors = validateWipCapOnPlan(plan, filepath);
   if (validatorErrors.length > 0) {
     return null;
@@ -189,11 +188,11 @@ export function detectWipCapUnsatisfiableNudge(projectRoot: string): Contradicti
     id: "wipCap-unsatisfiable-nudge",
     kind: "unsatisfiable-nudge",
     summary:
-      "Onboarding completeness treats absent plan.policy.wipCap as incomplete, but omit-by-design accepts absence as valid (#1694 / #1186 D1).",
+      "wipCap decision marker is set but classifyOnboarding still lists wipCap as missing (#1694 regression).",
     signals: [
-      "classifyOnboarding: wipCap listed in missing onboarding signals",
-      "validateWipCapOnPlan: omitted wipCap is valid",
-      "triage:welcome --onboard nudge cannot clear without violating omit-by-design contract",
+      "x-directive/onboarding.wipCapDecided: true",
+      "classifyOnboarding: wipCap still in missing onboarding signals",
+      "decision-provenance and completeness classifier are out of sync",
     ],
   };
 }
