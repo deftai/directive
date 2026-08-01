@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dependabot high: PostCSS path traversal via sourceMappingURL (alert #8).** Force `postcss@8.5.25` (>= 8.5.18 patched) through the pnpm 11 workspace override so the vite/vitest transitive pin clears the vulnerable `<= 8.5.17` range. Same pattern as the prior esbuild / brace-expansion pins in `pnpm-workspace.yaml`.
+
 ### Removed
 
 ## [0.90.0] - 2026-07-31

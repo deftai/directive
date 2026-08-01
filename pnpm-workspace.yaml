@@ -16,6 +16,10 @@ overrides:
   # and minimatch@10 (archiver + test-exclude). Pin both major lines.
   "brace-expansion@2": "2.1.2"
   "brace-expansion@5": "5.0.7"
+  # Dependabot high: PostCSS path traversal via sourceMappingURL auto-loading
+  # of arbitrary .map files (alert #8). Transitive via vite <- vitest.
+  # Patched range: >= 8.5.18 (pin latest stable 8.5.25).
+  postcss: "8.5.25"
 
 # pnpm 11 defaults to strictDepBuilds and blocks dependency build scripts
 # unless explicitly allowed via the `allowBuilds` map (it replaced the old
@@ -29,3 +33,4 @@ minimumReleaseAgeExclude:
   - vite@7.3.6
   - brace-expansion@2.1.2
   - brace-expansion@5.0.7
+  - postcss@8.5.25
