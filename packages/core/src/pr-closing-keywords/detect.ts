@@ -192,46 +192,10 @@ export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
 }
 
 /**
- * Machine trailer on a dedicated **last non-empty line** of the PR body
- * (not commit messages): `deft-close-intent: full` allows real closing keywords
- * in intent mode (#3015). Rejects code fences, blockquotes, quotation wrappers,
- * and mid-body example lines with content after them.
- *
- * Horizontal whitespace only (`[ \\t]`) — never `\\s`, which would let `^\\s*`
- * swallow a preceding blank line and mis-locate the trailer boundary.
+ * Body trailer `deft-close-intent: full` is intentionally NOT an authorization path.
+ * Intent-mode allowlist is CLI `--allow-close N,M` only (#3015 / Greptile class-D gate).
+ * Markdown examples must never suppress real closing-keyword findings.
  */
-export const CLOSE_INTENT_FULL_RE = /^[ \t]*deft-close-intent[ \t]*:[ \t]*full[ \t]*$/gim;
-
-/** Markdown indented code block: 4+ spaces or a leading tab (CommonMark). */
-function isIndentedCodeLine(line: string): boolean {
-  return /^(?: {4,}|\t)/.test(line);
-}
-
-export function hasFullCloseIntent(text: string): boolean {
-  const re = new RegExp(CLOSE_INTENT_FULL_RE.source, CLOSE_INTENT_FULL_RE.flags);
-  let match: RegExpExecArray | null = re.exec(text);
-  while (match !== null) {
-    const start = match.index ?? 0;
-    if (!isInsideCodeFence(text, start)) {
-      const line = lineStartingAt(text, start);
-      // Bare trailer only: no blockquote (compact `>` or `> `), indented code, or quotes.
-      // Use /^[ \t]*>/ — BLOCKQUOTE_RE requires space after `>` and misses `>marker`.
-      if (!/^[ \t]*>/.test(line) && !isIndentedCodeLine(line)) {
-        const trimmed = line.trim();
-        const wrappedInQuotes =
-          trimmed.length >= 2 &&
-          QUOTE_MARKERS.some((q) => trimmed.startsWith(q) && trimmed.endsWith(q));
-        if (!wrappedInQuotes) {
-          // True trailer: only whitespace may follow the marker line.
-          const lineEnd = text.indexOf("\n", start);
-          const after = lineEnd === -1 ? "" : text.slice(lineEnd + 1);
-          if (after.trim().length === 0) {
-            return true;
-          }
-        }
-      }
-    }
-    match = re.exec(text);
-  }
+export function hasFullCloseIntent(_text: string): boolean {
   return false;
 }

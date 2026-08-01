@@ -1,5 +1,5 @@
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
-import { findAllClosingKeywordHits, findHits, hasFullCloseIntent, renderHit } from "./detect.js";
+import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
 import { defaultRunGh, fetchPrBody, fetchPrCommitMessages } from "./gh.js";
 import { readCommitsFile, readTextFile } from "./io.js";
 import type { ClosingKeywordMode, Hit, ParsedArgs, RunGhFn } from "./types.js";
@@ -158,9 +158,7 @@ function emitResult(
       notes.push(`${fpSuppressed} FP hit(s) suppressed by --allow-known-false-positives`);
     }
     if (intentSuppressed > 0) {
-      notes.push(
-        `${intentSuppressed} intent hit(s) suppressed by --allow-close / deft-close-intent: full`,
-      );
+      notes.push(`${intentSuppressed} intent hit(s) suppressed by --allow-close`);
     }
     if (notes.length > 0) {
       process.stderr.write(`OK: ${notes.join("; ")}.\n`);
@@ -192,8 +190,8 @@ function emitResult(
     process.stderr.write(
       `FAIL: ${intentFiltered.length} real closing-keyword hit(s) without allowlist (intent mode / #3015 class D). ` +
         "Default PR bodies use Tracking: #N / Related: #N / Refs #N. Use Closes/Fixes/Resolves only when full " +
-        "issue DoD is met, then either add `deft-close-intent: full` to the PR body or pass " +
-        "--allow-close <N,M>. Conditional prose (Phase A / only if / partial) does NOT prevent GitHub auto-close.\n",
+        "issue DoD is met, then pass --allow-close <N,M> on the lint (body trailers are not an authorization path). " +
+        "Conditional prose (Phase A / only if / partial) does NOT prevent GitHub auto-close.\n",
     );
     for (const h of intentFiltered) {
       process.stderr.write(`${renderHit(h)}\n`);
@@ -286,20 +284,17 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     }
   }
 
-  // #3015 / Greptile: full-intent authorization is a PR-body trailer only.
-  // Commit messages are NEVER consulted for deft-close-intent (class D recurrence).
-  // hasFullCloseIntent(body) requires a bare last non-empty body line — not commits.
-  const fullIntent = bodyText !== null ? hasFullCloseIntent(bodyText) : false;
-
+  // Intent allowlist is CLI --allow-close only (#3015). Body trailers are not
+  // an authorization path (Markdown example/fence false-authorization class).
   const fpFiltered = filterHits(fpHits, fpAllow);
-  const intentFiltered = fullIntent ? [] : filterHits(intentHits, closeAllow);
+  const intentFiltered = filterHits(intentHits, closeAllow);
 
   return emitResult(
     args.mode,
     fpFiltered,
     intentFiltered,
     fpHits.length - fpFiltered.length,
-    fullIntent ? intentHits.length : intentHits.length - intentFiltered.length,
+    intentHits.length - intentFiltered.length,
   );
 }
 

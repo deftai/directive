@@ -130,43 +130,9 @@ describe("intent mode (#3015 class D)", () => {
     expect(findHits(text, "pr-body")).toEqual([]);
   });
 
-  it("detects deft-close-intent: full as last non-empty body line", () => {
-    expect(hasFullCloseIntent("Closes #1\n\ndeft-close-intent: full\n")).toBe(true);
+  it("never authorizes via body trailer text (CLI --allow-close only)", () => {
+    expect(hasFullCloseIntent("Closes #1\n\ndeft-close-intent: full\n")).toBe(false);
     expect(hasFullCloseIntent("Closes #1\n")).toBe(false);
-    expect(hasFullCloseIntent("  deft-close-intent: full  ")).toBe(true);
-    expect(hasFullCloseIntent("Closes #1\n\ndeft-close-intent: full\n\n")).toBe(true);
-  });
-
-  it("rejects trailer inside code fence, blockquote, quotation, or mid-body", () => {
-    expect(hasFullCloseIntent("Example:\n```\ndeft-close-intent: full\n```\n")).toBe(false);
-    expect(hasFullCloseIntent("> deft-close-intent: full\n")).toBe(false);
-    expect(hasFullCloseIntent(">deft-close-intent: full\n")).toBe(false);
-    expect(hasFullCloseIntent("`deft-close-intent: full`\n")).toBe(false);
-    // Mid-body example line with following prose is not a trailer.
-    expect(
-      hasFullCloseIntent("Note the trailer form:\ndeft-close-intent: full\nThen more prose.\n"),
-    ).toBe(false);
-    // Markdown indented code block (4 spaces) must not authorize.
-    expect(hasFullCloseIntent("Closes #1\n\n    deft-close-intent: full\n")).toBe(false);
-  });
-
-  it("accepts bare trailer after a closed code fence", () => {
-    const text = "Example:\n```\nCloses #9\n```\n\nCloses #1\n\ndeft-close-intent: full\n";
-    expect(hasFullCloseIntent(text)).toBe(true);
-  });
-
-  it("rejects trailer inside unclosed tilde fence", () => {
-    expect(hasFullCloseIntent("Closes #1\n~~~\ndeft-close-intent: full\n")).toBe(false);
-  });
-
-  it("rejects trailer when mixed fence markers leave fence open", () => {
-    // Open with ~~~, "close" with ``` does not close under CommonMark rules.
-    expect(
-      hasFullCloseIntent("Closes #1\n~~~\nexample\n```\ndeft-close-intent: full\n"),
-    ).toBe(false);
-    // Open with ```` , shorter ``` does not close.
-    expect(
-      hasFullCloseIntent("Closes #1\n````\nexample\n```\ndeft-close-intent: full\n"),
-    ).toBe(false);
+    expect(hasFullCloseIntent("  deft-close-intent: full  ")).toBe(false);
   });
 });

@@ -30,8 +30,8 @@ tasks:
 
   # pr:check-closing-keywords -- Layer 0 prevention (#737 FP + #3015 intent).
   # Default --mode both: FP (negation/quote/example/code) + intent (any real
-  # Closes/Fixes/Resolves #N unless --allow-close or deft-close-intent: full).
-  # Pairs with Layer 3 recovery ``pr:check-protected-issues`` (#701).
+  # Closes/Fixes/Resolves #N unless --allow-close N,M). Body trailers are not
+  # an authorization path. Pairs with Layer 3 ``pr:check-protected-issues`` (#701).
   #
   # Per ``conventions/task-caching.md`` (#574): NO ``sources:`` /
   # ``generates:`` because user-facing recovery flags (``--pr``,
