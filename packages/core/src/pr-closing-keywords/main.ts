@@ -266,7 +266,12 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
       fpHits.push(...findHits(bodyText, "pr-body"));
     }
     if (runIntent) {
-      intentHits.push(...findAllClosingKeywordHits(bodyText, "pr-body"));
+      // Intent = class D only (bare/conditional real closes). Class A FP-context
+      // hits (negation/quote/example/code) stay exclusive to FP mode so operators
+      // do not need --allow-close for quoted fixtures (#3015 / SLizard).
+      intentHits.push(
+        ...findAllClosingKeywordHits(bodyText, "pr-body").filter((h) => h.reason === "intent"),
+      );
     }
   }
   for (let idx = 0; idx < commitMessages.length; idx += 1) {
@@ -275,7 +280,9 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
       fpHits.push(...findHits(msg, `commit:${idx}`));
     }
     if (runIntent) {
-      intentHits.push(...findAllClosingKeywordHits(msg, `commit:${idx}`));
+      intentHits.push(
+        ...findAllClosingKeywordHits(msg, `commit:${idx}`).filter((h) => h.reason === "intent"),
+      );
     }
   }
 

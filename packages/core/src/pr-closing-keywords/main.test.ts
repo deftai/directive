@@ -190,15 +190,14 @@ describe("run CLI offline", () => {
     expect(run(["--body-file", join(tmpdir(), "does-not-exist.md")])).toBe(EXIT_CONFIG_ERROR);
   });
 
-  it("FP allow list suppresses FP hits in fp mode", () => {
+  it("FP allow list suppresses class-A hits without --allow-close (both mode)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {
       const body = join(dir, "body.md");
       writeFileSync(body, "Body. Intentionally not `Closes #999` (test fixture).\n", "utf8");
-      expect(run(["--body-file", body, "--mode", "fp"])).toBe(EXIT_HITS_FOUND);
-      expect(
-        run(["--body-file", body, "--mode", "fp", "--allow-known-false-positives", "999"]),
-      ).toBe(EXIT_OK);
+      expect(run(["--body-file", body])).toBe(EXIT_HITS_FOUND);
+      // Class A stays exclusive to FP mode — no intent leak into --allow-close.
+      expect(run(["--body-file", body, "--allow-known-false-positives", "999"])).toBe(EXIT_OK);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
