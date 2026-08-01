@@ -313,7 +313,7 @@ enterprize PR #30 body contained `Closes #29 Phase A intake only if you want int
 - Class A = keyword in negation/quote/example/code (FP) — #737
 - Class D = bare or conditional real closing keyword without full DoD — #3015 intent mode
 
-**Rule:** Default PR body uses `Tracking: #N` / `Related: #N` / `Refs #N`. Use `Closes`/`Fixes`/`Resolves #N` only at full issue DoD, with either `deft-close-intent: full` in the body or `--allow-close N` on the lint. ⊗ `Closes #N Phase A` / `only if` / partial English around a real closing keyword.
+**Rule:** Default PR body uses `Tracking: #N` / `Related: #N` / `Refs #N`. Use `Closes`/`Fixes`/`Resolves #N` only at full issue DoD, and pass `--allow-close N` on the lint (CLI allowlist only). ⊗ `Closes #N Phase A` / `only if` / partial English around a real closing keyword.
 
 `task pr:check-closing-keywords` default mode is `both` (FP + intent). `--mode fp` is the class-A-only regression path.
 
