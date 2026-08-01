@@ -479,11 +479,35 @@ export function installOpenClawPin(
   // Exclusive lock dir serializes concurrent doctor --fix on the same pin
   // (non-recursive mkdir fails with EEXIST — atomic on win32 + posix). Without
   // it, two processes can interleave renames and leave the older staged copy
-  // as the final target (#3008 P1).
+  // as the final target (#3008 P1). Stale locks (crash before release) older
+  // than 5 minutes are reclaimed so future doctor --fix is not blocked forever.
   const lockDir = `${target}.deft-lock`;
-  try {
-    mkdirSync(lockDir);
-  } catch {
+  const STALE_LOCK_MS = 5 * 60 * 1000;
+  const tryAcquireLock = (): boolean => {
+    try {
+      mkdirSync(lockDir);
+      return true;
+    } catch {
+      try {
+        const ageMs = Date.now() - statSync(lockDir).mtimeMs;
+        if (ageMs >= STALE_LOCK_MS) {
+          rmSync(lockDir, { recursive: true, force: true });
+          mkdirSync(lockDir);
+          return true;
+        }
+      } catch {
+        // lock vanished between races — retry once below
+        try {
+          mkdirSync(lockDir);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    }
+  };
+  if (!tryAcquireLock()) {
     return {
       skillId,
       method: "skipped",

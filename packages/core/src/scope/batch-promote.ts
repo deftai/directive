@@ -114,6 +114,14 @@ export function batchPromote(options: BatchPromoteOptions = {}): BatchPromoteRes
   let promoted = 0;
 
   for (const filePath of files) {
+    // Re-validate containment immediately before use (TOCTOU: path may become
+    // an out-of-tree symlink after the initial candidate scan) (#3011 P1).
+    if (!isPathInsideProject(root, filePath)) {
+      skipped.push(
+        `${filePath.split(/[/\\]/).pop() ?? filePath}: path escapes project root at promote time`,
+      );
+      continue;
+    }
     const result = runTransition("promote", filePath);
     if (result.ok) {
       promoted += 1;
