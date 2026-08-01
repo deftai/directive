@@ -27,6 +27,7 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
@@ -477,28 +478,41 @@ export function installOpenClawPin(
   }
 
   // Exclusive lock dir serializes concurrent doctor --fix on the same pin
-  // (non-recursive mkdir fails with EEXIST — atomic on win32 + posix). Without
-  // it, two processes can interleave renames and leave the older staged copy
-  // as the final target (#3008 P1). Stale locks (crash before release) older
-  // than 5 minutes are reclaimed so future doctor --fix is not blocked forever.
+  // (non-recursive mkdir fails with EEXIST — atomic on win32 + posix). Owner
+  // PID is recorded; only dead-owner locks are reclaimed (no wall-clock steal
+  // of a live long-running install) (#3008 Greptile P1).
   const lockDir = `${target}.deft-lock`;
-  const STALE_LOCK_MS = 5 * 60 * 1000;
+  const lockPidPath = join(lockDir, "owner.pid");
+  const isPidAlive = (pid: number): boolean => {
+    if (!Number.isFinite(pid) || pid <= 0) return false;
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const tryAcquireLock = (): boolean => {
     try {
       mkdirSync(lockDir);
+      writeFileSync(lockPidPath, String(process.pid), "utf8");
       return true;
     } catch {
       try {
-        const ageMs = Date.now() - statSync(lockDir).mtimeMs;
-        if (ageMs >= STALE_LOCK_MS) {
+        const ownerRaw = readFileSync(lockPidPath, "utf8").trim();
+        const ownerPid = Number.parseInt(ownerRaw, 10);
+        if (!isPidAlive(ownerPid)) {
           rmSync(lockDir, { recursive: true, force: true });
           mkdirSync(lockDir);
+          writeFileSync(lockPidPath, String(process.pid), "utf8");
           return true;
         }
       } catch {
-        // lock vanished between races — retry once below
+        // Missing/corrupt owner or vanished lock — one reclaim attempt.
         try {
+          rmSync(lockDir, { recursive: true, force: true });
           mkdirSync(lockDir);
+          writeFileSync(lockPidPath, String(process.pid), "utf8");
           return true;
         } catch {
           return false;
