@@ -20,8 +20,8 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -410,8 +410,7 @@ export function installOpenClawPin(
   const copyDir = seams.copyDir ?? defaultCopyDir;
   const removePath =
     seams.removePath ?? ((p: string) => rmSync(p, { recursive: true, force: true }));
-  const renamePath =
-    seams.renamePath ?? ((from: string, to: string) => renameSync(from, to));
+  const renamePath = seams.renamePath ?? ((from: string, to: string) => renameSync(from, to));
 
   const target = join(skillsDir, skillId);
   const force = options.force === true || options.allowOverwrite === true;
@@ -663,7 +662,10 @@ export function runOpenClawSkillPinsCheck(
           for (const skillId of assessment.divergent) {
             const sourceDir = resolvePinSourceDir(contentBase, skillId);
             const target = join(skillsDir, skillId);
-            if (skillHasBody(target, isFile, isDir) && !skillBodyMatchesPackage(sourceDir, target, isFile)) {
+            if (
+              skillHasBody(target, isFile, isDir) &&
+              !skillBodyMatchesPackage(sourceDir, target, isFile)
+            ) {
               toInstall.add(skillId);
               continue;
             }
