@@ -163,9 +163,28 @@ export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
 /**
  * Machine trailer on a dedicated line of the **PR body** (not commit messages):
  * `deft-close-intent: full` allows real closing keywords in intent mode (#3015).
+ * Must be a bare line — not inside a code fence, blockquote, or quotation wrapper.
  */
-export const CLOSE_INTENT_FULL_RE = /^\s*deft-close-intent\s*:\s*full\s*$/im;
+export const CLOSE_INTENT_FULL_RE = /^\s*deft-close-intent\s*:\s*full\s*$/gim;
 
 export function hasFullCloseIntent(text: string): boolean {
-  return CLOSE_INTENT_FULL_RE.test(text);
+  const re = new RegExp(CLOSE_INTENT_FULL_RE.source, CLOSE_INTENT_FULL_RE.flags);
+  let match: RegExpExecArray | null = re.exec(text);
+  while (match !== null) {
+    const start = match.index ?? 0;
+    if (!isInsideCodeFence(text, start)) {
+      const line = lineStartingAt(text, start);
+      if (!BLOCKQUOTE_RE.test(line)) {
+        const trimmed = line.trim();
+        const wrappedInQuotes =
+          trimmed.length >= 2 &&
+          QUOTE_MARKERS.some((q) => trimmed.startsWith(q) && trimmed.endsWith(q));
+        if (!wrappedInQuotes) {
+          return true;
+        }
+      }
+    }
+    match = re.exec(text);
+  }
+  return false;
 }

@@ -135,4 +135,10 @@ describe("intent mode (#3015 class D)", () => {
     expect(hasFullCloseIntent("Closes #1\n")).toBe(false);
     expect(hasFullCloseIntent("  deft-close-intent: full  ")).toBe(true);
   });
+
+  it("rejects trailer inside code fence, blockquote, or quotation", () => {
+    expect(hasFullCloseIntent("Example:\n```\ndeft-close-intent: full\n```\n")).toBe(false);
+    expect(hasFullCloseIntent("> deft-close-intent: full\n")).toBe(false);
+    expect(hasFullCloseIntent("`deft-close-intent: full`\n")).toBe(false);
+  });
 });
