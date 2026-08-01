@@ -158,4 +158,15 @@ describe("intent mode (#3015 class D)", () => {
   it("rejects trailer inside unclosed tilde fence", () => {
     expect(hasFullCloseIntent("Closes #1\n~~~\ndeft-close-intent: full\n")).toBe(false);
   });
+
+  it("rejects trailer when mixed fence markers leave fence open", () => {
+    // Open with ~~~, "close" with ``` does not close under CommonMark rules.
+    expect(
+      hasFullCloseIntent("Closes #1\n~~~\nexample\n```\ndeft-close-intent: full\n"),
+    ).toBe(false);
+    // Open with ```` , shorter ``` does not close.
+    expect(
+      hasFullCloseIntent("Closes #1\n````\nexample\n```\ndeft-close-intent: full\n"),
+    ).toBe(false);
+  });
 });

@@ -28,8 +28,8 @@ const EXAMPLE_MARKERS: readonly RegExp[] = [
 ];
 
 const BLOCKQUOTE_RE = /^\s*>\s/m;
-/** CommonMark fenced code: 3+ backticks or 3+ tildes at line start. */
-const CODE_FENCE_RE = /^(?:`{3,}|~{3,})/m;
+/** CommonMark fenced code opener/closer at line start: 3+ backticks or 3+ tildes. */
+const CODE_FENCE_LINE_RE = /^(?:`{3,}|~{3,})/;
 
 function findAllMatches(text: string, re: RegExp): RegExpExecArray[] {
   const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
@@ -52,18 +52,40 @@ function lineStartingAt(text: string, offset: number): string {
   return text.slice(lineStart, lineEnd);
 }
 
+/**
+ * CommonMark fence stack: open and close must use the same character, and the
+ * closer length must be >= opener length. Mixed ``` / ~~~ or shorter closers
+ * do not pop the open fence.
+ */
 function isInsideCodeFence(text: string, offset: number): boolean {
-  // Count ALL fence openers before offset (must use /g — a non-global match only
-  // sees the first fence and permanently classifies the rest of the body as inside).
-  const prefix = text.slice(0, offset);
-  const re = new RegExp(CODE_FENCE_RE.source, "gm");
-  let count = 0;
-  let m: RegExpExecArray | null = re.exec(prefix);
-  while (m !== null) {
-    count += 1;
-    m = re.exec(prefix);
+  let openChar: "`" | "~" | null = null;
+  let openLen = 0;
+  let lineStart = 0;
+  while (lineStart < offset) {
+    let lineEnd = text.indexOf("\n", lineStart);
+    if (lineEnd === -1 || lineEnd > offset) {
+      lineEnd = Math.min(text.length, offset);
+    }
+    const line = text.slice(lineStart, lineEnd);
+    const m = CODE_FENCE_LINE_RE.exec(line);
+    if (m !== null) {
+      const fence = m[0] ?? "";
+      const ch = fence[0] as "`" | "~";
+      const len = fence.length;
+      if (openChar === null) {
+        openChar = ch;
+        openLen = len;
+      } else if (ch === openChar && len >= openLen) {
+        openChar = null;
+        openLen = 0;
+      }
+    }
+    if (lineEnd >= offset) {
+      break;
+    }
+    lineStart = lineEnd + 1;
   }
-  return count % 2 === 1;
+  return openChar !== null;
 }
 
 function classifyHit(text: string, match: RegExpExecArray): string | null {
