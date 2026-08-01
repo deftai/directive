@@ -145,7 +145,7 @@ Edit the xBRIEF source, then render the markdown view.
 
 - `task spec:render` -- render `xbrief/specification.xbrief.json` to `SPECIFICATION.md`.
 - `task prd:render` -- render a stakeholder PRD view from the specification xBRIEF.
-- `task roadmap:render` -- render `ROADMAP.md` from lifecycle scope xBRIEFs.
+- `task roadmap:render` -- render `ROADMAP.md` from lifecycle scope xBRIEFs (`pending/` + `proposed/` + `active/` forward; `completed/` capped).
 - `task project:render` -- refresh the `PROJECT-DEFINITION.xbrief.json` items registry from lifecycle folders.
 - `deft xbrief:validate` -- validate xBRIEF schema, filenames, folders, statuses, and cross-file consistency.
 - `deft migrate:xbrief` (or `task migrate:xbrief`) -- convert a legacy `vbrief/` project tree to `xbrief/` (v0.6→v0.8 semantic transforms; requires clean working tree unless `--force`). Legacy `vbrief/` and `x-vbrief/` tokens remain read-accepted until this runs.

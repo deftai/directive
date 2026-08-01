@@ -23,14 +23,25 @@ afterEach(() => {
   for (const dir of temps.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-function makeFixture(): { pending: string; completed: string; outPath: string } {
+function makeFixture(): {
+  root: string;
+  pending: string;
+  proposed: string;
+  active: string;
+  completed: string;
+  outPath: string;
+} {
   const root = mkdtempSync(join(tmpdir(), "deft-roadmap-idem-"));
   temps.push(root);
   const pending = join(root, "xbrief", "pending");
+  const proposed = join(root, "xbrief", "proposed");
+  const active = join(root, "xbrief", "active");
   const completed = join(root, "xbrief", "completed");
   mkdirSync(pending, { recursive: true });
+  mkdirSync(proposed, { recursive: true });
+  mkdirSync(active, { recursive: true });
   mkdirSync(completed, { recursive: true });
-  return { pending, completed, outPath: join(root, "ROADMAP.md") };
+  return { root, pending, proposed, active, completed, outPath: join(root, "ROADMAP.md") };
 }
 
 function writeVbrief(dir: string, name: string, data: unknown): void {
@@ -363,6 +374,228 @@ describe("roadmap-render idempotency", () => {
     expect(content).toContain("### Untitled Phase");
     expect(content).toContain("(depends on: task-a)");
     expect(checkDrift(pending, outPath)[0]).toBe(true);
+  });
+});
+
+describe("roadmap-render forward projection (#2653)", () => {
+  it("empty pending + non-empty proposed is not Completed-only", () => {
+    const { pending, proposed, completed, outPath } = makeFixture();
+    writeVbrief(proposed, "2026-07-01-100-forward.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Proposed forward work",
+        status: "proposed",
+        references: [{ id: "#100" }],
+      },
+    });
+    writeVbrief(completed, "2026-01-01-done.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Already shipped",
+        status: "completed",
+        references: [{ id: "#50" }],
+      },
+    });
+
+    const content = renderRoadmapToBuffer(pending, completed);
+    expect(content).toContain("## Proposed");
+    expect(content).toContain("Proposed forward work");
+    expect(content).toContain("## Completed");
+    expect(content).toContain("Already shipped");
+    // Must not be Completed-only: Proposed appears before Completed
+    expect(content.indexOf("## Proposed")).toBeLessThan(content.indexOf("## Completed"));
+    expect(content).not.toMatch(/^# Roadmap\s+## Completed/m);
+
+    renderRoadmap(pending, outPath, completed);
+    expect(checkDrift(pending, outPath, completed)[0]).toBe(true);
+  });
+
+  it("empty forward + completed emits explicit empty-forward marker", () => {
+    const { pending, completed } = makeFixture();
+    writeVbrief(completed, "2026-01-01-done.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Done only",
+        status: "completed",
+        references: [{ id: "#1" }],
+      },
+    });
+    const content = renderRoadmapToBuffer(pending, completed);
+    expect(content).toContain("## Forward plan");
+    expect(content).toContain("No open work in `pending/`");
+    expect(content).toContain("## Completed");
+    expect(content).toContain("Done only");
+  });
+
+  it("projects active scopes under ## Active", () => {
+    const { pending, active } = makeFixture();
+    writeVbrief(active, "2026-07-01-200-running.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "In flight",
+        status: "running",
+        references: [{ id: "#200" }],
+      },
+    });
+    const content = renderRoadmapToBuffer(pending);
+    expect(content).toContain("## Active");
+    expect(content).toContain("In flight");
+    expect(content).toContain("`[running]`");
+  });
+
+  it("caps unbounded completed dump and notes omitted count", () => {
+    const { pending, completed } = makeFixture();
+    // ROADMAP_COMPLETED_CAP is 25 — write 30 completed scopes
+    for (let i = 1; i <= 30; i += 1) {
+      const day = String(i).padStart(2, "0");
+      writeVbrief(completed, `2026-01-${day}-done-${i}.xbrief.json`, {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: `Done ${i}`,
+          status: "completed",
+          // completion stamps drive recency (not creation-dated filenames)
+          metadata: { completedAt: `2026-03-${day}T12:00:00Z` },
+          references: [{ id: `#${i}` }],
+        },
+      });
+    }
+    const content = renderRoadmapToBuffer(pending, completed);
+    expect(content).toContain("Showing 25 of 30 completed scopes");
+    expect(content).toContain("Done 30");
+    expect(content).toContain("Done 6"); // 30..6 = 25 newest by completedAt
+    expect(content).not.toContain("Done 5");
+    // empty-forward marker still present when no pending/proposed/active
+    expect(content).toContain("## Forward plan");
+  });
+
+  it("completed cap prefers completedAt over creation-dated filename (Greptile P1)", () => {
+    const { pending, completed } = makeFixture();
+    // Old filename but recent completion
+    writeVbrief(completed, "2025-01-01-old-name-recent-complete.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Recently finished old scope",
+        status: "completed",
+        metadata: { completedAt: "2026-07-30T18:00:00Z" },
+        references: [{ id: "#900" }],
+      },
+    });
+    // Newer filename but earlier completion
+    writeVbrief(completed, "2026-07-01-new-name-early-complete.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Early finished new name",
+        status: "completed",
+        metadata: { completedAt: "2026-02-01T12:00:00Z" },
+        references: [{ id: "#901" }],
+      },
+    });
+    // 24 filler so only 1 slot remains after cap prefers recent
+    for (let i = 1; i <= 24; i += 1) {
+      writeVbrief(completed, `2026-04-${String(i).padStart(2, "0")}-filler.xbrief.json`, {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: `Filler ${i}`,
+          status: "completed",
+          metadata: { completedAt: `2026-04-${String(i).padStart(2, "0")}T00:00:00Z` },
+          references: [{ id: `#${1000 + i}` }],
+        },
+      });
+    }
+    const content = renderRoadmapToBuffer(pending, completed);
+    // 26 total → cap 25; earliest completedAt (2026-02) must drop
+    expect(content).toContain("Recently finished old scope");
+    expect(content).not.toContain("Early finished new name");
+    expect(content).toContain("Showing 25 of 26 completed scopes");
+  });
+
+  it("banner names forward lifecycle sources (#2653)", () => {
+    const { pending } = makeFixture();
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+    const content = renderRoadmapToBuffer(pending);
+    expect(content).toContain("pending/ + proposed/ + active/");
+    expect(content).toContain("completed/ capped");
+    expect(content).not.toMatch(/Source of truth: vbrief\/pending\/ \(scope vBRIEFs\)/);
+  });
+
+  it("checkDrift requires ROADMAP when only proposed scopes exist", () => {
+    const { pending, proposed, outPath } = makeFixture();
+    writeVbrief(proposed, "2026-07-01-proposed.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "Only proposed", status: "proposed", references: [{ id: "#9" }] },
+    });
+    const [ok, msg] = checkDrift(pending, outPath);
+    expect(ok).toBe(false);
+    expect(msg).toContain("does not exist");
+  });
+
+  it("renders pending hierarchical body alongside proposed without empty-forward marker", () => {
+    const { pending, proposed } = makeFixture();
+    writeVbrief(pending, "2026-01-01-deps.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Accepted plan",
+        status: "pending",
+        references: [{ id: "#10" }],
+        items: [
+          {
+            id: "p1",
+            title: "Phase",
+            status: "pending",
+            subItems: [
+              {
+                id: "task-a",
+                title: "Task A",
+                status: "pending",
+                subItems: [{ id: "leaf", title: "Leaf", status: "pending" }, "skip-string", null],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    writeVbrief(proposed, "2026-07-01-later.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "Later idea", status: "proposed", references: [{ id: "#11" }] },
+    });
+    const content = renderRoadmapToBuffer(pending);
+    expect(content).toContain("## Accepted plan");
+    expect(content).toContain("Leaf");
+    expect(content).toContain("## Proposed");
+    expect(content).toContain("Later idea");
+    expect(content).not.toContain("## Forward plan");
+  });
+
+  it("empty lifecycle emits no-pending message", () => {
+    const { pending, completed } = makeFixture();
+    const content = renderRoadmapToBuffer(pending, completed);
+    expect(content).toContain("No pending work items.");
+    expect(content).not.toContain("## Completed");
+  });
+
+  it("hierarchical pending renders Overview narrative under plan title", () => {
+    const { pending } = makeFixture();
+    writeVbrief(pending, "2026-01-01-overview.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "With overview",
+        status: "pending",
+        narratives: { Overview: "Why this work matters." },
+        references: [{ id: "#42" }],
+        items: [{ id: "p1", title: "Only phase", status: "pending", subItems: [] }],
+      },
+    });
+    const content = renderRoadmapToBuffer(pending);
+    expect(content).toContain("## With overview (#42)");
+    expect(content).toContain("Why this work matters.");
+  });
+
+  it("main accepts --project-root=equals form (#2653 CLI branch)", () => {
+    const { root, pending } = makeFixture();
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+    const outPath = join(root, "ROADMAP.md");
+    expect(roadmapRenderMain([`--project-root=${root}`, outPath])).toBe(0);
+    expect(readFileSync(outPath, "utf8")).toContain("Feature Work");
   });
 });
 

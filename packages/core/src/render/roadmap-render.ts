@@ -2,7 +2,12 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
-import { MIGRATOR_METADATA_KEY, ROADMAP_BANNER } from "./constants.js";
+import {
+  MIGRATOR_METADATA_KEY,
+  ROADMAP_BANNER,
+  ROADMAP_COMPLETED_CAP,
+  ROADMAP_EMPTY_FORWARD_MARKER,
+} from "./constants.js";
 import { phaseSortKey } from "./text-utils.js";
 
 type JsonObject = Record<string, unknown>;
@@ -244,19 +249,79 @@ function resolveCompletedDir(pendingDir: string, completedDir?: string): string 
   return completedDir ?? join(dirname(pendingDir), "completed");
 }
 
-/** Single render-to-buffer entry used by both write and --check (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
-export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
-  const vbriefs = loadVbriefs(pendingDir);
-  const resolvedCompleted = resolveCompletedDir(pendingDir, completedDir);
-  const completedVbriefs = loadVbriefs(resolvedCompleted);
+function lifecycleSibling(pendingDir: string, bucket: string): string {
+  return join(dirname(pendingDir), bucket);
+}
 
-  const lines: string[] = [ROADMAP_BANNER, "# Roadmap\n"];
-
-  if (vbriefs.length === 0 && completedVbriefs.length === 0) {
-    lines.push("No pending work items.\n");
-    return `${lines.join("\n")}\n`;
+function hasLifecycleArtifacts(dir: string): boolean {
+  if (!existsSync(dir)) return false;
+  try {
+    return readdirSync(dir).some((n) => hasArtifactSuffix(n));
+  } catch {
+    return false;
   }
+}
 
+/**
+ * Prefer completion-time stamps over creation-dated filenames so the cap
+ * keeps recently completed scopes (#2653 Greptile P1).
+ * Order: plan.metadata.completedAt → plan.updated → envelope updated → _source_file.
+ */
+function completedRecencyKey(vbrief: JsonObject): string {
+  const plan = (vbrief.plan ?? {}) as JsonObject;
+  const metadata = plan.metadata;
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    const completedAt = (metadata as JsonObject).completedAt;
+    if (typeof completedAt === "string" && completedAt.trim()) return completedAt.trim();
+  }
+  if (typeof plan.updated === "string" && plan.updated.trim()) return plan.updated.trim();
+  for (const envelopeKey of ["xBRIEFInfo", "vBRIEFInfo"] as const) {
+    const env = vbrief[envelopeKey];
+    if (typeof env === "object" && env !== null && !Array.isArray(env)) {
+      const updated = (env as JsonObject).updated;
+      if (typeof updated === "string" && updated.trim()) return updated.trim();
+    }
+  }
+  return String(vbrief._source_file ?? "");
+}
+
+/** Newest-first by completion recency, then cap. */
+function takeCompletedCap(
+  vbriefs: JsonObject[],
+  cap: number = ROADMAP_COMPLETED_CAP,
+): { shown: JsonObject[]; total: number; omitted: number } {
+  const sorted = [...vbriefs].sort((a, b) => {
+    const kb = completedRecencyKey(b);
+    const ka = completedRecencyKey(a);
+    const byKey = kb.localeCompare(ka);
+    if (byKey !== 0) return byKey;
+    return String(b._source_file ?? "").localeCompare(String(a._source_file ?? ""));
+  });
+  if (sorted.length <= cap) {
+    return { shown: sorted, total: sorted.length, omitted: 0 };
+  }
+  return {
+    shown: sorted.slice(0, cap),
+    total: sorted.length,
+    omitted: sorted.length - cap,
+  };
+}
+
+/** Flat list of scope bullets (proposed / active / completed). */
+function renderScopeList(vbriefs: JsonObject[]): string[] {
+  const lines: string[] = [];
+  for (const vb of vbriefs) lines.push(...renderScopeItem(vb));
+  if (vbriefs.length > 0) lines.push("");
+  return lines;
+}
+
+/**
+ * Pending-only body: preserve phase-grouped and hierarchical heading models
+ * so existing ROADMAP consumers keep stable ## structure when pending is the
+ * sole forward source.
+ */
+function renderPendingBody(vbriefs: JsonObject[]): string[] {
+  const lines: string[] = [];
   const hasPhaseNarratives = vbriefs.some((vb) => {
     const plan = (vb.plan ?? {}) as JsonObject;
     return Boolean(migratorField(plan, "Phase"));
@@ -291,61 +356,113 @@ export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string)
         lines.push("");
       }
     }
-  } else {
-    for (const vbrief of vbriefs) {
-      const plan = (vbrief.plan ?? {}) as JsonObject;
-      const planTitle = String(plan.title ?? "Untitled");
-      const issueRefs = extractIssueRefs(plan.references);
-      const titleParts = [`## ${planTitle}`];
-      if (issueRefs.length > 0) titleParts.push(`(${issueRefs.join(", ")})`);
-      lines.push(`${titleParts.join(" ")}\n`);
+    return lines;
+  }
 
-      const narratives = plan.narratives;
-      if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
-        const overview = (narratives as JsonObject).Overview;
-        if (typeof overview === "string" && overview) lines.push(`${overview}\n`);
-      }
+  for (const vbrief of vbriefs) {
+    const plan = (vbrief.plan ?? {}) as JsonObject;
+    const planTitle = String(plan.title ?? "Untitled");
+    const issueRefs = extractIssueRefs(plan.references);
+    const titleParts = [`## ${planTitle}`];
+    if (issueRefs.length > 0) titleParts.push(`(${issueRefs.join(", ")})`);
+    lines.push(`${titleParts.join(" ")}\n`);
 
-      const depMap = buildEdgeMap(vbrief);
-      const phases = Array.isArray(plan.items)
-        ? plan.items.filter(
-            (p): p is JsonObject => typeof p === "object" && p !== null && !Array.isArray(p),
-          )
-        : [];
-      const sortedPhases = topoSortItems(phases, depMap);
-
-      for (const phase of sortedPhases) {
-        const phaseId = String(phase.id ?? "");
-        const phaseTitle = String(phase.title ?? "Untitled Phase");
-        const phaseStatus = String(phase.status ?? "");
-        let heading = phaseId ? `### ${phaseId}: ${phaseTitle}` : `### ${phaseTitle}`;
-        if (phaseStatus) heading += ` \`[${phaseStatus}]\``;
-        lines.push(`${heading}\n`);
-
-        const narrative = phase.narrative;
-        if (typeof narrative === "object" && narrative !== null && !Array.isArray(narrative)) {
-          for (const [key, val] of Object.entries(narrative as JsonObject)) {
-            if (key !== "Traces" && key !== "Acceptance") lines.push(`${String(val)}\n`);
-          }
-        }
-
-        const subItems = phase.subItems;
-        if (Array.isArray(subItems) && subItems.length > 0) {
-          const subs = subItems.filter(
-            (s): s is JsonObject => typeof s === "object" && s !== null && !Array.isArray(s),
-          );
-          const sortedSubs = topoSortItems(subs, depMap);
-          for (const item of sortedSubs) lines.push(...renderItem(item, depMap));
-          lines.push("");
-        }
-      }
-      lines.push("---\n");
+    const narratives = plan.narratives;
+    if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
+      const overview = (narratives as JsonObject).Overview;
+      if (typeof overview === "string" && overview) lines.push(`${overview}\n`);
     }
+
+    const depMap = buildEdgeMap(vbrief);
+    const phases = Array.isArray(plan.items)
+      ? plan.items.filter(
+          (p): p is JsonObject => typeof p === "object" && p !== null && !Array.isArray(p),
+        )
+      : [];
+    const sortedPhases = topoSortItems(phases, depMap);
+
+    for (const phase of sortedPhases) {
+      const phaseId = String(phase.id ?? "");
+      const phaseTitle = String(phase.title ?? "Untitled Phase");
+      const phaseStatus = String(phase.status ?? "");
+      let heading = phaseId ? `### ${phaseId}: ${phaseTitle}` : `### ${phaseTitle}`;
+      if (phaseStatus) heading += ` \`[${phaseStatus}]\``;
+      lines.push(`${heading}\n`);
+
+      const narrative = phase.narrative;
+      if (typeof narrative === "object" && narrative !== null && !Array.isArray(narrative)) {
+        for (const [key, val] of Object.entries(narrative as JsonObject)) {
+          if (key !== "Traces" && key !== "Acceptance") lines.push(`${String(val)}\n`);
+        }
+      }
+
+      const subItems = phase.subItems;
+      if (Array.isArray(subItems) && subItems.length > 0) {
+        const subs = subItems.filter(
+          (s): s is JsonObject => typeof s === "object" && s !== null && !Array.isArray(s),
+        );
+        const sortedSubs = topoSortItems(subs, depMap);
+        for (const item of sortedSubs) lines.push(...renderItem(item, depMap));
+        lines.push("");
+      }
+    }
+    lines.push("---\n");
+  }
+  return lines;
+}
+
+/** Single render-to-buffer entry used by both write and --check (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
+export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
+  const pendingVbriefs = loadVbriefs(pendingDir);
+  const activeVbriefs = loadVbriefs(lifecycleSibling(pendingDir, "active"));
+  const proposedVbriefs = loadVbriefs(lifecycleSibling(pendingDir, "proposed"));
+  const resolvedCompleted = resolveCompletedDir(pendingDir, completedDir);
+  const completedVbriefs = loadVbriefs(resolvedCompleted);
+
+  const lines: string[] = [ROADMAP_BANNER, "# Roadmap\n"];
+
+  const hasForward =
+    pendingVbriefs.length > 0 || activeVbriefs.length > 0 || proposedVbriefs.length > 0;
+  const hasAny = hasForward || completedVbriefs.length > 0;
+
+  if (!hasAny) {
+    lines.push("No pending work items.\n");
+    return `${lines.join("\n")}\n`;
+  }
+
+  // D2.2: never emit Completed-only without an explicit empty-forward marker.
+  if (!hasForward && completedVbriefs.length > 0) {
+    lines.push("## Forward plan\n");
+    lines.push(ROADMAP_EMPTY_FORWARD_MARKER);
+  }
+
+  if (pendingVbriefs.length > 0) {
+    lines.push(...renderPendingBody(pendingVbriefs));
+  }
+
+  if (activeVbriefs.length > 0) {
+    lines.push("## Active\n");
+    lines.push(...renderScopeList(activeVbriefs));
+  }
+
+  if (proposedVbriefs.length > 0) {
+    lines.push("## Proposed\n");
+    lines.push(
+      "_Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._\n",
+    );
+    lines.push(...renderScopeList(proposedVbriefs));
   }
 
   if (completedVbriefs.length > 0) {
+    const { shown, total, omitted } = takeCompletedCap(completedVbriefs);
     lines.push("## Completed\n");
-    for (const vb of completedVbriefs) lines.push(...renderScopeItem(vb));
+    if (omitted > 0) {
+      lines.push(
+        `_Showing ${shown.length} of ${total} completed scopes (newest first). ` +
+          `Full history: lifecycle \`completed/\` (or \`task report\` when available)._\n`,
+      );
+    }
+    for (const vb of shown) lines.push(...renderScopeItem(vb));
     lines.push("");
   }
 
@@ -398,20 +515,22 @@ export function checkDrift(
 ): RenderRoadmapResult {
   const expected = renderRoadmapToBuffer(pendingDir, completedDir);
   if (!existsSync(roadmapPath)) {
-    const hasPending =
-      existsSync(pendingDir) && readdirSync(pendingDir).some((n) => hasArtifactSuffix(n));
+    const hasPending = hasLifecycleArtifacts(pendingDir);
+    const hasActive = hasLifecycleArtifacts(lifecycleSibling(pendingDir, "active"));
+    const hasProposed = hasLifecycleArtifacts(lifecycleSibling(pendingDir, "proposed"));
     const inferredCompleted = resolveCompletedDir(pendingDir, completedDir);
-    const hasCompleted =
-      existsSync(inferredCompleted) &&
-      readdirSync(inferredCompleted).some((n) => hasArtifactSuffix(n));
-    if (!hasPending && !hasCompleted) {
-      return [true, "✓ No ROADMAP.md needed (no pending or completed vBRIEFs)"];
+    const hasCompleted = hasLifecycleArtifacts(inferredCompleted);
+    if (!hasPending && !hasActive && !hasProposed && !hasCompleted) {
+      return [true, "✓ No ROADMAP.md needed (no lifecycle scope vBRIEFs)"];
     }
     return [false, "✗ ROADMAP.md does not exist but vBRIEFs found"];
   }
   const actual = readFileSync(roadmapPath, "utf8");
   if (actual === expected) return [true, "✓ ROADMAP.md is up to date"];
-  return [false, "✗ ROADMAP.md has drifted from pending/ vBRIEFs -- run: task roadmap:render"];
+  return [
+    false,
+    "✗ ROADMAP.md has drifted from lifecycle scope vBRIEFs -- run: task roadmap:render",
+  ];
 }
 
 /** CLI entry (mirrors ``scripts/roadmap_render.main``). */

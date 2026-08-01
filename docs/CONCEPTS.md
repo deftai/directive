@@ -65,7 +65,7 @@ Deft uses **xBRIEF** files for project and work state (public canonical name; on
 - `xbrief/continue.xbrief.json` -- interruption recovery checkpoint when present.
 - `xbrief/{proposed,pending,active,completed,cancelled}/` -- scope lifecycle folders.
 
-Markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The safe pattern is: edit xBRIEF source, run the render task, then validate.
+Markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The safe pattern is: edit xBRIEF source, run the render task, then validate. `ROADMAP.md` projects open work from lifecycle `pending/`, `proposed/`, and `active/` (completed history is capped) so it answers "what is coming next," not only shipped history; it is not a substitute for `task triage:queue`.
 
 **Legacy:** `vbrief/`, `*.vbrief.json`, and older `vbrief:*` task aliases remain read-accepted until `deft migrate:xbrief` (or `task migrate:xbrief`). Do not teach them as the current model.
 
