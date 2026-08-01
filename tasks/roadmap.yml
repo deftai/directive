@@ -12,7 +12,7 @@ vars:
 
 tasks:
   render:
-    desc: Render ROADMAP.md from pending/ and completed/ lifecycle folders
+    desc: Render ROADMAP.md from pending/ proposed/ active/ (forward) and capped completed/
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

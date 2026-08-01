@@ -106,7 +106,7 @@ describe("test_machine_generated_banner", () => {
       readFileSync(out, "utf8"),
       "rendered roadmap",
       "task roadmap:render",
-      "vbrief/pending/ (scope vBRIEFs)",
+      "xbrief|vbrief pending/ + proposed/ + active/ (forward); completed/ capped",
       "task roadmap:render",
     );
   });
