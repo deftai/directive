@@ -264,6 +264,56 @@ describe("escaping symlink pins (#3008)", () => {
     expect(post.present).toContain("deft-directive-build");
     expect(post.divergent).not.toContain("deft-directive-build");
   });
+
+  it("detects stale SKILL.md copies and refreshes under refreshStale (#3008 P1)", () => {
+    const root = makeTemp("oc-stale-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    installOpenClawPin("deft-directive-build", source, skills);
+    writeFileSync(join(skills, "deft-directive-build", "SKILL.md"), "# stale pin body\n", "utf8");
+    const stale = assessOpenClawPins(skills, {}, { contentBase: content });
+    expect(stale.divergent).toContain("deft-directive-build");
+    const skipped = installOpenClawPin("deft-directive-build", source, skills, {
+      refreshStale: false,
+    });
+    expect(skipped.method).toBe("skipped");
+    expect(skipped.detail).toMatch(/stale pin/i);
+    const refreshed = installOpenClawPin("deft-directive-build", source, skills, {
+      refreshStale: true,
+    });
+    expect(refreshed.method).toBe("copy");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
+      "deft-directive-build",
+    );
+  });
+
+  it("restores prior pin when staged copy fails (#3008 P1)", () => {
+    const root = makeTemp("oc-copy-fail-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    installOpenClawPin("deft-directive-build", source, skills);
+    // Make pin stale so install does not short-circuit as already-present.
+    writeFileSync(join(skills, "deft-directive-build", "SKILL.md"), "# old\n", "utf8");
+    writeFileSync(join(skills, "deft-directive-build", "KEEP.md"), "keep-me", "utf8");
+    const result = installOpenClawPin(
+      "deft-directive-build",
+      source,
+      skills,
+      { force: true },
+      {
+        copyDir: () => {
+          throw new Error("disk full");
+        },
+      },
+    );
+    expect(result.method).toBe("skipped");
+    expect(result.detail).toMatch(/disk full/);
+    // Original target still present with user file — not deleted on failed stage.
+    expect(readFileSync(join(skills, "deft-directive-build", "KEEP.md"), "utf8")).toBe("keep-me");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toBe("# old\n");
+  });
 });
 
 describe("runOpenClawSkillPinsCheck (#3001)", () => {
@@ -329,8 +379,9 @@ describe("runOpenClawSkillPinsCheck (#3001)", () => {
   it("detect hit: clean when all pins present", () => {
     const home = makeTemp("oc-hit-run-");
     const skills = join(home, ".openclaw", "workspace", "skills");
-    for (const id of OPENCLAW_ALWAYS_PIN_SKILLS) writeSkill(skills, id);
     const content = makeContentPackage(home);
+    // Bodies must match content package (stale-copy detection compares SKILL.md).
+    for (const id of OPENCLAW_ALWAYS_PIN_SKILLS) writeSkill(skills, id, `# ${id}\n`);
     const findings: Finding[] = [];
     runOpenClawSkillPinsCheck(
       createPlainSink({ write: () => undefined }),

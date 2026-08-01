@@ -1,4 +1,5 @@
-import { type CompletedProcess, call } from "../scm/call.js";
+import { spawnSync } from "node:child_process";
+import type { CompletedProcess } from "../scm/call.js";
 import { pyRepr } from "../scm/py-format.js";
 import {
   getPlatformCapabilities,
@@ -67,9 +68,30 @@ export function inferGithubAuthMode(runtimeReport: RuntimeCapabilityReport): str
   return GITHUB_AUTH_MODE_HOST_GH;
 }
 
+/**
+ * Prefer live `gh` for auth/API validation. Do not route through scm.call /
+ * BINARY_PREFERENCE (ghx-first): ghx is a cached GET proxy and rejects multi-arg
+ * `api user --jq .login` forms used here (#2275 Greptile P1 / #954).
+ */
 function defaultRunGh(args: readonly string[], environ: NodeJS.ProcessEnv): CompletedProcess {
-  const verb = args[0] as string;
-  return call("github-issue", verb, args.slice(1), { env: environ, timeout: 30 });
+  const binary = "gh";
+  try {
+    const result = spawnSync(binary, [...args], {
+      env: environ,
+      encoding: "utf8",
+      timeout: 30_000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return {
+      args: [binary, ...args],
+      returncode: result.status ?? 1,
+      stdout: typeof result.stdout === "string" ? result.stdout : "",
+      stderr: typeof result.stderr === "string" ? result.stderr : "",
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { args: [binary, ...args], returncode: 1, stdout: "", stderr: message };
+  }
 }
 
 function splitRepo(repo: string): [string, string] {

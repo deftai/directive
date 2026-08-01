@@ -135,4 +135,37 @@ describe("batchPromote (#3011)", () => {
     expect(lifecycleMain(["promote", "--batch", "--project-root", root])).toBe(0);
     expect(lifecycleMain(["promote", "--batch", "--project-root", root])).toBe(0); // empty second run
   });
+
+  it("refuses explicit paths outside project root (#3011 P1)", () => {
+    const root = freshRoot();
+    const other = freshRoot();
+    const foreign = writeProposed(other, "2026-07-31-foreign.xbrief.json", "Foreign");
+    const result = batchPromote({ projectRoot: root, files: [foreign] });
+    expect(result.exitCode).toBe(2);
+    expect(result.promoted).toBe(0);
+    expect(result.messages.some((m) => m.includes("escapes project root"))).toBe(true);
+  });
+
+  it("returns exit 1 when any candidate is skipped mid-batch (#3011 P1)", () => {
+    const root = freshRoot();
+    const a = writeProposed(root, "2026-07-31-a.xbrief.json", "A");
+    // Non-existent path is rejected before batch; use a file that promote refuses:
+    // already-pending path via promote of good then broken is hard — instead pass
+    // a second path that is not an artifact once promote of first succeeds by
+    // staging a path that exists but will fail transition (not proposed/).
+    writeFileSync(
+      join(root, "xbrief", "pending", "already.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "already" },
+        plan: { title: "already", status: "pending", items: [] },
+      }),
+      "utf8",
+    );
+    const pending = join(root, "xbrief", "pending", "already.xbrief.json");
+    const result = batchPromote({ projectRoot: root, files: [a, pending] });
+    expect(result.promoted).toBeGreaterThanOrEqual(1);
+    expect(result.skipped.length).toBeGreaterThan(0);
+    expect(result.exitCode).toBe(1);
+    expect(result.ok).toBe(false);
+  });
 });

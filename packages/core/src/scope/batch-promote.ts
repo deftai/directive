@@ -6,12 +6,20 @@
  */
 
 import { existsSync, readdirSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { checkWipCapForAdditional, formatWipCapRefusal } from "./wip-cap-check.js";
+
+/** True when abs path is inside projectRoot (no escape via .. or other drives). */
+function isPathInsideProject(projectRoot: string, absPath: string): boolean {
+  const root = resolve(projectRoot);
+  const abs = resolve(absPath);
+  const rel = relative(root, abs);
+  return rel !== "" && !rel.startsWith(`..${sep}`) && !rel.startsWith("..") && !isAbsolute(rel);
+}
 
 export interface BatchPromoteOptions {
   /** Explicit files (absolute or project-relative). Empty = all proposed/ artifacts. */
@@ -116,7 +124,8 @@ export function batchPromote(options: BatchPromoteOptions = {}): BatchPromoteRes
     promoted,
     skipped,
     messages,
-    exitCode: skipped.length === 0 ? 0 : promoted > 0 ? 0 : 1,
+    // Partial batch is failure for automation (#3011 Greptile P1).
+    exitCode: skipped.length === 0 ? 0 : 1,
     wipCapOverride: capCheck.forceOverride && promoted > 0,
   };
 }
@@ -135,6 +144,12 @@ function resolvePromoteCandidates(
       const abs = isAbsolute(stripped) ? resolve(stripped) : resolve(projectRoot, stripped);
       if (!existsSync(abs)) {
         return { files: [], error: `File not found: ${abs}` };
+      }
+      if (!isPathInsideProject(projectRoot, abs)) {
+        return {
+          files: [],
+          error: `Path escapes project root (refusing out-of-tree scope): ${abs}`,
+        };
       }
       const base = abs.split(/[/\\]/).pop() ?? "";
       if (!hasArtifactSuffix(base)) {
