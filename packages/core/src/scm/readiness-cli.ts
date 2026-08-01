@@ -7,6 +7,7 @@
 
 import { fileURLToPath } from "node:url";
 import {
+  clearScmReadyCache,
   formatScmReadinessLines,
   probeScmReadiness,
   type ScmProbeDepth,
