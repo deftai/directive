@@ -23,14 +23,17 @@ tasks:
           ENGINE_CMD: 'spec-validate --project-root "{{.USER_WORKING_DIR}}"'
 
   render:
-    desc: Render the specification artifact to SPECIFICATION.md
+    desc: >-
+      Render the specification artifact to a compact SPECIFICATION.md by default
+      (#1566: no completed lifecycle dump, no LegacyArtifacts). Opt in via
+      --include-scopes=current|all and --include-legacy-artifacts=on after --.
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'spec-render --project-root "{{.USER_WORKING_DIR}}"'
+          ENGINE_CMD: 'spec-render --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   pipeline:
     desc: Run full spec pipeline (validate then render)

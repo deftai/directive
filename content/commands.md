@@ -143,7 +143,9 @@ flowchart TD
 
 Edit the xBRIEF source, then render the markdown view.
 
-- `task spec:render` -- render `xbrief/specification.xbrief.json` to `SPECIFICATION.md`.
+- `task spec:render` -- render `xbrief/specification.xbrief.json` to a **compact** `SPECIFICATION.md` by default (#1566). Defaults: no lifecycle Scope outlook, no `LegacyArtifacts`. Opt in with engine flags passed after `--`:
+  - `--include-scopes=off` (default) / `current` (pending+active) / `all` (include completed archive)
+  - `--include-legacy-artifacts=on|off` (default off)
 - `task prd:render` -- render a stakeholder PRD view from the specification xBRIEF.
 - `task roadmap:render` -- render `ROADMAP.md` from lifecycle scope xBRIEFs (`pending/` + `proposed/` + `active/` forward; `completed/` capped).
 - `task project:render` -- refresh the `PROJECT-DEFINITION.xbrief.json` items registry from lifecycle folders.

@@ -10,6 +10,11 @@ type ScopeTuple = readonly [string, JsonObject];
 export interface ScopeOutlookOptions {
   readonly includeProposed?: boolean;
   readonly proposedLimit?: number;
+  /**
+   * When false, omit the completed lifecycle bucket (#1566 compact render).
+   * Default true so callers that opt into full aggregation keep prior behavior.
+   */
+  readonly includeCompleted?: boolean;
 }
 
 function readEdgeEndpoints(edge: unknown): [string, string] {
@@ -209,6 +214,7 @@ export function buildScopeOutlookSection(
 ): string[] {
   const includeProposed = options.includeProposed ?? false;
   const proposedLimit = options.proposedLimit ?? 0;
+  const includeCompleted = options.includeCompleted ?? true;
 
   const buckets: Array<[string, string, ScopeTuple[]]> = [];
 
@@ -230,6 +236,7 @@ export function buildScopeOutlookSection(
   }
 
   for (const [folder, heading, filter] of COMMITTED_BUCKETS) {
+    if (folder === "completed" && !includeCompleted) continue;
     let scopes = loadScopeVbriefs(join(vbriefDir, folder));
     if (filter) scopes = scopes.filter(([, vb]) => filter(vb));
     if (scopes.length > 0) buckets.push([folder, heading, scopes]);

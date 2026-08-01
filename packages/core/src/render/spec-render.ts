@@ -1,12 +1,16 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
+  DEFAULT_INCLUDE_SCOPES_MODE,
+  type IncludeScopesMode,
+  LEGACY_ARTIFACTS_NARRATIVE_KEY,
   RENDERABLE_SPEC_STATUSES,
   SPEC_RENDER_BANNER,
   SPECIFICATION_NARRATIVE_KEY_ORDER,
 } from "./constants.js";
-import { aggregateScopeSection } from "./scope-outlook.js";
+import { buildScopeOutlookSection } from "./scope-outlook.js";
 import { validateSpec } from "./spec-validate.js";
+import { stripTrailingWhitespace } from "./text-utils.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -27,10 +31,41 @@ function splitAcceptance(value: unknown): string[] {
   return parts;
 }
 
+/**
+ * Normalize CLI / API include-scopes values to a mode (#1566).
+ * Default is compact (`off`) so completed lifecycle is not dumped into SPECIFICATION.md.
+ */
+export function normalizeIncludeScopesMode(
+  value: boolean | IncludeScopesMode | string | undefined,
+  defaultMode: IncludeScopesMode = DEFAULT_INCLUDE_SCOPES_MODE,
+): IncludeScopesMode {
+  if (value === undefined) return defaultMode;
+  if (value === true) return "all";
+  if (value === false) return "off";
+  const v = String(value).trim().toLowerCase();
+  if (v === "off" || v === "false" || v === "0" || v === "no") return "off";
+  if (v === "current" || v === "active") return "current";
+  if (v === "all" || v === "on" || v === "true" || v === "1" || v === "yes") return "all";
+  return defaultMode;
+}
+
 export type RenderSpecResult = readonly [boolean, string];
 
 export interface RenderSpecOptions {
-  readonly includeScopes?: boolean;
+  /**
+   * Lifecycle scope aggregation (#1566).
+   * - `off` / false (default): no Scope outlook section
+   * - `current` / `active`: pending + active only
+   * - `all` / true / `on`: pending + active + completed (legacy dump)
+   */
+  readonly includeScopes?: boolean | IncludeScopesMode;
+  /** When true, emit the LegacyArtifacts narrative. Default false (#1566). */
+  readonly includeLegacyArtifacts?: boolean;
+}
+
+function shouldRenderNarrativeKey(key: string, includeLegacyArtifacts: boolean): boolean {
+  if (includeLegacyArtifacts) return true;
+  return key !== LEGACY_ARTIFACTS_NARRATIVE_KEY;
 }
 
 /** Render specification JSON to markdown (mirrors ``scripts/spec_render.render_spec``). */
@@ -39,7 +74,8 @@ export function renderSpec(
   outPath: string,
   options: RenderSpecOptions = {},
 ): RenderSpecResult {
-  const includeScopes = options.includeScopes ?? true;
+  const includeScopesMode = normalizeIncludeScopesMode(options.includeScopes);
+  const includeLegacyArtifacts = options.includeLegacyArtifacts ?? false;
   const [ok, msg] = validateSpec(specPath);
   if (!ok) return [false, msg];
 
@@ -84,6 +120,7 @@ export function renderSpec(
 
   const renderedKeys = new Set<string>();
   for (const key of SPECIFICATION_NARRATIVE_KEY_ORDER) {
+    if (!shouldRenderNarrativeKey(key, includeLegacyArtifacts)) continue;
     const val = narratives[key];
     if (val) {
       lines.push(`## ${key}\n`);
@@ -93,6 +130,7 @@ export function renderSpec(
   }
   for (const key of Object.keys(narratives).sort()) {
     if (renderedKeys.has(key) || !narratives[key]) continue;
+    if (!shouldRenderNarrativeKey(key, includeLegacyArtifacts)) continue;
     lines.push(`## ${key}\n`);
     lines.push(`${String(narratives[key])}\n`);
   }
@@ -138,43 +176,60 @@ export function renderSpec(
     }
   }
 
-  if (includeScopes) {
+  if (includeScopesMode !== "off") {
     const vbriefDir = resolve(dirname(specPath));
-    const scopeLines = aggregateScopeSection(vbriefDir);
+    const scopeLines = buildScopeOutlookSection(vbriefDir, {
+      includeProposed: false,
+      includeCompleted: includeScopesMode === "all",
+    });
     if (scopeLines.length > 0) lines.push(...scopeLines);
   }
 
-  writeFileSync(outPath, lines.join("\n"), "utf8");
+  writeFileSync(outPath, stripTrailingWhitespace(lines.join("\n")), "utf8");
   return [true, `✓ Rendered to ${outPath}`];
 }
 
 export function parseIncludeScopesFlag(argv: readonly string[]): {
-  includeScopes: boolean;
+  includeScopes: IncludeScopesMode;
+  includeLegacyArtifacts: boolean;
   remaining: string[];
 } {
-  let includeScopes = true;
+  let includeScopes: IncludeScopesMode = DEFAULT_INCLUDE_SCOPES_MODE;
+  let includeLegacyArtifacts = false;
   const remaining: string[] = [];
   for (const arg of argv) {
     if (arg === "--include-scopes") {
-      includeScopes = true;
+      includeScopes = "all";
       continue;
     }
     if (arg.startsWith("--include-scopes=")) {
-      const value = arg.split("=", 2)[1]?.toLowerCase() ?? "";
-      includeScopes = value === "on" || value === "true" || value === "1" || value === "yes";
+      const value = arg.split("=", 2)[1] ?? "";
+      includeScopes = normalizeIncludeScopesMode(value);
+      continue;
+    }
+    if (arg === "--include-legacy-artifacts") {
+      includeLegacyArtifacts = true;
+      continue;
+    }
+    if (arg.startsWith("--include-legacy-artifacts=")) {
+      const value = (arg.split("=", 2)[1] ?? "").toLowerCase();
+      includeLegacyArtifacts =
+        value === "on" || value === "true" || value === "1" || value === "yes";
       continue;
     }
     remaining.push(arg);
   }
-  return { includeScopes, remaining };
+  return { includeScopes, includeLegacyArtifacts, remaining };
 }
 
 /** CLI entry (mirrors ``scripts/spec_render.main``). */
 export function main(argv: readonly string[]): number {
-  const { includeScopes, remaining } = parseIncludeScopesFlag(argv);
+  const { includeScopes, includeLegacyArtifacts, remaining } = parseIncludeScopesFlag(argv);
   if (remaining.length === 0) {
     process.stderr.write(
-      "Usage: spec_render.py <spec_file> [out_file] [--include-scopes=on|off]\n",
+      "Usage: spec-render <spec_file> [out_file] " +
+        "[--include-scopes=off|current|all] [--include-legacy-artifacts=on|off]\n" +
+        "  Defaults (#1566): --include-scopes=off --include-legacy-artifacts=off\n",
     );
     return 2;
   }
@@ -183,7 +238,10 @@ export function main(argv: readonly string[]): number {
     remaining.length >= 2
       ? (remaining[1] ?? "")
       : join(resolve(dirname(specPath)), "..", "SPECIFICATION.md");
-  const [ok, message] = renderSpec(specPath, outPath, { includeScopes });
+  const [ok, message] = renderSpec(specPath, outPath, {
+    includeScopes,
+    includeLegacyArtifacts,
+  });
   process.stdout.write(`${message}\n`);
   return ok ? 0 : 1;
 }

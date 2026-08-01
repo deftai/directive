@@ -27,6 +27,18 @@ export const SPECIFICATION_NARRATIVE_KEY_ORDER = [
   "PreImplementationGates",
 ] as const;
 
+/** Migration capture narrative; omitted from default compact SPECIFICATION.md (#1566). */
+export const LEGACY_ARTIFACTS_NARRATIVE_KEY = "LegacyArtifacts";
+
+/**
+ * Default lifecycle scope aggregation for `task spec:render` / `renderSpec` (#1566).
+ * `off` = product narratives only; opt in with `current` (pending+active) or `all`.
+ */
+export const DEFAULT_INCLUDE_SCOPES_MODE = "off" as const;
+
+/** Lifecycle scope aggregation modes for rendered specs (#1566). */
+export type IncludeScopesMode = "off" | "current" | "all";
+
 export const LIFECYCLE_BUCKETS: ReadonlyArray<readonly [string, string]> = [
   ["pending", "Pending"],
   ["active", "Active"],

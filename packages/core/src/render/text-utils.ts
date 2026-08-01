@@ -67,3 +67,14 @@ export function phaseSortKey(phaseName: string): [number, number, string] {
   if (num !== null) return [0, num, phaseName];
   return [1, 0, phaseName];
 }
+
+/**
+ * Strip trailing horizontal whitespace from each line (#1566).
+ * Preserves newline structure (including a final trailing newline).
+ */
+export function stripTrailingWhitespace(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/[ \t\u00a0]+$/u, ""))
+    .join("\n");
+}

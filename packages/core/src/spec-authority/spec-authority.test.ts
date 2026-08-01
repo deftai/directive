@@ -120,19 +120,40 @@ describe("spec-authority resolver", () => {
   it("includes proposed scopes only for internal audience", () => {
     const root = makeGreenfieldTree();
     roots.push(root);
+    // #1566: scopes are opt-in; pass includeScopes so audience filtering is exercised.
     const stakeholderOut = join(root, "SPEC-stakeholder.md");
-    exportSpec({ projectRoot: root, outPath: stakeholderOut, audience: "stakeholder" });
+    exportSpec({
+      projectRoot: root,
+      outPath: stakeholderOut,
+      audience: "stakeholder",
+      includeScopes: "all",
+    });
     const stakeholderMd = readFileSync(stakeholderOut, "utf8");
     expect(stakeholderMd).toContain("## Scope outlook");
     expect(stakeholderMd).toContain("Accepted backlog");
     expect(stakeholderMd).not.toContain("Not yet accepted (proposed)");
 
     const internalOut = join(root, "SPEC-internal.md");
-    exportSpec({ projectRoot: root, outPath: internalOut, audience: "internal" });
+    exportSpec({
+      projectRoot: root,
+      outPath: internalOut,
+      audience: "internal",
+      includeScopes: "all",
+    });
     const internalMd = readFileSync(internalOut, "utf8");
     expect(internalMd).toContain("Not yet accepted (proposed)");
     expect(internalMd).toContain("ideas, not approved backlog");
     expect(internalMd).toContain("Future idea");
+  });
+
+  it("exportSpec defaults to compact (no Scope outlook) (#1566)", () => {
+    const root = makeGreenfieldTree();
+    roots.push(root);
+    const out = join(root, "SPEC-compact.md");
+    exportSpec({ projectRoot: root, outPath: out });
+    const md = readFileSync(out, "utf8");
+    expect(md).toContain("Greenfield overview");
+    expect(md).not.toContain("## Scope outlook");
   });
 
   it("fails migration fidelity when premigrate narratives lack canonical landing (#2005)", () => {
@@ -250,7 +271,7 @@ describe("spec-authority resolver", () => {
     expect(options.outPath).toBe("/out.md");
     expect(options.audience).toBe("internal");
     expect(options.proposedLimit).toBe(5);
-    expect(options.includeScopes).toBe(false);
+    expect(options.includeScopes).toBe("off");
   });
 
   it("exportSpecMain returns 2 on argv errors, 1 on export failure, 0 on success", () => {
