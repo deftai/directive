@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1566",
-    "updated": "2026-08-01T02:09:04Z"
+    "updated": "2026-08-01T02:37:05Z"
   },
   "plan": {
     "title": "spec: render produces unusably large SPECIFICATION.md by default",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "spec: render produces unusably large SPECIFICATION.md by default",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1566",
@@ -16,27 +16,27 @@
     "items": [
       {
         "title": "`task spec:render` produces a compact deterministic `SPECIFICATION.md` by default.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Default render excludes completed lifecycle archive content.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Default render excludes `LegacyArtifacts` from the visible specification unless explicitly requested.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Existing lifecycle aggregation remains available via an explicit non-default option or separate report command.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Rendered markdown has no trailing whitespace.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Tests cover default compact behavior and explicit opt-in aggregation.",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -51,6 +51,10 @@
         "title": "Issue #1566: spec: render produces unusably large SPECIFICATION.md by default"
       }
     ],
-    "updated": "2026-08-01T02:09:04Z"
+    "updated": "2026-08-01T02:37:05Z",
+    "metadata": {
+      "completedAt": "2026-08-01T02:37:05Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
