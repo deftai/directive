@@ -140,6 +140,7 @@ describe("intent mode (#3015 class D)", () => {
   it("rejects trailer inside code fence, blockquote, quotation, or mid-body", () => {
     expect(hasFullCloseIntent("Example:\n```\ndeft-close-intent: full\n```\n")).toBe(false);
     expect(hasFullCloseIntent("> deft-close-intent: full\n")).toBe(false);
+    expect(hasFullCloseIntent(">deft-close-intent: full\n")).toBe(false);
     expect(hasFullCloseIntent("`deft-close-intent: full`\n")).toBe(false);
     // Mid-body example line with following prose is not a trailer.
     expect(

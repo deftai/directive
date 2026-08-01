@@ -191,8 +191,9 @@ export function hasFullCloseIntent(text: string): boolean {
     const start = match.index ?? 0;
     if (!isInsideCodeFence(text, start)) {
       const line = lineStartingAt(text, start);
-      // Bare trailer only: no blockquote, indented code, or quoted wrappers.
-      if (!BLOCKQUOTE_RE.test(line) && !isIndentedCodeLine(line)) {
+      // Bare trailer only: no blockquote (compact `>` or `> `), indented code, or quotes.
+      // Use /^[ \t]*>/ — BLOCKQUOTE_RE requires space after `>` and misses `>marker`.
+      if (!/^[ \t]*>/.test(line) && !isIndentedCodeLine(line)) {
         const trimmed = line.trim();
         const wrappedInQuotes =
           trimmed.length >= 2 &&
