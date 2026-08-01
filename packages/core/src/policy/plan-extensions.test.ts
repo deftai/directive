@@ -6,8 +6,10 @@ import {
   LEGACY_PLAN_POLICY_KEY,
   migrateLegacyPolicyKey,
   PLAN_COMPLETED_NOTE_KEY,
+  PLAN_ONBOARDING_KEY,
   PLAN_POLICY_KEY,
   readPlanCompletedNote,
+  readPlanOnboarding,
   readPlanPolicy,
   SHADOWABLE_PLAN_EXTENSIONS,
 } from "./plan-extensions.js";
@@ -49,6 +51,15 @@ describe("plan-extensions namespaced accessors (#1650)", () => {
     expect(readPlanCompletedNote({ [PLAN_COMPLETED_NOTE_KEY]: "done" })).toBe("done");
     expect(readPlanCompletedNote({ completedNote: "legacy" })).toBe("legacy");
     expect(readPlanCompletedNote({})).toBeUndefined();
+  });
+
+  it("reads the namespaced onboarding decision block (#1694)", () => {
+    expect(PLAN_ONBOARDING_KEY).toBe("x-directive/onboarding");
+    expect(
+      readPlanOnboarding({ [PLAN_ONBOARDING_KEY]: { wipCapDecided: true, acceptedDefault: true } }),
+    ).toEqual({ wipCapDecided: true, acceptedDefault: true });
+    expect(readPlanOnboarding({})).toBeUndefined();
+    expect(readPlanOnboarding(null)).toBeUndefined();
   });
 
   it("migrates a legacy bare policy key to the namespaced key in place", () => {

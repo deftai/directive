@@ -142,6 +142,12 @@ describe("detectWipCapUnsatisfiableNudge", () => {
     writeFileSync(pdPath, JSON.stringify(data), "utf8");
     expect(detectWipCapUnsatisfiableNudge(root)).toBeNull();
   });
+
+  it("returns null when PROJECT-DEFINITION is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-eval-health-empty-"));
+    temps.push(root);
+    expect(detectWipCapUnsatisfiableNudge(root)).toBeNull();
+  });
 });
 
 describe("persistHealthRun", () => {

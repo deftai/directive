@@ -16,6 +16,7 @@ import {
   subscriptionPreset,
   writeTriageScope,
   writeWipCap,
+  writeWipCapDecision,
 } from "./writers.js";
 
 const roots: string[] = [];
@@ -79,6 +80,58 @@ describe("writers error and edge branches", () => {
     seedPd(root, { plan: { policy: { wipCap: 8 } } });
     const [changed] = writeWipCap(root, 8, { actor: "tester" });
     expect(changed).toBe(false);
+  });
+
+  it("writeWipCapDecision fails when PROJECT-DEFINITION is missing or plan is malformed", () => {
+    const root = makeRoot();
+    expect(() => writeWipCapDecision(root)).toThrow(/PROJECT-DEFINITION not found/);
+    seedPd(root, { plan: null });
+    expect(() => writeWipCapDecision(root)).toThrow(/plan.*not an object/);
+  });
+
+  it("writeWipCapDecision records override value only when not accepting default", () => {
+    const root = makeRoot();
+    seedPd(root);
+    const [changed] = writeWipCapDecision(root, {
+      acceptedDefault: false,
+      value: 7,
+      actor: "tester",
+    });
+    expect(changed).toBe(true);
+    const data = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    );
+    expect(data.plan["x-directive/onboarding"]).toMatchObject({
+      wipCapDecided: true,
+      acceptedDefault: false,
+      value: 7,
+      actor: "tester",
+    });
+    // Idempotent re-write with same acceptance flag.
+    const [changedAgain] = writeWipCapDecision(root, {
+      acceptedDefault: false,
+      value: 7,
+      actor: "tester",
+    });
+    expect(changedAgain).toBe(false);
+  });
+
+  it("writeWipCapDecision dropping acceptedDefault clears a prior override value", () => {
+    const root = makeRoot();
+    seedPd(root);
+    writeWipCapDecision(root, { acceptedDefault: false, value: 9 });
+    writeWipCapDecision(root, { acceptedDefault: true });
+    const data = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    );
+    expect(data.plan["x-directive/onboarding"].acceptedDefault).toBe(true);
+    expect(data.plan["x-directive/onboarding"].value).toBeUndefined();
+  });
+
+  it("writeWipCap fails when plan is not an object", () => {
+    const root = makeRoot();
+    seedPd(root, { plan: null });
+    expect(() => writeWipCap(root, 5)).toThrow(/plan.*not an object/);
   });
 
   it("previewWipRelief handles missing pending dir and mtime fallback", () => {
