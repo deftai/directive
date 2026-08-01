@@ -476,9 +476,34 @@ export function installOpenClawPin(
     }
   }
 
+  // Exclusive lock dir serializes concurrent doctor --fix on the same pin
+  // (non-recursive mkdir fails with EEXIST — atomic on win32 + posix). Without
+  // it, two processes can interleave renames and leave the older staged copy
+  // as the final target (#3008 P1).
+  const lockDir = `${target}.deft-lock`;
+  try {
+    mkdirSync(lockDir);
+  } catch {
+    return {
+      skillId,
+      method: "skipped",
+      target,
+      source: sourceDir,
+      detail: "another doctor process is installing this pin; re-run after it finishes",
+    };
+  }
+
+  const releaseLock = (): void => {
+    try {
+      removePath(lockDir);
+    } catch {
+      // ignore
+    }
+  };
+
   // Stage copy first so a failed install never deletes the prior target without
   // a replacement ready (#3008 Greptile P1: failed copies lose replaced targets).
-  // Unique suffix avoids concurrent doctor --fix races on shared .deft-* names.
+  // Unique suffix avoids leftover collision if a prior crash left staging files.
   const swapId = `${process.pid}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const staging = `${target}.deft-installing-${swapId}`;
   try {
@@ -494,6 +519,7 @@ export function installOpenClawPin(
     } catch {
       // ignore cleanup
     }
+    releaseLock();
     return {
       skillId,
       method: "skipped",
@@ -503,7 +529,33 @@ export function installOpenClawPin(
     };
   }
 
-  const backup = kind !== "missing" ? `${target}.deft-backup-${swapId}` : null;
+  // Re-check under the lock: another process may have already refreshed to a
+  // matching real copy. Escaping symlinks still match SKILL.md bytes through
+  // the link — never short-circuit those; they must become real copies.
+  const kindUnderLock = lstatKind(target);
+  const escapingUnderLock =
+    kindUnderLock === "symlink" && isEscapingSkillSymlink(skillsDir, target, { lstatKind });
+  if (
+    kindUnderLock !== "missing" &&
+    !escapingUnderLock &&
+    skillHasBody(target, isFile, isDir) &&
+    skillBodyMatchesPackage(sourceDir, target, isFile)
+  ) {
+    try {
+      removePath(staging);
+    } catch {
+      // ignore
+    }
+    releaseLock();
+    return {
+      skillId,
+      method: "already-present",
+      target,
+      source: sourceDir,
+    };
+  }
+
+  const backup = kindUnderLock !== "missing" ? `${target}.deft-backup-${swapId}` : null;
   try {
     if (backup !== null) {
       try {
@@ -521,6 +573,7 @@ export function installOpenClawPin(
         // leftover backup is harmless
       }
     }
+    releaseLock();
     return { skillId, method: "copy", target, source: sourceDir };
   } catch (err) {
     // Restore backup if we moved it away and the swap failed.
@@ -536,6 +589,7 @@ export function installOpenClawPin(
         // best-effort restore
       }
     }
+    releaseLock();
     return {
       skillId,
       method: "skipped",
