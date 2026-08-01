@@ -130,15 +130,20 @@ describe("intent mode (#3015 class D)", () => {
     expect(findHits(text, "pr-body")).toEqual([]);
   });
 
-  it("detects deft-close-intent: full trailer", () => {
+  it("detects deft-close-intent: full as last non-empty body line", () => {
     expect(hasFullCloseIntent("Closes #1\n\ndeft-close-intent: full\n")).toBe(true);
     expect(hasFullCloseIntent("Closes #1\n")).toBe(false);
     expect(hasFullCloseIntent("  deft-close-intent: full  ")).toBe(true);
+    expect(hasFullCloseIntent("Closes #1\n\ndeft-close-intent: full\n\n")).toBe(true);
   });
 
-  it("rejects trailer inside code fence, blockquote, or quotation", () => {
+  it("rejects trailer inside code fence, blockquote, quotation, or mid-body", () => {
     expect(hasFullCloseIntent("Example:\n```\ndeft-close-intent: full\n```\n")).toBe(false);
     expect(hasFullCloseIntent("> deft-close-intent: full\n")).toBe(false);
     expect(hasFullCloseIntent("`deft-close-intent: full`\n")).toBe(false);
+    // Mid-body example line with following prose is not a trailer.
+    expect(
+      hasFullCloseIntent("Note the trailer form:\ndeft-close-intent: full\nThen more prose.\n"),
+    ).toBe(false);
   });
 });

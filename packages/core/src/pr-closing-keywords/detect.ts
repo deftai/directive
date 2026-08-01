@@ -161,9 +161,10 @@ export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
 }
 
 /**
- * Machine trailer on a dedicated line of the **PR body** (not commit messages):
- * `deft-close-intent: full` allows real closing keywords in intent mode (#3015).
- * Must be a bare line — not inside a code fence, blockquote, or quotation wrapper.
+ * Machine trailer on a dedicated **last non-empty line** of the PR body
+ * (not commit messages): `deft-close-intent: full` allows real closing keywords
+ * in intent mode (#3015). Rejects code fences, blockquotes, quotation wrappers,
+ * and mid-body example lines with content after them.
  */
 export const CLOSE_INTENT_FULL_RE = /^\s*deft-close-intent\s*:\s*full\s*$/gim;
 
@@ -180,7 +181,12 @@ export function hasFullCloseIntent(text: string): boolean {
           trimmed.length >= 2 &&
           QUOTE_MARKERS.some((q) => trimmed.startsWith(q) && trimmed.endsWith(q));
         if (!wrappedInQuotes) {
-          return true;
+          // True trailer: only whitespace may follow the marker line.
+          const lineEnd = text.indexOf("\n", start);
+          const after = lineEnd === -1 ? "" : text.slice(lineEnd + 1);
+          if (after.trim().length === 0) {
+            return true;
+          }
         }
       }
     }
