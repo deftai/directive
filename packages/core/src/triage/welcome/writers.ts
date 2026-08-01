@@ -160,14 +160,14 @@ export function writeWipCapDecision(
     const alreadyDecided = previousRec.wipCapDecided === true;
     const acceptedDefault = options.acceptedDefault ?? true;
     const actor = options.actor ?? WELCOME_AUDIT_TAG;
+    // Rebuild cleanly so acceptedDefault=true never retains a prior custom value.
     const next: Record<string, unknown> = {
-      ...previousRec,
       wipCapDecided: true,
       acceptedDefault,
       decidedAt: utcIso(),
       actor,
     };
-    if (options.value !== undefined && options.value !== null) {
+    if (!acceptedDefault && options.value !== undefined && options.value !== null) {
       next.value = options.value;
     }
     planRec[PLAN_ONBOARDING_KEY] = next;
@@ -219,22 +219,19 @@ export function writeWipCap(
 
     // Always record decision-provenance out-of-band (#1694). Accepting the
     // default omits the value field but still marks the decision complete.
-    const previousOnboarding = planRec[PLAN_ONBOARDING_KEY];
-    const previousOnboardingRec =
-      typeof previousOnboarding === "object" &&
-      previousOnboarding !== null &&
-      !Array.isArray(previousOnboarding)
-        ? (previousOnboarding as Record<string, unknown>)
-        : {};
+    // Rebuild the onboarding record (do not spread a prior custom `value` into
+    // an acceptedDefault=true payload -- that is contradictory provenance).
     const acceptedDefault = wipCap === DEFAULT_WIP_CAP;
-    planRec[PLAN_ONBOARDING_KEY] = {
-      ...previousOnboardingRec,
+    const onboardingRecord: Record<string, unknown> = {
       wipCapDecided: true,
       acceptedDefault,
       decidedAt: utcIso(),
       actor,
-      ...(acceptedDefault ? {} : { value: wipCap }),
     };
+    if (!acceptedDefault) {
+      onboardingRecord.value = wipCap;
+    }
+    planRec[PLAN_ONBOARDING_KEY] = onboardingRecord;
 
     if (previous === undefined && wipCap === DEFAULT_WIP_CAP) {
       atomicWrite(projectRoot, path, data);

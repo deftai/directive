@@ -88,6 +88,16 @@ describe("welcome writers", () => {
     const [changed, entry] = writeWipCap(root, DEFAULT_WIP_CAP);
     expect(changed).toBe(true);
     expect(entry).toContain("cleared-to-default");
+    const data = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    );
+    // Clearing to default must not leave a stale custom value on the decision record.
+    expect(data.plan["x-directive/onboarding"]).toMatchObject({
+      wipCapDecided: true,
+      acceptedDefault: true,
+    });
+    expect(data.plan["x-directive/onboarding"].value).toBeUndefined();
+    expect(data.plan["x-directive/policy"]?.wipCap).toBeUndefined();
     rmSync(root, { recursive: true, force: true });
   });
 
