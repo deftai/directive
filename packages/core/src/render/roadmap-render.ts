@@ -262,14 +262,41 @@ function hasLifecycleArtifacts(dir: string): boolean {
   }
 }
 
-/** Newest-first by `_source_file` (date-prefixed stems), then cap. */
+/**
+ * Prefer completion-time stamps over creation-dated filenames so the cap
+ * keeps recently completed scopes (#2653 Greptile P1).
+ * Order: plan.metadata.completedAt → plan.updated → envelope updated → _source_file.
+ */
+function completedRecencyKey(vbrief: JsonObject): string {
+  const plan = (vbrief.plan ?? {}) as JsonObject;
+  const metadata = plan.metadata;
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    const completedAt = (metadata as JsonObject).completedAt;
+    if (typeof completedAt === "string" && completedAt.trim()) return completedAt.trim();
+  }
+  if (typeof plan.updated === "string" && plan.updated.trim()) return plan.updated.trim();
+  for (const envelopeKey of ["xBRIEFInfo", "vBRIEFInfo"] as const) {
+    const env = vbrief[envelopeKey];
+    if (typeof env === "object" && env !== null && !Array.isArray(env)) {
+      const updated = (env as JsonObject).updated;
+      if (typeof updated === "string" && updated.trim()) return updated.trim();
+    }
+  }
+  return String(vbrief._source_file ?? "");
+}
+
+/** Newest-first by completion recency, then cap. */
 function takeCompletedCap(
   vbriefs: JsonObject[],
   cap: number = ROADMAP_COMPLETED_CAP,
 ): { shown: JsonObject[]; total: number; omitted: number } {
-  const sorted = [...vbriefs].sort((a, b) =>
-    String(b._source_file ?? "").localeCompare(String(a._source_file ?? "")),
-  );
+  const sorted = [...vbriefs].sort((a, b) => {
+    const kb = completedRecencyKey(b);
+    const ka = completedRecencyKey(a);
+    const byKey = kb.localeCompare(ka);
+    if (byKey !== 0) return byKey;
+    return String(b._source_file ?? "").localeCompare(String(a._source_file ?? ""));
+  });
   if (sorted.length <= cap) {
     return { shown: sorted, total: sorted.length, omitted: 0 };
   }

@@ -453,6 +453,8 @@ describe("roadmap-render forward projection (#2653)", () => {
         plan: {
           title: `Done ${i}`,
           status: "completed",
+          // completion stamps drive recency (not creation-dated filenames)
+          metadata: { completedAt: `2026-03-${day}T12:00:00Z` },
           references: [{ id: `#${i}` }],
         },
       });
@@ -460,10 +462,51 @@ describe("roadmap-render forward projection (#2653)", () => {
     const content = renderRoadmapToBuffer(pending, completed);
     expect(content).toContain("Showing 25 of 30 completed scopes");
     expect(content).toContain("Done 30");
-    expect(content).toContain("Done 6"); // 30..6 = 25 newest by filename
+    expect(content).toContain("Done 6"); // 30..6 = 25 newest by completedAt
     expect(content).not.toContain("Done 5");
     // empty-forward marker still present when no pending/proposed/active
     expect(content).toContain("## Forward plan");
+  });
+
+  it("completed cap prefers completedAt over creation-dated filename (Greptile P1)", () => {
+    const { pending, completed } = makeFixture();
+    // Old filename but recent completion
+    writeVbrief(completed, "2025-01-01-old-name-recent-complete.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Recently finished old scope",
+        status: "completed",
+        metadata: { completedAt: "2026-07-30T18:00:00Z" },
+        references: [{ id: "#900" }],
+      },
+    });
+    // Newer filename but earlier completion
+    writeVbrief(completed, "2026-07-01-new-name-early-complete.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Early finished new name",
+        status: "completed",
+        metadata: { completedAt: "2026-02-01T12:00:00Z" },
+        references: [{ id: "#901" }],
+      },
+    });
+    // 24 filler so only 1 slot remains after cap prefers recent
+    for (let i = 1; i <= 24; i += 1) {
+      writeVbrief(completed, `2026-04-${String(i).padStart(2, "0")}-filler.xbrief.json`, {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: `Filler ${i}`,
+          status: "completed",
+          metadata: { completedAt: `2026-04-${String(i).padStart(2, "0")}T00:00:00Z` },
+          references: [{ id: `#${1000 + i}` }],
+        },
+      });
+    }
+    const content = renderRoadmapToBuffer(pending, completed);
+    // 26 total → cap 25; earliest completedAt (2026-02) must drop
+    expect(content).toContain("Recently finished old scope");
+    expect(content).not.toContain("Early finished new name");
+    expect(content).toContain("Showing 25 of 26 completed scopes");
   });
 
   it("banner names forward lifecycle sources (#2653)", () => {

@@ -67,27 +67,27 @@ _Showing 25 of 1098 completed scopes (newest first). Full history: lifecycle `co
 
 - **#3008** -- doctor OpenClaw always-pins: symlink install rejected by OpenClaw symlink-escape -- `[completed]`
 - feat(doctor,openclaw): detect missing host skill pins + doctor --fix wire -- `[completed]`
-- **#871** -- feat(tasks): directive:finish-loop + pr:finish-loop walk-away product (#871) -- `[completed]`
-- **#518** -- feat(authz): typed escalation events + CLI batch queue (#518 slim) -- `[completed]`
 - **#2980** -- feat(security): #2980 leftovers sweep + fail-closed contained-writes in task check -- `[completed]`
 - **#2980** -- feat(security): migrate eval/doctor/xbrief residual product writes (#2980 wave C) -- `[completed]`
 - **#2980** -- feat(security): migrate intake/authz/escalation/scope ledgers to containedWrite (#2980 wave B) -- `[completed]`
-- **#2971** -- fix(setup,xbrief): emit/write xBRIEF 0.8 by default; init path for existing docs -- `[completed]`
-- **#2969** -- docs(security,installer): install-trust pattern — no naked curl|sh as blessed path -- `[completed]`
 - **#2951** -- feat(security): Phase 2 contained-write migrate high-risk sinks + enforce path (epic #2951) -- `[completed]`
 - **#2950** -- feat(hooks): Phase B matrix CI expansion + decision-code docs (epic #2950) -- `[completed]`
+- **#2950** -- feat(hooks): pure classifier extraction + fixture matrix skeleton (Phase A of #2950) -- `[completed]`
+- **#2971** -- fix(setup,xbrief): emit/write xBRIEF 0.8 by default; init path for existing docs -- `[completed]`
+- **#2969** -- docs(security,installer): install-trust pattern — no naked curl|sh as blessed path -- `[completed]`
+- **#871** -- feat(tasks): directive:finish-loop + pr:finish-loop walk-away product (#871) -- `[completed]`
+- **#518** -- feat(authz): typed escalation events + CLI batch queue (#518 slim) -- `[completed]`
 - **#2944** -- bug(authz): self-authored consent tokens and active UAT runs do not prevent unauthorized mutation -- `[completed]`
 - **#1193** -- feat(authz): agent blast-radius controls — intent ceiling (Wave 2 / #1193) -- `[completed]`
 - **#1095** -- feat(authz): closed-verb release gates + AFK templates consuming human-origin grants (#1095 slim) -- `[completed]`
-- **#2953** -- perf(release): speed up routine cuts — skip scratch scans, document Step 5 modes -- `[completed]`
 - **#2951** -- Phase 1: containedWrite API + tests + docs + verify skeleton (#2951) -- `[completed]`
-- **#2950** -- feat(hooks): pure classifier extraction + fixture matrix skeleton (Phase A of #2950) -- `[completed]`
+- **#2953** -- perf(release): speed up routine cuts — skip scratch scans, document Step 5 modes -- `[completed]`
 - **#2943** -- bug(openclaw): parent agent text-repetition hang after thin subagent completion -- `[completed]`
-- **#2934** -- feat(swarm): require next-phase tool dispatch after cohort complete (no prose-only handoff) -- `[completed]`
-- **#2929** -- feat(swarm,openclaw): require worktree before sessions_spawn; block shared-checkout parallel dispatch -- `[completed]`
-- **#2928** -- feat(skills): load one host adapter after detect; keep other hosts out of context -- `[completed]`
-- **#2927** -- docs: use short controlled English for docs and issues (ASD-STE100) -- `[completed]`
+- **#2907** -- docs/product: vBRIEF is legacy — xbrief sole public canonical work-state name -- `[completed]`
+- **#2899** -- bug(strategies,scope): Now+Later graduation dual-path locks for intentional under-builds -- `[completed]`
+- **#2711** -- feat(harness): Shell/MCP PreToolUse matchers for runtimeAuthority scopes.push / scopes.merge -- `[completed]`
 - **#2926** -- feat(policy/setup): official per-project .no-deft-directive opt-out flag -- `[completed]`
 - **#2925** -- bug(strategies): chaining gate Proceed is artifact-blind - interview create-vs-update -- `[completed]`
-- **#2916** -- security(ingest): quarantine-scan issue labels/tags before xBRIEF Labels/tags (cache-quarantine-06) -- `[completed]`
+- **#2934** -- feat(swarm): require next-phase tool dispatch after cohort complete (no prose-only handoff) -- `[completed]`
+- **#2929** -- feat(swarm,openclaw): require worktree before sessions_spawn; block shared-checkout parallel dispatch -- `[completed]`
 
