@@ -160,7 +160,10 @@ export function findAllClosingKeywordHits(text: string, source: string): Hit[] {
   return hits;
 }
 
-/** Machine trailer: `deft-close-intent: full` allows real closing keywords in intent mode (#3015). */
+/**
+ * Machine trailer on a dedicated line of the **PR body** (not commit messages):
+ * `deft-close-intent: full` allows real closing keywords in intent mode (#3015).
+ */
 export const CLOSE_INTENT_FULL_RE = /^\s*deft-close-intent\s*:\s*full\s*$/im;
 
 export function hasFullCloseIntent(text: string): boolean {

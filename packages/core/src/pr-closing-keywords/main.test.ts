@@ -146,6 +146,19 @@ describe("run CLI offline", () => {
     }
   });
 
+  it("trailer in commit message alone does not suppress intent (#3015 Greptile)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
+    try {
+      const body = join(dir, "body.md");
+      const commits = join(dir, "commits.txt");
+      writeFileSync(body, "feat: done.\n\nCloses #55\n", "utf8");
+      writeFileSync(commits, "feat: done\n\ndeft-close-intent: full\n--END--\n", "utf8");
+      expect(run(["--body-file", body, "--commits-file", commits])).toBe(EXIT_HITS_FOUND);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("exits one for negation hit", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {

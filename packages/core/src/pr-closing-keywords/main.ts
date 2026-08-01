@@ -279,9 +279,9 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     }
   }
 
-  const fullIntent =
-    (bodyText !== null && hasFullCloseIntent(bodyText)) ||
-    commitMessages.some((m) => hasFullCloseIntent(m));
+  // #3015 / Greptile: full-intent authorization is a PR-body trailer only.
+  // A marker in a commit message MUST NOT suppress intent findings (class D recurrence).
+  const fullIntent = bodyText !== null && hasFullCloseIntent(bodyText);
 
   const fpFiltered = filterHits(fpHits, fpAllow);
   const intentFiltered = fullIntent ? [] : filterHits(intentHits, closeAllow);
