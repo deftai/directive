@@ -504,11 +504,7 @@ describe("roadmap-render forward projection (#2653)", () => {
                 id: "task-a",
                 title: "Task A",
                 status: "pending",
-                subItems: [
-                  { id: "leaf", title: "Leaf", status: "pending" },
-                  "skip-string",
-                  null,
-                ],
+                subItems: [{ id: "leaf", title: "Leaf", status: "pending" }, "skip-string", null],
               },
             ],
           },
