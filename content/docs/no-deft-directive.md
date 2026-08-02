@@ -82,6 +82,7 @@ When `deft-directive-setup` runs:
 
 ## Related
 
+- [deft-directive-disable.md](./deft-directive-disable.md) — **temporary** test/local kill-switch (deposit OK; not this flag)
 - [getting-started.md](./getting-started.md) — install and first project
 - [product-signal.md](./product-signal.md) — optional partner signal (defaults off; flag still wins locally)
 - `session:start`, `doctor`, `directive init`, `directive update`

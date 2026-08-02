@@ -37,6 +37,7 @@ export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./decisions.js";
+export * from "./deft-directive-disable.js";
 export * from "./disclosure.js";
 export * from "./host-hooks.js";
 export * from "./hotfix-criteria.js";

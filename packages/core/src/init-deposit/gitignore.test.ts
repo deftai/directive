@@ -110,6 +110,7 @@ describe("ensureInitGitignoreLines", () => {
     const root = freshRoot("gitignore-cli-");
     ensureInitGitignoreLines(root, { printf: () => {} });
     expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft/.cli/");
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft-directive-disable");
     expect(readGitignore(root)).toContain(".deft/.cli/");
   });
 

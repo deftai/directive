@@ -50,7 +50,8 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | Code | Typical verdict | Meaning |
 |------|-----------------|---------|
 | `session-start` | allow | SessionStart completed / noop success path |
-| `session-start-disabled` | allow | SessionStart skipped by policy / opt-out |
+| `session-start-disabled` | allow | SessionStart skipped by policy / opt-out / test kill-switch |
+| `directive-disabled` | allow | PreToolUse/compact skipped by `.deft-directive-disable` (#3039) |
 | `session-start-degraded` | allow | SessionStart best-effort path with degraded note |
 | `session-compact-rearm` | allow | Compact event rearmed ritual state |
 | `session-compact-rearm-degraded` | allow | Compact rearm degraded |

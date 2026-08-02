@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only gitignored flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` (not flag+deposit dirty). AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
+
 ### Changed
 
 - **Through-merge / drive-to:merge-ready must dispatch a worker; N=1 uses swarm path (#3032).** AGENTS.md and `agents-entry` now carry always-on `!` / `⊗` bullets: parent conversation MUST NOT implement product code or babysit fix/CI loops when background subagent/worktree dispatch is available; parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) even when cohort size is 1. Swarm Phase 0 + core-ops anti-patterns encode the same rule; skill-pin-policy cross-refs the false-negative class; lessons pack records the #3027 recurrence. Contract markers in `agents_entry_contract`. Refs #1880 Gap C/D, #2508, #954.

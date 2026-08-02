@@ -5,6 +5,11 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! If any .deft/core/.agents/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read .deft/core/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
 
+## Temporary test kill-switch (#3039)
+
+! Before further Directive process load, check root `.deft-directive-disable` (presence = flag). If present → stop DD load; recovery = delete file + NEW agent session. Deposit OK; not `.no-deft-directive` (#2926). Docs: `.deft/core/docs/deft-directive-disable.md`.
+⊗ Claim full operation while the flag exists or after delete without a NEW agent session.
+
 ## Session routing (#2176)
 
 ! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; resolve USER.md via `deft session:start` (`USER.md resolved …`; win32 `%APPDATA%\deft\USER.md`; unix `~/.config/deft/USER.md`; ⊗ invent `~/.config/deft` on Windows #2544); confirm Deft alignment + addressing-name; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never `.deft/core/`; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). ? `deft session:start -- --read-only` (#2176).

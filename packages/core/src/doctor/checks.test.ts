@@ -294,6 +294,7 @@ describe("checkGitignoreCoverage (#2206)", () => {
       ".deft/ritual-state.json",
       ".deft/last-session.json",
       ".deft/routing.local.json",
+      ".deft-directive-disable",
       "vbrief/.triage-cache/candidates.jsonl",
       "vbrief/.triage-cache/summary-history.jsonl",
       "vbrief/.triage-cache/scope-lifecycle.jsonl",

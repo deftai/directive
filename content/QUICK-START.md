@@ -155,7 +155,7 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 
 **Writing pointer:** For docs, issues, and PR prose that maintainers or agents author, follow [docs/writing-ste100.md](./docs/writing-ste100.md) (short controlled English; #2927).
 
-**Opt-out pointer:** Projects that must not use Directive should commit root [`.no-deft-directive`](./docs/no-deft-directive.md) so session/doctor/init/setup skip install and ritual (#2926).
+**Opt-out pointer:** Projects that must not use Directive should commit root [`.no-deft-directive`](./docs/no-deft-directive.md) so session/doctor/init/setup skip install and ritual (#2926). Temporary local kill-switch (deposit OK): [`.deft-directive-disable`](./docs/deft-directive-disable.md) (#3039).
 
 **Contributor pointer (non-blocking):** Working on Deft itself (a `deftai/directive` source checkout)? See [CONTRIBUTING.md](../CONTRIBUTING.md) and use the maintainer install path (`deft-install --yes --upgrade --maintainer --repo-root . --json`). The repo's root `AGENTS.md` has contributor instructions — you do not need the consumer first-session flow above.
 

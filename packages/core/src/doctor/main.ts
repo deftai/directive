@@ -5,6 +5,13 @@ import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/eval
 import { contentRoot } from "../content-root.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import {
+  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+  DEFT_DIRECTIVE_DISABLE_STATUS,
+  DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING,
+  detectDeftDirectiveDisable,
+  formatDeftDirectiveDisableMessage,
+} from "../policy/deft-directive-disable.js";
+import {
   detectNoDeftDirective,
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
@@ -121,6 +128,47 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const consumerContext = resolve(projectRoot) !== resolve(frameworkRoot);
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());
+
+  // #3039: temporary test kill-switch — explicit disabled status; deposit OK
+  // (not the #2926 flag+deposit dirty path). Recovery = delete file + new session.
+  const killSwitch = detectDeftDirectiveDisable(projectRoot);
+  if (killSwitch.present) {
+    const optOutAlso = detectNoDeftDirective(projectRoot);
+    const message = formatDeftDirectiveDisableMessage({
+      permanentOptOutAlsoPresent: optOutAlso.present,
+      trackedByGit: killSwitch.trackedByGit,
+    });
+    const findings: Array<Record<string, unknown>> = [];
+    if (killSwitch.trackedByGit) {
+      findings.push({
+        severity: "warning",
+        message: DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING,
+        check: "deft-directive-disable-tracked",
+      });
+    }
+    if (jsonMode) {
+      const payload = {
+        status: DEFT_DIRECTIVE_DISABLE_STATUS,
+        disabled: true,
+        disabled_via: DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+        kill_switch: true,
+        inconsistent: false,
+        deposit_present: killSwitch.depositPresent,
+        tracked_by_git: killSwitch.trackedByGit,
+        permanent_opt_out_also_present: optOutAlso.present,
+        message,
+        ...(findings.length > 0 ? { findings } : {}),
+      };
+      process.stdout.write(`${pythonJsonDump(payload)}\n`);
+    } else if (!quietMode) {
+      process.stdout.write(`${message}\n`);
+      if (killSwitch.trackedByGit) {
+        process.stderr.write(`${DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING}\n`);
+      }
+    }
+    // Kill-switch is intentional local state (exit 0). Tracked flag is warn-only.
+    return 0;
+  }
 
   // #2926: official root opt-out — short-circuit Directive doctor when clean;
   // diagnose flag+deposit inconsistency (warn; exit dirty).

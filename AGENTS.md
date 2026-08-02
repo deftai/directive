@@ -96,7 +96,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 
 ! Brief release-notes — `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CHANGELOG entry style (#1242).
 ! Controlled English for docs/issues/PRs — `content/docs/writing-ste100.md` (#2927). ⊗ Full STE cert; ⊗ big-bang rewrite; ⊗ red CI style gate v1.
-! Per-project opt-out — root `.no-deft-directive` (#2926) skips install/session/setup (`content/docs/no-deft-directive.md`); flag wins locally over org force-on; flag+deposit → doctor warns, init/update fail closed.
+! Per-project opt-out — root `.no-deft-directive` (#2926) skips install/session/setup (`content/docs/no-deft-directive.md`); flag wins locally over org force-on; flag+deposit → doctor warns, init/update fail closed. Temporary kill-switch `.deft-directive-disable` (#3039) — deposit OK; delete + NEW agent session (`content/docs/deft-directive-disable.md`).
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
@@ -160,12 +160,17 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=375324eaa627 refreshed=2026-08-02T02:30:33Z session=19b97de11432 -->
+<!-- deft:managed-section v3 sha=fb5bed9c3fe3 refreshed=2026-08-02T04:51:18Z session=9f13a50fbcc0 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! If any .deft/core/.agents/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read .deft/core/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
+
+## Temporary test kill-switch (#3039)
+
+! Before further Directive process load, check root `.deft-directive-disable` (presence = flag). If present → stop DD load; recovery = delete file + NEW agent session. Deposit OK; not `.no-deft-directive` (#2926). Docs: `.deft/core/docs/deft-directive-disable.md`.
+⊗ Claim full operation while the flag exists or after delete without a NEW agent session.
 
 ## Session routing (#2176)
 

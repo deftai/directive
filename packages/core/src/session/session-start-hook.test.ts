@@ -50,6 +50,26 @@ describe("session start hook", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("skips sentinel write when .deft-directive-disable is present (#3039)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-kill-switch-"));
+    writeFileSync(join(root, ".deft-directive-disable"), "", "utf8");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    const writeSentinelFn = vi.fn(() => {
+      throw new Error("sentinel must not run under kill-switch");
+    });
+    const result = runSessionStartHookWrite(root, {
+      detectBranchFn: () => "feat/x",
+      detectLatestActiveVbriefFn: () => "xbrief/active/a.xbrief.json",
+      resolveVersionFn: () => "0.9.0",
+      writeSentinelFn,
+    });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain(".deft-directive-disable");
+    expect(result.stdout).toContain("NEW agent session");
+    expect(writeSentinelFn).not.toHaveBeenCalled();
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("returns exit 1 and skips write when opt-out is inconsistent with deposit (#2926)", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-opt-out-inc-"));
     writeFileSync(join(root, ".no-deft-directive"), "", "utf8");

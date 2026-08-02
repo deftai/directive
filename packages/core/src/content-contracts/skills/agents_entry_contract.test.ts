@@ -97,6 +97,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
 ] as const;
 
 const PROPAGATION_HEADER_MARKERS = [
+  "## Temporary test kill-switch (#3039)",
   "## Session routing (#2176)",
   "## Session-start ritual (#1149)",
   "## Unmanaged project header (#2065)",
@@ -110,6 +111,14 @@ const PROPAGATION_HEADER_MARKERS = [
   "### Story Start Gate",
   "## Contextual guardrails (runtime-detect lazy-load)",
   "## Content packs",
+] as const;
+
+/** Always-on temporary kill-switch (#3039) — check before further DD process load. */
+const DEFT_DIRECTIVE_DISABLE_MARKERS = [
+  "Temporary test kill-switch (#3039)",
+  ".deft-directive-disable",
+  "NEW agent session",
+  "no-deft-directive",
 ] as const;
 
 /** Always-on through-merge dispatch doctrine (#3032) — parent must not implement. */
@@ -719,6 +728,11 @@ describe("test_agents_entry_contract", () => {
   it("through_merge_dispatch_markers_present_in_both_files", () => {
     expect(missingMarkers(template, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
+  });
+
+  it("deft_directive_disable_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
   });
 
   it("portable_shell_orientation_markers_present_in_both_files", () => {

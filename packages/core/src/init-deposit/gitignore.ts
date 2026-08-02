@@ -37,6 +37,8 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/ritual-state.json",
   ".deft/last-session.json",
   ".deft/routing.local.json",
+  // Temporary test/local kill-switch — must stay untracked (#3039).
+  ".deft-directive-disable",
   "vbrief/.triage-cache/candidates.jsonl",
   "vbrief/.triage-cache/summary-history.jsonl",
   "vbrief/.triage-cache/scope-lifecycle.jsonl",

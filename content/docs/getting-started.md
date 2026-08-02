@@ -145,3 +145,5 @@ Full command reference for every triage and cache verb lives in [`commands.md` Â
 **Writing:** For docs, issues, and PR prose, follow [writing-ste100.md](./writing-ste100.md) (short controlled English; #2927).
 
 **Opt out:** To mark a repo as not using Directive, add root [`.no-deft-directive`](./no-deft-directive.md) (#2926). Tools skip install and session ritual when that file is present.
+
+**Temporary test kill-switch:** For local A/B or DevHammer without permanent opt-out, use root [`.deft-directive-disable`](./deft-directive-disable.md) (#3039). Deposit may stay; re-enable by deleting the file and starting a new agent session.
