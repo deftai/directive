@@ -10,6 +10,7 @@ import {
   DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING,
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
+  isDeftDirectiveDisableActive,
 } from "../policy/deft-directive-disable.js";
 import {
   detectNoDeftDirective,
@@ -132,15 +133,16 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   // #3039: temporary test kill-switch. Active (untracked) → disabled short-circuit.
   // Tracked/committed flag → warn only and continue normal doctor (no enforcement bypass).
   const killSwitch = detectDeftDirectiveDisable(projectRoot, { skipTrackedCache: true });
-  if (killSwitch.present && killSwitch.trackedByGit && !killSwitch.active) {
-    if (jsonMode) {
-      // Fall through to normal doctor after optional surface; emit warning finding
-      // by writing once then continuing — use stderr path for human mode below.
-    } else if (!quietMode) {
+  if (
+    killSwitch.present &&
+    killSwitch.trackedByGit &&
+    !isDeftDirectiveDisableActive(projectRoot, { skipTrackedCache: true })
+  ) {
+    if (!jsonMode && !quietMode) {
       process.stderr.write(`${DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING}\n`);
     }
     // Continue into full doctor; do not short-circuit.
-  } else if (killSwitch.active) {
+  } else if (isDeftDirectiveDisableActive(projectRoot, { skipTrackedCache: true })) {
     const optOutAlso = detectNoDeftDirective(projectRoot);
     const message = formatDeftDirectiveDisableMessage({
       permanentOptOutAlsoPresent: optOutAlso.present,

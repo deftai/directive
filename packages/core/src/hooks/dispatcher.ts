@@ -18,6 +18,7 @@ import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
+  isDeftDirectiveDisableActive,
 } from "../policy/deft-directive-disable.js";
 import { evaluateIntentCeilingFromEnv, type IntentCeilingOp } from "../policy/intent-ceiling.js";
 import {
@@ -840,7 +841,11 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
   {
     const detectKill = seams.detectDeftDirectiveDisable ?? detectDeftDirectiveDisable;
     const kill = detectKill(projectRoot);
-    if (kill.active) {
+    const killActive =
+      seams.detectDeftDirectiveDisable !== undefined
+        ? kill.active
+        : isDeftDirectiveDisableActive(projectRoot);
+    if (killActive) {
       const detectOptOut = seams.detectNoDeftDirective ?? detectNoDeftDirective;
       const optOut = detectOptOut(projectRoot);
       const message = formatDeftDirectiveDisableMessage({

@@ -2,6 +2,7 @@ import { resolveVersion } from "../doctor/paths.js";
 import {
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
+  isDeftDirectiveDisableActive,
 } from "../policy/deft-directive-disable.js";
 import {
   detectNoDeftDirective,
@@ -31,7 +32,11 @@ export function runSessionStartHookWrite(
   // #3039: local (untracked) kill-switch — skip ritual bookkeeping (deposit OK).
   // Tracked flags do not short-circuit (enforcement stays on).
   const kill = detectKill(projectRoot);
-  if (kill.active) {
+  const killActive =
+    options.detectDeftDirectiveDisableFn !== undefined
+      ? kill.active
+      : isDeftDirectiveDisableActive(projectRoot);
+  if (killActive) {
     const detectOptOut = options.detectNoDeftDirectiveFn ?? detectNoDeftDirective;
     const optOut = detectOptOut(projectRoot);
     const message = formatDeftDirectiveDisableMessage({

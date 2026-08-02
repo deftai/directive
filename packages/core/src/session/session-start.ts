@@ -13,6 +13,7 @@ import {
   DEFT_DIRECTIVE_DISABLE_STATUS,
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
+  isDeftDirectiveDisableActive,
 } from "../policy/deft-directive-disable.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import {
@@ -734,8 +735,8 @@ export function runSessionStart(
 
   // #3039: local (untracked) test kill-switch — skip ritual write; deposit may remain.
   // Recovery requires delete + new session. Tracked flags do not short-circuit.
-  const killSwitch = detectDeftDirectiveDisable(projectRoot);
-  if (killSwitch.active) {
+  if (isDeftDirectiveDisableActive(projectRoot)) {
+    const killSwitch = detectDeftDirectiveDisable(projectRoot);
     const optOutAlso = detectNoDeftDirective(projectRoot);
     const message = formatDeftDirectiveDisableMessage({
       permanentOptOutAlsoPresent: optOutAlso.present,
