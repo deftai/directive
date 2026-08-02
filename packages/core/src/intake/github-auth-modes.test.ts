@@ -273,30 +273,15 @@ describe("github-auth-modes", () => {
     expect(dict.github_auth_mode).toBe("host-gh");
     expect(dict.failure_kind).toBe(FAILURE_GH_AUTH);
 
-    const exitOk = githubAuthModesMain({
-      githubAuthMode: "injected-token",
-      json: true,
+    // Empty environ: injected path fails closed even when CI process.env has GH_TOKEN.
+    const missing = validateGithubAuth("injected-token", {
+      environ: {},
       runGh: () => ({ returncode: 0, stdout: '{"login":"bot"}', stderr: "", args: [] }),
-      // token required for injected path
     });
-    // missing token without environ → fails
-    expect(exitOk).toBe(1);
+    expect(missing.ok).toBe(false);
+    expect(missing.failureKind).toBe(FAILURE_MISSING_INJECTED_TOKEN);
 
-    const exitWithToken = githubAuthModesMain({
-      githubAuthMode: "injected-token",
-      json: false,
-      runGh: (args) => {
-        if (args[0] === "auth") {
-          return { returncode: 0, stdout: "ok", stderr: "", args: [...args] };
-        }
-        return { returncode: 0, stdout: '{"login":"bot"}', stderr: "", args: [...args] };
-      },
-    });
-    // still missing token in process.env typically; may fail
-    expect([0, 1]).toContain(exitWithToken);
-
-    // Force token via validateInjected success path already covered; exercise
-    // CLI with injected env by using host-gh success for exit 0.
+    // CLI host-gh success path (does not depend on process token env).
     const exitHost = githubAuthModesMain({
       githubAuthMode: "host-gh",
       json: false,
@@ -311,6 +296,14 @@ describe("github-auth-modes", () => {
       },
     });
     expect(exitHost).toBe(0);
+
+    // CLI json emit path
+    const exitJson = githubAuthModesMain({
+      githubAuthMode: "host-gh",
+      json: true,
+      runGh: () => ({ returncode: 1, stdout: "", stderr: "auth", args: [] }),
+    });
+    expect(exitJson).toBe(1);
   });
 
   it("infers injected mode for cloud headless and prints remediation on CLI fail (#3027)", () => {
