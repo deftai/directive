@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3030",
@@ -53,6 +53,10 @@
         "title": "Issue #3030: fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)"
       }
     ],
-    "updated": "2026-08-02T02:21:20Z"
+    "updated": "2026-08-02T02:50:53Z",
+    "metadata": {
+      "completedAt": "2026-08-02T02:50:53Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
