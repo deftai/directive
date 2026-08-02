@@ -180,7 +180,9 @@ export function cachePut(
     });
   }
 
-  atomicWriteText(join(edir, "raw.json"), rawText);
+  // #3042: contain cache entry writes against project root (parent of cacheRoot).
+  const projectRoot = dirname(resolve(cacheRoot));
+  atomicWriteText(join(edir, "raw.json"), rawText, { projectRoot });
   const authoritativeSize = fileSize(join(edir, "raw.json"));
 
   const rendered = renderContent(source, raw);
@@ -189,7 +191,7 @@ export function cachePut(
   const contentPath = join(edir, "content.md");
   let contentWritten = false;
   if (scanResult.passed) {
-    atomicWriteText(contentPath, scanResult.transformed_content);
+    atomicWriteText(contentPath, scanResult.transformed_content, { projectRoot });
     contentWritten = true;
   } else if (existsSync(contentPath)) {
     try {
@@ -210,7 +212,7 @@ export function cachePut(
     clock,
   });
   validateMeta(meta);
-  atomicWriteText(join(edir, "meta.json"), pythonJsonDump(meta));
+  atomicWriteText(join(edir, "meta.json"), pythonJsonDump(meta), { projectRoot });
 
   appendAudit(
     {

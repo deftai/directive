@@ -3,25 +3,68 @@ import { mkdirSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { pythonJsonLine } from "./json.js";
+
+export interface AtomicWriteTextOptions {
+  /**
+   * Project / checkout root used as the containment boundary (#3042).
+   * When set, refuses symlink parents and out-of-root targets before temp+rename.
+   * Prefer always passing this for product sinks (brief stay-path, agents refresh, cache).
+   * When omitted, falls back to parent-dir containment (legacy test / low-risk helpers).
+   */
+  readonly projectRoot?: string;
+}
 
 /**
  * Write text via tempfile + rename (mirrors Python `_atomic_write_text`).
- * #2951 Phase 2: temp payload write uses containedWrite under the parent dir.
+ * #2951 Phase 2: temp payload write uses containedWrite.
+ * #3042: when `projectRoot` is set, containment root is projectRoot (not dirname(path))
+ * so force-added lifecycle / cache directory symlinks fail closed.
  */
-export function atomicWriteText(path: string, text: string): void {
-  const dir = dirname(path);
+export function atomicWriteText(
+  path: string,
+  text: string,
+  options: AtomicWriteTextOptions = {},
+): void {
+  const targetAbs = resolve(path);
+  const dir = dirname(targetAbs);
+  const tmpBase = `${basename(targetAbs)}.${randomBytes(4).toString("hex")}.tmp`;
+  const tmp = join(dir, tmpBase);
+
+  if (options.projectRoot !== undefined) {
+    // Contain against projectRoot (parent-as-root fix #3042 / authz writeJsonContained pattern).
+    const root = resolve(options.projectRoot);
+    assertWriteTargetSafe(root, targetAbs);
+    try {
+      containedWrite({
+        root,
+        target: tmp,
+        data: text,
+        mode: "create",
+      });
+      renameSync(tmp, targetAbs);
+    } catch (err) {
+      try {
+        rmSync(tmp, { force: true });
+      } catch {
+        /* v8 ignore next -- best-effort cleanup */
+      }
+      throw err;
+    }
+    return;
+  }
+
+  // Legacy: parent-dir containment when no projectRoot (unit helpers / transitional call sites).
   mkdirSync(dir, { recursive: true });
-  const tmpName = `${basename(path)}.${randomBytes(4).toString("hex")}.tmp`;
-  const tmp = join(dir, tmpName);
   try {
     containedWrite({
       root: resolve(dir),
-      target: tmpName,
+      target: tmpBase,
       data: text,
       mode: "create",
     });
-    renameSync(tmp, path);
+    renameSync(tmp, targetAbs);
   } catch (err) {
     try {
       rmSync(tmp, { force: true });

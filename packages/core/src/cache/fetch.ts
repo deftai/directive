@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   GhRestError,
@@ -66,9 +66,11 @@ export function writeOpenInventoryStamp(options: {
     fetched_at: utcIso(clock, fetchedAt),
     open_count: 0,
   };
+  // #3042: contain stamp write against project root (parent of cacheRoot).
   atomicWriteText(
     openInventoryStampPath(options.cacheRoot, options.source, options.repo),
     `${JSON.stringify(payload)}\n`,
+    { projectRoot: dirname(resolve(options.cacheRoot)) },
   );
 }
 

@@ -369,7 +369,7 @@ export function applyAgentsRefresh(
           AGENTS_REFRESH_WRITABLE_STATES.has(state) && typeof newContent === "string";
         return { state, path, wrote: false, writable };
       }
-      atomicWriteText(path, newContent);
+      atomicWriteText(path, newContent, { projectRoot });
       return { state, path, wrote: true, writable: true };
     },
     lockDeps,

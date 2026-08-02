@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **projectRoot containment for atomicWriteText, ritual-state, probe-session (#3042).** Residual Medium parent-as-root / bare-write sinks after #2951/#2980: `cache/io.ts` `atomicWriteText` accepts `projectRoot` and refuses symlink lifecycle parents; brief stay-path callers thread projectRoot; `writeRitualState` / sentinel atomic JSON use projectRoot (not dirname); `writeSession` drops bare open/write/rename for `assertWriteTargetSafe` + `containedWrite`. Regression tests force-add `xbrief/` and `.deft/` dir symlinks and assert fail-closed. Removes `probe-session.ts` from the contained-writes allowlist. Closes #3042. Refs #2951, #2980.
 - **Vitest branch coverage restored above 85% (#3027).** Focused OpenClaw pin install/doctor fix-path edges, github-auth mode failure and parseLogin branches, batch-promote path validation, and plan-sequence CLI argv/JSON edges clear the v0.91.0 84.91% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3027.
 
 ### Removed

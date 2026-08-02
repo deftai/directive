@@ -63,7 +63,7 @@ export const CONTAINED_WRITES_ALLOWLIST: readonly string[] = [
   "packages/core/src/intake/issue-ingest.ts",
   "packages/core/src/intake/reconcile-issues.ts",
   "packages/core/src/issue-sync/sync-from-xbrief.ts",
-  "packages/core/src/orchestration/probe-session.ts",
+  // probe-session.ts removed from allowlist after #3042 contained writeSession.
   "packages/core/src/orchestration/verify-judgment-gates.ts",
   "packages/core/src/platform/changelog-cli.ts",
   "packages/core/src/release/gh.ts",

@@ -198,7 +198,7 @@ export function runTransition(
 
     // #2578: stamp terminal status at the destination path in the same write as
     // folder placement — never leave a non-terminal status under completed/.
-    const writeResult = atomicWriteBrief(destPath, data, vbriefRoot);
+    const writeResult = atomicWriteBrief(destPath, data, vbriefRoot, { projectRoot });
     if (!writeResult.ok) {
       return { ok: false, message: writeResult.message };
     }
@@ -246,7 +246,7 @@ export function runTransition(
     };
   }
 
-  const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot);
+  const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
   if (!writeResult.ok) {
     return { ok: false, message: writeResult.message };
   }

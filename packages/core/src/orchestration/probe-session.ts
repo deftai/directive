@@ -4,17 +4,10 @@
 
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import {
-  closeSync,
-  existsSync,
-  fdatasyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  writeSync,
-} from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 
 export const SCHEMA_VERSION = 1;
 export const SESSION_RELPATH = [".deft", "probe-session.json"] as const;
@@ -231,15 +224,16 @@ export function readSession(projectRoot: string): ProbeSession | null {
   };
 }
 
-/** Atomically persist session to .deft/probe-session.json. */
+/**
+ * Atomically persist session to .deft/probe-session.json.
+ * #3042: contain against projectRoot; refuse escaping `.deft` symlink parents
+ * (no bare open/write/rename).
+ */
 export function writeSession(projectRoot: string, session: ProbeSession): string {
-  const sessionFile = sessionPath(projectRoot);
-  mkdirSync(join(projectRoot, ".deft"), { recursive: true });
-  const tmpName = join(
-    projectRoot,
-    ".deft",
-    `.probe-session.${randomBytes(8).toString("hex")}.json.tmp`,
-  );
+  const root = resolve(projectRoot);
+  const sessionFile = sessionPath(root);
+  assertWriteTargetSafe(root, sessionFile);
+  const tmpName = join(root, ".deft", `.probe-session.${randomBytes(8).toString("hex")}.json.tmp`);
   const sortedPayload = sessionToDict(session);
   const sortedKeys = Object.keys(sortedPayload).sort();
   const sortedObj: Record<string, unknown> = {};
@@ -248,18 +242,22 @@ export function writeSession(projectRoot: string, session: ProbeSession): string
   }
   const finalContent = `${JSON.stringify(sortedObj, null, 2)}\n`;
 
-  const fd = openSync(tmpName, "w");
   try {
-    writeSync(fd, finalContent, undefined, "utf8");
+    containedWrite({
+      root,
+      target: tmpName,
+      data: finalContent,
+      mode: "create",
+    });
+    renameSync(tmpName, sessionFile);
+  } catch (err) {
     try {
-      fdatasyncSync(fd);
+      rmSync(tmpName, { force: true });
     } catch {
-      // best effort
+      /* best-effort cleanup */
     }
-  } finally {
-    closeSync(fd);
+    throw err;
   }
-  renameSync(tmpName, sessionFile);
   return sessionFile;
 }
 

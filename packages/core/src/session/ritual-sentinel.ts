@@ -1,14 +1,7 @@
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-} from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
@@ -159,25 +152,34 @@ function validateSteps(
   return [steps, null];
 }
 
+/**
+ * Contained atomic JSON write for ritual/sentinel state (#3042).
+ * Containment root is projectRoot (not dirname(target)) so a force-added `.deft`
+ * directory symlink fails closed before temp+rename.
+ */
 function atomicWriteJson(
+  projectRoot: string,
   targetPath: string,
   payload: Record<string, unknown>,
   prefix: string,
 ): void {
-  const dir = join(targetPath, "..");
-  mkdirSync(dir, { recursive: true });
-  const tmpBase = `${prefix}${process.pid}.json.tmp`;
+  const root = resolve(projectRoot);
+  const abs = resolve(targetPath);
+  // Refuse leaf/parent symlinks on the final path before temp+rename publish.
+  assertWriteTargetSafe(root, abs);
+  const dir = dirname(abs);
+  const tmpBase = `${prefix}${process.pid}.${basename(abs)}.tmp`;
   const tmpName = join(dir, tmpBase);
   const text = `${stableJson(payload, 2)}\n`;
   try {
-    // #2980 wave D: ritual-state product write routes through containedWrite.
+    // #2980 wave D / #3042: product write routes through containedWrite under projectRoot.
     containedWrite({
-      root: resolve(dir),
-      target: tmpBase,
+      root,
+      target: tmpName,
       data: text,
       mode: "create",
     });
-    renameSync(tmpName, targetPath);
+    renameSync(tmpName, abs);
   } catch (err) {
     try {
       rmSync(tmpName, { force: true });
@@ -257,7 +259,7 @@ export function readRitualState(projectRoot: string): [RitualState | null, strin
 
 export function writeRitualState(projectRoot: string, payload: Record<string, unknown>): string {
   const stateFile = ritualStatePath(projectRoot);
-  atomicWriteJson(stateFile, payload, ".ritual-state.");
+  atomicWriteJson(projectRoot, stateFile, payload, ".ritual-state.");
   return stateFile;
 }
 
@@ -394,7 +396,7 @@ export function writeSentinel(
       .replace(`${LEGACY_ARTIFACT_DIR}/active/`, `${MIGRATED_ARTIFACT_DIR}/active/`),
     lastBranch: input.lastBranch,
   };
-  atomicWriteJson(sentinelFile, payload, ".last-session.");
+  atomicWriteJson(projectRoot, sentinelFile, payload, ".last-session.");
   return sentinelFile;
 }
 

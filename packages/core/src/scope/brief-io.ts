@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { atomicWriteText } from "../cache/io.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { pythonJsonPretty } from "../vbrief-build/json.js";
@@ -80,13 +80,16 @@ export function atomicWriteBrief(
   filePath: string,
   data: JsonObject,
   vbriefRoot: string,
+  options: { readonly projectRoot?: string } = {},
 ): AtomicWriteBriefResult {
   const validationError = validateBriefForPersist(filePath, data, vbriefRoot);
   if (validationError !== null) {
     return { ok: false, message: validationError };
   }
+  // #3042: contain against projectRoot (parent of xbrief/), not dirname(filePath).
+  const projectRoot = options.projectRoot ?? dirname(resolve(vbriefRoot));
   try {
-    atomicWriteText(filePath, formatBriefJson(data));
+    atomicWriteText(filePath, formatBriefJson(data), { projectRoot });
     return { ok: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

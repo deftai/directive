@@ -201,7 +201,10 @@ export function syncRegistryArtifactAfterScopeMove(
       if (hooks.persist !== undefined) {
         hooks.persist(registryPath, registry as JsonObject);
       } else {
-        atomicWriteText(registryPath, formatBriefJson(registry));
+        // #3042: contain registry stay-path write against project root (parent of xbrief/).
+        atomicWriteText(registryPath, formatBriefJson(registry), {
+          projectRoot: dirname(resolve(vbriefRoot)),
+        });
       }
     }
   } catch (err: unknown) {
