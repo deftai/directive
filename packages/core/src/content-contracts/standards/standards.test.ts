@@ -889,11 +889,6 @@ describe("test_standards.py", () => {
   it("docs/thousand-skills.md no deprecated user path", () => {
     expect(readText("docs/thousand-skills.md").toLowerCase()).not.toContain("core/user.md");
   });
-  it("docs/valuable-go-task-improvements.md no deprecated user path", () => {
-    expect(readText("docs/valuable-go-task-improvements.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
   it("docs/versioning.md no deprecated user path", () => {
     expect(readText("docs/versioning.md").toLowerCase()).not.toContain("core/user.md");
   });
@@ -2066,11 +2061,6 @@ describe("test_standards.py", () => {
   });
   it("docs/thousand-skills.md no warping", () => {
     expect(readText("docs/thousand-skills.md").toLowerCase()).not.toContain("warping");
-  });
-  it("docs/valuable-go-task-improvements.md no warping", () => {
-    expect(readText("docs/valuable-go-task-improvements.md").toLowerCase()).not.toContain(
-      "warping",
-    );
   });
   it("docs/versioning.md no warping", () => {
     expect(readText("docs/versioning.md").toLowerCase()).not.toContain("warping");

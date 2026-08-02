@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Orphaned go-task upstream wishlist doc (#3048).** Deleted `docs/valuable-go-task-improvements.md` after #446 closed (not pursuing go-task upstream proposals). Removed the matching content-contract path pins in `standards.test.ts` so the path is no longer treated as live SoT. Closes #3048. Refs #446.
+
 ## [0.91.0] - 2026-08-01
 
 > Cohort cut: OpenClaw pin copies, SCM readiness, closing-keyword intent mode, forward ROADMAP + compact SPECIFICATION, wipCap decision-provenance.
