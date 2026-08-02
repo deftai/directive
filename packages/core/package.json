@@ -23,6 +23,10 @@
       "types": "./dist/story-ready/index.d.ts",
       "default": "./dist/story-ready/index.js"
     },
+    "./slash": {
+      "types": "./dist/slash/index.d.ts",
+      "default": "./dist/slash/index.js"
+    },
     "./branch": {
       "types": "./dist/branch/index.d.ts",
       "default": "./dist/branch/index.js"

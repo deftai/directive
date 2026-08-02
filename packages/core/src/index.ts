@@ -70,6 +70,7 @@ export * as resolution from "./resolution/index.js";
 export * as scm from "./scm/index.js";
 export * as scope from "./scope/index.js";
 export * as session from "./session/index.js";
+export * as slash from "./slash/index.js";
 export * as slice from "./slice/index.js";
 export * as storyReady from "./story-ready/index.js";
 export * as swarm from "./swarm/index.js";

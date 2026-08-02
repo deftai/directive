@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Host-agnostic slash-command thin-wrapper generator core (#3052).** New `packages/core/src/slash` module freezes the epic #55 LockedDecisions L2 product set (exactly 13 canonical commands), owns the logical-id ↔ hyphen-filename map (L4), and emits host-agnostic thin-wrapper IR + markdown templates (frontmatter description + short dispatch pointer only — no inlined strategy/skill bodies). Unit tests cover template shape, non-inlining, stable output, `count === 13`, and token-budget constraints (idle ~0; catalog ≤ ~1k tok; invoke body ≤ ~100 tok). Emitters (#3053) consume `generateThinWrappers()` / `listProductCommands()` without duplicating the name table. Public surface: `@deftai/directive-core` `slash` namespace and `@deftai/directive-core/slash` subpath. Out of scope: host path layouts, init/update deposit, native legacy aliases. Refs #55.
+
 ### Changed
 
 ### Fixed
