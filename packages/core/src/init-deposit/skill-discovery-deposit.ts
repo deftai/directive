@@ -19,10 +19,12 @@ import {
   hostSkillRelativePath,
   isHostSkillDiscoveryEnabled,
   listSkillDiscoveryHosts,
-  loadHostSkillDiscoveryPolicyDetailedFromProject,
+  loadHostSkillDiscoveryPolicyFromProject,
+  loadHostSkillDiscoveryRawFromProject,
   resolveHostSkillDiscoveryPolicyDetailed,
   SKILL_DISCOVERY_HOSTS,
   type SkillDiscoveryHostId,
+  validateHostSkillDiscovery,
 } from "./skill-discovery-hosts.js";
 
 export type { InitDepositIo };
@@ -218,10 +220,16 @@ export function writeMultiHostSkillDiscovery(
   io: InitDepositIo,
   options: WriteMultiHostSkillDiscoveryOptions = {},
 ): MultiHostSkillDiscoveryDepositResult {
-  const resolved =
+  const rawPolicy =
     options.policy !== undefined
-      ? resolveHostSkillDiscoveryPolicyDetailed(options.policy)
-      : loadHostSkillDiscoveryPolicyDetailedFromProject(projectDir);
+      ? options.policy
+      : loadHostSkillDiscoveryRawFromProject(projectDir);
+  // Production validation surface (#75 SLizard P1): report malformed opt-outs
+  // before resolving the deposit enablement map.
+  for (const err of validateHostSkillDiscovery(rawPolicy)) {
+    io.printf(`WARNING: ${err}\n`);
+  }
+  const resolved = resolveHostSkillDiscoveryPolicyDetailed(rawPolicy);
   for (const warning of resolved.warnings) {
     io.printf(`WARNING: ${warning}\n`);
   }
@@ -233,7 +241,12 @@ export function writeMultiHostSkillDiscovery(
       hostsSkipped: [...listSkillDiscoveryHosts()],
     };
   }
-  const policy = resolved.policy;
+  // Prefer the public project-root loader when reading disk so policy inspection
+  // and deposit share one production call path (not test-only exports).
+  const policy =
+    options.policy !== undefined
+      ? resolved.policy
+      : loadHostSkillDiscoveryPolicyFromProject(projectDir);
   const inventory = options.inventory ?? CONSUMER_SKILL_DISCOVERY_INVENTORY;
 
   for (const skill of inventory) {
