@@ -134,14 +134,6 @@ export function slashCommandManagedExactPaths(): readonly string[] {
   return paths;
 }
 
-/**
- * @deprecated Prefer {@link slashCommandManagedExactPaths} for allowlist/staging.
- * Directory prefixes are informational only — not used for installer-managed classification.
- */
-export function slashCommandDepositDirPrefixes(): readonly string[] {
-  return listSlashEmitterHosts().map((hostId) => `${getHostCommandLayout(hostId).relativeDir}/`);
-}
-
 type WriteOutcome = "written" | "unchanged" | "preserved";
 
 function isManagedThinContent(raw: string, file: HostEmittedFile): boolean {

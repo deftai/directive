@@ -6,11 +6,7 @@ import { emitHostCommandFiles, HOST_COMMAND_LAYOUTS } from "../slash/emitters.js
 import { isThinWrapperMarkdown } from "../slash/generator.js";
 import { PRODUCT_COMMAND_COUNT } from "../slash/product-set.js";
 import { isInstallerManagedPath } from "./hygiene.js";
-import {
-  slashCommandDepositDirPrefixes,
-  slashCommandManagedExactPaths,
-  writeSlashCommandDeposit,
-} from "./slash-deposit.js";
+import { slashCommandManagedExactPaths, writeSlashCommandDeposit } from "./slash-deposit.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -149,12 +145,6 @@ describe("writeSlashCommandDeposit (#3054)", () => {
     expect(isInstallerManagedPath(".claude/commands/user-custom.md")).toBe(false);
     // Hook JSON paths remain distinct and still managed.
     expect(isInstallerManagedPath(".claude/settings.json")).toBe(true);
-    expect(slashCommandDepositDirPrefixes()).toEqual([
-      ".claude/commands/",
-      ".cursor/commands/",
-      ".grok/commands/",
-      ".codex/prompts/",
-    ]);
   });
 
   it("does not conflict with agent hook paths", () => {
