@@ -54,9 +54,9 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     // `deft update` framework-deposit PR trips no-mixed-core-and-app (#2277).
     { exact: "xbrief/.deft-version" },
     { exact: "xbrief/xbrief.md" },
-    // Minimal render-ready seed from init (#3013); operator may later edit identity.
-    { exact: "xbrief/PROJECT-DEFINITION.xbrief.json" },
-    { exact: "vbrief/PROJECT-DEFINITION.vbrief.json" },
+    // CRITICAL (#1430 / #3029): do NOT allowlist consumer-authored PROJECT-DEFINITION
+    // (xbrief/ or vbrief/). Init may still seed PD (#3013); the seed is app-owned for
+    // guard classification so core+PD mixed PRs fail no-mixed-core-and-app.
     { prefix: "xbrief/schemas/" },
     { prefix: "xbrief/migration/" },
     ...VBRIEF_LIFECYCLE_DIRS.map((sub) => ({ exact: `xbrief/${sub}/.gitkeep` })),

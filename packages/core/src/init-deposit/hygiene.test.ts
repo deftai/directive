@@ -115,6 +115,60 @@ describe("xbrief/ allowlist parity (#2277)", () => {
   });
 });
 
+describe("PROJECT-DEFINITION is not installer-managed (#3029 / #1430)", () => {
+  const pdPaths = [
+    "xbrief/PROJECT-DEFINITION.xbrief.json",
+    "vbrief/PROJECT-DEFINITION.vbrief.json",
+  ] as const;
+
+  it("does not treat consumer PROJECT-DEFINITION as installer-managed", () => {
+    for (const path of pdPaths) {
+      expect(isInstallerManagedPath(path)).toBe(false);
+    }
+  });
+
+  it("does not embed PROJECT-DEFINITION in the deposited guard ERE", () => {
+    const ere = installerManagedGuardEre();
+    expect(ere).not.toContain("PROJECT-DEFINITION");
+    // Scaffolding markers remain correctly allowlisted (#2277).
+    expect(ere).toContain("xbrief/\\.deft-version");
+  });
+
+  it("does not stage PROJECT-DEFINITION via frameworkStagePaths", () => {
+    const root = mkdtempSync(join(tmpdir(), "hygiene-pd-stage-"));
+    try {
+      mkdirSync(join(root, ".deft", "core"), { recursive: true });
+      writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}\n", "utf8");
+      mkdirSync(join(root, "vbrief"), { recursive: true });
+      writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}\n", "utf8");
+      writeFileSync(join(root, "xbrief", ".deft-version"), "0.91.0\n", "utf8");
+
+      const paths = frameworkStagePaths(root, join(root, ".deft", "core"));
+      expect(paths).not.toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+      expect(paths).not.toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
+      // Framework scaffolding still stages.
+      expect(paths).toContain("xbrief/.deft-version");
+      expect(paths).toContain(".deft/core");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("classifies core+PD as mixed (app non-empty) for no-mixed-core-and-app", () => {
+    // Mirrors deposited guard semantics: core = .deft/core/**; app = not core and
+    // not installer-managed. Both core and app non-empty ⇒ guard fails (#1430).
+    const changed = [".deft/core/VERSION", "xbrief/PROJECT-DEFINITION.xbrief.json"];
+    const core = changed.filter((p) => p.startsWith(".deft/core/"));
+    const app = changed.filter(
+      (p) => !p.startsWith(".deft/core/") && !isInstallerManagedPath(p),
+    );
+    expect(core.length).toBeGreaterThan(0);
+    expect(app).toEqual(["xbrief/PROJECT-DEFINITION.xbrief.json"]);
+  });
+});
+
 describe("scoped staging", () => {
   const created: string[] = [];
 
