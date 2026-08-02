@@ -43,14 +43,14 @@ describe("OpenPackage tier manifest (#2462)", () => {
   it("declares daily-core, standard, and advanced tiers with expected counts", () => {
     const manifest = loadTiersJson();
     expect(manifest.tiers["daily-core"].skills).toHaveLength(6);
-    expect(manifest.tiers.standard.skills).toHaveLength(11);
+    expect(manifest.tiers.standard.skills).toHaveLength(12);
     expect(manifest.tiers.advanced.skills).toHaveLength(4);
   });
 
   it("defaults consumer install to daily-core (#2494)", () => {
     expect(getOpenPackageDefaultInstallTier(REPO_ROOT)).toBe("daily-core");
     expect(resolveOpenPackageTierSkills(REPO_ROOT, "daily-core")).toHaveLength(6);
-    expect(resolveOpenPackageTierSkills(REPO_ROOT, "all")).toHaveLength(21);
+    expect(resolveOpenPackageTierSkills(REPO_ROOT, "all")).toHaveLength(22);
   });
 
   it("openpackage.yml points at deft-tiers.json and declares defaultInstallTier", () => {

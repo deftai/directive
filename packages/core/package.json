@@ -59,6 +59,10 @@
       "types": "./dist/xbrief-migrate/index.d.ts",
       "default": "./dist/xbrief-migrate/index.js"
     },
+    "./xbrief": {
+      "types": "./dist/xbrief/index.d.ts",
+      "default": "./dist/xbrief/index.js"
+    },
     "./category-b-namespace": {
       "types": "./dist/category-b-namespace/index.d.ts",
       "default": "./dist/category-b-namespace/index.js"

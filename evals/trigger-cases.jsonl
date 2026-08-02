@@ -63,3 +63,6 @@
 {"id":"product-signal-pos-1","query":"run a product check-in pulse for this install","skill":"deft-directive-product-signal","should_trigger":true}
 {"id":"product-signal-pos-2","query":"partner feedback product signal interview","skill":"deft-directive-product-signal","should_trigger":true}
 {"id":"product-signal-neg-1","query":"run eval health check on master","skill":"deft-directive-product-signal","should_trigger":false}
+{"id":"xbrief-pos-1","query":"xbrief create a dense scope brief at out/path","skill":"deft-directive-xbrief","should_trigger":true}
+{"id":"xbrief-pos-2","query":"run xbrief:verify on the mission artifact","skill":"deft-directive-xbrief","should_trigger":true}
+{"id":"xbrief-neg-1","query":"scope:promote the pending story for implementation","skill":"deft-directive-xbrief","should_trigger":false}
