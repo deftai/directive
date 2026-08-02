@@ -6,7 +6,11 @@ import { emitHostCommandFiles, HOST_COMMAND_LAYOUTS } from "../slash/emitters.js
 import { isThinWrapperMarkdown } from "../slash/generator.js";
 import { PRODUCT_COMMAND_COUNT } from "../slash/product-set.js";
 import { isInstallerManagedPath } from "./hygiene.js";
-import { slashCommandDepositDirPrefixes, writeSlashCommandDeposit } from "./slash-deposit.js";
+import {
+  slashCommandDepositDirPrefixes,
+  slashCommandManagedExactPaths,
+  writeSlashCommandDeposit,
+} from "./slash-deposit.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -61,18 +65,34 @@ describe("writeSlashCommandDeposit (#3054)", () => {
     expect(second.removedPaths).toEqual([]);
   });
 
-  it("rewrites drifted managed content without creating extras", () => {
+  it("rewrites drifted managed thin wrappers without creating extras", () => {
     const root = project();
     writeSlashCommandDeposit(root);
     const target = join(root, ".claude/commands/deft-continue.md");
-    writeFileSync(target, "---\ndescription: stale\n---\n\nstale body\n", "utf8");
+    // Still a thin wrapper (managed) but drifted description.
+    writeFileSync(
+      target,
+      "---\ndescription: stale managed\n---\n\nRead and follow `resilience/continue-here.md` (content-relative; deposit under `.deft/core/` when installed).\nHonor `$ARGUMENTS` as documented for this command.\nDo not inline the strategy, skill, or commands.md body here.\n",
+      "utf8",
+    );
 
     const result = writeSlashCommandDeposit(root);
     expect(result.writtenPaths).toContain(".claude/commands/deft-continue.md");
     const expected = emitHostCommandFiles("claude").find((f) => f.filename === "deft-continue.md");
     expect(readFileSync(target, "utf8")).toBe(expected?.contents);
-    // Still exactly one product-set worth of files under claude (no pile-up).
     expect(emitHostCommandFiles("claude")).toHaveLength(PRODUCT_COMMAND_COUNT);
+  });
+
+  it("does not overwrite non-thin consumer customizations at product paths", () => {
+    const root = project();
+    writeSlashCommandDeposit(root);
+    const target = join(root, ".claude/commands/deft-continue.md");
+    writeFileSync(target, "# my custom continue command\n", "utf8");
+
+    const result = writeSlashCommandDeposit(root);
+    expect(result.writtenPaths).not.toContain(".claude/commands/deft-continue.md");
+    expect(result.preservedCustomPaths).toContain(".claude/commands/deft-continue.md");
+    expect(readFileSync(target, "utf8")).toBe("# my custom continue command\n");
   });
 
   it("skips opted-out host without breaking other hosts", () => {
@@ -117,19 +137,24 @@ describe("writeSlashCommandDeposit (#3054)", () => {
     expect(existsSync(join(root, ".cursor/commands/deft-continue.md"))).toBe(true);
   });
 
-  it("exposes command dir prefixes as installer-managed (L8 prefer commit)", () => {
-    const prefixes = slashCommandDepositDirPrefixes();
-    expect(prefixes).toEqual([
+  it("exposes product paths as installer-managed exacts (L8 prefer commit)", () => {
+    const exacts = slashCommandManagedExactPaths();
+    expect(exacts).toContain(".claude/commands/deft-continue.md");
+    expect(exacts).toContain(".codex/prompts/deft-continue.md");
+    expect(exacts).toHaveLength(PRODUCT_COMMAND_COUNT * 4);
+    for (const path of exacts) {
+      expect(isInstallerManagedPath(path)).toBe(true);
+    }
+    // Consumer custom file under same dir is NOT installer-managed.
+    expect(isInstallerManagedPath(".claude/commands/user-custom.md")).toBe(false);
+    // Hook JSON paths remain distinct and still managed.
+    expect(isInstallerManagedPath(".claude/settings.json")).toBe(true);
+    expect(slashCommandDepositDirPrefixes()).toEqual([
       ".claude/commands/",
       ".cursor/commands/",
       ".grok/commands/",
       ".codex/prompts/",
     ]);
-    for (const prefix of prefixes) {
-      expect(isInstallerManagedPath(`${prefix}deft-continue.md`)).toBe(true);
-    }
-    // Hook JSON paths remain distinct and still managed.
-    expect(isInstallerManagedPath(".claude/settings.json")).toBe(true);
   });
 
   it("does not conflict with agent hook paths", () => {

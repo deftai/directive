@@ -17,6 +17,7 @@ import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
+import { slashCommandManagedExactPaths } from "./slash-deposit.js";
 
 export const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
 export const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
@@ -61,11 +62,10 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: ".grok/hooks/deft.json" },
     { exact: ".cursor/hooks.json" },
     { exact: ".codex/hooks.json" },
-    // Multi-host slash command/prompt dirs (#3054 / L8 prefer commit).
-    { prefix: ".claude/commands/" },
-    { prefix: ".cursor/commands/" },
-    { prefix: ".grok/commands/" },
-    { prefix: ".codex/prompts/" },
+    // Multi-host slash product files only (#3054 / L8 prefer commit).
+    // Exact paths — not directory prefixes — so consumer custom commands under
+    // the same host dirs stay app-owned for staging + no-mixed-core-and-app.
+    ...slashCommandManagedExactPaths().map((exact) => ({ exact })),
     { exact: ".gitattributes" },
     { exact: ".gitignore" },
     // Installer-deposited Prettier gate exclusion (#2534); must be allowlisted or

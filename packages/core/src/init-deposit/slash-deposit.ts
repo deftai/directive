@@ -5,9 +5,13 @@
  * - Default enabled set = hosts with real emitters (L6)
  * - Per-host opt-out via `plan.policy.hostSlashCommands`
  * - Idempotent managed rewrite (no duplicate pile-up)
- * - Prefer commit of generated dirs (L8) — staged via installer allowlist, not gitignored
+ * - Prefer commit of **managed product paths only** (L8) — exact allowlist, not whole dirs
  *
  * Parallel to agent-hooks deposit; does not touch hook JSON configs.
+ *
+ * Ownership: only create/update/remove files that are missing or still look like
+ * Directive thin wrappers (`isThinWrapperMarkdown`). Consumer-customized content
+ * at a product filename is left untouched.
  */
 
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
@@ -15,8 +19,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import { containedWrite } from "../fs/contained-write.js";
 import {
+  enabledSlashDepositHosts,
   type HostSlashCommandsPolicy,
-  isHostSlashCommandDepositEnabled,
   loadHostSlashCommandsPolicyFromProject,
 } from "../policy/host-slash-commands.js";
 import {
@@ -27,6 +31,7 @@ import {
   listSlashEmitterHosts,
   type SlashEmitterHostId,
 } from "../slash/index.js";
+import { listProductCommands, logicalIdToFilename } from "../slash/product-set.js";
 import type { InitDepositIo } from "./constants.js";
 
 export interface SlashCommandDepositResult {
@@ -35,6 +40,8 @@ export interface SlashCommandDepositResult {
   readonly writtenPaths: string[];
   /** Repo-relative paths removed on opt-out (managed product files only). */
   readonly removedPaths: string[];
+  /** Repo-relative paths skipped because consumer content is not managed. */
+  readonly preservedCustomPaths: string[];
   /** Hosts that received a deposit pass (policy enabled). */
   readonly depositedHosts: SlashEmitterHostId[];
   /** Hosts skipped by policy opt-out. */
@@ -45,8 +52,8 @@ export interface SlashCommandDepositResult {
  * Write thin-wrapper command/prompt files for every policy-enabled host.
  *
  * Idempotent: skips files whose on-disk bytes already match emission.
- * Opt-out: does not write that host; removes managed product-set files that still
- * match thin-wrapper shape (leaves user-customized files in those dirs alone).
+ * Ownership-safe: never overwrites non-thin consumer customizations at product paths.
+ * Opt-out: removes managed thin wrappers only (leaves user customizations alone).
  */
 export function writeSlashCommandDeposit(
   projectRoot: string,
@@ -56,21 +63,22 @@ export function writeSlashCommandDeposit(
   const rootAbs = resolve(projectRoot);
   const writtenPaths: string[] = [];
   const removedPaths: string[] = [];
-  const depositedHosts: SlashEmitterHostId[] = [];
+  const preservedCustomPaths: string[] = [];
+  const depositedHosts: SlashEmitterHostId[] = [...enabledSlashDepositHosts(policy)];
+  const enabled = new Set<SlashEmitterHostId>(depositedHosts);
   const skippedHosts: SlashEmitterHostId[] = [];
 
   for (const hostId of listSlashEmitterHosts()) {
-    if (!isHostSlashCommandDepositEnabled(hostId, policy)) {
+    if (!enabled.has(hostId)) {
       skippedHosts.push(hostId);
       removedPaths.push(...stripManagedHostCommandFiles(rootAbs, hostId));
       continue;
     }
-    depositedHosts.push(hostId);
     const files = emitHostCommandFiles(hostId);
     for (const file of files) {
-      if (writeHostCommandFileIfChanged(rootAbs, file)) {
-        writtenPaths.push(file.relativePath);
-      }
+      const outcome = writeHostCommandFileIfChanged(rootAbs, file);
+      if (outcome === "written") writtenPaths.push(file.relativePath);
+      if (outcome === "preserved") preservedCustomPaths.push(file.relativePath);
     }
   }
 
@@ -78,6 +86,11 @@ export function writeSlashCommandDeposit(
     const hostSummary = depositedHosts.join(", ");
     io.printf(
       `Installed Directive slash commands for hosts [${hostSummary}]: ${writtenPaths.length} file(s)\n`,
+    );
+  }
+  if (preservedCustomPaths.length > 0) {
+    io.printf(
+      `Preserved non-managed slash command customizations: ${preservedCustomPaths.join(", ")}\n`,
     );
   }
   if (removedPaths.length > 0) {
@@ -99,29 +112,57 @@ export function writeSlashCommandDeposit(
     changed: writtenPaths.length + removedPaths.length > 0,
     writtenPaths,
     removedPaths,
+    preservedCustomPaths,
     depositedHosts,
     skippedHosts,
   };
 }
 
 /**
- * Repo-relative directory prefixes for installer allowlist / staging (L8 prefer commit).
- * Derived from emitter layouts — do not hardcode a second host list.
+ * Exact repo-relative product command paths (all emitter hosts).
+ * Used by installerManagedMatchers for L8 prefer-commit staging without
+ * claiming whole host command directories (consumer custom files stay app-owned).
+ */
+export function slashCommandManagedExactPaths(): readonly string[] {
+  const paths: string[] = [];
+  for (const hostId of listSlashEmitterHosts()) {
+    const dir = getHostCommandLayout(hostId).relativeDir;
+    for (const cmd of listProductCommands()) {
+      paths.push(`${dir}/${logicalIdToFilename(cmd.logicalId)}`);
+    }
+  }
+  return paths;
+}
+
+/**
+ * @deprecated Prefer {@link slashCommandManagedExactPaths} for allowlist/staging.
+ * Directory prefixes are informational only — not used for installer-managed classification.
  */
 export function slashCommandDepositDirPrefixes(): readonly string[] {
   return listSlashEmitterHosts().map((hostId) => `${getHostCommandLayout(hostId).relativeDir}/`);
 }
 
-function writeHostCommandFileIfChanged(projectRoot: string, file: HostEmittedFile): boolean {
+type WriteOutcome = "written" | "unchanged" | "preserved";
+
+function isManagedThinContent(raw: string, file: HostEmittedFile): boolean {
+  return raw === file.contents || isThinWrapperMarkdown(raw, file.dispatchPath);
+}
+
+function writeHostCommandFileIfChanged(projectRoot: string, file: HostEmittedFile): WriteOutcome {
   const absolute = join(projectRoot, file.relativePath);
   assertDepositContained(projectRoot, absolute);
   if (existsSync(absolute)) {
+    let raw: string;
     try {
-      if (readFileSync(absolute, "utf8") === file.contents) {
-        return false;
-      }
+      raw = readFileSync(absolute, "utf8");
     } catch {
-      // Fall through to rewrite if unreadable.
+      // Unreadable existing file: do not clobber consumer content.
+      return "preserved";
+    }
+    if (raw === file.contents) return "unchanged";
+    // Ownership gate: only rewrite managed thin wrappers.
+    if (!isManagedThinContent(raw, file)) {
+      return "preserved";
     }
   }
 
@@ -146,7 +187,7 @@ function writeHostCommandFileIfChanged(projectRoot: string, file: HostEmittedFil
     }
     throw err;
   }
-  return true;
+  return "written";
 }
 
 /**
@@ -166,8 +207,7 @@ function stripManagedHostCommandFiles(projectRoot: string, hostId: SlashEmitterH
     } catch {
       continue;
     }
-    // Only strip managed thin wrappers — never user customizations that fail the thin check.
-    if (!isThinWrapperMarkdown(raw, file.dispatchPath) && raw !== file.contents) {
+    if (!isManagedThinContent(raw, file)) {
       continue;
     }
     try {
