@@ -12,4 +12,11 @@ describe("user-config barrel exports", () => {
     expect(userConfig.USER_MD_FILENAME).toBe("USER.md");
     expect(userConfig.WORKSPACE_LOCAL_CONFIG_DIR).toBe(".deft");
   });
+
+  it("re-exports Experimental Rules helpers (#46)", () => {
+    expect(typeof userConfig.applyExperimentalRulesState).toBe("function");
+    expect(typeof userConfig.parseExperimentalRulesState).toBe("function");
+    expect(typeof userConfig.setExperimentalRule).toBe("function");
+    expect(userConfig.EXPERIMENTAL_META_ENTRIES).toHaveLength(3);
+  });
 });

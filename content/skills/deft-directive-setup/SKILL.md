@@ -23,6 +23,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - User says "set up deft", "configure deft", or "bootstrap my project"
 - User asks to create USER.md, PROJECT-DEFINITION.xbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
+- User says "revisit experimental rules", "toggle experimental meta", "enable SOUL", "disable morals", or wants to change Experimental Rules after bootstrap (#46)
 
 ## Opt-out flag (`.no-deft-directive`) (#2926)
 
@@ -194,11 +195,27 @@ VBA (Excel macros), VHDL, Visual Basic (.NET), Zig, 6502-DASM
 2. ! If `deft_version` is present but **differs from the current framework version** (0.20.0): check whether any expected fields are missing from the USER.md
 3. ! If fields are missing: query the user for each missing field individually -- do NOT re-run the full Phase 1 interview
 4. ! After completing any field queries (even if none were needed), write the current `deft_version` (0.20.0) to USER.md
-5. ~ If `deft_version` matches the current version and all expected fields are present: no action needed (USER.md is fresh)
+5. ~ If `deft_version` matches the current version and all expected fields are present: USER.md is fresh — do **not** re-run Phase 1. ! Still offer the **Returning-user re-entry** menu below so the operator can revisit Experimental Rules or continue to Phase 2 without a full re-interview (#46).
 
 Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and optionally **Coverage** and **Experimental Rules**.
 
 ⊗ Re-run the full Phase 1 interview when only individual fields are missing from a stale USER.md -- query missing fields individually instead.
+
+### Returning-user re-entry (#46)
+
+! When USER.md already exists (fresh or after individual missing-field fill), present a deterministic numbered menu before assuming Phase 1 is "done and silent":
+
+> "USER.md is in place. What next?"
+> 1. Continue to Phase 2 (project configuration) ★ (recommended when project config is still missing)
+> 2. **Revisit experimental rules** — enable/disable SOUL / morals / code-field without hand-editing schema
+> 3. Not now (exit setup)
+> 4. Discuss
+> 5. Back
+
+- ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
+- ! On option 2, enter **Revisit experimental rules** (next section) — not a full Phase 1 re-interview
+- ⊗ Silently skip past a complete USER.md with no re-entry offer when the operator entered setup (or asked to configure preferences)
+- ⊗ Invent a `deft config` / `task config:*` verb family for this slice — setup skill re-entry is the product surface (#46)
 
 ### Interview Rules
 
@@ -306,6 +323,89 @@ for project-scoped settings (strategy, coverage).
 - ⊗ Ask the phase-transition question as unnumbered conversational prose or through a structured UI that hides the canonical numeric labels -- it is a deterministic menu and MUST preserve visible numbers (#478, #1563).
 
 ---
+
+## Revisit experimental rules (#46)
+
+**Goal:** Guided enable/disable of USER.md **Experimental Rules** entries that *reference* framework deposit meta files (`meta/SOUL.md`, `meta/morals.md`, `meta/code-field.md`). This is a post-bootstrap return path — not Phase 1 bootstrap, not a general preferences UI, and not an editor for framework meta file bodies.
+
+### When to enter
+
+- Returning-user re-entry option **Revisit experimental rules**
+- Direct user ask: "revisit experimental rules", "toggle experimental meta", "turn on SOUL", "disable code-field", etc.
+- USER.md exists and is complete enough to edit (Name present); missing non-meta fields still use Freshness Detection individual queries first
+
+### Out of scope
+
+- ⊗ General preferences UI / rewriting Personal or Defaults sections as part of this path
+- ⊗ Editing framework `meta/*.md` content (deposit owns SOUL / morals / code-field bodies; `directive update` refreshes deposit)
+- ⊗ Deposit layout changes
+- ⊗ Inventing a full `deft config` mega-surface or new `task config:*` verb family for this slice
+- ⊗ Re-building USER.md bootstrap / non-overwrite semantics
+- ⊗ Treating Experimental Rules lines as project-local copies of meta files — they are **references** only
+
+### Flow
+
+! **Each message MUST contain exactly ONE question** (same interview rule as Phase 1).
+
+1. ! Resolve USER.md via Platform Detection (`$DEFT_USER_PATH` → platform path). Read the file as **UTF-8**.
+2. ! Parse current Experimental Rules state (on/off) for the three paths:
+   - `meta/SOUL.md`
+   - `meta/morals.md`
+   - `meta/code-field.md`
+   - Detection: any line containing that path counts as **on** (custom wording still counts).
+3. ! Show a **current state** summary (table or short list), for example:
+
+   | Entry | State | Role |
+   |-------|-------|------|
+   | SOUL.md | on/off | Results-first agent persona |
+   | morals.md | on/off | Epistemic honesty |
+   | code-field.md | on/off | Pre-code assumption protocol |
+
+4. ! Ask which entry to change with a deterministic numbered menu (one question). Options MUST include each of the three entries as toggle targets, plus **Done (save)** / **Done (discard)**, and final two options `Discuss` and `Back`:
+
+   > "Toggle which experimental meta entry? (current state shown above)"
+   > 1. SOUL.md — currently {on|off}
+   > 2. morals.md — currently {on|off}
+   > 3. code-field.md — currently {on|off}
+   > 4. Done — save changes
+   > 5. Done — discard changes
+   > 6. Discuss
+   > 7. Back
+
+5. ! When the user picks an entry (1–3), optionally show the short Phase 1 explainer (steps **5a–5c** copy below), then confirm the new on/off value with a Y/n or numbered keep/flip menu. Update the **in-memory** desired state; do not write yet. Return to the toggle menu (step 4) until Done.
+6. ! On **Done — save**: show a confirmation summary of the three final on/off values and require explicit affirmative (`yes` / `confirmed` / `approve`) before write — same Post-Interview Confirmation Gate strictness.
+7. ! On **Done — discard** or **Back** without save: leave USER.md unchanged and return to the Returning-user re-entry menu (or exit if invoked directly).
+
+### Explainers (reuse Phase 1 steps 5a–5c)
+
+- **SOUL.md** — Results-first agent persona (inspired by Winston Wolf). Enforces assess-before-acting, finish-what-you-start, right-tool-for-the-job, and play-the-long-game. Keeps the AI decisive and concise. Includes a named persona ('Vinston') — drop if you prefer to define your own agent personality.
+- **morals.md** — Epistemic honesty rules. No presenting speculation as fact, label unverified claims, self-correct when wrong. Foundational trust rules for any AI agent. Strongly recommended.
+- **code-field.md** — Pre-code assumption protocol. Requires stating assumptions and naming failure modes before writing a single line. Fights the 'it compiles, ship it' instinct. Based on NeoVertex1 context-field.
+
+### Safe write rules (non-clobber)
+
+! When persisting toggles to USER.md:
+
+1. ! Write **UTF-8** (no BOM). Create parent directories only if the resolved path's parent is missing — never relocate USER.md.
+2. ! Change **only** the `## Experimental Rules` section (add the section if enabling when absent; remove the section when all three are off and no custom bullets remain).
+3. ! Canonical enable lines (match Phase 1 template):
+   - `- ! Use meta/SOUL.md for strategic context and purpose-driven guidance`
+   - `- ! Use meta/morals.md for ethical AI development principles`
+   - `- ~ Use meta/code-field.md for advanced architecture patterns`
+4. ! Disable = remove lines that mention that path. Preserve any **custom** non-meta bullets under Experimental Rules.
+5. ! **Personal** and **Defaults** section bodies MUST remain byte-identical to the pre-write file (non-clobber).
+6. ~ Prefer the pure helper `applyExperimentalRulesState` / `setExperimentalRule` from `@deftai/directive-core` `userConfig` (`packages/core/src/user-config/experimental-rules.ts`) when the package is importable (framework checkout, tests, or a thin local script). When editing by hand as an agent, apply the same rules: section-only edit, UTF-8, path-based match, canonical enable lines.
+7. ! After write, re-read USER.md and show the final on/off state to the user.
+
+⊗ Rewrite the whole USER.md from the Phase 1 template when only Experimental Rules changed
+⊗ Clobber or reformat **Personal** / **Defaults** content while toggling experimental meta
+⊗ Hand-edit framework `meta/SOUL.md`, `meta/morals.md`, or `meta/code-field.md` bodies as part of this path
+⊗ Invent `deft config` / `task config:experimental-*` for this product slice when setup re-entry suffices
+
+### Then
+
+- ! After a successful save (or discard), re-offer the Returning-user re-entry menu (Continue to Phase 2 / Revisit again / Exit / Discuss / Back) unless the user asked only for the toggle and is done.
+- ~ If Phase 2 is already complete, prefer Exit over Continue unless the user wants project reconfiguration.
 
 ## Phase 2 — Project Configuration (PROJECT-DEFINITION.xbrief.json)
 
@@ -741,3 +841,6 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Present choices through a host UI that replaces the canonical numbers with alphabetic affordances or unlabeled buttons
 - ⊗ Resolve paths relative to the skill file, AGENTS.md, or framework directory instead of the user's pwd at skill entry
 - ⊗ Generate an authoritative PRD.md — PRD.md is a read-only export via `task prd:render`, never a source of truth
+- ⊗ Skip the Returning-user re-entry / Revisit experimental rules path when USER.md exists and the operator entered setup to change experimental meta (#46)
+- ⊗ Clobber Personal or Defaults while toggling Experimental Rules (#46)
+- ⊗ Invent a full `deft config` verb family for experimental meta when setup re-entry suffices (#46)
