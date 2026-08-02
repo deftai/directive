@@ -14,6 +14,7 @@ import {
   listSkillDiscoveryHosts,
   loadHostSkillDiscoveryPolicyFromProject,
   resolveHostSkillDiscoveryPolicy,
+  resolveHostSkillDiscoveryPolicyDetailed,
   SKILL_DISCOVERY_HOSTS,
   validateHostSkillDiscovery,
 } from "./skill-discovery-hosts.js";
@@ -72,6 +73,29 @@ describe("skill discovery hosts (#75 residual)", () => {
     expect(resolved.github).toBe(false);
     expect(resolved.cursor).toBe(true);
     expect(resolved.codex).toBe(true);
+  });
+
+  it("fail-closes malformed host values to disabled with warnings", () => {
+    const detailed = resolveHostSkillDiscoveryPolicyDetailed({
+      claude: "no",
+      cursor: true,
+    });
+    expect(detailed.policy.claude).toBe(false);
+    expect(detailed.policy.cursor).toBe(true);
+    expect(detailed.refuseAll).toBe(false);
+    expect(detailed.warnings.some((w) => w.includes("claude") && w.includes("boolean"))).toBe(true);
+  });
+
+  it("refuses all hosts when policy is not an object", () => {
+    const detailed = resolveHostSkillDiscoveryPolicyDetailed(false);
+    expect(detailed.refuseAll).toBe(true);
+    expect(detailed.policy).toEqual({
+      claude: false,
+      cursor: false,
+      codex: false,
+      github: false,
+    });
+    expect(detailed.warnings.length).toBeGreaterThan(0);
   });
 
   it("validates boolean host keys and rejects unknown hosts", () => {

@@ -56,6 +56,8 @@ export const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [
 
 /** Exact managed multi-host skill pointer paths only (#75 Greptile P1). */
 function multiHostSkillDiscoveryManagedMatchers(): InstallerManagedMatcher[] {
+  // Exact SKILL.md paths only so consumer-authored siblings under the same
+  // host skills tree stay app-owned (not staged / not guard-exempt).
   const matchers: InstallerManagedMatcher[] = [];
   for (const host of listSkillDiscoveryHosts()) {
     for (const skill of CONSUMER_SKILL_DISCOVERY_INVENTORY) {

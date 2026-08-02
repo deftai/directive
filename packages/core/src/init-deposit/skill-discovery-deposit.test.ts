@@ -130,20 +130,55 @@ ${"x".repeat(2000)}
     expect(second.lines.some((l) => l.includes("already current"))).toBe(true);
   });
 
-  it("rewrites managed pointers when content drifts", () => {
+  it("rewrites managed thin pointers when content drifts", () => {
     const root = project();
     const { io } = captureIo();
     writeMultiHostSkillDiscovery(root, io);
 
     const rel = hostSkillRelativePath("claude", "deft");
     const abs = join(root, ...rel.split("/"));
-    writeFileSync(abs, "stale pointer\n", "utf8");
+    // Thin but stale (still managed shape) — should rewrite.
+    writeFileSync(
+      abs,
+      `---
+name: deft
+description: stale managed pointer
+---
+
+Read and follow: .deft/core/SKILL.md
+`,
+      "utf8",
+    );
 
     const again = captureIo();
     const result = writeMultiHostSkillDiscovery(root, again.io);
     expect(result.changed).toBe(true);
     expect(result.changedPaths).toContain(rel);
-    expect(readFileSync(abs, "utf8")).toContain("Read and follow:");
+    expect(readFileSync(abs, "utf8")).toBe(
+      CONSUMER_SKILL_DISCOVERY_INVENTORY.find((s) => s.dir === "deft")?.content,
+    );
+  });
+
+  it("preserves consumer-authored host skills with the same name", () => {
+    const root = project();
+    const rel = hostSkillRelativePath("claude", "deft");
+    const abs = join(root, ...rel.split("/"));
+    mkdirSync(join(root, ".claude/skills/deft"), { recursive: true });
+    const consumerBody = `# Consumer custom skill\n\n## Phase 1\nDo not overwrite me.\n`;
+    writeFileSync(abs, consumerBody, "utf8");
+
+    const { io, lines } = captureIo();
+    const result = writeMultiHostSkillDiscovery(root, io, {
+      policy: {
+        ...DEFAULT_HOST_SKILL_DISCOVERY_POLICY,
+        cursor: false,
+        codex: false,
+        github: false,
+      },
+    });
+    expect(readFileSync(abs, "utf8")).toBe(consumerBody);
+    expect(result.changedPaths).not.toContain(rel);
+    expect(lines.some((l) => l.includes("preserving consumer skill"))).toBe(true);
   });
 
   it("skips opted-out hosts", () => {

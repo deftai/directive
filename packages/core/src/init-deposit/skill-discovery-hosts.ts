@@ -114,32 +114,90 @@ export function getHostSkillDiscoveryLayout(
   return layout;
 }
 
+/**
+ * Resolve one host toggle. Malformed present values fail closed to **disabled**
+ * (do not silently enable deposit when the operator attempted an opt-out shape).
+ */
 function readHostBoolean(
   rec: Record<string, unknown>,
   host: SkillDiscoveryHostId,
   fallback: boolean,
+  warnings: string[],
 ): boolean {
-  if (host in rec && typeof rec[host] === "boolean") {
-    return rec[host] as boolean;
+  if (!(host in rec)) {
+    return fallback;
   }
-  return fallback;
+  const value = rec[host];
+  if (typeof value === "boolean") {
+    return value;
+  }
+  warnings.push(
+    `${FIELD_HOST_SKILL_DISCOVERY}.${host} must be a boolean (got ${typeof value}); treating as disabled`,
+  );
+  return false;
+}
+
+export interface ResolvedHostSkillDiscoveryPolicy {
+  readonly policy: HostSkillDiscoveryPolicy;
+  /** Non-empty when raw policy was malformed; callers SHOULD surface these. */
+  readonly warnings: readonly string[];
+  /**
+   * True when the entire raw value is unusable (not an object). Deposit SHOULD
+   * skip all hosts rather than silently apply defaults after a bad opt-out.
+   */
+  readonly refuseAll: boolean;
+}
+
+/**
+ * Resolve typed host skill discovery policy from raw PROJECT-DEFINITION value.
+ * Fail-closed on malformed opt-outs (#75 Greptile P1): bad host values disable
+ * that host; wholly non-object values refuse all multi-host deposit.
+ */
+export function resolveHostSkillDiscoveryPolicyDetailed(
+  raw: unknown,
+): ResolvedHostSkillDiscoveryPolicy {
+  if (raw === null || raw === undefined) {
+    return {
+      policy: { ...DEFAULT_HOST_SKILL_DISCOVERY_POLICY },
+      warnings: [],
+      refuseAll: false,
+    };
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return {
+      policy: {
+        claude: false,
+        cursor: false,
+        codex: false,
+        github: false,
+      },
+      warnings: [
+        `${FIELD_HOST_SKILL_DISCOVERY} must be an object; got ${typeof raw} — multi-host skill discovery deposit skipped`,
+      ],
+      refuseAll: true,
+    };
+  }
+  const rec = raw as Record<string, unknown>;
+  const warnings: string[] = [];
+  for (const key of Object.keys(rec)) {
+    if (!isSkillDiscoveryHostId(key)) {
+      warnings.push(
+        `${FIELD_HOST_SKILL_DISCOVERY}.${key} is not a skill-discovery host (${SKILL_DISCOVERY_HOSTS.join(", ")})`,
+      );
+    }
+  }
+  const policy: HostSkillDiscoveryPolicy = {
+    claude: readHostBoolean(rec, "claude", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.claude, warnings),
+    cursor: readHostBoolean(rec, "cursor", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.cursor, warnings),
+    codex: readHostBoolean(rec, "codex", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.codex, warnings),
+    github: readHostBoolean(rec, "github", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.github, warnings),
+  };
+  return { policy, warnings, refuseAll: false };
 }
 
 /** Resolve typed host skill discovery policy from raw PROJECT-DEFINITION value. */
 export function resolveHostSkillDiscoveryPolicy(raw: unknown): HostSkillDiscoveryPolicy {
-  if (raw === null || raw === undefined) {
-    return { ...DEFAULT_HOST_SKILL_DISCOVERY_POLICY };
-  }
-  if (typeof raw !== "object" || Array.isArray(raw)) {
-    return { ...DEFAULT_HOST_SKILL_DISCOVERY_POLICY };
-  }
-  const rec = raw as Record<string, unknown>;
-  return {
-    claude: readHostBoolean(rec, "claude", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.claude),
-    cursor: readHostBoolean(rec, "cursor", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.cursor),
-    codex: readHostBoolean(rec, "codex", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.codex),
-    github: readHostBoolean(rec, "github", DEFAULT_HOST_SKILL_DISCOVERY_POLICY.github),
-  };
+  return resolveHostSkillDiscoveryPolicyDetailed(raw).policy;
 }
 
 export function validateHostSkillDiscovery(value: unknown): string[] {
@@ -207,13 +265,11 @@ export function inspectHostSkillDiscovery(
   return fieldFromResolved(resolved, "typed");
 }
 
-/** Resolve host skill discovery policy from PROJECT-DEFINITION on disk. */
-export function loadHostSkillDiscoveryPolicyFromProject(
-  projectRoot: string,
-): HostSkillDiscoveryPolicy {
+/** Load raw hostSkillDiscovery value from PROJECT-DEFINITION, if present. */
+export function loadHostSkillDiscoveryRawFromProject(projectRoot: string): unknown {
   const [data] = loadProjectDefinition(projectRoot);
   if (data === null) {
-    return { ...DEFAULT_HOST_SKILL_DISCOVERY_POLICY };
+    return undefined;
   }
   const policyBlock = readPlanPolicy(data.plan);
   if (
@@ -222,11 +278,26 @@ export function loadHostSkillDiscoveryPolicyFromProject(
     Array.isArray(policyBlock) ||
     !("hostSkillDiscovery" in (policyBlock as Record<string, unknown>))
   ) {
-    return { ...DEFAULT_HOST_SKILL_DISCOVERY_POLICY };
+    return undefined;
   }
-  return resolveHostSkillDiscoveryPolicy(
-    (policyBlock as Record<string, unknown>).hostSkillDiscovery,
-  );
+  return (policyBlock as Record<string, unknown>).hostSkillDiscovery;
+}
+
+/** Resolve host skill discovery policy from PROJECT-DEFINITION on disk. */
+export function loadHostSkillDiscoveryPolicyFromProject(
+  projectRoot: string,
+): HostSkillDiscoveryPolicy {
+  return resolveHostSkillDiscoveryPolicy(loadHostSkillDiscoveryRawFromProject(projectRoot));
+}
+
+/**
+ * Resolve policy + validation warnings from PROJECT-DEFINITION for deposit.
+ * Surfaces malformed opt-outs so init/update can report them (#75 Greptile P1).
+ */
+export function loadHostSkillDiscoveryPolicyDetailedFromProject(
+  projectRoot: string,
+): ResolvedHostSkillDiscoveryPolicy {
+  return resolveHostSkillDiscoveryPolicyDetailed(loadHostSkillDiscoveryRawFromProject(projectRoot));
 }
 
 /**

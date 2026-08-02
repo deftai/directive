@@ -19,7 +19,8 @@ import {
   hostSkillRelativePath,
   isHostSkillDiscoveryEnabled,
   listSkillDiscoveryHosts,
-  loadHostSkillDiscoveryPolicyFromProject,
+  loadHostSkillDiscoveryPolicyDetailedFromProject,
+  resolveHostSkillDiscoveryPolicyDetailed,
   SKILL_DISCOVERY_HOSTS,
   type SkillDiscoveryHostId,
 } from "./skill-discovery-hosts.js";
@@ -217,7 +218,22 @@ export function writeMultiHostSkillDiscovery(
   io: InitDepositIo,
   options: WriteMultiHostSkillDiscoveryOptions = {},
 ): MultiHostSkillDiscoveryDepositResult {
-  const policy = options.policy ?? loadHostSkillDiscoveryPolicyFromProject(projectDir);
+  const resolved =
+    options.policy !== undefined
+      ? resolveHostSkillDiscoveryPolicyDetailed(options.policy)
+      : loadHostSkillDiscoveryPolicyDetailedFromProject(projectDir);
+  for (const warning of resolved.warnings) {
+    io.printf(`WARNING: ${warning}\n`);
+  }
+  if (resolved.refuseAll) {
+    return {
+      changed: false,
+      changedPaths: [],
+      hostsTouched: [],
+      hostsSkipped: [...listSkillDiscoveryHosts()],
+    };
+  }
+  const policy = resolved.policy;
   const inventory = options.inventory ?? CONSUMER_SKILL_DISCOVERY_INVENTORY;
 
   for (const skill of inventory) {
@@ -253,6 +269,14 @@ export function writeMultiHostSkillDiscovery(
         }
       }
       if (existing === skill.content) {
+        continue;
+      }
+      // Never clobber consumer-authored host skills. Only create missing
+      // files or rewrite prior managed thin pointers (#75 Greptile P1).
+      if (existing !== null && !isThinSkillPointer(existing)) {
+        io.printf(
+          `Skill discovery (#75): preserving consumer skill at ${rel} (not a managed thin pointer).\n`,
+        );
         continue;
       }
 
