@@ -1,7 +1,7 @@
 {
   "plan": {
     "title": "Skill auto-discovery residual: multi-host thin skill discovery deposit (#75)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase",
       "Description": "Residual #75 only: deposit thin skill discovery pointers into additional host paths (.claude/skills, .codex/skills, .github/skills, .cursor/skills as needed) mirroring the inventory already under .agents/skills. Core .agents/skills auto-discovery has landed — do not re-implement #94. Coordinate multi-host policy with #55 patterns but do NOT implement slash/command files.",
@@ -12,28 +12,28 @@
     "items": [
       {
         "title": "Enabled hosts get thin skill discovery deposit",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given enabled hosts with known skill paths, when init or update runs, then thin discovery SKILL.md (or host-equivalent) entries are deposited for the agreed skill inventory without full skill body copies."
         }
       },
       {
         "title": ".agents/skills remains canonical",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given additional host paths, when deposit runs, then they mirror the .agents inventory and do not fork independent skill content."
         }
       },
       {
         "title": "Windows-safe + opt-out + idempotent",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Windows without elevated symlinks and a host opt-out, when deposit re-runs, then no elevation is required, opted-out hosts are skipped, and rewrite is idempotent."
         }
       },
       {
         "title": "Tests and docs for matrix + #55 relationship",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given tests and docs, when reviewed, then path matrix and non-inlining are covered and docs distinguish skill discovery (#75) from slash registration (#55)."
         }
@@ -66,7 +66,26 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard",
         "missing_traces_justification": "Residual AC from #75 Current shape 2026-08-02; .agents path already shipped. Independent of #55 slash epic (different artifact class)."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": "master",
+        "mergeCommit": "4c513130",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4c513130e5832c7ede7b95f19660c4d1d29627ba",
+        "verifiedAt": "2026-08-02T23:30:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-02T23:30:02Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -75,12 +94,12 @@
         "title": "Issue #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)"
       }
     ],
-    "updated": "2026-08-02T22:03:02Z",
+    "updated": "2026-08-02T23:30:02Z",
     "id": "75-multi-host-skill-discovery-deposit"
   },
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope vBRIEF for #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)",
-    "updated": "2026-08-02T22:03:02Z"
+    "updated": "2026-08-02T23:30:02Z"
   }
 }

@@ -429,10 +429,10 @@
       {
         "id": "2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user",
         "title": "Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user.xbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user.xbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/75",
