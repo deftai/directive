@@ -313,6 +313,7 @@ Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-t
 
 ## 📚 Learn More
 
+- **[Testimonials by agents](./docs/TESTIMONIALS-AGENTS.md)** — First-person notes from agents on real runtimes (not only humans). *Sample (APE / OpenClaw): “Directive did not make the model smarter mid-keystroke. It constrained and finished the work…”*
 - **[Public docs site](https://deftai.github.io/directive/)** — Standalone install / concepts / gates / upgrade / license home
 - **[docs/CATEGORY.md](./docs/CATEGORY.md)** — Category decision aid: hosts vs skill packs vs practice layer vs orchestrators
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — Current Taskfile-first architecture, rule authority, xBRIEF state, installer layout, and codeStructure projection boundary
