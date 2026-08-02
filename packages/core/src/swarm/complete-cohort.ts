@@ -2,7 +2,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { detectLifecycleFolder } from "../scope/decomposed-refs.js";
-import type { DeliveryEvidenceInput, NonDeliveryDisposition } from "../scope/delivery-evidence.js";
+import {
+  classifyStoredDeliveryDisposition,
+  type DeliveryEvidenceInput,
+  type NonDeliveryDisposition,
+} from "../scope/delivery-evidence.js";
 import { runTransition, type TransitionOptions } from "../scope/transition.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "../scope/vbrief-ref.js";
 import { MAX_FIXPOINT_PASSES, TERMINAL_FOLDERS } from "./constants.js";
@@ -204,12 +208,18 @@ function completeStory(
 
   if (folder !== null && TERMINAL_FOLDERS.includes(folder as "completed" | "cancelled")) {
     settled.add(resolve(storyPath));
+    const plan = loadPlan(storyPath);
+    const disposition =
+      folder === "completed" && plan !== null ? classifyStoredDeliveryDisposition(plan) : "unknown";
     return {
       kind: "story",
       path: relpath,
       action: "noop",
       ok: true,
-      detail: `already in ${folder}/`,
+      detail:
+        folder === "completed"
+          ? `already in ${folder}/ (deliveryDisposition=${disposition})`
+          : `already in ${folder}/`,
     };
   }
   if (folder !== "active") {

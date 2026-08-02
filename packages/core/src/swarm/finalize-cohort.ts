@@ -1,6 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
+import { extractIssueRef } from "../capacity/backfill.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
@@ -437,13 +438,27 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const errors: string[] = [];
   const deliveryErrors: string[] = [];
 
-  const deliveryBranchResolved =
+  // plan.policy.deliveryBranch (or git default) is SoT. CLI may only fill when policy is
+  // not typed — never redefine a typed delivery branch to an integration target (#3041).
+  const policyDelivery = resolveDeliveryBranch(projectRoot, gitRunner);
+  const cliDelivery =
     args.deliveryBranch !== null &&
     args.deliveryBranch !== undefined &&
     args.deliveryBranch.trim().length > 0
       ? args.deliveryBranch.trim()
-      : resolveDeliveryBranch(projectRoot, gitRunner).branch;
-  const deliveryBranch = deliveryBranchResolved;
+      : null;
+  if (cliDelivery !== null && cliDelivery !== policyDelivery.branch) {
+    if (policyDelivery.source === "typed") {
+      errors.push(
+        `--delivery-branch '${cliDelivery}' conflicts with plan.policy.deliveryBranch ` +
+          `'${policyDelivery.branch}'. Typed policy wins; do not redefine delivery via CLI (#3041).`,
+      );
+    }
+  }
+  const deliveryBranch =
+    policyDelivery.source === "typed"
+      ? policyDelivery.branch
+      : (cliDelivery ?? policyDelivery.branch);
 
   if (!existsSync(projectRoot)) {
     return buildResponse({
@@ -490,11 +505,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   }
 
   const closingIssues = new Set<number>();
-  /** Aggregated delivery evidence from validated merged PRs (shared across stories). */
-  let cohortEvidence: DeliveryEvidenceInput | null = null;
+  /** Per-closing-issue delivery evidence so multi-PR cohorts do not collapse provenance (#3041). */
+  const evidenceByIssue = new Map<number, DeliveryEvidenceInput>();
   const validatedPrs: number[] = [];
 
-  if (prNumbers.length > 0) {
+  if (prNumbers.length > 0 && errors.length === 0) {
     if (repo === null || repo.length === 0) {
       errors.push("--repo OWNER/REPO is required when --pr is supplied (or set $GH_REPO).");
     } else {
@@ -541,7 +556,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         }
 
         validatedPrs.push(prNumber);
-        cohortEvidence = {
+        const prEvidence: DeliveryEvidenceInput = {
           ...snap.evidence,
           deliveryBranch,
           deliveryCommit: ancestry.remoteTip,
@@ -554,6 +569,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         }
         for (const issue of closing.issues) {
           closingIssues.add(issue);
+          evidenceByIssue.set(issue, prEvidence);
         }
       }
     }
@@ -677,11 +693,41 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   // Stories without PR-backed delivery evidence still hit the complete gate; if
   // only --stories was supplied, complete-cohort fails closed for code-bearing
   // scopes unless callers pass evidence (finalize requires --pr for delivery).
-  if (prNumbers.length === 0 && cohortEvidence === null) {
+  if (prNumbers.length === 0 && evidenceByIssue.size === 0) {
     warnings.push(
       "No --pr supplied: code-bearing stories require delivery evidence or " +
         "will fail closed at scope:complete (#3041).",
     );
+  }
+
+  // Bind each story path to the evidence of its closing-issue PR (no cohort-wide collapse).
+  const evidenceByPath = new Map<string, DeliveryEvidenceInput>();
+  for (const storyPath of storyPaths) {
+    try {
+      const raw = JSON.parse(readFileSync(storyPath, "utf8")) as unknown;
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        continue;
+      }
+      const plan = (raw as Record<string, unknown>).plan;
+      if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+        continue;
+      }
+      const [, issueNum] = extractIssueRef(plan as Record<string, unknown>);
+      if (issueNum !== null) {
+        const bound = evidenceByIssue.get(issueNum);
+        if (bound !== undefined) {
+          evidenceByPath.set(resolve(storyPath), bound);
+        }
+      }
+    } catch {
+      /* unreadable brief — complete gate fails closed later if code-bearing */
+    }
+  }
+  // Single-PR cohorts: every story inherits that PR's evidence when issue binding misses
+  // (operator --stories + one --pr is the common finalize path).
+  let defaultEvidence: DeliveryEvidenceInput | null = null;
+  if (validatedPrs.length === 1 && evidenceByIssue.size > 0) {
+    defaultEvidence = evidenceByIssue.values().next().value ?? null;
   }
 
   let commitSha: string | null = null;
@@ -703,20 +749,21 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
   }
 
+  const hasDelivery = evidenceByPath.size > 0 || defaultEvidence !== null;
   const sweepResult = completeCohort({
     stories: storyPaths,
     projectRoot,
     dryRun,
     emitJson: false,
-    delivery:
-      cohortEvidence !== null
-        ? {
-            defaultEvidence: cohortEvidence,
-            // Ancestry already verified above; avoid double remote fetch on each story.
-            assumeEvidenceValidated: true,
-            verifier: "swarm:finalize-cohort",
-          }
-        : null,
+    delivery: hasDelivery
+      ? {
+          evidenceByPath,
+          defaultEvidence,
+          // Ancestry already verified above; avoid double remote fetch on each story.
+          assumeEvidenceValidated: true,
+          verifier: "swarm:finalize-cohort",
+        }
+      : null,
   });
   if (sweepResult.exitCode !== 0) {
     errors.push("cohort completion sweep failed.");

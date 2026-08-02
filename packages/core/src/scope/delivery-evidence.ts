@@ -348,10 +348,24 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
 
   const evidence = options.evidence ?? null;
   const branchResult = resolveDeliveryBranch(options.projectRoot, runGit);
-  const deliveryBranch =
-    (evidence?.deliveryBranch && evidence.deliveryBranch.trim().length > 0
-      ? evidence.deliveryBranch.trim()
-      : null) ?? branchResult.branch;
+  // Policy/git-default is SoT — evidence may not redefine deliveryBranch (#3041 Greptile P1).
+  const deliveryBranch = branchResult.branch;
+  if (
+    evidence !== null &&
+    typeof evidence.deliveryBranch === "string" &&
+    evidence.deliveryBranch.trim().length > 0 &&
+    evidence.deliveryBranch.trim() !== deliveryBranch
+  ) {
+    return {
+      ok: false,
+      message:
+        `Evidence deliveryBranch '${evidence.deliveryBranch.trim()}' does not match ` +
+        `configured delivery branch '${deliveryBranch}' (source: ${branchResult.source}). ` +
+        `Callers cannot redefine plan.policy.deliveryBranch via evidence (#3041).`,
+      provenance: null,
+      codeBearing: true,
+    };
+  }
 
   if (evidence === null) {
     return {
