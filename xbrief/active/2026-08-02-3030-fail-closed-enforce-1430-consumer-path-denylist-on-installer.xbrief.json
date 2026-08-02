@@ -51,11 +51,6 @@
         "uri": "https://github.com/deftai/directive/issues/3030",
         "type": "x-xbrief/github-issue",
         "title": "Issue #3030: fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)"
-      },
-      {
-        "uri": "https://github.com/deftai/directive/issues/1430",
-        "type": "x-xbrief/closes",
-        "title": "Issue #1430"
       }
     ],
     "updated": "2026-08-02T02:21:20Z"
