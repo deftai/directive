@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3054",
-    "updated": "2026-08-02T21:35:44Z"
+    "updated": "2026-08-02T23:10:24Z"
   },
   "plan": {
     "title": "feat(slash,#55): multi-host init/update deposit for slash commands",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Multi-host init/update deposit for slash commands (#55 Wave 2). Wire emitAllHostCommandFiles (or equivalent) into init/update so configured hosts receive thin command files. Prefer commit of generated command dirs (L8). Per-host opt-out. Default = hosts with real emitters from #3053.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3054",
@@ -18,28 +18,28 @@
     "items": [
       {
         "title": "init/update deposits enabled hosts",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given enabled hosts in policy, when init or update runs, then thin command files are written under each host layout from #3053 emitters."
         }
       },
       {
         "title": "Per-host opt-out",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a host opted out, when deposit runs, then that host directory is not written or is left untouched per policy."
         }
       },
       {
         "title": "Idempotent rewrite",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a second update, when deposit re-runs, then files update without duplication and stay thin wrappers only."
         }
       },
       {
         "title": "Tests + CHANGELOG",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given deposit unit tests and CHANGELOG, when reviewed, then opt-out and multi-host deposit are covered and #3054 is cited."
         }
@@ -87,8 +87,27 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard",
         "missing_traces_justification": "Depends on merged #3052/#3053 IR/emitters on master. AC from #3054 and L6/L8 on #55."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": null,
+        "deliveryBranch": "master",
+        "deliveryCommit": null,
+        "verifiedAt": "2026-08-02T23:10:24Z",
+        "verifier": "scope:complete",
+        "disposition": "accepted_not_delivered",
+        "handoffState": "implemented",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "accepted_not_delivered",
+      "handoffState": "implemented",
+      "completedAt": "2026-08-02T23:10:24Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-02T21:35:44Z"
+    "updated": "2026-08-02T23:10:24Z"
   }
 }
