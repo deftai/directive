@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3053",
+    "updated": "2026-08-02T21:00:27Z"
+  },
+  "plan": {
+    "title": "feat(slash,#55): per-host native command/prompt emitters",
+    "status": "running",
+    "narratives": {
+      "Description": "Per-host native command/prompt emitters for epic #55 Wave 1-2. Consume packages/core slash generator IR from #3052 without duplicating the L2 name table. Emit host-specific file layouts for enabled formats (claude, cursor, codex, grok as formats allow).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3053",
+      "Overview": "## Parent\n\nEpic **#55** — native agent slash-command registration (multi-host).\n\n## Summary\n\n**Per-host emitters** that map the shared thin-wrapper IR to each supported host’s native command/prompt/workflow file format and paths.\n\n## Depends on\n\n- Generator core (child B)\n- Name/product set (child A)\n\n## Scope\n\n- Emitters for hosts Directive already treats as first-class for deposit/hooks where formats are known (expand as matrix grows)\n- Correct paths per host (e.g. Claude commands, Copilot prompts, Cursor/Gemini/Codex as applicable)\n- Same external command names across hosts; no host-specific long prose\n- Engineering may land **format-by-format** in stacked PRs under this child (or tiny follow-ups), but product completeness is “all **enabled** hosts in policy,” not “one host only”\n\n## Out of scope\n\n- Choosing exclusive single-host install default (forbidden by #55 multi-host amendment)\n- init/update policy wiring (D) — emitters are pure generate-to-path given a host id\n\n## Acceptance criteria\n\n- [ ] At least the hosts in the initial enabled matrix have emitters\n- [ ] Outputs are thin wrappers only; shared names from A/B\n- [ ] Adding a host is an additive emitter, not a redesign of the name table\n- [ ] Documented mapping: host id → output directory/file pattern\n\n## Refs\n\n- Parent: #55\n- Multi-host amendment on #55",
+      "Labels": "enhancement, interfaces, installer",
+      "UserStory": "As a multi-host Directive user, I want per-host slash command emitters that consume the shared generator IR, so that each supported agent host gets thin native command files without a second product name table.",
+      "ImplementationPlan": "- Import generateThinWrappers / PRODUCT_COMMANDS from @deftai/directive-core slash module (#3052).\n- Implement per-host emitters (claude commands, cursor/codex/grok formats as known).\n- Map logical ids to host paths and hyphen filenames (L4).\n- Unit tests: emitter output shape, no body inlining, uses shared IR only.\n- CHANGELOG Unreleased #3053 Refs #55.\n- Out of scope: init/update deposit (#3054), docs dogfood (#3055)."
+    },
+    "items": [
+      {
+        "title": "Emitters consume shared IR",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the #3052 generator IR, when an emitter runs, then it does not redefine the L2 product table and produces thin wrappers only."
+        }
+      },
+      {
+        "title": "Host path layouts for known formats",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given enabled host formats (at least Claude Code layout), when emit runs, then files land under the host-specific directory with L4 hyphen names."
+        }
+      },
+      {
+        "title": "Unit tests for emitters",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given emitter unit tests, when they run, then they assert non-inlining, stable host paths, and count matches product set."
+        }
+      },
+      {
+        "title": "CHANGELOG cites #3053",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG Unreleased, when reviewed, then #3053 and Refs #55 appear."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "interfaces",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3053",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3053: feat(slash,#55): per-host native command/prompt emitters"
+      }
+    ],
+    "id": "3053-slash-host-emitters",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/slash/emitters.ts",
+          "packages/core/src/slash/emitters.test.ts",
+          "packages/core/src/slash/hosts",
+          "packages/core/src/slash/index.ts",
+          "packages/core/src/index.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/slash",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Per-host emitters using shared IR",
+          "Tests for host layouts",
+          "CHANGELOG #3053"
+        ],
+        "depends_on": [],
+        "conflict_group": "slash-registration-55-wave1-2",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Depends on merged PR #3058 / closed #3052 on master (slash IR). AC from #3053 and LockedDecisions on #55."
+      }
+    },
+    "updated": "2026-08-02T21:00:27Z"
+  }
+}

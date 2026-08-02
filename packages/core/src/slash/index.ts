@@ -1,11 +1,25 @@
 /**
- * Host-agnostic slash-command generator core (#3052 / epic #55).
+ * Slash-command generator + per-host emitters (#3052 / #3053 / epic #55).
  *
- * Product command table + thin-wrapper IR/templates for multi-host emitters.
- * Does not write `.claude/commands/` (etc.) — that is #3054 deposit work.
- * Per-host format layouts are #3053.
+ * Product command table + thin-wrapper IR/templates + host path layouts.
+ * Does not write host command dirs on disk — that is #3054 deposit work.
  */
 
+export {
+  assertThinHostEmission,
+  emitAllHostCommandFiles,
+  emitHostCommandFiles,
+  getHostCommandLayout,
+  HOST_COMMAND_LAYOUTS,
+  type HostCommandLayout,
+  type HostEmittedFile,
+  hostRelativePath,
+  isSlashEmitterHostId,
+  listSlashEmitterHosts,
+  renderHostFileContents,
+  SLASH_EMITTER_HOSTS,
+  type SlashEmitterHostId,
+} from "./emitters.js";
 export {
   BYTES_PER_TOKEN_ESTIMATE,
   estimateTokens,
