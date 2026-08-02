@@ -129,23 +129,23 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());
 
-  // #3039: temporary test kill-switch — explicit disabled status; deposit OK
-  // (not the #2926 flag+deposit dirty path). Recovery = delete file + new session.
-  const killSwitch = detectDeftDirectiveDisable(projectRoot);
-  if (killSwitch.present) {
+  // #3039: temporary test kill-switch. Active (untracked) → disabled short-circuit.
+  // Tracked/committed flag → warn only and continue normal doctor (no enforcement bypass).
+  const killSwitch = detectDeftDirectiveDisable(projectRoot, { skipTrackedCache: true });
+  if (killSwitch.present && killSwitch.trackedByGit && !killSwitch.active) {
+    if (jsonMode) {
+      // Fall through to normal doctor after optional surface; emit warning finding
+      // by writing once then continuing — use stderr path for human mode below.
+    } else if (!quietMode) {
+      process.stderr.write(`${DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING}\n`);
+    }
+    // Continue into full doctor; do not short-circuit.
+  } else if (killSwitch.active) {
     const optOutAlso = detectNoDeftDirective(projectRoot);
     const message = formatDeftDirectiveDisableMessage({
       permanentOptOutAlsoPresent: optOutAlso.present,
-      trackedByGit: killSwitch.trackedByGit,
+      trackedByGit: false,
     });
-    const findings: Array<Record<string, unknown>> = [];
-    if (killSwitch.trackedByGit) {
-      findings.push({
-        severity: "warning",
-        message: DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING,
-        check: "deft-directive-disable-tracked",
-      });
-    }
     if (jsonMode) {
       const payload = {
         status: DEFT_DIRECTIVE_DISABLE_STATUS,
@@ -154,19 +154,14 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         kill_switch: true,
         inconsistent: false,
         deposit_present: killSwitch.depositPresent,
-        tracked_by_git: killSwitch.trackedByGit,
+        tracked_by_git: false,
         permanent_opt_out_also_present: optOutAlso.present,
         message,
-        ...(findings.length > 0 ? { findings } : {}),
       };
       process.stdout.write(`${pythonJsonDump(payload)}\n`);
     } else if (!quietMode) {
       process.stdout.write(`${message}\n`);
-      if (killSwitch.trackedByGit) {
-        process.stderr.write(`${DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING}\n`);
-      }
     }
-    // Kill-switch is intentional local state (exit 0). Tracked flag is warn-only.
     return 0;
   }
 

@@ -671,6 +671,7 @@ describe("direct-write hook policy", () => {
           flagPath: "/project/.deft-directive-disable",
           depositPresent: false,
           trackedByGit: false,
+          active: false,
         }),
         detectNoDeftDirective: () => ({
           present: true,
@@ -686,7 +687,7 @@ describe("direct-write hook policy", () => {
     expect(sessionStart).not.toHaveBeenCalled();
   });
 
-  it("skips SessionStart when .deft-directive-disable is present even with deposit (#3039)", () => {
+  it("skips SessionStart when local kill-switch is active even with deposit (#3039)", () => {
     const sessionStart = vi.fn(() => {
       throw new Error("sessionStart must not run under kill-switch");
     });
@@ -708,6 +709,7 @@ describe("direct-write hook policy", () => {
           flagPath: "/project/.deft-directive-disable",
           depositPresent: true,
           trackedByGit: false,
+          active: true,
         }),
         detectNoDeftDirective: () => ({
           present: false,
@@ -725,7 +727,31 @@ describe("direct-write hook policy", () => {
     expect(sessionStart).not.toHaveBeenCalled();
   });
 
-  it("short-circuits PreToolUse and compact under .deft-directive-disable (#3039)", () => {
+  it("does not bypass gates when kill-switch flag is tracked by git (#3039)", () => {
+    const sessionStart = vi.fn(() => ({ code: 0, stdout: "ok\n", stderr: "" }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({
+        sessionStart,
+        detectDeftDirectiveDisable: () => ({
+          present: true,
+          flagPath: "/project/.deft-directive-disable",
+          depositPresent: true,
+          trackedByGit: true,
+          active: false,
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-start" });
+    expect(sessionStart).toHaveBeenCalled();
+  });
+
+  it("short-circuits PreToolUse and compact under active kill-switch (#3039)", () => {
     const markCompactStale = vi.fn(() => {
       throw new Error("compact must not run under kill-switch");
     });
@@ -736,6 +762,7 @@ describe("direct-write hook policy", () => {
         flagPath: "/project/.deft-directive-disable",
         depositPresent: true,
         trackedByGit: false,
+        active: true,
       }),
     });
 
@@ -779,6 +806,7 @@ describe("direct-write hook policy", () => {
           flagPath: "/project/.deft-directive-disable",
           depositPresent: true,
           trackedByGit: false,
+          active: true,
         }),
         detectNoDeftDirective: () => ({
           present: true,
@@ -809,6 +837,7 @@ describe("direct-write hook policy", () => {
           flagPath: "/project/.deft-directive-disable",
           depositPresent: true,
           trackedByGit: false,
+          active: false,
         }),
         detectNoDeftDirective: () => ({
           present: true,

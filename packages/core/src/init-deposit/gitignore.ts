@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE } from "../policy/deft-directive-disable.js";
 import {
   FORBIDDEN_BLANKET_EVAL_LINES,
   stripGitignoreInlineComment,
@@ -38,7 +39,7 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/last-session.json",
   ".deft/routing.local.json",
   // Temporary test/local kill-switch — must stay untracked (#3039).
-  ".deft-directive-disable",
+  DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE,
   "vbrief/.triage-cache/candidates.jsonl",
   "vbrief/.triage-cache/summary-history.jsonl",
   "vbrief/.triage-cache/scope-lifecycle.jsonl",

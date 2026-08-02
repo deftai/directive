@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only gitignored flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` (not flag+deposit dirty). AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
+- **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only **local (untracked)** flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). A **tracked/committed** flag is misconfig: doctor warns and enforcement stays on (repo content cannot disable hooks for clones). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` when active. AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
 
 ### Changed
 

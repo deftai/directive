@@ -15,7 +15,7 @@ Tracker: [#3039](https://github.com/deftai/directive/issues/3039).
 - **Exact name:** lowercase `.deft-directive-disable`
 - **Location:** project / workspace **root only**
 - **Content:** empty file or a short `#` comment. Presence is the flag. No schema.
-- **Git:** **Must be gitignored** (deposit baseline includes this entry). Committed flag is a misconfig; doctor **warns** only.
+- **Git:** **Must be gitignored** (deposit baseline includes this entry). Committed / tracked flag is a misconfig: doctor **warns**, and enforcement is **not** disabled (repo-controlled content must not turn off hooks for clones).
 
 ## Distinct from permanent opt-out
 

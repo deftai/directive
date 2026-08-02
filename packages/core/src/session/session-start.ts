@@ -732,14 +732,14 @@ export function runSessionStart(
   const environment = (options.probeEnvironment ?? detectEnvironmentContext)();
   const ceremonyTier = options.ceremonyTier ?? COLD_CEREMONY_TIER;
 
-  // #3039: temporary test kill-switch — skip ritual write; deposit may remain.
-  // Recovery requires delete + new session. Precedence over #2926 for enforcement.
+  // #3039: local (untracked) test kill-switch — skip ritual write; deposit may remain.
+  // Recovery requires delete + new session. Tracked flags do not short-circuit.
   const killSwitch = detectDeftDirectiveDisable(projectRoot);
-  if (killSwitch.present) {
+  if (killSwitch.active) {
     const optOutAlso = detectNoDeftDirective(projectRoot);
     const message = formatDeftDirectiveDisableMessage({
       permanentOptOutAlsoPresent: optOutAlso.present,
-      trackedByGit: killSwitch.trackedByGit,
+      trackedByGit: false,
     });
     const lines = message.split("\n");
     return {
@@ -753,7 +753,7 @@ export function runSessionStart(
         kill_switch: true,
         inconsistent: false,
         deposit_present: killSwitch.depositPresent,
-        tracked_by_git: killSwitch.trackedByGit,
+        tracked_by_git: false,
         permanent_opt_out_also_present: optOutAlso.present,
         posture,
         environment: environmentContextToDict(environment),

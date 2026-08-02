@@ -2,26 +2,29 @@
  * Temporary test/local kill-switch for Directive enforcement (#3039).
  *
  * Presence of root `.deft-directive-disable` means Directive **enforcement** is
- * OFF (hooks, session ritual, automation) while the deposit may remain.
+ * OFF (hooks, session ritual, automation) while the deposit may remain — **only
+ * when the file is not tracked by git**. A committed flag is misconfig: doctor
+ * warns and enforcement stays ON (repository-controlled content must not disable
+ * hooks for downstream clones).
+ *
  * Distinct from `.no-deft-directive` (#2926 permanent opt-out): flag+deposit is
  * **not** inconsistent here.
  *
  * Product choices (v1):
  * - Flag is **root-only** (workspace root the tool opened).
- * - Flag **must be gitignored** (canonical baseline); committed flag → doctor warns.
+ * - Flag **must be gitignored** (canonical baseline); committed flag → doctor
+ *   warns and does **not** short-circuit enforcement.
  * - Deposit presence is **OK**.
  * - Full re-enable requires: delete the file **and** start a **new** agent session.
- * - Precedence: this flag first, then `.no-deft-directive`, else normal Directive.
+ * - Precedence: active kill-switch first, then `.no-deft-directive`, else normal.
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, statSync, unlinkSync } from "node:fs";
+import { statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
-import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 
-/** Canonical root-only filename (lowercase). Presence = flag. */
+/** Canonical root-only filename (lowercase). Presence = candidate flag. */
 export const DEFT_DIRECTIVE_DISABLE_FLAG_NAME = ".deft-directive-disable";
 
 /** Gitignore entry the deposit must ensure (same as flag name). */
@@ -44,20 +47,30 @@ export const DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE =
 export const DEFT_DIRECTIVE_DISABLE_ONE_LINE =
   "Directive disabled via `.deft-directive-disable` (test/local kill-switch; deposit OK)";
 
-/** Doctor/status label when the kill-switch is active. */
+/** Doctor/status label when the kill-switch is active (local / untracked). */
 export const DEFT_DIRECTIVE_DISABLE_STATUS = "disabled-test-kill-switch" as const;
 
 /**
  * Warning when the kill-switch file is tracked by git (should be gitignored).
+ * Tracked flags do **not** disable enforcement.
  */
 export const DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING =
-  "Misconfig: `.deft-directive-disable` is tracked by git. The flag must be gitignored (local kill-switch only). Untrack it and ensure `.gitignore` covers the path.";
+  "Misconfig: `.deft-directive-disable` is tracked by git. The flag must be gitignored (local kill-switch only). Untrack it and ensure `.gitignore` covers the path. Enforcement is NOT disabled while the flag is tracked.";
+
+/** Cap git probe so hot-path hooks never hang on a slow VCS call. */
+const GIT_TRACKED_PROBE_TIMEOUT_MS = 1500;
+
+/** Process-local cache: avoid re-spawning git on every PreToolUse while the flag is present. */
+const trackedProbeCache = new Map<string, { readonly tracked: boolean; readonly atMs: number }>();
+const TRACKED_PROBE_CACHE_TTL_MS = 30_000;
 
 export interface DeftDirectiveDisableSeams {
   readonly isFile?: (path: string) => boolean;
   readonly isDir?: (path: string) => boolean;
   /** Return true when `git ls-files` lists the flag (tracked). */
   readonly isGitTracked?: (projectRoot: string, relPath: string) => boolean;
+  /** Skip tracked probe + cache (tests / doctor full re-check). */
+  readonly skipTrackedCache?: boolean;
 }
 
 export interface DeftDirectiveDisableState {
@@ -69,6 +82,11 @@ export interface DeftDirectiveDisableState {
    * Always false when the flag is absent or when the probe cannot run.
    */
   readonly trackedByGit: boolean;
+  /**
+   * True when the kill-switch is **active** for enforcement short-circuit:
+   * present and **not** tracked by git.
+   */
+  readonly active: boolean;
 }
 
 function defaultIsFile(path: string): boolean {
@@ -88,16 +106,26 @@ function defaultIsDir(path: string): boolean {
 }
 
 function defaultIsGitTracked(projectRoot: string, relPath: string): boolean {
+  const cacheKey = `${projectRoot}\0${relPath}`;
+  const now = Date.now();
+  const cached = trackedProbeCache.get(cacheKey);
+  if (cached !== undefined && now - cached.atMs < TRACKED_PROBE_CACHE_TTL_MS) {
+    return cached.tracked;
+  }
+  let tracked = false;
   try {
     const out = execFileSync("git", ["ls-files", "--", relPath], {
       cwd: projectRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
+      timeout: GIT_TRACKED_PROBE_TIMEOUT_MS,
     });
-    return out.trim().length > 0;
+    tracked = out.trim().length > 0;
   } catch {
-    return false;
+    tracked = false;
   }
+  trackedProbeCache.set(cacheKey, { tracked, atMs: now });
+  return tracked;
 }
 
 /** Absolute path to the root kill-switch flag file. */
@@ -109,6 +137,8 @@ export function deftDirectiveDisableFlagPath(projectRoot: string): string {
  * Detect root `.deft-directive-disable`. Presence is file-existence only
  * (empty or short comment OK). Deposit presence is reported but never treated
  * as inconsistent (#3039 vs #2926).
+ *
+ * Enforcement short-circuit uses `state.active` (present && !trackedByGit).
  */
 export function detectDeftDirectiveDisable(
   projectRoot: string,
@@ -120,23 +150,43 @@ export function detectDeftDirectiveDisable(
   const isGitTracked = seams.isGitTracked ?? defaultIsGitTracked;
   const present = isFile(flagPath);
   const depositPresent = isDir(join(projectRoot, CANONICAL_INSTALL_ROOT));
-  const trackedByGit = present
-    ? isGitTracked(projectRoot, DEFT_DIRECTIVE_DISABLE_FLAG_NAME)
-    : false;
+  let trackedByGit = false;
+  if (present) {
+    if (seams.skipTrackedCache && seams.isGitTracked === undefined) {
+      // Fresh probe without reading process cache (doctor / one-shot CLI).
+      try {
+        const out = execFileSync("git", ["ls-files", "--", DEFT_DIRECTIVE_DISABLE_FLAG_NAME], {
+          cwd: projectRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: GIT_TRACKED_PROBE_TIMEOUT_MS,
+        });
+        trackedByGit = out.trim().length > 0;
+      } catch {
+        trackedByGit = false;
+      }
+    } else {
+      trackedByGit = isGitTracked(projectRoot, DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
+    }
+  }
   return {
     present,
     flagPath,
     depositPresent,
     trackedByGit,
+    active: present && !trackedByGit,
   };
 }
 
-/** True when the root test kill-switch flag file exists. */
-export function isDeftDirectiveDisablePresent(
+/**
+ * True when the local (untracked) kill-switch is active for enforcement
+ * short-circuit. Tracked flags return false so hooks stay enforced.
+ */
+export function isDeftDirectiveDisableActive(
   projectRoot: string,
   seams: DeftDirectiveDisableSeams = {},
 ): boolean {
-  return detectDeftDirectiveDisable(projectRoot, seams).present;
+  return detectDeftDirectiveDisable(projectRoot, seams).active;
 }
 
 /**
@@ -165,48 +215,4 @@ export function formatDeftDirectiveDisableMessage(
     parts.push(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING);
   }
   return parts.join("\n\n");
-}
-
-/**
- * Create the root kill-switch flag. Optional one-line rationale becomes a `#` comment.
- * Does not remove an existing deposit.
- */
-export function createDeftDirectiveDisableFlag(
-  projectRoot: string,
-  options: { rationale?: string } = {},
-): string {
-  const path = deftDirectiveDisableFlagPath(projectRoot);
-  if (defaultIsDir(path)) {
-    throw new Error(
-      `${DEFT_DIRECTIVE_DISABLE_FLAG_NAME} exists as a directory at ${path}; remove it before creating the kill-switch flag file.`,
-    );
-  }
-  const rationale = options.rationale?.trim() ?? "";
-  const body = rationale.length > 0 ? `# ${rationale}\n` : "";
-  containedWrite({
-    root: resolve(projectRoot),
-    target: path,
-    data: body,
-    mode: "replace",
-  });
-  return path;
-}
-
-/**
- * Remove the root kill-switch flag when present.
- * @returns true when a file was removed.
- */
-export function removeDeftDirectiveDisableFlag(projectRoot: string): boolean {
-  const path = deftDirectiveDisableFlagPath(projectRoot);
-  if (!existsSync(path)) {
-    return false;
-  }
-  assertWriteTargetSafe(projectRoot, path);
-  if (defaultIsDir(path)) {
-    throw new Error(
-      `${DEFT_DIRECTIVE_DISABLE_FLAG_NAME} exists as a directory at ${path}; remove the directory manually before re-enabling Directive.`,
-    );
-  }
-  unlinkSync(path);
-  return true;
 }

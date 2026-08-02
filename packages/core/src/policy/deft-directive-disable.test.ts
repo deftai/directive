@@ -1,10 +1,9 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
-  createDeftDirectiveDisableFlag,
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE,
   DEFT_DIRECTIVE_DISABLE_ONE_LINE,
@@ -14,8 +13,7 @@ import {
   deftDirectiveDisableFlagPath,
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
-  isDeftDirectiveDisablePresent,
-  removeDeftDirectiveDisableFlag,
+  isDeftDirectiveDisableActive,
 } from "./deft-directive-disable.js";
 
 const temps: string[] = [];
@@ -37,24 +35,28 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     const root = tempRoot();
     const state = detectDeftDirectiveDisable(root);
     expect(state.present).toBe(false);
+    expect(state.active).toBe(false);
     expect(state.depositPresent).toBe(false);
     expect(state.trackedByGit).toBe(false);
     expect(state.flagPath).toBe(deftDirectiveDisableFlagPath(root));
-    expect(isDeftDirectiveDisablePresent(root)).toBe(false);
+    expect(isDeftDirectiveDisableActive(root)).toBe(false);
   });
 
-  it("detects an empty root flag file as present", () => {
+  it("activates on an empty untracked root flag file", () => {
     const root = tempRoot();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
-    const state = detectDeftDirectiveDisable(root);
+    const state = detectDeftDirectiveDisable(root, {
+      isGitTracked: () => false,
+    });
     expect(state.present).toBe(true);
-    expect(isDeftDirectiveDisablePresent(root)).toBe(true);
+    expect(state.active).toBe(true);
+    expect(isDeftDirectiveDisableActive(root, { isGitTracked: () => false })).toBe(true);
   });
 
   it("detects a short-comment flag file as present", () => {
     const root = tempRoot();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "# A/B arm\n", "utf8");
-    expect(detectDeftDirectiveDisable(root).present).toBe(true);
+    expect(detectDeftDirectiveDisable(root, { isGitTracked: () => false }).present).toBe(true);
   });
 
   it("does not treat a same-named directory as the flag", () => {
@@ -67,10 +69,29 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     const root = tempRoot();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
     mkdirSync(join(root, CANONICAL_INSTALL_ROOT), { recursive: true });
-    const state = detectDeftDirectiveDisable(root);
+    const state = detectDeftDirectiveDisable(root, { isGitTracked: () => false });
     expect(state.present).toBe(true);
     expect(state.depositPresent).toBe(true);
-    // No inconsistent field — deposit OK under kill-switch.
+    expect(state.active).toBe(true);
+  });
+
+  it("does not activate when the flag is tracked by git (misconfig)", () => {
+    const root = "/virtual/project";
+    const files = new Set([resolve(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME)]);
+    const state = detectDeftDirectiveDisable(root, {
+      isFile: (p) => files.has(p),
+      isDir: () => false,
+      isGitTracked: () => true,
+    });
+    expect(state.present).toBe(true);
+    expect(state.trackedByGit).toBe(true);
+    expect(state.active).toBe(false);
+    expect(
+      isDeftDirectiveDisableActive(root, {
+        isFile: (p) => files.has(p),
+        isGitTracked: () => true,
+      }),
+    ).toBe(false);
   });
 
   it("honors injectable seams without touching the filesystem", () => {
@@ -80,11 +101,11 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     const state = detectDeftDirectiveDisable(root, {
       isFile: (p) => files.has(p),
       isDir: (p) => dirs.has(p),
-      isGitTracked: () => true,
+      isGitTracked: () => false,
     });
     expect(state.present).toBe(true);
     expect(state.depositPresent).toBe(true);
-    expect(state.trackedByGit).toBe(true);
+    expect(state.active).toBe(true);
   });
 
   it("documents recovery wording and gitignore constant", () => {
@@ -95,6 +116,7 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     expect(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE).toContain("NEW agent session");
     expect(DEFT_DIRECTIVE_DISABLE_ONE_LINE).toContain("test/local kill-switch");
     expect(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING).toContain("gitignored");
+    expect(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING).toContain("NOT disabled");
   });
 });
 
@@ -119,24 +141,5 @@ describe("formatDeftDirectiveDisableMessage (#3039)", () => {
   it("supports one-line mode", () => {
     const msg = formatDeftDirectiveDisableMessage({ oneLine: true });
     expect(msg).toBe(DEFT_DIRECTIVE_DISABLE_ONE_LINE);
-  });
-});
-
-describe("create/removeDeftDirectiveDisableFlag (#3039)", () => {
-  it("creates an empty flag and removes it", () => {
-    const root = tempRoot();
-    const path = createDeftDirectiveDisableFlag(root);
-    expect(path).toBe(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME));
-    expect(existsSync(path)).toBe(true);
-    expect(readFileSync(path, "utf8")).toBe("");
-    expect(removeDeftDirectiveDisableFlag(root)).toBe(true);
-    expect(existsSync(path)).toBe(false);
-    expect(removeDeftDirectiveDisableFlag(root)).toBe(false);
-  });
-
-  it("writes an optional short rationale as a comment", () => {
-    const root = tempRoot();
-    const path = createDeftDirectiveDisableFlag(root, { rationale: "DevHammer A arm" });
-    expect(readFileSync(path, "utf8")).toBe("# DevHammer A arm\n");
   });
 });

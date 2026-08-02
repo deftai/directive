@@ -833,18 +833,19 @@ function inspectMutationGates(
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
   const projectRoot = resolve(input.projectRoot);
 
-  // #3039: root `.deft-directive-disable` wins for enforcement short-circuit
-  // (SessionStart / compact / PreToolUse). Deposit may remain; recovery = delete + new session.
-  // Precedence over #2926 for this path; both flags → combined message.
+  // #3039: local (untracked) `.deft-directive-disable` wins for enforcement
+  // short-circuit (SessionStart / compact / PreToolUse). Deposit may remain.
+  // Tracked/committed flags do NOT bypass gates (repo-controlled content must
+  // not disable enforcement for clones) — doctor warns instead.
   {
     const detectKill = seams.detectDeftDirectiveDisable ?? detectDeftDirectiveDisable;
     const kill = detectKill(projectRoot);
-    if (kill.present) {
+    if (kill.active) {
       const detectOptOut = seams.detectNoDeftDirective ?? detectNoDeftDirective;
       const optOut = detectOptOut(projectRoot);
       const message = formatDeftDirectiveDisableMessage({
         permanentOptOutAlsoPresent: optOut.present,
-        trackedByGit: kill.trackedByGit,
+        trackedByGit: false,
       });
       return {
         verdict: "allow",

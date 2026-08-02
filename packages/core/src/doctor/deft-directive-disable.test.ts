@@ -25,9 +25,10 @@ function tempRoot(): string {
 }
 
 describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
-  it("exits 0 with recovery message when the kill-switch is present", () => {
+  it("exits 0 with recovery message when an untracked kill-switch is present", () => {
     const root = tempRoot();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    // Temp dirs are not a git worktree → ls-files empty → active kill-switch.
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
       chunk: string | Uint8Array,

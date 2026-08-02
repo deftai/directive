@@ -28,14 +28,15 @@ export function runSessionStartHookWrite(
   options: SessionStartHookOptions = {},
 ): { code: number; stdout: string; stderr: string } {
   const detectKill = options.detectDeftDirectiveDisableFn ?? detectDeftDirectiveDisable;
-  // #3039: test kill-switch wins for enforcement — skip ritual bookkeeping (deposit OK).
+  // #3039: local (untracked) kill-switch — skip ritual bookkeeping (deposit OK).
+  // Tracked flags do not short-circuit (enforcement stays on).
   const kill = detectKill(projectRoot);
-  if (kill.present) {
+  if (kill.active) {
     const detectOptOut = options.detectNoDeftDirectiveFn ?? detectNoDeftDirective;
     const optOut = detectOptOut(projectRoot);
     const message = formatDeftDirectiveDisableMessage({
       permanentOptOutAlsoPresent: optOut.present,
-      trackedByGit: kill.trackedByGit,
+      trackedByGit: false,
     });
     return {
       code: 0,
