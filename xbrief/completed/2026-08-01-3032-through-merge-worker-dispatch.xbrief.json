@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for process fix: through-merge / drive-to:merge-ready must dispatch worker; N=1 uses swarm path (#3032)",
-    "updated": "2026-08-02T02:23:21Z"
+    "updated": "2026-08-02T02:40:24Z"
   },
   "plan": {
     "title": "process: through merge / drive-to:merge-ready must dispatch worker (parent must not implement); N=1 uses swarm path",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On through-merge / drive-to:merge-ready intent, parent must dispatch a worker (not implement). N=1 still uses swarm/solo launch path.",
       "Origin": "https://github.com/deftai/directive/issues/3032",
@@ -53,10 +53,11 @@
         "title": "Issue #3032: through merge / drive-to:merge-ready must dispatch worker"
       }
     ],
-    "updated": "2026-08-02T02:23:21Z",
+    "updated": "2026-08-02T02:40:24Z",
     "metadata": {
       "kind": "story",
-      "capacityBucket": "bug-fix"
+      "capacityBucket": "bug-fix",
+      "completedAt": "2026-08-02T02:40:24Z"
     }
   }
 }
