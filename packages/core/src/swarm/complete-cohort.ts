@@ -195,14 +195,17 @@ function transitionOptionsFor(
   };
 }
 
-function completeStory(
-  storyPath: string,
-  vbriefDir: string,
-  projectRoot: string,
-  settled: Set<string>,
-  dryRun: boolean,
-  delivery?: CohortDeliveryContext | null,
-): TransitionRecord {
+interface CompleteStoryArgs {
+  readonly storyPath: string;
+  readonly vbriefDir: string;
+  readonly projectRoot: string;
+  readonly settled: Set<string>;
+  readonly dryRun: boolean;
+  readonly delivery: CohortDeliveryContext | null;
+}
+
+function completeStory(args: CompleteStoryArgs): TransitionRecord {
+  const { storyPath, vbriefDir, projectRoot, settled, dryRun, delivery } = args;
   const folder = detectLifecycleFolder(storyPath);
   const relpath = rel(storyPath, projectRoot);
 
@@ -261,14 +264,17 @@ function completeStory(
   };
 }
 
-function completeParent(
-  parentPath: string,
-  vbriefDir: string,
-  projectRoot: string,
-  settled: Set<string>,
-  dryRun: boolean,
-  delivery?: CohortDeliveryContext | null,
-): TransitionRecord {
+interface CompleteParentArgs {
+  readonly parentPath: string;
+  readonly vbriefDir: string;
+  readonly projectRoot: string;
+  readonly settled: Set<string>;
+  readonly dryRun: boolean;
+  readonly delivery: CohortDeliveryContext | null;
+}
+
+function completeParent(args: CompleteParentArgs): TransitionRecord {
+  const { parentPath, vbriefDir, projectRoot, settled, dryRun, delivery } = args;
   const folder = detectLifecycleFolder(parentPath);
   const relpath = rel(parentPath, projectRoot);
 
@@ -348,12 +354,25 @@ function completeParent(
   };
 }
 
+export interface SweepCohortArgs {
+  readonly storyPaths: readonly string[];
+  readonly projectRoot: string;
+  readonly dryRun: boolean;
+  readonly delivery?: CohortDeliveryContext | null;
+}
+
 export function sweepCohort(
   storyPaths: readonly string[],
   projectRoot: string,
   dryRun: boolean,
   delivery?: CohortDeliveryContext | null,
 ): SweepResult {
+  return sweepCohortWithArgs({ storyPaths, projectRoot, dryRun, delivery: delivery ?? null });
+}
+
+function sweepCohortWithArgs(args: SweepCohortArgs): SweepResult {
+  const { storyPaths, projectRoot, dryRun } = args;
+  const delivery = args.delivery ?? null;
   let vbriefDir: string;
   try {
     vbriefDir = resolveLifecycleRoot(projectRoot);
@@ -401,7 +420,14 @@ export function sweepCohort(
       }
     }
     result.stories.push(
-      completeStory(storyPath, vbriefDir, projectRoot, settled, dryRun, delivery),
+      completeStory({
+        storyPath,
+        vbriefDir,
+        projectRoot,
+        settled,
+        dryRun,
+        delivery,
+      }),
     );
   }
 
@@ -422,7 +448,14 @@ export function sweepCohort(
       if (!allChildrenSettled(parentPlan, vbriefDir, settled, dryRun)) {
         continue;
       }
-      const record = completeParent(candidate, vbriefDir, projectRoot, settled, dryRun, delivery);
+      const record = completeParent({
+        parentPath: candidate,
+        vbriefDir,
+        projectRoot,
+        settled,
+        dryRun,
+        delivery,
+      });
       result.parents.push(record);
       finalized.add(candidate);
       progressed = true;

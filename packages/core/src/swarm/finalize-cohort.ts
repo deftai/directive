@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
 import { extractIssueRef } from "../capacity/backfill.js";
@@ -7,6 +7,7 @@ import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
+  classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   evidenceFromPrPayload,
   verifyDeliveryAncestry,
@@ -627,8 +628,31 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     const completedBrief = completedBriefReferencesIssue(projectRoot, issue);
     const issueClosed = completedBrief || fetchIssueClosed(issue, repo, runGh);
     if (completedBrief || issueClosed) {
+      let dispositionNote = "";
+      if (completedBrief) {
+        try {
+          const completedDir = resolve(projectRoot, "xbrief", "completed");
+          // Best-effort surface of legacy delivery disposition for completed briefs (#3041).
+          if (existsSync(completedDir)) {
+            for (const name of readdirSync(completedDir)) {
+              if (!name.endsWith(".json")) continue;
+              const raw = JSON.parse(readFileSync(resolve(completedDir, name), "utf8")) as unknown;
+              if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+              const plan = (raw as Record<string, unknown>).plan;
+              if (typeof plan !== "object" || plan === null || Array.isArray(plan)) continue;
+              const disposition = classifyStoredDeliveryDisposition(
+                plan as Record<string, unknown>,
+              );
+              dispositionNote = ` deliveryDisposition=${disposition}`;
+              break;
+            }
+          }
+        } catch {
+          /* best-effort disposition surfacing for legacy completed records */
+        }
+      }
       const reason = completedBrief
-        ? "a completed brief already exists"
+        ? `a completed brief already exists${dispositionNote}`
         : "the issue is already closed";
       warnings.push(
         `#${issue}: no active story references this closing issue; skipped (${reason}).`,

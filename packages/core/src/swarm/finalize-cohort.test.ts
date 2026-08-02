@@ -141,10 +141,13 @@ function mockRunGh(
   };
 }
 
-function mockRunGit(
-  onCommit?: () => void,
-  opts?: { fetchFail?: boolean; notAncestor?: boolean },
-): (command: readonly string[]) => TextCaptureResult {
+interface MockGitOpts {
+  readonly onCommit?: () => void;
+  readonly fetchFail?: boolean;
+  readonly notAncestor?: boolean;
+}
+
+function mockRunGit(opts: MockGitOpts = {}): (command: readonly string[]) => TextCaptureResult {
   let currentBranch = "";
   return (command) => {
     const joined = command.join(" ");
@@ -158,7 +161,7 @@ function mockRunGit(
         : { returncode: 1, stdout: "", stderr: "detached" };
     }
     if (joined.includes("git commit")) {
-      onCommit?.();
+      opts.onCommit?.();
       return { returncode: 0, stdout: "", stderr: "" };
     }
     if (joined.includes("git rev-parse HEAD")) {
@@ -167,14 +170,14 @@ function mockRunGit(
     if (joined.includes("git status --short")) {
       return { returncode: 0, stdout: "M xbrief/active/story-a.xbrief.json\n", stderr: "" };
     }
-    if (joined.includes("git fetch") && opts?.fetchFail) {
+    if (joined.includes("git fetch") && opts.fetchFail) {
       return { returncode: 1, stdout: "", stderr: "network unreachable" };
     }
     if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
       return {
-        returncode: opts?.notAncestor ? 1 : 0,
+        returncode: opts.notAncestor ? 1 : 0,
         stdout: "",
-        stderr: opts?.notAncestor ? "not ancestor" : "",
+        stderr: opts.notAncestor ? "not ancestor" : "",
       };
     }
     if (joined.includes("git rev-parse") && joined.includes("origin/")) {
@@ -310,7 +313,7 @@ describe("finalizeCohort", () => {
       noCommit: true,
       deliveryBranch: "master",
       runGh: mockRunGh({ 101: { merged: true, closingIssues: [3041], baseRef: "master" } }),
-      runGit: mockRunGit(undefined, { fetchFail: true }),
+      runGit: mockRunGit({ fetchFail: true }),
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.result.errors.some((e) => e.includes("fetch") || e.includes("delivery"))).toBe(
@@ -383,8 +386,10 @@ describe("finalizeCohort", () => {
       storyTokens: [storyPath],
       label: "story-d",
       repo: "deftai/directive",
-      runGit: mockRunGit(() => {
-        committed = true;
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
       }),
       runGh: mockRunGh({}),
     });
