@@ -18,6 +18,8 @@ Epic spine: [#2874](https://github.com/deftai/directive/issues/2874). This doc i
 
 If you are installing Directive for the first time, start at [QUICK-START.md](../QUICK-START.md) or [getting-started.md](./getting-started.md), then return here for host-specific expectations.
 
+Native **slash/prompt command registration** (multi-host thin wrappers under `.claude/commands/`, `.cursor/commands/`, and peers) is documented in [slash-multi-host.md](./slash-multi-host.md) (epic #55). That surface is separate from OpenClaw skill/spawn mapping and from skill-discovery residual [#75](https://github.com/deftai/directive/issues/75).
+
 ---
 
 ## Mental model (host class)

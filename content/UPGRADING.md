@@ -8,6 +8,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 <!-- xbrief-backcompat-2111 -->
 
+## Multi-host native slash commands (#55 / #3054 / #3055)
+
+- **Applies when:** you upgrade to a release that ships multi-host slash deposit (#3052–#3054) and want host autocomplete for `/deft…` on Claude / Cursor / Grok / Codex in a shared repo.
+- **Safe to auto-run:** Yes for `directive update` / `directive init` deposit. Policy edits to `plan.policy.hostSlashCommands` are optional.
+- **Restart required:** Start a **new agent session** (and re-open the host) after deposit so command pickers reload project files.
+- **Commands:**
+  - `directive update` (or `directive init` on first adopt)
+  - `deft policy:show --field=hostSlashCommands`
+  - Dogfood and git prefer-commit guidance: [docs/slash-multi-host.md](./docs/slash-multi-host.md)
+  - Prose namespaces remain in [commands.md](./commands.md) § Slash Command Namespaces
+- **Notes:** Default enables every host with a real emitter (not single-host-only). Prefer committing managed product command/prompt paths. Skill discovery (#75) is a separate residual.
+
+---
+
 ### xBRIEF rename (#2034 / #2110 / #2907)
 
 > **Single authoritative rename/history note.** Public product voice uses **xBRIEF** / `xbrief/` only. **vBRIEF** is **legacy**.

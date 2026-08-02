@@ -77,6 +77,24 @@ The legacy product forms below remain accepted but SHOULD emit a deprecation war
 
 Skills retain the `deft-directive-*` prefix — only the slash-command surface is namespaced.
 
+### Native multi-host registration (#55 / #3052–#3055)
+
+Prose routing above remains the fallback for every agent (L9). For hosts that load project command/prompt files, `directive init` and `deft update` also deposit **thin native wrappers** for the locked product set (exactly **13** commands — L2) across every **enabled** emitter host in one pass (L6):
+
+| Host | Managed directory |
+|------|-------------------|
+| Claude Code | `.claude/commands/` |
+| Cursor | `.cursor/commands/` |
+| Grok | `.grok/commands/` |
+| Codex | `.codex/prompts/` |
+
+- **Thin wrappers only (L5):** frontmatter description + short dispatch pointer to strategy/skill/`commands.md` / resilience paths. ⊗ Inline full strategy or skill bodies. ⊗ Emit native files for legacy deprecation aliases (L3 — prose aliases only).
+- **Opt-out:** `plan.policy.hostSlashCommands.<host>` = `false` (hosts: `claude`, `cursor`, `grok`, `codex`). Inspect with `deft policy:show --field=hostSlashCommands`. Opt-out removes managed thin wrappers only; consumer customizations at the same path are preserved. Parallel mental model to `plan.policy.hostHooks`, but hooks and slash deposit are separate.
+- **Git (L8):** Prefer **committing** managed product command/prompt paths so multi-host clones share the same surface. Idempotent rewrite on init/update. Personal gitignore of host command dirs is an escape, not the team default. Managed allowlist is exact product filenames — not whole host command directories.
+- **Not skill discovery:** Native slash files (#55) ≠ skill path auto-discovery ([#75](https://github.com/deftai/directive/issues/75)). Skills deposit remains independent (L7).
+
+Full operator guide, L2 table, and multi-host dogfood checklist: [docs/slash-multi-host.md](./docs/slash-multi-host.md).
+
 ---
 
 <!-- xbrief-backcompat-2111 -->

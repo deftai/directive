@@ -117,4 +117,8 @@ describe("test_structure.py", () => {
   it("docs/getting-started.md", () => {
     expect(isFile("docs/getting-started.md")).toBe(true);
   });
+  // #3055 / epic #55 Wave 3 — multi-host native slash registration operator guide
+  it("docs/slash-multi-host.md", () => {
+    expect(isFile("docs/slash-multi-host.md")).toBe(true);
+  });
 });
