@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3027",
-    "updated": "2026-08-02T02:14:00Z"
+    "updated": "2026-08-02T03:08:24Z"
   },
   "plan": {
     "title": "coverage-debt: restore Vitest branches >=85% (84.91% at v0.91.0 preflight)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "coverage-debt: restore Vitest branches >=85% (84.91% at v0.91.0 preflight)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3027",
@@ -15,11 +15,11 @@
     "items": [
       {
         "title": "Restore Vitest branches >= 85% on master without hatch",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Or document permanent threshold policy change",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "references": [
@@ -29,6 +29,10 @@
         "title": "Issue #3027: coverage-debt: restore Vitest branches >=85% (84.91% at v0.91.0 preflight)"
       }
     ],
-    "updated": "2026-08-02T02:14:00Z"
+    "updated": "2026-08-02T03:08:24Z",
+    "metadata": {
+      "completedAt": "2026-08-02T03:08:24Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
