@@ -52,7 +52,10 @@ export function expandUserPath(
     expanded = join(home, expanded.slice(2));
   }
 
-  return normalize(expanded);
+  // Env expansion may inject foreign separators (e.g. %USERPROFILE%\foo on Linux CI).
+  // Re-normalize with path.normalize after collapsing to platform-native separators.
+  const collapsed = expanded.replace(/\\/g, "/");
+  return normalize(collapsed);
 }
 
 /** Strip known xBRIEF suffixes to recover a write stem. */
