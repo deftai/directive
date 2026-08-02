@@ -1,0 +1,29 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3029",
+    "updated": "2026-08-02T02:14:15Z"
+  },
+  "plan": {
+    "title": "deft-core-guard allowlists PROJECT-DEFINITION — breaks #1430 mixed-change invariant",
+    "status": "running",
+    "narratives": {
+      "Description": "deft-core-guard allowlists PROJECT-DEFINITION — breaks #1430 mixed-change invariant",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3029",
+      "Overview": "## Summary\n`installerManagedMatchers()` in `packages/core/src/init-deposit/hygiene.ts` allowlists:\n\n- `xbrief/PROJECT-DEFINITION.xbrief.json`\n- `vbrief/PROJECT-DEFINITION.vbrief.json`\n\nComment cites #3013 “minimal render-ready seed from init.”\n\nThat exemption is embedded into deposited `deft-core-guard.yml` via `installerManagedGuardEre()`, so a PR that changes **both** `.deft/core/**` and the project definition can pass `no-mixed-core-and-app`.\n\n## Why this is wrong\nSPEC / #1430 critical nuance: **do NOT exempt consumer-authored** `xbrief/PROJECT-DEFINITION.xbrief.json` (or consumer xbriefs). That separation is the point of the guard.\n\nObserved on consumer `deftai/statusreport` after deposit 0.91.0 (#160). Greptile P1: “Project definition bypasses guard.” Local consumer workaround: statusreport#161 removes the exemption until upstream drops the matchers.\n\n## Expected\n- Init may still *create* a PD seed.\n- PD must **not** be installer-managed for guard classification / deposit staging alongside core.\n- Framework deposit PRs stay deposit-only; force-on PD stays a separate PR (statusreport #157→#158 pattern).\n\n## Suggested fix\n1. Remove the two PD exact matchers from `installerManagedMatchers()`.\n2. Ensure `frameworkStagePaths` does not stage PD on update.\n3. Regression test: core + PD in one diff → guard fails.\n4. Keep #2277 xbrief/.deft-version allowlist (that one is correct).\n\n## Refs\n- #1430, #1478, #2277, #3013\n- statusreport#160 residual Greptile P1\n- statusreport#161 consumer workaround\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @ape-deft (2026-08-02T02:12:48Z)\n\n**Parent / root-cause issue:** #3030 — fail-closed denylist + tests so #1430 cannot regress via allowlist edits.\n\nThis ticket (#3029) = symptom (remove PD matchers). #3030 = make the SPEC invariant executable so the next seed feature cannot re-punch the guard.",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3029",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3029: deft-core-guard allowlists PROJECT-DEFINITION — breaks #1430 mixed-change invariant"
+      }
+    ],
+    "updated": "2026-08-02T02:14:15Z"
+  }
+}

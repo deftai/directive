@@ -624,6 +624,8 @@ func TestCoreGuard_MixedWithAppFails(t *testing.T) {
 func TestCoreGuard_MixedWithConsumerVbriefFails(t *testing.T) {
 	cases := [][]string{
 		{".deft/core/VERSION", "vbrief/PROJECT-DEFINITION.vbrief.json"},
+		// xbrief PD is also consumer-authored (#3029 / #1430); Go never allowlisted it.
+		{".deft/core/VERSION", "xbrief/PROJECT-DEFINITION.xbrief.json"},
 		{".deft/core/VERSION", "vbrief/active/2026-06-03-1440-fix.vbrief.json"},
 	}
 	for _, changed := range cases {
@@ -684,6 +686,7 @@ func TestCoreGuard_AllowlistAuthoritative(t *testing.T) {
 		"README.md",
 		".deft/core/VERSION",
 		"vbrief/PROJECT-DEFINITION.vbrief.json",
+		"xbrief/PROJECT-DEFINITION.xbrief.json", // consumer PD never installer-managed (#3029)
 		"vbrief/active/2026-06-03-1440-fix.vbrief.json",
 		"agents.md",       // case-sensitive: must NOT match AGENTS.md
 		"vbrief/schemas",  // the prefix entry requires a trailing slash + child
