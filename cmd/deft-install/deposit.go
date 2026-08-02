@@ -162,13 +162,57 @@ var consumerGuardMustFire = []string{
 	"vbrief/pending/example-scope.vbrief.json",
 }
 
-// assertInstallerAllowlistHonors1430 fails closed when any consumer denylist
-// path is covered by the installer-managed allowlist (#3030). Pure over matchers
-// so tests can inject a poisoned set without mutating production state.
+// consumerScopeBriefExact matches consumer scope brief filenames under
+// lifecycle dirs (not scaffolding .gitkeep markers).
+var consumerScopeBriefExact = regexp.MustCompile(
+	`^(xbrief|vbrief)/(proposed|pending|active|completed|cancelled)/.+\.(x|v)brief\.json$`,
+)
+
+// consumerProjectDefinitionExact matches PROJECT-DEFINITION under xbrief/ or vbrief/.
+var consumerProjectDefinitionExact = regexp.MustCompile(
+	`^(xbrief|vbrief)/PROJECT-DEFINITION\.(x|v)brief\.json$`,
+)
+
+// forbiddenConsumerPrefixes would exempt entire consumer trees — never allowlisted.
+func forbiddenConsumerPrefixes() map[string]struct{} {
+	out := map[string]struct{}{
+		"xbrief/": {},
+		"vbrief/": {},
+	}
+	for _, sub := range vbriefLifecycleDirs {
+		out["xbrief/"+sub+"/"] = struct{}{}
+		out["vbrief/"+sub+"/"] = struct{}{}
+	}
+	return out
+}
+
+// assertInstallerAllowlistHonors1430 fails closed when the installer-managed
+// allowlist would exempt consumer PROJECT-DEFINITION or scope briefs (#3030).
+// Pure over matchers so tests can inject a poisoned set without mutating
+// production state. Checks both explicit consumerGuardMustFire probes and
+// structural patterns so an unlisted xbrief/active/another-scope.xbrief.json
+// exact matcher still fails (Greptile finite-probe gap).
 func assertInstallerAllowlistHonors1430(matchers []installerManagedMatcher) {
 	for _, path := range consumerGuardMustFire {
 		if matchesAnyInstallerManaged(matchers, path) {
 			panic("#1430 violation: " + path + " must not be installer-managed (SPEC consumer denylist; see consumerGuardMustFire / #3030)")
+		}
+	}
+	forbidden := forbiddenConsumerPrefixes()
+	for _, m := range matchers {
+		if m.exact != "" {
+			if consumerProjectDefinitionExact.MatchString(m.exact) || consumerScopeBriefExact.MatchString(m.exact) {
+				panic("#1430 violation: exact matcher " + m.exact + " must not be installer-managed (consumer brief denylist / #3030)")
+			}
+		}
+		if m.prefix != "" {
+			normalized := m.prefix
+			if !strings.HasSuffix(normalized, "/") {
+				normalized += "/"
+			}
+			if _, ok := forbidden[normalized]; ok {
+				panic("#1430 violation: prefix matcher " + m.prefix + " must not cover consumer brief trees (#3030)")
+			}
 		}
 	}
 }

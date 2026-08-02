@@ -111,10 +111,32 @@ function matchesInstallerManaged(
   return false;
 }
 
+/** Consumer scope-brief filenames under lifecycle dirs (not scaffolding). */
+const CONSUMER_SCOPE_BRIEF_EXACT =
+  /^(xbrief|vbrief)\/(proposed|pending|active|completed|cancelled)\/.+\.(x|v)brief\.json$/;
+
+/** PROJECT-DEFINITION exact paths (xbrief or legacy vbrief). */
+const CONSUMER_PROJECT_DEFINITION_EXACT = /^(xbrief|vbrief)\/PROJECT-DEFINITION\.(x|v)brief\.json$/;
+
 /**
- * Fail closed when any #1430 consumer denylist path is covered by the
- * installer-managed allowlist (#3030). Pure over `matchers` so tests can inject
- * a bad matcher without mutating production state.
+ * Prefixes that would exempt entire consumer lifecycle trees or the whole
+ * xbrief/vbrief tree — never installer-managed (#1430).
+ */
+const FORBIDDEN_CONSUMER_PREFIXES = new Set([
+  "xbrief/",
+  "vbrief/",
+  ...VBRIEF_LIFECYCLE_DIRS.flatMap((sub) => [`xbrief/${sub}/`, `vbrief/${sub}/`]),
+]);
+
+/**
+ * Fail closed when the installer-managed allowlist would exempt consumer
+ * PROJECT-DEFINITION or scope briefs (#3030 / #1430). Pure over `matchers` so
+ * tests can inject a bad matcher without mutating production state.
+ *
+ * Checks both:
+ * 1. Explicit probe paths in {@link CONSUMER_GUARD_MUST_FIRE}
+ * 2. Structural patterns (any exact consumer scope brief / PD; forbidden prefixes)
+ *    so an unlisted `xbrief/active/another-scope.xbrief.json` matcher still fails.
  */
 export function assertInstallerAllowlistHonors1430(
   matchers: readonly InstallerManagedMatcher[] = installerManagedMatchers(),
@@ -124,6 +146,26 @@ export function assertInstallerAllowlistHonors1430(
       throw new Error(
         `#1430 violation: ${path} must not be installer-managed (SPEC consumer denylist; see CONSUMER_GUARD_MUST_FIRE / #3030)`,
       );
+    }
+  }
+  for (const matcher of matchers) {
+    if (matcher.exact) {
+      if (
+        CONSUMER_PROJECT_DEFINITION_EXACT.test(matcher.exact) ||
+        CONSUMER_SCOPE_BRIEF_EXACT.test(matcher.exact)
+      ) {
+        throw new Error(
+          `#1430 violation: exact matcher ${matcher.exact} must not be installer-managed (consumer brief denylist / #3030)`,
+        );
+      }
+    }
+    if (matcher.prefix) {
+      const normalized = matcher.prefix.endsWith("/") ? matcher.prefix : `${matcher.prefix}/`;
+      if (FORBIDDEN_CONSUMER_PREFIXES.has(normalized)) {
+        throw new Error(
+          `#1430 violation: prefix matcher ${matcher.prefix} must not cover consumer brief trees (#3030)`,
+        );
+      }
     }
   }
 }

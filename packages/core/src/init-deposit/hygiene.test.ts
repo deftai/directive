@@ -209,6 +209,24 @@ describe("fail-closed consumer denylist for core-guard (#3030)", () => {
     expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/#1430 violation/);
   });
 
+  it("assert fails closed for unlisted consumer scope exact matchers (not only probes)", () => {
+    const poisoned: InstallerManagedMatcher[] = [
+      ...installerManagedMatchers(),
+      { exact: "xbrief/active/another-scope.xbrief.json" },
+    ];
+    expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/another-scope/);
+  });
+
+  it("assert fails closed for a lifecycle-tree prefix matcher", () => {
+    // A lifecycle prefix matches CONSUMER_GUARD_MUST_FIRE probe paths (and the
+    // structural forbidden-prefix check); either arm is fail-closed (#3030).
+    const poisoned: InstallerManagedMatcher[] = [
+      ...installerManagedMatchers(),
+      { prefix: "xbrief/active/" },
+    ];
+    expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/#1430 violation/);
+  });
+
   it("core + PD classifies as mixed (wouldFail)", () => {
     const result = classifyMixedCoreAndApp([
       ".deft/core/main.md",
