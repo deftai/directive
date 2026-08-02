@@ -238,4 +238,25 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("--skip-ci");
     expect(text).toContain("#2672");
   });
+
+  it("empty_announce_not_done_and_single_lease (#3044)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Empty announce");
+    expect(text).toContain("FC04 residual");
+    expect(text).toContain("same-turn ground truth");
+    expect(text).toContain("Single review-monitor lease");
+    expect(text).toContain("<!-- deft:review-owner -->");
+    expect(text).toContain("Required non-empty monitor handback");
+    expect(text).toContain("STATUS: DONE|BLOCKED|FAILED");
+    expect(text).toContain("enterprize PR #43");
+    expect(text).toContain("visible:true");
+    expect(
+      /^- \u2297 Treat empty\/unknown review-monitor settle as DONE\/CLEAN\/merge-ready/m.test(
+        text,
+      ),
+    ).toBe(true);
+    expect(/^- \u2297 Spawn a second review-monitor while prior owner is running/m.test(text)).toBe(
+      true,
+    );
+  });
 });

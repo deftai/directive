@@ -653,6 +653,27 @@
       ],
       "source": "Issue #3032. Observed on directive maintainer session for coverage-debt #3027: operator said take through merge; parent implemented partial product work instead of dispatching a drive-to:merge-ready worker. Operator re-stated use subagents and swarm skill even if just one.",
       "body": "**Source:** Issue #3032. Recurrence on #3027 through-merge session before operator re-instruction.\n\n**Failure mode:** Operator intent equivalent to through merge / drive to merge / land-ship / drive-to:merge-ready is treated as parent-implements authorization. Parent edits product code, runs partial CI/coverage loops, stashes WIP, and never opens a merge-ready worker with worktree isolation. N=1 is misread as skip swarm.\n\n**Rule:** Parent MUST NOT implement as the leaf. Parent MUST dispatch (or re-dispatch) a worker with drive-to: merge-ready, worktree isolation when available, xBRIEF preflight, pre-pr + review-cycle, merge/scope:complete per #1880 Gap C. Even if cohort size is 1, use the swarm/solo-worker launch path.\n\n**Canonical encoding:** AGENTS.md / templates/agents-entry.md ## Through-merge worker dispatch (#3032); maintainer Multi-agent #1880 bullets; skills/deft-directive-swarm/references/core-phase-0.md Through-merge / N=1; core-ops anti-pattern; content/docs/skill-pin-policy.md Through-merge is false-negative sensitive; agents_entry_contract markers.\n\n**Cross-references:** #1880 Gap C/D, #2508 skill pin policy, #954 multi-agent, #3027 session recurrence, #3032."
+    },
+    {
+      "id": "empty-review-monitor-announce-single-lease-2026-08",
+      "title": "Empty review-monitor announce \u2260 done + single lease (2026-08)",
+      "date": "2026-08",
+      "issue_refs": [
+        "#3044",
+        "#2874",
+        "#2876",
+        "#2814",
+        "#2943"
+      ],
+      "tags": [
+        "review-cycle",
+        "harness:openclaw",
+        "agent-experience",
+        "operational",
+        "agent-safety"
+      ],
+      "source": "Issue #3044. Recurrence: deftai/enterprize PR #43 babysit (2026-08-02) after #2874/#2876 OpenClaw Approach 1 spawn routing shipped.",
+      "body": "**Source:** Issue #3044. Recurrence: deftai/enterprize PR #43 babysit (2026-08-02) after #2874/#2876 OpenClaw Approach 1 spawn routing shipped.\n\n**Failure mode:** Parent correctly spawns Approach 1 review-monitor via sessions_spawn, but host settle arrives empty / (no output) / status unknown. Parent treats empty as terminal failure and spawns a **second** monitor with the same \taskName while the first may still be running or only falsely settled. Dual <!-- deft:review-owner --> thrash; PR stays open; babysit looks owned twice.\n\n**Rule:** Empty announce is **FC04 residual**, not DONE/CLEAN/merge-ready. Parent MUST same-turn ground truth (gh pr view + checks + HEAD). One sticky review-owner lease; pre-spawn list active same-task / lease holder; forbid second monitor while prior running or last settle empty/unknown without terminal ground truth. Dead owner + open PR \u2192 one replacement + lease update. Monitor handback MUST include non-empty STATUS/HEAD/CHECKS/MERGE. Prefer \u000bisible:true on Control UI.\n\n**Canonical encoding:** skills/deft-directive-review-cycle/SKILL.md Empty announce / Single lease / Required handback; skills/deft-directive-swarm/references/host-openclaw.md Babysit residual; \templates/swarm-greptile-poller-prompt.md handback; \templates/agent-prompt-preamble.md \u00a711 thin pointer.\n\n**Cross-references:** #3044, #2874, #2876, #2814, #2943, FC04 / growth friction R1 + R10, enterprize PR #43.\n"
     }
   ]
 }

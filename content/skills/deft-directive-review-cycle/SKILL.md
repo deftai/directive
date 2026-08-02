@@ -55,7 +55,7 @@ On repos with `.deft/core/` installed, **PR shepherding intent** routes here -- 
 On OpenClaw hosts with Directive installed (`.deft/core/` or equivalent content deposit), **babysit / shepherd / watch** intent likewise routes here -- not host-local freestyle poll loops and not OpenClaw `cron` alone.
 
 - ! When the OpenClaw tool surface exposes `sessions_spawn`, Approach 1 is the **default** babysit path: spawn a background review-monitor via `sessions_spawn` (register with `--platform-primitive sessions_spawn` or the alias `openclaw-sessions-spawn`).
-- ! Prefer a **visible** Control UI subagent when OpenClaw Control UI is the operator control plane so humans can inspect the monitor.
+- ! Prefer a **visible** Control UI subagent (`visible:true` when the tool surface allows) when OpenClaw Control UI is the operator control plane so humans can inspect the monitor (#3044; invisible empty settles are higher FC04 residual risk).
 - ! Long review-monitor ownership (>~3 min) MUST NOT block the parent OpenClaw session — background `sessions_spawn` + parent yield; same Gap D rule as Cursor/Grok Build (#1880).
 - ! Prefer deep-think gates inside the monitor via the dual-invoke probe order (#2893): `deft pr:watch` / `deft pr:merge-ready` first, then `task deft:pr:watch` when the Taskfile include is present, then the #2878 gh-only fallback — bare `task pr:watch` is not the consumer form.
 - ⊗ Treat OpenClaw `cron` (or any host scheduler alone) as Approach 1. Cron/timer re-invocation is Approach 2 only when `sessions_spawn` is unavailable.
@@ -362,7 +362,7 @@ Remediation:
 
 ! **Heartbeat contract for Cursor pollers (#1877 / #1166 / #2876):** OpenClaw sessions_spawn pollers share this contract. A Cursor `Task` or OpenClaw `sessions_spawn` review-monitor poller whose loop runs > ~3 min MUST honour the sub-agent heartbeat contract (`docs/subagent-heartbeat.md`), same as the `spawn_subagent` path — emit periodic progress so the parent can distinguish a live poller from a hung one.
 
-~ **Visible Control UI (OpenClaw):** When OpenClaw Control UI is the operator control plane, SHOULD spawn the review-monitor as a **visible** subagent so humans can inspect progress without attaching to the parent session.
+~ **Visible Control UI (OpenClaw / #3044):** When OpenClaw Control UI is the operator control plane, SHOULD spawn the review-monitor with `visible:true` when the tool surface allows so humans can inspect progress without attaching to the parent session; invisible empty settles are higher FC04 residual risk.
 
 ! When the platform descriptor indicates Tier 1 (sub-agent support), spawn a review-monitor sub-agent using the primitive matching the descriptor:
 
@@ -373,6 +373,50 @@ Remediation:
 5. ! On receiving the completion message / result, the parent re-fetches findings (both gh pr view --comments and the secondary source) and proceeds to Step 5.
 
 ⊗ Use OpenClaw `cron` alone as Approach 1 when `sessions_spawn` is available — cron is Approach 2 scheduler fallback only (#2876).
+
+### Empty announce ≠ done (parent DoD) (#3044 / FC04 residual)
+
+! When a review-monitor settle arrives with **empty body**, **missing `STATUS:` line**, or **status unknown** (including host `(no output)` / empty `subagent_announce`):
+
+1. ! The parent MUST run **same-turn ground truth** before any DONE / CLEAN / merge-ready claim: at least `gh pr view <N>` (or REST `pulls/<N>`), `gh pr checks <N>`, and current HEAD SHA (`gh api repos/<owner>/<repo>/pulls/<N> -q .head.sha`).
+2. ! Classify the settle as **FC04 residual** (empty babysit ≠ done) until ground truth shows a terminal merge/close outcome **or** an explicit structured `BLOCKED` / `FAILED` handback.
+3. ⊗ Treat empty / unknown settle as `DONE`, `CLEAN`, merge-ready, or batch-complete.
+4. ⊗ Spawn a second review-monitor solely because the first settle was empty/unknown without completing the ground-truth batch first (#3044 dual-lease recurrence).
+
+~ Recurrence: enterprize PR #43 (2026-08-02) — first monitor polled live, host settled empty/unknown; parent spawned a second same-`taskName` monitor; dual lease collision while PR stayed open. See also `meta/lessons.md` and FC04 / growth friction R1 + R10.
+
+### Single review-monitor lease (#3044 / #2814)
+
+! **One sticky lease per PR:** ownership is the single sticky GitHub PR comment `<!-- deft:review-owner -->` (or the dual-invoke `review-monitor:register` form that writes it). Parallel ownership is forbidden.
+
+! **Pre-spawn check:** before launching another Approach 1 review-monitor (`sessions_spawn`, `spawn_subagent`, Cursor `Task`, `start_agent`):
+
+1. ! Read the sticky lease (dual-invoke `verify:review-monitor` when available, else `gh api` issues comments for `<!-- deft:review-owner -->`).
+2. ! List active same-PR / same-`taskName` subagents when the host exposes that surface (OpenClaw `subagents list` or equivalent).
+3. ⊗ Spawn a second monitor while a prior owner is **running**.
+4. ⊗ Spawn a second monitor when the last settle was **empty/unknown** and ground truth has **not** shown a terminal merge/close (or explicit structured handback that releases ownership).
+5. ! If the prior owner is **dead** (liveness fail / `REDISPATCH_OK`) and the PR is still open: spawn **one** replacement monitor and **update** the lease comment (same sticky comment edit / re-register) — never silent dual ownership.
+6. ! On register conflict: attach to the existing owner or stop — do not parallel-fix.
+
+### Required non-empty monitor handback (#3044)
+
+! Approach 1 review-monitor prompts (including `templates/swarm-greptile-poller-prompt.md` and any host-filled spawn prompt) MUST require a **non-empty** final handback with these fields:
+
+```text
+STATUS: DONE|BLOCKED|FAILED
+HEAD: <sha>
+CHECKS: <summary>
+MERGE: <url|error|n/a>
+ISSUE: <closed|open|n/a>
+NOTES: <short>
+```
+
+⊗ Empty final assistant message from a review-monitor.
+⊗ Parent treating a settle that lacks `STATUS:` as success.
+
+~ **Visible Control UI risk (#3044):** When OpenClaw Control UI is the operator plane, prefer `visible:true` on the review-monitor spawn; invisible empty settles are higher risk for FC04 misclassification. Cross-link: `skills/deft-directive-swarm/references/host-openclaw.md` Babysit / review-monitor residual.
+
+
 
 **Approach 2 (fallback -- no sub-agent primitive for the descriptor):**
 
@@ -566,3 +610,6 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Activate Approach 3 (blocking `Start-Sleep` loop) without first warning the user that it will lock the conversation pane and receiving confirmation
 - ⊗ Exit the review loop on a Greptile confidence number alone while the check run is non-terminal -- a confidence score is NOT a verdict without a terminal check-run (`completed` + `{success, neutral}`) AND a HEAD-matching `Last reviewed commit:` completion marker (#1259)
 - ⊗ Call `gh pr merge` on cached/earlier review state without an immediately-preceding pre-merge re-poll that re-satisfies the Step 6 fail-closed all-of (#1259)
+- ⊗ Treat empty/unknown review-monitor settle as DONE/CLEAN/merge-ready without same-turn ground truth (#3044 / FC04 residual)
+- ⊗ Spawn a second review-monitor while prior owner is running or last settle was empty/unknown without terminal ground truth (#3044)
+- ⊗ Accept empty review-monitor final message missing STATUS/HEAD/CHECKS/MERGE handback (#3044)

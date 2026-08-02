@@ -542,6 +542,18 @@ Send:
 - ! Use Python scripts (single `run_shell_command` call) for the poll loop, NEVER shell `Start-Sleep` + repeated tool calls. The Python script handles `time.sleep({poll_interval_seconds})` between polls and exits when a terminal condition fires.
 - ! Always pass `do_not_summarize_output: true` semantics when fetching `gh pr view --comments` -- summarizers silently drop the Outside-Diff section.
 - ! Send a status message to `{parent_agent_id}` at start (acknowledging the task) and at every terminal exit (CLEAN / NEW P0/P1 FINDINGS escalation / ERRORED / TIMEOUT / STALL / INFORMAL-CLEAN). Route it through the host completion channel for your primitive (see Role posture -- OpenClaw `sessions_spawn` uses parent push / announce). Do NOT silently complete.
+- ! **Required non-empty monitor handback (#3044):** every terminal exit message MUST be non-empty and include these structured fields (map CLEAN → `STATUS: DONE`, NEW P0/P1 / INFORMAL-CLEAN / TIMEOUT / STALL → `STATUS: BLOCKED`, ERRORED → `STATUS: FAILED` unless a hard failure):
+
+```text
+STATUS: DONE|BLOCKED|FAILED
+HEAD: <sha>
+CHECKS: <summary>
+MERGE: <url|error|n/a>
+ISSUE: <closed|open|n/a>
+NOTES: <short>
+```
+
+⊗ Empty final assistant message / empty `subagent_announce` body. Parents treat empty or missing-`STATUS` settles as FC04 residual, not success (`skills/deft-directive-review-cycle/SKILL.md` Empty announce ≠ done).
 
 ## Implementation Notes
 

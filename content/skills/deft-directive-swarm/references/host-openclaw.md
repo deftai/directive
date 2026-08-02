@@ -73,6 +73,16 @@ Package install alone does not put always-pins into `~/.openclaw/workspace/skill
 ! Babysit / PR shepherd on OpenClaw remains **Approach 1** via `sessions_spawn` (`skills/deft-directive-review-cycle/SKILL.md`). Cron alone is not Approach 1 (#2874 / #2876).
 ⊗ Regress babysit to main-session `gh` poll + cron when `sessions_spawn` is available.
 
+### Empty announce ≠ done + single lease residual (#3044)
+
+Skill residual of #2874 / #2876 (spawn routing fixed; post-spawn ownership still thrashed). Canonical MUST language lives in `skills/deft-directive-review-cycle/SKILL.md` (`### Empty announce ≠ done`, `### Single review-monitor lease`, `### Required non-empty monitor handback`).
+
+! On empty body / missing `STATUS:` / status-unknown review-monitor settle (`subagent_announce` with `(no output)` included): parent MUST same-turn ground truth (`gh pr view` + `gh pr checks` + HEAD) and MUST NOT treat the settle as DONE/CLEAN/merge-ready — **FC04 residual**.
+! One sticky `<!-- deft:review-owner -->` lease per PR. Pre-spawn: list active same-`taskName` / lease holder. ⊗ Second monitor while prior owner is running **or** last settle was empty/unknown without terminal ground truth. Dead owner + open PR → one replacement + lease update only.
+! Monitor handback MUST be non-empty with `STATUS` / `HEAD` / `CHECKS` / `MERGE` (see review-cycle skill + `templates/swarm-greptile-poller-prompt.md`).
+~ Prefer `visible:true` when Control UI is the operator plane; invisible empty settles raise FC04 misclassification risk.
+~ Recurrence: enterprize PR #43 (2026-08-02) dual-monitor + empty settle.
+
 ## Monitor / completion channel
 
 ! Completion is parent push / announce. Do not poll via Grok Build `get_command_or_subagent_output` or Cursor Task-complete semantics.
