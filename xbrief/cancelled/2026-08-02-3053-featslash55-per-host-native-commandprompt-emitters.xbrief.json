@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3053",
-    "updated": "2026-08-02T21:00:27Z"
+    "updated": "2026-08-02T22:00:32Z"
   },
   "plan": {
     "title": "feat(slash,#55): per-host native command/prompt emitters",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "Per-host native command/prompt emitters for epic #55 Wave 1-2. Consume packages/core slash generator IR from #3052 without duplicating the L2 name table. Emit host-specific file layouts for enabled formats (claude, cursor, codex, grok as formats allow).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3053",
@@ -18,28 +18,28 @@
     "items": [
       {
         "title": "Emitters consume shared IR",
-        "status": "proposed",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Given the #3052 generator IR, when an emitter runs, then it does not redefine the L2 product table and produces thin wrappers only."
         }
       },
       {
         "title": "Host path layouts for known formats",
-        "status": "proposed",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Given enabled host formats (at least Claude Code layout), when emit runs, then files land under the host-specific directory with L4 hyphen names."
         }
       },
       {
         "title": "Unit tests for emitters",
-        "status": "proposed",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Given emitter unit tests, when they run, then they assert non-inlining, stable host paths, and count matches product set."
         }
       },
       {
         "title": "CHANGELOG cites #3053",
-        "status": "proposed",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Given CHANGELOG Unreleased, when reviewed, then #3053 and Refs #55 appear."
         }
@@ -87,6 +87,6 @@
         "missing_traces_justification": "Depends on merged PR #3058 / closed #3052 on master (slash IR). AC from #3053 and LockedDecisions on #55."
       }
     },
-    "updated": "2026-08-02T21:00:27Z"
+    "updated": "2026-08-02T22:00:32Z"
   }
 }
