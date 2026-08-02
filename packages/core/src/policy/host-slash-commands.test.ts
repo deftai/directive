@@ -2,9 +2,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { listSlashEmitterHosts } from "../slash/emitters.js";
 import {
   DEFAULT_HOST_SLASH_COMMANDS_POLICY,
-  enabledSlashDepositHosts,
   FIELD_HOST_SLASH_COMMANDS_CLI_ALIAS,
   inspectHostSlashCommands,
   isHostSlashCommandDepositEnabled,
@@ -37,7 +37,7 @@ function writeProjectDefinition(root: string, policy: Record<string, unknown>): 
 describe("hostSlashCommands policy (#3054)", () => {
   it("defaults all four emitter hosts to true (not single-host-only)", () => {
     expect(resolveHostSlashCommandsPolicy(undefined)).toEqual(DEFAULT_HOST_SLASH_COMMANDS_POLICY);
-    expect(enabledSlashDepositHosts()).toEqual(["claude", "cursor", "grok", "codex"]);
+    expect(listSlashEmitterHosts().every((h) => isHostSlashCommandDepositEnabled(h))).toBe(true);
     expect(isHostSlashCommandDepositEnabled("claude")).toBe(true);
   });
 
@@ -47,7 +47,8 @@ describe("hostSlashCommands policy (#3054)", () => {
     expect(resolved.cursor).toBe(false);
     expect(resolved.grok).toBe(true);
     expect(resolved.codex).toBe(true);
-    expect(enabledSlashDepositHosts(resolved)).toEqual(["grok", "codex"]);
+    expect(isHostSlashCommandDepositEnabled("claude", resolved)).toBe(false);
+    expect(isHostSlashCommandDepositEnabled("grok", resolved)).toBe(true);
   });
 
   it("validates boolean host keys and rejects unknown hosts", () => {

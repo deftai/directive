@@ -7,7 +7,6 @@
 
 import {
   isSlashEmitterHostId,
-  listSlashEmitterHosts,
   SLASH_EMITTER_HOSTS,
   type SlashEmitterHostId,
 } from "../slash/emitters.js";
@@ -92,13 +91,6 @@ export function isHostSlashCommandDepositEnabled(
   policy: HostSlashCommandsPolicy = DEFAULT_HOST_SLASH_COMMANDS_POLICY,
 ): boolean {
   return policy[host];
-}
-
-/** Hosts that should receive deposit under the given policy (default = all emitters). */
-export function enabledSlashDepositHosts(
-  policy: HostSlashCommandsPolicy = DEFAULT_HOST_SLASH_COMMANDS_POLICY,
-): readonly SlashEmitterHostId[] {
-  return listSlashEmitterHosts().filter((host) => isHostSlashCommandDepositEnabled(host, policy));
 }
 
 function fieldFromResolved(

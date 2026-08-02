@@ -19,8 +19,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import { containedWrite } from "../fs/contained-write.js";
 import {
-  enabledSlashDepositHosts,
   type HostSlashCommandsPolicy,
+  isHostSlashCommandDepositEnabled,
   loadHostSlashCommandsPolicyFromProject,
 } from "../policy/host-slash-commands.js";
 import {
@@ -64,16 +64,16 @@ export function writeSlashCommandDeposit(
   const writtenPaths: string[] = [];
   const removedPaths: string[] = [];
   const preservedCustomPaths: string[] = [];
-  const depositedHosts: SlashEmitterHostId[] = [...enabledSlashDepositHosts(policy)];
-  const enabled = new Set<SlashEmitterHostId>(depositedHosts);
+  const depositedHosts: SlashEmitterHostId[] = [];
   const skippedHosts: SlashEmitterHostId[] = [];
 
   for (const hostId of listSlashEmitterHosts()) {
-    if (!enabled.has(hostId)) {
+    if (!isHostSlashCommandDepositEnabled(hostId, policy)) {
       skippedHosts.push(hostId);
       removedPaths.push(...stripManagedHostCommandFiles(rootAbs, hostId));
       continue;
     }
+    depositedHosts.push(hostId);
     const files = emitHostCommandFiles(hostId);
     for (const file of files) {
       const outcome = writeHostCommandFileIfChanged(rootAbs, file);
