@@ -65,8 +65,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Through-merge worker dispatch (#3032)
 
-! On operator intent equivalent to **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work: the parent conversation MUST NOT edit product code or own the implementation PR as the leaf implementer.
-! Parent MUST dispatch (or re-dispatch) a worker with `drive-to: merge-ready`, worktree isolation when available, xBRIEF preflight, pre-pr + review-cycle, and merge/`scope:complete` per #1880 Gap C. **Even if cohort size is 1** — use the swarm/solo-worker launch path, not parent implements.
+! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C).
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
 
 ## Review-surface precedence (#2308)
