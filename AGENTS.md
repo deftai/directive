@@ -128,6 +128,8 @@ Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Mu
 
 Orchestrator dispatch doctrine (#1880): `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954); canonical prose in `content/templates/agent-prompt-preamble.md` §9.
 
+- ! **Through-merge worker dispatch (#3032):** On operator intent equivalent to **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work: the parent conversation MUST NOT edit product code or own the implementation PR as the leaf implementer. Parent MUST dispatch (or re-dispatch) a worker with `drive-to: merge-ready`, worktree isolation when available, xBRIEF preflight, pre-pr + review-cycle, and merge/`scope:complete` per Gap C. **Even if cohort size is 1** — use the swarm/solo-worker launch path, not parent implements.
+- ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
 - ! **Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work — they spawn their own review poller per review-cycle monitoring tiers; the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.
 - ! **Post-merge scope lifecycle (#2321 / Gap C):** Workers scoped `stop-at: pr-open` MUST NOT run `scope:complete` before exit; the orchestrator (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort`) MUST run `scope:complete` or `scope:cancel` after merge. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `scope:complete` in their unit of work. `task verify:orphan-active` fails closed on active/running briefs whose issues are closed or linked PR is merged.
 - ! **Background dispatch (Gap D):** Long-running workers (>~3 min: implementation, fix batches, review-cycle owners, pollers) MUST dispatch independently / in the background (on Cursor: Task tool `run_in_background: true`) so the conversation channel stays interactive; foreground dispatch is for short tasks only.
@@ -159,7 +161,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=250529fc936f refreshed=2026-07-23T16:09:29Z session=eb091322de86 -->
+<!-- deft:managed-section v3 sha=93fb396df4e4 refreshed=2026-08-02T02:20:15Z session=5f49ced64d28 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -223,6 +225,12 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
+
+## Through-merge worker dispatch (#3032)
+
+! On operator intent equivalent to **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work: the parent conversation MUST NOT edit product code or own the implementation PR as the leaf implementer.
+! Parent MUST dispatch (or re-dispatch) a worker with `drive-to: merge-ready`, worktree isolation when available, xBRIEF preflight, pre-pr + review-cycle, and merge/`scope:complete` per #1880 Gap C. **Even if cohort size is 1** — use the swarm/solo-worker launch path, not parent implements.
+⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
 
 ## Review-surface precedence (#2308)
 

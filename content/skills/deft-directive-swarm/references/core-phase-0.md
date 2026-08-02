@@ -4,6 +4,12 @@
 
 ! Before assigning work to agents, build the cohort from the triage queue (queue-driven per #1142 / N2; see Step 0 below), then read project state and plan allocation against the activated cohort.
 
+### Through-merge / N=1 still uses the launch path (#3032)
+
+! When operator intent is **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work, the parent (monitor) conversation MUST NOT implement product code or own the implementation PR as the leaf. Parent MUST run this skill's launch path: worktree isolation when available, worker envelope with `drive-to: merge-ready`, xBRIEF preflight, pre-pr + review-cycle, then merge/`scope:complete` per #1880 Gap C.
+! **Cohort size N=1 is still a cohort for dispatch.** Solo through-merge uses the same swarm/solo-worker launch path as multi-story (`dispatch_kind: solo` or a one-story swarm-cohort). Do not treat "only one issue" as permission for the parent to code.
+⊗ Parent implements, babysits product fix loops, or skips worktree + worker dispatch for through-merge / drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+
 ### Headless cohort fast-path: low-ceremony launch (C1 / #1387)
 
 ! When the operator supplies a **pre-approved cohort** via the **C1** `task swarm:launch` CLI, Phase 0 runs in headless / low-ceremony mode: the per-phase interactive approval gates (the Step 0c promote-fill prompts, the Step 0.5 lifecycle-bridge approval, and the Step 4/5 allocation approval) collapse into a SINGLE consent -- the `## Allocation context` token (#1378) carried in the dispatch envelope. The interactive promote-fill loop (Step 0a -- 0d below) is SKIPPED.

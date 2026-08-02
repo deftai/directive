@@ -1,0 +1,62 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for process fix: through-merge / drive-to:merge-ready must dispatch worker; N=1 uses swarm path (#3032)",
+    "updated": "2026-08-02T02:23:21Z"
+  },
+  "plan": {
+    "title": "process: through merge / drive-to:merge-ready must dispatch worker (parent must not implement); N=1 uses swarm path",
+    "status": "running",
+    "narratives": {
+      "Description": "On through-merge / drive-to:merge-ready intent, parent must dispatch a worker (not implement). N=1 still uses swarm/solo launch path.",
+      "Origin": "https://github.com/deftai/directive/issues/3032",
+      "Overview": "Process recurrence of #1880 Gap C: parent implements product work on through-merge intent instead of dispatching drive-to:merge-ready worker with worktree isolation. Even cohort size 1 must use swarm/solo path."
+    },
+    "items": [
+      {
+        "title": "agents-entry + AGENTS: through-merge !/⊗ bullets (#1309)",
+        "status": "completed"
+      },
+      {
+        "title": "task agents:refresh after agents-entry edit",
+        "status": "completed"
+      },
+      {
+        "title": "Swarm skill source: N=1 / through-merge uses launch path",
+        "status": "completed"
+      },
+      {
+        "title": "skill-pin-policy.md cross-ref #3032",
+        "status": "completed"
+      },
+      {
+        "title": "Lesson pack or docs/analysis note for multi-agent recurrence",
+        "status": "completed"
+      },
+      {
+        "title": "agents_entry_contract markers for #3032",
+        "status": "completed"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] process entry",
+        "status": "completed"
+      },
+      {
+        "title": "Tests: agents-entry marker contract green",
+        "status": "completed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3032",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3032: through merge / drive-to:merge-ready must dispatch worker"
+      }
+    ],
+    "updated": "2026-08-02T02:23:21Z",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "bug-fix"
+    }
+  }
+}

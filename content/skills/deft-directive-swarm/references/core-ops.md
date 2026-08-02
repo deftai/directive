@@ -92,6 +92,7 @@ CONSTRAINTS:
 
 ## Anti-Patterns
 
+- ⊗ Parent conversation implements or babysits product fix/CI loops for **through merge** / **drive-to: merge-ready** story work when background subagent/worktree dispatch is available — even if cohort size is 1; use the swarm/solo-worker launch path (#3032 / #1880 Gap C)
 - ⊗ Start prompts with context or description instead of an imperative TASK directive
 - ⊗ Use `--mcp` with Warp MCP server UUIDs from standalone (non-Warp) terminals
 - ⊗ Assign overlapping files to multiple agents

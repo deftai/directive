@@ -63,6 +63,12 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 
+## Through-merge worker dispatch (#3032)
+
+! On operator intent equivalent to **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work: the parent conversation MUST NOT edit product code or own the implementation PR as the leaf implementer.
+! Parent MUST dispatch (or re-dispatch) a worker with `drive-to: merge-ready`, worktree isolation when available, xBRIEF preflight, pre-pr + review-cycle, and merge/`scope:complete` per #1880 Gap C. **Even if cohort size is 1** — use the swarm/solo-worker launch path, not parent implements.
+⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).

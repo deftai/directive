@@ -104,11 +104,21 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Deterministic questions runtime obligation (#1470)",
   "## Skills",
   "## Skill pin policy (#2508)",
+  "## Through-merge worker dispatch (#3032)",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",
   "## Contextual guardrails (runtime-detect lazy-load)",
   "## Content packs",
+] as const;
+
+/** Always-on through-merge dispatch doctrine (#3032) — parent must not implement. */
+const THROUGH_MERGE_DISPATCH_MARKERS = [
+  "Through-merge worker dispatch (#3032)",
+  "drive-to: merge-ready",
+  "cohort size is 1",
+  "swarm/solo-worker launch path",
+  "Parent conversation implements or babysits",
 ] as const;
 
 const PROPAGATION_ACTION_VERBS = [
@@ -704,6 +714,11 @@ describe("test_agents_entry_contract", () => {
   it("propagation_header_markers_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_HEADER_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, PROPAGATION_HEADER_MARKERS)).toEqual([]);
+  });
+
+  it("through_merge_dispatch_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
   });
 
   it("portable_shell_orientation_markers_present_in_both_files", () => {

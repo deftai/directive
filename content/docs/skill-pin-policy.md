@@ -69,9 +69,16 @@ The managed AGENTS.md section `## Skill pin policy (#2508)` carries the framewor
 
 Skills-pack entries (`content/packs/skills/skills-pack-0.1.json`) MAY record `"alwaysPin": true` on metadata-only rows so slice tooling and future gates can list pins without parsing AGENTS.md. The authoritative runtime list for agents remains the AGENTS.md pin section; the catalog field is advisory for tooling (#1535).
 
+## Through-merge is false-negative sensitive (#3032)
+
+Operator phrases such as **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** often start implementation **without** a clear `swarm` keyword. That is the same false-negative class this policy targets: the parent may code instead of loading `deft-directive-swarm` and dispatching a worker.
+
+! AGENTS.md carries short always-on `!` / `⊗` bullets under **Through-merge worker dispatch (#3032)** (agents-entry + maintainer multi-agent doctrine). N=1 still uses the swarm/solo launch path; parent MUST NOT implement when background subagent/worktree dispatch is available. See also swarm Phase 0 `references/core-phase-0.md` and #1880 Gap C.
+
 ## Related
 
 - Skills Index: `REFERENCES.md` § Skills Index
 - Progressive disclosure: #2484
 - Trigger coverage evals: #1586
 - Review-surface precedence: #2308 / `deft-directive-review-cycle`
+- Through-merge parent-must-dispatch: #3032 / AGENTS.md `## Through-merge worker dispatch (#3032)`

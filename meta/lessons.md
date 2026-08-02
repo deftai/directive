@@ -697,3 +697,15 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Rule (release-scoped only):** Hatch applies only when branches is the sole metric below 85%. Query open issues via `coverage-debt in:title,body` and `allow-coverage-debt in:body`; file new debt with title prefix `coverage-debt:` and both markers in body. If no open debt → file `#N`, continue with `--allow-coverage-debt=#N` (PowerShell: `N` or `"#N"`). If open debt from prior hatch → restore all four metrics ≥ 85% before reusing hatch. Multi-metric misses, hangs, and failing tests stay under #2859 file-and-merge.
 
 **Canonical encoding:** `skills/deft-directive-release/SKILL.md` § Step 5 branch-coverage threshold — open-issue ledger hatch (#2866); `docs/RELEASING.md` § Coverage debt hatch during release.
+
+## Through-merge / drive-to:merge-ready parent must dispatch worker (2026-08)
+
+**Source:** Issue #3032. Recurrence on #3027 through-merge session before operator re-instruction.
+
+**Failure mode:** Operator intent equivalent to through merge / drive to merge / land-ship / drive-to:merge-ready is treated as parent-implements authorization. Parent edits product code, runs partial CI/coverage loops, stashes WIP, and never opens a merge-ready worker with worktree isolation. N=1 is misread as skip swarm.
+
+**Rule:** Parent MUST NOT implement as the leaf. Parent MUST dispatch (or re-dispatch) a worker with drive-to: merge-ready, worktree isolation when available, xBRIEF preflight, pre-pr + review-cycle, merge/scope:complete per #1880 Gap C. Even if cohort size is 1, use the swarm/solo-worker launch path.
+
+**Canonical encoding:** AGENTS.md / templates/agents-entry.md ## Through-merge worker dispatch (#3032); maintainer Multi-agent #1880 bullets; skills/deft-directive-swarm/references/core-phase-0.md Through-merge / N=1; core-ops anti-pattern; content/docs/skill-pin-policy.md Through-merge is false-negative sensitive; agents_entry_contract markers.
+
+**Cross-references:** #1880 Gap C/D, #2508 skill pin policy, #954 multi-agent, #3027 session recurrence, #3032.
