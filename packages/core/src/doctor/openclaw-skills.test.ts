@@ -400,11 +400,7 @@ describe("escaping symlink pins (#3008)", () => {
     mkdirSync(skills, { recursive: true });
     const incomplete = join(root, "incomplete-src");
     mkdirSync(incomplete, { recursive: true });
-    const missing = installOpenClawPin(
-      "deft-directive-build",
-      incomplete,
-      skills,
-    );
+    const missing = installOpenClawPin("deft-directive-build", incomplete, skills);
     expect(missing.method).toBe("skipped");
     expect(missing.detail).toMatch(/source pin missing/i);
 
@@ -716,7 +712,7 @@ describe("runOpenClawSkillPinsCheck (#3001)", () => {
           homeDir: () => home,
           contentRootFor: () => content,
           isTty: () => true,
-          readYn: (prompt) => {
+          readYn: (_prompt) => {
             prompts += 1;
             // Wire-missing prompt first (default true path); then divergent confirm
             return true;
@@ -725,9 +721,9 @@ describe("runOpenClawSkillPinsCheck (#3001)", () => {
       },
     );
     expect(prompts).toBeGreaterThan(0);
-    expect(
-      findingsTtyYes[0]?.status === "fixed" || findingsTtyYes[0]?.status === "present",
-    ).toBe(true);
+    expect(findingsTtyYes[0]?.status === "fixed" || findingsTtyYes[0]?.status === "present").toBe(
+      true,
+    );
   });
 
   it("allAgents present path and assess file/other divergent kinds (#3027)", () => {

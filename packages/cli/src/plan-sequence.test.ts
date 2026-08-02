@@ -88,13 +88,7 @@ describe("plan-sequence CLI (#2402)", () => {
       entries: [{ id: "a", kind: "task" }],
     });
     expect(
-      planSequenceMain([
-        "set",
-        `--project-root=${root}`,
-        "--from-json",
-        inline,
-        "--json",
-      ]),
+      planSequenceMain(["set", `--project-root=${root}`, "--from-json", inline, "--json"]),
     ).toBe(0);
     expect(planSequenceMain(["current", "--project-root", root, "--json"])).toBe(0);
     expect(planSequenceMain(["advance", "--project-root", root, "--json"])).toBe(0);
