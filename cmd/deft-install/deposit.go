@@ -115,13 +115,14 @@ func escapeERE(s string) string {
 // (classifyChangedPaths), so the guard the installer writes can never drift from
 // what the installer actually manages.
 //
-// CRITICAL: this allowlist MUST NOT cover consumer-authored vBRIEF data
-// (vbrief/PROJECT-DEFINITION.vbrief.json, vbrief/**/*.vbrief.json). Mixing that
-// with a .deft/core/** change MUST still trip the guard -- that separation is
-// the whole point of #1430. The vbrief entries below are scaffolding only
-// (.deft-version, vbrief.md, schemas/, migration/, and the per-lifecycle
-// .gitkeep placeholders), derived from vbriefLifecycleDirs so they stay in
-// lockstep with what WriteConsumerVbrief deposits.
+// CRITICAL (#1430 / #3030): this allowlist MUST honor the SPEC consumer-path
+// denylist (consumerGuardMustFire). It MUST NOT cover consumer-authored vBRIEF
+// data (vbrief/PROJECT-DEFINITION.vbrief.json, vbrief/**/*.vbrief.json, or the
+// xbrief equivalents). Mixing those with a .deft/core/** change MUST still trip
+// the guard -- that separation is the whole point of #1430. The vbrief entries
+// below are scaffolding only (.deft-version, vbrief.md, schemas/, migration/,
+// and the per-lifecycle .gitkeep placeholders), derived from vbriefLifecycleDirs
+// so they stay in lockstep with what WriteConsumerVbrief deposits.
 func installerManagedMatchers() []installerManagedMatcher {
 	matchers := []installerManagedMatcher{
 		{exact: "AGENTS.md"},
@@ -147,13 +148,41 @@ func installerManagedMatchers() []installerManagedMatcher {
 	return matchers
 }
 
+// consumerGuardMustFire is the #1430 / #3030 denylist of consumer probe paths
+// that must never appear in installerManagedMatchers / the deposited guard ERE.
+// Mirrors packages/core/src/init-deposit/hygiene.ts CONSUMER_GUARD_MUST_FIRE.
+// Legitimate scaffolding (.deft-version, .gitkeep, schemas/, migration/) is NOT
+// listed here. Init may still seed PROJECT-DEFINITION (#3013); create ≠ allowlist.
+var consumerGuardMustFire = []string{
+	"xbrief/PROJECT-DEFINITION.xbrief.json",
+	"vbrief/PROJECT-DEFINITION.vbrief.json",
+	"xbrief/active/example-scope.xbrief.json",
+	"vbrief/active/example-scope.vbrief.json",
+	"xbrief/proposed/example-scope.xbrief.json",
+	"vbrief/pending/example-scope.vbrief.json",
+}
+
+// assertInstallerAllowlistHonors1430 fails closed when any consumer denylist
+// path is covered by the installer-managed allowlist (#3030). Pure over matchers
+// so tests can inject a poisoned set without mutating production state.
+func assertInstallerAllowlistHonors1430(matchers []installerManagedMatcher) {
+	for _, path := range consumerGuardMustFire {
+		if matchesAnyInstallerManaged(matchers, path) {
+			panic("#1430 violation: " + path + " must not be installer-managed (SPEC consumer denylist; see consumerGuardMustFire / #3030)")
+		}
+	}
+}
+
 // installerManagedGuardERE renders the installer-managed allowlist as one POSIX
 // ERE alternation (atoms joined by "|") suitable for `grep -E`. It is the exact
 // pattern embedded in the deposited guard AND the pattern classifyChangedPaths
 // mirrors, so the two cannot diverge. The atoms contain no single quotes, so the
 // result is safe to embed inside a single-quoted shell string.
+//
+// Fails closed (#3030) if the allowlist covers any consumerGuardMustFire path.
 func installerManagedGuardERE() string {
 	matchers := installerManagedMatchers()
+	assertInstallerAllowlistHonors1430(matchers)
 	atoms := make([]string, len(matchers))
 	for i, m := range matchers {
 		atoms[i] = m.ere()

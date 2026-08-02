@@ -2,7 +2,13 @@
  * Scoped staging + installer-managed allowlist for TS-native init/update (#1453).
  *
  * Mirrors cmd/deft-install/hygiene.go + deposit.go installerManagedMatchers.
- * Refs #1576, #1453, #1430.
+ *
+ * CRITICAL (#1430 / #3030): the allowlist MUST honor the SPEC consumer-path
+ * denylist (`CONSUMER_GUARD_MUST_FIRE`). Consumer-authored PROJECT-DEFINITION
+ * and scope briefs are never installer-managed; if they reappear in
+ * `installerManagedMatchers()`, unit tests and deposit-time assert fail closed.
+ *
+ * Refs #1576, #1453, #1430, #3029, #3030.
  */
 
 import { execFileSync } from "node:child_process";
@@ -23,6 +29,27 @@ export interface InstallerManagedMatcher {
   readonly exact?: string;
   readonly prefix?: string;
 }
+
+/**
+ * Consumer paths that MUST trip no-mixed-core-and-app when mixed with
+ * `.deft/core/**` (#1430 SPEC). These probe paths must never match
+ * `installerManagedMatchers()` / the deposited guard ERE.
+ *
+ * Legitimate installer scaffolding (xbrief/.deft-version, lifecycle .gitkeep,
+ * schemas/, migration/, xbrief.md) is NOT in this denylist — see #2277.
+ * Init may still *create* PROJECT-DEFINITION (#3013); create ≠ allowlist.
+ *
+ * Refs #3030, #3029, #1430.
+ */
+export const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [
+  "xbrief/PROJECT-DEFINITION.xbrief.json",
+  "vbrief/PROJECT-DEFINITION.vbrief.json",
+  // Representative consumer scope briefs (not scaffolding markers).
+  "xbrief/active/example-scope.xbrief.json",
+  "vbrief/active/example-scope.vbrief.json",
+  "xbrief/proposed/example-scope.xbrief.json",
+  "vbrief/pending/example-scope.vbrief.json",
+];
 
 /** Single source of truth for installer-managed paths (#1440 / #1576). */
 export function installerManagedMatchers(): InstallerManagedMatcher[] {
@@ -54,9 +81,10 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     // `deft update` framework-deposit PR trips no-mixed-core-and-app (#2277).
     { exact: "xbrief/.deft-version" },
     { exact: "xbrief/xbrief.md" },
-    // CRITICAL (#1430 / #3029): do NOT allowlist consumer-authored PROJECT-DEFINITION
-    // (xbrief/ or vbrief/). Init may still seed PD (#3013); the seed is app-owned for
-    // guard classification so core+PD mixed PRs fail no-mixed-core-and-app.
+    // CRITICAL (#1430 / #3029 / #3030): do NOT allowlist consumer-authored
+    // PROJECT-DEFINITION (xbrief/ or vbrief/) or consumer scope briefs.
+    // Init may still seed PD (#3013); the seed is app-owned for guard classification
+    // so core+PD mixed PRs fail no-mixed-core-and-app. See CONSUMER_GUARD_MUST_FIRE.
     { prefix: "xbrief/schemas/" },
     { prefix: "xbrief/migration/" },
     ...VBRIEF_LIFECYCLE_DIRS.map((sub) => ({ exact: `xbrief/${sub}/.gitkeep` })),
@@ -72,13 +100,6 @@ function matcherToEre(matcher: InstallerManagedMatcher): string {
   return `^${escapeEre(matcher.prefix ?? "")}`;
 }
 
-/** POSIX ERE alternation embedded in the deposited deft-core-guard workflow. */
-export function installerManagedGuardEre(): string {
-  return installerManagedMatchers()
-    .map((matcher) => matcherToEre(matcher))
-    .join("|");
-}
-
 function matchesInstallerManaged(
   path: string,
   matchers: readonly InstallerManagedMatcher[],
@@ -90,8 +111,72 @@ function matchesInstallerManaged(
   return false;
 }
 
+/**
+ * Fail closed when any #1430 consumer denylist path is covered by the
+ * installer-managed allowlist (#3030). Pure over `matchers` so tests can inject
+ * a bad matcher without mutating production state.
+ */
+export function assertInstallerAllowlistHonors1430(
+  matchers: readonly InstallerManagedMatcher[] = installerManagedMatchers(),
+): void {
+  for (const path of CONSUMER_GUARD_MUST_FIRE) {
+    if (matchesInstallerManaged(path, matchers)) {
+      throw new Error(
+        `#1430 violation: ${path} must not be installer-managed (SPEC consumer denylist; see CONSUMER_GUARD_MUST_FIRE / #3030)`,
+      );
+    }
+  }
+}
+
+/** POSIX ERE alternation embedded in the deposited deft-core-guard workflow. */
+export function installerManagedGuardEre(): string {
+  const matchers = installerManagedMatchers();
+  // Refuse to emit a guard workflow that would exempt consumer denylist paths.
+  assertInstallerAllowlistHonors1430(matchers);
+  return matchers.map((matcher) => matcherToEre(matcher)).join("|");
+}
+
 export function isInstallerManagedPath(path: string): boolean {
   return matchesInstallerManaged(path, installerManagedMatchers());
+}
+
+export interface MixedCoreAndAppClassification {
+  readonly core: string[];
+  readonly installerManaged: string[];
+  readonly app: string[];
+  /** True when both core and app are non-empty — the deposited guard fails. */
+  readonly wouldFail: boolean;
+}
+
+/**
+ * TS twin of Go `classifyChangedPaths` / deposited shell guard (#1430).
+ * Core = `.deft/core/**`; installer-managed = allowlist; app = everything else.
+ * Guard fails iff both core and app are non-empty.
+ */
+export function classifyMixedCoreAndApp(
+  changedPaths: readonly string[],
+  matchers: readonly InstallerManagedMatcher[] = installerManagedMatchers(),
+): MixedCoreAndAppClassification {
+  const core: string[] = [];
+  const installerManaged: string[] = [];
+  const app: string[] = [];
+  for (const raw of changedPaths) {
+    const path = raw.replace(/\\/g, "/");
+    if (!path) continue;
+    if (path === ".deft/core" || path.startsWith(".deft/core/")) {
+      core.push(path);
+    } else if (matchesInstallerManaged(path, matchers)) {
+      installerManaged.push(path);
+    } else {
+      app.push(path);
+    }
+  }
+  return {
+    core,
+    installerManaged,
+    app,
+    wouldFail: core.length > 0 && app.length > 0,
+  };
 }
 
 export interface FrameworkStagePathsOptions {

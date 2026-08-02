@@ -12,11 +12,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  assertInstallerAllowlistHonors1430,
+  CONSUMER_GUARD_MUST_FIRE,
+  classifyMixedCoreAndApp,
   depositStagePaths,
   findPackageAbsentDepositPaths,
   findPackageAbsentDepositPathsSync,
   frameworkStagePaths,
+  type InstallerManagedMatcher,
   installerManagedGuardEre,
+  installerManagedMatchers,
   isDepositGeneratedMetadata,
   isInstallerManagedPath,
   prunePackageAbsentDepositPaths,
@@ -157,13 +162,78 @@ describe("PROJECT-DEFINITION is not installer-managed (#3029 / #1430)", () => {
   });
 
   it("classifies core+PD as mixed (app non-empty) for no-mixed-core-and-app", () => {
-    // Mirrors deposited guard semantics: core = .deft/core/**; app = not core and
-    // not installer-managed. Both core and app non-empty ⇒ guard fails (#1430).
-    const changed = [".deft/core/VERSION", "xbrief/PROJECT-DEFINITION.xbrief.json"];
-    const core = changed.filter((p) => p.startsWith(".deft/core/"));
-    const app = changed.filter((p) => !p.startsWith(".deft/core/") && !isInstallerManagedPath(p));
-    expect(core.length).toBeGreaterThan(0);
-    expect(app).toEqual(["xbrief/PROJECT-DEFINITION.xbrief.json"]);
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/VERSION",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+    ]);
+    expect(result.core.length).toBeGreaterThan(0);
+    expect(result.app).toEqual(["xbrief/PROJECT-DEFINITION.xbrief.json"]);
+    expect(result.wouldFail).toBe(true);
+  });
+});
+
+describe("fail-closed consumer denylist for core-guard (#3030)", () => {
+  it("assertInstallerAllowlistHonors1430 passes for production matchers", () => {
+    expect(() => assertInstallerAllowlistHonors1430()).not.toThrow();
+    expect(() => assertInstallerAllowlistHonors1430(installerManagedMatchers())).not.toThrow();
+  });
+
+  it("every CONSUMER_GUARD_MUST_FIRE path is not installer-managed", () => {
+    for (const path of CONSUMER_GUARD_MUST_FIRE) {
+      expect(isInstallerManagedPath(path)).toBe(false);
+    }
+  });
+
+  it("guard ERE does not match denylist probe paths", () => {
+    const ere = installerManagedGuardEre();
+    expect(ere).not.toContain("PROJECT-DEFINITION");
+    expect(ere).not.toContain("example-scope");
+  });
+
+  it("assertInstallerAllowlistHonors1430 fails closed if PD matcher is re-added", () => {
+    const poisoned: InstallerManagedMatcher[] = [
+      ...installerManagedMatchers(),
+      { exact: "xbrief/PROJECT-DEFINITION.xbrief.json" },
+    ];
+    expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/#1430 violation/);
+    expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(
+      /PROJECT-DEFINITION\.xbrief\.json/,
+    );
+  });
+
+  it("assert fails closed if a consumer scope brief is allowlisted", () => {
+    const poisoned: InstallerManagedMatcher[] = [
+      ...installerManagedMatchers(),
+      { exact: "xbrief/active/example-scope.xbrief.json" },
+    ];
+    expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/#1430 violation/);
+  });
+
+  it("core + PD classifies as mixed (wouldFail)", () => {
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/main.md",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+    ]);
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(result.installerManaged).toHaveLength(0);
+  });
+
+  it("core + xbrief/.deft-version only is not mixed (keep #2277)", () => {
+    const result = classifyMixedCoreAndApp([".deft/core/VERSION", "xbrief/.deft-version"]);
+    expect(result.core).toEqual([".deft/core/VERSION"]);
+    expect(result.installerManaged).toEqual(["xbrief/.deft-version"]);
+    expect(result.app).toHaveLength(0);
+    expect(result.wouldFail).toBe(false);
+  });
+
+  it("core + consumer scope brief classifies as mixed", () => {
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/VERSION",
+      "xbrief/active/example-scope.xbrief.json",
+    ]);
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toEqual(["xbrief/active/example-scope.xbrief.json"]);
   });
 });
 

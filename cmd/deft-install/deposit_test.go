@@ -642,6 +642,44 @@ func TestCoreGuard_MixedWithConsumerVbriefFails(t *testing.T) {
 	}
 }
 
+// TestAssertInstallerAllowlistHonors1430 pins the fail-closed denylist (#3030):
+// production matchers pass; injecting a consumer PROJECT-DEFINITION matcher panics.
+func TestAssertInstallerAllowlistHonors1430(t *testing.T) {
+	assertInstallerAllowlistHonors1430(installerManagedMatchers())
+
+	for _, path := range consumerGuardMustFire {
+		if matchesAnyInstallerManaged(installerManagedMatchers(), path) {
+			t.Errorf("production matchers must not cover denylist path %q", path)
+		}
+	}
+
+	// core + xbrief/.deft-version is not mixed in TS; Go lacks xbrief markers but
+	// vbrief/.deft-version must still classify as installer-managed only (#2277 parity).
+	core, managed, app := classifyChangedPaths([]string{".deft/core/VERSION", "vbrief/.deft-version"})
+	if len(core) == 0 || len(managed) == 0 || len(app) != 0 {
+		t.Errorf("core + vbrief/.deft-version must not be mixed; core=%v managed=%v app=%v", core, managed, app)
+	}
+	if guardWouldFail([]string{".deft/core/VERSION", "vbrief/.deft-version"}) {
+		t.Error("guard must PASS core + .deft-version scaffolding")
+	}
+
+	base := installerManagedMatchers()
+	poisoned := make([]installerManagedMatcher, len(base), len(base)+1)
+	copy(poisoned, base)
+	poisoned = append(poisoned, installerManagedMatcher{exact: "xbrief/PROJECT-DEFINITION.xbrief.json"})
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic when denylist path is allowlisted")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, "#1430 violation") {
+			t.Fatalf("panic message should mention #1430 violation; got %v", r)
+		}
+	}()
+	assertInstallerAllowlistHonors1430(poisoned)
+}
+
 // TestCoreGuard_AllowlistAuthoritative pins acceptance criterion (d): the
 // deposited guard template renders its matcher from the SAME allowlist source
 // the Go classifier uses, and the rendered ERE accepts exactly the

@@ -18,7 +18,7 @@ import {
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
-import { installerManagedGuardEre } from "./hygiene.js";
+import { assertInstallerAllowlistHonors1430, installerManagedGuardEre } from "./hygiene.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
 export type { InitDepositIo };
@@ -736,6 +736,8 @@ export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string)
 }
 
 function coreGuardWorkflowContent(): string {
+  // Fail closed before emitting guard ERE if allowlist violates #1430 denylist (#3030).
+  assertInstallerAllowlistHonors1430();
   const baseSha = githubActionsExpr("github.event.pull_request.base.sha");
   const headSha = githubActionsExpr("github.event.pull_request.head.sha");
   return (

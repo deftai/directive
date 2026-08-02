@@ -1,0 +1,63 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3030"
+  },
+  "plan": {
+    "title": "fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)",
+    "status": "running",
+    "narratives": {
+      "Description": "fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3030",
+      "Overview": "## Problem\n\nThe #1430 mixed-change invariant is **documented but not enforced**.\n\nSPECIFICATION.md (critical nuance on deft-core-guard):\n\n> do NOT exempt consumer-authored vBRIEF content: `xbrief/PROJECT-DEFINITION.xbrief.json` and `xbrief/**/*.xbrief.json` are the user's data; if those are mixed with a `.deft/core/**` change the guard SHOULD still fire.\n\nThat contract is prose only. `installerManagedMatchers()` in `packages/core/src/init-deposit/hygiene.ts` is a single list that feeds:\n\n1. deposit / `frameworkStagePaths` staging  \n2. deposited `deft-core-guard.yml` ERE via `installerManagedGuardEre()`\n\nAny one-line allowlist add ships to every consumer on the next deposit with **no CI failure** if it violates SPEC.\n\n### Evidence (v0.91.0)\n\n- #3013 goal: seed minimal PD on **init** for one-shot `project:render` (correct).\n- #3016 implementation: added PD exact matchers to `installerManagedMatchers()` (wrong mechanism — seed ≠ permanent installer-managed).\n- Result: consumer guard exempted PD; core+PD PRs can pass `no-mixed-core-and-app`.\n- Caught downstream: Greptile P1 on `deftai/statusreport#160`; consumer workaround `statusreport#161`; symptom ticket **#3029**.\n\n**Root cause (not #3029 itself):** standing #1430 rules were advisory. Allowlist mutation and merge paths could violate them and stay green.\n\nRelated ops note (consumer babysit): detector/`pr:watch` CLEAN can undercount Greptile P-badges — separate host/process hardening; this issue is the **product fail-closed** gap.\n\n## Suggested fix\n\n### 1. Immediate symptom (blocks #3029)\n- Remove `xbrief/PROJECT-DEFINITION.xbrief.json` and `vbrief/PROJECT-DEFINITION.vbrief.json` from `installerManagedMatchers()`.\n- Keep #3013 **seed create** on init (`seedMinimalProjectDefinition`) — create ≠ allowlist.\n- Ensure `frameworkStagePaths` on **update** does not stage PD alongside `.deft/core`.\n- If greenfield init still needs a first commit with seed+core: use an **init-only** staging flag, not the permanent guard allowlist.\n\n### 2. Fail-closed denylist (the actual root fix)\nAdd an explicit **consumer-must-fire** set that must **never** appear in `installerManagedMatchers()` / guard ERE, e.g.:\n\n- `xbrief/PROJECT-DEFINITION.xbrief.json`\n- `vbrief/PROJECT-DEFINITION.vbrief.json`\n- `xbrief/**/*.xbrief.json` scope briefs (except documented installer markers: `.deft-version`, lifecycle `.gitkeep`, schemas/, migration/, xbrief.md)\n- Mirror for legacy vbrief scope files if applicable\n\nEncode as:\n\n```ts\n// hygiene.ts (sketch)\nexport const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [\n  \"xbrief/PROJECT-DEFINITION.xbrief.json\",\n  \"vbrief/PROJECT-DEFINITION.vbrief.json\",\n  // ...\n];\n\nexport function assertInstallerAllowlistHonors1430(): void {\n  for (const path of CONSUMER_GUARD_MUST_FIRE) {\n    if (isInstallerManagedPath(path)) {\n      throw new Error(`#1430 violation: ${path} must not be installer-managed`);\n    }\n  }\n}\n```\n\nCall from:\n\n- unit tests (always)\n- optionally deposit/scaffold entry so a bad matcher cannot emit a guard workflow\n\n### 3. Regression tests (`hygiene.test.ts`)\nPin both directions:\n\n| Case | Expect |\n|------|--------|\n| `isInstallerManagedPath(\"xbrief/PROJECT-DEFINITION.xbrief.json\")` | `false` |\n| guard ERE | does **not** contain PROJECT-DEFINITION |\n| simulated diff: `.deft/core/**` + PD | classified as mixed (fail) |\n| simulated diff: `.deft/core/**` + `xbrief/.deft-version` only | not mixed (pass) — keep #2277 |\n| seed on init still creates PD when missing | unchanged #3013 behavior |\n\nOptional: small pure helper `classifyMixedCoreAndApp(changedPaths)` shared by tests and documented as the TS twin of the shell guard.\n\n### 4. Docs / SPEC cross-link\n- One line in hygiene.ts module header: allowlist MUST honor SPEC #1430 denylist; see `CONSUMER_GUARD_MUST_FIRE`.\n- #3029 closes when matchers fixed + tests green.\n- This issue stays open until denylist + tests (and preferably deposit-time assert) land.\n\n### 5. Out of scope here\n- OpenClaw babysit / `pr:watch` P-badge undercount (file separately on OC or directive review-cycle if desired).\n- Rewriting all historical SPEC narrative.\n\n## Acceptance\n\n- [ ] PD (and other consumer scope paths per SPEC) **not** in `installerManagedMatchers()`\n- [ ] `hygiene.test.ts` fails CI if anyone re-adds them\n- [ ] #3013 init seed still works without permanent guard exemption\n- [ ] #2277 xbrief/.deft-version allowlist retained\n- [ ] Deposited `coreGuardWorkflowContent()` / refresh does not reintroduce PD exemption\n- [ ] #3029 closed by the matcher removal PR (or same PR)\n- [ ] CHANGELOG note under Unreleased\n\n## Non-goals\n\n- Making PROJECT-DEFINITION framework-owned\n- Weakening no-mixed-core-and-app\n- Consumer hand-edits as the durable fix (statusreport#161 is temporary)\n\n## Refs\n\n| Ref | Role |\n|-----|------|\n| #1430 | Original guard + invariant |\n| SPEC ~“do NOT exempt consumer-authored…” | Written contract |\n| #3013 | Seed goal (valid) |\n| #3016 / v0.91.0 | Introduced allowlist regression |\n| #2277 | Legitimate xbrief marker allowlist |\n| #3029 | Symptom: PD currently allowlisted |\n| statusreport#160 | Consumer deposit of bad guard |\n| statusreport#161 | Consumer workaround (remove PD exemption) |\n\n## Source\n\nPostmortem 2026-08-01: statusreport Directive 0.91 upgrade; Greptile P1; root-cause analysis — advisory invariants, not missing design.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @ape-deft (2026-08-02T02:12:48Z)\n\nBlocks durable close of #3029. Consumer workaround already on statusreport#161 until a Directive release carries the matcher fix.\n\n### Comment by @MScottAdams (2026-08-02T02:18:00Z)\n\n## Cohort note\n\nAdded to operator swarm cohort with #3027, #3029, #3032.\n\n- **#3030** = fail-closed #1430 denylist (root fix)\n- **#3029** = PD allowlist symptom (subsumed by #3030 acceptance when matchers removed + tests)\n\nWorker dispatched: worktree `feat/3030-fail-closed-1430-denylist` / drive-to: merge-ready. Open PR #3031 may be superseded when the #3030 PR lands with both closes.",
+      "Labels": "bug, installer"
+    },
+    "items": [
+      {
+        "title": "PD (and other consumer scope paths per SPEC) **not** in `installerManagedMatchers()`",
+        "status": "proposed"
+      },
+      {
+        "title": "`hygiene.test.ts` fails CI if anyone re-adds them",
+        "status": "proposed"
+      },
+      {
+        "title": "#3013 init seed still works without permanent guard exemption",
+        "status": "proposed"
+      },
+      {
+        "title": "#2277 xbrief/.deft-version allowlist retained",
+        "status": "proposed"
+      },
+      {
+        "title": "Deposited `coreGuardWorkflowContent()` / refresh does not reintroduce PD exemption",
+        "status": "proposed"
+      },
+      {
+        "title": "#3029 closed by the matcher removal PR (or same PR)",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG note under Unreleased",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3030",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3030: fail-closed: enforce #1430 consumer-path denylist on installerManagedMatchers (SPEC must break CI)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1430",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1430"
+      }
+    ],
+    "updated": "2026-08-02T02:21:20Z"
+  }
+}
