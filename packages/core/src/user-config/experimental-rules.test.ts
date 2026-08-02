@@ -3,8 +3,6 @@ import {
   applyExperimentalRulesState,
   EXPERIMENTAL_META_ENTRIES,
   type ExperimentalRulesState,
-  extractMarkdownH2Section,
-  hasExperimentalRulesSection,
   parseExperimentalRulesState,
   setExperimentalRule,
 } from "./experimental-rules.js";
@@ -53,12 +51,15 @@ const ALL_OFF: ExperimentalRulesState = {
   "code-field": false,
 };
 
+/** Personal section for non-clobber asserts (heading through next H2). */
 function personalSlice(text: string): string {
-  const s = extractMarkdownH2Section(text, "## Personal (always wins)");
-  if (s === null) {
+  const start = text.indexOf("## Personal (always wins)");
+  if (start < 0) {
     throw new Error("Personal section missing");
   }
-  return s;
+  const after = text.slice(start);
+  const next = after.search(/\n## /);
+  return next >= 0 ? after.slice(0, next) : after;
 }
 
 /**
@@ -80,10 +81,14 @@ function defaultsCore(text: string): string {
   return after.slice(0, end);
 }
 
+function hasExperimentalSection(text: string): boolean {
+  return /^## Experimental Rules\b/m.test(text);
+}
+
 describe("parseExperimentalRulesState", () => {
   it("reports all off when section absent", () => {
     expect(parseExperimentalRulesState(SAMPLE_USER_MD)).toEqual(ALL_OFF);
-    expect(hasExperimentalRulesSection(SAMPLE_USER_MD)).toBe(false);
+    expect(hasExperimentalSection(SAMPLE_USER_MD)).toBe(false);
   });
 
   it("detects each path independently", () => {
@@ -97,7 +102,7 @@ describe("parseExperimentalRulesState", () => {
       morals: false,
       "code-field": true,
     });
-    expect(hasExperimentalRulesSection(text)).toBe(true);
+    expect(hasExperimentalSection(text)).toBe(true);
   });
 
   it("treats custom wording with the same path as on", () => {
@@ -106,6 +111,31 @@ describe("parseExperimentalRulesState", () => {
       `## Experimental Rules\n\n- ~ I like meta/SOUL.md a lot\n\n---\n`,
     );
     expect(parseExperimentalRulesState(withCustom).soul).toBe(true);
+  });
+
+  it("ignores meta path mentions outside Experimental Rules", () => {
+    const withProse = SAMPLE_USER_MD.replace(
+      "- ~ Prefer short commits",
+      "- ~ Prefer short commits\n- ! See meta/SOUL.md docs for inspiration only",
+    );
+    expect(parseExperimentalRulesState(withProse).soul).toBe(false);
+
+    // Enabling only morals must not invent SOUL from Personal prose.
+    const next = applyExperimentalRulesState(withProse, {
+      soul: false,
+      morals: true,
+      "code-field": false,
+    });
+    expect(parseExperimentalRulesState(next)).toEqual({
+      soul: false,
+      morals: true,
+      "code-field": false,
+    });
+    expect(next).toContain("meta/morals.md");
+    // Personal prose mention of SOUL remains; section still lacks SOUL bullet.
+    expect(personalSlice(next)).toContain("meta/SOUL.md");
+    const sectionMatch = next.match(/## Experimental Rules[\s\S]*?(?=\n---|\n## |$)/);
+    expect(sectionMatch?.[0] ?? "").not.toContain("meta/SOUL.md");
   });
 });
 
@@ -147,7 +177,7 @@ describe("applyExperimentalRulesState", () => {
   it("removes the section when all three are off", () => {
     const allOn = applyExperimentalRulesState(SAMPLE_USER_MD, ALL_ON);
     const next = applyExperimentalRulesState(allOn, ALL_OFF);
-    expect(hasExperimentalRulesSection(next)).toBe(false);
+    expect(hasExperimentalSection(next)).toBe(false);
     expect(next).not.toContain("meta/SOUL.md");
     expect(personalSlice(next)).toBe(personalSlice(SAMPLE_USER_MD));
     expect(defaultsCore(next)).toBe(defaultsCore(SAMPLE_USER_MD));

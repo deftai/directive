@@ -5,9 +5,9 @@
  * reference lines (SOUL / morals / code-field). Personal and Defaults section
  * bodies are never rewritten — only the `## Experimental Rules` region changes.
  *
- * Detection matches any line containing the deposit path (`meta/SOUL.md`, …);
- * enable writes the canonical setup-skill bullet. Custom bullets for other
- * topics in the same section are preserved.
+ * Detection matches lines under `## Experimental Rules` that contain the deposit
+ * path (`meta/SOUL.md`, …); enable writes the canonical setup-skill bullet.
+ * Custom bullets for other topics in the same section are preserved.
  */
 
 export type ExperimentalMetaId = "soul" | "morals" | "code-field";
@@ -51,33 +51,6 @@ function lineMentionsPath(line: string, path: string): boolean {
   return line.includes(path);
 }
 
-/**
- * Parse on/off state for the three experimental meta entries.
- * A path is ON when any non-empty line in the file contains that path
- * (typically under `## Experimental Rules`, but path-only matching is enough
- * for display — setup always writes under that heading).
- */
-export function parseExperimentalRulesState(userMdText: string): ExperimentalRulesState {
-  const state: ExperimentalRulesState = {
-    soul: false,
-    morals: false,
-    "code-field": false,
-  };
-  for (const line of userMdText.split(/\r?\n/)) {
-    for (const entry of EXPERIMENTAL_META_ENTRIES) {
-      if (lineMentionsPath(line, entry.path)) {
-        state[entry.id] = true;
-      }
-    }
-  }
-  return state;
-}
-
-/** True when the document has an `## Experimental Rules` heading. */
-export function hasExperimentalRulesSection(userMdText: string): boolean {
-  return findExperimentalSection(userMdText) !== null;
-}
-
 interface SectionSpan {
   /** Index of `## Experimental Rules` heading start. */
   readonly start: number;
@@ -107,6 +80,31 @@ function findExperimentalSection(text: string): SectionSpan | null {
     full: text.slice(start, end),
     body: text.slice(afterHeading, end),
   };
+}
+
+/**
+ * Parse on/off state for the three experimental meta entries.
+ * A path is ON only when a line under `## Experimental Rules` mentions it —
+ * mentions in Personal/Defaults/prose do not count (writes are section-scoped).
+ */
+export function parseExperimentalRulesState(userMdText: string): ExperimentalRulesState {
+  const state: ExperimentalRulesState = {
+    soul: false,
+    morals: false,
+    "code-field": false,
+  };
+  const section = findExperimentalSection(userMdText);
+  if (!section) {
+    return state;
+  }
+  for (const line of section.body.split(/\r?\n/)) {
+    for (const entry of EXPERIMENTAL_META_ENTRIES) {
+      if (lineMentionsPath(line, entry.path)) {
+        state[entry.id] = true;
+      }
+    }
+  }
+  return state;
 }
 
 /**
@@ -212,23 +210,4 @@ export function setExperimentalRule(
 ): string {
   const current = parseExperimentalRulesState(userMdText);
   return applyExperimentalRulesState(userMdText, { ...current, [id]: enabled });
-}
-
-/**
- * Extract the byte-range of a named `##` section for non-clobber assertions.
- * Returns null when the heading is absent.
- */
-export function extractMarkdownH2Section(userMdText: string, heading: string): string | null {
-  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^${escaped}[ \\t]*\\r?\\n?`, "m");
-  const match = re.exec(userMdText);
-  if (!match || match.index === undefined) {
-    return null;
-  }
-  const start = match.index;
-  const afterHeading = start + match[0].length;
-  const rest = userMdText.slice(afterHeading);
-  const next = /^(## )/m.exec(rest);
-  const end = next && next.index !== undefined ? afterHeading + next.index : userMdText.length;
-  return userMdText.slice(start, end);
 }
