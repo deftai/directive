@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -167,5 +167,61 @@ describe("batchPromote (#3011)", () => {
     expect(result.skipped.length).toBeGreaterThan(0);
     expect(result.exitCode).toBe(1);
     expect(result.ok).toBe(false);
+  });
+
+  it("ignores blank explicit paths and promotes relative in-tree paths (#3027)", () => {
+    const root = freshRoot();
+    writeProposed(root, "2026-07-31-rel.xbrief.json", "Rel");
+    const result = batchPromote({
+      projectRoot: root,
+      files: ["", "  ", "xbrief/proposed/2026-07-31-rel.xbrief.json"],
+    });
+    expect(result.promoted).toBe(1);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("refuses missing explicit paths with exit 2 (#3027)", () => {
+    const root = freshRoot();
+    const result = batchPromote({
+      projectRoot: root,
+      files: [join(root, "xbrief", "proposed", "nope.xbrief.json")],
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.messages.some((m) => m.includes("File not found"))).toBe(true);
+  });
+
+  it("refuses non-artifact paths under project root (#3027)", () => {
+    const root = freshRoot();
+    const junk = join(root, "xbrief", "proposed", "readme.md");
+    writeFileSync(junk, "# no", "utf8");
+    const result = batchPromote({ projectRoot: root, files: [junk] });
+    expect(result.exitCode).toBe(2);
+    expect(result.messages.some((m) => m.includes("Not a vBRIEF"))).toBe(true);
+  });
+
+  it("refuses out-of-project explicit paths (#3027)", () => {
+    const root = freshRoot();
+    const outside = join(root, "..", "outside-3027.xbrief.json");
+    writeFileSync(outside, JSON.stringify({ plan: { title: "out", status: "proposed" } }), "utf8");
+    try {
+      const result = batchPromote({ projectRoot: root, files: [outside] });
+      expect(result.exitCode).toBe(2);
+      expect(result.messages.some((m) => m.includes("escapes project root"))).toBe(true);
+    } finally {
+      try {
+        rmSync(outside, { force: true });
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  it("returns exit 2 when project root cannot be resolved (#3027)", () => {
+    const result = batchPromote({
+      projectRoot: join(tmpdir(), `no-project-${Date.now()}`),
+      files: [],
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.messages.some((m) => m.includes("project root"))).toBe(true);
   });
 });

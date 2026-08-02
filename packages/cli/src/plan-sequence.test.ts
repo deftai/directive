@@ -66,4 +66,66 @@ describe("plan-sequence CLI (#2402)", () => {
     writeFileSync(arrayFile, "[1,2,3]");
     expect(planSequenceMain(["set", "--project-root", root, "--file", arrayFile])).toBe(1);
   });
+
+  it("covers argv/flag and JSON emit branches (#3027)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-branches-"));
+    roots.push(root);
+
+    expect(planSequenceMain([])).toBe(2);
+    expect(planSequenceMain(["nope"])).toBe(2);
+    expect(planSequenceMain(["set", "--unknown"])).toBe(2);
+    expect(planSequenceMain(["set", "--project-root"])).toBe(2);
+    expect(planSequenceMain(["set", "--file"])).toBe(2);
+    expect(planSequenceMain(["set", "--from-json"])).toBe(2);
+    expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
+    expect(planSequenceMain(["advance", "--project-root", root])).toBe(1);
+    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
+
+    const inline = JSON.stringify({
+      sequence_id: "inline",
+      sequence_kind: "checklist",
+      authorized_by: "t",
+      entries: [{ id: "a", kind: "task" }],
+    });
+    expect(
+      planSequenceMain([
+        "set",
+        `--project-root=${root}`,
+        "--from-json",
+        inline,
+        "--json",
+      ]),
+    ).toBe(0);
+    expect(planSequenceMain(["current", "--project-root", root, "--json"])).toBe(0);
+    expect(planSequenceMain(["advance", "--project-root", root, "--json"])).toBe(0);
+    // exhausted after advance past single entry
+    expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
+    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
+    // already absent
+    expect(planSequenceMain(["clear", "--project-root", root])).toBe(0);
+
+    // Full sequence object with current_index uses parsePlanSequence path
+    const fullFile = join(root, "full.json");
+    writeFileSync(
+      fullFile,
+      JSON.stringify({
+        sequence_id: "full",
+        sequence_kind: "delivery",
+        authorized_by: "t",
+        entries: [
+          { id: "p1", kind: "pr", issue: 1 },
+          { id: "p2", kind: "pr", issue: 2 },
+        ],
+        current_index: 0,
+        batching_allowed: true,
+        continuation_past_final: false,
+        exhausted: false,
+        created_at: "2026-08-01T00:00:00Z",
+        updated_at: "2026-08-01T00:00:00Z",
+      }),
+    );
+    expect(planSequenceMain(["set", `--file=${fullFile}`, "--project-root", root])).toBe(0);
+    expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
+    expect(planSequenceMain(["set", "--project-root", root])).toBe(1);
+  });
 });

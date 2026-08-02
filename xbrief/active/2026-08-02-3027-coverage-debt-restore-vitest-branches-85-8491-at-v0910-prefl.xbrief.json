@@ -1,0 +1,34 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3027",
+    "updated": "2026-08-02T02:14:00Z"
+  },
+  "plan": {
+    "title": "coverage-debt: restore Vitest branches >=85% (84.91% at v0.91.0 preflight)",
+    "status": "running",
+    "narratives": {
+      "Description": "coverage-debt: restore Vitest branches >=85% (84.91% at v0.91.0 preflight)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3027",
+      "Overview": "## Summary\nv0.91.0 release Step 5 failed on Vitest branch coverage hairline: **84.91%** vs global threshold **85%**.\n\n## Recurrence\nSame class as #2986 / #3003 (84.9x% hairlines at release preflight).\n\n## Acceptance\n- [ ] Restore Vitest branches >= 85% on master without hatch\n- [ ] Or document permanent threshold policy change\n\n## Use\n`--allow-coverage-debt=#N` hatch for the v0.91.0 cut only."
+    },
+    "items": [
+      {
+        "title": "Restore Vitest branches >= 85% on master without hatch",
+        "status": "proposed"
+      },
+      {
+        "title": "Or document permanent threshold policy change",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3027",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3027: coverage-debt: restore Vitest branches >=85% (84.91% at v0.91.0 preflight)"
+      }
+    ],
+    "updated": "2026-08-02T02:14:00Z"
+  }
+}

@@ -1,4 +1,13 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -314,6 +323,152 @@ describe("escaping symlink pins (#3008)", () => {
     expect(readFileSync(join(skills, "deft-directive-build", "KEEP.md"), "utf8")).toBe("keep-me");
     expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toBe("# old\n");
   });
+
+  it("skips when exclusive install lock is held (#3027 lock branch)", () => {
+    const root = makeTemp("oc-lock-held-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    mkdirSync(skills, { recursive: true });
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    const lockDir = join(skills, "deft-directive-build.deft-lock");
+    mkdirSync(lockDir, { recursive: true });
+    const result = installOpenClawPin("deft-directive-build", source, skills);
+    expect(result.method).toBe("skipped");
+    expect(result.detail).toMatch(/another doctor process/i);
+  });
+
+  it("reclaims a stale exclusive lock older than 10 minutes (#3027)", () => {
+    const root = makeTemp("oc-lock-stale-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    mkdirSync(skills, { recursive: true });
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    const lockDir = join(skills, "deft-directive-build.deft-lock");
+    mkdirSync(lockDir, { recursive: true });
+    const stale = Date.now() - 11 * 60 * 1000;
+    utimesSync(lockDir, new Date(stale), new Date(stale));
+    const result = installOpenClawPin("deft-directive-build", source, skills);
+    expect(result.method).toBe("copy");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
+      "deft-directive-build",
+    );
+  });
+
+  it("short-circuits already-present under lock when package body matches (#3027)", () => {
+    const root = makeTemp("oc-lock-present-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    installOpenClawPin("deft-directive-build", source, skills);
+    const again = installOpenClawPin("deft-directive-build", source, skills);
+    expect(again.method).toBe("already-present");
+  });
+
+  it("restores backup when rename into target fails after force replace (#3027)", () => {
+    const root = makeTemp("oc-rename-fail-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    installOpenClawPin("deft-directive-build", source, skills);
+    writeFileSync(join(skills, "deft-directive-build", "SKILL.md"), "# old\n", "utf8");
+    writeFileSync(join(skills, "deft-directive-build", "KEEP.md"), "keep", "utf8");
+    const result = installOpenClawPin(
+      "deft-directive-build",
+      source,
+      skills,
+      { force: true },
+      {
+        renamePath: (from, to) => {
+          // Fail only staging → target; allow target→backup and backup restore.
+          if (from.includes(".deft-installing-")) {
+            throw new Error("rename denied");
+          }
+          renameSync(from, to);
+        },
+      },
+    );
+    expect(result.method).toBe("skipped");
+    expect(result.detail).toMatch(/rename denied/);
+    // Prior body restored after failed staging swap.
+    expect(readFileSync(join(skills, "deft-directive-build", "KEEP.md"), "utf8")).toBe("keep");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toBe("# old\n");
+  });
+
+  it("skips incomplete source and falls back from preferSymlink (#3027)", () => {
+    const root = makeTemp("oc-src-miss-");
+    const skills = join(root, "skills");
+    mkdirSync(skills, { recursive: true });
+    const incomplete = join(root, "incomplete-src");
+    mkdirSync(incomplete, { recursive: true });
+    const missing = installOpenClawPin(
+      "deft-directive-build",
+      incomplete,
+      skills,
+    );
+    expect(missing.method).toBe("skipped");
+    expect(missing.detail).toMatch(/source pin missing/i);
+
+    const content = makeContentPackage(root);
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    const viaSymlink = installOpenClawPin(
+      "deft-directive-build",
+      source,
+      skills,
+      { preferSymlink: true },
+      {
+        symlinkDir: () => {
+          throw new Error("symlink unavailable");
+        },
+      },
+    );
+    expect(viaSymlink.method).toBe("copy");
+  });
+
+  it("skips when staging copy fails and when stale without force (#3027)", () => {
+    const root = makeTemp("oc-copy-fail-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    installOpenClawPin("deft-directive-build", source, skills);
+    writeFileSync(join(skills, "deft-directive-build", "SKILL.md"), "# stale\n", "utf8");
+
+    const stale = installOpenClawPin("deft-directive-build", source, skills, {
+      force: false,
+      refreshStale: false,
+    });
+    expect(stale.method).toBe("skipped");
+    expect(stale.detail).toMatch(/stale pin/i);
+
+    const copyFail = installOpenClawPin(
+      "deft-directive-build",
+      source,
+      skills,
+      { force: true },
+      {
+        copyDir: () => {
+          throw new Error("disk full");
+        },
+      },
+    );
+    expect(copyFail.method).toBe("skipped");
+    expect(copyFail.detail).toMatch(/disk full/);
+  });
+
+  it("refreshes stale pin when refreshStale is set (#3027)", () => {
+    const root = makeTemp("oc-refresh-stale-");
+    const content = makeContentPackage(root);
+    const skills = join(root, "skills");
+    const source = resolvePinSourceDir(content, "deft-directive-build");
+    installOpenClawPin("deft-directive-build", source, skills);
+    writeFileSync(join(skills, "deft-directive-build", "SKILL.md"), "# stale\n", "utf8");
+    const refreshed = installOpenClawPin("deft-directive-build", source, skills, {
+      refreshStale: true,
+    });
+    expect(refreshed.method).toBe("copy");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
+      "deft-directive-build",
+    );
+  });
 });
 
 describe("runOpenClawSkillPinsCheck (#3001)", () => {
@@ -487,6 +642,131 @@ describe("runOpenClawSkillPinsCheck (#3001)", () => {
     );
     expect(findings[0]?.status).toBe("missing");
     expect(String(findings[0]?.message)).toContain("workspace-scotty");
+  });
+
+  it("TTY decline skips wire; force replaces divergent; TTY yes on divergent (#3027)", () => {
+    const home = makeTemp("oc-tty-");
+    const skills = join(home, ".openclaw", "workspace", "skills");
+    mkdirSync(skills, { recursive: true });
+    const content = makeContentPackage(home);
+
+    // Decline path
+    const findingsDecline: Finding[] = [];
+    runOpenClawSkillPinsCheck(
+      createPlainSink({ write: () => undefined }),
+      (f) => findingsDecline.push(f),
+      {
+        frameworkRoot: home,
+        fixMode: true,
+        jsonMode: false,
+        force: false,
+        allAgents: false,
+        seams: {
+          env: { DEFT_PROBE_OPENCLAW: "1" },
+          homeDir: () => home,
+          contentRootFor: () => content,
+          isTty: () => true,
+          readYn: () => false,
+        },
+      },
+    );
+    expect(findingsDecline[0]?.status).toBe("missing");
+
+    // Divergent file path (not a skill dir body)
+    writeFileSync(join(skills, "deft-directive-build"), "not-a-dir", "utf8");
+    const findingsForce: Finding[] = [];
+    runOpenClawSkillPinsCheck(
+      createPlainSink({ write: () => undefined }),
+      (f) => findingsForce.push(f),
+      {
+        frameworkRoot: home,
+        fixMode: true,
+        jsonMode: true,
+        force: true,
+        allAgents: false,
+        seams: {
+          env: { DEFT_PROBE_OPENCLAW: "1" },
+          homeDir: () => home,
+          contentRootFor: () => content,
+          isTty: () => false,
+        },
+      },
+    );
+    expect(findingsForce[0]?.status).toBe("fixed");
+    expect(readFileSync(join(skills, "deft-directive-build", "SKILL.md"), "utf8")).toContain(
+      "deft-directive-build",
+    );
+
+    // Non-stale divergent (empty dir, no SKILL.md): TTY yes → replace
+    rmSync(join(skills, "deft-directive-pre-pr"), { recursive: true, force: true });
+    mkdirSync(join(skills, "deft-directive-pre-pr"), { recursive: true });
+    const findingsTtyYes: Finding[] = [];
+    let prompts = 0;
+    runOpenClawSkillPinsCheck(
+      createPlainSink({ write: () => undefined }),
+      (f) => findingsTtyYes.push(f),
+      {
+        frameworkRoot: home,
+        fixMode: true,
+        jsonMode: false,
+        force: false,
+        allAgents: false,
+        seams: {
+          env: { DEFT_PROBE_OPENCLAW: "1" },
+          homeDir: () => home,
+          contentRootFor: () => content,
+          isTty: () => true,
+          readYn: (prompt) => {
+            prompts += 1;
+            // Wire-missing prompt first (default true path); then divergent confirm
+            return true;
+          },
+        },
+      },
+    );
+    expect(prompts).toBeGreaterThan(0);
+    expect(
+      findingsTtyYes[0]?.status === "fixed" || findingsTtyYes[0]?.status === "present",
+    ).toBe(true);
+  });
+
+  it("allAgents present path and assess file/other divergent kinds (#3027)", () => {
+    const home = makeTemp("oc-present-all-");
+    const content = makeContentPackage(home);
+    for (const seat of ["workspace", "workspace-a"]) {
+      const skills = join(home, ".openclaw", seat, "skills");
+      for (const id of OPENCLAW_ALWAYS_PIN_SKILLS) {
+        writeSkill(skills, id, `# ${id}\n`);
+      }
+    }
+    const findings: Finding[] = [];
+    runOpenClawSkillPinsCheck(
+      createPlainSink({ write: () => undefined }),
+      (f) => findings.push(f),
+      {
+        frameworkRoot: home,
+        fixMode: false,
+        jsonMode: true,
+        force: false,
+        allAgents: true,
+        seams: {
+          env: { OPENCLAW: "1" },
+          homeDir: () => home,
+          contentRootFor: () => content,
+        },
+      },
+    );
+    expect(findings[0]?.status).toBe("present");
+    expect(String(findings[0]?.message)).toMatch(/main \+ workspace-\*/i);
+
+    const skills = join(home, "skills-assess");
+    mkdirSync(skills, { recursive: true });
+    writeFileSync(join(skills, "deft-directive-build"), "file-not-dir", "utf8");
+    mkdirSync(join(skills, "deft-directive-pre-pr"), { recursive: true });
+    // empty dir → no SKILL.md
+    const assessment = assessOpenClawPins(skills, {}, { contentBase: content });
+    expect(assessment.divergent).toContain("deft-directive-build");
+    expect(assessment.divergent).toContain("deft-directive-pre-pr");
   });
 });
 

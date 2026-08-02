@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#3027).** Focused OpenClaw pin install/doctor fix-path edges, github-auth mode failure and parseLogin branches, batch-promote path validation, and plan-sequence CLI argv/JSON edges clear the v0.91.0 84.91% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3027.
+
 ### Removed
 
 ## [0.91.0] - 2026-08-01
