@@ -586,7 +586,12 @@ export function completeCohort(args: {
     return { exitCode: 2, stdout: "", stderr };
   }
 
-  const result = sweepCohort(paths, projectRoot, args.dryRun ?? false, args.delivery);
+  const result = sweepCohortWithArgs({
+    storyPaths: paths,
+    projectRoot,
+    dryRun: args.dryRun ?? false,
+    delivery: args.delivery ?? null,
+  });
   result.errors.push(...errors);
 
   if (args.emitJson) {

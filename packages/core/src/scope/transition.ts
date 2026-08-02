@@ -24,6 +24,7 @@ import {
   updateDecomposedParentBackReferences,
 } from "./decomposed-refs.js";
 import {
+  classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   evaluateDeliveryGate,
   type NonDeliveryDisposition,
@@ -148,9 +149,15 @@ export function runTransition(
   const requiredStatus = STATUS_PRECONDITIONS[act];
   if (requiredStatus !== undefined) {
     if (currentStatus === targetStatus) {
+      // Surface legacy delivery disposition on already-completed briefs (#3041).
+      let dispositionSuffix = "";
+      if (act === "complete" && currentFolder === "completed") {
+        const disposition = classifyStoredDeliveryDisposition(planObj);
+        dispositionSuffix = ` (deliveryDisposition=${disposition})`;
+      }
       return {
         ok: true,
-        message: `No-op: ${basename} is already ${targetStatus} in ${currentFolder}/`,
+        message: `No-op: ${basename} is already ${targetStatus} in ${currentFolder}/${dispositionSuffix}`,
       };
     }
     if (currentStatus !== requiredStatus) {
