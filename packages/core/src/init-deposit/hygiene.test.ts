@@ -161,9 +161,7 @@ describe("PROJECT-DEFINITION is not installer-managed (#3029 / #1430)", () => {
     // not installer-managed. Both core and app non-empty ⇒ guard fails (#1430).
     const changed = [".deft/core/VERSION", "xbrief/PROJECT-DEFINITION.xbrief.json"];
     const core = changed.filter((p) => p.startsWith(".deft/core/"));
-    const app = changed.filter(
-      (p) => !p.startsWith(".deft/core/") && !isInstallerManagedPath(p),
-    );
+    const app = changed.filter((p) => !p.startsWith(".deft/core/") && !isInstallerManagedPath(p));
     expect(core.length).toBeGreaterThan(0);
     expect(app).toEqual(["xbrief/PROJECT-DEFINITION.xbrief.json"]);
   });
