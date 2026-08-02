@@ -139,6 +139,8 @@ export const CLI_MODULE_VERBS = [
   "vbrief-reconcile",
   "vbrief-validate",
   "vbrief-validation",
+  "xbrief-create",
+  "xbrief-verify",
   "verify-branch",
   "verify-encoding",
   "verify-forward-coverage",
@@ -329,6 +331,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "vbrief:validate": "vbrief-validate",
   "vbrief:preflight": "vbrief-preflight",
   "xbrief:preflight": "vbrief-preflight",
+  "xbrief:create": "xbrief-create",
+  "xbrief:verify": "xbrief-verify",
   "vbrief:activate": "vbrief-activate",
   "verify:story-ready": "verify-story-ready",
   "verify:review-monitor": "verify-review-monitor",
@@ -443,6 +447,8 @@ const WRAPPER_CLI_STEMS = new Set<string>([
   "vbrief-reconcile",
   "vbrief-validate",
   "vbrief-validation",
+  "xbrief-create",
+  "xbrief-verify",
 ]);
 
 function emitCliResult(result: CliResult, io: DispatchIo): number {
@@ -510,6 +516,14 @@ async function loadWrapperCliHandler(stem: string, io: DispatchIo): Promise<Comm
     case "vbrief-validation": {
       const { cmdVbriefValidation } = await import("@deftai/directive-core/vbrief-validation");
       return cmdVbriefValidation;
+    }
+    case "xbrief-create": {
+      const { runXbriefCreateCli } = await import("@deftai/directive-core/xbrief");
+      return (argv) => emitCliResult(runXbriefCreateCli(argv), io);
+    }
+    case "xbrief-verify": {
+      const { runXbriefVerifyCli } = await import("@deftai/directive-core/xbrief");
+      return (argv) => emitCliResult(runXbriefVerifyCli(argv), io);
     }
     default:
       throw new Error(`no wrapper handler for ${stem}`);
@@ -2962,6 +2976,19 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
   {
     title: "Scope lifecycle",
     commands: [{ name: "scope:promote", summary: "Promote a scope xBRIEF to pending" }],
+  },
+  {
+    title: "xBRIEF create/verify (not lifecycle)",
+    commands: [
+      {
+        name: "xbrief:create",
+        summary: "Write a dense xBRIEF artifact at --out (requires --format); not scope:*",
+      },
+      {
+        name: "xbrief:verify",
+        summary: "Verify a dense xBRIEF artifact at --out (requires --format); not scope:*",
+      },
+    ],
   },
   {
     title: "Project artifacts",

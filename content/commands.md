@@ -83,6 +83,31 @@ Skills retain the `deft-directive-*` prefix — only the slash-command surface i
 
 > **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
 
+## xBRIEF create / verify (artifact write — not lifecycle) (#3057)
+
+On-demand **write + check** dense xBRIEF SoT artifacts at an explicit path. These verbs do **not** promote, activate, or complete scopes.
+
+| Verb | Meaning |
+|------|---------|
+| `deft xbrief:create` / `task xbrief:create` | Write json, md, or both at `--out` |
+| `deft xbrief:verify` / `task xbrief:verify` | Fail-closed check at `--out` |
+| `scope:*` / intake | Lifecycle birth and folder/status transitions |
+| `xbrief:preflight` | Implementation-intent gate (unchanged) |
+
+```bash
+deft xbrief:create -- --format <json|md|both> --out <path> [--style scope|playbook|mission|project] [--title T] [--id ID] [--force]
+deft xbrief:verify -- --format <json|md|both> --out <path> [--style scope|playbook|mission|project]
+```
+
+- ! `--format` and `--out` are **required**
+- ! `both` uses one stem → `*.xbrief.json` + `*.xbrief.md`
+- ! P0 styles: `scope` | `playbook` | `mission` | `project`
+- ! Paths expand portably (`~`, `%USERPROFILE%`); project-root containment fails closed
+- ~ Skill postcard: `deft-directive-xbrief` (pack grammar loads on use)
+- ⊗ Overload `scope:promote` (or invent `xbrief:promote`) for “compress text”
+
+---
+
 ## Scope xBRIEF Lifecycle
 
 Scope xBRIEFs live under `xbrief/{proposed,pending,active,completed,cancelled}/`. The folder and `plan.status` must agree.

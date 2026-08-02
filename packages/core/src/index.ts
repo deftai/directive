@@ -86,6 +86,7 @@ export * as vbriefValidation from "./vbrief-validation/index.js";
 export * as verifyEnv from "./verify-env/index.js";
 export * as verifySource from "./verify-source/index.js";
 export * as wipCap from "./wip-cap/index.js";
+export * as xbrief from "./xbrief/index.js";
 export * as xbriefMigrate from "./xbrief-migrate/index.js";
 
 export const CORE_PACKAGE = "@deftai/directive-core" as const;

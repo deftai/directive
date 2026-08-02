@@ -28,7 +28,8 @@
         "deft-directive-interview",
         "deft-directive-probe",
         "deft-directive-refinement",
-        "deft-directive-write-skill"
+        "deft-directive-write-skill",
+        "deft-directive-xbrief"
       ]
     },
     "advanced": {

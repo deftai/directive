@@ -100,6 +100,23 @@ describe("routeArgv", () => {
     ]);
   });
 
+  it("maps xbrief create/verify to xbrief:create / xbrief:verify (#3057)", () => {
+    expect(routeArgv(["xbrief", "create", "--format", "json", "--out", "a"]).argv).toEqual([
+      "xbrief:create",
+      "--format",
+      "json",
+      "--out",
+      "a",
+    ]);
+    expect(routeArgv(["xbrief:verify", "--format", "both", "--out", "b"]).argv).toEqual([
+      "xbrief:verify",
+      "--format",
+      "both",
+      "--out",
+      "b",
+    ]);
+  });
+
   it("maps pr merge-ready to pr-merge-readiness", () => {
     expect(routeArgv(["pr", "merge-ready", "--repo", "deftai/directive"]).argv).toEqual([
       "pr-merge-readiness",
