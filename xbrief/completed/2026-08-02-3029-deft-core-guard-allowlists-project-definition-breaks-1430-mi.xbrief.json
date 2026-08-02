@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3029",
-    "updated": "2026-08-02T02:14:15Z"
+    "updated": "2026-08-02T02:36:53Z"
   },
   "plan": {
     "title": "deft-core-guard allowlists PROJECT-DEFINITION — breaks #1430 mixed-change invariant",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "deft-core-guard allowlists PROJECT-DEFINITION — breaks #1430 mixed-change invariant",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3029",
@@ -24,6 +24,10 @@
         "title": "Issue #3029: deft-core-guard allowlists PROJECT-DEFINITION — breaks #1430 mixed-change invariant"
       }
     ],
-    "updated": "2026-08-02T02:14:15Z"
+    "updated": "2026-08-02T02:36:53Z",
+    "metadata": {
+      "completedAt": "2026-08-02T02:36:53Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
