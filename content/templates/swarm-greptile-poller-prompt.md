@@ -426,10 +426,14 @@ Send to parent:
 
     Subject: PR #{pr_number} CLEAN -- ready for merge
     Body:
-      Greptile review on HEAD <sha> is clean.
+      STATUS: DONE
+      HEAD: <sha>
+      CHECKS: <list of CheckRun statuses>
+      MERGE: n/a
+      ISSUE: open
+      NOTES: Greptile CLEAN confidence <N>/5; ready for merge
       Confidence: <N>/5
       Findings: P0=0, P1=0
-      CI: <list of CheckRun statuses>
       Last reviewed commit: <sha>
       -- no more polling, exiting now
 
@@ -445,9 +449,13 @@ If the same review surfaces 3 consecutive review cycles (push -> review -> still
 
     Subject: PR #{pr_number} escalation -- 3 review cycles still surfacing P0/P1
     Body:
-      Three consecutive review cycles after push still surfaced P0/P1 findings.
+      STATUS: BLOCKED
+      HEAD: <sha>
+      CHECKS: see latest findings
+      MERGE: n/a
+      ISSUE: open
+      NOTES: 3 review cycles still surfacing P0/P1; <summary>
       Latest findings: <summary>
-      Latest HEAD: <sha>
       -- no more polling, exiting now
 
 ### (3) ERRORED
@@ -458,7 +466,12 @@ Retry ONCE: post `@greptileai review` as a PR comment via `gh pr comment {pr_num
 
     Subject: PR #{pr_number} Greptile errored -- escalation required
     Body:
-      Greptile errored on HEAD <sha>; retry via @greptileai also errored.
+      STATUS: FAILED
+      HEAD: <sha>
+      CHECKS: Greptile errored (retry also errored)
+      MERGE: n/a
+      ISSUE: open
+      NOTES: escalate per swarm Phase 6 Step 1 (wait / empty retrigger / override)
       Parent should escalate to user with the three-way choice per
       skills/deft-directive-swarm/SKILL.md Phase 6 Step 1:
         (a) wait longer (~15-20 min)
@@ -474,6 +487,12 @@ Send:
 
     Subject: PR #{pr_number} poll cap exceeded -- parent should escalate
     Body:
+      STATUS: BLOCKED
+      HEAD: <sha>
+      CHECKS: <statuses>
+      MERGE: n/a
+      ISSUE: open
+      NOTES: poll cap exceeded; holdout=<which-of-the-five-conditions-failed>
       {poll_cap_minutes}-minute poll cap exceeded.
       Latest state:
         last_reviewed_sha: <sha or "unparsed">
@@ -494,6 +513,12 @@ Increment the `stall_streak` counter introduced under `## CLEAN gate evaluation,
 
     Subject: PR #{pr_number} poll loop wedged -- terminal-condition detection failure
     Body:
+      STATUS: BLOCKED
+      HEAD: <sha>
+      CHECKS: holdout=<which-of-the-five-conditions-failed>
+      MERGE: n/a
+      ISSUE: open
+      NOTES: STALL — detector cannot reach CLEAN or P0/P1; diagnose instrumentation
       Detector cannot reach CLEAN or NEW P0/P1 FINDINGS but no blocking signals
       are visible. Likely terminal-condition detection gap on this PR's review surface.
       Latest state:
@@ -515,6 +540,12 @@ Send:
 
     Subject: PR #{pr_number} informal-clean missing canonical fields -- recovery required
     Body:
+      STATUS: BLOCKED
+      HEAD: <sha>
+      CHECKS: informal-clean missing canonical fields
+      MERGE: n/a
+      ISSUE: open
+      NOTES: #1543 informal-clean; recovery @greptileai or override
       Greptile informal-clean missing-canonical-fields state (#1543).
       Latest Greptile comment says the diff is clean / prior issues resolved,
       but lacks canonical `Last reviewed commit:` and `Confidence Score: X/5`.

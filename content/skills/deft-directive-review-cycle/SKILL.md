@@ -395,8 +395,9 @@ Remediation:
 2. ! List active same-PR / same-`taskName` subagents when the host exposes that surface (OpenClaw `subagents list` or equivalent).
 3. ⊗ Spawn a second monitor while a prior owner is **running**.
 4. ⊗ Spawn a second monitor when the last settle was **empty/unknown** and ground truth has **not** shown a terminal merge/close (or explicit structured handback that releases ownership).
-5. ! If the prior owner is **dead** (liveness fail / `REDISPATCH_OK`) and the PR is still open: spawn **one** replacement monitor and **update** the lease comment (same sticky comment edit / re-register) — never silent dual ownership.
-6. ! On register conflict: attach to the existing owner or stop — do not parallel-fix.
+5. ! If the prior owner is **dead** (liveness fail / `REDISPATCH_OK` / `verify:subagent-alive` exit 1) and the PR is still open: spawn **one** replacement monitor and re-claim the lease with **`--force`** (CLI: `deft review-monitor:register --pr <N> --monitor-agent-id <id> --force` / task: `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --force`, or host equivalent force takeover) so a non-expired foreign lease does not block replacement — then **update** the sticky lease comment to the new owner. Never silent dual ownership.
+6. ! On register conflict when the prior owner is **still alive**: attach to the existing owner or stop — do not parallel-fix.
+7. ⊗ Refuse replacement of a dead owner solely because the 30-minute lease has not expired without attempting force takeover (#3044).
 
 ### Required non-empty monitor handback (#3044)
 

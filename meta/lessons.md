@@ -714,11 +714,11 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 
 **Source:** Issue #3044. Recurrence: deftai/enterprize PR #43 babysit (2026-08-02) after #2874/#2876 OpenClaw Approach 1 spawn routing shipped.
 
-**Failure mode:** Parent correctly spawns Approach 1 review-monitor via sessions_spawn, but host settle arrives empty / (no output) / status unknown. Parent treats empty as terminal failure and spawns a **second** monitor with the same 	askName while the first may still be running or only falsely settled. Dual <!-- deft:review-owner --> thrash; PR stays open; babysit looks owned twice.
+**Failure mode:** Parent correctly spawns Approach 1 review-monitor via sessions_spawn, but host settle arrives empty / (no output) / status unknown. Parent treats empty as terminal failure and spawns a **second** monitor with the same taskName while the first may still be running or only falsely settled. Dual <!-- deft:review-owner --> thrash; PR stays open; babysit looks owned twice.
 
-**Rule:** Empty announce is **FC04 residual**, not DONE/CLEAN/merge-ready. Parent MUST same-turn ground truth (gh pr view + checks + HEAD). One sticky review-owner lease; pre-spawn list active same-task / lease holder; forbid second monitor while prior running or last settle empty/unknown without terminal ground truth. Dead owner + open PR → one replacement + lease update. Monitor handback MUST include non-empty STATUS/HEAD/CHECKS/MERGE. Prefer isible:true on Control UI.
+**Rule:** Empty announce is **FC04 residual**, not DONE/CLEAN/merge-ready. Parent MUST same-turn ground truth (gh pr view + checks + HEAD). One sticky review-owner lease; pre-spawn list active same-task / lease holder; forbid second monitor while prior running or last settle empty/unknown without terminal ground truth. Dead owner + open PR → one replacement with force lease takeover + lease update. Monitor handback MUST include non-empty STATUS/HEAD/CHECKS/MERGE. Prefer visible:true on Control UI.
 
-**Canonical encoding:** skills/deft-directive-review-cycle/SKILL.md Empty announce / Single lease / Required handback; skills/deft-directive-swarm/references/host-openclaw.md Babysit residual; 	emplates/swarm-greptile-poller-prompt.md handback; 	emplates/agent-prompt-preamble.md §11 thin pointer.
+**Canonical encoding:** skills/deft-directive-review-cycle/SKILL.md Empty announce / Single lease / Required handback; skills/deft-directive-swarm/references/host-openclaw.md Babysit residual; templates/swarm-greptile-poller-prompt.md handback; templates/agent-prompt-preamble.md §11 thin pointer.
 
 **Cross-references:** #3044, #2874, #2876, #2814, #2943, FC04 / growth friction R1 + R10, enterprize PR #43.
 
