@@ -388,8 +388,8 @@ describe("inspectAllPolicies", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    // Includes deliveryBranch (#3041) + hostSlashCommands (#3054) among typed policy fields.
-    expect(inspectAllPolicies(r)).toHaveLength(18);
+    // deliveryBranch (#3041) + hostSlashCommands (#3054) + hostSkillDiscovery (#75).
+    expect(inspectAllPolicies(r)).toHaveLength(19);
   });
 
   it("surfaces typed allowDirectCommits", () => {
@@ -443,6 +443,7 @@ describe("inspectAllPolicies", () => {
   it("registeredPolicyNames lists canonical paths", () => {
     expect(registeredPolicyNames()).toContain(FIELD_WIP_CAP);
     expect(registeredPolicyNames()).toContain(FIELD_RUNTIME_AUTHORITY);
+    expect(registeredPolicyNames()).toContain("plan.policy.hostSkillDiscovery");
   });
 
   it("python repr helpers match Python style", () => {

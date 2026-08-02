@@ -21,7 +21,7 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136) -- `[proposed]`
 - **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54 -- `[proposed]`
 - **#56** -- Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes) -- `[proposed]`
-- **#75** -- Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.) -- `[proposed]`
+- **#75** -- Skill auto-discovery residual multi-host thin deposit (`.claude`/`.codex`/`.github`/`.cursor` skills) -- `[in progress]` (canonical `.agents/skills` already landed)
 - **#76** -- Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes) -- `[proposed]`
 - **#86** -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest) -- `[proposed]`
 - **#9** -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP) -- `[proposed]`

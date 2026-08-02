@@ -1,0 +1,86 @@
+{
+  "plan": {
+    "title": "Skill auto-discovery residual: multi-host thin skill discovery deposit (#75)",
+    "status": "running",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase",
+      "Description": "Residual #75 only: deposit thin skill discovery pointers into additional host paths (.claude/skills, .codex/skills, .github/skills, .cursor/skills as needed) mirroring the inventory already under .agents/skills. Core .agents/skills auto-discovery has landed — do not re-implement #94. Coordinate multi-host policy with #55 patterns but do NOT implement slash/command files.",
+      "UserStory": "As a multi-host Directive user, I want thin skill discovery entries deposited into host-specific skill directories on init/update, so that agents that do not scan .agents/skills still auto-load the same skill inventory.",
+      "ImplementationPlan": "- Read current shape comment on #75 (2026-08-02) as SoT residual scope.\n- Add multi-host skill discovery deposit helper (thin SKILL.md pointers only) for enabled hosts with known layouts.\n- Wire into init/update; idempotent rewrite; per-host opt-out; Windows-safe (no elevated symlink requirement).\n- Mirror same inventory as .agents/skills (or daily-core tier if policy reuses it).\n- Tests: path matrix, non-inlining full skill bodies, opt-out.\n- Docs: which hosts get which path; relationship to OpenPackage and #55 slash (different artifact).\n- CHANGELOG #75.\n- Out: slash files (#55), redoing #94, replacing .agents as canonical.",
+      "Origin": "GitHub issue #75; residual current shape 2026-08-02"
+    },
+    "items": [
+      {
+        "title": "Enabled hosts get thin skill discovery deposit",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given enabled hosts with known skill paths, when init or update runs, then thin discovery SKILL.md (or host-equivalent) entries are deposited for the agreed skill inventory without full skill body copies."
+        }
+      },
+      {
+        "title": ".agents/skills remains canonical",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given additional host paths, when deposit runs, then they mirror the .agents inventory and do not fork independent skill content."
+        }
+      },
+      {
+        "title": "Windows-safe + opt-out + idempotent",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Windows without elevated symlinks and a host opt-out, when deposit re-runs, then no elevation is required, opted-out hosts are skipped, and rewrite is idempotent."
+        }
+      },
+      {
+        "title": "Tests and docs for matrix + #55 relationship",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given tests and docs, when reviewed, then path matrix and non-inlining are covered and docs distinguish skill discovery (#75) from slash registration (#55)."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/skill-discovery-deposit.ts",
+          "packages/core/src/init-deposit/skill-discovery-deposit.test.ts",
+          "packages/core/src/init-deposit/skill-discovery-hosts.ts",
+          "packages/core/src/init-deposit/skill-discovery-hosts.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Multi-host thin skill discovery deposit",
+          "opt-out + idempotent init/update",
+          "tests",
+          "docs + CHANGELOG #75"
+        ],
+        "depends_on": [],
+        "conflict_group": "skill-discovery-75-residual",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Residual AC from #75 Current shape 2026-08-02; .agents path already shipped. Independent of #55 slash epic (different artifact class)."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/75",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)"
+      }
+    ],
+    "updated": "2026-08-02T22:03:02Z",
+    "id": "75-multi-host-skill-discovery-deposit"
+  },
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope vBRIEF for #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)",
+    "updated": "2026-08-02T22:03:02Z"
+  }
+}

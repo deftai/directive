@@ -17,6 +17,8 @@ import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
+import { CONSUMER_SKILL_DISCOVERY_INVENTORY } from "./skill-discovery-deposit.js";
+import { hostSkillRelativePath, listSkillDiscoveryHosts } from "./skill-discovery-hosts.js";
 import { slashCommandManagedExactPaths } from "./slash-deposit.js";
 
 export const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
@@ -52,11 +54,25 @@ export const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [
   "vbrief/pending/example-scope.vbrief.json",
 ];
 
+/** Exact managed multi-host skill pointer paths only (#75 Greptile P1). */
+function multiHostSkillDiscoveryManagedMatchers(): InstallerManagedMatcher[] {
+  const matchers: InstallerManagedMatcher[] = [];
+  for (const host of listSkillDiscoveryHosts()) {
+    for (const skill of CONSUMER_SKILL_DISCOVERY_INVENTORY) {
+      matchers.push({ exact: hostSkillRelativePath(host, skill.dir) });
+    }
+  }
+  return matchers;
+}
+
 /** Single source of truth for installer-managed paths (#1440 / #1576). */
 export function installerManagedMatchers(): InstallerManagedMatcher[] {
   return [
     { exact: "AGENTS.md" },
     { prefix: ".agents/" },
+    // Multi-host skill discovery thin pointers (#75 residual) — not slash commands (#55).
+    // Exact inventory paths only; never claim the whole host skills tree.
+    ...multiHostSkillDiscoveryManagedMatchers(),
     { prefix: ".githooks/" },
     { exact: ".claude/settings.json" },
     { exact: ".grok/hooks/deft.json" },

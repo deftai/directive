@@ -41,6 +41,7 @@ import {
   writeConsumerVbrief,
   writeInstallManifest,
 } from "./scaffold.js";
+import { writeMultiHostSkillDiscovery } from "./skill-discovery-deposit.js";
 import { writeSlashCommandDeposit } from "./slash-deposit.js";
 import { syncBareVersionMarker } from "./xbrief-projections.js";
 
@@ -258,6 +259,7 @@ export async function runInitDeposit(
 
   writeAgentsMd(projectDir, deftDir, io);
   const skillsCreated = writeAgentsSkills(projectDir, io);
+  writeMultiHostSkillDiscovery(projectDir, io);
   await depositNeutralization(projectDir, io);
   await writeConsumerVbrief(projectDir, deftDir, io);
   seedMinimalProjectDefinition(projectDir, io);

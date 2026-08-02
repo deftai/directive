@@ -19,6 +19,7 @@ import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { assertInstallerAllowlistHonors1430, installerManagedGuardEre } from "./hygiene.js";
+import { writeAgentsSkillsFromInventory } from "./skill-discovery-deposit.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
 export type { InitDepositIo };
@@ -108,126 +109,6 @@ const DEFT_INCLUDE_CHILD_BLOCK =
   "  deft:\n" +
   "    taskfile: ./.deft/core/Taskfile.yml\n" +
   "    optional: true\n";
-
-const AGENTS_SKILLS: ReadonlyArray<{ dir: string; content: string }> = [
-  {
-    dir: "deft",
-    content: `---
-name: deft
-description: Apply deft framework standards for AI-assisted development. Use when starting projects, writing code, running tests, making commits, or when the user references deft, project standards, or coding guidelines.
----
-
-Read and follow: .deft/core/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-setup",
-    content: `---
-name: deft-directive-setup
-description: >-
-  Set up a new project with Deft framework standards. Use when the user wants
-  to bootstrap user preferences, configure a project, or generate a project
-  specification. Walks through setup conversationally — no separate CLI needed.
----
-
-Read and follow: .deft/core/skills/deft-directive-setup/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-build",
-    content: `---
-name: deft-directive-build
-description: >-
-  Build a project from scope vBRIEFs following Deft framework standards.
-  Use after deft-directive-setup has generated the project definition, or when
-  the user has scope vBRIEFs ready to implement. Handles scaffolding,
-  implementation, testing, and quality checks phase by phase.
----
-
-Read and follow: .deft/core/skills/deft-directive-build/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-review-cycle",
-    content: `---
-name: deft-directive-review-cycle
-description: >-
-  Greptile bot reviewer response workflow. Use when running a review cycle
-  on a PR — to audit process prerequisites, fetch bot findings, fix all
-  issues in a single batch commit, and exit cleanly when no P0/P1 issues
-  remain. Enables cloud agents to run autonomous PR review cycles.
----
-
-Read and follow: .deft/core/skills/deft-directive-review-cycle/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-refinement",
-    content: `---
-name: deft-directive-refinement
-description: >-
-  Structured refinement workflow. Compares open GitHub issues against
-  the roadmap, triages new issues one-at-a-time with human review, and updates
-  the roadmap with phase placement, analysis comments, and index entries.
----
-
-Read and follow: .deft/core/skills/deft-directive-refinement/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-swarm",
-    content: `---
-name: deft-directive-swarm
-description: >-
-  Parallel local agent orchestration. Use when running multiple agents
-  on roadmap items simultaneously — to select non-overlapping tasks, set up
-  isolated worktrees, launch agents with proven prompts, monitor progress,
-  handle stalled review cycles, and close out PRs cleanly.
----
-
-Read and follow: .deft/core/skills/deft-directive-swarm/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-interview",
-    content: `---
-name: deft-directive-interview
-description: >-
-  Deterministic structured Q&A interview skill. Use when a skill or workflow
-  needs to collect structured answers from the user — one question per turn,
-  numbered options, default acceptance, and a confirmation gate.
----
-
-Read and follow: .deft/core/skills/deft-directive-interview/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-pre-pr",
-    content: `---
-name: deft-directive-pre-pr
-description: >-
-  Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop). Use before
-  pushing a branch for PR creation — structured self-review that agents run
-  to catch issues before they reach the bot reviewer.
----
-
-Read and follow: .deft/core/skills/deft-directive-pre-pr/SKILL.md
-`,
-  },
-  {
-    dir: "deft-directive-sync",
-    content: `---
-name: deft-directive-sync
-description: >-
-  Session-start framework sync skill. Use at the beginning of a session to
-  pull latest framework updates, validate project files, and confirm alignment
-  before starting work.
----
-
-Read and follow: .deft/core/skills/deft-directive-sync/SKILL.md
-`,
-  },
-];
 
 export interface InstallManifestFields {
   ref: string;
@@ -449,24 +330,8 @@ export async function writeConsumerVbrief(
 }
 
 export function writeAgentsSkills(projectDir: string, io: InitDepositIo): boolean {
-  projectionTarget(projectDir, ".agents");
-
-  const allExist = AGENTS_SKILLS.every((skill) =>
-    existsSync(join(projectDir, ".agents", "skills", skill.dir, "SKILL.md")),
-  );
-  if (allExist) {
-    io.printf(".agents/skills/ already present — skipping.\n");
-    return false;
-  }
-
-  for (const skill of AGENTS_SKILLS) {
-    const path = projectionTarget(projectDir, ".agents", "skills", skill.dir, "SKILL.md");
-    if (existsSync(path)) continue;
-    containedProjectWrite(projectDir, path, skill.content);
-  }
-
-  io.printf(".agents/skills/ created — deft skills will be auto-discovered.\n");
-  return true;
+  // Shared inventory with multi-host skill discovery (#75 residual).
+  return writeAgentsSkillsFromInventory(projectDir, io);
 }
 
 function hasTopLevelIncludes(content: string): boolean {

@@ -47,6 +47,11 @@ export interface PlanPolicy {
    */
   readonly hostSlashCommands?: Partial<Record<"claude" | "cursor" | "grok" | "codex", boolean>>;
   /**
+   * Per-host multi-host skill discovery deposit toggles (#75 residual).
+   * Default: all true. Distinct from hostHooks and from #55 slash deposit.
+   */
+  readonly hostSkillDiscovery?: Partial<Record<"claude" | "cursor" | "codex" | "github", boolean>>;
+  /**
    * When true, agents may open PRs but must not merge (#1193). Defaults true
    * when `autoDeployOnMerge` is also true. Override: `policy:allow-bot-merge`
    * or `DEFT_ALLOW_BOT_MERGE=1`.

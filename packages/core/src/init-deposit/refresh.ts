@@ -73,6 +73,7 @@ import {
   writeConsumerGitHooks,
   writeInstallManifest,
 } from "./scaffold.js";
+import { writeMultiHostSkillDiscovery } from "./skill-discovery-deposit.js";
 import { writeSlashCommandDeposit } from "./slash-deposit.js";
 import {
   syncBareVersionMarker,
@@ -674,6 +675,8 @@ export async function runRefreshDeposit(
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
   writeAgentHookDeposit(projectDir, io);
+  // #75 residual: multi-host thin skill discovery (mirror `.agents/skills` inventory).
+  writeMultiHostSkillDiscovery(projectDir, io);
   writeSlashCommandDeposit(projectDir, io);
   // #2530: root `.githooks/` is a consumer derivative like #2595 marker/schemas —
   // repair on every refresh, including the already-current no-op path.
