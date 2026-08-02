@@ -388,8 +388,8 @@ describe("inspectAllPolicies", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    // Includes deliveryBranch (#3041) among typed policy fields.
-    expect(inspectAllPolicies(r)).toHaveLength(17);
+    // Includes deliveryBranch (#3041) + hostSlashCommands (#3054) among typed policy fields.
+    expect(inspectAllPolicies(r)).toHaveLength(18);
   });
 
   it("surfaces typed allowDirectCommits", () => {

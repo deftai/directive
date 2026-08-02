@@ -2,8 +2,8 @@
  * Per-host native command/prompt emitters (#3053 / epic #55).
  *
  * Maps shared thin-wrapper IR from {@link generateThinWrappers} onto each
- * supported host’s repo-relative path layout. Pure generate-to-path records —
- * filesystem deposit is #3054.
+ * supported host’s repo-relative path layout. Pure generate-to-path records;
+ * filesystem deposit is init-deposit `writeSlashCommandDeposit` (#3054).
  *
  * ## Host id → output directory / file pattern
  *

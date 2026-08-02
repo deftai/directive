@@ -6,4 +6,5 @@ export * from "./legacy-detect.js";
 export * from "./migrate.js";
 export * from "./refresh.js";
 export * from "./scaffold.js";
+export * from "./slash-deposit.js";
 export * from "./untrack-core.js";

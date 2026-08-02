@@ -2,7 +2,7 @@
  * Slash-command generator + per-host emitters (#3052 / #3053 / epic #55).
  *
  * Product command table + thin-wrapper IR/templates + host path layouts.
- * Does not write host command dirs on disk — that is #3054 deposit work.
+ * Disk deposit lives in init-deposit `writeSlashCommandDeposit` (#3054).
  */
 
 export {

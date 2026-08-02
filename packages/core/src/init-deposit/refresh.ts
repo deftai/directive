@@ -73,6 +73,7 @@ import {
   writeConsumerGitHooks,
   writeInstallManifest,
 } from "./scaffold.js";
+import { writeSlashCommandDeposit } from "./slash-deposit.js";
 import {
   syncBareVersionMarker,
   syncConsumerXbriefSchemas,
@@ -673,6 +674,7 @@ export async function runRefreshDeposit(
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
   writeAgentHookDeposit(projectDir, io);
+  writeSlashCommandDeposit(projectDir, io);
   // #2530: root `.githooks/` is a consumer derivative like #2595 marker/schemas —
   // repair on every refresh, including the already-current no-op path.
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);

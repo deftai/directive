@@ -5,6 +5,11 @@ import {
 } from "./delivery-branch.js";
 import { FIELD_HOST_HOOKS, FIELD_HOST_HOOKS_CLI_ALIAS, inspectHostHooks } from "./host-hooks.js";
 import {
+  FIELD_HOST_SLASH_COMMANDS,
+  FIELD_HOST_SLASH_COMMANDS_CLI_ALIAS,
+  inspectHostSlashCommands,
+} from "./host-slash-commands.js";
+import {
   FIELD_HOTFIX_CRITERIA,
   FIELD_HOTFIX_CRITERIA_CLI_ALIAS,
   inspectHotfixCriteria,
@@ -46,6 +51,7 @@ export * from "./deft-directive-disable.js";
 export * from "./delivery-branch.js";
 export * from "./disclosure.js";
 export * from "./host-hooks.js";
+export * from "./host-slash-commands.js";
 export * from "./hotfix-criteria.js";
 export * from "./intent-ceiling.js";
 export * from "./no-deft-directive.js";
@@ -350,6 +356,16 @@ function inspectHostHooksField(data: Record<string, unknown> | null): PolicyFiel
   };
 }
 
+function inspectHostSlashCommandsField(data: Record<string, unknown> | null): PolicyField {
+  const field = inspectHostSlashCommands(data);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectRequireHumanMergeField(
   data: Record<string, unknown> | null,
   projectRoot?: string,
@@ -419,6 +435,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectSwarmSubagentBackend,
   inspectDeliveryBranchField,
   inspectHostHooksField,
+  inspectHostSlashCommandsField,
   inspectStalenessTicklerField,
   inspectRuntimeAuthorityField,
   inspectProductSignalField,
@@ -446,13 +463,15 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
             ? FIELD_RUNTIME_AUTHORITY
             : name === FIELD_HOST_HOOKS_CLI_ALIAS
               ? FIELD_HOST_HOOKS
-              : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
-                ? FIELD_REQUIRE_HUMAN_MERGE
-                : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
-                  ? FIELD_HOTFIX_CRITERIA
-                  : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
-                    ? FIELD_DELIVERY_BRANCH
-                    : name;
+              : name === FIELD_HOST_SLASH_COMMANDS_CLI_ALIAS
+                ? FIELD_HOST_SLASH_COMMANDS
+                : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
+                  ? FIELD_REQUIRE_HUMAN_MERGE
+                  : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
+                    ? FIELD_HOTFIX_CRITERIA
+                    : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
+                      ? FIELD_DELIVERY_BRANCH
+                      : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

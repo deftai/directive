@@ -41,6 +41,7 @@ import {
   writeConsumerVbrief,
   writeInstallManifest,
 } from "./scaffold.js";
+import { writeSlashCommandDeposit } from "./slash-deposit.js";
 import { syncBareVersionMarker } from "./xbrief-projections.js";
 
 export interface InitDepositArgs {
@@ -267,6 +268,7 @@ export async function runInitDeposit(
   removeStaleMigratedFrameworkNarrative(projectDir);
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
   writeAgentHookDeposit(projectDir, io);
+  writeSlashCommandDeposit(projectDir, io);
 
   let taskfileWired = false;
   if (args.nonInteractive) {

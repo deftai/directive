@@ -61,6 +61,11 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: ".grok/hooks/deft.json" },
     { exact: ".cursor/hooks.json" },
     { exact: ".codex/hooks.json" },
+    // Multi-host slash command/prompt dirs (#3054 / L8 prefer commit).
+    { prefix: ".claude/commands/" },
+    { prefix: ".cursor/commands/" },
+    { prefix: ".grok/commands/" },
+    { prefix: ".codex/prompts/" },
     { exact: ".gitattributes" },
     { exact: ".gitignore" },
     // Installer-deposited Prettier gate exclusion (#2534); must be allowlisted or

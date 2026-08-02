@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3054",
+    "updated": "2026-08-02T21:35:44Z"
+  },
+  "plan": {
+    "title": "feat(slash,#55): multi-host init/update deposit for slash commands",
+    "status": "running",
+    "narratives": {
+      "Description": "Multi-host init/update deposit for slash commands (#55 Wave 2). Wire emitAllHostCommandFiles (or equivalent) into init/update so configured hosts receive thin command files. Prefer commit of generated command dirs (L8). Per-host opt-out. Default = hosts with real emitters from #3053.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3054",
+      "Overview": "## Parent\n\nEpic **#55** — native agent slash-command registration (multi-host).\n\n## Summary\n\nWire **init/update** (or deposit path) to register native commands for the **configured multi-host set** — idempotent, opt-out capable, no last-writer-wins single host.\n\n## Depends on\n\n- B (core) + C (emitters) for something to deposit\n- Align with existing `hostHooks` / deposit mental model (#2438 lineage)\n\n## Scope\n\n- Project (or user) policy for **enabled host set** (default leans multi-host for known hosts; per-host opt-out)\n- `directive init` / `update` (or shared deposit helper) writes all enabled hosts in one pass\n- Idempotent re-run; no duplicate pile-up\n- Interaction with gitignore vs commit left to docs child unless a deposit default must choose\n\n## Out of scope\n\n- Inventing slash names (A)\n- Prose-only fallback removal (must keep)\n\n## Acceptance criteria\n\n- [ ] Multi-host enabled set deposits all corresponding native files on init/update\n- [ ] Single-host-only is not the product default\n- [ ] Per-host opt-out works without breaking other hosts\n- [ ] Re-run is idempotent\n- [ ] Hooks deposit model remains coherent (slash registration parallel, not conflicting)\n\n## Refs\n\n- Parent: #55\n- Related: #2438 (hooks deposit pattern)",
+      "Labels": "enhancement, interfaces, installer",
+      "UserStory": "As a multi-host Directive operator, I want init and update to deposit slash command files for enabled hosts, so that native autocomplete works without hand-copying wrappers.",
+      "ImplementationPlan": "- Call #3053 emitter APIs during init/update deposit paths.\n- Policy for enabled hosts + per-host opt-out (L6).\n- Prefer commit of generated dirs (L8); idempotent rewrite.\n- Tests for deposit paths and opt-out.\n- CHANGELOG #3054 Refs #55.\n- Out of scope: docs dogfood (#3055); expanding L2 set."
+    },
+    "items": [
+      {
+        "title": "init/update deposits enabled hosts",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given enabled hosts in policy, when init or update runs, then thin command files are written under each host layout from #3053 emitters."
+        }
+      },
+      {
+        "title": "Per-host opt-out",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a host opted out, when deposit runs, then that host directory is not written or is left untouched per policy."
+        }
+      },
+      {
+        "title": "Idempotent rewrite",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a second update, when deposit re-runs, then files update without duplication and stay thin wrappers only."
+        }
+      },
+      {
+        "title": "Tests + CHANGELOG",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given deposit unit tests and CHANGELOG, when reviewed, then opt-out and multi-host deposit are covered and #3054 is cited."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "interfaces",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3054",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3054: feat(slash,#55): multi-host init/update deposit for slash commands"
+      }
+    ],
+    "id": "3054-slash-multi-host-deposit",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/slash-deposit.ts",
+          "packages/core/src/init-deposit/slash-deposit.test.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/index.ts",
+          "packages/core/src/slash/index.ts",
+          "packages/cli/src/dispatch.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core",
+          "task check"
+        ],
+        "expected_outputs": [
+          "init/update multi-host slash deposit",
+          "opt-out policy",
+          "tests",
+          "CHANGELOG #3054"
+        ],
+        "depends_on": [],
+        "conflict_group": "slash-registration-55-wave2",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Depends on merged #3052/#3053 IR/emitters on master. AC from #3054 and L6/L8 on #55."
+      }
+    },
+    "updated": "2026-08-02T21:35:44Z"
+  }
+}
