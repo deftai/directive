@@ -2,6 +2,7 @@ export * from "./audit-log.js";
 export * from "./batch-promote.js";
 export * from "./constants.js";
 export * from "./decomposed-refs.js";
+export * from "./delivery-evidence.js";
 export * from "./demote.js";
 export * from "./main.js";
 export * from "./open-umbrella-warning.js";

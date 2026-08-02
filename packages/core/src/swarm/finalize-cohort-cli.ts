@@ -10,6 +10,7 @@ export function parseFinalizeCohortArgv(
   let repo: string | null = null;
   let projectRoot = ".";
   let baseBranch = "master";
+  let deliveryBranch: string | null = null;
   let label: string | null = null;
   let dryRun = false;
   let noCommit = false;
@@ -48,6 +49,11 @@ export function parseFinalizeCohortArgv(
     } else if (arg === "--base-branch" && next !== undefined) {
       baseBranch = next;
       i += 1;
+    } else if (arg === "--delivery-branch" && next !== undefined) {
+      deliveryBranch = next;
+      i += 1;
+    } else if (arg?.startsWith("--delivery-branch=")) {
+      deliveryBranch = arg.slice("--delivery-branch=".length);
     } else if (arg === "--label" && next !== undefined) {
       label = next;
       i += 1;
@@ -70,6 +76,7 @@ export function parseFinalizeCohortArgv(
     repo,
     projectRoot,
     baseBranch,
+    deliveryBranch,
     label,
     dryRun,
     noCommit,

@@ -34,6 +34,34 @@ describe("complete cohort live sweep with mocked transition", () => {
     vi.mocked(runTransition).mockClear();
   });
 
+  it("propagates delivery context into runTransition options (#3041)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-delivery-ctx-"));
+    const storyPath = writeActiveStory(project, "del-ctx");
+    const sweep = sweepCohort([storyPath], project, false, {
+      defaultEvidence: {
+        prNumber: 1,
+        prBase: "master",
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T00:00:00Z",
+        deliveryBranch: "master",
+      },
+      assumeEvidenceValidated: true,
+      verifier: "test-verifier",
+    });
+    expect(sweep.ok).toBe(true);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        verifier: "test-verifier",
+        deliveryEvidence: expect.objectContaining({ mergeCommit: "abc" }),
+      }),
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("sweepCohort returns empty result when no xbrief/ layout found", () => {
     const emptyProject = mkdtempSync(join(tmpdir(), "sw-empty-"));
     const sweep = sweepCohort([], emptyProject, false);
@@ -48,7 +76,12 @@ describe("complete cohort live sweep with mocked transition", () => {
     const sweep = sweepCohort([storyPath], project, false);
     expect(sweep.ok).toBe(true);
     expect(sweep.stories[0]?.action).toBe("complete");
-    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.any(Object),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 

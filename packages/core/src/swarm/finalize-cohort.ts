@@ -2,8 +2,15 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import {
+  type DeliveryEvidenceInput,
+  evidenceFromPrPayload,
+  verifyDeliveryAncestry,
+} from "../scope/delivery-evidence.js";
+import type { GitRunner } from "../session/git.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import { completedBriefReferencesIssue, resolveStories } from "./launch.js";
@@ -20,6 +27,8 @@ export interface FinalizeCohortResult {
   readonly commit_sha: string | null;
   readonly branch: string | null;
   readonly pr_url: string | null;
+  readonly delivery_branch: string | null;
+  readonly delivery_errors: readonly string[];
   readonly errors: readonly string[];
   readonly warnings: readonly string[];
   readonly ok: boolean;
@@ -30,7 +39,13 @@ export interface FinalizeCohortArgs {
   readonly storyTokens?: readonly string[];
   readonly repo?: string | null;
   readonly projectRoot?: string;
+  /**
+   * Swarm/PR base for the post-merge lifecycle sweep PR only.
+   * Distinct from plan.policy.deliveryBranch (#3041).
+   */
   readonly baseBranch?: string;
+  /** Override delivery branch for this run (defaults to policy/git default). */
+  readonly deliveryBranch?: string | null;
   readonly label?: string | null;
   readonly dryRun?: boolean;
   readonly noCommit?: boolean;
@@ -93,47 +108,87 @@ function parseRepo(repo: string): { owner: string; name: string } | null {
   return { owner: repo.slice(0, slash), name: repo.slice(slash + 1) };
 }
 
-function fetchPrMergedAt(
+interface PrDeliverySnapshot {
+  readonly mergedAt: string;
+  readonly prBase: string | null;
+  readonly mergeCommitSha: string | null;
+  readonly payload: Record<string, unknown>;
+  readonly evidence: DeliveryEvidenceInput;
+}
+
+function fetchPrDeliverySnapshot(
   prNumber: number,
   repo: string,
+  deliveryBranch: string,
   runGh: RunGhFn,
-): { mergedAt: string | null; error: string | null } {
+): { snapshot: PrDeliverySnapshot | null; error: string | null } {
   const parsed = parseRepo(repo);
   if (parsed === null) {
-    return { mergedAt: null, error: `invalid --repo value: ${JSON.stringify(repo)}` };
+    return { snapshot: null, error: `invalid --repo value: ${JSON.stringify(repo)}` };
   }
   const path = `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}`;
   const result = runGh(["gh", "api", path]);
   if (result.returncode !== 0) {
     return {
-      mergedAt: null,
+      snapshot: null,
       error: `gh api ${path} failed: ${result.stderr.trim() || result.stdout.trim()}`,
     };
   }
   try {
-    const parsed = JSON.parse(result.stdout) as unknown;
-    if (parsed === null || typeof parsed !== "object") {
+    const body = JSON.parse(result.stdout) as unknown;
+    if (body === null || typeof body !== "object") {
       return {
-        mergedAt: null,
+        snapshot: null,
         error: `unexpected gh api response for PR #${prNumber}: not a JSON object`,
       };
     }
-    const payload = parsed as Record<string, unknown>;
+    const payload = body as Record<string, unknown>;
     const mergedAt = payload.merged_at;
-    if (mergedAt === null) {
-      return { mergedAt: null, error: `PR #${prNumber} is not merged yet.` };
+    if (mergedAt === null || typeof mergedAt !== "string" || mergedAt.length === 0) {
+      return { snapshot: null, error: `PR #${prNumber} is not merged yet.` };
     }
-    if (typeof mergedAt !== "string" || mergedAt.length === 0) {
-      return { mergedAt: null, error: `PR #${prNumber} is not merged yet.` };
-    }
-    return { mergedAt, error: null };
+    const base = payload.base;
+    const prBase =
+      typeof base === "object" &&
+      base !== null &&
+      !Array.isArray(base) &&
+      typeof (base as Record<string, unknown>).ref === "string"
+        ? String((base as Record<string, unknown>).ref)
+        : null;
+    const mergeCommitSha =
+      typeof payload.merge_commit_sha === "string" && payload.merge_commit_sha.length > 0
+        ? payload.merge_commit_sha
+        : null;
+    const evidence = evidenceFromPrPayload(payload, prNumber, repo, deliveryBranch);
+    return {
+      snapshot: {
+        mergedAt,
+        prBase,
+        mergeCommitSha,
+        payload,
+        evidence,
+      },
+      error: null,
+    };
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
     return {
-      mergedAt: null,
+      snapshot: null,
       error: `failed to parse gh api response for PR #${prNumber}: ${message}`,
     };
   }
+}
+
+/** Adapt swarm runText to the session GitRunner shape used by delivery-evidence. */
+function asGitRunner(runGit: typeof runText): GitRunner {
+  return (projectRoot, args) => {
+    const result = runGit(["git", ...args], { cwd: projectRoot });
+    return {
+      code: result.returncode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  };
 }
 
 function fetchClosingIssues(
@@ -370,14 +425,25 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const projectRoot = resolve(args.projectRoot ?? process.cwd());
   const runGh = args.runGh ?? defaultRunGh;
   const runGit = args.runGit ?? runText;
+  const gitRunner = asGitRunner(runGit);
   const prNumbers = [...(args.prNumbers ?? [])].sort((a, b) => a - b);
   const storyTokens = splitCsv(args.storyTokens ?? []);
   const repo = args.repo ?? process.env.GH_REPO ?? null;
+  // baseBranch is for the lifecycle sweep PR only — not delivery proof (#3041).
   const baseBranch = args.baseBranch ?? "master";
   const dryRun = args.dryRun ?? false;
   const noCommit = args.noCommit ?? false;
   const noOpenPr = args.noOpenPr ?? false;
   const errors: string[] = [];
+  const deliveryErrors: string[] = [];
+
+  const deliveryBranchResolved =
+    args.deliveryBranch !== null &&
+    args.deliveryBranch !== undefined &&
+    args.deliveryBranch.trim().length > 0
+      ? args.deliveryBranch.trim()
+      : resolveDeliveryBranch(projectRoot, gitRunner).branch;
+  const deliveryBranch = deliveryBranchResolved;
 
   if (!existsSync(projectRoot)) {
     return buildResponse({
@@ -391,6 +457,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       commitSha: null,
       branch: null,
       prUrl: null,
+      deliveryBranch,
+      deliveryErrors: [],
       errors: [`project root does not exist: ${projectRoot}`],
       warnings: [],
       ok: false,
@@ -411,6 +479,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       commitSha: null,
       branch: null,
       prUrl: null,
+      deliveryBranch,
+      deliveryErrors: [],
       errors: [`no xbrief/ directory under project root: ${projectRoot}`],
       warnings: [],
       ok: false,
@@ -420,16 +490,64 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   }
 
   const closingIssues = new Set<number>();
+  /** Aggregated delivery evidence from validated merged PRs (shared across stories). */
+  let cohortEvidence: DeliveryEvidenceInput | null = null;
+  const validatedPrs: number[] = [];
+
   if (prNumbers.length > 0) {
     if (repo === null || repo.length === 0) {
       errors.push("--repo OWNER/REPO is required when --pr is supplied (or set $GH_REPO).");
     } else {
       for (const prNumber of prNumbers) {
-        const merged = fetchPrMergedAt(prNumber, repo, runGh);
-        if (merged.error !== null) {
-          errors.push(merged.error);
+        const fetched = fetchPrDeliverySnapshot(prNumber, repo, deliveryBranch, runGh);
+        if (fetched.error !== null || fetched.snapshot === null) {
+          errors.push(fetched.error ?? `PR #${prNumber}: delivery snapshot unavailable`);
           continue;
         }
+        const snap = fetched.snapshot;
+
+        // base.ref must equal configured deliveryBranch — integration bases fail closed (#3041).
+        if (snap.prBase === null || snap.prBase.length === 0) {
+          deliveryErrors.push(
+            `PR #${prNumber}: missing base.ref; cannot verify delivery branch (#3041).`,
+          );
+          continue;
+        }
+        if (snap.prBase !== deliveryBranch) {
+          deliveryErrors.push(
+            `PR #${prNumber}: base.ref '${snap.prBase}' is not the delivery branch ` +
+              `'${deliveryBranch}'. Merged-to-integration is not delivery evidence (#3041). ` +
+              `(Note: --base-branch only controls the lifecycle sweep PR target, not delivery.)`,
+          );
+          continue;
+        }
+        if (snap.mergeCommitSha === null) {
+          deliveryErrors.push(
+            `PR #${prNumber}: missing merge_commit_sha; cannot prove delivery ancestry (#3041).`,
+          );
+          continue;
+        }
+
+        // Refresh remote delivery ref and require merge commit ancestry (#3041).
+        const ancestry = verifyDeliveryAncestry(
+          projectRoot,
+          snap.mergeCommitSha,
+          deliveryBranch,
+          gitRunner,
+        );
+        if (!ancestry.ok) {
+          deliveryErrors.push(`PR #${prNumber}: ${ancestry.error}`);
+          continue;
+        }
+
+        validatedPrs.push(prNumber);
+        cohortEvidence = {
+          ...snap.evidence,
+          deliveryBranch,
+          deliveryCommit: ancestry.remoteTip,
+          verifier: "swarm:finalize-cohort",
+        };
+
         const closing = fetchClosingIssues(prNumber, repo, runGh);
         if (closing.error !== null) {
           errors.push(closing.error);
@@ -439,6 +557,10 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         }
       }
     }
+  }
+
+  if (deliveryErrors.length > 0) {
+    errors.push(...deliveryErrors);
   }
 
   if (storyTokens.length === 0 && closingIssues.size === 0) {
@@ -515,16 +637,51 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       commitSha: null,
       branch: null,
       prUrl: null,
+      deliveryBranch,
+      deliveryErrors,
       errors,
       warnings,
       ok: cleanNoop,
       emitJson: args.emitJson ?? false,
       exitCode: cleanNoop
         ? EXIT_OK
-        : errors.some((e) => e.includes("not merged"))
+        : errors.some((e) => e.includes("not merged") || e.includes("delivery"))
           ? EXIT_GATE_FAILED
           : EXIT_CONFIG_ERROR,
     });
+  }
+
+  // When --pr was supplied, every PR must pass delivery validation before sweep (#3041).
+  if (prNumbers.length > 0 && validatedPrs.length !== prNumbers.length && errors.length > 0) {
+    return buildResponse({
+      projectRoot,
+      dryRun,
+      noCommit,
+      prNumbers,
+      storyPaths,
+      closingIssues: [...closingIssues],
+      sweep: null,
+      commitSha: null,
+      branch: null,
+      prUrl: null,
+      deliveryBranch,
+      deliveryErrors,
+      errors,
+      warnings,
+      ok: false,
+      emitJson: args.emitJson ?? false,
+      exitCode: EXIT_GATE_FAILED,
+    });
+  }
+
+  // Stories without PR-backed delivery evidence still hit the complete gate; if
+  // only --stories was supplied, complete-cohort fails closed for code-bearing
+  // scopes unless callers pass evidence (finalize requires --pr for delivery).
+  if (prNumbers.length === 0 && cohortEvidence === null) {
+    warnings.push(
+      "No --pr supplied: code-bearing stories require delivery evidence or " +
+        "will fail closed at scope:complete (#3041).",
+    );
   }
 
   let commitSha: string | null = null;
@@ -551,6 +708,15 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     projectRoot,
     dryRun,
     emitJson: false,
+    delivery:
+      cohortEvidence !== null
+        ? {
+            defaultEvidence: cohortEvidence,
+            // Ancestry already verified above; avoid double remote fetch on each story.
+            assumeEvidenceValidated: true,
+            verifier: "swarm:finalize-cohort",
+          }
+        : null,
   });
   if (sweepResult.exitCode !== 0) {
     errors.push("cohort completion sweep failed.");
@@ -565,6 +731,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       commitSha: null,
       branch: null,
       prUrl: null,
+      deliveryBranch,
+      deliveryErrors,
       errors,
       warnings,
       ok: false,
@@ -611,6 +779,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     commitSha,
     branch,
     prUrl,
+    deliveryBranch,
+    deliveryErrors,
     errors,
     warnings,
     ok,
@@ -630,6 +800,8 @@ function buildResponse(input: {
   commitSha: string | null;
   branch: string | null;
   prUrl: string | null;
+  deliveryBranch: string | null;
+  deliveryErrors: readonly string[];
   errors: readonly string[];
   warnings: readonly string[];
   ok: boolean;
@@ -647,6 +819,8 @@ function buildResponse(input: {
     commit_sha: input.commitSha,
     branch: input.branch,
     pr_url: input.prUrl,
+    delivery_branch: input.deliveryBranch,
+    delivery_errors: input.deliveryErrors,
     errors: input.errors,
     warnings: input.warnings,
     ok: input.ok,
@@ -666,6 +840,9 @@ function buildResponse(input: {
       `(${input.storyPaths.length} stor${input.storyPaths.length === 1 ? "y" : "ies"})`,
     `  Project root: ${input.projectRoot}`,
   ];
+  if (input.deliveryBranch !== null) {
+    lines.push(`  Delivery branch: ${input.deliveryBranch}`);
+  }
   if (input.prNumbers.length > 0) {
     lines.push(`  PRs: ${input.prNumbers.map((n) => `#${n}`).join(", ")}`);
   }

@@ -6,6 +6,11 @@ import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { TRANSITIONS } from "./constants.js";
 import {
+  type DeliveryEvidenceInput,
+  isNonDeliveryDisposition,
+  type NonDeliveryDisposition,
+} from "./delivery-evidence.js";
+import {
   batchDemote,
   DEFAULT_OLDER_THAN_DAYS,
   demoteOne,
@@ -19,7 +24,7 @@ import {
   renderOpenUmbrellaWarning,
 } from "./open-umbrella-warning.js";
 import { resolveProjectRoot } from "./project-context.js";
-import { recordWipCapOverride, runTransition } from "./transition.js";
+import { recordWipCapOverride, runTransition, type TransitionOptions } from "./transition.js";
 import {
   findByDecisionId,
   isAlreadyUndone,
@@ -36,6 +41,10 @@ export interface LifecycleArgs {
   force?: boolean;
   batch?: boolean;
   batchFiles?: string[];
+  /** Explicit non-delivery disposition for code-bearing complete (#3041). */
+  nonDeliveryDisposition?: NonDeliveryDisposition;
+  /** Optional delivery evidence flags for complete (#3041). */
+  deliveryEvidence?: DeliveryEvidenceInput;
 }
 
 export interface DemoteArgs {
@@ -77,6 +86,13 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let force = false;
   let batch = false;
   const batchFiles: string[] = [];
+  let nonDeliveryDisposition: NonDeliveryDisposition | undefined;
+  let prNumber: number | undefined;
+  let mergeCommit: string | undefined;
+  let prBase: string | undefined;
+  let deliveryBranch: string | undefined;
+  let repo: string | undefined;
+  let mergedAt: string | undefined;
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === undefined) {
@@ -91,6 +107,49 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
       projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--non-delivery" || arg === "--non-delivery-disposition") {
+      const raw = argv[i + 1];
+      i += 1;
+      if (raw === undefined || !isNonDeliveryDisposition(raw)) {
+        return { args: null, error: "usage" };
+      }
+      nonDeliveryDisposition = raw;
+    } else if (arg?.startsWith("--non-delivery=")) {
+      const raw = arg.slice("--non-delivery=".length);
+      if (!isNonDeliveryDisposition(raw)) {
+        return { args: null, error: "usage" };
+      }
+      nonDeliveryDisposition = raw;
+    } else if (arg === "--pr" && argv[i + 1] !== undefined) {
+      prNumber = Number.parseInt(argv[i + 1] ?? "", 10);
+      i += 1;
+    } else if (arg?.startsWith("--pr=")) {
+      prNumber = Number.parseInt(arg.slice("--pr=".length), 10);
+    } else if (arg === "--merge-commit" && argv[i + 1] !== undefined) {
+      mergeCommit = argv[i + 1];
+      i += 1;
+    } else if (arg?.startsWith("--merge-commit=")) {
+      mergeCommit = arg.slice("--merge-commit=".length);
+    } else if (arg === "--pr-base" && argv[i + 1] !== undefined) {
+      prBase = argv[i + 1];
+      i += 1;
+    } else if (arg?.startsWith("--pr-base=")) {
+      prBase = arg.slice("--pr-base=".length);
+    } else if (arg === "--delivery-branch" && argv[i + 1] !== undefined) {
+      deliveryBranch = argv[i + 1];
+      i += 1;
+    } else if (arg?.startsWith("--delivery-branch=")) {
+      deliveryBranch = arg.slice("--delivery-branch=".length);
+    } else if (arg === "--repo" && argv[i + 1] !== undefined) {
+      repo = argv[i + 1];
+      i += 1;
+    } else if (arg?.startsWith("--repo=")) {
+      repo = arg.slice("--repo=".length);
+    } else if (arg === "--merged-at" && argv[i + 1] !== undefined) {
+      mergedAt = argv[i + 1];
+      i += 1;
+    } else if (arg?.startsWith("--merged-at=")) {
+      mergedAt = arg.slice("--merged-at=".length);
     } else if (!arg.startsWith("-")) {
       if (batch) {
         batchFiles.push(arg);
@@ -103,6 +162,23 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       return { args: null, error: "usage" };
     }
   }
+  const deliveryEvidence: DeliveryEvidenceInput | undefined =
+    prNumber !== undefined ||
+    mergeCommit !== undefined ||
+    prBase !== undefined ||
+    deliveryBranch !== undefined ||
+    repo !== undefined ||
+    mergedAt !== undefined
+      ? {
+          prNumber: prNumber !== undefined && Number.isFinite(prNumber) ? prNumber : null,
+          mergeCommit: mergeCommit ?? null,
+          prBase: prBase ?? null,
+          deliveryBranch: deliveryBranch ?? null,
+          repository: repo ?? null,
+          mergedAt: mergedAt ?? (mergeCommit !== undefined ? "supplied" : null),
+          verifier: "scope:complete",
+        }
+      : undefined;
   if (batch) {
     if (action !== "promote") {
       return { args: null, error: "usage" };
@@ -121,7 +197,16 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   if (file.length === 0) {
     return { args: null, error: "usage" };
   }
-  return { args: { action, file, projectRoot, force } };
+  return {
+    args: {
+      action,
+      file,
+      projectRoot,
+      force,
+      nonDeliveryDisposition,
+      deliveryEvidence,
+    },
+  };
 }
 
 /** Main entry for scope_lifecycle.py parity. */
@@ -133,7 +218,16 @@ export function lifecycleMain(argv: string[]): number {
     }
     return 2;
   }
-  const { action, file, projectRoot, force, batch, batchFiles } = parsed.args;
+  const {
+    action,
+    file,
+    projectRoot,
+    force,
+    batch,
+    batchFiles,
+    nonDeliveryDisposition,
+    deliveryEvidence,
+  } = parsed.args;
 
   if (batch === true && action === "promote") {
     const result = batchPromote({
@@ -175,7 +269,12 @@ export function lifecycleMain(argv: string[]): number {
     }
   }
 
-  const result = runTransition(action, filePath);
+  const transitionOptions: TransitionOptions = {
+    nonDeliveryDisposition,
+    deliveryEvidence,
+    verifier: "scope:complete",
+  };
+  const result = runTransition(action, filePath, new Date(), transitionOptions);
   if (result.ok) {
     if (action === "promote" && capCheck !== null && capCheck.forceOverride) {
       const rootForAudit = resolveProjectRoot(projectRoot);

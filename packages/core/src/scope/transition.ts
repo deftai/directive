@@ -6,6 +6,7 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import type { GitRunner } from "../session/git.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { atomicWriteBrief, formatBriefJson, readBriefForMutation } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
@@ -22,6 +23,12 @@ import {
   updateDecomposedChildBackReferences,
   updateDecomposedParentBackReferences,
 } from "./decomposed-refs.js";
+import {
+  type DeliveryEvidenceInput,
+  evaluateDeliveryGate,
+  type NonDeliveryDisposition,
+  stampDeliveryProvenance,
+} from "./delivery-evidence.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { utcNowIso } from "./vbrief-json.js";
@@ -30,6 +37,15 @@ import type { WipCapCheck } from "./wip-cap-check.js";
 export interface TransitionResult {
   readonly ok: boolean;
   readonly message: string;
+}
+
+/** Optional completion evidence / disposition for the delivery gate (#3041). */
+export interface TransitionOptions {
+  readonly deliveryEvidence?: DeliveryEvidenceInput | null;
+  readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
+  readonly runGit?: GitRunner;
+  readonly verifier?: string;
+  readonly assumeEvidenceValidated?: boolean;
 }
 
 /** Item statuses that still represent unfinished work and should advance on terminal transitions (#2862). */
@@ -77,6 +93,7 @@ export function runTransition(
   action: string,
   filePath: string,
   now: Date = new Date(),
+  options: TransitionOptions = {},
 ): TransitionResult {
   if (!(action in TRANSITIONS)) {
     const valid = Object.keys(TRANSITIONS).sort().join(", ");
@@ -171,6 +188,27 @@ export function runTransition(
   }
 
   const nowIso = utcNowIso(now);
+
+  // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
+  if (act === "complete") {
+    const gate = evaluateDeliveryGate({
+      projectRoot,
+      plan: planObj,
+      nowIso,
+      evidence: options.deliveryEvidence,
+      nonDeliveryDisposition: options.nonDeliveryDisposition,
+      runGit: options.runGit,
+      verifier: options.verifier ?? "scope:complete",
+      assumeEvidenceValidated: options.assumeEvidenceValidated,
+    });
+    if (!gate.ok) {
+      return { ok: false, message: gate.message };
+    }
+    if (gate.provenance !== null) {
+      stampDeliveryProvenance(planObj, gate.provenance);
+    }
+  }
+
   planObj.status = targetStatus;
   planObj.updated = nowIso;
   // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).

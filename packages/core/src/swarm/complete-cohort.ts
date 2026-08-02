@@ -2,9 +2,21 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { detectLifecycleFolder } from "../scope/decomposed-refs.js";
-import { runTransition } from "../scope/transition.js";
+import type { DeliveryEvidenceInput, NonDeliveryDisposition } from "../scope/delivery-evidence.js";
+import { runTransition, type TransitionOptions } from "../scope/transition.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "../scope/vbrief-ref.js";
 import { MAX_FIXPOINT_PASSES, TERMINAL_FOLDERS } from "./constants.js";
+
+/** Per-story or default delivery evidence for cohort completion (#3041). */
+export interface CohortDeliveryContext {
+  /** Evidence keyed by absolute story path (preferred). */
+  readonly evidenceByPath?: ReadonlyMap<string, DeliveryEvidenceInput> | null;
+  /** Shared evidence applied to every story when per-path map misses. */
+  readonly defaultEvidence?: DeliveryEvidenceInput | null;
+  readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
+  readonly assumeEvidenceValidated?: boolean;
+  readonly verifier?: string;
+}
 
 export interface TransitionRecord {
   kind: "story" | "epic";
@@ -158,12 +170,34 @@ function parentCandidatesFrom(plan: Record<string, unknown>, vbriefDir: string):
   return out;
 }
 
+function transitionOptionsFor(
+  storyPath: string,
+  delivery: CohortDeliveryContext | null | undefined,
+): TransitionOptions {
+  if (delivery === null || delivery === undefined) {
+    return { verifier: "swarm:complete-cohort" };
+  }
+  const pathKey = resolve(storyPath);
+  const evidence =
+    delivery.evidenceByPath?.get(pathKey) ??
+    delivery.evidenceByPath?.get(storyPath) ??
+    delivery.defaultEvidence ??
+    null;
+  return {
+    deliveryEvidence: evidence,
+    nonDeliveryDisposition: delivery.nonDeliveryDisposition,
+    assumeEvidenceValidated: delivery.assumeEvidenceValidated,
+    verifier: delivery.verifier ?? "swarm:complete-cohort",
+  };
+}
+
 function completeStory(
   storyPath: string,
   vbriefDir: string,
   projectRoot: string,
   settled: Set<string>,
   dryRun: boolean,
+  delivery?: CohortDeliveryContext | null,
 ): TransitionRecord {
   const folder = detectLifecycleFolder(storyPath);
   const relpath = rel(storyPath, projectRoot);
@@ -199,7 +233,12 @@ function completeStory(
     };
   }
 
-  const result = runTransition("complete", storyPath);
+  const result = runTransition(
+    "complete",
+    storyPath,
+    new Date(),
+    transitionOptionsFor(storyPath, delivery),
+  );
   if (result.ok) {
     settled.add(resolve(join(vbriefDir, "completed", storyPath.split(/[/\\]/).pop() ?? "")));
   }
@@ -218,6 +257,7 @@ function completeParent(
   projectRoot: string,
   settled: Set<string>,
   dryRun: boolean,
+  delivery?: CohortDeliveryContext | null,
 ): TransitionRecord {
   const folder = detectLifecycleFolder(parentPath);
   const relpath = rel(parentPath, projectRoot);
@@ -280,7 +320,12 @@ function completeParent(
     current = join(vbriefDir, "active", parentPath.split(/[/\\]/).pop() ?? "");
   }
 
-  const completeResult = runTransition("complete", current);
+  const completeResult = runTransition(
+    "complete",
+    current,
+    new Date(),
+    transitionOptionsFor(current, delivery),
+  );
   if (completeResult.ok) {
     settled.add(resolve(join(vbriefDir, "completed", parentPath.split(/[/\\]/).pop() ?? "")));
   }
@@ -297,6 +342,7 @@ export function sweepCohort(
   storyPaths: readonly string[],
   projectRoot: string,
   dryRun: boolean,
+  delivery?: CohortDeliveryContext | null,
 ): SweepResult {
   let vbriefDir: string;
   try {
@@ -344,7 +390,9 @@ export function sweepCohort(
         }
       }
     }
-    result.stories.push(completeStory(storyPath, vbriefDir, projectRoot, settled, dryRun));
+    result.stories.push(
+      completeStory(storyPath, vbriefDir, projectRoot, settled, dryRun, delivery),
+    );
   }
 
   const finalized = new Set<string>();
@@ -364,7 +412,7 @@ export function sweepCohort(
       if (!allChildrenSettled(parentPlan, vbriefDir, settled, dryRun)) {
         continue;
       }
-      const record = completeParent(candidate, vbriefDir, projectRoot, settled, dryRun);
+      const record = completeParent(candidate, vbriefDir, projectRoot, settled, dryRun, delivery);
       result.parents.push(record);
       finalized.add(candidate);
       progressed = true;
@@ -446,6 +494,8 @@ export function completeCohort(args: {
   projectRoot: string;
   dryRun?: boolean;
   emitJson?: boolean;
+  /** Per-story delivery evidence; without it code-bearing stories fail closed (#3041). */
+  delivery?: CohortDeliveryContext | null;
 }): { exitCode: number; stdout: string; stderr: string } {
   const projectRoot = resolve(args.projectRoot);
   if (!existsSync(projectRoot)) {
@@ -493,7 +543,7 @@ export function completeCohort(args: {
     return { exitCode: 2, stdout: "", stderr };
   }
 
-  const result = sweepCohort(paths, projectRoot, args.dryRun ?? false);
+  const result = sweepCohort(paths, projectRoot, args.dryRun ?? false, args.delivery);
   result.errors.push(...errors);
 
   if (args.emitJson) {

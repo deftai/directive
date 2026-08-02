@@ -460,7 +460,17 @@ describe("scope complete open umbrella warning", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
-    expect(lifecycleMain(["complete", child, "--project-root", root])).toBe(0);
+    // Code-bearing (github issue ref) needs explicit non-delivery or delivery evidence (#3041).
+    expect(
+      lifecycleMain([
+        "complete",
+        child,
+        "--project-root",
+        root,
+        "--non-delivery",
+        "accepted_not_delivered",
+      ]),
+    ).toBe(0);
 
     const out = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
     const err = stderr.mock.calls.map(([chunk]) => String(chunk)).join("");

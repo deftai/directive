@@ -1,3 +1,8 @@
+import {
+  FIELD_DELIVERY_BRANCH,
+  FIELD_DELIVERY_BRANCH_CLI_ALIAS,
+  inspectDeliveryBranch,
+} from "./delivery-branch.js";
 import { FIELD_HOST_HOOKS, FIELD_HOST_HOOKS_CLI_ALIAS, inspectHostHooks } from "./host-hooks.js";
 import {
   FIELD_HOTFIX_CRITERIA,
@@ -38,6 +43,7 @@ export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
+export * from "./delivery-branch.js";
 export * from "./disclosure.js";
 export * from "./host-hooks.js";
 export * from "./hotfix-criteria.js";
@@ -65,6 +71,7 @@ export const FIELD_TRIAGE_RANKING_LABELS = "plan.policy.triageRankingLabels";
 export const FIELD_TRIAGE_AUTO_CLASSIFY = "plan.policy.triageAutoClassify";
 export const FIELD_TRIAGE_HOLD_MARKERS = "plan.policy.triageHoldMarkers";
 export const FIELD_SWARM_SUBAGENT_BACKEND = "plan.policy.swarmSubagentBackend";
+// deliveryBranch also exported from delivery-branch.js via export *
 
 export const DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4;
 export const DEFAULT_TRIAGE_SCOPE_VALUE: readonly Record<string, unknown>[] = [
@@ -366,6 +373,19 @@ function inspectHotfixCriteriaField(data: Record<string, unknown> | null): Polic
   };
 }
 
+function inspectDeliveryBranchField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectDeliveryBranch(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -397,6 +417,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
       emptyIsTyped: true,
     }),
   inspectSwarmSubagentBackend,
+  inspectDeliveryBranchField,
   inspectHostHooksField,
   inspectStalenessTicklerField,
   inspectRuntimeAuthorityField,
@@ -429,7 +450,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
                 ? FIELD_REQUIRE_HUMAN_MERGE
                 : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
                   ? FIELD_HOTFIX_CRITERIA
-                  : name;
+                  : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
+                    ? FIELD_DELIVERY_BRANCH
+                    : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

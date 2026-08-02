@@ -384,11 +384,12 @@ describe("inspectAllPolicies", () => {
     for (const r of roots) rmSync(r, { recursive: true, force: true });
   });
 
-  it("returns fourteen registered fields by default", () => {
+  it("returns registered policy fields by default", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    expect(inspectAllPolicies(r)).toHaveLength(16);
+    // Includes deliveryBranch (#3041) among typed policy fields.
+    expect(inspectAllPolicies(r)).toHaveLength(17);
   });
 
   it("surfaces typed allowDirectCommits", () => {

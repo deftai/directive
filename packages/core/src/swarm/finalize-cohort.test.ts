@@ -76,6 +76,10 @@ interface MockPrState {
   readonly merged: boolean;
   readonly closingIssues: number[];
   readonly body?: string;
+  /** PR base.ref (defaults to master — delivery branch). */
+  readonly baseRef?: string;
+  readonly mergeCommitSha?: string | null;
+  readonly headSha?: string;
 }
 
 function mockRunGh(
@@ -114,11 +118,18 @@ function mockRunGh(
         return { returncode: 1, stdout: "", stderr: "not found" };
       }
       const body = state.body ?? state.closingIssues.map((n) => `Closes #${n}`).join("\n");
+      const mergeSha =
+        state.mergeCommitSha === null
+          ? null
+          : (state.mergeCommitSha ?? "deadbeefdelivery000000000000000000000001");
       return {
         returncode: 0,
         stdout: JSON.stringify({
           merged_at: state.merged ? "2026-07-02T12:00:00Z" : null,
           body,
+          base: { ref: state.baseRef ?? "master" },
+          head: { sha: state.headSha ?? "headsha000000000000000000000000000000001" },
+          merge_commit_sha: state.merged ? mergeSha : null,
         }),
         stderr: "",
       };
@@ -130,7 +141,10 @@ function mockRunGh(
   };
 }
 
-function mockRunGit(onCommit?: () => void): (command: readonly string[]) => TextCaptureResult {
+function mockRunGit(
+  onCommit?: () => void,
+  opts?: { fetchFail?: boolean; notAncestor?: boolean },
+): (command: readonly string[]) => TextCaptureResult {
   let currentBranch = "";
   return (command) => {
     const joined = command.join(" ");
@@ -153,6 +167,22 @@ function mockRunGit(onCommit?: () => void): (command: readonly string[]) => Text
     if (joined.includes("git status --short")) {
       return { returncode: 0, stdout: "M xbrief/active/story-a.xbrief.json\n", stderr: "" };
     }
+    if (joined.includes("git fetch") && opts?.fetchFail) {
+      return { returncode: 1, stdout: "", stderr: "network unreachable" };
+    }
+    if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+      return {
+        returncode: opts?.notAncestor ? 1 : 0,
+        stdout: "",
+        stderr: opts?.notAncestor ? "not ancestor" : "",
+      };
+    }
+    if (joined.includes("git rev-parse") && joined.includes("origin/")) {
+      return { returncode: 0, stdout: "deliverytip000000000000000000000000001\n", stderr: "" };
+    }
+    if (joined.includes("git rev-parse")) {
+      return { returncode: 0, stdout: "abc123\n", stderr: "" };
+    }
     return { returncode: 0, stdout: "", stderr: "" };
   };
 }
@@ -172,7 +202,12 @@ describe("finalizeCohort", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.ok).toBe(true);
-    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.any(Object),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -184,7 +219,9 @@ describe("finalizeCohort", () => {
       prNumbers: [42],
       repo: "deftai/directive",
       noCommit: true,
+      deliveryBranch: "master",
       runGh: mockRunGh({ 42: { merged: true, closingIssues: [2115] } }),
+      runGit: mockRunGit(),
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.closing_issues).toEqual([2115]);
@@ -200,6 +237,7 @@ describe("finalizeCohort", () => {
       prNumbers: [2226],
       repo: "deftai/directive",
       noCommit: true,
+      deliveryBranch: "master",
       runGh: mockRunGh({
         2226: {
           merged: true,
@@ -210,6 +248,7 @@ describe("finalizeCohort", () => {
             "Refs #1997\n\nCloses #2115",
         },
       }),
+      runGit: mockRunGit(),
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.closing_issues).toEqual([2115]);
@@ -226,10 +265,112 @@ describe("finalizeCohort", () => {
       prNumbers: [43],
       repo: "deftai/directive",
       noCommit: true,
+      deliveryBranch: "master",
       runGh: mockRunGh({ 43: { merged: false, closingIssues: [2181] } }),
+      runGit: mockRunGit(),
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.result.errors.some((e) => e.includes("not merged"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("rejects PR merged only into an intermediate base (not delivery branch) (#3041)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-integration-"));
+    writeActiveStory(project, "story-int", 3041);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [100],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      // --base-branch is the sweep PR target and must NOT redefine delivery
+      baseBranch: "develop",
+      runGh: mockRunGh({
+        100: { merged: true, closingIssues: [3041], baseRef: "feature/integration" },
+      }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("not the delivery branch") || e.includes("delivery"),
+      ),
+    ).toBe(true);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("rejects when remote delivery ref refresh fails (#3041)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-stale-"));
+    writeActiveStory(project, "story-stale", 3041);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [101],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 101: { merged: true, closingIssues: [3041], baseRef: "master" } }),
+      runGit: mockRunGit(undefined, { fetchFail: true }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("fetch") || e.includes("delivery"))).toBe(
+      true,
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("rejects missing merge_commit_sha (#3041)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-no-sha-"));
+    writeActiveStory(project, "story-nosha", 3041);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [102],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        102: {
+          merged: true,
+          closingIssues: [3041],
+          baseRef: "master",
+          mergeCommitSha: null,
+        },
+      }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("merge_commit_sha"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("accepts direct delivery merge with ancestry (#3041)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-delivery-"));
+    const storyPath = writeActiveStory(project, "story-del", 3041);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [103],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 103: { merged: true, closingIssues: [3041], baseRef: "master" } }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.delivery_branch).toBe("master");
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        deliveryEvidence: expect.objectContaining({
+          prNumber: 103,
+          prBase: "master",
+          mergeCommit: expect.any(String),
+        }),
+      }),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -296,7 +437,9 @@ describe("finalizeCohort", () => {
       prNumbers: [2241],
       repo: "deftai/directive",
       noCommit: true,
+      deliveryBranch: "master",
       runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 2115] } }),
+      runGit: mockRunGit(),
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.ok).toBe(true);
@@ -304,7 +447,12 @@ describe("finalizeCohort", () => {
     expect(result.result.story_paths[0]).toContain("story-2240");
     expect(result.result.warnings.some((w) => w.includes("#2115"))).toBe(true);
     expect(result.result.errors).toEqual([]);
-    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.any(Object),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -316,7 +464,9 @@ describe("finalizeCohort", () => {
       prNumbers: [2241],
       repo: "deftai/directive",
       noCommit: true,
+      deliveryBranch: "master",
       runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 8888] } }, { 8888: "closed" }),
+      runGit: mockRunGit(),
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.ok).toBe(true);
@@ -336,12 +486,19 @@ describe("finalizeCohort", () => {
       prNumbers: [2241],
       repo: "deftai/directive",
       noCommit: true,
+      deliveryBranch: "master",
       runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 9999] } }, { 9999: "open" }),
+      runGit: mockRunGit(),
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.result.errors.some((e) => e.includes("#9999"))).toBe(true);
     // The genuine misconfig is surfaced, but the real cohort story still sweeps.
-    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.any(Object),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 

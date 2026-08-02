@@ -65,6 +65,22 @@ framework:
 | **Ship** | PR merge and release — `task pr:*` and [`deft-directive-release`](../skills/deft-directive-release/SKILL.md). |
 | **Issues / Features** | GitHub issues and feature requests mirrored into `.deft-cache/` and surfaced as triage candidates. |
 
+## Delivery integrity vs deploy / UAT (#3041)
+
+`scope:complete` and swarm cohort completion mark **lifecycle bookkeeping**, not environment
+green. For **code-bearing** scopes, delivered completion requires durable proof that the
+implementation reached the configured **delivery branch** (`plan.policy.deliveryBranch`,
+defaulting to the repo default branch) — typically: PR `base.ref` equals that branch, and the
+merge commit is an ancestor of the refreshed remote delivery ref. A merge into an intermediate
+feature/integration branch is **not** delivery.
+
+Handoff states that Git can assert are distinct: `implemented` → `pr_open` →
+`merged_to_integration` → `delivered`. **Deployed** and **UAT verified** are separate evidence
+axes and are never inferred from Git alone. Explicit non-delivery dispositions
+(`accepted_not_delivered`, `superseded`, `experiment_archived`, `cancelled`) complete the
+lifecycle without claiming the work shipped. Legacy completed records without completion
+provenance surface as `unknown` / `unverified`, not retroactively `delivered`.
+
 ## Why it loops
 
 The central claim of the picture is that Directive is **reiterative**. Strategy analysis is
