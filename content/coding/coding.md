@@ -21,6 +21,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 **Documentation:**
 - ! All *.md in `docs/` directory (except README.md, AGENTS.md, WARP.md)
 - ! Prior tasks/plans in `history/`
+- ! When code changes user-visible behavior, update matching user-facing docs in the same PR — see [docs.md](docs.md) (#447; lazy-load, not AGENTS always-on)
 
 **Filenames:**
 - ~ Use hyphens not underscores (unless language idiom)

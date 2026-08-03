@@ -92,6 +92,9 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 - ! When strengthening a rule (e.g. upgrading `~` to `!`), grep for the term in the full file and verify no weaker-strength duplicate remains
 - ~ Note any inconsistencies, missing RFC2119 markers, stale cross-references, or incomplete sections
 - ~ Check that CHANGELOG.md entries match the actual changes made
+- ! If the change alters **user-visible behavior**, apply [coding/docs.md](../../coding/docs.md) (#447): update the matching user-facing surface (CHANGELOG when user/operator-visible, CLI help / commands.md for new or changed verbs/flags, README/getting-started for install/first-run, skill/strategy triggers when entry points change) in this PR
+- ⊗ Claim documentation was updated without those files in the diff
+- ~ Pure internal refactors with no user-visible behavior change do not require user-facing doc updates
 
 ### Phase 2 -- Write
 

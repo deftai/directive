@@ -107,6 +107,7 @@ The `welcome` / `onboard triage` phrase invokes `task triage:welcome --onboard` 
 1. **[coding/coding.md](./content/coding/coding.md)** - General coding guidelines
    - Load: For any software development task
    - Contains: modularity, contracts, error handling, change management
+   - User-visible code changes: also load **[coding/docs.md](./content/coding/docs.md)** (#447; lazy, not AGENTS always-on)
 
 **[docs/agent-docs.md](./content/docs/agent-docs.md)** - Authoring a project's AGENTS.md / agent docs
 - Load: When creating, structuring, or reviewing a project's AGENTS.md and its reference docs
