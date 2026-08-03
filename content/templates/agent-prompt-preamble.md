@@ -555,6 +555,36 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 
 Per-step acks during the run are noise. ONE start message, ONE final message; intermediate messages only on `BLOCKED` / `FAILED`. The final message lets the dispatcher distinguish a clean exit from a silent timeout when the lifecycle event arrives.
 
+## 11.5 Completion latch — one consolidate per runId (#3092)
+
+Multi-agent **orchestrators** (OpenClaw parent seats, Cursor Task parents, grok-build swarm monitors, any parent that receives child settle / completion events) MUST apply a portable **completion latch**. Host-level announce dedupe is complementary and imperfect; this is the **agent-side** default when the same settled batch is re-delivered.
+
+### Completion latch (MUST)
+
+1. **One user- or caller-visible consolidate per child `runId` / settle batch** (or the explicit equivalent batch key the harness provides — e.g. spawn id, task id, announce id). Accept or reject for that batch still counts as the one consolidate.
+2. After that consolidate is emitted, **identical or equivalent completion replay** for the same key ⇒ **silent**: no tools, no re-QC, no second final answer. When the host defines a silent token (example: OpenClaw `NO_REPLY`), use it; otherwise emit no outbound user/caller message.
+3. **Re-open only when:**
+   - new `runId` / new child batch key, **or**
+   - caller / principal **explicit** steer to reopen, **or**
+   - the completion payload carries **materially new** evidence (new HEAD, new blocker class, new PR URL / merge state) — not a re-paste or fat re-embedding of the same rollup / full task text.
+4. If the harness **storms** replays with no new key: **at most one** fail-loud note to the caller (`completion replay storm; ignoring`), then silent. ⊗ Infinite consolidate loops.
+5. Fat completion payloads that re-embed full task text, prior prompts, or prior consolidate prose **MUST NOT** be treated as a new mission or as material new evidence.
+
+### Eval checklist (second settle same runId)
+
+Given: parent already emitted a consolidate for `runId=R` (or harness batch key `R`).  
+Second settle event for `R` arrives with the same claims / equivalent rollup.  
+**Expect:** silent / host silent-token path — **not** a new investigation narrative, dual-source re-fetch, or second user-visible final.
+
+### Normative anti-patterns
+
+- ⊗ Second+ user-visible "final" for the same settled `runId` without new evidence or explicit reopen
+- ⊗ Full dual-source / full test re-run solely because the settle event was delivered again
+- ⊗ Treating "send consolidated final **now**" wording on a **replay** as authorization to undo a prior consolidate for that batch
+- ⊗ Treating fat prompt / task-text re-embeds in completion payloads as a new mission (#3092)
+
+Cross-links: swarm Phase 5 completion-notification / parent handback (`skills/deft-directive-swarm/references/core-phase-5-6.md`); review-monitor empty-settle DoD remains #3044 (empty ≠ done) and is orthogonal — empty is not a latch hit; identical non-empty replay after a prior consolidate **is** a latch hit.
+
 ## 12. Session ritual + `task verify:cache-fresh` gates before `start_agent` (#1348 / #1127)
 
 Dispatchers (this orchestrator, swarm Phase 4 dispatch, monitor agents, scheduled / cloud runs) run in a headless worker context and MUST set `DEFT_SESSION_RITUAL_SKIP=1` for dispatched implementation workers. The interactive parent session remains responsible for `task session:start`; worker processes bypass the local `.deft/ritual-state.json` gate explicitly so they do not need per-clone interactive ritual state. When the bypass would hide a stale/missing ritual state, `task verify:session-ritual` prints a warning to stderr; preserve that warning in the dispatch log.

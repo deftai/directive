@@ -418,6 +418,11 @@ Remediation:
 
 ~ Recurrence: enterprize PR #43 (2026-08-02) — first monitor polled live, host settled empty/unknown; parent spawned a second same-`taskName` monitor; dual lease collision while PR stayed open. See also `meta/lessons.md` and FC04 / growth friction R1 + R10.
 
+
+### Completion latch on settle replay (#3092)
+
+! **Empty settle** is not a latch hit — use Empty announce ≠ done (#3044) above. When the parent has already emitted **one** consolidate for a monitor/leaf `runId` and the harness re-delivers an **identical or equivalent** non-empty settle for the same key, stay **silent** (no re-QC, no second final; host silent token when defined). Re-open only on new runId, principal reopen, or material new evidence. Full MUST: `templates/agent-prompt-preamble.md` §11.5.
+
 ### Single review-monitor lease (#3044 / #2814)
 
 ! **One sticky lease per PR:** ownership is the single sticky GitHub PR comment `<!-- deft:review-owner -->` (or the dual-invoke `review-monitor:register` form that writes it). Parallel ownership is forbidden.

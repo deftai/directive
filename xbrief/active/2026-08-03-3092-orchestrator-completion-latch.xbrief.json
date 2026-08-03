@@ -1,0 +1,77 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3092 — orchestrator completion latch / settle-replay silence",
+    "updated": "2026-08-03T18:20:55.965Z"
+  },
+  "plan": {
+    "title": "fix(preamble,swarm): orchestrator completion latch — one consolidate per runId",
+    "status": "running",
+    "narratives": {
+      "Description": "Portable completion latch: one user/caller-visible consolidate per child runId/settle batch; identical replay silent (NO_REPLY example); reopen only on new runId, principal steer, or material new evidence; storm cap one fail-loud note. Eval for second settle same runId.",
+      "Origin": "https://github.com/deftai/directive/issues/3092",
+      "Acceptance": "Preamble (+ swarm completion cross-link) documents Completion latch MUST; anti-patterns for second final and re-QC on replay; eval/checklist second settle silent; CHANGELOG; content-contract pin. Orthogonal to #3090 Owner Continuity Gate.",
+      "ImplementationPlan": "Edit content/templates/agent-prompt-preamble.md; cross-link swarm Phase completion / review-monitor handback; content-contract test; optional pack if preamble is pack-sourced; CHANGELOG. Rebase/restack if concurrent with #3090 on preamble/CHANGELOG.",
+      "Overview": "See issue #3092. Related #2876 (different axis)."
+    },
+    "items": [
+      {
+        "title": "Completion latch in agent-prompt-preamble",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "MUST block with runId latch, silent replay, reopen criteria, storm cap."
+        }
+      },
+      {
+        "title": "Swarm/handback cross-link",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Swarm completion or poller parent handback points at latch."
+        }
+      },
+      {
+        "title": "Eval or content-contract pin",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Second settle for same runId expects silent path."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "skills",
+      "determinism",
+      "agent-experience",
+      "runtime-portability"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3092",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3092"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3090",
+        "type": "x-xbrief/related",
+        "title": "Cohort peer #3090"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "parallel_safe_note": "May touch agent-prompt-preamble.md and CHANGELOG concurrent with #3090 — rebase on master / restack if conflict",
+        "file_scope": [
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/",
+          "CHANGELOG.md"
+        ],
+        "depends_on": []
+      }
+    },
+    "updated": "2026-08-03T18:20:55.965Z"
+  }
+}

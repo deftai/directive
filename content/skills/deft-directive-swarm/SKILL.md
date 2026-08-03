@@ -115,6 +115,12 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ⊗ Multi-sentence progress-only first response after announce with zero tools / yield (#2943 text-repetition hang).
 ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
 
+
+
+### Completion latch after first consolidate (#3092)
+
+! After the parent emits **one** user/caller-visible consolidate for a child `runId` / settle batch, **identical or equivalent completion replay** for the same key MUST be **silent** (no tools, no re-QC, no second final; host silent token when defined, e.g. OpenClaw `NO_REPLY`). Re-open only on new `runId`/batch, principal explicit reopen, or materially new evidence (new HEAD, new blocker class). Replay storms: at most one fail-loud note, then silent. Full MUST: `templates/agent-prompt-preamble.md` §11.5. Depth: `references/core-phase-5-6.md`. Orthogonal to empty settle ≠ done (#3044).
+
 ## Runtime Capability Detection (summary)
 
 ! Before selecting a launch method, probe the environment. Full probe text: [`references/core-phase-3.md`](references/core-phase-3.md).
@@ -152,6 +158,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Prose-only phase handoff after cohort complete (“I will spawn…”) (#2934)
 - ⊗ Multi-sentence progress-only first response after leaf announce with zero tools / yield (#2943)
 - ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943)
+- ⊗ Second+ user-visible consolidate for the same child runId without new evidence (#3092)
 - ⊗ Assign overlapping files to multiple agents
 - ⊗ Merge before Greptile exit condition (score > 3, no P0/P1)
 - ⊗ Skip Phase 0 approval before Phase 1

@@ -143,3 +143,5 @@ CONSTRAINTS:
 - ⊗ End a cohort phase-boundary turn with only narrative “I will spawn…” / “review next” and zero next-phase tool calls and no explicit terminal status (`blocked` / `awaiting-human` / `done`) (#2934)
 - ⊗ Multi-sentence progress-only first response after leaf completion announce (`subagent_announce` / parent-push) with zero tools / yield — tool-first ground-truth batch or host yield only (#2943 text-repetition hang)
 - ⊗ Treat thin DONE (completion without PR URL / merge evidence) as success — re-dispatch or take over after ground truth (#2943)
+- ⊗ Second+ user-visible consolidate / final for the same child `runId` / settle batch without new evidence or principal reopen — completion latch silent-replay path (`templates/agent-prompt-preamble.md` §11.5 / #3092)
+- ⊗ Full dual-source re-QC solely because the harness re-delivered the same settle event (#3092)

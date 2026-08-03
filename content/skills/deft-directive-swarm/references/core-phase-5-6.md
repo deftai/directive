@@ -37,6 +37,8 @@ For each agent's PR:
 
 ! **Parent tool-first after leaf announce (#2943):** On the first parent turn after a leaf completion event (`subagent_announce` / parent-push / host completion notify), the parent MUST either (a) emit a **tool-first** ground-truth batch (`gh` / `git` / worktree or file status), or (b) **yield** (`sessions_yield` on OpenClaw, or host equivalent). ⊗ Multi-sentence progress-only first response with zero tools / yield — the text-repetition hang class.
 
+! **Completion latch after first consolidate (#3092):** After the parent has emitted **one** user/caller-visible consolidate for a child `runId` / settle batch (accept or reject), **identical or equivalent completion replay** for the same key MUST be **silent** (no tools, no re-QC, no second final; host silent token when defined, e.g. OpenClaw `NO_REPLY`). Re-open only on new `runId`/batch, principal explicit reopen, or **materially new** evidence (new HEAD, new blocker class) — not fat re-embeds of the same rollup. Replay storms: at most one fail-loud note, then silent. Full MUST + anti-patterns: `templates/agent-prompt-preamble.md` §11.5. Orthogonal to empty settle ≠ done (#3044).
+
 ### Complete xBRIEFs
 
 ! The cohort's story xBRIEFs are completed by the deterministic **cohort completion sweep** in Phase 6 (`task swarm:complete-cohort`, Phase 6 Step 1.5 below), which runs AFTER the merge cascade. Do NOT move story xBRIEFs out of `xbrief/active/` before their PRs merge — a pre-merge move creates premature state if the merge cascade fails. This section is where the monitor records, per story, what the post-merge sweep will finalize:

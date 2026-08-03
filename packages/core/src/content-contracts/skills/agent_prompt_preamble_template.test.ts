@@ -106,6 +106,25 @@ describe("test_agent_prompt_preamble_template", () => {
     );
     expect(templateText).toMatch(/⊗[^\n]*progress-only[^\n]*#2943|⊗[^\n]*Thin DONE[^\n]*#2943/);
   });
+  it("template_completion_latch_one_consolidate_per_runid_3092", () => {
+    // Portable orchestrator latch: second settle for same runId ⇒ silent (#3092).
+    expect(templateText).toContain("Completion latch — one consolidate per runId (#3092)");
+    expect(templateText).toContain("Completion latch (MUST)");
+    expect(templateText).toContain("One user- or caller-visible consolidate per child `runId`");
+    expect(templateText).toContain("identical or equivalent completion replay");
+    expect(templateText).toMatch(/silent/);
+    expect(templateText).toContain("NO_REPLY");
+    expect(templateText).toContain("materially new");
+    expect(templateText).toContain("completion replay storm");
+    expect(templateText).toContain("Eval checklist (second settle same runId)");
+    expect(templateText).toContain(
+      "Second+ user-visible \"final\" for the same settled `runId`",
+    );
+    expect(templateText).toContain("Full dual-source / full test re-run solely because the settle");
+    const swarmSkill = readSwarmSkillSurface();
+    expect(swarmSkill).toContain("Completion latch after first consolidate (#3092)");
+    expect(swarmSkill).toContain("templates/agent-prompt-preamble.md");
+  });
   it("template_rate_limit_probe_uses_gh_not_ghx_with_q_flag", () => {
     expect(/gh\s+api\s+rate_limit\s+-q\s+'/.test(templateText)).toBeTruthy();
     expect(!/ghx\s+api\s+rate_limit\s+-q\b/.test(templateText)).toBe(true);
