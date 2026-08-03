@@ -84,12 +84,16 @@ includes:
   deployments:
     taskfile: ./tasks/deployments.yml
     optional: true
+  # check-graph namespaces (#3070): must NOT be optional. CONSUMER_CHECK_GATES /
+  # check:consumer depend on these includes; optional silent omit yields opaque
+  # go-task "Task does not exist" (exit 200/201). Fail loud when the file is
+  # missing so operators get a clear deposit-repair signal (`deft update`).
   toolchain:
     taskfile: ./tasks/toolchain.yml
-    optional: true
+    optional: false
   verify:
     taskfile: ./tasks/verify.yml
-    optional: true
+    optional: false
   coverage:
     taskfile: ./tasks/coverage.yml
     optional: true
@@ -134,9 +138,10 @@ includes:
   migrate:
     taskfile: ./tasks/migrate.yml
     optional: true
+  # check-graph namespace (#3070): vbrief:validate is on CONSUMER_CHECK_GATES.
   vbrief:
     taskfile: ./tasks/vbrief.yml
-    optional: true
+    optional: false
   xbrief:
     taskfile: ./tasks/xbrief.yml
     optional: true

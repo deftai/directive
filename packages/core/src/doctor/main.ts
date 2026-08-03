@@ -2,6 +2,10 @@ import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
+import {
+  evaluateConsumerGateIntegrity,
+  formatConsumerGateIntegrityFailure,
+} from "../check/consumer-gate-integrity.js";
 import { contentRoot } from "../content-root.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import {
@@ -478,6 +482,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!jsonMode) {
     sink.blank();
   }
+  sink.info("Checking consumer check-graph integrity (verify:orphan-active and peers)...");
+  runConsumerCheckGraphIntegrity(projectRoot, frameworkRoot, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
   sink.info("Checking OpenClaw always-pin skills...");
   runOpenClawSkillPinsCheck(sink, addFinding, {
     frameworkRoot,
@@ -896,6 +906,67 @@ function runAgentsMdAdvisoryCheck(
     // bullet when findings are rendered (CWE-116).
     const detail = `${exc instanceof Error ? exc.name : "Error"}: ${exc}`.replace(/\r?\n/g, " ");
     const message = `${checkName}: probe failed -- ${detail}`;
+    sink.warn(message);
+    addFinding({ severity: "warning", message, check: checkName });
+  }
+}
+
+/**
+ * Consumer check-graph integrity (#3070): every CONSUMER_CHECK_GATES entry
+ * (including `verify:orphan-active`) must resolve against the deposited
+ * Taskfile includes. Missing `tasks/verify.yml` previously failed only at
+ * go-task shell time with opaque exit 200/201.
+ */
+function runConsumerCheckGraphIntegrity(
+  projectRoot: string,
+  frameworkRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): void {
+  const checkName = "consumer-check-graph-integrity";
+  if (runningInsideDeftRepo(projectRoot, seams)) {
+    // Still prove the source checkout ships a resolvable consumer gate set.
+    const integrity = evaluateConsumerGateIntegrity(frameworkRoot);
+    if (integrity.ok) {
+      sink.success(
+        `${checkName}: source checkout resolves CONSUMER_CHECK_GATES (incl. verify:orphan-active)`,
+      );
+      return;
+    }
+    const message = formatConsumerGateIntegrityFailure(integrity).trim();
+    sink.error(message);
+    addFinding({
+      severity: "error",
+      message,
+      check: checkName,
+      suggestion: "deft update",
+      status: "fail",
+    });
+    return;
+  }
+  try {
+    const depositRoot = frameworkRoot;
+    const integrity = evaluateConsumerGateIntegrity(depositRoot);
+    if (integrity.ok) {
+      sink.success(
+        `${checkName}: deposit resolves CONSUMER_CHECK_GATES (incl. verify:orphan-active)`,
+      );
+      return;
+    }
+    // Incomplete deposit is an error for consumers — check:consumer would hard-fail.
+    const message = formatConsumerGateIntegrityFailure(integrity).trim();
+    sink.error(message);
+    addFinding({
+      severity: "error",
+      message,
+      check: checkName,
+      suggestion: integrity.recovery,
+      status: "fail",
+      findings: integrity.findings,
+    });
+  } catch (exc) {
+    const message = `${checkName}: probe failed -- ${exc instanceof Error ? exc.name : "Error"}: ${exc}`;
     sink.warn(message);
     addFinding({ severity: "warning", message, check: checkName });
   }

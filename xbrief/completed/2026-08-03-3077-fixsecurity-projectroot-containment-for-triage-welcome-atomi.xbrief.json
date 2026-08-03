@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3077",
+    "updated": "2026-08-03T15:02:06Z"
+  },
+  "plan": {
+    "title": "fix(security): projectRoot containment for triage welcome atomicWrite (parent-as-root xbrief symlink)",
+    "status": "completed",
+    "narratives": {
+      "Description": "atomicWrite in packages/core/src/triage/welcome/writers.ts uses containedWrite with root dirname(path) (parent-as-root). A committed or force-added xbrief directory symlink pointing outside the checkout escapes containment. writeTriageScope, writeWipCap, and writeWipCapDecision used by triage:welcome --onboard can create or overwrite outside PROJECT-DEFINITION JSON under the operator identity. Same residual class as #3042 / #2951 / #2980.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3077",
+      "Overview": "## Summary\n\n**Medium** residual symlink / parent-as-root containment gap in triage welcome PROJECT-DEFINITION writers (same failure class as #3042 / #2951 / #2980).\n\n`atomicWrite` in `packages/core/src/triage/welcome/writers.ts` calls `containedWrite` with **`root: dirname(path)`** (parent-as-root). A committed or force-added `xbrief/` **directory symlink** that points outside the checkout is therefore **outside** the containment root. Routine onboarding/policy writers can create/overwrite outside `PROJECT-DEFINITION.xbrief.json` under the operator/automation identity.\n\n## Finding\n\n### Medium — `packages/core/src/triage/welcome/writers.ts` (`atomicWrite`)\n\n**Issue:** `atomicWrite` uses `containedWrite({ root: dirname(path) })` (parent-as-root), so a committed `xbrief/` directory symlink escapes project containment on PROJECT-DEFINITION updates.\n\nRelevant code (scanned at `004004dcaabf14ea442d096dc4387a87c80c1ebf`):\n\n```ts\nfunction atomicWrite(_projectRoot: string, path: string, data: Record<string, unknown>): void {\n  const dir = dirname(path);\n  // ...\n  containedWrite({\n    root: resolve(dir),  // parent-as-root — NOT projectRoot\n    target: tmpName,\n    data: payload,\n    mode: \"create\",\n  });\n  renameSync(tmp, path);\n}\n```\n\nNote `_projectRoot` is already threaded into the helper but **unused** for containment — strong signal this is an incomplete #2980 wave D migration of this sink.\n\n**Call sites that reach the sink:**\n\n- `writeTriageScope`\n- `writeWipCap` / `writeWipCapDecision`\n- Paths exercised by `task triage:welcome -- --onboard` and triage:scope preset paths\n\n## Attack / abuse sketch\n\n| Element | Detail |\n|---------|--------|\n| **Attacker / input** | Untrusted-repo author; trackable `xbrief` → outside dir with a parseable `PROJECT-DEFINITION.xbrief.json` (plus `.xbrief.json` so layout accepts) |\n| **Path** | Victim runs `task triage:welcome -- --onboard` (or triage:scope preset paths that call `writeTriageScope` / `writeWipCap` / `writeWipCapDecision`) |\n| **Mechanism** | Writers resolve the definition under the followed `xbrief` link, then temp+rename via parent-as-root containment that **realpaths to the outside tree** |\n| **Impact** | Routine onboarding/policy writers can **create/overwrite outside PROJECT-DEFINITION JSON** under the operator/automation identity |\n\nv1 threat model: same class as #2951 — do not treat “trusted operator” as sufficient; local agent/tooling path is the product surface. Untrusted-repo authors can plant lifecycle layout that diverts writes when the victim runs normal onboarding verbs.\n\n## Remediation\n\n1. Contain against **`projectRoot`** (`assertWriteTargetSafe` / `containedWrite` with `root=projectRoot`).\n2. **Refuse** escaping `xbrief` parents (symlink lifecycle parents fail closed).\n3. Prefer shared `atomicWriteProjectDefinition` **only after** that helper is fixed the same way (do not consolidate into a still-broken shared sink).\n4. Use the already-present `projectRoot` argument (drop the `_` discard) so the containment root cannot drift from callers.\n\n## Acceptance criteria\n\n- [ ] `atomicWrite` (and any `atomicWriteProjectDefinition` helper used here) contains against **projectRoot**, not `dirname(path)`\n- [ ] Escaping / symlink `xbrief/` parents refused before temp write + rename\n- [ ] `writeTriageScope` / `writeWipCap` / `writeWipCapDecision` / `triage:welcome --onboard` fail closed when `xbrief` is a dir symlink outside the checkout (no outside write)\n- [ ] Regression test: force-added or fixture `xbrief` → outside + parseable PROJECT-DEFINITION does not write outside JSON\n- [ ] Inventory / `verify:contained-writes` (or equivalent) does not re-list this sink as an open product hole\n- [ ] CHANGELOG cites this issue\n\n## Non-goals\n\n- Full monorepo nested-root redesign\n- Changing triage/welcome **semantics** beyond containment\n- Reopening #2951 epic scope beyond this residual sink\n\n## Related\n\n| Ref | Role |\n|-----|------|\n| #3042 | Same parent-as-root class (atomicWriteText, ritual-state, probe-session) — closed residual batch |\n| #2951 | Epic: mandatory contained-write API |\n| #2980 | Residual TS product sink migration (wave D comment already on this sink) |\n| `packages/core/src/fs/contained-write.ts` | Canonical API |\n| `packages/core/src/fs/projection-containment.ts` | `assertWriteTargetSafe` |\n\n## Source\n\nAppSec residual — Medium finding on `packages/core/src/triage/welcome/writers.ts`.\n\n**Commit scanned:** `004004dcaabf14ea442d096dc4387a87c80c1ebf`",
+      "Labels": "bug, security, test-debt, triage, tooling, agent-safety, area:cli",
+      "UserStory": "As a consumer operator, I want triage welcome PROJECT-DEFINITION writers to contain against projectRoot (not dirname of the target), so that a planted xbrief directory symlink cannot divert onboarding writes outside the checkout.",
+      "ImplementationPlan": "1) Change atomicWrite to contain against projectRoot via assertWriteTargetSafe / containedWrite root=projectRoot. 2) Refuse escaping or symlink xbrief parents before temp write and rename. 3) Use the already-threaded projectRoot argument (drop underscore discard). 4) Regression test with fixture xbrief symlink outside checkout. 5) Ensure verify:contained-writes inventory does not list this sink as open. 6) CHANGELOG #3077. Do not consolidate into a still-broken shared atomicWriteProjectDefinition until that helper is fixed the same way."
+    },
+    "items": [
+      {
+        "title": "atomicWrite contains against projectRoot not dirname(path)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3077 fix, when verification runs, then: atomicWrite contains against projectRoot not dirname(path)."
+        }
+      },
+      {
+        "title": "Escaping or symlink xbrief parents refused before temp write and rename",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3077 fix, when verification runs, then: Escaping or symlink xbrief parents refused before temp write and rename."
+        }
+      },
+      {
+        "title": "writeTriageScope / writeWipCap / writeWipCapDecision / triage:welcome --onboard fail closed on outside xbrief symlink",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3077 fix, when verification runs, then: writeTriageScope / writeWipCap / writeWipCapDecision / triage:welcome --onboard fail closed on outside xbrief symlink."
+        }
+      },
+      {
+        "title": "Regression test: fixture xbrief dir symlink outside does not write outside JSON",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3077 fix, when verification runs, then: Regression test: fixture xbrief dir symlink outside does not write outside JSON."
+        }
+      },
+      {
+        "title": "verify:contained-writes does not re-list this sink as open product hole",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3077 fix, when verification runs, then: verify:contained-writes does not re-list this sink as open product hole."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "test-debt",
+      "triage",
+      "tooling",
+      "agent-safety",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3077",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3077: fix(security): projectRoot containment for triage welcome atomicWrite (parent-as-root xbrief symlink)"
+      }
+    ],
+    "updated": "2026-08-03T15:02:06Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/welcome/writers.ts",
+          "packages/core/src/triage/welcome",
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/fs/projection-containment.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/triage/welcome",
+          "pnpm exec vitest run packages/core/src/fs"
+        ],
+        "expected_outputs": [
+          "projectRoot-contained atomicWrite",
+          "symlink xbrief refused",
+          "regression test",
+          "CHANGELOG #3077"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-welcome-containment-3077",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "AC derived from GitHub issue #3077 body and operator swarm evaluation."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": "c88a9b9f7d5d603ab6394cc02b9731a59a625248",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0a010a0c2d155d68d2c4ae59fad76115e35dbc2",
+        "verifiedAt": "2026-08-03T15:02:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T15:02:06Z",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "3077-triage-welcome-atomicwrite-projectroot"
+  }
+}

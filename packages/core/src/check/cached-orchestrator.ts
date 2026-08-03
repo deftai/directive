@@ -7,6 +7,10 @@ import {
 } from "../cache/task-cache/index.js";
 import type { TaskRunResult } from "../cache/task-cache/types.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import {
+  evaluateConsumerGateIntegrity,
+  formatConsumerGateIntegrityFailure,
+} from "./consumer-gate-integrity.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 import { checkGateId, checkGateSpawnArgs, gatesForCheckTarget } from "./gate-lists.js";
 
@@ -55,6 +59,17 @@ export function dispatchCachedTaskCheck(
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
   const gates = gatesForCheckTarget(target);
   const codeVersion = readCorePackageVersion();
+
+  // #3070: fail loud with deposit-repair guidance when consumer check-graph
+  // includes (e.g. tasks/verify.yml for verify:orphan-active) are missing,
+  // instead of opaque go-task "Task does not exist" exit 200/201.
+  if (target === "check:consumer") {
+    const integrity = evaluateConsumerGateIntegrity(resolvedFramework);
+    if (!integrity.ok) {
+      process.stderr.write(formatConsumerGateIntegrityFailure(integrity));
+      return 2;
+    }
+  }
 
   const registryLint = lintShippedRegistry();
   if (!registryLint.ok) {
