@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
+  ASSIST_SESSION_POSTURE_ENV,
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
   type HookPolicySeams,
@@ -12,6 +13,8 @@ import {
   hookShellCommand,
   hookToolName,
   hookWriteTargetPath,
+  isAllowlistedAssistScratchPath,
+  isAssistScratchWrite,
   isDirectWriteTool,
   isHookEvent,
   isHookHost,
@@ -314,6 +317,268 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+  });
+
+  describe("assist scratch writes (#1802)", () => {
+    const noScopeSeams = (): HookPolicySeams =>
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+        inspectRitual: () => ({
+          ...READY_RITUAL,
+          code: 1,
+          message: "ritual state missing",
+        }),
+      });
+
+    it("classifies allowlisted scratch roots and rejects tracked paths", () => {
+      expect(isAllowlistedAssistScratchPath("/project", ".deft-scratch/notes.md")).toBe(true);
+      expect(isAllowlistedAssistScratchPath("/project", "/project/.deft-scratch/a/b.md")).toBe(
+        true,
+      );
+      expect(isAllowlistedAssistScratchPath("/project", "temp/overview/x.md")).toBe(true);
+      expect(isAllowlistedAssistScratchPath("/project", "packages/core/src/hooks/dispatcher.ts")).toBe(
+        false,
+      );
+      expect(isAllowlistedAssistScratchPath("/project", "src/a.ts")).toBe(false);
+      expect(isAllowlistedAssistScratchPath("/project", "overview/notes.md")).toBe(false);
+      expect(isAllowlistedAssistScratchPath("/project", null)).toBe(false);
+      expect(isAllowlistedAssistScratchPath("/project", ".deft-scratch/../src/a.ts")).toBe(false);
+    });
+
+    it("requires assist/ephemeral classification with scratch path (fail closed without)", () => {
+      expect(
+        isAssistScratchWrite("/project", ".deft-scratch/notes.md", {
+          tool_input: { worker_role: "assist" },
+        }),
+      ).toBe(true);
+      expect(
+        isAssistScratchWrite(
+          "/project",
+          ".deft-scratch/notes.md",
+          {},
+          { [ASSIST_SESSION_POSTURE_ENV]: "assist" },
+        ),
+      ).toBe(true);
+      expect(
+        isAssistScratchWrite("/project", ".deft-scratch/notes.md", {
+          tool_input: { worker_role: "ephemeral" },
+        }),
+      ).toBe(true);
+      // Path alone without posture markers → mutation path (fail closed).
+      expect(isAssistScratchWrite("/project", ".deft-scratch/notes.md", {})).toBe(false);
+      // Assist without allowlisted path → false (tracked stays hard).
+      expect(
+        isAssistScratchWrite("/project", "packages/core/src/a.ts", {
+          tool_input: { worker_role: "assist" },
+        }),
+      ).toBe(false);
+      // Free-text NLP alone is not classification.
+      expect(
+        isAssistScratchWrite("/project", ".deft-scratch/notes.md", {
+          tool_input: { prompt: "for Obsidian do not commit" },
+        }),
+      ).toBe(false);
+    });
+
+    it("allows Write under .deft-scratch/ with assist posture without active scope or ritual", () => {
+      const inspectScope = vi.fn(() => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }));
+      const inspectRitual = vi.fn(() => ({
+        ...READY_RITUAL,
+        code: 1,
+        message: "ritual state missing",
+      }));
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            cwd: "/project",
+            posture: "assist",
+            tool_input: { file_path: "/project/.deft-scratch/notes.md" },
+          },
+        },
+        readySeams({ inspectScope, inspectRitual }),
+      );
+
+      expect(decision).toMatchObject({
+        verdict: "allow",
+        code: "write-assist-scratch-ready",
+      });
+      expect(inspectScope).not.toHaveBeenCalled();
+      expect(inspectRitual).not.toHaveBeenCalled();
+    });
+
+    it("allows Write under temp/ with ephemeral worker_role without active scope", () => {
+      const decision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            tool_input: {
+              path: "temp/research/overview.md",
+              worker_role: "ephemeral",
+            },
+          },
+        },
+        noScopeSeams(),
+      );
+
+      expect(decision).toMatchObject({
+        verdict: "allow",
+        code: "write-assist-scratch-ready",
+      });
+    });
+
+    it("allows Write under .deft-scratch/ with DEFT_SESSION_POSTURE=assist", () => {
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            toolName: "Edit",
+            tool_input: { path: ".deft-scratch/obsidian/note.md" },
+          },
+          environ: { [ASSIST_SESSION_POSTURE_ENV]: "assist" },
+        },
+        noScopeSeams(),
+      );
+
+      expect(decision).toMatchObject({
+        verdict: "allow",
+        code: "write-assist-scratch-ready",
+      });
+    });
+
+    it("denies tracked product Write even with assist markers (AC5)", () => {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            posture: "assist",
+            tool_input: {
+              file_path: "/project/packages/core/src/hooks/dispatcher.ts",
+              worker_role: "assist",
+            },
+          },
+        },
+        noScopeSeams(),
+      );
+
+      expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    });
+
+    it("denies tracked product Write without active scope (no assist marker)", () => {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            tool_input: {
+              file_path: "/project/packages/core/src/hooks/dispatcher.ts",
+            },
+          },
+        },
+        readySeams({
+          inspectScope: () => ({
+            ready: false,
+            path: null,
+            message: "No active xBRIEF artifact was found under xbrief/active/",
+          }),
+        }),
+      );
+
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+      expect(decision.message).toContain(".deft-scratch");
+      expect(decision.message).toMatch(/scope:activate|assist/i);
+    });
+
+    it("fails closed on ambiguous non-scratch Write without assist marker", () => {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            // Operator said "for Obsidian" in free text only — not a structural marker.
+            tool_input: {
+              file_path: "/project/overview/notes.md",
+              prompt: "for Obsidian, do not commit",
+            },
+          },
+        },
+        readySeams({
+          inspectScope: () => ({
+            ready: false,
+            path: null,
+            message: "No active xBRIEF artifact was found under xbrief/active/",
+          }),
+        }),
+      );
+
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    });
+
+    it("fails closed when scratch path has no assist/ephemeral classification", () => {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            tool_input: { file_path: "/project/.deft-scratch/notes.md" },
+          },
+        },
+        readySeams({
+          inspectScope: () => ({
+            ready: false,
+            path: null,
+            message: "No active xBRIEF artifact was found under xbrief/active/",
+          }),
+        }),
+      );
+
+      // Path alone is not enough — need assist/ephemeral structural classification.
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    });
+
+    it("still denies assist scratch Write under read-only posture", () => {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            posture: "assist",
+            tool_input: { file_path: ".deft-scratch/notes.md" },
+          },
+          environ: { [READ_ONLY_HOOK_ENV]: "1" },
+        },
+        noScopeSeams(),
+      );
+
+      expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
+    });
   });
 
   it("allows Write of xbrief/proposed/*.xbrief.json with no active scope (#2625)", () => {

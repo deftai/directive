@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ASSIST_SESSION_POSTURE_ENV,
   hookReadOnlyFromPayload,
+  isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
   isReadOnlyHookContext,
@@ -89,6 +91,37 @@ describe("ephemeral spawn detection (#3080)", () => {
     expect(
       isEphemeralSpawn({
         tool_input: { worker_role: "ephemeral", driveTo: "merge" },
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("assist posture detection (#1802)", () => {
+  it("recognizes DEFT_SESSION_POSTURE env and DEFT_HOOK_ASSIST", () => {
+    expect(isAssistPosture({}, { [ASSIST_SESSION_POSTURE_ENV]: "assist" })).toBe(true);
+    expect(isAssistPosture({}, { [ASSIST_SESSION_POSTURE_ENV]: "research-notes" })).toBe(true);
+    expect(isAssistPosture({}, { DEFT_HOOK_ASSIST: "1" })).toBe(true);
+    expect(isAssistPosture({}, { [ASSIST_SESSION_POSTURE_ENV]: "mutation" })).toBe(false);
+    expect(isAssistPosture({}, {})).toBe(false);
+  });
+
+  it("recognizes payload posture and ephemeral role markers", () => {
+    expect(isAssistPosture({ posture: "assist" })).toBe(true);
+    expect(isAssistPosture({ session_posture: "scratch" })).toBe(true);
+    expect(isAssistPosture({ tool_input: { worker_role: "ephemeral" } })).toBe(true);
+    expect(isAssistPosture({ tool_input: { worker_role: "assist" } })).toBe(true);
+  });
+
+  it("fails closed on free-text / unmarked payloads (no NLP)", () => {
+    expect(isAssistPosture({ tool_input: { prompt: "for Obsidian, do not commit" } })).toBe(false);
+    expect(isAssistPosture({ tool_input: { subagent_type: "generalPurpose" } })).toBe(false);
+    expect(isAssistPosture(null)).toBe(false);
+  });
+
+  it("implement conflict on ephemeral spawn is not assist posture", () => {
+    expect(
+      isAssistPosture({
+        tool_input: { worker_role: "ephemeral", drive_to: "merge-ready" },
       }),
     ).toBe(false);
   });

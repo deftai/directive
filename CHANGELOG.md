@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Ephemeral Task/spawn posture without active xBRIEF (#3080).** PreToolUse spawn classification gains a third posture beside implement and explore (#1185): `worker_role` / `subagent_type` ∈ {`ephemeral`, `docs`, `assist`} allows Multitask docs/analysis dispatch without `scope:activate` (`spawn-ephemeral-ready`). Unmarked `generalPurpose` still requires active scope (fail closed); implement envelope signals win over ephemeral markers. Deny text for missing active scope lists activate | explore | ephemeral recoveries. Docs: three postures in `content/commands.md` hook section. Does not weaken story-start / preflight for real implement; does not ship #1802 assist scratch writes. Closes #3080.
+- **Assist/research posture + allowlisted scratch writes without active xBRIEF (#1802).** Session **assist** posture (shared taxonomy with #3080 `ephemeral`/`docs`/`assist`) documents low-ceremony research notes: structural markers (`DEFT_SESSION_POSTURE=assist`, payload posture, role markers) plus path fence under `.deft-scratch/**` and `temp/**`. PreToolUse allows those direct writes without story-start or active scope (`write-assist-scratch-ready`); tracked product paths stay hard-gated; fail closed outside allowlist or without markers. Docs + deny recovery anti-pattern: do not fake `scope:activate` for Obsidian/scratch notes. Cohort twin of #3080 spawn posture. Closes #1802.
+
+- **Ephemeral Task/spawn posture without active xBRIEF (#3080).** PreToolUse spawn classification gains a third posture beside implement and explore (#1185): `worker_role` / `subagent_type` ∈ {`ephemeral`, `docs`, `assist`} allows Multitask docs/analysis dispatch without `scope:activate` (`spawn-ephemeral-ready`). Unmarked `generalPurpose` still requires active scope (fail closed); implement envelope signals win over ephemeral markers. Deny text for missing active scope lists activate | explore | ephemeral recoveries. Docs: three postures in `content/commands.md` hook section. Does not weaken story-start / preflight for real implement. Closes #3080.
 
 ### Changed
 

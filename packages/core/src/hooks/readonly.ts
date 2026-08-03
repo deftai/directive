@@ -2,6 +2,23 @@ import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
+/** Session posture env for assist/research low-ceremony writes (#1802). */
+export const ASSIST_SESSION_POSTURE_ENV = "DEFT_SESSION_POSTURE";
+
+/** Explicit non-lifecycle assist markers (#3080 / #1802). Primary: ephemeral; aliases: docs, assist. */
+const EPHEMERAL_ROLE_MARKERS = new Set(["ephemeral", "docs", "assist"]);
+
+/** Assist/research session posture tokens (structural; not free-text NLP) (#1802). */
+const ASSIST_POSTURE_MARKERS = new Set([
+  "assist",
+  "ephemeral",
+  "docs",
+  "research",
+  "research-notes",
+  "research_notes",
+  "scratch",
+]);
+
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -33,6 +50,10 @@ function isReadOnlyCapability(value: string | null): boolean {
   if (value === null) return false;
   const normalized = value.toLowerCase().replace(/[_\s-]/g, "");
   return normalized === "readonly";
+}
+
+function normalizePostureToken(value: string): string {
+  return value.toLowerCase().replace(/[_\s]/g, "-");
 }
 
 /** Best-effort read-only explore signal from host payload (#1185). */
@@ -89,8 +110,39 @@ export function isExploreSpawn(payload: unknown): boolean {
   return workerRole?.toLowerCase() === "explore";
 }
 
-/** Explicit non-lifecycle assist markers (#3080). Primary: ephemeral; aliases: docs, assist. */
-const EPHEMERAL_ROLE_MARKERS = new Set(["ephemeral", "docs", "assist"]);
+/**
+ * Assist / research / ephemeral session posture for low-ceremony scratch writes (#1802).
+ * Structural markers only (env, payload posture fields, worker_role/subagent_type).
+ * Absent marker → false (fail closed). Compose with allowlisted scratch path fence.
+ */
+export function isAssistPosture(
+  payload: unknown,
+  environ: NodeJS.ProcessEnv = process.env,
+): boolean {
+  const envPosture = (environ[ASSIST_SESSION_POSTURE_ENV] ?? "").trim();
+  if (envPosture.length > 0 && ASSIST_POSTURE_MARKERS.has(normalizePostureToken(envPosture))) {
+    return true;
+  }
+  // Explicit assist env override (truthy), separate from posture token names.
+  if (envTruthy(environ, "DEFT_HOOK_ASSIST")) return true;
+
+  const input = record(payload);
+  if (input === null) return false;
+  const toolInput = toolInputRecord(input) ?? input;
+  const posture =
+    fieldString(toolInput, "posture") ??
+    fieldString(toolInput, "session_posture") ??
+    fieldString(toolInput, "sessionPosture") ??
+    fieldString(input, "posture") ??
+    fieldString(input, "session_posture") ??
+    fieldString(input, "sessionPosture");
+  if (posture !== null && ASSIST_POSTURE_MARKERS.has(normalizePostureToken(posture))) {
+    return true;
+  }
+  // Shared taxonomy with #3080 ephemeral spawn markers.
+  if (isEphemeralSpawn(payload)) return true;
+  return false;
+}
 
 /**
  * Structural implement signals that win over an ephemeral marker (fail closed, #3080).

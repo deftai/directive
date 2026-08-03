@@ -279,7 +279,7 @@ When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: p
 
 `directive init` and `deft update` idempotently merge Directive-owned entries into `.claude/settings.json`, `.grok/hooks/deft.json`, `.cursor/hooks.json`, and `.codex/hooks.json` while preserving unrelated settings. `SessionStart` refreshes resume bookkeeping on a non-blocking path. `PreToolUse` uses the lightweight `deft-hook` entrypoint rather than booting the full CLI router, reducing cold hook latency while retaining the same fail-closed ritual, scope, and runtime-authority decisions. Cursor `ApplyPatch` shares the direct-write registration, so each matched edit invokes one hook process. Cursor `preToolUse` deposits set `failClosed: true`, so allow decisions emit `{"permission":"allow"}` — empty stdout is treated as hook failure and would block Write tools. A second `PreToolUse` matcher covers spawn/Task tools (`Task`, `SubagentStart`, `spawn_subagent`, `start_agent`, `CreateAgent`) with the pre-`start_agent` gate stack for **implementation** spawns; explore and ephemeral postures skip active-xBRIEF (see three postures below).
 
-- **Spawn postures (#1185 / #3080):** PreToolUse classifies Task/spawn by **structural markers** (not free-text prompt NLP). Unmarked / default Multitask (`generalPurpose`) is treated as **implement** (fail closed).
+- **Spawn postures (#1185 / #3080):** PreToolUse classifies Task/spawn by **structural markers** (not free-text prompt NLP). Unmarked / default Multitask (`generalPurpose`) is treated as **implement** (fail closed). Session-level **assist** posture for direct scratch writes is the #1802 twin — see § Assist / research posture (#1802).
 
   | Posture | Markers | Active xBRIEF | Typical work |
   |---|---|---|---|
@@ -288,6 +288,8 @@ When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: p
   | **Ephemeral** | `worker_role` (or `subagent_type`) ∈ {`ephemeral`, `docs`, `assist`} (#3080) | Not required | Brochure, pitch, disposable analysis notes |
 
   Gate order: explore allow (`spawn-explore-ready`) → ephemeral allow (`spawn-ephemeral-ready`) → else implementation stack (`inspectMutationGates`). If an ephemeral marker conflicts with implement envelope signals (`drive-to: merge-ready`, `worker_role: leaf-implementation`, swarm implement dispatch), **implement wins**. Ephemeral allowance does **not** authorize push/merge/deploy or skip `runtimeAuthority` / human-merge gates. **Anti-pattern:** invent a fake `scope:activate` only to dispatch brochure/docs work — use `worker_role: ephemeral` (or continue in the parent) instead. Deny text for missing active scope on implement spawns lists activate \| explore \| ephemeral recoveries.
+
+- **Assist scratch direct writes (#1802):** PreToolUse allows Write/Edit under allowlisted gitignored roots (`.deft-scratch/**`, `temp/**`) when assist/ephemeral classification applies (`DEFT_SESSION_POSTURE=assist`, payload posture, or #3080 role markers) — decision code `write-assist-scratch-ready`. Skips ritual + active-scope; does **not** unlock tracked product paths. Fail closed outside the allowlist or without structural markers. Deny recovery for in-repo scope-not-ready mentions the assist scratch path (do not invent fake `scope:activate` for notes). Full rules: § Assist / research posture (#1802).
 
 - **Read-only explore (#1185):** Prefer Grok role deposit `default_capability_mode = "read-only"` (see [issue #1185](https://github.com/deftai/directive/issues/1185)). Hooks also deny direct writes when `DEFT_HOOK_READ_ONLY=1` or the host payload signals read-only capability. Implementation and ephemeral spawns remain blocked in read-only posture unless explicitly marked explore.
 
@@ -315,6 +317,29 @@ Full always-on contract for the interactive session-start ritual and its gated v
 - ! At mutation boundaries (code-writing, scope lifecycle moves, `start_agent`, commits, pushes, PR-from-local-changes, release work): run the mutable quick tier then gated verifier below before proceeding.
 - ? Explicit read-only alignment only: `deft session:start -- --read-only` (no ritual-state write).
 - ~ Operators MAY still explicitly request full `deft session:start`, `deft triage:welcome`, sync, or doctor in read-only sessions.
+
+### Assist / research posture (#1802)
+
+Low-ceremony path for research and disposable local notes. Shared taxonomy with spawn postures (#3080 / #1185): session posture name is **`assist`**; spawn `worker_role` primary is **`ephemeral`** (aliases `docs`, `assist`).
+
+| Posture | Session ceremony | Direct write | Spawn (`Task`) |
+|---|---|---|---|
+| **Read-only research** | No mutation ritual | None / deny writes | `explore` only (#1185) |
+| **Assist / ephemeral** | No story-start; no active xBRIEF for scratch writes | Allowlisted scratch roots only (#1802) | `worker_role: ephemeral` (#3080) |
+| **Mutation / implement** | Full `session:start` + gated ritual + story/xBRIEF | Product paths + gates | Active xBRIEF required |
+
+- ! **Named assist intent:** declare non-implementation research/assist via structural markers — `DEFT_SESSION_POSTURE=assist` (or `research` / `research-notes` / `scratch` / `ephemeral` / `docs`), `DEFT_HOOK_ASSIST=1`, payload `posture` / `session_posture`, or spawn `worker_role` / `subagent_type` ∈ {`ephemeral`, `docs`, `assist`}. Prefer answering in chat; write scratch only when the operator asks for a file.
+- ! **Read-only research needs no mutation ceremony:** with no file writes (or only read tools), do **not** run gated session ritual / story-start / `git status` story gates as if starting implementation. Alignment load (AGENTS / USER / PROJECT-DEFINITION) still applies where session routing requires it.
+- ! **Operator language → assist:** phrases such as "Obsidian notes", "scratch only", "do not commit", "not a story/PR" map to assist posture. Default disposable notes to gitignored allowlisted roots so "do not commit" is structural.
+- ! **Allowlisted scratch roots (v1):** `.deft-scratch/**` (canonical) and `temp/**` (gitignored alias). PreToolUse allows direct Write/Edit under these roots when assist/ephemeral classification applies (`write-assist-scratch-ready`) — no active xBRIEF, no story-start, no full pre-`start_agent` gate stack. Compose with #3080 ephemeral spawn markers.
+- ! **Tracked / source still hard:** writes to product paths (`src/`, `packages/`, `content/`, app source, tracked `docs/` / `overview/`, …) under **any** posture still require mutation ceremony + existing write/scope gates. Labeling a change "research" does **not** bypass them. If the operator insists on a tracked path for notes, reclassify as mutation or obtain explicit override + normal gates; prefer redirect to `.deft-scratch/overview/` instead.
+- ⊗ Invent a fake `scope:activate` solely to capture disposable notes — use allowlisted scratch + assist posture (or continue in chat).
+- ⊗ Use assist posture for feature/bug/PR work; ⊗ write product code under scratch roots then smuggle into the tree; ⊗ treat assist as license to skip push/merge/human-merge gates.
+- ⊗ Rely on free-text prompt NLP alone as the gate classifier — path fence + structural markers only (fail closed on ambiguity).
+- ~ Offer to move finalized notes into committed docs via a **separate** mutation story if the operator wants them in-repo.
+- **Not this path:** `/deft:run:research` proposes a research vBRIEF (higher ceremony). Ceremony latency (#2990) is a separate track.
+
+Cross-link: spawn three postures and deny recoveries live under § Agent-host direct-write hooks (#2438, #2596) / Spawn postures (#1185 / #3080).
 
 ### Mutable ritual (mutation posture)
 

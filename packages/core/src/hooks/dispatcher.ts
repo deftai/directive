@@ -55,7 +55,12 @@ import {
   missingToolNameMessage,
   record,
 } from "./classify/index.js";
-import { isEphemeralSpawn, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
+import {
+  isAssistPosture,
+  isEphemeralSpawn,
+  isExploreSpawn,
+  isReadOnlyHookContext,
+} from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
@@ -63,7 +68,9 @@ import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.
 // ./index.ts (#2950). Dispatcher is orchestration: classify → policy → decision.
 
 export {
+  ASSIST_SESSION_POSTURE_ENV,
   hookReadOnlyFromPayload,
+  isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
   isReadOnlyHookContext,
@@ -114,6 +121,8 @@ export type HookDecisionCode =
   | "ritual-not-ready"
   | "scope-not-ready"
   | "write-propose-ready"
+  /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
+  | "write-assist-scratch-ready"
   | "write-ready"
   | "read-only-deny"
   | "spawn-explore-ready"
@@ -261,6 +270,51 @@ export function isProposedLifecycleWrite(projectRoot: string, targetPath: string
   const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
   if (!hasArtifactSuffix(base)) return false;
   return posix.startsWith("xbrief/proposed/") || posix.startsWith("vbrief/proposed/");
+}
+
+/**
+ * Canonical + gitignored assist scratch roots for low-ceremony disposable notes (#1802).
+ * Path fence only — not free-text "for Obsidian" NLP. Tracked trees (src/, packages/, …)
+ * are never listed here.
+ */
+export const ASSIST_SCRATCH_ROOT_PREFIXES = [".deft-scratch/", "temp/"] as const;
+
+/**
+ * True when the write target is under an allowlisted disposable scratch root (#1802).
+ * Fail closed on null/empty/unparseable targets and on path escape (`..`).
+ * Does not authorize tracked product paths even under assist posture.
+ */
+export function isAllowlistedAssistScratchPath(
+  projectRoot: string,
+  targetPath: string | null,
+): boolean {
+  if (targetPath === null || targetPath.trim().length === 0) return false;
+  const posix = toProjectRelativePosix(projectRoot, targetPath);
+  // resolve()+relative() collapses mid-path `..`; only outside-root `..` remains.
+  if (posix === ".." || posix.startsWith("../") || isAbsolute(posix)) return false;
+  if (isLexicalOutsideProjectRoot(posix)) return false;
+  for (const prefix of ASSIST_SCRATCH_ROOT_PREFIXES) {
+    if (posix === prefix.slice(0, -1) || posix.startsWith(prefix)) return true;
+  }
+  return false;
+}
+
+/**
+ * Assist/ephemeral classification for scratch-write carve-out (#1802).
+ * Requires allowlisted path AND (assist posture markers OR ephemeral spawn markers).
+ * Path alone without posture markers fails closed to the mutation gate stack.
+ */
+export function isAssistScratchWrite(
+  projectRoot: string,
+  targetPath: string | null,
+  payload: unknown,
+  environ: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (!isAllowlistedAssistScratchPath(projectRoot, targetPath)) return false;
+  // Structural classification only — compose with #3080 ephemeral markers.
+  if (isAssistPosture(payload, environ)) return true;
+  if (isEphemeralSpawn(payload)) return true;
+  return false;
 }
 
 function isWindowsDriveOnlyRoot(value: string): boolean {
@@ -692,6 +746,41 @@ function inspectMutationGates(
   options: { proposedLifecycleExempt: boolean },
 ): HookDecision {
   const projectRoot = resolve(input.projectRoot);
+  const environ = input.environ ?? process.env;
+
+  // Assist/scratch low-ceremony writes (#1802): allowlisted gitignored roots under
+  // assist/ephemeral classification skip ritual + active-scope (no fake scope:activate).
+  // Tracked product paths never match the path fence. Read-only still denied upstream.
+  if (!isSpawnTool(toolName)) {
+    const scratchTarget = hookWriteTargetPath(input.payload);
+    if (isAssistScratchWrite(projectRoot, scratchTarget, input.payload, environ)) {
+      const relPath =
+        scratchTarget !== null ? toProjectRelativePosix(projectRoot, scratchTarget) : null;
+      const authzDeny = authzForMutation(input, toolName, seams, {
+        isDirectWrite: true,
+        relPath,
+        scopePath: null,
+      });
+      if (authzDeny !== null) return authzDeny;
+      const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
+      if (runtimeDeny !== null) return runtimeDeny;
+      return {
+        verdict: "allow",
+        code: "write-assist-scratch-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message:
+          `Directive write gate allowed ${toolName} under allowlisted assist scratch ` +
+          "root (disposable notes; active scope and story-start not required). " +
+          "Tracked product paths still require mutation gates — do not smuggle source " +
+          "under .deft-scratch/ or temp/.",
+        scopePath: null,
+      };
+    }
+  }
+
   let ritual: VerifyResult;
   try {
     ritual = (
@@ -806,8 +895,14 @@ function inspectMutationGates(
         proposedPathHint =
           " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
           (options.proposedLifecycleExempt
-            ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption)."
-            : "then re-run the pre-start_agent gate stack.");
+            ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption), " +
+              "or for disposable research notes write under `.deft-scratch/` (or `temp/`) " +
+              "with assist/ephemeral posture (`DEFT_SESSION_POSTURE=assist` or " +
+              "`worker_role: assist` / ephemeral — see commands.md #1802 / #3080). " +
+              "Do not invent a fake scope only to capture Obsidian/scratch notes."
+            : "then re-run the pre-start_agent gate stack. " +
+              "For disposable research notes only: write under `.deft-scratch/` with " +
+              "assist posture (commands.md #1802) — do not fake `scope:activate` for notes.");
       }
       const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
       return deny(
