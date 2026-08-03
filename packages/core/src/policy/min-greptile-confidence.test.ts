@@ -94,6 +94,28 @@ describe("resolveMinGreptileConfidence (#3095)", () => {
     expect(resolved.error).toMatch(/between 1 and 5/);
   });
 
+  it("invalid typed value on dogfood root falls through to dogfood min=5 with error", () => {
+    root = makeProject(
+      { review: { minGreptileConfidence: 99 } },
+      { frameworkMarkers: true },
+    );
+    const resolved = resolveMinGreptileConfidence(root);
+    expect(resolved.min).toBe(DOGFOOD_MIN_GREPTILE_CONFIDENCE);
+    expect(resolved.source).toBe("dogfood");
+    expect(resolved.error).toMatch(/between 1 and 5/);
+  });
+
+  it("missing PROJECT-DEFINITION on dogfood root still resolves dogfood 5", () => {
+    root = mkdtempSync(join(tmpdir(), "min-greptile-none-"));
+    mkdirSync(join(root, "packages", "cli"), { recursive: true });
+    writeFileSync(join(root, "packages", "cli", "package.json"), '{"name":"x"}\n', "utf8");
+    writeFileSync(join(root, "biome.json"), "{}\n", "utf8");
+    writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
+    const resolved = resolveMinGreptileConfidence(root);
+    expect(resolved.min).toBe(DOGFOOD_MIN_GREPTILE_CONFIDENCE);
+    expect(resolved.source).toBe("dogfood");
+  });
+
   it("no projectRoot returns consumer default", () => {
     const resolved = resolveMinGreptileConfidence();
     expect(resolved.min).toBe(4);
