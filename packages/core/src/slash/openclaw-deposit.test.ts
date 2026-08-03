@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -128,5 +136,27 @@ describe("OpenClaw L2 deposit (#3064 D4/D5)", () => {
     expect(validateOpenClawProductCommands("yes").length).toBeGreaterThan(0);
     expect(resolveOpenClawProductCommandsPolicy(undefined)).toBe(true);
     expect(resolveOpenClawProductCommandsPolicy(false)).toBe(false);
+  });
+
+  it("refuses write through escaping skill-dir symlink (#3064 P1)", () => {
+    const home = makeTemp("oc-l2-esc-");
+    const state = join(home, ".openclaw");
+    const skillsDir = join(state, "workspace", "skills");
+    const outside = join(home, "outside-target");
+    mkdirSync(skillsDir, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    try {
+      symlinkSync(outside, join(skillsDir, "deft_continue"), "dir");
+    } catch {
+      // Windows without symlink privilege: skip with soft pass.
+      return;
+    }
+    const result = depositOpenClawL2ProductCommands({
+      env: { OPENCLAW_STATE_DIR: state },
+      homeDir: home,
+    });
+    expect(result.preservedCustomPaths.some((p) => p.includes("deft_continue"))).toBe(true);
+    // Outside target must not receive managed SKILL.md.
+    expect(existsSync(join(outside, "SKILL.md"))).toBe(false);
   });
 });

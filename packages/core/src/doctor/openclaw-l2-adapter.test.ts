@@ -75,7 +75,7 @@ describe("doctor OpenClaw L2 adapter check (#3064)", () => {
     expect(findings2.some((f) => f.status === "fixed" || f.status === "present")).toBe(true);
   });
 
-  it("honours policy opt-out", () => {
+  it("honours policy opt-out and removes managed skills under --fix", () => {
     const project = makeTemp("oc-l2-doc-opt-");
     mkdirSync(join(project, "xbrief"), { recursive: true });
     writeFileSync(
@@ -84,19 +84,41 @@ describe("doctor OpenClaw L2 adapter check (#3064)", () => {
       "utf8",
     );
     const home = makeTemp("oc-l2-doc-home3-");
-    mkdirSync(join(home, ".openclaw", "workspace", "skills"), { recursive: true });
-    const findings: Finding[] = [];
+    const state = join(home, ".openclaw");
+    mkdirSync(join(state, "workspace", "skills"), { recursive: true });
+    // Pre-seed managed skills while policy is still on, then opt out.
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { policy: { openClawProductCommands: true } } }),
+      "utf8",
+    );
     const sink = createPlainSink({ write: () => undefined, jsonMode: true });
+    runOpenClawL2AdapterCheck(sink, () => undefined, {
+      projectRoot: project,
+      fixMode: true,
+      jsonMode: true,
+      allAgents: false,
+      seams: {
+        openclawEnv: { OPENCLAW_STATE_DIR: state },
+        openclawHomeDir: () => home,
+      },
+    });
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { policy: { openClawProductCommands: false } } }),
+      "utf8",
+    );
+    const findings: Finding[] = [];
     runOpenClawL2AdapterCheck(sink, (f) => findings.push(f), {
       projectRoot: project,
       fixMode: true,
       jsonMode: true,
       allAgents: false,
       seams: {
-        openclawEnv: { OPENCLAW: "1", OPENCLAW_STATE_DIR: join(home, ".openclaw") },
+        openclawEnv: { OPENCLAW: "1", OPENCLAW_STATE_DIR: state },
         openclawHomeDir: () => home,
       },
     });
-    expect(findings[0]?.status).toBe("opted-out");
+    expect(findings[0]?.status).toBe("opted-out-fixed");
   });
 });

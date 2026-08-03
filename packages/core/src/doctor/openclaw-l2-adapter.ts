@@ -114,10 +114,43 @@ export function runOpenClawL2AdapterCheck(
 
   const policy = loadOpenClawProductCommandsPolicyFromProject(options.projectRoot);
   if (!policy) {
+    // Opt-out: under --fix, strip managed L2 skills so the adapter does not
+    // stay active after openClawProductCommands=false (#3064 Greptile P1).
+    let depositResult: OpenClawL2DepositResult | null = null;
+    if (options.fixMode) {
+      depositResult = depositOpenClawL2ProductCommands({
+        projectRoot: options.projectRoot,
+        env,
+        homeDir: home,
+        allAgents: options.allAgents,
+        policy: false,
+        printf: (t) => {
+          if (!options.jsonMode) sink.info(t.trimEnd());
+        },
+        isDir,
+      });
+      const message =
+        `${OPENCLAW_L2_ADAPTER_CHECK}: opted out (plan.policy.openClawProductCommands=false); ` +
+        (depositResult.removedPaths.length > 0
+          ? `removed ${depositResult.removedPaths.length} managed skill path(s)`
+          : "no managed L2 skills to remove");
+      sink.success(message);
+      addFinding({
+        severity: "skip",
+        message,
+        check: OPENCLAW_L2_ADAPTER_CHECK,
+        status: "opted-out-fixed",
+        reason: "policy-false",
+        removed: depositResult.removedPaths,
+        detect_reasons: detect.reasons,
+      });
+      return depositResult;
+    }
     sink.info(`${OPENCLAW_L2_ADAPTER_CHECK}: skip -- plan.policy.openClawProductCommands=false`);
     addFinding({
       severity: "skip",
-      message: "OpenClaw L2 product commands opted out via policy",
+      message:
+        "OpenClaw L2 product commands opted out via policy; run `deft doctor --fix` to remove managed skills",
       check: OPENCLAW_L2_ADAPTER_CHECK,
       status: "opted-out",
       reason: "policy-false",

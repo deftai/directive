@@ -13,20 +13,22 @@
 
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   renameSync,
   rmSync,
   statSync,
-  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   detectOpenClaw,
+  isEscapingSkillSymlink,
   listInScopeSkillsDirs,
   type OpenClawDetectResult,
 } from "../doctor/openclaw-skills.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import {
@@ -154,11 +156,36 @@ export function loadOpenClawProductCommandsPolicyFromProject(
 
 type WriteOutcome = "written" | "unchanged" | "preserved";
 
+function skillDirLstatKind(path: string): "file" | "dir" | "symlink" | "other" | "missing" {
+  try {
+    const st = lstatSync(path);
+    if (st.isSymbolicLink()) return "symlink";
+    if (st.isDirectory()) return "dir";
+    if (st.isFile()) return "file";
+    return "other";
+  } catch {
+    return "missing";
+  }
+}
+
 function writeSkillArtifact(skillsDir: string, artifact: OpenClawSkillArtifact): WriteOutcome {
   const skillDir = join(skillsDir, artifact.slug);
   const skillFile = join(skillDir, "SKILL.md");
 
+  // #3064 Greptile P1 / #3008 spirit: never write through an escaping skill-dir symlink.
+  const dirKind = skillDirLstatKind(skillDir);
+  if (dirKind === "symlink" && isEscapingSkillSymlink(skillsDir, skillDir)) {
+    return "preserved";
+  }
+
   if (existsSync(skillFile)) {
+    // Leaf symlink on SKILL.md that escapes skills root — refuse (containedWrite also fails closed).
+    if (
+      skillDirLstatKind(skillFile) === "symlink" &&
+      isEscapingSkillSymlink(skillsDir, skillFile)
+    ) {
+      return "preserved";
+    }
     let raw: string;
     try {
       raw = readFileSync(skillFile, "utf8");
@@ -173,15 +200,32 @@ function writeSkillArtifact(skillsDir: string, artifact: OpenClawSkillArtifact):
   }
 
   mkdirSync(skillDir, { recursive: true });
-  const tmp = join(skillDir, `SKILL.md.deft-${process.pid}-${Date.now().toString(36)}.tmp`);
+  // Re-check after mkdir: concurrent symlink plant is fail-closed.
+  if (skillDirLstatKind(skillDir) === "symlink" && isEscapingSkillSymlink(skillsDir, skillDir)) {
+    return "preserved";
+  }
+
+  const tmpName = `SKILL.md.deft-${process.pid}-${Date.now().toString(36)}.tmp`;
+  const tmp = join(skillDir, tmpName);
   try {
-    writeFileSync(tmp, artifact.skillMarkdown, "utf8");
+    // Contained write under skills root (#2951) — refuses symlink escape on the write path.
+    containedWrite({
+      root: skillsDir,
+      target: tmp,
+      data: artifact.skillMarkdown,
+      mode: "replace",
+    });
     renameSync(tmp, skillFile);
   } catch (err) {
     try {
       rmSync(tmp, { force: true });
     } catch {
       /* best-effort */
+    }
+    // Containment / symlink refusals: treat as preserved (do not clobber outside root).
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/contained write refused|symlink|escape/i.test(msg)) {
+      return "preserved";
     }
     throw err;
   }
