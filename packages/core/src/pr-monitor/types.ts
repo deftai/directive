@@ -22,6 +22,12 @@ export interface MonitorOptions {
   readonly clockFn?: MonotonicClock;
   readonly callReadinessFn?: CallReadinessFn;
   readonly runGh?: RunGhFn;
+  /**
+   * Project root for plan.policy.review.minGreptileConfidence (#3095).
+   * When pr-monitor targets a remote repo from a different cwd, pass the
+   * monitored project's root so confidence policy is not resolved from cwd.
+   */
+  readonly projectRoot?: string | null;
 }
 
 export interface MonitorRunResult {
@@ -33,4 +39,6 @@ export interface MonitorRunResult {
 export interface CallReadinessOptions {
   readonly runGh?: RunGhFn;
   readonly timeoutMs?: number;
+  /** Project root for minGreptileConfidence resolve (#3095). */
+  readonly projectRoot?: string | null;
 }

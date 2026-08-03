@@ -165,7 +165,12 @@ export function monitor(
   const clockFn = options.clockFn ?? systemMonotonicClock;
   const sleepFn = options.sleepFn ?? defaultSleep;
   const callReadinessFn =
-    options.callReadinessFn ?? ((n, r) => callReadiness(n, r, { runGh: options.runGh }));
+    options.callReadinessFn ??
+    ((n, r) =>
+      callReadiness(n, r, {
+        runGh: options.runGh,
+        projectRoot: options.projectRoot ?? process.cwd(),
+      }));
 
   const startedAt = clockFn.now();
   const intervalSchedule = cadenceIntervals(cadence);
