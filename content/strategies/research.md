@@ -22,6 +22,22 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ When the feature involves libraries or APIs the agent hasn't used in this project
 - ? Skip for well-understood domains where the agent has strong existing context
 
+## Scope Confirmation Gate (#1273)
+
+! Before autonomous research begins, present one blocking scope-confirmation prompt and wait for the user's selection. Use the deterministic question contract: the final two numbered options MUST be `Discuss` and `Back`.
+
+Prompt:
+> "What should this research focus on before I investigate autonomously?"
+
+1. Confirm the inferred feature/domain scope (Recommended)
+2. Refine the feature boundary or priority areas
+3. Provide sample data, artifacts, constraints, or sensitive areas to account for
+4. Discuss
+5. Back
+
+- ! Record the confirmed scope, any provided artifacts, and any sensitivity flags in the research notes before the survey step.
+- ⊗ Start the survey from project description alone when the user has not confirmed scope or declined to add artifacts/constraints.
+
 ## Output
 
 ! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
@@ -127,9 +143,12 @@ so the user can run additional preparatory strategies or proceed to spec generat
     append artifact path (`vbrief/proposed/{feature}-research.vbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+- ! Present the chaining gate as a blocking question and wait for a user selection before any spec generation or additional scope vBRIEF generation.
+- ! Explain at handoff that `completedStrategies` records that research ran, while `vbrief/proposed/{feature}-research.vbrief.json` remains a planning artifact in the scope lifecycle until a later strategy promotes or consumes it.
 - ! The research findings MUST inform subsequent strategies and spec generation:
   - "Don't Hand-Roll" items become constraints in the specification
   - "Common Pitfalls" become acceptance criteria or NFRs
+- ⊗ Generate implementation scope vBRIEFs directly from research findings or proceed to spec generation before the user chooses from the chaining gate.
 - ⊗ End the session after research without returning to the chaining gate
   or the invoking strategy's next-step menu
 
@@ -141,7 +160,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 ## Workflow
 
-1. **Scope** -- Identify the domain and feature boundaries for research
+1. **Scope confirmation** -- Ask the blocking scope-confirmation prompt, wait for the user, and record scope/artifact/sensitivity inputs
 2. **Survey** -- Check existing project dependencies, official docs, and known pitfalls
 3. **Document** -- Produce `vbrief/proposed/{feature}-research.vbrief.json` with `DontHandRoll` and `CommonPitfalls` narratives
 4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [standalone-context rule](#then-chaining-gate) above
@@ -150,6 +169,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 - ⊗ Building custom solutions for solved problems
 - ⊗ Skipping research for unfamiliar domains ("how hard can auth be?")
+- ⊗ Starting autonomous research before the Scope Confirmation Gate has captured or explicitly skipped user-provided artifacts/constraints
 - ⊗ Research that produces a reading list instead of actionable guidance
 - ⊗ Research that doesn't flow into planning (written and never referenced)
 - ⊗ Ending after research without chaining into specification generation (chained mode; in standalone context, returning to the invoking strategy's menu satisfies the completion requirement per the [standalone-context rule](#then-chaining-gate))

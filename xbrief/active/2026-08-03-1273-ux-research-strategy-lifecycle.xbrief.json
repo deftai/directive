@@ -1,0 +1,50 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #1273 — research strategy scope confirm, chaining gate, dependency encoding",
+    "updated": "2026-08-03T16:49:04Z"
+  },
+  "plan": {
+    "title": "UX: research strategy skips user interaction, bypasses chaining gate, unordered scopes",
+    "status": "running",
+    "narratives": {
+      "Description": "Research strategy runs without user interaction, bypasses chaining gate, dual-tracks completedStrategies vs proposed lifecycle, and emits multi-scope batches without edges. Fix via scope confirmation gate, blocking post-research chaining, handoff dual-tracking explanation, and machine-readable dependency ordering in setup Phase 3. Re-lands closed unmerged PR #2397.",
+      "Origin": "https://github.com/deftai/directive/issues/1273",
+      "Acceptance": "Research strategy solicits scope confirmation before autonomous work; chaining gate surfaces before scope generation; dual-tracking explained at handoff; multi-scope Phase 3 emits dependency metadata; content-contract tests green.",
+      "ImplementationPlan": "Edit packs strategies research + skills setup bodies; packs:render; add research_strategy_lifecycle.test.ts; CHANGELOG; verify vitest content-contracts."
+    },
+    "tags": [
+      "bug",
+      "research-strategy"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1273",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1273"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/2397",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #2397 (unmerged prior fix)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/strategies/research.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/core/src/content-contracts/skills/research_strategy_lifecycle.test.ts",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "updated": "2026-08-03T16:49:04Z",
+    "items": []
+  }
+}
