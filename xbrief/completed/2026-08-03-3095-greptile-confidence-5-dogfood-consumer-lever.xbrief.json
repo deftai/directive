@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3095 — dogfood Greptile CLEAN 5/5 + consumer min-confidence policy",
-    "updated": "2026-08-03T19:16:56Z"
+    "updated": "2026-08-03T20:06:14Z"
   },
   "plan": {
     "title": "feat(policy,review): dogfood Greptile CLEAN requires 5/5; consumers get per-project min-confidence lever",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Directive dogfood CLEAN requires Greptile confidence 5/5 (not merely >3/4/5). Consumers get typed plan.policy.review.minGreptileConfidence (or equivalent); default remains >3. Align pr:watch, merge-ready, review-cycle Step 6, greptile.md, swarm poller.",
       "Origin": "https://github.com/deftai/directive/issues/3095",
@@ -46,8 +46,27 @@
           "content/tools/greptile.md",
           "CHANGELOG.md"
         ]
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3099,
+        "prBase": null,
+        "mergeCommit": "658dc7697b5da783e72af685a2817224cbe2d5cd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "658dc7697b5da783e72af685a2817224cbe2d5cd",
+        "verifiedAt": "2026-08-03T20:06:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T20:06:14Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-03T19:16:56Z"
+    "updated": "2026-08-03T20:06:14Z"
   }
 }
