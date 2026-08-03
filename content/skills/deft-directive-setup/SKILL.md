@@ -762,10 +762,14 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 **Spec Structure (both paths):**
 - ! Overview, Architecture
 - ! Implementation Plan: scope xBRIEFs in `xbrief/proposed/` with phases and dependencies
-- ! Explicit dependency mapping between scopes MUST use fields orchestration and roadmap actually read: prefer `plan.metadata.swarm.depends_on` (story/swarm readiness and decompose) and/or plan-level `plan.metadata.dependencies` (cross-scope roadmap); `edges` / `references` may supplement but do not replace swarm dependency metadata for sequential scopes.
-- ! When multiple scopes are produced in one Phase 3 pass, encode machine-readable dependency ordering before finishing the write: use an empty dependency list / empty `swarm.depends_on` for independent scopes and non-empty `plan.metadata.swarm.depends_on` (and/or `plan.metadata.dependencies`) for sequential/blocked scopes.
+- ! Explicit dependency mapping MUST use the field consumers actually read for the scope shape:
+  - **Story-shaped scopes** (`plan.metadata.kind = "story"` or scopes intended for swarm allocation / decompose): sequential/blocked work MUST set `plan.metadata.swarm.depends_on` (array of blocking story ids/slugs). Swarm readiness, decompose, and queue traversal read **only** this field for story ordering — not `plan.metadata.dependencies` alone.
+  - **Phase/epic or cross-scope roadmap batches**: MAY also set plan-level `plan.metadata.dependencies` for roadmap/export readers.
+  - `edges` / `references` may supplement documentation but **do not** replace `plan.metadata.swarm.depends_on` for sequential story scopes.
+- ! When multiple scopes are produced in one Phase 3 pass, encode machine-readable dependency ordering before finishing the write: independent scopes use empty `plan.metadata.swarm.depends_on` (`[]`); sequential/blocked story scopes use non-empty `plan.metadata.swarm.depends_on`. Optionally mirror the same DAG in `plan.metadata.dependencies` for roadmap views.
 - ~ Scopes designed for parallel work by multiple agents
-- ⊗ Deposit multiple generated scope xBRIEFs with no dependency metadata (missing both `plan.metadata.swarm.depends_on` for story-shaped scopes and `plan.metadata.dependencies` for cross-scope batches) and rely on filenames or human prose for ordering.
+- ⊗ Deposit sequential story-shaped scopes with only `plan.metadata.dependencies` / `edges` / `references` and missing `plan.metadata.swarm.depends_on` — orchestration will treat them as independent or reject readiness.
+- ⊗ Deposit multiple generated scope xBRIEFs with no dependency metadata and rely on filenames or human prose for ordering.
 - ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 

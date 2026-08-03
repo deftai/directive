@@ -35,11 +35,13 @@ Prompt:
 4. Discuss
 5. Back
 
-- ! On option **1** (confirm inferred scope): record the inferred feature/domain as confirmed and proceed to the survey step.
-- ! On option **2** (refine boundary): ask a **follow-up free-form question** in the next message (one question only) to capture the refined feature boundary or priority areas; wait for the user's answer; record the free-form refinement in research notes before the survey step. ⊗ Proceed to survey after option 2 without collecting free-form refinement text.
-- ! On option **3** (artifacts/constraints/sensitivity): ask a **follow-up free-form question** in the next message (one question only) for sample data paths, artifacts to analyze, constraints, or sensitive areas; wait for the user's answer; record provided artifacts/constraints/sensitivity flags in research notes before the survey step. ⊗ Proceed to survey after option 3 without collecting free-form artifact/constraint input.
+- ! **Confirmed-scope postcondition (required before survey):** research MUST NOT start the survey until a confirmed research scope is recorded in notes. Confirmation is achieved by **any** of: option **1** (accept inferred scope as-is), or option **2**/**3** after free-form capture (the free-form answer **is** the confirmation of scope — it replaces option-1 confirmation; do not re-open option 1 after capture).
+- ! On option **1** (confirm inferred scope): record the inferred feature/domain as the confirmed research scope and proceed to the survey step.
+- ! On option **2** (refine boundary): ask a **follow-up free-form question** in the next message (one question only) to capture the refined feature boundary or priority areas; wait for the user's answer; record that free-form text as the **confirmed** research scope; then proceed to survey. ⊗ Proceed to survey after option 2 without collecting free-form refinement text. ⊗ Leave research blocked after option 2 with no follow-up path.
+- ! On option **3** (artifacts/constraints/sensitivity): ask a **follow-up free-form question** in the next message (one question only) for sample data paths, artifacts to analyze, constraints, or sensitive areas; wait for the user's answer; record provided artifacts/constraints/sensitivity flags **and** treat the current feature/domain (plus those inputs) as the **confirmed** research scope; then proceed to survey. ⊗ Proceed to survey after option 3 without collecting free-form artifact/constraint input. ⊗ Leave research blocked after option 3 with no follow-up path.
+- ! If the user declines free-form input after option 2 or 3 (empty answer / "skip" / "none"): re-present the Scope Confirmation Gate once; if they pick option **1**, confirm inferred scope and proceed; if they again decline capture without confirming, stop research and return to the chaining gate or invoking menu — do not survey on unconfirmed scope.
 - ! Record the confirmed scope, any provided artifacts, and any sensitivity flags in the research notes before the survey step.
-- ⊗ Start the survey from project description alone when the user has not confirmed scope (option 1) or declined to add refinements/artifacts after options 2/3.
+- ⊗ Start the survey from project description alone without a confirmed research scope (option 1 acceptance or option 2/3 free-form confirmation).
 
 ## Output
 
