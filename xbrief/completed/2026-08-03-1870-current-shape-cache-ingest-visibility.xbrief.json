@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Triage cache and issue:ingest capture issue body only; agents plan umbrellas off stale body while canonical Current shape lives in a comment. Wire comment into cache/ingest/read paths.",
-    "updated": "2026-08-03T19:04:10Z"
+    "updated": "2026-08-03T19:49:51Z"
   },
   "plan": {
     "title": "bug(triage/ingest): Current shape comment invisible to cache + ingest pipeline",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Triage cache and issue:ingest capture issue body only; agents plan umbrellas off stale body while canonical Current shape lives in a comment. Wire comment into cache/ingest/read paths.",
       "Origin": "https://github.com/deftai/directive/issues/1870",
@@ -56,8 +56,27 @@
           "tasks/",
           "CHANGELOG.md"
         ]
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3097,
+        "prBase": null,
+        "mergeCommit": "87635c744621e3f10fb2b3b9f5e9339f66f2b189",
+        "deliveryBranch": "master",
+        "deliveryCommit": "87635c744621e3f10fb2b3b9f5e9339f66f2b189",
+        "verifiedAt": "2026-08-03T19:49:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T19:49:51Z",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-03T19:04:10Z"
+    "updated": "2026-08-03T19:49:51Z"
   }
 }
