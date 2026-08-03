@@ -13,6 +13,20 @@ afterEach(() => {
 });
 
 describe("isDirectEntrypoint", () => {
+  it("returns false when process.argv[1] is undefined", () => {
+    const original = process.argv[1];
+    delete (process.argv as string[])[1];
+    try {
+      expect(isDirectEntrypoint(import.meta.url)).toBe(false);
+    } finally {
+      process.argv[1] = original;
+    }
+  });
+
+  it("returns false when realpath comparison throws", () => {
+    expect(isDirectEntrypoint("file:///definitely/not/a/real/path-xyz")).toBe(false);
+  });
+
   it("matches the module path directly", () => {
     const modulePath = fileURLToPath(import.meta.url);
     const originalArgv1 = process.argv[1];
