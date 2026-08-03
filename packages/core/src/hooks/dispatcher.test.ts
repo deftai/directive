@@ -340,9 +340,9 @@ describe("direct-write hook policy", () => {
         true,
       );
       expect(isAllowlistedAssistScratchPath("/project", "temp/overview/x.md")).toBe(true);
-      expect(isAllowlistedAssistScratchPath("/project", "packages/core/src/hooks/dispatcher.ts")).toBe(
-        false,
-      );
+      expect(
+        isAllowlistedAssistScratchPath("/project", "packages/core/src/hooks/dispatcher.ts"),
+      ).toBe(false);
       expect(isAllowlistedAssistScratchPath("/project", "src/a.ts")).toBe(false);
       expect(isAllowlistedAssistScratchPath("/project", "overview/notes.md")).toBe(false);
       expect(isAllowlistedAssistScratchPath("/project", null)).toBe(false);
