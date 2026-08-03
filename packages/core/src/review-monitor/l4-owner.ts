@@ -4,28 +4,19 @@
  * Exit 0 only when a fresh sticky review-owner lease exists on the PR,
  * or the caller asserts `review_cycle: done` after Step 6.
  * Freeform started/pending/initiated values are rejected.
+ * skipped / n/a / parent-retained are process evidence only — they do NOT
+ * satisfy this machine gate when --pr is required (lease-or-done).
  */
 
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveRepo } from "../triage/queue/repo.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_NOT_READY,
-  EXIT_READY,
-} from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_NOT_READY, EXIT_READY } from "./constants.js";
 import type { ReviewOwnerGithubSeams } from "./github-lease.js";
-import {
-  fetchActiveMonitorFromGithub,
-  type ReviewMonitorRecord,
-} from "./record.js";
+import { fetchActiveMonitorFromGithub, type ReviewMonitorRecord } from "./record.js";
 
 /** Allowed review_cycle evidence values (prefix form for in_progress/skipped). */
-export type ReviewCycleEvidence =
-  | "done"
-  | "n/a"
-  | `in_progress:${string}`
-  | `skipped:${string}`;
+export type ReviewCycleEvidence = "done" | "n/a" | `in_progress:${string}` | `skipped:${string}`;
 
 export const L4_OWNER_HELP =
   "usage: task verify:l4-owner -- --pr <N> [options]\n" +
@@ -34,7 +25,8 @@ export const L4_OWNER_HELP =
   "babysit / shepherd claims, exit 0 only when a sticky GitHub review-owner\n" +
   "lease is fresh on the PR, or the caller asserts --review-cycle done\n" +
   "(Step 6 fail-closed all-of on HEAD). Freeform started/pending/initiated\n" +
-  "are rejected. Silent hold (no lease, no done) exits 1.\n" +
+  "are rejected. skipped / n/a / parent-retained do NOT satisfy this machine\n" +
+  "gate (process A/B/C still applies). Silent hold exits 1.\n" +
   "\n" +
   "options:\n" +
   "  -h, --help                 Show this help and exit 0\n" +
@@ -76,8 +68,14 @@ export function parseReviewCycleEvidence(
     if (!rest.includes("#") || rest.endsWith("#") || rest.startsWith("#")) {
       return {
         ok: false,
-        reason:
-          "in_progress requires form in_progress:<pr>#<monitor_or_lease_ref> (#3090)",
+        reason: "in_progress requires form in_progress:<pr>#<monitor_or_lease_ref> (#3090)",
+      };
+    }
+    const prPart = rest.slice(0, rest.indexOf("#"));
+    if (!/^\d+$/.test(prPart) || Number(prPart) <= 0) {
+      return {
+        ok: false,
+        reason: "in_progress:<pr> must be a positive integer PR number (#3090)",
       };
     }
     return { ok: true, value: value as ReviewCycleEvidence };
@@ -95,6 +93,24 @@ export function parseReviewCycleEvidence(
       `unknown review_cycle value '${value}' (#3090); ` +
       "use done | in_progress:<pr>#<ref> | skipped:<reason> | n/a",
   };
+}
+
+/** Parse in_progress:<pr>#<ref> into parts; null if not that form. */
+export function parseInProgressEvidence(value: string): { pr: number; ref: string } | null {
+  if (!value.startsWith("in_progress:")) {
+    return null;
+  }
+  const rest = value.slice("in_progress:".length);
+  const hash = rest.indexOf("#");
+  if (hash <= 0) {
+    return null;
+  }
+  const prPart = rest.slice(0, hash);
+  const ref = rest.slice(hash + 1);
+  if (!/^\d+$/.test(prPart) || ref.length === 0) {
+    return null;
+  }
+  return { pr: Number(prPart), ref };
 }
 
 export interface VerifyL4OwnerArgs {
@@ -115,6 +131,10 @@ export interface VerifyL4OwnerResult {
   readonly path: "lease" | "done" | "none" | "illegal" | "config";
 }
 
+function oneLine(value: string): string {
+  return value.replace(/\r?\n/g, " ");
+}
+
 export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResult {
   const projectRoot = resolve(args.projectRoot);
   let isDir = false;
@@ -126,7 +146,7 @@ export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResul
   if (!isDir) {
     return {
       exitCode: EXIT_CONFIG_ERROR,
-      message: `verify_l4_owner: --project-root is not a directory: ${projectRoot}`,
+      message: `verify_l4_owner: --project-root is not a directory: ${oneLine(projectRoot)}`,
       monitorRecord: null,
       reviewCycle: null,
       path: "config",
@@ -137,10 +157,24 @@ export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResul
   if (!parsed.ok) {
     return {
       exitCode: EXIT_NOT_READY,
-      message: `verify_l4_owner: ${parsed.reason}`,
+      message: `verify_l4_owner: ${oneLine(parsed.reason)}`,
       monitorRecord: null,
       reviewCycle: null,
       path: "illegal",
+    };
+  }
+
+  // Machine gate is lease-or-done only (#3090). skipped/n/a are handoff enum values
+  // but must not green-light ownership of an open PR without lease or Step 6 done.
+  if (parsed.value === "n/a" || parsed.value?.startsWith("skipped:")) {
+    return {
+      exitCode: EXIT_NOT_READY,
+      message:
+        `verify_l4_owner: review_cycle=${oneLine(parsed.value)} does not satisfy the machine ` +
+        `gate for PR #${args.pr} (#3090). Exit 0 requires a fresh sticky lease or --review-cycle done.`,
+      monitorRecord: null,
+      reviewCycle: parsed.value,
+      path: "none",
     };
   }
 
@@ -156,14 +190,29 @@ export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResul
     };
   }
 
-  if (parsed.value === "n/a" || (parsed.value !== null && parsed.value.startsWith("skipped:"))) {
-    return {
-      exitCode: EXIT_READY,
-      message: `verify_l4_owner: review_cycle=${parsed.value} for PR #${args.pr} — ownership gate not required.`,
-      monitorRecord: null,
-      reviewCycle: parsed.value,
-      path: "done",
-    };
+  // Validate in_progress PR binding when evidence is present (before lease fetch).
+  if (parsed.value?.startsWith("in_progress:")) {
+    const parts = parseInProgressEvidence(parsed.value);
+    if (parts === null) {
+      return {
+        exitCode: EXIT_NOT_READY,
+        message: `verify_l4_owner: malformed in_progress evidence ${oneLine(parsed.value)} (#3090).`,
+        monitorRecord: null,
+        reviewCycle: parsed.value,
+        path: "illegal",
+      };
+    }
+    if (parts.pr !== args.pr) {
+      return {
+        exitCode: EXIT_NOT_READY,
+        message:
+          `verify_l4_owner: review_cycle PR #${parts.pr} does not match --pr ${args.pr} (#3090). ` +
+          "Ownership evidence must bind to the target PR.",
+        monitorRecord: null,
+        reviewCycle: parsed.value,
+        path: "none",
+      };
+    }
   }
 
   const repo = resolveRepo(args.repo ?? null, projectRoot);
@@ -187,7 +236,7 @@ export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResul
   if (githubMonitor !== null && typeof githubMonitor === "object" && "error" in githubMonitor) {
     return {
       exitCode: EXIT_CONFIG_ERROR,
-      message: `verify_l4_owner: ${githubMonitor.error}`,
+      message: `verify_l4_owner: ${oneLine(githubMonitor.error)}`,
       monitorRecord: null,
       reviewCycle: parsed.value,
       path: "config",
@@ -202,34 +251,35 @@ export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResul
       exitCode: EXIT_READY,
       message:
         `verify_l4_owner: active GitHub review-owner lease for PR #${args.pr} ` +
-        `(monitor_agent_id=${githubMonitor.monitor_agent_id}, owner=${githubMonitor.owner}) ` +
-        `— review_cycle path=lease (#3090).`,
+        `(monitor_agent_id=${oneLine(githubMonitor.monitor_agent_id)}, owner=${oneLine(githubMonitor.owner)}) ` +
+        "— review_cycle path=lease (#3090).",
       monitorRecord: githubMonitor,
       reviewCycle: ref,
       path: "lease",
     };
   }
 
-  // in_progress without lease is only valid for documented parent-retained when evidence says so
-  if (parsed.value !== null && parsed.value.startsWith("in_progress:")) {
-    if (parsed.value.includes("#parent-retained")) {
+  // parent-retained is process path B — machine gate cannot verify it (lease-or-done only).
+  if (parsed.value?.startsWith("in_progress:")) {
+    const parts = parseInProgressEvidence(parsed.value);
+    if (parts?.ref === "parent-retained") {
       return {
-        exitCode: EXIT_READY,
+        exitCode: EXIT_NOT_READY,
         message:
-          `verify_l4_owner: parent-retained ownership asserted via ${parsed.value} for PR #${args.pr} (#3090). ` +
-          "Next action MUST be dual-source poll/fix; do not emit L4 status:pass as terminal.",
+          `verify_l4_owner: parent-retained for PR #${args.pr} is process path B only (#3090). ` +
+          "Machine gate requires a sticky <!-- deft:review-owner --> lease or --review-cycle done. " +
+          "Keep parent dual-source poll/fix; do not emit L4 status:pass as terminal.",
         monitorRecord: null,
         reviewCycle: parsed.value,
-        path: "lease",
+        path: "none",
       };
     }
     return {
       exitCode: EXIT_NOT_READY,
       message:
-        `verify_l4_owner: review_cycle=${parsed.value} claims in_progress but no sticky ` +
+        `verify_l4_owner: review_cycle=${oneLine(parsed.value)} claims in_progress but no sticky ` +
         `<!-- deft:review-owner --> lease found for PR #${args.pr} (#3090 / #2797).\n` +
-        "  Register: deft review-monitor:register --pr <N> --monitor-agent-id <id> --platform-primitive …\n" +
-        "  Or use in_progress:<pr>#parent-retained when the parent keeps ownership.",
+        "  Register: deft review-monitor:register --pr <N> --monitor-agent-id <id> --platform-primitive …",
       monitorRecord: null,
       reviewCycle: parsed.value,
       path: "none",
@@ -240,7 +290,7 @@ export function evaluateL4OwnerGate(args: VerifyL4OwnerArgs): VerifyL4OwnerResul
     exitCode: EXIT_NOT_READY,
     message:
       `verify_l4_owner: silent hold on PR #${args.pr} — no fresh sticky lease and no ` +
-      `review_cycle=done (#3090 Owner Continuity Gate).\n` +
+      "review_cycle=done (#3090 Owner Continuity Gate).\n" +
       "  Same turn MUST end in A (monitor+lease), B (parent-retained + next dual-source action),\n" +
       "  or C (explicit BLOCKED/FAILED finish). Check-run SUCCESS alone is not CLEAN.",
     monitorRecord: null,

@@ -3,13 +3,7 @@ import { parseVerifyL4OwnerArgs, run } from "./verify-l4-owner.js";
 
 describe("verify-l4-owner CLI (#3090)", () => {
   it("parses --pr and --review-cycle", () => {
-    const args = parseVerifyL4OwnerArgs([
-      "--pr",
-      "42",
-      "--review-cycle",
-      "done",
-      "--json",
-    ]);
+    const args = parseVerifyL4OwnerArgs(["--pr", "42", "--review-cycle", "done", "--json"]);
     expect(args.pr).toBe(42);
     expect(args.reviewCycle).toBe("done");
     expect(args.emitJson).toBe(true);

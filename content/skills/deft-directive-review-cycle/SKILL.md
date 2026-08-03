@@ -344,7 +344,7 @@ Remediation:
 
 ! When dual-source fetch shows open P0/P1 under Step 6 / CLEAN evaluation: continue the fix loop **or** exit **BLOCKED** to the parent — never idle.
 
-! Optional machine gate: `deft verify:l4-owner --pr <N>` (or `task verify:l4-owner -- --pr <N>`; dual-invoke same order as other gates). Exit **0** only when a sticky lease is fresh on the PR **or** the caller asserts `--review-cycle done` after Step 6. Exit **1** on silent hold (no lease, no done). Pair with existing monitor-without-lease regression (#2797).
+! Optional machine gate: `deft verify:l4-owner --pr <N>` (or `task verify:l4-owner -- --pr <N>`; dual-invoke same order as other gates). Exit **0** only when a sticky lease is fresh on the PR **or** the caller asserts `--review-cycle done` after Step 6 (lease-or-done machine gate). `skipped` / `n/a` / parent-retained are process evidence only and do **not** satisfy this machine gate. Exit **1** on silent hold (no lease, no done). Pair with existing monitor-without-lease regression (#2797).
 
 ⊗ End an owning turn with **0 children**, **no sticky lease**, and **no finish signal** after a drive-to-merge / babysit / shepherd claim (**silent hold**).
 ⊗ Treat check-run **SUCCESS alone** as CLEAN or merge-ready while dual-source P0/P1 remain open.

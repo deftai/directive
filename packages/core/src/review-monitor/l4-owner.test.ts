@@ -2,12 +2,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { computeExpiresAt, renderReviewOwnerComment } from "./lease-comment.js";
 import {
   evaluateL4OwnerGate,
   l4OwnerResultToJson,
+  parseInProgressEvidence,
   parseReviewCycleEvidence,
 } from "./l4-owner.js";
+import { computeExpiresAt, renderReviewOwnerComment } from "./lease-comment.js";
 
 const NOW = new Date("2026-08-03T12:00:00.000Z");
 
@@ -48,6 +49,20 @@ describe("parseReviewCycleEvidence (#3090)", () => {
   it("rejects bare in_progress without pr#ref", () => {
     const r = parseReviewCycleEvidence("in_progress");
     expect(r.ok).toBe(false);
+  });
+
+  it("rejects non-numeric in_progress pr", () => {
+    const r = parseReviewCycleEvidence("in_progress:abc#parent-retained");
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("parseInProgressEvidence", () => {
+  it("parses pr and ref", () => {
+    expect(parseInProgressEvidence("in_progress:12#parent-retained")).toEqual({
+      pr: 12,
+      ref: "parent-retained",
+    });
   });
 });
 
@@ -106,7 +121,7 @@ describe("evaluateL4OwnerGate (#3090)", () => {
     expect(result.path).toBe("done");
   });
 
-  it("PASS: parent-retained in_progress evidence without lease", () => {
+  it("FAIL: parent-retained is process-only (not machine READY)", () => {
     const root = mkdtempSync(join(tmpdir(), "l4-parent-"));
     const result = evaluateL4OwnerGate({
       pr: 12,
@@ -115,8 +130,37 @@ describe("evaluateL4OwnerGate (#3090)", () => {
       reviewCycle: "in_progress:12#parent-retained",
       seams: { fetchComments: () => [] },
     });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(1);
     expect(result.message).toContain("parent-retained");
+    expect(result.message).toContain("process path B");
+  });
+
+  it("FAIL: parent-retained bound to wrong PR", () => {
+    const root = mkdtempSync(join(tmpdir(), "l4-wrong-pr-"));
+    const result = evaluateL4OwnerGate({
+      pr: 12,
+      projectRoot: root,
+      repo: "deftai/directive",
+      reviewCycle: "in_progress:99#parent-retained",
+      seams: { fetchComments: () => [] },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("does not match --pr 12");
+  });
+
+  it("FAIL: skipped/n/a do not bypass lease-or-done machine gate", () => {
+    const root = mkdtempSync(join(tmpdir(), "l4-skip-"));
+    for (const evidence of ["n/a", "skipped:operator-cancel"] as const) {
+      const result = evaluateL4OwnerGate({
+        pr: 12,
+        projectRoot: root,
+        repo: "deftai/directive",
+        reviewCycle: evidence,
+        seams: { fetchComments: () => [] },
+      });
+      expect(result.exitCode, evidence).toBe(1);
+      expect(result.message, evidence).toContain("does not satisfy the machine");
+    }
   });
 
   it("FAIL: in_progress with monitor ref but no lease (regression #2797 class)", () => {
