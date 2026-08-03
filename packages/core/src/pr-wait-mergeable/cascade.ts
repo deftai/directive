@@ -156,7 +156,9 @@ export function waitMergeableAndMerge(
     });
   }
 
-  const [monRc, monStdout, monStderr] = monitorFn(prNumber, repo, options.capMinutes);
+  const [monRc, monStdout, monStderr] = monitorFn(prNumber, repo, options.capMinutes, {
+    projectRoot,
+  });
   const monitorPayload = parseMonitorPayload(monStdout);
   const [outcome, monitorExit] = classifyMonitorOutcome(monRc, monitorPayload);
 

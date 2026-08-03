@@ -16,6 +16,8 @@ export interface ParsedMonitorArgs {
   readonly repo: string | null;
   readonly capMinutes: number;
   readonly emitJson: boolean;
+  /** Project root for minGreptileConfidence (#3095 / #3102). Null = default cwd at run. */
+  readonly projectRoot: string | null;
   readonly error?: string;
 }
 
@@ -24,6 +26,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
   let repo: string | null = null;
   let capMinutes = 60;
   let emitJson = false;
+  let projectRoot: string | null = null;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -37,6 +40,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
           repo,
           capMinutes,
           emitJson,
+          projectRoot,
           error: "argument --repo: expected one argument",
         };
       }
@@ -44,6 +48,22 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
       i += 1;
     } else if (arg?.startsWith("--repo=")) {
       repo = arg.slice("--repo=".length);
+    } else if (arg === "--project-root") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          prNumber,
+          repo,
+          capMinutes,
+          emitJson,
+          projectRoot,
+          error: "argument --project-root: expected one argument",
+        };
+      }
+      projectRoot = value;
+      i += 1;
+    } else if (arg?.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--cap-minutes") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -52,6 +72,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
           repo,
           capMinutes,
           emitJson,
+          projectRoot,
           error: "argument --cap-minutes: expected one argument",
         };
       }
@@ -62,6 +83,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
           repo,
           capMinutes,
           emitJson,
+          projectRoot,
           error: `invalid --cap-minutes value: ${value}`,
         };
       }
@@ -76,6 +98,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
           repo,
           capMinutes,
           emitJson,
+          projectRoot,
           error: `invalid --cap-minutes value: ${value}`,
         };
       }
@@ -86,6 +109,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
         repo,
         capMinutes,
         emitJson,
+        projectRoot,
         error: `unrecognized arguments: ${arg}`,
       };
     } else if (prNumber === null) {
@@ -96,6 +120,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
           repo,
           capMinutes,
           emitJson,
+          projectRoot,
           error: `invalid PR number: ${arg}`,
         };
       }
@@ -106,6 +131,7 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
         repo,
         capMinutes,
         emitJson,
+        projectRoot,
         error: `unrecognized arguments: ${arg}`,
       };
     }
@@ -117,10 +143,11 @@ export function parseMonitorArgs(argv: readonly string[]): ParsedMonitorArgs {
       repo,
       capMinutes,
       emitJson,
+      projectRoot,
       error: "the following arguments are required: pr_number",
     };
   }
-  return { prNumber, repo, capMinutes, emitJson };
+  return { prNumber, repo, capMinutes, emitJson, projectRoot };
 }
 
 export interface RunMonitorOptions {
@@ -145,6 +172,9 @@ export function runMonitor(argv: readonly string[], options: RunMonitorOptions =
   const { exitCode, payload, pollCount } = monitorFn(args.prNumber as number, repo, {
     capMinutes: args.capMinutes,
     runGh: options.runGh,
+    // CLI --project-root or cwd: production remote-monitor path must not silently
+    // resolve minGreptileConfidence from an unrelated cwd (#3095 residual / #3102).
+    projectRoot: args.projectRoot ?? process.cwd(),
   });
 
   const summaryLabel = summaryLabelForExit(exitCode);

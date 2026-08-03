@@ -19,6 +19,11 @@ export type ProtectedCheckFn = (
   protectedIssues: readonly number[],
 ) => SubprocessTriple;
 
-export type MonitorFn = (prNumber: number, repo: string, capMinutes: number) => SubprocessTriple;
+export type MonitorFn = (
+  prNumber: number,
+  repo: string,
+  capMinutes: number,
+  options?: { readonly projectRoot?: string },
+) => SubprocessTriple;
 
 export type MergeFn = (prNumber: number, repo: string | null) => SubprocessTriple;

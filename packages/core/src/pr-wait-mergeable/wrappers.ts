@@ -141,6 +141,12 @@ export function runProtectedCheck(
 export interface RunMonitorOptions {
   readonly nodeExecutable?: string;
   readonly timeout?: number;
+  /**
+   * Project root for plan.policy.review.minGreptileConfidence when the
+   * cascade cwd is not the monitored project (#3095 residual / #3102).
+   * Defaults to process.cwd() when omitted.
+   */
+  readonly projectRoot?: string;
 }
 
 /** Invoke pr-monitor CLI with --json and return (returncode, stdout, stderr). */
@@ -156,6 +162,7 @@ export function runMonitor(
   }
   const node = options.nodeExecutable ?? process.execPath;
   const timeoutSec = options.timeout ?? capMinutes * 60 + 60;
+  const projectRoot = options.projectRoot ?? process.cwd();
   const cmd: string[] = [
     scriptPath,
     String(prNumber),
@@ -163,6 +170,8 @@ export function runMonitor(
     repo,
     "--cap-minutes",
     String(capMinutes),
+    "--project-root",
+    projectRoot,
     "--json",
   ];
   // Stream the monitor's per-poll heartbeat live (a buffered poll looks like a

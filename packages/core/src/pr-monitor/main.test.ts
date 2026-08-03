@@ -27,6 +27,25 @@ describe("parseMonitorArgs", () => {
       repo: "deftai/directive",
       capMinutes: 30,
       emitJson: true,
+      projectRoot: null,
+    });
+  });
+
+  it("parses --project-root for remote-monitor policy resolve (#3102)", () => {
+    expect(
+      parseMonitorArgs([
+        "1363",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        "/tmp/consumer",
+        "--json",
+      ]),
+    ).toMatchObject({
+      prNumber: 1363,
+      repo: "deftai/directive",
+      projectRoot: "/tmp/consumer",
+      emitJson: true,
     });
   });
 

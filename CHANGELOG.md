@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(pr-monitor): pass --project-root from CLI and pr-wait-mergeable cascade into confidence policy resolve (#3102).** Residual from #3095: production remote-monitor path no longer silently uses an unrelated cwd for minGreptileConfidence. Closes residual of #3095.
+
 - **Triage cache + `issue:ingest` surface #1152 Current shape comments (#1870).** Umbrella/tracker issues no longer plan from body-only cache or body-only Overview: `cache:fetch-all` fetches comment threads for epic/meta/tracker-like issues, `content.md` appends the canonical maintainer-authored `## Current shape (as of pass-N)` section (same selector as `task umbrella:current-shape`), and `current-shape.json` sidecar stores body + permalink. `issue:ingest` materializes `plan.narratives.CurrentShape` plus an `x-xbrief/current-shape` reference to the comment permalink (still keeps full #2143 comment thread in Overview). Non-maintainer forgeries ignored (#2307). Closes #1870. Refs #1152, #1649, #2143.
 
 - **Umbrella body checkboxes + §1152 current-shape auto-sync to child state (#1649).** `task vbrief:reconcile:umbrellas` now (1) reconciles issue-body `- [ ] #N` / `- [x] #N` checkboxes via forge open/closed, (2) resolves children from both `x-*/plan` and `x-*/github-issue` refs (hand-filed / `issue:emit` epics no longer compute a 0-child shape), (3) prefers forge issue state over xBRIEF lifecycle folder for open/closed with folder fallback, and (4) runs best-effort after successful `pr:wait-mergeable-and-merge` (in addition to `scope:complete`). Idempotent; skips body writes when already correct. Closes #1649. Refs #1152, #1289, #1284.
