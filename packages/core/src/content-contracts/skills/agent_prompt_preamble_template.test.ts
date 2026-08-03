@@ -117,9 +117,7 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("materially new");
     expect(templateText).toContain("completion replay storm");
     expect(templateText).toContain("Eval checklist (second settle same runId)");
-    expect(templateText).toContain(
-      "Second+ user-visible \"final\" for the same settled `runId`",
-    );
+    expect(templateText).toContain('Second+ user-visible "final" for the same settled `runId`');
     expect(templateText).toContain("Full dual-source / full test re-run solely because the settle");
     const swarmSkill = readSwarmSkillSurface();
     expect(swarmSkill).toContain("Completion latch after first consolidate (#3092)");
