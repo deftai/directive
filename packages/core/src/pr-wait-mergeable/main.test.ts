@@ -34,6 +34,22 @@ describe("parseWaitMergeableArgs", () => {
       cascadeMode: false,
       requireMasterCiGreen: false,
       baseBranch: null,
+      projectRoot: null,
+    });
+  });
+
+  it("parses --project-root for remote confidence policy (#3102)", () => {
+    expect(
+      parseWaitMergeableArgs([
+        "1370",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        "/tmp/consumer-project",
+      ]),
+    ).toMatchObject({
+      prNumber: 1370,
+      projectRoot: "/tmp/consumer-project",
     });
   });
 

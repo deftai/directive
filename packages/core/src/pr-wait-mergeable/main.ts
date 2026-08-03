@@ -21,6 +21,8 @@ export interface ParsedWaitMergeableArgs {
   readonly cascadeMode: boolean;
   readonly requireMasterCiGreen: boolean;
   readonly baseBranch: string | null;
+  /** Project root for minGreptileConfidence (#3095 / #3102). Null = cwd at run. */
+  readonly projectRoot: string | null;
   readonly error?: string;
 }
 
@@ -33,6 +35,7 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
   let cascadeMode = false;
   let requireMasterCiGreen = false;
   let baseBranch: string | null = null;
+  let projectRoot: string | null = null;
 
   const baseReturn = (): Omit<ParsedWaitMergeableArgs, "error"> => ({
     prNumber,
@@ -43,6 +46,7 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
     cascadeMode,
     requireMasterCiGreen,
     baseBranch,
+    projectRoot,
   });
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -62,6 +66,15 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
       i += 1;
     } else if (arg?.startsWith("--base-branch=")) {
       baseBranch = arg.slice("--base-branch=".length);
+    } else if (arg === "--project-root") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...baseReturn(), error: "argument --project-root: expected one argument" };
+      }
+      projectRoot = value;
+      i += 1;
+    } else if (arg?.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--repo") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -173,6 +186,9 @@ export function runWaitMergeable(
     cascadeMode: args.cascadeMode,
     requireMasterCiGreen: args.requireMasterCiGreen,
     baseBranch: args.baseBranch,
+    // Explicit CLI root (or cwd) so remote-target cascade does not resolve
+    // minGreptileConfidence from an unrelated directory (#3102).
+    projectRoot: args.projectRoot ?? process.cwd(),
   });
 
   const summaryLabel = summaryLabelForExit(result.exitCode);
