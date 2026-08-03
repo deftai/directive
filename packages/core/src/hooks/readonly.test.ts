@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { hookReadOnlyFromPayload, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
+import {
+  ASSIST_SESSION_POSTURE_ENV,
+  hookReadOnlyFromPayload,
+  isAssistPosture,
+  isEphemeralSpawn,
+  isExploreSpawn,
+  isReadOnlyHookContext,
+} from "./readonly.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
 describe("read-only hook context (#1185)", () => {
@@ -32,6 +39,91 @@ describe("explore spawn detection (#1185)", () => {
   it("recognizes explore worker_role", () => {
     expect(isExploreSpawn({ tool_input: { worker_role: "explore" } })).toBe(true);
     expect(isExploreSpawn({ workerRole: "leaf-implementation" })).toBe(false);
+  });
+});
+
+describe("ephemeral spawn detection (#3080)", () => {
+  it("recognizes worker_role ephemeral and aliases docs/assist", () => {
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "ephemeral" } })).toBe(true);
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "docs" } })).toBe(true);
+    expect(isEphemeralSpawn({ workerRole: "assist" })).toBe(true);
+    expect(isEphemeralSpawn({ tool_input: { workerRole: "EPHEMERAL" } })).toBe(true);
+  });
+
+  it("recognizes subagent_type ephemeral aliases", () => {
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "ephemeral" } })).toBe(true);
+    expect(isEphemeralSpawn({ subagentType: "docs" })).toBe(true);
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "assist" } })).toBe(true);
+  });
+
+  it("fails closed on unmarked / generalPurpose (ambiguous → implement)", () => {
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "generalPurpose" } })).toBe(false);
+    expect(isEphemeralSpawn({ tool_input: { prompt: "write a brochure" } })).toBe(false);
+    expect(isEphemeralSpawn(null)).toBe(false);
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "leaf-implementation" } })).toBe(false);
+  });
+
+  it("implement signals win over ephemeral markers (fail closed)", () => {
+    expect(
+      isEphemeralSpawn({
+        tool_input: {
+          worker_role: "ephemeral",
+          drive_to: "merge-ready",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn({
+        tool_input: {
+          subagent_type: "docs",
+          worker_role: "leaf-implementation",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn({
+        tool_input: {
+          worker_role: "assist",
+          dispatch_kind: "swarm-cohort",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn({
+        tool_input: { worker_role: "ephemeral", driveTo: "merge" },
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("assist posture detection (#1802)", () => {
+  it("recognizes DEFT_SESSION_POSTURE env and DEFT_HOOK_ASSIST", () => {
+    expect(isAssistPosture({}, { [ASSIST_SESSION_POSTURE_ENV]: "assist" })).toBe(true);
+    expect(isAssistPosture({}, { [ASSIST_SESSION_POSTURE_ENV]: "research-notes" })).toBe(true);
+    expect(isAssistPosture({}, { DEFT_HOOK_ASSIST: "1" })).toBe(true);
+    expect(isAssistPosture({}, { [ASSIST_SESSION_POSTURE_ENV]: "mutation" })).toBe(false);
+    expect(isAssistPosture({}, {})).toBe(false);
+  });
+
+  it("recognizes payload posture and ephemeral role markers", () => {
+    expect(isAssistPosture({ posture: "assist" })).toBe(true);
+    expect(isAssistPosture({ session_posture: "scratch" })).toBe(true);
+    expect(isAssistPosture({ tool_input: { worker_role: "ephemeral" } })).toBe(true);
+    expect(isAssistPosture({ tool_input: { worker_role: "assist" } })).toBe(true);
+  });
+
+  it("fails closed on free-text / unmarked payloads (no NLP)", () => {
+    expect(isAssistPosture({ tool_input: { prompt: "for Obsidian, do not commit" } })).toBe(false);
+    expect(isAssistPosture({ tool_input: { subagent_type: "generalPurpose" } })).toBe(false);
+    expect(isAssistPosture(null)).toBe(false);
+  });
+
+  it("implement conflict on ephemeral spawn is not assist posture", () => {
+    expect(
+      isAssistPosture({
+        tool_input: { worker_role: "ephemeral", drive_to: "merge-ready" },
+      }),
+    ).toBe(false);
   });
 });
 
