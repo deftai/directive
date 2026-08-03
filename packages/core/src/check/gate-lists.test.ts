@@ -21,7 +21,10 @@ describe("gate-lists (#2791)", () => {
   it("spawns public WIP-cap with --allow-over-cap after --", () => {
     const spec = FRAMEWORK_CHECK_GATES.find((g) => checkGateId(g) === "verify:wip-cap");
     expect(spec).toBeDefined();
-    expect(checkGateSpawnArgs(spec!, "/repo/Taskfile.yml")).toEqual([
+    if (spec === undefined) {
+      throw new Error("expected verify:wip-cap gate");
+    }
+    expect(checkGateSpawnArgs(spec, "/repo/Taskfile.yml")).toEqual([
       "verify:wip-cap",
       "--taskfile",
       "/repo/Taskfile.yml",
