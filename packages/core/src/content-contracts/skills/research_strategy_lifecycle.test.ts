@@ -94,5 +94,9 @@ describe("research strategy lifecycle (#1273)", () => {
     expect(setupSpecStructure).toContain(
       "only `plan.metadata.dependencies` / `edges` / `references`",
     );
+    expect(setupSpecStructure).toContain("resolvable story identifiers");
+    expect(setupSpecStructure).toContain("filename stem");
+    expect(setupSpecStructure).toContain("plan.id");
+    expect(setupSpecStructure).toContain("do not resolve");
   });
 });
