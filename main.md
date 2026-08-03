@@ -32,6 +32,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Interfaces: [interfaces/cli.md](./content/interfaces/cli.md), [interfaces/tui.md](./content/interfaces/tui.md), [interfaces/web.md](./content/interfaces/web.md), [interfaces/rest.md](./content/interfaces/rest.md)
 - Tools: [tools/taskfile.md](./content/tools/taskfile.md), [scm/git.md](./content/scm/git.md), [scm/github.md](./content/scm/github.md), [tools/telemetry.md](./content/tools/telemetry.md)
 - Testing: [coding/testing.md](./content/coding/testing.md)
+- Review process: [coding/review.md](./content/coding/review.md) (tool-agnostic; Greptile adapter via review-cycle skill)
 
 **Advanced:**
 - Contracts: [contracts/hierarchy.md](./content/contracts/hierarchy.md), [contracts/boundary-maps.md](./content/contracts/boundary-maps.md)

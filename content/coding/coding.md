@@ -108,6 +108,11 @@ See [../scm/git.md](../scm/git.md) for:
 - ! Apply baseline security standards to every project from day one
 - See [../coding/security.md](../coding/security.md) for input validation, authn/authz, secrets, dependency, TOCTOU / mutable-external-resource rules (#1938), and agent-specific threats (#661)
 
+**Review process (#1471 / #212):**
+- ! Apply tool-agnostic review-cycle principles on every PR review response
+- See [review.md](review.md) for read-all-findings, severity P0/P1/P2, single batch commit, cross-file grep, no mid-review push, exit on no P0/P1, and post-merge closing-keyword verification
+- Greptile/GitHub adapter: [../skills/deft-directive-review-cycle/SKILL.md](../skills/deft-directive-review-cycle/SKILL.md)
+
 **Codebase Hygiene:**
 - See [hygiene.md](hygiene.md) for: dead code removal, circular dependency detection, error hiding patterns, legacy/deprecated code cleanup
 
@@ -139,7 +144,7 @@ This rule is the OPERATIONAL complement to the EPISTEMIC honesty rules elsewhere
 
 The rule applies to agent completion claims during task execution. It applies equally to claims to the user, claims in commit messages, claims in PR bodies, claims in CHANGELOG entries, and claims in status messages to a parent agent. A short, honest "the migration completed; I did not verify the per-record count" is strictly preferred over a confident "migration completed successfully" that hides the gap.
 
-**Cross-references:** strategies discuss/probe Graduation dual-path locks (#2899); `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).
+**Cross-references:** strategies discuss/probe Graduation dual-path locks (#2899); `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (Greptile adapter; universal review principles in [review.md](review.md); the adapter explicitly checks for hidden incompleteness in fix-batch completion claims).
 
 ## Calling LLM APIs (#481)
 

@@ -151,6 +151,7 @@ Load as needed:
 - **[tools/taskfile.md](./content/tools/taskfile.md)** - When creating/modifying tasks
 - **[coding/testing.md](./content/coding/testing.md)** - When writing tests or checking coverage
 - **[coding/security.md](./content/coding/security.md)** - When handling untrusted input, auth, secrets, dependencies, or building agent surfaces (#661)
+- **[coding/review.md](./content/coding/review.md)** - When responding to PR review findings (read-all, severity P0/P1/P2, single batch, exit/post-merge); Greptile adapter is `deft-directive-review-cycle` (#1471 / #212)
 - **[tools/telemetry.md](./content/tools/telemetry.md)** - When implementing logging, tracing, metrics
 - **[tools/package-manager-network.md](./content/tools/package-manager-network.md)** - When touching `doctor`, session-start, session-ritual, or `verify:tools` code paths that could shell out to npm/pnpm (#2182)
 
@@ -304,6 +305,14 @@ Load order:
 3. coding/testing.md (testing standards)
 4. languages/go.md (Go-specific testing)
 5. xbrief/PROJECT-DEFINITION.xbrief.json (coverage requirements)
+
+### Scenario: "Respond to PR review findings"
+Load order:
+1. main.md (always)
+2. ~/.config/deft/USER.md (always)
+3. coding/review.md (universal review principles — #1471)
+4. skills/deft-directive-review-cycle/SKILL.md (Greptile + GitHub adapter)
+5. scm/github.md (when needed for platform-conditional shell)
 
 ### Scenario: "Fix a bug"
 Load order:

@@ -49,7 +49,7 @@
     {
       "path": "content/coding",
       "bucket": "content",
-      "note": "Coding standards docs (coding.md, hygiene.md, testing.md, build-output.md, toolchain.md)."
+      "note": "Coding standards docs (coding.md, testing.md, security.md, review.md, hygiene.md, debugging.md, build-output.md, toolchain.md, holzmann.md)."
     },
     {
       "path": "content/commands.md",
