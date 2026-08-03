@@ -57,6 +57,9 @@ describe("research strategy lifecycle (#1273)", () => {
     expect(scopeGate).toContain("5. Back");
     expect(scopeGate.indexOf("4. Discuss")).toBeLessThan(scopeGate.indexOf("5. Back"));
     expect(scopeGate).toContain("Start the survey from project description alone");
+    expect(scopeGate).toContain("follow-up free-form question");
+    expect(scopeGate).toContain("On option **2**");
+    expect(scopeGate).toContain("On option **3**");
   });
 
   it("blocks spec or scope generation until the post-research chaining gate selection", () => {
@@ -79,7 +82,7 @@ describe("research strategy lifecycle (#1273)", () => {
 
   it("setup requires machine-readable dependency ordering for generated scope batches", () => {
     expect(setupSpecStructure).toContain("plan.metadata.dependencies");
-    expect(setupSpecStructure).toContain("xBRIEF `edges`");
+    expect(setupSpecStructure).toContain("plan.metadata.swarm.depends_on");
     expect(setupSpecStructure).toContain("When multiple scopes are produced");
     expect(setupSpecStructure).toContain("machine-readable dependency ordering");
     expect(setupSpecStructure).toContain("no dependency metadata");

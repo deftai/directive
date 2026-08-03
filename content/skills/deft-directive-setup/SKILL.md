@@ -762,10 +762,10 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 **Spec Structure (both paths):**
 - ! Overview, Architecture
 - ! Implementation Plan: scope xBRIEFs in `xbrief/proposed/` with phases and dependencies
-- ! Explicit dependency mapping between scopes (via `plan.metadata.dependencies`, xBRIEF `edges`, or `references`)
-- ! When multiple scopes are produced in one Phase 3 pass, encode machine-readable dependency ordering before finishing the write: use an empty dependency list for independent scopes and non-empty dependencies for sequential/blocked scopes.
+- ! Explicit dependency mapping between scopes MUST use fields orchestration and roadmap actually read: prefer `plan.metadata.swarm.depends_on` (story/swarm readiness and decompose) and/or plan-level `plan.metadata.dependencies` (cross-scope roadmap); `edges` / `references` may supplement but do not replace swarm dependency metadata for sequential scopes.
+- ! When multiple scopes are produced in one Phase 3 pass, encode machine-readable dependency ordering before finishing the write: use an empty dependency list / empty `swarm.depends_on` for independent scopes and non-empty `plan.metadata.swarm.depends_on` (and/or `plan.metadata.dependencies`) for sequential/blocked scopes.
 - ~ Scopes designed for parallel work by multiple agents
-- ⊗ Deposit multiple generated scope xBRIEFs with no dependency metadata and rely on filenames or human prose for ordering.
+- ⊗ Deposit multiple generated scope xBRIEFs with no dependency metadata (missing both `plan.metadata.swarm.depends_on` for story-shaped scopes and `plan.metadata.dependencies` for cross-scope batches) and rely on filenames or human prose for ordering.
 - ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 

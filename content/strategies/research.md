@@ -35,8 +35,11 @@ Prompt:
 4. Discuss
 5. Back
 
+- ! On option **1** (confirm inferred scope): record the inferred feature/domain as confirmed and proceed to the survey step.
+- ! On option **2** (refine boundary): ask a **follow-up free-form question** in the next message (one question only) to capture the refined feature boundary or priority areas; wait for the user's answer; record the free-form refinement in research notes before the survey step. ⊗ Proceed to survey after option 2 without collecting free-form refinement text.
+- ! On option **3** (artifacts/constraints/sensitivity): ask a **follow-up free-form question** in the next message (one question only) for sample data paths, artifacts to analyze, constraints, or sensitive areas; wait for the user's answer; record provided artifacts/constraints/sensitivity flags in research notes before the survey step. ⊗ Proceed to survey after option 3 without collecting free-form artifact/constraint input.
 - ! Record the confirmed scope, any provided artifacts, and any sensitivity flags in the research notes before the survey step.
-- ⊗ Start the survey from project description alone when the user has not confirmed scope or declined to add artifacts/constraints.
+- ⊗ Start the survey from project description alone when the user has not confirmed scope (option 1) or declined to add refinements/artifacts after options 2/3.
 
 ## Output
 
