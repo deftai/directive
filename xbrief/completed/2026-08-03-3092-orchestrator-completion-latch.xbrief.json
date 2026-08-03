@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3092 — orchestrator completion latch / settle-replay silence",
-    "updated": "2026-08-03T18:20:55.965Z"
+    "updated": "2026-08-03T19:02:14Z"
   },
   "plan": {
     "title": "fix(preamble,swarm): orchestrator completion latch — one consolidate per runId",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Portable completion latch: one user/caller-visible consolidate per child runId/settle batch; identical replay silent (NO_REPLY example); reopen only on new runId, principal steer, or material new evidence; storm cap one fail-loud note. Eval for second settle same runId.",
       "Origin": "https://github.com/deftai/directive/issues/3092",
@@ -70,8 +70,27 @@
           "CHANGELOG.md"
         ],
         "depends_on": []
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3093,
+        "prBase": null,
+        "mergeCommit": "d99c330156fbde7250b722532b596f2dcabd5786",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d99c330156fbde7250b722532b596f2dcabd5786",
+        "verifiedAt": "2026-08-03T19:02:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T19:02:14Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-03T18:20:55.965Z"
+    "updated": "2026-08-03T19:02:14Z"
   }
 }
