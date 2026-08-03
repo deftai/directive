@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { containedWrite } from "../../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
 import {
   hasArtifactSuffix,
   resolveLifecycleFolder,
@@ -58,21 +59,29 @@ export function appendAuditEntry(projectRoot: string, entry: string): string {
   return logPath;
 }
 
-function atomicWrite(_projectRoot: string, path: string, data: Record<string, unknown>): void {
-  const dir = dirname(path);
-  mkdirSync(dir, { recursive: true });
+/**
+ * Atomically write PROJECT-DEFINITION JSON under projectRoot containment (#3077).
+ * Containment root is projectRoot (not dirname(path)) so a force-added `xbrief/`
+ * directory symlink fails closed before temp+rename — same class as #3042.
+ */
+function atomicWrite(projectRoot: string, path: string, data: Record<string, unknown>): void {
+  const root = resolve(projectRoot);
+  const targetAbs = resolve(path);
+  // Refuse leaf/parent symlinks and out-of-root targets before temp+rename.
+  assertWriteTargetSafe(root, targetAbs);
+  const dir = dirname(targetAbs);
   const payload = `${JSON.stringify(data, null, 2)}\n`;
   const tmpName = `.${Date.now()}.tmp`;
   const tmp = join(dir, tmpName);
   try {
-    // #2980 wave D: temp payload write uses containedWrite under the parent dir.
+    // #2980 wave D / #3077: product write routes through containedWrite under projectRoot.
     containedWrite({
-      root: resolve(dir),
-      target: tmpName,
+      root,
+      target: tmp,
       data: payload,
       mode: "create",
     });
-    renameSync(tmp, path);
+    renameSync(tmp, targetAbs);
   } catch (err) {
     try {
       rmSync(tmp, { force: true });
