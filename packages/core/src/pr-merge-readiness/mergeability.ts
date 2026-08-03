@@ -1,3 +1,4 @@
+import { meetsMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import type { InlineGreptileFindings } from "./greptile-inline.js";
 import type { GreptileVerdict, RunGhFn } from "./types.js";
 
@@ -138,8 +139,12 @@ export function verdictBlockIsSoftOnly(
   }
   // Confidence below the resolved floor is a hard blocker (#2260 / #3095).
   // Dogfood/policy may set min=5 so a 4/5 score stays hard even when GitHub
-  // reports CLEAN + MERGEABLE.
-  if (verdict.confidence !== null && verdict.confidence < minConfidence) {
+  // reports CLEAN + MERGEABLE. Use the shared predicate so the export is on
+  // the production call path (SLizard #3095).
+  if (
+    verdict.confidence !== null &&
+    !meetsMinGreptileConfidence(verdict.confidence, minConfidence)
+  ) {
     return false;
   }
   if (verdict.p0Count > 0 || verdict.p1Count > 0) {

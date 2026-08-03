@@ -1,6 +1,7 @@
 import {
   DEFAULT_CONSUMER_MIN_GREPTILE_CONFIDENCE,
   formatMinConfidenceRequirement,
+  meetsMinGreptileConfidence,
 } from "../policy/min-greptile-confidence.js";
 import { INFORMAL_CLEAN_DIAGNOSTIC } from "./constants.js";
 import type { InlineGreptileFindings } from "./greptile-inline.js";
@@ -69,7 +70,7 @@ export function evaluateGates(
           "Confidence is a required exit-condition input per " +
           "skills/deft-directive-review-cycle/SKILL.md Phase 2 Step 6.",
       );
-    } else if (verdict.confidence < minConfidence) {
+    } else if (!meetsMinGreptileConfidence(verdict.confidence, minConfidence)) {
       failures.push(
         `Greptile confidence is ${verdict.confidence}/5; exit condition requires ${formatMinConfidenceRequirement(minConfidence)}. ` +
           "Address remaining findings or push clarifying changes. " +
