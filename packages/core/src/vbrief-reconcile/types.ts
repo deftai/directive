@@ -91,7 +91,11 @@ export interface Child {
   readonly kind: string;
   readonly folder: string;
   readonly depends_on: string[];
+  /** Linked forge issue number when known (#1649). */
+  readonly issue_number?: number | null;
 }
+
+export type ForgeIssueState = "open" | "closed";
 
 export interface UmbrellaChange {
   readonly story_id: string;
@@ -100,6 +104,11 @@ export interface UmbrellaChange {
   readonly action: "created" | "edited" | "unchanged";
   readonly pass_n: number;
   readonly body: string;
+  /**
+   * Issue-body checkbox reconcile (#1649): `edited` when checkboxes flipped,
+   * `unchanged` when already correct, `skipped` when body APIs unavailable.
+   */
+  readonly checklist_action?: "edited" | "unchanged" | "skipped";
 }
 
 export interface ReconcileUmbrellasOutcome {
@@ -122,4 +131,13 @@ export interface UmbrellaClient {
   ): ReadonlyArray<{ readonly id: number; readonly body: string }>;
   editComment(repo: string, commentId: number, body: string): void;
   createComment(repo: string, issueNumber: number, body: string): number | null;
+  /** Optional: forge open/closed for child issues (#1649). Folder fallback when absent. */
+  fetchIssueStates?(
+    repo: string,
+    issueNumbers: readonly number[],
+  ): ReadonlyMap<number, ForgeIssueState>;
+  /** Optional: umbrella issue body for checklist reconcile (#1649). */
+  fetchIssueBody?(repo: string, issueNumber: number): string;
+  /** Optional: write reconciled checklist body (#1649). */
+  editIssueBody?(repo: string, issueNumber: number, body: string): void;
 }

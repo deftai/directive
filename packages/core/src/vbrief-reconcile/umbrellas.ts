@@ -3,19 +3,30 @@ import { basename, join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   createIssueComment,
+  editIssueBody,
   editIssueCommentBody,
+  fetchIssueBody,
   GitHubBodyError,
 } from "../intake/github-body.js";
+import { fetchIssueStates, IssueState } from "../intake/reconcile-issues.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
-import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
+import { extractIssueRef, parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 import { isRepoMutationAllowed } from "./repo-guard.js";
-import type { Child, ReconcileUmbrellasOutcome, UmbrellaChange, UmbrellaClient } from "./types.js";
+import type {
+  Child,
+  ForgeIssueState,
+  ReconcileUmbrellasOutcome,
+  UmbrellaChange,
+  UmbrellaClient,
+} from "./types.js";
 
 export const OPEN_FOLDERS = ["proposed", "pending", "active"] as const;
 export const CLOSED_FOLDERS = ["completed", "cancelled"] as const;
 export const LIFECYCLE_FOLDERS = [...OPEN_FOLDERS, ...CLOSED_FOLDERS] as const;
 export const CHILD_REF_TYPE = "x-xbrief/plan";
+/** Synthetic lifecycle folder for issue-only children with no local xBRIEF (#1649). */
+export const UNKNOWN_FOLDER = "unknown" as const;
 const SCM_SOURCE = "github-issue";
 
 const HEADER_RE = /^## Current shape \(as of pass-(\d+)\)/m;
@@ -30,6 +41,12 @@ const HISTORY_RE = /^Child-count history:\s*(\S.*|)$/m;
 const LAST_UPDATED_RE = /^Last updated:\s*(\S.*|)$/m;
 const LAST_PASS_TYPE_RE = /^Last pass type:\s*(\S.*|)$/m;
 const HISTORY_TOKEN_RE = /^\s*pass-(\d+):\s*(\d+)\s*$/;
+/**
+ * Issue-body checklist line with a `#N` child ref (#1649).
+ * Captures leading marker, checkbox state, and the remainder after `]`.
+ * Linear-time: no nested quantifiers on overlapping classes.
+ */
+const CHECKLIST_ISSUE_LINE_RE = /^([ \t]*[-*+][ \t]+)\[([ xX])\]([ \t]*#[0-9]+\b.*)$/;
 
 const READING_ORDER =
   "1. Read the umbrella issue body.\n" +
@@ -70,12 +87,14 @@ export function childFromData(
       : {};
   const rawDeps = swarm.depends_on;
   const dependsOn = Array.isArray(rawDeps) ? rawDeps.map((d) => String(d)) : [];
+  const [, issueNumber] = extractIssueRef(data);
   return {
     story_id: String(plan.id ?? fallbackId),
     title: String(plan.title ?? plan.id ?? fallbackId),
     kind: String(metadata.kind ?? "story"),
     folder,
     depends_on: dependsOn,
+    issue_number: issueNumber,
   };
 }
 
@@ -98,9 +117,26 @@ export function buildChildIndex(vbriefDir: string): Record<string, Child> {
   return index;
 }
 
+/** Index children by forge issue number for github-issue ref resolution (#1649). */
+export function indexChildrenByIssueNumber(index: Record<string, Child>): Map<number, Child> {
+  const byIssue = new Map<number, Child>();
+  for (const child of Object.values(index)) {
+    if (typeof child.issue_number === "number" && !byIssue.has(child.issue_number)) {
+      byIssue.set(child.issue_number, child);
+    }
+  }
+  return byIssue;
+}
+
+/**
+ * Resolve epic children from plan refs AND github-issue refs (#1649 defect 2).
+ * The epic's own github-issue ref is skipped when `epicIssueNumber` is provided.
+ * Issue-only children (no local xBRIEF) are synthesized with folder `unknown`.
+ */
 export function computeChildren(
   epicData: Record<string, unknown>,
   index: Record<string, Child>,
+  options: { epicIssueNumber?: number | null } = {},
 ): Child[] {
   const plan =
     typeof epicData.plan === "object" && epicData.plan !== null && !Array.isArray(epicData.plan)
@@ -110,17 +146,104 @@ export function computeChildren(
   const children: Child[] = [];
   const seen = new Set<string>();
   if (!Array.isArray(refs)) return children;
+  const byIssue = indexChildrenByIssueNumber(index);
+  const epicIssue = options.epicIssueNumber ?? null;
+
   for (const ref of refs) {
     if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
     const rec = ref as Record<string, unknown>;
-    if (!referenceTypeMatches(String(rec.type ?? ""), "plan")) continue;
-    const name = basename(String(rec.uri ?? ""));
-    const child = index[name];
-    if (!child || seen.has(child.story_id)) continue;
-    seen.add(child.story_id);
-    children.push(child);
+    const refType = String(rec.type ?? "");
+
+    if (referenceTypeMatches(refType, "plan")) {
+      const name = basename(String(rec.uri ?? ""));
+      const child = index[name];
+      if (!child || seen.has(child.story_id)) continue;
+      seen.add(child.story_id);
+      children.push(child);
+      continue;
+    }
+
+    if (referenceTypeMatches(refType, "github-issue")) {
+      const [, number] = parseGithubIssueUri(rec.uri);
+      if (number === null) continue;
+      if (epicIssue !== null && number === epicIssue) continue;
+      const fromIndex = byIssue.get(number);
+      if (fromIndex) {
+        if (seen.has(fromIndex.story_id)) continue;
+        seen.add(fromIndex.story_id);
+        children.push(fromIndex);
+        continue;
+      }
+      // Synthetic child: hand-filed / issue:emit epic with issue-only child links.
+      const syntheticId = `#${number}`;
+      if (seen.has(syntheticId)) continue;
+      seen.add(syntheticId);
+      const title =
+        typeof rec.title === "string" && rec.title.trim().length > 0
+          ? rec.title.trim()
+          : syntheticId;
+      children.push({
+        story_id: syntheticId,
+        title,
+        kind: "story",
+        folder: UNKNOWN_FOLDER,
+        depends_on: [],
+        issue_number: number,
+      });
+    }
   }
   return children;
+}
+
+/**
+ * Whether a child counts as open for current-shape + checklist (#1649 defect 3).
+ * Prefer forge issue state when present; fall back to lifecycle folder.
+ * `unknown` (issue-only, no local xBRIEF) counts open without forge confirmation.
+ */
+export function isChildOpen(
+  child: Child,
+  forgeStates?: ReadonlyMap<number, ForgeIssueState> | null,
+): boolean {
+  if (
+    typeof child.issue_number === "number" &&
+    forgeStates != null &&
+    forgeStates.has(child.issue_number)
+  ) {
+    return forgeStates.get(child.issue_number) === "open";
+  }
+  if ((CLOSED_FOLDERS as readonly string[]).includes(child.folder)) return false;
+  // proposed/pending/active/unknown (and any unexpected folder) → open
+  return true;
+}
+
+/**
+ * Reconcile umbrella issue-body checkboxes `- [ ] #N` / `- [x] #N` to child state (#1649).
+ * Only lines that mention a known child issue number are rewritten; other checkboxes untouched.
+ * Idempotent: returns `changed: false` when already correct.
+ */
+export function reconcileBodyChecklist(
+  body: string,
+  closedIssueNumbers: ReadonlySet<number>,
+  knownIssueNumbers: ReadonlySet<number>,
+): { body: string; changed: boolean } {
+  if (knownIssueNumbers.size === 0) return { body, changed: false };
+  const lines = body.split("\n");
+  let changed = false;
+  const out = lines.map((line) => {
+    const match = CHECKLIST_ISSUE_LINE_RE.exec(line);
+    if (!match) return line;
+    const issueMatch = /#(\d+)\b/.exec(match[3] ?? "");
+    if (!issueMatch?.[1]) return line;
+    const issueNum = Number(issueMatch[1]);
+    if (!knownIssueNumbers.has(issueNum)) return line;
+    const wantChecked = closedIssueNumbers.has(issueNum);
+    const isChecked = (match[2] ?? " ").toLowerCase() === "x";
+    if (isChecked === wantChecked) return line;
+    changed = true;
+    const marker = wantChecked ? "x" : " ";
+    return `${match[1]}[${marker}]${match[3]}`;
+  });
+  return { body: out.join("\n"), changed };
 }
 
 export function computeWaves(children: readonly Child[]): string[][] {
@@ -293,21 +416,105 @@ export class ScmUmbrellaClient implements UmbrellaClient {
       throw new UmbrellaScmError(`create comment #${issueNumber} (${repo}) failed: ${message}`);
     }
   }
+
+  fetchIssueStates(
+    repo: string,
+    issueNumbers: readonly number[],
+  ): ReadonlyMap<number, ForgeIssueState> {
+    const result = new Map<number, ForgeIssueState>();
+    if (issueNumbers.length === 0) return result;
+    const states = fetchIssueStates(repo, new Set(issueNumbers));
+    if (states === null) {
+      throw new UmbrellaScmError(`fetch issue states (${repo}) failed`);
+    }
+    for (const [num, state] of states) {
+      if (!(state instanceof IssueState)) continue;
+      const value = state.value.toUpperCase();
+      if (value === "OPEN") result.set(num, "open");
+      else if (value === "CLOSED") result.set(num, "closed");
+      // NOT_FOUND / other → omit so folder fallback applies
+    }
+    return result;
+  }
+
+  fetchIssueBody(repo: string, issueNumber: number): string {
+    try {
+      return fetchIssueBody(repo, issueNumber);
+    } catch (exc) {
+      const message = exc instanceof GitHubBodyError ? exc.message : String(exc);
+      throw new UmbrellaScmError(`fetch issue body #${issueNumber} (${repo}) failed: ${message}`);
+    }
+  }
+
+  editIssueBody(repo: string, issueNumber: number, body: string): void {
+    try {
+      editIssueBody(repo, issueNumber, { body });
+    } catch (exc) {
+      const message = exc instanceof GitHubBodyError ? exc.message : String(exc);
+      throw new UmbrellaScmError(`edit issue body #${issueNumber} (${repo}) failed: ${message}`);
+    }
+  }
 }
 
 function planShape(
   epicData: Record<string, unknown>,
   index: Record<string, Child>,
+  options: {
+    epicIssueNumber?: number | null;
+    forgeStates?: ReadonlyMap<number, ForgeIssueState> | null;
+  } = {},
 ): [Child[], Child[], string[][]] {
-  const children = computeChildren(epicData, index);
+  const children = computeChildren(epicData, index, {
+    epicIssueNumber: options.epicIssueNumber,
+  });
   const openChildren = children
-    .filter((c) => (OPEN_FOLDERS as readonly string[]).includes(c.folder))
+    .filter((c) => isChildOpen(c, options.forgeStates))
     .sort((a, b) => a.story_id.localeCompare(b.story_id));
   const closedChildren = children
-    .filter((c) => !(OPEN_FOLDERS as readonly string[]).includes(c.folder))
+    .filter((c) => !isChildOpen(c, options.forgeStates))
     .sort((a, b) => a.story_id.localeCompare(b.story_id));
   const waves = computeWaves(children);
   return [openChildren, closedChildren, waves];
+}
+
+function resolveForgeStates(
+  client: UmbrellaClient,
+  repo: string,
+  children: readonly Child[],
+): ReadonlyMap<number, ForgeIssueState> | null {
+  if (typeof client.fetchIssueStates !== "function") return null;
+  const numbers = children
+    .map((c) => c.issue_number)
+    .filter((n): n is number => typeof n === "number");
+  if (numbers.length === 0) return null;
+  return client.fetchIssueStates(repo, numbers);
+}
+
+function reconcileChecklistForEpic(
+  client: UmbrellaClient,
+  repo: string,
+  issueNumber: number,
+  closedChildren: readonly Child[],
+  allChildren: readonly Child[],
+  dryRun: boolean,
+): "edited" | "unchanged" | "skipped" {
+  if (typeof client.fetchIssueBody !== "function" || typeof client.editIssueBody !== "function") {
+    return "skipped";
+  }
+  const known = new Set<number>();
+  for (const c of allChildren) {
+    if (typeof c.issue_number === "number") known.add(c.issue_number);
+  }
+  if (known.size === 0) return "skipped";
+  const closed = new Set<number>();
+  for (const c of closedChildren) {
+    if (typeof c.issue_number === "number") closed.add(c.issue_number);
+  }
+  const currentBody = client.fetchIssueBody(repo, issueNumber);
+  const { body: nextBody, changed } = reconcileBodyChecklist(currentBody, closed, known);
+  if (!changed) return "unchanged";
+  if (!dryRun) client.editIssueBody(repo, issueNumber, nextBody);
+  return "edited";
 }
 
 function reconcileOneEpic(
@@ -335,11 +542,38 @@ function reconcileOneEpic(
     throw new Error(mutateGate.reason ?? `refusing cross-repo mutation on ${options.repo}`);
   }
 
-  const [openChildren, closedChildren, waves] = planShape(epicData, index);
-  const total = openChildren.length + closedChildren.length;
+  // Resolve children once without forge state to know which issue numbers to fetch.
+  const childrenProbe = computeChildren(epicData, index, {
+    epicIssueNumber: options.number,
+  });
+  const forgeStates = resolveForgeStates(options.client, options.repo, childrenProbe);
+  const [openChildren, closedChildren, waves] = planShape(epicData, index, {
+    epicIssueNumber: options.number,
+    forgeStates,
+  });
+  const allChildren = [...openChildren, ...closedChildren];
+  const total = allChildren.length;
 
   const comments = options.client.fetchComments(options.repo, options.number);
   const existing = comments.find((c) => hasCurrentShape(c.body));
+
+  let checklistAction: "edited" | "unchanged" | "skipped" = "skipped";
+  try {
+    checklistAction = reconcileChecklistForEpic(
+      options.client,
+      options.repo,
+      options.number,
+      closedChildren,
+      allChildren,
+      options.dryRun,
+    );
+  } catch (exc) {
+    // Checklist is best-effort relative to comment path: surface as throw so
+    // callers see the failure (body drift is the #1649 user-visible bug).
+    throw new UmbrellaScmError(
+      exc instanceof Error ? exc.message : `checklist reconcile failed: ${String(exc)}`,
+    );
+  }
 
   if (!existing) {
     const body = renderBody({
@@ -359,6 +593,7 @@ function reconcileOneEpic(
       action: "created",
       pass_n: 1,
       body,
+      checklist_action: checklistAction,
     };
   }
 
@@ -378,13 +613,16 @@ function reconcileOneEpic(
   });
 
   if (candidate === existing.body) {
+    // Comment unchanged; still report edited when checklist flipped (#1649).
+    const action = checklistAction === "edited" ? "edited" : "unchanged";
     return {
       story_id: options.storyId,
       repo: options.repo,
       issue_number: options.number,
-      action: "unchanged",
+      action,
       pass_n: prevPass,
       body: candidate,
+      checklist_action: checklistAction,
     };
   }
 
@@ -406,6 +644,7 @@ function reconcileOneEpic(
     action: "edited",
     pass_n: passN,
     body,
+    checklist_action: checklistAction,
   };
 }
 
@@ -526,6 +765,11 @@ export function reconcileUmbrellas(
   return [outcome.errors.length > 0 ? 1 : 0, outcome];
 }
 
+function formatChecklistSuffix(action: UmbrellaChange["checklist_action"]): string {
+  if (action === undefined || action === "skipped") return "";
+  return `; checklist=${action}`;
+}
+
 export function renderUmbrellasReport(outcome: ReconcileUmbrellasOutcome): string {
   const lines: string[] = ["vBRIEF reconcile umbrellas", ""];
   const suffix = outcome.dry_run ? " (dry-run)" : "";
@@ -534,7 +778,8 @@ export function renderUmbrellasReport(outcome: ReconcileUmbrellasOutcome): strin
   if (outcome.changed.length > 0) {
     for (const c of outcome.changed) {
       lines.push(
-        `- #${c.issue_number} (${c.repo}) [${c.story_id}]: ${c.action} -> pass-${c.pass_n}`,
+        `- #${c.issue_number} (${c.repo}) [${c.story_id}]: ${c.action} -> pass-${c.pass_n}` +
+          formatChecklistSuffix(c.checklist_action),
       );
     }
   } else {
@@ -545,7 +790,10 @@ export function renderUmbrellasReport(outcome: ReconcileUmbrellasOutcome): strin
   lines.push("Unchanged:");
   if (outcome.unchanged.length > 0) {
     for (const c of outcome.unchanged) {
-      lines.push(`- #${c.issue_number} (${c.repo}) [${c.story_id}]: pass-${c.pass_n}`);
+      lines.push(
+        `- #${c.issue_number} (${c.repo}) [${c.story_id}]: pass-${c.pass_n}` +
+          formatChecklistSuffix(c.checklist_action),
+      );
     }
   } else {
     lines.push("- none");
@@ -575,6 +823,7 @@ export function umbrellasOutcomeToJson(
     issue_number: c.issue_number,
     action: c.action,
     pass_n: c.pass_n,
+    checklist_action: c.checklist_action ?? "skipped",
   });
   return {
     changed: outcome.changed.map(toChange),

@@ -107,6 +107,7 @@ describe("waitMergeableAndMerge", () => {
     const protectedFn = makeProtectedFn(0);
     const monitorFn = makeMonitorFn(0, cleanMonitorPayload(1370));
     const mergeFn = makeMergeFn(0, "merged via squash");
+    const umbrellaCalls: Array<[string, string]> = [];
 
     const result = waitMergeableAndMerge(1370, "deftai/directive", {
       capMinutes: 30,
@@ -114,7 +115,9 @@ describe("waitMergeableAndMerge", () => {
       protectedFn,
       monitorFn,
       mergeFn,
-
+      umbrellaReconcileFn: (root, repo) => {
+        umbrellaCalls.push([root, repo]);
+      },
       skipHumanMergeGate: true,
     });
 
@@ -124,6 +127,9 @@ describe("waitMergeableAndMerge", () => {
     expect((monitorFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive", 30]]);
     expect((mergeFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive"]]);
     expect(result.mergeStdout).toBe("merged via squash");
+    // Post-merge umbrella reconcile fires after successful merge (#1649).
+    expect(umbrellaCalls).toHaveLength(1);
+    expect(umbrellaCalls[0]?.[1]).toBe("deftai/directive");
   });
 
   it("protected clean then clean monitor then merge", () => {

@@ -1,0 +1,64 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Umbrella issue-body checkboxes and section 1152 current-shape comment do not auto-sync to child open/closed state. Fix reconcile path so both surfaces stay current.",
+    "updated": "2026-08-03T19:04:07Z"
+  },
+  "plan": {
+    "title": "fix(umbrella): umbrella checkboxes + current-shape never auto-sync to children state",
+    "status": "running",
+    "narratives": {
+      "Description": "Umbrella issue-body checkboxes and section 1152 current-shape comment do not auto-sync to child open/closed state. Fix reconcile path so both surfaces stay current.",
+      "Origin": "https://github.com/deftai/directive/issues/1649",
+      "Acceptance": "Umbrella body checkboxes reflect child closed/open state; current-shape comment updates via reconcile without hand edit; tests cover body checklist + current-shape; CHANGELOG.",
+      "ImplementationPlan": "Fetch issue 1649 body+comments; locate umbrella reconcile in TS engine; wire body checklist reconciliation; ensure current-shape updater covers closed children; tests; CHANGELOG. Coordinate with 1870.",
+      "Overview": "Next-wave after cohort #3090/#3092 clears. See issue body + comments.",
+      "Wave": "next-after-3090-3092"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "triage",
+      "source-of-truth",
+      "tooling",
+      "umbrella"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1649",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1649"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1870",
+        "type": "x-xbrief/related",
+        "title": "Wave peer #1870"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3090",
+        "type": "x-xbrief/related",
+        "title": "Prior wave #3090"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3092",
+        "type": "x-xbrief/related",
+        "title": "Prior wave #3092"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "wave": "next-after-3090-3092",
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/",
+          "tasks/",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "updated": "2026-08-03T19:04:07Z"
+  }
+}

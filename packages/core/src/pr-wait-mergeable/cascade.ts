@@ -3,6 +3,7 @@ import {
   type AgentMergeEvaluateResult,
   evaluateAgentMerge,
 } from "../policy/require-human-merge.js";
+import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { makeResult } from "./result.js";
@@ -18,6 +19,16 @@ function isProtectedCheckConfigFailure(stderr: string): boolean {
     tail.includes("Cannot find module") ||
     tail.includes("protected-check script not found:")
   );
+}
+
+/** Post-merge umbrella checklist + current-shape refresh (#1649). */
+export type UmbrellaReconcileFn = (projectRoot: string, repo: string) => void;
+
+function defaultPostMergeUmbrellaReconcile(projectRoot: string, repo: string): void {
+  const [, umOutcome] = reconcileUmbrellas(projectRoot, { repo });
+  if (umOutcome.changed.length > 0 || umOutcome.errors.length > 0) {
+    process.stderr.write(`${renderUmbrellasReport(umOutcome)}\n`);
+  }
 }
 
 export interface WaitMergeableOptions {
@@ -40,6 +51,12 @@ export interface WaitMergeableOptions {
   readonly agentMergeFn?: (projectRoot: string) => AgentMergeEvaluateResult;
   /** When true, skip human-merge / intent preflight (tests only). */
   readonly skipHumanMergeGate?: boolean;
+  /**
+   * Post-merge umbrella reconcile (#1649). Defaults to live reconcileUmbrellas.
+   * Pass `null` to skip (unit tests that inject mergeFn must pass null so they
+   * never mutate real GitHub current-shape comments from the worktree cwd).
+   */
+  readonly umbrellaReconcileFn?: UmbrellaReconcileFn | null;
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -165,6 +182,24 @@ export function waitMergeableAndMerge(
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo);
 
   if (mergeRc === 0) {
+    // Best-effort umbrella checklist + current-shape refresh after child merge (#1649).
+    // Failures must not flip a successful merge into an error exit.
+    // null = skip; undefined = live default (skipped under VITEST unless injected).
+    const umbrellaFn =
+      options.umbrellaReconcileFn === null
+        ? null
+        : options.umbrellaReconcileFn !== undefined
+          ? options.umbrellaReconcileFn
+          : process.env.VITEST === "true"
+            ? null
+            : defaultPostMergeUmbrellaReconcile;
+    if (umbrellaFn !== null) {
+      try {
+        umbrellaFn(projectRoot, repo);
+      } catch {
+        /* best-effort; merge remains authoritative */
+      }
+    }
     return makeResult({
       prNumber,
       repo,
