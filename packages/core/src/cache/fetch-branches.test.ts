@@ -1,12 +1,14 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { GhRestError, InvalidRepoError, restIssueView } from "../scm/gh-rest.js";
+import { CURRENT_SHAPE_SIDECAR, RAW_ISSUE_COMMENTS_KEY } from "../umbrella-current-shape/index.js";
 import {
   cacheFetchAll,
   cacheRefreshClosed,
   detectRateLimit,
+  enrichRawWithCommentsIfUmbrella,
   listOpenIssueNumbers,
   readOpenInventoryStamp,
   restIssueListPaginated,
@@ -548,6 +550,84 @@ describe("fetch branches", () => {
       });
       expect(report.alreadyFresh).toBe(1);
       expect(report.issuesWritten).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+    }
+  });
+
+  it("enrichRawWithCommentsIfUmbrella attaches comments only for tracker-like issues (#1870)", () => {
+    const shapeBody = "## Current shape (as of pass-1)\n\nLast updated: now\n";
+    const comments = [
+      {
+        id: 1,
+        body: shapeBody,
+        html_url: "https://github.com/o/r/issues/1#issuecomment-1",
+        author_association: "MEMBER",
+        user: { login: "m" },
+      },
+    ];
+    const fetchComments = () => comments;
+    const umbrella = enrichRawWithCommentsIfUmbrella(
+      "o/r",
+      { number: 1, labels: [{ name: "epic" }], body: "charter" },
+      { fetchComments },
+    );
+    expect(umbrella[RAW_ISSUE_COMMENTS_KEY]).toEqual(comments);
+    const plain = enrichRawWithCommentsIfUmbrella(
+      "o/r",
+      { number: 2, labels: [{ name: "bug" }], body: "fix" },
+      { fetchComments },
+    );
+    expect(plain[RAW_ISSUE_COMMENTS_KEY]).toBeUndefined();
+  });
+
+  it("cacheFetchAll persists current-shape into content.md for epic issues (#1870)", () => {
+    const shapeBody =
+      "## Current shape (as of pass-2)\n\n" +
+      "Last updated: 2026-06-28T12:00:00Z\n" +
+      "Last pass type: additive\n" +
+      "Child count: 1 (1/0)\n" +
+      "Child-count history: pass-1: 1, pass-2: 1\n\n" +
+      "### Open children\n\n- c\n\n### Closed children\n\n(none)\n\n" +
+      "### Wave order\n\n- Wave 1\n\n### Reading order for fresh contributors\n\n1. Body\n";
+    setPaginatedLister(() => [
+      {
+        number: 1669,
+        title: "Umbrella",
+        body: "stale charter",
+        state: "open",
+        labels: [{ name: "epic" }],
+      },
+    ]);
+    const root = mkdtempSync(join(tmpdir(), "deft-fetch-shape-"));
+    try {
+      const report = cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+        fetchComments: () => [
+          {
+            id: 88,
+            body: shapeBody,
+            html_url: "https://github.com/deftai/directive/issues/1669#issuecomment-88",
+            author_association: "MEMBER",
+            user: { login: "maint" },
+          },
+        ],
+      });
+      expect(report.issuesWritten).toBe(1);
+      const edir = join(root, "github-issue/deftai/directive/1669");
+      const content = readFileSync(join(edir, "content.md"), "utf8");
+      expect(content).toContain("Canonical current shape");
+      expect(content).toContain("stale charter");
+      expect(content).toContain("pass-2");
+      expect(existsSync(join(edir, CURRENT_SHAPE_SIDECAR))).toBe(true);
+      const raw = JSON.parse(readFileSync(join(edir, "raw.json"), "utf8")) as Record<
+        string,
+        unknown
+      >;
+      expect(Array.isArray(raw[RAW_ISSUE_COMMENTS_KEY])).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
       setPaginatedLister(restIssueListPaginated);

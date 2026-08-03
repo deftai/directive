@@ -1,0 +1,63 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Triage cache and issue:ingest capture issue body only; agents plan umbrellas off stale body while canonical Current shape lives in a comment. Wire comment into cache/ingest/read paths.",
+    "updated": "2026-08-03T19:04:10Z"
+  },
+  "plan": {
+    "title": "bug(triage/ingest): Current shape comment invisible to cache + ingest pipeline",
+    "status": "running",
+    "narratives": {
+      "Description": "Triage cache and issue:ingest capture issue body only; agents plan umbrellas off stale body while canonical Current shape lives in a comment. Wire comment into cache/ingest/read paths.",
+      "Origin": "https://github.com/deftai/directive/issues/1870",
+      "Acceptance": "issue:ingest and triage cache surface Current shape comment or deterministic umbrella:current-shape path; tests for ingest+cache; CHANGELOG. Pairs with 1649.",
+      "ImplementationPlan": "Fetch issue 1870 body+comments; extend ingest/cache to extract Current shape comment; prefer task umbrella:current-shape; tests; CHANGELOG. Coordinate with 1649.",
+      "Overview": "Next-wave after cohort #3090/#3092 clears. See issue body + comments.",
+      "Wave": "next-after-3090-3092"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "meta",
+      "triage",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1870",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1870"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1649",
+        "type": "x-xbrief/related",
+        "title": "Wave peer #1649"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3090",
+        "type": "x-xbrief/related",
+        "title": "Prior wave #3090"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3092",
+        "type": "x-xbrief/related",
+        "title": "Prior wave #3092"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "wave": "next-after-3090-3092",
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/",
+          "tasks/",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "updated": "2026-08-03T19:04:10Z"
+  }
+}

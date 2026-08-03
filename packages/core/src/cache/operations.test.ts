@@ -3,7 +3,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
-import { cacheGet, cacheInvalidate, cachePrune, cachePut, isFresh } from "./operations.js";
+import { CURRENT_SHAPE_SIDECAR, RAW_ISSUE_COMMENTS_KEY } from "../umbrella-current-shape/index.js";
+import {
+  cacheGet,
+  cacheInvalidate,
+  cachePrune,
+  cachePut,
+  isFresh,
+  renderContent,
+} from "./operations.js";
 import { FixedClock } from "./test-helpers.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
@@ -109,6 +117,78 @@ describe("quarantine hard-fail", () => {
 describe("isFresh", () => {
   it("returns false for missing meta", () => {
     expect(isFresh("/no/such/meta.json")).toBe(false);
+  });
+});
+
+describe("current-shape cache visibility (#1870)", () => {
+  const shapeBody =
+    "## Current shape (as of pass-2)\n\n" +
+    "Last updated: 2026-06-28T12:00:00Z\n" +
+    "Last pass type: additive\n" +
+    "Child count: 2 (1/1)\n" +
+    "Child-count history: pass-1: 1, pass-2: 2\n\n" +
+    "### Open children\n\n- a\n\n### Closed children\n\n- b\n\n" +
+    "### Wave order\n\n- Wave 1\n\n### Reading order for fresh contributors\n\n1. Body\n";
+
+  it("renderContent appends canonical current shape from comments", () => {
+    const rendered = renderContent("github-issue", {
+      number: 1669,
+      title: "Umbrella",
+      body: "stale charter only",
+      [RAW_ISSUE_COMMENTS_KEY]: [
+        {
+          id: 99,
+          body: shapeBody,
+          html_url: "https://github.com/o/r/issues/1669#issuecomment-99",
+          author_association: "MEMBER",
+          user: { login: "maint" },
+        },
+      ],
+    });
+    expect(rendered).toContain("# #1669: Umbrella");
+    expect(rendered).toContain("stale charter only");
+    expect(rendered).toContain("Canonical current shape (#1152 / #1870)");
+    expect(rendered).toContain("pass-2");
+    expect(rendered).toContain("issuecomment-99");
+  });
+
+  it("cachePut writes content.md + current-shape.json sidecar with permalink", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cache-shape-"));
+    try {
+      const result = cachePut(
+        "github-issue",
+        "deftai/directive/1669",
+        goodRaw({
+          number: 1669,
+          title: "Umbrella tracker",
+          body: "charter body",
+          labels: [{ name: "epic" }],
+          [RAW_ISSUE_COMMENTS_KEY]: [
+            {
+              id: 77,
+              body: shapeBody,
+              html_url: "https://github.com/deftai/directive/issues/1669#issuecomment-77",
+              author_association: "OWNER",
+              user: { login: "owner" },
+            },
+          ],
+        }),
+        { cacheRoot: root },
+      );
+      expect(result.contentWritten).toBe(true);
+      const content = readFileSync(join(result.entryDir, "content.md"), "utf8");
+      expect(content).toContain("Canonical current shape");
+      expect(content).toContain("charter body");
+      const sidecarPath = join(result.entryDir, CURRENT_SHAPE_SIDECAR);
+      expect(existsSync(sidecarPath)).toBe(true);
+      const sidecar = JSON.parse(readFileSync(sidecarPath, "utf8")) as Record<string, unknown>;
+      expect(sidecar.commentId).toBe(77);
+      expect(sidecar.pass).toBe(2);
+      expect(String(sidecar.htmlUrl)).toContain("issuecomment-77");
+      expect(String(sidecar.body)).toContain("Current shape (as of pass-2)");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

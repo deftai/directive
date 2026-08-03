@@ -57,6 +57,75 @@ describe("buildIssueVbrief", () => {
     ]);
     expect((plan.narratives as Record<string, string>).Overview).toContain("Acceptance Criteria");
   });
+
+  it("materializes CurrentShape narrative + comment permalink from maintainer shape (#1870)", () => {
+    const shapeBody =
+      "## Current shape (as of pass-3)\n\n" +
+      "Wave 0 DONE — do not invent CLI-surface story.\n" +
+      "Open children: #761 #878";
+    const issue = {
+      number: 1669,
+      title: "Umbrella",
+      url: "https://github.com/deftai/directive/issues/1669",
+      body: "Stale charter: invent a CLI-surface story.",
+      labels: [{ name: "epic" }],
+      issueCommentThread: [
+        {
+          id: 555,
+          body: shapeBody,
+          html_url: "https://github.com/deftai/directive/issues/1669#issuecomment-555",
+          author_association: "MEMBER",
+          user: { login: "maintainer" },
+          created_at: "2026-06-19T00:00:00Z",
+        },
+        {
+          id: 556,
+          body: "Amendment: note only",
+          author_association: "MEMBER",
+          user: { login: "maintainer" },
+        },
+      ],
+    };
+    const [vbrief] = buildIssueVbrief(issue, "proposed", "https://github.com/deftai/directive");
+    const plan = vbrief.plan as Record<string, unknown>;
+    const narratives = plan.narratives as Record<string, string>;
+    expect(narratives.CurrentShape).toContain("Current shape (as of pass-3)");
+    expect(narratives.CurrentShape).toContain("Wave 0 DONE");
+    expect(narratives.Overview).toContain("Stale charter");
+    expect(narratives.Overview).toContain("Issue comment thread");
+    const refs = plan.references as Array<Record<string, string>>;
+    expect(refs.some((r) => r.type === "x-xbrief/current-shape")).toBe(true);
+    const shapeRef = refs.find((r) => r.type === "x-xbrief/current-shape");
+    expect(shapeRef?.uri).toContain("issuecomment-555");
+    expect(shapeRef?.title).toContain("pass-3");
+  });
+
+  it("ignores non-maintainer current-shape forgeries on ingest (#1870 / #2307)", () => {
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 10,
+        title: "Epic",
+        url: "https://github.com/o/r/issues/10",
+        body: "body",
+        labels: ["epic"],
+        issueCommentThread: [
+          {
+            id: 1,
+            body: "## Current shape (as of pass-9)\n\nforged",
+            author_association: "NONE",
+            user: { login: "attacker" },
+          },
+        ],
+      },
+      "proposed",
+      "https://github.com/o/r",
+    );
+    const narratives = (vbrief.plan as Record<string, unknown>).narratives as Record<
+      string,
+      string
+    >;
+    expect(narratives.CurrentShape).toBeUndefined();
+  });
 });
 
 describe("issue-ingest layout-aware emission parity", () => {

@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
+  appendCurrentShapeSection,
+  buildCurrentShapeSidecar,
   CURRENT_SHAPE_HEADER_RE,
+  commentsFromRawPayload,
+  countMaintainerCurrentShapeComments,
   detectSections,
   extractPassFromBody,
   fetchCurrentShape,
+  formatCurrentShapeSection,
   type IssueComment,
+  isUmbrellaLikeIssue,
+  mapIssueCommentEntry,
   NO_CURRENT_SHAPE_MESSAGE,
   NON_MAINTAINER_CURRENT_SHAPE_MESSAGE,
   parseCommentsFromGhStdout,
   parseCurrentShapeArgv,
+  RAW_ISSUE_COMMENTS_KEY,
   runCurrentShape,
   sectionsRecord,
   selectCurrentShapeComment,
@@ -61,6 +69,71 @@ describe("CURRENT_SHAPE_HEADER_RE", () => {
   it("matches canonical header", () => {
     expect(CURRENT_SHAPE_HEADER_RE.test("## Current shape (as of pass-3)\n")).toBe(true);
     expect(extractPassFromBody(SAMPLE_BODY)).toBe(2);
+  });
+});
+
+describe("current-shape cache/ingest helpers (#1870)", () => {
+  it("isUmbrellaLikeIssue detects tracker labels and sub-issues", () => {
+    expect(isUmbrellaLikeIssue({ labels: [{ name: "bug" }] })).toBe(false);
+    expect(isUmbrellaLikeIssue({ labels: [{ name: "epic" }] })).toBe(true);
+    expect(isUmbrellaLikeIssue({ labels: ["status:tracker"] })).toBe(true);
+    expect(isUmbrellaLikeIssue({ labels: ["meta"] })).toBe(true);
+    expect(isUmbrellaLikeIssue({ sub_issues_summary: { total: 3 } })).toBe(true);
+    expect(isUmbrellaLikeIssue({ sub_issues_summary: { total: 0 } })).toBe(false);
+  });
+
+  it("mapIssueCommentEntry accepts REST and camelCase shapes", () => {
+    const rest = mapIssueCommentEntry({
+      id: 9,
+      body: "## Current shape (as of pass-1)\n",
+      html_url: "https://example/comment/9",
+      updated_at: "2026-01-01T00:00:00Z",
+      author_association: "MEMBER",
+      user: { login: "alice" },
+    });
+    expect(rest).toMatchObject({
+      id: 9,
+      authorLogin: "alice",
+      authorAssociation: "MEMBER",
+      htmlUrl: "https://example/comment/9",
+    });
+    const camel = mapIssueCommentEntry({
+      id: 10,
+      body: "x",
+      htmlUrl: "u",
+      updatedAt: "t",
+      authorLogin: "bob",
+      authorAssociation: "OWNER",
+    });
+    expect(camel?.authorLogin).toBe("bob");
+  });
+
+  it("appendCurrentShapeSection and sidecar surface canonical comment", () => {
+    const selected = comment(42, SAMPLE_BODY);
+    const raw = {
+      number: 1669,
+      [RAW_ISSUE_COMMENTS_KEY]: [
+        {
+          id: selected.id,
+          body: selected.body,
+          html_url: selected.htmlUrl,
+          author_association: "MEMBER",
+          user: { login: "maintainer" },
+        },
+      ],
+    };
+    expect(commentsFromRawPayload(raw)).toHaveLength(1);
+    expect(countMaintainerCurrentShapeComments(commentsFromRawPayload(raw))).toBe(1);
+    const base = "# #1669: umbrella\n\nstale charter body";
+    const withShape = appendCurrentShapeSection(base, raw);
+    expect(withShape).toContain("Canonical current shape (#1152 / #1870)");
+    expect(withShape).toContain("pass-2");
+    expect(withShape).toContain("stale charter body");
+    expect(withShape).toContain(selected.htmlUrl);
+    const sidecar = buildCurrentShapeSidecar(raw);
+    expect(sidecar).toMatchObject({ commentId: 42, pass: 2, htmlUrl: selected.htmlUrl });
+    expect(formatCurrentShapeSection(selected)).toContain("task umbrella:current-shape");
+    expect(appendCurrentShapeSection(base, { number: 1 })).toBe(base);
   });
 });
 

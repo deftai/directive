@@ -98,25 +98,203 @@ export interface RunCurrentShapeOptions {
   readonly writeErr?: (text: string) => void;
 }
 
-function mapCommentEntry(entry: unknown): IssueComment | null {
+/**
+ * Map a GitHub REST issue-comment object (or an already-normalized row) onto
+ * the internal `IssueComment` shape. Used by `umbrella:current-shape`, the
+ * triage cache put path, and `issue:ingest` so all three share one selector.
+ */
+export function mapIssueCommentEntry(entry: unknown): IssueComment | null {
   if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
     return null;
   }
   const rec = entry as Record<string, unknown>;
-  if (typeof rec.id !== "number" || typeof rec.body !== "string") {
+  // Accept either GitHub REST field names or the already-mapped camelCase shape.
+  const id = typeof rec.id === "number" ? rec.id : null;
+  const body = typeof rec.body === "string" ? rec.body : null;
+  if (id === null || body === null) {
     return null;
   }
   const user =
     typeof rec.user === "object" && rec.user !== null
       ? (rec.user as Record<string, unknown>)
       : null;
+  const htmlUrl =
+    typeof rec.html_url === "string"
+      ? rec.html_url
+      : typeof rec.htmlUrl === "string"
+        ? rec.htmlUrl
+        : "";
+  const updatedAt =
+    typeof rec.updated_at === "string"
+      ? rec.updated_at
+      : typeof rec.updatedAt === "string"
+        ? rec.updatedAt
+        : "";
+  const authorLogin =
+    user !== null && typeof user.login === "string"
+      ? user.login
+      : typeof rec.authorLogin === "string"
+        ? rec.authorLogin
+        : "";
+  const authorAssociation =
+    typeof rec.author_association === "string"
+      ? rec.author_association
+      : typeof rec.authorAssociation === "string"
+        ? rec.authorAssociation
+        : "";
   return {
-    id: rec.id,
-    body: rec.body,
-    htmlUrl: typeof rec.html_url === "string" ? rec.html_url : "",
-    updatedAt: typeof rec.updated_at === "string" ? rec.updated_at : "",
-    authorLogin: user !== null && typeof user.login === "string" ? user.login : "",
-    authorAssociation: typeof rec.author_association === "string" ? rec.author_association : "",
+    id,
+    body,
+    htmlUrl,
+    updatedAt,
+    authorLogin,
+    authorAssociation,
+  };
+}
+
+/** @deprecated Prefer `mapIssueCommentEntry` — kept as a private alias for call sites. */
+function mapCommentEntry(entry: unknown): IssueComment | null {
+  return mapIssueCommentEntry(entry);
+}
+
+/**
+ * Labels that mark an issue as umbrella/tracker-like for cache comment enrichment
+ * (#1870). Mirrors `TRACKER_LABELS` in scope/open-umbrella-warning.ts.
+ */
+export const UMBRELLA_TRACKER_LABELS: ReadonlySet<string> = new Set([
+  "epic",
+  "meta",
+  "tracker",
+  "type:tracker",
+  "status:tracker",
+]);
+
+/**
+ * Key under which `cache:fetch-all` / `cache:put` stash the issue comment thread
+ * on the raw.json payload so `content.md` and `issue:ingest` can surface the
+ * canonical current-shape comment without a second live fetch (#1870).
+ */
+export const RAW_ISSUE_COMMENTS_KEY = "comments" as const;
+
+/** Sidecar filename next to content.md carrying the selected current-shape payload. */
+export const CURRENT_SHAPE_SIDECAR = "current-shape.json" as const;
+
+export interface CurrentShapeSidecar {
+  readonly commentId: number;
+  readonly htmlUrl: string;
+  readonly pass: number;
+  readonly authorLogin: string;
+  readonly authorAssociation: string;
+  readonly body: string;
+}
+
+/** True when labels or sub-issue summary mark the issue as umbrella/tracker-like. */
+export function isUmbrellaLikeIssue(raw: Record<string, unknown>): boolean {
+  const labelsRaw = raw.labels;
+  if (Array.isArray(labelsRaw)) {
+    for (const label of labelsRaw) {
+      let name = "";
+      if (typeof label === "string") {
+        name = label;
+      } else if (label !== null && typeof label === "object" && !Array.isArray(label)) {
+        const n = (label as Record<string, unknown>).name;
+        if (typeof n === "string") name = n;
+      }
+      if (name.length > 0 && UMBRELLA_TRACKER_LABELS.has(name.toLowerCase())) {
+        return true;
+      }
+    }
+  }
+  const summary = raw.sub_issues_summary;
+  if (summary !== null && typeof summary === "object" && !Array.isArray(summary)) {
+    const total = (summary as Record<string, unknown>).total;
+    if (typeof total === "number" && Number.isFinite(total) && total > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Normalize a raw issue payload's comment array (REST or pre-mapped). */
+export function commentsFromRawPayload(raw: Record<string, unknown>): IssueComment[] {
+  const rawComments = raw[RAW_ISSUE_COMMENTS_KEY];
+  if (!Array.isArray(rawComments)) {
+    return [];
+  }
+  const out: IssueComment[] = [];
+  for (const entry of rawComments) {
+    const mapped = mapIssueCommentEntry(entry);
+    if (mapped !== null) {
+      out.push(mapped);
+    }
+  }
+  return out;
+}
+
+/**
+ * Count maintainer-authored `## Current shape` comments (for the !=1 lint).
+ * Non-maintainer forgeries are excluded (#2307).
+ */
+export function countMaintainerCurrentShapeComments(comments: readonly IssueComment[]): number {
+  let count = 0;
+  for (const comment of comments) {
+    if (!isMaintainerAuthored(comment.authorAssociation)) {
+      continue;
+    }
+    if (extractPassFromBody(comment.body) !== null) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/** Markdown section appended to cache content.md when a canonical shape exists. */
+export function formatCurrentShapeSection(selected: CurrentShapeComment): string {
+  const permalink = selected.htmlUrl.length > 0 ? selected.htmlUrl : `comment id ${selected.id}`;
+  const author = selected.authorLogin.length > 0 ? `@${selected.authorLogin}` : "maintainer";
+  return [
+    "",
+    "---",
+    "",
+    "## Canonical current shape (#1152 / #1870)",
+    "",
+    `_Authoritative planning surface — prefer this over the issue body (stale by design). ` +
+      `Source: [${permalink}](${permalink}) · pass-${selected.pass} · ${author}. ` +
+      `Deterministic read path: \`task umbrella:current-shape <N>\`._`,
+    "",
+    selected.body.trimEnd(),
+    "",
+  ].join("\n");
+}
+
+/**
+ * Append the canonical current-shape comment (if any) to a rendered cache body.
+ * Returns the input unchanged when no maintainer-authored current-shape exists.
+ */
+export function appendCurrentShapeSection(
+  baseContent: string,
+  raw: Record<string, unknown>,
+): string {
+  const selected = selectCurrentShapeComment(commentsFromRawPayload(raw));
+  if (selected === null) {
+    return baseContent;
+  }
+  return `${baseContent.trimEnd()}\n${formatCurrentShapeSection(selected)}`;
+}
+
+/** Build the current-shape.json sidecar payload, or null when none is selectable. */
+export function buildCurrentShapeSidecar(raw: Record<string, unknown>): CurrentShapeSidecar | null {
+  const selected = selectCurrentShapeComment(commentsFromRawPayload(raw));
+  if (selected === null) {
+    return null;
+  }
+  return {
+    commentId: selected.id,
+    htmlUrl: selected.htmlUrl,
+    pass: selected.pass,
+    authorLogin: selected.authorLogin,
+    authorAssociation: selected.authorAssociation,
+    body: selected.body,
   };
 }
 

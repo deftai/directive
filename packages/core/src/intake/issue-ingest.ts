@@ -7,6 +7,13 @@ import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
+import {
+  countMaintainerCurrentShapeComments,
+  mapIssueCommentEntry,
+  RAW_ISSUE_COMMENTS_KEY,
+  type IssueComment as ShapeIssueComment,
+  selectCurrentShapeComment,
+} from "../umbrella-current-shape/index.js";
 import { slugify, TODAY } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import {
@@ -34,6 +41,9 @@ import {
   parseIssueNumber,
   type ScmCallFn,
 } from "./reconcile-issues.js";
+
+/** Reference type pointing at the canonical current-shape comment permalink (#1870). */
+export const CURRENT_SHAPE_REF_TYPE = "x-xbrief/current-shape" as const;
 
 export const INGEST_STATUSES = ["proposed", "pending", "active"] as const;
 export type IngestStatus = (typeof INGEST_STATUSES)[number];
@@ -69,10 +79,45 @@ export interface IssueComment {
   readonly body?: string;
   readonly user?: { readonly login?: string };
   readonly created_at?: string;
+  readonly updated_at?: string;
+  readonly html_url?: string;
+  readonly author_association?: string;
 }
 
 /** Enriched on issues after `fetchIssue` when the comment thread is non-empty (#2143). */
 export const ISSUE_COMMENT_THREAD_KEY = "issueCommentThread" as const;
+
+/**
+ * Map ingest/REST comment rows onto the umbrella-current-shape selector input
+ * so #1152 pass-N + #2307 maintainer provenance rules apply (#1870).
+ */
+export function mapIngestCommentsToShapeComments(
+  comments: readonly IssueComment[],
+): ShapeIssueComment[] {
+  const out: ShapeIssueComment[] = [];
+  for (const comment of comments) {
+    const mapped = mapIssueCommentEntry(comment);
+    if (mapped !== null) {
+      out.push(mapped);
+    }
+  }
+  return out;
+}
+
+/**
+ * Select the canonical current-shape comment from an ingest comment thread.
+ * Returns null when none is maintainer-authored / header-matched.
+ */
+export function selectIngestCurrentShape(
+  comments: readonly IssueComment[],
+): (ShapeIssueComment & { pass: number }) | null {
+  return selectCurrentShapeComment(mapIngestCommentsToShapeComments(comments));
+}
+
+/** Count maintainer current-shape comments (lint surface for !=1). */
+export function countIngestCurrentShapeComments(comments: readonly IssueComment[]): number {
+  return countMaintainerCurrentShapeComments(mapIngestCommentsToShapeComments(comments));
+}
 
 const STATUS_MAP: Record<IngestStatus, [string, string]> = {
   proposed: ["proposed", "proposed"],
@@ -429,6 +474,11 @@ export function buildIssueVbrief(
   const commentThread = issueCommentThread(issue);
   const overviewSource =
     commentThread.length > 0 ? composeOverviewWithComments(bodyStr, commentThread) : bodyStr;
+  // #1870 / #1152: materialize the canonical Current shape comment as its own
+  // narrative so agents cannot plan umbrellas from the stale body alone. Prefer
+  // the same selector as `task umbrella:current-shape` (highest pass-N,
+  // maintainer-authored only — #2307).
+  const currentShape = selectIngestCurrentShape(commentThread);
   const labelsRaw = issue.labels;
   const labelNames: string[] = [];
   if (Array.isArray(labelsRaw)) {
@@ -469,6 +519,10 @@ export function buildIssueVbrief(
     }
     narratives.Overview = scanResult.transformed_content;
   }
+  if (currentShape !== null) {
+    // Scan shape body under the same fail-closed contract as Overview (#2306).
+    narratives.CurrentShape = scanUntrustedIngestText(number, currentShape.body);
+  }
   if (labelNames.length > 0) {
     narratives.Labels = labelNames.join(", ");
   }
@@ -497,6 +551,17 @@ export function buildIssueVbrief(
         title: `Issue #${number}: ${title}`,
       },
     ];
+    if (currentShape !== null) {
+      const shapeUri =
+        currentShape.htmlUrl.length > 0
+          ? currentShape.htmlUrl
+          : `${url}#issuecomment-${currentShape.id}`;
+      references.push({
+        uri: shapeUri,
+        type: CURRENT_SHAPE_REF_TYPE,
+        title: `Current shape (pass-${currentShape.pass}) for #${number}`,
+      });
+    }
     if (overviewSource.length > 0 && repoUrl.length > 0) {
       references.push(...extractCrossRefs(overviewSource, repoUrl, new Set([number])));
     }
@@ -571,6 +636,12 @@ export function fetchFromCache(
     // the quarantine transform. When content.md is absent (e.g. a credential
     // hard-fail deleted it), the raw body falls through and is re-scanned in
     // buildIssueVbrief.
+    //
+    // #1870 note: content.md may also include the appended Canonical current
+    // shape section. That is intentional for agent-facing cache reads. When
+    // raw.comments is present we also restore the comment thread so
+    // narratives.CurrentShape + the current-shape reference can be materialised
+    // offline (without a live comments fetch).
     if (result.contentPath !== null) {
       try {
         // #2314: content.md is `renderContent`-prefixed with a `# #<n>: <title>`
@@ -584,6 +655,11 @@ export function fetchFromCache(
       } catch {
         // fall back to the raw body (re-scanned downstream)
       }
+    }
+    // #1870: restore comment thread from cache raw so CurrentShape survives
+    // offline / no-live-gh paths (fetchIssue still prefers live comments).
+    if (!issueCommentsAlreadyFetched(issue) && Array.isArray(issue[RAW_ISSUE_COMMENTS_KEY])) {
+      return attachIssueCommentThread(issue, issue[RAW_ISSUE_COMMENTS_KEY] as IssueComment[]);
     }
     return issue;
   } catch {

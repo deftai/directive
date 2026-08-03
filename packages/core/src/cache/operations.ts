@@ -5,6 +5,11 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { pyRepr } from "../scm/py-format.js";
+import {
+  appendCurrentShapeSection,
+  buildCurrentShapeSidecar,
+  CURRENT_SHAPE_SIDECAR,
+} from "../umbrella-current-shape/index.js";
 import { ALLOWED_SOURCES, REPO_RE, SOURCE_TTL_SECONDS } from "./constants.js";
 import {
   CacheCapBreachedError,
@@ -38,7 +43,14 @@ function assertWritableCachePath(cacheRoot: string, ...segments: string[]): stri
   return target;
 }
 
-function renderContent(source: string, raw: Record<string, unknown>): string {
+/**
+ * Render agent-facing content.md for a cache entry.
+ *
+ * For github-issue sources, appends the canonical `## Current shape` comment
+ * when the raw payload carries a comment thread with a maintainer-authored
+ * shape (#1870 / #1152). Body alone is never sufficient for umbrella planning.
+ */
+export function renderContent(source: string, raw: Record<string, unknown>): string {
   if (source === "github-issue") {
     const number = raw.number;
     const title = (raw.title as string | undefined) ?? "";
@@ -48,7 +60,8 @@ function renderContent(source: string, raw: Record<string, unknown>): string {
         `invalid github-issue raw payload: 'number' must be int (got ${typeof number})`,
       );
     }
-    return `# #${number}: ${title}\n\n${body}`;
+    const base = `# #${number}: ${title}\n\n${body}`;
+    return appendCurrentShapeSection(base, raw);
   }
   throw new CacheError(
     `unknown source '${source}': v1 supports ${JSON.stringify([...ALLOWED_SOURCES].sort())}`,
@@ -189,15 +202,53 @@ export function cachePut(
   const scanResult = scan(rendered, utcIso(clock, fetched));
 
   const contentPath = join(edir, "content.md");
+  const shapeSidecarPath = join(edir, CURRENT_SHAPE_SIDECAR);
   let contentWritten = false;
   if (scanResult.passed) {
     atomicWriteText(contentPath, scanResult.transformed_content, { projectRoot });
     contentWritten = true;
+    // #1870: persist the selected current-shape comment + permalink beside
+    // content.md so triage/gates can read it without re-parsing the markdown.
+    const sidecar = buildCurrentShapeSidecar(raw);
+    if (sidecar !== null) {
+      // Quarantine-scan the sidecar body independently so a hard-fail on the
+      // full content.md transform cannot leave a credential-bearing sidecar.
+      const shapeScan = scan(sidecar.body, utcIso(clock, fetched));
+      if (shapeScan.passed) {
+        atomicWriteText(
+          shapeSidecarPath,
+          `${pythonJsonDump({
+            ...sidecar,
+            body: shapeScan.transformed_content,
+          })}\n`,
+          { projectRoot },
+        );
+      } else if (existsSync(shapeSidecarPath)) {
+        try {
+          unlinkSync(shapeSidecarPath);
+        } catch {
+          /* ignore */
+        }
+      }
+    } else if (existsSync(shapeSidecarPath)) {
+      try {
+        unlinkSync(shapeSidecarPath);
+      } catch {
+        /* ignore */
+      }
+    }
   } else if (existsSync(contentPath)) {
     try {
       unlinkSync(contentPath);
     } catch {
       /* ignore */
+    }
+    if (existsSync(shapeSidecarPath)) {
+      try {
+        unlinkSync(shapeSidecarPath);
+      } catch {
+        /* ignore */
+      }
     }
   }
 
