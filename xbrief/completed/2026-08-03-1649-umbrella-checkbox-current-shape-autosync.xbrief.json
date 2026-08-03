@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Umbrella issue-body checkboxes and section 1152 current-shape comment do not auto-sync to child open/closed state. Fix reconcile path so both surfaces stay current.",
-    "updated": "2026-08-03T19:04:07Z"
+    "updated": "2026-08-03T19:44:37Z"
   },
   "plan": {
     "title": "fix(umbrella): umbrella checkboxes + current-shape never auto-sync to children state",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Umbrella issue-body checkboxes and section 1152 current-shape comment do not auto-sync to child open/closed state. Fix reconcile path so both surfaces stay current.",
       "Origin": "https://github.com/deftai/directive/issues/1649",
@@ -57,8 +57,27 @@
           "tasks/",
           "CHANGELOG.md"
         ]
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3098,
+        "prBase": null,
+        "mergeCommit": "12d2cbfdf4a816a40146d311838199a3603ad2bf",
+        "deliveryBranch": "master",
+        "deliveryCommit": "12d2cbfdf4a816a40146d311838199a3603ad2bf",
+        "verifiedAt": "2026-08-03T19:44:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T19:44:37Z",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-03T19:04:07Z"
+    "updated": "2026-08-03T19:44:37Z"
   }
 }
