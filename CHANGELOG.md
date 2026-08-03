@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Ephemeral Task/spawn posture without active xBRIEF (#3080).** PreToolUse spawn classification gains a third posture beside implement and explore (#1185): `worker_role` / `subagent_type` ∈ {`ephemeral`, `docs`, `assist`} allows Multitask docs/analysis dispatch without `scope:activate` (`spawn-ephemeral-ready`). Unmarked `generalPurpose` still requires active scope (fail closed); implement envelope signals win over ephemeral markers. Deny text for missing active scope lists activate | explore | ephemeral recoveries. Docs: three postures in `content/commands.md` hook section. Does not weaken story-start / preflight for real implement; does not ship #1802 assist scratch writes. Closes #3080.
 
 ### Changed
 

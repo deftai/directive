@@ -55,14 +55,19 @@ import {
   missingToolNameMessage,
   record,
 } from "./classify/index.js";
-import { isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
+import { isEphemeralSpawn, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
 // Pure parse/classify helpers are defined in ./classify/ and re-exported from
 // ./index.ts (#2950). Dispatcher is orchestration: classify → policy → decision.
 
-export { hookReadOnlyFromPayload, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
+export {
+  hookReadOnlyFromPayload,
+  isEphemeralSpawn,
+  isExploreSpawn,
+  isReadOnlyHookContext,
+} from "./readonly.js";
 export {
   DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
@@ -112,6 +117,8 @@ export type HookDecisionCode =
   | "write-ready"
   | "read-only-deny"
   | "spawn-explore-ready"
+  /** Non-lifecycle assist/docs spawn allowed without active xBRIEF (#3080). */
+  | "spawn-ephemeral-ready"
   | "spawn-ready"
   | "spawn-not-ready"
   | "runtime-policy-deny-path"
@@ -776,17 +783,32 @@ function inspectMutationGates(
     // Lexical ../ + realpath re-entry guard (not bare startsWith(".."); not symlink aliases).
     const outsideRoot = writeTarget !== null && isOutsideProjectRootWrite(projectRoot, writeTarget);
     if (!outsideRoot || isSpawnTool(toolName)) {
-      const proposedPathHint =
+      let proposedPathHint: string;
+      if (isSpawnTool(toolName)) {
+        // Multi-path recovery for implement-class spawns (#3080 AC4).
+        proposedPathHint =
+          " Recovery: (1) Product implementation — run `deft scope:activate -- <path>` " +
+          "for the approved xBRIEF, then re-run the pre-start_agent gate stack. " +
+          "(2) Read-only research — spawn with `subagent_type`/`worker_role` explore. " +
+          "(3) Ephemeral docs/analysis — spawn with `worker_role: ephemeral` " +
+          "(aliases: docs, assist; see commands.md), or continue in the parent without " +
+          "a lifecycle story. Do not invent a fake scope only to satisfy this gate.";
+      } else if (
         options.proposedLifecycleExempt &&
         relTarget !== null &&
         (relTarget.startsWith("xbrief/proposed/") || relTarget.startsWith("vbrief/proposed/"))
-          ? " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
-            "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
-            "planning writes (#2625)."
-          : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
-            (options.proposedLifecycleExempt
-              ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption)."
-              : "then re-run the pre-start_agent gate stack.");
+      ) {
+        proposedPathHint =
+          " For a new proposal under xbrief/proposed/, include a lifecycle artifact " +
+          "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
+          "planning writes (#2625).";
+      } else {
+        proposedPathHint =
+          " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
+          (options.proposedLifecycleExempt
+            ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption)."
+            : "then re-run the pre-start_agent gate stack.");
+      }
       const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
       return deny(
         input,
@@ -1016,6 +1038,22 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
         toolName,
         projectRoot,
         message: `Directive allowed explore ${toolName} spawn without implementation gates.`,
+        scopePath: null,
+      };
+    }
+    // Ephemeral/docs/assist: write-capable non-lifecycle spawn; no active xBRIEF (#3080).
+    // Does not authorize push/merge/deploy — those remain on shell/MCP matchers.
+    if (isEphemeralSpawn(input.payload)) {
+      return {
+        verdict: "allow",
+        code: "spawn-ephemeral-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message:
+          `Directive allowed ephemeral ${toolName} spawn without active-xBRIEF ` +
+          "implementation gates (non-lifecycle assist/docs posture).",
         scopePath: null,
       };
     }

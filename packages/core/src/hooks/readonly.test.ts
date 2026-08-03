@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { hookReadOnlyFromPayload, isExploreSpawn, isReadOnlyHookContext } from "./readonly.js";
+import {
+  hookReadOnlyFromPayload,
+  isEphemeralSpawn,
+  isExploreSpawn,
+  isReadOnlyHookContext,
+} from "./readonly.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
 describe("read-only hook context (#1185)", () => {
@@ -32,6 +37,60 @@ describe("explore spawn detection (#1185)", () => {
   it("recognizes explore worker_role", () => {
     expect(isExploreSpawn({ tool_input: { worker_role: "explore" } })).toBe(true);
     expect(isExploreSpawn({ workerRole: "leaf-implementation" })).toBe(false);
+  });
+});
+
+describe("ephemeral spawn detection (#3080)", () => {
+  it("recognizes worker_role ephemeral and aliases docs/assist", () => {
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "ephemeral" } })).toBe(true);
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "docs" } })).toBe(true);
+    expect(isEphemeralSpawn({ workerRole: "assist" })).toBe(true);
+    expect(isEphemeralSpawn({ tool_input: { workerRole: "EPHEMERAL" } })).toBe(true);
+  });
+
+  it("recognizes subagent_type ephemeral aliases", () => {
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "ephemeral" } })).toBe(true);
+    expect(isEphemeralSpawn({ subagentType: "docs" })).toBe(true);
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "assist" } })).toBe(true);
+  });
+
+  it("fails closed on unmarked / generalPurpose (ambiguous → implement)", () => {
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "generalPurpose" } })).toBe(false);
+    expect(isEphemeralSpawn({ tool_input: { prompt: "write a brochure" } })).toBe(false);
+    expect(isEphemeralSpawn(null)).toBe(false);
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "leaf-implementation" } })).toBe(false);
+  });
+
+  it("implement signals win over ephemeral markers (fail closed)", () => {
+    expect(
+      isEphemeralSpawn({
+        tool_input: {
+          worker_role: "ephemeral",
+          drive_to: "merge-ready",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn({
+        tool_input: {
+          subagent_type: "docs",
+          worker_role: "leaf-implementation",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn({
+        tool_input: {
+          worker_role: "assist",
+          dispatch_kind: "swarm-cohort",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn({
+        tool_input: { worker_role: "ephemeral", driveTo: "merge" },
+      }),
+    ).toBe(false);
   });
 });
 

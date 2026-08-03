@@ -1052,6 +1052,152 @@ describe("direct-write hook policy", () => {
   });
 });
 
+describe("ephemeral spawn posture (#3080)", () => {
+  const emptyScopeSeams = (): HookPolicySeams =>
+    readySeams({
+      inspectRitual: vi.fn(() => READY_RITUAL),
+      inspectScope: vi.fn(() => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      })),
+    });
+
+  it("allows explore Task without active xBRIEF (regression #1185 / AC1)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "explore" } },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-explore-ready" });
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("denies unmarked generalPurpose Task when active scope empty (AC2 / AC6)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "implement feature" },
+        },
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("scope:activate");
+  });
+
+  it("allows ephemeral worker_role Task without active xBRIEF (AC3)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { worker_role: "ephemeral", prompt: "one-sheet brochure" },
+        },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ephemeral-ready" });
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("allows docs and assist aliases without active xBRIEF (AC3)", () => {
+    for (const role of ["docs", "assist"] as const) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Task", tool_input: { worker_role: role } },
+        },
+        emptyScopeSeams(),
+      );
+      expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ephemeral-ready" });
+    }
+  });
+
+  it("deny message lists activate | explore | ephemeral recoveries (AC4)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "ship it" },
+        },
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("scope:activate");
+    expect(decision.message).toMatch(/explore/i);
+    expect(decision.message).toMatch(/ephemeral/i);
+    expect(decision.message).toMatch(/Do not invent a fake scope/i);
+  });
+
+  it("implement wins when ephemeral marker conflicts with drive-to merge-ready (AC6)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            worker_role: "ephemeral",
+            drive_to: "merge-ready",
+            prompt: "implement",
+          },
+        },
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+  });
+
+  it("does not skip ritual/scope for implement spawn when gates ready (AC9)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => READY_SCOPE);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(inspectRitual).toHaveBeenCalled();
+    expect(inspectScope).toHaveBeenCalled();
+  });
+});
+
 describe("runtime authority policy (#1394)", () => {
   const ENABLED_POLICY = {
     enabled: true,
