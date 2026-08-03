@@ -55,4 +55,68 @@ describe("defaultNpmViewVersion (#2808)", () => {
 
     expect(defaultNpmViewVersion()).toEqual({ ok: false, version: "" });
   });
+
+  it("returns unavailable when spawnSync reports proc.error", () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: null,
+      stdout: "",
+      stderr: "",
+      pid: 1,
+      output: [null, "", ""],
+      signal: null,
+      error: new Error("ENOENT"),
+    });
+
+    expect(defaultNpmViewVersion()).toEqual({ ok: false, version: "" });
+  });
+
+  it("returns unavailable on empty version payload", () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: "\n",
+      stderr: "",
+      pid: 1,
+      output: [null, "\n", ""],
+      signal: null,
+      error: undefined,
+    });
+
+    expect(defaultNpmViewVersion()).toEqual({ ok: false, version: "" });
+  });
+
+  it("uses first line when npm prints multi-line stdout", () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: "1.2.3\nextra noise\n",
+      stderr: "",
+      pid: 1,
+      output: [null, "1.2.3\nextra noise\n", ""],
+      signal: null,
+      error: undefined,
+    });
+
+    expect(defaultNpmViewVersion()).toEqual({ ok: true, version: "1.2.3" });
+  });
+
+  it("treats non-string stdout as empty version", () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: Buffer.from("1.0.0") as unknown as string,
+      stderr: "",
+      pid: 1,
+      output: [null, Buffer.from("1.0.0"), ""],
+      signal: null,
+      error: undefined,
+    });
+
+    expect(defaultNpmViewVersion()).toEqual({ ok: false, version: "" });
+  });
+
+  it("returns unavailable when spawnSync throws", () => {
+    vi.mocked(spawnSync).mockImplementation(() => {
+      throw new Error("spawn boom");
+    });
+
+    expect(defaultNpmViewVersion()).toEqual({ ok: false, version: "" });
+  });
 });
