@@ -1,0 +1,119 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3070",
+    "updated": "2026-08-03T15:02:03Z"
+  },
+  "plan": {
+    "title": "bug(check): consumer gate references missing verify:orphan-active task",
+    "status": "completed",
+    "narratives": {
+      "Description": "Vendored consumers can hit task: Task \"verify:orphan-active\" does not exist when running task deft:check. The consumer check graph lists verify:orphan-active while the optional verify Taskfile include can silently omit tasks/verify.yml, leaving the gate unresolvable. This blocks green Deft pre-commit even when application tests pass.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3070",
+      "Overview": "## Summary\n\n`task deft:check` fails in a vendored consumer because the check graph invokes `verify:orphan-active`, but that task is not defined in the installed task catalog.\n\n## Environment\n\n- Engine: `@deftai/directive-core@0.87.0`\n- Host: macOS / zsh\n- Consumer uses `.deft/core/Taskfile.yml` under the `deft:` namespace\n\n## Reproduction\n\n```sh\ntask deft:check\n```\n\nThe gate enumerates the task catalog and exits with:\n\n```text\ntask: Task \"verify:orphan-active\" does not exist\ntask: Failed to run task \"deft:check\": ... exit status 200\n```\n\n## Expected\n\nThe consumer-safe check graph only invokes tasks shipped in the same payload, or defines `verify:orphan-active` before wiring it into `check`.\n\n## Impact\n\nConsumer projects cannot obtain a green mandatory Deft pre-commit gate even when their application unit tests, typecheck, build, and architecture checks pass.",
+      "Labels": "bug, adoption-blocker",
+      "UserStory": "As a consumer maintainer, I want task deft:check to only invoke tasks that exist in the installed deposit (or fail with a clear deposit-repair message), so that incomplete optional includes cannot hard-break the mandatory pre-commit gate.",
+      "ImplementationPlan": "1) Add a deposit/check integrity contract that every CONSUMER_CHECK_GATES entry resolves against the shipped Taskfile includes (content package + framework CI). 2) Fail loud when check-graph namespaces (especially verify) are missing instead of optional silent omit leading to go-task does-not-exist. 3) Optional doctor probe that consumer deposits can list verify:orphan-active and the consumer gate set. 4) Regression fixture with incomplete deposit missing tasks/verify.yml. 5) CHANGELOG #3070."
+    },
+    "items": [
+      {
+        "title": "Integrity gate: every CONSUMER_CHECK_GATES entry resolves in shipped Taskfile+includes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3070 fix, when verification runs, then: Integrity gate: every CONSUMER_CHECK_GATES entry resolves in shipped Taskfile+includes."
+        }
+      },
+      {
+        "title": "Fail loud when check-graph includes (verify) are missing rather than optional silent omit",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3070 fix, when verification runs, then: Fail loud when check-graph includes (verify) are missing rather than optional silent omit."
+        }
+      },
+      {
+        "title": "Doctor or deposit probe can list verify:orphan-active for consumer installs",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3070 fix, when verification runs, then: Doctor or deposit probe can list verify:orphan-active for consumer installs."
+        }
+      },
+      {
+        "title": "Regression fixture for missing tasks/verify.yml yields clear recovery error",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3070 fix, when verification runs, then: Regression fixture for missing tasks/verify.yml yields clear recovery error."
+        }
+      },
+      {
+        "title": "CHANGELOG cites #3070",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3070 fix, when verification runs, then: CHANGELOG cites #3070."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3070",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3070: bug(check): consumer gate references missing verify:orphan-active task"
+      }
+    ],
+    "updated": "2026-08-03T15:02:03Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/gate-lists.test.ts",
+          "Taskfile.yml",
+          "tasks/verify.yml",
+          "packages/core/src/doctor",
+          "packages/content/package.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/check",
+          "task verify:orphan-active -- --skip-gh"
+        ],
+        "expected_outputs": [
+          "consumer check integrity for CONSUMER_CHECK_GATES",
+          "clear failure when verify include missing",
+          "CHANGELOG #3070"
+        ],
+        "depends_on": [],
+        "conflict_group": "consumer-check-3070",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "AC derived from GitHub issue #3070 body and operator swarm evaluation."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": "e0a010a0c2d155d68d2c4ae59fad76115e35dbc2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0a010a0c2d155d68d2c4ae59fad76115e35dbc2",
+        "verifiedAt": "2026-08-03T15:02:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T15:02:03Z",
+      "capacityBucket": "new-capability"
+    },
+    "id": "3070-consumer-orphan-active-check-integrity"
+  }
+}
