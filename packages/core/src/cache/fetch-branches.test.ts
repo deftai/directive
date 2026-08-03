@@ -9,6 +9,7 @@ import {
   cacheRefreshClosed,
   detectRateLimit,
   enrichRawWithCommentsIfUmbrella,
+  entryNeedsCurrentShapeBackfill,
   listOpenIssueNumbers,
   readOpenInventoryStamp,
   restIssueListPaginated,
@@ -22,6 +23,7 @@ import {
   setSleepFn,
   writeOpenInventoryStamp,
 } from "./fetch.js";
+import { cachePut } from "./operations.js";
 
 describe("fetch branches", () => {
   it("cacheFetchAll rejects bad source and delay", () => {
@@ -580,6 +582,95 @@ describe("fetch branches", () => {
       { fetchComments },
     );
     expect(plain[RAW_ISSUE_COMMENTS_KEY]).toBeUndefined();
+  });
+
+  it("entryNeedsCurrentShapeBackfill forces rewrite of body-only umbrella entries (#1870)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-shape-backfill-"));
+    const edir = join(root, "github-issue/deftai/directive/42");
+    mkdirSync(edir, { recursive: true });
+    writeFileSync(
+      join(edir, "raw.json"),
+      JSON.stringify({
+        number: 42,
+        title: "Epic",
+        body: "charter",
+        state: "open",
+        labels: [{ name: "epic" }],
+      }),
+      "utf8",
+    );
+    try {
+      expect(entryNeedsCurrentShapeBackfill(edir)).toBe(true);
+      writeFileSync(
+        join(edir, "raw.json"),
+        JSON.stringify({
+          number: 42,
+          title: "Epic",
+          body: "charter",
+          state: "open",
+          labels: [{ name: "epic" }],
+          [RAW_ISSUE_COMMENTS_KEY]: [],
+        }),
+        "utf8",
+      );
+      expect(entryNeedsCurrentShapeBackfill(edir)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("cacheFetchAll rewrites TTL-fresh umbrella entries missing comments (#1870 P1)", () => {
+    const shapeBody = "## Current shape (as of pass-1)\n\nLast updated: now\n";
+    setPaginatedLister(() => [
+      {
+        number: 77,
+        title: "Umbrella",
+        body: "charter",
+        state: "open",
+        labels: [{ name: "epic" }],
+      },
+    ]);
+    const root = mkdtempSync(join(tmpdir(), "deft-fresh-backfill-"));
+    try {
+      // Seed a body-only fresh entry (pre-#1870 shape).
+      cachePut(
+        "github-issue",
+        "deftai/directive/77",
+        {
+          number: 77,
+          title: "Umbrella",
+          body: "charter",
+          state: "open",
+          labels: [{ name: "epic" }],
+        },
+        { cacheRoot: root, ttlSeconds: 3600 },
+      );
+      const report = cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+        contentDriftNumbers: [],
+        fetchComments: () => [
+          {
+            id: 1,
+            body: shapeBody,
+            html_url: "https://github.com/deftai/directive/issues/77#issuecomment-1",
+            author_association: "MEMBER",
+            user: { login: "m" },
+          },
+        ],
+      });
+      expect(report.issuesWritten).toBe(1);
+      expect(report.alreadyFresh).toBe(0);
+      const content = readFileSync(
+        join(root, "github-issue/deftai/directive/77/content.md"),
+        "utf8",
+      );
+      expect(content).toContain("Canonical current shape");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+    }
   });
 
   it("cacheFetchAll persists current-shape into content.md for epic issues (#1870)", () => {

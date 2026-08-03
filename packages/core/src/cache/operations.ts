@@ -152,10 +152,22 @@ export function cachePut(
 
   const rawText = pythonJsonDump(raw);
   const rawSize = Buffer.byteLength(rawText, "utf8");
+  // #1870 Greptile P2: account for current-shape sidecar bytes in cap + meta
+  // so usage does not underreport by the cumulative sidecar size.
+  const plannedSidecar = buildCurrentShapeSidecar(raw);
+  const plannedSidecarText =
+    plannedSidecar !== null
+      ? `${pythonJsonDump({
+          ...plannedSidecar,
+          body: plannedSidecar.body,
+        })}\n`
+      : "";
+  const plannedSidecarBytes = Buffer.byteLength(plannedSidecarText, "utf8");
+  const entryPayloadBytes = rawSize + plannedSidecarBytes;
 
   const existingSize = existingEntrySize(edir);
   const isNewEntry = existingSize === null;
-  const incomingDelta = isNewEntry ? rawSize : rawSize - existingSize;
+  const incomingDelta = isNewEntry ? entryPayloadBytes : entryPayloadBytes - existingSize;
   const incomingEntries = isNewEntry ? 1 : 0;
 
   const enforceResult = enforceCaps(cacheRoot, {
@@ -196,7 +208,7 @@ export function cachePut(
   // #3042: contain cache entry writes against project root (parent of cacheRoot).
   const projectRoot = dirname(resolve(cacheRoot));
   atomicWriteText(join(edir, "raw.json"), rawText, { projectRoot });
-  const authoritativeSize = fileSize(join(edir, "raw.json"));
+  const rawFileSize = fileSize(join(edir, "raw.json"));
 
   const rendered = renderContent(source, raw);
   const scanResult = scan(rendered, utcIso(clock, fetched));
@@ -204,25 +216,24 @@ export function cachePut(
   const contentPath = join(edir, "content.md");
   const shapeSidecarPath = join(edir, CURRENT_SHAPE_SIDECAR);
   let contentWritten = false;
+  let sidecarBytesWritten = 0;
   if (scanResult.passed) {
     atomicWriteText(contentPath, scanResult.transformed_content, { projectRoot });
     contentWritten = true;
     // #1870: persist the selected current-shape comment + permalink beside
     // content.md so triage/gates can read it without re-parsing the markdown.
-    const sidecar = buildCurrentShapeSidecar(raw);
+    const sidecar = plannedSidecar;
     if (sidecar !== null) {
       // Quarantine-scan the sidecar body independently so a hard-fail on the
       // full content.md transform cannot leave a credential-bearing sidecar.
       const shapeScan = scan(sidecar.body, utcIso(clock, fetched));
       if (shapeScan.passed) {
-        atomicWriteText(
-          shapeSidecarPath,
-          `${pythonJsonDump({
-            ...sidecar,
-            body: shapeScan.transformed_content,
-          })}\n`,
-          { projectRoot },
-        );
+        const sidecarText = `${pythonJsonDump({
+          ...sidecar,
+          body: shapeScan.transformed_content,
+        })}\n`;
+        atomicWriteText(shapeSidecarPath, sidecarText, { projectRoot });
+        sidecarBytesWritten = Buffer.byteLength(sidecarText, "utf8");
       } else if (existsSync(shapeSidecarPath)) {
         try {
           unlinkSync(shapeSidecarPath);
@@ -252,6 +263,7 @@ export function cachePut(
     }
   }
 
+  const authoritativeSize = rawFileSize + sidecarBytesWritten;
   const meta = buildMeta({
     source,
     key,
