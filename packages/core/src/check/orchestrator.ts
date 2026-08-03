@@ -15,6 +15,10 @@
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
+import {
+  evaluateConsumerGateIntegrity,
+  formatConsumerGateIntegrityFailure,
+} from "./consumer-gate-integrity.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 
 export type { CheckOrchestratorOptions, CheckOrchestratorSeams } from "./context.js";
@@ -46,6 +50,16 @@ export function dispatchTaskCheck(
 
   const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
+
+  // #3070: pre-flight consumer check-graph integrity (same path as cached
+  // orchestrator) so uncached aggregate shelling also fails with recovery text.
+  if (target === "check:consumer") {
+    const integrity = evaluateConsumerGateIntegrity(resolvedFramework);
+    if (!integrity.ok) {
+      process.stderr.write(formatConsumerGateIntegrityFailure(integrity));
+      return 2;
+    }
+  }
 
   const spawn = seams.spawnFn ?? defaultSpawn;
   const result = spawn(taskBin, [target, "--taskfile", taskfilePath], {

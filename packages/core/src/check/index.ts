@@ -1,5 +1,21 @@
 export { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 export {
+  CHECK_GRAPH_REQUIRED_NAMESPACES,
+  CONSUMER_GATE_INTEGRITY_RECOVERY,
+  type ConsumerGateIntegrityFinding,
+  type ConsumerGateIntegrityResult,
+  type ConsumerGateIntegritySeams,
+  checkGraphOptionalIncludeViolations,
+  evaluateConsumerGateIntegrity,
+  formatConsumerGateIntegrityFailure,
+  gateLocalName,
+  gateNamespace,
+  includeTaskfileRel,
+  parseTaskfileIncludes,
+  requiredNamespacesForGates,
+  taskDefinedInTaskfileYaml,
+} from "./consumer-gate-integrity.js";
+export {
   type CheckGateSpec,
   CONSUMER_CHECK_GATES,
   checkGateId,

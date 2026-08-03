@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Consumer `task check` no longer dies on missing `verify:orphan-active` with opaque go-task 200/201 (#3070).** Check-graph Taskfile includes (`verify`, `toolchain`, `vbrief`) are non-optional so a missing `tasks/verify.yml` fails loud at load. The check orchestrator and `deft doctor` probe CONSUMER_CHECK_GATES integrity before shelling gates and emit deposit-repair guidance (`deft update`) instead of `Task "verify:orphan-active" does not exist`. Content-contract + fixture cover incomplete deposits. Closes #3070.
+
 ### Removed
 
 ## [0.93.0] - 2026-08-03

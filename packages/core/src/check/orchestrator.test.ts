@@ -1,5 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   dispatchTaskCheck,
   isFrameworkRepoRoot,
@@ -8,6 +10,16 @@ import {
 } from "./orchestrator.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
+const tempDirs: string[] = [];
+afterEach(() => {
+  for (const d of tempDirs.splice(0)) {
+    try {
+      rmSync(d, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+});
 
 describe("isFrameworkSourceContext", () => {
   it("returns true when framework and project roots are the same path", () => {
@@ -116,6 +128,51 @@ describe("dispatchTaskCheck", () => {
     const project = "/home/user/consumer";
     dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
     expect(calls[0]?.cwd).toBe(resolve(project));
+  });
+
+  it("fails with deposit-repair guidance when consumer deposit lacks verify.yml (#3070)", () => {
+    const framework = mkdtempSync(join(tmpdir(), "deft-3070-fw-"));
+    tempDirs.push(framework);
+    mkdirSync(join(framework, "tasks"), { recursive: true });
+    writeFileSync(
+      join(framework, "Taskfile.yml"),
+      `version: '3'
+includes:
+  verify:
+    taskfile: ./tasks/verify.yml
+    optional: true
+  toolchain:
+    taskfile: ./tasks/toolchain.yml
+  vbrief:
+    taskfile: ./tasks/vbrief.yml
+tasks:
+  doctor:
+    cmds: [echo doctor]
+  verify-strategy-output:
+    cmds: [echo strategy]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "toolchain.yml"),
+      "version: '3'\ntasks:\n  check-consumer:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "vbrief.yml"),
+      "version: '3'\ntasks:\n  validate:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+
+    const calls: unknown[] = [];
+    const spawnFn = () => {
+      calls.push("spawned");
+      return { status: 0 };
+    };
+    const project = join(tmpdir(), "consumer-project");
+    const code = dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
+    expect(code).toBe(2);
+    expect(calls).toHaveLength(0);
   });
 
   it("uses a custom task binary when provided via seams", () => {
