@@ -1,0 +1,53 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3095 — dogfood Greptile CLEAN 5/5 + consumer min-confidence policy",
+    "updated": "2026-08-03T19:16:56Z"
+  },
+  "plan": {
+    "title": "feat(policy,review): dogfood Greptile CLEAN requires 5/5; consumers get per-project min-confidence lever",
+    "status": "running",
+    "narratives": {
+      "Description": "Directive dogfood CLEAN requires Greptile confidence 5/5 (not merely >3/4/5). Consumers get typed plan.policy.review.minGreptileConfidence (or equivalent); default remains >3. Align pr:watch, merge-ready, review-cycle Step 6, greptile.md, swarm poller.",
+      "Origin": "https://github.com/deftai/directive/issues/3095",
+      "Acceptance": "Dogfood CLEAN needs conf=5 + existing no P0/P1 + SHA + terminal + CI; typed consumer policy field; default consumer >3; all gates share SoT; policy:show surfaces; tests; CHANGELOG; docs.",
+      "ImplementationPlan": "Add policy field + resolution order (project > dogfood detect > default); wire pr-watch constants/evaluate, review-cycle skill pack, greptile.md, swarm-greptile-poller-prompt; tests; CHANGELOG. See full issue body.",
+      "Overview": "See issue #3095. Related #1259 #1056."
+    },
+    "items": [],
+    "tags": [
+      "enhancement",
+      "process",
+      "review-cycle",
+      "policy",
+      "agent-experience",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3095",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3095"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "parallel_safe_note": "May touch review-cycle pack and CHANGELOG concurrent with 1649/1870 — rebase as needed",
+        "file_scope": [
+          "packages/core/src/pr-watch/",
+          "packages/core/src/pr-merge-readiness/",
+          "packages/core/src/policy/",
+          "content/skills/deft-directive-review-cycle/",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/templates/swarm-greptile-poller-prompt.md",
+          "content/tools/greptile.md",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "updated": "2026-08-03T19:16:56Z"
+  }
+}

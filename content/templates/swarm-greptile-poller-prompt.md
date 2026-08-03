@@ -280,7 +280,7 @@ if m is None:
 confidence = int(m.group(1)) if m else None
 ```
 
-The clean threshold is `confidence > 3`, i.e. 4/5 or 5/5. Lower scores indicate Greptile is uncertain -- do NOT exit clean.
+The clean threshold is `confidence >= min_confidence`, where `min_confidence` is the resolved floor from `plan.policy.review.minGreptileConfidence` (#3095): typed project policy > framework dogfood detect (framework source → **5**) > consumer default (**4**, legacy `confidence > 3` / 4/5+). Inspect with `task policy:show --field=minGreptileConfidence`. Lower scores indicate Greptile is uncertain -- do NOT exit clean. Directive dogfood MUST NOT exit CLEAN on 4/5.
 
 ### Informal-clean missing canonical fields (#1543)
 
@@ -333,6 +333,7 @@ def evaluate_clean_gate(
     ci_failures,
     errored,
     terminal_check_run,
+    min_confidence=4,
 ):
     """Return (is_clean, clean_gate_holdout) per the (6)-condition AND gate.
 
@@ -347,21 +348,23 @@ def evaluate_clean_gate(
     non-terminal Greptile conclusion (`queued` / `in_progress` /
     `cancelled` / `timed_out` / `stale` / `action_required` / `failure`)
     is NOT clean even when the rolling summary already parses clean (SHA
-    matches HEAD, confidence > 3, no P0/P1). This is the INCOMPLETE_BUT_RATED
-    scenario from `skills/deft-directive-review-cycle/SKILL.md` Step 6:
-    without (6), all five legacy conditions pass and the poller exits CLEAN
-    prematurely. `ci_failures` (condition 4) is scoped to `CI / *` checks
-    ONLY -- it does NOT cover the Greptile Review check-run -- so the
-    terminal Greptile conclusion is a DISTINCT condition that `ci_failures`
-    cannot stand in for. Mirrors the SKILL.md Step 6 fail-closed all-of's
-    terminal-check-run field so the swarm-dispatched poller path enforces
-    the same gate as the one-shot review-cycle entry.
+    matches HEAD, confidence >= min_confidence, no P0/P1). This is the
+    INCOMPLETE_BUT_RATED scenario from
+    `skills/deft-directive-review-cycle/SKILL.md` Step 6: without (6), all
+    five legacy conditions pass and the poller exits CLEAN prematurely.
+    `ci_failures` (condition 4) is scoped to `CI / *` checks ONLY -- it does
+    NOT cover the Greptile Review check-run -- so the terminal Greptile
+    conclusion is a DISTINCT condition that `ci_failures` cannot stand in
+    for. Mirrors the SKILL.md Step 6 fail-closed all-of's terminal-check-run
+    field so the swarm-dispatched poller path enforces the same gate as the
+    one-shot review-cycle entry. `min_confidence` defaults to the consumer
+    bar (4); resolve via project policy / dogfood (#3095).
     """
     if last_reviewed_sha is None or last_reviewed_sha != head_sha:
         return False, "sha_match"
     if has_blocking:
         return False, "has_blocking"
-    if confidence is None or confidence <= 3:
+    if confidence is None or confidence < min_confidence:
         return False, "confidence"
     if ci_failures > 0:
         return False, "ci_failures"
@@ -417,10 +420,10 @@ When ANY of the six conditions below fires, send the corresponding message to `{
 ALL of:
 - `last_reviewed_sha` parsed and matches the current PR HEAD SHA (compare via `gh pr view {pr_number} --repo {repo} --json headRefOid --jq .headRefOid`).
 - `has_blocking` is False (no P0 / P1 findings).
-- `confidence > 3` (i.e. 4/5 or 5/5 -- a `confidence == 3` parse is NOT clean; the gate names `clean_gate_holdout="confidence"` and you stay in the loop, you do NOT send the CLEAN message).
+- `confidence >= min_confidence` where `min_confidence` is the resolved policy floor (#3095; consumer default 4 / dogfood 5 -- a score below the floor is NOT clean; the gate names `clean_gate_holdout="confidence"` and you stay in the loop, you do NOT send the CLEAN message).
 - `gh pr checks {pr_number}` shows no `failure` status on `CI / *` checks.
 - The Greptile rolling-summary comment body does NOT equal `Greptile encountered an error while reviewing this PR` (errored sentinel; #526).
-- `terminal_check_run` is True: the `Greptile Review` check-run on the current HEAD is terminal -- `status == "completed"` AND `conclusion` in `{{success, neutral}}` (#1259). A non-terminal Greptile conclusion (`queued` / `in_progress` / `cancelled` / `timed_out` / `stale` / `action_required` / `failure`) is NOT clean even when the rolling summary already parses clean (the INCOMPLETE_BUT_RATED scenario -- rolling summary posted, SHA matches, confidence > 3, no P0/P1, but the check-run has not terminally landed). This is DISTINCT from the `CI / *` `failure` bullet above: `ci_failures` is scoped to `CI / *` checks only and does NOT cover the Greptile Review check-run, so a non-terminal Greptile conclusion would otherwise slip through. The gate names `clean_gate_holdout="terminal_check_run"` and you stay in the loop.
+- `terminal_check_run` is True: the `Greptile Review` check-run on the current HEAD is terminal -- `status == "completed"` AND `conclusion` in `{{success, neutral}}` (#1259). A non-terminal Greptile conclusion (`queued` / `in_progress` / `cancelled` / `timed_out` / `stale` / `action_required` / `failure`) is NOT clean even when the rolling summary already parses clean (the INCOMPLETE_BUT_RATED scenario -- rolling summary posted, SHA matches, confidence meets min, no P0/P1, but the check-run has not terminally landed). This is DISTINCT from the `CI / *` `failure` bullet above: `ci_failures` is scoped to `CI / *` checks only and does NOT cover the Greptile Review check-run, so a non-terminal Greptile conclusion would otherwise slip through. The gate names `clean_gate_holdout="terminal_check_run"` and you stay in the loop.
 
 Send to parent:
 
@@ -437,7 +440,7 @@ Send to parent:
       Last reviewed commit: <sha>
       -- no more polling, exiting now
 
-**Swarm-orchestrated terminal contract (#1364):** when this poller is dispatched as part of a swarm cohort (parent monitor is running `skills/deft-directive-swarm/SKILL.md` Phase 6), this exact subject line -- `PR #{pr_number} CLEAN -- ready for merge` -- with `confidence > 3` recorded on the **current HEAD** is the ONLY acceptable "review complete" signal the swarm monitor accepts toward the Phase 5 -> 6 merge-gate transition. The five other terminal exits below ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL, (6) INFORMAL-CLEAN) are NOT "review complete" signals for swarm purposes: each one MUST force either fresh poller re-dispatch on the same PR or explicit user escalation BEFORE the monitor surfaces the Phase 5 -> 6 gate. The monitor enforces this structurally via `task swarm:verify-review-clean` (#1364); see `skills/deft-directive-swarm/SKILL.md` Phase 5 Exit Condition for the cohort verifier mandate. A poller that has terminated lifecycle-clean (i.e. the sub-agent process exited normally) but with `clean_gate_holdout != None` HAS NOT "reported review-clean" for swarm-cycle purposes -- the verifier picks the gap up and the monitor re-dispatches.
+**Swarm-orchestrated terminal contract (#1364):** when this poller is dispatched as part of a swarm cohort (parent monitor is running `skills/deft-directive-swarm/SKILL.md` Phase 6), this exact subject line -- `PR #{pr_number} CLEAN -- ready for merge` -- with `confidence >= min_confidence` recorded on the **current HEAD** is the ONLY acceptable "review complete" signal the swarm monitor accepts toward the Phase 5 -> 6 merge-gate transition. The five other terminal exits below ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL, (6) INFORMAL-CLEAN) are NOT "review complete" signals for swarm purposes: each one MUST force either fresh poller re-dispatch on the same PR or explicit user escalation BEFORE the monitor surfaces the Phase 5 -> 6 gate. The monitor enforces this structurally via `task swarm:verify-review-clean` (#1364); see `skills/deft-directive-swarm/SKILL.md` Phase 5 Exit Condition for the cohort verifier mandate. A poller that has terminated lifecycle-clean (i.e. the sub-agent process exited normally) but with `clean_gate_holdout != None` HAS NOT "reported review-clean" for swarm-cycle purposes -- the verifier picks the gap up and the monitor re-dispatches.
 
 ### (2) NEW P0/P1 FINDINGS
 
@@ -604,5 +607,5 @@ Dogfood lessons captured during the #727 self-review cycle. The template body ab
 - `meta/lessons.md` `## Orchestrator Role Separation + Canonical Poller Template (2026-04)` -- short cross-reference; the rule body lives in the skills above (per `main.md` Rule Authority [AXIOM]).
 - #727 -- this template's acceptance issue and the full anti-pattern record (rm-chaining, parsing-bug recurrence, role-conflation in implementation-agent prompts).
 - #1039 -- (5) STALL terminal exit + Tier 1 instrumentation + Tier 3 per-condition fail-loud (`clean_gate_holdout`); the third recurrence in this template's detector-gap chain after #910 (triple-tier) and #1035 (Tier 2.5 + confidence-heading).
-- #1364 -- cohort-level CLEAN verification gate (`task swarm:verify-review-clean`, `scripts/swarm_verify_review_clean.py`). The (1) CLEAN section's swarm-orchestrated terminal contract block declares that only the exact `PR #{pr_number} CLEAN -- ready for merge` subject with `confidence > 3` on current HEAD is an acceptable "review complete" signal for the swarm monitor's Phase 5 -> 6 transition; the cohort verifier picks up any other terminal exit ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL) and holds the merge gate until fresh poller re-dispatch or explicit user escalation resolves it. Recurrence record: #1166 swarm execution where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate because the trigger keyed on "all pollers have reported back" rather than "every PR in the cohort is objectively CLEAN".
+- #1364 -- cohort-level CLEAN verification gate (`task swarm:verify-review-clean`, `scripts/swarm_verify_review_clean.py`). The (1) CLEAN section's swarm-orchestrated terminal contract block declares that only the exact `PR #{pr_number} CLEAN -- ready for merge` subject with `confidence >= min_confidence` on current HEAD is an acceptable "review complete" signal for the swarm monitor's Phase 5 -> 6 transition; the cohort verifier picks up any other terminal exit ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL) and holds the merge gate until fresh poller re-dispatch or explicit user escalation resolves it. Recurrence record: #1166 swarm execution where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate because the trigger keyed on "all pollers have reported back" rather than "every PR in the cohort is objectively CLEAN". #3095 raises the dogfood floor to 5 via policy.
 - #2879 -- OpenClaw `sessions_spawn` + parent push/announce completion channel named in Role posture (alongside Warp `start_agent` and grok-build `spawn_subagent`); heartbeat mapping in `docs/subagent-heartbeat.md` and preamble §10.5. Epic #2874.

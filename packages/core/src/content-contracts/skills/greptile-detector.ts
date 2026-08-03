@@ -340,6 +340,13 @@ export const BODY_AC4_EMPTY = "";
 export const BODY_AC4_TRUNCATED =
   "Greptile review of head 1234567\n" + "\n" + "## Confidence Score:";
 
+/**
+ * Fail-closed CLEAN gate shared by pr:watch, swarm poller, and content-contracts.
+ *
+ * `minConfidence` defaults to the consumer bar (4 == legacy confidence > 3).
+ * Directive dogfood and project policy resolve a higher floor via
+ * `resolveMinGreptileConfidence` (#3095).
+ */
 export function evaluateCleanGate(params: {
   lastReviewedSha: string | null;
   headSha: string;
@@ -348,6 +355,8 @@ export function evaluateCleanGate(params: {
   ciFailures: number;
   errored: boolean;
   terminalCheckRun?: boolean;
+  /** Minimum confidence score (1–5) that CLEANs; score must be >= min. Default 4. */
+  minConfidence?: number;
 }): [boolean, string | null] {
   const {
     lastReviewedSha,
@@ -357,6 +366,7 @@ export function evaluateCleanGate(params: {
     ciFailures,
     errored,
     terminalCheckRun = true,
+    minConfidence = 4,
   } = params;
 
   if (lastReviewedSha === null || lastReviewedSha !== headSha) {
@@ -365,7 +375,7 @@ export function evaluateCleanGate(params: {
   if (hasBlocking) {
     return [false, "has_blocking"];
   }
-  if (confidence === null || confidence <= 3) {
+  if (confidence === null || confidence < minConfidence) {
     return [false, "confidence"];
   }
   if (ciFailures > 0) {

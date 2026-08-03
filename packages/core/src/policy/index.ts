@@ -24,6 +24,11 @@ import {
   FIELD_HOTFIX_CRITERIA_CLI_ALIAS,
   inspectHotfixCriteria,
 } from "./hotfix-criteria.js";
+import {
+  FIELD_MIN_GREPTILE_CONFIDENCE,
+  FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS,
+  inspectMinGreptileConfidence,
+} from "./min-greptile-confidence.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import {
   FIELD_PRODUCT_SIGNAL,
@@ -64,6 +69,7 @@ export * from "./host-hooks.js";
 export * from "./host-slash-commands.js";
 export * from "./hotfix-criteria.js";
 export * from "./intent-ceiling.js";
+export * from "./min-greptile-confidence.js";
 export * from "./no-deft-directive.js";
 export * from "./org-force-on-migration.js";
 export * from "./plan-extensions.js";
@@ -432,6 +438,19 @@ function inspectDeliveryBranchField(
   };
 }
 
+function inspectMinGreptileConfidenceField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectMinGreptileConfidence(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -464,6 +483,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
     }),
   inspectSwarmSubagentBackend,
   inspectDeliveryBranchField,
+  inspectMinGreptileConfidenceField,
   inspectHostHooksField,
   inspectHostSlashCommandsField,
   inspectOpenClawProductCommandsField,
@@ -507,7 +527,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
                         ? FIELD_HOTFIX_CRITERIA
                         : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
                           ? FIELD_DELIVERY_BRANCH
-                          : name;
+                          : name === FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS
+                            ? FIELD_MIN_GREPTILE_CONFIDENCE
+                            : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

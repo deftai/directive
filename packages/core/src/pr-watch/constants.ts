@@ -7,7 +7,10 @@
  * #1051 / #1054).
  */
 
-/** CLEAN: SHA-matched, non-errored, no P0/P1, confidence > 3, CI green. */
+/**
+ * CLEAN: SHA-matched, non-errored, no P0/P1, confidence >= resolved min, CI green.
+ * Min defaults to consumer 4 (legacy > 3); dogfood/policy may raise to 5 (#3095).
+ */
 export const EXIT_CLEAN = 0;
 /** NEW_P0_P1: blocking findings on the CURRENT (SHA-matched) review. */
 export const EXIT_NEW_P0_P1 = 1;
@@ -62,7 +65,7 @@ export const WATCH_HELP =
   "  --project-root PATH   Chdir before probing (optional)\n" +
   "\n" +
   "exit codes:\n" +
-  "  0  CLEAN       SHA-matched review, confidence > 3, no P0/P1, CI green\n" +
+  "  0  CLEAN       SHA-matched review, confidence >= policy min (default 4; dogfood 5), no P0/P1, CI green\n" +
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
   "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | RUNNER_CAPACITY_STALL | config / usage error\n";
 /**

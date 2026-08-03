@@ -5,6 +5,7 @@ import {
   parseLastReviewedShaMarkdownLink,
   parseLastReviewedShaNaiveInline,
 } from "../content-contracts/skills/greptile-detector.js";
+import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
 import {
@@ -54,9 +55,11 @@ export function probeOnce(
   prNumber: number,
   repoArg: string | null,
   runGh: RunGhFn = defaultRunGh,
+  projectRoot: string | null = null,
 ): WatchProbe {
   const resolved = resolveRepo(repoArg, runGh);
   const repo = resolved.repo;
+  const minConfidence = resolveMinGreptileConfidence(projectRoot ?? process.cwd()).min;
 
   // 1. HEAD SHA -- primary `gh pr view`, then REST fallback when a repo resolved.
   let headSha = fetchPrHeadSha(prNumber, repo, runGh);
@@ -120,6 +123,7 @@ export function probeOnce(
     ciFailures,
     errored,
     terminalCheckRun,
+    minConfidence,
   });
 
   return {

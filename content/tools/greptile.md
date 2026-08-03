@@ -124,7 +124,7 @@ The check run name is `"Greptile Review"` — this must match the context name i
 
 1. Check the `deft-directive-review-cycle` skill's Pre-Flight Check section
 2. Verify `triggerOnUpdates` is enabled — without it, Greptile never produces a follow-up review
-3. Verify the confidence score section is enabled in dashboard settings — the exit condition requires confidence >3
+3. Verify the confidence score section is enabled in dashboard settings — the exit condition requires confidence >= the resolved floor (`plan.policy.review.minGreptileConfidence`; consumer default 4 / legacy >3; directive dogfood 5 — `task policy:show --field=minGreptileConfidence`, #3095)
 
 ## Anti-Patterns
 

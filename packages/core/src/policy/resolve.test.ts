@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { disclosureLine } from "./disclosure.js";
 import {
   FIELD_ALLOW_DIRECT_COMMITS,
+  FIELD_MIN_GREPTILE_CONFIDENCE,
   FIELD_RUNTIME_AUTHORITY,
   FIELD_SESSION_RITUAL_STALENESS_HOURS,
   FIELD_WIP_CAP,
@@ -388,8 +389,9 @@ describe("inspectAllPolicies", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    // deliveryBranch (#3041) + hostSlashCommands (#3054) + openClawProductCommands (#3064) + hostSkillDiscovery (#75).
-    expect(inspectAllPolicies(r)).toHaveLength(20);
+    // deliveryBranch (#3041) + minGreptileConfidence (#3095) + hostSlashCommands (#3054)
+    // + openClawProductCommands (#3064) + hostSkillDiscovery (#75).
+    expect(inspectAllPolicies(r)).toHaveLength(21);
   });
 
   it("surfaces typed allowDirectCommits", () => {
@@ -444,6 +446,7 @@ describe("inspectAllPolicies", () => {
     expect(registeredPolicyNames()).toContain(FIELD_WIP_CAP);
     expect(registeredPolicyNames()).toContain(FIELD_RUNTIME_AUTHORITY);
     expect(registeredPolicyNames()).toContain("plan.policy.hostSkillDiscovery");
+    expect(registeredPolicyNames()).toContain(FIELD_MIN_GREPTILE_CONFIDENCE);
   });
 
   it("python repr helpers match Python style", () => {

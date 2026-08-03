@@ -270,7 +270,7 @@ Remediation:
    - `gh pr checks <N>`
    - `gh api repos/<owner>/<repo>/pulls/<N> -q .head.sha` for HEAD pin
    - `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` for Greptile terminal check-run
-5. Evaluate the same Step 6 fail-closed all-of (terminal check-run + HEAD SHA + Last reviewed commit + confidence > 3 + no P0/P1).
+5. Evaluate the same Step 6 fail-closed all-of (terminal check-run + HEAD SHA + Last reviewed commit + confidence meets resolved min (policy/dogfood/default; see Step 6 #3095) + no P0/P1).
 6. Surface missing-task once to the operator/parent on first detection; do not silently rebrand freestyle sleep as `pr:watch`.
 
 ⊗ Fake a successful `pr:watch` or `review-monitor:*` gate when every dual-invoke probe failed.
@@ -278,7 +278,7 @@ Remediation:
 ⊗ Invent ad-hoc `sleep` / main-session poll / OpenClaw cron loops outside Approach 1–3 when the skill already names this fallback (#2878 / statusreport#153 recurrence).
 ⊗ Skip Step 6 fail-closed fields because deterministic tasks are missing — the gh surfaces above remain mandatory.
 
-! When `clean_gate_holdout=ci_failures` and Greptile otherwise satisfies the probe-side Step 6 fields (SHA match on HEAD, confidence > 3, no P0/P1, not errored): **MUST NOT** idle-poll hoping CI heals. Treat Greptile CLEAN + CI red with the **same ownership** as a Greptile P0 for a merge-ready worker — one fix batch, re-push, re-probe.
+! When `clean_gate_holdout=ci_failures` and Greptile otherwise satisfies the probe-side Step 6 fields (SHA match on HEAD, confidence meets resolved min (policy/dogfood/default; see Step 6 #3095), no P0/P1, not errored): **MUST NOT** idle-poll hoping CI heals. Treat Greptile CLEAN + CI red with the **same ownership** as a Greptile P0 for a merge-ready worker — one fix batch, re-push, re-probe.
 
 ! On persistent `ci_failures` holdout: exit the Greptile wait immediately, fetch failing check annotations (`gh pr checks <N>`, CodeQL / required-check details, or `ci_failed_checks` from `pr:watch --json`), fix or escalate with evidence, then re-enter the review loop after CI is green.
 
@@ -401,7 +401,7 @@ Remediation:
 
 1. ! Launch via the matching primitive: `start_agent` (Warp), `spawn_subagent` (grok-build / TUI / non-Warp), the Cursor `Task` tool with `run_in_background: true` (`cursor-composer` / `cursor-cloud-agent`, #1877), **or OpenClaw `sessions_spawn` (`openclaw`, #2876)** with a prompt that instructs it to poll for Greptile completion. For `spawn_subagent`, Cursor `Task`, and OpenClaw `sessions_spawn` the prompt MUST reference the canonical poller template `templates/swarm-greptile-poller-prompt.md` (with placeholders filled) plus the agent preamble; the working directory / context must be the PR branch (worktree or equivalent for hybrid).
 2. ! The sub-agent polls using the mechanism for its primitive: for `spawn_subagent` use `get_command_or_subagent_output` (adaptive cadence: ~20-30s first check after push, ~60s second, ~90s thereafter; Greptile typically lands in 3-7 min); for `start_agent` the native messaging path; for the Cursor `Task` tool the backgrounded-task completion-notification path; for OpenClaw `sessions_spawn` the host session completion / messaging channel (prefer `task pr:watch` inside the child when available). Front-load the first check to catch fast reviews.
-3. ! When the exit condition is met (Greptile review current on the HEAD commit SHA, confidence > 3, no P0/P1 remaining), the sub-agent reports completion back to the parent (via `send_message_to_agent`, the spawn_subagent result channel, or the OpenClaw sessions completion channel).
+3. ! When the exit condition is met (Greptile review current on the HEAD commit SHA, confidence meets resolved min (policy/dogfood/default; see Step 6 #3095), no P0/P1 remaining), the sub-agent reports completion back to the parent (via `send_message_to_agent`, the spawn_subagent result channel, or the OpenClaw sessions completion channel).
 4. ! The main conversation pane stays fully interactive during monitoring -- the user (or parent monitor) can continue other work.
 5. ! On receiving the completion message / result, the parent re-fetches findings (both gh pr view --comments and the secondary source) and proceeds to Step 5.
 
@@ -486,7 +486,7 @@ NOTES: <short>
    - Second check: wait ~60 seconds, then poll
    - Subsequent checks: wait ~90 seconds, then poll
 2. ! Poll using `gh pr view <number> --comments` and `gh pr checks <number>` in the same shell session
-3. ! When the exit condition is met (Greptile review current, confidence > 3, no P0/P1), exit the loop and proceed to Step 5
+3. ! When the exit condition is met (Greptile review current, confidence meets resolved min (policy/dogfood/default; see Step 6 #3095), no P0/P1), exit the loop and proceed to Step 5
 4. ! If the user interrupts (Ctrl+C or equivalent), exit gracefully and report current review status
 
 ! Greptile may advance its review by **editing an existing PR issue comment** rather than creating a new PR review object. Do NOT rely solely on `pulls/{number}/reviews` — that endpoint may remain stale at an older commit SHA even after Greptile has reviewed the latest commit.
@@ -527,7 +527,7 @@ NOTES: <short>
     ```
 
    A missing or non-matching completion marker is `unknown`. See [`../../templates/swarm-greptile-poller-prompt.md`](../../templates/swarm-greptile-poller-prompt.md) `### Last reviewed commit:` for the canonical regex shared with the push-driven poller loop.
-4. ! **Confidence > 3** — the parsed `Confidence Score: X/5` is strictly greater than 3 (i.e. 4/5 or 5/5). A `confidence == 3`, an unparsed confidence, or an absent confidence is `unknown`.
+4. ! **Confidence meets resolved min (#3095)** — the parsed `Confidence Score: X/5` is **>=** the resolved floor from `plan.policy.review.minGreptileConfidence` (inspect: `task policy:show --field=minGreptileConfidence`; `pr:watch` / `pr:merge-ready` share this SoT). Resolution order: typed project policy > framework dogfood detect (framework source → **5**) > consumer default (**4**, legacy confidence > 3 / 4/5+). A score below the floor, an unparsed confidence, or an absent confidence is `unknown`. Directive dogfood MUST NOT exit CLEAN on 4/5.
 5. ! **No P0/P1 findings** — the triple-tier (+ Tier 2.5) detector reports zero P0 and zero P1 findings (P2 issues are non-blocking style suggestions and do not gate the loop).
 
 ! All five fields MUST hold on the SAME single fresh fetch. The agent MUST NOT assemble a "pass" by combining a terminal check-run observed on one poll with a confidence parsed on an earlier poll — the read is atomic per the SHA-pinned-AT-READ-TIME rule above.

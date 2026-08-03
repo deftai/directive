@@ -1,3 +1,4 @@
+import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
@@ -44,9 +45,12 @@ function buildGateResult(
   partialData: Record<string, unknown> = {},
   error: string | null = null,
   inline: InlineGreptileFindings | null = null,
+  minConfidence?: number,
 ): GateResult {
   const verdict = parseGreptileBody(body);
-  const failures = evaluateGates(prNumber, headSha, verdict, inline);
+  const failures = evaluateGates(prNumber, headSha, verdict, inline, {
+    minConfidence,
+  });
   return {
     prNumber,
     repo,
@@ -74,6 +78,23 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
    * off, an absent/stale review verdict blocks even on a GitHub-CLEAN PR.
    */
   readonly disableMergeabilityReconcile?: boolean;
+  /**
+   * Project root for resolving plan.policy.review.minGreptileConfidence (#3095).
+   * Defaults to process.cwd() when omitted.
+   */
+  readonly projectRoot?: string | null;
+  /**
+   * Override the resolved min confidence (1–5). When set, skips policy resolve.
+   * Tests and injectors use this; production callers leave it unset.
+   */
+  readonly minConfidence?: number;
+}
+
+function resolvedMinConfidence(options: ComputeGateOptions): number {
+  if (options.minConfidence !== undefined) {
+    return options.minConfidence;
+  }
+  return resolveMinGreptileConfidence(options.projectRoot ?? process.cwd()).min;
 }
 
 interface ReviewGateOutcome {
@@ -199,7 +220,11 @@ function finalizeVerdictGate(
   const resolved = resolveRepo(repo, runGh);
   const inline = loadInlineGreptileFindings(prNumber, repo, headSha, runGh);
   partialData.greptile_inline = inlineFindingsToDict(inline);
-  const failures = evaluateGates(prNumber, headSha, verdict, inline);
+  const minConfidence = resolvedMinConfidence(options);
+  partialData.min_greptile_confidence = minConfidence;
+  const failures = evaluateGates(prNumber, headSha, verdict, inline, {
+    minConfidence,
+  });
 
   if (failures.length === 0) {
     const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);

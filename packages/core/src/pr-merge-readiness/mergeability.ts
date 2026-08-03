@@ -130,7 +130,12 @@ export function verdictBlockIsSoftOnly(
   if (verdict.errored) {
     return false;
   }
-  if (verdict.confidence !== null && verdict.confidence <= 3) {
+  // Low confidence is a hard blocker (#2260 / #3095). Consumer default floor is 4
+  // (legacy > 3); dogfood/policy may raise it — callers that need the resolved
+  // floor use evaluateGates with minConfidence. Soft-only reconciliation uses
+  // the consumer floor so a 4/5 dogfood holdout still counts as hard-block here
+  // only when below the consumer default (3 or lower).
+  if (verdict.confidence !== null && verdict.confidence < 4) {
     return false;
   }
   if (verdict.p0Count > 0 || verdict.p1Count > 0) {
