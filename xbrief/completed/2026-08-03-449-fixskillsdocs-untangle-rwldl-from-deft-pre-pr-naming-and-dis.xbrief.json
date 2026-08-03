@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #449",
-    "updated": "2026-08-03T01:04:37Z"
+    "updated": "2026-08-03T02:32:58Z"
   },
   "plan": {
     "title": "fix(skills,docs): untangle RWLDL from deft-pre-pr — naming and discoverability cleanup",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Untangle RWLDL naming from deft-directive-pre-pr: pre-pr prose uses Read-Write-Lint-Diff not RWLDL loop; formerly note points to tools/RWLDL.md; remove rwldl trigger routing to pre-pr; REFERENCES discoverability for RWLDL as distinct tool. Current shape 2026-08-02 residual AC. Single small docs/skill PR.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/449",
@@ -18,28 +18,28 @@
     "items": [
       {
         "title": "Pre-pr skill language not RWLDL loop",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given deft-directive-pre-pr SKILL.md, when anti-patterns and body are read, then the skill loop is called pre-PR / Read-Write-Lint-Diff, not RWLDL loop/iteration."
         }
       },
       {
         "title": "Formerly note points to tools/RWLDL.md",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the Formerly deft-rwldl note, when read, then it states rename for PR readiness and points to tools/RWLDL.md for the broader quality loop."
         }
       },
       {
         "title": "rwldl trigger no longer routes to pre-pr",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given REFERENCES Skills Index, when searching triggers, then rwldl does not route to deft-directive-pre-pr; RWLDL is discoverable under tools."
         }
       },
       {
         "title": "Pack/source mirrors updated",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given pack-rendered skills, when packs:render --check runs after source edit, then rendered skill and index stay consistent."
         }
@@ -86,8 +86,27 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "AC from #449 body + Current shape 2026-08-02 residual items 1-4."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": "master",
+        "mergeCommit": "07efca6b63ecfa7ff672717d514e1dac8010b4f1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "07efca6b63ecfa7ff672717d514e1dac8010b4f1",
+        "verifiedAt": "2026-08-03T02:32:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T02:32:58Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-03T01:04:37Z"
+    "updated": "2026-08-03T02:32:58Z"
   }
 }
