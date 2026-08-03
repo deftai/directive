@@ -441,6 +441,7 @@ describe("dispatch", () => {
       ["review-monitor:register", "review-monitor-register"],
       ["review-monitor:release", "review-monitor-release"],
       ["verify:review-monitor", "verify-review-monitor"],
+      ["verify:l4-owner", "verify-l4-owner"],
     ] as const;
     for (const [alias, canonical] of reviewMonitorVerbs) {
       expect(resolveCanonicalVerb(alias)).toBe(canonical);

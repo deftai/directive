@@ -496,6 +496,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-review-monitor {{.CLI_ARGS}}'
 
+  l4-owner:
+    desc: "Owner Continuity / L4 owner gate (#3090): exit 0 only if sticky review-owner lease is fresh or --review-cycle done (forbid freeform started/pending). Three-state exit (0 ready / 1 silent hold / 2 config)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-l4-owner {{.CLI_ARGS}}'
+
   subagent-alive:
     desc: "Fail-closed worker liveness gate (#2824): missing/STALE heartbeats for in-flight drive-to:merge* workers exit 1 with REDISPATCH_OK. Three-state exit (0 alive / 1 stale-or-missing / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'

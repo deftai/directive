@@ -172,6 +172,14 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("#2261");
     expect(templateText).toContain("PR shepherding intent");
   });
+  it("template_review_cycle_evidence_enum_3090", () => {
+    expect(templateText).toContain("review_cycle");
+    expect(templateText).toContain("#3090");
+    expect(templateText).toContain("in_progress:<pr>#<monitor_or_lease_ref>");
+    expect(templateText).toContain("verify:l4-owner");
+    expect(templateText).toContain("silent hold");
+    expect(templateText).toMatch(/started.*pending.*initiated|freeform `review_cycle: started`/s);
+  });
   it("template_identity_section_forbids_host_gh_only_for_wrong_mode", () => {
     expect(templateText).toContain("mode-aware GitHub credential rules");
     expect(templateText).toContain("github_auth_mode: injected-token");

@@ -1,0 +1,80 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3090 — Owner Continuity Gate for drive-to-merge / review-cycle",
+    "updated": "2026-08-03T17:57:43Z"
+  },
+  "plan": {
+    "title": "fix(review-cycle,evidence): Owner Continuity Gate — ban silent hold after drive-to-merge",
+    "status": "running",
+    "narratives": {
+      "Description": "After drive-to:merge-ready / babysit / shepherd claims, ban silent hold: require Approach 1 monitor+lease, parent-retained ownership, or explicit blocked finish. Constrain review_cycle evidence enum; optional verify:l4-owner; eval regression for check SUCCESS + open P1s + no lease.",
+      "Origin": "https://github.com/deftai/directive/issues/3090",
+      "Acceptance": "review_cycle enum only done|in_progress:…|skipped:…|n/a; L4 status:pass illegal without done or verifiable in_progress lease; Owner Continuity Gate MUST in deft-directive-review-cycle; anti-patterns for silent hold / check-run SUCCESS alone / review_cycle:started; optional verify:l4-owner; eval FAIL case for silent hold after drive-to-merge claim; content-contract pins.",
+      "ImplementationPlan": "Edit review-cycle skill pack + evidence/handoff docs; optional packages CLI verify:l4-owner; content-contracts + eval fixture; CHANGELOG. Parallel-safe vs #1273 (no file overlap).",
+      "Overview": "See issue #3090 body. Related #2876 #2878 #2797."
+    },
+    "items": [
+      {
+        "title": "Owner Continuity Gate in review-cycle skill",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Skill documents A/B/C same-turn ends and silent-hold anti-patterns."
+        }
+      },
+      {
+        "title": "review_cycle evidence enum",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Enum constrained; freeform started/pending forbidden in handoff surface."
+        }
+      },
+      {
+        "title": "Optional verify:l4-owner + eval",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Gate or eval fails silent hold with SUCCESS check + open P1s + no lease."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "skills",
+      "review-cycle",
+      "determinism",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3090",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3090"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2876",
+        "type": "x-xbrief/related",
+        "title": "Related #2876"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2797",
+        "type": "x-xbrief/related",
+        "title": "Related #2797"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/templates/agent-prompt-preamble.md",
+          "packages/core/src/content-contracts/skills/",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "updated": "2026-08-03T17:57:43Z"
+  }
+}

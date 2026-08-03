@@ -259,4 +259,32 @@ describe("test_review_cycle_skill", () => {
       true,
     );
   });
+
+  it("owner_continuity_gate_and_review_cycle_enum (#3090)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("### Owner Continuity Gate (#3090)");
+    expect(text).toContain("silent hold");
+    expect(text).toContain("review_cycle");
+    expect(text).toContain("in_progress:<pr>#<monitor_or_lease_ref>");
+    expect(text).toContain("skipped:<reason>");
+    expect(text).toContain("verify:l4-owner");
+    // Enum tokens
+    expect(text).toMatch(/`done`/);
+    expect(text).toContain("n/a");
+    // A/B/C same-turn ends
+    expect(text).toContain("**A.**");
+    expect(text).toContain("**B.**");
+    expect(text).toContain("**C.**");
+    // Anti freeform + check SUCCESS alone
+    expect(text).toContain("started");
+    expect(text).toContain("pending");
+    expect(text).toContain("initiated");
+    expect(text).toMatch(/SUCCESS alone/);
+    // Eval FAIL case narrative
+    expect(text).toContain("Eval / regression (#3090)");
+    expect(text).toContain("0 subagents");
+    expect(text).toMatch(/FAIL.*Owner Continuity Gate|Owner Continuity Gate.*FAIL/s);
+    // Anti-patterns block
+    expect(text).toContain("silent hold (#3090)");
+  });
 });

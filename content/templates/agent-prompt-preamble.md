@@ -545,10 +545,13 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 
 ! **Empty announce ≠ done / single review-monitor lease (#3044 / FC04 residual):** An empty settle, missing `STATUS:` line, or `status: unknown` from a review-monitor (`subagent_announce` with `(no output)` included) is **not** DONE/CLEAN/merge-ready. Parent MUST same-turn ground truth (`gh pr view` + checks + HEAD) and MUST NOT spawn a second monitor while the prior owner is running or only falsely settled. Prefer one sticky `<!-- deft:review-owner -->` lease and a non-empty `STATUS`/`HEAD`/`CHECKS`/`MERGE` handback. Full MUST language: `skills/deft-directive-review-cycle/SKILL.md` + OpenClaw host adapter residual.
 
+! **`review_cycle` evidence enum (#3090):** Handoffs, swarm finish messages, and L4 process claims MUST use only `done` | `in_progress:<pr>#<monitor_or_lease_ref>` | `skipped:<reason>` | `n/a`. Freeform `started` / `pending` / `initiated` is forbidden. L4 `status: pass` is illegal unless `review_cycle: done` (Step 6 fail-closed on HEAD) or `review_cycle: in_progress:…` with a verifiable sticky lease / parent-retained ownership. After a drive-to:merge-ready / babysit / shepherd claim, the same turn MUST end in Owner Continuity Gate A/B/C (monitor+lease, parent-retained next dual-source action, or explicit BLOCKED/FAILED finish) — never silent hold. Optional machine gate: `deft verify:l4-owner --pr <N>` / `task verify:l4-owner -- --pr <N>`. Full MUST language: `skills/deft-directive-review-cycle/SKILL.md` Owner Continuity Gate.
+
 ! **Parent tool-first after leaf completion (#2943):** When a parent / monitor receives a leaf completion event (`subagent_announce`, parent-push, or host completion notify), its **first response** MUST be a **tool-first** ground-truth batch (`gh` / `git` / worktree or file status) **or** a host **yield** (`sessions_yield` on OpenClaw, or equivalent). ⊗ Multi-sentence progress-only first response with zero tools / yield — the OpenClaw text-repetition hang class (#2943).
 
 ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
 ⊗ Treat empty/unknown review-monitor settle as DONE without same-turn ground truth, or dual-spawn a second monitor while the first lease is live (#3044).
+⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without `done` or verifiable `in_progress:<pr>#…` (#3090).
 
 Per-step acks during the run are noise. ONE start message, ONE final message; intermediate messages only on `BLOCKED` / `FAILED`. The final message lets the dispatcher distinguish a clean exit from a silent timeout when the lifecycle event arrives.
 

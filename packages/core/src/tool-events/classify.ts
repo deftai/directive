@@ -238,6 +238,7 @@ const VERIFY_TASK_VERBS = new Set([
   "verify:forward-coverage",
   "verify:story-ready",
   "verify:review-monitor",
+  "verify:l4-owner",
   "pr:watch",
   "pr:merge-ready",
   "coverage:hotspots",

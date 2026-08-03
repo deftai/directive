@@ -324,6 +324,35 @@ Remediation:
 
 ⊗ Treat a stall as silent -- if the elapsed clock crosses the 10-minute threshold the agent MUST surface the menu, even if the agent is mid-poll. Continuing to poll past the threshold without user input is forbidden.
 
+### Owner Continuity Gate (#3090)
+
+! After any claim of `drive-to: merge-ready`, babysit, shepherd, or "driving review-cycle / merge" on an **open PR**, the **same turn** MUST end in exactly one of:
+
+- **A.** Approach 1 monitor live + sticky `<!-- deft:review-owner -->` lease registered (or #2878 gh-only lease equivalent). Parent yields with an **active** child / monitor and emits `review_cycle: in_progress:<pr>#<monitor_or_lease_ref>`.
+- **B.** Parent-retained ownership: parent does **not** mark the work complete; the next concrete action is an explicit dual-source poll/fix (Step 1 + Step 6). Emit `review_cycle: in_progress:<pr>#parent-retained` (or lease id when a sticky lease exists).
+- **C.** Explicit finish to caller/principal: `BLOCKED` / needs decision / `FAILED` with PR URL + HEAD SHA + why. Emit `review_cycle: skipped:<reason>` or keep `in_progress` only when a live owner remains; never freeform `started`.
+
+! **`review_cycle` evidence enum (portable — all consumers / handoffs / preamble §11 / swarm finish messages):** **only**
+  - `done` — Step 6 fail-closed all-of met on current HEAD (terminal check + HEAD pin + confidence bar + **0 P0/P1** via **dual-source**)
+  - `in_progress:<pr>#<monitor_or_lease_ref>` — verifiable sticky lease, registered monitor id, or documented `parent-retained` ownership
+  - `skipped:<reason>` — intentional skip (e.g. no-pr, operator cancel)
+  - `n/a` — work never entered review-cycle
+
+! Layer **L4** `status: pass` (or equivalent process-green handoff) is **illegal** unless `review_cycle: done` **or** `review_cycle: in_progress:…` with **verifiable** sticky lease / parent-retained ownership documented on that turn.
+
+! Opening a PR may use `in_progress` + lease; the **merge path** requires `done` (stricter product merge bars remain out of scope).
+
+! When dual-source fetch shows open P0/P1 under Step 6 / CLEAN evaluation: continue the fix loop **or** exit **BLOCKED** to the parent — never idle.
+
+! Optional machine gate: `deft verify:l4-owner --pr <N>` (or `task verify:l4-owner -- --pr <N>`; dual-invoke same order as other gates). Exit **0** only when a sticky lease is fresh on the PR **or** the caller asserts `--review-cycle done` after Step 6. Exit **1** on silent hold (no lease, no done). Pair with existing monitor-without-lease regression (#2797).
+
+⊗ End an owning turn with **0 children**, **no sticky lease**, and **no finish signal** after a drive-to-merge / babysit / shepherd claim (**silent hold**).
+⊗ Treat check-run **SUCCESS alone** as CLEAN or merge-ready while dual-source P0/P1 remain open.
+⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without **A** (or parent-retained **B** with explicit next action) or full Step 6 `done`.
+⊗ Solve Owner Continuity via host cron-as-Approach-1 or always-block-parent-until-merge — use A/B/C above (#2876 / #3090).
+
+~ **Eval / regression (#3090):** Given PR open + check SUCCESS + open inline P1s + agent text claims driving merge + turn ends with 0 subagents and no lease → **FAIL** (Owner Continuity Gate), not PASS.
+
 ### Review Monitoring
 ! **Background / independent dispatch (#1880 Gap D):** Long-running review-cycle owners and pollers (>~3 min) MUST be dispatched independently / in the background so the parent conversation stays interactive. On Cursor, use the Task tool background path (`run_in_background: true`). This generalizes the Approach-1 sub-agent monitor rule to implementation and fix workers as well — foreground dispatch is reserved for short tasks. The parent receives completion via `DONE` / `BLOCKED` / `FAILED` per `templates/agent-prompt-preamble.md` §11.
 
@@ -585,6 +614,9 @@ task lifecycle:event -- emit plan:approved \
 
 ## Anti-Patterns
 
+- ⊗ End owning turn with 0 children, no sticky lease, and no finish after drive-to-merge / babysit / shepherd claim — silent hold (#3090)
+- ⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without `done` or verifiable `in_progress:<pr>#…` lease/parent-retained (#3090)
+- ⊗ Treat check-run SUCCESS alone as CLEAN / merge-ready while dual-source P0/P1 remain (#3090)
 - ⊗ Ignore [`coding/review.md`](../../coding/review.md) while running this adapter — universal batch/severity/exit/post-merge rules live there
 - ⊗ Route PR shepherding to Cursor global `babysit` on Deft-managed repos when `.deft/core/` is installed -- use this review-cycle skill instead (#2261)
 - ⊗ Route OpenClaw babysit/shepherd/watch to main-session gh poll + cron when `sessions_spawn` is available -- use Approach 1 with `sessions_spawn` (#2876 / #2261)
