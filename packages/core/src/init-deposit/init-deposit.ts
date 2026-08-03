@@ -15,6 +15,7 @@ import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { renderProjectDefinition } from "../render/project-render.js";
+import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
@@ -271,6 +272,11 @@ export async function runInitDeposit(
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
   writeAgentHookDeposit(projectDir, io);
   writeSlashCommandDeposit(projectDir, io);
+  // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
+  depositOpenClawL2ProductCommands({
+    projectRoot: projectDir,
+    printf: (t) => io.printf(t),
+  });
 
   let taskfileWired = false;
   if (args.nonInteractive) {

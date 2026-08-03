@@ -3,6 +3,7 @@ import { validateHostSlashCommands } from "../policy/host-slash-commands.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { validateRuntimeAuthority } from "../policy/runtime-authority.js";
 import { validateStalenessTickler } from "../policy/staleness-tickler.js";
+import { validateOpenClawProductCommands } from "../slash/openclaw-deposit.js";
 import {
   validateTriageAutoClassifyOnPlan,
   validateTriageHoldMarkersOnPlan,
@@ -183,6 +184,27 @@ export function validateHostSlashCommandsOnPlan(plan: unknown, filepath: string)
   return out;
 }
 
+/** vbrief_validate hook: validate ``plan.policy.openClawProductCommands`` (#3064). */
+export function validateOpenClawProductCommandsOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("openClawProductCommands" in (policy as JsonObject))) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const err of validateOpenClawProductCommands(
+    (policy as JsonObject).openClawProductCommands,
+  )) {
+    out.push(`${filepath}: ${err} (#3064)`);
+  }
+  return out;
+}
+
 /** vbrief_validate hook: validate ``plan.policy.stalenessTickler`` (#2489). */
 export function validateStalenessTicklerOnPlan(plan: unknown, filepath: string): string[] {
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
@@ -253,6 +275,11 @@ export function runProjectDefinitionHooks(plan: unknown, filepath: string): stri
   }
   try {
     errors.push(...validateHostSlashCommandsOnPlan(plan, filepath));
+  } catch {
+    /* hook must not break validation */
+  }
+  try {
+    errors.push(...validateOpenClawProductCommandsOnPlan(plan, filepath));
   } catch {
     /* hook must not break validation */
   }

@@ -41,6 +41,7 @@ import {
   renderGlobalInstall,
   resolveEngine,
 } from "../resolution/index.js";
+import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
@@ -678,6 +679,11 @@ export async function runRefreshDeposit(
   // #75 residual: multi-host thin skill discovery (mirror `.agents/skills` inventory).
   writeMultiHostSkillDiscovery(projectDir, io);
   writeSlashCommandDeposit(projectDir, io);
+  // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
+  depositOpenClawL2ProductCommands({
+    projectRoot: projectDir,
+    printf: (t) => io.printf(t),
+  });
   // #2530: root `.githooks/` is a consumer derivative like #2595 marker/schemas —
   // repair on every refresh, including the already-current no-op path.
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);

@@ -14,5 +14,10 @@ describe("slash public surface (#3052 / #3053)", () => {
     expect(slash.emitHostCommandFiles("claude")).toHaveLength(13);
     expect(slash.HOST_COMMAND_LAYOUTS.claude.relativeDir).toBe(".claude/commands");
     expect(slash.emitAllHostCommandFiles().size).toBe(4);
+    // #3064 OpenClaw adapter surface (not a file emitter host).
+    expect(slash.OPENCLAW_ROUTER_SLUG).toBe("deft");
+    expect(slash.logicalIdToOpenClawSlug("/deft:continue")).toBe("deft_continue");
+    expect(slash.generateOpenClawSkillArtifacts()).toHaveLength(14);
+    expect(slash.SLASH_EMITTER_HOSTS).not.toContain("openclaw");
   });
 });

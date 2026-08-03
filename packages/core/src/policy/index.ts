@@ -4,6 +4,11 @@ import {
   inspectHostSkillDiscovery,
 } from "../init-deposit/skill-discovery-hosts.js";
 import {
+  FIELD_OPENCLAW_PRODUCT_COMMANDS,
+  FIELD_OPENCLAW_PRODUCT_COMMANDS_CLI_ALIAS,
+  inspectOpenClawProductCommands,
+} from "../slash/openclaw-deposit.js";
+import {
   FIELD_DELIVERY_BRANCH,
   FIELD_DELIVERY_BRANCH_CLI_ALIAS,
   inspectDeliveryBranch,
@@ -371,6 +376,16 @@ function inspectHostSlashCommandsField(data: Record<string, unknown> | null): Po
   };
 }
 
+function inspectOpenClawProductCommandsField(data: Record<string, unknown> | null): PolicyField {
+  const field = inspectOpenClawProductCommands(data);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectHostSkillDiscoveryField(data: Record<string, unknown> | null): PolicyField {
   const field = inspectHostSkillDiscovery(data);
   return {
@@ -451,6 +466,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectDeliveryBranchField,
   inspectHostHooksField,
   inspectHostSlashCommandsField,
+  inspectOpenClawProductCommandsField,
   inspectHostSkillDiscoveryField,
   inspectStalenessTicklerField,
   inspectRuntimeAuthorityField,
@@ -481,15 +497,17 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
               ? FIELD_HOST_HOOKS
               : name === FIELD_HOST_SLASH_COMMANDS_CLI_ALIAS
                 ? FIELD_HOST_SLASH_COMMANDS
-                : name === FIELD_HOST_SKILL_DISCOVERY_CLI_ALIAS
-                  ? FIELD_HOST_SKILL_DISCOVERY
-                  : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
-                    ? FIELD_REQUIRE_HUMAN_MERGE
-                    : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
-                      ? FIELD_HOTFIX_CRITERIA
-                      : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
-                        ? FIELD_DELIVERY_BRANCH
-                        : name;
+                : name === FIELD_OPENCLAW_PRODUCT_COMMANDS_CLI_ALIAS
+                  ? FIELD_OPENCLAW_PRODUCT_COMMANDS
+                  : name === FIELD_HOST_SKILL_DISCOVERY_CLI_ALIAS
+                    ? FIELD_HOST_SKILL_DISCOVERY
+                    : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
+                      ? FIELD_REQUIRE_HUMAN_MERGE
+                      : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
+                        ? FIELD_HOTFIX_CRITERIA
+                        : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
+                          ? FIELD_DELIVERY_BRANCH
+                          : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

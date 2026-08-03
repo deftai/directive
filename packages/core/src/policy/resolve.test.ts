@@ -388,8 +388,8 @@ describe("inspectAllPolicies", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-inspect-"));
     roots.push(r);
     writeProjectDef(r, {});
-    // deliveryBranch (#3041) + hostSlashCommands (#3054) + hostSkillDiscovery (#75).
-    expect(inspectAllPolicies(r)).toHaveLength(19);
+    // deliveryBranch (#3041) + hostSlashCommands (#3054) + openClawProductCommands (#3064) + hostSkillDiscovery (#75).
+    expect(inspectAllPolicies(r)).toHaveLength(20);
   });
 
   it("surfaces typed allowDirectCommits", () => {

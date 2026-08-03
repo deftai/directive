@@ -22,8 +22,11 @@ On `directive init` and `deft update`, Directive deposits **exactly 13** thin wr
 | `cursor` | `.cursor/commands/` | commands |
 | `grok` | `.grok/commands/` | commands |
 | `codex` | `.codex/prompts/` | prompts |
+| **OpenClaw** (adapter, not file emitter) | OpenClaw **workspace skills** (`~/.openclaw/workspace/skills` or `$OPENCLAW_STATE_DIR/...`) | user-invocable skills + router |
 
-Filenames use portable hyphens (L4), for example `deft-directive-run-interview.md` and `deft-continue.md`. Logical slash ids keep the namespace form (`/deft:directive:run:interview`).
+File hosts use portable hyphen filenames (L4), for example `deft-directive-run-interview.md` and `deft-continue.md`. Logical slash ids keep the namespace form (`/deft:directive:run:interview`).
+
+**OpenClaw** is **not** a fifth row in `SLASH_EMITTER_HOSTS` / `HOST_COMMAND_LAYOUTS`. There is no project-tree `.openclaw/commands/` deposit (that would be stub theater — Gateway does not load that path). OpenClaw L2 parity ships as a **skills/plugin adapter** ([#3064](https://github.com/deftai/directive/issues/3064)): thin **user-invocable** skills under the main workspace skills root, with a stable `logicalId → openClawSlug` map (`a-z0-9_`, max 32). See [openclaw-agent-host.md](./openclaw-agent-host.md) § L2 product commands.
 
 ⊗ Treat last-writer-wins single-host install as the product default. One repo may use many hosts; deposit targets the **configured set** in one pass.
 
@@ -98,6 +101,28 @@ On opt-out, init/update **removes only** Directive-managed thin wrappers for tha
 
 This policy is parallel to `plan.policy.hostHooks` (enforcement hooks). Hooks and slash deposit are separate surfaces.
 
+### OpenClaw adapter opt-out (`plan.policy.openClawProductCommands`)
+
+OpenClaw L2 deposit is **separate** from the four file emitters. Default **on** when the adapter is real and OpenClaw is detected.
+
+```json
+{
+  "plan": {
+    "policy": {
+      "openClawProductCommands": false
+    }
+  }
+}
+```
+
+```bash
+deft policy:show --field=openClawProductCommands
+```
+
+When false, init/update/doctor **removes only** Directive-managed OpenClaw L2 thin skills (router + 13 product slugs). Consumer-customized skills at the same slug are left alone. Deposit **does not write** OpenClaw artifacts when OpenClaw is not detected (fail-closed).
+
+Primary recovery: `deft doctor --fix` (optional `--openclaw-all-agents` for multi-seat).
+
 ---
 
 ## Git policy (L8 — prefer commit)
@@ -116,21 +141,25 @@ This policy is parallel to `plan.policy.hostHooks` (enforcement hooks). Hooks an
 
 ## Prose fallback (L9)
 
-Hosts without native registration (or with all hosts opted out) still use the agent text convention in [commands.md](../commands.md). AGENTS.md and skills routing continue to work without native autocomplete files.
+File hosts without native registration (or with all file hosts opted out) still use the agent text convention in [commands.md](../commands.md). AGENTS.md and skills routing continue to work without native autocomplete files.
+
+**OpenClaw** after [#3064](https://github.com/deftai/directive/issues/3064): when the adapter has deposited L2 skills, operators should prefer the invocable skills / router — not prose-only discovery. Prose `/deft:directive:…` remains accepted in agent text when skills are not yet wired (doctor not run, policy off, or host without OpenClaw signals).
 
 ---
 
-## Slash registration vs skill discovery (#55 vs #75)
+## Slash registration vs skill discovery (#55 vs #75 vs #3064)
 
 | Concern | Tracker | What lands |
 |---------|---------|------------|
 | Native slash / prompt **command files** | #55 | Thin wrappers under host command/prompt dirs; multi-host deposit |
 | Skill auto-discovery paths | #75 | `SKILL.md` discovery under `.agents/skills/`, `.claude/skills/`, etc. |
+| OpenClaw L2 product commands | #3064 | Thin **user-invocable** skills + router in OpenClaw workspace skills (not a file emitter) |
 
 ! Do not treat skill discovery alone as “slash registration done.”  
-! Do not dual-maintain full skill bodies as command file contents (L7).
+! Do not dual-maintain full skill bodies as command file contents (L7).  
+! Do not invent project `.openclaw/commands/` for L2 parity.
 
-Agent-host runtime notes (OpenClaw, etc.) live under [openclaw-agent-host.md](./openclaw-agent-host.md). That guide covers spawn and review-monitor mapping, not the L2 command table.
+Agent-host runtime notes (OpenClaw spawn/review + L2 skills) live under [openclaw-agent-host.md](./openclaw-agent-host.md).
 
 ---
 
@@ -192,10 +221,13 @@ Use this after install or upgrade when two or more hosts share one repo.
 | Surface | Role |
 |---------|------|
 | [commands.md § Slash Command Namespaces](../commands.md#slash-command-namespaces-418--1670) | Prose namespaces, routing, deprecation aliases, deposit pointer |
-| `packages/core/src/slash/` | Generator IR + emitters (maintainers) |
-| `writeSlashCommandDeposit` | init/update deposit |
+| `packages/core/src/slash/` | Generator IR + emitters + OpenClaw adapter (maintainers) |
+| `writeSlashCommandDeposit` | init/update file-host deposit |
+| `depositOpenClawL2ProductCommands` / doctor OpenClaw L2 check | OpenClaw skills adapter (#3064) |
+| `plan.policy.openClawProductCommands` | OpenClaw L2 adapter opt-out |
 | `plan.policy.hostHooks` | Host enforcement hooks (#2438) — not slash files |
 | [#75](https://github.com/deftai/directive/issues/75) | Skill discovery residual |
+| [#3064](https://github.com/deftai/directive/issues/3064) | OpenClaw L2 product-command adapter |
 
 ---
 

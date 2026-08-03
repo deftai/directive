@@ -60,6 +60,7 @@ import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } fro
 import { pythonJsonDump } from "./json.js";
 import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { runNpmRegistryMirrorCheck } from "./npm-registry.js";
+import { runOpenClawL2AdapterCheck } from "./openclaw-l2-adapter.js";
 import { runOpenClawSkillPinsCheck } from "./openclaw-skills.js";
 import { createPlainSink } from "./output.js";
 import {
@@ -494,6 +495,18 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       isTty: seams.isTty,
       readYn: seams.readYn,
     },
+  });
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking OpenClaw L2 product-command skills...");
+  runOpenClawL2AdapterCheck(sink, addFinding, {
+    projectRoot,
+    fixMode,
+    jsonMode,
+    allAgents: flags.openclawAllAgents,
+    seams,
   });
 
   if (!jsonMode) {

@@ -27,6 +27,9 @@ describe("slash multi-host docs (#3055)", () => {
       ".codex/prompts/",
       "thin",
       "LockedDecisions",
+      "#3064",
+      "openClawProductCommands",
+      "OpenClaw",
     ]) {
       expect(text, `guide missing ${tok}`).toContain(tok);
     }

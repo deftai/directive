@@ -18,7 +18,51 @@ Epic spine: [#2874](https://github.com/deftai/directive/issues/2874). This doc i
 
 If you are installing Directive for the first time, start at [QUICK-START.md](../QUICK-START.md) or [getting-started.md](./getting-started.md), then return here for host-specific expectations.
 
-Native **slash/prompt command registration** (multi-host thin wrappers under `.claude/commands/`, `.cursor/commands/`, and peers) is documented in [slash-multi-host.md](./slash-multi-host.md) (epic #55). That surface is separate from OpenClaw skill/spawn mapping and from skill-discovery residual [#75](https://github.com/deftai/directive/issues/75).
+Native **file-host** slash/prompt command registration (thin wrappers under `.claude/commands/`, `.cursor/commands/`, and peers) is documented in [slash-multi-host.md](./slash-multi-host.md) (epic #55). **OpenClaw L2 product commands** are a separate skills adapter ([#3064](https://github.com/deftai/directive/issues/3064)) — see § L2 product commands below. That surface is separate from always-pin skills (#3001/#3008), spawn/review mapping, and skill-discovery residual [#75](https://github.com/deftai/directive/issues/75).
+
+---
+
+## L2 product commands (OpenClaw adapter — #3064)
+
+OpenClaw does **not** load repo-local command files the way Claude/Cursor do. L2 parity for the **exactly 13** product commands is delivered as **thin user-invocable skills** deposited into the OpenClaw **main workspace skills** root (real copies — not symlink-escape into npm; same spirit as always-pins).
+
+### Hybrid layout (LockedDecisions D1–D3)
+
+| Artifact | OpenClaw slug | Role |
+|----------|---------------|------|
+| **Router** | `deft` | Preferred **native/menu-facing** entry (Telegram `BOT_COMMANDS` budget) |
+| **13 product skills** | e.g. `deft_run_interview`, `deft_continue` | Invocable as `/<slug>` text skills for discoverability |
+
+Stable map (logical slash → OpenClaw slug, `a-z0-9_`, max 32). Colons never appear in OC slugs. Example: `/deft:directive:run:interview` → `deft_run_interview`. Full table lives in `packages/core/src/slash/openclaw-slugs.ts` and is unit-tested for bijectivity against `listProductCommands()`.
+
+Bodies stay **thin** (L5): frontmatter + short dispatch pointer to the same content-relative targets as file hosts (`generateThinWrappers()` IR). ⊗ Inline full strategy/skill bodies. ⊗ Add `openclaw` to `HOST_COMMAND_LAYOUTS` / invent `.openclaw/commands/`.
+
+### Native menu / `commands.nativeSkills` (D3)
+
+| Setting | Expected behavior |
+|---------|-------------------|
+| Prefer menu safety | Use the **`deft` router** as the primary bot menu entry; invoke product work via router args or typed `/deft_run_*` skill text |
+| `commands.nativeSkills` **on** / aggressive native registration | All `user-invocable: true` skills (router + 13 + always-pins) **may** flood Telegram → `BOT_COMMANDS_TOO_MUCH` risk |
+| `auto` / selective | Prefer **router-first** for menu slots; keep the 13 invocable as skill/text without requiring 13 menu slots |
+| **off** | Skills remain loadable; operators type skill names / prose — no native menu flood |
+
+! Do not require 13 Telegram bot menu slots for L2 parity.
+
+### Wire path (D4–D5)
+
+1. **Primary recovery:** `deft doctor --fix` when OpenClaw is detected — deposits managed L2 skills next to always-pins.
+2. **init/update:** deposits when OpenClaw signals are present and `plan.policy.openClawProductCommands` is not false. **Fail-closed** when OpenClaw is not detected (no writes on non-OC machines).
+3. Multi-seat: `deft doctor --fix --openclaw-all-agents` (same flag as always-pins).
+4. Opt-out: `plan.policy.openClawProductCommands: false` — removes **managed** L2 thin skills only; preserves consumer custom skills at the same slug.
+5. After deposit: **restart the OpenClaw gateway or start a new session** so `available_skills` refreshes.
+
+Always-pin skills (`deft-directive-build`, `pre-pr`, `review-cycle`, `swarm`) remain a **different** surface from L2 product commands (`/deft:directive:run:interview`, `/deft:continue`, …).
+
+Inspect policy:
+
+```bash
+deft policy:show --field=openClawProductCommands
+```
 
 ---
 
