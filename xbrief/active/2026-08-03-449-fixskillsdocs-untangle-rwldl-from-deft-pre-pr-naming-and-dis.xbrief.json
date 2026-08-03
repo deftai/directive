@@ -1,0 +1,93 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #449",
+    "updated": "2026-08-03T01:04:37Z"
+  },
+  "plan": {
+    "title": "fix(skills,docs): untangle RWLDL from deft-pre-pr — naming and discoverability cleanup",
+    "status": "running",
+    "narratives": {
+      "Description": "Untangle RWLDL naming from deft-directive-pre-pr: pre-pr prose uses Read-Write-Lint-Diff not RWLDL loop; formerly note points to tools/RWLDL.md; remove rwldl trigger routing to pre-pr; REFERENCES discoverability for RWLDL as distinct tool. Current shape 2026-08-02 residual AC. Single small docs/skill PR.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/449",
+      "Overview": "## Problem\n\nRWLDL (`tools/RWLDL.md`) and `deft-pre-pr` are two distinct loops that have been conflated through naming. This causes confusion about what each one does.\n\n- **`tools/RWLDL.md`** — general-purpose iterative quality improvement loop (micro/macro review cycles, performance, security, coverage ≥95%, benchmarks). Development-time tool. State tracked in `ldl-progress.md`.\n- **`skills/deft-pre-pr`** — PR readiness check (Read-Write-Lint-Diff until zero changes). Narrow scope: RFC2119 markers, spec acceptance criteria, scope creep, `task check`. No persistent state.\n\n`deft-pre-pr` was formerly `deft-rwldl` and diverged from the original concept, but retained the name in several places.\n\n## Changes\n\n### 1. `skills/deft-pre-pr/SKILL.md` — fix anti-pattern language\n\nThe anti-patterns use \"RWLDL loop\" to refer to the Read-Write-Lint-Diff loop, which is not the same thing.\n\nReplace: `⊗ Submit a PR without running the RWLDL loop`\nWith: `⊗ Submit a PR without running this pre-PR loop (Read-Write-Lint-Diff)`\n\nApply the same correction to any other internal references that call the deft-pre-pr loop \"RWLDL\".\n\n### 2. `skills/deft-pre-pr/SKILL.md` — clarify the \"Formerly\" note\n\nCurrent: `**Formerly `deft-rwldl`** -- renamed to clearly communicate the skill's purpose`\n\nReplace with something like: `**Formerly `deft-rwldl`** -- renamed and scoped to PR readiness. For the broader iterative quality improvement loop (micro/macro review), see [tools/RWLDL.md](../../tools/RWLDL.md).`\n\nThis makes the relationship and the divergence explicit rather than leaving the reader to infer that deft-pre-pr and RWLDL are the same thing.\n\n### 3. `AGENTS.md` — remove `\"rwldl\"` from `deft-pre-pr` triggers\n\nCurrent routing:\n```\n\"pre-pr\" / \"quality loop\" / \"rwldl\" / \"self-review\" → skills/deft-pre-pr/SKILL.md\n```\n\nRemove `\"rwldl\"` from this list. Someone invoking \"rwldl\" wants the micro/macro quality improvement loop, not the PR readiness check. Leave `\"pre-pr\"`, `\"quality loop\"`, and `\"self-review\"` as triggers for `deft-pre-pr`.\n\n### 4. `REFERENCES.md` — add `tools/RWLDL.md` entry\n\nRWLDL.md is not currently in REFERENCES.md, making it undiscoverable. Add one line under the quality/code review section:\n\n```\n- **[tools/RWLDL.md](./tools/RWLDL.md)** — iterative micro/macro code quality improvement loop\n  - Load: When doing deep quality work outside the PR readiness context\n```\n\n## Out of scope\n\nCreating a `deft-refine` skill to wrap RWLDL.md is a separate, future piece of work. These four changes are self-contained cleanup only.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-04-20T04:06:46Z)\n\n## Coordination with #435 Risk-11 (2026-04-20)\r\n\r\nPer post-walkthrough triage. Both this issue (RWLDL / deft-pre-pr naming and discoverability cleanup) and the #435 Risk-11 addendum (https://github.com/deftai/directive/issues/435#issuecomment-4277610167) edit `skills/deft-directive-pre-pr/SKILL.md`. Need to sequence or bundle to avoid conflicts.\r\n\r\n### What #435 Risk-11 adds to `deft-directive-pre-pr/SKILL.md`\r\n\r\n- `task roadmap:render` added to Phase 3b (symmetric with existing SPEC + PRD).\r\n- Soft-failure contract documented (\"log and continue on render failure\").\r\n\r\n### What this issue asks\r\n\r\n- Untangle RWLDL naming from deft-pre-pr.\r\n- Improve discoverability.\r\n- Likely touches the same file's heading structure and skill frontmatter.\r\n\r\n### Recommended approach\r\n\r\n**Option A: bundle both changes into a single PR.** RWLDL untangle touches the skill's identity / naming; the Risk-11 additions touch Phase 3b behavior. Same file, coherent story: \"refactor and extend pre-pr skill.\"\r\n\r\n**Option B: sequence with this first, Risk-11 second.** RWLDL untangle lands first (possibly with its own PR), Risk-11 addenda land as part of #435's aggregator PR. Small merge-conflict risk if heading structure changes between commits.\r\n\r\n**My recommendation: Option A.** One PR owns all pre-pr edits for v0.20.0. Reviewer has one coherent surface to review. No inter-PR conflict window.\r\n\r\n### Triage decision\r\n\r\n- **If this issue is scoped small enough** to land in v0.20.0, it becomes either an additional GA blocker OR a scope amendment to #435.\r\n- **If this issue wants broader restructuring** (e.g. renaming the whole skill), likely post-GA -- would delay GA.\r\n\r\nNeeds your call on scope and timing. For now: this issue is not yet on the v0.20.0 blocker list. Flag me if you want it added or bundled into #435.\r\n\r\n### Related\r\n\r\n- #437 -- v0.20.0 rendering tracker.\r\n- #435 -- spec_render.py lifecycle aggregator (Risk-11 addendum covers Phase 3b auto-render additions).\r\n- PR #403 -- v0.20.0 release-cutting PR.\r\n\n\n### Comment by @MScottAdams (2026-08-03T01:02:36Z)\n\n## Current shape (as of 2026-08-02)\n\n**Status:** **Keep open.** Skill is renamed to **`deft-directive-pre-pr`**, but **naming conflation with RWLDL remains** in skill prose, triggers, and discoverability. Small, self-contained docs/skill cleanup — not an epic.\n\n### Two concepts (do not merge)\n\n| Concept | Role | Location |\n|---|---|---|\n| **Pre-PR loop** | PR readiness: Read → Write → Lint → Diff until zero changes; `task check` at merge chokepoint | `skills/deft-directive-pre-pr/SKILL.md` (always-pin) |\n| **RWLDL** | Broader iterative micro/macro quality improvement loop (deep quality work, not only PR readiness) | `tools/RWLDL.md` |\n\nHistorical: pre-pr was formerly `deft-rwldl` and diverged; residual “RWLDL” language still points people at the wrong tool.\n\n### What’s done\n\n| Item | State |\n|---|---|\n| Rename to `deft-directive-pre-pr` / `deft-directive-*` | Done |\n| Pre-pr as always-pin / Skills Index entry | Done |\n| `tools/RWLDL.md` present | Done |\n| #435 Risk-11 Phase 3b render coordination | Historical (v0.20); **not** a current sequencing blocker |\n\n### Residual (still open — body AC still valid)\n\nSpot-check 2026-08-02:\n\n| #449 item | Residual |\n|---|---|\n| 1. Anti-patterns / loop language | Still says **“RWLDL loop”** / “RWLDL iteration” for the **pre-pr** loop |\n| 2. “Formerly `deft-rwldl`” note | Still short; should point at `tools/RWLDL.md` for the broader loop |\n| 3. Triggers | **REFERENCES** (and similar) still route **`rwldl` → pre-pr** — wrong for someone who means the tool |\n| 4. Discoverability | **`tools/RWLDL.md`** not clearly a distinct load path vs pre-pr in REFERENCES |\n\n### Acceptance (when implemented)\n\n- [ ] Pre-pr skill anti-patterns and body say **pre-PR / Read-Write-Lint-Diff**, not “RWLDL loop,” for this skill’s loop\n- [ ] Formerly note: renamed from `deft-rwldl`; broader quality loop → `tools/RWLDL.md`\n- [ ] Remove **`rwldl`** as a pre-pr trigger; keep `pre-pr`, `quality loop`, `self-review` (or equivalent)\n- [ ] REFERENCES (and any agents-entry / Skills Index mirrors): RWLDL under tools for deep quality work; pre-pr only for PR readiness\n- [ ] Pack source of truth updated if skills/rules are pack-rendered (`packs:render`)\n\n### Explicit non-goals\n\n- ⊗ Creating a new `deft-refine` skill that wraps RWLDL (future work if ever)\n- ⊗ Renaming `tools/RWLDL.md` or redesigning the pre-pr algorithm\n- ⊗ Always-on AGENTS essay about the distinction\n\n### Implementation shape\n\n**Single small PR** (docs + skill + REFERENCES/pack). No engine/CI change required.\n\n### Related\n\n- **#450** — broader markdown→skills migration (larger; do not block #449 on it)\n- Pre-pr always-pin / #2508 class process\n\n### Reading order\n\n1. This comment  \n2. Issue body (four concrete edits)  \n3. Live `deft-directive-pre-pr/SKILL.md` + `tools/RWLDL.md` + REFERENCES Skills Index  \n\n---\n\n*Dispatch as a focused cleanup story; close with `Closes #449` when the four items land.*",
+      "Labels": "skills, operational",
+      "UserStory": "As an agent or operator, I want pre-pr and RWLDL clearly separated in skill prose and REFERENCES, so that asking for RWLDL loads the micro/macro quality loop instead of the PR readiness skill.",
+      "ImplementationPlan": "1. REST-fetch #449 body + Current shape 2026-08-02 residual table.\n2. Edit content/skills/deft-directive-pre-pr/SKILL.md (or pack source + packs:render): replace RWLDL loop language with pre-PR / Read-Write-Lint-Diff; expand Formerly note linking tools/RWLDL.md.\n3. Remove rwldl as pre-pr trigger in REFERENCES.md Skills Index and any agents-entry/pack mirrors; keep pre-pr, quality loop, self-review.\n4. Add tools/RWLDL.md REFERENCES entry for deep quality work outside PR readiness.\n5. Content-contract tests if pins exist; CHANGELOG #449.\n6. Verify: rg RWLDL pre-pr skill anti-patterns; pnpm exec vitest content/standards; task check before PR."
+    },
+    "items": [
+      {
+        "title": "Pre-pr skill language not RWLDL loop",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given deft-directive-pre-pr SKILL.md, when anti-patterns and body are read, then the skill loop is called pre-PR / Read-Write-Lint-Diff, not RWLDL loop/iteration."
+        }
+      },
+      {
+        "title": "Formerly note points to tools/RWLDL.md",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the Formerly deft-rwldl note, when read, then it states rename for PR readiness and points to tools/RWLDL.md for the broader quality loop."
+        }
+      },
+      {
+        "title": "rwldl trigger no longer routes to pre-pr",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given REFERENCES Skills Index, when searching triggers, then rwldl does not route to deft-directive-pre-pr; RWLDL is discoverable under tools."
+        }
+      },
+      {
+        "title": "Pack/source mirrors updated",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given pack-rendered skills, when packs:render --check runs after source edit, then rendered skill and index stay consistent."
+        }
+      }
+    ],
+    "tags": [
+      "skills",
+      "operational"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/449",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #449: fix(skills,docs): untangle RWLDL from deft-pre-pr — naming and discoverability cleanup"
+      }
+    ],
+    "id": "449-untangle-rwldl-pre-pr",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/REFERENCES.md",
+          "REFERENCES.md",
+          "content/tools/RWLDL.md",
+          "content/templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/standards.test.ts",
+          "task packs:render -- --check"
+        ],
+        "expected_outputs": [
+          "pre-pr skill untangled",
+          "REFERENCES RWLDL entry",
+          "no rwldl->pre-pr trigger",
+          "CHANGELOG #449"
+        ],
+        "depends_on": [],
+        "conflict_group": "rwldl-pre-pr-untangle-449",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "AC from #449 body + Current shape 2026-08-02 residual items 1-4."
+      }
+    },
+    "updated": "2026-08-03T01:04:37Z"
+  }
+}

@@ -19,7 +19,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **See also**: [deft-directive-review-cycle](../deft-directive-review-cycle/SKILL.md) | [deft-directive-build](../deft-directive-build/SKILL.md) | [RWLDL tool](../../tools/RWLDL.md)
 
-> **Formerly `deft-rwldl`** -- renamed to clearly communicate the skill's purpose (iterative pre-PR quality loop).
+> **Formerly `deft-rwldl`** -- renamed and scoped to PR readiness. For the broader iterative quality improvement loop (micro/macro review), see [tools/RWLDL.md](../../tools/RWLDL.md).
 
 ## Branch-Protection Policy Guard
 
@@ -64,7 +64,7 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 
 > **Invariant:** every change MUST pass the full gate at least once before merge. Pre-PR is the merge chokepoint — NOT every iteration commit.
 
-- ! **Iteration lane (Phases 2–3 loop):** use affected/static gates on changed paths — `vitest run --coverage <paths>`, relevant `verify:*` on touched files, `task coverage:hotspots` — instead of full `task check` on every RWLDL iteration.
+- ! **Iteration lane (Phases 2–3 loop):** use affected/static gates on changed paths — `vitest run --coverage <paths>`, relevant `verify:*` on touched files, `task coverage:hotspots` — instead of full `task check` on every pre-PR iteration.
 - ! **Merge chokepoint (Phase 3 Lint exit + final confirm):** run full `task check` once before push/PR; Phase 3c targeted coverage precedes but does not replace the full gate.
 - ! **Escape-rate safety (#1703 Tier-1):** before recommending fleet-wide fast-lane tightening, cite `#1703` Tier-1 telemetry (`helped/crud-metrics.jsonl`) and `task eval:health` — do NOT invent a separate escape-rate surface.
 - ~ **In-engine incrementality (#1713):** content-hash cache + runner-delegated affected selection are sibling work (#1713).
@@ -74,7 +74,7 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 
 - ! Before pushing a branch for PR creation
 - ! After completing implementation but before the final merge-chokepoint `task check` (#1704)
-- ~ After addressing bot reviewer findings (run one RWLDL pass before pushing the fix batch)
+- ~ After addressing bot reviewer findings (run one pre-PR pass before pushing the fix batch)
 - ? During mid-implementation checkpoints on large changes
 
 ## Loop Phases
@@ -110,7 +110,7 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 
 ! Run the merge-chokepoint gate and fix any failures (#1704).
 
-- ! Run full `task check` (fmt + lint + typecheck + tests + coverage + verify:*) — the merge chokepoint, not every RWLDL iteration
+- ! Run full `task check` (fmt + lint + typecheck + tests + coverage + verify:*) — the merge chokepoint, not every pre-PR iteration
 - ! Fix all failures before proceeding to Phase 3b
 - ~ If a lint fix requires changing a file, that counts as a change for the Loop phase
 
@@ -172,7 +172,7 @@ After exiting:
 
 ## Anti-Patterns
 
-- ⊗ Submit a PR without running the RWLDL loop -- every PR branch should pass at least one full cycle
+- ⊗ Submit a PR without running this pre-PR loop (Read-Write-Lint-Diff) -- every PR branch should pass at least one full cycle
 - ⊗ Exit the loop after the Lint phase without completing the Diff phase -- Diff catches scope creep and unintended changes that Lint cannot detect
 - ⊗ Skip the Read phase and jump directly to Lint -- Read catches semantic issues (missing content, wrong RFC2119 markers, incomplete acceptance criteria) that linters do not check
 - ⊗ Make out-of-scope fixes during Write -- this introduces scope creep that Diff will flag, forcing another iteration

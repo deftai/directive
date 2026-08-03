@@ -104,7 +104,7 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | selec
 
 ! Before touching code, verify ALL prerequisites are satisfied. Fix any gaps first:
 
-1. ! Verify `skills/deft-directive-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full RWLDL cycle. If not, run it now before proceeding.
+1. ! Verify `skills/deft-directive-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full pre-PR cycle (Read-Write-Lint-Diff). If not, run it now before proceeding.
 2. ! `PROJECT-DEFINITION.xbrief.json` and `xbrief/` lifecycle folders have scope xBRIEF coverage for all changes in the PR
 3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
 4. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)

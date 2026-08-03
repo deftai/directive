@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Untangle RWLDL from `deft-directive-pre-pr` naming (#449).** Pre-pr skill prose uses **pre-PR / Read-Write-Lint-Diff** (not “RWLDL loop”); Formerly note points at `tools/RWLDL.md` for the broader micro/macro quality loop; Skills Index drops `rwldl` as a pre-pr trigger (keep `pre-pr`, `quality loop`, `self-review`); REFERENCES tools section loads `tools/RWLDL.md` for deep quality work. Pack source + `packs:render`. Closes #449.
 
 ### Removed
 

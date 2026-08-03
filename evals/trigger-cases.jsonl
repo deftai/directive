@@ -8,8 +8,9 @@
 {"id":"build-pos-2","query":"implement spec phase two with quality gates","skill":"deft-directive-build","should_trigger":true}
 {"id":"build-neg-1","query":"list the open issues in the backlog","skill":"deft-directive-build","should_trigger":false}
 {"id":"pre-pr-pos-1","query":"run the pre-pr quality loop on this branch","skill":"deft-directive-pre-pr","should_trigger":true}
-{"id":"pre-pr-pos-2","query":"rwldl before I push this branch","skill":"deft-directive-pre-pr","should_trigger":true}
+{"id":"pre-pr-pos-2","query":"self-review before I push this branch","skill":"deft-directive-pre-pr","should_trigger":true}
 {"id":"pre-pr-neg-1","query":"show the current git branch status","skill":"deft-directive-pre-pr","should_trigger":false}
+{"id":"pre-pr-neg-2","query":"rwldl before I push this branch","skill":"deft-directive-pre-pr","should_trigger":false}
 {"id":"review-cycle-pos-1","query":"run review cycle on this PR","skill":"deft-directive-review-cycle","should_trigger":true}
 {"id":"review-cycle-pos-2","query":"use sub-agents for reviews on PR 2569","skill":"deft-directive-review-cycle","should_trigger":true}
 {"id":"review-cycle-pos-3","query":"babysit this PR until merge-ready","skill":"deft-directive-review-cycle","should_trigger":true}
