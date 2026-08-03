@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Umbrella issue-body checkboxes and section 1152 current-shape comment do not auto-sync to child open/closed state. Fix reconcile path so both surfaces stay current.",
-    "updated": "2026-08-03T19:44:37Z"
+    "updated": "2026-08-03T19:45:26Z"
   },
   "plan": {
     "title": "fix(umbrella): umbrella checkboxes + current-shape never auto-sync to children state",
@@ -66,7 +66,7 @@
         "mergeCommit": "12d2cbfdf4a816a40146d311838199a3603ad2bf",
         "deliveryBranch": "master",
         "deliveryCommit": "12d2cbfdf4a816a40146d311838199a3603ad2bf",
-        "verifiedAt": "2026-08-03T19:44:37Z",
+        "verifiedAt": "2026-08-03T19:45:26Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -75,9 +75,9 @@
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "completedAt": "2026-08-03T19:44:37Z",
+      "completedAt": "2026-08-03T19:45:26Z",
       "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-03T19:44:37Z"
+    "updated": "2026-08-03T19:45:26Z"
   }
 }

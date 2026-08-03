@@ -78,7 +78,8 @@ export function watch(
   const runGh = options.runGh ?? defaultRunGh;
   const clockFn = options.clockFn ?? systemMonotonicClock;
   const sleepFn = options.sleepFn ?? defaultSleep;
-  const probeFn = options.probeFn ?? probeOnce;
+  const projectRoot = options.projectRoot ?? null;
+  const probeFn = options.probeFn ?? ((n, r, gh, root) => probeOnce(n, r, gh, root ?? projectRoot));
 
   const capSeconds = Math.max(0, maxWaitMinutes * 60);
   // Bounded loop (time is still the authority via the cap check below) so no
@@ -105,7 +106,7 @@ export function watch(
   });
 
   for (let poll = 1; poll <= maxPolls; poll += 1) {
-    const probe = probeFn(prNumber, repo, runGh);
+    const probe = probeFn(prNumber, repo, runGh, projectRoot);
     lastProbe = probe;
     const elapsed = Math.round(clockFn.now() - startedAt);
     process.stderr.write(`${formatWatchStatus(poll, maxPolls, probe, elapsed)}\n`);

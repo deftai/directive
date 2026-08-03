@@ -105,6 +105,12 @@ export function verdictBlockIsSoftOnly(
   verdict: GreptileVerdict,
   headSha: string | null,
   inline: InlineGreptileFindings | null = null,
+  /**
+   * Resolved min Greptile confidence (1–5). Scores below this are HARD blockers
+   * and must never be reconciled away via GitHub CLEAN (#3095). Defaults to the
+   * consumer floor (4).
+   */
+  minConfidence = 4,
 ): boolean {
   if (inline !== null && inline.error !== null) {
     return false;
@@ -130,12 +136,10 @@ export function verdictBlockIsSoftOnly(
   if (verdict.errored) {
     return false;
   }
-  // Low confidence is a hard blocker (#2260 / #3095). Consumer default floor is 4
-  // (legacy > 3); dogfood/policy may raise it — callers that need the resolved
-  // floor use evaluateGates with minConfidence. Soft-only reconciliation uses
-  // the consumer floor so a 4/5 dogfood holdout still counts as hard-block here
-  // only when below the consumer default (3 or lower).
-  if (verdict.confidence !== null && verdict.confidence < 4) {
+  // Confidence below the resolved floor is a hard blocker (#2260 / #3095).
+  // Dogfood/policy may set min=5 so a 4/5 score stays hard even when GitHub
+  // reports CLEAN + MERGEABLE.
+  if (verdict.confidence !== null && verdict.confidence < minConfidence) {
     return false;
   }
   if (verdict.p0Count > 0 || verdict.p1Count > 0) {

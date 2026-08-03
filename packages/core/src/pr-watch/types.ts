@@ -38,7 +38,12 @@ export interface MonotonicClock {
   now(): number;
 }
 
-export type ProbeFn = (prNumber: number, repo: string | null, runGh: RunGhFn) => WatchProbe;
+export type ProbeFn = (
+  prNumber: number,
+  repo: string | null,
+  runGh: RunGhFn,
+  projectRoot?: string | null,
+) => WatchProbe;
 
 export interface WatchOptions {
   readonly maxWaitMinutes?: number;
@@ -49,6 +54,12 @@ export interface WatchOptions {
   readonly sleepFn?: SleepFn;
   readonly clockFn?: MonotonicClock;
   readonly probeFn?: ProbeFn;
+  /**
+   * Project root for resolving plan.policy.review.minGreptileConfidence (#3095).
+   * When omitted, probeOnce uses process.cwd(). Finish-loop / pr:watch MUST pass
+   * the caller project-root so a chdir elsewhere cannot apply the wrong floor.
+   */
+  readonly projectRoot?: string | null;
 }
 
 export interface WatchResult {

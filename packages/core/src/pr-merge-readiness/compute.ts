@@ -240,7 +240,7 @@ function finalizeVerdictGate(
   if (
     options.disableMergeabilityReconcile === true ||
     resolved.repo === null ||
-    !verdictBlockIsSoftOnly(verdict, headSha, inline)
+    !verdictBlockIsSoftOnly(verdict, headSha, inline, minConfidence)
   ) {
     return { failures, partialData };
   }

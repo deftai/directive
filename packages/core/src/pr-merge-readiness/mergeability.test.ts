@@ -166,6 +166,27 @@ describe("verdictBlockIsSoftOnly", () => {
     ).toBe(false);
   });
 
+  it("confidence below resolved dogfood min=5 is a HARD block (#3095)", () => {
+    // 4/5 would be soft under consumer default (4) but MUST stay hard when policy/dogfood is 5
+    // so GitHub CLEAN reconciliation cannot clear a dogfood confidence holdout.
+    expect(
+      verdictBlockIsSoftOnly(
+        verdict({ found: true, lastReviewedSha: HEAD, confidence: 4 }),
+        HEAD,
+        null,
+        5,
+      ),
+    ).toBe(false);
+    expect(
+      verdictBlockIsSoftOnly(
+        verdict({ found: true, lastReviewedSha: HEAD, confidence: 4 }),
+        HEAD,
+        null,
+        4,
+      ),
+    ).toBe(true);
+  });
+
   it("informal-clean is out of scope (not soft)", () => {
     expect(verdictBlockIsSoftOnly(verdict({ found: true, informalClean: true }), HEAD)).toBe(false);
   });

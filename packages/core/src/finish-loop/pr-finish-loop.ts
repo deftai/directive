@@ -120,6 +120,7 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
       maxWaitMinutes: options.maxWaitMinutes,
       pollSeconds: options.pollSeconds,
       oneShot: options.oneShot === true,
+      projectRoot,
     });
   } catch (err) {
     const message = `pr:finish-loop watch error: ${err instanceof Error ? err.message : String(err)}`;

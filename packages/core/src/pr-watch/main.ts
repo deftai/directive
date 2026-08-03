@@ -245,6 +245,7 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
       clockFn: options.clockFn,
       probeFn: options.probeFn,
       stallThreshold: options.stallThreshold,
+      projectRoot: args.projectRoot ?? process.cwd(),
     });
 
     if (args.emitJson) {

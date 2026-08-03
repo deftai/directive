@@ -95,10 +95,7 @@ describe("resolveMinGreptileConfidence (#3095)", () => {
   });
 
   it("invalid typed value on dogfood root falls through to dogfood min=5 with error", () => {
-    root = makeProject(
-      { review: { minGreptileConfidence: 99 } },
-      { frameworkMarkers: true },
-    );
+    root = makeProject({ review: { minGreptileConfidence: 99 } }, { frameworkMarkers: true });
     const resolved = resolveMinGreptileConfidence(root);
     expect(resolved.min).toBe(DOGFOOD_MIN_GREPTILE_CONFIDENCE);
     expect(resolved.source).toBe("dogfood");
