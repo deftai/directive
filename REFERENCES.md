@@ -142,6 +142,16 @@ Load when working on platform-specific deployment guidance:
 - **[deployments/README.md](./content/deployments/README.md)** - Overview and structure
 - **[deployments/<platform>/README.md]** - Platform module (e.g., cloud.gov)
 
+### When Migrating CI Runners
+
+Load only when migrating GitHub Actions (or similar) to a CI runner provider.
+Do **not** pin these into always-on `AGENTS.md` (#448).
+
+- **[ci-cd/README.md](./content/ci-cd/README.md)** - CI/CD layer purpose and module structure
+- **[ci-cd/blacksmith/README.md](./content/ci-cd/blacksmith/README.md)** - Blacksmith module index
+- **[ci-cd/blacksmith/runner-tiers.md](./content/ci-cd/blacksmith/runner-tiers.md)** - 4 / 8 / 32 vCPU decision rules
+- **[ci-cd/blacksmith/migration-prompt.md](./content/ci-cd/blacksmith/migration-prompt.md)** - Drop-in agent migration prompt
+
 ### When Working with Tools
 
 Load as needed:

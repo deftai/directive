@@ -15,6 +15,13 @@ describe("test_structure.py", () => {
   it("deployments/", () => {
     expect(isDir("deployments")).toBe(true);
   });
+  // #448 — optional CI/CD provider layer (Blacksmith runner migration)
+  it("ci-cd/", () => {
+    expect(isDir("ci-cd")).toBe(true);
+  });
+  it("ci-cd/blacksmith/runner-tiers.md", () => {
+    expect(isFile("ci-cd/blacksmith/runner-tiers.md")).toBe(true);
+  });
   it("history/", () => {
     expect(isDir("history")).toBe(true);
   });

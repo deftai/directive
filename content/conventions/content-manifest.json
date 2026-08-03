@@ -73,6 +73,11 @@
       "straddle": true
     },
     {
+      "path": "content/ci-cd",
+      "bucket": "content",
+      "note": "Optional CI/CD provider guidance (Blacksmith runner tiers, migration prompts, examples). Parallel to deployments/; lazy-load only (#448)."
+    },
+    {
       "path": "content/deployments",
       "bucket": "content",
       "note": "Per-platform deployment guidance docs (aws, azure, gcp, fly-io, cloudflare, ...)."

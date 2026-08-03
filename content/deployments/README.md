@@ -8,6 +8,14 @@ Platform-specific guidance for deployment environments (cloud.gov, Cloudflare, A
 - ~ Keep platform guidance separate from core Deft rules
 - ~ Enable export of platform instructions for external tools (e.g., Copilot)
 
+## Relation to CI/CD
+
+This layer covers **where and how you deploy** runtime apps. For **CI runner
+migration** (Blacksmith tiered vCPU sizing, agent migration prompts), use the
+optional [`ci-cd/`](../ci-cd/README.md) layer instead. Platform modules may still
+include a `cicd.md` for deploy-pipeline steps; that is not a substitute for
+runner-tier guidance under `ci-cd/`.
+
 ## Module Structure
 
 Create a directory per platform:
