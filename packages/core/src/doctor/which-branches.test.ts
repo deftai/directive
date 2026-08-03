@@ -28,4 +28,36 @@ describe("defaultWhich branch edges", () => {
     });
     expect(defaultWhich("missing")).toBeNull();
   });
+
+  it("uses which on non-win32 platforms", () => {
+    const original = process.platform;
+    Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
+    try {
+      vi.mocked(execFileSync).mockReturnValue("/usr/bin/node\n");
+      expect(defaultWhich("node")).toBe("/usr/bin/node");
+      expect(vi.mocked(execFileSync)).toHaveBeenCalledWith(
+        "which",
+        ["node"],
+        expect.objectContaining({ encoding: "utf8" }),
+      );
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: original });
+    }
+  });
+
+  it("uses where on win32 platforms", () => {
+    const original = process.platform;
+    Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+    try {
+      vi.mocked(execFileSync).mockReturnValue("C:\\Windows\\node.exe\n");
+      expect(defaultWhich("node")).toBe("C:\\Windows\\node.exe");
+      expect(vi.mocked(execFileSync)).toHaveBeenCalledWith(
+        "where",
+        ["node"],
+        expect.objectContaining({ encoding: "utf8" }),
+      );
+    } finally {
+      Object.defineProperty(process, "platform", { configurable: true, value: original });
+    }
+  });
 });
