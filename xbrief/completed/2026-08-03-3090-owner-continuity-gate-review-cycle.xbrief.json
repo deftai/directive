@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3090 — Owner Continuity Gate for drive-to-merge / review-cycle",
-    "updated": "2026-08-03T17:57:43Z"
+    "updated": "2026-08-03T18:37:26Z"
   },
   "plan": {
     "title": "fix(review-cycle,evidence): Owner Continuity Gate — ban silent hold after drive-to-merge",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After drive-to:merge-ready / babysit / shepherd claims, ban silent hold: require Approach 1 monitor+lease, parent-retained ownership, or explicit blocked finish. Constrain review_cycle evidence enum; optional verify:l4-owner; eval regression for check SUCCESS + open P1s + no lease.",
       "Origin": "https://github.com/deftai/directive/issues/3090",
@@ -17,21 +17,21 @@
     "items": [
       {
         "title": "Owner Continuity Gate in review-cycle skill",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Skill documents A/B/C same-turn ends and silent-hold anti-patterns."
         }
       },
       {
         "title": "review_cycle evidence enum",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Enum constrained; freeform started/pending forbidden in handoff surface."
         }
       },
       {
         "title": "Optional verify:l4-owner + eval",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Gate or eval fails silent hold with SUCCESS check + open P1s + no lease."
         }
@@ -73,8 +73,27 @@
           "packages/core/src/content-contracts/skills/",
           "CHANGELOG.md"
         ]
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": "master",
+        "mergeCommit": "3dba27d660f0621c454221bb43ac4fa5060e6a68",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3dba27d660f0621c454221bb43ac4fa5060e6a68",
+        "verifiedAt": "2026-08-03T18:37:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-03T18:37:26Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-03T17:57:43Z"
+    "updated": "2026-08-03T18:37:26Z"
   }
 }
