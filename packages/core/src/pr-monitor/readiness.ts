@@ -37,7 +37,9 @@ export function callReadiness(
   try {
     process.stderr.write = captureWrite;
     const runGh = options.runGh ?? defaultRunGh;
-    const result = computeGateResult(prNumber, repo, runGh);
+    const result = computeGateResult(prNumber, repo, runGh, {
+      projectRoot: options.projectRoot ?? process.cwd(),
+    });
     const payload = gateResultToDict(result);
     const exitCode = exitCodeFor(result);
     return {
