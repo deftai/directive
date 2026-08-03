@@ -1,8 +1,17 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ContainedWriteError } from "../../fs/contained-write.js";
+import { ProjectionContainmentError } from "../../fs/projection-containment.js";
 import { DEFAULT_WIP_CAP } from "./constants.js";
 import {
   appendAuditEntry,
@@ -129,6 +138,16 @@ describe("welcome writers", () => {
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
+function isContainmentRefusal(err: unknown): boolean {
+  return (
+    err instanceof ProjectionContainmentError ||
+    err instanceof ContainedWriteError ||
+    (err instanceof Error &&
+      (/projection write refused|contained write refused|symlink/i.test(err.message) ||
+        /not nested under/i.test(err.message)))
+  );
+}
+
 describe("welcome audit containment (#2470)", () => {
   itSymlink("refuses audit append when policy-changes.log is a symlink outside the project", () => {
     const projectDir = mkdtempSync(join(tmpdir(), "writers-contain-proj-"));
@@ -145,4 +164,77 @@ describe("welcome audit containment (#2470)", () => {
       rmSync(escapeTarget, { recursive: true, force: true });
     }
   });
+});
+
+describe("welcome PROJECT-DEFINITION projectRoot containment (#3077)", () => {
+  itSymlink(
+    "writeTriageScope refuses an escaping xbrief/ directory symlink (no outside JSON write)",
+    () => {
+      const projectDir = mkdtempSync(join(tmpdir(), "writers-3077-proj-"));
+      const outsideDir = mkdtempSync(join(tmpdir(), "writers-3077-escape-"));
+      const outsidePd = join(outsideDir, "PROJECT-DEFINITION.xbrief.json");
+      const keepBody = JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: { keep: true } },
+      });
+      try {
+        writeFileSync(outsidePd, keepBody, "utf8");
+        // Layout accepts when .xbrief.json marker exists under followed link.
+        writeFileSync(join(outsideDir, "marker.xbrief.json"), "{}", "utf8");
+        symlinkSync(outsideDir, join(projectDir, "xbrief"), "dir");
+
+        try {
+          writeTriageScope(projectDir, subscriptionPreset("small"), {
+            presetLabel: "small",
+            actor: "test-3077",
+          });
+          expect.fail("expected containment refusal");
+        } catch (err) {
+          expect(isContainmentRefusal(err)).toBe(true);
+        }
+
+        expect(readFileSync(outsidePd, "utf8")).toBe(keepBody);
+        expect(existsSync(join(outsideDir, "meta"))).toBe(false);
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    },
+  );
+
+  itSymlink(
+    "writeWipCap / writeWipCapDecision refuse escaping xbrief/ and leave outside JSON intact",
+    () => {
+      const projectDir = mkdtempSync(join(tmpdir(), "writers-3077-wip-proj-"));
+      const outsideDir = mkdtempSync(join(tmpdir(), "writers-3077-wip-escape-"));
+      const outsidePd = join(outsideDir, "PROJECT-DEFINITION.xbrief.json");
+      const keepBody = JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: {} },
+      });
+      try {
+        writeFileSync(outsidePd, keepBody, "utf8");
+        writeFileSync(join(outsideDir, "marker.xbrief.json"), "{}", "utf8");
+        symlinkSync(outsideDir, join(projectDir, "xbrief"), "dir");
+
+        try {
+          writeWipCap(projectDir, 8, { actor: "test-3077" });
+          expect.fail("expected containment refusal for writeWipCap");
+        } catch (err) {
+          expect(isContainmentRefusal(err)).toBe(true);
+        }
+        try {
+          writeWipCapDecision(projectDir, { acceptedDefault: true, actor: "test-3077" });
+          expect.fail("expected containment refusal for writeWipCapDecision");
+        } catch (err) {
+          expect(isContainmentRefusal(err)).toBe(true);
+        }
+
+        expect(readFileSync(outsidePd, "utf8")).toBe(keepBody);
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    },
+  );
 });
