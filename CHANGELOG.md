@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **projectRoot containment for triage welcome atomicWrite (#3077).** Residual Medium parent-as-root gap after #3042/#2980: `packages/core/src/triage/welcome/writers.ts` `atomicWrite` used `containedWrite({ root: dirname(path) })`, so a force-added `xbrief/` directory symlink could divert `writeTriageScope` / `writeWipCap` / `writeWipCapDecision` (and `triage:welcome --onboard`) outside the checkout. Containment root is now `projectRoot` via `assertWriteTargetSafe` + `containedWrite`; escaping/symlink `xbrief` parents fail closed before temp+rename. Regression tests cover fixture outside PROJECT-DEFINITION JSON. Closes #3077. Refs #3042, #2951, #2980.
 
 ### Removed
 
