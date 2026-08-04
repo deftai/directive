@@ -22,9 +22,20 @@ function tempRoot(): string {
   return root;
 }
 
-/** Interactive operator TTY by default (production non-TTY needs --confirm; #3110). */
+/**
+ * Interactive operator path by default: TTY + --confirm (dual gate; #3110).
+ * Injects --confirm for mutating verbs unless already present or cmd is show/help.
+ */
 function runAuthz(argv: string[], seams: AuthzMainSeams = {}): number {
-  return main(argv, { isTty: () => true, ...seams });
+  const mutating =
+    argv.some((a) =>
+      ["uat-start", "uat-suspend", "grant", "revoke"].includes(a) || a.startsWith("grant-"),
+    ) && !argv.includes("show");
+  const withConfirm =
+    mutating && !argv.includes("--confirm") && !argv.includes("--help") && !argv.includes("-h")
+      ? [...argv, "--confirm"]
+      : argv;
+  return main(withConfirm, { isTty: () => true, ...seams });
 }
 
 describe("authz CLI (#2944)", () => {
@@ -371,9 +382,9 @@ describe("authz CLI (#2944)", () => {
   });
 });
 
-describe("authz CLI non-TTY TTY-only gate (#3110)", () => {
+describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
   it("refuses grant mint from non-TTY even with --confirm", () => {
-    // Greptile P1: --confirm and env are agent-controlled; only TTY authorizes mint.
+    // Dual gate: --confirm alone never authorizes.
     const root = tempRoot();
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((c) => {
@@ -386,10 +397,26 @@ describe("authz CLI non-TTY TTY-only gate (#3110)", () => {
         { isTty: () => false },
       ),
     ).toBe(2);
-    expect(err.join("")).toMatch(/TTY|non-interactive|silent-mint/i);
+    expect(err.join("")).toMatch(/TTY|non-TTY|silent-mint/i);
   });
 
-  it("allows grant mint only on TTY", () => {
+  it("refuses grant mint on TTY without --confirm", () => {
+    // Dual gate: TTY alone never authorizes (pseudo-TTY residual).
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(["grant", "--project-root", root, "--operations", "edit", "--cohort", "x"], {
+        isTty: () => true,
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/--confirm/);
+  });
+
+  it("allows grant mint only on TTY with --confirm", () => {
     const root = tempRoot();
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((c) => {
@@ -397,9 +424,10 @@ describe("authz CLI non-TTY TTY-only gate (#3110)", () => {
       return true;
     });
     expect(
-      main(["grant", "--project-root", root, "--operations", "edit", "--cohort", "x"], {
-        isTty: () => true,
-      }),
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        { isTty: () => true },
+      ),
     ).toBe(0);
     expect(out.join("")).toMatch(/grant minted/);
   });
@@ -425,12 +453,12 @@ describe("authz CLI non-TTY TTY-only gate (#3110)", () => {
     expect(err.join("")).toMatch(/TTY/);
   });
 
-  it("show remains allowed without TTY", () => {
+  it("show remains allowed without TTY or --confirm", () => {
     const root = tempRoot();
     expect(main(["show", "--project-root", root], { isTty: () => false })).toBe(0);
   });
 
-  it("refuses grant on TTY when agent-shell env marker is set", () => {
+  it("refuses grant on TTY+confirm when agent-shell env marker is set", () => {
     const root = tempRoot();
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((c) => {
@@ -438,11 +466,30 @@ describe("authz CLI non-TTY TTY-only gate (#3110)", () => {
       return true;
     });
     expect(
-      main(["grant", "--project-root", root, "--operations", "edit", "--cohort", "x"], {
-        isTty: () => true,
-        environ: { CLAUDECODE: "1" },
-      }),
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        {
+          isTty: () => true,
+          environ: { CLAUDECODE: "1" },
+        },
+      ),
     ).toBe(2);
     expect(err.join("")).toMatch(/agent/i);
+  });
+
+  it("refuses grant when CI marker is present even with TTY+confirm", () => {
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        { isTty: () => true, environ: { CI: "true", GITHUB_ACTIONS: "true" } },
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/agent|CI/i);
   });
 });

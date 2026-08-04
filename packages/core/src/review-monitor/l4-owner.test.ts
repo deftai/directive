@@ -38,11 +38,17 @@ describe("parseReviewCycleEvidence (#3090)", () => {
     });
   });
 
+  it("treats null/undefined/blank as absent evidence (#3103)", () => {
+    expect(parseReviewCycleEvidence(null)).toEqual({ ok: true, value: null });
+    expect(parseReviewCycleEvidence(undefined)).toEqual({ ok: true, value: null });
+    expect(parseReviewCycleEvidence("   ")).toEqual({ ok: true, value: null });
+  });
+
   it("rejects freeform started/pending/initiated", () => {
-    for (const bad of ["started", "pending", "initiated", "START"]) {
+    for (const bad of ["started", "pending", "initiated", "START", "start", "in_progress"]) {
       const r = parseReviewCycleEvidence(bad);
       expect(r.ok).toBe(false);
-      if (!r.ok) expect(r.reason).toContain("illegal freeform");
+      if (!r.ok) expect(r.reason).toMatch(/illegal freeform|unknown review_cycle/);
     }
   });
 
@@ -51,9 +57,16 @@ describe("parseReviewCycleEvidence (#3090)", () => {
     expect(r.ok).toBe(false);
   });
 
-  it("rejects non-numeric in_progress pr", () => {
-    const r = parseReviewCycleEvidence("in_progress:abc#parent-retained");
-    expect(r.ok).toBe(false);
+  it("rejects malformed in_progress and skipped forms (#3103)", () => {
+    expect(parseReviewCycleEvidence("in_progress:abc#parent-retained").ok).toBe(false);
+    expect(parseReviewCycleEvidence("in_progress:12#").ok).toBe(false);
+    expect(parseReviewCycleEvidence("in_progress:#monitor").ok).toBe(false);
+    expect(parseReviewCycleEvidence("in_progress:0#monitor").ok).toBe(false);
+    expect(parseReviewCycleEvidence("skipped:").ok).toBe(false);
+    expect(parseReviewCycleEvidence("skipped:   ").ok).toBe(false);
+    const unknown = parseReviewCycleEvidence("maybe-later");
+    expect(unknown.ok).toBe(false);
+    if (!unknown.ok) expect(unknown.reason).toContain("unknown review_cycle");
   });
 });
 
@@ -63,6 +76,14 @@ describe("parseInProgressEvidence", () => {
       pr: 12,
       ref: "parent-retained",
     });
+  });
+
+  it("returns null for non-matching shapes (#3103)", () => {
+    expect(parseInProgressEvidence("done")).toBeNull();
+    expect(parseInProgressEvidence("in_progress:")).toBeNull();
+    expect(parseInProgressEvidence("in_progress:#ref")).toBeNull();
+    expect(parseInProgressEvidence("in_progress:12#")).toBeNull();
+    expect(parseInProgressEvidence("in_progress:abc#x")).toBeNull();
   });
 });
 
@@ -199,5 +220,81 @@ describe("evaluateL4OwnerGate (#3090)", () => {
     expect(json.path).toBe("none");
     expect(json.ready).toBe(false);
     expect(json.exit_code).toBe(1);
+  });
+
+  it("CONFIG when project-root is not a directory (#3103)", () => {
+    const result = evaluateL4OwnerGate({
+      pr: 1,
+      projectRoot: join(tmpdir(), "l4-missing-root-does-not-exist-xyz"),
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.path).toBe("config");
+    expect(result.message).toContain("not a directory");
+  });
+
+  it("CONFIG when repo cannot be resolved (#3103)", () => {
+    const root = mkdtempSync(join(tmpdir(), "l4-norepo-"));
+    // Isolate from process-inherited DEFT_TRIAGE_REPO so resolveRepo falls through
+    // to git remote (temp dir is not a git worktree) and returns null.
+    const prevTriageRepo = process.env.DEFT_TRIAGE_REPO;
+    delete process.env.DEFT_TRIAGE_REPO;
+    try {
+      const result = evaluateL4OwnerGate({
+        pr: 3,
+        projectRoot: root,
+        // omit --repo; temp dir is not a git worktree
+        seams: { fetchComments: () => [] },
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.path).toBe("config");
+      expect(result.message).toMatch(/could not resolve owner\/repo/);
+    } finally {
+      if (prevTriageRepo === undefined) {
+        delete process.env.DEFT_TRIAGE_REPO;
+      } else {
+        process.env.DEFT_TRIAGE_REPO = prevTriageRepo;
+      }
+    }
+  });
+
+  it("CONFIG when GitHub lease fetch errors (#3103)", () => {
+    const root = mkdtempSync(join(tmpdir(), "l4-gh-err-"));
+    const result = evaluateL4OwnerGate({
+      pr: 9,
+      projectRoot: root,
+      repo: "acme/widgets",
+      seams: {
+        fetchComments: () => ({ error: "rate limited" }),
+      },
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.path).toBe("config");
+    expect(result.message).toContain("rate limited");
+  });
+
+  it("PASS lease without review_cycle stamps in_progress ref (#3103)", () => {
+    const root = mkdtempSync(join(tmpdir(), "l4-lease-ref-"));
+    const result = evaluateL4OwnerGate({
+      pr: 12,
+      projectRoot: root,
+      repo: "deftai/directive",
+      headSha: "abc123",
+      now: NOW,
+      seams: {
+        fetchComments: () => [
+          {
+            id: 1,
+            body: activeLeaseComment("alice", "monitor-pr-12"),
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "alice",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.path).toBe("lease");
+    expect(result.reviewCycle).toBe("in_progress:12#monitor-pr-12");
   });
 });

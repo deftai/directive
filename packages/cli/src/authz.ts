@@ -11,8 +11,9 @@
  *   deft authz:grant -- --template finish-loop [--confirm]
  *   deft authz:revoke -- <grant-id> [--confirm]
  *
- * Mutating subcommands require a TTY or explicit `--confirm` so non-interactive agent
- * shells cannot silent-stamp operator-cli origin (#3110).
+ * Mutating subcommands require **both** an interactive TTY **and** explicit `--confirm`
+ * so pseudo-TTY / agent shells cannot silent-stamp operator-cli origin (#3110).
+ * Argv `--confirm` alone is never enough; TTY alone is never enough.
  */
 import {
   AFK_TEMPLATE_NAMES,
@@ -57,18 +58,50 @@ interface Parsed {
 }
 
 /**
- * Env markers that indicate an agent/host shell even when stdin reports a TTY
+ * Env markers that indicate an agent/host/CI shell even when stdin reports a TTY
  * (pseudo-terminal residual; #3110 Greptile). Presence refuses mutating authz.
+ * Expanded for dogfood conf 5/5 — markers are fail-closed (any non-empty value).
  */
 export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
+  // Coding agents / IDEs
   "CLAUDECODE",
   "CLAUDE_CODE",
+  "CLAUDE_CODE_ENTRYPOINT",
   "CURSOR_AGENT",
   "CURSOR_TRACE_ID",
+  "CURSOR_SESSION_ID",
   "AIDER",
   "CONTINUE_CLI",
+  "CODEX_SANDBOX",
+  "CODEX_CI",
+  "OPENAI_CODEX",
+  "OPENCLAW",
+  "OPENCLAW_STATE_DIR",
+  "DEFT_PROBE_OPENCLAW",
   "DEFT_HOOK_HOST",
   "DEFT_AGENT_SHELL",
+  "DEFT_AGENT_RUNTIME",
+  "WARP_SESSION_ID",
+  "WARP_HARNESS",
+  "WARP_RUN_ID",
+  "GEMINI_CLI",
+  "AMP_CLI",
+  "SWARM_AGENT",
+  "AI_AGENT",
+  // CI / automation (never a human interactive operator mint)
+  "CI",
+  "CONTINUOUS_INTEGRATION",
+  "GITHUB_ACTIONS",
+  "GITLAB_CI",
+  "CIRCLECI",
+  "BUILDKITE",
+  "TRAVIS",
+  "JENKINS_URL",
+  "TEAMCITY_VERSION",
+  "TF_BUILD",
+  "APPVEYOR",
+  "BITBUCKET_BUILD_NUMBER",
+  "CODEBUILD_BUILD_ID",
 ] as const;
 
 /** Testable seams for TTY / agent-shell detection (#3110). */
@@ -262,8 +295,10 @@ function helpText(): string {
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
-    "Mutating verbs require an interactive TTY (agents cannot silent-stamp operator-cli; #3110).",
-    "  Optional --confirm is recorded for audit on TTY sessions; non-TTY always refuses.",
+    "Mutating verbs require BOTH an interactive TTY AND --confirm (#3110):",
+    "  - TTY alone never authorizes (pseudo-TTY / agent residual).",
+    "  - --confirm alone never authorizes (agent-controlled argv).",
+    "  - Known agent/CI env markers always refuse (fail-closed).",
     "",
     `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
     `  Closed-verb (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")} — require --target`,
@@ -284,32 +319,53 @@ function looksLikeAgentShell(environ: NodeJS.ProcessEnv): boolean {
 /**
  * Refuse non-interactive / agent-shell operator-cli stamps (#3110 / Greptile residual).
  *
- * Requires an interactive TTY **and** absence of known agent-shell env markers
- * (pseudo-TTY alone is not independent human evidence). Argv `--confirm` never
- * authorizes mint.
+ * Dual human-presence gate (dogfood conf 5/5):
+ * 1. No known agent/CI env markers (pseudo-TTY residual)
+ * 2. Interactive TTY (stdin.isTTY)
+ * 3. Explicit argv `--confirm` (TTY alone never enough; flag alone never enough)
+ *
+ * Fail-closed: if a real human interactive path cannot be proven, refuse mint.
  * Returns an exit code when blocked, or null when the mutation may proceed.
  */
 function refuseNonInteractiveMint(
   cmd: Parsed["cmd"],
   isTty: () => boolean,
   environ: NodeJS.ProcessEnv,
+  confirm: boolean,
 ): number | null {
   if (cmd === "show") return null;
   if (looksLikeAgentShell(environ)) {
     process.stderr.write(
-      `authz:${cmd}: refusing operator-cli stamp from an agent/host shell ` +
-        `(detected agent env marker). Mutating authz requires a human interactive TTY ` +
-        "without agent-shell markers (#3110).\n",
+      `authz:${cmd}: refusing operator-cli stamp from an agent/host/CI shell ` +
+        `(detected agent or CI env marker). Mutating authz requires a human interactive ` +
+        "TTY without agent-shell markers, plus --confirm (#3110).\n",
     );
     return 2;
   }
-  if (isTty()) return null;
-  process.stderr.write(
-    `authz:${cmd}: refusing non-interactive operator-cli stamp. ` +
-      "Mutating authz verbs require an interactive TTY — agents cannot silent-mint " +
-      "human-origin grants via --confirm or env flags alone (#3110).\n",
-  );
-  return 2;
+  const tty = isTty();
+  if (!tty && !confirm) {
+    process.stderr.write(
+      `authz:${cmd}: refusing non-interactive operator-cli stamp. ` +
+        "Mutating authz verbs require BOTH an interactive TTY AND --confirm " +
+        "(neither alone is sufficient; #3110).\n",
+    );
+    return 2;
+  }
+  if (!tty) {
+    process.stderr.write(
+      `authz:${cmd}: refusing non-TTY operator-cli stamp. ` +
+        "--confirm alone never authorizes mint — interactive TTY is required (#3110).\n",
+    );
+    return 2;
+  }
+  if (!confirm) {
+    process.stderr.write(
+      `authz:${cmd}: refusing operator-cli stamp without --confirm. ` +
+        "Interactive TTY alone never authorizes mint — pass --confirm explicitly (#3110).\n",
+    );
+    return 2;
+  }
+  return null;
 }
 
 export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSeams = {}): number {
@@ -327,9 +383,9 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
   const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
   const environ = seams.environ ?? process.env;
   // Gate after required-arg validation so missing --campaign / --ops still report clearly.
-  // Note: args.confirm is accepted for audit/docs but does not bypass the TTY requirement.
-  void args.confirm;
-  const gateConfirm = (): number | null => refuseNonInteractiveMint(args.cmd, isTty, environ);
+  // Dual gate: TTY + --confirm; agent/CI markers always refuse.
+  const gateConfirm = (): number | null =>
+    refuseNonInteractiveMint(args.cmd, isTty, environ, args.confirm);
 
   try {
     switch (args.cmd) {

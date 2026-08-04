@@ -171,6 +171,20 @@ describe("classifyShellAuthzOps (#2944)", () => {
       classifyShellAuthzOps("cd .deft && echo x > authz/state.json && echo y > /tmp/z"),
     ).toContain("settings");
     expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toContain("settings");
+    // Programmatic os.environ / process.env write (no shell $ expansion).
+    expect(
+      classifyShellAuthzOps(
+        "python -c \"import os; open(os.environ['DEFT_AUTHZ_ROOT']+'/state.json','w').write('{}')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "node -e \"require('fs').writeFileSync(process.env.AUTHZ_DIR+'/grants/x.json','{}')\"",
+      ),
+    ).toContain("settings");
+    // Ordinary cleanup / non-store opaque dest stays unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("rm -rf $TMPDIR/build")).toEqual([]);
+    expect(classifyShellAuthzOps("rm -rf $HOME/.cache/tmp")).toEqual([]);
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

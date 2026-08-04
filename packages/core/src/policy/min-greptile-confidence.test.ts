@@ -12,7 +12,9 @@ import {
   FIELD_MIN_GREPTILE_CONFIDENCE,
   FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS,
   formatMinConfidenceRequirement,
+  inspectMinGreptileConfidence,
   meetsMinGreptileConfidence,
+  readMinGreptileConfidenceFromPolicyBlock,
   resolveMinGreptileConfidence,
   validateMinGreptileConfidence,
 } from "./min-greptile-confidence.js";
@@ -147,6 +149,41 @@ describe("resolveMinGreptileConfidence (#3095)", () => {
     expect(byAlias?.current).toBe(5);
     expect(byAlias?.source).toBe("typed");
     expect(byPath?.current).toBe(5);
+  });
+
+  it("readMinGreptileConfidenceFromPolicyBlock covers absent and invalid nests (#3103)", () => {
+    expect(readMinGreptileConfidenceFromPolicyBlock(null)).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock([])).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock("x")).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock({})).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock({ review: null })).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock({ review: [] })).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock({ review: {} })).toBeUndefined();
+    expect(readMinGreptileConfidenceFromPolicyBlock({ review: { minGreptileConfidence: 4 } })).toBe(
+      4,
+    );
+  });
+
+  it("inspectMinGreptileConfidence projects current/default/source (#3103)", () => {
+    root = makeProject({ review: { minGreptileConfidence: 5 } });
+    const field = inspectMinGreptileConfidence(null, root);
+    expect(field).toMatchObject({
+      name: FIELD_MIN_GREPTILE_CONFIDENCE,
+      current: 5,
+      default: DEFAULT_CONSUMER_MIN_GREPTILE_CONFIDENCE,
+      source: "typed",
+    });
+  });
+
+  it("empty string projectRoot falls through to consumer default (#3103)", () => {
+    expect(resolveMinGreptileConfidence("")).toMatchObject({
+      min: DEFAULT_CONSUMER_MIN_GREPTILE_CONFIDENCE,
+      source: "default",
+    });
+    expect(resolveMinGreptileConfidence(null)).toMatchObject({
+      min: DEFAULT_CONSUMER_MIN_GREPTILE_CONFIDENCE,
+      source: "default",
+    });
   });
 });
 

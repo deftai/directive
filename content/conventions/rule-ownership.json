@@ -212,11 +212,11 @@
     },
     {
       "id": "resilience-session-continuity",
-      "text": "Persist to `./vbrief/continue.vbrief.json` in vBRIEF format",
+      "text": "Persist to `./xbrief/continue.xbrief.json` in xBRIEF format",
       "owner_file": "content/resilience/continue-here.md",
       "owner_section": "## Continue Checkpoint Contents",
       "authority": "MUST",
-      "last_verified": "2026-04-28"
+      "last_verified": "2026-08-04"
     },
     {
       "id": "context-engineering-write-strategy",

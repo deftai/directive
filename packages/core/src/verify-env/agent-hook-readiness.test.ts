@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { AgentHookInspection } from "../init-deposit/agent-hooks.js";
 import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
@@ -158,8 +159,9 @@ describe("evaluateAgentHookReadiness", () => {
     });
 
     expect(result.code).toBe(0);
+    // evaluateAgentHookReadiness resolve()s the project root before probe (win32: C:\project).
     expect(probe).toHaveBeenCalledWith(
-      "/project",
+      resolve("/project"),
       expect.objectContaining({ hosts: ["claude", "cursor"] }),
     );
     expect(result.hosts.find((entry) => entry.host === "codex")).toMatchObject({
@@ -223,7 +225,7 @@ describe("evaluateAgentHookReadiness", () => {
     expect(result.liveStatus).toBe("disabled");
     expect(result.hosts.every((entry) => entry.functionality === "disabled")).toBe(true);
     expect(result.message).not.toContain("Codex trust:");
-    expect(probe).toHaveBeenCalledWith("/project", expect.objectContaining({ hosts: [] }));
+    expect(probe).toHaveBeenCalledWith(resolve("/project"), expect.objectContaining({ hosts: [] }));
   });
 
   it("preserves missing and drifted structural registration states", () => {
