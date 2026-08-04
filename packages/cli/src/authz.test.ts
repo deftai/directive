@@ -23,7 +23,7 @@ function tempRoot(): string {
 }
 
 /**
- * Interactive operator path by default: TTY + --confirm + clean environ (dual gate; #3110).
+ * Interactive operator path by default: TTY + --confirm + typed phrase + clean environ (#3110).
  * Injects --confirm for mutating verbs unless already present or cmd is show/help.
  * Clean environ is required so host CI markers (CI / GITHUB_ACTIONS) do not false-refuse
  * operator-path unit tests when the suite runs under GitHub Actions.
@@ -33,6 +33,8 @@ function cleanOperatorSeams(seams: AuthzMainSeams = {}): AuthzMainSeams {
     isTty: () => true,
     // Empty env: no agent/CI markers. Explicit seams.environ overrides.
     environ: {},
+    hasControllingTerminal: () => true,
+    readInteractiveConfirm: () => "mint",
     ...seams,
   };
 }
@@ -498,9 +500,44 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
     expect(
       main(
         ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
-        { isTty: () => true, environ: { CI: "true", GITHUB_ACTIONS: "true" } },
+        cleanOperatorSeams({
+          isTty: () => true,
+          environ: { CI: "true", GITHUB_ACTIONS: "true" },
+        }),
       ),
     ).toBe(2);
     expect(err.join("")).toMatch(/agent|CI/i);
+  });
+
+  it("refuses grant when interactive confirm phrase is wrong", () => {
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        cleanOperatorSeams({ readInteractiveConfirm: () => "yes" }),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/phrase|mint/i);
+  });
+
+  it("refuses grant when controlling terminal is absent", () => {
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        cleanOperatorSeams({ hasControllingTerminal: () => false }),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/controlling terminal/i);
   });
 });

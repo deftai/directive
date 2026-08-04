@@ -15,6 +15,7 @@
  * so pseudo-TTY / agent shells cannot silent-stamp operator-cli origin (#3110).
  * Argv `--confirm` alone is never enough; TTY alone is never enough.
  */
+import { closeSync, openSync, readSync } from "node:fs";
 import {
   AFK_TEMPLATE_NAMES,
   AUTHZ_OPERATIONS,
@@ -104,6 +105,9 @@ export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
   "CODEBUILD_BUILD_ID",
 ] as const;
 
+/** Phrase an operator must type on the controlling TTY after --confirm (#3110). */
+export const AUTHZ_INTERACTIVE_CONFIRM_PHRASE = "mint";
+
 /** Testable seams for TTY / agent-shell detection (#3110). */
 export interface AuthzMainSeams {
   /**
@@ -113,6 +117,16 @@ export interface AuthzMainSeams {
   readonly isTty?: () => boolean;
   /** Environ for agent-shell marker detection (default: process.env). */
   readonly environ?: NodeJS.ProcessEnv;
+  /**
+   * True when a controlling terminal device is available (`/dev/tty` or `CONIN$`).
+   * Default: open/close the platform controlling terminal (fail-closed on error).
+   */
+  readonly hasControllingTerminal?: () => boolean;
+  /**
+   * Read one interactive confirmation line from the operator (trimmed).
+   * Default: one line from stdin. Tests inject a fixed phrase.
+   */
+  readonly readInteractiveConfirm?: () => string | null;
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -298,9 +312,10 @@ function helpText(): string {
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
-    "Mutating verbs require BOTH an interactive TTY AND --confirm (#3110):",
-    "  - TTY alone never authorizes (pseudo-TTY / agent residual).",
-    "  - --confirm alone never authorizes (agent-controlled argv).",
+    "Mutating verbs require multi-factor human presence (#3110):",
+    "  - Interactive TTY (stdin+stdout) + controlling terminal (/dev/tty|CONIN$)",
+    "  - Explicit --confirm (argv flag alone never enough)",
+    "  - Typed phrase 'mint' on the controlling TTY (PTY+--confirm alone never enough)",
     "  - Known agent/CI env markers always refuse (fail-closed).",
     "",
     `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
@@ -319,13 +334,43 @@ function looksLikeAgentShell(environ: NodeJS.ProcessEnv): boolean {
   return false;
 }
 
+function defaultHasControllingTerminal(): boolean {
+  try {
+    const path = process.platform === "win32" ? "CONIN$" : "/dev/tty";
+    const fd = openSync(path, "r");
+    closeSync(fd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function defaultReadInteractiveConfirm(): string | null {
+  try {
+    // Synchronous one-line read from stdin (operator TTY). Agents piping input fail the phrase check.
+    const buf = Buffer.alloc(256);
+    let n = 0;
+    try {
+      n = readSync(0, buf, 0, buf.length, null);
+    } catch {
+      return null;
+    }
+    if (n <= 0) return null;
+    return buf.subarray(0, n).toString("utf8").trim();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Refuse non-interactive / agent-shell operator-cli stamps (#3110 / Greptile residual).
  *
- * Dual human-presence gate (dogfood conf 5/5):
- * 1. No known agent/CI env markers (pseudo-TTY residual)
- * 2. Interactive TTY (stdin.isTTY)
- * 3. Explicit argv `--confirm` (TTY alone never enough; flag alone never enough)
+ * Multi-factor human-presence gate (dogfood conf 5/5):
+ * 1. No known agent/CI env markers
+ * 2. Interactive TTY (stdin + stdout isTTY)
+ * 3. Controlling terminal device present (`/dev/tty` / `CONIN$`)
+ * 4. Explicit argv `--confirm` (flag alone never enough)
+ * 5. Interactive typed phrase `mint` (argv --confirm alone never enough even on PTY)
  *
  * Fail-closed: if a real human interactive path cannot be proven, refuse mint.
  * Returns an exit code when blocked, or null when the mutation may proceed.
@@ -335,13 +380,15 @@ function refuseNonInteractiveMint(
   isTty: () => boolean,
   environ: NodeJS.ProcessEnv,
   confirm: boolean,
+  hasControllingTerminal: () => boolean,
+  readInteractiveConfirm: () => string | null,
 ): number | null {
   if (cmd === "show") return null;
   if (looksLikeAgentShell(environ)) {
     process.stderr.write(
       `authz:${cmd}: refusing operator-cli stamp from an agent/host/CI shell ` +
         `(detected agent or CI env marker). Mutating authz requires a human interactive ` +
-        "TTY without agent-shell markers, plus --confirm (#3110).\n",
+        "TTY without agent-shell markers, plus --confirm and typed phrase (#3110).\n",
     );
     return 2;
   }
@@ -349,8 +396,8 @@ function refuseNonInteractiveMint(
   if (!tty && !confirm) {
     process.stderr.write(
       `authz:${cmd}: refusing non-interactive operator-cli stamp. ` +
-        "Mutating authz verbs require BOTH an interactive TTY AND --confirm " +
-        "(neither alone is sufficient; #3110).\n",
+        "Mutating authz verbs require interactive TTY, --confirm, and typed phrase " +
+        `'${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' (#3110).\n`,
     );
     return 2;
   }
@@ -365,6 +412,25 @@ function refuseNonInteractiveMint(
     process.stderr.write(
       `authz:${cmd}: refusing operator-cli stamp without --confirm. ` +
         "Interactive TTY alone never authorizes mint — pass --confirm explicitly (#3110).\n",
+    );
+    return 2;
+  }
+  if (!hasControllingTerminal()) {
+    process.stderr.write(
+      `authz:${cmd}: refusing operator-cli stamp without a controlling terminal. ` +
+        "Open a real interactive console (not a headless/agent pipe) to mint (#3110).\n",
+    );
+    return 2;
+  }
+  process.stderr.write(
+    `authz:${cmd}: type '${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' and press Enter to confirm operator mint: `,
+  );
+  const line = readInteractiveConfirm();
+  const phrase = (line ?? "").trim().toLowerCase();
+  if (phrase !== AUTHZ_INTERACTIVE_CONFIRM_PHRASE) {
+    process.stderr.write(
+      `\nauthz:${cmd}: interactive confirm phrase mismatch (got ${JSON.stringify(line ?? "")}). ` +
+        `Type exactly '${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' on the controlling TTY (#3110).\n`,
     );
     return 2;
   }
@@ -387,10 +453,19 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
   const isTty =
     seams.isTty ?? (() => process.stdin.isTTY === true && process.stdout.isTTY === true);
   const environ = seams.environ ?? process.env;
+  const hasControllingTerminal = seams.hasControllingTerminal ?? defaultHasControllingTerminal;
+  const readInteractiveConfirm = seams.readInteractiveConfirm ?? defaultReadInteractiveConfirm;
   // Gate after required-arg validation so missing --campaign / --ops still report clearly.
-  // Dual gate: TTY + --confirm; agent/CI markers always refuse.
+  // Multi-factor: TTY + controlling tty + --confirm + typed phrase; agent/CI markers refuse.
   const gateConfirm = (): number | null =>
-    refuseNonInteractiveMint(args.cmd, isTty, environ, args.confirm);
+    refuseNonInteractiveMint(
+      args.cmd,
+      isTty,
+      environ,
+      args.confirm,
+      hasControllingTerminal,
+      readInteractiveConfirm,
+    );
 
   try {
     switch (args.cmd) {
