@@ -633,27 +633,43 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // #3110: authz authority CLI + store **writes** (literal / split / $VAR / rm) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (hasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
-  // Split path write: `cd .deft && echo x > authz/state.json` (any redirect dest mentions authz).
-  // Scan every `>` region — not only the last — so a later `> /tmp/x` cannot hide an earlier store write.
-  if (hasSplitAuthzPath(cmd) && cmd.includes(">")) {
-    const lower = cmd.toLowerCase().replace(/\\/g, "/");
-    for (let i = 0; i < lower.length; i++) {
-      if (lower[i] !== ">") continue;
-      let j = i + 1;
-      if (j < lower.length && lower[j] === ">") j++;
-      let end = j;
-      while (
-        end < lower.length &&
-        lower[end] !== "|" &&
-        lower[end] !== ";" &&
-        lower[end] !== "&" &&
-        lower[end] !== "\n"
-      ) {
-        end++;
-      }
-      if (lower.slice(j, end).includes("authz")) {
-        found.add("settings");
+  // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
+  // OR `cd .deft/authz && cp … grants/x` (write bin without redirect).
+  // When the command cds into an authz path, any write shape is settings (relative dest has no "authz" text).
+  {
+    let cdsIntoAuthz = false;
+    for (let ti = 0; ti < tokens.length - 1; ti++) {
+      const bin = normalizeToken(tokens[ti] as string);
+      if (bin !== "cd" && bin !== "pushd" && bin !== "set-location" && bin !== "sl") continue;
+      const dest = pathishToken(tokens[ti + 1] as string);
+      if (dest.includes("authz")) {
+        cdsIntoAuthz = true;
         break;
+      }
+    }
+    if (cdsIntoAuthz && hasWriteShape(cmd, tokens)) {
+      found.add("settings");
+    } else if (hasSplitAuthzPath(cmd) && cmd.includes(">")) {
+      // Scan every `>` region — not only the last — so a later `> /tmp/x` cannot hide an earlier store write.
+      const lower = cmd.toLowerCase().replace(/\\/g, "/");
+      for (let i = 0; i < lower.length; i++) {
+        if (lower[i] !== ">") continue;
+        let j = i + 1;
+        if (j < lower.length && lower[j] === ">") j++;
+        let end = j;
+        while (
+          end < lower.length &&
+          lower[end] !== "|" &&
+          lower[end] !== ";" &&
+          lower[end] !== "&" &&
+          lower[end] !== "\n"
+        ) {
+          end++;
+        }
+        if (lower.slice(j, end).includes("authz")) {
+          found.add("settings");
+          break;
+        }
       }
     }
   }

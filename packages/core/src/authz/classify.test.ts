@@ -170,6 +170,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("cd .deft && echo x > authz/state.json && echo y > /tmp/z"),
     ).toContain("settings");
+    // Relative write after cd into authz dir (dest has no "authz" text).
+    expect(classifyShellAuthzOps("cd .deft/authz && echo x > state.json")).toContain("settings");
+    expect(classifyShellAuthzOps("cd .deft/authz && cp /tmp/g.json grants/evil.json")).toContain(
+      "settings",
+    );
     // Positional expansion alone + state.json is not enough without authz context.
     expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toEqual([]);
     // Authz-named expansion + state.json remains settings.
