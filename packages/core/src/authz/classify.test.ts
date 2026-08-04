@@ -111,6 +111,38 @@ describe("classifyShellAuthzOps (#2944)", () => {
     ).toContain("merge");
   });
 
+  it("classifies authz:grant / uat-* / revoke as settings (#3110)", () => {
+    for (const cmd of [
+      "deft authz:grant -- --operations edit --cohort x",
+      "task authz:grant -- --operations edit,push",
+      "directive authz:grant --template finish-loop",
+      "pnpm exec deft authz:grant -- --operations edit",
+      "npx deft authz grant --operations edit",
+      "deft authz:uat-start -- --campaign uat-1",
+      "task authz:uat-suspend",
+      "deft authz:revoke -- grant-abc",
+      "env FOO=1 deft authz:grant --operations edit",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Read-only show stays unclassifiable (not authority mutation).
+    expect(classifyShellAuthzOps("deft authz:show")).toEqual([]);
+  });
+
+  it("classifies shell writes under .deft/authz as settings (#3110)", () => {
+    expect(classifyShellAuthzOps('echo {"x":1} > .deft/authz/grants/evil.json')).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("cp /tmp/g.json .deft/authz/grants/g.json")).toContain("settings");
+    expect(classifyShellAuthzOps("mv grant.json .deft/authz/state.json")).toContain("settings");
+    expect(
+      classifyShellAuthzOps("Set-Content -Path .deft\\authz\\state.json -Value '{}'"),
+    ).toContain("settings");
+    // Read of authz store is not a write.
+    expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toEqual([]);
+  });
+
   it("covers gh flag forms and hook name variants (#2986)", () => {
     // --flag=value form and remaining GH_VALUE_FLAGS spellings.
     expect(classifyShellAuthzOps("gh --repo=owner/repo pr create --title t")).toContain("pr");

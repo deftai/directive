@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
- * Authz CLI (#2944 Wave 1 + #1095 Wave 4): human-origin grants + UAT lease +
+ * Authz CLI (#2944 Wave 1 + #1095 Wave 4 + #3110): human-origin grants + UAT lease +
  * AFK closed-verb templates (mint via mintHumanOriginGrant only).
  *
  *   deft authz:show
- *   deft authz:uat-start -- --campaign <id> [--actor <name>] [--note <text>]
- *   deft authz:uat-suspend
- *   deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> ...
- *   deft authz:grant -- --template release-publish --target 0.30.0
- *   deft authz:grant -- --template finish-loop
- *   deft authz:revoke -- <grant-id>
+ *   deft authz:uat-start -- --campaign <id> [--actor <name>] [--note <text>] [--confirm]
+ *   deft authz:uat-suspend [--confirm]
+ *   deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> ... [--confirm]
+ *   deft authz:grant -- --template release-publish --target 0.30.0 [--confirm]
+ *   deft authz:grant -- --template finish-loop [--confirm]
+ *   deft authz:revoke -- <grant-id> [--confirm]
+ *
+ * Mutating subcommands require a TTY or explicit `--confirm` so non-interactive agent
+ * shells cannot silent-stamp operator-cli origin (#3110).
  */
 import {
   AFK_TEMPLATE_NAMES,
@@ -48,7 +51,15 @@ interface Parsed {
   template: string | null;
   target: string | null;
   format: "text" | "json";
+  /** Explicit operator confirm for non-TTY / agent shells (#3110). */
+  confirm: boolean;
   error?: string;
+}
+
+/** Testable seams for TTY detection (#3110). */
+export interface AuthzMainSeams {
+  /** When true, interactive human TTY is present (default: process.stdin.isTTY). */
+  readonly isTty?: () => boolean;
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -86,6 +97,7 @@ function parseArgv(argv: string[]): Parsed {
     template: null,
     target: null,
     format: "text",
+    confirm: false,
   };
 
   const args = [...argv];
@@ -204,6 +216,10 @@ function parseArgv(argv: string[]): Parsed {
       base.target = args[++i] ?? null;
       continue;
     }
+    if (a === "--confirm") {
+      base.confirm = true;
+      continue;
+    }
     if (!a.startsWith("-") && base.cmd === "revoke" && base.grantId === null) {
       base.grantId = a;
       continue;
@@ -219,16 +235,17 @@ function helpText(): string {
   return [
     "Usage:",
     "  deft authz:show [--format json]",
-    "  deft authz:uat-start -- --campaign <id> [--actor <name>] [--note <text>]",
-    "  deft authz:uat-suspend",
+    "  deft authz:uat-start -- --campaign <id> [--actor <name>] [--note <text>] [--confirm]",
+    "  deft authz:uat-suspend [--confirm]",
     "  deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> \\",
-    "      [--stories 2944] [--plan-ref <id>] [--repo owner/name] [--branch <b>] [--expires ISO]",
-    "  deft authz:grant -- --template release-publish --target 0.30.0 [--actor <name>] [--expires ISO]",
-    "  deft authz:grant -- --template finish-loop [--actor <name>] [--expires ISO]",
-    "  deft authz:revoke -- <grant-id>",
+    "      [--stories 2944] [--plan-ref <id>] [--repo owner/name] [--branch <b>] [--expires ISO] [--confirm]",
+    "  deft authz:grant -- --template release-publish --target 0.30.0 [--actor <name>] [--expires ISO] [--confirm]",
+    "  deft authz:grant -- --template finish-loop [--actor <name>] [--expires ISO] [--confirm]",
+    "  deft authz:revoke -- <grant-id> [--confirm]",
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
+    "Mutating verbs require a TTY or --confirm (no silent operator-cli stamp from agent shells; #3110).",
     "",
     `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
     `  Closed-verb (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")} — require --target`,
@@ -238,7 +255,27 @@ function helpText(): string {
   ].join("\n");
 }
 
-export function main(argv: string[] = process.argv.slice(2)): number {
+/**
+ * Refuse non-interactive operator-cli stamps without explicit --confirm (#3110).
+ * Returns an exit code when blocked, or null when the mutation may proceed.
+ */
+function refuseNonInteractiveMint(
+  cmd: Parsed["cmd"],
+  confirm: boolean,
+  isTty: () => boolean,
+): number | null {
+  if (cmd === "show") return null;
+  if (confirm) return null;
+  if (isTty()) return null;
+  process.stderr.write(
+    `authz:${cmd}: refusing non-interactive operator-cli stamp without --confirm. ` +
+      "Agents cannot silent-mint human-origin grants from a non-TTY shell. " +
+      "Re-run on a TTY or pass --confirm after human approval (#3110).\n",
+  );
+  return 2;
+}
+
+export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSeams = {}): number {
   const args = parseArgv(argv);
   if (args.error === "help") {
     process.stdout.write(`${helpText()}\n`);
@@ -249,6 +286,10 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     process.stderr.write(`${helpText()}\n`);
     return 2;
   }
+
+  const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
+  // Gate after required-arg validation so missing --campaign / --ops still report clearly.
+  const gateConfirm = (): number | null => refuseNonInteractiveMint(args.cmd, args.confirm, isTty);
 
   try {
     switch (args.cmd) {
@@ -288,6 +329,8 @@ export function main(argv: string[] = process.argv.slice(2)): number {
           process.stderr.write("authz:uat-start requires --campaign <id>\n");
           return 2;
         }
+        const blocked = gateConfirm();
+        if (blocked !== null) return blocked;
         const { lease } = startUatLease({
           projectRoot: args.projectRoot,
           campaignId: args.campaign,
@@ -304,6 +347,8 @@ export function main(argv: string[] = process.argv.slice(2)): number {
         return 0;
       }
       case "uat-suspend": {
+        const blocked = gateConfirm();
+        if (blocked !== null) return blocked;
         const state = suspendUatLease({
           projectRoot: args.projectRoot,
           actor: args.actor,
@@ -335,6 +380,8 @@ export function main(argv: string[] = process.argv.slice(2)): number {
             );
             return 2;
           }
+          const blocked = gateConfirm();
+          if (blocked !== null) return blocked;
           const grant = mintAfkTemplateGrant({
             projectRoot: args.projectRoot,
             template: args.template,
@@ -375,6 +422,10 @@ export function main(argv: string[] = process.argv.slice(2)): number {
           );
           return 2;
         }
+        {
+          const blocked = gateConfirm();
+          if (blocked !== null) return blocked;
+        }
         const grant = mintHumanOriginGrant({
           projectRoot: args.projectRoot,
           actor: args.actor,
@@ -404,6 +455,10 @@ export function main(argv: string[] = process.argv.slice(2)): number {
         if (args.grantId === null) {
           process.stderr.write("authz:revoke requires <grant-id>\n");
           return 2;
+        }
+        {
+          const blocked = gateConfirm();
+          if (blocked !== null) return blocked;
         }
         const revoked = revokeGrant({
           projectRoot: args.projectRoot,

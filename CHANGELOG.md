@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(security): UAT self-approval via ungated `authz:grant` shell fail-open (#3110).** Under an active UAT lease, `classifyShellAuthzOps` returned empty for `authz:grant` / `authz:uat-start` / `authz:uat-suspend` / `authz:revoke`, so PreToolUse failed open (`shell-op-unclassifiable`) and agents could silent-mint operator-cli grants (CLI stamped origin without TTY/`--confirm`). Those verbs now classify as **settings** (deny under UAT without a prior human grant); CLI mint/suspend/revoke require a TTY or explicit `--confirm`; shell writes under `.deft/authz/` classify as settings. Vitest covers CLI self-mint via Bash/Shell (dispatch-envelope self-mint regression remains). Closes #3110. Refs #2948, #2955, #2944.
 
 ### Removed
 

@@ -199,3 +199,143 @@ describe("incident sequence regression (#2944)", () => {
     expect(issue.verdict).toBe("allow");
   });
 });
+
+describe("CLI self-mint via shell under UAT (#3110)", () => {
+  /**
+   * Residual AppSec path: classifyShellAuthzOps returned [] for authz:grant →
+   * shell-op-unclassifiable fail-open → silent operator-cli mint → empty activeGrantIds
+   * activated the grant → Write/push unlocked. Dispatch-envelope self-mint is covered above;
+   * this suite covers the CLI/shell mint path.
+   */
+  it("Bash/Shell authz:grant under UAT is denied (settings), not shell-op-unclassifiable allow", () => {
+    const state = activeUatState(); // activeGrantIds: []
+    const seams = readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+
+    for (const command of [
+      "deft authz:grant -- --operations edit,push,pr,merge --cohort self --surfaces '**/*'",
+      "task authz:grant -- --operations edit --cohort self",
+      "deft authz:uat-suspend",
+      "deft authz:uat-start -- --campaign forged",
+      "deft authz:revoke -- grant-anything",
+    ]) {
+      for (const tool_name of ["Bash", "Shell"]) {
+        const decision = decideHook(
+          {
+            host: "claude",
+            event: "tool.before",
+            projectRoot: "/project",
+            payload: { tool_name, tool_input: { command } },
+          },
+          seams,
+        );
+        expect(decision.verdict, `${tool_name} ${command}`).toBe("deny");
+        expect(decision.code, `${tool_name} ${command}`).toMatch(/^authz-/);
+        expect(decision.code, `${tool_name} ${command}`).not.toBe("shell-op-unclassifiable");
+      }
+    }
+  });
+
+  it("shell write under .deft/authz/ is denied under UAT", () => {
+    const state = activeUatState();
+    const seams = readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+
+    for (const command of [
+      'echo {"schemaVersion":1} > .deft/authz/grants/evil.json',
+      "cp /tmp/grant.json .deft/authz/grants/evil.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+    }
+  });
+
+  it("after denied authz:grant shell, Write and push remain locked (empty activeGrantIds)", () => {
+    const state = activeUatState();
+    const seams = readySeams({
+      loadAuthzState: () => state,
+      // Production store filters self-authored; agent never successfully minted.
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+
+    const grantAttempt = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: {
+            command:
+              "deft authz:grant -- --operations edit,push,pr,merge --cohort self --surfaces '**/*'",
+          },
+        },
+      },
+      seams,
+    );
+    expect(grantAttempt.verdict).toBe("deny");
+
+    const write = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: {
+            file_path: "/project/apps/web/src/components/Header.tsx",
+            content: "/* still unauthorized */",
+          },
+        },
+      },
+      seams,
+    );
+    expect(write.verdict).toBe("deny");
+    expect(write.code).toMatch(/^authz-/);
+
+    for (const command of ["git push origin HEAD", "gh pr create --title t", "gh pr merge 1"]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+    }
+  });
+});

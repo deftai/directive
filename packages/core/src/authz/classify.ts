@@ -153,6 +153,100 @@ function hasGhApiPath(tokens: readonly string[], needle: string): boolean {
   return false;
 }
 
+/**
+ * Authz authority-mutating CLI verbs (#3110). Classified as **settings** so under
+ * active UAT they deny without a prior human grant — never empty → shell-op-unclassifiable fail-open.
+ */
+const AUTHZ_MUTATING_SUBCOMMANDS = new Set(["grant", "uat-start", "uat-suspend", "revoke"]);
+
+function authzSubcommandFromToken(token: string): string | null {
+  const t = normalizeToken(token);
+  if (t.startsWith("authz:")) {
+    const sub = t.slice("authz:".length);
+    return AUTHZ_MUTATING_SUBCOMMANDS.has(sub) ? sub : null;
+  }
+  return AUTHZ_MUTATING_SUBCOMMANDS.has(t) ? t : null;
+}
+
+/**
+ * Detect `deft|task|directive authz:grant` / `authz grant` (and wrappers) in shell tokens.
+ * O(n) token walk — no nested-quantifier regex on untrusted input.
+ */
+function hasAuthzMutatingCli(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i];
+    if (raw === undefined) break;
+    const t = normalizeToken(raw);
+    // Combined form anywhere: authz:grant / authz:uat-suspend / …
+    if (authzSubcommandFromToken(t) !== null && t.startsWith("authz:")) {
+      return true;
+    }
+    // Separated form: … authz grant|uat-start|uat-suspend|revoke
+    // Also path-ish bins ending in /authz or \authz (node …/authz.js grant).
+    const isAuthzBin =
+      t === "authz" ||
+      t.endsWith("/authz") ||
+      t.endsWith("\\authz") ||
+      t.endsWith("/authz.js") ||
+      t.endsWith("\\authz.js") ||
+      t.endsWith("/authz.ts") ||
+      t.endsWith("\\authz.ts");
+    if (!isAuthzBin) continue;
+    const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
+    if (authzSubcommandFromToken(next) !== null) return true;
+  }
+  return false;
+}
+
+/** Write bins that may target a destination path (shell FS mutation). */
+const SHELL_WRITE_BINS = new Set([
+  "cp",
+  "mv",
+  "tee",
+  "rsync",
+  "install",
+  "copy",
+  "copy-item",
+  "move-item",
+  "set-content",
+  "add-content",
+  "out-file",
+  "new-item",
+  "ni",
+  "sc",
+  "mi",
+]);
+
+/**
+ * Shell write (or redirect) targeting `.deft/authz/` (#3110 AC-3).
+ * Containment: under UAT these classify as settings and deny without a prior human grant.
+ */
+/** Path-ish token normalize: keep separators (do not strip `\` like normalizeToken). */
+function pathishToken(token: string): string {
+  return token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+}
+
+function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  if (!lower.includes(".deft/authz")) return false;
+
+  // Redirect forms: `… > .deft/authz/…` / `… >> .deft/authz/…` (also `1>` / `2>&1` nearby).
+  // Scan for `>` not part of comparison tokens is imperfect; presence of both is enough.
+  if (lower.includes(">") && lower.includes(".deft/authz")) {
+    return true;
+  }
+
+  for (let i = 0; i < tokens.length; i++) {
+    const bin = normalizeToken(tokens[i] as string);
+    if (!SHELL_WRITE_BINS.has(bin)) continue;
+    for (let j = i + 1; j < tokens.length; j++) {
+      // pathishToken preserves path separators (normalizeToken strips `\`).
+      if (pathishToken(tokens[j] as string).includes(".deft/authz")) return true;
+    }
+  }
+  return false;
+}
+
 /** Best-effort shell classification for UAT-sensitive ops beyond push/merge. */
 export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   const cmd = command.trim();
@@ -187,6 +281,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (hasGhApiPath(tokens, "/settings")) found.add("settings");
   if (hasTestRunner(tokens)) found.add("test");
   if (hasDeploy(tokens)) found.add("deployment");
+  // #3110: authz authority CLI + .deft/authz shell writes are settings (deny under UAT).
+  if (hasAuthzMutatingCli(tokens)) found.add("settings");
+  if (hasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
 
   return [...found];
 }
