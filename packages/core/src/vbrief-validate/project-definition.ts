@@ -96,7 +96,7 @@ export function validateProjectDefinition(
         }
         const uriRaw = ref.uri;
         const uri = typeof uriRaw === "string" ? uriRaw : "";
-        if (uri && uri.startsWith("file://")) {
+        if (uri.startsWith("file://")) {
           const refPath = uri.replace("file://", "");
           const fullPath = resolve(vbriefDir, refPath);
           if (!isRelativeTo(fullPath, resolvedRoot)) {

@@ -26,6 +26,15 @@ import {
   projectDefinitionMutationLock,
 } from "./project-definition-io.js";
 
+/** Real fs module captured after vi.mock — throw if hoisted setup failed. */
+function actualFs(): typeof import("node:fs") {
+  const fs = hoisted.actualFs;
+  if (fs === null) {
+    throw new Error("actualFs not initialized by vi.mock");
+  }
+  return fs;
+}
+
 describe("projectDefinitionIO mocked fs branches", () => {
   afterEach(() => {
     vi.clearAllMocks();
@@ -37,7 +46,7 @@ describe("projectDefinitionIO mocked fs branches", () => {
       if (String(path).includes("PROJECT-DEFINITION.xbrief.json")) {
         throw new Error("read denied");
       }
-      return hoisted.actualFs!.readFileSync(path);
+      return actualFs().readFileSync(path);
     });
     const root = mkdtempSync(join(tmpdir(), "vb-pd-mock-"));
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(
@@ -47,16 +56,16 @@ describe("projectDefinitionIO mocked fs branches", () => {
   });
 
   it("times out when openSync stays busy", () => {
-    hoisted.existsSyncMock.mockImplementation((path) => hoisted.actualFs!.existsSync(path));
+    hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
     hoisted.openSyncMock.mockImplementation(() => {
       const err = new Error("busy") as NodeJS.ErrnoException;
       err.code = "EBUSY";
       throw err;
     });
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
-      hoisted.actualFs!.readFileSync(
+      actualFs().readFileSync(
         path,
-        ...(args as [Parameters<typeof hoisted.actualFs.readFileSync>[1]?]),
+        ...(args as [Parameters<typeof import("node:fs").readFileSync>[1]?]),
       ),
     );
     const root = mkdtempSync(join(tmpdir(), "vb-lock-mock-"));
@@ -74,16 +83,16 @@ describe("projectDefinitionIO mocked fs branches", () => {
   });
 
   it("rethrows non-busy openSync errors", () => {
-    hoisted.existsSyncMock.mockImplementation((path) => hoisted.actualFs!.existsSync(path));
+    hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
     hoisted.openSyncMock.mockImplementation(() => {
       const err = new Error("weird") as NodeJS.ErrnoException;
       err.code = "EISDIR";
       throw err;
     });
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
-      hoisted.actualFs!.readFileSync(
+      actualFs().readFileSync(
         path,
-        ...(args as [Parameters<typeof hoisted.actualFs.readFileSync>[1]?]),
+        ...(args as [Parameters<typeof import("node:fs").readFileSync>[1]?]),
       ),
     );
     const root = mkdtempSync(join(tmpdir(), "vb-lock-weird-"));
@@ -92,12 +101,12 @@ describe("projectDefinitionIO mocked fs branches", () => {
   });
 
   it("acquires lock when file already has content", () => {
-    hoisted.existsSyncMock.mockImplementation((path) => hoisted.actualFs!.existsSync(path));
-    hoisted.openSyncMock.mockImplementation((...args) => hoisted.actualFs!.openSync(...args));
+    hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
+    hoisted.openSyncMock.mockImplementation((...args) => actualFs().openSync(...args));
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
-      hoisted.actualFs!.readFileSync(
+      actualFs().readFileSync(
         path,
-        ...(args as [Parameters<typeof hoisted.actualFs.readFileSync>[1]?]),
+        ...(args as [Parameters<typeof import("node:fs").readFileSync>[1]?]),
       ),
     );
     const root = mkdtempSync(join(tmpdir(), "vb-lock-existing-"));
@@ -110,7 +119,7 @@ describe("projectDefinitionIO mocked fs branches", () => {
 
   it("retries openSync on EACCES", () => {
     let calls = 0;
-    hoisted.existsSyncMock.mockImplementation((path) => hoisted.actualFs!.existsSync(path));
+    hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
     hoisted.openSyncMock.mockImplementation((...args) => {
       calls += 1;
       if (calls === 1) {
@@ -118,12 +127,12 @@ describe("projectDefinitionIO mocked fs branches", () => {
         err.code = "EACCES";
         throw err;
       }
-      return hoisted.actualFs!.openSync(...args);
+      return actualFs().openSync(...args);
     });
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
-      hoisted.actualFs!.readFileSync(
+      actualFs().readFileSync(
         path,
-        ...(args as [Parameters<typeof hoisted.actualFs.readFileSync>[1]?]),
+        ...(args as [Parameters<typeof import("node:fs").readFileSync>[1]?]),
       ),
     );
     const root = mkdtempSync(join(tmpdir(), "vb-lock-eacces-"));
