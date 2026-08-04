@@ -148,11 +148,13 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Broad containment: shell path touch of the store (inspect via authz:show / host Read).
     expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toContain("settings");
     expect(classifyShellAuthzOps("cat .deft/authz/state.json > /tmp/backup")).toContain("settings");
-    // Indirect $VAR expansion toward store artifacts (literal .deft/authz absent).
+    // Indirect $VAR expansion (opaque names included — residual fail-open closed).
     expect(classifyShellAuthzOps("echo '{}' > \"$AUTHZ_DIR/state.json\"")).toContain("settings");
     expect(classifyShellAuthzOps("cp /tmp/g.json $AUTHZ_HOME/grants/evil.json")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("printf '{}' > \"$STORE\"")).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > %TEMP%\\out.json")).toContain("settings");
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

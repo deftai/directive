@@ -261,6 +261,7 @@ describe("CLI self-mint via shell under UAT (#3110)", () => {
       'echo {"schemaVersion":1} > .deft/authz/grants/evil.json',
       "cp /tmp/grant.json .deft/authz/grants/evil.json",
       "echo '{}' > \"$AUTHZ_DIR/state.json\"",
+      "printf '{}' > \"$STORE\"",
     ]) {
       const decision = decideHook(
         {

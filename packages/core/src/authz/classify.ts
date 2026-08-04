@@ -208,33 +208,68 @@ function hasAuthzDirShellTouch(command: string): boolean {
   return command.toLowerCase().replace(/\\/g, "/").includes(".deft/authz");
 }
 
-/**
- * Indirect shell writes toward the authz store via `$VAR` expansion (#3110 Greptile P1).
- * Catches `echo '{}' > "$AUTHZ_DIR/state.json"` when the literal `.deft/authz` string is
- * not present in the command text. Heuristic only — does not execute shell expansion.
- */
-function hasIndirectAuthzStoreWrite(command: string): boolean {
-  const lower = command.toLowerCase().replace(/\\/g, "/");
-  // Must look like a write (redirect or common write bins) with env expansion.
-  const hasWrite =
-    lower.includes(">") ||
-    /\b(dd|sed|tee|cp|mv|rsync|python|python3|node|perl|ruby|pwsh|powershell)\b/.test(lower);
-  if (!hasWrite) return false;
-  if (!/\$[a-z_][a-z0-9_]*/i.test(command) && !/%[a-z_][a-z0-9_]*%/i.test(command)) {
-    return false;
-  }
-  // Destination looks like authz store artifacts or authz-named vars.
-  if (
-    lower.includes("state.json") ||
-    lower.includes("/grants/") ||
-    lower.includes("\\grants\\") ||
-    lower.includes("authz") ||
-    /\$[a-z_]*authz[a-z0-9_]*/i.test(command) ||
-    /%[a-z_]*authz[a-z0-9_]*%/i.test(command)
-  ) {
-    return true;
+/** Write-shaped shell bins (token match after normalizeToken). */
+const INDIRECT_WRITE_BINS = new Set([
+  "dd",
+  "sed",
+  "tee",
+  "cp",
+  "mv",
+  "rsync",
+  "python",
+  "python3",
+  "node",
+  "perl",
+  "ruby",
+  "pwsh",
+  "powershell",
+  "set-content",
+  "out-file",
+  "add-content",
+  "copy-item",
+  "move-item",
+  "ni",
+  "sc",
+  "mi",
+]);
+
+/** O(n): true when command expands `$VAR` / `${VAR}` / `%VAR%` (no nested-quantifier regex). */
+function hasEnvExpansion(command: string): boolean {
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === "$" && i + 1 < command.length) {
+      const n = command[i + 1] as string;
+      if (n === "{" || n === "_" || (n >= "A" && n <= "Z") || (n >= "a" && n <= "z")) {
+        return true;
+      }
+    }
+    if (c === "%" && i + 1 < command.length) {
+      const n = command[i + 1] as string;
+      if (n === "_" || (n >= "A" && n <= "Z") || (n >= "a" && n <= "z")) {
+        return true;
+      }
+    }
   }
   return false;
+}
+
+function hasWriteShape(command: string, tokens: readonly string[]): boolean {
+  if (command.includes(">")) return true;
+  for (const t of tokens) {
+    if (INDIRECT_WRITE_BINS.has(normalizeToken(t))) return true;
+  }
+  return false;
+}
+
+/**
+ * Indirect shell writes with env expansion (#3110 Greptile residual).
+ * Under UAT, settings-deny any write-shaped shell that expands `$VAR` / `%VAR%` —
+ * opaque names like `$STORE` must not fail-open past the gate. Outside UAT, settings
+ * is unrestricted by Wave 1. O(n) token/char walks — no polynomial regex on input.
+ */
+function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]): boolean {
+  if (!hasWriteShape(command, tokens)) return false;
+  return hasEnvExpansion(command);
 }
 
 /** Best-effort shell classification for UAT-sensitive ops beyond push/merge. */
@@ -274,7 +309,7 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // #3110: authz authority CLI + .deft/authz shell path (literal or $VAR) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (hasAuthzDirShellTouch(cmd)) found.add("settings");
-  if (hasIndirectAuthzStoreWrite(cmd)) found.add("settings");
+  if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
 
   return [...found];
 }
