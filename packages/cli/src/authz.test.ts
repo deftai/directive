@@ -382,12 +382,32 @@ describe("authz CLI non-TTY confirm gate (#3110)", () => {
     expect(
       main(["grant", "--project-root", root, "--operations", "edit", "--cohort", "x"], {
         isTty: () => false,
+        environ: {},
       }),
     ).toBe(2);
-    expect(err.join("")).toMatch(/--confirm|non-interactive|silent-mint/i);
+    expect(err.join("")).toMatch(
+      /--confirm|non-interactive|silent-mint|DEFT_AUTHZ_OPERATOR_CONFIRM/i,
+    );
   });
 
-  it("allows grant mint from non-TTY with --confirm", () => {
+  it("refuses grant mint from non-TTY with --confirm alone (no env evidence)", () => {
+    // Greptile P1: agents must not invent --confirm as human approval.
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        { isTty: () => false, environ: {} },
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/DEFT_AUTHZ_OPERATOR_CONFIRM/);
+  });
+
+  it("allows grant mint from non-TTY with --confirm + DEFT_AUTHZ_OPERATOR_CONFIRM=1", () => {
     const root = tempRoot();
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((c) => {
@@ -397,13 +417,13 @@ describe("authz CLI non-TTY confirm gate (#3110)", () => {
     expect(
       main(
         ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
-        { isTty: () => false },
+        { isTty: () => false, environ: { DEFT_AUTHZ_OPERATOR_CONFIRM: "1" } },
       ),
     ).toBe(0);
     expect(out.join("")).toMatch(/grant minted/);
   });
 
-  it("refuses uat-start / uat-suspend / revoke from non-TTY without --confirm", () => {
+  it("refuses uat-start / uat-suspend / revoke from non-TTY without dual confirm", () => {
     const root = tempRoot();
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((c) => {
@@ -411,15 +431,22 @@ describe("authz CLI non-TTY confirm gate (#3110)", () => {
       return true;
     });
     expect(
-      main(["uat-start", "--project-root", root, "--campaign", "c"], { isTty: () => false }),
+      main(["uat-start", "--project-root", root, "--campaign", "c"], {
+        isTty: () => false,
+        environ: {},
+      }),
     ).toBe(2);
-    expect(main(["uat-suspend", "--project-root", root], { isTty: () => false })).toBe(2);
-    expect(main(["revoke", "--project-root", root, "grant-x"], { isTty: () => false })).toBe(2);
-    expect(err.join("")).toMatch(/--confirm/);
+    expect(main(["uat-suspend", "--project-root", root], { isTty: () => false, environ: {} })).toBe(
+      2,
+    );
+    expect(
+      main(["revoke", "--project-root", root, "grant-x"], { isTty: () => false, environ: {} }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/DEFT_AUTHZ_OPERATOR_CONFIRM|--confirm/);
   });
 
   it("show remains allowed without TTY or --confirm", () => {
     const root = tempRoot();
-    expect(main(["show", "--project-root", root], { isTty: () => false })).toBe(0);
+    expect(main(["show", "--project-root", root], { isTty: () => false, environ: {} })).toBe(0);
   });
 });

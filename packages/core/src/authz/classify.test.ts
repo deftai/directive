@@ -130,7 +130,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("deft authz:show")).toEqual([]);
   });
 
-  it("classifies shell writes under .deft/authz as settings (#3110)", () => {
+  it("classifies any shell touch of .deft/authz as settings (#3110 containment)", () => {
     expect(classifyShellAuthzOps('echo {"x":1} > .deft/authz/grants/evil.json')).toContain(
       "settings",
     );
@@ -139,8 +139,15 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("Set-Content -Path .deft\\authz\\state.json -Value '{}'"),
     ).toContain("settings");
-    // Read of authz store is not a write.
-    expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toEqual([]);
+    // General-purpose writers (not only redirect + write-bin allowlist).
+    expect(classifyShellAuthzOps("dd if=/tmp/x of=.deft/authz/state.json")).toContain("settings");
+    expect(classifyShellAuthzOps("sed -i s/a/b/ .deft/authz/state.json")).toContain("settings");
+    expect(
+      classifyShellAuthzOps("python -c \"open('.deft/authz/grants/x.json','w').write('{}')\""),
+    ).toContain("settings");
+    // Broad containment: shell path touch of the store (inspect via authz:show / host Read).
+    expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toContain("settings");
+    expect(classifyShellAuthzOps("cat .deft/authz/state.json > /tmp/backup")).toContain("settings");
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

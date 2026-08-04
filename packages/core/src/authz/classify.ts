@@ -198,53 +198,14 @@ function hasAuthzMutatingCli(tokens: readonly string[]): boolean {
   return false;
 }
 
-/** Write bins that may target a destination path (shell FS mutation). */
-const SHELL_WRITE_BINS = new Set([
-  "cp",
-  "mv",
-  "tee",
-  "rsync",
-  "install",
-  "copy",
-  "copy-item",
-  "move-item",
-  "set-content",
-  "add-content",
-  "out-file",
-  "new-item",
-  "ni",
-  "sc",
-  "mi",
-]);
-
 /**
- * Shell write (or redirect) targeting `.deft/authz/` (#3110 AC-3).
- * Containment: under UAT these classify as settings and deny without a prior human grant.
+ * Any shell reference to `.deft/authz/` (#3110 AC-3 + Greptile P1 containment).
+ * Under UAT this classifies as **settings** so agents cannot rewrite state/grants via
+ * dd/sed/python/redirects that a finite write-bin allowlist would miss.
+ * Operators inspect via `deft authz:show` (or host Read tools), not shell FS.
  */
-/** Path-ish token normalize: keep separators (do not strip `\` like normalizeToken). */
-function pathishToken(token: string): string {
-  return token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
-}
-
-function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): boolean {
-  const lower = command.toLowerCase().replace(/\\/g, "/");
-  if (!lower.includes(".deft/authz")) return false;
-
-  // Redirect forms: `… > .deft/authz/…` / `… >> .deft/authz/…` (also `1>` / `2>&1` nearby).
-  // Scan for `>` not part of comparison tokens is imperfect; presence of both is enough.
-  if (lower.includes(">") && lower.includes(".deft/authz")) {
-    return true;
-  }
-
-  for (let i = 0; i < tokens.length; i++) {
-    const bin = normalizeToken(tokens[i] as string);
-    if (!SHELL_WRITE_BINS.has(bin)) continue;
-    for (let j = i + 1; j < tokens.length; j++) {
-      // pathishToken preserves path separators (normalizeToken strips `\`).
-      if (pathishToken(tokens[j] as string).includes(".deft/authz")) return true;
-    }
-  }
-  return false;
+function hasAuthzDirShellTouch(command: string): boolean {
+  return command.toLowerCase().replace(/\\/g, "/").includes(".deft/authz");
 }
 
 /** Best-effort shell classification for UAT-sensitive ops beyond push/merge. */
@@ -281,9 +242,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (hasGhApiPath(tokens, "/settings")) found.add("settings");
   if (hasTestRunner(tokens)) found.add("test");
   if (hasDeploy(tokens)) found.add("deployment");
-  // #3110: authz authority CLI + .deft/authz shell writes are settings (deny under UAT).
+  // #3110: authz authority CLI + any .deft/authz shell path touch → settings (deny under UAT).
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
-  if (hasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
+  if (hasAuthzDirShellTouch(cmd)) found.add("settings");
 
   return [...found];
 }
