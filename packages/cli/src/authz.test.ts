@@ -74,18 +74,19 @@ describe("authz CLI (#2944)", () => {
     expect(err.join("")).toMatch(/campaign/);
   });
 
-  it("uat-start / grant / show / revoke round-trip", () => {
+  it("grant outside UAT / uat-start / show; grant+suspend hard-refuse under active UAT (#3110)", () => {
+    // Mint fix-cohort grants BEFORE uat-start — under active UAT all mutating verbs refuse.
     const root = tempRoot();
     const out: string[] = [];
+    const err: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((c) => {
       out.push(String(c));
       return true;
     });
-    expect(
-      runAuthz(["uat-start", "--project-root", root, "--campaign", "uat-1", "--actor", "op"]),
-    ).toBe(0);
-    expect(runAuthz(["show", "--project-root", root, "--format", "json"])).toBe(0);
-    expect(out.join("")).toMatch(/ACTIVE|uat-1/);
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
     expect(
       runAuthz([
         "grant",
@@ -101,8 +102,26 @@ describe("authz CLI (#2944)", () => {
     ).toBe(0);
     const grantLine = out.find((l) => l.includes("grant minted"));
     expect(grantLine).toBeTruthy();
+    expect(
+      runAuthz(["uat-start", "--project-root", root, "--campaign", "uat-1", "--actor", "op"]),
+    ).toBe(0);
+    expect(runAuthz(["show", "--project-root", root, "--format", "json"])).toBe(0);
+    expect(out.join("")).toMatch(/ACTIVE|uat-1/);
+    // Under active UAT: grant and uat-suspend hard-refuse (no multi-factor escape).
+    expect(
+      runAuthz([
+        "grant",
+        "--project-root",
+        root,
+        "--operations",
+        "edit",
+        "--cohort",
+        "late",
+      ]),
+    ).toBe(2);
+    expect(runAuthz(["uat-suspend", "--project-root", root])).toBe(2);
+    expect(err.join("")).toMatch(/UAT lease is ACTIVE|hard-refused|Self-approval|refusing mutating/i);
     expect(runAuthz(["show", "--project-root", root])).toBe(0);
-    expect(runAuthz(["uat-suspend", "--project-root", root])).toBe(0);
   });
 
   it("grant without operations fails", () => {
@@ -267,18 +286,19 @@ describe("authz CLI (#2944)", () => {
   });
 
   it("show text with active UAT and rejected grants note", () => {
+    // Grant must be minted outside UAT; under active UAT grant is hard-refused (#3110).
     const root = tempRoot();
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((c) => {
       out.push(String(c));
       return true;
     });
-    expect(runAuthz(["uat-start", "--project-root", root, "--campaign", "c", "--note", "n"])).toBe(
-      0,
-    );
     expect(
       runAuthz(["grant", "--project-root", root, "--operations", "edit", "--cohort", "x"]),
     ).toBe(0);
+    expect(runAuthz(["uat-start", "--project-root", root, "--campaign", "c", "--note", "n"])).toBe(
+      0,
+    );
     expect(runAuthz(["show", "--project-root", root])).toBe(0);
     expect(out.join("")).toMatch(/ACTIVE/);
   });
@@ -539,5 +559,110 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
       ),
     ).toBe(2);
     expect(err.join("")).toMatch(/controlling terminal/i);
+  });
+});
+
+describe("authz CLI UAT-active hard refuse (#3110)", () => {
+  /**
+   * Self-approval under UAT is impossible by construction: while any UAT lease
+   * is active, grant / uat-start / uat-suspend / revoke exit non-zero even with
+   * full multi-factor seams (fake TTY + controlling terminal + --confirm + mint).
+   */
+  function startActiveUat(root: string): void {
+    expect(
+      runAuthz(["uat-start", "--project-root", root, "--campaign", "uat-hard-refuse"]),
+    ).toBe(0);
+  }
+
+  it("refuses grant under active UAT even with TTY + --confirm + mint phrase", () => {
+    const root = tempRoot();
+    startActiveUat(root);
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        [
+          "grant",
+          "--project-root",
+          root,
+          "--operations",
+          "edit,push,pr,merge",
+          "--cohort",
+          "self",
+          "--surfaces",
+          "**/*",
+          "--confirm",
+        ],
+        cleanOperatorSeams(),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/UAT lease is ACTIVE|refusing mutating/i);
+  });
+
+  it("refuses uat-start / uat-suspend / revoke under active UAT even with TTY + --confirm", () => {
+    const root = tempRoot();
+    startActiveUat(root);
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        ["uat-start", "--project-root", root, "--campaign", "forged", "--confirm"],
+        cleanOperatorSeams(),
+      ),
+    ).toBe(2);
+    expect(
+      main(["uat-suspend", "--project-root", root, "--confirm"], cleanOperatorSeams()),
+    ).toBe(2);
+    expect(
+      main(
+        ["revoke", "--project-root", root, "grant-anything", "--confirm"],
+        cleanOperatorSeams(),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/UAT lease is ACTIVE|refusing mutating/i);
+  });
+
+  it("allows grant mint outside UAT with multi-factor seams, then refuses after uat-start", () => {
+    const root = tempRoot();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        [
+          "grant",
+          "--project-root",
+          root,
+          "--operations",
+          "edit",
+          "--cohort",
+          "pre-uat",
+          "--confirm",
+        ],
+        cleanOperatorSeams(),
+      ),
+    ).toBe(0);
+    expect(out.join("")).toMatch(/grant minted/);
+    startActiveUat(root);
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "late", "--confirm"],
+        cleanOperatorSeams(),
+      ),
+    ).toBe(2);
+  });
+
+  it("show remains allowed under active UAT without TTY or --confirm", () => {
+    const root = tempRoot();
+    startActiveUat(root);
+    expect(main(["show", "--project-root", root], { isTty: () => false, environ: {} })).toBe(0);
   });
 });

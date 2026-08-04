@@ -11,9 +11,14 @@
  *   deft authz:grant -- --template finish-loop [--confirm]
  *   deft authz:revoke -- <grant-id> [--confirm]
  *
- * Mutating subcommands require **both** an interactive TTY **and** explicit `--confirm`
- * so pseudo-TTY / agent shells cannot silent-stamp operator-cli origin (#3110).
- * Argv `--confirm` alone is never enough; TTY alone is never enough.
+ * **UAT-active hard refuse (#3110):** while any UAT lease is active, ALL mutating
+ * verbs (`uat-start`, `uat-suspend`, `grant`, `revoke`) refuse unconditionally —
+ * no TTY, no `--confirm`, no typed phrase path. Self-approval under UAT is
+ * impossible by construction (agent PTY cannot mint operator-cli authority).
+ *
+ * **Outside UAT:** mutating verbs require multi-factor human presence: interactive
+ * TTY + controlling terminal + `--confirm` + typed phrase `mint`; agent/CI env
+ * markers refuse fail-closed. Argv `--confirm` alone is never enough.
  */
 import { closeSync, openSync, readSync } from "node:fs";
 import {
@@ -25,6 +30,7 @@ import {
   isAfkTemplateName,
   isClosedVerbTemplateName,
   isFinishLoopTemplateName,
+  loadAuthzState,
   mintAfkTemplateGrant,
   mintHumanOriginGrant,
   revokeGrant,
@@ -312,11 +318,16 @@ function helpText(): string {
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
-    "Mutating verbs require multi-factor human presence (#3110):",
+    "While any UAT lease is ACTIVE (#3110): ALL mutating verbs refuse unconditionally",
+    "  (grant / uat-start / uat-suspend / revoke) — no TTY, --confirm, or phrase path.",
+    "  Self-approval under UAT is impossible by construction. Mint grants BEFORE uat-start.",
+    "Outside UAT, mutating verbs require multi-factor human presence (#3110):",
     "  - Interactive TTY (stdin+stdout) + controlling terminal (/dev/tty|CONIN$)",
     "  - Explicit --confirm (argv flag alone never enough)",
     "  - Typed phrase 'mint' on the controlling TTY (PTY+--confirm alone never enough)",
     "  - Known agent/CI env markers always refuse (fail-closed).",
+    "  End UAT only after the lease is cleared out-of-band (state edit / suspend path",
+    "  that does not run while the lease is active) — or suspend before re-minting.",
     "",
     `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
     `  Closed-verb (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")} — require --target`,
@@ -370,9 +381,37 @@ function defaultReadInteractiveConfirm(): string | null {
 }
 
 /**
- * Refuse non-interactive / agent-shell operator-cli stamps (#3110 / Greptile residual).
+ * While any UAT lease is active, refuse ALL mutating authz CLI verbs (#3110).
  *
- * Multi-factor human-presence gate (dogfood conf 5/5):
+ * No multi-factor escape: TTY, `--confirm`, and typed phrase never authorize.
+ * Self-approval under UAT is impossible by construction — agents with a PTY
+ * cannot mint/suspend/revoke operator-cli authority during an active lease.
+ * Operators mint fix-cohort grants *before* `uat-start`.
+ *
+ * Returns exit code when blocked, or null when the command may continue.
+ */
+function refuseMutatingAuthzWhileUatActive(
+  projectRoot: string,
+  cmd: Parsed["cmd"],
+): number | null {
+  if (cmd === "show") return null;
+  const state = loadAuthzState(projectRoot);
+  if (state.uat === null || !state.uat.active) return null;
+  process.stderr.write(
+    `authz:${cmd}: refusing mutating authz while UAT lease is ACTIVE ` +
+      `(campaign=${state.uat.campaignId}). Under active UAT, grant / uat-start / ` +
+      "uat-suspend / revoke are hard-refused — no TTY, --confirm, or phrase path " +
+      "authorizes self-approval (#3110). Mint grants before uat-start; clear the " +
+      "lease out-of-band (edit .deft/authz/state.json as a human outside agent hooks) " +
+      "to end UAT.\n",
+  );
+  return 2;
+}
+
+/**
+ * Refuse non-interactive / agent-shell operator-cli stamps outside UAT (#3110).
+ *
+ * Multi-factor human-presence gate (applies only when UAT lease is inactive):
  * 1. No known agent/CI env markers
  * 2. Interactive TTY (stdin + stdout isTTY)
  * 3. Controlling terminal device present (`/dev/tty` / `CONIN$`)
@@ -462,10 +501,16 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
   const environ = seams.environ ?? process.env;
   const hasControllingTerminal = seams.hasControllingTerminal ?? defaultHasControllingTerminal;
   const readInteractiveConfirm = seams.readInteractiveConfirm ?? defaultReadInteractiveConfirm;
-  // Gate after required-arg validation so missing --campaign / --ops still report clearly.
-  // Multi-factor: TTY + controlling tty + --confirm + typed phrase; agent/CI markers refuse.
-  const gateConfirm = (): number | null =>
-    refuseNonInteractiveMint(
+  /**
+   * Mutating-verb gate stack (#3110):
+   * 1. Active UAT → hard refuse (no multi-factor escape; self-approval impossible)
+   * 2. Else multi-factor: TTY + controlling tty + --confirm + typed phrase; agent/CI markers refuse
+   * Required-arg validation runs before this so missing --campaign / --ops still report clearly.
+   */
+  const gateConfirm = (): number | null => {
+    const uatBlocked = refuseMutatingAuthzWhileUatActive(args.projectRoot, args.cmd);
+    if (uatBlocked !== null) return uatBlocked;
+    return refuseNonInteractiveMint(
       args.cmd,
       isTty,
       environ,
@@ -473,6 +518,7 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
       hasControllingTerminal,
       readInteractiveConfirm,
     );
+  };
 
   try {
     switch (args.cmd) {
