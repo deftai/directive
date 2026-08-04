@@ -160,6 +160,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
       classifyShellAuthzOps('cp /tmp/evil.json "$(echo .deft)/authz/state.json"'),
     ).toContain("settings");
     expect(classifyShellAuthzOps("cp /tmp/x `pwd`/grants/y.json")).toContain("settings");
+    // Destructive + opaque var; split path; positional expansion.
+    expect(classifyShellAuthzOps("rm -rf $STORE")).toContain("settings");
+    expect(classifyShellAuthzOps("cd .deft && echo x > authz/state.json")).toContain("settings");
+    expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toContain("settings");
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

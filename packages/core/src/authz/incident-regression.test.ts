@@ -263,6 +263,8 @@ describe("CLI self-mint via shell under UAT (#3110)", () => {
       "echo '{}' > \"$AUTHZ_DIR/state.json\"",
       "printf '{}' > \"$STORE\"",
       'cp /tmp/evil.json "$(echo .deft)/authz/state.json"',
+      "rm -rf $STORE",
+      "cd .deft && echo x > authz/state.json",
     ]) {
       const decision = decideHook(
         {

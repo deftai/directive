@@ -208,7 +208,7 @@ function hasAuthzDirShellTouch(command: string): boolean {
   return command.toLowerCase().replace(/\\/g, "/").includes(".deft/authz");
 }
 
-/** Write-shaped shell bins (token match after normalizeToken). */
+/** Write/destructive shell bins (token match after normalizeToken). */
 const INDIRECT_WRITE_BINS = new Set([
   "dd",
   "sed",
@@ -216,6 +216,14 @@ const INDIRECT_WRITE_BINS = new Set([
   "cp",
   "mv",
   "rsync",
+  "rm",
+  "rmdir",
+  "unlink",
+  "shred",
+  "truncate",
+  "chmod",
+  "chown",
+  "install",
   "python",
   "python3",
   "node",
@@ -228,28 +236,35 @@ const INDIRECT_WRITE_BINS = new Set([
   "add-content",
   "copy-item",
   "move-item",
+  "remove-item",
+  "ri",
   "ni",
   "sc",
   "mi",
 ]);
 
 /**
- * O(n): true when command expands `$VAR` / `${VAR}` / `$(…)` / `` `…` `` / `%VAR%`
- * (no nested-quantifier regex). Includes command substitution so opaque destinations
- * cannot fail-open past UAT settings (Greptile residual).
+ * O(n): true when command expands `$…` / `` `…` `` / `%VAR%`
+ * (no nested-quantifier regex). Includes command substitution and positional `$1`.
  */
 function hasEnvExpansion(command: string): boolean {
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
-    // Backtick command substitution.
     if (c === "`") return true;
     if (c === "$" && i + 1 < command.length) {
       const n = command[i + 1] as string;
-      // $VAR / ${VAR} / $(cmd) / $((arith))
+      // $VAR / ${VAR} / $(cmd) / $1 / $@ / $* / $? / $'…' (ANSI-C)
       if (
         n === "{" ||
         n === "(" ||
         n === "_" ||
+        n === "'" ||
+        n === "@" ||
+        n === "*" ||
+        n === "?" ||
+        n === "#" ||
+        n === "!" ||
+        (n >= "0" && n <= "9") ||
         (n >= "A" && n <= "Z") ||
         (n >= "a" && n <= "z")
       ) {
@@ -275,10 +290,20 @@ function hasWriteShape(command: string, tokens: readonly string[]): boolean {
 }
 
 /**
- * Indirect shell writes with env expansion (#3110 Greptile residual).
- * Under UAT, settings-deny any write-shaped shell that expands `$VAR` / `%VAR%` —
- * opaque names like `$STORE` must not fail-open past the gate. Outside UAT, settings
- * is unrestricted by Wave 1. O(n) token/char walks — no polynomial regex on input.
+ * Split-path containment: `.deft` and `authz` both appear (e.g. `cd .deft && … authz/…`).
+ * O(n) substring checks — no nested-quantifier regex.
+ */
+function hasSplitAuthzPath(command: string): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  if (!lower.includes("authz")) return false;
+  return lower.includes(".deft") || lower.includes("/deft/") || lower.includes("deft/");
+}
+
+/**
+ * Indirect shell FS mutation with expansion (#3110 Greptile residual).
+ * Under UAT, settings-deny write/delete-shaped shell that expands `$…` / `%…%` —
+ * opaque `$STORE` / `$1` / `rm -rf $STORE` must not fail-open. Outside UAT, settings
+ * is unrestricted by Wave 1. O(n) walks — no polynomial regex on input.
  */
 function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]): boolean {
   if (!hasWriteShape(command, tokens)) return false;
@@ -319,9 +344,10 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (hasGhApiPath(tokens, "/settings")) found.add("settings");
   if (hasTestRunner(tokens)) found.add("test");
   if (hasDeploy(tokens)) found.add("deployment");
-  // #3110: authz authority CLI + .deft/authz shell path (literal or $VAR) → settings.
+  // #3110: authz authority CLI + store path (literal / split / $VAR / rm) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (hasAuthzDirShellTouch(cmd)) found.add("settings");
+  if (hasSplitAuthzPath(cmd) && hasWriteShape(cmd, tokens)) found.add("settings");
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
 
   return [...found];
