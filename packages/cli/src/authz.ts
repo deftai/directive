@@ -56,10 +56,27 @@ interface Parsed {
   error?: string;
 }
 
-/** Testable seams for TTY detection (#3110). */
+/**
+ * Env markers that indicate an agent/host shell even when stdin reports a TTY
+ * (pseudo-terminal residual; #3110 Greptile). Presence refuses mutating authz.
+ */
+export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
+  "CLAUDECODE",
+  "CLAUDE_CODE",
+  "CURSOR_AGENT",
+  "CURSOR_TRACE_ID",
+  "AIDER",
+  "CONTINUE_CLI",
+  "DEFT_HOOK_HOST",
+  "DEFT_AGENT_SHELL",
+] as const;
+
+/** Testable seams for TTY / agent-shell detection (#3110). */
 export interface AuthzMainSeams {
   /** When true, interactive human TTY is present (default: process.stdin.isTTY). */
   readonly isTty?: () => boolean;
+  /** Environ for agent-shell marker detection (default: process.env). */
+  readonly environ?: NodeJS.ProcessEnv;
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -256,15 +273,36 @@ function helpText(): string {
   ].join("\n");
 }
 
+function looksLikeAgentShell(environ: NodeJS.ProcessEnv): boolean {
+  for (const key of AUTHZ_AGENT_SHELL_ENV_MARKERS) {
+    const v = environ[key];
+    if (v !== undefined && String(v).trim().length > 0) return true;
+  }
+  return false;
+}
+
 /**
- * Refuse non-interactive operator-cli stamps (#3110 / Greptile P1).
+ * Refuse non-interactive / agent-shell operator-cli stamps (#3110 / Greptile residual).
  *
- * Only an interactive TTY is accepted as human presence. Argv `--confirm` and process
- * env are agent-controlled, so they MUST NOT authorize a non-TTY mint.
+ * Requires an interactive TTY **and** absence of known agent-shell env markers
+ * (pseudo-TTY alone is not independent human evidence). Argv `--confirm` never
+ * authorizes mint.
  * Returns an exit code when blocked, or null when the mutation may proceed.
  */
-function refuseNonInteractiveMint(cmd: Parsed["cmd"], isTty: () => boolean): number | null {
+function refuseNonInteractiveMint(
+  cmd: Parsed["cmd"],
+  isTty: () => boolean,
+  environ: NodeJS.ProcessEnv,
+): number | null {
   if (cmd === "show") return null;
+  if (looksLikeAgentShell(environ)) {
+    process.stderr.write(
+      `authz:${cmd}: refusing operator-cli stamp from an agent/host shell ` +
+        `(detected agent env marker). Mutating authz requires a human interactive TTY ` +
+        "without agent-shell markers (#3110).\n",
+    );
+    return 2;
+  }
   if (isTty()) return null;
   process.stderr.write(
     `authz:${cmd}: refusing non-interactive operator-cli stamp. ` +
@@ -287,10 +325,11 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
   }
 
   const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
+  const environ = seams.environ ?? process.env;
   // Gate after required-arg validation so missing --campaign / --ops still report clearly.
   // Note: args.confirm is accepted for audit/docs but does not bypass the TTY requirement.
   void args.confirm;
-  const gateConfirm = (): number | null => refuseNonInteractiveMint(args.cmd, isTty);
+  const gateConfirm = (): number | null => refuseNonInteractiveMint(args.cmd, isTty, environ);
 
   try {
     switch (args.cmd) {

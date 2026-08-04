@@ -166,6 +166,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Destructive + opaque var; split path; positional expansion toward store.
     expect(classifyShellAuthzOps("rm -rf $STORE")).toContain("settings");
     expect(classifyShellAuthzOps("cd .deft && echo x > authz/state.json")).toContain("settings");
+    // Later redirect must not hide an earlier split-path store write.
+    expect(
+      classifyShellAuthzOps("cd .deft && echo x > authz/state.json && echo y > /tmp/z"),
+    ).toContain("settings");
     expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toContain("settings");
   });
 

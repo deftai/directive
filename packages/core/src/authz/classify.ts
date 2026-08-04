@@ -428,12 +428,28 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // #3110: authz authority CLI + store **writes** (literal / split / $VAR / rm) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (hasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
-  // Split path write: `cd .deft && echo x > authz/state.json` (dest mentions authz after >).
+  // Split path write: `cd .deft && echo x > authz/state.json` (any redirect dest mentions authz).
+  // Scan every `>` region — not only the last — so a later `> /tmp/x` cannot hide an earlier store write.
   if (hasSplitAuthzPath(cmd) && cmd.includes(">")) {
     const lower = cmd.toLowerCase().replace(/\\/g, "/");
-    const gt = lower.lastIndexOf(">");
-    if (gt >= 0 && lower.slice(gt + 1).includes("authz")) {
-      found.add("settings");
+    for (let i = 0; i < lower.length; i++) {
+      if (lower[i] !== ">") continue;
+      let j = i + 1;
+      if (j < lower.length && lower[j] === ">") j++;
+      let end = j;
+      while (
+        end < lower.length &&
+        lower[end] !== "|" &&
+        lower[end] !== ";" &&
+        lower[end] !== "&" &&
+        lower[end] !== "\n"
+      ) {
+        end++;
+      }
+      if (lower.slice(j, end).includes("authz")) {
+        found.add("settings");
+        break;
+      }
     }
   }
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");

@@ -429,4 +429,20 @@ describe("authz CLI non-TTY TTY-only gate (#3110)", () => {
     const root = tempRoot();
     expect(main(["show", "--project-root", root], { isTty: () => false })).toBe(0);
   });
+
+  it("refuses grant on TTY when agent-shell env marker is set", () => {
+    const root = tempRoot();
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(["grant", "--project-root", root, "--operations", "edit", "--cohort", "x"], {
+        isTty: () => true,
+        environ: { CLAUDECODE: "1" },
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/agent/i);
+  });
 });
