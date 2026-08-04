@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Story xBRIEF for #1604: upgrade workflow SCM release handoff after successful framework deposit.",
-    "updated": "2026-08-04T02:09:50.835Z"
+    "updated": "2026-08-04T02:49:51Z"
   },
   "plan": {
     "title": "Upgrade workflow should carry framework updates through default-branch release handoff",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A consumer framework upgrade can refresh the deposit and even land a framework-only commit while still leaving the default branch without the update. This story closes that gap by defining end-to-end SCM release handoff after a successful deposit, with named terminal states released, pr-open, or blocked, and policy-aware PR vs direct-commit paths that honor the human merge gate.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1604",
@@ -19,7 +19,7 @@
       {
         "id": "1604-a1",
         "title": "After successful deposit, never end at local framework-only commit without naming the next release step.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: After successful deposit, never end at local framework-only commit without naming the next release step.",
           "Traces": "AC-1"
@@ -28,7 +28,7 @@
       {
         "id": "1604-a2",
         "title": "Workflow records one terminal state: released | pr-open | blocked:<reason>.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Workflow records one terminal state: released | pr-open | blocked:<reason>.",
           "Traces": "AC-2"
@@ -37,7 +37,7 @@
       {
         "id": "1604-a3",
         "title": "Branch-protected / human-merge consumers get PR path; direct-commit-enabled get explicit default-branch path; human merge gate honored.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Branch-protected / human-merge consumers get PR path; direct-commit-enabled get explicit default-branch path; human merge gate honored.",
           "Traces": "AC-3"
@@ -46,7 +46,7 @@
       {
         "id": "1604-a4",
         "title": "Canonical docs/skill lead with npm + directive/deft update; submodule is not primary path; missing CLI surfaces npm install remediation.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Canonical docs/skill lead with npm + directive/deft update; submodule is not primary path; missing CLI surfaces npm install remediation.",
           "Traces": "AC-4"
@@ -55,7 +55,7 @@
       {
         "id": "1604-a5",
         "title": "Tests or skill-contract checks cover stop-after-commit failure mode and named terminal states without false released claims.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Tests or skill-contract checks cover stop-after-commit failure mode and named terminal states without false released claims.",
           "Traces": "AC-5"
@@ -77,7 +77,7 @@
         "title": "Issue #1604: Upgrade workflow should carry framework updates through default-branch release handoff"
       }
     ],
-    "updated": "2026-08-04T02:08:20Z",
+    "updated": "2026-08-04T02:49:51Z",
     "id": "1604-upgrade-workflow-release-handoff",
     "metadata": {
       "kind": "story",
@@ -114,7 +114,26 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3106,
+        "prBase": null,
+        "mergeCommit": "96cf68f1fc42363e3c2d3087b73de4c4d6b6cb4f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "96cf68f1fc42363e3c2d3087b73de4c4d6b6cb4f",
+        "verifiedAt": "2026-08-04T02:49:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-04T02:49:51Z",
+      "capacityBucket": "agentic-debt"
     }
   }
 }
