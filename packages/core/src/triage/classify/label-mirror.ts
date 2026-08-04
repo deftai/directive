@@ -449,7 +449,7 @@ export function mirrorLabels(
   const holdMarkers = engine.resolveHoldMarkers({ projectRoot: root });
   // Number-only xBRIEF refs are project-repo scoped (#1423 Greptile P1). Soft-fail
   // when no xbrief layout yet (empty cache bootstrap / sparse fixtures).
-  let projectVbriefReferenced: Set<number> = new Set();
+  let projectVbriefReferenced: Set<number>;
   try {
     projectVbriefReferenced = engine.extractReferencedIssues(root);
   } catch {
@@ -465,6 +465,22 @@ export function mirrorLabels(
   if (options.repo !== undefined && options.repo !== null && options.repo.trim().length > 0) {
     const want = options.repo.trim().toLowerCase();
     pairs = pairs.filter(([repo]) => repo.toLowerCase() === want);
+  }
+
+  // Repos allowed to use number-only xBRIEF refs:
+  // - when project repo is known: only that slug
+  // - when unknown and the scan set is a single repo: that repo (legitimate bootstrap)
+  // - when unknown multi-repo: none (fail closed on number collisions)
+  const reposAllowedVbriefRefs = new Set<string>();
+  if (projectRepo !== null && projectRepo.trim().length > 0) {
+    reposAllowedVbriefRefs.add(projectRepo.trim().toLowerCase());
+  } else {
+    const uniqueRepos = new Set(pairs.map(([repo]) => repo.toLowerCase()));
+    if (uniqueRepos.size === 1) {
+      for (const r of uniqueRepos) {
+        reposAllowedVbriefRefs.add(r);
+      }
+    }
   }
 
   let planned = 0;
@@ -538,11 +554,11 @@ export function mirrorLabels(
       continue;
     }
 
-    // Only apply number-only xBRIEF refs when this cache entry is the project repo.
+    // Only apply number-only xBRIEF refs for allowed repos (see reposAllowedVbriefRefs).
     // Cross-repo same-number collisions must not inherit project references (#1423 P1).
-    const sameAsProject =
-      projectRepo !== null && repo.trim().toLowerCase() === projectRepo.trim().toLowerCase();
-    const vbriefReferenced = sameAsProject ? projectVbriefReferenced : null;
+    const vbriefReferenced = reposAllowedVbriefRefs.has(repo.toLowerCase())
+      ? projectVbriefReferenced
+      : null;
 
     const classification = engine.classifyIssue(issue, {
       rules: rules as never,
