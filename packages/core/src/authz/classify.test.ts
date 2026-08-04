@@ -155,6 +155,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
     );
     expect(classifyShellAuthzOps("printf '{}' > \"$STORE\"")).toContain("settings");
     expect(classifyShellAuthzOps("echo x > %TEMP%\\out.json")).toContain("settings");
+    // Command substitution destinations (no contiguous .deft/authz literal).
+    expect(
+      classifyShellAuthzOps('cp /tmp/evil.json "$(echo .deft)/authz/state.json"'),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("cp /tmp/x `pwd`/grants/y.json")).toContain("settings");
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

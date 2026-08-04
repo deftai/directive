@@ -233,13 +233,26 @@ const INDIRECT_WRITE_BINS = new Set([
   "mi",
 ]);
 
-/** O(n): true when command expands `$VAR` / `${VAR}` / `%VAR%` (no nested-quantifier regex). */
+/**
+ * O(n): true when command expands `$VAR` / `${VAR}` / `$(…)` / `` `…` `` / `%VAR%`
+ * (no nested-quantifier regex). Includes command substitution so opaque destinations
+ * cannot fail-open past UAT settings (Greptile residual).
+ */
 function hasEnvExpansion(command: string): boolean {
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
+    // Backtick command substitution.
+    if (c === "`") return true;
     if (c === "$" && i + 1 < command.length) {
       const n = command[i + 1] as string;
-      if (n === "{" || n === "_" || (n >= "A" && n <= "Z") || (n >= "a" && n <= "z")) {
+      // $VAR / ${VAR} / $(cmd) / $((arith))
+      if (
+        n === "{" ||
+        n === "(" ||
+        n === "_" ||
+        (n >= "A" && n <= "Z") ||
+        (n >= "a" && n <= "z")
+      ) {
         return true;
       }
     }
