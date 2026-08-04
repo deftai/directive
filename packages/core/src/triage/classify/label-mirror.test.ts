@@ -345,6 +345,54 @@ describe("mirrorLabels", () => {
     expect(foreign?.ruleKind).not.toBe("universal:vbrief-referenced");
   });
 
+  it("does not let --repo filter re-enable foreign xBRIEF refs on multi-repo cache", () => {
+    const root = tmpRoot();
+    writeProject(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "S",
+          status: "running",
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/acme/demo/issues/55",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    writeCachedIssue(root, "other/victim", 55, {
+      number: 55,
+      state: "open",
+      body: "foreign same number with enough body text",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    writeCachedIssue(root, "acme/demo", 55, {
+      number: 55,
+      state: "open",
+      body: "project same number with enough body text",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    const [, outcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      repo: "other/victim",
+      allowCrossRepo: true,
+    });
+    const foreign = outcome.items.find((i) => i.repo === "other/victim" && i.issue_number === 55);
+    expect(foreign).toBeDefined();
+    expect(foreign?.ruleKind).not.toBe("universal:vbrief-referenced");
+    expect(foreign?.action).not.toBe("accept");
+  });
+
   it("still applies xBRIEF refs on single-repo cache when project identity is unresolved", () => {
     const root = tmpRoot();
     writeProject(root);

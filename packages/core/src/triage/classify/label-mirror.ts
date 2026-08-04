@@ -461,21 +461,25 @@ export function mirrorLabels(
   const decisions = loadLatestDecisionMap(root);
   const now = options.now ?? new Date();
 
-  let pairs = iterCachedIssues(cacheRoot);
+  // Unfiltered cache inventory drives xBRIEF-ref eligibility. The optional --repo
+  // flag is a scan filter only and MUST NOT shrink multi-repo identity to a
+  // single foreign slug (Greptile P1: filtered foreign inherits project refs).
+  const allPairs = iterCachedIssues(cacheRoot);
+  let pairs = allPairs;
   if (options.repo !== undefined && options.repo !== null && options.repo.trim().length > 0) {
     const want = options.repo.trim().toLowerCase();
-    pairs = pairs.filter(([repo]) => repo.toLowerCase() === want);
+    pairs = allPairs.filter(([repo]) => repo.toLowerCase() === want);
   }
 
   // Repos allowed to use number-only xBRIEF refs:
   // - when project repo is known: only that slug
-  // - when unknown and the scan set is a single repo: that repo (legitimate bootstrap)
-  // - when unknown multi-repo: none (fail closed on number collisions)
+  // - when unknown and the unfiltered cache is a single repo: that repo
+  // - when unknown multi-repo (even if --repo filters to one): none
   const reposAllowedVbriefRefs = new Set<string>();
   if (projectRepo !== null && projectRepo.trim().length > 0) {
     reposAllowedVbriefRefs.add(projectRepo.trim().toLowerCase());
   } else {
-    const uniqueRepos = new Set(pairs.map(([repo]) => repo.toLowerCase()));
+    const uniqueRepos = new Set(allPairs.map(([repo]) => repo.toLowerCase()));
     if (uniqueRepos.size === 1) {
       for (const r of uniqueRepos) {
         reposAllowedVbriefRefs.add(r);
