@@ -905,27 +905,77 @@ export function listProject(projectRoot: string): string {
 
 // ---------------------------------------------------------------------------
 // Tier-1 label mirror (#1423 Wave 1)
-// Re-export after the classify engine so label-mirror's live bindings to
-// classifyIssue / resolveClassifyRules resolve once this module has evaluated.
+// label-mirror.ts does not import this module (avoids ESM/SLizard cycle).
+// Public mirrorLabels injects the classify engine into the pure implementation.
 // ---------------------------------------------------------------------------
+
+import {
+  type ClassifyAction,
+  DEFAULT_IDEMPOTENCY_LABEL,
+  defaultLabelMirrorPolicy,
+  desiredLabelsForClassification,
+  type LabelMirrorEngine,
+  type LabelMirrorItem,
+  type LabelMirrorOptions as LabelMirrorOptionsCore,
+  type LabelMirrorOutcome,
+  type LabelMirrorPolicy,
+  type LabelMirrorStatus,
+  labelMirrorOutcomeToJson,
+  mirrorLabels as mirrorLabelsCore,
+  type ResolvedLabelMirrorPolicy,
+  renderLabelMirrorReport,
+  resolveLabelMirrorPolicy,
+  validateLabelMirrorPolicy,
+  validateTriageLabelMirrorOnPlan as validateTriageLabelMirrorOnPlanFromModule,
+} from "./label-mirror.js";
 
 export {
   type ClassifyAction,
   DEFAULT_IDEMPOTENCY_LABEL,
   defaultLabelMirrorPolicy,
   desiredLabelsForClassification,
+  type LabelMirrorEngine,
   type LabelMirrorItem,
-  type LabelMirrorOptions,
   type LabelMirrorOutcome,
   type LabelMirrorPolicy,
   type LabelMirrorStatus,
   labelMirrorOutcomeToJson,
-  mirrorLabels,
   type ResolvedLabelMirrorPolicy,
   renderLabelMirrorReport,
   resolveLabelMirrorPolicy,
   validateLabelMirrorPolicy,
-  validateTriageLabelMirrorOnPlan,
-} from "./label-mirror.js";
+  validateTriageLabelMirrorOnPlanFromModule as validateTriageLabelMirrorOnPlan,
+};
 
-import { validateTriageLabelMirrorOnPlan as validateTriageLabelMirrorOnPlanFromModule } from "./label-mirror.js";
+/** Public options: engine is optional (defaults to this module's classify API). */
+export type LabelMirrorOptions = Omit<LabelMirrorOptionsCore, "engine"> & {
+  readonly engine?: LabelMirrorEngine;
+};
+
+function defaultLabelMirrorEngine(): LabelMirrorEngine {
+  return {
+    classifyIssue: (issue, options) =>
+      classifyIssue(issue as GitHubIssue, {
+        rules: options?.rules as ClassifyRule[] | undefined,
+        holdMarkers: options?.holdMarkers,
+        vbriefReferenced: options?.vbriefReferenced,
+        hasTriageDecision: options?.hasTriageDecision,
+        now: options?.now,
+      }),
+    resolveClassifyRules,
+    resolveHoldMarkers,
+    extractReferencedIssues,
+  };
+}
+
+/** Tier-1 label mirror with the #1129 classify engine bound in. */
+export function mirrorLabels(
+  projectRoot: string,
+  options: LabelMirrorOptions = {},
+): [number, LabelMirrorOutcome] {
+  const { engine, ...rest } = options;
+  return mirrorLabelsCore(projectRoot, {
+    ...rest,
+    engine: engine ?? defaultLabelMirrorEngine(),
+  });
+}

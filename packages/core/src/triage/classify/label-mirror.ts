@@ -4,32 +4,72 @@
  * Classifies cached issues with the existing #1129 engine, then mirrors the
  * outcome as SCM labels (dry-run default, --apply to write). Never accepts into
  * the xBRIEF lifecycle and never writes proposed/ scopes.
+ *
+ * Intentionally does NOT import from ./index.js (SLizard P1 cycle). The classify
+ * engine is injected via LabelMirrorEngine / mirrorLabels() wrapper in index.ts.
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { ScmLabelClient } from "../../vbrief-reconcile/labels.js";
 import { isRepoMutationAllowed } from "../../vbrief-reconcile/repo-guard.js";
 import type { LabelClient } from "../../vbrief-reconcile/types.js";
 import { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
+import { resolveRepo } from "../queue/repo.js";
 import { iterCachedIssues } from "../summary/index.js";
-import type { ClassificationResult, GitHubIssue } from "./index.js";
-import {
-  classifyIssue,
-  extractReferencedIssues,
-  loadProjectDefinitionForCli,
-  resolveClassifyRules,
-  resolveHoldMarkers,
-  VALID_ACTIONS,
-} from "./index.js";
 
 export const DEFAULT_IDEMPOTENCY_LABEL = "triaged";
 export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
 
+const VALID_ACTIONS: ReadonlySet<string> = new Set(["defer", "archive", "escalate", "accept"]);
+
 export type ClassifyAction = "defer" | "archive" | "escalate" | "accept";
+
+/** Minimal issue shape used by the mirror (matches classify GitHubIssue). */
+export interface MirrorGitHubIssue {
+  readonly number?: number;
+  readonly state?: string;
+  readonly body?: string | null;
+  readonly labels?: ReadonlyArray<{ name?: string } | string>;
+  readonly updated_at?: string;
+  readonly created_at?: string;
+}
+
+export interface MirrorClassificationResult {
+  readonly action: string;
+  readonly reason: string;
+  readonly ruleIndex: number;
+  readonly ruleSource: string;
+  readonly ruleKind: string;
+  readonly resumeOn: string | null;
+}
+
+/** Injected classify engine — avoids a runtime import cycle with classify/index.ts. */
+export interface LabelMirrorEngine {
+  readonly classifyIssue: (
+    issue: MirrorGitHubIssue,
+    options?: {
+      rules?: readonly unknown[];
+      holdMarkers?: string[] | null;
+      vbriefReferenced?: ReadonlySet<number> | null;
+      hasTriageDecision?: boolean;
+      now?: Date;
+    },
+  ) => MirrorClassificationResult | null;
+  readonly resolveClassifyRules: (options?: {
+    projectRoot?: string;
+    projectDefinition?: Record<string, unknown> | null;
+  }) => readonly unknown[];
+  readonly resolveHoldMarkers: (options?: {
+    projectRoot?: string;
+    projectDefinition?: Record<string, unknown> | null;
+  }) => string[];
+  readonly extractReferencedIssues: (projectRoot?: string) => Set<number>;
+}
 
 export interface LabelMirrorPolicy {
   /** When false, mirror is a no-op (default true when policy object is used). */
@@ -97,6 +137,8 @@ export interface LabelMirrorOptions {
   /** Prefer live SCM labels when true (default: !dryRun). Cache labels used for dry-run. */
   readonly useLiveLabels?: boolean;
   readonly now?: Date;
+  /** Required: classify engine (provided by classify/index mirrorLabels wrapper). */
+  readonly engine: LabelMirrorEngine;
 }
 
 function asStringList(value: unknown): string[] | null {
@@ -111,6 +153,10 @@ function asStringList(value: unknown): string[] | null {
     out.push(item);
   }
   return out;
+}
+
+function sanitizeReportFragment(value: string): string {
+  return value.replace(/\r?\n/g, " ");
 }
 
 /** Validate plan.policy.triageLabelMirror payload. */
@@ -182,6 +228,24 @@ export function defaultLabelMirrorPolicy(): ResolvedLabelMirrorPolicy {
   };
 }
 
+function loadProjectDefinition(projectRoot: string): Record<string, unknown> | null {
+  let path: string;
+  try {
+    path = resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    path = join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+  }
+  try {
+    const raw = readFileSync(path, { encoding: "utf8" });
+    const data: unknown = JSON.parse(raw);
+    return typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Resolve effective label-mirror policy from PROJECT-DEFINITION or inline object. */
 export function resolveLabelMirrorPolicy(options?: {
   projectRoot?: string;
@@ -194,7 +258,7 @@ export function resolveLabelMirrorPolicy(options?: {
   const data =
     options?.projectDefinition !== undefined
       ? options.projectDefinition
-      : loadProjectDefinitionForCli(options?.projectRoot ?? process.cwd());
+      : loadProjectDefinition(options?.projectRoot ?? process.cwd());
   if (data === null) {
     return defaultLabelMirrorPolicy();
   }
@@ -261,7 +325,7 @@ export function desiredLabelsForClassification(
   return [...desired].sort();
 }
 
-function issueLabelNames(issue: GitHubIssue): string[] {
+function issueLabelNames(issue: MirrorGitHubIssue): string[] {
   const raw = issue.labels ?? [];
   const names: string[] = [];
   if (!Array.isArray(raw)) {
@@ -284,7 +348,7 @@ function readCachedRawIssue(
   cacheRoot: string,
   repo: string,
   issueNumber: number,
-): GitHubIssue | null {
+): MirrorGitHubIssue | null {
   const [owner, name] = repo.split("/", 2);
   const rawPath = join(
     cacheRoot,
@@ -302,7 +366,7 @@ function readCachedRawIssue(
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       return null;
     }
-    return data as GitHubIssue;
+    return data as MirrorGitHubIssue;
   } catch {
     return null;
   }
@@ -329,10 +393,11 @@ function decisionMapHas(
 /**
  * Run Tier-1 label mirror over the github-issue cache.
  * Dry-run by default (no SCM writes). Pass dryRun: false to apply.
+ * Requires options.engine (classify/index wrapper injects it).
  */
 export function mirrorLabels(
   projectRoot: string,
-  options: LabelMirrorOptions = {},
+  options: LabelMirrorOptions,
 ): [number, LabelMirrorOutcome] {
   const root = resolve(projectRoot);
   const dryRun = options.dryRun ?? true;
@@ -340,6 +405,7 @@ export function mirrorLabels(
   const cacheRoot = options.cacheRoot ?? join(root, CACHE_DIR_NAME);
   const useLiveLabels = options.useLiveLabels ?? !dryRun;
   const client = options.client ?? (useLiveLabels || !dryRun ? new ScmLabelClient() : undefined);
+  const engine = options.engine;
 
   const items: LabelMirrorItem[] = [];
   const outcomeBase = {
@@ -379,15 +445,19 @@ export function mirrorLabels(
     ];
   }
 
-  const rules = resolveClassifyRules({ projectRoot: root });
-  const holdMarkers = resolveHoldMarkers({ projectRoot: root });
-  // Soft-fail when no xbrief layout yet (empty cache bootstrap / sparse fixtures).
-  let vbriefReferenced: Set<number> = new Set();
+  const rules = engine.resolveClassifyRules({ projectRoot: root });
+  const holdMarkers = engine.resolveHoldMarkers({ projectRoot: root });
+  // Number-only xBRIEF refs are project-repo scoped (#1423 Greptile P1). Soft-fail
+  // when no xbrief layout yet (empty cache bootstrap / sparse fixtures).
+  let projectVbriefReferenced: Set<number> = new Set();
   try {
-    vbriefReferenced = extractReferencedIssues(root);
+    projectVbriefReferenced = engine.extractReferencedIssues(root);
   } catch {
-    vbriefReferenced = new Set();
+    projectVbriefReferenced = new Set();
   }
+  // Project identity for xBRIEF ref scoping must NOT use --repo (that flag is a
+  // scan filter only). resolveRepo(null, root) uses git remote / PROJECT-DEFINITION.
+  const projectRepo = resolveRepo(null, root);
   const decisions = loadLatestDecisionMap(root);
   const now = options.now ?? new Date();
 
@@ -429,7 +499,6 @@ export function mirrorLabels(
       try {
         current = client.fetchLabels(repo, issueNumber);
       } catch (exc) {
-        // Fall back to cache labels on fetch failure so dry-run-style planning can still report.
         current = issueLabelNames(issue);
         if (!dryRun) {
           errors += 1;
@@ -469,8 +538,14 @@ export function mirrorLabels(
       continue;
     }
 
-    const classification: ClassificationResult | null = classifyIssue(issue, {
-      rules,
+    // Only apply number-only xBRIEF refs when this cache entry is the project repo.
+    // Cross-repo same-number collisions must not inherit project references (#1423 P1).
+    const sameAsProject =
+      projectRepo !== null && repo.trim().toLowerCase() === projectRepo.trim().toLowerCase();
+    const vbriefReferenced = sameAsProject ? projectVbriefReferenced : null;
+
+    const classification = engine.classifyIssue(issue, {
+      rules: rules as never,
       holdMarkers,
       vbriefReferenced,
       hasTriageDecision: decisionMapHas(decisions, repo, issueNumber),
@@ -641,9 +716,8 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
     for (const item of plannedOrApplied) {
       const actionPart = item.action !== null ? ` action=${item.action}` : "";
       const rulePart = item.ruleKind !== null ? ` rule=${item.ruleKind}` : "";
-      lines.push(
-        `- ${item.repo}#${item.issue_number}:${actionPart}${rulePart} +${item.add.join(", +")}`,
-      );
+      const addPart = sanitizeReportFragment(item.add.join(", +"));
+      lines.push(`- ${item.repo}#${item.issue_number}:${actionPart}${rulePart} +${addPart}`);
     }
   }
 
@@ -663,7 +737,8 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
     lines.push("");
     lines.push("Errors:");
     for (const item of errs) {
-      lines.push(`- ${item.repo}#${item.issue_number}: ${item.message ?? "unknown error"}`);
+      const msg = sanitizeReportFragment(item.message ?? "unknown error");
+      lines.push(`- ${item.repo}#${item.issue_number}: ${msg}`);
     }
   }
 

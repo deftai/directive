@@ -12,7 +12,7 @@ import {
   renderLabelMirrorReport,
   resolveLabelMirrorPolicy,
   validateLabelMirrorPolicy,
-} from "./label-mirror.js";
+} from "./index.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -282,16 +282,6 @@ describe("mirrorLabels", () => {
       labels: [],
     });
     const client = new FakeLabelClient();
-    // Force project repo via explicit --repo that differs
-    const [code, outcome] = mirrorLabels(root, {
-      dryRun: false,
-      client,
-      repo: "acme/demo",
-      allowCrossRepo: false,
-      useLiveLabels: true,
-    });
-    // filtered by --repo so scanned may be 0; use unfiltered but without matching project repo
-    // Re-run without repo filter:
     const [code2, outcome2] = mirrorLabels(root, {
       dryRun: false,
       client,
@@ -302,8 +292,59 @@ describe("mirrorLabels", () => {
     expect(client.applyCalls).toHaveLength(0);
     expect(outcome2.errors).toBeGreaterThan(0);
     expect(outcome2.items.some((i) => i.status === "error")).toBe(true);
-    // silence unused
-    expect(code === 0 || code === 1).toBe(true);
-    expect(outcome.scanned).toBeGreaterThanOrEqual(0);
+  });
+
+  it("does not apply project xBRIEF number refs to a foreign-repo same number (#1423 P1)", () => {
+    const root = tmpRoot();
+    writeProject(root);
+    // Active xBRIEF references acme/demo#42 only via github-issue URI
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "S",
+          status: "running",
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/acme/demo/issues/42",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    // Foreign repo shares issue number 42 but has no hold-marker / no match
+    // without the false-positive vbrief-referenced rule.
+    writeCachedIssue(root, "other/victim", 42, {
+      number: 42,
+      state: "open",
+      body: "unrelated issue with a substantial body that is not dormant",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    // Project-repo sibling with same number should match vbrief-referenced
+    writeCachedIssue(root, "acme/demo", 42, {
+      number: 42,
+      state: "open",
+      body: "referenced scope work with enough body text to avoid dormant",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    const [, outcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      repo: "other/victim",
+      // Force project repo resolution to acme/demo so foreign is not project
+      allowCrossRepo: true,
+    });
+    // Foreign #42 must NOT be classified as accept via universal:vbrief-referenced
+    const foreign = outcome.items.find((i) => i.repo === "other/victim" && i.issue_number === 42);
+    expect(foreign).toBeDefined();
+    expect(foreign?.action).not.toBe("accept");
+    expect(foreign?.ruleKind).not.toBe("universal:vbrief-referenced");
   });
 });
