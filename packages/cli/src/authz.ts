@@ -56,18 +56,10 @@ interface Parsed {
   error?: string;
 }
 
-/**
- * Env var that authorizes non-TTY mint after human-set confirm (#3110 Greptile P1).
- * Agents must not invent this; operators export it only for scripted headless grants.
- */
-export const AUTHZ_OPERATOR_CONFIRM_ENV = "DEFT_AUTHZ_OPERATOR_CONFIRM";
-
-/** Testable seams for TTY / operator-confirm detection (#3110). */
+/** Testable seams for TTY detection (#3110). */
 export interface AuthzMainSeams {
   /** When true, interactive human TTY is present (default: process.stdin.isTTY). */
   readonly isTty?: () => boolean;
-  /** Environ for non-TTY operator-confirm env gate (default: process.env). */
-  readonly environ?: NodeJS.ProcessEnv;
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -253,8 +245,8 @@ function helpText(): string {
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
-    "Mutating verbs require a TTY, or (--confirm + DEFT_AUTHZ_OPERATOR_CONFIRM=1) for headless " +
-      "operator scripts (no silent agent stamp; #3110).",
+    "Mutating verbs require an interactive TTY (agents cannot silent-stamp operator-cli; #3110).",
+    "  Optional --confirm is recorded for audit on TTY sessions; non-TTY always refuses.",
     "",
     `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
     `  Closed-verb (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")} — require --target`,
@@ -265,29 +257,19 @@ function helpText(): string {
 }
 
 /**
- * Refuse non-interactive operator-cli stamps without independent human evidence (#3110).
+ * Refuse non-interactive operator-cli stamps (#3110 / Greptile P1).
  *
- * - TTY present → allow (interactive human).
- * - Non-TTY → require `--confirm` **and** `DEFT_AUTHZ_OPERATOR_CONFIRM=1` so an agent
- *   cannot silent-mint by inventing the argv flag alone (Greptile P1).
- *
+ * Only an interactive TTY is accepted as human presence. Argv `--confirm` and process
+ * env are agent-controlled, so they MUST NOT authorize a non-TTY mint.
  * Returns an exit code when blocked, or null when the mutation may proceed.
  */
-function refuseNonInteractiveMint(
-  cmd: Parsed["cmd"],
-  confirm: boolean,
-  isTty: () => boolean,
-  environ: NodeJS.ProcessEnv,
-): number | null {
+function refuseNonInteractiveMint(cmd: Parsed["cmd"], isTty: () => boolean): number | null {
   if (cmd === "show") return null;
   if (isTty()) return null;
-  const envConfirm = (environ[AUTHZ_OPERATOR_CONFIRM_ENV] ?? "").trim() === "1";
-  if (confirm && envConfirm) return null;
   process.stderr.write(
     `authz:${cmd}: refusing non-interactive operator-cli stamp. ` +
-      "Agents cannot silent-mint human-origin grants from a non-TTY shell. " +
-      `Re-run on a TTY, or pass --confirm with ${AUTHZ_OPERATOR_CONFIRM_ENV}=1 ` +
-      "after human approval (#3110).\n",
+      "Mutating authz verbs require an interactive TTY — agents cannot silent-mint " +
+      "human-origin grants via --confirm or env flags alone (#3110).\n",
   );
   return 2;
 }
@@ -305,10 +287,10 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
   }
 
   const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
-  const environ = seams.environ ?? process.env;
   // Gate after required-arg validation so missing --campaign / --ops still report clearly.
-  const gateConfirm = (): number | null =>
-    refuseNonInteractiveMint(args.cmd, args.confirm, isTty, environ);
+  // Note: args.confirm is accepted for audit/docs but does not bypass the TTY requirement.
+  void args.confirm;
+  const gateConfirm = (): number | null => refuseNonInteractiveMint(args.cmd, isTty);
 
   try {
     switch (args.cmd) {

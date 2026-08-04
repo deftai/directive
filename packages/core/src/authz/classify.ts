@@ -208,6 +208,35 @@ function hasAuthzDirShellTouch(command: string): boolean {
   return command.toLowerCase().replace(/\\/g, "/").includes(".deft/authz");
 }
 
+/**
+ * Indirect shell writes toward the authz store via `$VAR` expansion (#3110 Greptile P1).
+ * Catches `echo '{}' > "$AUTHZ_DIR/state.json"` when the literal `.deft/authz` string is
+ * not present in the command text. Heuristic only — does not execute shell expansion.
+ */
+function hasIndirectAuthzStoreWrite(command: string): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  // Must look like a write (redirect or common write bins) with env expansion.
+  const hasWrite =
+    lower.includes(">") ||
+    /\b(dd|sed|tee|cp|mv|rsync|python|python3|node|perl|ruby|pwsh|powershell)\b/.test(lower);
+  if (!hasWrite) return false;
+  if (!/\$[a-z_][a-z0-9_]*/i.test(command) && !/%[a-z_][a-z0-9_]*%/i.test(command)) {
+    return false;
+  }
+  // Destination looks like authz store artifacts or authz-named vars.
+  if (
+    lower.includes("state.json") ||
+    lower.includes("/grants/") ||
+    lower.includes("\\grants\\") ||
+    lower.includes("authz") ||
+    /\$[a-z_]*authz[a-z0-9_]*/i.test(command) ||
+    /%[a-z_]*authz[a-z0-9_]*%/i.test(command)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /** Best-effort shell classification for UAT-sensitive ops beyond push/merge. */
 export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   const cmd = command.trim();
@@ -242,9 +271,10 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (hasGhApiPath(tokens, "/settings")) found.add("settings");
   if (hasTestRunner(tokens)) found.add("test");
   if (hasDeploy(tokens)) found.add("deployment");
-  // #3110: authz authority CLI + any .deft/authz shell path touch → settings (deny under UAT).
+  // #3110: authz authority CLI + .deft/authz shell path (literal or $VAR) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (hasAuthzDirShellTouch(cmd)) found.add("settings");
+  if (hasIndirectAuthzStoreWrite(cmd)) found.add("settings");
 
   return [...found];
 }
