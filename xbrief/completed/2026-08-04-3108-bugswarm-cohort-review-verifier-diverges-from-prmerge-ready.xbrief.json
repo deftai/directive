@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3108",
-    "updated": "2026-08-04T12:20:58Z"
+    "updated": "2026-08-04T19:51:37Z"
   },
   "plan": {
     "title": "bug(swarm): cohort review verifier diverges from pr:merge-ready on absent Greptile",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): cohort review verifier diverges from pr:merge-ready on absent Greptile",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3108",
@@ -37,14 +37,33 @@
         "title": "Issue #3108: bug(swarm): cohort review verifier diverges from pr:merge-ready on absent Greptile"
       }
     ],
-    "updated": "2026-08-04T12:20:58Z",
+    "updated": "2026-08-04T19:51:37Z",
     "metadata": {
       "issueSync": {
         "fingerprint": "0a9caa9d5618510a",
         "syncedAt": "2026-08-04T12:21:31.160Z",
         "issueNumber": 3108,
         "repo": "deftai/directive"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3109,
+        "prBase": "master",
+        "mergeCommit": "416e2e93d7e7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "416e2e93d7e7b56eca135291d538456549dbdcbb",
+        "verifiedAt": "2026-08-04T19:51:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-04T19:51:37Z",
+      "capacityBucket": "technical-debt"
     }
   }
 }
