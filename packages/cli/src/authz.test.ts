@@ -28,8 +28,8 @@ function tempRoot(): string {
  */
 function runAuthz(argv: string[], seams: AuthzMainSeams = {}): number {
   const mutating =
-    argv.some((a) =>
-      ["uat-start", "uat-suspend", "grant", "revoke"].includes(a) || a.startsWith("grant-"),
+    argv.some(
+      (a) => ["uat-start", "uat-suspend", "grant", "revoke"].includes(a) || a.startsWith("grant-"),
     ) && !argv.includes("show");
   const withConfirm =
     mutating && !argv.includes("--confirm") && !argv.includes("--help") && !argv.includes("-h")

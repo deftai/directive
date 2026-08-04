@@ -159,9 +159,9 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps('echo hi > "$HOME/out"')).toEqual([]);
     expect(classifyShellAuthzOps('cp x "$TMPDIR/y"')).toEqual([]);
     // Command substitution destinations (no contiguous .deft/authz literal).
-    expect(
-      classifyShellAuthzOps('cp /tmp/evil.json "$(echo .deft)/authz/state.json"'),
-    ).toContain("settings");
+    expect(classifyShellAuthzOps('cp /tmp/evil.json "$(echo .deft)/authz/state.json"')).toContain(
+      "settings",
+    );
     expect(classifyShellAuthzOps("cp /tmp/x `pwd`/grants/y.json")).toContain("settings");
     // Destructive + opaque var; split path; positional expansion toward store.
     expect(classifyShellAuthzOps("rm -rf $STORE")).toContain("settings");
