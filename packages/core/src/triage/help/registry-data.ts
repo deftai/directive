@@ -282,17 +282,38 @@ export const registryData = {
     },
     "task triage:classify": {
       name: "task triage:classify",
-      summary: "Inspect / validate auto-classification surface",
-      refs: "(D10 / #1129)",
+      summary: "Inspect / validate auto-classification surface; Tier-1 SCM label mirror",
+      refs: "(D10 / #1129, #1423 Wave 1)",
       description:
-        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify.",
-      usage: "task triage:classify -- [--list | --validate]",
+        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror runs the Tier-1 deterministic SCM label mirror over the github-issue cache (dry-run default; --apply writes via SCM boundary). Never calls triage:accept / never writes proposed/ xBRIEFs.",
+      usage:
+        "task triage:classify -- [--list | --validate | --mirror [--apply] [--repo owner/name] [--json] [--allow-cross-repo]]",
       flags: [
         ["--list", "(default)", "Print effective rules + hold markers."],
-        ["--validate", "(off)", "Validate plan.policy.triageAutoClassify."],
+        ["--validate", "(off)", "Validate plan.policy.triageAutoClassify + triageLabelMirror."],
+        [
+          "--mirror",
+          "(off)",
+          "Tier-1 label mirror: classify cache → planned/applied labels (dry-run default).",
+        ],
+        ["--apply", "(off)", "With --mirror: write labels via SCM (requires github SCM boundary)."],
+        ["--repo owner/name", "(all cached)", "Limit mirror to one repo."],
+        ["--json", "(off)", "With --mirror: structured JSON outcome."],
+        ["--allow-cross-repo", "(off)", "With --mirror --apply: allow non-project repos (#2601)."],
       ],
-      examples: ["task triage:classify -- --list", "task triage:classify -- --validate"],
-      see_also: ["task triage:bootstrap", "task triage:queue", "#1119 / D10"],
+      examples: [
+        "task triage:classify -- --list",
+        "task triage:classify -- --validate",
+        "task triage:classify -- --mirror",
+        "task triage:classify -- --mirror --apply --repo owner/name",
+      ],
+      see_also: [
+        "task triage:bootstrap",
+        "task triage:queue",
+        "task vbrief:reconcile:labels",
+        "#1119 / D10",
+        "#1423",
+      ],
       placeholder: false,
     },
     "task triage:bootstrap": {

@@ -478,6 +478,7 @@ Directive does not guess your mix. Either you name the next units in order (**or
 - `task triage:reset -- <issue>` -- append a reset record so a candidate can be reconsidered.
 - `task triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac` -- apply predictable decisions over filtered cached candidates.
 - `task triage:summary`, `task triage:scope`, `task triage:scope-drift`, `task triage:subscribe`, `task triage:unsubscribe`, `task triage:classify`, `task triage:welcome`, and `task triage:smoketest` -- supporting workflow and onboarding commands.
+- `task triage:classify -- --mirror [--apply] [--repo owner/name] [--json]` -- **Tier-1 deterministic SCM label mirror (#1423 Wave 1).** Runs the existing classify engine over the github-issue cache and mirrors outcomes as labels (`triaged` idempotency marker + optional `plan.policy.triageLabelMirror.actionLabels`). Dry-run by default (prints a digest of planned adds/skips with zero SCM writes); `--apply` writes via the SCM label client / repo-mutation boundary (same surface family as `vbrief:reconcile:labels`). Re-run is a no-op for issues already carrying `triaged`. **Never** calls `triage:accept` and **never** writes `proposed/` xBRIEFs. Waves 2–3 (bootstrap mass-triage, agent Tier-2 comments) are out of scope for this flag.
 
 ### Cache Tasks
 

@@ -954,7 +954,7 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:classify:
-    desc: "Inspect / validate the auto-classification surface (#1129 / D10). -- task triage:classify -- [--list | --validate]"
+    desc: "Inspect / validate auto-classification + Tier-1 SCM label mirror (#1129 / #1423). -- task triage:classify -- [--list | --validate | --mirror [--apply]]"
     cmds:
       - task: triage-classify:classify
         vars:

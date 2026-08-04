@@ -875,7 +875,9 @@ export function validateProject(projectRoot: string): {
   const rel = projectDefinitionPath(root);
   const classifyErrs = validateTriageAutoClassifyOnPlan(plan, rel);
   const holderErrs = validateTriageHoldMarkersOnPlan(plan, rel);
-  const errors = [...classifyErrs, ...holderErrs];
+  // label-mirror validates plan.policy.triageLabelMirror (#1423); imported via re-export graph.
+  const mirrorErrs = validateTriageLabelMirrorOnPlanFromModule(plan, rel);
+  const errors = [...classifyErrs, ...holderErrs, ...mirrorErrs];
   if (errors.length > 0) {
     const lines = errors.map((err) => `FAIL: ${err}`);
     lines.push("");
@@ -887,7 +889,7 @@ export function validateProject(projectRoot: string): {
   return {
     code: 0,
     stdout:
-      "OK: triageAutoClassify[] + triageHoldMarkers[] valid " +
+      "OK: triageAutoClassify[] + triageHoldMarkers[] + triageLabelMirror valid " +
       `(${rules.length} rules, ${markers.length} hold markers).\n`,
     stderr: "",
   };
@@ -900,3 +902,30 @@ export function listProject(projectRoot: string): string {
   const markers = resolveHoldMarkers({ projectRoot: root });
   return `${renderList(rules, { holdMarkers: markers })}\n`;
 }
+
+// ---------------------------------------------------------------------------
+// Tier-1 label mirror (#1423 Wave 1)
+// Re-export after the classify engine so label-mirror's live bindings to
+// classifyIssue / resolveClassifyRules resolve once this module has evaluated.
+// ---------------------------------------------------------------------------
+
+export {
+  type ClassifyAction,
+  DEFAULT_IDEMPOTENCY_LABEL,
+  defaultLabelMirrorPolicy,
+  desiredLabelsForClassification,
+  type LabelMirrorItem,
+  type LabelMirrorOptions,
+  type LabelMirrorOutcome,
+  type LabelMirrorPolicy,
+  type LabelMirrorStatus,
+  labelMirrorOutcomeToJson,
+  mirrorLabels,
+  type ResolvedLabelMirrorPolicy,
+  renderLabelMirrorReport,
+  resolveLabelMirrorPolicy,
+  validateLabelMirrorPolicy,
+  validateTriageLabelMirrorOnPlan,
+} from "./label-mirror.js";
+
+import { validateTriageLabelMirrorOnPlan as validateTriageLabelMirrorOnPlanFromModule } from "./label-mirror.js";

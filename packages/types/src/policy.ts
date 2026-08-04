@@ -37,6 +37,19 @@ export interface PlanPolicy {
   readonly triageRankingLabels?: readonly string[];
   readonly triageAutoClassify?: readonly unknown[];
   readonly triageHoldMarkers?: readonly string[];
+  /**
+   * Tier-1 SCM label mirror from classify outcomes (#1423 Wave 1).
+   * Maps classify actions to labels; always applies the idempotency marker
+   * (`triaged` by default). Dry-run default on `task triage:classify -- --mirror`.
+   */
+  readonly triageLabelMirror?: {
+    readonly enabled?: boolean;
+    readonly idempotencyLabel?: string;
+    readonly alwaysLabels?: readonly string[];
+    readonly actionLabels?: Readonly<
+      Partial<Record<"defer" | "archive" | "escalate" | "accept", readonly string[]>>
+    >;
+  };
   readonly swarmSubagentBackend?: string | null;
   readonly projectionProviders?: Record<string, ProjectionProviderPolicy>;
   /** Per-host Directive hook deposit toggles (#2752). Default: all true. */
@@ -91,6 +104,7 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.triageRankingLabels",
   "plan.policy.triageAutoClassify",
   "plan.policy.triageHoldMarkers",
+  "plan.policy.triageLabelMirror",
   "plan.policy.swarmSubagentBackend",
   "plan.policy.engineSkewWindow",
   "plan.policy.requireHumanMerge",

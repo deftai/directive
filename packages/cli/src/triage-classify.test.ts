@@ -52,6 +52,8 @@ describe("parseArgs", () => {
       projectRoot: ".",
       doList: false,
       doValidate: false,
+      doMirror: false,
+      apply: false,
     });
   });
 
@@ -61,6 +63,18 @@ describe("parseArgs", () => {
       projectRoot: "/tmp/x",
     });
     expect(parseArgs(["--validate"])).toMatchObject({ doValidate: true });
+  });
+
+  it("parses --mirror and --apply", () => {
+    expect(parseArgs(["--mirror", "--apply", "--repo", "o/r"])).toMatchObject({
+      doMirror: true,
+      apply: true,
+      repo: "o/r",
+    });
+  });
+
+  it("rejects --apply without --mirror", () => {
+    expect(parseArgs(["--apply"]).error).toContain("--mirror");
   });
 
   it("rejects unknown flags", () => {
@@ -91,6 +105,40 @@ describe("run", () => {
       policy: { triageAutoClassify: [{ match: {}, action: "defer", reason: "??" }] },
     });
     expect(silentRun(["--validate", "--project-root", root])).toBe(1);
+  });
+
+  it("dry-run --mirror prints digest without network (#1423)", () => {
+    const root = buildRepo();
+    const cacheDir = join(root, ".deft-cache", "github-issue", "acme", "demo", "7");
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(
+      join(cacheDir, "raw.json"),
+      JSON.stringify({
+        number: 7,
+        state: "open",
+        body: "BLOCKED pending design",
+        labels: [],
+        updated_at: "2026-08-01T00:00:00Z",
+      }),
+      "utf8",
+    );
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--project-root", root])).toBe(0);
+    const text = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toContain("dry-run");
+    expect(text).toMatch(/planned=|Would add labels:/);
+    out.mockRestore();
+  });
+
+  it("--mirror --json emits structured outcome", () => {
+    const root = buildRepo();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--json", "--project-root", root])).toBe(0);
+    const text = out.mock.calls.map((c) => String(c[0])).join("");
+    const parsed = JSON.parse(text) as { dry_run: boolean; scanned: number };
+    expect(parsed.dry_run).toBe(true);
+    expect(typeof parsed.scanned).toBe("number");
+    out.mockRestore();
   });
 });
 

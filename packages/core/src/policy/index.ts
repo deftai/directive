@@ -92,6 +92,7 @@ export const FIELD_TRIAGE_SCOPE_IGNORES = "plan.policy.triageScopeIgnores";
 export const FIELD_TRIAGE_RANKING_LABELS = "plan.policy.triageRankingLabels";
 export const FIELD_TRIAGE_AUTO_CLASSIFY = "plan.policy.triageAutoClassify";
 export const FIELD_TRIAGE_HOLD_MARKERS = "plan.policy.triageHoldMarkers";
+export const FIELD_TRIAGE_LABEL_MIRROR = "plan.policy.triageLabelMirror";
 export const FIELD_SWARM_SUBAGENT_BACKEND = "plan.policy.swarmSubagentBackend";
 // deliveryBranch also exported from delivery-branch.js via export *
 
@@ -102,6 +103,13 @@ export const DEFAULT_TRIAGE_SCOPE_VALUE: readonly Record<string, unknown>[] = [
 export const DEFAULT_TRIAGE_SCOPE_IGNORES_VALUE: readonly unknown[] = [];
 export const DEFAULT_TRIAGE_RANKING_LABELS_VALUE: readonly string[] = [];
 export const DEFAULT_TRIAGE_AUTO_CLASSIFY_VALUE: readonly unknown[] = [];
+/** Default for #1423 Tier-1 label mirror: enabled with `triaged` idempotency marker. */
+export const DEFAULT_TRIAGE_LABEL_MIRROR_VALUE: Readonly<Record<string, unknown>> = {
+  enabled: true,
+  idempotencyLabel: "triaged",
+  alwaysLabels: ["triaged"],
+  actionLabels: {},
+};
 
 export const KNOWN_SUBAGENT_BACKEND_IDS = new Set(["composer", "cursor-cloud", "grok-build"]);
 
@@ -197,6 +205,33 @@ function inspectWipCap(data: Record<string, unknown> | null): PolicyField {
     name: FIELD_WIP_CAP,
     current: DEFAULT_WIP_CAP,
     default: DEFAULT_WIP_CAP,
+    source: "default",
+  };
+}
+
+function inspectTriageLabelMirrorField(data: Record<string, unknown> | null): PolicyField {
+  const policyBlock = getPolicyBlock(data);
+  if ("triageLabelMirror" in policyBlock) {
+    const raw = policyBlock.triageLabelMirror;
+    if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+      return {
+        name: FIELD_TRIAGE_LABEL_MIRROR,
+        current: raw,
+        default: { ...DEFAULT_TRIAGE_LABEL_MIRROR_VALUE },
+        source: "typed",
+      };
+    }
+    return {
+      name: FIELD_TRIAGE_LABEL_MIRROR,
+      current: { ...DEFAULT_TRIAGE_LABEL_MIRROR_VALUE },
+      default: { ...DEFAULT_TRIAGE_LABEL_MIRROR_VALUE },
+      source: "default-on-error",
+    };
+  }
+  return {
+    name: FIELD_TRIAGE_LABEL_MIRROR,
+    current: { ...DEFAULT_TRIAGE_LABEL_MIRROR_VALUE },
+    default: { ...DEFAULT_TRIAGE_LABEL_MIRROR_VALUE },
     source: "default",
   };
 }
@@ -481,6 +516,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
     listFieldInspector(data, "triageHoldMarkers", FIELD_TRIAGE_HOLD_MARKERS, defaultHoldMarkers(), {
       emptyIsTyped: true,
     }),
+  inspectTriageLabelMirrorField,
   inspectSwarmSubagentBackend,
   inspectDeliveryBranchField,
   inspectMinGreptileConfidenceField,

@@ -22,7 +22,7 @@ vars:
 
 tasks:
   classify:
-    desc: "Inspect / validate plan.policy.triageAutoClassify[] + triageHoldMarkers[] (#1129 / D10). -- task triage:classify -- [--list | --validate]"
+    desc: "Inspect / validate triageAutoClassify + triageLabelMirror; Tier-1 SCM label mirror (#1129 / #1423). -- task triage:classify -- [--list | --validate | --mirror [--apply]]"
     internal: true
     deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
