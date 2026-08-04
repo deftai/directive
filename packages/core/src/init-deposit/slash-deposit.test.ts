@@ -45,6 +45,16 @@ describe("writeSlashCommandDeposit (#3054)", () => {
       expect(existsSync(sample)).toBe(true);
       const body = readFileSync(sample, "utf8");
       expect(isThinWrapperMarkdown(body, "resilience/continue-here.md")).toBe(true);
+
+      // #3105: checkpoint wrappers load the strategy doc, not the save-path output file.
+      const checkpoint = join(root, layout.relativeDir, "deft-checkpoint.md");
+      expect(existsSync(checkpoint)).toBe(true);
+      const checkpointBody = readFileSync(checkpoint, "utf8");
+      expect(isThinWrapperMarkdown(checkpointBody, "resilience/continue-here.md")).toBe(true);
+      expect(checkpointBody).toContain("Read and follow `resilience/continue-here.md`");
+      expect(checkpointBody).not.toContain("Read and follow `xbrief/continue.xbrief.json`");
+      // Description frontmatter still documents the save path (commands.md parity).
+      expect(checkpointBody).toMatch(/description:.*xbrief\/continue\.xbrief\.json/);
     }
     expect(lines.some((l) => l.includes("Installed Directive slash commands"))).toBe(true);
   });

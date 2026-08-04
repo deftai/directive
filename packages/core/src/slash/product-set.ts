@@ -131,9 +131,12 @@ export const PRODUCT_COMMANDS: readonly ProductCommand[] = Object.freeze([
   {
     logicalId: "/deft:checkpoint",
     filenameStem: "deft-checkpoint",
+    // description documents the save path; wrappers load the strategy doc (same as continue).
+    // ⊗ Point dispatchPath at xbrief/continue.xbrief.json — that file is the checkpoint *output*,
+    // not the instruction doc; first invoke fails when it does not exist yet (#3105).
     description: "Save session state to xbrief/continue.xbrief.json",
     dispatchKind: "session",
-    dispatchPath: "xbrief/continue.xbrief.json",
+    dispatchPath: "resilience/continue-here.md",
   },
 ] satisfies readonly ProductCommand[]);
 

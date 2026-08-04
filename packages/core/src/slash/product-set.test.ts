@@ -72,6 +72,16 @@ describe("slash product-set (#3052 / #55 L2)", () => {
     expect(getProductCommand("/missing")).toBeUndefined();
   });
 
+  it("loads /deft:checkpoint via continue-here strategy, not the save-path output (#3105)", () => {
+    const checkpoint = getProductCommand("/deft:checkpoint");
+    expect(checkpoint?.dispatchPath).toBe("resilience/continue-here.md");
+    // Save path stays documented on the product description (and commands.md).
+    expect(checkpoint?.description).toMatch(/xbrief\/continue\.xbrief\.json/);
+    // Same instruction doc as /deft:continue; do not dispatch at the ephemeral output file.
+    expect(getProductCommand("/deft:continue")?.dispatchPath).toBe("resilience/continue-here.md");
+    expect(checkpoint?.dispatchPath).not.toBe("xbrief/continue.xbrief.json");
+  });
+
   it("rejects logical ids without a leading slash", () => {
     expect(() => logicalIdToFilenameStem("deft:continue")).toThrow(/must start with/);
   });

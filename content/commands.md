@@ -55,7 +55,7 @@ When the user types a product slash command, agents MUST route to the correspond
 These commands are NOT migrated — they operate on shared xBRIEF session abstractions usable across Deft products:
 
 - `/deft:continue` — Resume from continue checkpoint ([resilience/continue-here.md](./resilience/continue-here.md))
-- `/deft:checkpoint` — Save session state to `./xbrief/continue.xbrief.json`
+- `/deft:checkpoint` — Save session state to `./xbrief/continue.xbrief.json` (same strategy doc: [resilience/continue-here.md](./resilience/continue-here.md); wrappers load that path, not the save-file output)
 
 ### Deprecation aliases (prior `/deft:*` product forms)
 

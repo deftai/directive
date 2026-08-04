@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **/deft:checkpoint host wrappers load continue-here strategy, not save-path output (#3105).** Multi-host slash deposit for `/deft:checkpoint` pointed thin wrappers at `xbrief/continue.xbrief.json` (checkpoint *output*). First invoke failed on clean consumers when that file did not exist yet. Wrappers now load `resilience/continue-here.md` (same instruction doc as `/deft:continue`); description and `commands.md` still document the save path. Closes #3105.
 
 ### Removed
 
