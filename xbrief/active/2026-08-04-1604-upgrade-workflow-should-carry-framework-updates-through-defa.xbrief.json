@@ -1,0 +1,120 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #1604: upgrade workflow SCM release handoff after successful framework deposit.",
+    "updated": "2026-08-04T02:09:50.835Z"
+  },
+  "plan": {
+    "title": "Upgrade workflow should carry framework updates through default-branch release handoff",
+    "status": "running",
+    "narratives": {
+      "Description": "A consumer framework upgrade can refresh the deposit and even land a framework-only commit while still leaving the default branch without the update. This story closes that gap by defining end-to-end SCM release handoff after a successful deposit, with named terminal states released, pr-open, or blocked, and policy-aware PR vs direct-commit paths that honor the human merge gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1604",
+      "Overview": "## Problem\n\nA consumer framework upgrade can successfully refresh the deposit (and even land a framework-only commit) while still leaving the operator goal incomplete: **the released default branch does not yet carry the framework update.**\n\nInstaller/update success ≠ upgrade released. From the operator's perspective, `update directive` / sync is unfinished until one of these terminal states is true:\n\n- **released** — default branch carries the framework update;\n- **pr-open** — framework-only branch pushed and PR opened, awaiting review/merge per policy;\n- **blocked** — explicit reason (branch protection, dirty tree, auth, human-merge gate, CI, etc.).\n\n## Observed behavior (historical + still-true class)\n\nHistorical repro (2026-06-12, `statusreport`, vendored payload `v0.45.1` → `v0.46.0`, Go installer path):\n\n- Update machinery refreshed `.deft/core` / managed files and produced a framework-only deposit.\n- Agent created `chore/deft-update-v0.46.0` and committed.\n- Skill/workflow exited after the local commit — no push, no PR, no merge, no terminal operator state.\n\nThat class still holds on the **current canonical path** (`npm i -g @deftai/directive@latest` + `directive update` / `deft update`): deposit and managed-file refresh can complete without a defined SCM release handoff. `deft-directive-sync` still ends at \"Shall I commit …?\" without push/PR/merge/terminal release states, and still leads with submodule phases while npm is only a banner.\n\n## Expected behavior\n\nUpgrade guidance (skill + docs + recovery prose) must define an **end-to-end handoff** after a successful deposit:\n\n1. Detect consumer branch policy (`plan.policy.allowDirectCommitsToMaster`, branch protection / `requireHumanMerge`).\n2. **Branch-protected / human-merge** repos: offer (or perform with consent) push of a framework-only branch + open PR; stop at **pr-open** unless policy allows bot merge.\n3. **Direct-commit-enabled** repos: explicit default-branch path with confirmation; end at **released**.\n4. Always emit a single terminal state: `released` | `pr-open` | `blocked:<reason>`.\n5. Do **not** auto-merge past `requireHumanMerge` / human merge gate (#1193).\n\n## Current canonical upgrade path (do not reinvent)\n\nHot path today (#761 / #2274 / #1409 / #2064):\n\n```bash\nnpm i -g @deftai/directive@latest   # or pnpm equivalent\ndirective update                    # or: deft update\ndirective doctor                    # confirm deposit health\n```\n\nLegacy Go `deft-install --yes --upgrade --repo-root . --json` remains a **no-Node / offline bridge only**, not the primary AC surface.\n\nThis issue is **not** \"make update deposit the payload\" — that works. It is **carry a successful deposit through consumer SCM release handoff**.\n\n## Scope\n\n### In scope\n\n- Terminal operator states after successful framework deposit (skill + docs).\n- Policy-aware branch vs default-branch paths.\n- Explicit next-step naming when the workflow stops short of default branch (never silent stop after local commit only).\n- Align `deft-directive-sync` (and any upgrade-handoff guidance) so npm+`directive update` is the primary path; submodule flow is legacy/back-compat only.\n- Framework-only change set discipline (do not mix product feature work into the upgrade commit/PR).\n\n### Out of scope\n\n- Replacing npm as the canonical install/upgrade transport.\n- Auto-merge when `requireHumanMerge` is true.\n- Full review-cycle ownership for product PRs (use existing review-cycle skill when a PR is opened).\n- Dirty-worktree transactional checkpoints (#2849) except as a **blocked** reason if needed.\n- Build-skill story handoff (#1598) except cross-link for shared \"finish in an explicit handoff state\" pattern.\n\n## Acceptance criteria\n\n- [ ] After a successful deposit, upgrade guidance never ends at \"local framework-only commit\" without naming the next release step.\n- [ ] Workflow records one terminal state: `released` | `pr-open` | `blocked:<reason>`.\n- [ ] Branch-protected / human-merge consumers get a PR-oriented path; direct-commit-enabled consumers get an explicit default-branch path.\n- [ ] Human merge gate is honored — agents may open PRs; they do not merge when policy forbids it.\n- [ ] Canonical docs/skill prose lead with npm + `directive update` / `deft update` (not Go release-asset discovery as the happy path).\n- [ ] `deft-directive-sync` (or successor upgrade handoff) does not treat submodule update as the primary consumer upgrade path.\n- [ ] Missing global CLI / PATH problems surface actionable install remediation (`npm i -g @deftai/directive@latest`), not manual GitHub release-asset archaeology.\n- [ ] Tests or skill-contract checks cover: stop-after-commit is a failure mode; terminal states are named; human-merge path does not claim `released` without merge.\n\n## Related\n\n- #761 / #2274 / #1409 / #2064 — npm + `directive update` / `doctor` as canonical upgrade (closed; deposit path)\n- #1598 — build skill should finish with explicit commit/PR handoff (same handoff class)\n- #2849 — transactional dirty-worktree checkpoints (possible `blocked` input)\n- #1193 — human merge / intent ceiling\n- #1158 — upgrade docs cited unexposed task aliases (**closed** as superseded by CLI-first recovery)\n- #803 — schema pin/cadence docs (**closed** as superseded by in-repo xBRIEF 0.8 + UPGRADING)\n\n## Context\n\nFiled from a consumer update session (2026-06-12). Body rewritten 2026-08-03 to match current npm-first install stack while preserving the original operator-goal gap (deposit ≠ released on default branch).\n\n",
+      "Labels": "installer, Workflow, agent-experience, process, Upgrade Blocker, area:skills",
+      "UserStory": "As a consumer operator upgrading Directive, I want the upgrade workflow to carry a successful deposit through SCM release handoff, so that the session ends in an explicit terminal state (released, pr-open, or blocked) rather than a silent stop after a local framework-only commit.",
+      "ImplementationPlan": "1. Audit deft-directive-sync and related upgrade/docs prose for stop-after-local-commit and submodule-first paths; inventory terminal-state gaps against issue #1604 AC. 2. Define and implement upgrade handoff terminal states (released | pr-open | blocked:<reason>) in skill/docs guidance after successful deposit. 3. Wire policy detection (allowDirectCommitsToMaster / requireHumanMerge / branch protection) into PR-oriented vs direct-commit paths without auto-merge past the human merge gate. 4. Lead canonical upgrade prose with npm + directive/deft update + doctor; demote submodule/Go installer to legacy/back-compat. 5. Surface missing-CLI remediation as npm i -g @deftai/directive@latest. 6. Add skill-contract or unit checks that treat silent stop-after-commit as a failure mode and assert named terminal states. 7. CHANGELOG [Unreleased] entry; run pre-pr + full task check before PR."
+    },
+    "items": [
+      {
+        "id": "1604-a1",
+        "title": "After successful deposit, never end at local framework-only commit without naming the next release step.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: After successful deposit, never end at local framework-only commit without naming the next release step.",
+          "Traces": "AC-1"
+        }
+      },
+      {
+        "id": "1604-a2",
+        "title": "Workflow records one terminal state: released | pr-open | blocked:<reason>.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Workflow records one terminal state: released | pr-open | blocked:<reason>.",
+          "Traces": "AC-2"
+        }
+      },
+      {
+        "id": "1604-a3",
+        "title": "Branch-protected / human-merge consumers get PR path; direct-commit-enabled get explicit default-branch path; human merge gate honored.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Branch-protected / human-merge consumers get PR path; direct-commit-enabled get explicit default-branch path; human merge gate honored.",
+          "Traces": "AC-3"
+        }
+      },
+      {
+        "id": "1604-a4",
+        "title": "Canonical docs/skill lead with npm + directive/deft update; submodule is not primary path; missing CLI surfaces npm install remediation.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Canonical docs/skill lead with npm + directive/deft update; submodule is not primary path; missing CLI surfaces npm install remediation.",
+          "Traces": "AC-4"
+        }
+      },
+      {
+        "id": "1604-a5",
+        "title": "Tests or skill-contract checks cover stop-after-commit failure mode and named terminal states without false released claims.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful framework deposit on a consumer repo, when the upgrade/sync handoff runs, then: Tests or skill-contract checks cover stop-after-commit failure mode and named terminal states without false released claims.",
+          "Traces": "AC-5"
+        }
+      }
+    ],
+    "tags": [
+      "installer",
+      "Workflow",
+      "agent-experience",
+      "process",
+      "Upgrade Blocker",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1604",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1604: Upgrade workflow should carry framework updates through default-branch release handoff"
+      }
+    ],
+    "updated": "2026-08-04T02:08:20Z",
+    "id": "1604-upgrade-workflow-release-handoff",
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1604"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-sync/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/UPGRADING.md",
+          "UPGRADING.md",
+          "content/QUICK-START.md",
+          "QUICK-START.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "CHANGELOG.md",
+          "packages/core/src/skills/sync-upgrade-handoff.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/skills/sync-upgrade-handoff.test.ts",
+          "task verify:forward-coverage"
+        ],
+        "expected_outputs": [
+          "Upgrade handoff terminal states documented and skill-enforced",
+          "npm-first upgrade path in sync skill",
+          "skill-contract or unit tests for terminal states",
+          "CHANGELOG [Unreleased] entry for #1604"
+        ],
+        "depends_on": [],
+        "conflict_group": "upgrade-handoff-1604",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

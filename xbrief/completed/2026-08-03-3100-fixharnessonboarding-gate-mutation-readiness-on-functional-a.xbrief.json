@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3100",
-    "updated": "2026-08-03T22:25:26Z"
+    "updated": "2026-08-04T02:41:45Z"
   },
   "plan": {
     "title": "fix(harness,onboarding): gate mutation readiness on functional agent hooks and Codex trust review",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(harness,onboarding): gate mutation readiness on functional agent hooks and Codex trust review",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3100",
@@ -96,6 +96,27 @@
         "title": "Issue #3100: fix(harness,onboarding): gate mutation readiness on functional agent hooks and Codex trust review"
       }
     ],
-    "updated": "2026-08-03T22:25:26Z"
+    "updated": "2026-08-04T02:41:45Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": null,
+        "deliveryBranch": "master",
+        "deliveryCommit": null,
+        "verifiedAt": "2026-08-04T02:41:45Z",
+        "verifier": "scope:complete",
+        "disposition": "accepted_not_delivered",
+        "handoffState": "implemented",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "accepted_not_delivered",
+      "handoffState": "implemented",
+      "completedAt": "2026-08-04T02:41:45Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

@@ -104,18 +104,44 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ## Phase 0 -- Primary upgrade (npm deposit) (#761 / #1604)
 
-! Treat npm + `directive update` / `deft update` as the **primary** consumer upgrade path. Do not lead with submodule update when Node is available.
+! Treat npm + `directive update` / `deft update` as the **primary** consumer upgrade path when an upgrade is authorized. Do not lead with submodule update when Node is available.
 
-### 0a: Engine + deposit
+### 0a: When mutation is authorized
+
+! **Mutating** engine install / deposit refresh is authorized only when at least one of:
+
+1. The operator used an **explicit upgrade** trigger: `update deft`, `update directive`, `upgrade framework`, or equivalent ("upgrade Directive", "run update").
+2. Doctor / payload-staleness already reports the deposit is **behind** and the operator confirmed the upgrade (or autonomous upgrade was pre-approved).
+3. CLI is **missing** from PATH -- then Missing CLI remediation may install the global package so doctor/update can run.
+
+! For routine session orientation triggers (`good morning`, `sync frameworks`, plain `update xbrief` without upgrade language):
+
+1. ! Run **read-only** checks: CLI present?, `directive doctor` / `deft doctor` / `task doctor` when available, structure validation (Phases 3+).
+2. ! If doctor reports a stale deposit or available upgrade, **report** the recommended command and ask for consent before mutating.
+3. ⊗ Run `npm i -g @deftai/directive@latest` or `directive update` / `deft update` on a routine "good morning" without staleness evidence **and** operator consent (or pre-approved autonomous upgrade).
+
+### 0b: Consumer worktree isolation before deposit
+
+! Before any mutating deposit that will be handed off in Phase 8:
+
+1. ! Run `git status --porcelain` at the **project root** (not only the legacy submodule).
+2. ! If the worktree or index has non-framework product changes (or any unexpected staged paths), **stop** and either:
+   - ask the operator to stash / commit product work first, or
+   - record `blocked:dirty-worktree` and skip deposit mutation,
+   - or, with explicit consent, isolate product changes (stash including index) so the deposit cannot mix with them.
+3. ! After deposit, stage **only** framework-managed paths for the upgrade commit (e.g. `.deft/core/`, managed AGENTS section, hooks, VERSION / marker files). Reconstruct a clean index if needed rather than `git add -A`.
+4. ⊗ Create a framework-only commit or PR from a mixed worktree/index that still carries product feature paths.
+
+### 0c: Engine + deposit (when authorized)
 
 1. ! Confirm the global CLI is available (`directive --version` or `deft --version`). If missing, run Missing CLI / PATH remediation above, then continue.
-2. ! Upgrade the global engine:
+2. ! Upgrade the global engine only when mutation is authorized (0a):
 
 ```bash
 npm i -g @deftai/directive@latest
 ```
 
-3. ! From the **project root**, refresh the deposit:
+3. ! From the **project root**, after worktree isolation (0b), refresh the deposit:
 
 ```bash
 directive update
@@ -130,13 +156,14 @@ directive doctor
 # or: deft doctor / task doctor
 ```
 
-6. ! Record whether the working tree now has framework-only changes under `.deft/core/`, managed AGENTS section, hooks, or related managed files that need SCM release.
+6. ! Record whether the working tree now has **framework-only** changes under `.deft/core/`, managed AGENTS section, hooks, or related managed files that need SCM release.
 
-### 0b: Framework-only change-set discipline
+### 0d: Framework-only change-set discipline
 
 ! Keep upgrade commits/PRs **framework-only** -- do not mix product feature work into the same commit or PR as the deposit refresh.
 
 ⊗ Treat a successful deposit alone as `released` -- the default branch must carry the update (or a PR must be open) before the operator goal is complete (#1604).
+⊗ Force a global CLI upgrade or deposit mutation on routine session sync without consent or staleness evidence.
 
 ## Phase 1 -- Pre-flight (legacy submodule path)
 
@@ -415,6 +442,10 @@ upgrade-handoff: blocked:<reason>
 
 Include the PR URL when state is `pr-open`, and the merge/default-branch SHA when state is `released`.
 
+### 8f: Framework-only path allowlist
+
+! When committing for handoff, include only framework deposit artifacts (managed `.deft/core/`, AGENTS managed section, hooks, VERSION/marker files, and other paths the deposit itself refreshed). Exclude product source, tests, and unrelated staged files. If isolation was used in 0b, restore the operator's product stash only **after** the framework commit is complete (or on a separate branch).
+
 ## Anti-Patterns
 
 - ⊗ Auto-commit submodule changes without user approval
@@ -430,4 +461,5 @@ Include the PR URL when state is `pr-open`, and the merge/default-branch SHA whe
 - ⊗ Auto-move xBRIEFs to fix folder/status mismatches -- report only; never auto-fix
 - ⊗ Auto-update xBRIEFs based on origin freshness -- report only; user decides during refinement
 - ⊗ Mix product feature work into a framework-only upgrade commit or PR
-\n
+- ⊗ Force `npm i -g @deftai/directive@latest` or deposit mutation on routine session sync without staleness evidence and operator consent
+- ⊗ Run Phase 8 framework-only commit from a mixed product+framework worktree/index without isolation

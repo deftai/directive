@@ -34,6 +34,23 @@ describe("sync upgrade handoff (#1604)", () => {
     expect(text).toContain("not the primary consumer upgrade path");
   });
 
+  it("does not force upgrade on routine good-morning without consent", () => {
+    const text = readSync();
+    expect(text).toContain("When mutation is authorized");
+    expect(text).toMatch(/good morning/i);
+    expect(text).toMatch(
+      /\u2297 Run `npm i -g @deftai\/directive@latest` or `directive update` \/ `deft update` on a routine "good morning"/,
+    );
+  });
+
+  it("requires worktree isolation before deposit handoff", () => {
+    const text = readSync();
+    expect(text).toContain("Consumer worktree isolation before deposit");
+    expect(text).toContain("git status --porcelain");
+    expect(text).toContain("blocked:dirty-worktree");
+    expect(text).toContain("Framework-only path allowlist");
+  });
+
   it("names the three terminal states", () => {
     const section = phase8Section();
     expect(section).toContain("`released`");
