@@ -109,18 +109,12 @@ describe("authz CLI (#2944)", () => {
     expect(out.join("")).toMatch(/ACTIVE|uat-1/);
     // Under active UAT: grant and uat-suspend hard-refuse (no multi-factor escape).
     expect(
-      runAuthz([
-        "grant",
-        "--project-root",
-        root,
-        "--operations",
-        "edit",
-        "--cohort",
-        "late",
-      ]),
+      runAuthz(["grant", "--project-root", root, "--operations", "edit", "--cohort", "late"]),
     ).toBe(2);
     expect(runAuthz(["uat-suspend", "--project-root", root])).toBe(2);
-    expect(err.join("")).toMatch(/UAT lease is ACTIVE|hard-refused|Self-approval|refusing mutating/i);
+    expect(err.join("")).toMatch(
+      /UAT lease is ACTIVE|hard-refused|Self-approval|refusing mutating/i,
+    );
     expect(runAuthz(["show", "--project-root", root])).toBe(0);
   });
 
@@ -569,9 +563,9 @@ describe("authz CLI UAT-active hard refuse (#3110)", () => {
    * full multi-factor seams (fake TTY + controlling terminal + --confirm + mint).
    */
   function startActiveUat(root: string): void {
-    expect(
-      runAuthz(["uat-start", "--project-root", root, "--campaign", "uat-hard-refuse"]),
-    ).toBe(0);
+    expect(runAuthz(["uat-start", "--project-root", root, "--campaign", "uat-hard-refuse"])).toBe(
+      0,
+    );
   }
 
   it("refuses grant under active UAT even with TTY + --confirm + mint phrase", () => {
@@ -616,14 +610,11 @@ describe("authz CLI UAT-active hard refuse (#3110)", () => {
         cleanOperatorSeams(),
       ),
     ).toBe(2);
+    expect(main(["uat-suspend", "--project-root", root, "--confirm"], cleanOperatorSeams())).toBe(
+      2,
+    );
     expect(
-      main(["uat-suspend", "--project-root", root, "--confirm"], cleanOperatorSeams()),
-    ).toBe(2);
-    expect(
-      main(
-        ["revoke", "--project-root", root, "grant-anything", "--confirm"],
-        cleanOperatorSeams(),
-      ),
+      main(["revoke", "--project-root", root, "grant-anything", "--confirm"], cleanOperatorSeams()),
     ).toBe(2);
     expect(err.join("")).toMatch(/UAT lease is ACTIVE|refusing mutating/i);
   });

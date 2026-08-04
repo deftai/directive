@@ -390,10 +390,7 @@ function defaultReadInteractiveConfirm(): string | null {
  *
  * Returns exit code when blocked, or null when the command may continue.
  */
-function refuseMutatingAuthzWhileUatActive(
-  projectRoot: string,
-  cmd: Parsed["cmd"],
-): number | null {
+function refuseMutatingAuthzWhileUatActive(projectRoot: string, cmd: Parsed["cmd"]): number | null {
   if (cmd === "show") return null;
   const state = loadAuthzState(projectRoot);
   if (state.uat === null || !state.uat.active) return null;
