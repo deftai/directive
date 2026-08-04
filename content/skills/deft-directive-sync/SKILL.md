@@ -1,12 +1,15 @@
 ---
 name: deft-directive-sync
 description: >-
-  Session-start framework sync skill. Pulls latest deft submodule, validates
-  xBRIEF lifecycle structure, checks folder/status consistency, detects stale
-  origins (RFC D12), and summarizes changes.
+  Session-start framework sync and upgrade handoff. Refreshes deposit via npm
+  + directive/deft update, validates xBRIEF lifecycle, detects stale origins
+  (RFC D12), and finishes SCM release handoff in released | pr-open |
+  blocked:<reason> (#1604).
 triggers:
   - good morning
   - update deft
+  - update directive
+  - upgrade framework
   - update xbrief
   - sync frameworks
 ---
@@ -18,23 +21,34 @@ triggers:
 
 # Deft Directive Sync
 
-Session-start framework sync -- pull latest deft submodule updates, validate xBRIEF lifecycle structure, and detect stale origins.
+Session-start framework sync and upgrade handoff -- refresh the framework deposit via npm + `directive update` / `deft update`, validate xBRIEF lifecycle structure, detect stale origins (RFC D12), then finish SCM release handoff in a named terminal state (#1604).
 
-> **Canonical bootstrap / update path (#761 npm cutover):** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade); Node >= 20 is required. For machines without Node, the frozen legacy Go installer (`deft-install` / platform-specific `install-*` from GitHub Releases) is a no-Node bootstrap bridge (#1912) -- migrate to npm once Node is available. After a session start the canonical `scripts/doctor.py --session --json` (`deft doctor` / `task doctor`) reports install + payload state and, when the manifest sha shows the payload is stale, recommends `npm i -g @deftai/directive@latest`. Legacy `run upgrade` / `task upgrade` are metadata-only acknowledgment (they do NOT replace the payload), and git-submodule / `task framework:doctor` paths are back-compat only -- the submodule sync in Phases 1-2 below is the legacy update flow, de-emphasized in UPGRADING.md / README. See UPGRADING.md and #761 / #1912.
+> **Canonical bootstrap / update path (#761 / #1604):** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade); Node >= 20 is required. Then from the project root run `directive update` (or `deft update`) to refresh `.deft/core/`, optionally `deft migrate` for npm provenance, and `directive doctor` / `deft doctor` / `task doctor` to confirm deposit health. For machines without Node, the frozen legacy Go installer (`deft-install` / platform-specific `install-*` from GitHub Releases) is a no-Node bootstrap bridge (#1912) -- migrate to npm once Node is available. Legacy `run upgrade` / `task upgrade` are metadata-only acknowledgment (they do NOT replace the payload). **Git-submodule / `task framework:doctor` paths are back-compat only** -- Phases 1-2 below are the legacy update flow, de-emphasized in UPGRADING.md / README. Deposit success is not upgrade released; Phase 8 records one terminal state: `released` | `pr-open` | `blocked:<reason>`. See UPGRADING.md and #761 / #1912 / #1604.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Platform Requirements
 
-! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Origin freshness checks (Phase 5) fetch issue data via `gh issue view`.
+! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated for origin freshness (Phase 5) and for the PR path of Phase 8 SCM release handoff. Origin freshness checks fetch issue data via REST-equivalent `gh` surfaces (prefer `gh api repos/<owner>/<repo>/issues/<N>` over GraphQL-heavy forms when under rate pressure; #954).
 
 ## When to Use
 
-- User says "good morning", "update deft", "update xbrief", or "sync frameworks"
+- User says "good morning", "update deft", "update directive", "upgrade framework", "update xbrief", or "sync frameworks"
 - Beginning of a new session where framework updates may be available
-- After a known upstream deft release
+- After a known upstream deft / `@deftai/directive` release
+- After a successful local deposit when the default branch still lacks the framework update
 
+## Missing CLI / PATH remediation
 
+! When `directive`, `deft`, or the global npm bin is missing from PATH (or `npm i -g @deftai/directive@latest` has not been run), surface actionable install remediation first:
+
+```bash
+npm i -g @deftai/directive@latest
+```
+
+(or the pnpm equivalent: `pnpm add -g @deftai/directive@latest`). Then re-run `directive update` / `deft update` and `directive doctor`.
+
+⊗ Send the operator to manual GitHub release-asset archaeology or Go installer discovery as the happy path when Node is available -- npm is the primary remediation (#761 / #1604).
 
 ## Session orientation — unmanaged header (#2065)
 
@@ -65,7 +79,7 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ### Action on Detection
 
-! If pre-cutover state is detected, display the actionable migration message, then **skip Phases 1-6** and proceed directly to Phase 7 with the Document Model line set to "pre-v0.20 (legacy)":
+! If pre-cutover state is detected, display the actionable migration message, then **skip Phases 0-6** and proceed directly to Phase 7 with the Document Model line set to "pre-v0.20 (legacy)". Phase 8 still applies if a local migration/framework change must land on the default branch after the frozen migrator path:
 
 > "This project uses the pre-v0.20 document model. Current npm releases no longer ship in-product `task migrate:vbrief` (#2068). Follow UPGRADING.md § Frozen pre-v0.20 document-model migration: pin framework v0.59.0, install Python 3.11+ and uv, run `task migrate:vbrief` once from that payload, then upgrade to current npm."
 
@@ -88,12 +102,50 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 ⊗ Skip model state detection during sync -- always report the document model state.
 ⊗ Silently ignore pre-cutover artifacts -- the user must be informed with an actionable command to fix the state.
 
-## Phase 1 -- Pre-flight
+## Phase 0 -- Primary upgrade (npm deposit) (#761 / #1604)
+
+! Treat npm + `directive update` / `deft update` as the **primary** consumer upgrade path. Do not lead with submodule update when Node is available.
+
+### 0a: Engine + deposit
+
+1. ! Confirm the global CLI is available (`directive --version` or `deft --version`). If missing, run Missing CLI / PATH remediation above, then continue.
+2. ! Upgrade the global engine:
+
+```bash
+npm i -g @deftai/directive@latest
+```
+
+3. ! From the **project root**, refresh the deposit:
+
+```bash
+directive update
+# or: deft update
+```
+
+4. ~ Optionally stamp npm provenance (idempotent): `directive migrate` / `deft migrate`.
+5. ! Verify deposit health:
+
+```bash
+directive doctor
+# or: deft doctor / task doctor
+```
+
+6. ! Record whether the working tree now has framework-only changes under `.deft/core/`, managed AGENTS section, hooks, or related managed files that need SCM release.
+
+### 0b: Framework-only change-set discipline
+
+! Keep upgrade commits/PRs **framework-only** -- do not mix product feature work into the same commit or PR as the deposit refresh.
+
+⊗ Treat a successful deposit alone as `released` -- the default branch must carry the update (or a PR must be open) before the operator goal is complete (#1604).
+
+## Phase 1 -- Pre-flight (legacy submodule path)
+
+! **Legacy / back-compat only.** Run Phases 1-2 only when the consumer still uses a `deft/` git submodule layout and cannot use the npm deposit path. Prefer Phase 0 for all npm-managed installs.
 
 ! Check that the deft/ submodule working tree is clean before attempting any update.
 
 1. ! Run `git -C deft status --porcelain`
-2. ! If output is non-empty (dirty working tree): **stop** and ask user whether to stash (`git -C deft stash`) or abort the sync entirely. Do NOT proceed with a dirty submodule.
+2. ! If output is non-empty (dirty working tree): **stop** and ask user whether to stash (`git -C deft stash`) or abort the sync entirely. Do NOT proceed with a dirty submodule. Record terminal state `blocked:dirty-submodule` if the operator aborts.
 3. ! Record the current DEFT commit for later comparison:
    ```
    git -C deft log --oneline -1
@@ -103,7 +155,9 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
    - Clean/dirty status
    - Confirmation that pre-flight passed (or the blocker if dirty)
 
-## Phase 2 -- Update DEFT Submodule
+## Phase 2 -- Update DEFT Submodule (legacy / back-compat)
+
+! **Legacy / back-compat only** -- not the primary consumer upgrade path (#1604). Submodule update does not replace Phase 0 for npm installs.
 
 1. ! Run the submodule update:
    ```
@@ -214,7 +268,7 @@ After structure validation, sync framework-level assets.
 
 ### 6a: Check AGENTS.md freshness
 
-~ Compare the project's `AGENTS.md` against the deft template (if a template exists in the updated `deft/` submodule):
+~ Compare the project's `AGENTS.md` against the deft template (if a template exists in the updated deposit / `.deft/core/` or legacy `deft/` submodule):
 
 1. ~ Diff the structure (section headings, key rules) rather than expecting byte-identical content
 2. ~ Report any new sections or rules added upstream that are missing locally
@@ -230,7 +284,7 @@ After structure validation, sync framework-level assets.
 
 ### 6c: List new skills
 
-! Compare the `skills/` directory before and after the update:
+! Compare the `skills/` directory (or deposited `.deft/core/` skills) before and after the update:
 
 1. ! List any new skill directories added in the update
 2. ~ For each new skill, read its frontmatter `description` field and present a one-liner
@@ -282,29 +336,98 @@ Doc sprawl is a project-health concern, not just a human-experience one: a lean,
 
 ! Present a consolidated summary to the user covering:
 
-1. **DEFT version change**: old commit -> new commit (or "already up to date")
-2. **Structure validation**: lifecycle folders status (all present / missing folders listed)
-3. **PROJECT-DEFINITION status**: valid / missing / stale (with freshness details)
-4. **xBRIEF validation results**: pass/fail per file, with details on any failures
-5. **Lifecycle consistency**: all consistent / N mismatches found (with details)
-6. **Origin freshness**: N stale / N externally-closed / N current (with details)
-7. **Document Model**: pre-v0.20 (legacy) / v0.20+ (xBRIEF-centric) OK / v0.20+ with warnings (see Pre-Cutover Detection Guard)
-8. **AGENTS.md status**: current / has upstream changes / needs review
-9. **Codebase MAP status**: current / stale / absent / not configured (advisory)
-10. **New skills**: list any newly added skills with descriptions
+1. **Upgrade path used**: npm deposit (Phase 0) / legacy submodule (Phases 1-2) / already up to date
+2. **DEFT / deposit version change**: old version or commit -> new (or "already up to date")
+3. **Structure validation**: lifecycle folders status (all present / missing folders listed)
+4. **PROJECT-DEFINITION status**: valid / missing / stale (with freshness details)
+5. **xBRIEF validation results**: pass/fail per file, with details on any failures
+6. **Lifecycle consistency**: all consistent / N mismatches found (with details)
+7. **Origin freshness**: N stale / N externally-closed / N current (with details)
+8. **Document Model**: pre-v0.20 (legacy) / v0.20+ (xBRIEF-centric) OK / v0.20+ with warnings (see Pre-Cutover Detection Guard)
+9. **AGENTS.md status**: current / has upstream changes / needs review
+10. **Codebase MAP status**: current / stale / absent / not configured (advisory)
+11. **New skills**: list any newly added skills with descriptions
+12. **Pending SCM release**: whether framework-only changes still need commit/push/PR/merge (Phase 8)
 
-! Ask the user: "Shall I commit the submodule update?" -- do NOT auto-commit.
+! After a successful deposit (or submodule bump), **do not stop at the local change set**. Proceed to Phase 8 SCM release handoff. If there is nothing to release (already on default branch / no local framework delta), record terminal state `released` when the default branch already carries the current framework update; otherwise name the next release step.
 
-? If the user confirms, commit with message:
+? For the legacy submodule path only, if a bump is ready and the operator has not yet approved a commit, ask: "Shall I commit the submodule update and continue SCM release handoff?" -- do NOT auto-commit without approval. Prefer message:
+
 ```
 chore(deft): update deft submodule to <short-hash>
 ```
 
+For npm deposit changes, prefer a framework-only commit message such as:
+
+```
+chore(deft): refresh framework deposit to <version>
+```
+
+## Phase 8 -- SCM release handoff (#1604)
+
+! After a successful framework deposit (Phase 0) or legacy submodule bump (Phases 1-2), carry the update through consumer SCM release. Installer/update success is not upgrade released.
+
+! Record **exactly one** terminal state when this skill exits after a deposit-related run:
+
+| Terminal state | Meaning |
+| --- | --- |
+| `released` | Default branch carries the framework update (merged or committed directly under policy). |
+| `pr-open` | Framework-only branch pushed and PR opened; awaiting review/merge per policy. |
+| `blocked:<reason>` | Explicit blocker (examples: `blocked:dirty-worktree`, `blocked:auth`, `blocked:branch-protection`, `blocked:human-merge-gate`, `blocked:ci`, `blocked:operator-declined`). |
+
+### 8a: Policy detection
+
+1. ! Read consumer branch policy: `plan.policy.allowDirectCommitsToMaster`, `plan.policy.requireHumanMerge`, and any known branch-protection / default-branch rules (`deft policy:show` when available).
+2. ! Classify the path:
+   - **PR path (default when protected or human-merge):** branch protection enabled, or `requireHumanMerge` is true, or direct commits to default branch are disallowed.
+   - **Direct-commit path:** `allowDirectCommitsToMaster` (or equivalent) is true **and** human-merge is not required **and** branch protection does not forbid the commit.
+
+### 8b: PR-oriented path (branch-protected / human-merge)
+
+1. ! With operator consent (or autonomous consent when the operator already approved upgrade handoff), create a **framework-only** branch (e.g. `chore/deft-update-<version>`), commit framework deposit files only, push, and open a PR targeting the default branch.
+2. ! Stop at terminal state **`pr-open`** once the PR URL is available -- unless policy explicitly allows bot merge **and** the operator directed merge.
+3. ⊗ Auto-merge past `requireHumanMerge` / the human merge gate (#1193). Agents may open PRs; they do not merge when policy forbids it.
+4. ⊗ Claim `released` when the PR is only open or only locally committed.
+
+### 8c: Direct-commit-enabled path
+
+1. ! Present an **explicit** default-branch path with confirmation (do not silently commit to master/main).
+2. ! On confirmation, commit framework-only changes on the default branch (or merge the framework branch) and push so the default branch carries the update.
+3. ! Record terminal state **`released`** only after the default branch ref includes the framework update.
+
+### 8d: Stop-after-commit is a failure mode
+
+! A local framework-only commit without push/PR/merge **and** without naming the next release step is a **failure mode** of this skill (#1604 historical class).
+
+- ! If the workflow must pause after a local commit, name the next step explicitly (push + open PR, or confirm direct-commit + push) and record `blocked:<reason>` or continue until `pr-open` / `released`.
+- ⊗ End the skill at "local framework-only commit done" without a terminal state line.
+- ⊗ Report `released` when only a local commit exists and the default branch does not yet carry the update.
+
+### 8e: Terminal state line
+
+! End the skill output with a single machine-readable line operators and agents can grep:
+
+```text
+upgrade-handoff: released
+upgrade-handoff: pr-open
+upgrade-handoff: blocked:<reason>
+```
+
+Include the PR URL when state is `pr-open`, and the merge/default-branch SHA when state is `released`.
+
 ## Anti-Patterns
 
 - ⊗ Auto-commit submodule changes without user approval
+- ⊗ Auto-commit or auto-push framework deposit changes without the Phase 8 policy path and consent rules
+- ⊗ Stop after a local framework-only commit without naming the next release step or recording a terminal state (#1604)
+- ⊗ Claim terminal state `released` when the update is only local or only on an open PR
+- ⊗ Auto-merge when `requireHumanMerge` is true or branch protection forbids bot merge (#1193)
+- ⊗ Treat git submodule update as the primary consumer upgrade path when npm + `directive update` / `deft update` is available
+- ⊗ Send operators to manual GitHub release-asset archaeology when `npm i -g @deftai/directive@latest` is the correct remediation
 - ⊗ Overwrite project-level `./xbrief/*.xbrief.json` files -- those are project data
 - ⊗ Skip the pre-flight dirty check -- a dirty submodule can cause merge conflicts or data loss
 - ⊗ Include a separate fetch of the xBRIEF schema from upstream deftai/xBRIEF -- that is a CI concern (see #128), not a user sync task
 - ⊗ Auto-move xBRIEFs to fix folder/status mismatches -- report only; never auto-fix
 - ⊗ Auto-update xBRIEFs based on origin freshness -- report only; user decides during refinement
+- ⊗ Mix product feature work into a framework-only upgrade commit or PR
+\n

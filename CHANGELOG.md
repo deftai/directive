@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Upgrade SCM release handoff after deposit (#1604).** Successful framework deposit is no longer a silent stop after a local framework-only commit. `deft-directive-sync` leads with npm + `directive update` / `deft update` + doctor, demotes submodule to legacy, and finishes Phase 8 SCM handoff in exactly one terminal state: `released` | `pr-open` | `blocked:<reason>`. Policy-aware PR vs direct-commit paths honor `requireHumanMerge`. UPGRADING documents the handoff; content-contract tests pin stop-after-commit as a failure mode. Closes #1604.
 
 ### Changed
 

@@ -187,6 +187,39 @@ the configured mirror.
 
 Start a **new agent session** after steps 2–3 so the refreshed AGENTS.md and skills load from a clean context.
 
+## SCM release handoff after deposit (#1604)
+
+Successful deposit is **not** the same as upgrade released. After `npm i -g @deftai/directive@latest` + `directive update` / `deft update` (+ doctor), the consumer still needs the framework update on the **default branch** (or an explicit PR) before the operator goal is complete.
+
+The `deft-directive-sync` skill (and any agent following this upgrade path) MUST finish in **exactly one** terminal state:
+
+| Terminal state | Meaning |
+| --- | --- |
+| `released` | Default branch carries the framework update |
+| `pr-open` | Framework-only branch pushed + PR opened (awaiting review/merge) |
+| `blocked:<reason>` | Explicit blocker (dirty worktree, auth, branch protection, human-merge gate, CI, operator declined, …) |
+
+**Policy-aware paths:**
+
+1. **Branch-protected / `requireHumanMerge`** — create a framework-only branch, commit deposit files only, push, open a PR. Stop at `pr-open`. Do **not** auto-merge past the human merge gate (#1193).
+2. **Direct-commit enabled** (`allowDirectCommitsToMaster` / equivalent, and not human-merge gated) — explicit default-branch path with confirmation, then push; end at `released` only when the default branch carries the update.
+
+**Rules:**
+
+- ⊗ End at a local framework-only commit without naming the next release step (push/PR or confirmed direct commit).
+- ⊗ Claim `released` when the change is only local or only on an open PR.
+- ! Keep upgrade commits/PRs framework-only (do not mix product feature work).
+- ! Missing global CLI → remediate with `npm i -g @deftai/directive@latest` (not GitHub release-asset archaeology).
+- ! Git submodule update remains **legacy / back-compat only**; npm + `directive update` / `deft update` is the primary path.
+
+Machine-readable skill exit line (for agents/operators):
+
+```text
+upgrade-handoff: released
+upgrade-handoff: pr-open
+upgrade-handoff: blocked:<reason>
+```
+
 ## OpenPackage tiered skills (optional, #2462)
 
 The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime handler for gates, lifecycle, and `.deft/core/` refresh. **OpenPackage** is an optional cross-harness distribution path for placing tiered consumer skills into Cursor, Codex CLI, and OpenCode native directories — without a Directive-owned skill router.
@@ -919,7 +952,7 @@ The contract is byte-stable by construction:
 - **Restart required:** No for the probe. Once you actually update the framework (refresh the `./deft` submodule), the standard "start a new agent session" rule from the recorded-vs-current upgrade flow applies.
 - **Commands:**
   - `task framework:check-updates` (synchronous probe, exit 1 on BEHIND; pass `-- --force` to bypass the 24h throttle and `-- --json` for machine-parseable output)
-  - `git submodule update --remote --merge deft && git add deft && git commit -m "chore(deft): bump submodule"` (canonical update path -- mirrors `skills/deft-directive-sync/SKILL.md` Phase 2)
+  - Prefer `npm i -g @deftai/directive@latest` + `directive update` / `deft update` (canonical). Legacy submodule: `git submodule update --remote --merge deft && git add deft && git commit -m "chore(deft): bump submodule"` then Phase 8 SCM release handoff (`skills/deft-directive-sync/SKILL.md`) — do not stop at local commit only (#1604)
   - `.deft/core/run upgrade` (after the bump, to record the new framework version in `vbrief/.deft-version` and refresh the AGENTS.md managed section)
   - `DEFT_NO_NETWORK=1 task <anything>` (CI / air-gapped opt-out: probe short-circuits before any subprocess call)
 

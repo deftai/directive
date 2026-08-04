@@ -164,7 +164,7 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 After a Deft project is set up, the CLI runs a periodic, read-only remote-version probe (issue #801) so you find out when the upstream framework ships a new release. The probe shells out to `git ls-remote --tags --refs <upstream>` against the deft submodule's `origin` remote at most once every 24 hours, parses the highest semver tag, and -- if your local checkout is behind -- prints a single informational warn line below the existing recorded-vs-current message:
 
 ```
-⚠ Upstream directive v0.24.0 is available (you are on v0.23.0). Run `task framework:check-updates` for details; follow `skills/deft-directive-sync/SKILL.md` Phase 2 to update.
+⚠ Upstream directive v0.24.0 is available (you are on v0.23.0). Run `task framework:check-updates` for details; follow `skills/deft-directive-sync/SKILL.md` Phase 0 (npm + `directive update` / `deft update`) and Phase 8 SCM release handoff (`released` | `pr-open` | `blocked:<reason>`) — not submodule Phase 2 alone (#1604).
 ```
 
 The banner is informational only: it never blocks CI, never prompts in non-interactive sessions, and never triggers a second `Continue anyway?` prompt on top of the existing #410 marker-drift gate. Re-notification cadence is per-tag -- once you dismiss `v0.24.0` the banner stays silent for 24 hours, but a fresh `v0.24.1` re-notifies immediately. State is persisted to `xbrief/.deft-remote-probe.json`; per-`run`-invocation dedup prevents the same banner from stacking when chained commands (e.g. `cmd_install -> cmd_project -> cmd_spec`) all hit the gate.
