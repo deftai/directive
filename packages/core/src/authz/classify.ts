@@ -299,15 +299,56 @@ function hasSplitAuthzPath(command: string): boolean {
   return lower.includes(".deft") || lower.includes("/deft/") || lower.includes("deft/");
 }
 
+/** Last non-flag token looks like pure expansion dest (`$STORE`, `%TEMP%`). */
+function lastTokenIsOpaqueExpansion(tokens: readonly string[]): boolean {
+  let last = "";
+  for (const t of tokens) {
+    if (t.startsWith("-")) continue;
+    last = t;
+  }
+  if (last.length === 0) return false;
+  const n = last.replace(/['"]/g, "");
+  if (n.startsWith("$") && n.length > 1) return true;
+  if (n.startsWith("%") && n.endsWith("%") && n.length > 2) return true;
+  return false;
+}
+
 /**
- * Indirect shell FS mutation with expansion (#3110 Greptile residual).
- * Under UAT, settings-deny write/delete-shaped shell that expands `$…` / `%…%` —
- * opaque `$STORE` / `$1` / `rm -rf $STORE` must not fail-open. Outside UAT, settings
- * is unrestricted by Wave 1. O(n) walks — no polynomial regex on input.
+ * Indirect shell FS mutation that can plausibly hit the authz store (#3110).
+ * Narrower than "any write + any expansion" (avoids denying `echo > $HOME/out` under UAT)
+ * but still catches opaque `$STORE` dest, `rm -rf $STORE`, and authz-named expansions.
+ * O(n) walks — no polynomial regex on input.
  */
 function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]): boolean {
   if (!hasWriteShape(command, tokens)) return false;
-  return hasEnvExpansion(command);
+  if (!hasEnvExpansion(command)) return false;
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  // Authz-plausible destination text.
+  if (
+    lower.includes("authz") ||
+    lower.includes("state.json") ||
+    lower.includes("/grants/") ||
+    lower.includes("grant-")
+  ) {
+    return true;
+  }
+  // Destructive bins + any expansion (opaque store wipe residual).
+  for (const t of tokens) {
+    const n = normalizeToken(t);
+    if (
+      n === "rm" ||
+      n === "rmdir" ||
+      n === "unlink" ||
+      n === "shred" ||
+      n === "remove-item" ||
+      n === "ri"
+    ) {
+      return true;
+    }
+  }
+  // cp/mv/tee/redirect dest is only `$VAR` / `%VAR%` (opaque absolute store path).
+  if (lastTokenIsOpaqueExpansion(tokens)) return true;
+  return false;
 }
 
 /** Best-effort shell classification for UAT-sensitive ops beyond push/merge. */

@@ -154,13 +154,15 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "settings",
     );
     expect(classifyShellAuthzOps("printf '{}' > \"$STORE\"")).toContain("settings");
-    expect(classifyShellAuthzOps("echo x > %TEMP%\\out.json")).toContain("settings");
+    // Ordinary expanded writes outside authz store stay unclassifiable.
+    expect(classifyShellAuthzOps('echo hi > "$HOME/out"')).toEqual([]);
+    expect(classifyShellAuthzOps('cp x "$TMPDIR/y"')).toEqual([]);
     // Command substitution destinations (no contiguous .deft/authz literal).
     expect(
       classifyShellAuthzOps('cp /tmp/evil.json "$(echo .deft)/authz/state.json"'),
     ).toContain("settings");
     expect(classifyShellAuthzOps("cp /tmp/x `pwd`/grants/y.json")).toContain("settings");
-    // Destructive + opaque var; split path; positional expansion.
+    // Destructive + opaque var; split path; positional expansion toward store.
     expect(classifyShellAuthzOps("rm -rf $STORE")).toContain("settings");
     expect(classifyShellAuthzOps("cd .deft && echo x > authz/state.json")).toContain("settings");
     expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toContain("settings");
