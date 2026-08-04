@@ -1,0 +1,111 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3105",
+    "updated": "2026-08-04T15:53:30Z"
+  },
+  "plan": {
+    "title": "fix: /deft:checkpoint host wrappers point at output continue.xbrief.json",
+    "status": "completed",
+    "narratives": {
+      "Description": "Multi-host slash deposit for /deft:checkpoint incorrectly points wrappers at xbrief/continue.xbrief.json (checkpoint output) instead of resilience/continue-here.md (instruction doc). First invocation fails on clean consumers. /deft:continue already targets continue-here.md correctly. Packaging must deposit the correct target so deft update does not reintroduce the bug.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3105",
+      "Overview": "## Summary\nIn `@deftai/directive` / content **0.94.0**, multi-host slash deposit for `/deft:checkpoint` writes wrappers that say:\n\n```markdown\nRead and follow `xbrief/continue.xbrief.json` ...\n```\n\nThat path is the **output** of checkpoint, not the instruction doc. First invocation fails when the file does not exist yet.\n\n`/deft:continue` correctly points at `resilience/continue-here.md`.\n\n## Repro\n1. `deft update` to 0.94.0 on a clean consumer\n2. Open `.claude/commands/deft-checkpoint.md` (also cursor/codex/grok)\n3. Observe target is `xbrief/continue.xbrief.json`\n\n## Expected\nCheckpoint wrappers should load `resilience/continue-here.md` (same strategy doc as continue; save path still documented in description/commands.md).\n\n## Consumer workaround\nenterprize #64 fixed the four deposited wrappers after Greptile P1 on the upgrade PR. Next `deft update` may re-introduce the bad target until packaging is fixed.\n\n## Seen on\n- enterprize upgrade 0.90.0 → 0.94.0 (2026-08-03/04)\n- Greptile confidence recovered 4/5 → 5/5 after consumer fix",
+      "Labels": "bug, tooling, packaging",
+      "UserStory": "As a consumer operator running /deft:checkpoint, I want the deposited host wrappers to load the continue-here strategy doc, so that first invocation works before xbrief/continue.xbrief.json exists.",
+      "ImplementationPlan": "1. Locate the slash generator / deposit source that emits deft-checkpoint wrappers across hosts. 2. Change the managed body target from xbrief/continue.xbrief.json to resilience/continue-here.md (match continue). 3. Keep save-path documentation in description/commands.md. 4. Add/adjust tests in slash-deposit or generator suite. 5. CHANGELOG [Unreleased] for #3105.",
+      "missing_traces_justification": "Story AC items carry narrative.Traces (AC-N); origin is GitHub issue body ingested via issue:ingest."
+    },
+    "items": [
+      {
+        "id": "3105-checkpoint-wrapper-target-a1",
+        "title": "Deposited /deft:checkpoint wrappers (claude/cursor/codex/grok) read resilience/continue-here.md, not xbrief/continue.xbrief.json.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3105-checkpoint-wrapper-target, when implementation is complete, then: Deposited /deft:checkpoint wrappers (claude/cursor/codex/grok) read resilience/continue-here.md, not xbrief/continue.xbrief.json.",
+          "Traces": "AC-1"
+        }
+      },
+      {
+        "id": "3105-checkpoint-wrapper-target-a2",
+        "title": "First invocation succeeds when continue.xbrief.json does not exist yet.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3105-checkpoint-wrapper-target, when implementation is complete, then: First invocation succeeds when continue.xbrief.json does not exist yet.",
+          "Traces": "AC-2"
+        }
+      },
+      {
+        "id": "3105-checkpoint-wrapper-target-a3",
+        "title": "Automated test covers checkpoint wrapper target; CHANGELOG [Unreleased] mentions #3105.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3105-checkpoint-wrapper-target, when implementation is complete, then: Automated test covers checkpoint wrapper target; CHANGELOG [Unreleased] mentions #3105.",
+          "Traces": "AC-3"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "tooling",
+      "packaging"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3105",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3105: fix: /deft:checkpoint host wrappers point at output continue.xbrief.json"
+      }
+    ],
+    "updated": "2026-08-04T15:53:30Z",
+    "id": "3105-checkpoint-wrapper-target",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/slash-deposit.ts",
+          "packages/core/src/init-deposit/slash-deposit.test.ts",
+          "packages/core/src/slash/product-set.ts",
+          "packages/core/src/slash/product-set.test.ts",
+          "packages/core/src/slash/emitters.test.ts",
+          "content/commands.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/slash-deposit.test.ts",
+          "task verify:forward-coverage"
+        ],
+        "expected_outputs": [
+          "Checkpoint wrappers target resilience/continue-here.md",
+          "Regression test for wrapper target",
+          "CHANGELOG [Unreleased] for #3105"
+        ],
+        "depends_on": [],
+        "conflict_group": "slash-checkpoint-3105",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3112,
+        "prBase": "master",
+        "mergeCommit": "bf43062d75eef52e15a1c230f8a6cd708be5776f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bf43062d75eef52e15a1c230f8a6cd708be5776f",
+        "verifiedAt": "2026-08-04T15:53:30Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-04T15:53:30Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

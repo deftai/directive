@@ -1,0 +1,112 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3103",
+    "updated": "2026-08-04T16:17:31Z"
+  },
+  "plan": {
+    "title": "coverage-debt: restore Vitest branches >=85% (84.99% at v0.94.0 preflight)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Release Step 5 / task check failed the Vitest branch coverage hairline at 84.99% on the v0.94.0 cut while other metrics already met 85%. This story restores all four Vitest metrics to >=85% and closes the coverage-debt ledger issue so soft-pass is no longer needed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3103",
+      "Overview": "## Summary\n\nRelease Step 5 / `task check` Vitest **branch** coverage hairline on the v0.94.0 cut.\n\n## Measured (local `task check` 2026-08-03)\n\n- Statements: 88.19%\n- Branches: **84.99%** (sole metric below 85%)\n- Functions: 95.81%\n- Lines: 88.19%\n\n## Hatch\n\n`coverage-debt` / `--allow-coverage-debt` — release-scoped open-issue ledger hatch (#2866 / #2573). Branch-only trigger; other metrics already ≥ 85%.\n\n## Acceptance\n\nRestore **all four** Vitest metrics (lines, functions, branches, statements) to ≥ 85% and close this issue. Do not soft-pass again while this issue remains open.",
+      "Labels": "test-debt, release, testing",
+      "UserStory": "As a release operator, I want Vitest branch coverage at or above 85%, so that task check and release Step 5 pass without the coverage-debt hatch.",
+      "ImplementationPlan": "1. Reproduce branch coverage shortfall with task check / vitest coverage and identify files/branches below the gate. 2. Add or tighten unit tests for the uncovered branches (prefer high-ROI modules near the hairline). 3. Confirm statements, branches, functions, and lines all report >=85%. 4. CHANGELOG [Unreleased] note for #3103. 5. Do not re-open the coverage-debt hatch while this issue remains open.",
+      "missing_traces_justification": "Story AC items carry narrative.Traces (AC-N); origin is GitHub issue body ingested via issue:ingest."
+    },
+    "items": [
+      {
+        "id": "3103-coverage-debt-branches-a1",
+        "title": "All four Vitest metrics (lines, functions, branches, statements) report >=85% under the same task check path used at release.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3103-coverage-debt-branches, when implementation is complete, then: All four Vitest metrics (lines, functions, branches, statements) report >=85% under the same task check path used at release.",
+          "Traces": "AC-1"
+        }
+      },
+      {
+        "id": "3103-coverage-debt-branches-a2",
+        "title": "No reliance on --allow-coverage-debt / coverage-debt hatch for this shortfall while the issue is open.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3103-coverage-debt-branches, when implementation is complete, then: No reliance on --allow-coverage-debt / coverage-debt hatch for this shortfall while the issue is open.",
+          "Traces": "AC-2"
+        }
+      },
+      {
+        "id": "3103-coverage-debt-branches-a3",
+        "title": "Targeted tests land with the coverage lift; CHANGELOG [Unreleased] mentions #3103.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3103-coverage-debt-branches, when implementation is complete, then: Targeted tests land with the coverage lift; CHANGELOG [Unreleased] mentions #3103.",
+          "Traces": "AC-3"
+        }
+      }
+    ],
+    "tags": [
+      "test-debt",
+      "testing",
+      "release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3103",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3103: coverage-debt: restore Vitest branches >=85% (84.99% at v0.94.0 preflight)"
+      }
+    ],
+    "updated": "2026-08-04T16:17:31Z",
+    "id": "3103-coverage-debt-branches",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/verify-session-ritual.test.ts",
+          "packages/core/src/session/verify-session-ritual-branches.test.ts",
+          "packages/core/src/doctor/agent-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.test.ts",
+          "packages/cli/src/verify-hooks-installed.test.ts",
+          "packages/core/src/session/session-ready.test.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.test.ts"
+        ],
+        "verify_commands": [
+          "task check",
+          "task verify:forward-coverage"
+        ],
+        "expected_outputs": [
+          "Vitest branches >=85%",
+          "All four coverage metrics >=85%",
+          "CHANGELOG [Unreleased] for #3103"
+        ],
+        "depends_on": [],
+        "conflict_group": "coverage-3103",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3113,
+        "prBase": null,
+        "mergeCommit": "e6a39172b68ac7fc3ddaa81c756179511a3c8bb6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e6a39172b68ac7fc3ddaa81c756179511a3c8bb6",
+        "verifiedAt": "2026-08-04T16:17:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-04T16:17:31Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}

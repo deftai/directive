@@ -1,0 +1,135 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3110",
+    "updated": "2026-08-04T17:49:51Z"
+  },
+  "plan": {
+    "title": "fix(security): UAT self-approval via ungated authz:grant shell (classifyShellAuthzOps fail-open)",
+    "status": "completed",
+    "narratives": {
+      "Description": "AppSec high: under an active UAT lease, classifyShellAuthzOps returns empty for authz:grant / authz:uat-suspend, PreToolUse fails open (shell-op-unclassifiable), and default CLI mint stamps operator-cli without TTY confirm. Empty activeGrantIds then activates the grant and unlocks product mutations — full Wave 1 bypass. Dispatch-envelope self-mint is covered; CLI self-mint via shell is not.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3110",
+      "Overview": "## Summary\n\n**AppSec finding (high)** — Under an active UAT lease, an agent can self-mint human-origin grants (and related authz ops) via the ungated `authz:grant` / `authz:uat-suspend` CLI path through Shell/Bash. PreToolUse fails open because `classifyShellAuthzOps` returns `[]` (`shell-op-unclassifiable`), so product Write/push/PR/merge unlock without Wave 1 human approval.\n\n## Severity\n\n**high**\n\n## Location\n\n- `packages/core/src/authz/classify.ts` (`classifyShellAuthzOps` → empty → fail-open)\n- CLI mint path: `authz:grant` / `authz:uat-start` / `authz:uat-suspend` / `authz:revoke` (default stamps `operator-cli` / actor `operator` with no TTY confirm)\n- Related: PreToolUse shell classification + active-grant / UAT lease gates\n\n## Impact\n\nUnder an active UAT lease:\n\n1. Agent runs `deft authz:grant` (or `authz:uat-suspend`) through Shell/Bash.\n2. `classifyShellAuthzOps` returns `[]` → PreToolUse **fails open** (`shell-op-unclassifiable`).\n3. Default CLI mint stamps **operator-cli** / actor **operator** with **no TTY confirm**.\n4. With empty `activeGrantIds`, the new grant **activates** and unlocks product Write / push / PR / merge.\n\n**Result:** Full bypass of Wave 1 human-approval for product mutations.\n\n## Remediation\n\n1. **Classify** `authz:grant` / `authz:uat-start` / `authz:uat-suspend` / `authz:revoke` as **settings** (deny under UAT without a prior human grant).\n2. **Require TTY / `--confirm`** for mint (no silent operator-cli stamp from agent shell).\n3. **Block shell writes** under `.deft/authz/`.\n\n## Evidence\n\nVitest PoC on `ac3c4bb0`:\n\n- `Bash authz:grant` → `allow` / `shell-op-unclassifiable`\n- After `mintHumanOriginGrant` without `pinActive`, `Write` + `git push` → `allow`\n- Existing incident regression covers **dispatch-envelope** self-mint only — **not** CLI self-mint via shell.\n\n## Commit (finding base)\n\n`ac3c4bb07f2bdca38b0611f4b220c9e5c959cd1c`\n\n## Acceptance criteria\n\n- [ ] Shell invocations of `authz:grant`, `authz:uat-start`, `authz:uat-suspend`, and `authz:revoke` are classified (settings / deny under UAT without prior human grant) — not `shell-op-unclassifiable` fail-open\n- [ ] CLI mint requires TTY or explicit `--confirm`; agent/non-TTY shell cannot silently mint operator-cli grants\n- [ ] Shell writes under `.deft/authz/` are blocked under UAT (or equivalent containment)\n- [ ] Vitest regression: Bash/`Shell` → `authz:grant` under UAT with empty active grants does **not** unlock Write / push / PR / merge\n- [ ] Existing dispatch-envelope self-mint regression remains green; new case covers **CLI self-mint** path\n\n## Notes\n\nParent epic context: layered authz stack (#2948) / human-origin grants + UAT lease (#2955). This is residual fail-open on the **shell-classified CLI mint** path, not the dispatch-envelope path already gated.\r\n\n",
+      "Labels": "bug, security",
+      "UserStory": "As a security operator under an active UAT lease, I want authz:grant and related shell ops classified and gated, so that agents cannot self-mint operator-cli grants and unlock product Write/push/PR/merge without Wave 1 human approval.",
+      "ImplementationPlan": "1. Classify authz:grant, authz:uat-start, authz:uat-suspend, authz:revoke as settings (deny under UAT without prior human grant). 2. Require TTY or --confirm for mint; block silent operator-cli stamp from non-TTY agent shell. 3. Block shell writes under .deft/authz/. 4. Add Vitest regression: Bash/Shell authz:grant under UAT with empty active grants must not unlock Write/push/PR/merge. 5. Keep dispatch-envelope self-mint regression green. 6. CHANGELOG [Unreleased] for #3110.",
+      "missing_traces_justification": "Story AC items carry narrative.Traces (AC-N); origin is GitHub issue body ingested via issue:ingest."
+    },
+    "items": [
+      {
+        "id": "3110-authz-grant-shell-failopen-a1",
+        "title": "Shell authz:grant / uat-start / uat-suspend / revoke are classified (settings); not shell-op-unclassifiable fail-open under UAT.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3110-authz-grant-shell-failopen, when implementation is complete, then: Shell authz:grant / uat-start / uat-suspend / revoke are classified (settings); not shell-op-unclassifiable fail-open under UAT.",
+          "Traces": "AC-1"
+        }
+      },
+      {
+        "id": "3110-authz-grant-shell-failopen-a2",
+        "title": "CLI mint requires TTY or explicit --confirm; non-TTY agent shell cannot silently mint operator-cli grants.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3110-authz-grant-shell-failopen, when implementation is complete, then: CLI mint requires TTY or explicit --confirm; non-TTY agent shell cannot silently mint operator-cli grants.",
+          "Traces": "AC-2"
+        }
+      },
+      {
+        "id": "3110-authz-grant-shell-failopen-a3",
+        "title": "Shell writes under .deft/authz/ blocked under UAT (or equivalent containment).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3110-authz-grant-shell-failopen, when implementation is complete, then: Shell writes under .deft/authz/ blocked under UAT (or equivalent containment).",
+          "Traces": "AC-3"
+        }
+      },
+      {
+        "id": "3110-authz-grant-shell-failopen-a4",
+        "title": "Vitest regression covers CLI self-mint path; dispatch-envelope regression remains green.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the story scope for 3110-authz-grant-shell-failopen, when implementation is complete, then: Vitest regression covers CLI self-mint path; dispatch-envelope regression remains green.",
+          "Traces": "AC-4"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3110",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3110: fix(security): UAT self-approval via ungated authz:grant shell (classifyShellAuthzOps fail-open)"
+      }
+    ],
+    "updated": "2026-08-04T17:49:51Z",
+    "id": "3110-authz-grant-shell-failopen",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/actions.test.ts",
+          "packages/core/src/authz/actions.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/closed-verb.test.ts",
+          "packages/core/src/authz/closed-verb.ts",
+          "packages/core/src/authz/evaluate-branches.test.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "packages/core/src/authz/index.ts",
+          "packages/core/src/authz/origin.test.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/paths.ts",
+          "packages/core/src/authz/store.test.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/templates.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/verb-classification.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz",
+          "task verify:forward-coverage"
+        ],
+        "expected_outputs": [
+          "classifyShellAuthzOps maps authz grant/suspend/revoke to settings",
+          "CLI mint TTY/--confirm gate",
+          "CLI self-mint regression test",
+          "CHANGELOG [Unreleased] for #3110"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-3110",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3111,
+        "prBase": null,
+        "mergeCommit": "27829c206cd6fa5eacf025449e0d48ec628a7e1d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "27829c206cd6fa5eacf025449e0d48ec628a7e1d",
+        "verifiedAt": "2026-08-04T17:49:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-04T17:49:51Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
