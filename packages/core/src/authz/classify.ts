@@ -299,7 +299,10 @@ function hasSplitAuthzPath(command: string): boolean {
   return lower.includes(".deft") || lower.includes("/deft/") || lower.includes("deft/");
 }
 
-/** Last non-flag token looks like pure expansion dest (`$STORE`, `%TEMP%`). */
+/**
+ * Last non-flag token is a pure expansion dest (`$STORE`, `${STORE}`, `%TEMP%`)
+ * with no trailing path segment (`$HOME/out` is NOT pure — ordinary user write).
+ */
 function lastTokenIsOpaqueExpansion(tokens: readonly string[]): boolean {
   let last = "";
   for (const t of tokens) {
@@ -308,6 +311,8 @@ function lastTokenIsOpaqueExpansion(tokens: readonly string[]): boolean {
   }
   if (last.length === 0) return false;
   const n = last.replace(/['"]/g, "");
+  // Path after expansion → ordinary dest, not opaque store alias.
+  if (n.includes("/") || n.includes("\\")) return false;
   if (n.startsWith("$") && n.length > 1) return true;
   if (n.startsWith("%") && n.endsWith("%") && n.length > 2) return true;
   return false;
