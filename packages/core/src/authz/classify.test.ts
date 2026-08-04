@@ -170,7 +170,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("cd .deft && echo x > authz/state.json && echo y > /tmp/z"),
     ).toContain("settings");
-    expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toContain("settings");
+    // Positional expansion alone + state.json is not enough without authz context.
+    expect(classifyShellAuthzOps("echo '{}' > $1/state.json")).toEqual([]);
+    // Authz-named expansion + state.json remains settings.
+    expect(classifyShellAuthzOps("echo '{}' > \"$AUTHZ_DIR/state.json\"")).toContain("settings");
     // Programmatic os.environ / process.env write (no shell $ expansion).
     expect(
       classifyShellAuthzOps(
@@ -185,7 +188,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Ordinary cleanup / non-store opaque dest stays unclassifiable (no overclassify).
     expect(classifyShellAuthzOps("rm -rf $TMPDIR/build")).toEqual([]);
     expect(classifyShellAuthzOps("rm -rf $HOME/.cache/tmp")).toEqual([]);
-    // Unrelated app state.json via environ is NOT an authz settings mutation.
+    // Unrelated app state.json (shell or programmatic) is NOT an authz settings mutation.
+    expect(classifyShellAuthzOps('echo hi > "$APP_DIR/state.json"')).toEqual([]);
     expect(
       classifyShellAuthzOps(
         "python -c \"import os; open(os.environ['APP_DIR']+'/state.json','w').write('{}')\"",

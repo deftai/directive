@@ -547,13 +547,18 @@ function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]):
   if (!hasWriteShape(command, tokens)) return false;
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Authz-plausible destination text (literal or expanded path segments).
-  // Shell: `state.json` with expansion still settings (opaque store path residual e.g. $1/state.json).
-  // Programmatic bare APP_DIR/state.json is handled separately and stays unclassifiable.
+  // Bare `state.json` alone is ordinary app state — require authz/grants/.deft context
+  // (Greptile residual: do not deny unrelated expanded state-file writes under UAT).
   if (
     lower.includes("authz") ||
-    lower.includes("state.json") ||
     lower.includes("/grants/") ||
-    lower.includes("grant-")
+    lower.includes("grant-") ||
+    lower.includes(".deft/authz") ||
+    (lower.includes("state.json") &&
+      (lower.includes("authz") ||
+        lower.includes(".deft") ||
+        lower.includes("/grants/") ||
+        hasAuthzPlausibleExpansionName(command)))
   ) {
     // Require write shape already true; still need expansion OR already handled by literal path.
     // When expansion is absent, hasAuthzDirShellWrite covers literals; here catch expanded.

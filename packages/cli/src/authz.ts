@@ -346,19 +346,26 @@ function defaultHasControllingTerminal(): boolean {
 }
 
 function defaultReadInteractiveConfirm(): string | null {
+  // Read from the controlling terminal device — not redirected/piped stdin —
+  // so agent-controlled stdin alone cannot supply the confirm phrase (#3110).
+  let fd: number | null = null;
   try {
-    // Synchronous one-line read from stdin (operator TTY). Agents piping input fail the phrase check.
+    const path = process.platform === "win32" ? "CONIN$" : "/dev/tty";
+    fd = openSync(path, "r");
     const buf = Buffer.alloc(256);
-    let n = 0;
-    try {
-      n = readSync(0, buf, 0, buf.length, null);
-    } catch {
-      return null;
-    }
+    const n = readSync(fd, buf, 0, buf.length, null);
     if (n <= 0) return null;
     return buf.subarray(0, n).toString("utf8").trim();
   } catch {
     return null;
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* ignore */
+      }
+    }
   }
 }
 
