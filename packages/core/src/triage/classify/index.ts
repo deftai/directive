@@ -968,6 +968,8 @@ function defaultLabelMirrorEngine(): LabelMirrorEngine {
   };
 }
 
+export { extractReferencedRepoIssueKeys } from "./label-mirror.js";
+
 /** Tier-1 label mirror with the #1129 classify engine bound in. */
 export function mirrorLabels(
   projectRoot: string,

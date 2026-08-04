@@ -9,16 +9,20 @@
  * engine is injected via LabelMirrorEngine / mirrorLabels() wrapper in index.ts.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
+import { referenceTypeMatches } from "@deftai/directive-types";
+import {
+  hasArtifactSuffix,
+  resolveLifecycleRoot,
+  resolveProjectDefinitionPath,
+} from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { ScmLabelClient } from "../../vbrief-reconcile/labels.js";
 import { isRepoMutationAllowed } from "../../vbrief-reconcile/repo-guard.js";
 import type { LabelClient } from "../../vbrief-reconcile/types.js";
 import { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
-import { resolveRepo } from "../queue/repo.js";
 import { iterCachedIssues } from "../summary/index.js";
 
 export const DEFAULT_IDEMPOTENCY_LABEL = "triaged";
@@ -68,7 +72,86 @@ export interface LabelMirrorEngine {
     projectRoot?: string;
     projectDefinition?: Record<string, unknown> | null;
   }) => string[];
-  readonly extractReferencedIssues: (projectRoot?: string) => Set<number>;
+  /** Optional; label-mirror prefers repo-qualified keys and only needs numbers as fallback. */
+  readonly extractReferencedIssues?: (projectRoot?: string) => Set<number>;
+}
+
+/**
+ * Repo-qualified xBRIEF github-issue keys (`owner/name\\0number`).
+ * Unlike number-only extractReferencedIssues, this never collides across repos.
+ */
+export function extractReferencedRepoIssueKeys(
+  projectRoot?: string,
+  lifecycleFolders: readonly string[] = ["pending", "active"],
+): Set<string> {
+  const referenced = new Set<string>();
+  let root: string;
+  try {
+    root = resolveLifecycleRoot(projectRoot ?? process.cwd());
+  } catch {
+    return referenced;
+  }
+  for (const folder of lifecycleFolders) {
+    const folderPath = join(root, folder);
+    let entries: string[];
+    try {
+      entries = readdirSync(folderPath).filter((f) => hasArtifactSuffix(f));
+    } catch {
+      continue;
+    }
+    for (const name of entries) {
+      try {
+        const raw = readFileSync(join(folderPath, name), { encoding: "utf8" });
+        const data: unknown = JSON.parse(raw);
+        if (typeof data !== "object" || data === null || Array.isArray(data)) {
+          continue;
+        }
+        const plan = (data as Record<string, unknown>).plan;
+        if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+          continue;
+        }
+        const refs = (plan as Record<string, unknown>).references ?? [];
+        if (!Array.isArray(refs)) {
+          continue;
+        }
+        for (const ref of refs) {
+          if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
+            continue;
+          }
+          const r = ref as Record<string, unknown>;
+          if (!referenceTypeMatches(String(r.type ?? ""), "github-issue")) {
+            continue;
+          }
+          const uri = r.uri;
+          if (typeof uri !== "string") {
+            continue;
+          }
+          const cleaned = uri.trim().replace(/\/+$/, "");
+          const parts =
+            cleaned
+              .split("://")
+              .pop()
+              ?.split("/")
+              .filter((p) => p.length > 0) ?? [];
+          if (
+            parts.length >= 4 &&
+            parts[parts.length - 2] === "issues" &&
+            /^\d+$/.test(parts[parts.length - 1] ?? "")
+          ) {
+            const owner = parts[parts.length - 4] ?? "";
+            const repoName = parts[parts.length - 3] ?? "";
+            const n = Number.parseInt(parts[parts.length - 1] ?? "", 10);
+            if (owner.length > 0 && repoName.length > 0 && Number.isFinite(n)) {
+              referenced.add(`${owner}/${repoName}\0${n}`.toLowerCase());
+            }
+          }
+        }
+      } catch {
+        // tolerate corrupt artifacts
+      }
+    }
+  }
+  return referenced;
 }
 
 export interface LabelMirrorPolicy {
@@ -447,44 +530,16 @@ export function mirrorLabels(
 
   const rules = engine.resolveClassifyRules({ projectRoot: root });
   const holdMarkers = engine.resolveHoldMarkers({ projectRoot: root });
-  // Number-only xBRIEF refs are project-repo scoped (#1423 Greptile P1). Soft-fail
-  // when no xbrief layout yet (empty cache bootstrap / sparse fixtures).
-  let projectVbriefReferenced: Set<number>;
-  try {
-    projectVbriefReferenced = engine.extractReferencedIssues(root);
-  } catch {
-    projectVbriefReferenced = new Set();
-  }
-  // Project identity for xBRIEF ref scoping must NOT use --repo (that flag is a
-  // scan filter only). resolveRepo(null, root) uses git remote / PROJECT-DEFINITION.
-  const projectRepo = resolveRepo(null, root);
+  // Repo-qualified xBRIEF keys avoid number-only collisions across multi-repo
+  // caches and do not require project identity (#1423 Greptile P1 class).
+  const referencedKeys = extractReferencedRepoIssueKeys(root);
   const decisions = loadLatestDecisionMap(root);
   const now = options.now ?? new Date();
 
-  // Unfiltered cache inventory drives xBRIEF-ref eligibility. The optional --repo
-  // flag is a scan filter only and MUST NOT shrink multi-repo identity to a
-  // single foreign slug (Greptile P1: filtered foreign inherits project refs).
-  const allPairs = iterCachedIssues(cacheRoot);
-  let pairs = allPairs;
+  let pairs = iterCachedIssues(cacheRoot);
   if (options.repo !== undefined && options.repo !== null && options.repo.trim().length > 0) {
     const want = options.repo.trim().toLowerCase();
-    pairs = allPairs.filter(([repo]) => repo.toLowerCase() === want);
-  }
-
-  // Repos allowed to use number-only xBRIEF refs:
-  // - when project repo is known: only that slug
-  // - when unknown and the unfiltered cache is a single repo: that repo
-  // - when unknown multi-repo (even if --repo filters to one): none
-  const reposAllowedVbriefRefs = new Set<string>();
-  if (projectRepo !== null && projectRepo.trim().length > 0) {
-    reposAllowedVbriefRefs.add(projectRepo.trim().toLowerCase());
-  } else {
-    const uniqueRepos = new Set(allPairs.map(([repo]) => repo.toLowerCase()));
-    if (uniqueRepos.size === 1) {
-      for (const r of uniqueRepos) {
-        reposAllowedVbriefRefs.add(r);
-      }
-    }
+    pairs = pairs.filter(([repo]) => repo.toLowerCase() === want);
   }
 
   let planned = 0;
@@ -558,11 +613,11 @@ export function mirrorLabels(
       continue;
     }
 
-    // Only apply number-only xBRIEF refs for allowed repos (see reposAllowedVbriefRefs).
-    // Cross-repo same-number collisions must not inherit project references (#1423 P1).
-    const vbriefReferenced = reposAllowedVbriefRefs.has(repo.toLowerCase())
-      ? projectVbriefReferenced
-      : null;
+    // Pass number set only when this exact repo+number is referenced from xBRIEF.
+    const key = `${repo.toLowerCase()}\0${issueNumber}`;
+    const vbriefReferenced = referencedKeys.has(key)
+      ? new Set<number>([issueNumber])
+      : new Set<number>();
 
     const classification = engine.classifyIssue(issue, {
       rules: rules as never,
