@@ -23,9 +23,20 @@ function tempRoot(): string {
 }
 
 /**
- * Interactive operator path by default: TTY + --confirm (dual gate; #3110).
+ * Interactive operator path by default: TTY + --confirm + clean environ (dual gate; #3110).
  * Injects --confirm for mutating verbs unless already present or cmd is show/help.
+ * Clean environ is required so host CI markers (CI / GITHUB_ACTIONS) do not false-refuse
+ * operator-path unit tests when the suite runs under GitHub Actions.
  */
+function cleanOperatorSeams(seams: AuthzMainSeams = {}): AuthzMainSeams {
+  return {
+    isTty: () => true,
+    // Empty env: no agent/CI markers. Explicit seams.environ overrides.
+    environ: {},
+    ...seams,
+  };
+}
+
 function runAuthz(argv: string[], seams: AuthzMainSeams = {}): number {
   const mutating =
     argv.some(
@@ -35,7 +46,7 @@ function runAuthz(argv: string[], seams: AuthzMainSeams = {}): number {
     mutating && !argv.includes("--confirm") && !argv.includes("--help") && !argv.includes("-h")
       ? [...argv, "--confirm"]
       : argv;
-  return main(withConfirm, { isTty: () => true, ...seams });
+  return main(withConfirm, cleanOperatorSeams(seams));
 }
 
 describe("authz CLI (#2944)", () => {
@@ -426,7 +437,7 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
     expect(
       main(
         ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
-        { isTty: () => true },
+        cleanOperatorSeams({ isTty: () => true }),
       ),
     ).toBe(0);
     expect(out.join("")).toMatch(/grant minted/);
