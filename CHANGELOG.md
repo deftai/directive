@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **/deft:checkpoint host wrappers load continue-here strategy, not save-path output (#3105).** Multi-host slash deposit for `/deft:checkpoint` pointed thin wrappers at `xbrief/continue.xbrief.json` (checkpoint *output*). First invoke failed on clean consumers when that file did not exist yet. Wrappers now load `resilience/continue-here.md` (same instruction doc as `/deft:continue`); description and `commands.md` still document the save path. Strategy doc write target aligned to `./xbrief/continue.xbrief.json` (legacy vbrief path read-accepted). Closes #3105.
+- **Vitest branch coverage restored above 85% (#3103).** Focused L4 owner gate parse/config CLI edges and min-Greptile confidence policy reader branches clear the v0.94.0 84.99% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3103.
 
 ### Removed
 
