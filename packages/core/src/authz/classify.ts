@@ -199,13 +199,48 @@ function hasAuthzMutatingCli(tokens: readonly string[]): boolean {
 }
 
 /**
- * Any shell reference to `.deft/authz/` (#3110 AC-3 + Greptile P1 containment).
- * Under UAT this classifies as **settings** so agents cannot rewrite state/grants via
- * dd/sed/python/redirects that a finite write-bin allowlist would miss.
- * Operators inspect via `deft authz:show` (or host Read tools), not shell FS.
+ * Path-ish normalize: keep separators (do not strip `\` like normalizeToken).
  */
-function hasAuthzDirShellTouch(command: string): boolean {
-  return command.toLowerCase().replace(/\\/g, "/").includes(".deft/authz");
+function pathishToken(token: string): string {
+  return token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+}
+
+/**
+ * Shell **write** targeting `.deft/authz/` (#3110 AC-3).
+ * Pure reads (`cat .deft/authz/state.json`) stay unclassifiable — use `authz:show`.
+ * Redirects only count when the destination region contains `.deft/authz`.
+ */
+function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  if (!lower.includes(".deft/authz")) return false;
+
+  // Redirect dest region after each `>` / `>>` (O(n); no nested-quantifier regex).
+  for (let i = 0; i < lower.length; i++) {
+    if (lower[i] !== ">") continue;
+    let j = i + 1;
+    if (j < lower.length && lower[j] === ">") j++;
+    // Dest until pipe/semicolon/ampersand/newline.
+    let end = j;
+    while (
+      end < lower.length &&
+      lower[end] !== "|" &&
+      lower[end] !== ";" &&
+      lower[end] !== "&" &&
+      lower[end] !== "\n"
+    ) {
+      end++;
+    }
+    if (lower.slice(j, end).includes(".deft/authz")) return true;
+  }
+
+  // Write/destructive bins with an authz path argument.
+  for (let ti = 0; ti < tokens.length; ti++) {
+    if (!INDIRECT_WRITE_BINS.has(normalizeToken(tokens[ti] as string))) continue;
+    for (let tj = ti + 1; tj < tokens.length; tj++) {
+      if (pathishToken(tokens[tj] as string).includes(".deft/authz")) return true;
+    }
+  }
+  return false;
 }
 
 /** Write/destructive shell bins (token match after normalizeToken). */
@@ -390,10 +425,17 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (hasGhApiPath(tokens, "/settings")) found.add("settings");
   if (hasTestRunner(tokens)) found.add("test");
   if (hasDeploy(tokens)) found.add("deployment");
-  // #3110: authz authority CLI + store path (literal / split / $VAR / rm) → settings.
+  // #3110: authz authority CLI + store **writes** (literal / split / $VAR / rm) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
-  if (hasAuthzDirShellTouch(cmd)) found.add("settings");
-  if (hasSplitAuthzPath(cmd) && hasWriteShape(cmd, tokens)) found.add("settings");
+  if (hasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
+  // Split path write: `cd .deft && echo x > authz/state.json` (dest mentions authz after >).
+  if (hasSplitAuthzPath(cmd) && cmd.includes(">")) {
+    const lower = cmd.toLowerCase().replace(/\\/g, "/");
+    const gt = lower.lastIndexOf(">");
+    if (gt >= 0 && lower.slice(gt + 1).includes("authz")) {
+      found.add("settings");
+    }
+  }
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
 
   return [...found];

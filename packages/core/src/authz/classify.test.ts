@@ -130,7 +130,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("deft authz:show")).toEqual([]);
   });
 
-  it("classifies any shell touch of .deft/authz as settings (#3110 containment)", () => {
+  it("classifies shell writes under .deft/authz as settings (#3110 containment)", () => {
     expect(classifyShellAuthzOps('echo {"x":1} > .deft/authz/grants/evil.json')).toContain(
       "settings",
     );
@@ -145,9 +145,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("python -c \"open('.deft/authz/grants/x.json','w').write('{}')\""),
     ).toContain("settings");
-    // Broad containment: shell path touch of the store (inspect via authz:show / host Read).
-    expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toContain("settings");
-    expect(classifyShellAuthzOps("cat .deft/authz/state.json > /tmp/backup")).toContain("settings");
+    // Pure reads stay unclassifiable (inspect via authz:show / host Read).
+    expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toEqual([]);
+    // Redirect **from** store to backup is not a store write (dest is /tmp).
+    expect(classifyShellAuthzOps("cat .deft/authz/state.json > /tmp/backup")).toEqual([]);
     // Indirect $VAR expansion (opaque names included — residual fail-open closed).
     expect(classifyShellAuthzOps("echo '{}' > \"$AUTHZ_DIR/state.json\"")).toContain("settings");
     expect(classifyShellAuthzOps("cp /tmp/g.json $AUTHZ_HOME/grants/evil.json")).toContain(
