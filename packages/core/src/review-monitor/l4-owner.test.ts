@@ -234,15 +234,27 @@ describe("evaluateL4OwnerGate (#3090)", () => {
 
   it("CONFIG when repo cannot be resolved (#3103)", () => {
     const root = mkdtempSync(join(tmpdir(), "l4-norepo-"));
-    const result = evaluateL4OwnerGate({
-      pr: 3,
-      projectRoot: root,
-      // no --repo and temp dir is not a git worktree
-      seams: { fetchComments: () => [] },
-    });
-    expect(result.exitCode).toBe(2);
-    expect(result.path).toBe("config");
-    expect(result.message).toMatch(/could not resolve owner\/repo/);
+    // Isolate from process-inherited DEFT_TRIAGE_REPO so resolveRepo falls through
+    // to git remote (temp dir is not a git worktree) and returns null.
+    const prevTriageRepo = process.env.DEFT_TRIAGE_REPO;
+    delete process.env.DEFT_TRIAGE_REPO;
+    try {
+      const result = evaluateL4OwnerGate({
+        pr: 3,
+        projectRoot: root,
+        // omit --repo; temp dir is not a git worktree
+        seams: { fetchComments: () => [] },
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.path).toBe("config");
+      expect(result.message).toMatch(/could not resolve owner\/repo/);
+    } finally {
+      if (prevTriageRepo === undefined) {
+        delete process.env.DEFT_TRIAGE_REPO;
+      } else {
+        process.env.DEFT_TRIAGE_REPO = prevTriageRepo;
+      }
+    }
   });
 
   it("CONFIG when GitHub lease fetch errors (#3103)", () => {
