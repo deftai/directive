@@ -185,6 +185,12 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Ordinary cleanup / non-store opaque dest stays unclassifiable (no overclassify).
     expect(classifyShellAuthzOps("rm -rf $TMPDIR/build")).toEqual([]);
     expect(classifyShellAuthzOps("rm -rf $HOME/.cache/tmp")).toEqual([]);
+    // Unrelated app state.json via environ is NOT an authz settings mutation.
+    expect(
+      classifyShellAuthzOps(
+        "python -c \"import os; open(os.environ['APP_DIR']+'/state.json','w').write('{}')\"",
+      ),
+    ).toEqual([]);
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

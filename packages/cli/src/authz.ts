@@ -106,7 +106,10 @@ export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
 
 /** Testable seams for TTY / agent-shell detection (#3110). */
 export interface AuthzMainSeams {
-  /** When true, interactive human TTY is present (default: process.stdin.isTTY). */
+  /**
+   * When true, interactive human TTY is present.
+   * Default: both stdin and stdout report isTTY (pseudo-TTY residual; #3110).
+   */
   readonly isTty?: () => boolean;
   /** Environ for agent-shell marker detection (default: process.env). */
   readonly environ?: NodeJS.ProcessEnv;
@@ -380,7 +383,9 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
     return 2;
   }
 
-  const isTty = seams.isTty ?? (() => process.stdin.isTTY === true);
+  // Both stdin and stdout TTY — agent-allocated single-side PTY is not enough.
+  const isTty =
+    seams.isTty ?? (() => process.stdin.isTTY === true && process.stdout.isTTY === true);
   const environ = seams.environ ?? process.env;
   // Gate after required-arg validation so missing --campaign / --ops still report clearly.
   // Dual gate: TTY + --confirm; agent/CI markers always refuse.

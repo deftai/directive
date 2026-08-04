@@ -504,26 +504,33 @@ function hasProgrammaticAuthzEnvWrite(command: string, tokens: readonly string[]
     lower.includes(",'w'") ||
     lower.includes(',"w"');
   if (!writeish) return false;
-  // Authz-plausible target via environ key or literal path fragment.
+  // Authz-store target only — bare `state.json` alone is ordinary app state (#3110 residual).
   if (
     lower.includes("authz") ||
-    lower.includes("state.json") ||
     lower.includes("/grants/") ||
     lower.includes("grant-") ||
     lower.includes("deft_auth") ||
-    lower.includes("auth_store")
+    lower.includes("auth_store") ||
+    lower.includes(".deft/authz") ||
+    lower.includes(".deft\\authz")
   ) {
     return true;
   }
-  // os.environ / process.env + store-ish without contiguous path (opaque root env).
+  // os.environ / process.env + authz-store-ish key (not generic "auth"/"store" alone).
   if (
-    (lower.includes("os.environ") ||
-      lower.includes("process.env") ||
-      lower.includes("$env:") ||
-      lower.includes("getenv")) &&
-    (lower.includes("store") || lower.includes("grant") || lower.includes("auth"))
+    lower.includes("os.environ") ||
+    lower.includes("process.env") ||
+    lower.includes("$env:") ||
+    lower.includes("getenv")
   ) {
-    return true;
+    if (
+      lower.includes("authz") ||
+      lower.includes("grant") ||
+      lower.includes("deft_auth") ||
+      lower.includes("auth_store")
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -540,6 +547,8 @@ function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]):
   if (!hasWriteShape(command, tokens)) return false;
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Authz-plausible destination text (literal or expanded path segments).
+  // Shell: `state.json` with expansion still settings (opaque store path residual e.g. $1/state.json).
+  // Programmatic bare APP_DIR/state.json is handled separately and stays unclassifiable.
   if (
     lower.includes("authz") ||
     lower.includes("state.json") ||
