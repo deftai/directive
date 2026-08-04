@@ -204,7 +204,7 @@ describe("renderShow", () => {
   });
 });
 
-describe("renderOperatorBrief (#2890)", () => {
+describe("renderOperatorBrief (#2890 / #3116)", () => {
   it("emits pasteable brief fields without inventing lean", () => {
     const text = renderOperatorBrief({
       issue: {
@@ -240,6 +240,40 @@ describe("renderOperatorBrief (#2890)", () => {
     expect(text).toContain("lean: (agent-owned");
   });
 
+  it("puts html_url first and includes agent-owned validity line (#3116)", () => {
+    const text = renderOperatorBrief({
+      issue: {
+        number: 3116,
+        title: "Validity + URL-first",
+        state: "open",
+        labels: ["triage"],
+        updatedAt: "2026-08-04T12:00:00Z",
+        body: "Residual Phase 3 brief gaps.",
+        htmlUrl: "https://github.com/deftai/directive/issues/3116",
+      },
+      repo: "deftai/directive",
+      number: 3116,
+      latestDecision: null,
+      inActiveXbrief: false,
+    });
+    const lines = text.split("\n");
+    // Header line 0; first body field must be the canonical issue URL (#3116 URL-first).
+    expect(lines[0]).toContain("triage:show --format=operator");
+    expect(lines[1]).toBe("https://github.com/deftai/directive/issues/3116");
+    expect(lines[2]).toBe("#3116  Validity + URL-first");
+    const urlIdx = text.indexOf("https://github.com/deftai/directive/issues/3116");
+    const titleIdx = text.indexOf("#3116  Validity + URL-first");
+    const summaryIdx = text.indexOf("summary:");
+    expect(urlIdx).toBeGreaterThan(-1);
+    expect(titleIdx).toBeGreaterThan(urlIdx);
+    expect(summaryIdx).toBeGreaterThan(titleIdx);
+    expect(text).toContain(
+      "validity: (agent-owned — still-open | partial | likely-shipped | needs-re-scope + evidence)",
+    );
+    // Mechanical assist does not invent a verdict.
+    expect(text).not.toMatch(/^validity: still-open/m);
+  });
+
   it("notes thin body / no AC when body is empty", () => {
     const text = renderOperatorBrief({
       issue: {
@@ -260,5 +294,6 @@ describe("renderOperatorBrief (#2890)", () => {
     expect(text).toContain("(thin body / no summary)");
     expect(text).toContain("acceptance criteria: (thin body / no AC)");
     expect(text).toContain("active xBRIEF: no");
+    expect(text.split("\n")[1]).toBe("https://github.com/o/r/issues/1");
   });
 });

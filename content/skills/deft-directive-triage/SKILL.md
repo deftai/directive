@@ -78,7 +78,7 @@ Directive does not guess your mix: **ordered plan** (`task plan-sequence:*`) whe
 
 ! Walk per-item decisions through the canonical `task triage:*` verbs (tasks own audit-log append / schema / `xbrief/proposed/` write).
 
-! **Operator brief (same turn as menu) (#2890):** Before every per-item decision menu, present an operator brief in the **same operator-visible message/surface** as the menu, containing at least: issue `#N` + title + link; labels (or explicit none); 2–5 line problem/context summary; AC bullets or explicit "thin body / no AC"; agent **lean** + one-line why (Accept / Defer / Reject / Needs-AC / …). ~ Prefer `task triage:show --format=operator <N>` as the brief backbone; agent still owns lean. ⊗ Menu-only or chip-only Phase 3 turns without that brief. ⊗ Brief-only turn followed by a later chip/menu-only turn that does not restate the brief.
+! **Operator brief (same turn as menu) (#2890 / #3116):** Before every per-item decision menu, present an operator brief in the **same operator-visible message/surface** as the menu, containing at least: **URL-first** lead (canonical issue URL as the first line for that item, or `#N title` + URL); labels (or explicit none); **current-state validity** (`still-open` | `partial` | `likely-shipped` | `needs-re-scope`) + one-line evidence (linked closed PR, code path, or "no evidence of fix"); 2–5 line problem/context summary; AC bullets or explicit "thin body / no AC"; agent **lean** + one-line why (Accept / Defer / Reject / Needs-AC / …). ~ Prefer `task triage:show --format=operator <N>` as the brief backbone (URL-first + validity placeholder); agent still owns validity verdict and lean. ⊗ Menu-only or chip-only Phase 3 turns without that brief. ⊗ Brief-only turn followed by a later chip/menu-only turn that does not restate the brief. ⊗ Body-only summary without validity check against current master, closed children, or linked PRs.
 
 ! **Host structured-question adapter:** On chips / `ask_user` / similar UIs (e.g. OpenClaw `ask_user`), keep the prose brief in chat; structured options are **actions only** (Accept / Defer / Reject / Needs-AC / Mark duplicate / Discuss / Back). Option labels ≉ substitute for the brief.
 
@@ -120,7 +120,7 @@ What would you like to do with this candidate?
 
 - ⊗ Recommend work without `task triage:queue` (#1149).
 - ⊗ Conclude "nothing to do" from folder scans or live GitHub alone (#2576).
-- ⊗ Stale-cache walk; reimplement audit/`proposed/` writes; treat defer/needs-ac as terminal; edit candidates.jsonl; menu-only Phase 3 without operator brief (#2890).
+- ⊗ Stale-cache walk; reimplement audit/`proposed/` writes; treat defer/needs-ac as terminal; edit candidates.jsonl; menu-only Phase 3 without operator brief (#2890); body-only brief without URL-first or current-state validity (#3116).
 
 ## EXIT
 
@@ -128,5 +128,5 @@ What would you like to do with this candidate?
 
 ## References
 
-- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #1122 / #1123 / #1127 / #1129 / #1131
+- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #3116 validity + URL-first; #1122 / #1123 / #1127 / #1129 / #1131
 - Siblings: `deft-directive-refinement`, `deft-directive-swarm`, `deft-directive-sync`

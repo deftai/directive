@@ -87,7 +87,7 @@ describe("test_triage_skill", () => {
     const text = readRepoFile(_TRIAGE_PATH);
     // A: required brief fields + forbid menu-only
     expect(text).toContain("Operator brief (same turn as menu)");
-    expect(text).toMatch(/issue `#N` \+ title \+ link/i);
+    expect(text).toMatch(/URL-first/i);
     expect(text).toContain("thin body / no AC");
     expect(text).toContain("lean");
     expect(text).toContain("Menu-only or chip-only Phase 3 turns without that brief");
@@ -101,6 +101,16 @@ describe("test_triage_skill", () => {
     expect(text).toContain("does **not** forbid Phase 3 per-candidate operator briefs");
     // E: mechanical assist
     expect(text).toContain("task triage:show --format=operator");
+  });
+  it("triage_phase3_validity_and_url_first_3116", () => {
+    const text = readRepoFile(_TRIAGE_PATH);
+    expect(text).toMatch(/URL-first/i);
+    expect(text).toContain("still-open");
+    expect(text).toContain("partial");
+    expect(text).toContain("likely-shipped");
+    expect(text).toContain("needs-re-scope");
+    expect(text).toMatch(/one-line evidence|current-state validity/i);
+    expect(text).toContain("#3116");
   });
   it("triage_skill_pointer_exists", () => {
     expect(repoFileExists(_TRIAGE_POINTER_PATH)).toBeTruthy();

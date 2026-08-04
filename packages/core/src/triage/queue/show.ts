@@ -291,7 +291,7 @@ export function extractAcceptanceCriteria(body: string): readonly string[] {
   return bullets.slice(0, 12);
 }
 
-/** Operator-facing pasteable brief backbone for Phase 3 decisions (#2890). */
+/** Operator-facing pasteable brief backbone for Phase 3 decisions (#2890 / #3116). */
 export function renderOperatorBrief(options: {
   readonly issue: CachedIssueDetail | null;
   readonly repo: string;
@@ -310,9 +310,13 @@ export function renderOperatorBrief(options: {
   const issue = options.issue;
   const link = issue.htmlUrl ?? resolveIssueHtmlUrl(options.repo, options.number);
   const labels = issue.labels.length > 0 ? issue.labels.map(oneLine).join(", ") : "<none>";
+  // URL-first lead line (#3116): canonical issue URL before title/body fields.
+  lines.push(oneLine(link));
   lines.push(`#${options.number}  ${oneLine(issue.title)}`);
-  lines.push(`link:    ${oneLine(link)}`);
   lines.push(`labels:  ${labels}`);
+  lines.push(
+    "validity: (agent-owned — still-open | partial | likely-shipped | needs-re-scope + evidence)",
+  );
   lines.push("");
   lines.push("summary:");
   for (const line of extractBodySummary(issue.body).split("\n")) {
