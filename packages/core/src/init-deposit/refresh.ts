@@ -19,7 +19,7 @@ import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
-import { stampLiveGeneration } from "../freshness/generation.js";
+import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   detectNoDeftDirective,
@@ -638,15 +638,23 @@ export async function runRefreshDeposit(
     // #3117: ensure a readable live generation token exists without advancing
     // when the payload did not swap (already-current). stampLiveGeneration is a
     // no-op write when the token already matches (keeps git clean under #2118).
-    // Missing token: create generation 1; failure here is non-fatal (legacy).
+    // If generation is missing or behind VERSION (e.g. prior stamp failed after
+    // VERSION rewrite), fail closed — do not report success with a stale token.
+    const priorGen = readLiveGeneration(projectDir);
+    const generationMatches =
+      priorGen !== null &&
+      normalizeVersion(priorGen.contentVersion) === normalizeVersion(contentVersion);
     try {
       stampLiveGeneration(projectDir, {
         contentVersion,
         stampedBy: "directive-update",
         increment: false,
       });
-    } catch {
-      // Ensure-only path: do not block already-current refresh on first stamp.
+    } catch (err) {
+      if (!generationMatches) {
+        throw err;
+      }
+      // Token already matches content; ensure write failure is non-fatal noise.
     }
   } else {
     // Full-tree replace (or injected seam). Additive copy is no longer the default.

@@ -2,6 +2,7 @@
  * Freshness report assembly + human formatting (#3117).
  */
 
+import { readRitualState } from "../session/ritual-sentinel.js";
 import { readBoundGeneration } from "./bind.js";
 import { compareFreshness } from "./compare.js";
 import { readLiveGeneration } from "./generation.js";
@@ -10,9 +11,37 @@ import type { FreshnessReport } from "./types.js";
 export interface ReportFreshnessOptions {
   /**
    * Host session identity. When set, only that session's bind is read
-   * (multi-agent isolation). Omit for the default project bind.
+   * (multi-agent isolation).
+   *
+   * When omitted, recover the current ritual `session_id` from
+   * `.deft/ritual-state.json` (written by `session:start`) so bare
+   * `freshness:report` matches the bind just created. Pass `null` to force
+   * the default project bind path only.
    */
   readonly sessionId?: string | null;
+}
+
+/**
+ * Resolve which bind identity a report should use.
+ * Explicit sessionId wins; else ritual session_id; else default bind (null).
+ */
+export function resolveReportSessionId(
+  projectRoot: string,
+  explicit?: string | null,
+): string | null {
+  if (explicit === null) {
+    return null;
+  }
+  if (typeof explicit === "string" && explicit.trim().length > 0) {
+    return explicit.trim();
+  }
+  try {
+    const [state] = readRitualState(projectRoot);
+    const id = state?.sessionId?.trim();
+    return id && id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Build a freshness report for the project (bound vs live on disk). */
@@ -20,7 +49,8 @@ export function reportFreshness(
   projectRoot: string,
   options: ReportFreshnessOptions = {},
 ): FreshnessReport {
-  const bound = readBoundGeneration(projectRoot, { sessionId: options.sessionId });
+  const sessionId = resolveReportSessionId(projectRoot, options.sessionId);
+  const bound = readBoundGeneration(projectRoot, { sessionId });
   const live = readLiveGeneration(projectRoot);
   return compareFreshness(bound, live);
 }

@@ -41,8 +41,11 @@ runtime context, it binds the live generation:
 
 Multi-agent hosts **must** pass a stable host session identity on bind and
 report so one session cannot certify another as current. `session:start` binds
-only the ritual `session_id` path — bare `freshness:report` without
-`--session-id` reads the default bind only (not another session's file).
+the ritual `session_id` path. Bare `freshness:report` (no `--session-id`)
+recovers that identity from `.deft/ritual-state.json` so post-start reports
+match the session just bound. Pass `--session-id` for a non-ritual host session;
+pass an explicit empty only via API `sessionId: null` to force the default bind
+path.
 
 Hosts and operators can rebind without restarting the shared host runtime:
 

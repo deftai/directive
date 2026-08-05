@@ -25,6 +25,14 @@ function bound(generation: number, contentVersion: string): BoundGeneration {
   };
 }
 
+describe("resolveReportSessionId (#3117)", () => {
+  it("prefers explicit session id over ritual recovery", async () => {
+    const { resolveReportSessionId } = await import("./report.js");
+    expect(resolveReportSessionId(process.cwd(), "explicit-id")).toBe("explicit-id");
+    expect(resolveReportSessionId(process.cwd(), null)).toBeNull();
+  });
+});
+
 describe("freshness report formatting (#3117)", () => {
   it("formats a human report", () => {
     const text = formatFreshnessReport(compareFreshness(bound(1, "1.0.0"), live(1, "1.0.0")));
