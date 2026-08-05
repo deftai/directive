@@ -593,7 +593,9 @@ export function printCommitGuidance(
 ): void {
   if (paths.length === 0) return;
   const addCmd = `git add ${paths.join(" ")}`;
-  io.printf("\nCommit hygiene (#1453, #1671, #3127): keep the framework upgrade in its OWN branch/PR.\n");
+  io.printf(
+    "\nCommit hygiene (#1453, #1671, #3127): keep the framework upgrade in its OWN branch/PR.\n",
+  );
   io.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n");
   io.printf("deft-core-guard CI check.\n");
   io.printf(
