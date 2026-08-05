@@ -135,30 +135,52 @@ export function isNearIdentical(a: string, b: string): boolean {
   return inter / union >= JACCARD_NEAR;
 }
 
+/**
+ * Collect assistant text units from turn events.
+ *
+ * Streaming hosts often emit word/chunk deltas as separate `assistant_text`
+ * events. Coalesce consecutive text events into one blob so fragmented
+ * progress sentences reconstruct before split/identity checks (P1 / #3131).
+ * Non-text events (tool_use / yield) flush the coalesce buffer.
+ */
 function collectAssistantUnits(events: readonly ParentTurnEvent[]): string[] {
   const units: string[] = [];
-  for (const ev of events) {
-    if (ev.kind !== "assistant_text") continue;
-    const text = typeof ev.text === "string" ? ev.text : "";
-    if (!text.trim()) continue;
-    const split = splitTextUnits(text);
-    if (split.length === 0) continue;
-    // Prefer sentence units when present; also retain whole chunk when it is
-    // the only unit so streaming whole-sentence deltas still count.
-    for (const u of split) {
-      if (u.trim().length >= MIN_UNIT_LEN) units.push(u.trim());
+  const pushUnitsFrom = (text: string): void => {
+    for (const u of splitTextUnits(text)) {
+      const t = u.trim();
+      if (t.length >= MIN_UNIT_LEN) units.push(t);
     }
+  };
+
+  let run = "";
+  for (const ev of events) {
+    if (ev.kind === "assistant_text") {
+      const text = typeof ev.text === "string" ? ev.text : "";
+      if (!text) continue;
+      // Whole-sentence deltas often arrive without a trailing space before the
+      // next identical sentence. Insert a boundary so splitTextUnits can cut.
+      if (run.length > 0 && /[.!?…]["']?\s*$/.test(run) && !/^\s/.test(text)) {
+        run += " ";
+      }
+      run += text;
+      continue;
+    }
+    // Non-text event ends the coalesce run (tool/yield boundaries).
+    if (run.trim().length > 0) pushUnitsFrom(run);
+    run = "";
   }
+  if (run.trim().length > 0) pushUnitsFrom(run);
   return units;
 }
 
 /**
- * Max count of any single near-identical cluster among units (order-preserving
- * consecutive run, plus total frequency of the most repeated unit).
+ * Max count of any single near-identical cluster among units.
+ * Normalizes once per unit then counts with a map (linear in units).
  */
 function maxIdenticalCluster(units: readonly string[]): number {
   if (units.length === 0) return 0;
 
+  const norms = units.map((u) => normalizeTurnText(u));
   let maxRun = 1;
   let run = 1;
   for (let i = 1; i < units.length; i++) {
@@ -170,15 +192,15 @@ function maxIdenticalCluster(units: readonly string[]): number {
     }
   }
 
-  // Also count non-consecutive re-emissions of the same progress line (the
-  // hang class often inserts tiny whitespace deltas between repeats).
+  // Frequency by exact normalized form (O(n)); near-identical non-exact pairs
+  // still hit via consecutive-run path above.
+  const freq = new Map<string, number>();
   let maxFreq = 1;
-  for (let i = 0; i < units.length; i++) {
-    let freq = 1;
-    for (let j = i + 1; j < units.length; j++) {
-      if (isNearIdentical(units[i] ?? "", units[j] ?? "")) freq += 1;
-    }
-    if (freq > maxFreq) maxFreq = freq;
+  for (const n of norms) {
+    if (n.length < MIN_UNIT_LEN) continue;
+    const next = (freq.get(n) ?? 0) + 1;
+    freq.set(n, next);
+    if (next > maxFreq) maxFreq = next;
   }
 
   return Math.max(maxRun, maxFreq);

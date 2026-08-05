@@ -162,4 +162,20 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     });
     expect(result.ok).toBe(true);
   });
+
+  it("reconstructs fragmented streaming word deltas of a repeated sentence", () => {
+    // Host streams one repeated progress line as word-sized assistant_text events.
+    const words = PROGRESS.split(/(\s+)/).filter((w) => w.length > 0);
+    const events: ParentTurnEvent[] = [];
+    for (let rep = 0; rep < 3; rep++) {
+      for (const w of words) {
+        events.push({ kind: "assistant_text", text: w });
+      }
+      events.push({ kind: "assistant_text", text: " " });
+    }
+    const result = evaluateParentTurnShape({ events, afterSubagentAnnounce: true });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("FC14");
+    expect(result.maxIdenticalCount).toBeGreaterThan(2);
+  });
 });
