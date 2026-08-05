@@ -121,6 +121,46 @@ describe("validateHandoffEvidence — invented-done", () => {
     expect(result.unboundClaims).toEqual(expect.arrayContaining(["pr_number", "head_sha"]));
   });
 
+  it("rejects substring collisions (PR 12 in 3120, score 5 in 15s, mixed CI)", () => {
+    expect(
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        pr_number: 12,
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: { pr: { command: "gh api", snippet: '{"number":3120}' } },
+      }).unboundClaims,
+    ).toContain("pr_number");
+
+    expect(
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        review_score: 5,
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: { review: { command: "pr:watch", snippet: "elapsed=15s confidence=3" } },
+      }).unboundClaims,
+    ).toContain("review_score");
+
+    expect(
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        ci_status: "green",
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: {
+          ci: {
+            command: "gh api status",
+            snippet: '{"state":"success","checks":[{"state":"failure"}]}',
+          },
+        },
+      }).unboundClaims,
+    ).toContain("ci_status");
+  });
+
   it("fails n/a-no-remote-claim when remote claims are present under pass", () => {
     const result = validateHandoffEvidence({
       status: "pass",

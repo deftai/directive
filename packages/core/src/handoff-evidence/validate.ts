@@ -108,15 +108,19 @@ function probePresent(probe: RemoteProbe | null | undefined): boolean {
   return isNonEmptyString(probe.command) && isNonEmptyString(probe.snippet);
 }
 
-/** Case-insensitive substring check for binding claimed values into probe text. */
-function snippetContains(snippet: string, needle: string): boolean {
+/**
+ * Token-boundary match: needle must appear not as a substring of a longer
+ * alphanumeric identifier (PR 12 ⊄ 3120; score 5 ⊄ elapsed=15s).
+ */
+function hasToken(snippet: string, needle: string): boolean {
   if (!needle) return false;
-  return snippet.toLowerCase().includes(needle.toLowerCase());
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^A-Za-z0-9_])${escaped}([^A-Za-z0-9_]|$)`, "i").test(snippet);
 }
 
 /**
  * True when the probe's raw snippet actually mentions the claimed remote value
- * (not just any non-empty text). Prevents fabricated claims with dummy probes.
+ * with token-level binding (not incidental substring collisions).
  */
 export function probeBindsClaim(
   claim: string,
@@ -130,15 +134,19 @@ export function probeBindsClaim(
     case "pr_url": {
       const url = String(evidence.pr_url ?? "").trim();
       if (!url) return false;
-      // Accept full URL or trailing path segment (pulls/N or pull/N).
-      if (snippetContains(snippet, url)) return true;
+      if (snippet.toLowerCase().includes(url.toLowerCase())) return true;
       const m = url.match(/\/pulls?\/(\d+)/i);
       const num = m?.[1];
-      return num !== undefined && snippetContains(snippet, num);
+      if (num === undefined) return false;
+      return new RegExp(`pulls?\\/${num}(?:[^0-9]|$)`, "i").test(snippet) || hasToken(snippet, num);
     }
     case "pr_number": {
       const num = String(evidence.pr_number ?? "").trim();
-      return num.length > 0 && snippetContains(snippet, num);
+      if (!num) return false;
+      return (
+        new RegExp(`(?:number["'\\s:=]+|#|pulls?\\/)${num}(?:[^0-9]|$)`, "i").test(snippet) ||
+        hasToken(snippet, num)
+      );
     }
     case "commit_sha":
     case "head_sha": {
@@ -147,27 +155,65 @@ export function probeBindsClaim(
       )
         .trim()
         .toLowerCase();
-      if (sha.length < 7) return false;
-      const snip = snippet.toLowerCase();
-      // Full SHA or ≥7-char prefix present in probe output.
-      return snip.includes(sha) || snip.includes(sha.slice(0, 7));
+      if (sha.length < 7 || !/^[0-9a-f]+$/i.test(sha)) return false;
+      const prefix = sha.slice(0, 7);
+      return (
+        hasToken(snippet, sha) ||
+        new RegExp(`(^|[^0-9a-f])${prefix}(?![0-9a-f])`, "i").test(snippet)
+      );
     }
     case "ci_status": {
       const ci = String(evidence.ci_status ?? "")
         .trim()
         .toLowerCase();
       if (!ci) return false;
-      if (snippetContains(snippet, ci)) return true;
-      // Common synonym bridge: claim "green" often appears as success/successful.
-      const greenFamily = ["green", "pass", "passed", "success", "successful", "ok", "clean"];
-      if (greenFamily.includes(ci)) {
-        return greenFamily.some((tok) => snippetContains(snippet, tok));
+      const greenFamily = [
+        "green",
+        "pass",
+        "passed",
+        "success",
+        "successful",
+        "ok",
+        "clean",
+      ] as const;
+      const redFamily = [
+        "fail",
+        "failed",
+        "failure",
+        "failing",
+        "error",
+        "errored",
+        "cancelled",
+        "canceled",
+      ] as const;
+      if ((greenFamily as readonly string[]).includes(ci)) {
+        const hasGreen =
+          /"state"\s*:\s*"(success|successful|ok|clean|pass(?:ed)?)"/i.test(snippet) ||
+          greenFamily.some((tok) => hasToken(snippet, tok));
+        const hasRed =
+          /"state"\s*:\s*"(failure|failed|error|cancelled|canceled)"/i.test(snippet) ||
+          redFamily.some((tok) => hasToken(snippet, tok));
+        // Mixed success+failure in one snippet is not a clean green bind.
+        return hasGreen && !hasRed;
       }
-      return false;
+      if ((redFamily as readonly string[]).includes(ci)) {
+        return (
+          /"state"\s*:\s*"(failure|failed|error|cancelled|canceled)"/i.test(snippet) ||
+          hasToken(snippet, ci)
+        );
+      }
+      return hasToken(snippet, ci);
     }
     case "review_score": {
       const score = String(evidence.review_score ?? "").trim();
-      return score.length > 0 && snippetContains(snippet, score);
+      if (!score) return false;
+      // Prefer labeled confidence/score fields over bare digit collisions.
+      return (
+        new RegExp(
+          `(?:confidence(?:\\s*score)?|score|rating)\\s*[:=]?\\s*${score}(?:\\s*\\/\\s*5)?(?:[^0-9]|$)`,
+          "i",
+        ).test(snippet) || hasToken(snippet, score)
+      );
     }
     default:
       return false;
