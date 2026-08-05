@@ -50,25 +50,32 @@ export interface VerifyReviewMonitorResult {
 
 function spawnRedirect(probe: MonitoringTierProbe): string {
   const primitive = probe.primitive ?? "sub-agent";
-  // Claude Code / Cursor nested-leaf boundary (#2797 / #3134): implementation leaves
-  // must not nested-spawn a second-level Task/Agent poller. Prefer blocking pr:watch
-  // in-process or stop-at: pr-open with a sibling monitor from the parent that owns
-  // the spawn primitive.
-  const nestedLeafNote =
-    primitive === "claude-agent" || primitive === "cursor-task"
-      ? "\n" +
-        "  Nested-leaf note (#2797 / #3134): if this agent is an implementation leaf " +
-        `(not the parent that owns ${primitive}), do NOT nested-spawn another ${primitive} ` +
-        "review-monitor. Prefer blocking dual-invoke `pr:watch` in this process, or " +
-        "`stop-at: pr-open` so the parent/orchestrator spawns a sibling monitor.\n"
-      : "";
+  // Claude Code / Cursor nested-leaf boundary (#2797 / #3134): lead with leaf-safe
+  // ownership so implementation leaves never treat nested Task/Agent spawn as the
+  // default instruction. Top-level parents that own the primitive still get the
+  // Approach 1 background path second.
+  if (primitive === "claude-agent" || primitive === "cursor-task") {
+    return (
+      `Ownership path for ${primitive} (#2797 / #3134):\n` +
+      "  1. Implementation leaf (drive-to: merge-ready): keep ownership in THIS process " +
+      "via blocking dual-invoke `pr:watch` (`deft pr:watch <N>` then `task deft:pr:watch -- <N>`). " +
+      `Do NOT nested-spawn another ${primitive} review-monitor.\n` +
+      "  2. Or scope leaf `stop-at: pr-open` so the parent/orchestrator that owns " +
+      `${primitive} spawns a sibling monitor and registers it.\n` +
+      "  3. Top-level parent/orchestrator only: spawn Approach 1 via " +
+      `${primitive} (background), include templates/agent-prompt-preamble.md and ` +
+      "templates/swarm-greptile-poller-prompt.md, then:\n" +
+      "       task review-monitor:register -- --pr <N> --monitor-agent-id <id> " +
+      `--platform-primitive ${primitive}\n` +
+      "Re-run: task verify:review-monitor -- --pr <N>"
+    );
+  }
   return (
     `Spawn an Approach 1 review-monitor via ${primitive} (background), include ` +
     "`templates/agent-prompt-preamble.md` and `templates/swarm-greptile-poller-prompt.md`, " +
     "then register:\n" +
     "  task review-monitor:register -- --pr <N> --monitor-agent-id <id> " +
     `--platform-primitive ${primitive}\n` +
-    nestedLeafNote +
     "Re-run: task verify:review-monitor -- --pr <N>"
   );
 }
