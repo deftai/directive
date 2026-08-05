@@ -73,10 +73,6 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C).
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
 
-## Parent turn after leaf announce (FC14 / #3131)
-
-! After any subagent completion / announce, the parent turn MUST be tool-first ground truth, host yield (`sessions_yield` / wait), or one short non-repeated answer — not progress-only filler. ⊗ N>2 near-identical assistant sentences with no `tool_use` / yield (**FC14** hard-stop). Soft skill prose is not sole mitigation. Machine check: `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape`. Depth: `templates/agent-prompt-preamble.md` §11 + `docs/openclaw-agent-host.md` (operator recovery).
-
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
