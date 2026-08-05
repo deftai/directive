@@ -55,6 +55,7 @@ export * as lifecycle from "./lifecycle/index.js";
 export * as metrics from "./metrics/index.js";
 export * as orchestration from "./orchestration/index.js";
 export * as packs from "./packs/index.js";
+export * as parentTurnShape from "./parent-turn-shape/index.js";
 export * as platform from "./platform/index.js";
 export * as policy from "./policy/index.js";
 export * as prClosingKeywords from "./pr-closing-keywords/index.js";

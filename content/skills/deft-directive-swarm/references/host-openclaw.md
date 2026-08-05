@@ -89,14 +89,18 @@ Skill residual of #2874 / #2876 (spawn routing fixed; post-spawn ownership still
 ! Long pollers MUST honour on-disk heartbeats (`docs/subagent-heartbeat.md`, #1166).
 ! Pre-spawn verification and Duplicate-Agent rules in `references/core-phase-4.md` apply; resume the same OpenClaw session when possible rather than spawning a replacement on the same worktree.
 
-### Parent-monitor after `subagent_announce` (#2943)
+### Parent-monitor after `subagent_announce` (#2943 / hard-stop #3131)
 
-! When a leaf completion arrives via `subagent_announce` (parent-push completion), the parent’s **first response** MUST be **tool-first** or **yield** — never multi-sentence progress-only prose with zero tools:
+! When a leaf completion arrives via `subagent_announce` (parent-push completion), the parent’s **first response** MUST be one of:
 
-1. ! **Tool-first ground-truth batch** in the same turn: inspect worktrees / open PRs / xBRIEF state via `gh`, `git`, or file reads, **or**
-2. ! **`sessions_yield`** (or host yield) so the Control UI stays steerable without narrating unfinished work.
+1. ! **Tool-first ground-truth batch** in the same turn: inspect worktrees / open PRs / xBRIEF state via `gh`, `git`, or file reads, then one consolidate, **or**
+2. ! **`sessions_yield`** (or host yield / wait) so the Control UI stays steerable without narrating unfinished work, **or**
+3. ! **One short user answer** that is **not** a repeated progress line.
 
 ⊗ Open the first post-announce turn with multi-sentence status narration only (“Checking worktrees and open PRs next…”, “Two leaves look unfinished…”) and zero tool calls / yield — that is the #2943 text-repetition hang class (`stopReason: length` / abort with no tools).
+⊗ Emit **N>2** near-identical assistant sentences (or streaming text chunks) in one turn with no `tool_use` / yield — **FC14** illegal shape; **hard-stop** the turn (#3131). Soft skill prose is not sole mitigation.
+
+! **Machine check:** `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape` (`packages/core/src/parent-turn-shape/`). When `failClass` is `FC14` (or post-announce `progress-only-no-tool`), abort / force tool-or-yield. Operator recovery: [`../../docs/openclaw-agent-host.md`](../../docs/openclaw-agent-host.md) § Operator recovery — FC14.
 
 ! **Thin DONE = failed leaf (#2943):** completion text without PR URL / merge evidence (and not a structured `BLOCKED` / `FAILED` terminal per preamble §11) is a **failed leaf**, not success. After the ground-truth batch, re-dispatch or take over. ⊗ Treat thin DONE as shipped / success.
 

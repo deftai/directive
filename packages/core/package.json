@@ -247,6 +247,10 @@
       "types": "./dist/freshness/index.d.ts",
       "default": "./dist/freshness/index.js"
     },
+    "./parent-turn-shape": {
+      "types": "./dist/parent-turn-shape/index.d.ts",
+      "default": "./dist/parent-turn-shape/index.js"
+    },
     "./intake": {
       "types": "./dist/intake/index.d.ts",
       "default": "./dist/intake/index.js"

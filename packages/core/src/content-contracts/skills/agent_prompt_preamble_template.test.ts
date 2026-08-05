@@ -94,7 +94,7 @@ describe("test_agent_prompt_preamble_template", () => {
   });
   it("template_thin_done_and_parent_tool_first_2943", () => {
     expect(templateText).toContain("Thin DONE is not success (#2943)");
-    expect(templateText).toContain("Parent tool-first after leaf completion (#2943)");
+    expect(templateText).toContain("Parent tool-first after leaf completion (#2943");
     expect(templateText).toContain("subagent_announce");
     expect(templateText).toContain("tool-first");
     expect(templateText).toContain("sessions_yield");
@@ -105,6 +105,17 @@ describe("test_agent_prompt_preamble_template", () => {
       "Treat thin DONE (no PR URL / merge evidence) as success (#2943)",
     );
     expect(templateText).toMatch(/⊗[^\n]*progress-only[^\n]*#2943|⊗[^\n]*Thin DONE[^\n]*#2943/);
+  });
+  it("template_parent_turn_shape_hard_stop_fc14_3131", () => {
+    expect(templateText).toContain("#3131");
+    expect(templateText).toContain("FC14");
+    expect(templateText).toContain("evaluateParentTurnShape");
+    expect(templateText).toContain("parent-turn-shape");
+    expect(templateText).toMatch(/N\s*>\s*2|N>2/);
+    expect(templateText).toMatch(/hard-stop/i);
+    expect(templateText).toMatch(/soft[^\n]*not[^\n]*sole mitigation|not[^\n]*sole mitigation/i);
+    expect(templateText).toContain("Operator recovery");
+    expect(templateText).toMatch(/⊗[^\n]*N>2[^\n]*#3131|⊗[^\n]*near-identical[^\n]*#3131/);
   });
   it("template_completion_latch_one_consolidate_per_runid_3092", () => {
     // Portable orchestrator latch: second settle for same runId ⇒ silent (#3092).

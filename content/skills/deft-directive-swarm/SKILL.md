@@ -105,16 +105,21 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ⊗ End the turn with only narrative “I will spawn…” / “review next” and zero tools (#2934).
 ~ Keep a small phase-state note: `cohort_id → phase → next_action|terminal`.
 
-### Parent-monitor after leaf announce (#2943)
+### Parent-monitor after leaf announce (#2943 / hard-stop #3131)
 
-! After any leaf completion event (`subagent_announce` / parent-push / host completion notify), the parent’s **first response** MUST be **tool-first** or **yield**:
-- tool-first ground-truth batch (`gh` / `git` / worktree or file status), **or**
-- host yield (`sessions_yield` on OpenClaw, or equivalent).
+! After any leaf completion event (`subagent_announce` / parent-push / host completion notify), the parent’s **first response** MUST be one of:
+- tool-first ground-truth batch (`gh` / `git` / worktree or file status) then one consolidate, **or**
+- host yield (`sessions_yield` on OpenClaw, or equivalent), **or**
+- one short user answer that is **not** a repeated progress line.
+
+! **Hard-stop (machine-checkable, not prose-only):** **MUST NOT** emit N>2 near-identical assistant sentences (or streaming text chunks) in one turn with no `tool_use` / yield — **FC14** text-repetition hang. Library: `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape` (`packages/core/src/parent-turn-shape/`). Hosts SHOULD abort the turn when `ok === false`. Operator recovery: `docs/openclaw-agent-host.md` § Operator recovery — FC14. Soft skill text is **not** sole mitigation (#3131).
 
 ! **Thin DONE = failed leaf:** completion without PR URL / merge evidence is **failed** (re-dispatch or take over) — not success. Prefer structured fields when present (`prUrl`, `mergeStatus`, `emptyDiff`).
 
 ⊗ Multi-sentence progress-only first response after announce with zero tools / yield (#2943 text-repetition hang).
+⊗ N>2 near-identical assistant sentences with no tool_use / yield (FC14 / #3131 hard-stop).
 ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
+⊗ Rely on soft skill prose alone as the sole mitigation for the parent hang (#3131).
 
 
 
@@ -160,7 +165,9 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Parallel OpenClaw `sessions_spawn` on shared repo root without worktrees (#2929)
 - ⊗ Prose-only phase handoff after cohort complete (“I will spawn…”) (#2934)
 - ⊗ Multi-sentence progress-only first response after leaf announce with zero tools / yield (#2943)
+- ⊗ N>2 near-identical assistant sentences with no tool_use / yield (FC14 / #3131 hard-stop)
 - ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943)
+- ⊗ Rely on soft skill prose alone as the sole parent-hang mitigation (#3131)
 - ⊗ Second+ user-visible consolidate for the same child runId without new evidence (#3092)
 - ⊗ Assign overlapping files to multiple agents
 - ⊗ Merge before Greptile exit condition (score > 3, no P0/P1)

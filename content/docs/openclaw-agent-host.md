@@ -204,7 +204,7 @@ deft doctor --fix --openclaw-all-agents
 
 ---
 
-## Swarm on OpenClaw (#2929 / #2934 / #2943)
+## Swarm on OpenClaw (#2929 / #2934 / #2943 / #3131)
 
 ! For **parallel** swarm leaves on OpenClaw:
 
@@ -214,22 +214,36 @@ deft doctor --fix --openclaw-all-agents
 
 ! After a coding cohort completes, dispatch the next phase with a **real tool call in the same turn**, or write explicit terminal status (`blocked` / `awaiting-human` / `done`). Do not end on narrative-only “I will spawn…”.
 
-### Parent-monitor after `subagent_announce` (#2943)
+### Parent-monitor after `subagent_announce` (#2943 / hard-stop #3131)
 
-OpenClaw parents can lock into a **text-only repetition hang** after thin leaf completions: the model regenerates the same “checking worktrees / open PRs next” sentence with **zero tool calls** until length cap or abort. Subagents may still be healthy; only the parent appears hung.
+OpenClaw parents can lock into a **text-only repetition hang** after thin leaf completions: the model regenerates the same “checking worktrees / open PRs next” sentence with **zero tool calls** until length cap or abort. Subagents may still be healthy; only the parent appears hung. Soft skill prose alone is **not** enough (#2943 closed; recurrence under production → **#3131**).
 
-! After any leaf completion event (`subagent_announce` / parent-push completion), the parent’s **first response** MUST be **tool-first** or **yield**:
+! After any leaf completion event (`subagent_announce` / parent-push completion), the parent’s **first response** MUST be exactly one of:
 
-1. **Tool-first ground-truth batch** — one same-turn tool batch that inspects reality (`gh` PR/issue status, `git` / worktree status, or file/xBRIEF state), **or**
-2. **`sessions_yield`** (or host equivalent yield) — leave the turn steerable without narrating unfinished work.
+1. **Tool-first ground-truth batch** — one same-turn tool batch that inspects reality (`gh` PR/issue status, `git` / worktree status, or file/xBRIEF state), then one consolidate, **or**
+2. **`sessions_yield`** (or host equivalent yield / wait) — leave the turn steerable without narrating unfinished work, **or**
+3. **One short user answer** that is **not** a repeated progress line.
 
 ⊗ Open the first response after announce with multi-sentence progress-only prose (“Two leaves look unfinished…”, “Checking worktrees next…”, “Implementing both myself…”) and **zero** tool calls / yield.
+⊗ Emit **N>2** near-identical assistant sentences (or streaming text chunks) in one turn with no `tool_use` / yield — **FC14 text-repetition hang** (illegal turn shape; hard-stop).
+
+! **Machine check (hard-stop, not prose-only):** `evaluateParentTurnShape` in `@deftai/directive-core` / `@deftai/directive-core/parent-turn-shape` (`packages/core/src/parent-turn-shape/`). Hosts and parents SHOULD feed ordered turn events (`assistant_text` / `tool_use` / `yield`) mid-stream; when `ok === false` and `failClass` is `FC14` (or `progress-only-no-tool` after announce), **abort the turn** / force tool-or-yield — do not burn the output budget. Soft skill text is **not** the sole mitigation.
 
 ! **Thin DONE = failed leaf:** a completion without PR URL / merge evidence (and without a structured `BLOCKED` / `FAILED` terminal) is **not** success. Treat as failed: re-dispatch or take over after the ground-truth batch. Do not celebrate thin DONE as shipped.
 
 ~ Prefer structured completion fields when present (`prUrl`, `mergeStatus`, `emptyDiff`); never model free-text thin DONE as success.
 
 Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skills/deft-directive-swarm/references/host-openclaw.md), thin swarm SKILL hard-gates, and [`templates/agent-prompt-preamble.md`](../templates/agent-prompt-preamble.md) §11. This page does not fork a second source of truth.
+
+### Operator recovery — FC14 parent hang on current OpenClaw beta pins (#3131)
+
+When the Control UI / parent seat is stuck replaying the same progress sentence with no tools:
+
+1. **Abort the parent turn** (Control UI stop / interrupt / cancel generation). Do **not** wait for length-cap.
+2. **Do not assume leaves failed.** Check worktrees, open PRs, and xBRIEF state with a **tool-first** batch from a fresh parent turn (`gh` / `git` / files). Leaves may already be DONE or mid-review.
+3. **Resume with a legal shape only:** tool-first ground truth, `sessions_yield`, or one short non-repeated answer. ⊗ Restart by pasting more “checking next…” prose.
+4. **If the hang returns immediately:** refresh Directive deposit (`npm i -g @deftai/directive@latest` then `directive update` / `deft update` / `deft doctor --fix` for OpenClaw skill pins — see § Wire skills into OpenClaw workspace), re-open the parent with current `openclaw-agent-host` + swarm host adapter text, and re-dispatch only after ground truth.
+5. **Host pin note:** On OpenClaw beta pins that do not yet call `evaluateParentTurnShape` in the stream, the operator abort in step 1 **is** the hard stop. Directive still ships the machine-check library + skill/docs so soft prose is not the only mitigation once the host wires it (or an agent-side gate evaluates a recorded turn). Surface `FC14` in notes when reporting the incident.
 
 ## Anti-patterns
 
@@ -239,9 +253,11 @@ Full rules: [`skills/deft-directive-swarm/references/host-openclaw.md`](../skill
 - ⊗ Substituting host-native review theater for `deft-directive-review-cycle` on Deft-managed repos.
 - ⊗ Claiming this doc alone makes `sessions_spawn` a shipped register/matrix primitive — that is epic skill/engine work (#2875 / #2876).
 - ⊗ Multi-sentence progress-only first response after `subagent_announce` with zero tools / yield (#2943 text-repetition hang).
+- ⊗ N>2 near-identical assistant sentences in one turn with no tool_use / yield (FC14 / #3131 hard-stop).
 - ⊗ Treating thin DONE (no PR URL / merge evidence) as success (#2943).
 - ⊗ Assuming package install alone populates OpenClaw `available_skills` — wire main workspace pins via `deft doctor --fix` (#3001).
 - ⊗ Auto-enumerating every `workspace-*` seat without `--openclaw-all-agents` (#3001).
+- ⊗ Relying on soft skill prose alone as the sole mitigation for the parent hang (#3131).
 
 ---
 
