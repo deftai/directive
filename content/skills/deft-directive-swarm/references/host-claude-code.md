@@ -55,12 +55,14 @@ Probe order (must match engine `probeMonitoringTier` / `resolveDispatchProvider`
 
 ## Nested Agent boundary
 
-! Claude Code ownership split (analogue of Cursor #2797 / #2893): An implementation leaf MUST NOT nested-spawn a second-level review-monitor via `Agent` when nested Agent is unsupported or unreliable on the host. Prefer either:
+! Claude Code ownership split (analogue of Cursor #2797 / #2893): Nested `Agent` (implementation leaf spawning leaf) is unsupported/unreliable for an Approach 1 review-monitor. A Claude Code **implementation leaf** MUST NOT nested-spawn a second-level review-monitor via `Agent`. Prefer either:
 
 - (a) a `drive-to: merge-ready` leaf that owns a blocking dual-invoke `pr:watch` (`deft pr:watch` then `task deft:pr:watch`) in its own process, or
-- (b) `stop-at: pr-open` with the dispatcher launching a sibling monitor and registering it via dual-invoke `review-monitor:register -- --platform-primitive claude-agent`.
+- (b) `stop-at: pr-open` with the dispatcher (parent that owns the Agent primitive) launching a sibling monitor and registering it via dual-invoke `review-monitor:register -- --platform-primitive claude-agent`.
 
-A leaf that backgrounds a monitor and exits MUST NOT claim monitoring is active.
+! Top-level parents/orchestrators that own the `Agent` primitive MAY Approach-1 background a review-monitor Agent (register `claude-agent`).
+
+⊗ An implementation leaf backgrounds a nested Agent poller and exits claiming monitoring is active.
 
 ## Babysit / review-monitor
 
