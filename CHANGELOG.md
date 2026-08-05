@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Label quarantine: zero-open twins → lowercase `legacy:*`.** Renamed dead non-colon twins and unused defaults (e.g. `docs`→`legacy:docs`, `skills`→`legacy:skills`, `installer`→`legacy:installer`, `release`→`legacy:release`, plus `github` / `github-actions` / `packaging` / `testing` / unused GH defaults) so closed history stays filterable and new work cannot pick the bare names. Prefer colon facets (`area:*`, …). Catalog policy in `.github/ISSUE_LABELS.md`. Refs #2609, #3128.
 - **docs: npm v12 install-time security defaults.** UPGRADING documents `allowScripts` off, `--allow-git` / `--allow-remote` default none, Directive consumer path (no package allowlist for `@deftai/directive*`; app trees use `npm approve-scripts`), globals/`npx` config flags, monorepo pnpm `allowBuilds` (esbuild) as install-script SoT, and OIDC publish notes. CONTRIBUTING points monorepo install scripts at `allowBuilds`; README upgrade callout links the section.
 - **Label mirror defaults to open-only (#3125).** Wave 1 `--mirror` dry-run planned closed archive stamps via `universal:closed-never-triaged`; Wave 2 skips closed unless `--include-closed`, so brownfield dry-runs match open backlog scale instead of full closed history.
 

@@ -144,19 +144,43 @@ New surfaces: add `area:<slug>` here first, then create the label with a descrip
 
 ## Twin decisions (legacy → forward)
 
-Migration of open issues is **#3128**. Phase A **decides** which name wins.
+Migration of open issues is **#3128**. Phase A **decides** which name wins. Zero-open legacy twins and dead synonyms are **quarantined by rename** (not delete) so closed history keeps a searchable tag.
+
+### Quarantine policy (`legacy:*`)
+
+| Rule | Detail |
+|------|--------|
+| **Name form** | All **lowercase**: `legacy:<former-name>` (exact former string after the colon) |
+| **Colon wins** | When a colon facet and a non-colon twin both exist, **keep the `:` form** (newer/forward); quarantine the older non-colon name when open count is 0 |
+| **Neither colon** | Keep the catalog forward name (e.g. `documentation`); quarantine the other (e.g. `legacy:docs`) |
+| **Do not quarantine** | Machine set (`triaged`, `triage:*`), platform reserve, gates, standard disposition (`duplicate` / `wontfix` / `invalid`), support upgrade labels |
+| **Agent rule** | ⊗ Apply any `legacy:*` label on new work |
+
+### Live forward → quarantined (applied when open count was 0)
+
+| Keep (forward) | Quarantined label (was) |
+|----------------|-------------------------|
+| `documentation` | `legacy:docs` |
+| `area:skills` | `legacy:skills` |
+| `area:installer` | `legacy:installer` |
+| `area:release` | `legacy:release` |
+| `scm` / `ci-cd` | `legacy:github`, `legacy:github-actions` |
+| `ci-cd` / area surfaces | `legacy:packaging` |
+| `test-debt` / evals / harness | `legacy:testing` |
+| *(unused GH defaults)* | `legacy:help wanted`, `legacy:question` |
 
 | Keep | Deprecate / avoid new use | Notes |
 |------|---------------------------|--------|
-| `documentation` | `docs` | Prefer `documentation` for human docs work |
-| `area:skills` | `skills` | Surface facet |
-| `area:installer` | `installer` | Surface facet |
+| `documentation` | bare `docs` (now `legacy:docs`) | Prefer `documentation` for human docs work |
+| `area:skills` | bare `skills` (now `legacy:skills`) | Surface facet |
+| `area:installer` | bare `installer` (now `legacy:installer`) | Surface facet |
+| `area:release` | bare `release` (now `legacy:release`) | Surface facet |
 | `enhancement` | inventing `feat` as a type label | Type facet uses `enhancement` |
 | `rfc` | dual-stacking `type:research` without need | `type:research` OK for investigation; `rfc` for design discussion |
 | `UPGRADE ANNOUNCEMENT` | typo `UPGRADE ANNOUCEMENT` | Renamed; typo form must not return |
 | Machine set above | inventing extra `triage:*` | Closed set |
 
-Empty-description labels should gain short descriptions when touched; do not delete legacy twins in Phase A (removal/alias cleanup is migration judgment on **#3128**).
+Empty-description labels should gain short descriptions when touched.
 
 ---
 
@@ -166,7 +190,8 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 ### Type (selected)
 
-`bug`, `enhancement`, `rfc`, `epic`, `documentation`, `duplicate`, `invalid`, `wontfix`, `question`, `chore`, `refactor`, `type:research`
+`bug`, `enhancement`, `rfc`, `epic`, `documentation`, `duplicate`, `invalid`, `wontfix`, `chore`, `refactor`, `type:research`  
+*(do not use `legacy:question` on new work)*
 
 ### Area
 
@@ -198,11 +223,13 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 1. ! Before applying labels, read this file (or the issue body of #2609 if this file is missing on an old branch).
 2. ! Prefer existing catalog names; ⊗ invent new facet prefixes without amending this file.
-3. ! For multi-ship product roots: `epic` + `status:tracker` when both definitions hold.
-4. ! For parented leaves: `status:child` + type; ⊗ `epic` on pure children.
-5. ! Machine labels: closed set above; mirror is primary writer.
-6. ! Platform only for OS-intrinsic work.
-7. ~ Consumer projects: follow **#2611** kit when shipped — do not copy the full maintainer set by default.
+3. ! Prefer colon facet forms (`area:*`, `status:*`, `platform:*`, `triage:*`) over non-colon twins.
+4. ⊗ Apply any `legacy:*` label; those are closed-history quarantine only.
+5. ! For multi-ship product roots: `epic` + `status:tracker` when both definitions hold.
+6. ! For parented leaves: `status:child` + type; ⊗ `epic` on pure children.
+7. ! Machine labels: closed set above; mirror is primary writer.
+8. ! Platform only for OS-intrinsic work.
+9. ~ Consumer projects: follow **#2611** kit when shipped — do not copy the full maintainer set by default.
 
 Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) links here.
 
@@ -258,5 +285,6 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Quarantine zero-open twins/synonyms as lowercase `legacy:<former>` (colon form wins) |
 | 2026-08-05 | Open-issue migration notes + re-run instructions (#3128) |
 | 2026-08-05 | Initial catalog from #2609 Phase A (facets, epic/tracker/child, machine, platform, twins) |
