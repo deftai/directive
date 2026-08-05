@@ -111,6 +111,10 @@ describe("parseArgs", () => {
     expect(parseArgs(["--author", "alice"]).error).toContain("--mirror");
   });
 
+  it("rejects --author followed by another flag (#3129 Greptile adjacent-option)", () => {
+    expect(parseArgs(["--mirror", "--author", "--apply"]).error).toMatch(/flag token|--author/);
+  });
+
   it("rejects empty --author= instead of planning full cache (#3129 Greptile P1)", () => {
     const root = buildRepo();
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);

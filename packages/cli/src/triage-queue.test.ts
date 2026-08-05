@@ -107,6 +107,10 @@ describe("triage-queue CLI", () => {
     expect(parseArgs(["queue", "--author"]).error).toContain("--author");
   });
 
+  it("rejects --author followed by another flag (#3129 Greptile adjacent-option)", () => {
+    expect(parseArgs(["queue", "--author", "--limit", "5"]).error).toMatch(/flag token|--author/);
+  });
+
   it("rejects empty --author= instead of no-op full queue (#3129 Greptile P1)", () => {
     const root = buildFixtureRepo({
       issues: [{ number: 1, title: "Anyone", author: "alice" }],

@@ -164,12 +164,27 @@ export function parseArgs(argv: string[]): QueueArgs {
       if (value === undefined) {
         return { ...parsed, error: "argument --author: expected one argument" };
       }
+      // Reject adjacent flags (e.g. `--author --limit 10`) so they are not
+      // swallowed as logins (#3129 Greptile P1 adjacent-option).
+      if (value.startsWith("-")) {
+        return {
+          ...parsed,
+          error: `argument --author: expected a login (or @me), got flag token '${value}'`,
+        };
+      }
       parsed.author = value;
       i += 1;
       continue;
     }
     if (arg?.startsWith("--author=")) {
-      parsed.author = arg.slice("--author=".length);
+      const value = arg.slice("--author=".length);
+      if (value.startsWith("-") && value.length > 1) {
+        return {
+          ...parsed,
+          error: `argument --author: expected a login (or @me), got flag token '${value}'`,
+        };
+      }
+      parsed.author = value;
       continue;
     }
     const commonHit = parseCommonFlag(arg, argv, i, parsed);
