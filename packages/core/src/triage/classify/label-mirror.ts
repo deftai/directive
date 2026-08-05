@@ -618,8 +618,8 @@ export function mirrorLabels(
   const includeClosed = options.includeClosed === true;
   const sampleLimit = options.sampleLimit ?? DEFAULT_DIGEST_SAMPLE_LIMIT;
   const batchSize =
-    options.batchSize !== undefined && options.batchSize > 0
-      ? Math.floor(options.batchSize)
+    options.batchSize !== undefined
+      ? Math.max(1, Math.floor(options.batchSize))
       : DEFAULT_APPLY_BATCH_SIZE;
   const delayMs =
     options.delayMs !== undefined && options.delayMs >= 0
@@ -907,12 +907,14 @@ export function mirrorLabels(
     }
 
     try {
+      // Count every SCM write *attempt* toward the batch (including failures) so
+      // rate-limit delay still applies under partial failure storms (#3125 Greptile P1).
       if (applyWritesSinceSleep > 0 && applyWritesSinceSleep % batchSize === 0 && delayMs > 0) {
         sleepMs(delayMs);
       }
+      applyWritesSinceSleep += 1;
       client.apply(repo, issueNumber, add, []);
       applied += 1;
-      applyWritesSinceSleep += 1;
       items.push({
         repo,
         issue_number: issueNumber,

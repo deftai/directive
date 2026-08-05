@@ -32,12 +32,26 @@ export interface ParsedArgs {
   error?: string;
 }
 
-function parsePositiveInt(raw: string, flag: string): { value?: number; error?: string } {
+function parseNonNegInt(raw: string, flag: string): { value?: number; error?: string } {
   const n = Number.parseInt(raw, 10);
   if (!Number.isFinite(n) || String(n) !== raw.trim() || n < 0) {
     return { error: `argument ${flag}: expected a non-negative integer` };
   }
   return { value: n };
+}
+
+/** Batch size must be >= 1 (0 would silently fall back in core). */
+function parseBatchSize(raw: string): { value?: number; error?: string } {
+  const parsed = parseNonNegInt(raw, "--batch-size");
+  if (parsed.error !== undefined) {
+    return parsed;
+  }
+  if ((parsed.value ?? 0) < 1) {
+    return {
+      error: "argument --batch-size: expected an integer >= 1 (omit flag for default 10)",
+    };
+  }
+  return parsed;
 }
 
 /** Parse triage-classify CLI args (#1129 + #1423 Wave 1/2 mirror flags). */
@@ -86,14 +100,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (value === undefined) {
         return { ...parsed, error: "argument --batch-size: expected one argument" };
       }
-      const parsedInt = parsePositiveInt(value, "--batch-size");
+      const parsedInt = parseBatchSize(value);
       if (parsedInt.error !== undefined) {
         return { ...parsed, error: parsedInt.error };
       }
       parsed.batchSize = parsedInt.value ?? null;
       i += 1;
     } else if (arg?.startsWith("--batch-size=")) {
-      const parsedInt = parsePositiveInt(arg.slice("--batch-size=".length), "--batch-size");
+      const parsedInt = parseBatchSize(arg.slice("--batch-size=".length));
       if (parsedInt.error !== undefined) {
         return { ...parsed, error: parsedInt.error };
       }
@@ -103,14 +117,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (value === undefined) {
         return { ...parsed, error: "argument --delay-ms: expected one argument" };
       }
-      const parsedInt = parsePositiveInt(value, "--delay-ms");
+      const parsedInt = parseNonNegInt(value, "--delay-ms");
       if (parsedInt.error !== undefined) {
         return { ...parsed, error: parsedInt.error };
       }
       parsed.delayMs = parsedInt.value ?? null;
       i += 1;
     } else if (arg?.startsWith("--delay-ms=")) {
-      const parsedInt = parsePositiveInt(arg.slice("--delay-ms=".length), "--delay-ms");
+      const parsedInt = parseNonNegInt(arg.slice("--delay-ms=".length), "--delay-ms");
       if (parsedInt.error !== undefined) {
         return { ...parsed, error: parsedInt.error };
       }
@@ -120,14 +134,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (value === undefined) {
         return { ...parsed, error: "argument --sample-limit: expected one argument" };
       }
-      const parsedInt = parsePositiveInt(value, "--sample-limit");
+      const parsedInt = parseNonNegInt(value, "--sample-limit");
       if (parsedInt.error !== undefined) {
         return { ...parsed, error: parsedInt.error };
       }
       parsed.sampleLimit = parsedInt.value ?? null;
       i += 1;
     } else if (arg?.startsWith("--sample-limit=")) {
-      const parsedInt = parsePositiveInt(arg.slice("--sample-limit=".length), "--sample-limit");
+      const parsedInt = parseNonNegInt(arg.slice("--sample-limit=".length), "--sample-limit");
       if (parsedInt.error !== undefined) {
         return { ...parsed, error: parsedInt.error };
       }

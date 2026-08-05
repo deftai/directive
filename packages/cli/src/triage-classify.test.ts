@@ -100,6 +100,10 @@ describe("parseArgs", () => {
     expect(parseArgs(["--include-closed"]).error).toContain("--mirror");
   });
 
+  it("rejects --batch-size 0 (no silent default override)", () => {
+    expect(parseArgs(["--mirror", "--batch-size", "0"]).error).toMatch(/batch-size/);
+  });
+
   it("rejects unknown flags", () => {
     expect(parseArgs(["--nope"]).error).toContain("unrecognized");
   });

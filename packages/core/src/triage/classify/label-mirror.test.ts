@@ -275,8 +275,8 @@ describe("mirrorLabels", () => {
     expect(outcome.applied).toBe(2);
     expect(outcome.errors).toBe(1);
     expect(calls).toBe(3);
-    // After each successful write at batchSize=1, next write sleeps first (2 sleeps for 3 attempts with 1 fail mid-stream).
-    expect(sleeps.length).toBeGreaterThanOrEqual(1);
+    // Failed attempts still count toward batchSize, so sleeps fire before 2nd and 3rd attempts.
+    expect(sleeps).toEqual([5, 5]);
     const errItem = outcome.items.find((i) => i.issue_number === 21);
     expect(errItem?.status).toBe("error");
     expect(errItem?.message).toMatch(/ensure label/i);
