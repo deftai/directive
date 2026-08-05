@@ -161,6 +161,26 @@ describe("validateHandoffEvidence — invented-done", () => {
     ).toContain("ci_status");
   });
 
+  it("rejects PR+SHA binds that do not co-appear in the PR probe", () => {
+    const result = validateHandoffEvidence({
+      status: "pass",
+      proof_status: "bound",
+      pr_number: 3120,
+      head_sha: "abc1234deadbeef0000000000000000000000000",
+      work: { state: "done" },
+      ship: { state: "done" },
+      probes: {
+        pr: {
+          command: "gh api repos/deftai/directive/pulls/3120",
+          snippet: '{"number":3120,"html_url":"https://github.com/deftai/directive/pull/3120"}',
+        },
+        sha: boundShaProbe,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.unboundClaims.length).toBeGreaterThan(0);
+  });
+
   it("rejects non-toolish or trivial probe commands/snippets", () => {
     expect(
       validateHandoffEvidence({
