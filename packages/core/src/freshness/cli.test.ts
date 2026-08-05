@@ -56,9 +56,22 @@ describe("freshness CLI (#3117)", () => {
     const parsed = JSON.parse(unbound.stdout) as { state: string };
     expect(parsed.state).toBe("unbound");
 
-    const boundResult = runFreshnessCli(["bind", "--project-root", root, "--json"]);
+    const boundResult = runFreshnessCli([
+      "bind",
+      "--project-root",
+      root,
+      "--session-id",
+      "cli-sid",
+      "--json",
+    ]);
     expect(boundResult.exitCode).toBe(0);
-    const current = runFreshnessCli(["--project-root", root, "--json"]);
+    const current = runFreshnessCli([
+      "--project-root",
+      root,
+      "--session-id",
+      "cli-sid",
+      "--json",
+    ]);
     expect(current.exitCode).toBe(0);
     expect((JSON.parse(current.stdout) as { state: string }).state).toBe("current");
   });

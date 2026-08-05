@@ -69,15 +69,15 @@ describe("bindSessionGeneration (#3117)", () => {
       stampedBy: "directive-init",
       increment: true,
     });
-    bindSessionGeneration(root);
+    bindSessionGeneration(root, { sessionId: "sid-1" });
     stampLiveGeneration(root, {
       contentVersion: "2.0.0",
       stampedBy: "directive-update",
       increment: true,
     });
-    expect(reportFreshness(root).state).toBe("stale_hard");
-    bindSessionGeneration(root);
-    expect(reportFreshness(root).state).toBe("current");
+    expect(reportFreshness(root, { sessionId: "sid-1" }).state).toBe("stale_hard");
+    bindSessionGeneration(root, { sessionId: "sid-1" });
+    expect(reportFreshness(root, { sessionId: "sid-1" }).state).toBe("current");
   });
 
   it("parseBoundGeneration rejects invalid", () => {
