@@ -270,16 +270,6 @@ export async function runInitDeposit(
   };
   writeInstallManifest(projectDir, deftDir, manifestFields);
 
-  // #3117: monotonic live generation MUST stamp on successful init apply.
-  // Fail closed: an applied deposit without a readable live token would leave
-  // sessions unable to detect post-upgrade drift honestly.
-  stampLiveGeneration(projectDir, {
-    contentVersion: version,
-    stampedBy: "directive-init",
-    increment: true,
-    nowIso: nowIso(),
-  });
-
   writeAgentsMd(projectDir, deftDir, io);
   const skillsCreated = writeAgentsSkills(projectDir, io);
   writeMultiHostSkillDiscovery(projectDir, io);
@@ -311,6 +301,15 @@ export async function runInitDeposit(
     includeTaskfile: taskfileWired,
   });
   printCommitGuidance(io, stagePaths, staged);
+
+  // #3117: stamp live generation only after required init projections succeed.
+  // Stamping earlier would advance authority for a failed/partial init (Greptile).
+  stampLiveGeneration(projectDir, {
+    contentVersion: version,
+    stampedBy: "directive-init",
+    increment: true,
+    nowIso: nowIso(),
+  });
 
   return {
     projectDir,
