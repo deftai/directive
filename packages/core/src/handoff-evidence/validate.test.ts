@@ -140,7 +140,7 @@ describe("validateHandoffEvidence — invented-done", () => {
         review_score: 5,
         work: { state: "done" },
         ship: { state: "done" },
-        probes: { review: { command: "pr:watch", snippet: "elapsed=15s confidence=3" } },
+        probes: { review: { command: "task pr:watch", snippet: "elapsed=15s confidence=3" } },
       }).unboundClaims,
     ).toContain("review_score");
 
@@ -161,6 +161,19 @@ describe("validateHandoffEvidence — invented-done", () => {
     ).toContain("ci_status");
   });
 
+  it("rejects non-toolish or trivial probe commands/snippets", () => {
+    expect(
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        pr_number: 3120,
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: { pr: { command: "I checked the PR", snippet: "number 3120 is fine" } },
+      }).unboundClaims,
+    ).toContain("pr_number");
+  });
+
   it("rejects review_score bound only via unrelated numeric fields (p0=5)", () => {
     expect(
       validateHandoffEvidence({
@@ -170,7 +183,7 @@ describe("validateHandoffEvidence — invented-done", () => {
         work: { state: "done" },
         ship: { state: "done" },
         probes: {
-          review: { command: "pr:watch", snippet: "confidence=3 p0=5 elapsed=15s" },
+          review: { command: "task pr:watch", snippet: "confidence=3 p0=5 elapsed=15s" },
         },
       }).unboundClaims,
     ).toContain("review_score");

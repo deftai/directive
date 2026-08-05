@@ -103,9 +103,18 @@ function isPresentClaim(value: unknown): boolean {
   return true;
 }
 
+/** Commands that look like same-turn forge/git/gate tool invocations. */
+const TOOLISH_CMD_RE =
+  /^(?:gh\b|git\b|task\b|deft\b|directive\b|pnpm\b|npm\b|npx\b|curl\b|python\b|node\b)/i;
+
 function probePresent(probe: RemoteProbe | null | undefined): boolean {
   if (!probe) return false;
-  return isNonEmptyString(probe.command) && isNonEmptyString(probe.snippet);
+  if (!isNonEmptyString(probe.command) || !isNonEmptyString(probe.snippet)) return false;
+  // Reject freeform narration commands ("I checked" / "x") — require tool-like invocation.
+  if (!TOOLISH_CMD_RE.test(probe.command.trim())) return false;
+  // Trivial snippet that is only the claim itself is not a probe payload.
+  if (probe.snippet.trim().length < 8) return false;
+  return true;
 }
 
 /** Escape untrusted claim text before interpolating into RegExp constructors. */
