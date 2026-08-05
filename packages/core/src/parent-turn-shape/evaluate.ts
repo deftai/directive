@@ -175,7 +175,9 @@ function collectAssistantUnits(events: readonly ParentTurnEvent[]): string[] {
 
 /**
  * Max count of any single near-identical cluster among units.
- * Normalizes once per unit then counts with a map (linear in units).
+ * Consecutive runs + exact-normalized frequency (O(n)); for small unit counts
+ * also pairwise near-identical frequency so non-consecutive punctuation variants
+ * cannot bypass FC14 (P1 / #3131).
  */
 function maxIdenticalCluster(units: readonly string[]): number {
   if (units.length === 0) return 0;
@@ -192,8 +194,7 @@ function maxIdenticalCluster(units: readonly string[]): number {
     }
   }
 
-  // Frequency by exact normalized form (O(n)); near-identical non-exact pairs
-  // still hit via consecutive-run path above.
+  // Frequency by exact normalized form (O(n)).
   const freq = new Map<string, number>();
   let maxFreq = 1;
   for (const n of norms) {
@@ -201,6 +202,19 @@ function maxIdenticalCluster(units: readonly string[]): number {
     const next = (freq.get(n) ?? 0) + 1;
     freq.set(n, next);
     if (next > maxFreq) maxFreq = next;
+  }
+
+  // Pairwise near-identical for non-consecutive variants (punctuation / wording).
+  // Parent-turn unit counts stay small; cap pairwise work for pathological blobs.
+  const PAIRWISE_CAP = 64;
+  if (units.length <= PAIRWISE_CAP) {
+    for (let i = 0; i < units.length; i++) {
+      let near = 1;
+      for (let j = i + 1; j < units.length; j++) {
+        if (isNearIdentical(units[i] ?? "", units[j] ?? "")) near += 1;
+      }
+      if (near > maxFreq) maxFreq = near;
+    }
   }
 
   return Math.max(maxRun, maxFreq);

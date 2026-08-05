@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=2cd55dfda4ae refreshed=2026-08-05T23:27:24Z session=cc7afab45a6f -->
+<!-- deft:managed-section v3 sha=57db33829082 refreshed=2026-08-05T23:48:11Z session=9234ece4f0fc -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -234,6 +234,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C).
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 
 ## Review-surface precedence (#2308)
 

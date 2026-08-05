@@ -178,4 +178,23 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     expect(result.failClass).toBe("FC14");
     expect(result.maxIdenticalCount).toBeGreaterThan(2);
   });
+
+  it("counts non-consecutive near-identical progress lines with separators", () => {
+    const result = evaluateParentTurnShape({
+      events: [
+        {
+          kind: "assistant_text",
+          text:
+            "Checking worktrees and open PRs next to confirm leaf completion status. " +
+            "Other note about cohort size. " +
+            "Checking worktrees and open PRs next to confirm leaf completion status! " +
+            "Brief aside. " +
+            "Checking worktrees and open PRs next to confirm leaf completion status?",
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("FC14");
+    expect(result.maxIdenticalCount).toBeGreaterThan(2);
+  });
 });

@@ -72,6 +72,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C).
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 
 ## Review-surface precedence (#2308)
 
