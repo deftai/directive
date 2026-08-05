@@ -108,6 +108,31 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     expect(countRepeatedUnitsInBlob(blob)).toBeGreaterThan(2);
   });
 
+  it("splits block-formatted newline repeats without sentence punctuation", () => {
+    const blob = [PROGRESS, PROGRESS, PROGRESS].join("\n");
+    const units = splitTextUnits(blob);
+    expect(units.length).toBeGreaterThanOrEqual(3);
+    const result = evaluateParentTurnShape({
+      events: [{ kind: "assistant_text", text: blob }],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("FC14");
+  });
+
+  it("fails exactly two post-announce progress-only sentences", () => {
+    const result = evaluateParentTurnShape({
+      afterSubagentAnnounce: true,
+      events: [
+        {
+          kind: "assistant_text",
+          text: "Checking worktrees next for leaf status. Will inspect open PRs after that.",
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(["FC14", "progress-only-no-tool"]).toContain(result.failClass);
+  });
+
   it("fails post-announce multi-sentence progress-only without exact clones", () => {
     const result = evaluateParentTurnShape({
       afterSubagentAnnounce: true,

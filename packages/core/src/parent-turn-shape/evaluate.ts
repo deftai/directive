@@ -90,8 +90,10 @@ export function normalizeTurnText(text: string): string {
 /** Split a blob into sentence-like units (periods, newlines, ellipsis). */
 export function splitTextUnits(text: string): string[] {
   const raw = text.replace(/\r\n/g, "\n");
+  // Include single newlines so block-formatted repeated progress lines still
+  // unitize (FC14 hang class often streams one line per newline, no period).
   const parts = raw
-    .split(/(?:\n{2,}|(?<=[.!?…])\s+|(?<=\.\.\.)\s+)/)
+    .split(/(?:\n+|(?<=[.!?…])\s+|(?<=\.\.\.)\s+)/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
   if (parts.length === 0 && raw.trim().length > 0) {
@@ -252,9 +254,11 @@ export function evaluateParentTurnShape(input: ParentTurnShapeInput): ParentTurn
 
   // Post-announce: multi-sentence progress-only with zero tools is also illegal
   // even when sentences are not exact clones (soft-only #2943 recurrence class).
+  // Threshold is >=2 units (N>1 multi-sentence) — exactly two progress lines
+  // must not bypass the gate.
   if (
     input.afterSubagentAnnounce &&
-    units.length > 2 &&
+    units.length >= 2 &&
     looksLikeProgressOnly(units) &&
     failClass === "none"
   ) {
