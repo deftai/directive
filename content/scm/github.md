@@ -361,11 +361,15 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 ### Issue Labels
 
-**Priority**: `priority:critical` (production down), `priority:high` (major broken), `priority:medium` (important, not blocking), `priority:low` (nice to have)
+**Framework source (`deftai/directive`):** use the maintainer catalog [`.github/ISSUE_LABELS.md`](../../.github/ISSUE_LABELS.md) (#2609) — facets, epic/tracker/child rules, platform, and machine/mirror labels (`triaged`, `triage:*`). Do not invent labels outside that catalog. Consumer minimal kit is **#2611** (after the maintainer catalog lands).
 
-**Type**: `bug`, `feat`, `docs`, `refactor`, `test`, `chore`
+**Generic consumer guidance** (when no project taxonomy file exists):
 
-**Status**: `status:blocked`, `status:in-progress`, `status:needs-info`, `status:wontfix`
+**Type**: `bug`, `enhancement`, `documentation`, `refactor`, `chore` (prefer existing repo names over inventing `feat` / bare `docs` twins)
+
+**Status**: `status:blocked`, `status:tracker`, `status:child` (parented work), project-specific holds
+
+**Platform** (when OS-intrinsic): `platform:windows`, `platform:macos`, `platform:linux`
 
 ### Post-1.0.0 Issue Linking
 

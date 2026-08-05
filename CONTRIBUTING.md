@@ -343,6 +343,17 @@ same bare-`{{.CLI_ARGS}}` shape, so the workarounds above apply to every
 limitation in their summary when a multi-word value is a plausible
 operator input.
 
+## Issue labels (this repo) (#2609)
+
+Maintainer taxonomy for **`deftai/directive` only** lives in [`.github/ISSUE_LABELS.md`](.github/ISSUE_LABELS.md):
+
+- Facets (type, `area:*`, platform, status role, machine/mirror)
+- When to apply `epic` vs `status:tracker` / `status:child`
+- Machine labels (`triaged`, `triage:*`) used by SCM label mirror
+- Twin decisions (legacy vs forward names)
+
+Before inventing a label or applying epic/child roles, read that file. Portable **consumer** kit is **#2611** (not this full set). Open-issue migration onto the scheme is **#3128**.
+
 ## Adding a new triage / scope verb (#1150 / N10)
 
 Every `task triage:*` and `task scope:*` verb is documented in one place:

@@ -1,0 +1,67 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2609",
+    "updated": "2026-08-05T18:31:13Z"
+  },
+  "plan": {
+    "title": "feat(process,scm): issue label taxonomy — platform facet, public docs, dedupe",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(process,scm): issue label taxonomy — platform facet, public docs, dedupe",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2609",
+      "Overview": "## Summary\n\n`deftai/directive` has ~**85** labels with mixed conventions, near-duplicates, empty descriptions, and **no platform facet**. Agents are told to pick existing labels but there is no public taxonomy for facets, when to apply them, machine vs human labels, or epic/tracker/child roles.\n\nThis issue owns the **maintainer** taxonomy for **this repo only**. Companion **#2611** = portable **consumer** minimal kit (implement after this; before **#3124**). Do not ship the full maintainer set as default vendored content.\n\n## Plan position\n\n`label-taxonomy-then-mirror-discovery-2026-08-05`: **#2609 (current)** → #2611 → #3124.\n\n**Gate:** amend complete (this body). Implement Phase A when operator green-lights code.\n\n## Amendment log\n\n| Date | Change |\n|------|--------|\n| 2026-08-05 | Mirror/machine facet; epic/child links; inventory refresh; plan order |\n| 2026-08-05 | **Epic / tracker / child apply rules**; nested trackers; PR≈one story; consumer carry is thin (#2611) |\n\n## Problems\n\n1. No platform facet (`platform:windows` / `macos` / `linux`).\n2. Dual taxonomies (`docs` vs `documentation`, `skills` vs `area:skills`, …); `area:*` exists (#690/#1789) but legacy twins dominate.\n3. Naming drift (kebab, prefixes, Title Case, typo `UPGRADE ANNOUCEMENT`).\n4. Empty label descriptions.\n5. No public SoT (`.github/ISSUE_LABELS.md`).\n6. Machine labels from **#1423** mirror (`triaged`, optional `triage:*`) undefined in taxonomy.\n7. Epic/tracker/child usage is ad hoc; agents over-apply `epic` or cannot filter standalone vs child work.\n\n## Facet discipline\n\n| Facet | Labels | Role |\n|-------|--------|------|\n| **Type** | `bug`, `enhancement`, `rfc`, `epic`, `documentation` | What kind of issue |\n| **Area** | Prefer **`area:*`** forward (#1789) | Surface; resolve duals over time |\n| **Platform** | `platform:windows`, `platform:macos`, `platform:linux` | OS-intrinsic only |\n| **Status / role** | `status:blocked`, `status:tracker`, **`status:child`**, … | Lifecycle / queue role |\n| **Audience / ranking** | `urgent`, `adoption-blocker`, `agent-experience`, … | Earn keep |\n| **Machine / mirror** | `triaged`, optional `triage:deferred`, `triage:archived`, `triage:lifecycle-linked`, `triage:needs-human` | Closed set; primary writer = mirror apply |\n\n## Type: when to apply `epic`\n\n**Definition:** Apply **`epic`** only when this issue is a **multi-ship product initiative** — multiple independent or sequenced shippable units, and **this issue is the plan identity** for that product capability.\n\n**Apply `epic` when ALL hold:**\n1. Success needs **2+ shippable units by design** (waves/children/PRs over time) — not one story split into two tiny tasks.\n2. Theme is **product/platform capability** (not pure process grab-bag).\n3. This issue **names** that initiative (children hang under it).\n4. Close condition is “program done,” not “one PR merged.”\n\n**Do NOT apply `epic` when:**\n- One story / one PR (or one xBRIEF) would honestly finish it → use `enhancement` / `bug` / …\n- Only coordination/process board → prefer **`status:tracker`** without `epic` (e.g. mega-review boards).\n- Issue is a **child** of a larger initiative → **`status:child`**, never `epic`.\n- “Has two children” alone — **not** sufficient (two chores ≠ epic).\n\n**Examples (directive):**\n- **Yes:** #2741 inter-run memory; #2812 1.0 readiness; #2603 Product Insights; **#1423** label-mirror program (should gain `epic`+`status:tracker`).\n- **No:** #3125 Wave 2 story; #3124 discovery; single residual #3116.\n\n## Status: `status:tracker` vs `status:child`\n\n| Label | Means | Not |\n|-------|--------|-----|\n| **`status:tracker`** | This issue is a **coordination home** (plan, waves, current-shape / child list) | “Product epic” by itself; “root of repo” |\n| **`status:child`** | This issue has a **parent** in the graph | “Which parent”; “leaf only” |\n\n**Product multi-ship root:** usually **`epic` + `status:tracker`**.  \n**Process board:** **`status:tracker`**, `epic` optional/discouraged.  \n**Leaf story:** type + **`status:child`** if parented; type only if standalone.\n\n### Nested trackers / trackers under epics\n\nTrees are normal. **Do not encode depth** (`tracker-l2`).\n\n**Allow mid-nodes to wear both** `status:tracker` and `status:child` (coordinates **and** has a parent):\n\n```text\n#886  status:tracker              (process board)\n  └── #1423  epic + status:tracker + status:child\n        └── #3125  status:child + enhancement   ← one story ≈ one PR\n```\n\n| Pattern | Labels on mid/root |\n|---------|-------------------|\n| Root product epic | `epic` + `status:tracker` |\n| Nested product epic | `epic` + `status:tracker` + `status:child` |\n| Nested thin wave tracker | `status:tracker` + `status:child` (no `epic`) |\n| Leaf | `status:child` + type |\n| Standalone story | type only |\n\n**Mutually exclusive:** do **not** put `epic` on pure children.  \n**Filters:** leaves ≈ `status:child` without `status:tracker`; nested trackers ≈ both status labels; structure/parent id still from **links + current-shape**, not labels alone.\n\n## PR ≈ one story\n\n- Prefer **one issue ≈ one story ≈ one PR**.\n- Epic/tracker stays open across many PRs; **each child** closes with its PR.\n- Epics are **not** the PR unit.\n\n## Machine / mirror labels\n\n| Label | Role |\n|-------|------|\n| `triaged` | Idempotency — classify/mirror ran |\n| `triage:deferred` | Suggested `actionLabels.defer` |\n| `triage:archived` | Suggested `actionLabels.archive` |\n| `triage:lifecycle-linked` | Suggested `actionLabels.accept` |\n| `triage:needs-human` | Suggested `actionLabels.escalate` |\n\nClosed set in ISSUE_LABELS.md; mirror must not invent names. Do not overload human `hold`/`rfc` via actionLabels. **#2611** may ship a **subset** for consumers.\n\n## Platform facet\n\n`platform:windows` / `platform:macos` / `platform:linux` — OS-intrinsic only. Refresh open seed backfill at implement (#1422, #412, …).\n\n## Public SoT + cleanup\n\n- **`.github/ISSUE_LABELS.md`** + **CONTRIBUTING.md** pointer.\n- Twin decisions (docs/documentation, installer/area:installer, …); typo `UPGRADE ANNOUCEMENT`; descriptions on kept labels.\n- Phase A = this issue core; B templates; C labels.yml sync optional.\n\n## Non-goals\n\n- Full-backlog auto-relabel; fail-closed unlabeled creates.\n- Consumer kit (#2611) or discovery impl (#3124).\n- Encoding parent id as `child-of-N` labels.\n- Depth labels for nested trackers.\n\n## Acceptance criteria\n\n- [ ] `.github/ISSUE_LABELS.md` with facets, **epic/tracker/child rules**, nested mid-node policy, machine facet, platform, deprecate list, PR≈story\n- [ ] CONTRIBUTING links to it\n- [ ] Platform labels created + descriptions\n- [ ] Machine labels documented (+ created or explicitly deferred)\n- [ ] Twin decisions + typo fix + descriptions pass\n- [ ] Skill pointer for **this** repo\n- [ ] Cross-links: #2611, #1789, #1423, #3124, #886\n\n## Related\n\n#2611 (consumer kit after this), #3124 (discovery after #2611), #1423/#3118/#3126 (mirror), #1789/#690 (area:*), #886 (umbrella).\n\n## Source\n\n2026-07-16 taxonomy discussion; 2026-08-05 plan + epic/tracker/child design discussion.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-16T19:00:34Z)\n\n## Related consumer track\n\nFiled companion for **consumer** repos (minimal starter kit — not this repo's full taxonomy): #2611\n\n| Issue | Audience |\n|-------|----------|\n| #2609 (this) | `deftai/directive` maintainer taxonomy |\n| #2611 | Portable minimal kit + guidance for user/consumer projects |\n\n\n### Comment by @MScottAdams (2026-08-05T17:28:59Z)\n\n## Plan entry (2026-08-05) — current sequence head\n\nOrdered plan `label-taxonomy-then-mirror-discovery-2026-08-05`:\n\n1. **#2609 (this)** — **current**\n2. #2611 — consumer kit (before #3124)\n3. #3124 — mirror discovery\n\n**Gate before implement:** amend this issue first (body/comment) for:\n- Machine/mirror labels (`triaged`, optional `triage:*` action stamps) vs human facets\n- Cross-links: #1423 / #3125–#3126 / #3124 / #1789 / #2611\n- Refresh label count (~85), twin list, platform seed issue IDs\n- `area:*` decision aligned with #1789\n\nDo **not** invent ad hoc mirror labels outside the taxonomy SoT this issue will own.\n\n### Comment by @MScottAdams (2026-08-05T17:34:51Z)\n\n## Amendment applied (2026-08-05) — implement on hold\n\nBody updated only (no implementation in this pass).\n\n**Added:** machine/mirror facet (`triaged` / `triage:*`), epic-child **links not labels**, #1423/#3124/#2611/#1789 cross-links, inventory/seed refresh notes, plan-sequence position.\n\n**Still next before code:** use this body as SoT; implement when you green-light Phase A.\n\n### Comment by @MScottAdams (2026-08-05T17:58:44Z)\n\n## Body updated (2026-08-05)\n\nFull body rewrite incorporating:\n- Epic apply rules (not “2 children = epic”)\n- `status:tracker` / `status:child` + nested mid-nodes (tracker+child allowed)\n- PR ≈ one story\n- Machine/mirror facet\n- Plan: #2609 → #2611 → #3124\n\nImplement still gated on operator green-light for Phase A code.\n\n### Comment by @MScottAdams (2026-08-05T18:08:29Z)\n\n## Migration child filed\n\n**#3128** — migrate open `deftai/directive` issues onto this taxonomy (role labels, twin renames on issues, platform backfill, optional mirror apply).\n\n**Order:** this issue Phase A (scheme + catalog) → **#3128** → #2611 → #3124.\n\n#3128 is blocked until ISSUE_LABELS.md + catalog are stable.",
+      "Labels": "documentation, enhancement, agent-experience, process, scm"
+    },
+    "items": [
+      {
+        "title": "`.github/ISSUE_LABELS.md` with facets, **epic/tracker/child rules**, nested mid-node policy, machine facet, platform, deprecate list, PR≈story",
+        "status": "proposed"
+      },
+      {
+        "title": "CONTRIBUTING links to it",
+        "status": "proposed"
+      },
+      {
+        "title": "Platform labels created + descriptions",
+        "status": "proposed"
+      },
+      {
+        "title": "Machine labels documented (+ created or explicitly deferred)",
+        "status": "proposed"
+      },
+      {
+        "title": "Twin decisions + typo fix + descriptions pass",
+        "status": "proposed"
+      },
+      {
+        "title": "Skill pointer for **this** repo",
+        "status": "proposed"
+      },
+      {
+        "title": "Cross-links: #2611, #1789, #1423, #3124, #886",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "enhancement",
+      "agent-experience",
+      "process",
+      "scm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2609",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2609: feat(process,scm): issue label taxonomy — platform facet, public docs, dedupe"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2611",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2611"
+      }
+    ],
+    "updated": "2026-08-05T18:31:13Z"
+  }
+}
