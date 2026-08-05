@@ -320,9 +320,11 @@ func printCommitGuidance(w *Wizard, paths []string, staged bool) {
 		return
 	}
 	addCmd := "git add " + strings.Join(paths, " ")
-	w.printf("\nCommit hygiene (#1453, #1671): keep the framework deposit in its OWN branch/PR.\n")
-	w.printf("Do NOT use `git add -A` -- mixing the payload with your own files trips the\n")
+	w.printf("\nCommit hygiene (#1453, #1671, #3127): keep the framework upgrade in its OWN branch/PR.\n")
+	w.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n")
 	w.printf("deft-core-guard CI check.\n")
+	w.printf("One upgrade PR MAY co-travel: .deft/core/** + installer-managed deposits + package.json\n")
+	w.printf("pin/lock + .deft/GENERATION.json. True app/product paths still require a separate PR.\n")
 	if staged {
 		w.printf("The installer already staged ONLY these framework + installer-managed paths:\n")
 		w.printf("  %s\n", addCmd)
@@ -331,7 +333,7 @@ func printCommitGuidance(w *Wizard, paths []string, staged bool) {
 		w.printf("  %s\n", addCmd)
 	}
 	w.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n")
-	w.printf("evaluates a clean, standalone PR:\n")
+	w.printf("evaluates a clean, standalone upgrade PR:\n")
 	w.printf("  1. Branch: git switch -c %s\n", commitHygieneBranchName)
 	w.printf("  2. Commit: git commit -m \"chore(deft): update framework payload\"\n")
 	w.printf("  3. Push:   git push -u origin %s\n", commitHygieneBranchName)
