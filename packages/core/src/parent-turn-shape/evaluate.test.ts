@@ -197,4 +197,25 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     expect(result.failClass).toBe("FC14");
     expect(result.maxIdenticalCount).toBeGreaterThan(2);
   });
+
+  it("clusters non-transitive near-identity wording chains", () => {
+    // A≈B and B≈C should cluster as size 3 even if A is slightly farther from C.
+    const a =
+      "Checking worktrees and open PRs next to confirm the leaf completion status carefully.";
+    const b =
+      "Checking worktrees and open PRs next to confirm the leaf completion status carefully now.";
+    const c =
+      "Checking worktrees and open PRs next to confirm the leaf completion status carefully today.";
+    const result = evaluateParentTurnShape({
+      events: [
+        {
+          kind: "assistant_text",
+          text: `${a} Other note. ${b} Aside. ${c}`,
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("FC14");
+    expect(result.maxIdenticalCount).toBeGreaterThan(2);
+  });
 });

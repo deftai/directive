@@ -174,9 +174,49 @@ function collectAssistantUnits(events: readonly ParentTurnEvent[]): string[] {
 }
 
 /**
+ * Max connected-component size under near-identity edges (union-find).
+ * Captures non-transitive chains of incrementally varied progress lines
+ * (A≈B≈C even when A≉C) so FC14 cannot be bypassed by wording drift.
+ */
+function maxNearIdentityComponent(units: readonly string[]): number {
+  const n = units.length;
+  if (n === 0) return 0;
+  const parent = Array.from({ length: n }, (_, i) => i);
+  const find = (i: number): number => {
+    let x = i;
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x] ?? x] ?? x;
+      x = parent[x] ?? x;
+    }
+    return x;
+  };
+  const unite = (a: number, b: number): void => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[ra] = rb;
+  };
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (isNearIdentical(units[i] ?? "", units[j] ?? "")) unite(i, j);
+    }
+  }
+
+  const sizes = new Map<number, number>();
+  let max = 1;
+  for (let i = 0; i < n; i++) {
+    const r = find(i);
+    const next = (sizes.get(r) ?? 0) + 1;
+    sizes.set(r, next);
+    if (next > max) max = next;
+  }
+  return max;
+}
+
+/**
  * Max count of any single near-identical cluster among units.
  * Consecutive runs + exact-normalized frequency (O(n)); for small unit counts
- * also pairwise near-identical frequency so non-consecutive punctuation variants
+ * also union-find near-identity components so non-consecutive / chain variants
  * cannot bypass FC14 (P1 / #3131).
  */
 function maxIdenticalCluster(units: readonly string[]): number {
@@ -204,20 +244,14 @@ function maxIdenticalCluster(units: readonly string[]): number {
     if (next > maxFreq) maxFreq = next;
   }
 
-  // Pairwise near-identical for non-consecutive variants (punctuation / wording).
-  // Parent-turn unit counts stay small; cap pairwise work for pathological blobs.
-  const PAIRWISE_CAP = 64;
-  if (units.length <= PAIRWISE_CAP) {
-    for (let i = 0; i < units.length; i++) {
-      let near = 1;
-      for (let j = i + 1; j < units.length; j++) {
-        if (isNearIdentical(units[i] ?? "", units[j] ?? "")) near += 1;
-      }
-      if (near > maxFreq) maxFreq = near;
-    }
+  // Union-find near-identity clustering for small unit sets (parent turns stay small).
+  const CLUSTER_CAP = 64;
+  let maxComponent = 1;
+  if (units.length <= CLUSTER_CAP) {
+    maxComponent = maxNearIdentityComponent(units);
   }
 
-  return Math.max(maxRun, maxFreq);
+  return Math.max(maxRun, maxFreq, maxComponent);
 }
 
 /**
