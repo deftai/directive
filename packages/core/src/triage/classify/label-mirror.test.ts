@@ -165,6 +165,121 @@ describe("mirrorLabels", () => {
     expect(outcome.items[0]?.status).toBe("planned");
     expect(outcome.items[0]?.add).toContain("triaged");
     expect(outcome.items[0]?.action).toBe("defer");
+    expect(outcome.filters.include_closed).toBe(false);
+    expect(outcome.digest.by_action.defer).toBe(1);
+  });
+
+  it("open-only default skips closed; --includeClosed plans closed archive", () => {
+    const root = tmpRoot();
+    writeProject(root);
+    writeCachedIssue(root, "acme/demo", 10, {
+      number: 10,
+      state: "open",
+      body: "BLOCKED open hold",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    writeCachedIssue(root, "acme/demo", 11, {
+      number: 11,
+      state: "closed",
+      body: "closed never triaged body long enough",
+      labels: [],
+      updated_at: "2026-01-01T00:00:00Z",
+    });
+    const [, openOnly] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    expect(openOnly.planned).toBe(1);
+    expect(openOnly.skipped_closed).toBe(1);
+    expect(openOnly.items.find((i) => i.issue_number === 11)?.status).toBe("skipped_closed");
+    expect(openOnly.digest.by_state.open).toBe(1);
+    expect(openOnly.digest.by_state.closed).toBeUndefined();
+
+    const [, withClosed] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      includeClosed: true,
+    });
+    expect(withClosed.skipped_closed).toBe(0);
+    expect(withClosed.planned).toBeGreaterThanOrEqual(2);
+    expect(withClosed.filters.include_closed).toBe(true);
+    const closedItem = withClosed.items.find((i) => i.issue_number === 11);
+    expect(closedItem?.status).toBe("planned");
+    expect(closedItem?.action).toBe("archive");
+  });
+
+  it("digest samples truncate and json includes aggregates", () => {
+    const root = tmpRoot();
+    writeProject(root);
+    for (let n = 1; n <= 5; n += 1) {
+      writeCachedIssue(root, "acme/demo", n, {
+        number: n,
+        state: "open",
+        body: "BLOCKED item",
+        labels: [],
+        updated_at: "2026-08-01T00:00:00Z",
+      });
+    }
+    const [, outcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      sampleLimit: 2,
+    });
+    expect(outcome.planned).toBe(5);
+    expect(outcome.digest.samples).toHaveLength(2);
+    expect(outcome.digest.sample_truncated).toBe(true);
+    expect(outcome.digest.by_rule["universal:hold-marker"]).toBe(5);
+    const report = renderLabelMirrorReport(outcome);
+    expect(report).toContain("By state");
+    expect(report).toContain("By rule");
+    expect(report).toContain("By action");
+    expect(report).toContain("and 3 more");
+    const json = labelMirrorOutcomeToJson(outcome);
+    expect((json.digest as { by_action: Record<string, number> }).by_action.defer).toBe(5);
+    expect((json.filters as { include_closed: boolean }).include_closed).toBe(false);
+  });
+
+  it("apply batches with rate-limit delay and continues after partial failure", () => {
+    const root = tmpRoot();
+    writeProject(root);
+    for (const n of [20, 21, 22]) {
+      writeCachedIssue(root, "acme/demo", n, {
+        number: n,
+        state: "open",
+        body: "BLOCKED batch",
+        labels: [],
+        updated_at: "2026-08-01T00:00:00Z",
+      });
+    }
+    const sleeps: number[] = [];
+    const client = new FakeLabelClient();
+    let calls = 0;
+    const origApply = client.apply.bind(client);
+    client.apply = (repo, issueNumber, add, remove) => {
+      calls += 1;
+      if (issueNumber === 21) {
+        throw new Error('could not add label "triaged" not found');
+      }
+      origApply(repo, issueNumber, add, remove);
+    };
+    const [code, outcome] = mirrorLabels(root, {
+      dryRun: false,
+      client,
+      allowCrossRepo: true,
+      useLiveLabels: true,
+      batchSize: 1,
+      delayMs: 5,
+      sleepMs: (ms) => {
+        sleeps.push(ms);
+      },
+    });
+    expect(code).toBe(1);
+    expect(outcome.applied).toBe(2);
+    expect(outcome.errors).toBe(1);
+    expect(calls).toBe(3);
+    // After each successful write at batchSize=1, next write sleeps first (2 sleeps for 3 attempts with 1 fail mid-stream).
+    expect(sleeps.length).toBeGreaterThanOrEqual(1);
+    const errItem = outcome.items.find((i) => i.issue_number === 21);
+    expect(errItem?.status).toBe("error");
+    expect(errItem?.message).toMatch(/ensure label/i);
   });
 
   it("skips already-triaged issues (idempotent)", () => {
@@ -206,6 +321,7 @@ describe("mirrorLabels", () => {
       client,
       allowCrossRepo: true,
       useLiveLabels: true,
+      delayMs: 0,
     });
     expect(code1).toBe(0);
     expect(outcome1.applied).toBe(1);
@@ -218,6 +334,7 @@ describe("mirrorLabels", () => {
       client,
       allowCrossRepo: true,
       useLiveLabels: true,
+      delayMs: 0,
     });
     expect(code2).toBe(0);
     expect(outcome2.applied).toBe(0);
@@ -266,10 +383,13 @@ describe("mirrorLabels", () => {
     const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
     const report = renderLabelMirrorReport(outcome);
     expect(report).toContain("dry-run");
-    expect(report).toContain("Would add labels:");
+    expect(report).toContain("bootstrap mass-triage");
+    expect(report).toContain("Samples");
+    expect(report).toContain("open-only");
     const json = labelMirrorOutcomeToJson(outcome);
     expect(json.dry_run).toBe(true);
     expect(Array.isArray(json.items)).toBe(true);
+    expect(json.skipped_closed).toBe(0);
   });
 
   it("refuses cross-repo apply without allowCrossRepo", () => {
@@ -287,6 +407,7 @@ describe("mirrorLabels", () => {
       client,
       allowCrossRepo: false,
       useLiveLabels: true,
+      delayMs: 0,
     });
     expect(code2).toBe(1);
     expect(client.applyCalls).toHaveLength(0);

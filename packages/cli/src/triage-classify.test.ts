@@ -73,8 +73,31 @@ describe("parseArgs", () => {
     });
   });
 
+  it("parses Wave 2 bootstrap filters and batch flags", () => {
+    expect(
+      parseArgs([
+        "--mirror",
+        "--include-closed",
+        "--batch-size",
+        "5",
+        "--delay-ms=100",
+        "--sample-limit=3",
+      ]),
+    ).toMatchObject({
+      doMirror: true,
+      includeClosed: true,
+      batchSize: 5,
+      delayMs: 100,
+      sampleLimit: 3,
+    });
+  });
+
   it("rejects --apply without --mirror", () => {
     expect(parseArgs(["--apply"]).error).toContain("--mirror");
+  });
+
+  it("rejects --include-closed without --mirror", () => {
+    expect(parseArgs(["--include-closed"]).error).toContain("--mirror");
   });
 
   it("rejects unknown flags", () => {
@@ -107,7 +130,7 @@ describe("run", () => {
     expect(silentRun(["--validate", "--project-root", root])).toBe(1);
   });
 
-  it("dry-run --mirror prints digest without network (#1423)", () => {
+  it("dry-run --mirror prints digest without network (#1423 Wave 2)", () => {
     const root = buildRepo();
     const cacheDir = join(root, ".deft-cache", "github-issue", "acme", "demo", "7");
     mkdirSync(cacheDir, { recursive: true });
@@ -122,22 +145,46 @@ describe("run", () => {
       }),
       "utf8",
     );
+    const closedDir = join(root, ".deft-cache", "github-issue", "acme", "demo", "8");
+    mkdirSync(closedDir, { recursive: true });
+    writeFileSync(
+      join(closedDir, "raw.json"),
+      JSON.stringify({
+        number: 8,
+        state: "closed",
+        body: "closed archive stamp candidate",
+        labels: [],
+        updated_at: "2026-01-01T00:00:00Z",
+      }),
+      "utf8",
+    );
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     expect(run(["--mirror", "--project-root", root])).toBe(0);
     const text = out.mock.calls.map((c) => String(c[0])).join("");
     expect(text).toContain("dry-run");
-    expect(text).toMatch(/planned=|Would add labels:/);
+    expect(text).toContain("open-only");
+    expect(text).toContain("By state");
+    expect(text).toMatch(/planned=1|Samples/);
+    expect(text).toMatch(/closed_skipped=1/);
     out.mockRestore();
   });
 
-  it("--mirror --json emits structured outcome", () => {
+  it("--mirror --json emits structured outcome with digest", () => {
     const root = buildRepo();
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     expect(run(["--mirror", "--json", "--project-root", root])).toBe(0);
     const text = out.mock.calls.map((c) => String(c[0])).join("");
-    const parsed = JSON.parse(text) as { dry_run: boolean; scanned: number };
+    const parsed = JSON.parse(text) as {
+      dry_run: boolean;
+      scanned: number;
+      skipped_closed: number;
+      digest: { by_state: Record<string, number> };
+      filters: { include_closed: boolean };
+    };
     expect(parsed.dry_run).toBe(true);
     expect(typeof parsed.scanned).toBe("number");
+    expect(parsed.filters.include_closed).toBe(false);
+    expect(parsed.digest).toBeDefined();
     out.mockRestore();
   });
 });

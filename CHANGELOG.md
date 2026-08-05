@@ -16,9 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Bootstrap mass-triage on classify label mirror (#3125 / #1423 Wave 2).** `task triage:classify -- --mirror` is the documented bootstrap mass entrypoint: **open-only** default (opt-in `--include-closed`), dry-run operator digest with totals + breakdown by state/rule/action + samples, `--json` aggregates, and batched rate-limit-aware `--apply` (`--batch-size` / `--delay-ms`) with partial-failure reporting and missing-label hints. Still never calls `triage:accept` / never writes `proposed/` xBRIEFs. Wave 3 (agent comments) remains on #1423. Closes #3125. Refs #1423, #3118, #1129.
+
 ### Changed
 
 - **docs: npm v12 install-time security defaults.** UPGRADING documents `allowScripts` off, `--allow-git` / `--allow-remote` default none, Directive consumer path (no package allowlist for `@deftai/directive*`; app trees use `npm approve-scripts`), globals/`npx` config flags, monorepo pnpm `allowBuilds` (esbuild) as install-script SoT, and OIDC publish notes. CONTRIBUTING points monorepo install scripts at `allowBuilds`; README upgrade callout links the section.
+- **Label mirror defaults to open-only (#3125).** Wave 1 `--mirror` dry-run planned closed archive stamps via `universal:closed-never-triaged`; Wave 2 skips closed unless `--include-closed`, so brownfield dry-runs match open backlog scale instead of full closed history.
 
 ### Fixed
 

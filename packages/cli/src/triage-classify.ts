@@ -21,10 +21,26 @@ export interface ParsedArgs {
   json: boolean;
   repo: string | null;
   allowCrossRepo: boolean;
+  /** Opt-in: include closed issues (default open-only, #3125). */
+  includeClosed: boolean;
+  /** Apply batch size (rate-limit awareness). */
+  batchSize: number | null;
+  /** Delay ms between apply batches. */
+  delayMs: number | null;
+  /** Max samples in human digest. */
+  sampleLimit: number | null;
   error?: string;
 }
 
-/** Parse triage-classify CLI args (#1129 + #1423 Wave 1 mirror flags). */
+function parsePositiveInt(raw: string, flag: string): { value?: number; error?: string } {
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || String(n) !== raw.trim() || n < 0) {
+    return { error: `argument ${flag}: expected a non-negative integer` };
+  }
+  return { value: n };
+}
+
+/** Parse triage-classify CLI args (#1129 + #1423 Wave 1/2 mirror flags). */
 export function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     projectRoot: ".",
@@ -35,6 +51,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
     json: false,
     repo: null,
     allowCrossRepo: false,
+    includeClosed: false,
+    batchSize: null,
+    delayMs: null,
+    sampleLimit: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -50,6 +70,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.json = true;
     } else if (arg === "--allow-cross-repo") {
       parsed.allowCrossRepo = true;
+    } else if (arg === "--include-closed") {
+      parsed.includeClosed = true;
     } else if (arg === "--repo") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -59,6 +81,57 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--repo=")) {
       parsed.repo = arg.slice("--repo=".length);
+    } else if (arg === "--batch-size") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --batch-size: expected one argument" };
+      }
+      const parsedInt = parsePositiveInt(value, "--batch-size");
+      if (parsedInt.error !== undefined) {
+        return { ...parsed, error: parsedInt.error };
+      }
+      parsed.batchSize = parsedInt.value ?? null;
+      i += 1;
+    } else if (arg?.startsWith("--batch-size=")) {
+      const parsedInt = parsePositiveInt(arg.slice("--batch-size=".length), "--batch-size");
+      if (parsedInt.error !== undefined) {
+        return { ...parsed, error: parsedInt.error };
+      }
+      parsed.batchSize = parsedInt.value ?? null;
+    } else if (arg === "--delay-ms") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --delay-ms: expected one argument" };
+      }
+      const parsedInt = parsePositiveInt(value, "--delay-ms");
+      if (parsedInt.error !== undefined) {
+        return { ...parsed, error: parsedInt.error };
+      }
+      parsed.delayMs = parsedInt.value ?? null;
+      i += 1;
+    } else if (arg?.startsWith("--delay-ms=")) {
+      const parsedInt = parsePositiveInt(arg.slice("--delay-ms=".length), "--delay-ms");
+      if (parsedInt.error !== undefined) {
+        return { ...parsed, error: parsedInt.error };
+      }
+      parsed.delayMs = parsedInt.value ?? null;
+    } else if (arg === "--sample-limit") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --sample-limit: expected one argument" };
+      }
+      const parsedInt = parsePositiveInt(value, "--sample-limit");
+      if (parsedInt.error !== undefined) {
+        return { ...parsed, error: parsedInt.error };
+      }
+      parsed.sampleLimit = parsedInt.value ?? null;
+      i += 1;
+    } else if (arg?.startsWith("--sample-limit=")) {
+      const parsedInt = parsePositiveInt(arg.slice("--sample-limit=".length), "--sample-limit");
+      if (parsedInt.error !== undefined) {
+        return { ...parsed, error: parsedInt.error };
+      }
+      parsed.sampleLimit = parsedInt.value ?? null;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -77,7 +150,20 @@ export function parseArgs(argv: string[]): ParsedArgs {
   if (parsed.apply && !parsed.doMirror) {
     return {
       ...parsed,
-      error: "--apply requires --mirror (Tier-1 label mirror, #1423)",
+      error: "--apply requires --mirror (Tier-1 label mirror / bootstrap mass-triage, #1423)",
+    };
+  }
+  if (
+    (parsed.includeClosed ||
+      parsed.batchSize !== null ||
+      parsed.delayMs !== null ||
+      parsed.sampleLimit !== null) &&
+    !parsed.doMirror
+  ) {
+    return {
+      ...parsed,
+      error:
+        "--include-closed / --batch-size / --delay-ms / --sample-limit require --mirror (#3125)",
     };
   }
   return parsed;
@@ -128,6 +214,10 @@ export function run(argv: string[], options: RunOptions = {}): number {
       dryRun: !args.apply,
       repo: args.repo,
       allowCrossRepo: args.allowCrossRepo,
+      includeClosed: args.includeClosed,
+      ...(args.batchSize !== null ? { batchSize: args.batchSize } : {}),
+      ...(args.delayMs !== null ? { delayMs: args.delayMs } : {}),
+      ...(args.sampleLimit !== null ? { sampleLimit: args.sampleLimit } : {}),
       ...(options.labelClient !== undefined ? { client: options.labelClient } : {}),
     };
     const [code, outcome] = mirrorLabels(projectRoot, mirrorOpts);

@@ -1,9 +1,13 @@
 /**
- * Tier-1 deterministic SCM label mirror (#1423 Wave 1).
+ * Tier-1 deterministic SCM label mirror (#1423 Wave 1 + Wave 2 bootstrap).
  *
  * Classifies cached issues with the existing #1129 engine, then mirrors the
  * outcome as SCM labels (dry-run default, --apply to write). Never accepts into
  * the xBRIEF lifecycle and never writes proposed/ scopes.
+ *
+ * Wave 2 (#3125): open-only default, operator digest (totals + by state/rule/action
+ * + samples), batched rate-limit-aware apply. Bootstrap mass-triage entrypoint is
+ * `triage:classify -- --mirror` with these filters (not triage:accept).
  *
  * Intentionally does NOT import from ./index.js (SLizard P1 cycle). The classify
  * engine is injected via LabelMirrorEngine / mirrorLabels() wrapper in index.ts.
@@ -28,6 +32,13 @@ import { iterCachedIssues } from "../summary/index.js";
 export const DEFAULT_IDEMPOTENCY_LABEL = "triaged";
 export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
+
+/** Default apply batch size for rate-limit awareness (#3125). */
+export const DEFAULT_APPLY_BATCH_SIZE = 10;
+/** Default delay between apply batches in ms (#3125). */
+export const DEFAULT_APPLY_DELAY_MS = 1000;
+/** Default sample count in human digest (#3125). */
+export const DEFAULT_DIGEST_SAMPLE_LIMIT = 15;
 
 const VALID_ACTIONS: ReadonlySet<string> = new Set(["defer", "archive", "escalate", "accept"]);
 
@@ -179,12 +190,15 @@ export type LabelMirrorStatus =
   | "skipped_already_triaged"
   | "skipped_no_match"
   | "skipped_unreadable"
+  | "skipped_closed"
   | "skipped_disabled"
   | "error";
 
 export interface LabelMirrorItem {
   readonly repo: string;
   readonly issue_number: number;
+  /** Issue state from cache (open/closed/unknown). */
+  readonly state: string | null;
   readonly action: string | null;
   readonly reason: string | null;
   readonly ruleKind: string | null;
@@ -193,6 +207,22 @@ export interface LabelMirrorItem {
   readonly add: readonly string[];
   readonly status: LabelMirrorStatus;
   readonly message?: string;
+}
+
+/** Operator digest aggregates for bootstrap mass-triage (#3125 / #1423 Wave 2). */
+export interface LabelMirrorDigest {
+  readonly by_state: Readonly<Record<string, number>>;
+  readonly by_rule: Readonly<Record<string, number>>;
+  readonly by_action: Readonly<Record<string, number>>;
+  readonly samples: readonly LabelMirrorItem[];
+  readonly sample_limit: number;
+  readonly sample_truncated: boolean;
+}
+
+export interface LabelMirrorFilters {
+  /** When false (default), closed issues are skipped before classify. */
+  readonly include_closed: boolean;
+  readonly repo: string | null;
 }
 
 export interface LabelMirrorOutcome {
@@ -205,10 +235,19 @@ export interface LabelMirrorOutcome {
   readonly skipped_already_triaged: number;
   readonly skipped_no_match: number;
   readonly skipped_unreadable: number;
+  /** Closed issues skipped by open-only default (#3125). */
+  readonly skipped_closed: number;
   readonly errors: number;
+  readonly filters: LabelMirrorFilters;
+  readonly digest: LabelMirrorDigest;
   readonly items: readonly LabelMirrorItem[];
   readonly policy: ResolvedLabelMirrorPolicy;
+  /** Apply path: successful writes in this run (same as applied). */
+  readonly batch_size?: number;
+  readonly delay_ms?: number;
 }
+
+export type LabelMirrorSleepFn = (ms: number) => void;
 
 export interface LabelMirrorOptions {
   readonly dryRun?: boolean;
@@ -220,6 +259,19 @@ export interface LabelMirrorOptions {
   /** Prefer live SCM labels when true (default: !dryRun). Cache labels used for dry-run. */
   readonly useLiveLabels?: boolean;
   readonly now?: Date;
+  /**
+   * Include closed issues in classify+mirror. Default false (open-only) for safe
+   * bootstrap mass-triage (#3125). Opt in with CLI `--include-closed`.
+   */
+  readonly includeClosed?: boolean;
+  /** Max planned/applied samples in human digest (default 15). */
+  readonly sampleLimit?: number;
+  /** SCM writes per batch before delay (default 10; apply path only). */
+  readonly batchSize?: number;
+  /** Delay in ms between apply batches (default 1000; apply path only). */
+  readonly delayMs?: number;
+  /** Injectable sleep for tests (receives ms). Default busy-wait when delayMs > 0. */
+  readonly sleepMs?: LabelMirrorSleepFn;
   /** Required: classify engine (provided by classify/index mirrorLabels wrapper). */
   readonly engine: LabelMirrorEngine;
 }
@@ -473,10 +525,84 @@ function decisionMapHas(
   return map.has(`${repo}\0${issueNumber}`);
 }
 
+function defaultSleepMs(ms: number): void {
+  if (ms <= 0) {
+    return;
+  }
+  // Sync sleep: LabelClient.apply is sync; keep mirrorLabels non-async (#3125).
+  const sab = new SharedArrayBuffer(4);
+  const ia = new Int32Array(sab);
+  Atomics.wait(ia, 0, 0, ms);
+}
+
+function normalizeIssueState(raw: string | undefined): string | null {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return null;
+  }
+  return raw.trim().toLowerCase();
+}
+
+function isClosedState(state: string | null): boolean {
+  return state === "closed";
+}
+
+/** Build digest aggregates + samples from mirror items (#3125). */
+export function buildLabelMirrorDigest(
+  items: readonly LabelMirrorItem[],
+  sampleLimit: number = DEFAULT_DIGEST_SAMPLE_LIMIT,
+): LabelMirrorDigest {
+  const limit =
+    Number.isFinite(sampleLimit) && sampleLimit >= 0
+      ? Math.floor(sampleLimit)
+      : DEFAULT_DIGEST_SAMPLE_LIMIT;
+  const byState: Record<string, number> = {};
+  const byRule: Record<string, number> = {};
+  const byAction: Record<string, number> = {};
+  const writeItems = items.filter((i) => i.status === "planned" || i.status === "applied");
+  for (const item of writeItems) {
+    const st = item.state ?? "unknown";
+    byState[st] = (byState[st] ?? 0) + 1;
+    const rule = item.ruleKind ?? "(none)";
+    byRule[rule] = (byRule[rule] ?? 0) + 1;
+    const action = item.action ?? "(none)";
+    byAction[action] = (byAction[action] ?? 0) + 1;
+  }
+  const samples = writeItems.slice(0, limit);
+  return {
+    by_state: byState,
+    by_rule: byRule,
+    by_action: byAction,
+    samples,
+    sample_limit: limit,
+    sample_truncated: writeItems.length > limit,
+  };
+}
+
+function formatMissingLabelHint(message: string, labels: readonly string[]): string {
+  const lower = message.toLowerCase();
+  const looksMissing =
+    lower.includes("not found") ||
+    lower.includes("could not add label") ||
+    lower.includes("invalid label") ||
+    lower.includes("unknown label") ||
+    (lower.includes("label") && (lower.includes("404") || lower.includes("does not exist")));
+  if (!looksMissing) {
+    return message;
+  }
+  const want = labels.length > 0 ? labels.join(", ") : "triaged";
+  return (
+    `${message} — ensure label(s) exist on the repo before --apply ` +
+    `(create missing labels e.g. \`gh label create "${want.split(",")[0]?.trim() ?? "triaged"}"\`; ` +
+    `idempotency + actionLabels must exist or apply fails closed per issue).`
+  );
+}
+
 /**
- * Run Tier-1 label mirror over the github-issue cache.
+ * Run Tier-1 label mirror over the github-issue cache (bootstrap mass-triage surface).
  * Dry-run by default (no SCM writes). Pass dryRun: false to apply.
+ * Default state filter is open-only (#3125); pass includeClosed: true for archive stamps.
  * Requires options.engine (classify/index wrapper injects it).
+ * Never calls triage:accept / never writes proposed/ xBRIEFs.
  */
 export function mirrorLabels(
   projectRoot: string,
@@ -489,13 +615,40 @@ export function mirrorLabels(
   const useLiveLabels = options.useLiveLabels ?? !dryRun;
   const client = options.client ?? (useLiveLabels || !dryRun ? new ScmLabelClient() : undefined);
   const engine = options.engine;
+  const includeClosed = options.includeClosed === true;
+  const sampleLimit = options.sampleLimit ?? DEFAULT_DIGEST_SAMPLE_LIMIT;
+  const batchSize =
+    options.batchSize !== undefined && options.batchSize > 0
+      ? Math.floor(options.batchSize)
+      : DEFAULT_APPLY_BATCH_SIZE;
+  const delayMs =
+    options.delayMs !== undefined && options.delayMs >= 0
+      ? Math.floor(options.delayMs)
+      : dryRun
+        ? 0
+        : DEFAULT_APPLY_DELAY_MS;
+  const sleepMs = options.sleepMs ?? defaultSleepMs;
+  const repoFilter =
+    options.repo !== undefined && options.repo !== null && options.repo.trim().length > 0
+      ? options.repo.trim()
+      : null;
+
+  const filters: LabelMirrorFilters = {
+    include_closed: includeClosed,
+    repo: repoFilter,
+  };
 
   const items: LabelMirrorItem[] = [];
   const outcomeBase = {
     project_root: root,
     dry_run: dryRun,
     policy,
+    filters,
+    batch_size: dryRun ? undefined : batchSize,
+    delay_ms: dryRun ? undefined : delayMs,
   };
+
+  const emptyDigest = buildLabelMirrorDigest([], sampleLimit);
 
   if (!policy.enabled) {
     return [
@@ -509,11 +662,14 @@ export function mirrorLabels(
         skipped_already_triaged: 0,
         skipped_no_match: 0,
         skipped_unreadable: 0,
+        skipped_closed: 0,
         errors: 0,
+        digest: emptyDigest,
         items: [
           {
             repo: "",
             issue_number: 0,
+            state: null,
             action: null,
             reason: null,
             ruleKind: null,
@@ -537,8 +693,8 @@ export function mirrorLabels(
   const now = options.now ?? new Date();
 
   let pairs = iterCachedIssues(cacheRoot);
-  if (options.repo !== undefined && options.repo !== null && options.repo.trim().length > 0) {
-    const want = options.repo.trim().toLowerCase();
+  if (repoFilter !== null) {
+    const want = repoFilter.toLowerCase();
     pairs = pairs.filter(([repo]) => repo.toLowerCase() === want);
   }
 
@@ -548,7 +704,9 @@ export function mirrorLabels(
   let skippedAlready = 0;
   let skippedNoMatch = 0;
   let skippedUnreadable = 0;
+  let skippedClosed = 0;
   let errors = 0;
+  let applyWritesSinceSleep = 0;
 
   for (const [repo, issueNumber] of pairs) {
     const issue = readCachedRawIssue(cacheRoot, repo, issueNumber);
@@ -557,6 +715,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state: null,
         action: null,
         reason: null,
         ruleKind: null,
@@ -565,6 +724,27 @@ export function mirrorLabels(
         add: [],
         status: "skipped_unreadable",
         message: "missing or unreadable raw.json",
+      });
+      continue;
+    }
+
+    const state = normalizeIssueState(issue.state);
+
+    // Open-only default: skip closed before classify (avoids mass-stamping archive).
+    if (!includeClosed && isClosedState(state)) {
+      skippedClosed += 1;
+      items.push({
+        repo,
+        issue_number: issueNumber,
+        state,
+        action: null,
+        reason: null,
+        ruleKind: null,
+        current: issueLabelNames(issue).sort(),
+        desired: [],
+        add: [],
+        status: "skipped_closed",
+        message: "open-only default; pass includeClosed / --include-closed to mirror closed issues",
       });
       continue;
     }
@@ -580,6 +760,7 @@ export function mirrorLabels(
           items.push({
             repo,
             issue_number: issueNumber,
+            state,
             action: null,
             reason: null,
             ruleKind: null,
@@ -601,6 +782,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: null,
         reason: null,
         ruleKind: null,
@@ -632,6 +814,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: null,
         reason: null,
         ruleKind: null,
@@ -652,6 +835,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: classification.action,
         reason: classification.reason,
         ruleKind: classification.ruleKind,
@@ -668,6 +852,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: classification.action,
         reason: classification.reason,
         ruleKind: classification.ruleKind,
@@ -679,7 +864,7 @@ export function mirrorLabels(
       continue;
     }
 
-    // --apply path: SCM boundary + write
+    // --apply path: SCM boundary + write (batched + delay for rate-limit awareness)
     const mutateGate = isRepoMutationAllowed(repo, root, {
       allowCrossRepo: options.allowCrossRepo,
       allowlist: options.repoAllowlist,
@@ -690,6 +875,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: classification.action,
         reason: classification.reason,
         ruleKind: classification.ruleKind,
@@ -707,6 +893,7 @@ export function mirrorLabels(
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: classification.action,
         reason: classification.reason,
         ruleKind: classification.ruleKind,
@@ -720,11 +907,16 @@ export function mirrorLabels(
     }
 
     try {
+      if (applyWritesSinceSleep > 0 && applyWritesSinceSleep % batchSize === 0 && delayMs > 0) {
+        sleepMs(delayMs);
+      }
       client.apply(repo, issueNumber, add, []);
       applied += 1;
+      applyWritesSinceSleep += 1;
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: classification.action,
         reason: classification.reason,
         ruleKind: classification.ruleKind,
@@ -735,9 +927,11 @@ export function mirrorLabels(
       });
     } catch (exc) {
       errors += 1;
+      const rawMsg = exc instanceof Error ? exc.message : String(exc);
       items.push({
         repo,
         issue_number: issueNumber,
+        state,
         action: classification.action,
         reason: classification.reason,
         ruleKind: classification.ruleKind,
@@ -745,11 +939,13 @@ export function mirrorLabels(
         desired,
         add,
         status: "error",
-        message: exc instanceof Error ? exc.message : String(exc),
+        message: formatMissingLabelHint(rawMsg, add),
       });
+      // Partial failure: continue remaining issues (idempotent re-run skips applied).
     }
   }
 
+  const digest = buildLabelMirrorDigest(items, sampleLimit);
   const outcome: LabelMirrorOutcome = {
     ...outcomeBase,
     scanned: pairs.length,
@@ -759,41 +955,83 @@ export function mirrorLabels(
     skipped_already_triaged: skippedAlready,
     skipped_no_match: skippedNoMatch,
     skipped_unreadable: skippedUnreadable,
+    skipped_closed: skippedClosed,
     errors,
+    digest,
     items,
   };
   return [errors > 0 ? 1 : 0, outcome];
 }
 
-/** Human-readable digest for dry-run / apply reports. */
+function formatCountMap(map: Readonly<Record<string, number>>): string[] {
+  const keys = Object.keys(map).sort();
+  if (keys.length === 0) {
+    return ["  (none)"];
+  }
+  return keys.map((k) => `  ${k}: ${map[k]}`);
+}
+
+/** Human-readable digest for dry-run / apply reports (bootstrap mass-triage UX). */
 export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
   const lines: string[] = [];
   const mode = outcome.dry_run ? "dry-run" : "apply";
-  lines.push(`triage:classify --mirror (${mode})`);
+  lines.push(`triage:classify --mirror (${mode}) — bootstrap mass-triage (#1423 Wave 2)`);
+  const stateFilter = outcome.filters.include_closed ? "all (include-closed)" : "open-only";
+  const repoPart = outcome.filters.repo ?? "*";
+  lines.push(`filters: state=${stateFilter} repo=${repoPart}`);
   lines.push(
     `scanned=${outcome.scanned} planned=${outcome.planned} applied=${outcome.applied} ` +
       `unchanged=${outcome.unchanged} already_triaged=${outcome.skipped_already_triaged} ` +
-      `no_match=${outcome.skipped_no_match} unreadable=${outcome.skipped_unreadable} ` +
-      `errors=${outcome.errors}`,
+      `no_match=${outcome.skipped_no_match} closed_skipped=${outcome.skipped_closed} ` +
+      `unreadable=${outcome.skipped_unreadable} errors=${outcome.errors}`,
   );
   lines.push(
     `idempotencyLabel=${outcome.policy.idempotencyLabel} alwaysLabels=${JSON.stringify(outcome.policy.alwaysLabels)}`,
   );
+  if (!outcome.dry_run) {
+    lines.push(
+      `apply: batch_size=${outcome.batch_size ?? DEFAULT_APPLY_BATCH_SIZE} delay_ms=${outcome.delay_ms ?? DEFAULT_APPLY_DELAY_MS}`,
+    );
+  }
   lines.push("");
 
-  const plannedOrApplied = outcome.items.filter(
-    (i) => i.status === "planned" || i.status === "applied",
+  lines.push("By state (planned/applied):");
+  lines.push(...formatCountMap(outcome.digest.by_state));
+  lines.push("By rule (planned/applied):");
+  lines.push(...formatCountMap(outcome.digest.by_rule));
+  lines.push("By action (planned/applied):");
+  lines.push(...formatCountMap(outcome.digest.by_action));
+  lines.push("");
+
+  const writeTotal = outcome.planned + outcome.applied;
+  lines.push(
+    outcome.dry_run
+      ? `Samples (up to ${outcome.digest.sample_limit} of ${writeTotal} planned):`
+      : `Samples (up to ${outcome.digest.sample_limit} of ${writeTotal} applied/planned):`,
   );
-  lines.push(outcome.dry_run ? "Would add labels:" : "Added labels:");
-  if (plannedOrApplied.length === 0) {
+  if (outcome.digest.samples.length === 0) {
     lines.push("- none");
   } else {
-    for (const item of plannedOrApplied) {
+    for (const item of outcome.digest.samples) {
       const actionPart = item.action !== null ? ` action=${item.action}` : "";
       const rulePart = item.ruleKind !== null ? ` rule=${item.ruleKind}` : "";
+      const statePart = item.state !== null ? ` state=${item.state}` : "";
       const addPart = sanitizeReportFragment(item.add.join(", +"));
-      lines.push(`- ${item.repo}#${item.issue_number}:${actionPart}${rulePart} +${addPart}`);
+      lines.push(
+        `- ${item.repo}#${item.issue_number}:${statePart}${actionPart}${rulePart} +${addPart}`,
+      );
     }
+    if (outcome.digest.sample_truncated) {
+      const remaining = writeTotal - outcome.digest.samples.length;
+      lines.push(`… and ${remaining} more (use --json for full items list)`);
+    }
+  }
+
+  if (outcome.skipped_closed > 0) {
+    lines.push("");
+    lines.push(
+      `Skipped closed (open-only default): ${outcome.skipped_closed} — re-run with --include-closed to include archive`,
+    );
   }
 
   const already = outcome.items.filter((i) => i.status === "skipped_already_triaged");
@@ -810,22 +1048,24 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
   const errs = outcome.items.filter((i) => i.status === "error");
   if (errs.length > 0) {
     lines.push("");
-    lines.push("Errors:");
+    lines.push(`Errors (partial failure report; ${errs.length} of ${outcome.scanned}):`);
     for (const item of errs) {
       const msg = sanitizeReportFragment(item.message ?? "unknown error");
       lines.push(`- ${item.repo}#${item.issue_number}: ${msg}`);
     }
   }
 
-  if (outcome.dry_run && plannedOrApplied.length > 0) {
+  if (outcome.dry_run && writeTotal > 0) {
     lines.push("");
-    lines.push("Dry-run -- re-run with --mirror --apply to write these labels via SCM.");
+    lines.push(
+      "Dry-run — re-run with --mirror --apply to write these labels via SCM (batched; never triage:accept).",
+    );
   }
 
   return `${lines.join("\n")}\n`;
 }
 
-/** JSON-serializable outcome (stable key order not required). */
+/** JSON-serializable outcome including Wave 2 digest aggregates. */
 export function labelMirrorOutcomeToJson(outcome: LabelMirrorOutcome): Record<string, unknown> {
   return {
     project_root: outcome.project_root,
@@ -837,7 +1077,22 @@ export function labelMirrorOutcomeToJson(outcome: LabelMirrorOutcome): Record<st
     skipped_already_triaged: outcome.skipped_already_triaged,
     skipped_no_match: outcome.skipped_no_match,
     skipped_unreadable: outcome.skipped_unreadable,
+    skipped_closed: outcome.skipped_closed,
     errors: outcome.errors,
+    filters: {
+      include_closed: outcome.filters.include_closed,
+      repo: outcome.filters.repo,
+    },
+    digest: {
+      by_state: { ...outcome.digest.by_state },
+      by_rule: { ...outcome.digest.by_rule },
+      by_action: { ...outcome.digest.by_action },
+      sample_limit: outcome.digest.sample_limit,
+      sample_truncated: outcome.digest.sample_truncated,
+      samples: outcome.digest.samples.map((i) => itemToJson(i)),
+    },
+    ...(outcome.batch_size !== undefined ? { batch_size: outcome.batch_size } : {}),
+    ...(outcome.delay_ms !== undefined ? { delay_ms: outcome.delay_ms } : {}),
     policy: {
       enabled: outcome.policy.enabled,
       idempotencyLabel: outcome.policy.idempotencyLabel,
@@ -846,18 +1101,23 @@ export function labelMirrorOutcomeToJson(outcome: LabelMirrorOutcome): Record<st
         Object.entries(outcome.policy.actionLabels).map(([k, v]) => [k, [...(v ?? [])]]),
       ),
     },
-    items: outcome.items.map((i) => ({
-      repo: i.repo,
-      issue_number: i.issue_number,
-      action: i.action,
-      reason: i.reason,
-      ruleKind: i.ruleKind,
-      current: [...i.current],
-      desired: [...i.desired],
-      add: [...i.add],
-      status: i.status,
-      ...(i.message !== undefined ? { message: i.message } : {}),
-    })),
+    items: outcome.items.map((i) => itemToJson(i)),
+  };
+}
+
+function itemToJson(i: LabelMirrorItem): Record<string, unknown> {
+  return {
+    repo: i.repo,
+    issue_number: i.issue_number,
+    state: i.state,
+    action: i.action,
+    reason: i.reason,
+    ruleKind: i.ruleKind,
+    current: [...i.current],
+    desired: [...i.desired],
+    add: [...i.add],
+    status: i.status,
+    ...(i.message !== undefined ? { message: i.message } : {}),
   };
 }
 

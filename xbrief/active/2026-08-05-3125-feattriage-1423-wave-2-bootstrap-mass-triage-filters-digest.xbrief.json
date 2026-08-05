@@ -1,0 +1,127 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Wave 2 only of #1423 — bootstrap mass-triage on Wave 1 mirror (#3118 / #3125)",
+    "updated": "2026-08-05T16:45:43Z"
+  },
+  "plan": {
+    "title": "feat(triage): #1423 Wave 2 — bootstrap mass-triage (filters, digest, safe apply)",
+    "status": "running",
+    "narratives": {
+      "Description": "Productize bootstrap mass-triage on top of shipped Wave 1 label mirror. Wave 1 walks the github-issue cache and plans or applies labels. Wave 2 adds safe brownfield job semantics: state filters with open-only default, operator digest with totals and breakdowns, batched rate-limit-aware apply. Never triage:accept. Dogfood on directive showed 686 planned with most closed; filters are load-bearing.",
+      "Origin": "https://github.com/deftai/directive/issues/3125 (Wave 2 of #1423)",
+      "Overview": "## Summary\n\n**#1423 Wave 2 only** — productize **bootstrap mass-triage** on top of shipped Wave 1 (`triage:classify -- --mirror` / `--apply`, #3118).\n\nWave 1 already walks the github-issue cache and plans/applies labels. Wave 2 makes that a **safe brownfield job**: filters, operator digest, batched apply. It does **not** implement Wave 3 agent comments or #3124 discovery.\n\n## Parent\n\n- **#1423** — SCM auto-triage write-back RFC (Wave 1 done; this issue = Wave 2; Wave 3 remains on parent)\n- **#886** — triage mega-review umbrella (Wave C in current-shape)\n\n## Context (dogfood)\n\n| Repo | Scanned | Planned | Lesson |\n|------|--------:|--------:|--------|\n| statusreport | 22 | 2 | Open backlog mostly `no_match` without consumer rules |\n| **directive** | **1113** | **686** | ~580 planned were **closed** (`closed-never-triaged`); ~106 open useful hits |\n\nBlind `--apply` on full cache would mass-label closed history. Wave 2 must default to a **controlled blast radius**.\n\n## In scope\n\n### 1. Bootstrap entrypoint\nClear mass-job surface (extend `triage:classify -- --mirror` with bootstrap flags **or** dedicated `triage:bootstrap-classify` / equivalent). Document in commands.md.\n\n### 2. Filters\n- **State filter** with safe default (recommend **open-only**; opt-in `--include-closed` or equivalent)\n- Honor existing already-`triaged` skip\n- `--repo` as today\n- Document filter matrix\n\n### 3. Digest (dry-run default)\nOperator-readable summary **before** any write:\n- Totals: scanned / planned / no_match / already_triaged / errors\n- Breakdown: by **state** (open/closed), by **rule**, by **action**\n- Sample issue list (not only a 600-line dump as the primary UX)\n- `--json` for scripts\n\n### 4. Safe apply\n- Dry-run default; explicit `--apply`\n- Batched SCM writes + rate-limit awareness\n- Idempotent re-run\n- Partial failure reporting\n- Clear behavior if `triaged` (or actionLabels) missing on the repo\n- **Never** `triage:accept` / **never** write `proposed/` xBRIEFs\n\n### 5. Tests + CHANGELOG\nUnit/integration for filters, digest shape, batch apply mocks; CHANGELOG [Unreleased].\n\n## Out of scope\n\n- Wave 3 agent-authored triage comments\n- #3124 operator discovery / ritual tip (starts **after** this ships)\n- Redesign of classify match DSL\n- Auto-accept into lifecycle\n- Requiring full #1789 area:* rollout (compose if present)\n\n## Acceptance criteria\n\n- [ ] Documented bootstrap/mass entrypoint on top of Wave 1 mirror\n- [ ] Default filter avoids mass-labeling all closed history (open-only or equally safe default)\n- [ ] Dry-run digest shows totals + breakdown by state/rule/action (+ JSON)\n- [ ] `--apply` batches writes, is rate-limit aware, idempotent, reports partial failures\n- [ ] Still never calls `triage:accept` / never writes `proposed/`\n- [ ] Tests cover filter default, digest fields, apply batching/idempotency\n- [ ] CHANGELOG [Unreleased] for this Wave 2 issue / #1423 Wave 2\n- [ ] Dogfood note: dry-run on deftai/directive with open-only shows sensible planned counts (no requirement to apply)\n\n## Implementation sketch\n\nCompose: `packages/core/src/triage/classify/label-mirror.ts`, CLI `triage-classify`, help/registry, commands.md. Prefer extending mirror options over a second write path.\n\n## Depends on\n\n- #1423 Wave 1 / #3118 (done)\n\n## Unblocks\n\n- #3124 (operator discovery — after this)\n- Safer path to Wave 3 on #1423",
+      "Labels": "enhancement, determinism, triage",
+      "UserStory": "As a brownfield operator, I want a dry-run mass-triage bootstrap with open-only default and a clear digest, so that I can apply triaged labels safely without mass-stamping closed history.",
+      "ImplementationPlan": "Step 1: Extend packages/core/src/triage/classify/label-mirror.ts with filter options (state open-only default, include-closed opt-in) and digest aggregates (by state, rule, action) plus sample list. Step 2: Wire CLI packages/cli/src/triage-classify.ts flags for bootstrap/mass mode, filters, dry-run default, apply batching and rate-limit delays. Step 3: Human + JSON digest output; keep never-accept invariant. Step 4: Tests for filter default, digest fields, batch apply idempotency mocks in label-mirror.test.ts and triage-classify tests. Step 5: content/commands.md + triage help registry + CHANGELOG Unreleased for #3125 / #1423 Wave 2. Verification: vitest classify/label-mirror + CLI tests; dry-run on deftai/directive with open-only yields planned roughly on order of open hits not full closed archive.",
+      "missing_traces_justification": "AC items carry Traces; origin #3125 via issue:ingest; parent #1423."
+    },
+    "items": [
+      {
+        "id": "3125-a1",
+        "title": "Documented bootstrap/mass entrypoint on Wave 1 mirror",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Documented bootstrap/mass entrypoint on Wave 1 mirror",
+          "Traces": "AC-1"
+        }
+      },
+      {
+        "id": "3125-a2",
+        "title": "Default filter avoids mass-labeling all closed history (open-only or equally safe)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Default filter avoids mass-labeling all closed history (open-only or equally safe)",
+          "Traces": "AC-2"
+        }
+      },
+      {
+        "id": "3125-a3",
+        "title": "Dry-run digest: totals + by state/rule/action + samples (+ JSON)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Dry-run digest: totals + by state/rule/action + samples (+ JSON)",
+          "Traces": "AC-3"
+        }
+      },
+      {
+        "id": "3125-a4",
+        "title": "Apply batches writes, rate-limit aware, idempotent, partial failure report",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Apply batches writes, rate-limit aware, idempotent, partial failure report",
+          "Traces": "AC-4"
+        }
+      },
+      {
+        "id": "3125-a5",
+        "title": "Never triage:accept / never proposed/ xBRIEFs",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Never triage:accept / never proposed/ xBRIEFs",
+          "Traces": "AC-5"
+        }
+      },
+      {
+        "id": "3125-a6",
+        "title": "Tests + CHANGELOG for #3125 / #1423 Wave 2",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Tests + CHANGELOG for #3125 / #1423 Wave 2",
+          "Traces": "AC-6"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3125",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3125: feat(triage): #1423 Wave 2 — bootstrap mass-triage (filters, digest, safe apply)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1423",
+        "type": "x-xbrief/github-issue",
+        "title": "Parent RFC #1423 Wave 2"
+      }
+    ],
+    "id": "3125-bootstrap-mass-triage",
+    "updated": "2026-08-05T16:45:43Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/classify/label-mirror.ts",
+          "packages/core/src/triage/classify/label-mirror.test.ts",
+          "packages/core/src/triage/classify/index.ts",
+          "packages/cli/src/triage-classify.ts",
+          "packages/cli/src/triage-classify.test.ts",
+          "packages/core/src/triage/help/registry-data.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/triage/classify/label-mirror.test.ts packages/cli/src/triage-classify.test.ts",
+          "task verify:forward-coverage"
+        ],
+        "expected_outputs": [
+          "Open-only default filter for mass mirror",
+          "Digest totals + breakdowns",
+          "Batched safe apply",
+          "CHANGELOG #3125"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-bootstrap-3125",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      }
+    }
+  }
+}
