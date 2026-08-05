@@ -37,8 +37,11 @@ afterEach(() => {
 describe("freshness CLI (#3117)", () => {
   it("parseFreshnessArgv defaults to report", () => {
     expect(parseFreshnessArgv([]).command).toBe("report");
+    expect(parseFreshnessArgv([]).sessionId).toBeUndefined();
     expect(parseFreshnessArgv(["bind", "--json"]).command).toBe("bind");
     expect(parseFreshnessArgv(["--help"]).help).toBe(true);
+    expect(parseFreshnessArgv(["--session-id", "abc"]).sessionId).toBe("abc");
+    expect(parseFreshnessArgv(["--session-id="]).sessionId).toBe("");
   });
 
   it("runFreshnessCli report and bind", () => {

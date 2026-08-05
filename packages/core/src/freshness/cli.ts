@@ -17,7 +17,13 @@ export interface FreshnessCliOptions {
   readonly command: FreshnessCliCommand;
   readonly projectRoot: string | null;
   readonly json: boolean;
-  readonly sessionId: string | null;
+  /**
+   * Host session id for bind/report.
+   * - `undefined` (flag omitted): report recovers ritual session_id
+   * - string: explicit session bind
+   * - `""` empty flag value: force default bind path (no ritual recovery)
+   */
+  readonly sessionId: string | undefined;
   readonly help: boolean;
 }
 
@@ -48,7 +54,7 @@ export function parseFreshnessArgv(argv: readonly string[]): FreshnessCliOptions
   let command: FreshnessCliCommand = "report";
   let projectRoot: string | null = null;
   let json = false;
-  let sessionId: string | null = null;
+  let sessionId: string | undefined;
   let help = false;
 
   const positional: string[] = [];
@@ -71,11 +77,12 @@ export function parseFreshnessArgv(argv: readonly string[]): FreshnessCliOptions
       continue;
     }
     if (arg === "--session-id") {
-      sessionId = argv[++i] ?? null;
+      // Empty value forces default bind; omitted flag stays undefined (ritual recover).
+      sessionId = argv[++i] ?? "";
       continue;
     }
     if (arg.startsWith("--session-id=")) {
-      sessionId = arg.slice("--session-id=".length) || null;
+      sessionId = arg.slice("--session-id=".length);
       continue;
     }
     if (arg.startsWith("-")) {
@@ -116,7 +123,13 @@ export function runFreshnessCli(argv: readonly string[] = []): FreshnessCliResul
   if (options.command === "bind") {
     try {
       const { bound, live, path } = bindSessionGeneration(projectRoot, {
-        sessionId: options.sessionId,
+        // Empty string means default bind; undefined means no explicit id.
+        sessionId:
+          options.sessionId === undefined
+            ? undefined
+            : options.sessionId.trim().length > 0
+              ? options.sessionId.trim()
+              : null,
       });
       if (options.json) {
         return {
@@ -157,8 +170,15 @@ export function runFreshnessCli(argv: readonly string[] = []): FreshnessCliResul
     }
   }
 
-  // report (default) — pass --session-id for multi-agent isolation
-  const report = reportFreshness(projectRoot, { sessionId: options.sessionId });
+  // report (default): omitted --session-id recovers ritual session_id;
+  // empty --session-id forces default bind; non-empty uses that id only.
+  const reportSessionId =
+    options.sessionId === undefined
+      ? undefined
+      : options.sessionId.trim().length > 0
+        ? options.sessionId.trim()
+        : null;
+  const report = reportFreshness(projectRoot, { sessionId: reportSessionId });
   const exitCode = freshnessReportExitCode(report);
   if (options.json) {
     return {
