@@ -8,7 +8,7 @@
  * and scope briefs are never installer-managed; if they reappear in
  * `installerManagedMatchers()`, unit tests and deposit-time assert fail closed.
  *
- * Refs #1576, #1453, #1430, #3029, #3030.
+ * Refs #1576, #1453, #1430, #3029, #3030, #3127, #3117.
  */
 
 import { execFileSync } from "node:child_process";
@@ -93,6 +93,16 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: CODEQL_CONFIG_REL },
     { exact: CORE_GUARD_WORKFLOW_REL },
     { exact: "Taskfile.yml" },
+    // Upgrade co-travel unit (#3127): npm pin + lock follow-through and the
+    // freshness live stamp (#3117) are part of a normal framework upgrade, not
+    // product feature work. Path-level allow for v1 (stricter “only
+    // @deftai/directive version changed” is a follow-on if needed).
+    // Mixing .deft/core/** with true app/product paths still fails (#1430).
+    { exact: "package.json" },
+    { exact: "package-lock.json" },
+    { exact: "pnpm-lock.yaml" },
+    { exact: "yarn.lock" },
+    { exact: ".deft/GENERATION.json" },
     // Legacy vbrief/ tree -- retained for not-yet-migrated consumers.
     { exact: "vbrief/.deft-version" },
     { exact: "vbrief/vbrief.md" },
@@ -583,9 +593,15 @@ export function printCommitGuidance(
 ): void {
   if (paths.length === 0) return;
   const addCmd = `git add ${paths.join(" ")}`;
-  io.printf("\nCommit hygiene (#1453, #1671): keep the framework deposit in its OWN branch/PR.\n");
-  io.printf("Do NOT use `git add -A` -- mixing the payload with your own files trips the\n");
+  io.printf("\nCommit hygiene (#1453, #1671, #3127): keep the framework upgrade in its OWN branch/PR.\n");
+  io.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n");
   io.printf("deft-core-guard CI check.\n");
+  io.printf(
+    "One upgrade PR MAY co-travel: .deft/core/** + installer-managed deposits + package.json\n",
+  );
+  io.printf(
+    "pin/lock + .deft/GENERATION.json. True app/product paths still require a separate PR.\n",
+  );
   if (staged) {
     io.printf("The installer already staged ONLY these framework + installer-managed paths:\n");
     io.printf(`  ${addCmd}\n`);
@@ -594,7 +610,7 @@ export function printCommitGuidance(
     io.printf(`  ${addCmd}\n`);
   }
   io.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n");
-  io.printf("evaluates a clean, standalone PR:\n");
+  io.printf("evaluates a clean, standalone upgrade PR:\n");
   io.printf(`  1. Branch: git switch -c ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
   io.printf('  2. Commit: git commit -m "chore(deft): update framework payload"\n');
   io.printf(`  3. Push:   git push -u origin ${COMMIT_HYGIENE_BRANCH_NAME}\n`);

@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **core-guard allowlist: upgrade co-travel for package pin + GENERATION.json (#3127).** Expand `installerManagedMatchers()` (TS deposit + Go parity) so a single framework-upgrade PR may include `.deft/core/**`, existing installer-managed deposits, `package.json` / lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`), and `.deft/GENERATION.json` without tripping `no-mixed-core-and-app`. Mixing core with true app/product paths still fails. UPGRADING documents the one-upgrade-PR shape; commit hygiene notes the co-travel unit. Closes #3127. Refs #1430, #3117, #1440.
+
 ### Removed
 
 ## [0.95.0] - 2026-08-05

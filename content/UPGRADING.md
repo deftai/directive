@@ -260,6 +260,27 @@ The `deft-directive-sync` skill (and any agent following this upgrade path) MUST
 - ! Missing global CLI → remediate with `npm i -g @deftai/directive@latest` (not GitHub release-asset archaeology).
 - ! Git submodule update remains **legacy / back-compat only**; npm + `directive update` / `deft update` is the primary path.
 
+### One upgrade PR shape (#3127)
+
+A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `deft-core-guard` (`no-mixed-core-and-app`, #1430) allowlists the upgrade co-travel unit so deposit + pin + freshness stamp land together:
+
+| Include in the upgrade PR | Why |
+| --- | --- |
+| `.deft/core/**` | Framework deposit payload |
+| Existing installer-managed deposits (`AGENTS.md`, hooks, skill stubs, slash commands, Taskfile include, `xbrief/.deft-version`, …) | Already framework-adjacent |
+| `package.json` + lockfile (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) when the change is the `@deftai/directive` pin (and lock follow-through) | npm pin doctor compares to deposit; part of the upgrade unit |
+| `.deft/GENERATION.json` | Live freshness stamp from `init` / `update` (#3117) |
+
+| Keep out of the upgrade PR | Why |
+| --- | --- |
+| Application source, tests, product docs | True app/product work — guard still fails if mixed with `.deft/core/**` |
+| Consumer kit narrative / host prose not deposited by Directive | Not installer-managed |
+| Arbitrary playbooks, cast, features | Product scope, not upgrade |
+
+**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade.
+
+Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117).
+
 Machine-readable skill exit line (for agents/operators):
 
 ```text

@@ -84,6 +84,81 @@ describe(".prettierignore allowlist (#2629)", () => {
   });
 });
 
+describe("upgrade co-travel allowlist (#3127)", () => {
+  const pinAndStampPaths = [
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    ".deft/GENERATION.json",
+  ] as const;
+
+  it("treats package pin, lockfiles, and GENERATION.json as installer-managed", () => {
+    for (const path of pinAndStampPaths) {
+      expect(isInstallerManagedPath(path)).toBe(true);
+    }
+  });
+
+  it("embeds pin + GENERATION in the deposited guard ERE", () => {
+    const ere = installerManagedGuardEre();
+    expect(ere).toContain("package\\.json");
+    expect(ere).toContain("package-lock\\.json");
+    expect(ere).toContain("pnpm-lock\\.yaml");
+    expect(ere).toContain("yarn\\.lock");
+    expect(ere).toContain("\\.deft/GENERATION\\.json");
+  });
+
+  it("passes core + pin + GENERATION + already-allowed stubs (upgrade unit)", () => {
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/VERSION",
+      ".deft/core/main.md",
+      "AGENTS.md",
+      "xbrief/.deft-version",
+      "package.json",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      ".deft/GENERATION.json",
+    ]);
+    expect(result.core.length).toBeGreaterThan(0);
+    expect(result.app).toHaveLength(0);
+    expect(result.wouldFail).toBe(false);
+    expect(result.installerManaged).toEqual(
+      expect.arrayContaining([
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        ".deft/GENERATION.json",
+        "AGENTS.md",
+        "xbrief/.deft-version",
+      ]),
+    );
+  });
+
+  it("still fails when core mixes with true app/product paths", () => {
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/VERSION",
+      "package.json",
+      ".deft/GENERATION.json",
+      "src/app.ts",
+    ]);
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toEqual(["src/app.ts"]);
+    expect(result.installerManaged).toEqual(
+      expect.arrayContaining(["package.json", ".deft/GENERATION.json"]),
+    );
+  });
+
+  it("still refuses consumer kit / product docs mixed with core", () => {
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/main.md",
+      "package.json",
+      "docs/playbooks/my-product.md",
+    ]);
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toContain("docs/playbooks/my-product.md");
+  });
+});
+
 describe("xbrief/ allowlist parity (#2277)", () => {
   const xbriefLifecycleDirs = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 

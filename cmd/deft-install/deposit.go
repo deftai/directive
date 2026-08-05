@@ -137,6 +137,14 @@ func installerManagedMatchers() []installerManagedMatcher {
 		{exact: "greptile.json"},
 		{exact: codeqlConfigRelPath},
 		{exact: coreGuardWorkflowRelPath},
+		// Upgrade co-travel unit (#3127): npm pin + lock follow-through and the
+		// freshness live stamp (#3117). Path-level allow for v1; true app paths
+		// still fail when mixed with .deft/core/** (#1430).
+		{exact: "package.json"},
+		{exact: "package-lock.json"},
+		{exact: "pnpm-lock.yaml"},
+		{exact: "yarn.lock"},
+		{exact: ".deft/GENERATION.json"},
 		{exact: "vbrief/.deft-version"},
 		{exact: "vbrief/vbrief.md"},
 		{prefix: "vbrief/schemas/"},

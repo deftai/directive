@@ -568,6 +568,12 @@ func upgradeOnlyChangeSet() []string {
 		"greptile.json",
 		codeqlConfigRelPath,
 		coreGuardWorkflowRelPath,
+		// Upgrade co-travel (#3127): pin + lock + freshness stamp.
+		"package.json",
+		"package-lock.json",
+		"pnpm-lock.yaml",
+		"yarn.lock",
+		".deft/GENERATION.json",
 		"vbrief/.deft-version",
 		"vbrief/vbrief.md",
 		"vbrief/schemas/scope.schema.json",
@@ -577,6 +583,34 @@ func upgradeOnlyChangeSet() []string {
 		changed = append(changed, "vbrief/"+sub+"/.gitkeep")
 	}
 	return changed
+}
+
+// TestCoreGuard_UpgradeCoTravelPinAndGeneration pins #3127: pin + GENERATION
+// co-travel with .deft/core/**; true app paths still fail.
+func TestCoreGuard_UpgradeCoTravelPinAndGeneration(t *testing.T) {
+	pass := []string{
+		".deft/core/VERSION",
+		"package.json",
+		"package-lock.json",
+		".deft/GENERATION.json",
+		"AGENTS.md",
+	}
+	if guardWouldFail(pass) {
+		t.Error("guard must PASS upgrade unit: core + pin + lock + GENERATION + allowlisted stubs")
+	}
+	_, managed, app := classifyChangedPaths(pass)
+	if len(app) != 0 {
+		t.Errorf("upgrade co-travel set must leave app empty; got app=%v managed=%v", app, managed)
+	}
+
+	fail := []string{".deft/core/VERSION", "package.json", ".deft/GENERATION.json", "src/main.py"}
+	if !guardWouldFail(fail) {
+		t.Error("guard must FAIL when core mixes with true app path even if pin+GENERATION present")
+	}
+	_, _, appFail := classifyChangedPaths(fail)
+	if len(appFail) != 1 || appFail[0] != "src/main.py" {
+		t.Errorf("expected only src/main.py as app; got %v", appFail)
+	}
 }
 
 // TestCoreGuard_UpgradeOnlyChangeSetAllowed pins acceptance criterion (a): an

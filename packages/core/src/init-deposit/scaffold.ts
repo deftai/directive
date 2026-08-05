@@ -607,11 +607,12 @@ function coreGuardWorkflowContent(): string {
   const headSha = githubActionsExpr("github.event.pull_request.head.sha");
   return (
     "name: deft-core-guard\n\n" +
-    "# Deft framework guard (#1430): a single PR should not mix changes to the\n" +
-    "# vendored framework payload (.deft/core/**) with changes to your own project\n" +
-    "# files. Framework updates come from `deft-install` / upgrade and should\n" +
-    "# land in their own PR so reviewers (and bot reviewers) can treat them as\n" +
-    "# packaged, machine-managed assets. Delete this file if you do not want the guard.\n" +
+    "# Deft framework guard (#1430 / #3127): a single PR should not mix changes to the\n" +
+    "# vendored framework payload (.deft/core/**) with true application/product files.\n" +
+    "# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock\n" +
+    "# + .deft/GENERATION.json. Framework updates come from `deft update` / install and should\n" +
+    "# land without product feature work so reviewers treat the payload as machine-managed.\n" +
+    "# Delete this file if you do not want the guard.\n" +
     "on:\n" +
     "  pull_request:\n\n" +
     "permissions:\n" +
