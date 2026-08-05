@@ -80,6 +80,8 @@ checks tools without rewriting consumer-managed files.
 
 If you are adopting Deft on a project that already has an issue tracker (existing repo, brownfield migration, an upstream bug list that has been accumulating), you do not have to start from an empty `xbrief/proposed/`. The refinement skill's **Phase 0 triage workflow** lets you walk an existing backlog locally, decide what to keep, and let only the **accepted** items land in `xbrief/proposed/`. Trigger words: **"triage"**, **"work the cache"**, **"pre-ingest"**, **"action menu"**.
 
+**Labels first:** capacity and triage matchers only help when labels exist. For a bare or thin label set, adopt the [consumer issue-label kit](./consumer-issue-label-kit.md) (#2611) before you rely on ranking or `triage:classify -- --mirror`.
+
 ### Step 1 — Scoped first populate
 
 A real-sized backlog can drain the shared GitHub GraphQL bucket if you fetch everything at once (see [#976](https://github.com/deftai/directive/issues/976) for the recurring symptom). Scope the first populate so it lands in seconds rather than minutes:

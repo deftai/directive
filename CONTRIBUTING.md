@@ -352,7 +352,7 @@ Maintainer taxonomy for **`deftai/directive` only** lives in [`.github/ISSUE_LAB
 - Machine labels (`triaged`, `triage:*`) used by SCM label mirror
 - Twin decisions (legacy vs forward names)
 
-Before inventing a label or applying epic/child roles, read that file. Prefer **colon** facet names; never apply `legacy:*` (closed-history quarantine only). Portable **consumer** kit is **#2611** (not this full set). Open-issue migration onto the scheme is **#3128** (one-shot: `node .github/scripts/migrate-issue-labels-3128.mjs --dry-run` then `--apply`; report in `.github/ISSUE_LABEL_MIGRATION_3128.json`).
+Before inventing a label or applying epic/child roles, read that file. Prefer **colon** facet names; never apply `legacy:*` (closed-history quarantine only). Portable **consumer** kit is [`content/docs/consumer-issue-label-kit.md`](content/docs/consumer-issue-label-kit.md) (**#2611**) — not this full set. Open-issue migration onto the scheme is **#3128** (one-shot: `node .github/scripts/migrate-issue-labels-3128.mjs --dry-run` then `--apply`; report in `.github/ISSUE_LABEL_MIGRATION_3128.json`).
 
 ## Adding a new triage / scope verb (#1150 / N10)
 

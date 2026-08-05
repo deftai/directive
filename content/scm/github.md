@@ -361,15 +361,17 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 ### Issue Labels
 
-**Framework source (`deftai/directive`):** use the maintainer catalog at repo-root `.github/ISSUE_LABELS.md` (#2609) — facets, epic/tracker/child rules, platform, and machine/mirror labels (`triaged`, `triage:*`). That path is **repository-only** (not deposited under `.deft/core/`); browse the live file on GitHub rather than a relative path from this shipped guide. Do not invent labels outside that catalog. Consumer minimal kit is **#2611** (after the maintainer catalog lands).
+**Consumer projects (recommended starter kit, #2611):** use the portable minimal kit in [`docs/consumer-issue-label-kit.md`](../docs/consumer-issue-label-kit.md) (deposit path under `.deft/core/docs/…`). Core labels (`bug`, `enhancement`, `documentation`, `duplicate`, `wontfix`, optional `urgent`), thin epic/tracker/child rules, optional `triaged` + mirror PD knobs (`triageAutoClassify`, `triageLabelMirror.actionLabels`). Prefer existing repo names over inventing twins. ⊗ Do not import the full maintainer taxonomy.
 
-**Generic consumer guidance** (when no project taxonomy file exists):
+**Framework source (`deftai/directive` only):** use the maintainer catalog at repo-root `.github/ISSUE_LABELS.md` (#2609) — full facets, platform, machine/mirror set (`triaged`, `triage:*`). That path is **repository-only** (not deposited under `.deft/core/`); browse the live file on GitHub rather than a relative path from this shipped guide. Do not invent labels outside that catalog.
 
-**Type**: `bug`, `enhancement`, `documentation`, `refactor`, `chore` (prefer existing repo names over inventing `feat` / bare `docs` twins)
+**When no project taxonomy file exists** (fallback shorthand; full kit is the consumer doc above):
 
-**Status**: `status:blocked`, `status:tracker`, `status:child` (parented work), project-specific holds
+**Type**: `bug`, `enhancement`, `documentation`, `duplicate`, `wontfix` (prefer existing repo names over inventing `feat` / bare `docs` twins); optional `urgent`
 
-**Platform** (when OS-intrinsic): `platform:windows`, `platform:macos`, `platform:linux`
+**Status / role**: `status:tracker`, `status:child` (parented work), optional `epic` only for multi-ship product roots; project-specific holds as needed
+
+**Mirror** (if using `triage:classify -- --mirror`): at least `triaged`; optional `triage:deferred` / `triage:archived` when `actionLabels` maps them
 
 ### Post-1.0.0 Issue Linking
 

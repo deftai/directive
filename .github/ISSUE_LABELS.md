@@ -1,7 +1,7 @@
 # Issue label taxonomy (deftai/directive)
 
 **Audience:** maintainers and agents working **in this repository only**.  
-**Not** the portable consumer starter kit — that is **#2611** (implement after this catalog is stable).
+**Not** the portable consumer starter kit — that lives in [`content/docs/consumer-issue-label-kit.md`](../content/docs/consumer-issue-label-kit.md) (**#2611**).
 
 **Source of truth:** this file. Platform labels, machine/mirror labels, facet rules, and twin decisions live here. Do not invent ad hoc labels outside this catalog for new work.
 
@@ -105,7 +105,7 @@ Closed set. Mirror apply (`task triage:classify -- --mirror` / `--apply`) is the
 | `triage:lifecycle-linked` | Suggested / applied `actionLabels.accept` |
 | `triage:needs-human` | Suggested / applied `actionLabels.escalate` |
 
-Do **not** overload human labels (`hold`, `rfc`, …) via `actionLabels`. Consumer kits (**#2611**) may ship a **subset** of this machine set.
+Do **not** overload human labels (`hold`, `rfc`, …) via `actionLabels`. Consumer kits ([`content/docs/consumer-issue-label-kit.md`](../content/docs/consumer-issue-label-kit.md) / **#2611**) may ship a **subset** of this machine set.
 
 Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
