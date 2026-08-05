@@ -161,6 +161,21 @@ describe("validateHandoffEvidence — invented-done", () => {
     ).toContain("ci_status");
   });
 
+  it("rejects review_score bound only via unrelated numeric fields (p0=5)", () => {
+    expect(
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        review_score: 5,
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: {
+          review: { command: "pr:watch", snippet: "confidence=3 p0=5 elapsed=15s" },
+        },
+      }).unboundClaims,
+    ).toContain("review_score");
+  });
+
   it("rejects cross-repo PR URL binds and never throws on regex metachar claims", () => {
     expect(
       validateHandoffEvidence({

@@ -130,6 +130,10 @@ function hasToken(snippet: string, needle: string): boolean {
  * True when the probe's raw snippet actually mentions the claimed remote value
  * with token-level binding (not incidental substring collisions).
  * Never throws on malformed claims — returns false instead.
+ *
+ * Scope: textual shape binding only. Live probe execution/provenance is agent
+ * process responsibility (preamble probe-then-fill); this library does not
+ * re-run forge/git commands.
  */
 export function probeBindsClaim(
   claim: string,
@@ -232,13 +236,11 @@ export function probeBindsClaim(
         const score = String(evidence.review_score ?? "").trim();
         if (!score || !/^\d+(\.\d+)?$/.test(score)) return false;
         const s = escapeRe(score);
-        // Prefer labeled confidence/score fields over bare digit collisions.
-        return (
-          new RegExp(
-            `(?:confidence(?:\\s*score)?|score|rating)\\s*[:=]?\\s*${s}(?:\\s*\\/\\s*5)?(?:[^0-9]|$)`,
-            "i",
-          ).test(snippet) || hasToken(snippet, score)
-        );
+        // Labeled fields only — bare hasToken would bind p0=5 to review_score 5.
+        return new RegExp(
+          `(?:confidence(?:\\s*score)?|score|rating)\\s*[:=]?\\s*${s}(?:\\s*\\/\\s*5)?(?:[^0-9]|$)`,
+          "i",
+        ).test(snippet);
       }
       default:
         return false;
