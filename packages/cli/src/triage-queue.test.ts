@@ -121,15 +121,7 @@ describe("triage-queue CLI", () => {
     try {
       expect(
         run(
-          [
-            "queue",
-            "--project-root",
-            root,
-            "--repo",
-            "owner/repo",
-            "--no-reconcile",
-            "--author=",
-          ],
+          ["queue", "--project-root", root, "--repo", "owner/repo", "--no-reconcile", "--author="],
           { liveOpenReader: failOpenReader },
         ),
       ).toBe(2);
