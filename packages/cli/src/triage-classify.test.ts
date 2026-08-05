@@ -111,6 +111,20 @@ describe("parseArgs", () => {
     expect(parseArgs(["--author", "alice"]).error).toContain("--mirror");
   });
 
+  it("rejects empty --author= instead of planning full cache (#3129 Greptile P1)", () => {
+    const root = buildRepo();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["--mirror", "--author=", "--project-root", root])).toBe(2);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).toMatch(/--author|non-empty/);
+    } finally {
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+
   it("rejects --batch-size 0 (no silent default override)", () => {
     expect(parseArgs(["--mirror", "--batch-size", "0"]).error).toMatch(/batch-size/);
   });

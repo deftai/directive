@@ -246,10 +246,14 @@ export function run(argv: string[], options: RunOptions = {}): number {
 
   if (args.doMirror) {
     let authorFilter: LabelMirrorOptions["authorFilter"] = null;
-    if (args.author !== null && args.author.length > 0) {
+    // Flag present (including empty `--author=`) must resolve or fail closed —
+    // never silent no-op that would plan/apply the full open cache (#3129 Greptile P1).
+    if (args.author !== null) {
       const resolved = resolveAuthorFilter(args.author, options.resolveAuthenticatedLogin);
-      if (resolved.error !== undefined) {
-        process.stderr.write(`ERR: ${resolved.error}\n`);
+      if (resolved.error !== undefined || resolved.filter === undefined) {
+        process.stderr.write(
+          `ERR: ${resolved.error ?? "argument --author: expected a non-empty login (or @me)"}\n`,
+        );
         return 2;
       }
       authorFilter = resolved.filter;

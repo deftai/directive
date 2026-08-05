@@ -311,13 +311,17 @@ function runQueue(args: QueueArgs, options: RunOptions = {}): number {
 
   let authorFilterLine: string | null = null;
   let authorAllow: ReturnType<typeof resolveAuthorFilter>["filter"] | undefined;
-  if (args.author !== null && args.author.length > 0) {
+  // Flag present (including empty `--author=`) must resolve or fail closed — never
+  // silent no-op that would show the full queue (#3129 Greptile P1).
+  if (args.author !== null) {
     const resolved = resolveAuthorFilter(
       args.author,
       options.resolveAuthenticatedLogin ?? undefined,
     );
-    if (resolved.error !== undefined) {
-      process.stderr.write(`triage:queue: ${resolved.error}\n`);
+    if (resolved.error !== undefined || resolved.filter === undefined) {
+      process.stderr.write(
+        `triage:queue: ${resolved.error ?? "argument --author: expected a non-empty login (or @me)"}\n`,
+      );
       return 2;
     }
     authorAllow = resolved.filter;

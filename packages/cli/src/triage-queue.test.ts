@@ -107,6 +107,37 @@ describe("triage-queue CLI", () => {
     expect(parseArgs(["queue", "--author"]).error).toContain("--author");
   });
 
+  it("rejects empty --author= instead of no-op full queue (#3129 Greptile P1)", () => {
+    const root = buildFixtureRepo({
+      issues: [{ number: 1, title: "Anyone", author: "alice" }],
+    });
+    temps.push(root);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(
+          [
+            "queue",
+            "--project-root",
+            root,
+            "--repo",
+            "owner/repo",
+            "--no-reconcile",
+            "--author=",
+          ],
+          { liveOpenReader: failOpenReader },
+        ),
+      ).toBe(2);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).toMatch(/--author|non-empty/);
+      expect(out.mock.calls.length).toBe(0);
+    } finally {
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+
   it("run returns 2 when repo cannot be resolved", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-queue-cli-"));
     temps.push(root);
