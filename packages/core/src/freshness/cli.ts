@@ -25,6 +25,8 @@ export interface FreshnessCliOptions {
    * - `""` empty flag value: force default bind path (no ritual recovery)
    */
   readonly sessionId: string | undefined;
+  /** Host attests payload surfaces were reloaded before bind. */
+  readonly confirmPayloadLoaded: boolean;
   readonly help: boolean;
 }
 
@@ -45,6 +47,7 @@ Commands:
 Options:
   --project-root <path>   Project root (default: cwd / nearest project)
   --session-id <id>       Optional host session identity stored on bind
+  --confirm-payload-loaded  Attest payload surfaces were reloaded (bind only)
   --json                  Machine-readable JSON on stdout
   --help                  Show this help
 
@@ -56,6 +59,7 @@ export function parseFreshnessArgv(argv: readonly string[]): FreshnessCliOptions
   let projectRoot: string | null = null;
   let json = false;
   let sessionId: string | undefined;
+  let confirmPayloadLoaded = false;
   let help = false;
 
   const positional: string[] = [];
@@ -67,6 +71,10 @@ export function parseFreshnessArgv(argv: readonly string[]): FreshnessCliOptions
     }
     if (arg === "--json") {
       json = true;
+      continue;
+    }
+    if (arg === "--confirm-payload-loaded" || arg === "--confirm-loaded") {
+      confirmPayloadLoaded = true;
       continue;
     }
     if (arg === "--project-root" || arg === "--cwd") {
@@ -101,7 +109,14 @@ export function parseFreshnessArgv(argv: readonly string[]): FreshnessCliOptions
     help = true;
   }
 
-  return { command: help ? "help" : command, projectRoot, json, sessionId, help };
+  return {
+    command: help ? "help" : command,
+    projectRoot,
+    json,
+    sessionId,
+    confirmPayloadLoaded,
+    help,
+  };
 }
 
 /** Run freshness CLI. Returns structured stdout/stderr + exit code. */
@@ -133,6 +148,7 @@ export function runFreshnessCli(argv: readonly string[] = []): FreshnessCliResul
             : null;
       const { bound, live, path } = bindSessionGeneration(projectRoot, {
         sessionId: bindSessionId,
+        payloadLoaded: options.confirmPayloadLoaded,
       });
       if (options.json) {
         return {

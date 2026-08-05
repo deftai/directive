@@ -50,6 +50,7 @@ describe("bindSessionGeneration (#3117)", () => {
     } = bindSessionGeneration(root, {
       sessionId: "host-session-1",
       nowIso: "2026-08-04T01:05:00Z",
+      payloadLoaded: true,
     });
     expect(b.boundGeneration).toBe(l.generation);
     expect(b.sessionId).toBe("host-session-1");
@@ -69,14 +70,14 @@ describe("bindSessionGeneration (#3117)", () => {
       stampedBy: "directive-init",
       increment: true,
     });
-    bindSessionGeneration(root, { sessionId: "sid-1" });
+    bindSessionGeneration(root, { sessionId: "sid-1", payloadLoaded: true });
     stampLiveGeneration(root, {
       contentVersion: "2.0.0",
       stampedBy: "directive-update",
       increment: true,
     });
     expect(reportFreshness(root, { sessionId: "sid-1" }).state).toBe("stale_hard");
-    bindSessionGeneration(root, { sessionId: "sid-1" });
+    bindSessionGeneration(root, { sessionId: "sid-1", payloadLoaded: true });
     expect(reportFreshness(root, { sessionId: "sid-1" }).state).toBe("current");
   });
 
@@ -94,14 +95,14 @@ describe("bindSessionGeneration (#3117)", () => {
       stampedBy: "directive-init",
       increment: true,
     });
-    bindSessionGeneration(root, { sessionId: "session-a" });
+    bindSessionGeneration(root, { sessionId: "session-a", payloadLoaded: true });
     stampLiveGeneration(root, {
       contentVersion: "2.0.0",
       stampedBy: "directive-update",
       increment: true,
     });
     // Session B rebinds to the new generation (no default mirror).
-    bindSessionGeneration(root, { sessionId: "session-b" });
+    bindSessionGeneration(root, { sessionId: "session-b", payloadLoaded: true });
     // Session A must still report hard drift (not B's current).
     expect(reportFreshness(root, { sessionId: "session-a" }).state).toBe("stale_hard");
     expect(reportFreshness(root, { sessionId: "session-b" }).state).toBe("current");

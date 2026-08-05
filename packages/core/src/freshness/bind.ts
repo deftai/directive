@@ -88,6 +88,11 @@ export interface BindSessionOptions {
    * `--session-id`. Enabling this reopens cross-session false-current (Greptile).
    */
   readonly alsoWriteDefault?: boolean;
+  /**
+   * Host attests that payload surfaces for the live generation were reloaded
+   * into the session. Required for trusted readiness. Default false.
+   */
+  readonly payloadLoaded?: boolean;
 }
 
 export interface ReadBoundOptions {
@@ -137,6 +142,7 @@ export function parseBoundGeneration(raw: unknown): BoundGeneration | null {
       : rec.sessionId === null
         ? null
         : undefined;
+  const payloadLoaded = rec.payloadLoaded === true;
   return {
     schemaVersion: FRESHNESS_SCHEMA_VERSION,
     boundGeneration,
@@ -144,6 +150,7 @@ export function parseBoundGeneration(raw: unknown): BoundGeneration | null {
     contentVersion,
     surfaces,
     ...(sessionId !== undefined ? { sessionId } : {}),
+    ...(payloadLoaded ? { payloadLoaded: true } : {}),
   };
 }
 
@@ -240,6 +247,7 @@ export function bindSessionGeneration(
     contentVersion: live.contentVersion,
     surfaces: { ...live.surfaces },
     ...(sessionId !== undefined ? { sessionId } : {}),
+    ...(options.payloadLoaded === true ? { payloadLoaded: true } : {}),
   };
 
   const path = writeBoundAt(projectRoot, bound, sessionId ?? null);

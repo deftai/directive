@@ -92,6 +92,19 @@ export function reportFreshness(
         "sessions share a worktree.",
     };
   }
+  // Host must attest payload surfaces were loaded for this generation (session:start
+  // does; CLI bind requires --confirm-payload-loaded). Disk bind alone is insufficient.
+  if (report.ready && bound?.payloadLoaded !== true) {
+    return {
+      ...report,
+      state: "stale_soft",
+      ready: false,
+      rebindGuidance:
+        "Bind has no payload-loaded attestation. Re-load skills/rituals/templates into " +
+        "the session, then rebind with payloadLoaded (session:start, or " +
+        "`deft freshness:bind -- --confirm-payload-loaded`).",
+    };
+  }
   return report;
 }
 

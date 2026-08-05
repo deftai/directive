@@ -57,13 +57,18 @@ cross-session false current when multiple agents share a worktree.
 Hosts and operators can rebind without restarting the shared host runtime:
 
 ```bash
-deft freshness:bind
+# After re-loading payload surfaces into the session:
+deft freshness:bind -- --confirm-payload-loaded
+# multi-agent hosts MUST pin identity:
+deft freshness:bind -- --session-id <host-session-id> --confirm-payload-loaded
+export DEFT_SESSION_ID=<host-session-id>
+deft freshness:report
 # or
-task freshness:bind
-# multi-agent hosts MUST pass a host session identity:
-deft freshness:bind -- --session-id <host-session-id>
 deft freshness:report -- --session-id <host-session-id>
 ```
+
+`session:start` attests `payloadLoaded` automatically (payload load ceremony).
+A bare bind without `--confirm-payload-loaded` never yields trusted readiness.
 
 API (TypeScript): `bindSessionGeneration(projectRoot, options)` /
 `reportFreshness(projectRoot, { sessionId })` from

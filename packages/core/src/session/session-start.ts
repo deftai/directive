@@ -699,6 +699,7 @@ function runSessionRearm(
     const bound = bindSessionGeneration(projectRoot, {
       sessionId: rearmSessionId,
       nowIso: timestampIso(instant),
+      payloadLoaded: true,
     });
     freshnessBind = {
       bound_generation: bound.bound.boundGeneration,
@@ -1128,6 +1129,7 @@ export function runSessionStart(
     const bound = bindSessionGeneration(projectRoot, {
       sessionId: coldSessionId,
       nowIso: timestampIso(instant),
+      payloadLoaded: true,
     });
     freshnessBind = {
       bound_generation: bound.bound.boundGeneration,

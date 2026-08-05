@@ -57,6 +57,12 @@ export interface BoundGeneration {
   readonly surfaces: SurfaceFingerprints;
   /** Optional host-supplied session identity (host-agnostic; not a host key scheme). */
   readonly sessionId?: string | null;
+  /**
+   * Host attestation that payload surfaces for this generation were loaded into
+   * the session before bind. Required for trusted `current`/`ready`.
+   * session:start sets true; bare CLI bind requires `--confirm-payload-loaded`.
+   */
+  readonly payloadLoaded?: boolean;
 }
 
 /** Full freshness report comparing bound vs live. */

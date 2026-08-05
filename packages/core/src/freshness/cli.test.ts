@@ -62,16 +62,11 @@ describe("freshness CLI (#3117)", () => {
       root,
       "--session-id",
       "cli-sid",
+      "--confirm-payload-loaded",
       "--json",
     ]);
     expect(boundResult.exitCode).toBe(0);
-    const current = runFreshnessCli([
-      "--project-root",
-      root,
-      "--session-id",
-      "cli-sid",
-      "--json",
-    ]);
+    const current = runFreshnessCli(["--project-root", root, "--session-id", "cli-sid", "--json"]);
     expect(current.exitCode).toBe(0);
     expect((JSON.parse(current.stdout) as { state: string }).state).toBe("current");
   });
