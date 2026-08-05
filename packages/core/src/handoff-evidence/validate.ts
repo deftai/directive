@@ -108,115 +108,144 @@ function probePresent(probe: RemoteProbe | null | undefined): boolean {
   return isNonEmptyString(probe.command) && isNonEmptyString(probe.snippet);
 }
 
+/** Escape untrusted claim text before interpolating into RegExp constructors. */
+function escapeRe(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Token-boundary match: needle must appear not as a substring of a longer
  * alphanumeric identifier (PR 12 ⊄ 3120; score 5 ⊄ elapsed=15s).
  */
 function hasToken(snippet: string, needle: string): boolean {
   if (!needle) return false;
-  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(^|[^A-Za-z0-9_])${escaped}([^A-Za-z0-9_]|$)`, "i").test(snippet);
+  try {
+    return new RegExp(`(^|[^A-Za-z0-9_])${escapeRe(needle)}([^A-Za-z0-9_]|$)`, "i").test(snippet);
+  } catch {
+    return false;
+  }
 }
 
 /**
  * True when the probe's raw snippet actually mentions the claimed remote value
  * with token-level binding (not incidental substring collisions).
+ * Never throws on malformed claims — returns false instead.
  */
 export function probeBindsClaim(
   claim: string,
   evidence: HandoffEvidence,
   probe: RemoteProbe | null | undefined,
 ): boolean {
-  if (!probePresent(probe) || !probe) return false;
-  const snippet = probe.snippet;
+  try {
+    if (!probePresent(probe) || !probe) return false;
+    const snippet = probe.snippet;
 
-  switch (claim) {
-    case "pr_url": {
-      const url = String(evidence.pr_url ?? "").trim();
-      if (!url) return false;
-      if (snippet.toLowerCase().includes(url.toLowerCase())) return true;
-      const m = url.match(/\/pulls?\/(\d+)/i);
-      const num = m?.[1];
-      if (num === undefined) return false;
-      return new RegExp(`pulls?\\/${num}(?:[^0-9]|$)`, "i").test(snippet) || hasToken(snippet, num);
-    }
-    case "pr_number": {
-      const num = String(evidence.pr_number ?? "").trim();
-      if (!num) return false;
-      return (
-        new RegExp(`(?:number["'\\s:=]+|#|pulls?\\/)${num}(?:[^0-9]|$)`, "i").test(snippet) ||
-        hasToken(snippet, num)
-      );
-    }
-    case "commit_sha":
-    case "head_sha": {
-      const sha = String(
-        claim === "commit_sha" ? (evidence.commit_sha ?? "") : (evidence.head_sha ?? ""),
-      )
-        .trim()
-        .toLowerCase();
-      if (sha.length < 7 || !/^[0-9a-f]+$/i.test(sha)) return false;
-      const prefix = sha.slice(0, 7);
-      return (
-        hasToken(snippet, sha) ||
-        new RegExp(`(^|[^0-9a-f])${prefix}(?![0-9a-f])`, "i").test(snippet)
-      );
-    }
-    case "ci_status": {
-      const ci = String(evidence.ci_status ?? "")
-        .trim()
-        .toLowerCase();
-      if (!ci) return false;
-      const greenFamily = [
-        "green",
-        "pass",
-        "passed",
-        "success",
-        "successful",
-        "ok",
-        "clean",
-      ] as const;
-      const redFamily = [
-        "fail",
-        "failed",
-        "failure",
-        "failing",
-        "error",
-        "errored",
-        "cancelled",
-        "canceled",
-      ] as const;
-      if ((greenFamily as readonly string[]).includes(ci)) {
-        const hasGreen =
-          /"state"\s*:\s*"(success|successful|ok|clean|pass(?:ed)?)"/i.test(snippet) ||
-          greenFamily.some((tok) => hasToken(snippet, tok));
-        const hasRed =
-          /"state"\s*:\s*"(failure|failed|error|cancelled|canceled)"/i.test(snippet) ||
-          redFamily.some((tok) => hasToken(snippet, tok));
-        // Mixed success+failure in one snippet is not a clean green bind.
-        return hasGreen && !hasRed;
+    switch (claim) {
+      case "pr_url": {
+        const url = String(evidence.pr_url ?? "").trim();
+        if (!url) return false;
+        // Exact claimed URL present in probe output.
+        if (snippet.toLowerCase().includes(url.toLowerCase())) return true;
+        // GitHub HTML or API form must preserve owner/repo + number identity.
+        const html = url.match(/github\.com\/([^/]+)\/([^/]+)\/pulls?\/(\d+)/i);
+        if (html) {
+          const owner = html[1] ?? "";
+          const repo = html[2] ?? "";
+          const num = html[3] ?? "";
+          const o = escapeRe(owner);
+          const r = escapeRe(repo);
+          const n = escapeRe(num);
+          return (
+            new RegExp(`${o}\\/${r}\\/pulls?\\/${n}(?:[^0-9]|$)`, "i").test(snippet) ||
+            new RegExp(`repos\\/${o}\\/${r}\\/pulls\\/${n}(?:[^0-9]|$)`, "i").test(snippet)
+          );
+        }
+        // Non-GitHub URL: require the full URL string; no number-only fallback.
+        return false;
       }
-      if ((redFamily as readonly string[]).includes(ci)) {
+      case "pr_number": {
+        const num = String(evidence.pr_number ?? "").trim();
+        if (!num || !/^\d+$/.test(num)) return false;
+        const n = escapeRe(num);
         return (
-          /"state"\s*:\s*"(failure|failed|error|cancelled|canceled)"/i.test(snippet) ||
-          hasToken(snippet, ci)
+          new RegExp(`(?:number["'\\s:=]+|#|pulls?\\/)${n}(?:[^0-9]|$)`, "i").test(snippet) ||
+          hasToken(snippet, num)
         );
       }
-      return hasToken(snippet, ci);
+      case "commit_sha":
+      case "head_sha": {
+        const sha = String(
+          claim === "commit_sha" ? (evidence.commit_sha ?? "") : (evidence.head_sha ?? ""),
+        )
+          .trim()
+          .toLowerCase();
+        if (sha.length < 7 || !/^[0-9a-f]+$/i.test(sha)) return false;
+        const prefix = sha.slice(0, 7);
+        return (
+          hasToken(snippet, sha) ||
+          new RegExp(`(^|[^0-9a-f])${prefix}(?![0-9a-f])`, "i").test(snippet)
+        );
+      }
+      case "ci_status": {
+        const ci = String(evidence.ci_status ?? "")
+          .trim()
+          .toLowerCase();
+        if (!ci) return false;
+        const greenFamily = [
+          "green",
+          "pass",
+          "passed",
+          "success",
+          "successful",
+          "ok",
+          "clean",
+        ] as const;
+        const redFamily = [
+          "fail",
+          "failed",
+          "failure",
+          "failing",
+          "error",
+          "errored",
+          "cancelled",
+          "canceled",
+        ] as const;
+        if ((greenFamily as readonly string[]).includes(ci)) {
+          const hasGreen =
+            /"state"\s*:\s*"(success|successful|ok|clean|pass(?:ed)?)"/i.test(snippet) ||
+            greenFamily.some((tok) => hasToken(snippet, tok));
+          const hasRed =
+            /"state"\s*:\s*"(failure|failed|error|cancelled|canceled)"/i.test(snippet) ||
+            redFamily.some((tok) => hasToken(snippet, tok));
+          // Mixed success+failure in one snippet is not a clean green bind.
+          return hasGreen && !hasRed;
+        }
+        if ((redFamily as readonly string[]).includes(ci)) {
+          return (
+            /"state"\s*:\s*"(failure|failed|error|cancelled|canceled)"/i.test(snippet) ||
+            hasToken(snippet, ci)
+          );
+        }
+        return hasToken(snippet, ci);
+      }
+      case "review_score": {
+        const score = String(evidence.review_score ?? "").trim();
+        if (!score || !/^\d+(\.\d+)?$/.test(score)) return false;
+        const s = escapeRe(score);
+        // Prefer labeled confidence/score fields over bare digit collisions.
+        return (
+          new RegExp(
+            `(?:confidence(?:\\s*score)?|score|rating)\\s*[:=]?\\s*${s}(?:\\s*\\/\\s*5)?(?:[^0-9]|$)`,
+            "i",
+          ).test(snippet) || hasToken(snippet, score)
+        );
+      }
+      default:
+        return false;
     }
-    case "review_score": {
-      const score = String(evidence.review_score ?? "").trim();
-      if (!score) return false;
-      // Prefer labeled confidence/score fields over bare digit collisions.
-      return (
-        new RegExp(
-          `(?:confidence(?:\\s*score)?|score|rating)\\s*[:=]?\\s*${score}(?:\\s*\\/\\s*5)?(?:[^0-9]|$)`,
-          "i",
-        ).test(snippet) || hasToken(snippet, score)
-      );
-    }
-    default:
-      return false;
+  } catch {
+    // Malformed claims must fail closed as unbound, never throw.
+    return false;
   }
 }
 

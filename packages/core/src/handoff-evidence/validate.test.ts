@@ -161,6 +161,39 @@ describe("validateHandoffEvidence — invented-done", () => {
     ).toContain("ci_status");
   });
 
+  it("rejects cross-repo PR URL binds and never throws on regex metachar claims", () => {
+    expect(
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        pr_url: "https://github.com/deftai/directive/pull/3120",
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: {
+          pr: {
+            command: "gh api",
+            snippet: "https://github.com/otherorg/otherrepo/pull/3120 number=3120",
+          },
+        },
+      }).unboundClaims,
+    ).toContain("pr_url");
+
+    expect(() =>
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        pr_number: "(",
+        review_score: ".*",
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: {
+          pr: { command: "x", snippet: "junk (" },
+          review: { command: "y", snippet: "junk .*" },
+        },
+      }),
+    ).not.toThrow();
+  });
+
   it("fails n/a-no-remote-claim when remote claims are present under pass", () => {
     const result = validateHandoffEvidence({
       status: "pass",
