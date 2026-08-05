@@ -26,6 +26,11 @@ import { ScmLabelClient } from "../../vbrief-reconcile/labels.js";
 import { isRepoMutationAllowed } from "../../vbrief-reconcile/repo-guard.js";
 import type { LabelClient } from "../../vbrief-reconcile/types.js";
 import { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
+import {
+  type AuthorFilter,
+  authorLoginFromRawIssue,
+  matchesAuthorFilter,
+} from "../author-filter.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 import { iterCachedIssues } from "../summary/index.js";
 
@@ -191,6 +196,7 @@ export type LabelMirrorStatus =
   | "skipped_no_match"
   | "skipped_unreadable"
   | "skipped_closed"
+  | "skipped_author"
   | "skipped_disabled"
   | "error";
 
@@ -223,6 +229,10 @@ export interface LabelMirrorFilters {
   /** When false (default), closed issues are skipped before classify. */
   readonly include_closed: boolean;
   readonly repo: string | null;
+  /** Active author allow-list display (#3129); null when no author filter. */
+  readonly author: string | null;
+  /** Resolved author logins for machine consumers. */
+  readonly author_logins: readonly string[] | null;
 }
 
 export interface LabelMirrorOutcome {
@@ -237,6 +247,8 @@ export interface LabelMirrorOutcome {
   readonly skipped_unreadable: number;
   /** Closed issues skipped by open-only default (#3125). */
   readonly skipped_closed: number;
+  /** Issues skipped by --author filter (#3129). */
+  readonly skipped_author: number;
   readonly errors: number;
   readonly filters: LabelMirrorFilters;
   readonly digest: LabelMirrorDigest;
@@ -264,6 +276,11 @@ export interface LabelMirrorOptions {
    * bootstrap mass-triage (#3125). Opt in with CLI `--include-closed`.
    */
   readonly includeClosed?: boolean;
+  /**
+   * Resolved author filter applied before plan/apply walk (#3129).
+   * Composes with open-only (AND). CLI resolves `@me` before passing this.
+   */
+  readonly authorFilter?: AuthorFilter | null;
   /** Max planned/applied samples in human digest (default 15). */
   readonly sampleLimit?: number;
   /** SCM writes per batch before delay (default 10; apply path only). */
@@ -616,6 +633,10 @@ export function mirrorLabels(
   const client = options.client ?? (useLiveLabels || !dryRun ? new ScmLabelClient() : undefined);
   const engine = options.engine;
   const includeClosed = options.includeClosed === true;
+  const authorFilter =
+    options.authorFilter !== undefined && options.authorFilter !== null
+      ? options.authorFilter
+      : null;
   const sampleLimit = options.sampleLimit ?? DEFAULT_DIGEST_SAMPLE_LIMIT;
   const batchSize =
     options.batchSize !== undefined
@@ -636,6 +657,8 @@ export function mirrorLabels(
   const filters: LabelMirrorFilters = {
     include_closed: includeClosed,
     repo: repoFilter,
+    author: authorFilter !== null ? authorFilter.display : null,
+    author_logins: authorFilter !== null ? authorFilter.allowLogins : null,
   };
 
   const items: LabelMirrorItem[] = [];
@@ -663,6 +686,7 @@ export function mirrorLabels(
         skipped_no_match: 0,
         skipped_unreadable: 0,
         skipped_closed: 0,
+        skipped_author: 0,
         errors: 0,
         digest: emptyDigest,
         items: [
@@ -705,6 +729,7 @@ export function mirrorLabels(
   let skippedNoMatch = 0;
   let skippedUnreadable = 0;
   let skippedClosed = 0;
+  let skippedAuthor = 0;
   let errors = 0;
   let applyWritesSinceSleep = 0;
 
@@ -747,6 +772,31 @@ export function mirrorLabels(
         message: "open-only default; pass includeClosed / --include-closed to mirror closed issues",
       });
       continue;
+    }
+
+    // Author filter (#3129): AND with open-only / other filters; missing author = non-match.
+    if (authorFilter !== null) {
+      const login = authorLoginFromRawIssue(issue as Record<string, unknown>);
+      if (!matchesAuthorFilter(login, authorFilter)) {
+        skippedAuthor += 1;
+        items.push({
+          repo,
+          issue_number: issueNumber,
+          state,
+          action: null,
+          reason: null,
+          ruleKind: null,
+          current: issueLabelNames(issue).sort(),
+          desired: [],
+          add: [],
+          status: "skipped_author",
+          message:
+            login === null
+              ? `author filter ${authorFilter.display}: missing author on cache row (unknown — excluded)`
+              : `author filter ${authorFilter.display}: author.login=${login} does not match`,
+        });
+        continue;
+      }
     }
 
     let current: string[];
@@ -958,6 +1008,7 @@ export function mirrorLabels(
     skipped_no_match: skippedNoMatch,
     skipped_unreadable: skippedUnreadable,
     skipped_closed: skippedClosed,
+    skipped_author: skippedAuthor,
     errors,
     digest,
     items,
@@ -980,11 +1031,13 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
   lines.push(`triage:classify --mirror (${mode}) — bootstrap mass-triage (#1423 Wave 2)`);
   const stateFilter = outcome.filters.include_closed ? "all (include-closed)" : "open-only";
   const repoPart = outcome.filters.repo ?? "*";
-  lines.push(`filters: state=${stateFilter} repo=${repoPart}`);
+  const authorPart = outcome.filters.author ?? "*";
+  lines.push(`filters: state=${stateFilter} repo=${repoPart} author=${authorPart}`);
   lines.push(
     `scanned=${outcome.scanned} planned=${outcome.planned} applied=${outcome.applied} ` +
       `unchanged=${outcome.unchanged} already_triaged=${outcome.skipped_already_triaged} ` +
       `no_match=${outcome.skipped_no_match} closed_skipped=${outcome.skipped_closed} ` +
+      `author_skipped=${outcome.skipped_author} ` +
       `unreadable=${outcome.skipped_unreadable} errors=${outcome.errors}`,
   );
   lines.push(
@@ -1036,6 +1089,13 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
     );
   }
 
+  if (outcome.skipped_author > 0) {
+    lines.push("");
+    lines.push(
+      `Skipped (author filter ${outcome.filters.author ?? "?"}): ${outcome.skipped_author}`,
+    );
+  }
+
   const already = outcome.items.filter((i) => i.status === "skipped_already_triaged");
   if (already.length > 0) {
     lines.push("");
@@ -1080,10 +1140,13 @@ export function labelMirrorOutcomeToJson(outcome: LabelMirrorOutcome): Record<st
     skipped_no_match: outcome.skipped_no_match,
     skipped_unreadable: outcome.skipped_unreadable,
     skipped_closed: outcome.skipped_closed,
+    skipped_author: outcome.skipped_author,
     errors: outcome.errors,
     filters: {
       include_closed: outcome.filters.include_closed,
       repo: outcome.filters.repo,
+      author: outcome.filters.author,
+      author_logins: outcome.filters.author_logins,
     },
     digest: {
       by_state: { ...outcome.digest.by_state },

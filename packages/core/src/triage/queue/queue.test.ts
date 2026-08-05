@@ -737,6 +737,18 @@ describe("renderQueue", () => {
     expect(out).toContain("no cached issues");
   });
 
+  it("surfaces author filter line in header (#3129)", () => {
+    const out = renderQueue({
+      items: [],
+      repo: REPO,
+      limit: 5,
+      authorFilterLine:
+        "author filter: alice; 1 cached issue(s) missing author (unknown — excluded)",
+    });
+    expect(out).toContain("author filter: alice");
+    expect(out).toContain("missing author");
+  });
+
   it("lists consumer ranking labels when configured", () => {
     const out = renderQueue({
       items: [],

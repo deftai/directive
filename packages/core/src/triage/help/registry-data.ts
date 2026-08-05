@@ -181,10 +181,11 @@ export const registryData = {
     "task triage:queue": {
       name: "task triage:queue",
       summary: "Ranked candidate list",
-      refs: "(D11 / #1128)",
+      refs: "(D11 / #1128, #3129 / #1318 Layer 1)",
       description:
-        "Print the ranked triage queue from the local cache. Groups (display order): [ORPHAN] -> [RESUME] -> [URGENT] -> untriaged -> other -> [BLOCKED]. Within-group default = updated_at desc; consumer plan.policy.triageRankingLabels[] re-orders within-group by matched-label declared order. Items whose linked vBRIEF is blocked (status:blocked / unresolved depends_on) are demoted into [BLOCKED] unless --include-blocked is passed (#1286).",
-      usage: "task triage:queue [-- --limit=N] [--include-blocked] [--repo=owner/name]",
+        "Print the ranked triage queue from the local cache. Groups (display order): [ORPHAN] -> [RESUME] -> [URGENT] -> untriaged -> other -> [BLOCKED]. Within-group default = updated_at desc; consumer plan.policy.triageRankingLabels[] re-orders within-group by matched-label declared order. Items whose linked vBRIEF is blocked (status:blocked / unresolved depends_on) are demoted into [BLOCKED] unless --include-blocked is passed (#1286). Optional --author LOGIN filters to cache author.login (exact; @me resolves to authenticated login; comma allow-list; missing author counted as unknown and disclosed in the header) (#3129 / #1318 Layer 1).",
+      usage:
+        "task triage:queue [-- --limit=N] [--include-blocked] [--repo=owner/name] [--author LOGIN|@me] [--author-mine]",
       flags: [
         ["--limit N", "10", "Max rows to print."],
         [
@@ -193,13 +194,26 @@ export const registryData = {
           "Re-surface blocked items into their natural group (#1286).",
         ],
         ["--repo owner/name", "(git remote)", "Explicit repo override."],
+        [
+          "--author LOGIN|@me",
+          "(none)",
+          "Only issues whose cache author.login matches (exact; @me = gh user; comma allow-list) (#3129).",
+        ],
+        ["--author-mine", "(off)", "Alias for --author @me (#1318 / #3129)."],
       ],
       examples: [
         "task triage:queue",
-        "task triage:queue -- --limit=20 --state=accept",
-        "task triage:queue -- --format=json | jq '.[] | select(.score > 5)'",
+        "task triage:queue -- --limit=20",
+        "task triage:queue -- --author @me",
+        "task triage:queue -- --author alice,bob --limit=20",
       ],
-      see_also: ["task triage:show", "task triage:audit", "#1119 / D11"],
+      see_also: [
+        "task triage:show",
+        "task triage:audit",
+        "task triage:classify",
+        "#1119 / D11",
+        "#3129",
+      ],
       placeholder: false,
     },
     "task triage:audit": {
@@ -283,11 +297,11 @@ export const registryData = {
     "task triage:classify": {
       name: "task triage:classify",
       summary: "Inspect / validate auto-classification; bootstrap mass-triage label mirror",
-      refs: "(D10 / #1129, #1423 Wave 1–2 / #3125)",
+      refs: "(D10 / #1129, #1423 Wave 1–2 / #3125, #3129)",
       description:
-        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror is the bootstrap mass-triage entrypoint (#3125): classifies the github-issue cache and mirrors outcomes as SCM labels. Open-only by default (opt-in --include-closed); dry-run digest shows totals + by state/rule/action + samples; --apply batches writes with rate-limit delay. Never calls triage:accept / never writes proposed/ xBRIEFs.",
+        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror is the bootstrap mass-triage entrypoint (#3125): classifies the github-issue cache and mirrors outcomes as SCM labels. Open-only by default (opt-in --include-closed); optional --author LOGIN scopes plan/apply to matching author.login (AND with open-only; #3129); dry-run digest shows totals + by state/rule/action + samples and surfaces the author filter; --apply batches writes with rate-limit delay. Never calls triage:accept / never writes proposed/ xBRIEFs.",
       usage:
-        "task triage:classify -- [--list | --validate | --mirror [--apply] [--include-closed] [--repo owner/name] [--batch-size N] [--delay-ms N] [--sample-limit N] [--json] [--allow-cross-repo]]",
+        "task triage:classify -- [--list | --validate | --mirror [--apply] [--include-closed] [--author LOGIN|@me] [--repo owner/name] [--batch-size N] [--delay-ms N] [--sample-limit N] [--json] [--allow-cross-repo]]",
       flags: [
         ["--list", "(default)", "Print effective rules + hold markers."],
         ["--validate", "(off)", "Validate plan.policy.triageAutoClassify + triageLabelMirror."],
@@ -306,6 +320,12 @@ export const registryData = {
           "(off)",
           "With --mirror: include closed issues (default open-only avoids archive mass-stamp).",
         ],
+        [
+          "--author LOGIN|@me",
+          "(none)",
+          "With --mirror: only plan/apply issues whose cache author.login matches (exact; @me; comma allow-list) (#3129).",
+        ],
+        ["--author-mine", "(off)", "With --mirror: alias for --author @me (#3129)."],
         ["--repo owner/name", "(all cached)", "Limit mirror to one repo."],
         ["--batch-size N", "10", "With --mirror --apply: writes per batch before delay."],
         ["--delay-ms N", "1000", "With --mirror --apply: ms sleep between batches (rate-limit)."],
@@ -317,6 +337,7 @@ export const registryData = {
         "task triage:classify -- --list",
         "task triage:classify -- --validate",
         "task triage:classify -- --mirror",
+        "task triage:classify -- --mirror --author @me --repo owner/name",
         "task triage:classify -- --mirror --repo owner/name --json",
         "task triage:classify -- --mirror --apply --repo owner/name --batch-size 10 --delay-ms 1000",
         "task triage:classify -- --mirror --include-closed --repo owner/name",
@@ -328,6 +349,7 @@ export const registryData = {
         "#1119 / D10",
         "#1423",
         "#3125",
+        "#3129",
       ],
       placeholder: false,
     },

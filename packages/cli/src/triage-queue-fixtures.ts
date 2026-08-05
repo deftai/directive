@@ -16,6 +16,8 @@ export interface QueueFixtureIssue {
   readonly labels?: readonly string[];
   readonly updatedAt?: string;
   readonly createdAt?: string;
+  /** Cache author.login for --author filter tests (#3129). */
+  readonly author?: string;
 }
 
 export interface QueueAuditEntry {
@@ -87,6 +89,7 @@ function writeCachedIssue(root: string, repo: string, issue: QueueFixtureIssue):
     labels: (issue.labels ?? []).map((label) => ({ name: label })),
     updated_at: issue.updatedAt ?? "2026-05-17T20:00:00Z",
     ...(issue.createdAt !== undefined ? { created_at: issue.createdAt } : {}),
+    ...(issue.author !== undefined ? { author: { login: issue.author } } : {}),
   };
   writeFileSync(join(dir, "raw.json"), `${JSON.stringify(raw)}\n`, { encoding: "utf8" });
 }

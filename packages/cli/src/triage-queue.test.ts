@@ -100,6 +100,13 @@ describe("triage-queue CLI", () => {
     expect(args.error).toContain("unrecognized argument");
   });
 
+  it("parseArgs handles --author and --author-mine (#3129)", () => {
+    expect(parseArgs(["queue", "--author", "alice"]).author).toBe("alice");
+    expect(parseArgs(["queue", "--author=bob"]).author).toBe("bob");
+    expect(parseArgs(["queue", "--author-mine"]).author).toBe("@me");
+    expect(parseArgs(["queue", "--author"]).error).toContain("--author");
+  });
+
   it("run returns 2 when repo cannot be resolved", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-queue-cli-"));
     temps.push(root);
@@ -190,6 +197,102 @@ describe("triage-queue CLI", () => {
       ).toBe(0);
       const output = stdout.mock.calls.map((call) => String(call[0])).join("");
       expect(output).toContain("#2115");
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("filters queue by --author and surfaces filter in header (#3129)", () => {
+    const root = buildFixtureRepo({
+      issues: [
+        { number: 1, title: "Mine", author: "alice", updatedAt: "2026-05-18T10:00:00Z" },
+        { number: 2, title: "Theirs", author: "bob", updatedAt: "2026-05-19T10:00:00Z" },
+        { number: 3, title: "No author field" },
+      ],
+    });
+    temps.push(root);
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(
+          [
+            "queue",
+            "--project-root",
+            root,
+            "--repo",
+            "owner/repo",
+            "--limit",
+            "0",
+            "--no-reconcile",
+            "--author",
+            "alice",
+          ],
+          { liveOpenReader: failOpenReader },
+        ),
+      ).toBe(0);
+      const output = stdout.mock.calls.map((call) => String(call[0])).join("");
+      expect(output).toContain("author filter: alice");
+      expect(output).toContain("missing author");
+      expect(output).toContain("#1");
+      expect(output).not.toContain("#2");
+      expect(output).not.toContain("#3");
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("returns empty match set for non-matching --author and resolves @me (#3129)", () => {
+    const root = buildFixtureRepo({
+      issues: [{ number: 9, title: "Only bob", author: "bob" }],
+    });
+    temps.push(root);
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(
+          [
+            "queue",
+            "--project-root",
+            root,
+            "--repo",
+            "owner/repo",
+            "--limit",
+            "0",
+            "--no-reconcile",
+            "--author",
+            "nobody",
+          ],
+          { liveOpenReader: failOpenReader },
+        ),
+      ).toBe(0);
+      const emptyOut = stdout.mock.calls.map((call) => String(call[0])).join("");
+      expect(emptyOut).toContain("author filter: nobody");
+      expect(emptyOut).not.toContain("#9");
+
+      stdout.mockClear();
+      expect(
+        run(
+          [
+            "queue",
+            "--project-root",
+            root,
+            "--repo",
+            "owner/repo",
+            "--limit",
+            "0",
+            "--no-reconcile",
+            "--author",
+            "@me",
+          ],
+          {
+            liveOpenReader: failOpenReader,
+            resolveAuthenticatedLogin: () => "bob",
+          },
+        ),
+      ).toBe(0);
+      const meOut = stdout.mock.calls.map((call) => String(call[0])).join("");
+      expect(meOut).toContain("author filter: @me (resolved -> bob)");
+      expect(meOut).toContain("#9");
     } finally {
       stdout.mockRestore();
     }

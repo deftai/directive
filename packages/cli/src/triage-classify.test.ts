@@ -92,12 +92,23 @@ describe("parseArgs", () => {
     });
   });
 
+  it("parses --author and --author-mine (#3129)", () => {
+    expect(parseArgs(["--mirror", "--author", "alice"]).author).toBe("alice");
+    expect(parseArgs(["--mirror", "--author=bob"]).author).toBe("bob");
+    expect(parseArgs(["--mirror", "--author-mine"]).author).toBe("@me");
+    expect(parseArgs(["--author"]).error).toContain("--author");
+  });
+
   it("rejects --apply without --mirror", () => {
     expect(parseArgs(["--apply"]).error).toContain("--mirror");
   });
 
   it("rejects --include-closed without --mirror", () => {
     expect(parseArgs(["--include-closed"]).error).toContain("--mirror");
+  });
+
+  it("rejects --author without --mirror", () => {
+    expect(parseArgs(["--author", "alice"]).error).toContain("--mirror");
   });
 
   it("rejects --batch-size 0 (no silent default override)", () => {
@@ -190,6 +201,78 @@ describe("run", () => {
     expect(parsed.filters.include_closed).toBe(false);
     expect(parsed.digest).toBeDefined();
     out.mockRestore();
+  });
+
+  it("--mirror --author plans only matching author and surfaces filter (#3129)", () => {
+    const root = buildRepo();
+    const aliceDir = join(root, ".deft-cache", "github-issue", "acme", "demo", "7");
+    mkdirSync(aliceDir, { recursive: true });
+    writeFileSync(
+      join(aliceDir, "raw.json"),
+      JSON.stringify({
+        number: 7,
+        state: "open",
+        body: "BLOCKED pending design",
+        labels: [],
+        author: { login: "alice" },
+        updated_at: "2026-08-01T00:00:00Z",
+      }),
+      "utf8",
+    );
+    const bobDir = join(root, ".deft-cache", "github-issue", "acme", "demo", "9");
+    mkdirSync(bobDir, { recursive: true });
+    writeFileSync(
+      join(bobDir, "raw.json"),
+      JSON.stringify({
+        number: 9,
+        state: "open",
+        body: "BLOCKED bob filing",
+        labels: [],
+        author: { login: "bob" },
+        updated_at: "2026-08-02T00:00:00Z",
+      }),
+      "utf8",
+    );
+    const closedDir = join(root, ".deft-cache", "github-issue", "acme", "demo", "8");
+    mkdirSync(closedDir, { recursive: true });
+    writeFileSync(
+      join(closedDir, "raw.json"),
+      JSON.stringify({
+        number: 8,
+        state: "closed",
+        body: "closed alice archive",
+        labels: [],
+        author: { login: "alice" },
+        updated_at: "2026-01-01T00:00:00Z",
+      }),
+      "utf8",
+    );
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--author", "alice", "--project-root", root])).toBe(0);
+    const text = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toContain("author=alice");
+    expect(text).toMatch(/author_skipped=/);
+    expect(text).toContain("closed_skipped=");
+    // dry-run sample should include #7 not #9
+    expect(text).toMatch(/#7/);
+    expect(text).not.toMatch(/#9:/);
+    out.mockRestore();
+
+    const outJson = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--json", "--author", "alice", "--project-root", root])).toBe(0);
+    const jsonText = outJson.mock.calls.map((c) => String(c[0])).join("");
+    const parsed = JSON.parse(jsonText) as {
+      planned: number;
+      skipped_author: number;
+      skipped_closed: number;
+      filters: { author: string | null; include_closed: boolean };
+    };
+    expect(parsed.filters.author).toBe("alice");
+    expect(parsed.filters.include_closed).toBe(false);
+    expect(parsed.skipped_closed).toBeGreaterThanOrEqual(1);
+    expect(parsed.skipped_author).toBeGreaterThanOrEqual(1);
+    expect(parsed.planned).toBe(1);
+    outJson.mockRestore();
   });
 });
 

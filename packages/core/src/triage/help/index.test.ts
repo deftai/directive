@@ -41,6 +41,13 @@ describe("renderVerbHelp", () => {
     expect(out).toContain("Flags:");
     expect(out).toContain("Examples:");
     expect(out).toContain("See also:");
+    expect(out).toContain("--author");
+  });
+
+  it("documents --author on triage:classify (#3129)", () => {
+    const out = renderVerbHelp("task triage:classify");
+    expect(out).toContain("--author");
+    expect(out).toContain("#3129");
   });
 
   it("documents triage:metrics attribution-ledger behavior (#2338)", () => {

@@ -206,6 +206,64 @@ describe("mirrorLabels", () => {
     expect(closedItem?.action).toBe("archive");
   });
 
+  it("author filter AND open-only plans only matching open authors (#3129)", () => {
+    const root = tmpRoot();
+    writeProject(root);
+    writeCachedIssue(root, "acme/demo", 30, {
+      number: 30,
+      state: "open",
+      body: "BLOCKED alice open",
+      labels: [],
+      author: { login: "alice" },
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    writeCachedIssue(root, "acme/demo", 31, {
+      number: 31,
+      state: "open",
+      body: "BLOCKED bob open",
+      labels: [],
+      author: { login: "bob" },
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    writeCachedIssue(root, "acme/demo", 32, {
+      number: 32,
+      state: "closed",
+      body: "alice closed archive body long enough",
+      labels: [],
+      author: { login: "alice" },
+      updated_at: "2026-01-01T00:00:00Z",
+    });
+    writeCachedIssue(root, "acme/demo", 33, {
+      number: 33,
+      state: "open",
+      body: "BLOCKED missing author",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    const authorFilter = {
+      raw: "alice",
+      allowLogins: ["alice"],
+      usedMe: false,
+      display: "alice",
+    };
+    const [, outcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      authorFilter,
+    });
+    expect(outcome.filters.author).toBe("alice");
+    expect(outcome.planned).toBe(1);
+    expect(outcome.items.find((i) => i.issue_number === 30)?.status).toBe("planned");
+    expect(outcome.items.find((i) => i.issue_number === 31)?.status).toBe("skipped_author");
+    expect(outcome.items.find((i) => i.issue_number === 32)?.status).toBe("skipped_closed");
+    expect(outcome.items.find((i) => i.issue_number === 33)?.status).toBe("skipped_author");
+    expect(outcome.skipped_author).toBeGreaterThanOrEqual(2);
+    expect(outcome.skipped_closed).toBe(1);
+    const report = renderLabelMirrorReport(outcome);
+    expect(report).toContain("author=alice");
+    expect(report).toContain("author_skipped=");
+  });
+
   it("digest samples truncate and json includes aggregates", () => {
     const root = tmpRoot();
     writeProject(root);

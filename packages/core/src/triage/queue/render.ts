@@ -14,6 +14,8 @@ export function renderQueue(options: {
   readonly repo: string;
   readonly limit?: number | null;
   readonly rankingLabels?: readonly string[];
+  /** Active author filter disclosure line (#3129 / #1318 Layer 1). */
+  readonly authorFilterLine?: string | null;
 }): string {
   const lines: string[] = [];
   lines.push(`triage:queue -- ${options.repo}`);
@@ -24,6 +26,12 @@ export function renderQueue(options: {
     lines.push(
       "  consumer ranking labels: <empty> (framework default; within-group = updated_at desc)",
     );
+  }
+  if (options.authorFilterLine !== null && options.authorFilterLine !== undefined) {
+    const line = options.authorFilterLine.trim();
+    if (line.length > 0) {
+      lines.push(`  ${line}`);
+    }
   }
   if (options.limit !== null && options.limit !== undefined) {
     lines.push(`  limit: ${options.limit}`);

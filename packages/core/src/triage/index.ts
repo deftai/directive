@@ -8,6 +8,7 @@
  */
 
 export * as actions from "./actions/index.js";
+export * as authorFilter from "./author-filter.js";
 export * as bootstrap from "./bootstrap/index.js";
 export * as bulk from "./bulk/index.js";
 export * as cachePath from "./cache-path.js";
