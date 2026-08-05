@@ -123,7 +123,7 @@ After SCM label mirror Waves 1–2 (#1423 / #3125):
 | Richer chips | Set `plan.policy.triageLabelMirror.actionLabels` **and** create those GitHub labels first. |
 | Accept path | ⊗ Never auto-`triage:accept` / never auto-write `proposed/` from mirror. Accept stays an operator decision. |
 
-Minimal policy sketch (clone and edit; see also `docs/example-project-definition.md` for broader triage fields):
+Minimal policy sketch (clone and edit; broader triage field examples live in the framework repo at [`docs/example-project-definition.md`](https://github.com/deftai/directive/blob/master/docs/example-project-definition.md) — not deposited under `.deft/core/`):
 
 ```json
 {
@@ -187,11 +187,19 @@ Name alignment for the thin shared set (`bug`, `enhancement`, `documentation`, `
 
 ## Discovery
 
-| Surface | Pointer |
-|---------|---------|
-| This doc | `content/docs/consumer-issue-label-kit.md` (deposit: `.deft/core/docs/consumer-issue-label-kit.md`) |
-| SCM guide | `content/scm/github.md` § Issue Labels |
-| Getting started | `content/docs/getting-started.md` (backlog section) |
+Installed deposit (consumer tree):
+
+| Surface | Path after deposit |
+|---------|-------------------|
+| This doc | `.deft/core/docs/consumer-issue-label-kit.md` |
+| SCM guide | `.deft/core/scm/github.md` (section Issue Labels) |
+| Getting started | `.deft/core/docs/getting-started.md` (backlog section) |
+
+Framework source / GitHub (browse when not in a deposit):
+
+| Surface | URL / path |
+|---------|------------|
+| This doc | [`content/docs/consumer-issue-label-kit.md`](https://github.com/deftai/directive/blob/master/content/docs/consumer-issue-label-kit.md) |
 | Session tip packaging | **#3124** (after this kit) |
 
 ---
@@ -199,5 +207,5 @@ Name alignment for the thin shared set (`bug`, `enhancement`, `documentation`, `
 ## Related reading
 
 - Maintainer taxonomy (do not import wholesale): [`.github/ISSUE_LABELS.md`](https://github.com/deftai/directive/blob/master/.github/ISSUE_LABELS.md) (#2609)
-- Label mirror behavior: `content/commands.md` / `deft triage:classify -- --mirror` (#1423, #3125)
-- Example PROJECT-DEFINITION triage fields: `docs/example-project-definition.md` (#1186)
+- Label mirror behavior: deposit `.deft/core/commands.md` (or framework `content/commands.md`) / `deft triage:classify -- --mirror` (#1423, #3125)
+- Example PROJECT-DEFINITION triage fields: [`docs/example-project-definition.md`](https://github.com/deftai/directive/blob/master/docs/example-project-definition.md) (#1186; framework repo only, not deposited)
