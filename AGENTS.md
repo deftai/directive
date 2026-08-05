@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=fb5bed9c3fe3 refreshed=2026-08-02T04:51:18Z session=9f13a50fbcc0 -->
+<!-- deft:managed-section v3 sha=aef3f8fa8c7c refreshed=2026-08-05T23:19:33Z session=ee2e1299c90b -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -234,6 +234,10 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C).
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+
+## Parent turn after leaf announce (FC14 / #3131)
+
+! After any subagent completion / announce, the parent turn MUST be tool-first ground truth, host yield (`sessions_yield` / wait), or one short non-repeated answer — not progress-only filler. ⊗ N>2 near-identical assistant sentences with no `tool_use` / yield (**FC14** hard-stop). Soft skill prose is not sole mitigation. Machine check: `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape`. Depth: `templates/agent-prompt-preamble.md` §11 + `docs/openclaw-agent-host.md` (operator recovery).
 
 ## Review-surface precedence (#2308)
 
