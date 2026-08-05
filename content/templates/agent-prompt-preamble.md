@@ -547,11 +547,30 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 
 ! **`review_cycle` evidence enum (#3090):** Handoffs, swarm finish messages, and L4 process claims MUST use only `done` | `in_progress:<pr>#<monitor_or_lease_ref>` | `skipped:<reason>` | `n/a`. Freeform `started` / `pending` / `initiated` is forbidden. L4 `status: pass` is illegal unless `review_cycle: done` (Step 6 fail-closed on HEAD) or `review_cycle: in_progress:…` with a verifiable sticky lease / parent-retained ownership. After a drive-to:merge-ready / babysit / shepherd claim, the same turn MUST end in Owner Continuity Gate A/B/C (monitor+lease, parent-retained next dual-source action, or explicit BLOCKED/FAILED finish) — never silent hold. Optional machine gate: `deft verify:l4-owner --pr <N>` / `task verify:l4-owner -- --pr <N>`. Full MUST language: `skills/deft-directive-review-cycle/SKILL.md` Owner Continuity Gate.
 
+! **Bound proof for remote artifact claims / invented-done (#3120):** Handoff evidence MUST distinguish at least three axes and a binding state:
+
+| Axis / field | Meaning |
+|---|---|
+| **work** | Local changes (edits, tests, commits on the branch) |
+| **ship** | Pushed branch / PR exists on the forge |
+| **gate** | Checks / review verdict on the claimed HEAD |
+| **`proof_status`** | `bound` \| `unbound` \| `n/a-no-remote-claim` |
+
+- ! **`proof_status` enum:** `bound` (same-turn probes bind every remote claim) \| `unbound` (remote claims present without probes — illegal under `status: pass`) \| `n/a-no-remote-claim` (no PR URL / PR number / SHA / CI-green / review-score fields filled).
+- ! **`status: pass` is forbidden** when any remote artifact is claimed (PR URL/number, commit/HEAD SHA, CI green/success, review score) unless `proof_status` is `bound` **and** each claim has a same-turn probe (`command` + short raw `snippet` from that command's stdout). Unbound remote claims → **invalid evidence (fail)**, not pass-with-notes.
+- ! **Binding = probe-then-fill (MUST):** run `git` / forge probe first (`git rev-parse HEAD`, `gh api repos/<o>/<r>/pulls/<N>`, `task pr:watch -- <N> --one-shot`, checks API), then **copy** IDs/URLs/SHAs/scores from the probe JSON/text into the evidence block. ⊗ Fill PR/SHA/CI/review fields from recollection, narration, or prior-turn memory.
+- ! **Fail ranking:** **invented-done** (false or unbound remote artifacts under pass) is **stricter** than **empty-done** (pass with no work/ship/gate substance and no remote claims). Empty returns are incomplete; invented complete returns are worse and MUST fail closed.
+- ! **Legal partial:** local work `done` + ship `not_started` / `blocked` **without** PR/SHA/CI/review fields and `proof_status: n/a-no-remote-claim` (or non-pass `status: partial`) is valid — do not invent ship state.
+- Machine check (library): `validateHandoffEvidence` in `@deftai/directive-core` `handoff-evidence` (`packages/core/src/handoff-evidence/`). Skills: build / pre-pr / review-cycle final checklist.
+
 ! **Parent tool-first after leaf completion (#2943):** When a parent / monitor receives a leaf completion event (`subagent_announce`, parent-push, or host completion notify), its **first response** MUST be a **tool-first** ground-truth batch (`gh` / `git` / worktree or file status) **or** a host **yield** (`sessions_yield` on OpenClaw, or equivalent). ⊗ Multi-sentence progress-only first response with zero tools / yield — the OpenClaw text-repetition hang class (#2943).
 
 ⊗ Treat thin DONE (no PR URL / merge evidence) as success (#2943).
 ⊗ Treat empty/unknown review-monitor settle as DONE without same-turn ground truth, or dual-spawn a second monitor while the first lease is live (#3044).
 ⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without `done` or verifiable `in_progress:<pr>#…` (#3090).
+⊗ Claim `status: pass` (or equivalent process-green handoff) with PR URL / SHA / CI green / review score filled from memory without same-turn probe binding — **invented-done** (#3120).
+⊗ Set `proof_status: n/a-no-remote-claim` while remote PR/SHA/CI/review fields are non-empty (#3120).
+⊗ Mark ship/gate `done` or fill PR fields when only local work completed — legal partial omits remote fields (#3120).
 
 Per-step acks during the run are noise. ONE start message, ONE final message; intermediate messages only on `BLOCKED` / `FAILED`. The final message lets the dispatcher distinguish a clean exit from a silent timeout when the lifecycle event arrives.
 

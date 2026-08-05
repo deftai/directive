@@ -162,6 +162,22 @@ git --no-pager diff master
 - ! If a full Read-Write-Lint-Diff cycle produced zero changes: exit the loop
 - ~ Track iteration count -- if you exceed 3 iterations, pause and assess whether you are oscillating between competing fixes
 
+
+## Probe-then-fill remote claims (#3120)
+
+! Before filling any **remote** handoff field (PR URL, PR number, commit/HEAD SHA, CI green/success, review score) or claiming `status: pass` / ship/gate done, MUST **probe then fill**:
+
+1. Run same-turn `git` + forge probes (examples: `git rev-parse HEAD`, `gh api repos/<owner>/<repo>/pulls/<N>`, `task pr:watch -- <N> --one-shot`, checks API).
+2. Copy IDs / URLs / SHAs / scores **only** from that probe JSON/text into the evidence block.
+3. Set `proof_status: bound` and attach short raw probe snippets (`command` + `snippet`) for each remote claim.
+
+! Handoff evidence axes: **work** (local) / **ship** (pushed branch or PR) / **gate** (CI/review on HEAD). `proof_status` is `bound` | `unbound` | `n/a-no-remote-claim`.
+! **Legal partial:** local work `done` + ship `not_started` / `blocked` **without** PR/SHA/CI/review fields and `proof_status: n/a-no-remote-claim` (or `status: partial`) is valid — do not invent ship state.
+! **Fail ranking:** **invented-done** (false/unbound remote artifacts under pass) is **stricter** than **empty-done**. Unbound remote claims → invalid evidence (fail), not pass-with-notes.
+! Machine check: `validateHandoffEvidence` in `packages/core/src/handoff-evidence/` (see `templates/agent-prompt-preamble.md` §11).
+⊗ Fill PR / SHA / CI / review fields from recollection, narration, or prior-turn memory.
+⊗ Claim `status: pass` with remote fields when `proof_status` is not `bound` or probes are missing (#3120).
+
 ## Exit Condition
 
 ! Exit when a complete Read-Write-Lint-Diff cycle produces **zero changes** -- no file edits in Write, no lint fixes in Lint, and no scope issues in Diff.
@@ -179,3 +195,5 @@ After exiting:
 - ⊗ Ignore the iteration count -- more than 3 iterations usually indicates oscillating fixes or an unclear spec task
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term
 - ⊗ Skip `task pr:check-closing-keywords` (#737) before pushing a PR. Intent mode (#3015) also refuses bare/conditional real `Closes #N` without `--allow-close`. The negation-context substring match is the Layer 0 (prevention) gate that prevents the recurring auto-close of umbrella / staying-OPEN issues observed in #697 (closed #642), #401 (closed #642), #700 (closed #233), and #735 (closed #734) -- each incident required manual reopen and downstream cleanup. The lint's three-state exit (0 clean / 1 hits found / 2 config error) MUST be treated as a hard refusal: rewrite the PR body / commit messages until clean, OR pass `--allow-known-false-positives` ONLY for legitimately-quoted occurrences (test fixtures, documentation that discusses the trigger token literally). See `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 for the corresponding Layer 3 (recovery) `pr:check-protected-issues` rule (#701)
+- ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
+- ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)

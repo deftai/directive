@@ -197,6 +197,24 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("silent hold");
     expect(templateText).toMatch(/started.*pending.*initiated|freeform `review_cycle: started`/s);
   });
+  it("template_bound_proof_remote_claims_invented_done_3120", () => {
+    // #3120: invented remote PR/SHA/CI/review claims are an illegal evidence shape.
+    expect(templateText).toContain(
+      "Bound proof for remote artifact claims / invented-done (#3120)",
+    );
+    expect(templateText).toContain("proof_status");
+    expect(templateText).toContain("bound");
+    expect(templateText).toContain("unbound");
+    expect(templateText).toContain("n/a-no-remote-claim");
+    expect(templateText).toContain("probe-then-fill");
+    expect(templateText).toContain("invented-done");
+    expect(templateText).toContain("empty-done");
+    expect(templateText).toMatch(/work/i);
+    expect(templateText).toMatch(/ship/i);
+    expect(templateText).toMatch(/gate/i);
+    expect(templateText).toContain("validateHandoffEvidence");
+    expect(templateText).toMatch(/⊗[^\n]*status: pass[^\n]*#3120|⊗[^\n]*invented-done[^\n]*#3120/);
+  });
   it("template_identity_section_forbids_host_gh_only_for_wrong_mode", () => {
     expect(templateText).toContain("mode-aware GitHub credential rules");
     expect(templateText).toContain("github_auth_mode: injected-token");

@@ -47,6 +47,7 @@ export {
   ProjectionContainmentError,
   walkDirectoryRejectSymlinks,
 } from "./fs/projection-containment.js";
+export * as handoffEvidence from "./handoff-evidence/index.js";
 export * as intake from "./intake/index.js";
 export * as layout from "./layout/index.js";
 export * as legacyBridge from "./legacy-bridge/index.js";

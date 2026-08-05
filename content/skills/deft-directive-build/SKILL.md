@@ -344,6 +344,22 @@ feat(phase-2): add REST API endpoints with integration tests
 - ! Scope xBRIEF ambiguous -> ask user; ⊗ guess
 - ! Scope needs changes -> propose, get approval, update the scope xBRIEF first
 
+
+## Probe-then-fill remote claims (#3120)
+
+! Before filling any **remote** handoff field (PR URL, PR number, commit/HEAD SHA, CI green/success, review score) or claiming `status: pass` / ship/gate done, MUST **probe then fill**:
+
+1. Run same-turn `git` + forge probes (examples: `git rev-parse HEAD`, `gh api repos/<owner>/<repo>/pulls/<N>`, `task pr:watch -- <N> --one-shot`, checks API).
+2. Copy IDs / URLs / SHAs / scores **only** from that probe JSON/text into the evidence block.
+3. Set `proof_status: bound` and attach short raw probe snippets (`command` + `snippet`) for each remote claim.
+
+! Handoff evidence axes: **work** (local) / **ship** (pushed branch or PR) / **gate** (CI/review on HEAD). `proof_status` is `bound` | `unbound` | `n/a-no-remote-claim`.
+! **Legal partial:** local work `done` + ship `not_started` / `blocked` **without** PR/SHA/CI/review fields and `proof_status: n/a-no-remote-claim` (or `status: partial`) is valid — do not invent ship state.
+! **Fail ranking:** **invented-done** (false/unbound remote artifacts under pass) is **stricter** than **empty-done**. Unbound remote claims → invalid evidence (fail), not pass-with-notes.
+! Machine check: `validateHandoffEvidence` in `packages/core/src/handoff-evidence/` (see `templates/agent-prompt-preamble.md` §11).
+⊗ Fill PR / SHA / CI / review fields from recollection, narration, or prior-turn memory.
+⊗ Claim `status: pass` with remote fields when `proof_status` is not `bound` or probes are missing (#3120).
+
 ## Completion
 
 - ! When all phases pass and `task check` is green, complete each implemented story via `task scope:complete -- <active-story-path>` before final PR handoff.
@@ -370,3 +386,5 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Skip the Change Lifecycle Gate because the user said "proceed" -- broad approval does not satisfy the confirmation gate
 - ⊗ Commit or push directly to the default branch -- always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT-DEFINITION.xbrief.json` narratives contain `Allow direct commits to master: true`
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term
+- ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
+- ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)

@@ -617,6 +617,22 @@ task lifecycle:event -- emit plan:approved \
 3. ~ This step mirrors `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
 4. ! For PRs that referenced any umbrella / staying-OPEN issue (`Refs #N`), the INVERSE check applies: any protected issue that auto-closed MUST be reopened with a comment citing #701 and the merged PR. See `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 protected-issue reopen sweep and `meta/lessons.md` `## GitHub Closing-Keyword False-Positive Layer 3` for the persistent `closingIssuesReferences` link case (Layer 3, #701).
 
+
+## Probe-then-fill remote claims (#3120)
+
+! Before filling any **remote** handoff field (PR URL, PR number, commit/HEAD SHA, CI green/success, review score) or claiming `status: pass` / ship/gate done, MUST **probe then fill**:
+
+1. Run same-turn `git` + forge probes (examples: `git rev-parse HEAD`, `gh api repos/<owner>/<repo>/pulls/<N>`, `task pr:watch -- <N> --one-shot`, checks API).
+2. Copy IDs / URLs / SHAs / scores **only** from that probe JSON/text into the evidence block.
+3. Set `proof_status: bound` and attach short raw probe snippets (`command` + `snippet`) for each remote claim.
+
+! Handoff evidence axes: **work** (local) / **ship** (pushed branch or PR) / **gate** (CI/review on HEAD). `proof_status` is `bound` | `unbound` | `n/a-no-remote-claim`.
+! **Legal partial:** local work `done` + ship `not_started` / `blocked` **without** PR/SHA/CI/review fields and `proof_status: n/a-no-remote-claim` (or `status: partial`) is valid — do not invent ship state.
+! **Fail ranking:** **invented-done** (false/unbound remote artifacts under pass) is **stricter** than **empty-done**. Unbound remote claims → invalid evidence (fail), not pass-with-notes.
+! Machine check: `validateHandoffEvidence` in `packages/core/src/handoff-evidence/` (see `templates/agent-prompt-preamble.md` §11).
+⊗ Fill PR / SHA / CI / review fields from recollection, narration, or prior-turn memory.
+⊗ Claim `status: pass` with remote fields when `proof_status` is not `bound` or probes are missing (#3120).
+
 ## Anti-Patterns
 
 - ⊗ End owning turn with 0 children, no sticky lease, and no finish after drive-to-merge / babysit / shepherd claim — silent hold (#3090)
@@ -658,3 +674,5 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Treat empty/unknown review-monitor settle as DONE/CLEAN/merge-ready without same-turn ground truth (#3044 / FC04 residual)
 - ⊗ Spawn a second review-monitor while prior owner is running or last settle was empty/unknown without terminal ground truth (#3044)
 - ⊗ Accept empty review-monitor final message missing STATUS/HEAD/CHECKS/MERGE handback (#3044)
+- ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
+- ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
