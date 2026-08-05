@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3128",
-    "updated": "2026-08-05T19:56:59Z"
+    "updated": "2026-08-05T20:21:39Z"
   },
   "plan": {
     "title": "chore(labels): migrate open directive issues onto #2609 taxonomy scheme",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(labels): migrate open directive issues onto #2609 taxonomy scheme",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3128",
@@ -16,35 +16,35 @@
     "items": [
       {
         "title": "Blocked on #2609 Phase A (SoT + catalog)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Written migration plan (which labels move, which issues classes, dry-run report)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Open issues updated for agreed twin renames (or explicit exceptions list)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Known product epics / trackers / children in scope set have role labels per #2609 rules (documented scope set)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Platform backfill for agreed open set",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Optional mirror apply pass documented if run",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Short note in ISSUE_LABELS.md or CONTRIBUTING: how migration was done / how to re-run",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "CHANGELOG if user-visible process docs change",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -60,6 +60,27 @@
         "title": "Issue #3128: chore(labels): migrate open directive issues onto #2609 taxonomy scheme"
       }
     ],
-    "updated": "2026-08-05T19:56:59Z"
+    "updated": "2026-08-05T20:21:39Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3132,
+        "prBase": "master",
+        "mergeCommit": "804c68a0b599a78481edd96361e4c08bad999600",
+        "deliveryBranch": "master",
+        "deliveryCommit": "804c68a0b599a78481edd96361e4c08bad999600",
+        "verifiedAt": "2026-08-05T20:21:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-05T20:21:39Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
