@@ -361,7 +361,7 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 ### Issue Labels
 
-**Framework source (`deftai/directive`):** use the maintainer catalog [`.github/ISSUE_LABELS.md`](../../.github/ISSUE_LABELS.md) (#2609) — facets, epic/tracker/child rules, platform, and machine/mirror labels (`triaged`, `triage:*`). Do not invent labels outside that catalog. Consumer minimal kit is **#2611** (after the maintainer catalog lands).
+**Framework source (`deftai/directive`):** use the maintainer catalog at repo-root `.github/ISSUE_LABELS.md` (#2609) — facets, epic/tracker/child rules, platform, and machine/mirror labels (`triaged`, `triage:*`). That path is **repository-only** (not deposited under `.deft/core/`); browse the live file on GitHub rather than a relative path from this shipped guide. Do not invent labels outside that catalog. Consumer minimal kit is **#2611** (after the maintainer catalog lands).
 
 **Generic consumer guidance** (when no project taxonomy file exists):
 
