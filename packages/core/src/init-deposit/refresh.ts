@@ -636,8 +636,9 @@ export async function runRefreshDeposit(
     await reconcileDepositToContentPackage(deftDir, contentRoot, io);
     migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
     // #3117: ensure a readable live generation token exists without advancing
-    // when the payload did not swap (already-current). Do not touch seams.nowIso
-    // so already-current remains observably idempotent for callers that spy it.
+    // when the payload did not swap (already-current). stampLiveGeneration is a
+    // no-op write when the token already matches (keeps git clean under #2118).
+    // Missing token: create generation 1; failure here is non-fatal (legacy).
     try {
       stampLiveGeneration(projectDir, {
         contentVersion,
@@ -645,7 +646,7 @@ export async function runRefreshDeposit(
         increment: false,
       });
     } catch {
-      // Generation stamp is best-effort relative to refresh success; never block update.
+      // Ensure-only path: do not block already-current refresh on first stamp.
     }
   } else {
     // Full-tree replace (or injected seam). Additive copy is no longer the default.
@@ -674,17 +675,15 @@ export async function runRefreshDeposit(
     // manifest behavior is lost by the redirect). Best-effort; never fatal.
     migrateLegacyInstallManifest(projectDir, writtenManifestPath);
 
-    // #3117: monotonic live generation token on successful payload apply.
-    try {
-      stampLiveGeneration(projectDir, {
-        contentVersion,
-        stampedBy: "directive-update",
-        increment: true,
-        nowIso: stampedAt,
-      });
-    } catch {
-      // Generation stamp is best-effort relative to refresh success; never block update.
-    }
+    // #3117: monotonic live generation MUST advance after a successful payload
+    // swap. Suppressing stamp failure would leave a prior bound/live match
+    // reporting `current` while the on-disk payload already changed (Greptile P1).
+    stampLiveGeneration(projectDir, {
+      contentVersion,
+      stampedBy: "directive-update",
+      increment: true,
+      nowIso: stampedAt,
+    });
   }
 
   // #2595: payload freshness and consumer derivative freshness are independent.

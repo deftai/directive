@@ -170,8 +170,9 @@ export function stampLiveGeneration(
     // Content drifted without an explicit increment flag — still advance.
     generation = prior.generation + 1;
   } else {
-    // Already current: keep generation; refresh stamp metadata for readability.
-    generation = prior.generation;
+    // Already current: do not rewrite GENERATION.json (avoids dirty trees under
+    // core.autocrlf=true after idempotent `directive update` — Windows #2118).
+    return prior;
   }
 
   const token: LiveGeneration = {

@@ -270,17 +270,15 @@ export async function runInitDeposit(
   };
   writeInstallManifest(projectDir, deftDir, manifestFields);
 
-  // #3117: stamp monotonic live generation token on successful init apply.
-  try {
-    stampLiveGeneration(projectDir, {
-      contentVersion: version,
-      stampedBy: "directive-init",
-      increment: true,
-      nowIso: nowIso(),
-    });
-  } catch {
-    // Best-effort: never block init on generation stamp failure.
-  }
+  // #3117: monotonic live generation MUST stamp on successful init apply.
+  // Fail closed: an applied deposit without a readable live token would leave
+  // sessions unable to detect post-upgrade drift honestly.
+  stampLiveGeneration(projectDir, {
+    contentVersion: version,
+    stampedBy: "directive-init",
+    increment: true,
+    nowIso: nowIso(),
+  });
 
   writeAgentsMd(projectDir, deftDir, io);
   const skillsCreated = writeAgentsSkills(projectDir, io);

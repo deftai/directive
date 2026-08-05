@@ -7,9 +7,20 @@ import { compareFreshness } from "./compare.js";
 import { readLiveGeneration } from "./generation.js";
 import type { FreshnessReport } from "./types.js";
 
+export interface ReportFreshnessOptions {
+  /**
+   * Host session identity. When set, only that session's bind is read
+   * (multi-agent isolation). Omit for the default project bind.
+   */
+  readonly sessionId?: string | null;
+}
+
 /** Build a freshness report for the project (bound vs live on disk). */
-export function reportFreshness(projectRoot: string): FreshnessReport {
-  const bound = readBoundGeneration(projectRoot);
+export function reportFreshness(
+  projectRoot: string,
+  options: ReportFreshnessOptions = {},
+): FreshnessReport {
+  const bound = readBoundGeneration(projectRoot, { sessionId: options.sessionId });
   const live = readLiveGeneration(projectRoot);
   return compareFreshness(bound, live);
 }

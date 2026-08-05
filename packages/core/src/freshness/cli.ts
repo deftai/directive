@@ -157,8 +157,8 @@ export function runFreshnessCli(argv: readonly string[] = []): FreshnessCliResul
     }
   }
 
-  // report (default)
-  const report = reportFreshness(projectRoot);
+  // report (default) — pass --session-id for multi-agent isolation
+  const report = reportFreshness(projectRoot, { sessionId: options.sessionId });
   const exitCode = freshnessReportExitCode(report);
   if (options.json) {
     return {

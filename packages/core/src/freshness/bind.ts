@@ -1,10 +1,15 @@
 /**
  * Session bind of live deposit generation (#3117).
  *
- * Host-agnostic: stores bound generation under `.deft/session-bind.json` so any
- * long-lived multi-agent host can rebind without restarting the shared runtime.
+ * Host-agnostic storage:
+ * - Default (no sessionId): `.deft/session-bind.json` — single-operator convenience.
+ * - With sessionId: `.deft/session-binds/<safeId>.json` — isolated multi-session binds.
+ *
+ * Multi-agent hosts MUST pass a stable host session identity when binding and
+ * reporting so one session cannot certify another as current.
  */
 
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
@@ -16,11 +21,34 @@ import {
   type SurfaceFingerprints,
 } from "./types.js";
 
-/** Relative path for the session bind record (project-local, host-agnostic). */
+/** Relative path for the default (no-sessionId) bind record. */
 export const SESSION_BIND_REL = join(".deft", "session-bind.json");
 
-export function sessionBindPath(projectRoot: string): string {
-  return join(resolve(projectRoot), SESSION_BIND_REL);
+/** Directory for per-session bind records. */
+export const SESSION_BINDS_DIR_REL = join(".deft", "session-binds");
+
+export function sessionBindPath(projectRoot: string, sessionId?: string | null): string {
+  const root = resolve(projectRoot);
+  const id = typeof sessionId === "string" ? sessionId.trim() : "";
+  if (id.length === 0) {
+    return join(root, SESSION_BIND_REL);
+  }
+  return join(root, SESSION_BINDS_DIR_REL, safeSessionFileName(id));
+}
+
+/**
+ * Stable filesystem-safe file name for a host session id.
+ * Keeps a short prefix for debug, hashes the rest to avoid path injection.
+ */
+export function safeSessionFileName(sessionId: string): string {
+  const trimmed = sessionId.trim();
+  const hash = createHash("sha256").update(trimmed, "utf8").digest("hex").slice(0, 24);
+  const prefix = trimmed
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+  const base = prefix.length > 0 ? `${prefix}-${hash}` : hash;
+  return `${base}.json`;
 }
 
 export interface BindSessionOptions {
@@ -34,6 +62,16 @@ export interface BindSessionOptions {
   /** Used only when ensuring a missing live token. */
   readonly contentVersion?: string;
   readonly stampedBy?: string;
+  /**
+   * When binding with a sessionId, also refresh the default bind path so bare
+   * `freshness:report` reflects the most recent bind. Default true.
+   */
+  readonly alsoWriteDefault?: boolean;
+}
+
+export interface ReadBoundOptions {
+  /** When set, read only that session's bind (never the default). */
+  readonly sessionId?: string | null;
 }
 
 function nowIsoDefault(): string {
@@ -89,22 +127,39 @@ export function parseBoundGeneration(raw: unknown): BoundGeneration | null {
 }
 
 /** Read the session bind record (null when absent/unreadable). */
-export function readBoundGeneration(projectRoot: string): BoundGeneration | null {
-  const path = sessionBindPath(projectRoot);
+export function readBoundGeneration(
+  projectRoot: string,
+  options: ReadBoundOptions = {},
+): BoundGeneration | null {
+  const path = sessionBindPath(projectRoot, options.sessionId);
   if (!existsSync(path)) {
     return null;
   }
   try {
     const text = readFileSync(path, "utf8");
-    return parseBoundGeneration(JSON.parse(text) as unknown);
+    const bound = parseBoundGeneration(JSON.parse(text) as unknown);
+    if (bound === null) {
+      return null;
+    }
+    // When reading a session-scoped bind, refuse a record whose embedded
+    // sessionId disagrees (tamper / wrong file).
+    const want = typeof options.sessionId === "string" ? options.sessionId.trim() : "";
+    if (want.length > 0 && bound.sessionId && bound.sessionId !== want) {
+      return null;
+    }
+    return bound;
   } catch {
     return null;
   }
 }
 
-function writeBoundGeneration(projectRoot: string, bound: BoundGeneration): string {
+function writeBoundAt(
+  projectRoot: string,
+  bound: BoundGeneration,
+  sessionId?: string | null,
+): string {
   const root = resolve(projectRoot);
-  const target = sessionBindPath(projectRoot);
+  const target = sessionBindPath(projectRoot, sessionId);
   const body = `${JSON.stringify(bound, null, 2)}\n`;
   try {
     containedWrite({
@@ -127,6 +182,8 @@ function writeBoundGeneration(projectRoot: string, bound: BoundGeneration): stri
  *
  * Does not require restarting a shared host runtime — callers re-load payload
  * surfaces into the session and call this (or `freshness:bind`) to rebind.
+ *
+ * Multi-agent hosts MUST supply `sessionId` so binds do not overwrite each other.
  */
 export function bindSessionGeneration(
   projectRoot: string,
@@ -148,14 +205,37 @@ export function bindSessionGeneration(
     );
   }
 
+  const sessionId =
+    typeof options.sessionId === "string" && options.sessionId.trim()
+      ? options.sessionId.trim()
+      : options.sessionId === null
+        ? null
+        : undefined;
+
   const bound: BoundGeneration = {
     schemaVersion: FRESHNESS_SCHEMA_VERSION,
     boundGeneration: live.generation,
     boundAt: options.nowIso ?? nowIsoDefault(),
     contentVersion: live.contentVersion,
     surfaces: { ...live.surfaces },
-    ...(options.sessionId !== undefined ? { sessionId: options.sessionId } : {}),
+    ...(sessionId !== undefined ? { sessionId } : {}),
   };
-  const path = writeBoundGeneration(projectRoot, bound);
+
+  const path = writeBoundAt(projectRoot, bound, sessionId ?? null);
+
+  // Optional default mirror for operator `freshness:report` without --session-id.
+  // Per-session files remain authoritative for multi-agent isolation.
+  if (
+    sessionId &&
+    options.alsoWriteDefault !== false &&
+    path !== sessionBindPath(projectRoot, null)
+  ) {
+    try {
+      writeBoundAt(projectRoot, bound, null);
+    } catch {
+      // Default mirror is convenience-only; session-scoped bind already succeeded.
+    }
+  }
+
   return { bound, live, path };
 }

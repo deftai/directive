@@ -84,4 +84,27 @@ describe("bindSessionGeneration (#3117)", () => {
       expect.objectContaining({ boundGeneration: 1 }),
     );
   });
+
+  it("isolates concurrent sessions so one bind cannot certify another", () => {
+    const root = tempProject();
+    stampLiveGeneration(root, {
+      contentVersion: "1.0.0",
+      stampedBy: "directive-init",
+      increment: true,
+    });
+    bindSessionGeneration(root, { sessionId: "session-a" });
+    stampLiveGeneration(root, {
+      contentVersion: "2.0.0",
+      stampedBy: "directive-update",
+      increment: true,
+    });
+    // Session B rebinds to the new generation.
+    bindSessionGeneration(root, { sessionId: "session-b" });
+    // Session A must still report hard drift (not B's current).
+    expect(reportFreshness(root, { sessionId: "session-a" }).state).toBe("stale_hard");
+    expect(reportFreshness(root, { sessionId: "session-b" }).state).toBe("current");
+    // Per-session path is distinct from the default convenience bind.
+    expect(readBoundGeneration(root, { sessionId: "session-a" })?.boundGeneration).toBe(1);
+    expect(readBoundGeneration(root, { sessionId: "session-b" })?.boundGeneration).toBe(2);
+  });
 });

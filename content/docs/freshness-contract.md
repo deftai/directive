@@ -32,11 +32,17 @@ counter when the content version is unchanged.
 ## Session bind
 
 When a mutation `session:start` (cold or re-arm) loads payload surfaces into
-runtime context, it binds the live generation into:
+runtime context, it binds the live generation:
 
 ```text
-.deft/session-bind.json
+.deft/session-binds/<safe-session-id>.json   # multi-agent isolation (preferred)
+.deft/session-bind.json                      # default / last-bind convenience
 ```
+
+Multi-agent hosts **must** pass a stable host session identity on bind and
+report so one session cannot certify another as current. `session:start` uses
+the ritual `session_id` for the isolated path and also mirrors the default bind
+for operator tooling.
 
 Hosts and operators can rebind without restarting the shared host runtime:
 
@@ -44,11 +50,13 @@ Hosts and operators can rebind without restarting the shared host runtime:
 deft freshness:bind
 # or
 task freshness:bind
-# optional host identity (opaque to Directive):
+# multi-agent hosts MUST pass a host session identity:
 deft freshness:bind -- --session-id <host-session-id>
+deft freshness:report -- --session-id <host-session-id>
 ```
 
-API (TypeScript): `bindSessionGeneration(projectRoot, options)` from
+API (TypeScript): `bindSessionGeneration(projectRoot, options)` /
+`reportFreshness(projectRoot, { sessionId })` from
 `@deftai/directive-core/freshness`.
 
 ## Freshness report

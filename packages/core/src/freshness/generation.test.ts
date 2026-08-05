@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -77,20 +77,25 @@ describe("stampLiveGeneration (#3117)", () => {
     expect(third.generation).toBe(3);
   });
 
-  it("does not bump on already-current ensure when content version matches", () => {
+  it("does not bump or rewrite on already-current ensure when content version matches", () => {
     const root = tempProject();
     stampLiveGeneration(root, {
       contentVersion: "2.0.0",
       stampedBy: "directive-init",
       increment: true,
+      nowIso: "2026-08-04T10:00:00Z",
     });
+    const before = readFileSync(liveGenerationPath(root), "utf8");
     const ensured = stampLiveGeneration(root, {
       contentVersion: "2.0.0",
       stampedBy: "directive-update",
       increment: false,
+      nowIso: "2026-08-04T11:00:00Z",
     });
     expect(ensured.generation).toBe(1);
     expect(ensured.contentVersion).toBe("2.0.0");
+    expect(ensured.stampedBy).toBe("directive-init");
+    expect(readFileSync(liveGenerationPath(root), "utf8")).toBe(before);
   });
 
   it("bumps when content version changes even without increment flag", () => {
