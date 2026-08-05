@@ -50,6 +50,16 @@ describe("review-monitor-register CLI", () => {
     ).toBe("openclaw-sessions-spawn");
   });
 
+  it("accepts Claude Code claude-agent primitive (#3134)", () => {
+    expect(
+      parseRegisterArgs([
+        "--pr=11",
+        "--monitor-agent-id=cc-monitor",
+        "--platform-primitive=claude-agent",
+      ]).platformPrimitive,
+    ).toBe("claude-agent");
+  });
+
   it("rejects invalid primitive and unknown args", () => {
     expect(parseRegisterArgs(["--platform-primitive", "nope"]).error).toMatch(/invalid/);
     expect(parseRegisterArgs(["--bogus"]).error).toMatch(/unrecognized/);

@@ -79,12 +79,14 @@ describe("resolveModelRoute (tri-state by key presence)", () => {
 });
 
 describe("dispatchProviderFromRuntime", () => {
-  it("maps grok, cursor, and openclaw variants", () => {
+  it("maps grok, cursor, openclaw, and claude variants", () => {
     expect(dispatchProviderFromRuntime("grok-build")).toBe("grok");
     expect(dispatchProviderFromRuntime("cursor-cloud")).toBe("cursor");
     expect(dispatchProviderFromRuntime("CURSOR")).toBe("cursor");
     expect(dispatchProviderFromRuntime("openclaw")).toBe("openclaw");
     expect(dispatchProviderFromRuntime("OPENCLAW-main")).toBe("openclaw");
+    expect(dispatchProviderFromRuntime("claude-code")).toBe("claude");
+    expect(dispatchProviderFromRuntime("CLAUDE")).toBe("claude");
   });
   it("passes through unknown and defaults empty", () => {
     expect(dispatchProviderFromRuntime("warp")).toBe("warp");
@@ -96,6 +98,24 @@ describe("resolveDispatchProvider (#1877 / #2875)", () => {
   it("maps Cursor env signals to cursor even when runtime_mode would be cloud-headless", () => {
     expect(resolveDispatchProvider({ CURSOR_AGENT: "1", CI: "true" })).toBe("cursor");
     expect(resolveDispatchProvider({ CURSOR_COMPOSER: "1" })).toBe("cursor");
+  });
+
+  it("maps Claude Code signals to claude (#3134)", () => {
+    expect(resolveDispatchProvider({ DEFT_PROBE_CLAUDE_CODE: "1" })).toBe("claude");
+    expect(resolveDispatchProvider({ DEFT_HAS_CLAUDE_AGENT: "true" })).toBe("claude");
+    expect(resolveDispatchProvider({ CLAUDECODE: "1" })).toBe("claude");
+    expect(resolveDispatchProvider({ CLAUDE_CODE: "yes" })).toBe("claude");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "claude-code" })).toBe("claude");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "claude" })).toBe("claude");
+  });
+
+  it("prefers claude over CI cloud-headless when Claude signals are set (#3134)", () => {
+    expect(resolveDispatchProvider({ CI: "true", CLAUDECODE: "1" })).toBe("claude");
+    expect(resolveDispatchProvider({ CI: "true", DEFT_PROBE_CLAUDE_CODE: "1" })).toBe("claude");
+  });
+
+  it("Cursor still wins over Claude env when CURSOR_* is set (#3134)", () => {
+    expect(resolveDispatchProvider({ CURSOR_COMPOSER: "1", CLAUDECODE: "1" })).toBe("cursor");
   });
 
   it("maps OpenClaw sessions_spawn signals to openclaw (#2875)", () => {

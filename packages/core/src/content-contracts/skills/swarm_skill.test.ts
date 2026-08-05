@@ -721,6 +721,24 @@ describe("test_swarm_skill", () => {
     expect(doc).toMatch(/⊗[^\n]*progress-only[^\n]*#2943/);
   });
 
+  it("claude_code_tier1_descriptor_matrix_3134", () => {
+    const text = _read_swarm();
+    expect(text).toContain("claude-code");
+    expect(text).toContain("claude-agent");
+    expect(text).toContain("host-claude-code.md");
+    expect(text).toContain("Probe for Claude Code");
+    expect(text).toContain("Step 2g: Claude Code Launch");
+    expect(text).toContain("DEFT_PROBE_CLAUDE_CODE");
+    expect(text).toContain("CLAUDECODE");
+    // Detection spike: bare Task alone must not classify Claude as Cursor.
+    expect(text).toMatch(/bare `Task`/i);
+    expect(text).toContain("#3134");
+    const host = readRepoFile("skills/deft-directive-swarm/references/host-claude-code.md");
+    expect(host).toContain("Detection spike");
+    expect(host).toContain("run_in_background");
+    expect(host).toContain("Nested Agent boundary");
+  });
+
   it("gates_surface_dual_invoke_order (#2893)", () => {
     const text = _read_swarm();
     expect(text).toContain("Gates-surface dual invoke (#2893)");

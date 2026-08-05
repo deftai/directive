@@ -12,6 +12,7 @@ function readSwarmSurface(): string {
     "skills/deft-directive-swarm/references/host-generic.md",
     "skills/deft-directive-swarm/references/host-grok-build.md",
     "skills/deft-directive-swarm/references/host-cursor.md",
+    "skills/deft-directive-swarm/references/host-claude-code.md",
     "skills/deft-directive-swarm/references/host-openclaw.md",
     "skills/deft-directive-swarm/references/core-phase-4.md",
     "skills/deft-directive-swarm/references/core-phase-5-6.md",

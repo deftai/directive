@@ -2,11 +2,12 @@ import { MONITORING_TIER_1, MONITORING_TIER_2, MONITORING_TIER_3 } from "./const
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
-/** Canonical Approach-1 platform primitives for review-monitor register/verify (#2655 / #2876). */
+/** Canonical Approach-1 platform primitives for review-monitor register/verify (#2655 / #2876 / #3134). */
 export type PlatformPrimitive =
   | "start_agent"
   | "spawn_subagent"
   | "cursor-task"
+  | "claude-agent"
   | "sessions_spawn"
   | "openclaw-sessions-spawn";
 
@@ -15,6 +16,7 @@ export const PLATFORM_PRIMITIVES: readonly PlatformPrimitive[] = [
   "start_agent",
   "spawn_subagent",
   "cursor-task",
+  "claude-agent",
   "sessions_spawn",
   "openclaw-sessions-spawn",
 ] as const;
@@ -48,8 +50,12 @@ function probeOverride(environ: NodeJS.ProcessEnv): MonitoringTierProbe | null {
 
 /**
  * Inline Tier-1 detection aligned with the swarm Phase 3 / review-cycle matrix
- * (#1877 / #2655 / #2876). Prefer `task platform:capabilities` when available (#1357);
+ * (#1877 / #2655 / #2876 / #3134). Prefer `task platform:capabilities` when available (#1357);
  * this probe does not block MVP.
+ *
+ * Ordered env probe (must match skill matrix placement; Claude after Cursor so bare
+ * Task / CURSOR_* never misclassify Claude Code as cursor-composer):
+ * start_agent → WARP_* → Cursor → Claude Code → OpenClaw → grok-build → Tier2 → Tier3.
  */
 export function probeMonitoringTier(environ: NodeJS.ProcessEnv = process.env): MonitoringTierProbe {
   const override = probeOverride(environ);
@@ -78,6 +84,21 @@ export function probeMonitoringTier(environ: NodeJS.ProcessEnv = process.env): M
   }
 
   const runtime = (environ.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase();
+  // Claude Code: Claude-unique env signals only — never bare "Task" (#3134).
+  // CLAUDECODE is set in Claude Code tool/hook subprocesses (Anthropic docs).
+  // DEFT_PROBE_CLAUDE_CODE / DEFT_AGENT_RUNTIME=claude-code are explicit overrides.
+  // Cursor already short-circuited above, so CURSOR_* never falls into this branch.
+  if (
+    envTruthy(environ, "DEFT_PROBE_CLAUDE_CODE") ||
+    envTruthy(environ, "DEFT_HAS_CLAUDE_AGENT") ||
+    envTruthy(environ, "CLAUDECODE") ||
+    envTruthy(environ, "CLAUDE_CODE") ||
+    runtime === "claude-code" ||
+    runtime === "claude"
+  ) {
+    return { tier: MONITORING_TIER_1, primitive: "claude-agent", descriptor: "claude-code" };
+  }
+
   // OpenClaw: sessions_spawn is the Tier-1 Approach 1 primitive (#2876).
   // Alias openclaw-sessions-spawn accepted on register for explicit naming.
   if (

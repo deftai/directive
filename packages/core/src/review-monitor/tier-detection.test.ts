@@ -26,6 +26,36 @@ describe("tier-detection", () => {
     );
   });
 
+  it("maps Claude Code probes to Tier 1 claude-agent (#3134)", () => {
+    expect(probeMonitoringTier({ DEFT_PROBE_CLAUDE_CODE: "1" })).toMatchObject({
+      tier: 1,
+      primitive: "claude-agent",
+      descriptor: "claude-code",
+    });
+    expect(probeMonitoringTier({ DEFT_HAS_CLAUDE_AGENT: "true" }).primitive).toBe("claude-agent");
+    expect(probeMonitoringTier({ CLAUDECODE: "1" }).descriptor).toBe("claude-code");
+    expect(probeMonitoringTier({ CLAUDE_CODE: "yes" }).primitive).toBe("claude-agent");
+    expect(probeMonitoringTier({ DEFT_AGENT_RUNTIME: "claude-code" }).primitive).toBe(
+      "claude-agent",
+    );
+    expect(probeMonitoringTier({ DEFT_AGENT_RUNTIME: "claude" }).descriptor).toBe("claude-code");
+  });
+
+  it("does not misclassify Claude as cursor when only Claude signals present (#3134)", () => {
+    const probe = probeMonitoringTier({ CLAUDECODE: "1" });
+    expect(probe.descriptor).not.toBe("cursor-composer");
+    expect(probe.descriptor).not.toBe("cursor-cloud-agent");
+    expect(probe.primitive).not.toBe("cursor-task");
+    expect(probe.descriptor).toBe("claude-code");
+  });
+
+  it("Cursor CURSOR_* still wins over Claude signals (ordered probe) (#3134)", () => {
+    expect(
+      probeMonitoringTier({ CURSOR_COMPOSER: "1", CLAUDECODE: "1", DEFT_PROBE_CLAUDE_CODE: "1" })
+        .descriptor,
+    ).toBe("cursor-composer");
+  });
+
   it("maps OpenClaw / sessions_spawn probes to Tier 1 (#2876)", () => {
     expect(probeMonitoringTier({ DEFT_PROBE_SESSIONS_SPAWN: "1" }).primitive).toBe(
       "sessions_spawn",

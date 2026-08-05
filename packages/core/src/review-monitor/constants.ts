@@ -47,7 +47,7 @@ export const REVIEW_MONITOR_HELP =
   "\n" +
   "Claim a lease after spawning Approach 1:\n" +
   "  task review-monitor:register -- --pr <N> --monitor-agent-id <id> \\\n" +
-  "    --platform-primitive cursor-task|spawn_subagent|start_agent|sessions_spawn \\\n" +
+  "    --platform-primitive cursor-task|claude-agent|spawn_subagent|start_agent|sessions_spawn \\\n" +
   "    [--head-sha SHA] [--repo OWNER/REPO] [--force]\n" +
   "\n" +
   "Release when done:\n" +
@@ -64,7 +64,8 @@ export const REGISTER_HELP =
   "  --pr N                     Pull request number\n" +
   "  --monitor-agent-id ID      Stable poller agent id / Task handle\n" +
   "  --platform-primitive P     start_agent | spawn_subagent | cursor-task |\n" +
-  "                             sessions_spawn | openclaw-sessions-spawn (#2876)\n" +
+  "                             claude-agent (#3134) | sessions_spawn |\n" +
+  "                             openclaw-sessions-spawn (#2876)\n" +
   "\n" +
   "options:\n" +
   "  --repo OWNER/REPO          Repository (default: origin / DEFT_TRIAGE_REPO)\n" +

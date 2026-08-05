@@ -69,6 +69,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 |---------------------|-----------------|--------------|
 | `warp-orchestrated` / `warp-manual` | `start_agent` / Warp tabs | [`references/host-warp.md`](references/host-warp.md) |
 | `cursor-composer` / `cursor-cloud-agent` | Cursor `Task` | [`references/host-cursor.md`](references/host-cursor.md) |
+| `claude-code` | Claude `Agent` (`run_in_background`) / `claude-agent` | [`references/host-claude-code.md`](references/host-claude-code.md) |
 | `openclaw` | `sessions_spawn` | [`references/host-openclaw.md`](references/host-openclaw.md) |
 | `grok-build` | `spawn_subagent` | [`references/host-grok-build.md`](references/host-grok-build.md) |
 | `generic-terminal` (or explicit cloud) | serial / paste / `oz agent run-cloud` | [`references/host-generic.md`](references/host-generic.md) |
@@ -127,15 +128,17 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 1. ! **Probe for `start_agent` tool** — Warp orchestrated.
 2. ! **Probe for Warp environment** — `WARP_*` without `start_agent` → warp-manual.
-3. ! **Probe for the Cursor `Task` tool** — Tier 1; descriptor `cursor-composer` / `cursor-cloud-agent` (#1877).
-4. ! **Probe for the OpenClaw `sessions_spawn` tool** — Tier 1; descriptor `openclaw` (#2875). Do NOT misclassify as `grok-build` or `generic-terminal`.
-5. ! **Probe for `spawn_subagent` tool** — descriptor `grok-build`.
-6. ! **Select launch path automatically** — load the matching host adapter (route table). No static A/B/C menu.
-7. ! **Return a stable platform descriptor** for Phase 4/6: `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, `openclaw`, `grok-build`, or `generic-terminal`.
-8. ? **Cloud escape hatch** — `oz agent run-cloud` only on explicit user request (host-generic).
+3. ! **Probe for the Cursor `Task` tool** — Tier 1; descriptor `cursor-composer` / `cursor-cloud-agent` (#1877). Require Cursor signals (`CURSOR_*` or Cursor-only Task surface) — not bare `Task` alone.
+4. ! **Probe for Claude Code** — Tier 1; descriptor `claude-code` (#3134). Claude-unique signals only: `Agent` (or `CreateAgent` / `SubagentStart`) with background / `run_in_background`, and/or `DEFT_PROBE_CLAUDE_CODE` / `DEFT_AGENT_RUNTIME=claude-code` / `CLAUDECODE`. ⊗ Misclassify as `cursor-composer` via bare `Task`.
+5. ! **Probe for the OpenClaw `sessions_spawn` tool** — Tier 1; descriptor `openclaw` (#2875). Do NOT misclassify as `grok-build` or `generic-terminal`.
+6. ! **Probe for `spawn_subagent` tool** — descriptor `grok-build`.
+7. ! **Select launch path automatically** — load the matching host adapter (route table). No static A/B/C menu.
+8. ! **Return a stable platform descriptor** for Phase 4/6: `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, `claude-code`, `openclaw`, `grok-build`, or `generic-terminal`.
+9. ? **Cloud escape hatch** — `oz agent run-cloud` only on explicit user request (host-generic).
 
 ⊗ Present static launch options instead of detecting capabilities at runtime.
 ⊗ Offer Warp-specific launch paths when not inside Warp.
+⊗ Classify Claude Code as `cursor-composer` / `generic-terminal` when Claude-unique signals are present (#3134).
 
 ## Phase overview
 
@@ -163,5 +166,6 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Merge before Greptile exit condition (score > 3, no P0/P1)
 - ⊗ Skip Phase 0 approval before Phase 1
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
+- ⊗ Misclassify Claude Code as `cursor-composer` / `generic-terminal` (#3134)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

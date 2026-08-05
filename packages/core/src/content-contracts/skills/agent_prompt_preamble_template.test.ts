@@ -243,4 +243,10 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("startup grace");
     expect(templateText).toContain("Parent ensures scratch dir");
   });
+
+  it("template_lists_claude_code_dispatch_provider_3134", () => {
+    expect(templateText).toContain("claude-code");
+    expect(templateText).toContain("claude-agent");
+    expect(templateText).toContain("#3134");
+  });
 });
