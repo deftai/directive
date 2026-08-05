@@ -54,8 +54,8 @@ describe("bindSessionGeneration (#3117)", () => {
     expect(b.boundGeneration).toBe(l.generation);
     expect(b.sessionId).toBe("host-session-1");
     expect(existsSync(path)).toBe(true);
-    expect(readBoundGeneration(root)?.boundGeneration).toBe(1);
-    const report = reportFreshness(root);
+    expect(readBoundGeneration(root, { sessionId: "host-session-1" })?.boundGeneration).toBe(1);
+    const report = reportFreshness(root, { sessionId: "host-session-1" });
     expect(report.state).toBe("current");
     expect(report.ready).toBe(true);
   });
@@ -98,12 +98,13 @@ describe("bindSessionGeneration (#3117)", () => {
       stampedBy: "directive-update",
       increment: true,
     });
-    // Session B rebinds to the new generation.
+    // Session B rebinds to the new generation (no default mirror).
     bindSessionGeneration(root, { sessionId: "session-b" });
     // Session A must still report hard drift (not B's current).
     expect(reportFreshness(root, { sessionId: "session-a" }).state).toBe("stale_hard");
     expect(reportFreshness(root, { sessionId: "session-b" }).state).toBe("current");
-    // Per-session path is distinct from the default convenience bind.
+    // Bare report without sessionId does not use B's bind (unbound unless default set).
+    expect(reportFreshness(root).state).toBe("unbound");
     expect(readBoundGeneration(root, { sessionId: "session-a" })?.boundGeneration).toBe(1);
     expect(readBoundGeneration(root, { sessionId: "session-b" })?.boundGeneration).toBe(2);
   });

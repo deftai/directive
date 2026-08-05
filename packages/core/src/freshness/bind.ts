@@ -39,14 +39,34 @@ export function sessionBindPath(projectRoot: string, sessionId?: string | null):
 /**
  * Stable filesystem-safe file name for a host session id.
  * Keeps a short prefix for debug, hashes the rest to avoid path injection.
+ * Character filter is O(n) (no regex) — CodeQL poly-redos on uncontrolled ids.
  */
 export function safeSessionFileName(sessionId: string): string {
   const trimmed = sessionId.trim();
   const hash = createHash("sha256").update(trimmed, "utf8").digest("hex").slice(0, 24);
-  const prefix = trimmed
-    .replace(/[^a-zA-Z0-9._-]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 32);
+  let prefix = "";
+  for (let i = 0; i < trimmed.length && prefix.length < 32; i++) {
+    const ch = trimmed[i] ?? "";
+    const code = ch.charCodeAt(0);
+    const ok =
+      (code >= 48 && code <= 57) || // 0-9
+      (code >= 65 && code <= 90) || // A-Z
+      (code >= 97 && code <= 122) || // a-z
+      ch === "." ||
+      ch === "_" ||
+      ch === "-";
+    if (ok) {
+      prefix += ch;
+    } else if (prefix.length === 0 || prefix[prefix.length - 1] !== "_") {
+      prefix += "_";
+    }
+  }
+  while (prefix.startsWith("_")) {
+    prefix = prefix.slice(1);
+  }
+  while (prefix.endsWith("_")) {
+    prefix = prefix.slice(0, -1);
+  }
   const base = prefix.length > 0 ? `${prefix}-${hash}` : hash;
   return `${base}.json`;
 }
@@ -63,8 +83,9 @@ export interface BindSessionOptions {
   readonly contentVersion?: string;
   readonly stampedBy?: string;
   /**
-   * When binding with a sessionId, also refresh the default bind path so bare
-   * `freshness:report` reflects the most recent bind. Default true.
+   * When binding with a sessionId, also write the default bind path.
+   * Default **false** — multi-agent isolation requires hosts to report with
+   * `--session-id`. Enabling this reopens cross-session false-current (Greptile).
    */
   readonly alsoWriteDefault?: boolean;
 }
@@ -223,18 +244,14 @@ export function bindSessionGeneration(
 
   const path = writeBoundAt(projectRoot, bound, sessionId ?? null);
 
-  // Optional default mirror for operator `freshness:report` without --session-id.
-  // Per-session files remain authoritative for multi-agent isolation.
+  // Opt-in only: never mirror session-scoped binds into the default path by
+  // default (that would let bare freshness:report certify another session).
   if (
     sessionId &&
-    options.alsoWriteDefault !== false &&
+    options.alsoWriteDefault === true &&
     path !== sessionBindPath(projectRoot, null)
   ) {
-    try {
-      writeBoundAt(projectRoot, bound, null);
-    } catch {
-      // Default mirror is convenience-only; session-scoped bind already succeeded.
-    }
+    writeBoundAt(projectRoot, bound, null);
   }
 
   return { bound, live, path };

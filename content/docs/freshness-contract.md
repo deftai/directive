@@ -40,9 +40,9 @@ runtime context, it binds the live generation:
 ```
 
 Multi-agent hosts **must** pass a stable host session identity on bind and
-report so one session cannot certify another as current. `session:start` uses
-the ritual `session_id` for the isolated path and also mirrors the default bind
-for operator tooling.
+report so one session cannot certify another as current. `session:start` binds
+only the ritual `session_id` path — bare `freshness:report` without
+`--session-id` reads the default bind only (not another session's file).
 
 Hosts and operators can rebind without restarting the shared host runtime:
 
