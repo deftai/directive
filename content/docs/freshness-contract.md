@@ -39,13 +39,20 @@ runtime context, it binds the live generation:
 .deft/session-bind.json                      # default / last-bind convenience
 ```
 
-Multi-agent hosts **must** pass a stable host session identity on bind and
-report so one session cannot certify another as current. `session:start` binds
-the ritual `session_id` path. Bare `freshness:report` (no `--session-id`)
-recovers that identity from `.deft/ritual-state.json` so post-start reports
-match the session just bound. Pass `--session-id` for a non-ritual host session;
-pass an explicit empty only via API `sessionId: null` to force the default bind
-path.
+Multi-agent hosts **must** pin session identity so one session cannot certify
+another as current:
+
+1. Prefer `DEFT_SESSION_ID=<id>` in the process environment (printed by
+   `session:start`), or
+2. Pass `--session-id <id>` on every `freshness:report` / `freshness:bind`.
+
+Trusted readiness (`state=current`, exit 0) requires a **pinned** identity
+(explicit flag or `DEFT_SESSION_ID`). Bare report without a pin never returns
+`ready=true` even if a ritual-recovered bind matches live — that prevents
+cross-session false current when multiple agents share a worktree.
+
+`session:start` binds the ritual `session_id` path and prints the
+`DEFT_SESSION_ID=…` line for the operator or host to adopt.
 
 Hosts and operators can rebind without restarting the shared host runtime:
 

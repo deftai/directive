@@ -710,6 +710,10 @@ function runSessionRearm(
       `[deft freshness] bound generation ${bound.bound.boundGeneration} ` +
         `(live deposit v${bound.live.contentVersion})`,
     );
+    lines.push(
+      `[deft freshness] set DEFT_SESSION_ID=${rearmSessionId} for bare freshness:report/bind ` +
+        `(or pass --session-id; required for multi-agent trusted readiness)`,
+    );
   } catch {
     const live = readLiveGeneration(projectRoot);
     if (live !== null) {
@@ -1134,6 +1138,10 @@ export function runSessionStart(
     lines.push(
       `[deft freshness] bound generation ${bound.bound.boundGeneration} ` +
         `(live deposit v${bound.live.contentVersion})`,
+    );
+    lines.push(
+      `[deft freshness] set DEFT_SESSION_ID=${coldSessionId} for bare freshness:report/bind ` +
+        `(or pass --session-id; required for multi-agent trusted readiness)`,
     );
   } catch {
     const live = readLiveGeneration(projectRoot);

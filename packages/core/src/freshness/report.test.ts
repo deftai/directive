@@ -26,10 +26,15 @@ function bound(generation: number, contentVersion: string): BoundGeneration {
 }
 
 describe("resolveReportSessionId (#3117)", () => {
-  it("prefers explicit session id over ritual recovery", async () => {
-    const { resolveReportSessionId } = await import("./report.js");
+  it("prefers explicit session id over env and ritual recovery", async () => {
+    const { hasPinnedSessionIdentity, resolveReportSessionId } = await import("./report.js");
     expect(resolveReportSessionId(process.cwd(), "explicit-id")).toBe("explicit-id");
     expect(resolveReportSessionId(process.cwd(), null)).toBeNull();
+    expect(resolveReportSessionId(process.cwd(), undefined, { DEFT_SESSION_ID: "from-env" })).toBe(
+      "from-env",
+    );
+    expect(hasPinnedSessionIdentity(undefined, {})).toBe(false);
+    expect(hasPinnedSessionIdentity(undefined, { DEFT_SESSION_ID: "x" })).toBe(true);
   });
 });
 

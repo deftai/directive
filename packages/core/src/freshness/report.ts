@@ -22,18 +22,31 @@ export interface ReportFreshnessOptions {
 }
 
 /**
- * Resolve which bind identity a report should use.
- * Explicit sessionId wins; else ritual session_id; else default bind (null).
+ * Resolve which bind identity a report/bind should use.
+ *
+ * Precedence:
+ * 1. Explicit non-empty `sessionId`
+ * 2. `DEFT_SESSION_ID` env (per-process; multi-agent safe)
+ * 3. Ritual `session_id` from `.deft/ritual-state.json` (same-worktree operator)
+ * 4. `null` → default bind path only
+ *
+ * Trusted `current`/`ready` still requires a **pinned** identity (explicit or env).
+ * Ritual recovery alone is convenience for bind write target, not for trusted ready.
  */
 export function resolveReportSessionId(
   projectRoot: string,
   explicit?: string | null,
+  env: NodeJS.ProcessEnv = process.env,
 ): string | null {
   if (explicit === null) {
     return null;
   }
   if (typeof explicit === "string" && explicit.trim().length > 0) {
     return explicit.trim();
+  }
+  const fromEnv = (env.DEFT_SESSION_ID ?? "").trim();
+  if (fromEnv.length > 0) {
+    return fromEnv;
   }
   try {
     const [state] = readRitualState(projectRoot);
@@ -44,6 +57,17 @@ export function resolveReportSessionId(
   }
 }
 
+/** True when the caller pinned identity via explicit arg or DEFT_SESSION_ID. */
+export function hasPinnedSessionIdentity(
+  explicit?: string | null,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (typeof explicit === "string" && explicit.trim().length > 0) {
+    return true;
+  }
+  return (env.DEFT_SESSION_ID ?? "").trim().length > 0;
+}
+
 /** Build a freshness report for the project (bound vs live on disk). */
 export function reportFreshness(
   projectRoot: string,
@@ -52,7 +76,23 @@ export function reportFreshness(
   const sessionId = resolveReportSessionId(projectRoot, options.sessionId);
   const bound = readBoundGeneration(projectRoot, { sessionId });
   const live = readLiveGeneration(projectRoot);
-  return compareFreshness(bound, live);
+  const report = compareFreshness(bound, live);
+  // Multi-agent safety: never claim ready/current without a pinned session identity.
+  // Ritual recovery alone can point at another concurrent session's bind on a
+  // shared worktree (Greptile). Hosts set DEFT_SESSION_ID or pass --session-id.
+  if (report.ready && !hasPinnedSessionIdentity(options.sessionId)) {
+    return {
+      ...report,
+      state: "stale_soft",
+      ready: false,
+      rebindGuidance:
+        "Session identity is not pinned. Set DEFT_SESSION_ID to this session's id " +
+        "(printed by session:start) or pass --session-id before trusted work. " +
+        "Bare reports without a pinned id cannot certify readiness when multiple " +
+        "sessions share a worktree.",
+    };
+  }
+  return report;
 }
 
 /** Human-readable multi-line freshness report. */

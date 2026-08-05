@@ -58,6 +58,8 @@ describe("bindSessionGeneration (#3117)", () => {
     const report = reportFreshness(root, { sessionId: "host-session-1" });
     expect(report.state).toBe("current");
     expect(report.ready).toBe(true);
+    // Unpinned report never ready even if a bind matches live.
+    expect(reportFreshness(root).ready).toBe(false);
   });
 
   it("rebind after upgrade moves session to current", () => {
