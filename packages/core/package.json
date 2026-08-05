@@ -243,6 +243,10 @@
       "types": "./dist/capacity/index.d.ts",
       "default": "./dist/capacity/index.js"
     },
+    "./freshness": {
+      "types": "./dist/freshness/index.d.ts",
+      "default": "./dist/freshness/index.js"
+    },
     "./intake": {
       "types": "./dist/intake/index.d.ts",
       "default": "./dist/intake/index.js"

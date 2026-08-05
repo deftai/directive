@@ -312,6 +312,17 @@ When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: p
 
 Full always-on contract for the interactive session-start ritual and its gated verifier (#1149 / #1348). Read-only posture (#2176) defers this ceremony until mutation intent — see `.deft/core/commands.md` § Session routing.
 
+### Freshness contract: bound vs live generation (#3117)
+
+After CLI/deposit upgrade, disk can show the new generation while a long-lived session still executes the pre-upgrade payload it loaded earlier. Disk-only "up to date" is **not** session readiness.
+
+- ! Successful `init` / payload `update` stamps a monotonic live generation at `.deft/GENERATION.json` (outside `.deft/core` so replace does not wipe the counter).
+- ! Mutation `session:start` (cold and re-arm) binds that generation into `.deft/session-bind.json` when payload surfaces load.
+- ! Query with `deft freshness:report` / `task freshness:report` / `task session:freshness` (`--json` supported). States: `current` | `stale_soft` | `stale_hard` | `unbound`. Exit `0` only when `current`.
+- ! Rebind without restarting a shared host runtime: re-load surfaces into the session, then `deft freshness:bind` (or re-arm / `session:ready`).
+- ! Mid-mission: park and hand off before a hard refresh; an empty session after refresh is not work complete.
+- Soft vs hard meanings, surfaces, and API: `content/docs/freshness-contract.md`.
+
 ### Session routing (#2176)
 
 - ! Default interactive sessions to **read-only posture** until mutation or implementation intent (questions, research, Plan Mode, ticket-shaping). Load AGENTS.md / main.md / USER.md / PROJECT-DEFINITION; confirm alignment with addressing-name; ⊗ do not write `.deft/ritual-state.json`, run install/build side effects, or emit triage welcome, branch-policy, default-branch sync, sync-skill lifecycle checks, or eval/value readback writes unless the operator asks or the task is implementation-ready.

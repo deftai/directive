@@ -19,6 +19,7 @@ import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { stampLiveGeneration } from "../freshness/generation.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   detectNoDeftDirective,
@@ -634,6 +635,18 @@ export async function runRefreshDeposit(
     // VERSION already matches (e.g. pre-#2804 additive deposits). Does not re-stamp.
     await reconcileDepositToContentPackage(deftDir, contentRoot, io);
     migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
+    // #3117: ensure a readable live generation token exists without advancing
+    // when the payload did not swap (already-current). Do not touch seams.nowIso
+    // so already-current remains observably idempotent for callers that spy it.
+    try {
+      stampLiveGeneration(projectDir, {
+        contentVersion,
+        stampedBy: "directive-update",
+        increment: false,
+      });
+    } catch {
+      // Generation stamp is best-effort relative to refresh success; never block update.
+    }
   } else {
     // Full-tree replace (or injected seam). Additive copy is no longer the default.
     await copyContent(contentRoot, deftDir);
@@ -644,12 +657,13 @@ export async function runRefreshDeposit(
     await reconcileDepositToContentPackage(deftDir, contentRoot, io);
 
     const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
+    const stampedAt = nowIso();
     const manifestFields: InstallManifestFields = {
       ref: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
       sha: "content-package",
       tag: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
       installRoot: CANONICAL_INSTALL_ROOT,
-      fetchedAt: nowIso(),
+      fetchedAt: stampedAt,
       fetchedBy: "directive-update",
       ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
     };
@@ -659,6 +673,18 @@ export async function runRefreshDeposit(
     // .deft/core/VERSION has been rewritten (folded in from install-upgrade so no
     // manifest behavior is lost by the redirect). Best-effort; never fatal.
     migrateLegacyInstallManifest(projectDir, writtenManifestPath);
+
+    // #3117: monotonic live generation token on successful payload apply.
+    try {
+      stampLiveGeneration(projectDir, {
+        contentVersion,
+        stampedBy: "directive-update",
+        increment: true,
+        nowIso: stampedAt,
+      });
+    } catch {
+      // Generation stamp is best-effort relative to refresh success; never block update.
+    }
   }
 
   // #2595: payload freshness and consumer derivative freshness are independent.

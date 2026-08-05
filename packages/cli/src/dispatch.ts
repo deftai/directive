@@ -229,6 +229,7 @@ export const CORE_MODULE_VERBS = [
   "feedback-file",
   "value-readback",
   "product-signal",
+  "freshness-report",
 ] as const;
 
 /** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
@@ -313,6 +314,18 @@ const PRODUCT_SIGNAL_COLON_ALIASES = Object.fromEntries(
   Object.keys(PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS).map((alias) => [alias, "product-signal"]),
 ) as Record<string, string>;
 
+/** Colon aliases for freshness subcommands (#3117). */
+export const FRESHNESS_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "freshness:report": "report",
+  "freshness:bind": "bind",
+  "session:freshness": "report",
+  freshness: "report",
+};
+
+const FRESHNESS_COLON_ALIASES = Object.fromEntries(
+  Object.keys(FRESHNESS_ALIAS_SUBCOMMANDS).map((alias) => [alias, "freshness-report"]),
+) as Record<string, string>;
+
 /** Task-style aliases (framework_commands / Taskfile names). */
 export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "hook:dispatch": "hook-dispatch",
@@ -389,6 +402,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   upgrade: "install-upgrade",
   "session:start": "session-start",
   "session:ready": "session-ready",
+  ...FRESHNESS_COLON_ALIASES,
   "lifecycle:event": "lifecycle-event",
   "lifecycle:stats": "lifecycle-stats",
   "toolchain:check": "toolchain-check",
@@ -2829,6 +2843,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       const { mainEntry } = await import("@deftai/directive-core/dist/product-signal/submit.js");
       return mainEntry;
     }
+    case "freshness-report": {
+      const { mainEntry } = await import("@deftai/directive-core/dist/freshness/cli.js");
+      return mainEntry;
+    }
     default:
       throw new Error(`unknown core verb: ${verb}`);
   }
@@ -2949,6 +2967,14 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "session:ready",
         summary: "One-shot recovery to gated write-ready (session + ritual + cache)",
+      },
+      {
+        name: "freshness:report",
+        summary: "Bound vs live deposit generation (current|stale_soft|stale_hard)",
+      },
+      {
+        name: "freshness:bind",
+        summary: "Bind live deposit generation into this session (no host restart)",
       },
       {
         name: "scm:status",
@@ -3108,6 +3134,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
       verb !== undefined ? PLAN_SEQUENCE_ALIAS_SUBCOMMANDS[verb] : undefined;
     const productSignalSubcommand =
       verb !== undefined ? PRODUCT_SIGNAL_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const freshnessSubcommand = verb !== undefined ? FRESHNESS_ALIAS_SUBCOMMANDS[verb] : undefined;
     const handlerArgv =
       canonical === "framework-commands" && verb !== undefined && verb !== canonical
         ? [verb, ...rest]
@@ -3123,7 +3150,9 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
                   ? [planSequenceSubcommand, ...rest]
                   : productSignalSubcommand !== undefined && canonical === "product-signal"
                     ? [productSignalSubcommand, ...rest]
-                    : rest;
+                    : freshnessSubcommand !== undefined && canonical === "freshness-report"
+                      ? [freshnessSubcommand, ...rest]
+                      : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

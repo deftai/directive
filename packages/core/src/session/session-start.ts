@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { emitSessionEvalReadback } from "../eval/readback.js";
+import { bindSessionGeneration } from "../freshness/bind.js";
+import { readLiveGeneration } from "../freshness/generation.js";
 import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import {
   detectEnvironmentContext,
@@ -57,6 +59,7 @@ import {
   ritualStep,
   writeRitualState,
 } from "./ritual-sentinel.js";
+import { timestampIso } from "./time.js";
 
 export const SESSION_POSTURES = ["read-only", "mutation"] as const;
 export type SessionPosture = (typeof SESSION_POSTURES)[number];
@@ -638,10 +641,11 @@ function runSessionRearm(
   const gatedSteps = restampSteps(eligibility.state.gatedSteps, instant);
 
   const writeStarted = performance.now();
+  const rearmSessionId = (options.newSessionId ?? randomUUID)();
   // Fresh payload (no rearm_needed / compact_resume_at) clears compact markers (#2992).
   const writePayload: Record<string, unknown> = {
     ...newRitualStatePayload({
-      sessionId: (options.newSessionId ?? randomUUID)(),
+      sessionId: rearmSessionId,
       gitHead: eligibility.currentHead,
       worktreePath: eligibility.currentWorktree,
       startedAt: instant,
@@ -688,6 +692,34 @@ function runSessionRearm(
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
   const code = failed.length > 0 ? 1 : 0;
+
+  // #3117: bind live deposit generation into session context on re-arm (host-agnostic).
+  let freshnessBind: Record<string, unknown> | null = null;
+  try {
+    const bound = bindSessionGeneration(projectRoot, {
+      sessionId: rearmSessionId,
+      nowIso: timestampIso(instant),
+    });
+    freshnessBind = {
+      bound_generation: bound.bound.boundGeneration,
+      live_generation: bound.live.generation,
+      content_version: bound.live.contentVersion,
+      path: bound.path,
+    };
+    lines.push(
+      `[deft freshness] bound generation ${bound.bound.boundGeneration} ` +
+        `(live deposit v${bound.live.contentVersion})`,
+    );
+  } catch {
+    const live = readLiveGeneration(projectRoot);
+    if (live !== null) {
+      lines.push(
+        `[deft freshness] live generation ${live.generation} present; session bind deferred ` +
+          `(run \`deft freshness:bind\` after loading payload surfaces)`,
+      );
+    }
+  }
+
   // #2994: local process-cost event (best-effort; never blocks ceremony).
   emitSessionStartProcessCost(
     {
@@ -708,6 +740,7 @@ function runSessionRearm(
       ceremony_tier: REARM_CEREMONY_TIER,
       rearm_eligible: true,
       state_path: statePath,
+      ...(freshnessBind ? { freshness: freshnessBind } : {}),
       quick_steps: quickSteps,
       gated_steps: gatedSteps,
       steps: stepTimings,
@@ -1049,8 +1082,9 @@ export function runSessionStart(
   }
 
   const writeStarted = performance.now();
+  const coldSessionId = (options.newSessionId ?? randomUUID)();
   const payload = newRitualStatePayload({
-    sessionId: (options.newSessionId ?? randomUUID)(),
+    sessionId: coldSessionId,
     gitHead: gitHeadValue,
     worktreePath: worktreePath(projectRoot, runGit),
     startedAt: instant,
@@ -1083,11 +1117,40 @@ export function runSessionStart(
     .map(([name]) => name);
   const code = failed.length > 0 ? 1 : 0;
   const totalMs = elapsedMs(overallStarted);
+
+  // #3117: bind live deposit generation when payload surfaces load (cold path).
+  let freshnessBind: Record<string, unknown> | null = null;
+  try {
+    const bound = bindSessionGeneration(projectRoot, {
+      sessionId: coldSessionId,
+      nowIso: timestampIso(instant),
+    });
+    freshnessBind = {
+      bound_generation: bound.bound.boundGeneration,
+      live_generation: bound.live.generation,
+      content_version: bound.live.contentVersion,
+      path: bound.path,
+    };
+    lines.push(
+      `[deft freshness] bound generation ${bound.bound.boundGeneration} ` +
+        `(live deposit v${bound.live.contentVersion})`,
+    );
+  } catch {
+    const live = readLiveGeneration(projectRoot);
+    if (live !== null) {
+      lines.push(
+        `[deft freshness] live generation ${live.generation} present; session bind deferred ` +
+          `(run \`deft freshness:bind\` after loading payload surfaces)`,
+      );
+    }
+  }
+
   const resultPayload = {
     ready: code === 0,
     exit_code: code,
     ceremony_tier: COLD_CEREMONY_TIER,
     state_path: statePath,
+    ...(freshnessBind ? { freshness: freshnessBind } : {}),
     quick_steps: quickSteps,
     gated_steps: gatedSteps,
     steps: stepTimings,

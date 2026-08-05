@@ -27,6 +27,7 @@ export * as evalReport from "./eval/report.js";
 export * as evalRun from "./eval/run.js";
 export * as events from "./events/attribution-ledger.js";
 export * from "./forward-coverage/evaluate.js";
+export * as freshness from "./freshness/index.js";
 // #2951 Phase 1: contained-write API for product sinks.
 export {
   ContainedWriteError,
