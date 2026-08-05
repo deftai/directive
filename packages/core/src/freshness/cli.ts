@@ -9,6 +9,7 @@ import {
   freshnessReportExitCode,
   freshnessReportToJson,
   reportFreshness,
+  resolveReportSessionId,
 } from "./report.js";
 
 export type FreshnessCliCommand = "report" | "bind" | "help";
@@ -122,14 +123,16 @@ export function runFreshnessCli(argv: readonly string[] = []): FreshnessCliResul
 
   if (options.command === "bind") {
     try {
+      // Match report identity: omitted flag recovers ritual session_id so bare
+      // bind + bare report target the same scoped record (Greptile P1).
+      const bindSessionId =
+        options.sessionId === undefined
+          ? resolveReportSessionId(projectRoot, undefined)
+          : options.sessionId.trim().length > 0
+            ? options.sessionId.trim()
+            : null;
       const { bound, live, path } = bindSessionGeneration(projectRoot, {
-        // Empty string means default bind; undefined means no explicit id.
-        sessionId:
-          options.sessionId === undefined
-            ? undefined
-            : options.sessionId.trim().length > 0
-              ? options.sessionId.trim()
-              : null,
+        sessionId: bindSessionId,
       });
       if (options.json) {
         return {
