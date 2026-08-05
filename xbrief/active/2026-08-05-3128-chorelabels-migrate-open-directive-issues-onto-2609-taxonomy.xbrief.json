@@ -1,0 +1,65 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3128",
+    "updated": "2026-08-05T19:56:59Z"
+  },
+  "plan": {
+    "title": "chore(labels): migrate open directive issues onto #2609 taxonomy scheme",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(labels): migrate open directive issues onto #2609 taxonomy scheme",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3128",
+      "Overview": "## Summary\n\n**Migrate existing `deftai/directive` issues** onto the maintainer label scheme defined by **#2609** (catalog + `.github/ISSUE_LABELS.md`).\n\n#2609 owns **scheme + label catalog** (create/edit/delete labels, descriptions, twin decisions, machine/mirror names). This issue owns **applying that scheme to issues** (retag open work, role labels, limited cleanup on issues) so the Issues UI matches the doc.\n\n## Depends on\n\n- **#2609 Phase A** landed: ISSUE_LABELS.md exists; platform + machine labels created (or documented defer); twin decisions recorded.\n- Do **not** start bulk retag before the SoT file and catalog are stable.\n\n## Parent / plan\n\n- Parent taxonomy: **#2609**\n- Umbrella: **#886**\n- Plan order (updated): **#2609** → **this migration** → **#2611** → **#3124**\n\n(Consumer kit #2611 should not invent names that migration/mirror then contradict; migration after catalog keeps directive consistent first.)\n\n## In scope\n\n### 1. Role labels (graph-informed)\nUsing ISSUE_LABELS.md rules from #2609:\n\n- Product multi-ship roots → ensure `epic` + `status:tracker` (e.g. candidates like #1423, #2741 already partly correct)\n- Coordination-only boards → `status:tracker` (± no `epic` per doc)\n- Issues with formal parent link → `status:child`\n- Mid-level trackers under a parent → `status:tracker` + `status:child` when both roles apply\n- Leaves: no `epic`; not both tracker and pure-leaf confusion\n\nPrefer automation or scripted checklist driven by **parent links / known umbrella lists / current-shape**, not title keywords alone.\n\n### 2. Twin / deprecated labels on issues\nWhere #2609 decided merges (e.g. `docs` → `documentation`):\n\n- Retag **open** issues off deprecated names onto canonical ones\n- Do not require closed-history rewrite (optional later ops)\n\n### 3. Platform backfill (beyond #2609 seed)\nApply `platform:*` to additional **open** platform-intrinsic issues identified by checklist/heuristic (expand seed from #2609).\n\n### 4. Machine labels (optional pass)\nAfter catalog includes `triaged` / `triage:*`:\n\n- Optional: open-only `triage:classify -- --mirror --apply` for **classify matches only** (does not replace role retag)\n- Do not use mirror to invent `status:child` / `epic`\n\n### 5. Safety\n- Dry-run / report before mass apply (script output or checklist)\n- Rate-limit aware if using API\n- Document false-positive policy (skip rather than wrong-parent child stamps)\n\n## Out of scope\n\n- Defining the taxonomy (that is #2609)\n- Consumer kit (#2611) or discovery tip (#3124)\n- Full closed-history rewrite\n- Mirror engine features\n- Auto-relabel forever CI (unless tiny helper script checked in as one-shot)\n\n## Acceptance criteria\n\n- [ ] Blocked on #2609 Phase A (SoT + catalog)\n- [ ] Written migration plan (which labels move, which issues classes, dry-run report)\n- [ ] Open issues updated for agreed twin renames (or explicit exceptions list)\n- [ ] Known product epics / trackers / children in scope set have role labels per #2609 rules (documented scope set)\n- [ ] Platform backfill for agreed open set\n- [ ] Optional mirror apply pass documented if run\n- [ ] Short note in ISSUE_LABELS.md or CONTRIBUTING: how migration was done / how to re-run\n- [ ] CHANGELOG if user-visible process docs change\n\n## Related\n\n- **#2609** — scheme + catalog (parent)\n- **#2611** — consumer kit (after this or after #2609 catalog; plan prefers after migration so directive is clean first)\n- **#3124** — discovery after #2611\n- **#1423** / **#3126** — mirror apply is optional tool, not full migration\n- **#886** — umbrella\n\n## Non-goals\n\n- Perfect historical accuracy on all closed issues\n- Replacing current-shape / sub-issues as structure SoT\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-05T18:08:30Z)\n\nParent taxonomy: #2609. Plan-sequence entry 2 of `label-taxonomy-migrate-kit-discovery-2026-08-05` (after #2609, before #2611).",
+      "Labels": "enhancement, triage, process, scm"
+    },
+    "items": [
+      {
+        "title": "Blocked on #2609 Phase A (SoT + catalog)",
+        "status": "proposed"
+      },
+      {
+        "title": "Written migration plan (which labels move, which issues classes, dry-run report)",
+        "status": "proposed"
+      },
+      {
+        "title": "Open issues updated for agreed twin renames (or explicit exceptions list)",
+        "status": "proposed"
+      },
+      {
+        "title": "Known product epics / trackers / children in scope set have role labels per #2609 rules (documented scope set)",
+        "status": "proposed"
+      },
+      {
+        "title": "Platform backfill for agreed open set",
+        "status": "proposed"
+      },
+      {
+        "title": "Optional mirror apply pass documented if run",
+        "status": "proposed"
+      },
+      {
+        "title": "Short note in ISSUE_LABELS.md or CONTRIBUTING: how migration was done / how to re-run",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG if user-visible process docs change",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "process",
+      "scm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3128",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3128: chore(labels): migrate open directive issues onto #2609 taxonomy scheme"
+      }
+    ],
+    "updated": "2026-08-05T19:56:59Z"
+  }
+}

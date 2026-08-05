@@ -1,0 +1,2270 @@
+{
+  "generated_at": "2026-08-05T19:59:07.021Z",
+  "mode": "apply",
+  "repo": "deftai/directive",
+  "twin_ops": [
+    {
+      "number": 3007,
+      "title": "docs(security): maintainer AppSec review playbook (+ optional Grok Build adapter)",
+      "from": "docs",
+      "to": "documentation",
+      "labels": [
+        "documentation",
+        "enhancement",
+        "grok-build",
+        "hold",
+        "security",
+        "tooling"
+      ]
+    },
+    {
+      "number": 1567,
+      "title": "spec: refresh Directive product specification for current architecture",
+      "from": "docs",
+      "to": "documentation",
+      "labels": [
+        "design",
+        "documentation",
+        "source-of-truth",
+        "type:research"
+      ]
+    },
+    {
+      "number": 629,
+      "title": "chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests",
+      "from": "docs",
+      "to": "documentation",
+      "labels": [
+        "chore",
+        "documentation",
+        "operational"
+      ]
+    },
+    {
+      "number": 583,
+      "title": "feat(meta,skills): name governance pattern + add injection-quarantine directive for ingested origin content",
+      "from": "docs",
+      "to": "documentation",
+      "labels": [
+        "documentation",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 2436,
+      "title": "research(skills): SkillOpt control stack for skill optimization (gate, edit budget, reject buffer, slow/meta)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "patterns",
+        "type:research"
+      ]
+    },
+    {
+      "number": 2316,
+      "title": "chore(tests,determinism): harden review-surface-precedence propagation gates (scope agents marker arm to managed section; add preamble propagation contract gate)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "chore",
+        "determinism",
+        "harness",
+        "review-cycle",
+        "test-debt"
+      ]
+    },
+    {
+      "number": 2021,
+      "title": "Iterative fresh-agent epic refinement skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "Workflow",
+        "area:skills",
+        "enhancement",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1812,
+      "title": "Add an intentional \"seed document\" step to project kickoff (let users supply an overview/outline/summary)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "Workflow",
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1615,
+      "title": "feat(skills,audit): rejection memos — record suppressed audit findings so they do not re-surface on subsequent runs",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1598,
+      "title": "Build skill should finish with an explicit commit/PR handoff state",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "agent-experience",
+        "area:skills",
+        "process"
+      ]
+    },
+    {
+      "number": 1582,
+      "title": "feat(skills): deft-directive-audit — four-phase repo audit skill (Discovery, Audit, Strategy, Task Plan)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1536,
+      "title": "docs(interfaces): React/Next.js external skill cross-references in interfaces/web.md + document external skill install pattern",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "documentation",
+        "interfaces"
+      ]
+    },
+    {
+      "number": 1535,
+      "title": "feat(skills): skills/catalog.yaml — versioned skill registry with tags, source type, and upstream pinning",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "agent-safety",
+        "area:skills",
+        "enhancement",
+        "security",
+        "skill-lifecycle",
+        "source-of-truth"
+      ]
+    },
+    {
+      "number": 1534,
+      "title": "feat(meta,skills): data-driven skill gap discovery — mine usage artifacts to surface missing skills empirically",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "agent-experience",
+        "agent-memory",
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1533,
+      "title": "feat(pre-pr): explicit deslop step in deft-directive-pre-pr — remove AI-generated noise from diffs before review",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "agent-experience",
+        "area:skills",
+        "enhancement",
+        "review-cycle"
+      ]
+    },
+    {
+      "number": 1532,
+      "title": "feat(task,scripts): skill validation in task check — frontmatter, entry-file, and reference depth checks for skills/",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "ci-cd",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1513,
+      "title": "feat(build,meta): explicit knowledge codification step after work session — deft-directive-compound skill or task compound",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "agent-memory",
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1501,
+      "title": "feat(templates): domain verification skill template — scaffold for encoding manual verification workflows as agent skills",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1495,
+      "title": "bug(routing): refinement skill frontmatter over-claims triage-owned triggers (work the cache / triage)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "triage"
+      ]
+    },
+    {
+      "number": 1351,
+      "title": "grok-build / hybrid: orchestrator should pre-approve and inject GH credentials for sub-agents (follow-up from #1349 review-cycle handoff)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1317,
+      "title": "feat(skills,release): expand deft-directive-release skill to support consumer-mode (downstream projects, not just framework releases)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "Workflow",
+        "area:skills",
+        "enhancement",
+        "rfc",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1307,
+      "title": "feat(autoresearch): skill-variant proposer — meta-loop component that reads frontier state and proposes targeted SKILL.md mutations",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "autoresearch",
+        "enhancement",
+        "research-strategy"
+      ]
+    },
+    {
+      "number": 1234,
+      "title": "feat(meta,patterns): llm-wiki — Karpathy wiki pattern + directive self-implementation",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "patterns"
+      ]
+    },
+    {
+      "number": 1199,
+      "title": "feat(security,scripts): extend cache scanner to cover externally-ingested skill content — skill-content quarantine",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "security"
+      ]
+    },
+    {
+      "number": 1198,
+      "title": "feat(security): document skill trust boundary + extend article-review security context with code-example injection defense",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "security"
+      ]
+    },
+    {
+      "number": 1090,
+      "title": "RFC: deft-directive-symphony -- cross-operator, cross-repo program orchestration tier above swarm",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "rfc",
+        "swarm",
+        "type:research"
+      ]
+    },
+    {
+      "number": 967,
+      "title": "consumer-side task check discoverability gap -- wire deft:check into install-generated scaffolding",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "documentation",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 963,
+      "title": "Absorb README/ROADMAP preload + swarm allocation response template into canonical skills",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "swarm"
+      ]
+    },
+    {
+      "number": 933,
+      "title": "feat(skills): add dependency-ordered article editing workflow",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 928,
+      "title": "feat(interview): add grilling loop before architecture interface design",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 894,
+      "title": "feat(skills): add deft-autoresearch measured-loop skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "autoresearch",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 864,
+      "title": "feat(patterns): deep-skill-design — small trigger interface hides large execution; Ousterhout's deep module principle applied to skills",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "patterns"
+      ]
+    },
+    {
+      "number": 837,
+      "title": "feat(skills): encode skill self-improvement trigger — after 5+ tool call tasks, agent SHOULD persist the workflow as a skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 831,
+      "title": "feat(patterns): add skill-curator pattern — idle-triggered background maintenance for agent-maintained skill libraries",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "patterns",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 830,
+      "title": "feat(skills): add skill pin mechanism — pinned skills immune to lifecycle demotion and agent modification",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 829,
+      "title": "feat(skills): add skill-usage telemetry sidecar — track view/use/patch counts per skill in one auditable file",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "monitoring",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 828,
+      "title": "feat(skills): add skill lifecycle states — active/stale/archived with usage-driven transitions",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 805,
+      "title": "feat(patterns): add typed-skill-boundary — skills used for orchestration must return schema-validated typed results",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "patterns",
+        "runtime-portability"
+      ]
+    },
+    {
+      "number": 769,
+      "title": "feat(skills,review-cycle): generalize deft-directive-review-cycle to multi-reviewer abstraction (Slizard + Greptile + future)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 758,
+      "title": "teach: add teach strategy and lessons-evolution follow-up",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "design",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 681,
+      "title": "feat(skills): apply Verbalized Sampling prompt pattern to directive brainstorming and ideation tasks",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "patterns"
+      ]
+    },
+    {
+      "number": 666,
+      "title": "feat(skills): add deft-kaizen skill — post-sprint retrospective and framework improvement loop",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 664,
+      "title": "feat(skills): add deft-subagent skill — intra-task subagent delegation protocol",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "swarm"
+      ]
+    },
+    {
+      "number": 660,
+      "title": "feat(skills): enhance deft-pre-pr — add acceptance-criteria verification step",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 637,
+      "title": "Document skill discovery in main directive",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "documentation"
+      ]
+    },
+    {
+      "number": 635,
+      "title": "EPIC: skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "determinism",
+        "enhancement",
+        "epic"
+      ]
+    },
+    {
+      "number": 628,
+      "title": "chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "chore",
+        "operational"
+      ]
+    },
+    {
+      "number": 627,
+      "title": "feat(strategies): add strategies/delegate.md — controlled delegation framework for agent-driven implementation",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement",
+        "research-strategy"
+      ]
+    },
+    {
+      "number": 624,
+      "title": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 622,
+      "title": "feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 620,
+      "title": "feat(skills): add tier field to SKILL.md frontmatter — atom / molecule / compound",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 619,
+      "title": "feat(skills): add atoms/molecules/compounds taxonomy and composition principles to deft-write-skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 608,
+      "title": "feat(strategies): research workflow overhaul — deft-research skill, problem-first framing, mid-research gate, structured output",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "research-strategy"
+      ]
+    },
+    {
+      "number": 607,
+      "title": "feat(main): upgrade failure-to-skill protocol — prose lessons decay, structural fixes don't",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 606,
+      "title": "feat(coding): add LLM evals as a fourth testing tier in testing.md for agent-centric projects",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "coding-standards",
+        "evals"
+      ]
+    },
+    {
+      "number": 605,
+      "title": "feat(strategies): add skillify as a named project development strategy",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 604,
+      "title": "feat(skills): add resolver eval and check-resolvable audit to directive's skill quality system",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 603,
+      "title": "feat(skills): incorporate skillify 10-step quality gate into deft-write-skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 597,
+      "title": "feat(meta): encode plain-English-over-structured-formats rationale in skill authoring guidance",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 592,
+      "title": "feat(skills): encode two-agent red-team verification pattern in deft-swarm",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "swarm"
+      ]
+    },
+    {
+      "number": 591,
+      "title": "feat(skills): add 4-phase structured output discipline to deft-build",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 589,
+      "title": "feat(skills): create deft-port skill for AI-assisted code porting between language pairs",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 554,
+      "title": "Add anti-patterns section to deft-sync skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 551,
+      "title": "research(skills): add explicit anti-slop rules to deft-build and deft-write-skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 550,
+      "title": "research(skills): deft-complete — dedicated completeness enforcement skill",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 549,
+      "title": "research(skills): configurable settings parameter block for directive skills — taste-skill pattern",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 548,
+      "title": "feat(verification): diff-as-regression-detection for SPECIFICATION.md and SKILL.md changes",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 450,
+      "title": "feat(skills): migrate operational workflows from markdown tree to skills",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "operational"
+      ]
+    },
+    {
+      "number": 406,
+      "title": "feat(test): integration test harness for agent-driven skill execution",
+      "from": "skills",
+      "to": "area:skills",
+      "labels": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1999,
+      "title": "Maintainer test tool: consumer-side upgrade rehearsal harness (clean → cold-start → install → capture → reset loop)",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1994,
+      "title": "Post-freeze npm CLI: port or alias `agents:refresh` (UPGRADING tells consumers to run it)",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1993,
+      "title": "Post-freeze upgrade UX: vendored .deft/core v0.56.0 → npm path is rough, under-signposted, and docs/CLI disagree",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1979,
+      "title": "Decide: delete the Go installer source + build pipeline (deferred ~2mo post-freeze)",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "ci-cd",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1660,
+      "title": "Build deft-install with -trimpath (reproducible binaries, no embedded build-machine paths)",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "ci-cd",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1560,
+      "title": "installer: maintainer mode should bootstrap Go, Node, and ghx",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "Workflow",
+        "agent-experience",
+        "area:installer",
+        "enhancement",
+        "tooling"
+      ]
+    },
+    {
+      "number": 1439,
+      "title": "SCM-agnostic auto-commit/PR of the vendored .deft/core deposit (Go installer, via scm.call adapter)",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "design",
+        "enhancement",
+        "vendored-deposit"
+      ]
+    },
+    {
+      "number": 945,
+      "title": "docs(brownfield): Option C direct-clone under-specifies embedded-repo handling; add gitignored-clone option",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "documentation"
+      ]
+    },
+    {
+      "number": 804,
+      "title": "reword quick-start when cloned manually section in README",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "documentation"
+      ]
+    },
+    {
+      "number": 523,
+      "title": "refactor(migrate): split migrate_vbrief.py below 500-line threshold (post-RC4 cleanup)",
+      "from": "installer",
+      "to": "area:installer",
+      "labels": [
+        "area:installer",
+        "refactor"
+      ]
+    }
+  ],
+  "twin_count": 79,
+  "role_ops": [
+    {
+      "number": 412,
+      "title": "feat(platform): add platform/ directory with PowerShell 5.1 encoding safety rules",
+      "add": [
+        "platform:windows"
+      ],
+      "remove": [],
+      "labels": [
+        "coding-standards",
+        "enhancement",
+        "platform:windows"
+      ]
+    },
+    {
+      "number": 635,
+      "title": "EPIC: skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634)",
+      "add": [
+        "epic",
+        "status:tracker"
+      ],
+      "remove": [],
+      "labels": [
+        "determinism",
+        "enhancement",
+        "epic",
+        "skills",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 886,
+      "title": "GitHub repository mega-review: triage, governance, and workflow optimization",
+      "add": [
+        "status:tracker"
+      ],
+      "remove": [
+        "epic"
+      ],
+      "labels": [
+        "determinism",
+        "meta",
+        "process",
+        "status:tracker",
+        "triage",
+        "urgent"
+      ]
+    },
+    {
+      "number": 1140,
+      "title": "meta: design-pass churn on #1119 — multiple operator-driven iteration passes the framework didn't scaffold. Can directive make iterative design the norm?",
+      "add": [
+        "status:tracker"
+      ],
+      "remove": [],
+      "labels": [
+        "epic",
+        "meta",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 1422,
+      "title": "Agent guidance gap: safe read->edit->write round-trip for non-ASCII GitHub issue/PR bodies on Windows pwsh 7 (#798 'pwsh 7 exempt' is incomplete for gh stdout decode)",
+      "add": [
+        "platform:windows"
+      ],
+      "remove": [],
+      "labels": [
+        "documentation",
+        "harness",
+        "platform:windows"
+      ]
+    },
+    {
+      "number": 1423,
+      "title": "RFC: Autonomous auto-triage write-back cycle (SCM label mirror + agent triage comment + bootstrap mass-triage)",
+      "add": [
+        "epic",
+        "status:tracker",
+        "status:child"
+      ],
+      "remove": [],
+      "labels": [
+        "determinism",
+        "epic",
+        "status:child",
+        "status:tracker",
+        "triage"
+      ]
+    },
+    {
+      "number": 1545,
+      "title": "epic: runtime-portable multi-agent orchestration contracts",
+      "add": [
+        "epic",
+        "status:tracker"
+      ],
+      "remove": [],
+      "labels": [
+        "agent-experience",
+        "design",
+        "determinism",
+        "epic",
+        "runtime-portability",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 1589,
+      "title": "epic: spec reconstruction + drift guard - recover and keep project specs fresh (framework + vendored consumers)",
+      "add": [
+        "epic",
+        "status:tracker"
+      ],
+      "remove": [],
+      "labels": [
+        "design",
+        "determinism",
+        "enhancement",
+        "epic",
+        "source-of-truth",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 1789,
+      "title": "feat(vbrief,triage,docs): area:* convention rollout — schema mirror, issue:ingest population, scm/github.md docs (from #690)",
+      "add": [
+        "status:child"
+      ],
+      "remove": [],
+      "labels": [
+        "documentation",
+        "enhancement",
+        "source-of-truth",
+        "status:child",
+        "triage"
+      ]
+    },
+    {
+      "number": 2611,
+      "title": "feat(scm,setup): recommended minimal issue-label kit for consumer repos",
+      "add": [
+        "status:child"
+      ],
+      "remove": [],
+      "labels": [
+        "agent-experience",
+        "area:guidance",
+        "documentation",
+        "enhancement",
+        "scm",
+        "status:child"
+      ]
+    },
+    {
+      "number": 3124,
+      "title": "feat(session,triage): operator discovery for SCM label mirror (after #1423 Wave 2)",
+      "add": [
+        "status:child"
+      ],
+      "remove": [],
+      "labels": [
+        "agent-experience",
+        "enhancement",
+        "process",
+        "status:child",
+        "triage"
+      ]
+    },
+    {
+      "number": 3128,
+      "title": "chore(labels): migrate open directive issues onto #2609 taxonomy scheme",
+      "add": [
+        "status:child"
+      ],
+      "remove": [],
+      "labels": [
+        "enhancement",
+        "process",
+        "scm",
+        "status:child",
+        "triage"
+      ]
+    },
+    {
+      "number": 3129,
+      "title": "feat(triage): --author filter on triage:queue and triage:classify",
+      "add": [
+        "status:child"
+      ],
+      "remove": [],
+      "labels": [
+        "area:cli",
+        "enhancement",
+        "status:child"
+      ]
+    }
+  ],
+  "role_count": 13,
+  "notes": [
+    "Twins: docs→documentation, skills→area:skills, installer→area:installer (open only).",
+    "Roles: curated set only — skip unknown parents rather than stamp status:child from titles.",
+    "Machine mirror (triage:classify --mirror --apply) is optional and NOT run by this script.",
+    "Closed history not rewritten."
+  ],
+  "applied": 91,
+  "skipped": 11,
+  "results": [
+    {
+      "number": 406,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 412,
+      "before": [
+        "enhancement",
+        "coding-standards"
+      ],
+      "after": [
+        "coding-standards",
+        "enhancement",
+        "platform:windows"
+      ]
+    },
+    {
+      "number": 450,
+      "before": [
+        "skills",
+        "operational"
+      ],
+      "after": [
+        "area:skills",
+        "operational"
+      ]
+    },
+    {
+      "number": 523,
+      "before": [
+        "installer",
+        "refactor"
+      ],
+      "after": [
+        "area:installer",
+        "refactor"
+      ]
+    },
+    {
+      "number": 548,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 549,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 550,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 551,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 554,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 583,
+      "before": [
+        "enhancement",
+        "docs"
+      ],
+      "after": [
+        "documentation",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 589,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 591,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 592,
+      "before": [
+        "swarm",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "swarm"
+      ]
+    },
+    {
+      "number": 597,
+      "before": [
+        "skills"
+      ],
+      "after": [
+        "area:skills"
+      ]
+    },
+    {
+      "number": 603,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 604,
+      "before": [
+        "enhancement",
+        "skills",
+        "determinism"
+      ],
+      "after": [
+        "area:skills",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 605,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 606,
+      "before": [
+        "skills",
+        "coding-standards",
+        "evals"
+      ],
+      "after": [
+        "area:skills",
+        "coding-standards",
+        "evals"
+      ]
+    },
+    {
+      "number": 607,
+      "before": [
+        "enhancement",
+        "skills",
+        "determinism"
+      ],
+      "after": [
+        "area:skills",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 608,
+      "before": [
+        "skills",
+        "research-strategy"
+      ],
+      "after": [
+        "area:skills",
+        "research-strategy"
+      ]
+    },
+    {
+      "number": 619,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 620,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 622,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 624,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 627,
+      "before": [
+        "enhancement",
+        "skills",
+        "research-strategy"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "research-strategy"
+      ]
+    },
+    {
+      "number": 628,
+      "before": [
+        "chore",
+        "skills",
+        "operational"
+      ],
+      "after": [
+        "area:skills",
+        "chore",
+        "operational"
+      ]
+    },
+    {
+      "number": 629,
+      "before": [
+        "chore",
+        "docs",
+        "operational"
+      ],
+      "after": [
+        "chore",
+        "documentation",
+        "operational"
+      ]
+    },
+    {
+      "number": 635,
+      "before": [
+        "enhancement",
+        "skills",
+        "epic",
+        "determinism"
+      ],
+      "after": [
+        "area:skills",
+        "determinism",
+        "enhancement",
+        "epic",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 637,
+      "before": [
+        "documentation",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "documentation"
+      ]
+    },
+    {
+      "number": 660,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 664,
+      "before": [
+        "enhancement",
+        "swarm",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "swarm"
+      ]
+    },
+    {
+      "number": 666,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 681,
+      "before": [
+        "enhancement",
+        "patterns",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "patterns"
+      ]
+    },
+    {
+      "number": 758,
+      "before": [
+        "enhancement",
+        "design",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "design",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 769,
+      "before": [
+        "enhancement",
+        "skills",
+        "determinism"
+      ],
+      "after": [
+        "area:skills",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 804,
+      "before": [
+        "documentation",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "documentation"
+      ]
+    },
+    {
+      "number": 805,
+      "before": [
+        "enhancement",
+        "patterns",
+        "skills",
+        "runtime-portability"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "patterns",
+        "runtime-portability"
+      ]
+    },
+    {
+      "number": 828,
+      "before": [
+        "enhancement",
+        "skills",
+        "skill-lifecycle",
+        "metrics"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 829,
+      "before": [
+        "enhancement",
+        "skills",
+        "monitoring",
+        "skill-lifecycle",
+        "metrics"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "monitoring",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 830,
+      "before": [
+        "enhancement",
+        "skills",
+        "skill-lifecycle"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 831,
+      "before": [
+        "enhancement",
+        "patterns",
+        "skills",
+        "skill-lifecycle",
+        "metrics"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "patterns",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 837,
+      "before": [
+        "enhancement",
+        "skills",
+        "skill-lifecycle"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "skill-lifecycle"
+      ]
+    },
+    {
+      "number": 864,
+      "before": [
+        "enhancement",
+        "patterns",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "patterns"
+      ]
+    },
+    {
+      "number": 886,
+      "before": [
+        "epic",
+        "determinism",
+        "meta",
+        "triage",
+        "process",
+        "urgent"
+      ],
+      "after": [
+        "determinism",
+        "meta",
+        "process",
+        "status:tracker",
+        "triage",
+        "urgent"
+      ]
+    },
+    {
+      "number": 894,
+      "before": [
+        "enhancement",
+        "skills",
+        "autoresearch"
+      ],
+      "after": [
+        "area:skills",
+        "autoresearch",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 928,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 933,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 945,
+      "before": [
+        "documentation",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "documentation"
+      ]
+    },
+    {
+      "number": 963,
+      "before": [
+        "enhancement",
+        "swarm",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "swarm"
+      ]
+    },
+    {
+      "number": 967,
+      "before": [
+        "documentation",
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "documentation",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1090,
+      "before": [
+        "enhancement",
+        "swarm",
+        "rfc",
+        "skills",
+        "type:research"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "rfc",
+        "swarm",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1140,
+      "before": [
+        "epic",
+        "meta"
+      ],
+      "after": [
+        "epic",
+        "meta",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 1198,
+      "before": [
+        "enhancement",
+        "skills",
+        "security"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "security"
+      ]
+    },
+    {
+      "number": 1199,
+      "before": [
+        "enhancement",
+        "skills",
+        "security"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "security"
+      ]
+    },
+    {
+      "number": 1234,
+      "before": [
+        "enhancement",
+        "patterns",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "patterns"
+      ]
+    },
+    {
+      "number": 1307,
+      "before": [
+        "enhancement",
+        "skills",
+        "research-strategy",
+        "autoresearch"
+      ],
+      "after": [
+        "area:skills",
+        "autoresearch",
+        "enhancement",
+        "research-strategy"
+      ]
+    },
+    {
+      "number": 1317,
+      "before": [
+        "enhancement",
+        "rfc",
+        "skills",
+        "type:research",
+        "Workflow"
+      ],
+      "after": [
+        "Workflow",
+        "area:skills",
+        "enhancement",
+        "rfc",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1351,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1422,
+      "before": [
+        "documentation",
+        "harness"
+      ],
+      "after": [
+        "documentation",
+        "harness",
+        "platform:windows"
+      ]
+    },
+    {
+      "number": 1423,
+      "before": [
+        "determinism",
+        "triage"
+      ],
+      "after": [
+        "determinism",
+        "epic",
+        "status:child",
+        "status:tracker",
+        "triage"
+      ]
+    },
+    {
+      "number": 1439,
+      "before": [
+        "enhancement",
+        "design",
+        "installer",
+        "vendored-deposit"
+      ],
+      "after": [
+        "area:installer",
+        "design",
+        "enhancement",
+        "vendored-deposit"
+      ]
+    },
+    {
+      "number": 1495,
+      "before": [
+        "skills",
+        "triage"
+      ],
+      "after": [
+        "area:skills",
+        "triage"
+      ]
+    },
+    {
+      "number": 1501,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1513,
+      "before": [
+        "enhancement",
+        "skills",
+        "agent-memory"
+      ],
+      "after": [
+        "agent-memory",
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1532,
+      "before": [
+        "enhancement",
+        "ci-cd",
+        "skills",
+        "determinism"
+      ],
+      "after": [
+        "area:skills",
+        "ci-cd",
+        "determinism",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1533,
+      "before": [
+        "enhancement",
+        "skills",
+        "agent-experience",
+        "review-cycle"
+      ],
+      "after": [
+        "agent-experience",
+        "area:skills",
+        "enhancement",
+        "review-cycle"
+      ]
+    },
+    {
+      "number": 1534,
+      "before": [
+        "enhancement",
+        "skills",
+        "type:research",
+        "agent-experience",
+        "agent-memory",
+        "metrics"
+      ],
+      "after": [
+        "agent-experience",
+        "agent-memory",
+        "area:skills",
+        "enhancement",
+        "metrics",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1535,
+      "before": [
+        "enhancement",
+        "skills",
+        "security",
+        "source-of-truth",
+        "agent-safety",
+        "skill-lifecycle"
+      ],
+      "after": [
+        "agent-safety",
+        "area:skills",
+        "enhancement",
+        "security",
+        "skill-lifecycle",
+        "source-of-truth"
+      ]
+    },
+    {
+      "number": 1536,
+      "before": [
+        "documentation",
+        "skills",
+        "interfaces"
+      ],
+      "after": [
+        "area:skills",
+        "documentation",
+        "interfaces"
+      ]
+    },
+    {
+      "number": 1545,
+      "before": [
+        "design",
+        "epic",
+        "determinism",
+        "agent-experience",
+        "runtime-portability"
+      ],
+      "after": [
+        "agent-experience",
+        "design",
+        "determinism",
+        "epic",
+        "runtime-portability",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 1560,
+      "before": [
+        "enhancement",
+        "installer",
+        "Workflow",
+        "agent-experience",
+        "tooling"
+      ],
+      "after": [
+        "Workflow",
+        "agent-experience",
+        "area:installer",
+        "enhancement",
+        "tooling"
+      ]
+    },
+    {
+      "number": 1567,
+      "before": [
+        "docs",
+        "design",
+        "type:research",
+        "source-of-truth"
+      ],
+      "after": [
+        "design",
+        "documentation",
+        "source-of-truth",
+        "type:research"
+      ]
+    },
+    {
+      "number": 1582,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1589,
+      "before": [
+        "enhancement",
+        "design",
+        "epic",
+        "determinism",
+        "source-of-truth"
+      ],
+      "after": [
+        "design",
+        "determinism",
+        "enhancement",
+        "epic",
+        "source-of-truth",
+        "status:tracker"
+      ]
+    },
+    {
+      "number": 1598,
+      "before": [
+        "skills",
+        "agent-experience",
+        "process"
+      ],
+      "after": [
+        "agent-experience",
+        "area:skills",
+        "process"
+      ]
+    },
+    {
+      "number": 1615,
+      "before": [
+        "enhancement",
+        "skills"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1660,
+      "before": [
+        "enhancement",
+        "ci-cd",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "ci-cd",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1789,
+      "before": [
+        "documentation",
+        "enhancement",
+        "triage",
+        "source-of-truth"
+      ],
+      "after": [
+        "documentation",
+        "enhancement",
+        "source-of-truth",
+        "status:child",
+        "triage"
+      ]
+    },
+    {
+      "number": 1812,
+      "before": [
+        "enhancement",
+        "skills",
+        "Workflow",
+        "area:skills"
+      ],
+      "after": [
+        "Workflow",
+        "area:skills",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1979,
+      "before": [
+        "enhancement",
+        "ci-cd",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "ci-cd",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1993,
+      "before": [
+        "enhancement",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1994,
+      "before": [
+        "enhancement",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 1999,
+      "before": [
+        "enhancement",
+        "installer"
+      ],
+      "after": [
+        "area:installer",
+        "enhancement"
+      ]
+    },
+    {
+      "number": 2021,
+      "before": [
+        "enhancement",
+        "skills",
+        "type:research",
+        "Workflow"
+      ],
+      "after": [
+        "Workflow",
+        "area:skills",
+        "enhancement",
+        "type:research"
+      ]
+    },
+    {
+      "number": 2316,
+      "before": [
+        "chore",
+        "skills",
+        "determinism",
+        "test-debt",
+        "review-cycle",
+        "harness"
+      ],
+      "after": [
+        "area:skills",
+        "chore",
+        "determinism",
+        "harness",
+        "review-cycle",
+        "test-debt"
+      ]
+    },
+    {
+      "number": 2436,
+      "before": [
+        "enhancement",
+        "patterns",
+        "skills",
+        "type:research"
+      ],
+      "after": [
+        "area:skills",
+        "enhancement",
+        "patterns",
+        "type:research"
+      ]
+    },
+    {
+      "number": 2611,
+      "before": [
+        "documentation",
+        "enhancement",
+        "agent-experience",
+        "scm",
+        "area:guidance"
+      ],
+      "after": [
+        "agent-experience",
+        "area:guidance",
+        "documentation",
+        "enhancement",
+        "scm",
+        "status:child"
+      ]
+    },
+    {
+      "number": 3007,
+      "before": [
+        "enhancement",
+        "docs",
+        "security",
+        "grok-build",
+        "tooling",
+        "hold"
+      ],
+      "after": [
+        "documentation",
+        "enhancement",
+        "grok-build",
+        "hold",
+        "security",
+        "tooling"
+      ]
+    },
+    {
+      "number": 3124,
+      "before": [
+        "enhancement",
+        "triage",
+        "agent-experience",
+        "process"
+      ],
+      "after": [
+        "agent-experience",
+        "enhancement",
+        "process",
+        "status:child",
+        "triage"
+      ]
+    },
+    {
+      "number": 3128,
+      "before": [
+        "enhancement",
+        "triage",
+        "process",
+        "scm"
+      ],
+      "after": [
+        "enhancement",
+        "process",
+        "scm",
+        "status:child",
+        "triage"
+      ]
+    },
+    {
+      "number": 3129,
+      "before": [
+        "enhancement",
+        "area:cli"
+      ],
+      "after": [
+        "area:cli",
+        "enhancement",
+        "status:child"
+      ]
+    }
+  ]
+}

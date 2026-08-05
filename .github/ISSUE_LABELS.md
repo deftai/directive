@@ -218,8 +218,45 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 
 ---
 
+## Open-issue migration (#3128)
+
+**When:** after this catalog is stable (post-#2609 Phase A).  
+**What:** retag **open** issues only (closed history not rewritten).
+
+### How it was run
+
+1. Dry-run then apply the one-shot script:
+
+   ```text
+   node .github/scripts/migrate-issue-labels-3128.mjs --dry-run
+   node .github/scripts/migrate-issue-labels-3128.mjs --apply
+   ```
+
+2. Report artifact: `.github/ISSUE_LABEL_MIGRATION_3128.json` (mode, twin/role counts, per-issue before/after).
+
+### What the script does
+
+| Pass | Action |
+|------|--------|
+| **Twins** | Open issues: `docs` → `documentation`, `skills` → `area:skills`, `installer` → `area:installer` (other labels preserved) |
+| **Roles (curated)** | Graph-informed set only (process board #886 → `status:tracker` without `epic`; product multi-ship roots → `epic`+`status:tracker`; known children → `status:child`; nested #1423 → epic+tracker+child) |
+| **Platform seeds** | `#412`, `#1422` → `platform:windows` |
+| **Machine mirror** | **Not** run by the script — optional separate `task triage:classify -- --mirror --apply` (open-only) |
+
+### False-positive policy
+
+- Skip unknown parents rather than invent `status:child` from title keywords.
+- Do not use mirror apply to invent `epic` / `status:child`.
+- Re-run is safe (idempotent adds; twin remove only when deprecated label still present).
+
+### Re-run / extend
+
+- Edit `ROLE_SCOPE` in the script for additional curated role stamps, then `--dry-run` / `--apply`.
+- Twin renames follow the twin table in this file; add rows there before extending the script.
+
 ## Changelog of this document
 
 | Date | Change |
 |------|--------|
+| 2026-08-05 | Open-issue migration notes + re-run instructions (#3128) |
 | 2026-08-05 | Initial catalog from #2609 Phase A (facets, epic/tracker/child, machine, platform, twins) |
