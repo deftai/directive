@@ -88,6 +88,10 @@ export interface HandoffEvidenceValidation {
   readonly unboundClaims: readonly string[];
 }
 
+const PROOF_STATUSES = new Set(["bound", "unbound", "n/a-no-remote-claim"]);
+const AXIS_STATES = new Set(["done", "in_progress", "not_started", "blocked", "n/a"]);
+const STATUS_VALUES = new Set(["pass", "fail", "blocked", "partial"]);
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -99,9 +103,75 @@ function isPresentClaim(value: unknown): boolean {
   return true;
 }
 
-function probeBinds(probe: RemoteProbe | null | undefined): boolean {
+function probePresent(probe: RemoteProbe | null | undefined): boolean {
   if (!probe) return false;
   return isNonEmptyString(probe.command) && isNonEmptyString(probe.snippet);
+}
+
+/** Case-insensitive substring check for binding claimed values into probe text. */
+function snippetContains(snippet: string, needle: string): boolean {
+  if (!needle) return false;
+  return snippet.toLowerCase().includes(needle.toLowerCase());
+}
+
+/**
+ * True when the probe's raw snippet actually mentions the claimed remote value
+ * (not just any non-empty text). Prevents fabricated claims with dummy probes.
+ */
+export function probeBindsClaim(
+  claim: string,
+  evidence: HandoffEvidence,
+  probe: RemoteProbe | null | undefined,
+): boolean {
+  if (!probePresent(probe) || !probe) return false;
+  const snippet = probe.snippet;
+
+  switch (claim) {
+    case "pr_url": {
+      const url = String(evidence.pr_url ?? "").trim();
+      if (!url) return false;
+      // Accept full URL or trailing path segment (pulls/N or pull/N).
+      if (snippetContains(snippet, url)) return true;
+      const m = url.match(/\/pulls?\/(\d+)/i);
+      const num = m?.[1];
+      return num !== undefined && snippetContains(snippet, num);
+    }
+    case "pr_number": {
+      const num = String(evidence.pr_number ?? "").trim();
+      return num.length > 0 && snippetContains(snippet, num);
+    }
+    case "commit_sha":
+    case "head_sha": {
+      const sha = String(
+        claim === "commit_sha" ? (evidence.commit_sha ?? "") : (evidence.head_sha ?? ""),
+      )
+        .trim()
+        .toLowerCase();
+      if (sha.length < 7) return false;
+      const snip = snippet.toLowerCase();
+      // Full SHA or ≥7-char prefix present in probe output.
+      return snip.includes(sha) || snip.includes(sha.slice(0, 7));
+    }
+    case "ci_status": {
+      const ci = String(evidence.ci_status ?? "")
+        .trim()
+        .toLowerCase();
+      if (!ci) return false;
+      if (snippetContains(snippet, ci)) return true;
+      // Common synonym bridge: claim "green" often appears as success/successful.
+      const greenFamily = ["green", "pass", "passed", "success", "successful", "ok", "clean"];
+      if (greenFamily.includes(ci)) {
+        return greenFamily.some((tok) => snippetContains(snippet, tok));
+      }
+      return false;
+    }
+    case "review_score": {
+      const score = String(evidence.review_score ?? "").trim();
+      return score.length > 0 && snippetContains(snippet, score);
+    }
+    default:
+      return false;
+  }
 }
 
 /** Detect which remote claim keys are present on the evidence object. */
@@ -133,16 +203,10 @@ function probeKeyForClaim(claim: string): "pr" | "sha" | "ci" | "review" {
 
 function unboundClaimKeys(evidence: HandoffEvidence, claims: readonly string[]): string[] {
   const unbound: string[] = [];
-  const seenProbeSlots = new Set<string>();
   for (const claim of claims) {
     const slot = probeKeyForClaim(claim);
-    if (seenProbeSlots.has(slot)) {
-      // Same probe slot covers multiple claim aliases (pr_url + pr_number).
-      continue;
-    }
-    seenProbeSlots.add(slot);
     const probe = evidence.probes?.[slot];
-    if (!probeBinds(probe)) {
+    if (!probeBindsClaim(claim, evidence, probe)) {
       unbound.push(claim);
     }
   }
@@ -151,6 +215,36 @@ function unboundClaimKeys(evidence: HandoffEvidence, claims: readonly string[]):
 
 function isPassStatus(status: string): boolean {
   return status.trim().toLowerCase() === "pass";
+}
+
+/** Collect shape errors for unsupported status / proof_status / axis enums. */
+function enumShapeReasons(evidence: HandoffEvidence): string[] {
+  const reasons: string[] = [];
+  const status = evidence.status.toString().trim().toLowerCase();
+  if (!STATUS_VALUES.has(status)) {
+    reasons.push(`status must be one of pass|fail|blocked|partial (got ${evidence.status})`);
+  }
+  if (evidence.proof_status !== undefined && evidence.proof_status !== null) {
+    const proof = evidence.proof_status.toString().trim().toLowerCase();
+    if (proof.length > 0 && !PROOF_STATUSES.has(proof)) {
+      reasons.push(
+        `proof_status must be bound|unbound|n/a-no-remote-claim (got ${evidence.proof_status})`,
+      );
+    }
+  }
+  for (const [name, axis] of [
+    ["work", evidence.work],
+    ["ship", evidence.ship],
+    ["gate", evidence.gate],
+  ] as const) {
+    const state = axis?.state;
+    if (state === undefined || state === null) continue;
+    const s = state.toString().trim().toLowerCase();
+    if (s.length > 0 && !AXIS_STATES.has(s)) {
+      reasons.push(`${name}.state must be done|in_progress|not_started|blocked|n/a (got ${state})`);
+    }
+  }
+  return reasons;
 }
 
 function isEmptyDone(evidence: HandoffEvidence): boolean {
@@ -201,7 +295,7 @@ export function validateHandoffEvidence(evidence: HandoffEvidence): HandoffEvide
   const hasRemoteClaims = claims.length > 0;
   const unbound = unboundClaimKeys(evidence, claims);
   const proof = (evidence.proof_status ?? "").toString().trim().toLowerCase();
-  const reasons: string[] = [];
+  const reasons: string[] = [...enumShapeReasons(evidence)];
   const pass = isPassStatus(evidence.status);
 
   // proof_status consistency

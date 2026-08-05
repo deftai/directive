@@ -13,4 +13,9 @@ export type {
   ProofStatus,
   RemoteProbe,
 } from "./validate.js";
-export { canClaimPass, detectRemoteClaims, validateHandoffEvidence } from "./validate.js";
+export {
+  canClaimPass,
+  detectRemoteClaims,
+  probeBindsClaim,
+  validateHandoffEvidence,
+} from "./validate.js";

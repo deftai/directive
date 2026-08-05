@@ -90,17 +90,35 @@ describe("validateHandoffEvidence — invented-done", () => {
       status: "pass",
       proof_status: "bound",
       pr_number: 42,
-      head_sha: "abc1234",
+      head_sha: "abc1234deadbeef",
       work: { state: "done" },
       ship: { state: "done" },
       probes: {
         pr: { command: "gh api ...", snippet: "" },
-        sha: { command: "", snippet: "abc1234" },
+        sha: { command: "", snippet: "abc1234deadbeef" },
       },
     });
     expect(result.ok).toBe(false);
     expect(result.failClass).toBe("invented-done");
     expect(result.unboundClaims.length).toBeGreaterThan(0);
+  });
+
+  it("fails when probes are non-empty but do not mention the claimed values", () => {
+    const result = validateHandoffEvidence({
+      status: "pass",
+      proof_status: "bound",
+      pr_number: 99999,
+      head_sha: "ffffffffffffffffffffffffffffffffffffffff",
+      work: { state: "done" },
+      ship: { state: "done" },
+      probes: {
+        pr: { command: "gh api ...", snippet: '{"number":1,"ok":true}' },
+        sha: { command: "git rev-parse HEAD", snippet: "abc1234deadbeef0000000000000000000000000" },
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("invented-done");
+    expect(result.unboundClaims).toEqual(expect.arrayContaining(["pr_number", "head_sha"]));
   });
 
   it("fails n/a-no-remote-claim when remote claims are present under pass", () => {
@@ -112,6 +130,33 @@ describe("validateHandoffEvidence — invented-done", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.failClass).toBe("invented-done");
+  });
+});
+
+describe("validateHandoffEvidence — enum shape", () => {
+  it("rejects unsupported proof_status and axis state strings", () => {
+    const result = validateHandoffEvidence({
+      status: "pass",
+      proof_status: "verified",
+      work: { state: "almost_done" },
+      ship: { state: "done" },
+      gate: { state: "n/a" },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("shape-error");
+    expect(result.reasons.join(" ")).toMatch(/proof_status/);
+    expect(result.reasons.join(" ")).toMatch(/work\.state/);
+  });
+
+  it("rejects unsupported status tokens", () => {
+    const result = validateHandoffEvidence({
+      status: "success",
+      proof_status: "n/a-no-remote-claim",
+      work: { state: "done" },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("shape-error");
+    expect(result.reasons.join(" ")).toMatch(/status must be one of/);
   });
 });
 
@@ -220,7 +265,7 @@ describe("canClaimPass", () => {
         ship: { state: "done" },
         gate: { state: "done" },
         pr_number: 3120,
-        head_sha: "abc",
+        head_sha: "abc1234deadbeef0000000000000000000000000",
         probes: {
           pr: boundPrProbe,
           sha: boundShaProbe,
