@@ -1,0 +1,101 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Docs note for npm v12 install-time security defaults",
+    "updated": "2026-08-05T04:48:03Z"
+  },
+  "plan": {
+    "title": "docs: npm v12 install-time security defaults (scripts/git/remote opt-in)",
+    "status": "completed",
+    "id": "npm-v12-docs",
+    "narratives": {
+      "Description": "Document npm v12 install-time security defaults for Directive consumers and monorepo maintainers. Consumers use npm globally; the framework monorepo uses pnpm with allowBuilds for esbuild. Clarify that Directive published packages ship no install scripts, git/remote package sources are not used, and publish remains OIDC.",
+      "Origin": "Operator request after npm v12 GA announcement",
+      "Overview": "Add a short UPGRADING section (primary), a CONTRIBUTING monorepo note pointing at pnpm allowBuilds, optional README pointer, and CHANGELOG Unreleased.",
+      "UserStory": "As a Directive consumer or monorepo contributor, I want clear guidance when npm v12 blocks install scripts or non-registry sources by default, so that I know whether Directive requires allowlists and where install-script authority lives (pnpm allowBuilds vs npm allowScripts).",
+      "ImplementationPlan": "Step 1: Edit content/UPGRADING.md — insert a new ## npm v12 install-time security defaults section near the top (after legend) documenting allowScripts off, allow-git none, allow-remote none; consumer path npm i -g @deftai/directive needs no Directive-side allowlist (published packages have no install scripts); app trees with native modules use npm approve-scripts in the consumer project; monorepo contributors use pnpm + pnpm-workspace.yaml allowBuilds.esbuild. Step 2: Edit CONTRIBUTING.md under Windows-native Node/pnpm or a short Install scripts subsection — install-script SoT is pnpm allowBuilds, not npm allowScripts (pnpm layout breaks approve-scripts pinning). Step 3: Optional README Getting Started one-liner linking UPGRADING npm v12. Step 4: CHANGELOG.md [Unreleased] docs bullet. Verification: files contain the section headings; task verify:forward-coverage passes; no product code changes.",
+      "missing_traces_justification": "Docs-only story; AC items carry Traces."
+    },
+    "items": [
+      {
+        "id": "npm-v12-docs-a1",
+        "title": "UPGRADING.md npm v12 section",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given content/UPGRADING.md, when opened after this change, then a section documents npm v12 allowScripts/allow-git/allow-remote defaults and states that @deftai/directive global install does not require a Directive package allowScripts map",
+          "Traces": "AC-1"
+        }
+      },
+      {
+        "id": "npm-v12-docs-a2",
+        "title": "CONTRIBUTING monorepo pnpm allowBuilds note",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given CONTRIBUTING.md, when opened after this change, then monorepo install-script authority is described as pnpm allowBuilds (esbuild) rather than npm approve-scripts under the pnpm virtual store",
+          "Traces": "AC-2"
+        }
+      },
+      {
+        "id": "npm-v12-docs-a3",
+        "title": "CHANGELOG Unreleased",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md [Unreleased], when opened after this change, then a docs bullet cites npm v12 install-time defaults guidance",
+          "Traces": "AC-3"
+        }
+      }
+    ],
+    "tags": [
+      "docs",
+      "npm",
+      "agent-experience"
+    ],
+    "references": [],
+    "updated": "2026-08-05T04:48:03Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/UPGRADING.md",
+          "CONTRIBUTING.md",
+          "README.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task verify:forward-coverage"
+        ],
+        "expected_outputs": [
+          "UPGRADING npm v12 section",
+          "CONTRIBUTING pnpm note",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "npm-v12-docs",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3123,
+        "prBase": "master",
+        "mergeCommit": "ff1e3a7735c9fb5d73d220da153c7b8e5a654e8a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ff1e3a7735c9fb5d73d220da153c7b8e5a654e8a",
+        "verifiedAt": "2026-08-05T04:48:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-05T04:48:03Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

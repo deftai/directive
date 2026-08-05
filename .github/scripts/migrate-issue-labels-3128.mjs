@@ -130,10 +130,17 @@ for (const t of twins) {
 const rolePlans = [];
 
 function load(n) {
+  // Fail closed on read errors (network/auth/rate-limit) so skips stay
+  // "closed or missing" only when GitHub returns a real 404 — not silent
+  // success after a transient failure (#3128 Greptile P1).
   try {
     return issueLabels(n);
-  } catch {
-    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/\b404\b|Not Found/i.test(msg)) {
+      return null;
+    }
+    throw new Error(`load(#${n}) failed (not treating as skip): ${msg}`);
   }
 }
 

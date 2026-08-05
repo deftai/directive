@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1423",
-    "updated": "2026-08-04T22:57:47Z"
+    "updated": "2026-08-05T16:31:54Z"
   },
   "plan": {
     "title": "feat(triage): Tier-1 deterministic SCM label mirror from classify (Wave 1 of #1423)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Wave 1 only of #1423 design lock (2026-08-04). Implement deterministic Tier-1 SCM label mirror: run existing triage classify engine over cache, map outcomes to labels (triaged idempotency marker + action-derived labels via policy), dry-run default with --apply, github-only writes through SCM boundary / existing reconcile surfaces. MUST NOT call triage:accept or write proposed/ xBRIEFs. Waves 2-3 (mass bootstrap comments, agent Tier-2 comments) are OUT OF SCOPE.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1423",
@@ -20,7 +20,7 @@
       {
         "id": "1423-tier1-label-mirror-a1",
         "title": "Dry-run default prints digest of label adds/skips with zero SCM writes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given 1423-tier1-label-mirror scope, when complete, then: Dry-run default prints digest of label adds/skips with zero SCM writes",
           "Traces": "AC-1"
@@ -29,7 +29,7 @@
       {
         "id": "1423-tier1-label-mirror-a2",
         "title": "--apply writes labels via SCM-safe path; re-run is no-op for already-triaged",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given 1423-tier1-label-mirror scope, when complete, then: --apply writes labels via SCM-safe path; re-run is no-op for already-triaged",
           "Traces": "AC-2"
@@ -38,7 +38,7 @@
       {
         "id": "1423-tier1-label-mirror-a3",
         "title": "Classify engine reused (#1129); no reimplementation of match DSL",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given 1423-tier1-label-mirror scope, when complete, then: Classify engine reused (#1129); no reimplementation of match DSL",
           "Traces": "AC-3"
@@ -47,7 +47,7 @@
       {
         "id": "1423-tier1-label-mirror-a4",
         "title": "Never invokes triage:accept or creates proposed/ xBRIEFs",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given 1423-tier1-label-mirror scope, when complete, then: Never invokes triage:accept or creates proposed/ xBRIEFs",
           "Traces": "AC-4"
@@ -56,7 +56,7 @@
       {
         "id": "1423-tier1-label-mirror-a5",
         "title": "Tests + CHANGELOG [Unreleased] for #1423 Wave 1",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given 1423-tier1-label-mirror scope, when complete, then: Tests + CHANGELOG [Unreleased] for #1423 Wave 1",
           "Traces": "AC-5"
@@ -76,7 +76,7 @@
       }
     ],
     "id": "1423-tier1-label-mirror",
-    "updated": "2026-08-04T22:57:47Z",
+    "updated": "2026-08-05T16:31:54Z",
     "metadata": {
       "kind": "story",
       "swarm": {
@@ -109,7 +109,26 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3118,
+        "prBase": "master",
+        "mergeCommit": "5f057f08e0fc90e985f46e27d454bc42a925ce9c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ff1e3a7735c9fb5d73d220da153c7b8e5a654e8a",
+        "verifiedAt": "2026-08-05T16:31:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-05T16:31:54Z",
+      "capacityBucket": "agentic-debt"
     }
   }
 }

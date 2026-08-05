@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Wave 2 only of #1423 — bootstrap mass-triage on Wave 1 mirror (#3118 / #3125)",
-    "updated": "2026-08-05T16:45:43Z"
+    "updated": "2026-08-05T17:07:43Z"
   },
   "plan": {
     "title": "feat(triage): #1423 Wave 2 — bootstrap mass-triage (filters, digest, safe apply)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Productize bootstrap mass-triage on top of shipped Wave 1 label mirror. Wave 1 walks the github-issue cache and plans or applies labels. Wave 2 adds safe brownfield job semantics: state filters with open-only default, operator digest with totals and breakdowns, batched rate-limit-aware apply. Never triage:accept. Dogfood on directive showed 686 planned with most closed; filters are load-bearing.",
       "Origin": "https://github.com/deftai/directive/issues/3125 (Wave 2 of #1423)",
@@ -20,7 +20,7 @@
       {
         "id": "3125-a1",
         "title": "Documented bootstrap/mass entrypoint on Wave 1 mirror",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Documented bootstrap/mass entrypoint on Wave 1 mirror",
           "Traces": "AC-1"
@@ -29,7 +29,7 @@
       {
         "id": "3125-a2",
         "title": "Default filter avoids mass-labeling all closed history (open-only or equally safe)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Default filter avoids mass-labeling all closed history (open-only or equally safe)",
           "Traces": "AC-2"
@@ -38,7 +38,7 @@
       {
         "id": "3125-a3",
         "title": "Dry-run digest: totals + by state/rule/action + samples (+ JSON)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Dry-run digest: totals + by state/rule/action + samples (+ JSON)",
           "Traces": "AC-3"
@@ -47,7 +47,7 @@
       {
         "id": "3125-a4",
         "title": "Apply batches writes, rate-limit aware, idempotent, partial failure report",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Apply batches writes, rate-limit aware, idempotent, partial failure report",
           "Traces": "AC-4"
@@ -56,7 +56,7 @@
       {
         "id": "3125-a5",
         "title": "Never triage:accept / never proposed/ xBRIEFs",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Never triage:accept / never proposed/ xBRIEFs",
           "Traces": "AC-5"
@@ -65,7 +65,7 @@
       {
         "id": "3125-a6",
         "title": "Tests + CHANGELOG for #3125 / #1423 Wave 2",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Wave 2 bootstrap mass-triage scope, when complete, then: Tests + CHANGELOG for #3125 / #1423 Wave 2",
           "Traces": "AC-6"
@@ -90,7 +90,7 @@
       }
     ],
     "id": "3125-bootstrap-mass-triage",
-    "updated": "2026-08-05T16:45:43Z",
+    "updated": "2026-08-05T17:07:43Z",
     "metadata": {
       "kind": "story",
       "swarm": {
@@ -121,7 +121,26 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "high"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3126,
+        "prBase": "master",
+        "mergeCommit": "b4355365eceaf15077fe83b466a6743552977433",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b4355365eceaf15077fe83b466a6743552977433",
+        "verifiedAt": "2026-08-05T17:07:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-05T17:07:43Z",
+      "capacityBucket": "new-capability"
     }
   }
 }

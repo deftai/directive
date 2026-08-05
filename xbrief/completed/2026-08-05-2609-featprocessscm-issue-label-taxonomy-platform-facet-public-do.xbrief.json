@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #2609",
-    "updated": "2026-08-05T18:31:13Z"
+    "updated": "2026-08-05T19:15:25Z"
   },
   "plan": {
     "title": "feat(process,scm): issue label taxonomy — platform facet, public docs, dedupe",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(process,scm): issue label taxonomy — platform facet, public docs, dedupe",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2609",
@@ -16,31 +16,31 @@
     "items": [
       {
         "title": "`.github/ISSUE_LABELS.md` with facets, **epic/tracker/child rules**, nested mid-node policy, machine facet, platform, deprecate list, PR≈story",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "CONTRIBUTING links to it",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Platform labels created + descriptions",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Machine labels documented (+ created or explicitly deferred)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Twin decisions + typo fix + descriptions pass",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Skill pointer for **this** repo",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Cross-links: #2611, #1789, #1423, #3124, #886",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -62,6 +62,27 @@
         "title": "Issue #2611"
       }
     ],
-    "updated": "2026-08-05T18:31:13Z"
+    "updated": "2026-08-05T19:15:25Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3130,
+        "prBase": "master",
+        "mergeCommit": "5be5a7fbb996c620ac0b7aa449041224e50b7fd0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5be5a7fbb996c620ac0b7aa449041224e50b7fd0",
+        "verifiedAt": "2026-08-05T19:15:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-05T19:15:25Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
