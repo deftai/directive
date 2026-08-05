@@ -298,43 +298,49 @@ function unboundClaimKeys(evidence: HandoffEvidence, claims: readonly string[]):
   }
   // Cross-claim consistency: PR + SHA must co-appear so unrelated forge artifacts
   // cannot be stitched into one "bound" pass (Greptile residual on #3120).
-  const claimSet = new Set(claims);
-  const hasPr = claimSet.has("pr_url") || claimSet.has("pr_number");
-  const shaClaim = claimSet.has("head_sha")
-    ? "head_sha"
-    : claimSet.has("commit_sha")
-      ? "commit_sha"
-      : null;
-  if (hasPr && shaClaim) {
-    const sha = String(
-      shaClaim === "head_sha" ? (evidence.head_sha ?? "") : (evidence.commit_sha ?? ""),
-    )
-      .trim()
-      .toLowerCase();
-    const prefix = sha.length >= 7 ? sha.slice(0, 7) : "";
-    const prSnippet = evidence.probes?.pr?.snippet ?? "";
-    if (prefix && !new RegExp(`(^|[^0-9a-f])${prefix}`, "i").test(prSnippet)) {
+  try {
+    const claimSet = new Set(claims);
+    const hasPr = claimSet.has("pr_url") || claimSet.has("pr_number");
+    const shaClaim = claimSet.has("head_sha")
+      ? "head_sha"
+      : claimSet.has("commit_sha")
+        ? "commit_sha"
+        : null;
+    const rawSha = shaClaim
+      ? String(shaClaim === "head_sha" ? (evidence.head_sha ?? "") : (evidence.commit_sha ?? ""))
+          .trim()
+          .toLowerCase()
+      : "";
+    // Only hex SHAs participate in co-binding; malformed SHA fails closed as unbound.
+    const hexOk = /^[0-9a-f]{7,}$/i.test(rawSha);
+    if (shaClaim && !hexOk) {
       if (!unbound.includes(shaClaim)) unbound.push(shaClaim);
-      if (!unbound.includes("pr_number") && claimSet.has("pr_number")) {
-        unbound.push("pr_number");
-      }
-      if (!unbound.includes("pr_url") && claimSet.has("pr_url")) {
-        unbound.push("pr_url");
+    }
+    const prefix = hexOk ? rawSha.slice(0, 7) : "";
+    if (hasPr && shaClaim && prefix) {
+      const prSnippet = evidence.probes?.pr?.snippet ?? "";
+      if (!new RegExp(`(^|[^0-9a-f])${prefix}`, "i").test(prSnippet)) {
+        if (!unbound.includes(shaClaim)) unbound.push(shaClaim);
+        if (!unbound.includes("pr_number") && claimSet.has("pr_number")) {
+          unbound.push("pr_number");
+        }
+        if (!unbound.includes("pr_url") && claimSet.has("pr_url")) {
+          unbound.push("pr_url");
+        }
       }
     }
-  }
-  if (claimSet.has("ci_status") && shaClaim) {
-    const sha = String(
-      shaClaim === "head_sha" ? (evidence.head_sha ?? "") : (evidence.commit_sha ?? ""),
-    )
-      .trim()
-      .toLowerCase();
-    const prefix = sha.length >= 7 ? sha.slice(0, 7) : "";
-    const ciCmd = evidence.probes?.ci?.command ?? "";
-    const ciSnippet = evidence.probes?.ci?.snippet ?? "";
-    const joined = `${ciCmd}\n${ciSnippet}`;
-    if (prefix && !new RegExp(`(^|[^0-9a-f])${prefix}`, "i").test(joined)) {
-      if (!unbound.includes("ci_status")) unbound.push("ci_status");
+    if (claimSet.has("ci_status") && shaClaim && prefix) {
+      const ciCmd = evidence.probes?.ci?.command ?? "";
+      const ciSnippet = evidence.probes?.ci?.snippet ?? "";
+      const joined = `${ciCmd}\n${ciSnippet}`;
+      if (!new RegExp(`(^|[^0-9a-f])${prefix}`, "i").test(joined)) {
+        if (!unbound.includes("ci_status")) unbound.push("ci_status");
+      }
+    }
+  } catch {
+    // Fail closed on any unexpected error during consistency checks.
+    for (const claim of claims) {
+      if (!unbound.includes(claim)) unbound.push(claim);
     }
   }
   return unbound;

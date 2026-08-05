@@ -161,6 +161,23 @@ describe("validateHandoffEvidence — invented-done", () => {
     ).toContain("ci_status");
   });
 
+  it("never throws on malformed SHA in cross-claim checks", () => {
+    expect(() =>
+      validateHandoffEvidence({
+        status: "pass",
+        proof_status: "bound",
+        pr_number: 3120,
+        head_sha: "((((((",
+        work: { state: "done" },
+        ship: { state: "done" },
+        probes: {
+          pr: boundPrProbe,
+          sha: { command: "git rev-parse HEAD", snippet: "(((((( not hex" },
+        },
+      }),
+    ).not.toThrow();
+  });
+
   it("rejects PR+SHA binds that do not co-appear in the PR probe", () => {
     const result = validateHandoffEvidence({
       status: "pass",
