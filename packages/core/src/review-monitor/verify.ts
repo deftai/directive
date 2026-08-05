@@ -50,12 +50,25 @@ export interface VerifyReviewMonitorResult {
 
 function spawnRedirect(probe: MonitoringTierProbe): string {
   const primitive = probe.primitive ?? "sub-agent";
+  // Claude Code / Cursor nested-leaf boundary (#2797 / #3134): implementation leaves
+  // must not nested-spawn a second-level Task/Agent poller. Prefer blocking pr:watch
+  // in-process or stop-at: pr-open with a sibling monitor from the parent that owns
+  // the spawn primitive.
+  const nestedLeafNote =
+    primitive === "claude-agent" || primitive === "cursor-task"
+      ? "\n" +
+        "  Nested-leaf note (#2797 / #3134): if this agent is an implementation leaf " +
+        `(not the parent that owns ${primitive}), do NOT nested-spawn another ${primitive} ` +
+        "review-monitor. Prefer blocking dual-invoke `pr:watch` in this process, or " +
+        "`stop-at: pr-open` so the parent/orchestrator spawns a sibling monitor.\n"
+      : "";
   return (
     `Spawn an Approach 1 review-monitor via ${primitive} (background), include ` +
     "`templates/agent-prompt-preamble.md` and `templates/swarm-greptile-poller-prompt.md`, " +
     "then register:\n" +
     "  task review-monitor:register -- --pr <N> --monitor-agent-id <id> " +
     `--platform-primitive ${primitive}\n` +
+    nestedLeafNote +
     "Re-run: task verify:review-monitor -- --pr <N>"
   );
 }

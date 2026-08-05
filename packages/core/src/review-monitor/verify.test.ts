@@ -142,6 +142,21 @@ describe("evaluateReviewMonitorGate", () => {
     expect(result.message).toContain("Approach 3 blocking poll is forbidden");
   });
 
+  it("Claude Tier-1 redirect notes nested-leaf boundary (#3134)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-claude-leaf-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 42,
+      projectRoot: root,
+      repo: "deftai/directive",
+      approach3: true,
+      environ: { DEFT_PROBE_CLAUDE_CODE: "1" },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("claude-agent");
+    expect(result.message).toContain("Nested-leaf note");
+    expect(result.message).toContain("do NOT nested-spawn");
+  });
+
   it("allows Approach 3 on Tier 3 with warning ack", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-a3ok-"));
     const result = evaluateReviewMonitorGate({

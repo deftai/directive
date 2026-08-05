@@ -395,7 +395,7 @@ Remediation:
 
 ! **Background dispatch (#1880 / #2876 / #3134):** Spawn the review-monitor sub-agent via the matching primitive IN THE BACKGROUND (Cursor: Task `run_in_background: true`; Claude Code: `Agent` `run_in_background: true`; Grok Build: `spawn_subagent` with parent yielding; OpenClaw: `sessions_spawn` with parent yielding). The parent MUST remain interactive while the poller runs — never block the parent OpenClaw/Cursor/Claude Code/Grok session for >~3 min of monitor ownership.
 
-! **Heartbeat contract for Cursor / Claude Code / OpenClaw pollers (#1877 / #1166 / #2876 / #3134):** A Cursor `Task`, Claude Code `Agent`, or OpenClaw `sessions_spawn` review-monitor poller whose loop runs > ~3 min MUST honour the sub-agent heartbeat contract (`docs/subagent-heartbeat.md`), same as the `spawn_subagent` path — emit periodic progress so the parent can distinguish a live poller from a hung one.
+! **Heartbeat contract for Cursor pollers (#1877 / #1166 / #2876 / #3134):** Claude Code `Agent` and OpenClaw `sessions_spawn` pollers share this contract. A Cursor `Task`, Claude Code `Agent`, or OpenClaw `sessions_spawn` review-monitor poller whose loop runs > ~3 min MUST honour the sub-agent heartbeat contract (`docs/subagent-heartbeat.md`), same as the `spawn_subagent` path — emit periodic progress so the parent can distinguish a live poller from a hung one.
 
 ~ **Visible Control UI (OpenClaw / #3044):** When OpenClaw Control UI is the operator control plane, SHOULD spawn the review-monitor with `visible:true` when the tool surface allows so humans can inspect progress without attaching to the parent session; invisible empty settles are higher FC04 residual risk.
 
