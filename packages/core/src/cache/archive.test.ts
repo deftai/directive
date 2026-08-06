@@ -923,3 +923,40 @@ describe("CLI main archive surface", () => {
     }
   });
 });
+
+describe("restoreFromArchive validation branches (coverage)", () => {
+  it("rejects unsupported source and bad issue/repo combinations", () => {
+    const root = tempRoot();
+    expect(() =>
+      restoreFromArchive({
+        projectRoot: root,
+        source: "not-a-source" as "github-issue",
+        issue: 1,
+        repo: "o/r",
+      }),
+    ).toThrow();
+    expect(() =>
+      restoreFromArchive({
+        projectRoot: root,
+        source: "github-issue",
+        // no key, no issue
+      } as Parameters<typeof restoreFromArchive>[0]),
+    ).toThrow(/restore requires/);
+    expect(() =>
+      restoreFromArchive({
+        projectRoot: root,
+        source: "github-issue",
+        issue: 0,
+        repo: "o/r",
+      }),
+    ).toThrow(/positive integer/);
+    expect(() =>
+      restoreFromArchive({
+        projectRoot: root,
+        source: "github-issue",
+        issue: 1,
+        repo: "bad",
+      }),
+    ).toThrow(/--repo/);
+  });
+});
