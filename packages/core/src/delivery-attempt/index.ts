@@ -44,6 +44,8 @@ export {
   listUnitLedgers,
   loadOrCreateUnitLedger,
   loadUnitLedger,
+  loadUnitLedgerResult,
+  type LoadUnitLedgerResult,
   MemoryLedgerStore,
   markBlocked,
   newAttemptId,

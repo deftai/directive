@@ -152,6 +152,11 @@ cannot unlink a live replacement lock. If a lock remains stuck after process
 death with PID reuse (or a hung live holder), delete the matching `.lock` /
 `.lock.reclaim` files under `.deft/delivery-attempts/` manually.
 
+Ledger load is **fail-closed on corruption**: a present but invalid ledger file
+throws (does not create an empty unit). Only a truly missing file creates a new
+empty ledger. Operators must repair or remove a corrupt file deliberately before
+dispatch can resume for that unit.
+
 ## Observability
 
 Every evaluation emits a structured `PreDispatchDecisionEvent`

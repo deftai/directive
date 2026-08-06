@@ -295,20 +295,56 @@ function writeJsonContained(projectRoot: string, targetPath: string, payload: un
   }
 }
 
-/** Load unit ledger from disk, or null if missing/corrupt. */
+export type LoadUnitLedgerResult =
+  | { readonly status: "missing" }
+  | { readonly status: "ok"; readonly ledger: DeliveryUnitLedger }
+  | { readonly status: "corrupt"; readonly detail: string };
+
+/**
+ * Load unit ledger distinguishing missing vs corrupt.
+ * Corrupt persisted state MUST NOT be treated as a new empty unit (fail-closed).
+ */
+export function loadUnitLedgerResult(
+  projectRoot: string,
+  scopeId: string,
+  targetId: string,
+  workflowId: string,
+): LoadUnitLedgerResult {
+  const path = unitLedgerPath(projectRoot, scopeId, targetId, workflowId);
+  if (!existsSync(path)) return { status: "missing" };
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    const ledger = parseUnitLedger(raw);
+    if (ledger === null) {
+      return { status: "corrupt", detail: `invalid ledger schema at ${path}` };
+    }
+    return { status: "ok", ledger };
+  } catch (err) {
+    return {
+      status: "corrupt",
+      detail: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/**
+ * Load unit ledger from disk, or null if missing.
+ * Throws when the file exists but is corrupt (fail-closed circuit breaker).
+ */
 export function loadUnitLedger(
   projectRoot: string,
   scopeId: string,
   targetId: string,
   workflowId: string,
 ): DeliveryUnitLedger | null {
-  const path = unitLedgerPath(projectRoot, scopeId, targetId, workflowId);
-  if (!existsSync(path)) return null;
-  try {
-    return parseUnitLedger(JSON.parse(readFileSync(path, "utf8")) as unknown);
-  } catch {
-    return null;
+  const result = loadUnitLedgerResult(projectRoot, scopeId, targetId, workflowId);
+  if (result.status === "missing") return null;
+  if (result.status === "corrupt") {
+    throw new Error(
+      `delivery-attempt ledger corrupt for ${scopeId}/${targetId}/${workflowId}: ${result.detail}`,
+    );
   }
+  return result.ledger;
 }
 
 /** Persist unit ledger atomically under project root. */
@@ -497,7 +533,10 @@ export function withUnitLock<T>(
   }
 }
 
-/** Load or create empty unit ledger. */
+/**
+ * Load or create empty unit ledger.
+ * Creates only when the file is missing — never on corrupt state.
+ */
 export function loadOrCreateUnitLedger(
   projectRoot: string,
   input: {
@@ -508,10 +547,19 @@ export function loadOrCreateUnitLedger(
     readonly now?: string;
   },
 ): DeliveryUnitLedger {
-  return (
-    loadUnitLedger(projectRoot, input.scopeId, input.targetId, input.workflowId) ??
-    emptyUnitLedger(input)
+  const result = loadUnitLedgerResult(
+    projectRoot,
+    input.scopeId,
+    input.targetId,
+    input.workflowId,
   );
+  if (result.status === "ok") return result.ledger;
+  if (result.status === "corrupt") {
+    throw new Error(
+      `delivery-attempt ledger corrupt for ${input.scopeId}/${input.targetId}/${input.workflowId}: ${result.detail}`,
+    );
+  }
+  return emptyUnitLedger(input);
 }
 
 export function listUnitLedgers(projectRoot: string): DeliveryUnitLedger[] {

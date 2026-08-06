@@ -11,6 +11,7 @@ import {
   emptyUnitLedger,
   hasActiveAttempt,
   isUnitLockReclaimable,
+  loadOrCreateUnitLedger,
   loadUnitLedger,
   MemoryLedgerStore,
   markBlocked,
@@ -190,6 +191,18 @@ describe("delivery-attempt ledger durability (#3143)", () => {
       attemptId: "a1",
     }));
     expect(ledger.override?.remainingAttempts).toBe(2);
+  });
+
+  it("corrupt ledger fails closed instead of resetting to empty unit", () => {
+    const root = tmpRoot();
+    const dir = deliveryAttemptsDir(root);
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, unitLedgerFilename("s", "t", "w"));
+    writeFileSync(path, "{not-json\n", { encoding: "utf8" });
+    expect(() => loadUnitLedger(root, "s", "t", "w")).toThrow(/ledger corrupt/);
+    expect(() =>
+      loadOrCreateUnitLedger(root, { scopeId: "s", targetId: "t", workflowId: "w" }),
+    ).toThrow(/ledger corrupt/);
   });
 
   it("unit ledger filenames are full digests that do not collide on prefix", () => {
