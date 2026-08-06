@@ -268,6 +268,25 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     expect(result.summary.cancelled_required.join(" ")).toContain("Security policy gate");
   });
 
+  it("does not clear cancel via skipped authoritative aggregator (#3167 P1)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (Blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({
+          name: "TypeScript (build + lint + test)",
+          status: "completed",
+          conclusion: "skipped",
+        }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+  });
+
   it("prefers ci_failures over cancelled when both present (#3167)", () => {
     const result = evaluateCiGate(
       [

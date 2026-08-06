@@ -10,7 +10,13 @@ const FAILURE_CONCLUSIONS = new Set(["failure", "timed_out"]);
 /** Capacity/outage cancels where failover may have been skipped (#3167). */
 const CANCELLED_CONCLUSIONS = new Set(["cancelled"]);
 const PENDING_STATUSES = new Set(["queued", "in_progress"]);
+/** Non-blocking completed conclusions for general ready/pending accounting. */
 const SUCCESS_CONCLUSIONS = new Set(["success", "neutral", "skipped"]);
+/**
+ * Only true success clears a cancelled suite lane. `skipped` / `neutral` are
+ * not executed green failover evidence (#3167 Greptile P1).
+ */
+const AUTHORITATIVE_CLEAR_CONCLUSIONS = new Set(["success"]);
 
 /**
  * Bot-reviewer check-runs are not CI workflow jobs. Presence of only these
@@ -331,7 +337,7 @@ export function evaluateCiGate(
             c.required &&
             !c.ignored &&
             c.status === "completed" &&
-            SUCCESS_CONCLUSIONS.has(c.conclusion) &&
+            AUTHORITATIVE_CLEAR_CONCLUSIONS.has(c.conclusion) &&
             isAuthoritativeSuiteAggregator(c.name),
         )
         .map((c) => suiteFamilyOf(c.name) as "typescript" | "go"),
