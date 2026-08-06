@@ -54,4 +54,17 @@ describe("gate-lists (#2791)", () => {
       "verify:orphan-active",
     );
   });
+
+  it("includes #3145 enforcement gates on framework and consumer lists", () => {
+    const framework = FRAMEWORK_CHECK_GATES.map(checkGateId);
+    const consumer = CONSUMER_CHECK_GATES.map(checkGateId);
+    for (const gate of [
+      "verify:test-boundary",
+      "verify:scope-provenance",
+      "verify:consumer-check-contract",
+    ]) {
+      expect(framework).toContain(gate);
+      expect(consumer).toContain(gate);
+    }
+  });
 });
