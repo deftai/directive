@@ -35,6 +35,10 @@ Live miss: operator said “use review skill” + URL; agent stayed on host free
 
 Package install alone does not put always-pins into `~/.openclaw/workspace/skills`. Operators / agents SHOULD run `deft doctor` (detect) and `deft doctor --fix` (symlink or copy the four pins) when main-workspace pins are missing. Multi-seat only with `--openclaw-all-agents`. Operator steps: [`../../docs/openclaw-agent-host.md`](../../docs/openclaw-agent-host.md) § Wire skills into OpenClaw workspace.
 
+### Soft post-compact AGENTS re-bind (#3171)
+
+OpenClaw does **not** claim file-host PreCompact hard re-arm alone. Soft re-bind is a **required** durable skill (`deft-directive-post-compact-rebind`) deposited by `deft doctor --fix` / init when OpenClaw is detected — same checklist SoT as Cursor/Claude/Grok. After deposit, restart gateway or start a new session. Full dual-surface matrix: [`../../docs/openclaw-agent-host.md`](../../docs/openclaw-agent-host.md) § Soft post-compact AGENTS re-bind; `commands.md` compact + soft section.
+
 ## Hard isolation before spawn (#2929)
 
 ! For **parallel** OpenClaw leaves (cohort size > 1):

@@ -56,13 +56,48 @@ Bodies stay **thin** (L5): frontmatter + short dispatch pointer to the same cont
 4. Opt-out: `plan.policy.openClawProductCommands: false` — removes **managed** L2 thin skills only; preserves consumer custom skills at the same slug.
 5. After deposit: **restart the OpenClaw gateway or start a new session** so `available_skills` refreshes.
 
-Always-pin skills (`deft-directive-build`, `pre-pr`, `review-cycle`, `swarm`) remain a **different** surface from L2 product commands (`/deft:directive:run:interview`, `/deft:continue`, …).
+Always-pin skills (`deft-directive-build`, `pre-pr`, `review-cycle`, `swarm`) remain a **different** surface from L2 product commands (`/deft:directive:run:interview`, `/deft:continue`, …). Soft post-compact re-bind (`deft-directive-post-compact-rebind`, #3171) is a third surface — see § Soft post-compact AGENTS re-bind below.
 
 Inspect policy:
 
 ```bash
 deft policy:show --field=openClawProductCommands
 ```
+
+---
+
+## Soft post-compact AGENTS re-bind (#3171 / #2769)
+
+OpenClaw is a **Family-2** session host. Soft AGENTS re-bind after compaction / long-session amnesia is **required** on OpenClaw and is **not** claimed via Cursor/Claude/Grok file-host `PreCompact` hooks alone.
+
+| Surface | OpenClaw posture |
+|---------|------------------|
+| **Hard** compact re-arm (file-host PreToolUse stale → deny writes) | **Not** provided by file-host compact hooks on OpenClaw. Mutation still requires `session:start` / `session:ready` / gated ritual via CLI/skills before gated writes. |
+| **Soft** AGENTS re-bind | **Required** durable workspace skill from the **shared checklist SoT** (`packages/core/src/session/compact-ritual.ts`). |
+
+### Checklist obligations (same SoT as file hosts)
+
+1. Re-read managed `AGENTS.md` session routing (#2176) — summary ≠ SoT.
+2. Confirm-what-you-learned (brief) in the user-visible reply.
+3. Deposit integrity: `deft` on PATH ≠ healthy `.deft/core` deposit.
+4. Summary/runbook (demo DBs, “start the app”) are hypotheses — re-verify PROJECT-DEFINITION / USER.md / local config.
+5. Operational-ask trap: “open/start/run the app” is still session-routed (#3161).
+6. Read-only → soft only; mutation → soft **plus** hard re-arm where supported. Soft **never** authorizes skipping the mutation ritual for writes.
+
+### Deposit / amnesia boundary
+
+| Step | Action |
+|------|--------|
+| Detect / fix | `deft doctor` warns when OpenClaw is detected and the managed skill is missing/stale; `deft doctor --fix` deposits it (multi-seat: `--openclaw-all-agents`) |
+| init / update | Deposits when OpenClaw signals are present (fail-closed otherwise) |
+| Skill id | `deft-directive-post-compact-rebind` under the OpenClaw workspace skills root |
+| After deposit | **Restart the OpenClaw gateway or start a new session** so skills reload |
+| Trigger | Session start / resume, gateway restart, long-session amnesia, operational asks after summary resume |
+
+⊗ Claim OpenClaw soft coverage from file-host hook deposits alone.  
+⊗ Treat “pins present” as “session ritual completed.”
+
+Shared dual-surface + five-host matrix: [commands.md](../commands.md) § Agent-host hooks → Compact re-arm + soft AGENTS re-bind.
 
 ---
 
