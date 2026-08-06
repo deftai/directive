@@ -242,4 +242,67 @@ describe("activate statSync failure branch", () => {
     expect(trailResult.exitCode).toBe(1);
     expect(trailResult.message).toMatch(/Extra data|not valid JSON/);
   });
+
+  it("maps truncated and unexpected-token JSON errors", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-activate-json-token-"));
+    roots.push(root);
+    const pending = join(root, "xbrief", "pending");
+    mkdirSync(pending, { recursive: true });
+    const { activate } = await import("./activate.js");
+
+    const truncated = join(pending, "trunc.xbrief.json");
+    writeFileSync(truncated, '{"plan":', "utf8");
+    const truncResult = activate(truncated);
+    expect(truncResult.exitCode).toBe(1);
+    expect(truncResult.message).toMatch(/Expecting value|not valid JSON/);
+
+    const token = join(pending, "token.xbrief.json");
+    writeFileSync(token, "[1,", "utf8");
+    const tokenResult = activate(token);
+    expect(tokenResult.exitCode).toBe(1);
+    expect(tokenResult.message).toMatch(/Expecting value|not valid JSON|not a JSON object/);
+  });
+
+  it("best-effort cleans tmp when write fails and unlink of tmp throws", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-activate-tmp-clean-"));
+    roots.push(root);
+    const path = join(root, "xbrief", "pending", "story.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: "pending", items: [] },
+      }),
+      "utf8",
+    );
+
+    vi.doMock("../fs/contained-write.js", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("../fs/contained-write.js")>();
+      return {
+        ...actual,
+        containedWrite: () => {
+          throw new Error("write sink refused");
+        },
+      };
+    });
+    vi.doMock("node:fs", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("node:fs")>();
+      return {
+        ...actual,
+        rmSync: (target: string, options?: Parameters<typeof actual.rmSync>[1]) => {
+          if (String(target).includes(".tmp")) {
+            throw new Error("tmp cleanup denied");
+          }
+          return actual.rmSync(target, options);
+        },
+      };
+    });
+
+    const { activate } = await import("./activate.js");
+    const result = activate(path);
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("Could not write");
+    expect(existsSync(path)).toBe(true);
+  });
 });

@@ -226,6 +226,29 @@ describe("activate", () => {
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("only pending/ vBRIEFs can be activated");
   });
+
+  it("rejects plan arrays and non-string status", () => {
+    const root = tempRoot();
+    const arrayPlan = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8" },
+        plan: [{ title: "T" }],
+      },
+    });
+    const arrayResult = activate(arrayPlan, { now: FIXED_NOW });
+    expect(arrayResult.exitCode).toBe(1);
+    expect(arrayResult.message).toContain("lacks a `plan` object");
+
+    const numericStatus = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: 3, items: [] },
+      },
+    });
+    const numericResult = activate(numericStatus, { now: FIXED_NOW });
+    expect(numericResult.exitCode).toBe(1);
+    expect(numericResult.message).toContain("lacks `plan.status`");
+  });
 });
 
 describe("activate projection containment (#3147 / #2447 parity)", () => {
