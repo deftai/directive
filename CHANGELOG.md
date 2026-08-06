@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **article-review Step 5 body-level dedupe + citation verify (#3163).** Titles are a shortlist only; related/owning claims require full issue body reads (and recent comments when the body is a stub). Cited issue numbers must exist and match claimed state (anti-hallucination). Prefer amend/comment on owning open issues over new filings; optional `.deft-cache/github-issue/` offline body-read path. Pack source + `task packs:render`. Closes #3163.
+
 ### Fixed
 
 - **Cache archive: parse `www.github.com` lifecycle URIs with repo identity (#1137 residual / PR #3142).** Open-scope protection for multi-repo caches no longer drops owner/repo when lifecycle refs use `www.github.com` (or leading-zero issue path segments). Keeps archive protection repo-scoped instead of bare `#N` fallback. Refs #1137, #3141.
