@@ -221,7 +221,19 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
 
   it("reconstructs bare-word streaming deltas without whitespace", () => {
     // Host streams "Checkingworktrees..." with no spaces between tokens.
-    const tokens = ["Checking", "worktrees", "and", "open", "PRs", "next", "to", "confirm", "leaf", "completion", "status."];
+    const tokens = [
+      "Checking",
+      "worktrees",
+      "and",
+      "open",
+      "PRs",
+      "next",
+      "to",
+      "confirm",
+      "leaf",
+      "completion",
+      "status.",
+    ];
     const events: ParentTurnEvent[] = [];
     for (let rep = 0; rep < 3; rep++) {
       for (const t of tokens) {

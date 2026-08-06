@@ -157,12 +157,12 @@ function collectAssistantUnits(events: readonly ParentTurnEvent[]): string[] {
     if (ev.kind === "assistant_text") {
       const text = typeof ev.text === "string" ? ev.text : "";
       if (!text) continue;
-      // Streaming deltas often omit whitespace between tokens / sentences.
-      // Insert a boundary so splitTextUnits can cut and word Jaccard works.
-      if (run.length > 0 && !/^\s/.test(text) && !/\s$/.test(run)) {
-        if (/[.!?…]["']?\s*$/.test(run) || /[A-Za-z0-9]$/.test(run)) {
-          run += " ";
-        }
+      // Sentence-boundary deltas often omit whitespace after `.!?` before the
+      // next capital letter. Insert space only at sentence ends — never between
+      // arbitrary alnum chunks (subword streams like workt+rees must not gain
+      // a false space).
+      if (run.length > 0 && /[.!?…]["']?\s*$/.test(run) && !/^\s/.test(text) && !/\s$/.test(run)) {
+        run += " ";
       }
       run += text;
       continue;
@@ -249,8 +249,7 @@ function maxIdenticalCluster(units: readonly string[]): number {
   // Union-find near-identity clustering. Cap only for pathological mega-turns
   // (exact-frequency still covers the classic hang of identical clones).
   const CLUSTER_CAP = 256;
-  const maxComponent =
-    units.length <= CLUSTER_CAP ? maxNearIdentityComponent(units) : maxFreq;
+  const maxComponent = units.length <= CLUSTER_CAP ? maxNearIdentityComponent(units) : maxFreq;
 
   return Math.max(maxRun, maxFreq, maxComponent);
 }
