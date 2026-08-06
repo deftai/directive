@@ -567,43 +567,85 @@ export const registryData = {
       see_also: ["task triage:subscribe", "task triage:scope", "#1119 / D14"],
       placeholder: false,
     },
+    "task triage:cache-archive": {
+      name: "task triage:cache-archive",
+      summary: "Reversible archive of closed github-issue cache entries",
+      refs: "(#1137)",
+      description:
+        "Move closed-and-aged live `.deft-cache/github-issue/` entries under `.deft-cache/archived/github-issue/...` with archive-meta.json. Operator-only; never auto on check/session/sync. Distinct from task cache:prune (TTL hard-delete). Skips issues referenced in xbrief/{proposed,pending,active}. Alias: cache:archive-closed.",
+      usage:
+        "task triage:cache-archive -- [--dry-run] [--older-than-days 30] [--repo owner/name] [--json] [--terminal-decision-only]",
+      flags: [
+        ["--dry-run", "(off)", "Report eligible entries without moving."],
+        ["--older-than-days N", "30", "Minimum age of closed_at (or fetched_at/mtime fallback)."],
+        ["--repo owner/name", "(all)", "Limit to one repo."],
+        ["--json", "(off)", "Structured summary."],
+        [
+          "--terminal-decision-only",
+          "(off)",
+          "Only archive when latest candidates decision is reject or mark-duplicate.",
+        ],
+      ],
+      examples: [
+        "task triage:cache-archive -- --dry-run",
+        "task triage:cache-archive -- --older-than-days 30 --repo deftai/directive",
+      ],
+      see_also: [
+        "task triage:archive-list",
+        "task triage:restore-from-archive",
+        "task cache:prune",
+        "#1137",
+      ],
+      placeholder: false,
+    },
+    "task triage:archive-list": {
+      name: "task triage:archive-list",
+      summary: "List archived github-issue cache entries",
+      refs: "(#1137)",
+      description:
+        "List `.deft-cache/archived/github-issue/...` entries newest archived_at first. Alias: cache:archive-list.",
+      usage:
+        "task triage:archive-list -- [--repo owner/name] [--format=json] [--since ISO] [--limit N]",
+      flags: [
+        ["--repo owner/name", "(all)", "Limit to one repo."],
+        ["--format=json", "text", "JSON listing."],
+        ["--since ISO", "(none)", "Only entries archived at/after this timestamp."],
+        ["--limit N", "(none)", "Cap result count."],
+      ],
+      examples: ["task triage:archive-list -- --format=json"],
+      see_also: ["task triage:cache-archive", "task triage:restore-from-archive", "#1137"],
+      placeholder: false,
+    },
+    "task triage:restore-from-archive": {
+      name: "task triage:restore-from-archive",
+      summary: "Restore archived issue entry to live cache",
+      refs: "(#1137)",
+      description:
+        "Move an archived github-issue entry back to the live key path. Idempotent if already live with matching content; refuse live conflict unless --force. Alias: cache:restore-from-archive.",
+      usage: "task triage:restore-from-archive -- --issue N --repo owner/name [--force]",
+      flags: [
+        ["--issue N", "(required unless --key)", "Issue number."],
+        ["--repo owner/name", "(required with --issue)", "Upstream repo."],
+        ["--key owner/repo/N", "(alt)", "Full cache key."],
+        ["--force", "(off)", "Replace live path when content differs."],
+      ],
+      examples: ["task triage:restore-from-archive -- --issue 1234 --repo deftai/directive"],
+      see_also: ["task triage:cache-archive", "task triage:show", "#1137"],
+      placeholder: false,
+    },
     "task triage:audit:prune": {
       name: "task triage:audit:prune",
-      summary: "Operator-invoked archive of closed-terminal entries",
-      refs: "(D19, coming)",
+      summary: "Legacy name — use triage:cache-archive",
+      refs: "(#1137 supersedes D19 name)",
       description:
-        "Move closed-terminal audit entries (accept/reject/mark-duplicate after the upstream issue is closed) into the archive sidecar so the live cache stays focused on open work.",
-      usage: "task triage:audit:prune [-- --dry-run] [--older-than-days N]",
+        "Historical D19 placeholder name. Implemented surface is task triage:cache-archive (reversible closed github-issue cache archive). Do not confuse with task cache:prune (TTL hard-delete).",
+      usage: "task triage:cache-archive -- [--dry-run] [--older-than-days N]",
       flags: [
         ["--dry-run", "(off)", "Preview eligible entries without writing."],
         ["--older-than-days N", "30", "Age threshold."],
       ],
-      examples: ["task triage:audit:prune -- --dry-run"],
-      see_also: ["task triage:archive-list", "task triage:restore-from-archive", "#1119 / D19"],
-      placeholder: true,
-    },
-    "task triage:archive-list": {
-      name: "task triage:archive-list",
-      summary: "List archived entries",
-      refs: "(D19, coming)",
-      description:
-        "Read-only listing of archived audit entries from the archive sidecar. Useful before restoring an entry.",
-      usage: "task triage:archive-list [-- --since=WINDOW]",
-      flags: [["--since WINDOW", "(all)", "Time window (e.g. '30d', '6mo')."]],
-      examples: ["task triage:archive-list"],
-      see_also: ["task triage:audit:prune", "#1119 / D19"],
-      placeholder: true,
-    },
-    "task triage:restore-from-archive": {
-      name: "task triage:restore-from-archive",
-      summary: "Restore archived entry to live cache",
-      refs: "(D19, coming)",
-      description:
-        "Move an archived entry back to the live audit log so it becomes visible to triage:queue / triage:audit again.",
-      usage: "task triage:restore-from-archive -- <N>",
-      flags: [["<N>", "(required)", "Archived entry number to restore."]],
-      examples: ["task triage:restore-from-archive -- 42"],
-      see_also: ["task triage:archive-list", "#1119 / D19"],
+      examples: ["task triage:cache-archive -- --dry-run"],
+      see_also: ["task triage:cache-archive", "task triage:archive-list", "#1137"],
       placeholder: true,
     },
     "task triage:audit-log:rotate": {
