@@ -38,6 +38,36 @@ export function suiteFamilyOf(name: string): "typescript" | "go" | null {
   return null;
 }
 
+/**
+ * Branch-protection SoT aggregators only (#3168 map). Primary/failover lanes are
+ * not authoritative: a green primary must not clear a cancelled aggregator.
+ */
+export function isAuthoritativeSuiteAggregator(name: string): boolean {
+  const n = name.toLowerCase().trim();
+  if (n.includes("primary") || n.includes("failover") || n.includes("blacksmith")) {
+    return false;
+  }
+  if (n === "typescript (build + lint + test)") {
+    return true;
+  }
+  if (n === "go (test + build)") {
+    return true;
+  }
+  // Tolerate minor naming drift while excluding lane suffixes.
+  if (
+    suiteFamilyOf(name) === "typescript" &&
+    n.includes("build") &&
+    n.includes("lint") &&
+    n.includes("test")
+  ) {
+    return true;
+  }
+  if (suiteFamilyOf(name) === "go" && n.includes("test") && n.includes("build")) {
+    return true;
+  }
+  return false;
+}
+
 export type CiReadyState =
   | "ready"
   | "blocked"
@@ -270,29 +300,30 @@ export function evaluateCiGate(
       );
     }
   } else if (cancelledRequired.length > 0) {
-    // Cancelled primary is cleared only by a green required sibling in the SAME suite
-    // family (TS primary → TS failover/aggregator). Unrelated greens (CodeQL, Socket)
-    // must not make the gate ready (#3167 Greptile P1).
+    // Cancelled suite jobs clear only when the AUTHORITATIVE aggregator for that
+    // suite family is green (#3167 Greptile P1s):
+    // - Unrelated greens (CodeQL, Socket) never clear
+    // - Green primary/failover never clear a cancelled aggregator
+    // - Green aggregator clears cancelled primary/failover (failover path completed)
     const cancelledFamilies = new Set(
       cancelledRequired
         .map((label) => suiteFamilyOf(label.replace(/\s*\([^)]*\)\s*$/, "")))
         .filter((f): f is "typescript" | "go" => f !== null),
     );
-    const greenFamilies = new Set(
+    const greenAuthoritativeFamilies = new Set(
       conclusions
         .filter(
           (c) =>
-            c.required &&
             c.status === "completed" &&
             SUCCESS_CONCLUSIONS.has(c.conclusion) &&
-            suiteFamilyOf(c.name) !== null,
+            isAuthoritativeSuiteAggregator(c.name),
         )
         .map((c) => suiteFamilyOf(c.name) as "typescript" | "go"),
     );
     const uncleared =
       cancelledFamilies.size === 0
         ? cancelledRequired // non-suite cancels still block
-        : [...cancelledFamilies].filter((f) => !greenFamilies.has(f));
+        : [...cancelledFamilies].filter((f) => !greenAuthoritativeFamilies.has(f));
 
     if (uncleared.length > 0) {
       readyState = "ci_cancelled_no_failover";
@@ -300,11 +331,11 @@ export function evaluateCiGate(
       failures.push(
         `Required CI check-runs cancelled without failover (ci_cancelled_no_failover): ` +
           `${cancelledRequired.join(", ")}. ` +
-          "Primary cancelled and no green same-suite sibling (#3167 / #3168). " +
+          "Cancelled suite lane with no green authoritative aggregator (#3167 / #3168). " +
           "Do not multi-hour re-push thrash; BLOCKED after thrash caps.",
       );
     } else {
-      // Every cancelled suite family has a green sibling (failover/aggregator).
+      // Every cancelled suite family has a green authoritative aggregator.
       readyState = "ready";
     }
   } else {

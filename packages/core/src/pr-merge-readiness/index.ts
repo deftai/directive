@@ -6,6 +6,7 @@ export {
   type CiGateSummary,
   type CiReadyState,
   evaluateCiGate,
+  isAuthoritativeSuiteAggregator,
   isBotReviewCheck,
   suiteFamilyOf,
 } from "./ci-gate.js";

@@ -180,7 +180,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     );
     expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
     expect(result.failures.join(" ")).toContain("ci_cancelled_no_failover");
-    expect(result.failures.join(" ")).toContain("same-suite");
+    expect(result.failures.join(" ")).toContain("authoritative aggregator");
   });
 
   it("does not clear cancelled TypeScript via green Go sibling only (#3167 P1)", () => {
@@ -196,6 +196,37 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
       { nowMs: NOW },
     );
     expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+  });
+
+  it("does not clear cancelled aggregator via green primary/failover only (#3167 P1)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (build + lint + test)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "TypeScript (Blacksmith primary)", conclusion: "success" }),
+        run({ name: "TypeScript (GH-hosted failover)", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+  });
+
+  it("clears cancelled primary when authoritative aggregator is green (#3167)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (Blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ready");
   });
 
   it("prefers ci_failures over cancelled when both present (#3167)", () => {
