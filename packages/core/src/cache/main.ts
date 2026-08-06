@@ -1,5 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { latestDecisions, readAuditLog } from "../triage/actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../triage/cache-path.js";
+import {
+  archiveClosedEntries,
+  DEFAULT_ARCHIVE_OLDER_THAN_DAYS,
+  listArchivedEntries,
+  restoreFromArchive,
+} from "./archive.js";
 import {
   ALLOWED_SOURCES,
   DEFAULT_BATCH_SIZE,
@@ -20,7 +28,9 @@ import { resolveCaps } from "./quota.js";
 import { clearTaskCache } from "./task-cache/store.js";
 
 function usage(): void {
-  process.stderr.write("usage: cache [-h] {put,get,invalidate,fetch-all,prune,clear} ...\n");
+  process.stderr.write(
+    "usage: cache [-h] {put,get,invalidate,fetch-all,prune,clear,archive-closed,archive-list,restore-from-archive} ...\n",
+  );
 }
 
 function normaliseLabelFilter(raw: string[] | undefined): string[] {
@@ -318,6 +328,286 @@ function cmdPrune(args: string[]): number {
   return 0;
 }
 
+/**
+ * Reversible closed-entry archive (#1137). Operator-only; not TTL prune.
+ * Distinct from `cache prune` (hard-delete by expires_at).
+ */
+function cmdArchiveClosed(args: string[]): number {
+  let olderThanDays = DEFAULT_ARCHIVE_OLDER_THAN_DAYS;
+  let source = "github-issue";
+  let repo: string | undefined;
+  let dryRun = false;
+  let json = false;
+  let terminalDecisionOnly = false;
+  let projectRoot: string | undefined;
+  let cacheRoot: string | undefined;
+  let reason: string | undefined;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--older-than-days") {
+      olderThanDays = Number.parseInt(args[i + 1] ?? "", 10);
+      i += 1;
+    } else if (arg === "--source") {
+      source = args[i + 1] ?? "github-issue";
+      i += 1;
+    } else if (arg === "--repo") {
+      repo = args[i + 1];
+      i += 1;
+    } else if (arg === "--dry-run") {
+      dryRun = true;
+    } else if (arg === "--json") {
+      json = true;
+    } else if (arg === "--terminal-decision-only") {
+      terminalDecisionOnly = true;
+    } else if (arg === "--project-root") {
+      projectRoot = args[i + 1];
+      i += 1;
+    } else if (arg === "--cache-root") {
+      cacheRoot = args[i + 1];
+      i += 1;
+    } else if (arg === "--reason") {
+      reason = args[i + 1];
+      i += 1;
+    } else if (arg === "-h" || arg === "--help") {
+      process.stdout.write(
+        "usage: cache archive-closed [--dry-run] [--older-than-days 30] [--repo OWNER/NAME]\n" +
+          "       [--source github-issue] [--json] [--terminal-decision-only]\n" +
+          "       [--project-root PATH] [--cache-root PATH] [--reason TEXT]\n" +
+          "\n" +
+          "Reversible archive of closed github-issue cache entries (not TTL cache:prune).\n" +
+          "Skips issues still referenced by xbrief/{proposed,pending,active}.\n" +
+          "Also available as: task triage:cache-archive\n",
+      );
+      return 0;
+    } else {
+      throw new CacheError(`unexpected argument: ${arg}`);
+    }
+  }
+
+  const resolvedProjectRoot = projectRoot ?? process.cwd();
+  const resolvedCacheRoot =
+    cacheRoot ?? (projectRoot !== undefined ? resolve(projectRoot, ".deft-cache") : undefined);
+
+  let latestDecisionMap: Map<string, string> | null = null;
+  if (terminalDecisionOnly) {
+    try {
+      const logPath = resolveCandidatesLogPath(resolvedProjectRoot);
+      latestDecisionMap = latestDecisions(readAuditLog(logPath, repo ?? null));
+    } catch {
+      latestDecisionMap = new Map();
+    }
+  }
+
+  const result = archiveClosedEntries({
+    olderThanDays,
+    source,
+    repo: repo ?? null,
+    dryRun,
+    terminalDecisionOnly,
+    latestDecisions: latestDecisionMap,
+    projectRoot: resolvedProjectRoot,
+    cacheRoot: resolvedCacheRoot,
+    reason,
+  });
+  const payload = {
+    mode: "archive-closed",
+    note: "Reversible closed-entry archive; distinct from cache:prune (TTL hard-delete).",
+    dry_run: result.dryRun,
+    older_than_days: result.olderThanDays,
+    source: result.source,
+    repo: result.repo,
+    terminal_decision_only: terminalDecisionOnly,
+    archived_count: result.archivedCount,
+    skipped_count: result.skippedCount,
+    archived: result.archived.map((c) => ({
+      key: c.key,
+      live_dir: c.liveDir,
+      archive_dir: c.archiveDir,
+      age_basis: c.ageBasis,
+      closed_at: c.closedAt,
+      pre_archive_decision: c.preArchiveDecision,
+    })),
+    skipped: result.skipped.map((s) => ({
+      key: s.key,
+      reason: s.reason,
+      detail: s.detail ?? null,
+    })),
+  };
+  if (json) {
+    process.stdout.write(`${pythonJsonPretty(payload)}\n`);
+  } else {
+    process.stdout.write(
+      `cache:archive-closed dry_run=${pythonBool(result.dryRun)} archived=${result.archivedCount} skipped=${result.skippedCount} older_than_days=${result.olderThanDays}\n`,
+    );
+    for (const c of result.archived) {
+      process.stdout.write(`  archived ${c.key} -> ${c.archiveDir}\n`);
+    }
+    for (const s of result.skipped) {
+      process.stdout.write(`  skipped ${s.key} (${s.reason}${s.detail ? `: ${s.detail}` : ""})\n`);
+    }
+  }
+  return 0;
+}
+
+function cmdArchiveList(args: string[]): number {
+  let source = "github-issue";
+  let repo: string | undefined;
+  let since: string | undefined;
+  let limit: number | undefined;
+  let format = "text";
+  let cacheRoot: string | undefined;
+  let projectRoot: string | undefined;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--source") {
+      source = args[i + 1] ?? "github-issue";
+      i += 1;
+    } else if (arg === "--repo") {
+      repo = args[i + 1];
+      i += 1;
+    } else if (arg === "--since") {
+      since = args[i + 1];
+      i += 1;
+    } else if (arg === "--limit") {
+      limit = Number.parseInt(args[i + 1] ?? "", 10);
+      i += 1;
+    } else if (arg === "--format") {
+      format = args[i + 1] ?? "text";
+      i += 1;
+    } else if (arg === "--format=json" || arg === "--json") {
+      format = "json";
+    } else if (arg?.startsWith("--format=")) {
+      format = arg.slice("--format=".length);
+    } else if (arg === "--cache-root") {
+      cacheRoot = args[i + 1];
+      i += 1;
+    } else if (arg === "--project-root") {
+      projectRoot = args[i + 1];
+      i += 1;
+    } else if (arg === "-h" || arg === "--help") {
+      process.stdout.write(
+        "usage: cache archive-list [--repo OWNER/NAME] [--since ISO] [--limit N]\n" +
+          "       [--format=json|text] [--source github-issue] [--cache-root PATH]\n" +
+          "Also available as: task triage:archive-list\n",
+      );
+      return 0;
+    } else {
+      throw new CacheError(`unexpected argument: ${arg}`);
+    }
+  }
+
+  const resolvedCacheRoot =
+    cacheRoot ?? (projectRoot !== undefined ? resolve(projectRoot, ".deft-cache") : undefined);
+  const result = listArchivedEntries({
+    source,
+    repo: repo ?? null,
+    since: since ?? null,
+    limit: limit ?? null,
+    cacheRoot: resolvedCacheRoot,
+  });
+  if (format === "json") {
+    process.stdout.write(
+      `${pythonJsonPretty({
+        source: result.source,
+        repo: result.repo,
+        count: result.count,
+        entries: result.entries.map((e) => ({
+          key: e.key,
+          archived_at: e.archivedAt,
+          archive_dir: e.archiveDir,
+          meta: e.meta,
+        })),
+      })}\n`,
+    );
+  } else {
+    process.stdout.write(`cache:archive-list count=${result.count}\n`);
+    for (const e of result.entries) {
+      process.stdout.write(`  ${e.key} archived_at=${e.archivedAt}\n`);
+    }
+  }
+  return 0;
+}
+
+function cmdRestoreFromArchive(args: string[]): number {
+  let source = "github-issue";
+  let key: string | undefined;
+  let issue: number | undefined;
+  let repo: string | undefined;
+  let force = false;
+  let cacheRoot: string | undefined;
+  let projectRoot: string | undefined;
+  let json = false;
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === "--source") {
+      source = args[i + 1] ?? "github-issue";
+      i += 1;
+    } else if (arg === "--key") {
+      key = args[i + 1];
+      i += 1;
+    } else if (arg === "--issue") {
+      const rawIssue = args[i + 1] ?? "";
+      if (!/^[1-9]\d*$/.test(rawIssue)) {
+        throw new CacheError(
+          `--issue must be a positive integer (got ${JSON.stringify(rawIssue)})`,
+        );
+      }
+      issue = Number.parseInt(rawIssue, 10);
+      i += 1;
+    } else if (arg === "--repo") {
+      repo = args[i + 1];
+      i += 1;
+    } else if (arg === "--force") {
+      force = true;
+    } else if (arg === "--json") {
+      json = true;
+    } else if (arg === "--cache-root") {
+      cacheRoot = args[i + 1];
+      i += 1;
+    } else if (arg === "--project-root") {
+      projectRoot = args[i + 1];
+      i += 1;
+    } else if (arg === "-h" || arg === "--help") {
+      process.stdout.write(
+        "usage: cache restore-from-archive -- --issue N --repo OWNER/NAME [--force]\n" +
+          "       [--key owner/repo/N] [--source github-issue] [--json]\n" +
+          "Also available as: task triage:restore-from-archive\n",
+      );
+      return 0;
+    } else if (!key && arg && !arg.startsWith("-") && arg.includes("/")) {
+      key = arg;
+    } else {
+      throw new CacheError(`unexpected argument: ${arg}`);
+    }
+  }
+
+  const resolvedCacheRoot =
+    cacheRoot ?? (projectRoot !== undefined ? resolve(projectRoot, ".deft-cache") : undefined);
+  const result = restoreFromArchive({
+    source,
+    key,
+    issue,
+    repo: repo ?? null,
+    force,
+    cacheRoot: resolvedCacheRoot,
+  });
+  if (json) {
+    process.stdout.write(`${pythonJsonPretty(result)}\n`);
+  } else {
+    process.stdout.write(
+      `cache:restore-from-archive status=${result.status} key=${result.key} live=${result.liveDir}\n`,
+    );
+    if (result.detail) {
+      process.stdout.write(`  detail: ${result.detail}\n`);
+    }
+  }
+  if (result.status === "missing" || result.status === "conflict") return 1;
+  return 0;
+}
+
 /** CLI entry point (mirrors `scripts/cache.py::main`). */
 export function main(argv: readonly string[]): number {
   if (argv.length === 0) {
@@ -341,6 +631,13 @@ export function main(argv: readonly string[]): number {
         return cmdPrune(rest);
       case "clear":
         return cmdClear(rest);
+      case "archive-closed":
+      case "cache-archive":
+        return cmdArchiveClosed(rest);
+      case "archive-list":
+        return cmdArchiveList(rest);
+      case "restore-from-archive":
+        return cmdRestoreFromArchive(rest);
       default:
         usage();
         process.stderr.write(`cache: error: argument cmd: invalid choice: '${cmd}'\n`);

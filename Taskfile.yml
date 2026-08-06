@@ -995,6 +995,28 @@ tasks:
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
+  # #1137 — reversible closed github-issue cache archive (distinct from cache:prune TTL hard-delete)
+  triage:cache-archive:
+    desc: "Reversible archive of closed github-issue cache entries (#1137). Not TTL cache:prune. -- task triage:cache-archive -- [--dry-run] [--older-than-days 30] [--repo OWNER/NAME] [--json]"
+    cmds:
+      - task: cache:archive-closed
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:archive-list:
+    desc: "List archived github-issue cache entries (#1137). -- task triage:archive-list -- [--repo OWNER/NAME] [--format=json] [--since ISO] [--limit N]"
+    cmds:
+      - task: cache:archive-list
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:restore-from-archive:
+    desc: "Restore archived github-issue entry to live cache (#1137). -- task triage:restore-from-archive -- --issue N [--repo OWNER/NAME] [--force]"
+    cmds:
+      - task: cache:restore-from-archive
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
   triage:welcome:
     desc: "Run the 6-phase onboarding ritual (N3 / #1143): detect prior state, prompt subscription scope, run triage:bootstrap, prompt wipCap, offer WIP relief, print triage:summary. Idempotent. -- task triage:welcome [-- --no-subprocess]"
     cmds:

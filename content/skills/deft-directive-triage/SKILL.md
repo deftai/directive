@@ -117,6 +117,18 @@ What would you like to do with this candidate?
 
 ! Undo via `task triage:reset <N>` (Layer 5; history never deleted). ⊗ Edit/delete `xbrief/.eval/candidates.jsonl` to "undo".
 
+## Quarterly closed-entry archive vs TTL prune (#1137)
+
+Live walkers (`triage:queue`, scope-drift, bootstrap) scan `.deft-cache/github-issue/`. Closed issues can linger forever. Operators may run an **explicit, reversible** archive pass — never auto on bootstrap/session/check.
+
+| Tool | What it does |
+| --- | --- |
+| `task triage:cache-archive` | Move **closed** + aged (default 30d) entries → `.deft-cache/archived/github-issue/...` with `archive-meta.json`. Skips open lifecycle scopes. `--dry-run` first. |
+| `task triage:archive-list` / `task triage:restore-from-archive` | List / move back to live. |
+| `task cache:prune` | **TTL hard-delete** by `expires_at` — **not** reversible; **not** closed-state archive. |
+
+! Prefer archive for closed clutter; use prune only for expired TTL / cap eviction. ⊗ Wire archive into session-start or `task check`.
+
 ## Anti-Patterns
 
 - ⊗ Recommend work without `task triage:queue` (#1149).

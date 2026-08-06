@@ -77,3 +77,34 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'cache prune {{.CLI_ARGS}}'
+
+  # #1137 — reversible closed-entry archive (NOT TTL prune; never auto-wired)
+  archive-closed:
+    desc: "Reversible archive of closed github-issue cache entries (#1137). -- task triage:cache-archive -- [--dry-run] [--older-than-days 30] [--repo OWNER/NAME] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache archive-closed --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  archive-list:
+    desc: "List archived github-issue cache entries (#1137). -- task triage:archive-list -- [--repo OWNER/NAME] [--format=json] [--since ISO] [--limit N]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache archive-list --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  restore-from-archive:
+    desc: "Restore archived github-issue entry to live cache (#1137). -- task triage:restore-from-archive -- --issue N [--repo OWNER/NAME] [--force]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache restore-from-archive --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
