@@ -75,6 +75,12 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 
+## Envelope selection SLA (#3153)
+
+! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (swarm Phase 0 decision tree). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
+⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
+⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).

@@ -35,6 +35,7 @@
 ! A `drive-to: merge-ready` leaf that exits with PR URL but **no** merge / merge-ready evidence is **FAILED thin DONE** (#2943 / preamble §11) — not success and not a designed handoff.
 ! Recovery: parent/monitor ground-truths once, then backgrounds **exactly one** continuation owner scoped `drive-to: merge-ready` on the same worktree/PR **or** one review-cycle babysit owner with sticky `<!-- deft:review-owner -->` lease. ⊗ Dual lease / parallel babysit (#3044). ⊗ Cursor global babysit freestyle (#2261).
 ! A **deliberate** `stop-at: pr-open` exit (PR open + structured handback) is **not** thin DONE — it is a designed handoff that **requires** the review-cycle partner merge-path contract immediately (same turn tool dispatch or registered owner).
+! Under human-merge policy, the partner owner (or an explicit handoff recipient) remains responsible through merge + `scope:complete` — CLEAN alone is not lifecycle complete (review-cycle partner merge-path / #1193 / #2321).
 
 ⊗ Re-scope a live `drive-to: merge-ready` worker mid-flight to "PR-open is enough" without a new dispatch envelope.
 ⊗ Choose `stop-at: pr-open` without a named babysit / review-monitor owner plan (silent drop of merge path).
