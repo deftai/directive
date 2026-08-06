@@ -332,6 +332,56 @@ describe("archiveClosedEntries", () => {
     expect(result.skipped.some((s) => s.reason === "non-terminal-decision")).toBe(true);
   });
 
+  it("lifecycle protection is case-insensitive on owner/repo", () => {
+    const projectRoot = tempRoot();
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    const clock = new FixedClock(new Date("2026-08-01T00:00:00Z"));
+    // Scope URI uses DeftAI/Directive; cache key is lowercase deftai/directive
+    const dir = join(projectRoot, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "case.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "case",
+          status: "running",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/DeftAI/Directive/issues/310",
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "deftai/directive/310",
+      {
+        number: 310,
+        title: "case",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    const result = archiveClosedEntries({
+      cacheRoot,
+      projectRoot,
+      olderThanDays: 30,
+      dryRun: true,
+      clock,
+    });
+    expect(
+      result.skipped.some(
+        (s) => s.key === "deftai/directive/310" && s.reason === "open-lifecycle-scope",
+      ),
+    ).toBe(true);
+  });
+
   it("lifecycle protection is repo-scoped (multi-repo same number)", () => {
     const projectRoot = tempRoot();
     const cacheRoot = join(projectRoot, ".deft-cache");

@@ -153,7 +153,11 @@ function issueRefFromUri(uri: string): { repo: string; number: number } | null {
   const cleaned = uri.replace(/\/+$/, "");
   const m = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/i.exec(cleaned);
   if (m) {
-    return { repo: `${m[1]}/${m[2]}`, number: Number.parseInt(m[3] ?? "", 10) };
+    // Lowercase owner/repo so protection matches case-folded cache keys (#1137 review).
+    return {
+      repo: `${(m[1] ?? "").toLowerCase()}/${(m[2] ?? "").toLowerCase()}`,
+      number: Number.parseInt(m[3] ?? "", 10),
+    };
   }
   const slash = cleaned.lastIndexOf("/");
   const tail = slash >= 0 ? cleaned.slice(slash + 1) : cleaned;
@@ -217,9 +221,9 @@ export function isLifecycleProtected(
 ): boolean {
   const m = GH_KEY_RE.exec(cacheKey);
   if (!m) return false;
-  const repo = `${m[1]}/${m[2]}`;
+  const repo = `${(m[1] ?? "").toLowerCase()}/${(m[2] ?? "").toLowerCase()}`;
   const n = m[3] ?? "";
-  // Prefer exact repo match; bare #N only when URI had no repo (conservative).
+  // Prefer exact (case-folded) repo match; bare #N only when URI had no repo.
   return protectedKeys.has(`${repo}#${n}`) || protectedKeys.has(`#${n}`);
 }
 
