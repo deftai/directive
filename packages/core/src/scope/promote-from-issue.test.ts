@@ -338,3 +338,199 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
     }
   });
 });
+
+describe("promoteFromIssue edge branches (coverage #1136)", () => {
+  it("fails config when issue number is invalid", () => {
+    const root = makeRoot();
+    const result = promoteFromIssue({
+      issueNumber: 0,
+      repo: "o/r",
+      projectRoot: root,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toMatch(/Invalid --from-issue/);
+  });
+
+  it("fails when project root cannot be determined", () => {
+    const result = promoteFromIssue({
+      issueNumber: 1,
+      repo: "o/r",
+      projectRoot: join(tmpdir(), "deft-no-such-root-xyz"),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toMatch(/project root/i);
+  });
+
+  it("fails when repo cannot be resolved", () => {
+    const root = makeRoot();
+    const result = promoteFromIssue({
+      issueNumber: 1,
+      projectRoot: root,
+      // no repo, no git remote
+    });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toMatch(/--repo/);
+  });
+
+  it("fails when explicit path is missing on disk", () => {
+    const root = makeRoot();
+    seedDecision(root, 30, "accept");
+    const result = promoteFromIssue({
+      issueNumber: 30,
+      repo: "o/r",
+      projectRoot: root,
+      explicitPath: join(root, "xbrief", "proposed", "missing.xbrief.json"),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toMatch(/Explicit path not found/);
+  });
+
+  it("fails when explicit path is not readable JSON", () => {
+    const root = makeRoot();
+    seedDecision(root, 31, "accept");
+    const bad = join(root, "xbrief", "proposed", "bad.xbrief.json");
+    writeFileSync(bad, "not-json{");
+    const result = promoteFromIssue({
+      issueNumber: 31,
+      repo: "o/r",
+      projectRoot: root,
+      explicitPath: bad,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toMatch(/not readable JSON/);
+  });
+
+  it("accepts relative explicit path under project root", () => {
+    const root = makeRoot();
+    writeProposed(root, "rel.xbrief.json", 32);
+    seedDecision(root, 32, "accept");
+    const result = promoteFromIssue({
+      issueNumber: 32,
+      repo: "o/r",
+      projectRoot: root,
+      explicitPath: "xbrief/proposed/rel.xbrief.json",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("matches plan.references without Origin narrative", () => {
+    const root = makeRoot();
+    const path = join(root, "xbrief", "proposed", "refs-only.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: {
+          version: "0.8",
+          description: "refs only",
+          updated: "2026-08-01T00:00:00Z",
+        },
+        plan: {
+          title: "refs",
+          status: "proposed",
+          narratives: { Description: "no origin" },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/o/r/issues/33",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    seedDecision(root, 33, "accept");
+    const result = promoteFromIssue({
+      issueNumber: 33,
+      repo: "o/r",
+      projectRoot: root,
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("--force-no-cache with absent decision still promotes", () => {
+    const root = makeRoot();
+    writeProposed(root, "story.xbrief.json", 34);
+    const result = promoteFromIssue({
+      issueNumber: 34,
+      repo: "o/r",
+      projectRoot: root,
+      forceNoCache: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.warnings.some((w) => w.includes("force-no-cache"))).toBe(true);
+    expect(result.cacheDecisionId).toBeNull();
+  });
+
+  it("uses injected latestDecision without reading candidates log", () => {
+    const root = makeRoot();
+    writeProposed(root, "story.xbrief.json", 35);
+    const result = promoteFromIssue({
+      issueNumber: 35,
+      repo: "o/r",
+      projectRoot: root,
+      latestDecision: {
+        decision_id: "dec-injected",
+        timestamp: "2026-08-01T12:00:00Z",
+        repo: "o/r",
+        issue_number: 35,
+        decision: "accept",
+        actor: "agent:test",
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.cacheDecisionId).toBe("dec-injected");
+  });
+
+  it("repo-scoped match refuses wrong-repo URI", () => {
+    const root = makeRoot();
+    writeProposed(root, "other-repo.xbrief.json", 36, "other/repo");
+    seedDecision(root, 36, "accept", "o/r");
+    const result = promoteFromIssue({
+      issueNumber: 36,
+      repo: "o/r",
+      projectRoot: root,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/No proposed/);
+  });
+});
+
+describe("promotePath audit edges (#1136)", () => {
+  it("alwaysAudit records promote without from-issue", () => {
+    const root = makeRoot();
+    const path = writeProposed(root, "plain.xbrief.json", 40);
+    const result = promotePath(path, { projectRoot: root, alwaysAudit: true, actor: "agent:cov" });
+    expect(result.ok).toBe(true);
+    expect(result.auditEntry).toBeTruthy();
+    expect(result.auditEntry?.actor).toBe("agent:cov");
+  });
+
+  it("file not found returns exit 2", () => {
+    const root = makeRoot();
+    const result = promotePath(join(root, "missing.xbrief.json"), { projectRoot: root });
+    expect(result.ok).toBe(false);
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toMatch(/File not found/);
+  });
+
+  it("forceNoCache flag is written on audit entry", () => {
+    const root = makeRoot();
+    const path = writeProposed(root, "fn.xbrief.json", 41);
+    const result = promotePath(path, {
+      projectRoot: root,
+      fromIssue: 41,
+      forceNoCache: true,
+      cacheStateAtPromote: "defer",
+      cacheDecisionId: null,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.auditEntry?.force_no_cache).toBe(true);
+    expect(result.auditEntry?.from_issue).toBe(41);
+  });
+});
