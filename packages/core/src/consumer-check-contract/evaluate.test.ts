@@ -367,12 +367,15 @@ tasks:
     expect(result.exitCode).toBe(1);
   });
 
-  it("does not treat backgrounded task check as full check (Greptile conf=3)", () => {
+  it("does not treat backgrounded task check as full check (Greptile conf=3/4)", () => {
     expect(runCommandIsFullCheck("task check &")).toBe(false);
     expect(runCommandIsFullCheck("deft check&")).toBe(false);
     expect(runCommandIsFullCheck("task check & # fire and forget")).toBe(false);
+    expect(runCommandIsFullCheck("task check & echo done")).toBe(false);
     // Foreground chained form remains trusted when deps already gate.
     expect(runCommandIsFullCheck("task check")).toBe(true);
+    // Fd redirection is not job-control backgrounding.
+    expect(runCommandIsFullCheck("task check 2>&1")).toBe(true);
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
       verifyTaskfileText: VERIFY_YML_COMPLETE,

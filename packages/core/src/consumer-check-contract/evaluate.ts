@@ -194,6 +194,25 @@ export function stripQuotedSegments(line: string): string {
 }
 
 /**
+ * True when a shell line uses job-control backgrounding (`cmd &`, `cmd & next`)
+ * as opposed to fd redirection (`2>&1`, `&>file`). Backgrounded jobs return
+ * before completion and do not propagate exit status — must not satisfy
+ * composition (Greptile conf=3/4 residual, #3145).
+ */
+export function lineHasBackgroundJob(line: string): boolean {
+  const s = stripQuotedSegments(line);
+  // Strip common fd redirections that contain `&` without job control.
+  const withoutRedir = s
+    .replace(/\d*>&?\d+/g, " ")
+    .replace(/&>\S*/g, " ")
+    .replace(/>&\d+/g, " ");
+  // Bare `&` that is not part of `&&`: trailing, or followed by another token.
+  if (/(?:^|[^&])&\s*(?:#.*)?$/.test(withoutRedir)) return true;
+  if (/(?:^|[^&])&\s+\S/.test(withoutRedir)) return true;
+  return false;
+}
+
+/**
  * True when a shell line masks check failures (`|| true`, `| true`, `|| :`).
  * Such lines must not satisfy composition (Greptile conf=3).
  */
@@ -209,10 +228,8 @@ export function lineMasksCheckFailure(line: string): boolean {
   if (/check\b[\s\S]*\|\|/.test(lower)) return true;
   // Semicolon chain after check: `deft check; echo ignored` masks failure (Greptile conf=2).
   if (/check\b[\s\S]*;/.test(lower)) return true;
-  // Background job: `task check &` / `deft check&` returns before enforcement finishes
-  // and does not propagate the job's exit status (Greptile conf=3, #3145).
-  // Trailing bare `&` (not `&&`) after a checkish token, optional comment tail.
-  if (/check\b(?:(?!&&)[\s\S])*&\s*(?:#.*)?$/.test(lower)) return true;
+  // Background job after check (including mid-line `& echo done`).
+  if (lineHasBackgroundJob(line)) return true;
   return false;
 }
 
@@ -225,6 +242,8 @@ export function lineHasCommandPositionRunner(
   runnerPattern: RegExp,
 ): boolean {
   if (lineMasksCheckFailure(line)) return false;
+  // Backgrounded gates/runners are not awaited (covers verify:* & forms too).
+  if (lineHasBackgroundJob(line)) return false;
   const lower = stripQuotedSegments(line).toLowerCase().trim().replace(/^-\s+/, "");
   if (lower.length === 0) return false;
   // Known argument-only tools never execute our gates.
