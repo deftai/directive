@@ -207,8 +207,8 @@ export function lineMasksCheckFailure(line: string): boolean {
   // Any `|| fallback` after a check discards the check's exit status (Greptile conf=4).
   // Includes `|| true`, `|| :`, `|| echo ignored`, `|| exit 0`, etc.
   if (/check\b[\s\S]*\|\|/.test(lower)) return true;
-  // Trailing always-success after `;`
-  if (/;\s*(?:true\b|:|exit\s+0\b)\s*$/.test(lower)) return true;
+  // Semicolon chain after check: `deft check; echo ignored` masks failure (Greptile conf=2).
+  if (/check\b[\s\S]*;/.test(lower)) return true;
   return false;
 }
 

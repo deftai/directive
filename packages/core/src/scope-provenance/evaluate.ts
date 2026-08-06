@@ -439,7 +439,7 @@ export function evaluateScopeProvenance(
       planId !== null
         ? `.deft/approved-scope/${planId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`
         : null;
-    const approvalRecordRewritten =
+    const approvalInGitChange =
       approvalRecordRel !== null &&
       [...changedSet].some((p) => {
         const n = normalizeRepoRelPath(p);
@@ -452,6 +452,21 @@ export function evaluateScopeProvenance(
           (n.endsWith(`/${safe}.json`) || n.endsWith(`${safe}.json`))
         );
       });
+    // Ignored / untracked approved-scope files never appear in git changedSet.
+    // If the xBRIEF is modified and an on-disk approval matches the new digest
+    // without an independent renewedApprovals stamp, treat as concurrent rewrite
+    // (Greptile conf=2: .deft/approved-scope often gitignored).
+    const approvalDiskOnly =
+      modified &&
+      approved !== null &&
+      renewed === null &&
+      approvalRecordRel !== null &&
+      !approvalInGitChange &&
+      existsSync(join(root, approvalRecordRel)) &&
+      approved.fileScopeDigest ===
+        computeFileScopeDigest(normalizeFileScope(extractFileScope(payload))) &&
+      isHumanApprovalStamp(approved.humanApproval);
+    const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly;
 
     const recordMatchesCurrent =
       approved !== null &&
