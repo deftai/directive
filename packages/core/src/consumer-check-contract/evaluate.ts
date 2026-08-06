@@ -194,6 +194,22 @@ export function stripQuotedSegments(line: string): string {
 }
 
 /**
+ * True when a shell line discards or defers the primary command's exit status
+ * via `||`, pipelines, `;` chains, or job-control backgrounding. Used for
+ * dispatcher tokens that do not match the check-specific mask predicate.
+ */
+export function lineMasksShellStatus(line: string): boolean {
+  const lower = stripQuotedSegments(line).toLowerCase();
+  if (/\|\|/.test(lower)) return true;
+  // Pipeline `|` but not `||` (already handled) and not fd redirs `2>&1` / `>&2`.
+  const noFd = lower.replace(/\d*>&?\d+/g, " ").replace(/>&\d+/g, " ").replace(/&>\S*/g, " ");
+  if (/\|/.test(noFd)) return true;
+  if (/;/.test(lower)) return true;
+  if (lineHasBackgroundJob(line)) return true;
+  return false;
+}
+
+/**
  * True when a shell line uses job-control backgrounding (`cmd &`, `cmd & next`)
  * as opposed to fd redirection (`2>&1`, `&>file`). Backgrounded jobs return
  * before completion and do not propagate exit status — must not satisfy
@@ -400,9 +416,12 @@ export function taskBodyInvokesCheckOrchestrator(body: string): boolean {
     const cmd = stripped.replace(/^-\s+/, "");
     const unquoted = stripQuotedSegments(cmd).trim();
     // Forms: dispatchTaskCheck ... | node path/dispatchTaskCheck.js | npx ...dispatchTaskCheck
+    // Failure-masked dispatchers (`|| true`, pipelines, `;`, background) must not grant
+    // orchestrator trust — same class as masked `task check` (Greptile conf=2, #3145).
     if (
-      /^(?:sudo\s+)?dispatchTaskCheck\b/.test(unquoted) ||
-      /^(?:sudo\s+)?(?:node|npx)\s+\S*dispatchTaskCheck\S*/.test(unquoted)
+      !lineMasksShellStatus(cmd) &&
+      (/^(?:sudo\s+)?dispatchTaskCheck\b/.test(unquoted) ||
+        /^(?:sudo\s+)?(?:node|npx)\s+\S*dispatchTaskCheck\S*/.test(unquoted))
     ) {
       hasDispatch = true;
     }

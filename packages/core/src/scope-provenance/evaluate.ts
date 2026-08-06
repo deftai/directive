@@ -152,6 +152,18 @@ export function unquoteGitPath(raw: string): string {
   return t.replace(/\\/g, "/");
 }
 
+/** Read a repo-relative path as of `ref` (null if missing). */
+function readRepoFileAtRef(
+  projectRoot: string,
+  ref: string,
+  relPath: string,
+): string | null {
+  const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  const result = git(["show", `${ref}:${path}`], projectRoot);
+  if (result.status !== 0) return null;
+  return result.stdout;
+}
+
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
   if (inside.status !== 0) {
@@ -352,9 +364,26 @@ export function evaluateScopeProvenance(
   const enforce = options.enforce ?? false;
 
   let changed: string[];
+  /** Merge-base ref used for changed-file discovery (null when files injected). */
+  let discoveryBaseRef: string | null = null;
   try {
     if (options.changedFiles !== undefined) {
       changed = [...options.changedFiles].map((p) => p.replace(/\\/g, "/"));
+      // Prefer explicit baseRef for base-scope comparisons; do not force git
+      // discovery on pure injected-seam tests (cwd may not be a repo).
+      if (
+        options.baseRef !== undefined &&
+        options.baseRef !== "" &&
+        options.baseRef !== "HEAD"
+      ) {
+        discoveryBaseRef = options.baseRef;
+      } else {
+        try {
+          discoveryBaseRef = resolveDefaultBaseRef(root);
+        } catch {
+          discoveryBaseRef = null;
+        }
+      }
     } else {
       // Default is PR-aware (origin/master...), not bare HEAD — bare HEAD misses
       // committed PR diffs on clean checkouts (#3145 Greptile P1).
@@ -371,6 +400,7 @@ export function evaluateScopeProvenance(
         }
         baseRef = resolved;
       }
+      discoveryBaseRef = baseRef;
       changed = changedFilesVsBase(root, baseRef);
     }
   } catch (err: unknown) {
@@ -483,19 +513,46 @@ export function evaluateScopeProvenance(
         );
       });
     // Ignored / untracked approved-scope files never appear in git changedSet.
-    // If the xBRIEF is modified and an on-disk approval matches the new digest
-    // without an independent renewedApprovals stamp, treat as concurrent rewrite
-    // (Greptile conf=2: .deft/approved-scope often gitignored).
-    const approvalDiskOnly =
+    // Concurrent rewrite attack: scope *expanded* vs base AND an untracked disk
+    // approval was rewritten to match the *new* digest. Body-only xBRIEF edits
+    // with a pre-existing matching approval must NOT fail (Greptile conf=2).
+    let approvalDiskOnly = false;
+    if (
       modified &&
       approved !== null &&
       renewed === null &&
       approvalRecordRel !== null &&
       !approvalInGitChange &&
       existsSync(join(root, approvalRecordRel)) &&
-      approved.fileScopeDigest ===
-        computeFileScopeDigest(normalizeFileScope(extractFileScope(payload))) &&
-      isHumanApprovalStamp(approved.humanApproval);
+      isHumanApprovalStamp(approved.humanApproval)
+    ) {
+      const currentDigest = computeFileScopeDigest(
+        normalizeFileScope(extractFileScope(payload)),
+      );
+      if (approved.fileScopeDigest === currentDigest) {
+        const baseRaw =
+          discoveryBaseRef !== null
+            ? readRepoFileAtRef(root, discoveryBaseRef, rel)
+            : null;
+        if (baseRaw === null) {
+          // New active xBRIEF with untracked matching approval → fail closed.
+          approvalDiskOnly = true;
+        } else {
+          try {
+            const basePayload = JSON.parse(baseRaw) as unknown;
+            const baseDigest = computeFileScopeDigest(
+              normalizeFileScope(extractFileScope(basePayload)),
+            );
+            // Only concurrent-rewrite when file-scope actually grew/changed.
+            if (baseDigest !== currentDigest) {
+              approvalDiskOnly = true;
+            }
+          } catch {
+            approvalDiskOnly = true;
+          }
+        }
+      }
+    }
     const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly;
 
     const recordMatchesCurrent =
