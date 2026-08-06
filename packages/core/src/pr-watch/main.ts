@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
+import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
 import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
@@ -153,7 +154,7 @@ function pythonJsonDumps(value: unknown): string {
 /** AC-4 stable --json shape (same field set as the #1039 Tier-1 instrumentation line). */
 export function watchResultToJson(result: WatchResult): Record<string, unknown> {
   const p = result.probe;
-  return {
+  const payload: Record<string, unknown> = {
     verdict: result.verdict,
     pr_number: result.prNumber,
     head_sha: p.headSha,
@@ -172,6 +173,13 @@ export function watchResultToJson(result: WatchResult): Record<string, unknown> 
     elapsed_seconds: result.elapsedSeconds,
     poll_count: result.pollCount,
   };
+  // #3180: static status URLs on weather-class ci_ready_state (no network fetch).
+  const statusUrls = platformStatusUrlsForWeather(p.ciReadyState);
+  if (statusUrls !== null) {
+    payload.platform_status_github = statusUrls.platform_status_github;
+    payload.platform_status_blacksmith = statusUrls.platform_status_blacksmith;
+  }
+  return payload;
 }
 
 export function emitWatchJson(result: WatchResult): string {
@@ -199,6 +207,13 @@ export function printWatchHuman(result: WatchResult): string {
   }
   if (p.ciCapacityStalledChecks.length > 0) {
     lines.push(`  Capacity-stalled:   ${p.ciCapacityStalledChecks.join("; ")}`);
+  }
+  // #3180: probe these pages before workflow thrash on weather states.
+  const statusUrls = platformStatusUrlsForWeather(p.ciReadyState);
+  if (statusUrls !== null) {
+    lines.push(`  Platform status GH: ${statusUrls.platform_status_github}`);
+    lines.push(`  Platform status BS: ${statusUrls.platform_status_blacksmith}`);
+    lines.push("  Probe status pages before workflow edits (#3180)");
   }
   if (p.cleanGateHoldout !== null) {
     lines.push(`  Clean-gate holdout: ${p.cleanGateHoldout}`);

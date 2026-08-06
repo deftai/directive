@@ -11,6 +11,7 @@ import {
   emitWatchJson,
   formatWatchHelp,
   parseWatchArgs,
+  printWatchHuman,
   runWatch,
   watchResultToJson,
 } from "./main.js";
@@ -159,6 +160,30 @@ describe("watchResultToJson (AC-4 shape)", () => {
     expect(json.ci_capacity_stalled_checks).toEqual([]);
     expect(json.elapsed_seconds).toBe(180);
     expect(json.poll_count).toBe(3);
+    // Non-weather ready_state must not include platform status URLs (#3180).
+    expect(json.platform_status_github).toBeUndefined();
+    expect(json.platform_status_blacksmith).toBeUndefined();
+  });
+
+  it("surfaces static platform status URLs on weather-class ci_ready_state (#3180)", () => {
+    const weather: WatchResult = {
+      ...result,
+      verdict: "CI_NEVER_SCHEDULED",
+      exitCode: EXIT_TERMINAL_ERROR,
+      probe: makeProbe({
+        isClean: false,
+        ciReadyState: "ci_never_scheduled",
+        cleanGateHoldout: "ci_never_scheduled",
+      }),
+    };
+    const json = watchResultToJson(weather) as Record<string, unknown>;
+    expect(json.ci_ready_state).toBe("ci_never_scheduled");
+    expect(json.platform_status_github).toBe("https://www.githubstatus.com/");
+    expect(json.platform_status_blacksmith).toBe("https://status.blacksmith.sh/");
+    const human = printWatchHuman(weather);
+    expect(human).toContain("https://www.githubstatus.com/");
+    expect(human).toContain("https://status.blacksmith.sh/");
+    expect(human).toContain("Probe status pages before workflow edits (#3180)");
   });
 
   it("emits ASCII-escaped JSON with a trailing newline", () => {

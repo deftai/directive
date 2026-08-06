@@ -36,6 +36,15 @@ export {
 export { emitJson, exitCodeFor, gateResultToDict, printHuman } from "./output.js";
 export { emptyVerdict, isInformalCleanMissingCanonicalFields, parseGreptileBody } from "./parse.js";
 export {
+  attachPlatformStatusUrls,
+  CI_WEATHER_READY_STATES,
+  type CiWeatherReadyState,
+  isCiWeatherReadyState,
+  PLATFORM_STATUS_BLACKSMITH_URL,
+  PLATFORM_STATUS_GITHUB_URL,
+  platformStatusUrlsForWeather,
+} from "./platform-status.js";
+export {
   type CapacityStallOptions,
   type CapacityStallProbe,
   classifyCapacityStalledRequired,

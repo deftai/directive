@@ -251,6 +251,21 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("#3168");
   });
 
+  it("platform status probe attribution and BLOCKED fields (#3180)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Platform status probe + outage attribution (#3180)");
+    expect(text).toContain("https://www.githubstatus.com/");
+    expect(text).toContain("https://status.blacksmith.sh/");
+    expect(text).toContain("platform_status_github");
+    expect(text).toContain("platform_status_blacksmith");
+    expect(text).toContain("attribution: platform|capacity|repo_config|unknown");
+    expect(text).toContain("Anti-thrash during attributed platform outage");
+    expect(text).toContain("#3167");
+    expect(text).toContain("#3168");
+    expect(text).toContain("#2672");
+    expect(text).toContain("#2688");
+  });
+
   it("slizard advisory-only for merge-ready wait (#3167)", () => {
     const text = readReviewCycleSkill();
     expect(text).toContain("SLizard advisory-only for merge-ready wait (#3167)");

@@ -32,6 +32,7 @@ import {
   verdictShaIsStale,
 } from "./mergeability.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
+import { attachPlatformStatusUrls } from "./platform-status.js";
 import type { SlizardGateOptions } from "./slizard-gate.js";
 import { evaluateSlizardGate, isSlizardCheck } from "./slizard-gate.js";
 import type { GateResult, GreptileVerdict, RunGhFn } from "./types.js";
@@ -117,9 +118,15 @@ function evaluateCiAndSlizard(
     ignoreCheckNames: [...(options.ignoreCheckNames ?? []), ...slizardNames],
   };
   const ciResult = evaluateCiGate(checkRuns, ciOptions);
+  const ci: Record<string, unknown> = {
+    ...ciResult.summary,
+    summary_line: buildCiSummaryLine(ciResult.summary),
+  };
+  // #3180: static status URLs when weather-class (no network fetch).
+  attachPlatformStatusUrls(ci, ciResult.summary.ready_state);
   return {
     failures: [...ciResult.failures, ...slizardResult.failures],
-    ci: { ...ciResult.summary, summary_line: buildCiSummaryLine(ciResult.summary) },
+    ci,
     slizard: { ...slizardResult.summary },
   };
 }

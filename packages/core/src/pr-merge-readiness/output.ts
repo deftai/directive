@@ -6,6 +6,11 @@ import {
   VIA_FALLBACK2,
 } from "./constants.js";
 import { isMergeReady } from "./evaluate.js";
+import {
+  isCiWeatherReadyState,
+  PLATFORM_STATUS_BLACKSMITH_URL,
+  PLATFORM_STATUS_GITHUB_URL,
+} from "./platform-status.js";
 import type { GateResult, GreptileVerdict } from "./types.js";
 
 function verdictToDict(verdict: GreptileVerdict): Record<string, unknown> {
@@ -80,6 +85,21 @@ export function printHuman(result: GateResult): string {
       lines.push(`  ${ci.summary_line}`);
     } else if (typeof ci.ready_state === "string") {
       lines.push(`  CI check-runs: ${ci.ready_state}`);
+    }
+    // #3180: surface static status URLs on weather-class CI (human + JSON partial_data).
+    const readyState = typeof ci.ready_state === "string" ? ci.ready_state : null;
+    if (isCiWeatherReadyState(readyState)) {
+      const gh =
+        typeof ci.platform_status_github === "string"
+          ? ci.platform_status_github
+          : PLATFORM_STATUS_GITHUB_URL;
+      const bs =
+        typeof ci.platform_status_blacksmith === "string"
+          ? ci.platform_status_blacksmith
+          : PLATFORM_STATUS_BLACKSMITH_URL;
+      lines.push(`  Platform status GH: ${gh}`);
+      lines.push(`  Platform status BS: ${bs}`);
+      lines.push("  Probe status pages before workflow edits (#3180)");
     }
   }
   const slizardBlock = result.partialData.slizard;

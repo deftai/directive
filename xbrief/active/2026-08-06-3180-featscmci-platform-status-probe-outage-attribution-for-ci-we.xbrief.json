@@ -1,0 +1,105 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3180 platform status probe + outage attribution for CI weather",
+    "updated": "2026-08-06T23:16:35Z"
+  },
+  "plan": {
+    "id": "3180-ci-platform-status-attribution",
+    "title": "feat(scm,ci): platform status probe + outage attribution for CI weather handoffs",
+    "status": "running",
+    "narratives": {
+      "Description": "pr:watch and review-cycle now name CI weather symptoms (#3167) and workflow failover arms on Blacksmith capacity death (#3168), but agents still lack a MUST probe of public status pages to attribute holds to upstream outage vs repo config. This story adds playbook + handoff fields and surfaces static status URLs on weather-class gate output without auto-merge from status alone.",
+      "ImplementationPlan": "1. Document MUST probe sequence (GitHub Status Actions/Webhooks + Blacksmith Status) and attribution table (platform vs capacity vs repo_config) in content/scm/github.md and content/skills/deft-directive-review-cycle/SKILL.md CI weather / BLOCKED section; anti-patterns for workflow thrash during attributed platform outage.\n2. Surface static status page URLs in pr:watch / pr:merge-ready human and JSON output when ci_ready_state is weather-class (packages/core/src/pr-watch and pr-merge-readiness); no network fetch required for v1.\n3. Cross-link #3167, #3168, #2672, #2688; content or unit test pins for key tokens; CHANGELOG [Unreleased] for #3180; verify with core tests and task check.",
+      "UserStory": "As a review-cycle owner blocked on ci_never_scheduled, I want status-page probe and attribution rules, so that I wait on platform incidents instead of thrashing workflows or empty commits.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3180",
+      "Overview": "Extends #3167; related #3168/#2672/#2688. Static URLs for v1; optional Statuspage API later.",
+      "Labels": "enhancement, ci-cd, determinism, agent-experience, harness, scm, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Document MUST status-page probe and attribution",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given CI weather codes or CI never starts for HEAD, when agents follow scm/github.md and review-cycle, then they MUST probe GitHub Status and Blacksmith Status and apply the platform vs capacity vs repo_config attribution table with anti-thrash rules during platform outage."
+        }
+      },
+      {
+        "title": "Gate output surfaces status URLs on weather states",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given pr:watch or pr:merge-ready with weather-class ci_ready_state, when JSON or human output is emitted, then static GitHub and Blacksmith status page URLs are included (network fetch not required for v1)."
+        }
+      },
+      {
+        "title": "BLOCKED handoff template fields",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a BLOCKED: ci_weather handoff, when written per review-cycle, then it includes platform_status_github, platform_status_blacksmith, optional incident URL, and attribution enum fields."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/scm/github.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/pr-watch/types.ts",
+          "packages/core/src/pr-watch/probe.ts",
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "packages/core/src/pr-merge-readiness/compute.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "packages/core/src/pr-merge-readiness/ci-gate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npm test -w @deftai/directive-core -- --run pr-watch",
+          "task check"
+        ],
+        "expected_outputs": [
+          "status probe playbook + attribution table",
+          "pr:watch weather output includes status URLs",
+          "CHANGELOG #3180",
+          "PR through merge"
+        ],
+        "depends_on": [],
+        "conflict_group": "ci-platform-status-attribution",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue #3180 follow-up to #3167/#3168 CI weather cohort."
+      }
+    },
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "determinism",
+      "agent-experience",
+      "harness",
+      "scm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3180",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3180"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3167",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3167"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3168",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3168"
+      }
+    ],
+    "updated": "2026-08-06T23:16:35Z"
+  }
+}

@@ -399,6 +399,32 @@ Following a v1.0.0 release, commits:
 - ! Consumer scaffolds and `npm-publish.yml` stay on GitHub-hosted `ubuntu-latest` (Blacksmith is opt-in for consumer orgs; npm `--provenance` requires GH-hosted)
 - ! Agents seeing `runner_capacity_stall` / `RUNNER_CAPACITY_STALL` MUST wait for auto-failover — ⊗ `--skip-ci` as a capacity remedy
 
+### Platform status probe + outage attribution (#3180)
+
+`pr:watch` / `pr:merge-ready` weather codes (`ci_never_scheduled`, `runner_capacity_stall`, `ci_cancelled_no_failover`, `ci_failures` — see #3167) classify **forge check-run shape**. They do **not** attribute the hold to an upstream platform outage vs repo config. When weather codes fire, CI never starts for HEAD, or many PRs share an empty-check pattern:
+
+! **MUST probe public status pages** (v1: open in browser / operator view; gates surface static URLs — no network fetch required):
+
+1. **GitHub Status** (Actions, Webhooks): https://www.githubstatus.com/
+2. **Blacksmith Status** (and any Github→Actions / Webhooks mirrors shown there): https://status.blacksmith.sh/
+
+**Attribution table** (`attribution` enum for handoffs):
+
+| Observation | `attribution` | Agent action |
+|-------------|---------------|--------------|
+| GH Actions and/or Webhooks major/partial outage | `platform` | Treat as platform incident; ⊗ workflow drive-by edits; ⊗ empty-commit thrash past #3167 caps; wait + re-check runs for HEAD + local `task check` |
+| Blacksmith components red while GH Actions green | `capacity` | Runner-provider incident; capacity/failover doctrine (#2672 / #3168) still applies |
+| Both green + still `ci_never_scheduled` on **this PR only** | `repo_config` | Investigate workflow paths, branch filters, required-check names, Actions disabled / org policy |
+| Status unclear or mixed signals | `unknown` | Cap thrash (#3167); BLOCKED with both status URLs; operator decision |
+
+! **Anti-thrash during attributed platform outage:** After thrash caps (max 2 re-triggers per #3167), stop automatic empty-commit / close-reopen / rebase loops. Remediation is wait + re-probe HEAD check-runs, not inventing workflow edits to "fix" a global outage.
+
+⊗ Merge or `--skip-ci` solely because a status page is red — status is **attribution for wait/thrash policy**, not a second branch-protection oracle (#3180 non-goal).
+⊗ Blame Blacksmith when status pages show GitHub Actions/Webhooks major outage and Blacksmith runners themselves operational.
+⊗ Edit workflows or re-push thrash to "fix" a documented global Actions/webhook outage without status-page probe.
+
+**BLOCKED handoff fields** (extend `BLOCKED: ci_weather` in review-cycle): `platform_status_github`, `platform_status_blacksmith`, optional incident URL, `attribution: platform | capacity | repo_config | unknown`. Cross-links: #3167 (weather codes), #3168 (failover arms), #2672 (capacity stall), #2688 (Greptile CLEAN + CI holdout ownership).
+
 **Security**:
 - ! Use GitHub Secrets for CI/CD credentials
 - ⊗ Commit secrets to repo

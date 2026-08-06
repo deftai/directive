@@ -331,6 +331,30 @@ Remediation:
 
 ! **Thrash caps (MUST):** Under stable `ci_never_scheduled`, `ci_cancelled_no_failover`, or repeated capacity stall after failover wait budget, limit **CI re-trigger attempts** (empty-commit push, close/reopen, rebase-for-enqueue) to **at most 2** total across the ownership span. On the **2nd** failed re-trigger (or immediately when the weather code is stable and Greptile Step 6 is already clean), stop automatic re-push and emit a structured **BLOCKED** handoff.
 
+### Platform status probe + outage attribution (#3180)
+
+! When `ci_ready_state` is weather-class (`ci_never_scheduled`, `runner_capacity_stall`, `ci_cancelled_no_failover`, `ci_failures`), CI never starts for HEAD, or many PRs share an empty-check pattern: **MUST probe public status pages** before workflow thrash or drive-by edits. Gates surface static URLs in `pr:watch` / `pr:merge-ready` JSON and human output (v1: no network fetch required).
+
+1. ! **GitHub Status** (Actions, Webhooks): https://www.githubstatus.com/
+2. ! **Blacksmith Status**: https://status.blacksmith.sh/
+
+**Attribution table:**
+
+| Observation | `attribution` | Agent action |
+|-------------|---------------|--------------|
+| GH Actions and/or Webhooks major/partial outage | `platform` | Platform incident; ⊗ workflow drive-by edits; ⊗ empty-commit thrash past thrash caps; wait + re-check HEAD runs + local `task check` |
+| Blacksmith red while GH Actions green | `capacity` | Runner-provider incident; failover doctrine (#2672 / #3168) |
+| Both green + still `ci_never_scheduled` on this PR only | `repo_config` | Workflow paths, branch filters, required-check names, Actions disabled / org policy |
+| Unclear / mixed | `unknown` | Cap thrash; BLOCKED with both status URLs; operator decision |
+
+! **Anti-thrash during attributed platform outage:** After thrash caps, stop automatic re-push loops. Remediation is wait + re-probe HEAD check-runs, not inventing workflow edits for a global outage.
+
+⊗ Merge or `--skip-ci` solely because a status page is red — status is attribution for wait/thrash policy, not a second branch-protection oracle.
+⊗ Blame Blacksmith when GH Actions/Webhooks are the red components and Blacksmith runners are operational.
+⊗ Edit workflows / empty-commit thrash to "fix" a documented global Actions/webhook outage without a status-page probe.
+
+Cross-links: #3167 (weather codes), #3168 (failover arms), #2672 (capacity stall), #2688 (Greptile CLEAN + CI holdout).
+
 ! **BLOCKED handoff template (CI weather):**
 
 ```text
@@ -340,8 +364,12 @@ HEAD: <sha>
 REASON: ci_never_scheduled|ci_cancelled_no_failover|runner_capacity_stall
 GREPTILE: CLEAN|P0/P1|pending (Step 6 fields)
 CI: <ci_ready_state from pr:watch --json>
+platform_status_github: https://www.githubstatus.com/
+platform_status_blacksmith: https://status.blacksmith.sh/
+incident_url: <optional status-page incident URL or n/a>
+attribution: platform|capacity|repo_config|unknown
 ATTEMPTS: empty-commit=<0-2> close-reopen=<0-2>
-REMEDIATION: wait for Actions recovery | human admin-merge playbook below | fix workflow (#3168) | operator decision
+REMEDIATION: wait for platform recovery | capacity failover (#3168) | repo config fix | human admin-merge playbook below | operator decision
 REDISPATCH_OK: yes|no
 ```
 
@@ -750,6 +778,8 @@ task lifecycle:event -- emit plan:approved \
 ## Anti-Patterns
 
 - ⊗ Multi-hour empty-commit / close-reopen thrash after CI weather thrash caps when `ci_never_scheduled` or `ci_cancelled_no_failover` (#3167)
+- ⊗ Workflow thrash or empty-commit spam during attributed platform outage without status-page probe (#3180)
+- ⊗ Merge or `--skip-ci` solely because a status page is red without check-run evidence (#3180)
 - ⊗ Block merge-ready wait on SLizard alone when Greptile Step 6 is clean (#3167)
 - ⊗ Silent admin / `--skip-ci` merge under Actions outage without audit comment and opt-in authority (#3167)
 - ⊗ Leave a deliberate `stop-at: pr-open` (or thin-DONE recovery) open PR without spawning/retaining one review-cycle babysit owner + lease continuity and post-merge `scope:complete` plan (#3153)

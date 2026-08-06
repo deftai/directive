@@ -2580,6 +2580,19 @@ describe("test_standards.py", () => {
     expect(text).toContain("GetTempFileName");
     expect(text).toContain("mktemp");
   });
+
+  it("platform status probe + attribution (#3180)", () => {
+    const text = readText("scm/github.md");
+    expect(text).toContain("Platform status probe + outage attribution (#3180)");
+    expect(text).toContain("https://www.githubstatus.com/");
+    expect(text).toContain("https://status.blacksmith.sh/");
+    expect(text).toContain("platform_status_github");
+    expect(text).toContain("platform | capacity | repo_config | unknown");
+    expect(text).toContain("#3167");
+    expect(text).toContain("#3168");
+    expect(text).toContain("#2672");
+    expect(text).toContain("#2688");
+  });
 });
 
 describe("allMdFiles skip dirs", () => {

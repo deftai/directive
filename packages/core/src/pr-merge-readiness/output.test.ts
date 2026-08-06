@@ -58,6 +58,24 @@ describe("output helpers", () => {
     expect(out).toContain("CI check-runs: 1 passed / 0 failed / 0 pending");
   });
 
+  it("prints platform status URLs on weather-class CI (#3180)", () => {
+    const out = printHuman({
+      ...baseResult,
+      failures: ["CI never scheduled"],
+      partialData: {
+        ci: {
+          ready_state: "ci_never_scheduled",
+          summary_line: "CI check-runs: 0 passed / 0 failed / 0 pending (ci_never_scheduled)",
+          platform_status_github: "https://www.githubstatus.com/",
+          platform_status_blacksmith: "https://status.blacksmith.sh/",
+        },
+      },
+    });
+    expect(out).toContain("https://www.githubstatus.com/");
+    expect(out).toContain("https://status.blacksmith.sh/");
+    expect(out).toContain("Probe status pages before workflow edits (#3180)");
+  });
+
   it("prints excluded-author skip line (#2375)", () => {
     const out = printHuman({
       ...baseResult,
