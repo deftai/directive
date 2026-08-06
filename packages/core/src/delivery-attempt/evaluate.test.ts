@@ -520,6 +520,7 @@ describe("evaluatePreDispatch regression suite (#3143)", () => {
       sourceRevision: "rev-2",
       trigger: "override",
       attemptId: "a2",
+      consumeOverride: true,
     }));
     expect(ledger.override?.remainingAttempts).toBe(0);
     expect(ledger.attempts.length).toBe(2);

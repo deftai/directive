@@ -287,6 +287,7 @@ describe("delivery-attempt coverage boost (#3143)", () => {
       sourceRevision: "r1",
       trigger: "override",
       attemptId: "a1",
+      consumeOverride: true,
     }));
     // remainingAttempts now 0
     expect(ledger.override?.remainingAttempts).toBe(0);

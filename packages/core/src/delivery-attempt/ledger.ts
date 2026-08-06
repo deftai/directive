@@ -630,13 +630,11 @@ export function beginAttempt(
     externalRunId: input.externalRunId ?? null,
   };
 
-  // Consume override only when this begin is authorized by ALLOW_OVERRIDE
-  // (consumeOverride) or an explicit override trigger — not on ordinary allows
-  // that happen to leave remainingAttempts > 0 on the ledger.
+  // Consume override only when the pre-dispatch decision was ALLOW_OVERRIDE
+  // (caller sets consumeOverride). Trigger "override" alone is not sufficient —
+  // ordinary allows that happen to use that trigger must not burn quota.
   let override = ledger.override;
-  const shouldConsume =
-    input.consumeOverride === true || input.trigger === "override";
-  if (shouldConsume && override !== null && override.remainingAttempts > 0) {
+  if (input.consumeOverride === true && override !== null && override.remainingAttempts > 0) {
     override = { ...override, remainingAttempts: override.remainingAttempts - 1 };
   }
 
