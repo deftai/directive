@@ -9,14 +9,15 @@ import { createHash, randomBytes } from "node:crypto";
 import {
   closeSync,
   existsSync,
+  fsyncSync,
   mkdirSync,
   openSync,
   readdirSync,
   readFileSync,
   renameSync,
   rmSync,
-  statSync,
   unlinkSync,
+  writeSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
@@ -323,9 +324,56 @@ export function saveUnitLedger(projectRoot: string, ledger: DeliveryUnitLedger):
  * Exclusive unit lock for begin/complete on disk (#3143 concurrent-snapshot P1).
  * Uses O_EXCL create of a lock file under the delivery-attempts dir.
  */
-/** Stale lock age (ms) after which a crashed owner may be recovered. */
+/** Stale lock age (ms) used only when owner PID cannot be probed. */
 export const UNIT_LOCK_STALE_MS = 5 * 60 * 1000;
 
+interface UnitLockRecord {
+  readonly pid: number;
+  readonly token: string;
+  readonly startedAt: string;
+}
+
+function isProcessAlive(pid: number): boolean {
+  if (!Number.isFinite(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readLockRecord(lockPath: string): UnitLockRecord | null {
+  try {
+    const raw = JSON.parse(readFileSync(lockPath, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const rec = raw as Record<string, unknown>;
+    const pid = typeof rec.pid === "number" ? rec.pid : Number.NaN;
+    const token = typeof rec.token === "string" ? rec.token : "";
+    const startedAt = typeof rec.startedAt === "string" ? rec.startedAt : "";
+    if (!Number.isFinite(pid) || token.length === 0) return null;
+    return { pid, token, startedAt };
+  } catch {
+    return null;
+  }
+}
+
+function writeLockRecordFd(fd: number, record: UnitLockRecord): void {
+  const body = Buffer.from(`${JSON.stringify(record)}\n`, "utf8");
+  writeSync(fd, body, 0, body.length, 0);
+  try {
+    fsyncSync(fd);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
+ * Acquire exclusive unit lock. Recovery is allowed only when the lock owner
+ * PID is dead (or the record is corrupt/empty). Age-only reclaim is a last
+ * resort when no PID can be read — never when the owner process is still
+ * alive (#3143 Greptile confidence on live-lock revocation).
+ */
 export function withUnitLock<T>(
   projectRoot: string,
   scopeId: string,
@@ -342,38 +390,71 @@ export function withUnitLock<T>(
   assertWriteTargetSafe(root, lockPath);
   const nowMs = options?.nowMs ?? Date.now();
   const staleMs = options?.staleMs ?? UNIT_LOCK_STALE_MS;
+  const token = randomBytes(8).toString("hex");
   let fd: number | null = null;
+
+  const tryCreate = (): number => {
+    const handle = openSync(lockPath, "wx");
+    try {
+      writeLockRecordFd(handle, {
+        pid: process.pid,
+        token,
+        startedAt: new Date(nowMs).toISOString(),
+      });
+    } catch {
+      /* body write best-effort; exclusive create is the authority */
+    }
+    return handle;
+  };
+
   try {
-    fd = openSync(lockPath, "wx");
+    fd = tryCreate();
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
-    if (code === "EEXIST") {
-      // Recover abandoned locks from crashed workers (#3143 Greptile).
-      let mtimeMs = 0;
-      try {
-        mtimeMs = statSync(lockPath).mtimeMs;
-      } catch {
-        mtimeMs = 0;
-      }
-      if (nowMs - mtimeMs >= staleMs) {
-        try {
-          unlinkSync(lockPath);
-        } catch {
-          /* race with other recoverer */
-        }
-        fd = openSync(lockPath, "wx");
-      } else {
-        throw new Error(
-          `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
-        );
-      }
-    } else {
-      throw err;
+    if (code !== "EEXIST") throw err;
+
+    const existing = readLockRecord(lockPath);
+    const ownerAlive = existing !== null && isProcessAlive(existing.pid);
+    if (ownerAlive) {
+      throw new Error(
+        `delivery-attempt unit lock held by pid ${existing.pid} for ${scopeId}/${targetId}/${workflowId}`,
+      );
+    }
+
+    // Owner dead, missing, or unreadable — reclaim if dead or age-only empty.
+    let reclaim = existing === null || !isProcessAlive(existing.pid);
+    if (!reclaim && existing !== null) {
+      const started = Date.parse(existing.startedAt);
+      reclaim = !Number.isFinite(started) || nowMs - started >= staleMs;
+    }
+    if (!reclaim) {
+      throw new Error(
+        `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
+      );
+    }
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      /* race */
+    }
+    try {
+      fd = tryCreate();
+    } catch (retryErr) {
+      throw new Error(
+        `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
+        { cause: retryErr },
+      );
     }
   }
+
   try {
     return fn();
   } finally {
+    // Only unlink if we still own the token (another recoverer must not delete our work).
+    const stillOurs = (() => {
+      const rec = readLockRecord(lockPath);
+      return rec !== null && rec.token === token && rec.pid === process.pid;
+    })();
     if (fd !== null) {
       try {
         closeSync(fd);
@@ -381,10 +462,12 @@ export function withUnitLock<T>(
         /* best-effort */
       }
     }
-    try {
-      unlinkSync(lockPath);
-    } catch {
-      /* best-effort */
+    if (stillOurs) {
+      try {
+        unlinkSync(lockPath);
+      } catch {
+        /* best-effort */
+      }
     }
   }
 }
