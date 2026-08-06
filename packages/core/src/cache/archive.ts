@@ -152,17 +152,17 @@ function loadPlan(path: string): Record<string, unknown> | null {
 function issueRefFromUri(uri: string): { repo: string; number: number } | null {
   const cleaned = uri.replace(/\/+$/, "");
   // Accept github.com and www.github.com (case-insensitive host).
-  const m =
-    /(?:https?:\/\/)?(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/i.exec(
-      cleaned,
-    );
+  // Digits may include leading zeros (rare URL forms); Number() normalizes.
+  const m = /(?:https?:\/\/)?(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/i.exec(
+    cleaned,
+  );
   if (m) {
     // Lowercase owner/repo so protection matches case-folded cache keys (#1137 review).
-    const numRaw = m[3] ?? "";
-    if (!/^[1-9]\d*$/.test(numRaw)) return null;
+    const num = Number(m[3] ?? "");
+    if (!Number.isInteger(num) || num < 1) return null;
     return {
       repo: `${(m[1] ?? "").toLowerCase()}/${(m[2] ?? "").toLowerCase()}`,
-      number: Number(numRaw),
+      number: num,
     };
   }
   const slash = cleaned.lastIndexOf("/");

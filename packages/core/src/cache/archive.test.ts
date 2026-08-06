@@ -394,6 +394,68 @@ describe("archiveClosedEntries", () => {
     expect(result.archived.some((a) => a.key === "other/repo/311")).toBe(true);
   });
 
+  it("lifecycle protection keeps repo scope for leading-zero issue URLs", () => {
+    const projectRoot = tempRoot();
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    const clock = new FixedClock(new Date("2026-08-01T00:00:00Z"));
+    const dir = join(projectRoot, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "leading-zero.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "leading-zero",
+          status: "running",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/0311",
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "other/repo/311",
+      {
+        number: 311,
+        title: "other",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "deftai/directive/311",
+      {
+        number: 311,
+        title: "protected",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    const result = archiveClosedEntries({
+      cacheRoot,
+      projectRoot,
+      olderThanDays: 30,
+      dryRun: true,
+      clock,
+    });
+    expect(
+      result.skipped.some(
+        (s) => s.key === "deftai/directive/311" && s.reason === "open-lifecycle-scope",
+      ),
+    ).toBe(true);
+    expect(result.archived.some((a) => a.key === "other/repo/311")).toBe(true);
+  });
+
   it("lifecycle protection is case-insensitive on owner/repo", () => {
     const projectRoot = tempRoot();
     const cacheRoot = join(projectRoot, ".deft-cache");

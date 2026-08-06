@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cache archive: parse `www.github.com` lifecycle URIs with repo identity (#1137 residual / PR #3142).** Open-scope protection for multi-repo caches no longer drops owner/repo when lifecycle refs use `www.github.com` (or leading-zero issue path segments). Keeps archive protection repo-scoped instead of bare `#N` fallback. Refs #1137, #3141.
+
 ### Removed
 
 ## [0.96.0] - 2026-08-06
