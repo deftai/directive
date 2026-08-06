@@ -351,6 +351,21 @@ tasks:
     expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
   });
 
+  it("does not treat printf of task check as full check", () => {
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/ci.yml", "- run: printf 'task check'\\n"],
+      ]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(runCommandIsFullCheck("printf 'task check'")).toBe(false);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "ci-workflow")).toBe(true);
+  });
+
   it("does not treat assignment-only CI as full check", () => {
     const wf = '- run: CHECK_CMD="task check"\n';
     const cmds = extractWorkflowRunCommands(wf);

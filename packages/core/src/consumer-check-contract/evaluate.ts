@@ -82,23 +82,43 @@ export function textReferencesGate(text: string, gateId: string): boolean {
 /**
  * True when a shell line is only assignment(s) (no executed command).
  * `CHECK_CMD="task check"` is pure assignment; `FOO=1 task check` is not.
+ * Linear scan (no nested regex quantifiers — CodeQL js/redos).
  */
 export function isPureAssignmentLine(cmd: string): boolean {
-  const t = cmd.trim();
+  let t = cmd.trim();
   if (t.length === 0) return false;
-  // export NAME=value (compound with && / || / ; is not pure)
-  if (/^export\s+[A-Za-z_][\w]*=/.test(t)) {
-    return !/(?:&&|\|\||;)/.test(t);
+  if (/(?:&&|\|\||;)/.test(t)) return false;
+  // export NAME=value
+  if (/^export\s+/i.test(t)) {
+    t = t.replace(/^export\s+/i, "").trim();
   }
-  // One or more VAR=value tokens covering the entire line (quoted or bare value).
-  // Env-prefix form `VAR=value command` leaves a trailing command → not pure.
-  const onlyAssigns =
-    /^(?:[A-Za-z_][\w]*=(?:'[^']*'|"[^"]*"|[^\s'"&|;]+)\s*)+$/.test(t) &&
-    !/\s+(?:&&|\|\||;)\s*\S/.test(t);
-  if (!onlyAssigns) return false;
-  // Ensure nothing after the last assignment token that is a command word.
-  // The regex above already requires the whole string to be assign tokens.
-  return true;
+  // Consume one or more NAME=value tokens; refuse leftover command words.
+  let i = 0;
+  let sawAssign = false;
+  while (i < t.length) {
+    while (i < t.length && /\s/.test(t[i] ?? "")) i += 1;
+    if (i >= t.length) break;
+    // NAME=
+    const nameMatch = /^[A-Za-z_][\w]*=/.exec(t.slice(i));
+    if (nameMatch === null) {
+      // leftover command → env-prefix form (not pure)
+      return false;
+    }
+    i += nameMatch[0].length;
+    sawAssign = true;
+    const ch = t[i];
+    if (ch === '"' || ch === "'") {
+      const q = ch;
+      i += 1;
+      while (i < t.length && t[i] !== q) i += 1;
+      if (i >= t.length) return false; // unclosed quote
+      i += 1; // closing quote
+    } else {
+      // bare value until whitespace
+      while (i < t.length && !/\s/.test(t[i] ?? "")) i += 1;
+    }
+  }
+  return sawAssign;
 }
 
 /**
@@ -165,37 +185,88 @@ export function extractWorkflowRunCommands(text: string): string[] {
   return out;
 }
 
+/**
+ * Strip simple single/double-quoted segments so runner phrases inside printf/args
+ * do not impersonate command-position invocations (Greptile conf=1).
+ */
+export function stripQuotedSegments(line: string): string {
+  return line.replace(/'[^']*'|"[^"]*"/g, " ");
+}
+
+/**
+ * True when `line` invokes a runner at command position (start / after chain),
+ * not merely mentions it inside an argument.
+ */
+export function lineHasCommandPositionRunner(
+  line: string,
+  runnerPattern: RegExp,
+): boolean {
+  const lower = stripQuotedSegments(line).toLowerCase().trim().replace(/^-\s+/, "");
+  if (lower.length === 0) return false;
+  // Known argument-only tools never execute our gates.
+  if (/^(?:printf|print|echo|cat|true|false|:|test|\[)\b/.test(lower)) return false;
+  // Command position: line start or after shell chain / env-prefix assignments.
+  const withoutEnv = lower.replace(/^(?:[a-z_][\w]*=(?:\S+)\s+)*/i, "");
+  if (runnerPattern.test(withoutEnv)) return true;
+  // Chained: ... && task check
+  const chainParts = withoutEnv.split(/(?:&&|\|\||;)/);
+  return chainParts.some((part) => runnerPattern.test(part.trim()));
+}
+
 /** True when a run command is a full check aggregate (not a single verify gate). */
 export function runCommandIsFullCheck(cmd: string): boolean {
-  // Scan executable lines only — echo/docs do not execute gates (Greptile P1).
+  // Scan executable lines only — echo/docs/printf-args do not execute gates.
   for (const raw of cmd.split("\n")) {
     if (isNonExecutingCommandLine(raw)) continue;
-    const lower = raw.toLowerCase().trim().replace(/^-\s+/, "");
-    // Word-boundary matches only — verify:consumer-check-contract must NOT match check:consumer.
-    if (/\bdeft\s+check\b/.test(lower) || /\bdirective\s+check\b/.test(lower)) return true;
-    if (/\btask\s+(?:deft:)?check\b/.test(lower)) return true;
-    if (/(?:^|[\s&;|])(?:task\s+)?check:consumer(?:\s|$)/.test(lower)) return true;
-    if (/(?:^|[\s&;|])(?:task\s+)?check:framework-source(?:\s|$)/.test(lower)) return true;
+    const line = raw.trim().replace(/^-\s+/, "");
+    // Word-boundary / command-position matches only.
+    if (
+      lineHasCommandPositionRunner(line, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/)
+    ) {
+      return true;
+    }
+    if (lineHasCommandPositionRunner(line, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)) {
+      return true;
+    }
+    if (
+      lineHasCommandPositionRunner(
+        line,
+        /^(?:sudo\s+)?(?:task\s+)?check:consumer(?:\s|$)/,
+      )
+    ) {
+      return true;
+    }
+    if (
+      lineHasCommandPositionRunner(
+        line,
+        /^(?:sudo\s+)?(?:task\s+)?check:framework-source(?:\s|$)/,
+      )
+    ) {
+      return true;
+    }
   }
   return false;
 }
 
 /**
  * True when a run command invokes a specific verify gate id as an executable
- * task/CLI form — not a bare substring in echo/docs (Greptile P1 conf=3).
+ * task/CLI form — not a bare substring in echo/docs/printf args.
  */
 export function runCommandInvokesGate(cmd: string, gateId: string): boolean {
   const gid = gateId.toLowerCase();
   const dashed = gateId.replace(":", "-").toLowerCase();
   const invokers = [
-    new RegExp(`\\b(?:task|deft|directive)\\s+(?:deft:)?${escapeRegExp(gid)}\\b`, "i"),
-    new RegExp(`\\b(?:task|deft|directive)\\s+(?:deft:)?${escapeRegExp(dashed)}\\b`, "i"),
-    new RegExp(`\\bnpm\\s+run\\s+${escapeRegExp(gid)}\\b`, "i"),
+    new RegExp(`^(?:sudo\\s+)?(?:task|deft|directive)\\s+(?:deft:)?${escapeRegExp(gid)}\\b`, "i"),
+    new RegExp(
+      `^(?:sudo\\s+)?(?:task|deft|directive)\\s+(?:deft:)?${escapeRegExp(dashed)}\\b`,
+      "i",
+    ),
+    new RegExp(`^(?:sudo\\s+)?npm\\s+run\\s+${escapeRegExp(gid)}\\b`, "i"),
   ];
   for (const raw of cmd.split("\n")) {
     if (isNonExecutingCommandLine(raw)) continue;
     const line = raw.trim().replace(/^-\s+/, "");
-    if (invokers.some((re) => re.test(line))) return true;
+    if (invokers.some((re) => lineHasCommandPositionRunner(line, re))) return true;
   }
   return false;
 }
@@ -250,11 +321,10 @@ export function taskfileInvokesCheckOrchestrator(text: string): boolean {
       if (isNonExecutingCommandLine(stripped)) continue;
       if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
       if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
-      const lower = stripped.toLowerCase().replace(/^-\s+/, "");
+      const cmd = stripped.replace(/^-\s+/, "");
       if (
-        /\bdeft\s+check\b/.test(lower) ||
-        /\bdirective\s+check\b/.test(lower) ||
-        /\btask\s+(?:deft:)?check\b/.test(lower)
+        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||
+        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)
       ) {
         return true;
       }
@@ -429,11 +499,10 @@ export function evaluateConsumerCheckContract(
       if (isNonExecutingCommandLine(stripped)) continue;
       if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
       if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
-      const lower = stripped.toLowerCase().replace(/^-\s+/, "");
+      const cmd = stripped.replace(/^-\s+/, "");
       if (
-        /\bdeft\s+check\b/.test(lower) ||
-        /\bdirective\s+check\b/.test(lower) ||
-        /\btask\s+(?:deft:)?check\b/.test(lower)
+        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||
+        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)
       ) {
         return true;
       }

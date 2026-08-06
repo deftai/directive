@@ -164,31 +164,37 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
     );
   }
   const out = new Set<string>();
+  const addPath = (raw: string): void => {
+    const t = normalizeRepoRelPath(unquoteGitPath(raw));
+    if (t.length > 0) out.add(t);
+  };
   // Triple-dot includes all commits on the branch relative to merge-base.
   const range = resolved === "HEAD" || resolved.includes("...") ? resolved : `${resolved}...HEAD`;
   const diff = git(["diff", "--name-only", range], projectRoot);
   if (diff.status === 0) {
     for (const line of diff.stdout.split("\n")) {
-      const t = unquoteGitPath(line);
-      if (t.length > 0) out.add(t);
+      addPath(line);
     }
   }
   // Also include working-tree changes vs HEAD (unstaged / staged / untracked).
   const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
   if (vsHead.status === 0) {
     for (const line of vsHead.stdout.split("\n")) {
-      const t = unquoteGitPath(line);
-      if (t.length > 0) out.add(t);
+      addPath(line);
     }
   }
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
   if (untracked.status === 0) {
     for (const line of untracked.stdout.split("\n")) {
-      const t = unquoteGitPath(line);
-      if (t.length > 0) out.add(t);
+      addPath(line);
     }
   }
   return [...out];
+}
+
+/** Normalize repo-relative paths for exact set membership (always POSIX separators). */
+export function normalizeRepoRelPath(p: string): string {
+  return p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/");
 }
 
 function listActiveXbriefPaths(projectRoot: string): string[] {
@@ -344,7 +350,7 @@ export function evaluateScopeProvenance(
     throw err;
   }
 
-  const changedSet = new Set(changed);
+  const changedSet = new Set(changed.map((p) => normalizeRepoRelPath(p)));
   const findings: ScopeProvenanceFinding[] = [];
   const softFindings: ScopeProvenanceFinding[] = [];
 
@@ -362,7 +368,7 @@ export function evaluateScopeProvenance(
   let activeEntries: Array<{ rel: string; raw: string }>;
   if (options.activeXbriefs !== undefined) {
     activeEntries = [...options.activeXbriefs.entries()].map(([rel, raw]) => ({
-      rel: rel.replace(/\\/g, "/"),
+      rel: normalizeRepoRelPath(rel),
       raw,
     }));
   } else {
@@ -371,7 +377,7 @@ export function evaluateScopeProvenance(
       const full = join(root, rel);
       if (!existsSync(full)) continue;
       try {
-        activeEntries.push({ rel, raw: readFileSync(full, "utf8") });
+        activeEntries.push({ rel: normalizeRepoRelPath(rel), raw: readFileSync(full, "utf8") });
       } catch {
         // skip unreadable
       }
@@ -391,7 +397,7 @@ export function evaluateScopeProvenance(
       (planId !== null ? readApprovedScopeRecord(root, planId) : null) ??
       null;
 
-    const modified = changedSet.has(rel);
+    const modified = changedSet.has(normalizeRepoRelPath(rel));
     // Only an explicit renewed stamp from options (or a pre-existing on-disk
     // digest that was NOT rewritten in this change set) may authorize expansion.
     // Same-PR rewrite of .deft/approved-scope/<id>.json is NOT sufficient
