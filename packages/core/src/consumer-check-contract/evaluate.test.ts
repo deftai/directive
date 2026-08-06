@@ -280,6 +280,55 @@ jobs:
     expect(result.exitCode).toBe(0);
   });
 
+  it("does not count substring dep names as required gates", () => {
+    // Greptile conf=3: noop-verify:test-boundary must not impersonate verify:test-boundary
+    const root = `
+version: '3'
+tasks:
+  check:
+    deps:
+      - noop-verify:test-boundary
+      - noop-verify:scope-provenance
+      - noop-verify:consumer-check-contract
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.gateId === "verify:test-boundary")).toBe(true);
+  });
+
+  it("does not let sibling aggregate conceal omissions on incomplete check", () => {
+    // Greptile conf=3: full check:consumer must not mask incomplete check deps
+    const root = `
+version: '3'
+tasks:
+  check:
+    deps:
+      - verify:branch
+  check:consumer:
+    deps:
+      - verify:test-boundary
+      - verify:scope-provenance
+      - verify:consumer-check-contract
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some(
+        (f) => f.surface === "check-task" && f.detail.includes("aggregate 'check'"),
+      ),
+    ).toBe(true);
+  });
+
   it("enforce off softens missing verify tasks to warn", () => {
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,

@@ -340,6 +340,8 @@ export function evaluateConsumerCheckContract(
         "  Recovery: restore Taskfile.yml or run from the project root.",
     );
   }
+  // Narrow for nested helpers (TS does not carry null-check into closures).
+  const rootTaskfile: string = rootText;
 
   const findings: ConsumerCheckContractFinding[] = [];
   const soft: ConsumerCheckContractFinding[] = [];
@@ -368,19 +370,10 @@ export function evaluateConsumerCheckContract(
     });
   }
 
-  // 2) Root check aggregate should reference required gates OR invoke full deft check
-  const checkTargets = ["check", "check:consumer", "check:framework-source"];
-  const composed = new Set<string>();
-
-  for (const target of checkTargets) {
-    const deps = extractCheckDeps(rootText, target);
-    for (const d of deps) {
-      composed.add(d);
-    }
-  }
-  // True only for real orchestrator / CLI check entrypoints — NOT free-text
-  // mentions of check:consumer (Greptile P1).
-  const invokesFullDirectiveCheck = taskfileInvokesCheckOrchestrator(rootText);
+  // 2) Each defined check aggregate must compose required gates OR invoke full deft check.
+  // Do NOT union deps across check / check:consumer / check:framework-source — a sibling
+  // with full deps must not conceal omissions on the aggregate that actually runs (Greptile).
+  const checkTargets = ["check", "check:consumer", "check:framework-source"] as const;
 
   const verifyDefinesRequired =
     verifyText !== null &&
@@ -389,24 +382,76 @@ export function evaluateConsumerCheckContract(
       return taskDefinedInTaskfileYaml(verifyText, gateId.slice("verify:".length));
     });
 
-  // Full-check composition is trusted only when verify.yml defines every required gate
-  // AND the Taskfile actually invokes the check orchestrator.
-  const trustFullCheck = invokesFullDirectiveCheck && verifyDefinesRequired;
-  // Always validate gate composition unless trustFullCheck holds.
-  // Empty aggregates (composed.size === 0) are NOT a free pass (Greptile P1).
-  if (!trustFullCheck) {
+  /** Exact dep match only — never substring (noop-verify:test-boundary must not count). */
+  function depListsGate(deps: readonly string[], gateId: string): boolean {
+    for (const d of deps) {
+      const name = d.trim();
+      if (name === gateId) return true;
+      // go-task object form may normalize to bare task name already via extractCheckDeps
+      if (name === `task ${gateId}` || name === `task:${gateId}`) return true;
+    }
+    return false;
+  }
+
+  /** True when this task body alone invokes the check orchestrator (not whole file). */
+  function taskInvokesOrchestrator(taskName: string): boolean {
+    const body = extractTaskBody(rootTaskfile, taskName);
+    if (body.length === 0) return false;
+    for (const raw of body.split("\n")) {
+      const stripped = raw.trim();
+      if (!stripped || stripped.startsWith("#")) continue;
+      if (isNonExecutingCommandLine(stripped)) continue;
+      if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
+      if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
+      const lower = stripped.toLowerCase().replace(/^-\s+/, "");
+      if (
+        /\bdeft\s+check\b/.test(lower) ||
+        /\bdirective\s+check\b/.test(lower) ||
+        /\btask\s+(?:deft:)?check\b/.test(lower)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  let anyAggregateDefined = false;
+  for (const target of checkTargets) {
+    const deps = extractCheckDeps(rootTaskfile, target);
+    const body = extractTaskBody(rootTaskfile, target);
+    const defined = deps.length > 0 || body.trim().length > 0;
+    if (!defined) continue;
+    anyAggregateDefined = true;
+
+    const trustThis = taskInvokesOrchestrator(target) && verifyDefinesRequired;
+    if (trustThis) continue;
+
     for (const gateId of required) {
-      const listed =
-        composed.has(gateId) ||
-        [...composed].some((d) => d === gateId || d.endsWith(gateId) || d.includes(gateId));
-      if (!listed) {
+      if (!depListsGate(deps, gateId)) {
         findings.push({
           gateId,
           surface: "check-task",
           detail:
-            composed.size === 0
-              ? `check aggregate has no deps and does not invoke a full check orchestrator covering ${gateId}`
-              : `check aggregate deps do not include ${gateId}`,
+            deps.length === 0
+              ? `aggregate '${target}' has no deps and does not invoke a full check orchestrator covering ${gateId}`
+              : `aggregate '${target}' deps do not include ${gateId}`,
+          remediation: remediationForMissing(gateId, `check task (${target})`),
+        });
+      }
+    }
+  }
+
+  // No check aggregates defined at all — still a composition gap when enforce
+  // (unless trust via whole-file orchestrator is impossible without a body).
+  if (!anyAggregateDefined) {
+    // Preserve prior behavior for empty/missing check tasks: fail each required gate.
+    const invokesAny = taskfileInvokesCheckOrchestrator(rootTaskfile);
+    if (!(invokesAny && verifyDefinesRequired)) {
+      for (const gateId of required) {
+        findings.push({
+          gateId,
+          surface: "check-task",
+          detail: `check aggregate has no deps and does not invoke a full check orchestrator covering ${gateId}`,
           remediation: remediationForMissing(gateId, "check task"),
         });
       }
