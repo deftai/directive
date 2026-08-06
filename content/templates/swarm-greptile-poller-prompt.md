@@ -446,9 +446,9 @@ Send to parent:
 
 `last_reviewed_sha` matches HEAD AND `has_blocking` is True. Do NOT exit on P2 -- those are non-blocking style suggestions per `skills/deft-directive-review-cycle/SKILL.md`.
 
-Address the findings per Phase 2 Step 2-3 of the review-cycle skill: read every finding, plan a single coherent batch, run `task check`, commit with message `fix: address Greptile review findings (batch)`, push. After the push, RESET the poll counter (the new commit triggers a fresh Greptile review pass) and continue polling. Do NOT exit -- this is the loop body of the review-cycle skill.
+Address the findings per Phase 2 Step 2-3 of the review-cycle skill: read every finding, plan a single coherent batch, run `task check`, commit with message `fix: address Greptile review findings (batch)`, push. After the push, you MAY reset the **poll-wait timer** for the new HEAD (Greptile needs a fresh review window) — but you MUST NOT reset the dual-stop **fix-batch counter** (#2442). Track `fix_batch_count` across the whole poller lifetime; increment on each substantive fix push. When `fix_batch_count` reaches **3** OR the same primary P0/P1 fingerprint reappears on **2** consecutive re-reviews with no material fix, exit BLOCKED (do not open a fourth automatic fix batch). Continue polling only while under the dual-stop envelope. Do NOT exit early on a successful fix mid-loop — this is the loop body of the review-cycle skill.
 
-If the same review surfaces 3 consecutive review cycles (push -> review -> still P0/P1 -> push -> review -> still P0/P1 -> push -> review -> still P0/P1), escalate to parent:
+If the dual-stop envelope is exhausted (3 fix batches or 2 identical no-progress re-reviews), escalate to parent:
 
     Subject: PR #{pr_number} escalation -- 3 review cycles still surfacing P0/P1
     Body:

@@ -199,14 +199,14 @@ Review fix cycles are multi-iteration work and MUST carry dual stop (`main.md` `
 
 | Loop class | Success stop | Default failure stop |
 |------------|--------------|----------------------|
-| Greptile / bot fix batch (Step 3 → re-review) | No P0/P1 on current HEAD; confidence meets `minGreptileConfidence` | **max 3** fix-batch iterations **or** **2** consecutive re-reviews with the same primary P0/P1 fingerprint and no material fix |
+| Greptile / bot fix batch (Step 3 → re-review) | No P0/P1 on current HEAD; confidence meets `minGreptileConfidence` | **max 3** fix-batch iterations across the whole review ownership (do **not** reset the counter on push when the same primary fingerprint remains) **or** **2** consecutive re-reviews with the same primary P0/P1 fingerprint and no material fix |
 | Confidence-only hold (0 P0/P1, score below floor) | Confidence meets floor, or operator chooses document/accept path | **max 1** optional polish pass, then stop (do not redesign unbounded — see confidence-only holds above) |
 
 **On failure stop:**
 
 - ! Halt automatic re-fix. Prefer `BLOCKED:` with PR number, HEAD SHA, blocker class (`review_cycle_cap` / `greptile_p0_p1` / `no_progress`), what was tried, and human decision needed (preamble §11 / #2843).
 - ⊗ Continue silent fix rounds after the envelope is exhausted.
-- ⊗ Reset the iteration counter solely by re-pushing an empty commit or swapping workers when the same findings remain.
+- ⊗ Reset the fix-batch counter solely by re-pushing, empty-committing, or swapping workers when the same primary finding fingerprint remains (poll-wait timer MAY reset for a new HEAD; the dual-stop fix-batch counter MUST NOT).
 
 **Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit breaker is sibling **#3143**.
 
