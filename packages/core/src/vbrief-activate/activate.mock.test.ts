@@ -9,6 +9,7 @@ describe("activate statSync failure branch", () => {
   afterEach(() => {
     vi.doUnmock("node:fs");
     vi.doUnmock("../fs/projection-containment.js");
+    vi.doUnmock("../fs/contained-write.js");
     vi.resetModules();
     for (const root of roots.splice(0)) {
       rmSync(root, { recursive: true, force: true });
@@ -184,5 +185,61 @@ describe("activate statSync failure branch", () => {
     expect(result.message).toContain("Could not write");
     expect(result.message).toContain("write sink refused");
     expect(existsSync(path)).toBe(true);
+  });
+
+  it("reports unlink failures after a successful write (#3147)", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-activate-unlink-"));
+    roots.push(root);
+    const path = join(root, "xbrief", "pending", "story.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: "pending", items: [] },
+      }),
+      "utf8",
+    );
+
+    vi.doMock("node:fs", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("node:fs")>();
+      return {
+        ...actual,
+        unlinkSync: (target: string) => {
+          if (target === path) {
+            throw new Error("unlink denied");
+          }
+          return actual.unlinkSync(target);
+        },
+      };
+    });
+
+    const { activate } = await import("./activate.js");
+    const result = activate(path, { now: new Date("2026-06-19T12:00:00.000Z") });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("could not remove source");
+    expect(result.message).toContain("unlink denied");
+    // Destination was written; source cleanup failed.
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
+  });
+
+  it("maps JSON parse property-name and trailing-data error messages", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-activate-json-map-"));
+    roots.push(root);
+    const pending = join(root, "xbrief", "pending");
+    mkdirSync(pending, { recursive: true });
+
+    const propPath = join(pending, "prop.xbrief.json");
+    writeFileSync(propPath, '{foo:1}', "utf8");
+    const { activate } = await import("./activate.js");
+    const propResult = activate(propPath);
+    expect(propResult.exitCode).toBe(1);
+    expect(propResult.message).toMatch(/Expecting property name|not valid JSON/);
+
+    const trailPath = join(pending, "trail.xbrief.json");
+    writeFileSync(trailPath, '{"a":1} trailing', "utf8");
+    const trailResult = activate(trailPath);
+    expect(trailResult.exitCode).toBe(1);
+    expect(trailResult.message).toMatch(/Extra data|not valid JSON/);
   });
 });

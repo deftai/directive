@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`vbrief:activate` refuses destination-folder symlink escape outside project root (#3147).** Legacy `task vbrief:activate` used the destination folder as the `containedWrite` root, so a lifecycle dest symlink whose realpath is outside the checkout was treated as contained and could divert the write (and unlink the pending source) outside the tree. The path now calls `assertProjectionContained(projectRoot, destDir)` before mkdir/write (parity with `scope:activate` / #2447) and uses `projectRoot` as the containment root. Vitest covers refuse + no outside write + pending preserved. Closes #3147. Refs #2447, #3077, #2980.
+- **`vbrief:activate` containment root is the project checkout (#3147).** Legacy `task vbrief:activate` used the destination folder as the `containedWrite` root, so a dest-folder symlink whose realpath is outside the checkout was treated as contained and could divert the write (and unlink the pending source) outside the tree. The activator now runs `assertProjectionContained` on the destination before mkdir/write (parity with `scope:activate` / #2447) and uses `projectRoot` as the containment root. Vitest covers refuse + no outside write + pending preserved. Closes #3147. Refs #2447, #3077, #2980.
 
 ### Removed
 
