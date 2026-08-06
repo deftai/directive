@@ -5,8 +5,18 @@
  * replacement, session restart, context compaction, and new revisions.
  */
 
-import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+} from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -32,10 +42,14 @@ export function deliveryAttemptsDir(projectRoot: string): string {
   return join(projectRoot, ...DELIVERY_ATTEMPT_DIR.split("/"));
 }
 
+/**
+ * Stable collision-resistant filename for a unit key.
+ * Full SHA-256 hex (64 chars) — do not truncate base64 of the raw key (#3143 P1).
+ */
 export function unitLedgerFilename(scopeId: string, targetId: string, workflowId: string): string {
   const key = deliveryUnitKey(scopeId, targetId, workflowId);
-  const safe = Buffer.from(key, "utf8").toString("base64url").slice(0, 120);
-  return `${safe}.json`;
+  const digest = createHash("sha256").update(key, "utf8").digest("hex");
+  return `${digest}.json`;
 }
 
 export function unitLedgerPath(
@@ -304,6 +318,93 @@ export function saveUnitLedger(projectRoot: string, ledger: DeliveryUnitLedger):
   writeJsonContained(projectRoot, path, ledger);
 }
 
+/**
+ * Exclusive unit lock for begin/complete on disk (#3143 concurrent-snapshot P1).
+ * Uses O_EXCL create of a lock file under the delivery-attempts dir.
+ */
+export function withUnitLock<T>(
+  projectRoot: string,
+  scopeId: string,
+  targetId: string,
+  workflowId: string,
+  fn: () => T,
+): T {
+  const dir = deliveryAttemptsDir(projectRoot);
+  mkdirSync(dir, { recursive: true });
+  const lockName = `${unitLedgerFilename(scopeId, targetId, workflowId)}.lock`;
+  const lockPath = join(dir, lockName);
+  const root = resolve(projectRoot);
+  assertWriteTargetSafe(root, lockPath);
+  let fd: number | null = null;
+  try {
+    fd = openSync(lockPath, "wx");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "EEXIST") {
+      throw new Error(
+        `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
+      );
+    }
+    throw err;
+  }
+  try {
+    return fn();
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* best-effort */
+      }
+    }
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      /* best-effort */
+    }
+  }
+}
+
+/**
+ * Disk-safe begin: exclusive lock + re-check active attempts before write.
+ * Prevents two workers from both evaluating empty active state and overwriting.
+ */
+export function beginAttemptOnDisk(
+  projectRoot: string,
+  input: {
+    readonly scopeId: string;
+    readonly targetId: string;
+    readonly workflowId: string;
+    readonly phaseId?: string;
+    readonly attemptId?: string;
+    readonly sourceRevision: string;
+    readonly trigger: AttemptTrigger;
+    readonly status?: "queued" | "running";
+    readonly workerId?: string | null;
+    readonly externalRunId?: string | null;
+    readonly materialDelta?: readonly MaterialDeltaClaim[];
+    readonly now?: string;
+  },
+): { ledger: DeliveryUnitLedger; attempt: DeliveryAttemptRecord } {
+  return withUnitLock(projectRoot, input.scopeId, input.targetId, input.workflowId, () => {
+    const current = loadOrCreateUnitLedger(projectRoot, {
+      scopeId: input.scopeId,
+      targetId: input.targetId,
+      workflowId: input.workflowId,
+      phaseId: input.phaseId,
+      now: input.now,
+    });
+    if (hasActiveAttempt(current)) {
+      throw new Error(
+        `delivery-attempt DENY_DUPLICATE_ACTIVE: unit already has queued/running attempt(s)`,
+      );
+    }
+    const { ledger, attempt } = beginAttempt(current, input);
+    saveUnitLedger(projectRoot, ledger);
+    return { ledger, attempt };
+  });
+}
+
 /** Load or create empty unit ledger. */
 export function loadOrCreateUnitLedger(
   projectRoot: string,
@@ -379,8 +480,11 @@ export function beginAttempt(
     externalRunId: input.externalRunId ?? null,
   };
 
+  // Consume override allowance on any begin while remainingAttempts > 0.
+  // evaluatePreDispatch may ALLOW_OVERRIDE while the caller still passes
+  // trigger "automatic" / "retry" (#3143 Greptile P1).
   let override = ledger.override;
-  if (override !== null && override.remainingAttempts > 0 && input.trigger === "override") {
+  if (override !== null && override.remainingAttempts > 0) {
     override = { ...override, remainingAttempts: override.remainingAttempts - 1 };
   }
 
@@ -419,18 +523,27 @@ export function completeAttempt(
 ): DeliveryUnitLedger {
   const now = utcIso(input.now);
 
-  // Interrupted-run reconciliation: same externalRunId already terminal → no-op.
+  // Interrupted-run reconciliation: if an active attempt with this externalRunId
+  // exists, complete it. Only no-op when the run is already terminal AND no
+  // active attempt shares that externalRunId (CI re-runs may reuse ids — #3143).
   if (input.externalRunId) {
-    const existing = ledger.attempts.find(
+    const activeWithRun = ledger.attempts.find(
       (a) =>
         a.externalRunId === input.externalRunId &&
-        (a.status === "succeeded" ||
-          a.status === "failed" ||
-          a.status === "cancelled" ||
-          a.status === "blocked"),
+        (a.status === "queued" || a.status === "running"),
     );
-    if (existing) {
-      return ledger;
+    if (activeWithRun === undefined) {
+      const terminalWithRun = ledger.attempts.find(
+        (a) =>
+          a.externalRunId === input.externalRunId &&
+          (a.status === "succeeded" ||
+            a.status === "failed" ||
+            a.status === "cancelled" ||
+            a.status === "blocked"),
+      );
+      if (terminalWithRun !== undefined) {
+        return ledger;
+      }
     }
   }
 

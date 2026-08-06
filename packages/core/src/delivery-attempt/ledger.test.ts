@@ -5,13 +5,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import { buildFailureInfo } from "./fingerprint.js";
 import {
   beginAttempt,
+  beginAttemptOnDisk,
   completeAttempt,
   emptyUnitLedger,
+  hasActiveAttempt,
   loadUnitLedger,
   MemoryLedgerStore,
   markBlocked,
   recordOperatorOverride,
   saveUnitLedger,
+  unitLedgerFilename,
 } from "./ledger.js";
 
 const temps: string[] = [];
@@ -155,12 +158,76 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     expect(ledger.override?.remainingAttempts).toBe(1);
     expect(ledger.blockedDecision).toBeNull();
 
+    // ALLOW_OVERRIDE may still pass trigger "automatic" — must consume quota
     ({ ledger } = beginAttempt(ledger, {
       sourceRevision: "r2",
-      trigger: "override",
+      trigger: "automatic",
       attemptId: "a2",
     }));
     expect(ledger.override?.remainingAttempts).toBe(0);
     expect(ledger.attempts.length).toBe(2);
+  });
+
+  it("unit ledger filenames are full digests that do not collide on prefix", () => {
+    const a = unitLedgerFilename("scope-aaaaaaaaaa", "target-1", "wf-1");
+    const b = unitLedgerFilename("scope-aaaaaaaaab", "target-1", "wf-1");
+    expect(a).toMatch(/^[a-f0-9]{64}\.json$/);
+    expect(a).not.toBe(b);
+  });
+
+  it("beginAttemptOnDisk denies when active", () => {
+    const root = tmpRoot();
+    const { ledger, attempt } = beginAttemptOnDisk(root, {
+      scopeId: "s",
+      targetId: "t",
+      workflowId: "w",
+      sourceRevision: "r1",
+      trigger: "automatic",
+      attemptId: "a1",
+    });
+    expect(attempt.attemptId).toBe("a1");
+    expect(hasActiveAttempt(ledger)).toBe(true);
+    expect(() =>
+      beginAttemptOnDisk(root, {
+        scopeId: "s",
+        targetId: "t",
+        workflowId: "w",
+        sourceRevision: "r1",
+        trigger: "manual",
+        attemptId: "a2",
+      }),
+    ).toThrow(/DENY_DUPLICATE_ACTIVE/);
+  });
+
+  it("completeAttempt reuses externalRunId for a new active attempt after terminal", () => {
+    let ledger = emptyUnitLedger({
+      scopeId: "s",
+      targetId: "t",
+      workflowId: "w",
+    });
+    ({ ledger } = beginAttempt(ledger, {
+      sourceRevision: "r1",
+      trigger: "automatic",
+      attemptId: "a1",
+      externalRunId: "run-same",
+    }));
+    ledger = completeAttempt(ledger, {
+      attemptId: "a1",
+      externalRunId: "run-same",
+      status: "failed",
+      failure: buildFailureInfo({ stage: "ci", code: "FAIL", retryability: "unknown" }),
+    });
+    ({ ledger } = beginAttempt(ledger, {
+      sourceRevision: "r2",
+      trigger: "retry",
+      attemptId: "a2",
+      externalRunId: "run-same",
+    }));
+    ledger = completeAttempt(ledger, {
+      externalRunId: "run-same",
+      status: "succeeded",
+    });
+    expect(ledger.attempts.find((a) => a.attemptId === "a2")?.status).toBe("succeeded");
+    expect(ledger.failedAttemptCount).toBe(1);
   });
 });

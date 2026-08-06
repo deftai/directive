@@ -29,6 +29,7 @@ export {
 export {
   activeAttempts,
   beginAttempt,
+  beginAttemptOnDisk,
   clearBlockIfResumed,
   completeAttempt,
   deliveryAttemptsDir,
@@ -45,6 +46,7 @@ export {
   saveUnitLedger,
   unitLedgerFilename,
   unitLedgerPath,
+  withUnitLock,
 } from "./ledger.js";
 export {
   evaluateMaterialProgress,
