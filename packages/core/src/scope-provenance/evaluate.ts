@@ -80,7 +80,13 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
   if (result.signal !== null && result.signal !== undefined) {
     throw new GitCommandError(`git ${args.join(" ")} killed by signal ${String(result.signal)}`);
   }
-  return { status: result.status ?? 1, stdout: result.stdout ?? "" };
+  const status = result.status ?? 1;
+  const stderr = String(result.stderr ?? "").trim();
+  // Surface stderr on failure so callers can distinguish "not a git repository".
+  if (status !== 0 && stderr.length > 0) {
+    return { status, stdout: `${result.stdout ?? ""}\n${stderr}` };
+  }
+  return { status, stdout: result.stdout ?? "" };
 }
 
 /**
@@ -106,34 +112,41 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
 /**
  * Normalize git --name-only paths (including C-quoted paths).
  * Decode C-quotes BEFORE converting remaining backslashes to `/` so escape
- * sequences are not destroyed (Greptile conf=1 / #3145).
+ * sequences are not destroyed. Consecutive octal escapes decode as UTF-8
+ * bytes (e.g. \\303\\251 → é) so Unicode xBRIEF paths match filesystem names.
  */
 export function unquoteGitPath(raw: string): string {
   const t = raw.replace(/\r$/, "").trim();
   if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    // git C-quotes: "path with spaces" / "weird\tname" / octal \nnn
     let inner = t.slice(1, -1);
-    inner = inner.replace(
-      /\\([0-7]{1,3})|\\([abtnvfr"'\\])/g,
-      (_m, oct: string | undefined, ch: string | undefined) => {
-        if (oct !== undefined) {
-          return String.fromCharCode(parseInt(oct, 8));
-        }
-        const map: Record<string, string> = {
-          a: "\x07",
-          b: "\b",
-          t: "\t",
-          n: "\n",
-          v: "\v",
-          f: "\f",
-          r: "\r",
-          '"': '"',
-          "'": "'",
-          "\\": "\\",
-        };
-        return map[ch ?? ""] ?? (ch ?? "");
-      },
-    );
+    // First: runs of octal bytes → UTF-8 (Git encodes non-ASCII this way)
+    inner = inner.replace(/(?:\\[0-7]{1,3})+/g, (seq) => {
+      const bytes: number[] = [];
+      for (const m of seq.matchAll(/\\([0-7]{1,3})/g)) {
+        bytes.push(parseInt(m[1] ?? "0", 8));
+      }
+      try {
+        return Buffer.from(bytes).toString("utf8");
+      } catch {
+        return String.fromCharCode(...bytes);
+      }
+    });
+    // Then: standard single-char escapes
+    inner = inner.replace(/\\([abtnvfr"'\\])/g, (_m, ch: string) => {
+      const map: Record<string, string> = {
+        a: "\x07",
+        b: "\b",
+        t: "\t",
+        n: "\n",
+        v: "\v",
+        f: "\f",
+        r: "\r",
+        '"': '"',
+        "'": "'",
+        "\\": "\\",
+      };
+      return map[ch] ?? ch;
+    });
     return inner.replace(/\\/g, "/");
   }
   return t.replace(/\\/g, "/");
@@ -342,15 +355,26 @@ export function evaluateScopeProvenance(
       );
     }
     if (err instanceof GitCommandError) {
-      // Greenfield / non-git consumer trees (release smoke) skip clean under
-      // migration defaults rather than fail closed as config (#3145).
-      return {
-        exitCode: 0,
-        findings: [],
-        message:
-          `verify_scope_provenance: skipped -- not a usable git working tree (${err.message}). ` +
-          "Initialize git or pass --base-ref / inject changedFiles (#3145).",
-      };
+      const msg = err.message.toLowerCase();
+      // Only non-repo trees skip clean (greenfield smoke). Other git failures
+      // fail closed so discovery errors cannot hide scope expansion (Greptile).
+      if (
+        msg.includes("not a git repository") ||
+        msg.includes("outside repository") ||
+        msg.includes("not a git working tree")
+      ) {
+        return {
+          exitCode: 0,
+          findings: [],
+          message:
+            `verify_scope_provenance: skipped -- not a git working tree (${err.message}). ` +
+            "Initialize git or pass --base-ref / inject changedFiles (#3145).",
+        };
+      }
+      return configError(
+        `verify_scope_provenance: git failed -- ${err.message}\n` +
+          "  Recovery: ensure --project-root points at a healthy git working tree.",
+      );
     }
     throw err;
   }
@@ -414,12 +438,17 @@ export function evaluateScopeProvenance(
         : null;
     const approvalRecordRewritten =
       approvalRecordRel !== null &&
-      [...changedSet].some(
-        (p) =>
-          p === approvalRecordRel ||
-          p.endsWith(`/${approvalRecordRel}`) ||
-          (p.includes("/approved-scope/") && p.includes(planId ?? "")),
-      );
+      [...changedSet].some((p) => {
+        const n = normalizeRepoRelPath(p);
+        if (n === approvalRecordRel || n.endsWith(`/${approvalRecordRel}`)) return true;
+        // Exact basename match only — no planId substring (Greptile / SLizard).
+        if (planId === null) return false;
+        const safe = planId.replace(/[^a-zA-Z0-9._-]/g, "_");
+        return (
+          n.includes("/approved-scope/") &&
+          (n.endsWith(`/${safe}.json`) || n.endsWith(`${safe}.json`))
+        );
+      });
 
     const recordMatchesCurrent =
       approved !== null &&

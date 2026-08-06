@@ -199,24 +199,14 @@ export function stripQuotedSegments(line: string): string {
  */
 export function lineMasksCheckFailure(line: string): boolean {
   const lower = stripQuotedSegments(line).toLowerCase();
-  // check ... || true / || : / || exit 0  (":" is non-word — do not use \b after it)
-  const maskTail = String.raw`\|\|\s*(?:true\b|:|exit\s+0\b)`;
-  if (
-    new RegExp(String.raw`(?:deft|directive)\s+check\b[\s\S]*${maskTail}`).test(lower) ||
-    new RegExp(String.raw`task\s+(?:deft:)?check\b[\s\S]*${maskTail}`).test(lower) ||
-    new RegExp(
-      String.raw`(?:task\s+)?check:(?:consumer|framework-source)\b[\s\S]*${maskTail}`,
-    ).test(lower)
-  ) {
-    return true;
-  }
-  // pipe to true
-  if (
-    /(?:deft|directive)\s+check\b[\s\S]*\|\s*true\b/.test(lower) ||
-    /task\s+(?:deft:)?check\b[\s\S]*\|\s*true\b/.test(lower)
-  ) {
-    return true;
-  }
+  const checkish =
+    /(?:deft|directive)\s+check\b|task\s+(?:deft:)?check\b|(?:task\s+)?check:(?:consumer|framework-source)\b/;
+  if (!checkish.test(lower)) return false;
+  // Any pipeline after a check can hide nonzero status without pipefail (Greptile).
+  if (/check\b[\s\S]*\|/.test(lower)) return true;
+  // || true / || : / || exit 0 / ; true
+  if (/\|\|\s*(?:true\b|:|exit\s+0\b)/.test(lower)) return true;
+  if (/;\s*(?:true\b|:|exit\s+0\b)\s*$/.test(lower)) return true;
   return false;
 }
 

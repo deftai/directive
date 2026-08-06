@@ -34,6 +34,10 @@ describe("unquoteGitPath (#3145)", () => {
     // Escaped quote / tab must decode; backslashes must not be wiped before decode
     expect(unquoteGitPath('"weird\\tname.xbrief.json"')).toBe("weird\tname.xbrief.json");
     expect(unquoteGitPath('"path\\\\with\\\\slash"')).toBe("path/with/slash");
+    // Git UTF-8 octal for "é" (U+00E9) = \303\251
+    expect(unquoteGitPath('"xbrief/active/caf\\303\\251.xbrief.json"')).toBe(
+      "xbrief/active/café.xbrief.json",
+    );
   });
 });
 

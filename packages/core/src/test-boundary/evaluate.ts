@@ -62,7 +62,10 @@ function gitTrackedFiles(projectRoot: string): string[] {
     throw new GitCommandError(`git ls-files failed: ${String(e.message)}`);
   }
   if ((result.status ?? 1) !== 0) {
-    throw new GitCommandError(`git ls-files exited ${result.status ?? 1}`);
+    const stderr = String(result.stderr ?? "").trim();
+    throw new GitCommandError(
+      `git ls-files exited ${result.status ?? 1}${stderr ? `: ${stderr}` : ""}`,
+    );
   }
   return (result.stdout ?? "")
     .split("\n")
@@ -319,16 +322,27 @@ export function evaluateTestBoundary(
       );
     }
     if (err instanceof GitCommandError) {
-      // Greenfield / non-git consumer trees (release smoke) must not fail closed
-      // on migration defaults — skip clean with guidance (#3145 smoke).
-      return {
-        exitCode: 0,
-        findings: [],
-        message:
-          `verify_test_boundary: skipped -- not a usable git working tree (${err.message}). ` +
-          "Initialize git, or inject files for offline evaluation (#3145).",
-        policy,
-      };
+      const msg = err.message.toLowerCase();
+      // Only skip clean when the project is not a git repo (greenfield smoke).
+      // Other git operational failures fail closed (exit 2) — Greptile conf=0.
+      if (
+        msg.includes("not a git repository") ||
+        msg.includes("outside repository") ||
+        msg.includes("not a git working tree")
+      ) {
+        return {
+          exitCode: 0,
+          findings: [],
+          message:
+            `verify_test_boundary: skipped -- not a git working tree (${err.message}). ` +
+            "Initialize git, or inject files for offline evaluation (#3145).",
+          policy,
+        };
+      }
+      return configError(
+        `verify_test_boundary: git failed -- ${err.message}\n` +
+          "  Recovery: ensure --project-root points at a healthy git working tree.",
+      );
     }
     throw err;
   }
