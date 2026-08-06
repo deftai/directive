@@ -68,6 +68,10 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 
+## Dual stop rule (#2442)
+
+! Multi-iteration autonomous work (implement-fix, pre-PR polish, swarm repair/monitor, review fix cycles) MUST have a **success stop** and a **failure/budget stop** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. On failure stop: halt with an operator-visible report (tried / missing / human decision); ⊗ thrash past the envelope. Depth: `.deft/core/main.md` `## Dual Stop Rule (#2442)`; build/swarm skill defaults. Delivery/acceptance mechanical ledger is #3143.
+
 ## Through-merge worker dispatch (#3032)
 
 ! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C).

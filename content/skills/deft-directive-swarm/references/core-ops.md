@@ -44,7 +44,8 @@ TASK: You must complete N [type] fixes on this branch ([branch-name]) in the def
 This is a git worktree. Do NOT just read files and stop — you must implement all changes,
 run iteration-lane validation during implement/fix loops, full task check before push,
 commit, push, create a PR, and run the review cycle.
-DO NOT STOP until all steps are complete.
+Drive every step to completion, subject to dual-stop (#2442): if a multi-iteration fix/repair
+loop hits its failure/budget stop, halt with BLOCKED (operator-visible report) — do not thrash past the envelope.
 
 STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned xBRIEF(s) from xbrief/active/.
 Read skills/deft-directive-review-cycle/SKILL.md.
@@ -81,12 +82,13 @@ CONSTRAINTS:
 ### Template Rules
 
 - ! First line MUST start with `TASK:` followed by an imperative statement
-- ! Include `DO NOT STOP until all steps are complete` in the preamble
+- ! Include a drive-to-completion instruction that is **subordinate to dual-stop** (#2442): complete all steps unless a multi-iteration failure/budget envelope is exhausted — then `BLOCKED` with an operator-visible report (do not use unconditional "DO NOT STOP" language that overrides the failure stop)
 - ! Each task MUST include its xBRIEF filename and origin issue number
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ! Multi-iteration prompts MUST name dual-stop defaults (or point at `main.md` / build skill #2442) so workers do not thrash without a failure envelope
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
+- ⊗ Write unconditional `DO NOT STOP until all steps are complete` without a dual-stop exception — that conflicts with the failure stop and causes thrash (#2442)
 
 ## Push Autonomy
 

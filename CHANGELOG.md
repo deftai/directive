@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Dual stop rule for multi-iteration agent work (#2442).** Documents success + failure/budget stops in `main.md` (single-turn exempt). Build skill defaults for implement/pre-PR loops (max iterations + no-progress + operator-visible halt report). Swarm skill + Phase 4 / core-ops defaults for repair/monitor loops. Preamble §10.6 for dispatched workers. Points delivery/acceptance mechanical circuit breaker at sibling #3143. Closes #2442. Refs #1613, #3143, #2439.
+- **Dual stop rule for multi-iteration agent work (#2442).** Documents success + failure/budget stops in `main.md` (single-turn exempt). Build skill defaults for implement/pre-PR loops (max iterations + no-progress + operator-visible halt report). Swarm skill + Phase 4 / core-ops defaults for repair/monitor loops (drive-to-completion subordinate to dual-stop). Preamble §10.6 for dispatched workers; consumer AGENTS managed section via agents-entry. Points delivery/acceptance mechanical circuit breaker at sibling #3143. Closes #2442. Refs #1613, #3143, #2439.
 
 ### Changed
 
