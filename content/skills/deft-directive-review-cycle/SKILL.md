@@ -393,10 +393,12 @@ Remediation:
 2. ! Route through **this skill** — ⊗ Cursor global babysit (`#2261`), freestyle main-session poll, or dual parallel monitors (`#3044`).
 3. ! Apply Owner Continuity Gate (#3090) and Single review-monitor lease (#3044) without exception: one sticky lease; force-takeover only when the prior owner is dead.
 4. ! **Post-merge `scope:complete` (#2321 / Gap C):** When the implement leaf stopped at pr-open, it MUST NOT have run `task scope:complete`. After the PR **merges**, the merge-path owner (or swarm Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort` / monitor) MUST run `task scope:complete` or `task scope:cancel`. `task verify:orphan-active` fails closed on stranded active briefs.
-5. ! **Human-merge / CLEAN-before-merge ownership (#3153 / #1193):** When `plan.policy.requireHumanMerge` (or missing bot-merge authority) means the review owner reaches Greptile CLEAN / merge-ready but **cannot** squash-merge, that owner MUST **not** exit as if the story lifecycle is finished. Same turn, do one of:
-   - Keep ownership (`review_cycle: in_progress:<pr>#…` or parent-retained) until human merge lands, then run `scope:complete`, **or**
-   - Explicit handoff: release the sticky lease to the **parent/monitor** (or Phase 6 cohort closer) with a structured handback that names the PR, HEAD, `awaiting-human-merge`, and that **post-merge `scope:complete` is the recipient's duty**.
-   ⊗ Emit terminal `DONE` / stand down at CLEAN when merge authority is human-only and no post-merge `scope:complete` owner remains reachable.
+5. ! **Human-merge / CLEAN-before-merge ownership (#3153 / #1193 / #2321):** When `plan.policy.requireHumanMerge` (or missing bot-merge authority) means the review owner reaches Greptile CLEAN / merge-ready but **cannot** squash-merge, lifecycle ownership is **not** complete. Prefer **durable** ownership (not a prose-only promise):
+   - **Preferred:** Parent/monitor **retains** ownership (`review_cycle: in_progress:<pr>#parent-retained` or sticky lease held by the long-lived monitor) until human merge lands, then runs `scope:complete` (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort`).
+   - **Allowed handoff:** Only to a **long-lived** parent/monitor / Phase 6 closer — same turn: (1) re-claim sticky `<!-- deft:review-owner -->` lease for the **recipient** (register/force as needed), (2) structured handback with PR, HEAD, `awaiting-human-merge`, and explicit post-merge `scope:complete` duty, (3) recipient acknowledges with `review_cycle: in_progress:<pr>#…` before the giving agent exits.
+   - ! Cohort through-merge: the **swarm monitor** is the default durable post-merge `scope:complete` owner for every `stop-at: pr-open` story (#2321) — do not rely on a review leaf that exits at CLEAN.
+   ⊗ Handoff to a short-lived leaf that exits at CLEAN without lease transfer.
+   ⊗ Emit terminal `DONE` / stand down at CLEAN when merge authority is human-only and no **reachable** durable owner (sticky lease + live parent/monitor/cohort closer) remains for post-merge `scope:complete`.
 6. ! **Thin DONE recovery (#2943 / #3153):** A failed `drive-to: merge-ready` leaf that only opened a PR is **not** success. After ground truth, hand merge path to **one** of the owners above — never improvise a second lease or re-dispatch implement + babysit in parallel without releasing the first.
 
 ! **Cohort through-merge intent is unchanged:** stories still land on master. Envelope selection only assigns **who owns implement vs who owns Greptile/CI/merge** under capacity stall, conf floors, wall-clock budgets, or large multi-gate stories. Happy-path single `drive-to: merge-ready` leaves remain the default and do not use this partner handoff.
@@ -683,7 +685,8 @@ task lifecycle:event -- emit plan:approved \
 ## Anti-Patterns
 
 - ⊗ Leave a deliberate `stop-at: pr-open` (or thin-DONE recovery) open PR without spawning/retaining one review-cycle babysit owner + lease continuity and post-merge `scope:complete` plan (#3153)
-- ⊗ Stand down at CLEAN under human-merge policy with no reachable post-merge `scope:complete` owner (#3153 / #1193 / #2321)
+- ⊗ Stand down at CLEAN under human-merge policy without a durable owner (sticky lease + live parent/monitor/Phase 6 closer) for post-merge `scope:complete` (#3153 / #1193 / #2321)
+- ⊗ Handoff human-merge cleanup to a short-lived leaf that exits at CLEAN without re-claiming the sticky lease (#3153)
 - ⊗ Dual-lease or freestyle Cursor global babysit for the partner merge-path after implement stops at PR-open (#3153 / #2261 / #3044)
 - ⊗ End owning turn with 0 children, no sticky lease, and no finish after drive-to-merge / babysit / shepherd claim — silent hold (#3090)
 - ⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without `done` or verifiable `in_progress:<pr>#…` lease/parent-retained (#3090)
