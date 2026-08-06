@@ -92,8 +92,9 @@ export function splitTextUnits(text: string): string[] {
   const raw = text.replace(/\r\n/g, "\n");
   // Include single newlines so block-formatted repeated progress lines still
   // unitize (FC14 hang class often streams one line per newline, no period).
+  // Optional closing quotes after terminal punctuation: `"Hello." "Hello."`
   const parts = raw
-    .split(/(?:\n+|(?<=[.!?…])\s+|(?<=\.\.\.)\s+)/)
+    .split(/(?:\n+|(?<=[.!?…])["']?\s+|(?<=\.\.\.)\s+)/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
   if (parts.length === 0 && raw.trim().length > 0) {
@@ -246,8 +247,11 @@ function maxIdenticalCluster(units: readonly string[]): number {
     if (next > maxFreq) maxFreq = next;
   }
 
-  // Always run union-find near-identity clustering (no unit-count bypass).
-  const maxComponent = maxNearIdentityComponent(units);
+  // Near-identity connected components for typical parent-turn unit counts.
+  // Above the bound, exact-frequency + consecutive runs still catch the classic
+  // identical-clone hang without unbounded O(n²) allocations on huge inputs.
+  const CLUSTER_SOFT_CAP = 128;
+  const maxComponent = units.length <= CLUSTER_SOFT_CAP ? maxNearIdentityComponent(units) : maxFreq;
 
   return Math.max(maxRun, maxFreq, maxComponent);
 }
@@ -293,6 +297,28 @@ export function evaluateParentTurnShape(input: ParentTurnShapeInput): ParentTurn
       failClass: "none",
       reasons: [],
       maxIdenticalCount: 0,
+      hasToolUse,
+      hasYield,
+    };
+  }
+
+  // Fail closed on unbounded zero-tool text (output-budget burn / DoS class).
+  const ZERO_TOOL_CHAR_CAP = 50_000;
+  let zeroToolChars = 0;
+  for (const ev of events) {
+    if (ev.kind === "assistant_text" && typeof ev.text === "string") {
+      zeroToolChars += ev.text.length;
+    }
+  }
+  if (zeroToolChars > ZERO_TOOL_CHAR_CAP) {
+    return {
+      ok: false,
+      failClass: "FC14",
+      reasons: [
+        `FC14 text-repetition-hang: zero-tool assistant text exceeds ${ZERO_TOOL_CHAR_CAP} chars ` +
+          `(${zeroToolChars}) without tool_use/yield — hard-stop budget burn. Refs #3131 / #2943.`,
+      ],
+      maxIdenticalCount: Math.ceil(zeroToolChars / MIN_UNIT_LEN),
       hasToolUse,
       hasYield,
     };
