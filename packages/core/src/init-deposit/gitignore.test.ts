@@ -85,6 +85,23 @@ describe("ensureInitGitignoreLines", () => {
     expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("xbrief/.triage-cache");
   });
 
+  it("ensureInitGitignoreLines deposits #3146 session-state entries on greenfield", () => {
+    const root = freshRoot("gitignore-3146-deposit-");
+    ensureInitGitignoreLines(root, { printf: () => {} });
+    const text = readGitignore(root);
+    for (const leaf of ["staleness-tickler-state.json", "release-availability-state.json"]) {
+      expect(text).toContain(`vbrief/.triage-cache/${leaf}`);
+      expect(text).toContain(`xbrief/.triage-cache/${leaf}`);
+    }
+    // Hybrid: never blanket the triage-cache directory as a whole line.
+    const active = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith("#"));
+    expect(active).not.toContain("xbrief/.triage-cache/");
+    expect(active).not.toContain("vbrief/.triage-cache/");
+  });
+
   it("covers xBRIEF-era eval result paths on both layouts (#2206)", () => {
     // Generated version-eval results (health history, golden runs) live under
     // .eval/results/ for both vbrief/ and xbrief/ layouts. Before #2206 only the

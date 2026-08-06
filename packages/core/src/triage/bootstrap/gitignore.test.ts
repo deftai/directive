@@ -7,6 +7,7 @@ import {
   GITIGNORE_EVAL_ENTRIES,
   GITIGNORE_LINE,
   generateTriageCacheReadmeBody,
+  gitattributesTriageCacheGlob,
   gitignoreTriageCacheEntries,
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
@@ -105,6 +106,39 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     // Selective only — hybrid policy keeps shared artifacts unhidden.
     expect(layoutAware).not.toContain("xbrief/.triage-cache/");
     expect(layoutAware).not.toContain("xbrief/.triage-cache");
+  });
+
+  it("gitattributes glob uses active layout and defaults to xbrief (#3146)", () => {
+    const bare = makeRoot();
+    expect(gitattributesTriageCacheGlob(bare)).toBe("xbrief/.triage-cache/*.jsonl");
+    const migrated = makeRoot();
+    mkdirSync(join(migrated, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(migrated, "xbrief", "active", "s.xbrief.json"),
+      JSON.stringify({ plan: { id: "s", status: "running", items: [] } }),
+      "utf8",
+    );
+    expect(gitattributesTriageCacheGlob(migrated)).toBe("xbrief/.triage-cache/*.jsonl");
+    const entries = gitignoreTriageCacheEntries(migrated);
+    expect(entries).toContain("xbrief/.triage-cache/staleness-tickler-state.json");
+    expect(entries.some((e) => e.endsWith("decompositions/"))).toBe(true);
+  });
+
+  it("warns when a forbidden blanket triage-cache line is already present", () => {
+    const root = makeRoot();
+    stepEnsureGitignoreEntry(root);
+    writeFileSync(
+      join(root, ".gitignore"),
+      `${readFileSync(join(root, ".gitignore"), "utf8")}\nvbrief/.triage-cache/\n`,
+      "utf8",
+    );
+    const outcome = stepEnsureGitignoreEvalEntries(root);
+    expect(outcome.ok).toBe(true);
+    expect(outcome.details.blanket_present).toBe(true);
+    expect(outcome.message).toContain("blanket");
+    expect(readFileSync(join(root, ".gitignore"), "utf8")).toContain(
+      "xbrief/.triage-cache/staleness-tickler-state.json",
+    );
   });
 
   it("fails without existing .gitignore", () => {
