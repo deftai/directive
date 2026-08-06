@@ -6,7 +6,11 @@ import {
   normalizeFileScope,
   scopeExpansion,
 } from "./digest.js";
-import { evaluateOneScopeProvenance, evaluateScopeProvenance } from "./evaluate.js";
+import {
+  evaluateOneScopeProvenance,
+  evaluateScopeProvenance,
+  unquoteGitPath,
+} from "./evaluate.js";
 
 function xbrief(planId: string, fileScope: string[]): Record<string, unknown> {
   return {
@@ -18,6 +22,20 @@ function xbrief(planId: string, fileScope: string[]): Record<string, unknown> {
     },
   };
 }
+
+describe("unquoteGitPath (#3145)", () => {
+  it("decodes C-quoted paths before slash normalization", () => {
+    expect(unquoteGitPath("xbrief/active/story.xbrief.json")).toBe(
+      "xbrief/active/story.xbrief.json",
+    );
+    expect(unquoteGitPath('"xbrief/active/my file.xbrief.json"')).toBe(
+      "xbrief/active/my file.xbrief.json",
+    );
+    // Escaped quote / tab must decode; backslashes must not be wiped before decode
+    expect(unquoteGitPath('"weird\\tname.xbrief.json"')).toBe("weird\tname.xbrief.json");
+    expect(unquoteGitPath('"path\\\\with\\\\slash"')).toBe("path/with/slash");
+  });
+});
 
 describe("scope-provenance digest (#3145)", () => {
   it("normalizes and digests file_scope stably", () => {

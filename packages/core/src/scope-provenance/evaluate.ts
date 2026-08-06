@@ -103,34 +103,40 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
   return null;
 }
 
-/** Normalize git --name-only paths (including C-quoted paths). */
+/**
+ * Normalize git --name-only paths (including C-quoted paths).
+ * Decode C-quotes BEFORE converting remaining backslashes to `/` so escape
+ * sequences are not destroyed (Greptile conf=1 / #3145).
+ */
 export function unquoteGitPath(raw: string): string {
-  const t = raw.replace(/\r$/, "").trim().replace(/\\/g, "/");
+  const t = raw.replace(/\r$/, "").trim();
   if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    try {
-      // git C-quotes: "path with spaces" / "weird\tname"
-      return JSON.parse(
-        t.replace(/\\([abtnvfr"'\\])/g, (_, c: string) => {
-          const map: Record<string, string> = {
-            a: "\x07",
-            b: "\b",
-            t: "\t",
-            n: "\n",
-            v: "\v",
-            f: "\f",
-            r: "\r",
-            '"': '"',
-            "'": "'",
-            "\\": "\\",
-          };
-          return map[c] ?? c;
-        }),
-      ) as string;
-    } catch {
-      return t.slice(1, -1);
-    }
+    // git C-quotes: "path with spaces" / "weird\tname" / octal \nnn
+    let inner = t.slice(1, -1);
+    inner = inner.replace(
+      /\\([0-7]{1,3})|\\([abtnvfr"'\\])/g,
+      (_m, oct: string | undefined, ch: string | undefined) => {
+        if (oct !== undefined) {
+          return String.fromCharCode(parseInt(oct, 8));
+        }
+        const map: Record<string, string> = {
+          a: "\x07",
+          b: "\b",
+          t: "\t",
+          n: "\n",
+          v: "\v",
+          f: "\f",
+          r: "\r",
+          '"': '"',
+          "'": "'",
+          "\\": "\\",
+        };
+        return map[ch ?? ""] ?? (ch ?? "");
+      },
+    );
+    return inner.replace(/\\/g, "/");
   }
-  return t;
+  return t.replace(/\\/g, "/");
 }
 
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {

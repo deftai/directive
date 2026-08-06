@@ -80,6 +80,28 @@ export function textReferencesGate(text: string, gateId: string): boolean {
 }
 
 /**
+ * True when a shell line is only assignment(s) (no executed command).
+ * `CHECK_CMD="task check"` is pure assignment; `FOO=1 task check` is not.
+ */
+export function isPureAssignmentLine(cmd: string): boolean {
+  const t = cmd.trim();
+  if (t.length === 0) return false;
+  // export NAME=value (compound with && / || / ; is not pure)
+  if (/^export\s+[A-Za-z_][\w]*=/.test(t)) {
+    return !/(?:&&|\|\||;)/.test(t);
+  }
+  // One or more VAR=value tokens covering the entire line (quoted or bare value).
+  // Env-prefix form `VAR=value command` leaves a trailing command → not pure.
+  const onlyAssigns =
+    /^(?:[A-Za-z_][\w]*=(?:'[^']*'|"[^"]*"|[^\s'"&|;]+)\s*)+$/.test(t) &&
+    !/\s+(?:&&|\|\||;)\s*\S/.test(t);
+  if (!onlyAssigns) return false;
+  // Ensure nothing after the last assignment token that is a command word.
+  // The regex above already requires the whole string to be assign tokens.
+  return true;
+}
+
+/**
  * True when a shell/task line does not execute gates (echo, comment, pure assign).
  * Greptile conf gate: non-executing text must not satisfy composition (#3145).
  */
@@ -90,13 +112,8 @@ export function isNonExecutingCommandLine(line: string): boolean {
   // go-task list item: - echo "..."
   const cmd = stripped.replace(/^-\s+/, "");
   if (/^echo\b/i.test(cmd)) return true;
-  // Pure assignment without a runner (FOO=bar / export FOO=bar)
-  if (
-    /^(?:export\s+)?[A-Za-z_][\w]*=/.test(cmd) &&
-    !/\b(?:task|deft|directive|npm|pnpm|yarn|npx|node)\b/i.test(cmd)
-  ) {
-    return true;
-  }
+  // Pure assignment even when RHS contains runner phrases (Greptile conf=1).
+  if (isPureAssignmentLine(cmd)) return true;
   return false;
 }
 
@@ -133,7 +150,16 @@ export function extractWorkflowRunCommands(text: string): string[] {
       continue;
     }
     if (rest.length > 0) {
-      out.push(rest.replace(/^["']|["']$/g, "").trim());
+      // Only strip outer wrapping quotes on the whole scalar — not a trailing
+      // quote that closes an assignment value (CHECK_CMD="task check").
+      let scalar = rest;
+      if (
+        (scalar.startsWith('"') && scalar.endsWith('"') && scalar.length >= 2) ||
+        (scalar.startsWith("'") && scalar.endsWith("'") && scalar.length >= 2)
+      ) {
+        scalar = scalar.slice(1, -1);
+      }
+      out.push(scalar.trim());
     }
   }
   return out;

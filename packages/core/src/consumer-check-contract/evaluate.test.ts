@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateConsumerCheckContract,
   extractCheckDeps,
+  extractWorkflowRunCommands,
+  isPureAssignmentLine,
   REQUIRED_CONSUMER_ENFORCEMENT_GATES,
+  runCommandIsFullCheck,
   textReferencesGate,
 } from "./evaluate.js";
 
@@ -327,6 +330,44 @@ tasks:
         (f) => f.surface === "check-task" && f.detail.includes("aggregate 'check'"),
       ),
     ).toBe(true);
+  });
+
+  it("does not grant trust from pure assignment of task check", () => {
+    // Greptile conf=1: CHECK_CMD="task check" must not satisfy composition
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - CHECK_CMD="task check"
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
+  it("does not treat assignment-only CI as full check", () => {
+    const wf = '- run: CHECK_CMD="task check"\n';
+    const cmds = extractWorkflowRunCommands(wf);
+    expect(cmds.length).toBeGreaterThan(0);
+    expect(cmds[0]).toBe('CHECK_CMD="task check"');
+    expect(isPureAssignmentLine(cmds[0] ?? "")).toBe(true);
+    expect(runCommandIsFullCheck(cmds[0] ?? "")).toBe(false);
+
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([[".github/workflows/ci.yml", wf]]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "ci-workflow")).toBe(true);
   });
 
   it("enforce off softens missing verify tasks to warn", () => {
