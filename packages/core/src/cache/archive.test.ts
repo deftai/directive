@@ -7,7 +7,7 @@ import {
   archivedEntryDir,
   DEFAULT_ARCHIVE_OLDER_THAN_DAYS,
   listArchivedEntries,
-  openLifecycleReferencedIssueNumbers,
+  openLifecycleReferencedKeys,
   resolveClosedAge,
   restoreFromArchive,
 } from "./archive.js";
@@ -214,8 +214,8 @@ describe("archiveClosedEntries", () => {
     );
     writeScope(projectRoot, "active", 300, "2026-08-01-300.xbrief.json");
 
-    const protectedSet = openLifecycleReferencedIssueNumbers(projectRoot);
-    expect(protectedSet.has(300)).toBe(true);
+    const protectedSet = openLifecycleReferencedKeys(projectRoot);
+    expect(protectedSet.has("deftai/directive#300") || protectedSet.has("#300")).toBe(true);
 
     const result = archiveClosedEntries({
       cacheRoot,

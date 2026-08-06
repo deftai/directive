@@ -155,7 +155,8 @@ function issueRefFromUri(uri: string): { repo: string; number: number } | null {
   if (m) {
     return { repo: `${m[1]}/${m[2]}`, number: Number.parseInt(m[3] ?? "", 10) };
   }
-  const tail = cleaned.split("/").pop() ?? "";
+  const slash = cleaned.lastIndexOf("/");
+  const tail = slash >= 0 ? cleaned.slice(slash + 1) : cleaned;
   if (/^\d+$/.test(tail)) {
     return { repo: "", number: Number.parseInt(tail, 10) };
   }
@@ -205,19 +206,6 @@ export function openLifecycleReferencedKeys(projectRoot: string): ReadonlySet<st
         }
       }
     }
-  }
-  return out;
-}
-
-/**
- * Issue numbers referenced by open lifecycle scopes (legacy numeric view).
- * Prefer {@link openLifecycleReferencedKeys} for multi-repo caches.
- */
-export function openLifecycleReferencedIssueNumbers(projectRoot: string): ReadonlySet<number> {
-  const out = new Set<number>();
-  for (const key of openLifecycleReferencedKeys(projectRoot)) {
-    const m = /#(\d+)$/.exec(key);
-    if (m) out.add(Number.parseInt(m[1] ?? "", 10));
   }
   return out;
 }
