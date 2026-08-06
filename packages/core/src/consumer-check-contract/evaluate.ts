@@ -209,6 +209,10 @@ export function lineMasksCheckFailure(line: string): boolean {
   if (/check\b[\s\S]*\|\|/.test(lower)) return true;
   // Semicolon chain after check: `deft check; echo ignored` masks failure (Greptile conf=2).
   if (/check\b[\s\S]*;/.test(lower)) return true;
+  // Background job: `task check &` / `deft check&` returns before enforcement finishes
+  // and does not propagate the job's exit status (Greptile conf=3, #3145).
+  // Trailing bare `&` (not `&&`) after a checkish token, optional comment tail.
+  if (/check\b(?:(?!&&)[\s\S])*&\s*(?:#.*)?$/.test(lower)) return true;
   return false;
 }
 

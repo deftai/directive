@@ -367,6 +367,24 @@ tasks:
     expect(result.exitCode).toBe(1);
   });
 
+  it("does not treat backgrounded task check as full check (Greptile conf=3)", () => {
+    expect(runCommandIsFullCheck("task check &")).toBe(false);
+    expect(runCommandIsFullCheck("deft check&")).toBe(false);
+    expect(runCommandIsFullCheck("task check & # fire and forget")).toBe(false);
+    // Foreground chained form remains trusted when deps already gate.
+    expect(runCommandIsFullCheck("task check")).toBe(true);
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/ci.yml", "- run: task check &\n"],
+      ]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
   it("does not trust inert dispatchTaskCheck argument text", () => {
     const root = `
 version: '3'
