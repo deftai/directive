@@ -101,6 +101,8 @@ xbrief/.triage-cache/summary-history.jsonl
 xbrief/.triage-cache/scope-lifecycle.jsonl
 xbrief/.triage-cache/decompositions/
 xbrief/.triage-cache/doctor-state.json
+xbrief/.triage-cache/staleness-tickler-state.json
+xbrief/.triage-cache/release-availability-state.json
 xbrief/.triage-cache/*.lock
 # Legacy vbrief/ layout (back-compat read window; removed by #2112).
 vbrief/.triage-cache/candidates.jsonl
@@ -108,6 +110,8 @@ vbrief/.triage-cache/summary-history.jsonl
 vbrief/.triage-cache/scope-lifecycle.jsonl
 vbrief/.triage-cache/decompositions/
 vbrief/.triage-cache/doctor-state.json
+vbrief/.triage-cache/staleness-tickler-state.json
+vbrief/.triage-cache/release-availability-state.json
 vbrief/.triage-cache/*.lock
 
 # .eval/ namespace (#1703 Tier 2). `.eval/results/` holds team-shared, TRACKED

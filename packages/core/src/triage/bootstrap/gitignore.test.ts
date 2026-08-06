@@ -3,9 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  FORBIDDEN_BLANKET_EVAL_LINES,
   GITIGNORE_EVAL_ENTRIES,
   GITIGNORE_LINE,
   generateTriageCacheReadmeBody,
+  gitignoreTriageCacheEntries,
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
   stepSeedCandidatesLog,
@@ -72,7 +74,7 @@ describe("stepEnsureGitignoreEntry", () => {
 });
 
 describe("stepEnsureGitignoreEvalEntries", () => {
-  it("writes selective #1144 entries", () => {
+  it("writes selective #1144 entries including per-clone session state (#3146)", () => {
     const root = makeRoot();
     stepEnsureGitignoreEntry(root);
     const outcome = stepEnsureGitignoreEvalEntries(root);
@@ -81,8 +83,28 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     for (const entry of GITIGNORE_EVAL_ENTRIES) {
       expect(text).toContain(entry);
     }
+    expect(text).toContain("xbrief/.triage-cache/staleness-tickler-state.json");
+    expect(text).toContain("xbrief/.triage-cache/release-availability-state.json");
     expect(text).toContain(GITIGNORE_LINE);
+    // Hybrid policy: no blanket ignore of the triage-cache directory.
+    for (const forbidden of FORBIDDEN_BLANKET_EVAL_LINES) {
+      expect(text.split("\n").map((l) => l.trim())).not.toContain(forbidden);
+    }
     expect(outcome.details.gitignore_appended_lines).toBe(GITIGNORE_EVAL_ENTRIES.length);
+  });
+
+  it("lists generated session-state filenames in static + layout-aware sets (#3146)", () => {
+    expect(GITIGNORE_EVAL_ENTRIES).toContain("xbrief/.triage-cache/staleness-tickler-state.json");
+    expect(GITIGNORE_EVAL_ENTRIES).toContain(
+      "xbrief/.triage-cache/release-availability-state.json",
+    );
+    const root = makeRoot();
+    const layoutAware = gitignoreTriageCacheEntries(root);
+    expect(layoutAware).toContain("xbrief/.triage-cache/staleness-tickler-state.json");
+    expect(layoutAware).toContain("xbrief/.triage-cache/release-availability-state.json");
+    // Selective only — hybrid policy keeps shared artifacts unhidden.
+    expect(layoutAware).not.toContain("xbrief/.triage-cache/");
+    expect(layoutAware).not.toContain("xbrief/.triage-cache");
   });
 
   it("fails without existing .gitignore", () => {
@@ -96,11 +118,7 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     const root = makeRoot();
     stepEnsureGitignoreEntry(root);
     const gi = join(root, ".gitignore");
-    writeFileSync(
-      gi,
-      `${readFileSync(gi, "utf8")}\nxbrief/.triage-cache/candidates.jsonl\nxbrief/.triage-cache/summary-history.jsonl\nxbrief/.triage-cache/scope-lifecycle.jsonl\nxbrief/.triage-cache/decompositions/\nxbrief/.triage-cache/doctor-state.json\n`,
-      "utf8",
-    );
+    writeFileSync(gi, `${readFileSync(gi, "utf8")}${GITIGNORE_EVAL_ENTRIES.join("\n")}\n`, "utf8");
     writeFileSync(
       join(root, ".gitattributes"),
       "xbrief/.triage-cache/*.jsonl  merge=union\n",
@@ -225,5 +243,7 @@ describe("stepEnsureGitignoreEvalEntries README deposit", () => {
     }
     expect(readme).toContain("slices.jsonl");
     expect(readme).toContain("candidates.jsonl");
+    expect(readme).toContain("staleness-tickler-state.json");
+    expect(readme).toContain("release-availability-state.json");
   });
 });
