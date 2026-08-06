@@ -28,6 +28,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.quiet = true;
     } else if (arg === "--enforce") {
       parsed.enforce = true;
+    } else if (arg === "--warn") {
+      parsed.enforce = false;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {

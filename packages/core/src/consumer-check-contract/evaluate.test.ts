@@ -143,10 +143,24 @@ tasks:
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
       verifyTaskfileText: VERIFY_YML_COMPLETE,
-      ciWorkflows: new Map([[".github/workflows/ci.yml", "run: task check\n"]]),
+      ciWorkflows: new Map([[".github/workflows/ci.yml", "    - run: task check\n"]]),
       enforce: true,
     });
     expect(result.exitCode).toBe(0);
+  });
+
+  it("does not treat prose-only check mentions as CI composition", () => {
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/ci.yml", "# please run deft check manually\n- run: echo hi\n"],
+      ]),
+      ciWarnOnly: true,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/WARN/i);
   });
 
   it("enforce off softens missing verify tasks to warn", () => {

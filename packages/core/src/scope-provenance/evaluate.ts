@@ -76,6 +76,10 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
     }
     throw new GitCommandError(`git ${args.join(" ")} failed: ${String(e.message)}`);
   }
+  // Signal-killed subprocesses report status=null; never treat as clean exit (SLizard P1).
+  if (result.signal !== null && result.signal !== undefined) {
+    throw new GitCommandError(`git ${args.join(" ")} killed by signal ${String(result.signal)}`);
+  }
   return { status: result.status ?? 1, stdout: result.stdout ?? "" };
 }
 
@@ -83,14 +87,20 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
  * Resolve a PR-aware base ref. Bare `HEAD` only shows uncommitted changes, so
  * CI/PR checkouts would miss committed active-xBRIEF expansion. Prefer
  * origin/master (or main) for merge-base comparison.
+ * Returns null when no merge-base candidate exists (caller fails closed).
  */
-export function resolveDefaultBaseRef(projectRoot: string): string {
-  for (const cand of ["origin/master", "origin/main", "master", "main"]) {
+export function resolveDefaultBaseRef(projectRoot: string): string | null {
+  const envCandidates = [
+    process.env.DEFT_BASE_REF,
+    process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
+    process.env.GITHUB_BASE_REF,
+  ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+  for (const cand of [...envCandidates, "origin/master", "origin/main", "master", "main"]) {
     if (git(["rev-parse", "--verify", "-q", cand], projectRoot).status === 0) {
       return cand;
     }
   }
-  return "HEAD";
+  return null;
 }
 
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
@@ -99,14 +109,23 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
     throw new GitCommandError("not a git working tree");
   }
   // Normalize: if caller passed HEAD, upgrade to default branch so PR commits
-  // are visible (Greptile P1 / #3145).
+  // are visible (Greptile P1 / #3145). Never silently fall back to bare HEAD.
   let resolved = baseRef;
   if (baseRef === "HEAD" || baseRef === "") {
-    resolved = resolveDefaultBaseRef(projectRoot);
+    const upgraded = resolveDefaultBaseRef(projectRoot);
+    if (upgraded === null) {
+      throw new GitCommandError(
+        "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF); " +
+          "cannot evaluate committed PR scope expansion against bare HEAD",
+      );
+    }
+    resolved = upgraded;
   }
   const hasBase = git(["rev-parse", "--verify", "-q", resolved], projectRoot).status === 0;
   if (!hasBase) {
-    return [];
+    throw new GitCommandError(
+      `base ref '${resolved}' not found; pass --base-ref or set DEFT_BASE_REF`,
+    );
   }
   const out = new Set<string>();
   // Triple-dot includes all commits on the branch relative to merge-base.
@@ -258,7 +277,19 @@ export function evaluateScopeProvenance(
     } else {
       // Default is PR-aware (origin/master...), not bare HEAD — bare HEAD misses
       // committed PR diffs on clean checkouts (#3145 Greptile P1).
-      const baseRef = options.baseRef ?? resolveDefaultBaseRef(root);
+      let baseRef = options.baseRef;
+      if (baseRef === undefined || baseRef === "" || baseRef === "HEAD") {
+        const resolved = resolveDefaultBaseRef(root);
+        if (resolved === null) {
+          return configError(
+            "verify_scope_provenance: no merge-base ref found (origin/master|main, " +
+              "DEFT_BASE_REF, or GITHUB_BASE_REF).\n" +
+              "  Recovery: fetch the default branch or pass --base-ref <ref>. " +
+              "Bare HEAD cannot see committed PR scope expansion (#3145).",
+          );
+        }
+        baseRef = resolved;
+      }
       changed = changedFilesVsBase(root, baseRef);
     }
   } catch (err: unknown) {

@@ -10,5 +10,7 @@ export {
   extractCheckDeps,
   REQUIRED_CONSUMER_ENFORCEMENT_GATES,
   requiredGatesFromConsumerList,
+  taskfileInvokesCheckOrchestrator,
   textReferencesGate,
+  workflowExecutesCheck,
 } from "./evaluate.js";

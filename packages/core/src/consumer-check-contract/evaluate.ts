@@ -75,6 +75,57 @@ export function textReferencesGate(text: string, gateId: string): boolean {
 }
 
 /**
+ * True when CI/workflow text has an executable `run:` (or script:) line that
+ * invokes a composing check entrypoint — not mere prose/comments (Greptile P1).
+ */
+export function workflowExecutesCheck(text: string): boolean {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  for (const raw of lines) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    // YAML run/script step values
+    const m = stripped.match(/^(?:-\s*)?(?:run|script)\s*:\s*(.+)$/i);
+    if (m?.[1] === undefined) continue;
+    const cmd = m[1].replace(/^["']|["']$/g, "").toLowerCase();
+    if (
+      cmd.includes("deft check") ||
+      cmd.includes("directive check") ||
+      /(^|[\s&;|])task(\s+deft:)?\s*check(\s|$)/.test(cmd) ||
+      cmd.includes("check:consumer") ||
+      cmd.includes("check:framework-source") ||
+      cmd.includes("verify:test-boundary") ||
+      cmd.includes("verify:scope-provenance") ||
+      cmd.includes("verify:consumer-check-contract")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** True when root Taskfile invokes the check orchestrator (not free-text docs). */
+export function taskfileInvokesCheckOrchestrator(text: string): boolean {
+  // ENGINE_CMD check dispatch (framework Taskfile pattern)
+  if (/ENGINE_CMD:\s*['"]?check\b/.test(text)) return true;
+  if (/\bdispatchTaskCheck\b/.test(text)) return true;
+  // Explicit cmds that shell deft/task check
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  for (const raw of lines) {
+    const stripped = raw.trim();
+    if (!stripped.startsWith("-")) continue;
+    const lower = stripped.toLowerCase();
+    if (
+      lower.includes("deft check") ||
+      lower.includes("directive check") ||
+      /task\s+(?:deft:)?check\b/.test(lower)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Extract dependency task names from a go-task task definition body snippet.
  * Best-effort line parser for `deps:` list entries.
  */
@@ -214,13 +265,9 @@ export function evaluateConsumerCheckContract(
       composed.add(d);
     }
   }
-  // True only for real orchestrator / CLI check entrypoints — NOT mere mentions of
-  // task names like check:consumer (which would bypass incomplete dep lists; Greptile P1).
-  const invokesFullDirectiveCheck =
-    textReferencesGate(rootText, "deft check") ||
-    textReferencesGate(rootText, "directive check") ||
-    /\bdispatchTaskCheck\b/.test(rootText) ||
-    /ENGINE_CMD:\s*['"]?check\b/.test(rootText);
+  // True only for real orchestrator / CLI check entrypoints — NOT free-text
+  // mentions of check:consumer (Greptile P1).
+  const invokesFullDirectiveCheck = taskfileInvokesCheckOrchestrator(rootText);
 
   const verifyDefinesRequired =
     verifyText !== null &&
@@ -275,14 +322,8 @@ export function evaluateConsumerCheckContract(
 
   if (workflows.size > 0) {
     const allCi = [...workflows.values()].join("\n");
-    // Only real Directive/task check entrypoints compose gates. Bare package-manager
-    // test runners (npm test / vitest) do NOT satisfy the contract (Greptile P2).
-    const ciMentionsCheck =
-      textReferencesGate(allCi, "deft check") ||
-      textReferencesGate(allCi, "task check") ||
-      textReferencesGate(allCi, "directive check") ||
-      textReferencesGate(allCi, "check:consumer") ||
-      textReferencesGate(allCi, "check:framework-source");
+    // Only executable run: lines count — not prose/comments (Greptile P1/P2).
+    const ciMentionsCheck = workflowExecutesCheck(allCi);
 
     for (const gateId of required) {
       const mentioned =
