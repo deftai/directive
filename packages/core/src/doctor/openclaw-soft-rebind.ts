@@ -67,16 +67,13 @@ function assessGaps(skillsDirs: readonly string[]): {
       missing.push(`${skillsDir}/${OPENCLAW_SOFT_REBIND_SKILL_ID}`);
       continue;
     }
-    if (!isManagedOpenClawSoftRebindSkill(raw)) {
-      // Consumer customization — treat as present surface.
-      present += 1;
+    // Unmanaged content at the required slug is incomplete health, not pass
+    // (Greptile P1 #3171). Doctor --fix overwrites via deposit.
+    if (!isManagedOpenClawSoftRebindSkill(raw) || raw !== expected) {
+      stale.push(`${skillsDir}/${OPENCLAW_SOFT_REBIND_SKILL_ID}`);
       continue;
     }
-    if (raw === expected) {
-      present += 1;
-    } else {
-      stale.push(`${skillsDir}/${OPENCLAW_SOFT_REBIND_SKILL_ID}`);
-    }
+    present += 1;
   }
   return { missing, stale, present };
 }
@@ -153,6 +150,30 @@ export function runOpenClawSoftRebindCheck(
       });
       return depositResult;
     }
+    // Partial fix: report remaining gaps from post-deposit assessment (SLizard P2).
+    const partsAfter: string[] = [];
+    if (after.missing.length > 0) {
+      partsAfter.push(`missing=${after.missing.join(", ")}`);
+    }
+    if (after.stale.length > 0) {
+      partsAfter.push(`stale=${after.stale.join(", ")}`);
+    }
+    const messageAfter =
+      `${OPENCLAW_SOFT_REBIND_CHECK}: OpenClaw soft AGENTS re-bind skill incomplete after fix ` +
+      `(${partsAfter.join("; ")}). Remediation: ${REMEDIATION_FIX} — see ${DOC_OPENCLAW_HOST}`;
+    sink.warn(messageAfter);
+    addFinding({
+      severity: "warning",
+      message: messageAfter,
+      check: OPENCLAW_SOFT_REBIND_CHECK,
+      status: "incomplete",
+      missing: after.missing,
+      stale: after.stale,
+      written: depositResult.writtenPaths,
+      suggestion: REMEDIATION_FIX,
+      docs: [DOC_OPENCLAW_HOST],
+    });
+    return depositResult;
   }
 
   const parts: string[] = [];

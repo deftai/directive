@@ -55,7 +55,7 @@ describe("depositOpenClawSoftRebindSkill (#3171)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("preserves consumer custom skills at the same slug", () => {
+  it("overwrites unmanaged content at the required slug (Greptile P1)", () => {
     const root = mkdtempSync(join(tmpdir(), "oc-soft-custom-"));
     const skillsDir = join(root, "skills");
     const skillDir = join(skillsDir, OPENCLAW_SOFT_REBIND_SKILL_ID);
@@ -63,13 +63,20 @@ describe("depositOpenClawSoftRebindSkill (#3171)", () => {
     const custom = "---\nname: custom\n---\n# Consumer custom soft rebind\n";
     writeFileSync(join(skillDir, "SKILL.md"), custom, "utf8");
 
+    const before = assessOpenClawSoftRebindSkill(skillsDir);
+    expect(before.present).toBe(false);
+    expect(before.custom).toBe(true);
+
     const result = depositOpenClawSoftRebindSkill({
       forceDeposit: true,
       skillsDirs: [skillsDir],
     });
-    expect(result.changed).toBe(false);
-    expect(result.preservedCustomPaths.length).toBe(1);
-    expect(readFileSync(join(skillDir, "SKILL.md"), "utf8")).toBe(custom);
+    expect(result.changed).toBe(true);
+    expect(result.present).toBe(true);
+    const body = readFileSync(join(skillDir, "SKILL.md"), "utf8");
+    expect(isManagedOpenClawSoftRebindSkill(body)).toBe(true);
+    expect(body).toBe(formatOpenClawSoftRebindSkillMarkdown());
+    expect(body).toContain(SOFT_AGENTS_REBIND_MARKER);
 
     rmSync(root, { recursive: true, force: true });
   });

@@ -105,4 +105,51 @@ describe("runOpenClawSoftRebindCheck (#3171)", () => {
     expect(findings[0]?.status).toBe("present");
     rmSync(state, { recursive: true, force: true });
   });
+
+  it("does not pass health on unmanaged custom content at the required slug (Greptile P1)", () => {
+    const state = mkdtempSync(join(tmpdir(), "oc-soft-doc-custom-"));
+    const skillsDir = join(state, "workspace", "skills");
+    const skillDir = join(skillsDir, OPENCLAW_SOFT_REBIND_SKILL_ID);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "---\nname: custom\n---\n# Unrelated consumer skill\n",
+      "utf8",
+    );
+
+    const findings: Finding[] = [];
+    runOpenClawSoftRebindCheck(sink(), (f) => findings.push(f), {
+      projectRoot: state,
+      fixMode: false,
+      jsonMode: true,
+      allAgents: false,
+      seams: {
+        openclawEnv: { OPENCLAW_STATE_DIR: state },
+        openclawHomeDir: () => state,
+        isDir,
+      },
+    });
+
+    expect(findings[0]?.status).toBe("incomplete");
+    expect(String(findings[0]?.message ?? "")).toMatch(/stale=/i);
+
+    const fixedFindings: Finding[] = [];
+    runOpenClawSoftRebindCheck(sink(), (f) => fixedFindings.push(f), {
+      projectRoot: state,
+      fixMode: true,
+      jsonMode: true,
+      allAgents: false,
+      seams: {
+        openclawEnv: { OPENCLAW_STATE_DIR: state },
+        openclawHomeDir: () => state,
+        isDir,
+      },
+    });
+    expect(fixedFindings.some((f) => f.status === "fixed" || f.status === "present")).toBe(true);
+    expect(readFileSync(join(skillDir, "SKILL.md"), "utf8")).toBe(
+      formatOpenClawSoftRebindSkillMarkdown(),
+    );
+
+    rmSync(state, { recursive: true, force: true });
+  });
 });

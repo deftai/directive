@@ -73,6 +73,10 @@ function defaultLstatKind(path: string): "file" | "dir" | "symlink" | "other" | 
 
 /**
  * Assess whether the managed soft re-bind skill is present and current.
+ *
+ * Unmanaged/custom content at the required slug is NOT present (#3171 P1 /
+ * Greptile): the soft checklist obligations are the health criterion, not
+ * merely occupying the skill directory name.
  */
 export function assessOpenClawSoftRebindSkill(
   skillsDir: string,
@@ -89,7 +93,8 @@ export function assessOpenClawSoftRebindSkill(
     return { present: false, custom: false, path };
   }
   if (!isManagedOpenClawSoftRebindSkill(body)) {
-    return { present: true, custom: true, path };
+    // Occupying the slug with unrelated content fails health (#3171 Greptile P1).
+    return { present: false, custom: true, path };
   }
   const expected = options.expectedBody ?? formatOpenClawSoftRebindSkillMarkdown();
   return { present: body === expected, custom: false, path };
@@ -154,11 +159,10 @@ export function depositOpenClawSoftRebindSkill(
       } catch {
         existing = "";
       }
-      if (existing.length > 0 && !isManagedOpenClawSoftRebindSkill(existing)) {
-        preservedCustomPaths.push(skillFile);
-        presentCount += 1;
-        continue;
-      }
+      // Required soft re-bind surface: unmanaged content at this slug is a gap,
+      // not a preserve-as-present path (Greptile P1 on #3171). Overwrite with
+      // the managed checklist so doctor/init/update cannot report success while
+      // the operational-ask obligations are absent.
       if (existing === expected) {
         presentCount += 1;
         continue;
