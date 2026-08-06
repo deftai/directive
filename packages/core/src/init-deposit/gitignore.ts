@@ -392,3 +392,5 @@ export async function reconstituteDepositFromContent(
   await copyContent(contentRoot, deftDir);
   return { reconstituted: wasAbsent };
 }
+
+// ci-retrigger 2026-08-06T14:19:48.8930336-05:00
