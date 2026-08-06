@@ -308,15 +308,6 @@ export function evaluatePreDispatch(
       resume: null,
     });
   }
-  if (ledger.failedAttemptCount === 0 && ledger.lastFailure === null) {
-    return result(input, ledger, "ALLOW_FIRST_ATTEMPT", "no prior failures for this unit", {
-      retryability: null,
-      fingerprint: null,
-      sameFailureCount: 0,
-      materialClass: progress.classification,
-      resume: null,
-    });
-  }
 
   // --- Material progress opens a new evaluated attempt ---
   if (progress.isMaterial) {
