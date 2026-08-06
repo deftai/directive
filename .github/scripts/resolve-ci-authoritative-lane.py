@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Resolve the authoritative CI lane result for a required aggregator job (#2672).
+"""Resolve the authoritative CI lane result for a required aggregator job (#2672 / #3168).
 
 Env:
   REPO, RUN_ID, GH_TOKEN (via gh), WANT_FAILOVER, FAILOVER_RESULT,
   PRIMARY_NEEDLE (lowercase substring of primary job name), SUITE_LABEL
+
+When WANT_FAILOVER=true, the GH-hosted failover job result is authoritative.
+When WANT_FAILOVER=false, the Blacksmith primary is polled until completed.
+Primary/failover lane job names are never branch-protection required names —
+only the aggregator job names in ci.yml are.
 """
 
 from __future__ import annotations
@@ -34,7 +39,7 @@ def main() -> int:
 
     if want:
         if failover == "success":
-            print(f"Authoritative {label} green via GH-hosted failover (#2672)")
+            print(f"Authoritative {label} green via GH-hosted failover (#2672/#3168)")
             return 0
         print(
             f"::error::{label} failover requested but result={failover}",
@@ -58,11 +63,25 @@ def main() -> int:
             continue
         status = match.get("status")
         conclusion = match.get("conclusion")
-        print(f"primary status={status} conclusion={conclusion}")
+        started = match.get("started_at")
+        runner = match.get("runner_name")
+        print(
+            f"primary status={status} conclusion={conclusion} "
+            f"started_at={started} runner_name={runner}"
+        )
         if status == "completed":
             if conclusion == "success":
                 print(f"Authoritative {label} green via Blacksmith primary (#2672)")
                 return 0
+            # Capacity-death without failover arm is a graph bug (#3168) — fail loud.
+            if conclusion in ("cancelled", "skipped") and not (started or runner):
+                print(
+                    f"::error::{label} Blacksmith primary {conclusion} without a "
+                    f"runner claim and failover was not armed — capacity-watchdog/"
+                    f"capacity-arm should have set WANT_FAILOVER (#3168)",
+                    file=sys.stderr,
+                )
+                return 1
             print(
                 f"::error::Blacksmith {label} primary concluded {conclusion}",
                 file=sys.stderr,

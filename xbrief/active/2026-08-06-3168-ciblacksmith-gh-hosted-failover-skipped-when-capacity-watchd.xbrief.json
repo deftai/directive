@@ -1,0 +1,104 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3168 — arm GH-hosted failover when Blacksmith capacity dies",
+    "updated": "2026-08-06T20:03:57Z"
+  },
+  "plan": {
+    "id": "3168-blacksmith-failover-arming",
+    "title": "ci(blacksmith): GH-hosted failover skipped when capacity-watchdog cancelled — arm failover for true capacity death",
+    "status": "running",
+    "narratives": {
+      "Description": "CI already has Blacksmith primaries, a capacity watchdog, and GH-hosted failover (#2672), but cohort runs showed primaries cancelled, the watchdog cancelled, and failover jobs skipped so required aggregators never went green. This story hardens the workflow graph and classify/cancel scripts so true capacity death arms failover and aggregator checks succeed when either primary or failover passes.",
+      "ImplementationPlan": "1. Edit .github/workflows/ci.yml to isolate capacity-watchdog from Blacksmith job cancellation, harden failover job if conditions, and ensure aggregators treat successful GH-hosted failover as green for required check names.\n2. Extend .github/scripts/classify-ci-job-state.py and cancel-queued-ci-primary.py (plus resolve-ci-authoritative-lane.py if needed) so cancelled primary without runner claim arms failover like queued past stall budget; keep no-failover for in_progress with runner (#2652).\n3. Add script fixtures/tests for classify/cancel arm rules; document primary vs failover vs aggregator job names in workflow comments; CHANGELOG [Unreleased] for #3168; verify with script tests and a documented dry-run checklist.",
+      "UserStory": "As a dogfood maintainer, I want GH-hosted failover to run when Blacksmith never claims a runner, so that required merge checks can go green without multi-hour capacity thrash.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3168",
+      "Overview": "Sibling of #3167 (agent pr:watch). Related #2672, #2652. Observed failover skipped on PR #3149-class runs.",
+      "Labels": "bug, ci-cd"
+    },
+    "items": [
+      {
+        "title": "Failover runs on capacity death",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given Blacksmith primary still queued/missing past stall budget or cancelled without a runner claim, when the CI workflow graph completes the watchdog path, then TypeScript/Go GH-hosted failover jobs run (not skipped solely because the watchdog was cancelled with the primaries)."
+        }
+      },
+      {
+        "title": "Aggregator green on failover success",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given GH-hosted failover TS/Go succeeds, when branch-protection required aggregator names are evaluated, then TypeScript (build + lint + test) (and Go aggregator if applicable) report success."
+        }
+      },
+      {
+        "title": "No failover for true in_progress hangs",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a primary job in_progress with a claimed runner, when the watchdog classifies state, then failover is not armed (#2652)."
+        }
+      },
+      {
+        "title": "Script tests and name map",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given classify/cancel scripts, when fixtures for cancelled-without-runner and queued-past-budget run, then arm rules are asserted; workflow comments document primary vs failover vs aggregator names."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/ci-lane.yml",
+          ".github/scripts/classify-ci-job-state.py",
+          ".github/scripts/cancel-queued-ci-primary.py",
+          ".github/scripts/resolve-ci-authoritative-lane.py",
+          ".github/scripts/test_classify_ci_job_state.py",
+          ".github/scripts/test_cancel_queued_ci_primary.py"
+        ],
+        "verify_commands": [
+          "python -m pytest .github/scripts -q",
+          "task check"
+        ],
+        "expected_outputs": [
+          "failover arms on capacity death; aggregators honor failover success",
+          "script tests for classify/cancel",
+          "CHANGELOG #3168",
+          "PR open and drive-to merge-ready"
+        ],
+        "depends_on": [],
+        "conflict_group": "ci-blacksmith-failover",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue #3168 filed from cohort CI weather; full AC in issue body."
+      }
+    },
+    "tags": [
+      "bug",
+      "ci-cd"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3168",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3168"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3167",
+        "type": "x-xbrief/refs",
+        "title": "Sibling pr:watch #3167"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2672",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2672 capacity failover design"
+      }
+    ],
+    "updated": "2026-08-06T20:03:57Z"
+  }
+}
