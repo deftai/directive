@@ -224,6 +224,62 @@ tasks:
     expect(result.exitCode).toBe(1);
   });
 
+  it("does not grant check trust from echo task check in aggregate body", () => {
+    // Greptile conf=3 P1: non-executing "task check" phrase must not trustFullCheck.
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - echo "run task check before release"
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
+  it("does not treat echo of gate ids as direct CI gate invocation", () => {
+    // Greptile conf=3 P1: substring mentions in echo must not satisfy each gate.
+    const ci = `
+jobs:
+  build:
+    steps:
+      - run: echo "verify:test-boundary verify:scope-provenance verify:consumer-check-contract"
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([[".github/workflows/ci.yml", ci]]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "ci-workflow")).toBe(true);
+  });
+
+  it("accepts block-scalar CI that runs task check", () => {
+    const ci = `
+jobs:
+  build:
+    steps:
+      - name: check
+        run: |
+          task check
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([[".github/workflows/ci.yml", ci]]),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+  });
+
   it("enforce off softens missing verify tasks to warn", () => {
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,

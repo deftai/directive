@@ -61,6 +61,11 @@ function readText(path: string): string | null {
   }
 }
 
+/** Escape a string for safe inclusion in a RegExp source (CodeQL js/incomplete-sanitization). */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** True if `text` mentions the gate as a task dep, script, or CLI invocation. */
 export function textReferencesGate(text: string, gateId: string): boolean {
   const forms = [
@@ -72,6 +77,27 @@ export function textReferencesGate(text: string, gateId: string): boolean {
   ];
   const lower = text.toLowerCase();
   return forms.some((f) => lower.includes(f.toLowerCase()));
+}
+
+/**
+ * True when a shell/task line does not execute gates (echo, comment, pure assign).
+ * Greptile conf gate: non-executing text must not satisfy composition (#3145).
+ */
+export function isNonExecutingCommandLine(line: string): boolean {
+  const stripped = line.trim();
+  if (stripped.length === 0) return true;
+  if (stripped.startsWith("#")) return true;
+  // go-task list item: - echo "..."
+  const cmd = stripped.replace(/^-\s+/, "");
+  if (/^echo\b/i.test(cmd)) return true;
+  // Pure assignment without a runner (FOO=bar / export FOO=bar)
+  if (
+    /^(?:export\s+)?[A-Za-z_][\w]*=/.test(cmd) &&
+    !/\b(?:task|deft|directive|npm|pnpm|yarn|npx|node)\b/i.test(cmd)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Executable run/script command lines from a workflow (skips comments). */
@@ -89,6 +115,7 @@ export function extractWorkflowRunCommands(text: string): string[] {
     if (rest === "|" || rest === ">" || rest.startsWith("|") || rest.startsWith(">")) {
       const indent = raw.length - raw.trimStart().length;
       const body: string[] = [];
+      let bodyBaseIndent: number | null = null;
       for (let j = i + 1; j < lines.length; j += 1) {
         const lr = lines[j] ?? "";
         if (lr.trim().length === 0) {
@@ -97,7 +124,8 @@ export function extractWorkflowRunCommands(text: string): string[] {
         }
         const li = lr.length - lr.trimStart().length;
         if (li <= indent) break;
-        body.push(lr.slice(indent + 2)); // typical 2-space indent under block
+        if (bodyBaseIndent === null) bodyBaseIndent = li;
+        body.push(lr.slice(bodyBaseIndent));
         i = j;
       }
       const joined = body.join("\n").trim();
@@ -113,28 +141,37 @@ export function extractWorkflowRunCommands(text: string): string[] {
 
 /** True when a run command is a full check aggregate (not a single verify gate). */
 export function runCommandIsFullCheck(cmd: string): boolean {
-  const lower = cmd.toLowerCase().trim();
-  // Echo/docs do not execute gates (Greptile P1).
-  if (
-    /^\s*echo\b/.test(lower) ||
-    (lower.includes("echo ") && !/\b(?:deft|directive|task)\b/.test(lower.split("echo")[0] ?? ""))
-  ) {
-    if (/^\s*echo\b/.test(lower)) return false;
+  // Scan executable lines only — echo/docs do not execute gates (Greptile P1).
+  for (const raw of cmd.split("\n")) {
+    if (isNonExecutingCommandLine(raw)) continue;
+    const lower = raw.toLowerCase().trim().replace(/^-\s+/, "");
+    // Word-boundary matches only — verify:consumer-check-contract must NOT match check:consumer.
+    if (/\bdeft\s+check\b/.test(lower) || /\bdirective\s+check\b/.test(lower)) return true;
+    if (/\btask\s+(?:deft:)?check\b/.test(lower)) return true;
+    if (/(?:^|[\s&;|])(?:task\s+)?check:consumer(?:\s|$)/.test(lower)) return true;
+    if (/(?:^|[\s&;|])(?:task\s+)?check:framework-source(?:\s|$)/.test(lower)) return true;
   }
-  if (/^\s*echo\b/.test(lower)) return false;
-  // Word-boundary matches only — verify:consumer-check-contract must NOT match check:consumer.
-  if (/\bdeft\s+check\b/.test(lower) || /\bdirective\s+check\b/.test(lower)) return true;
-  if (/\btask\s+(?:deft:)?check\b/.test(lower)) return true;
-  if (/(?:^|[\s&;|])(?:task\s+)?check:consumer(?:\s|$)/.test(lower)) return true;
-  if (/(?:^|[\s&;|])(?:task\s+)?check:framework-source(?:\s|$)/.test(lower)) return true;
   return false;
 }
 
-/** True when a run command invokes a specific verify gate id. */
+/**
+ * True when a run command invokes a specific verify gate id as an executable
+ * task/CLI form — not a bare substring in echo/docs (Greptile P1 conf=3).
+ */
 export function runCommandInvokesGate(cmd: string, gateId: string): boolean {
-  const lower = cmd.toLowerCase();
-  const forms = [gateId.toLowerCase(), gateId.replace(":", "-").toLowerCase()];
-  return forms.some((f) => lower.includes(f));
+  const gid = gateId.toLowerCase();
+  const dashed = gateId.replace(":", "-").toLowerCase();
+  const invokers = [
+    new RegExp(`\\b(?:task|deft|directive)\\s+(?:deft:)?${escapeRegExp(gid)}\\b`, "i"),
+    new RegExp(`\\b(?:task|deft|directive)\\s+(?:deft:)?${escapeRegExp(dashed)}\\b`, "i"),
+    new RegExp(`\\bnpm\\s+run\\s+${escapeRegExp(gid)}\\b`, "i"),
+  ];
+  for (const raw of cmd.split("\n")) {
+    if (isNonExecutingCommandLine(raw)) continue;
+    const line = raw.trim().replace(/^-\s+/, "");
+    if (invokers.some((re) => re.test(line))) return true;
+  }
+  return false;
 }
 
 /**
@@ -151,6 +188,7 @@ export function extractTaskBody(taskfileText: string, taskName: string): string 
   const body: string[] = [];
   let inTask = false;
   let taskIndent = 0;
+  const taskRe = new RegExp(`^${escapeRegExp(taskName)}\\s*:`);
   for (const raw of lines) {
     const stripped = raw.trim();
     if (!stripped || stripped.startsWith("#")) {
@@ -159,7 +197,7 @@ export function extractTaskBody(taskfileText: string, taskName: string): string 
     }
     const indent = raw.length - raw.trimStart().length;
     if (!inTask) {
-      if (new RegExp(`^${taskName.replace(/:/g, "\\:")}\\s*:`).test(stripped) && indent <= 2) {
+      if (taskRe.test(stripped) && indent <= 2) {
         inTask = true;
         taskIndent = indent;
       }
@@ -182,9 +220,11 @@ export function taskfileInvokesCheckOrchestrator(text: string): boolean {
     for (const raw of body.split("\n")) {
       const stripped = raw.trim();
       if (!stripped || stripped.startsWith("#")) continue;
+      // Echo/docs in the aggregate body do not execute the orchestrator (Greptile P1).
+      if (isNonExecutingCommandLine(stripped)) continue;
       if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
       if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
-      const lower = stripped.toLowerCase();
+      const lower = stripped.toLowerCase().replace(/^-\s+/, "");
       if (
         /\bdeft\s+check\b/.test(lower) ||
         /\bdirective\s+check\b/.test(lower) ||
@@ -208,6 +248,7 @@ export function extractCheckDeps(taskfileText: string, taskName: string): string
   let taskIndent = 0;
   let inDeps = false;
   let depsIndent = 0;
+  const taskRe = new RegExp(`^${escapeRegExp(taskName)}\\s*:`);
 
   for (const raw of lines) {
     const stripped = raw.trim();
@@ -215,7 +256,7 @@ export function extractCheckDeps(taskfileText: string, taskName: string): string
     const indent = raw.length - raw.trimStart().length;
 
     if (!inTask) {
-      if (new RegExp(`^${taskName}\\s*:`).test(stripped) && indent === 2) {
+      if (taskRe.test(stripped) && indent === 2) {
         inTask = true;
         taskIndent = indent;
       }
