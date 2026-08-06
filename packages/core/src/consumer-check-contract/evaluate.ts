@@ -74,45 +74,54 @@ export function textReferencesGate(text: string, gateId: string): boolean {
   return forms.some((f) => lower.includes(f.toLowerCase()));
 }
 
-/**
- * True when CI/workflow text has an executable `run:` (or script:) line that
- * invokes a composing check entrypoint — not mere prose/comments (Greptile P1).
- */
-export function workflowExecutesCheck(text: string): boolean {
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  for (const raw of lines) {
+/** Executable run/script command lines from a workflow (skips comments). */
+export function extractWorkflowRunCommands(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of text.replace(/\r\n/g, "\n").split("\n")) {
     const stripped = raw.trim();
     if (!stripped || stripped.startsWith("#")) continue;
-    // YAML run/script step values
     const m = stripped.match(/^(?:-\s*)?(?:run|script)\s*:\s*(.+)$/i);
     if (m?.[1] === undefined) continue;
-    const cmd = m[1].replace(/^["']|["']$/g, "").toLowerCase();
-    if (
-      cmd.includes("deft check") ||
-      cmd.includes("directive check") ||
-      /(^|[\s&;|])task(\s+deft:)?\s*check(\s|$)/.test(cmd) ||
-      cmd.includes("check:consumer") ||
-      cmd.includes("check:framework-source") ||
-      cmd.includes("verify:test-boundary") ||
-      cmd.includes("verify:scope-provenance") ||
-      cmd.includes("verify:consumer-check-contract")
-    ) {
-      return true;
-    }
+    out.push(m[1].replace(/^["']|["']$/g, "").trim());
   }
+  return out;
+}
+
+/** True when a run command is a full check aggregate (not a single verify gate). */
+export function runCommandIsFullCheck(cmd: string): boolean {
+  const lower = cmd.toLowerCase();
+  if (lower.includes("deft check") || lower.includes("directive check")) return true;
+  if (/(^|[\s&;|])task(\s+deft:)?\s*check(\s|$)/.test(lower)) return true;
+  if (lower.includes("check:consumer") || lower.includes("check:framework-source")) return true;
   return false;
+}
+
+/** True when a run command invokes a specific verify gate id. */
+export function runCommandInvokesGate(cmd: string, gateId: string): boolean {
+  const lower = cmd.toLowerCase();
+  const forms = [gateId.toLowerCase(), gateId.replace(":", "-").toLowerCase()];
+  return forms.some((f) => lower.includes(f));
+}
+
+/**
+ * True when CI/workflow text has an executable `run:` line that invokes the full
+ * check aggregate (not a single gate, not prose) — Greptile P1.
+ */
+export function workflowExecutesCheck(text: string): boolean {
+  return extractWorkflowRunCommands(text).some(runCommandIsFullCheck);
 }
 
 /** True when root Taskfile invokes the check orchestrator (not free-text docs). */
 export function taskfileInvokesCheckOrchestrator(text: string): boolean {
-  // ENGINE_CMD check dispatch (framework Taskfile pattern)
-  if (/ENGINE_CMD:\s*['"]?check\b/.test(text)) return true;
-  if (/\bdispatchTaskCheck\b/.test(text)) return true;
-  // Explicit cmds that shell deft/task check
+  // Only list-item cmds under a tasks: body — skip bare free text / comments.
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   for (const raw of lines) {
     const stripped = raw.trim();
-    if (!stripped.startsWith("-")) continue;
+    if (!stripped || stripped.startsWith("#")) continue;
+    // Framework ENGINE_CMD only when it is a YAML value under cmds/vars (list item or property)
+    if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
+    if (stripped.startsWith("-") && /\bdispatchTaskCheck\b/.test(stripped)) return true;
+    if (!stripped.startsWith("-") && !stripped.startsWith("ENGINE_CMD:")) continue;
     const lower = stripped.toLowerCase();
     if (
       lower.includes("deft check") ||
@@ -276,11 +285,12 @@ export function evaluateConsumerCheckContract(
       return taskDefinedInTaskfileYaml(verifyText, gateId.slice("verify:".length));
     });
 
-  // Full-check composition is trusted only when verify.yml defines every required gate.
-  // Otherwise (or when check lists explicit deps), require each gate by name in deps.
-  const hasExplicitCheckDeps = composed.size > 0;
+  // Full-check composition is trusted only when verify.yml defines every required gate
+  // AND the Taskfile actually invokes the check orchestrator.
   const trustFullCheck = invokesFullDirectiveCheck && verifyDefinesRequired;
-  if (hasExplicitCheckDeps && !trustFullCheck) {
+  // Always validate gate composition unless trustFullCheck holds.
+  // Empty aggregates (composed.size === 0) are NOT a free pass (Greptile P1).
+  if (!trustFullCheck) {
     for (const gateId of required) {
       const listed =
         composed.has(gateId) ||
@@ -289,7 +299,10 @@ export function evaluateConsumerCheckContract(
         findings.push({
           gateId,
           surface: "check-task",
-          detail: `check aggregate deps do not include ${gateId}`,
+          detail:
+            composed.size === 0
+              ? `check aggregate has no deps and does not invoke a full check orchestrator covering ${gateId}`
+              : `check aggregate deps do not include ${gateId}`,
           remediation: remediationForMissing(gateId, "check task"),
         });
       }
@@ -322,25 +335,24 @@ export function evaluateConsumerCheckContract(
 
   if (workflows.size > 0) {
     const allCi = [...workflows.values()].join("\n");
-    // Only executable run: lines count — not prose/comments (Greptile P1/P2).
-    const ciMentionsCheck = workflowExecutesCheck(allCi);
+    const runCmds = extractWorkflowRunCommands(allCi);
+    const fullCheck =
+      runCmds.some(runCommandIsFullCheck) &&
+      verifyText !== null &&
+      required.every((gateId) => {
+        if (!gateId.startsWith("verify:")) return true;
+        return taskDefinedInTaskfileYaml(verifyText, gateId.slice("verify:".length));
+      });
 
     for (const gateId of required) {
-      const mentioned =
-        textReferencesGate(allCi, gateId) ||
-        (ciMentionsCheck &&
-          verifyText !== null &&
-          taskDefinedInTaskfileYaml(
-            verifyText,
-            gateId.startsWith("verify:") ? gateId.slice("verify:".length) : gateId,
-          ));
-      // If CI only runs deft check / task check, and verify.yml defines the gate,
-      // composition is satisfied indirectly.
-      if (!mentioned && !ciMentionsCheck) {
+      const direct = runCmds.some((c) => runCommandInvokesGate(c, gateId));
+      // Single gate does NOT satisfy the whole trio (Greptile P1).
+      const mentioned = direct || fullCheck;
+      if (!mentioned) {
         const finding: ConsumerCheckContractFinding = {
           gateId,
           surface: "ci-workflow",
-          detail: `CI workflows do not invoke ${gateId} or a composing check entrypoint`,
+          detail: `CI workflows do not invoke ${gateId} or a full check entrypoint that composes it`,
           remediation: remediationForMissing(gateId, "CI workflow"),
         };
         if (ciWarnOnly) soft.push(finding);

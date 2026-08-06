@@ -356,15 +356,27 @@ export function evaluateScopeProvenance(
       null;
 
     const modified = changedSet.has(rel);
-    // Only an explicit renewed stamp (or a re-recorded digest with matching
-    // current scope) authorizes expansion — the original activation stamp
-    // must NOT silently authorize same-PR file_scope growth.
+    // Only an explicit renewed stamp from options (or a pre-existing on-disk
+    // digest that was NOT rewritten in this change set) may authorize expansion.
+    // Same-PR rewrite of .deft/approved-scope/<id>.json is NOT sufficient
+    // (Greptile P1: changed approval record self-authorizes scope).
     const renewed = planId !== null ? (options.renewedApprovals?.get(planId) ?? null) : null;
+    const approvalRecordRel =
+      planId !== null
+        ? `.deft/approved-scope/${planId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`
+        : null;
+    const approvalRecordRewritten =
+      approvalRecordRel !== null &&
+      [...changedSet].some(
+        (p) =>
+          p === approvalRecordRel ||
+          p.endsWith(`/${approvalRecordRel}`) ||
+          (p.includes("/approved-scope/") && p.includes(planId ?? "")),
+      );
 
-    // If the on-disk approved record was re-written to match current digest
-    // AND carries a human stamp, treat as renewed baseline (operator re-record).
     const recordMatchesCurrent =
       approved !== null &&
+      !approvalRecordRewritten &&
       approved.fileScopeDigest ===
         computeFileScopeDigest(normalizeFileScope(extractFileScope(payload))) &&
       isHumanApprovalStamp(approved.humanApproval);
@@ -372,10 +384,10 @@ export function evaluateScopeProvenance(
     const finding = evaluateOneScopeProvenance({
       xbriefRelPath: rel,
       currentPayload: payload,
-      approved,
+      approved: approvalRecordRewritten && renewed === null ? null : approved,
       xbriefModifiedInChangeSet: modified,
       enforce,
-      renewedHumanApproval: recordMatchesCurrent ? approved?.humanApproval : renewed,
+      renewedHumanApproval: renewed ?? (recordMatchesCurrent ? approved?.humanApproval : null),
     });
 
     if (finding === null) continue;

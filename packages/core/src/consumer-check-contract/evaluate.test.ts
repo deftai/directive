@@ -163,6 +163,40 @@ tasks:
     expect(result.message).toMatch(/WARN/i);
   });
 
+  it("does not let a single CI gate satisfy the whole trio", () => {
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([[".github/workflows/ci.yml", "- run: task verify:test-boundary\n"]]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some(
+        (f) => f.gateId === "verify:scope-provenance" && f.surface === "ci-workflow",
+      ),
+    ).toBe(true);
+  });
+
+  it("fails empty check aggregates without full orchestrator", () => {
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - echo only
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
   it("enforce off softens missing verify tasks to warn", () => {
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
