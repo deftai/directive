@@ -247,11 +247,9 @@ function maxIdenticalCluster(units: readonly string[]): number {
     if (next > maxFreq) maxFreq = next;
   }
 
-  // Near-identity connected components for typical parent-turn unit counts.
-  // Above the bound, exact-frequency + consecutive runs still catch the classic
-  // identical-clone hang without unbounded O(n²) allocations on huge inputs.
-  const CLUSTER_SOFT_CAP = 128;
-  const maxComponent = units.length <= CLUSTER_SOFT_CAP ? maxNearIdentityComponent(units) : maxFreq;
+  // Always cluster near-identity components. Input size is bounded by the
+  // zero-tool character hard-stop above, so O(n²) stays finite.
+  const maxComponent = maxNearIdentityComponent(units);
 
   return Math.max(maxRun, maxFreq, maxComponent);
 }
