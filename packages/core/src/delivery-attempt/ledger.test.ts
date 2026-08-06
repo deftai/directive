@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -235,27 +235,31 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     expect(ledger.failedAttemptCount).toBe(1);
   });
 
-  it("isUnitLockReclaimable: live fresh PID not reclaimable; dead/stale/corrupt are", () => {
+  it("isUnitLockReclaimable: live PID never reclaimable; dead/corrupt are", () => {
     const now = Date.now();
-    expect(isUnitLockReclaimable(null, now)).toBe(true);
+    expect(isUnitLockReclaimable(null)).toBe(true);
     expect(
-      isUnitLockReclaimable(
-        { pid: process.pid, token: "live", startedAt: new Date(now).toISOString() },
-        now,
-      ),
+      isUnitLockReclaimable({
+        pid: process.pid,
+        token: "live",
+        startedAt: new Date(now).toISOString(),
+      }),
     ).toBe(false);
+    // Even with ancient startedAt, live PID is not reclaimable
     expect(
-      isUnitLockReclaimable(
-        { pid: process.pid, token: "old", startedAt: new Date(now - UNIT_LOCK_STALE_MS - 1).toISOString() },
-        now,
-      ),
-    ).toBe(true);
+      isUnitLockReclaimable({
+        pid: process.pid,
+        token: "old",
+        startedAt: new Date(now - UNIT_LOCK_STALE_MS - 1).toISOString(),
+      }),
+    ).toBe(false);
     // Unlikely-alive PID
     expect(
-      isUnitLockReclaimable(
-        { pid: 2_147_483_646, token: "dead", startedAt: new Date(now).toISOString() },
-        now,
-      ),
+      isUnitLockReclaimable({
+        pid: 2_147_483_646,
+        token: "dead",
+        startedAt: new Date(now).toISOString(),
+      }),
     ).toBe(true);
   });
 
@@ -295,41 +299,11 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     expect(nestedSawHeld).toBe(true);
   });
 
-  it("withUnitLock reclaims live PID only when lock mtime heartbeat is stale", () => {
+  it("withUnitLock never reclaims live PID even when startedAt is ancient", () => {
     const root = tmpRoot();
     const dir = deliveryAttemptsDir(root);
     mkdirSync(dir, { recursive: true });
     const lockPath = join(dir, `${unitLedgerFilename("s", "t", "w")}.lock`);
-    const staleStarted = Date.now() - UNIT_LOCK_STALE_MS - 5_000;
-    writeFileSync(
-      lockPath,
-      `${JSON.stringify({
-        pid: process.pid, // appears alive
-        token: "pid-reuse",
-        startedAt: new Date(staleStarted).toISOString(),
-      })}\n`,
-      { flag: "wx", encoding: "utf8" },
-    );
-    // Heartbeat stopped long ago → PID-reuse residual reclaimable
-    const old = new Date(staleStarted);
-    utimesSync(lockPath, old, old);
-    const value = withUnitLock(
-      root,
-      "s",
-      "t",
-      "w",
-      () => "ok",
-      { nowMs: Date.now(), staleMs: UNIT_LOCK_STALE_MS },
-    );
-    expect(value).toBe("ok");
-  });
-
-  it("withUnitLock does not reclaim live holder with fresh heartbeat mtime", () => {
-    const root = tmpRoot();
-    const dir = deliveryAttemptsDir(root);
-    mkdirSync(dir, { recursive: true });
-    const lockPath = join(dir, `${unitLedgerFilename("s", "t", "w")}.lock`);
-    // startedAt is old but mtime is fresh → long critical section, not reclaimable
     writeFileSync(
       lockPath,
       `${JSON.stringify({
@@ -339,13 +313,6 @@ describe("delivery-attempt ledger durability (#3143)", () => {
       })}\n`,
       { flag: "wx", encoding: "utf8" },
     );
-    const now = new Date();
-    utimesSync(lockPath, now, now);
-    expect(() =>
-      withUnitLock(root, "s", "t", "w", () => "nope", {
-        nowMs: Date.now(),
-        staleMs: UNIT_LOCK_STALE_MS,
-      }),
-    ).toThrow(/unit lock held/);
+    expect(() => withUnitLock(root, "s", "t", "w", () => "nope")).toThrow(/unit lock held/);
   });
 });

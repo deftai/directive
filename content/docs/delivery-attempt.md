@@ -144,14 +144,13 @@ const closed = completeAttemptOnDisk(projectRoot, {
 Pure in-memory helpers (`evaluatePreDispatch`, `beginAttempt`, `completeAttempt`)
 remain for tests and single-threaded hosts. Multi-worker orchestration MUST use
 `beginAttemptOnDisk` / `completeAttemptOnDisk` (or `withUnitLock` around an
-equivalent sequence). Abandoned unit locks are reclaimed when the owner PID is
-dead, the lock record is corrupt, or the owner PID appears alive but the lock
-file mtime has not been heartbeated within the stale window (default 5 minutes —
-covers PID reuse without revoking a live holder still in the critical section).
-Reclaim is serialized via an exclusive `*.lock.reclaim` ticket so concurrent
-reclaimers cannot unlink a live replacement lock. If a lock remains stuck,
-delete the matching `.lock` / `.lock.reclaim` files under
-`.deft/delivery-attempts/` manually.
+equivalent sequence). Abandoned unit locks are reclaimed **only** when the owner
+PID is dead or the lock record is corrupt/unreadable. A live owner PID is never
+time-reclaimed (including long critical sections and event-loop stalls). Reclaim
+is serialized via an exclusive `*.lock.reclaim` ticket so concurrent reclaimers
+cannot unlink a live replacement lock. If a lock remains stuck after process
+death with PID reuse (or a hung live holder), delete the matching `.lock` /
+`.lock.reclaim` files under `.deft/delivery-attempts/` manually.
 
 ## Observability
 

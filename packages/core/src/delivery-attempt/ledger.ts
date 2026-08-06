@@ -13,9 +13,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
-  statSync,
   unlinkSync,
-  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -323,7 +321,7 @@ export function saveUnitLedger(projectRoot: string, ledger: DeliveryUnitLedger):
  * Exclusive unit lock for begin/complete on disk (#3143 concurrent-snapshot P1).
  * Uses O_EXCL create of a lock file under the delivery-attempts dir.
  */
-/** Stale lock age (ms): live PID older than this is treated as PID-reuse residual. */
+/** @deprecated Kept for API stability; live PIDs are never time-reclaimed. */
 export const UNIT_LOCK_STALE_MS = 5 * 60 * 1000;
 
 interface UnitLockRecord {
@@ -357,39 +355,17 @@ function readLockRecord(lockPath: string): UnitLockRecord | null {
   }
 }
 
-function lockStartedAtMs(rec: UnitLockRecord): number | null {
-  const t = Date.parse(rec.startedAt);
-  return Number.isFinite(t) ? t : null;
-}
-
 /**
  * Whether an existing lock may be reclaimed.
- * - unreadable/corrupt → reclaimable
- * - owner PID dead → reclaimable
- * - owner PID alive with fresh lock mtime/heartbeat → NOT reclaimable
- *   (long critical sections keep heartbeat via utimes; never revoke live holders)
- * - owner PID alive but lock mtime older than staleMs → reclaimable (PID reuse
- *   residual: a different process inherited the pid number and is not heartbeating)
- * - when lockPath is omitted (pure tests): fall back to startedAt age
+ *
+ * **Live owner PID is never reclaimed** — including long critical sections and
+ * event-loop stalls. Only dead owners and corrupt/unreadable records are
+ * reclaimable. PID-reuse residual (dead owner, OS recycled the number onto an
+ * unrelated live process) requires manual `.lock` deletion.
  */
-export function isUnitLockReclaimable(
-  rec: UnitLockRecord | null,
-  nowMs: number,
-  staleMs: number = UNIT_LOCK_STALE_MS,
-  lockPath?: string,
-): boolean {
+export function isUnitLockReclaimable(rec: UnitLockRecord | null): boolean {
   if (rec === null) return true;
-  if (!isProcessAlive(rec.pid)) return true;
-  if (lockPath !== undefined) {
-    try {
-      const st = statSync(lockPath);
-      return nowMs - st.mtimeMs >= staleMs;
-    } catch {
-      return true;
-    }
-  }
-  const started = lockStartedAtMs(rec);
-  return started !== null && nowMs - started >= staleMs;
+  return !isProcessAlive(rec.pid);
 }
 
 function writeLockExclusive(path: string, record: UnitLockRecord): void {
@@ -413,13 +389,14 @@ function unlinkIfOurs(path: string, token: string, pid: number): void {
  * Create is atomic: `writeFileSync(..., { flag: "wx" })` writes the owner
  * record in the exclusive create (no empty-file window).
  *
- * Recovery when EEXIST (abandoned / corrupt / PID-reuse stale):
+ * Recovery when EEXIST (dead owner or corrupt record only):
  * 1. Take an exclusive **reclaim ticket** (`*.lock.reclaim`) with `wx`.
- * 2. Under that ticket, re-read the lock; only unlink if still reclaimable.
+ * 2. Under that ticket, re-read the lock; only unlink if still reclaimable
+ *    (owner still dead / corrupt). Live PIDs are never unlinked.
  * 3. Create the replacement lock with `wx`, then drop the ticket.
  *
  * The ticket serializes reclaimers so a delayed contender cannot unlink a
- * live replacement lock (Greptile P1: stale recovery revokes replacement).
+ * live replacement lock.
  */
 export function withUnitLock<T>(
   projectRoot: string,
@@ -438,7 +415,7 @@ export function withUnitLock<T>(
   assertWriteTargetSafe(root, lockPath);
   assertWriteTargetSafe(root, reclaimPath);
   const nowMs = options?.nowMs ?? Date.now();
-  const staleMs = options?.staleMs ?? UNIT_LOCK_STALE_MS;
+  void options?.staleMs; // retained for call-site compatibility; unused
   const token = randomBytes(8).toString("hex");
   const record: UnitLockRecord = {
     pid: process.pid,
@@ -462,9 +439,9 @@ export function withUnitLock<T>(
       const code = (err as NodeJS.ErrnoException).code;
       if (code !== "EEXIST") throw err;
     }
-    // Existing reclaim ticket — only take over if reclaimable (dead/stale heartbeat).
+    // Existing reclaim ticket — only take over if its owner PID is dead.
     const existingReclaim = readLockRecord(reclaimPath);
-    if (!isUnitLockReclaimable(existingReclaim, nowMs, staleMs, reclaimPath)) {
+    if (!isUnitLockReclaimable(existingReclaim)) {
       const pid = existingReclaim?.pid;
       throw heldError(pid !== undefined ? ` (reclaim by pid ${pid})` : " (reclaim in progress)");
     }
@@ -487,17 +464,15 @@ export function withUnitLock<T>(
     if (code !== "EEXIST") throw err;
 
     const existing = readLockRecord(lockPath);
-    if (!isUnitLockReclaimable(existing, nowMs, staleMs, lockPath)) {
-      throw heldError(
-        existing !== null ? ` by pid ${existing.pid}` : "",
-      );
+    if (!isUnitLockReclaimable(existing)) {
+      throw heldError(existing !== null ? ` by pid ${existing.pid}` : "");
     }
 
     // Serialize reclaim so we never unlink another worker's replacement lock.
     acquireReclaimTicket();
     try {
       const again = readLockRecord(lockPath);
-      if (!isUnitLockReclaimable(again, nowMs, staleMs, lockPath)) {
+      if (!isUnitLockReclaimable(again)) {
         throw heldError(again !== null ? ` by pid ${again.pid}` : "");
       }
       try {
@@ -515,25 +490,9 @@ export function withUnitLock<T>(
     }
   }
 
-  // Heartbeat while holding: refresh mtime so long critical sections are never
-  // treated as PID-reuse stale. Interval is unref'd so tests/CLI can exit.
-  const hbMs = Math.max(1_000, Math.min(Math.floor(staleMs / 3), 30_000));
-  const heartbeat = setInterval(() => {
-    try {
-      const t = new Date();
-      utimesSync(lockPath, t, t);
-    } catch {
-      /* released or raced */
-    }
-  }, hbMs);
-  if (typeof heartbeat.unref === "function") {
-    heartbeat.unref();
-  }
-
   try {
     return fn();
   } finally {
-    clearInterval(heartbeat);
     unlinkIfOurs(lockPath, token, process.pid);
   }
 }
