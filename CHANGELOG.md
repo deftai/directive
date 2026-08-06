@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#3144).** Focused autonomy policy resolve/validate/recommend edges, pending-decisions backlog parse/summarize branches, triageScopeIgnores matchers, and feedback:file CLI/offline paths clear the v0.96.0 84.89% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3144.
 - **Cache archive: parse `www.github.com` lifecycle URIs with repo identity (#1137 residual / PR #3142).** Open-scope protection for multi-repo caches no longer drops owner/repo when lifecycle refs use `www.github.com` (or leading-zero issue path segments). Keeps archive protection repo-scoped instead of bare `#N` fallback. Refs #1137, #3141.
 - **`vbrief:activate` containment root is the project checkout (#3147).** Legacy `task vbrief:activate` used the destination folder as the `containedWrite` root, so a dest-folder symlink whose realpath is outside the checkout was treated as contained and could divert the write (and unlink the pending source) outside the tree. The activator now runs `assertProjectionContained` on the destination before mkdir/write (parity with `scope:activate` / #2447) and uses `projectRoot` as the containment root. Vitest covers refuse + no outside write + pending preserved. Closes #3147. Refs #2447, #3077, #2980.
 
