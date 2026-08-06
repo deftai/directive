@@ -246,6 +246,16 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     expect(result.failClass).toBe("FC14");
   });
 
+  it("splits adjacent quoted sentences without interstitial whitespace", () => {
+    const q = `"${PROGRESS}"`;
+    const blob = q + q + q;
+    const result = evaluateParentTurnShape({
+      events: [{ kind: "assistant_text", text: blob }],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("FC14");
+  });
+
   it("fails closed on huge zero-tool text budget burn", () => {
     const huge = "Checking worktrees next. ".repeat(4000);
     const result = evaluateParentTurnShape({

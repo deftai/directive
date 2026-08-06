@@ -92,9 +92,10 @@ export function splitTextUnits(text: string): string[] {
   const raw = text.replace(/\r\n/g, "\n");
   // Include single newlines so block-formatted repeated progress lines still
   // unitize (FC14 hang class often streams one line per newline, no period).
-  // Optional closing quotes after terminal punctuation: `"Hello." "Hello."`
+  // Optional closing quotes after terminal punctuation, with or without space:
+  // `"Hello." "Hello."` and `"Hello.""Hello."`.
   const parts = raw
-    .split(/(?:\n+|(?<=[.!?…])["']?\s+|(?<=\.\.\.)\s+)/)
+    .split(/(?:\n+|(?<=[.!?…])["']+\s*|(?<=[.!?…])\s+|(?<=\.\.\.)\s+)/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
   if (parts.length === 0 && raw.trim().length > 0) {
@@ -184,6 +185,28 @@ function collectAssistantUnits(events: readonly ParentTurnEvent[]): string[] {
 function maxNearIdentityComponent(units: readonly string[]): number {
   const n = units.length;
   if (n === 0) return 0;
+  // Precompute normalize + word sets once (avoid O(n²) re-normalize/Set alloc).
+  const norms = units.map((u) => normalizeTurnText(u));
+  const sets = norms.map((n) => wordSet(n));
+  const near = (i: number, j: number): boolean => {
+    const na = norms[i] ?? "";
+    const nb = norms[j] ?? "";
+    if (na.length < MIN_UNIT_LEN || nb.length < MIN_UNIT_LEN) return false;
+    if (na === nb) return true;
+    const shorter = na.length <= nb.length ? na : nb;
+    const longer = na.length <= nb.length ? nb : na;
+    if (longer.includes(shorter) && shorter.length / longer.length >= 0.85) return true;
+    const sa = sets[i] ?? new Set<string>();
+    const sb = sets[j] ?? new Set<string>();
+    if (sa.size === 0 || sb.size === 0) return false;
+    let inter = 0;
+    for (const w of sa) {
+      if (sb.has(w)) inter += 1;
+    }
+    const union = sa.size + sb.size - inter;
+    return union > 0 && inter / union >= JACCARD_NEAR;
+  };
+
   const parent = Array.from({ length: n }, (_, i) => i);
   const find = (i: number): number => {
     let x = i;
@@ -201,7 +224,7 @@ function maxNearIdentityComponent(units: readonly string[]): number {
 
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      if (isNearIdentical(units[i] ?? "", units[j] ?? "")) unite(i, j);
+      if (near(i, j)) unite(i, j);
     }
   }
 
