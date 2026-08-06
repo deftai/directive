@@ -392,4 +392,3 @@ export async function reconstituteDepositFromContent(
   await copyContent(contentRoot, deftDir);
   return { reconstituted: wasAbsent };
 }
-
