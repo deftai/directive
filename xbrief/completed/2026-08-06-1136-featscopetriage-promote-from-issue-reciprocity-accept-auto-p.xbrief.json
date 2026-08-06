@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1136",
+    "updated": "2026-08-06T01:56:03Z"
+  },
+  "plan": {
+    "title": "feat(scope,triage): promote --from-issue reciprocity + accept --auto-promote",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(scope,triage): promote --from-issue reciprocity + accept --auto-promote",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1136",
+      "Overview": "# `scope:promote --from-issue` reciprocity + `triage:accept --auto-promote`\n\n**Status:** Implement-ready after **2026-08-05 freshen** against master (~v0.95). Standalone enhancement (reparented off closed #1119).\n\n## Problem\n\nThe working-set loop is: **triage decision → lifecycle scope → promote into WIP**. Bypass still exists: `task scope:promote -- <path>` can move any `proposed/` artifact into `pending/` with no check that the issue was ever `accept`ed in the triage audit log.\n\nThat weakens “cache/triage is the answer to what’s next?” without forbidding legitimate scaffold paths (refinement can still promote by path).\n\n```quarantined\n## Current shape on master (do not re-invent)\n\n| Surface | Reality |\n| --- | --- |\n| Audit log | **`xbrief/.triage-cache/candidates.jsonl`** via `resolveCandidatesLogPath` / `CandidatesLog.latestDecision` — **not** `vbrief/.eval/candidates.jsonl` (legacy `.eval` migrates into `.triage-cache`) |\n| Decisions | `accept`, `reject`, `defer`, `needs-ac`, `mark-duplicate`, `reset`, `resume-eligible` (`packages/core/src/triage/actions/candidates-log.ts`) |\n| `task triage:accept` | Already: append `accept` **and** `ingestSingleForAccept` → scope lands in **`proposed/`** by default (`packages/core/src/triage/actions/index.ts` + `intake/issue-ingest.ts`) |\n| CLI accept | `task triage:accept -- --issue <N> [--repo owner/name] …` (not bare positional `accept 1234`) |\n| `task scope:promote` | **`proposed/` → `pending/`** only; WIP cap + optional `--batch` (#3011); engine `packages/core/src/scope/*` via `scope-lifecycle` |\n| Artifacts | Prefer **`xbrief/`** lifecycle folders + `*.xbrief.json` (vbrief paths read-accepted where layout resolves) |\n| Skill | `content/skills/deft-directive-triage/SKILL.md` |\n\n```\n### Implication of current accept\n\nAccept already **creates** the proposed scope. Reciprocity is **not** “create vBRIEF on promote.” It is:\n\n1. **Gate** promote-from-issue on latest audit = `accept` (or force).\n2. **Locate** the proposed artifact for issue N (origin / provenance).\n3. **Run** existing promote transition (WIP rules unchanged).\n4. Optional **`--auto-promote`**: after accept+ingest, immediately promote that new proposed file → pending.\n\n## Scope\n\n### A. `task scope:promote --from-issue=<N> [--repo owner/name]`\n\nWhen `--from-issue` is set (path positional may be omitted):\n\n1. Resolve `repo` (flag / `DEFT_TRIAGE_REPO` / git remote — same conventions as triage-actions).\n2. `CandidatesLog.latestDecision(N, repo)` against layout-aware candidates log.\n3. Cases:\n   - **`accept`** → find proposed artifact for N → run normal promote → pending. On success, write **scope** audit (existing promote audit log) **plus** fields linking triage: `promote.from_issue`, `promote.cache_decision_id` (= accept `decision_id`). Prefer extending `packages/core/src/scope/audit-log.ts` / transition audit payload rather than inventing a second log.\n   - **`defer` / `reject` / `needs-ac` / `mark-duplicate`** (and other non-accept terminals) → **refuse** exit ≠ 0 with stderr pointing at `task triage:accept -- --issue N` or `--force-no-cache`.\n   - **No decision** → soft warn + proceed **by default**; **`--strict`** → hard fail.\n4. **`--force-no-cache`**: skip reciprocity gate; still audit that force was used.\n5. If multiple proposed artifacts match issue N → refuse with list; require explicit path promote or disambiguation flag (implementer pick: `--path` or error).\n\n**Artifact discovery:** reuse/extend origin parsing already used by ingest (`Origin` / issue URL patterns in `issue-ingest` / provenance scan). Do not require hand-named files.\n\n### B. `task triage:accept --auto-promote`\n\nAfter successful accept+ingest:\n\n1. Resolve path of the ingested proposed artifact (ingest already returns path).\n2. Invoke the same promote path as `scope:promote` (shared function — not a shell string fork if avoidable).\n3. WIP cap refusal must surface clearly (same messages as promote / `--force` policy consistent with scope promote).\n4. Default remains **no** auto-promote (opt-in only).\n\n### C. Unchanged\n\n- `task scope:promote -- <file>` and `--batch` without `--from-issue`: **no** reciprocity check.\n- Refinement / manual scaffold flows stay unblocked.\n\n## Acceptance criteria\n\n- [ ] `--from-issue` with latest `accept` promotes the matching **proposed** scope to **pending** and records `from_issue` + `cache_decision_id`\n- [ ] Non-accept latest decisions refuse (unless `--force-no-cache`)\n- [ ] Missing decision: soft warn default; `--strict` fails\n- [ ] `triage:accept --auto-promote` = accept + ingest + promote in one operator action\n- [ ] WIP cap still enforced on the promote leg\n- [ ] Unit/integration tests for decision matrix × strict/force × auto-promote × missing artifact\n- [ ] Triage skill documents the chain (Phase that covers accept → pending)\n- [ ] CHANGELOG `[Unreleased]`\n- [ ] Uses **TS engine** surfaces (`packages/core` + task wire), not legacy Python scripts as SoT\n\n## Demo\n\n```text\ntask triage:queue -- --limit=5\ntask triage:accept -- --issue 1234 --auto-promote\n# → accept audit + proposed ingest + pending promote (if WIP allows)\n\ntask scope:promote -- --from-issue=1235\n# if #1235 is defer → refuse with clear stderr\n```\n\n## Implementation pointers\n\n- `packages/core/src/triage/actions/*` — accept, latestDecision, log path\n- `packages/core/src/intake/issue-ingest.ts` — ingest path return / proposed default\n- `packages/core/src/scope/transition.ts` + `batch-promote.ts` + `cli`/`main` — promote entry\n- `packages/cli/src/triage-actions.ts`, `scope-lifecycle.ts`\n- `tasks/scope.yml`, `tasks/triage-actions.yml` / root aliases\n\n## Not in scope\n\n- Making auto-promote the default\n- Removing path-based promote\n- Cross-repo promote\n- Changing accept to write directly into `pending/` (would collapse WIP semantics)\n\n## Refs\n\n- Historical parent program: #1119 (closed); this issue is standalone\n- Prior D-number: D18\n- Related: #1128 (queue/show), #845 (triage actions), #3011 (batch promote)\n\n## Freshen log\n\n| Date | Change |\n| --- | --- |\n| 2026-08-05 | Align with accept→proposed ingest, xbrief/.triage-cache, promote proposed→pending, TS paths; reparent off #1119 |\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-05-14T18:07:58Z)\n\n## Subtractive design pass amendment — ship minimal variant (OE-7 of 2026-05-14 pass)\n\nFiled as part of the 4th (subtractive) design pass on #1119. See the umbrella comment (2026-05-14) for the full context.\n\n### Problem\n\nD18 as-written adds four operating modes to `task scope:promote --from-issue=<N>`:\n\n1. Decision is `accept` → proceed (load-bearing)\n2. Decision is `defer` / `reject` / `needs-ac` → **refuse** with stderr; `--force-no-cache` overrides\n3. No prior decision → soft warn but proceed; `--strict` makes it hard fail\n4. Chained convenience: `task triage:accept --auto-promote`\n\nMode 1 + 4 are valuable. Modes 2 and 3 introduce gate semantics that the umbrella explicitly does not want:\n\n- Umbrella §\"Workflow\" frames the cache as an *advisory* surface (\"the cache is a read-replica with an operator overlay\"). Gates make it normative.\n- `--force-no-cache` is the escape hatch that proves the gate is artificial — operators will use it routinely, the gate becomes prose-tier guidance, and the implementation cost remains.\n- `--strict` is the inverse escape hatch for the no-decision case; same critique.\n- The umbrella body explicitly forbids the bypass-prevention framing: \"D18 closes the loop deterministically without forbidding the bypass path.\" The current D18 body contradicts itself by adding refusal.\n\n### Recommendation: ship minimal variant\n\n**v1 minimal:**\n\n- `task scope:promote --from-issue=<N>` reads the latest decision from `candidates.jsonl`\n- If `accept` → proceed; audit entry tagged with `promote.cache_decision_id`\n- If any other state OR no decision → proceed anyway; audit entry tagged with `promote.cache_decision_id: null` and `promote.cache_state_at_promote: <whatever-it-was>` for traceability\n- Stderr always prints a one-liner: `[scope:promote --from-issue] cache decision for #N was '<state>' (proceeded)`\n- **No refusal, no `--strict`, no `--force-no-cache`**\n- Chained convenience verb `task triage:accept --auto-promote` (D18's mode 4) stays — that's the actual workflow win\n\nThis preserves the audit-link value (cache decisions are traceable from vBRIEF promotion) without introducing the gate semantics the umbrella's content-vs-operational-state framing was meant to avoid.\n\n### What this loses\n\n- The \"refuse to promote a deferred item\" guardrail. But that guardrail is operator-facing prose-tier protection at best; the audit entry's `promote.cache_state_at_promote: defer` field already gives the post-hoc traceability for review.\n- The `--strict` mode for CI gates. If a CI consumer wants this, they can `grep` `task triage:show <N>` for the latest decision themselves; the framework doesn't owe them a flag.\n\n### What this preserves\n\n- The audit linkage (`promote.cache_decision_id`) — load-bearing for D17 (if it lands) and for any future analysis\n- The convenience chain `task triage:accept --auto-promote` — the actual operator-facing UX win\n- The bypass path (`scope:promote <file>` positional form) — unchanged\n\n### Action items for this issue\n\nIf you agree:\n\n1. Replace §\"Scope\" cases 2 and 3 with: \"Any non-accept / no-decision state proceeds, with audit entry recording the state for traceability.\"\n2. Remove `--force-no-cache` and `--strict` from §\"Flags\" and acceptance criteria\n3. Keep `--auto-promote` chain unchanged\n4. Update demoability example: the refusal case becomes a stderr advisory rather than an error\n\n### Cross-amendment\n\nN2 (#1142) swarm Phase 0 rewrite consumes D18's `--from-issue`. With the minimal variant, the promote-fill-cap loop in N2 is simpler (no need to handle refusal mid-loop). Net positive on adoption.\n\nPer #1119 linking rule: this comment back-references the umbrella.\n\n### Comment by @MScottAdams (2026-08-06T00:10:51Z)\n\n## Reparent off #1119 (residual-check 2026-08-05)\n\n#1119 closed **completed**. This issue (D18) was **optional late polish**, not core cache-as-working-set delivery.\n\n- **Not implemented** yet (`scope:promote --from-issue` still absent).\n- **Still valid** as a standalone enhancement: opt-in reciprocity when promoting from a triaged issue.\n- **Not** a child of an active #1119 program; **not** Directive 1.0 Must (#2812).\n- Keep open under its own title; schedule when cache-bypass pain shows up in dogfood.\n\n### Comment by @MScottAdams (2026-08-06T00:19:34Z)\n\n## Freshen complete (2026-08-05)\n\nBody rewritten against current master. **Implement-ready** with explicit pointers to TS surfaces.\n\nKey correction for implementers: `triage:accept` already ingests into **proposed/**; this issue adds reciprocity on promote + optional auto-promote to **pending/**, not “create vBRIEF on promote.”",
+      "Labels": "enhancement, triage, area:cli"
+    },
+    "items": [
+      {
+        "title": "`--from-issue` with latest `accept` promotes the matching **proposed** scope to **pending** and records `from_issue` + `cache_decision_id`",
+        "status": "completed"
+      },
+      {
+        "title": "Non-accept latest decisions refuse (unless `--force-no-cache`)",
+        "status": "completed"
+      },
+      {
+        "title": "Missing decision: soft warn default; `--strict` fails",
+        "status": "completed"
+      },
+      {
+        "title": "`triage:accept --auto-promote` = accept + ingest + promote in one operator action",
+        "status": "completed"
+      },
+      {
+        "title": "WIP cap still enforced on the promote leg",
+        "status": "completed"
+      },
+      {
+        "title": "Unit/integration tests for decision matrix × strict/force × auto-promote × missing artifact",
+        "status": "completed"
+      },
+      {
+        "title": "Triage skill documents the chain (Phase that covers accept → pending)",
+        "status": "completed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]`",
+        "status": "completed"
+      },
+      {
+        "title": "Uses **TS engine** surfaces (`packages/core` + task wire), not legacy Python scripts as SoT",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1136",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1136: feat(scope,triage): promote --from-issue reciprocity + accept --auto-promote"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1119"
+      }
+    ],
+    "updated": "2026-08-06T01:56:03Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3140,
+        "prBase": "master",
+        "mergeCommit": "e69897d9ffe8651dc0465364da0cf61a1730fd88",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e69897d9ffe8651dc0465364da0cf61a1730fd88",
+        "verifiedAt": "2026-08-06T01:56:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-06T01:56:03Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

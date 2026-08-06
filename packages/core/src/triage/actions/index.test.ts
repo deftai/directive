@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -24,9 +24,13 @@ import type { AuditEntry, TriageActionsDeps } from "./types.js";
 // #2350: assert the accept path delegates to the native TS intake ingest,
 // not the removed legacy Python `issue_ingest` shell-out. Mocking the intake
 // module keeps the regression test deterministic (no cache/network fetch).
-vi.mock("../../intake/issue-ingest.js", () => ({
-  ingestSingleForAccept: vi.fn(() => ["created", "/tmp/2350.xbrief.json"]),
-}));
+vi.mock("../../intake/issue-ingest.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../intake/issue-ingest.js")>();
+  return {
+    ...actual,
+    ingestSingleForAccept: vi.fn(() => ["created", "/tmp/2350.xbrief.json"]),
+  };
+});
 
 const temps: string[] = [];
 afterEach(() => {
@@ -298,6 +302,70 @@ describe("accept", () => {
     expect(accept(9, "deftai/directive", deps, { projectRoot: root })).toBe("prior-id");
     const path = resolveAuditLogPath(root);
     expect(existsSync(path)).toBe(false);
+  });
+
+  it("--auto-promote promotes the ingested proposed path (#1136)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const proposedPath = join(root, "xbrief", "proposed", "auto.xbrief.json");
+    writeFileSync(
+      proposedPath,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#77", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "auto",
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/77",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/77",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    const deps = fakeDeps(root);
+    deps.issueIngest = {
+      ingestSingleForAccept() {
+        return proposedPath;
+      },
+    };
+    const decisionId = accept(77, "deftai/directive", deps, {
+      actor: "agent:test",
+      projectRoot: root,
+      autoPromote: true,
+    });
+    expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(existsSync(join(root, "xbrief", "pending", "auto.xbrief.json"))).toBe(true);
+    expect(existsSync(proposedPath)).toBe(false);
+  });
+
+  it("--auto-promote surfaces promote failure without rolling back accept (#1136)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    // No proposed artifact → promote fails
+    const deps = fakeDeps(root);
+    deps.issueIngest = {
+      ingestSingleForAccept() {
+        return null;
+      },
+    };
+    expect(() =>
+      accept(88, "deftai/directive", deps, {
+        actor: "agent:test",
+        projectRoot: root,
+        autoPromote: true,
+      }),
+    ).toThrow(/auto-promote failed/);
+    // Accept audit remains
+    expect(readFileSync(resolveAuditLogPath(root), "utf8")).toContain('"decision":"accept"');
   });
 });
 

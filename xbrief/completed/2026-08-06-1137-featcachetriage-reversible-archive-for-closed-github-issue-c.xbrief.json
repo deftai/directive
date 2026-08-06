@@ -1,0 +1,86 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1137",
+    "updated": "2026-08-06T01:57:57Z"
+  },
+  "plan": {
+    "title": "feat(cache,triage): reversible archive for closed github-issue cache entries",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(cache,triage): reversible archive for closed github-issue cache entries",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1137",
+      "Overview": "# Reversible closed-entry archive for `.deft-cache` (triage hygiene)\n\n**Status:** Implement-ready after **2026-08-05 freshen** against master (~v0.95). Standalone enhancement (reparented off closed #1119).\n\n## Problem\n\nClosed GitHub issues can linger forever under the live unified cache, inflating walkers (`triage:queue`, scope-drift, bootstrap). Operators need an **explicit, reversible** “move to archive” hygiene pass — not silent data loss.\n\n## Current shape on master (critical: do not confuse surfaces)\n\n| Surface | Reality |\n| --- | --- |\n| Live issue cache | **`.deft-cache/github-issue/<owner>/<repo>/<N>/`** with `raw.json`, `content.md`, `meta.json` (#883) |\n| Existing **`task cache:prune`** | **TTL / `expires_at` hard-delete** via `cachePrune` in `packages/core/src/cache/operations.ts` — **not** reversible; **not** “closed-and-terminal” |\n| Triage audit | **`xbrief/.triage-cache/candidates.jsonl`** (decisions: accept/reject/defer/needs-ac/mark-duplicate/… — **no `done` decision**) |\n| Default prune window constant | `DEFAULT_PRUNE_OLDER_THAN_DAYS = 30` already exists for **TTL** prune — archive window may reuse 30d but must document distinction |\n\n**This issue does not replace `cache:prune`.** It adds a **separate** reversible archive workflow for **closed** issue entries the operator wants off the live tree.\n\n## Scope\n\n### A. Archive storage layout\n\n```text\n.deft-cache/archived/github-issue/<owner>/<repo>/<N>/\n  raw.json\n  content.md\n  meta.json\n  archive-meta.json    # archived_at, reason, pre_archive_decision?, source_path\n```\n\nContainment: same projection rules as live cache writes (`assertWritableCachePath` / project-root containment #2470 / #3042 class).\n\n### B. `task triage:cache-archive` (name bikeshed OK; document final)\n\nOperator-invoked only. **Never** wire into `task check`, session-start, or sync hooks in v1.\n\n**Eligibility (freshened — no fictional `done` decision):**\n\nInclude an entry when **all** hold:\n\n1. Live path exists under `.deft-cache/github-issue/<owner>/<repo>/<N>/`\n2. `raw.json.state == \"closed\"` (GitHub issue state)\n3. **Age:** `closed_at` (from raw) or, if missing, `meta.fetched_at` / mtime — older than `--older-than-days` (default **30**)\n4. **Not** referenced by an open lifecycle scope in `xbrief/{proposed,pending,active}/` whose origin is issue N (refuse or skip with reason — prefer **skip + report**, not half-move)\n\nOptional tighten (flag `--terminal-decision-only`):\n\n- Latest candidates decision ∈ {`reject`, `mark-duplicate`} **or** no accept still “in flight” — implementer documents default as **closed+age** only so completed-and-accepted closed issues can archive too.\n\n**Actions:**\n\n- Move (rename) entry dir live → archived\n- Write `archive-meta.json` + append a **triage/cache audit** line (either candidates-adjacent event or cache quarantine-audit — pick one and document; prefer structured append that `triage:show` / archive-list can read)\n\n**Flags:**\n\n- `--dry-run`\n- `--older-than-days N`\n- `--repo owner/name` (limit)\n- `--source github-issue` (v1 only; forward-compatible)\n- `--json` summary\n\n**Suggested task name** (avoid collision):\n\n- `task triage:cache-archive` **or** `task cache:archive-closed`  \n  **Do not** overload `task cache:prune` (TTL destroy).\n\n### C. `task triage:archive-list` (or `cache:archive-list`)\n\nList `.deft-cache/archived/github-issue/...`, newest `archived_at` first.\n\nFlags: `--since`, `--repo`, `--format=json`, `--limit`.\n\n### D. `task triage:restore-from-archive --issue N [--repo …]`\n\nMove archived entry back to live key path. Idempotent no-op if already live. Refuse if live path already exists with different content (force flag optional).\n\n### E. Skill / docs\n\n- `deft-directive-triage` hygiene section: quarterly archive-closed vs TTL `cache:prune`\n- One-line distinction table in skill or `commands.md`\n\n## Acceptance criteria\n\n- [ ] Archive path layout under `.deft-cache/archived/github-issue/...`\n- [ ] Operator-only archive command; dry-run; default 30d closed age; skips in-flight scopes\n- [ ] List + restore + idempotent restore\n- [ ] **Documented non-overlap** with `task cache:prune` (TTL hard-delete)\n- [ ] Tests: dry-run, archive, list, restore, skip open-scope, missing entry\n- [ ] CHANGELOG `[Unreleased]`\n- [ ] TS engine implementation (`packages/core/src/cache` and/or `triage/*` + task wire)\n\n## Demo\n\n```text\ntask triage:cache-archive -- --dry-run\ntask triage:cache-archive -- --older-than-days 30\ntask triage:archive-list -- --format=json\ntask triage:restore-from-archive -- --issue 1234\ntask triage:show -- 1234   # works again from live cache\n```\n\nContrast:\n\n```text\ntask cache:prune -- --older-than-days 30   # TTL destroy; different tool\n```\n\n## Implementation pointers\n\n- Live layout: `packages/core/src/cache/paths.ts`, `operations.ts`, `io.ts`\n- Existing TTL prune: `cachePrune` — leave behavior; add sibling APIs\n- Scope origin scan: ingest provenance helpers (skip if N still in proposed/pending/active)\n- Decisions (optional filter): `packages/core/src/triage/actions/candidates-log.ts`\n- Tasks: `tasks/cache.yml` and/or new `tasks/triage-*.yml` + root aliases\n\n## Not in scope\n\n- Auto-archive on bootstrap/sync\n- GC of `archived/` (manual only v1)\n- Compression\n- Changing TTL `cache:prune` semantics\n- Non-github-issue sources (unless free with ALLOWED_SOURCES loop)\n\n## Refs\n\n- Historical parent: #1119 § pruning (closed); this issue standalone (was D19)\n- Cache foundation: #883\n- Related existing: `task cache:prune`, `cache:invalidate`\n\n## Freshen log\n\n| Date | Change |\n| --- | --- |\n| 2026-08-05 | Separate from TTL `cache:prune`; fix paths; drop invalid `done` decision; closed+age eligibility; skip in-flight scopes; xbrief triage-cache; TS pointers; reparent |\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-06T00:10:53Z)\n\n## Reparent off #1119 (residual-check 2026-08-05)\n\n#1119 closed **completed**. This issue (D19 archive verbs) was **optional hygiene**, not required for “what next?” architecture.\n\n- **Not implemented** yet (no `triage:audit:prune` / archive-list / restore).\n- **Still valid** as standalone enhancement for reversible closed-entry prune.\n- **Not** 1.0 Must. Keep open; prioritize if `.deft-cache` closed clutter becomes operator pain.\n\n### Comment by @MScottAdams (2026-08-06T00:19:35Z)\n\n## Freshen complete (2026-08-05)\n\nBody rewritten against current master. **Implement-ready.**\n\nKey correction: existing **`task cache:prune`** is TTL **hard-delete**. This issue is a **separate reversible archive** for **closed** `github-issue` entries. Do not overload prune.",
+      "Labels": "enhancement, triage, area:cli"
+    },
+    "items": [
+      {
+        "title": "Archive path layout under `.deft-cache/archived/github-issue/...`",
+        "status": "completed"
+      },
+      {
+        "title": "Operator-only archive command; dry-run; default 30d closed age; skips in-flight scopes",
+        "status": "completed"
+      },
+      {
+        "title": "List + restore + idempotent restore",
+        "status": "completed"
+      },
+      {
+        "title": "**Documented non-overlap** with `task cache:prune` (TTL hard-delete)",
+        "status": "completed"
+      },
+      {
+        "title": "Tests: dry-run, archive, list, restore, skip open-scope, missing entry",
+        "status": "completed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]`",
+        "status": "completed"
+      },
+      {
+        "title": "TS engine implementation (`packages/core/src/cache` and/or `triage/*` + task wire)",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1137",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1137: feat(cache,triage): reversible archive for closed github-issue cache entries"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1119"
+      }
+    ],
+    "updated": "2026-08-06T01:57:57Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3141,
+        "prBase": "master",
+        "mergeCommit": "22adc3d3c525d3705f3c149b2a3629b2a66dde84",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e69897d9ffe8651dc0465364da0cf61a1730fd88",
+        "verifiedAt": "2026-08-06T01:57:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-06T01:57:57Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

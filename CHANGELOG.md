@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.96.0] - 2026-08-06
+
+> Triage taxonomy and consumer label kit, SCM mirror co-travel, Claude Code Tier-1 swarm, author filters, promote-from-issue, cache archive, and FC14 parent hard-stop.
+
+### Added
+
+- **`scope:promote --from-issue` reciprocity + `triage:accept --auto-promote` (#1136 / D18).** `task scope:promote -- --from-issue=N [--repo owner/name]` locates the proposed scope for issue N via provenance, gates on `xbrief/.triage-cache/candidates.jsonl` `latestDecision` (`accept` proceeds; non-accept refuses unless `--force-no-cache`; missing decision soft-warns, `--strict` fails), promotes proposed→pending with scope-audit fields `from_issue` + `cache_decision_id` / `cache_state_at_promote`, and disambiguates multiples via `--path`. Path/`--batch` promote without `--from-issue` stays ungated. Opt-in `task triage:accept -- --issue N --auto-promote` chains accept+ingest+promote (shared `promotePath`; WIP cap still enforced). Closes #1136. Refs #1119, #845, #3011.
 - **Reversible archive for closed github-issue cache entries (#1137).** Operator-only `task triage:cache-archive` (alias `cache:archive-closed`) moves closed-and-aged live entries under `.deft-cache/archived/github-issue/<owner>/<repo>/<N>/` with `archive-meta.json` + quarantine-audit line — not TTL hard-delete. Eligibility: `raw.state == closed`, age from `closed_at` / `fetched_at` / mtime vs `--older-than-days` (default 30), skip when issue N is referenced in `xbrief/{proposed,pending,active}`. Companion `task triage:archive-list` / `task triage:restore-from-archive` (idempotent restore; `--force` on live conflict). Flags: `--dry-run`, `--repo`, `--json`, optional `--terminal-decision-only`. **Never** wired into `task check`, session-start, or sync. Distinct from `task cache:prune` (TTL / `expires_at` destroy). Closes #1137. Refs #883, #1119.
 - **`--author` filter on `triage:queue` and `triage:classify` (#3129 / #1318 Layer 1).** Ranked work selection and mass-classify accept `--author LOGIN` (exact match on cache `author.login`; `@me` / `--author-mine` resolve via authenticated `gh`; optional comma allow-list). Filter composes with classify open-only (AND); missing author on legacy cache rows is unknown (excluded, disclosed). Queue header and classify digest surface the active author filter. Closes #3129; implements #1318 Layer 1 (Layer 2 vBRIEF author propagation remains follow-up). Refs #1033, #1055, #845, #1423, #3125.
 - **Claude Code is a first-class Tier-1 dispatch descriptor in swarm + review-cycle matrices (#3134).** Descriptor `claude-code` (register primitive `claude-agent`) maps to Approach 1 via backgroundable `Agent` / `run_in_background` — not bare `Task` (avoids Cursor misclassification). Ordered probe after Cursor, before OpenClaw; host adapter `references/host-claude-code.md` (load-after-detect); engine `PLATFORM_PRIMITIVES` / `probeMonitoringTier` / `resolveDispatchProvider` (`claude` routing key) + tests; review-cycle background poller + #1166 heartbeat; preamble `dispatch_provider` list. Closes #3134. Refs #1877, #2812, #2875.
@@ -4968,7 +4981,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.95.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.96.0...HEAD
+[0.96.0]: https://github.com/deftai/directive/compare/v0.95.0...v0.96.0
 [0.95.0]: https://github.com/deftai/directive/compare/v0.94.0...v0.95.0
 [0.94.0]: https://github.com/deftai/directive/compare/v0.93.0...v0.94.0
 [0.93.0]: https://github.com/deftai/directive/compare/v0.92.0...v0.93.0

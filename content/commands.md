@@ -133,6 +133,7 @@ Scope xBRIEFs live under `xbrief/{proposed,pending,active,completed,cancelled}/`
 Common commands:
 
 - `task scope:promote -- xbrief/proposed/<file>.xbrief.json` -- move proposed work to `pending/` and set status to `pending`.
+- `task scope:promote -- --from-issue=<N> [--repo OWNER/NAME] [--strict] [--force-no-cache] [--path <file>]` -- promote the proposed scope for issue N via triage-cache reciprocity (#1136). Latest `candidates.jsonl` decision must be `accept` (non-accept refuses unless `--force-no-cache`; missing decision soft-warns, `--strict` fails). Path/`--batch` without `--from-issue` stay ungated.
 - `task scope:promote -- --batch` -- batch-promote **all** `xbrief/proposed/` scopes to `pending/` in one command (#3011 / epic #3009). Optional: `--batch <path>…` for an explicit list; `--force` overrides WIP cap (logged). Does **not** activate; implement remains one `scope:activate` at a time.
 - `task scope:activate -- xbrief/pending/<file>.xbrief.json` -- move accepted work to `active/` and set status to `running`.
 - `task scope:complete -- xbrief/active/<file>.xbrief.json` -- move running work to `completed/` and set status to `completed`.
@@ -479,7 +480,7 @@ Directive does not guess your mix. Either you name the next units in order (**or
 - `task triage:bootstrap -- [--repo OWNER/NAME] [--limit N] [--state {open|closed|all}] [--batch-size N] [--delay-ms N]` -- seed the local triage cache and audit layer.
 - `task triage:queue --limit=10 [-- --author LOGIN|@me]` -- show ranked candidate work from cache-backed state. Optional `--author` / `--author-mine` filters to cache `author.login` (exact match; `@me` resolves via authenticated `gh`; comma allow-list; missing author disclosed as unknown) (#3129 / #1318 Layer 1). When the cache is empty, auto-populates from GitHub first (#2575) — do not conclude "nothing to do" from xBRIEF folders or live `gh issue list` alone (#2576).
 - **Ordered-plan precedence (#2402):** when `.deft/plan-sequence.json` is active, bare "what's next?" / "next PR" / "proceed" bind to the current sequence entry via `task plan-sequence:current` — they do **not** authorize `triage:queue` or adjacent backlog picks. Use `task verify:plan-sequence -- --target-kind <kind> --target <id>` before opening a PR/branch/story/sub-agent. Sequence exhaustion fails closed until the operator names a new target or explicitly asks for queue/backlog selection ("what's the queue?", "build a cohort"). Set a sequence with `task plan-sequence:set -- --file <json>`; advance with `task plan-sequence:advance`; clear with `task plan-sequence:clear`. Do not reuse triage queue `continuationNumbers` / `continuationOrder` for this state.
-- `task triage:accept -- <issue>` -- accept a candidate and ingest it as a proposed scope xBRIEF.
+- `task triage:accept -- --issue <N> --repo OWNER/NAME [--auto-promote] [--force]` -- accept a candidate and ingest it as a proposed scope xBRIEF. Opt-in `--auto-promote` also promotes proposed→pending in the same action (#1136); `--force` is the WIP-cap override for that promote leg.
 - `task triage:reject -- <issue> [--reason "why"]` -- reject a candidate, audit the decision, and update upstream issue state.
 - `task triage:defer -- <issue>` -- defer a candidate without terminal rejection.
 - `task triage:needs-ac -- <issue>` -- flag a candidate as missing acceptance criteria.

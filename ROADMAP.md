@@ -5,10 +5,6 @@
 
 # Roadmap
 
-## Active
-
-- **#1423** -- feat(triage): Tier-1 deterministic SCM label mirror from classify (Wave 1 of #1423) -- `[running]`
-
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -42,8 +38,15 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1150 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1157 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#1137** -- feat(cache,triage): reversible archive for closed github-issue cache entries -- `[completed]`
+- **#1136** -- feat(scope,triage): promote --from-issue reciprocity + accept --auto-promote -- `[completed]`
+- **#3128** -- chore(labels): migrate open directive issues onto #2609 taxonomy scheme -- `[completed]`
+- **#2609** -- feat(process,scm): issue label taxonomy — platform facet, public docs, dedupe -- `[completed]`
+- **#3125** -- feat(triage): #1423 Wave 2 — bootstrap mass-triage (filters, digest, safe apply) -- `[completed]`
+- **#1423** -- feat(triage): Tier-1 deterministic SCM label mirror from classify (Wave 1 of #1423) -- `[completed]`
+- docs: npm v12 install-time security defaults (scripts/git/remote opt-in) -- `[completed]`
 - **#3116** -- residual(triage): Phase 3 current-state validity analysis + URL-first (#1418 leftover after #2890) -- `[completed]`
 - **#3120** -- Bound proof for remote artifact claims in handoff evidence (invented-done fail class) -- `[completed]`
 - **#3117** -- Freshness contract: bound vs live generation for long-lived multi-agent sessions after deposit upgrade -- `[completed]`
@@ -62,11 +65,4 @@ _Showing 25 of 1150 completed scopes (newest first). Full history: lifecycle `co
 - **#3077** -- fix(security): projectRoot containment for triage welcome atomicWrite (parent-as-root xbrief symlink) -- `[completed]`
 - **#3070** -- bug(check): consumer gate references missing verify:orphan-active task -- `[completed]`
 - **#86** -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest) -- `[completed]`
-- **#56** -- Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes) -- `[completed]`
-- **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54 -- `[completed]`
-- **#233** -- More Determinism (remaining): Phase 0 spec scaffolding, task doctor, build:verify, change:archive, task ci:local, task release -- `[completed]`
-- **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing) -- `[completed]`
-- **#212** -- discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159) -- `[completed]`
-- **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114) -- `[completed]`
-- **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57) -- `[completed]`
 

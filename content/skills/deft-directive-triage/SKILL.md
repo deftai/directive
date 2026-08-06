@@ -86,11 +86,11 @@ For each candidate, render the canonical numbered action menu and dispatch:
 
 ```
 What would you like to do with this candidate?
-  1. Accept         -- `task triage:accept <N>`
-  2. Reject         -- `task triage:reject <N>`
-  3. Defer          -- `task triage:defer <N> [--resume-on <event>]`
-  4. Needs-AC       -- `task triage:needs-ac <N>`
-  5. Mark duplicate -- `task triage:mark-duplicate <N> <of-issue>`
+  1. Accept         -- `task triage:accept -- --issue <N> --repo OWNER/NAME`
+  2. Reject         -- `task triage:reject -- --issue <N> --repo OWNER/NAME`
+  3. Defer          -- `task triage:defer -- --issue <N> --repo OWNER/NAME [--resume-on <event>]`
+  4. Needs-AC       -- `task triage:needs-ac -- --issue <N> --repo OWNER/NAME`
+  5. Mark duplicate -- `task triage:mark-duplicate -- --issue <N> --of <of-issue> --repo OWNER/NAME`
   6. Discuss
   7. Back
 ```
@@ -100,6 +100,7 @@ What would you like to do with this candidate?
 - ! On `Back`, un-buffer prior selection and re-render its action menu only before a `task triage:*` dispatch; after dispatch use `task triage:reset`.
 - ~ Bulk: `task triage:bulk-{accept,reject,defer,needs-ac}`; results still flow through the audit log.
 - ⊗ Write to `xbrief/proposed/` directly -- only `task triage:accept` is authorised.
+- ~ **Accept → pending chain (#1136):** `task triage:accept` ingests into **`proposed/`**. To stage into WIP (`pending/`) in one operator action: `task triage:accept -- --issue <N> --repo OWNER/NAME --auto-promote` (WIP cap still enforced; use `--force` on the accept command for WIP override). Separately, promote an already-accepted proposed scope by issue: `task scope:promote -- --from-issue=<N> [--repo OWNER/NAME]` (gates on latest `candidates.jsonl` decision = `accept`; non-accept refuses unless `--force-no-cache`; no decision soft-warns, `--strict` fails). Path-based `task scope:promote -- <file>` remains ungated for refinement scaffolds.
 
 ## Phase 4 -- Audit
 
@@ -140,5 +141,5 @@ Live walkers (`triage:queue`, scope-drift, bootstrap) scan `.deft-cache/github-i
 
 ## References
 
-- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #3116 validity + URL-first; #1122 / #1123 / #1127 / #1129 / #1131
+- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #3116 validity + URL-first; #1122 / #1123 / #1127 / #1129 / #1131; #1136 (`scope:promote --from-issue` / `triage:accept --auto-promote`)
 - Siblings: `deft-directive-refinement`, `deft-directive-swarm`, `deft-directive-sync`
