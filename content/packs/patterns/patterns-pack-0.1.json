@@ -40,11 +40,7 @@
       "title": "Operator-log hygiene (#1940)",
       "description": "Consumer guidance for structured, operator-facing logs: six failure modes, anti-patterns, positive rules, explicit non-goals (no core schema, no default-on, not Insights/LLM telemetry). SLizard is external reference only. Checklist and optional consumer pack stub under docs/.",
       "triggers": [
-        "operator-log-hygiene",
-        "operator log",
-        "operator-facing logs",
-        "operator logging",
-        "observability checklist"
+        "operator-log-hygiene"
       ],
       "path": "patterns/operator-log-hygiene.md",
       "body": null

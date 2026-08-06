@@ -17,18 +17,22 @@ checklist. Mark N/A only with a one-line reason.
 ```markdown
 ### Operator-log hygiene (#1940)
 
-- [ ] Terminal / completion events on **all** exit paths (success, skip,
+Legend: ! = MUST, ~ = SHOULD, ? = MAY (from patterns/operator-log-hygiene.md)
+
+- [ ] ! Terminal / completion events on **all** exit paths (success, skip,
       timeout, supersede, cancel, failure) — not happy path only
-- [ ] Correlation IDs for multi-process / pool designs (job id, slot,
+- [ ] ! Correlation IDs for multi-process / pool designs (job id, slot,
       phase, parent id as applicable)
-- [ ] Infrastructure paths (rotation, flush-before-exit, IPC handoff,
+- [ ] ! Infrastructure paths (rotation, flush-before-exit, IPC handoff,
       boot supervision) fail-open where possible and emit structured
       events when they degrade
-- [ ] Operator-visible WARN/ERROR use a stable, queryable shape
+- [ ] ~ Operator-visible WARN/ERROR use a stable, queryable shape
       (consumer-owned fields; e.g. stable event id + short operator
       summary) — not ticket numbers alone
-- [ ] Operator glossary / plain-English docs updated in the **same PR**
+- [ ] ~ Operator glossary / plain-English docs updated in the **same PR**
       when operator-facing log lines change
+- [ ] ? Optional: wire consumer-owned validator into *your* check aggregate
+      (see docs/operator-log-hygiene-consumer-pack-stub.md) — not core default
 - [ ] Explicit non-goals respected: no assumption that core `deft check`
       enforces this; log shape stays consumer-owned
 ```

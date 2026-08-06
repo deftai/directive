@@ -28,6 +28,10 @@ describe("operator-log hygiene thin v1 (#1940)", () => {
     expect(checklist).toContain("Terminal / completion events");
     expect(checklist).toContain("Correlation IDs");
     expect(checklist).toContain("```markdown");
+    // Strength markers align with pattern MUST/SHOULD/MAY
+    expect(checklist).toMatch(/- \[ \] ! Terminal/);
+    expect(checklist).toMatch(/- \[ \] ~ Operator-visible/);
+    expect(checklist).toMatch(/- \[ \] \? Optional/);
     const pattern = readText(PATTERN);
     expect(pattern).toContain("operator-log-hygiene-checklist.md");
   });
