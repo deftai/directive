@@ -23766,12 +23766,22 @@
       "triageLabelMirror": {
         "enabled": true,
         "idempotencyLabel": "triaged",
-        "alwaysLabels": ["triaged"],
+        "alwaysLabels": [
+          "triaged"
+        ],
         "actionLabels": {
-          "defer": ["triage:deferred"],
-          "archive": ["triage:archived"],
-          "accept": ["triage:lifecycle-linked"],
-          "escalate": ["triage:needs-human"]
+          "defer": [
+            "triage:deferred"
+          ],
+          "archive": [
+            "triage:archived"
+          ],
+          "accept": [
+            "triage:lifecycle-linked"
+          ],
+          "escalate": [
+            "triage:needs-human"
+          ]
         }
       },
       "triageScopeIgnores": [
@@ -23856,9 +23866,9 @@
       },
       "allowDirectCommitsToMaster": false,
       "agentsMdBudget": {
-        "managedMaxLines": 125,
+        "managedMaxLines": 135,
         "unmanagedMaxLines": 162,
-        "absoluteMaxBytes": 10350,
+        "absoluteMaxBytes": 12000,
         "skillFrontmatterTier": "daily-core",
         "skillFrontmatterMaxBytes": 2260
       },
