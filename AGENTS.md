@@ -260,6 +260,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Branch policy & branch verification
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
+! Test placement + scope provenance (#3145) — `deft verify:test-boundary`, `deft verify:scope-provenance`, `deft verify:consumer-check-contract` (docs: `content/docs/test-boundary.md`, `content/docs/scope-provenance.md`, `content/docs/consumer-check-contract.md`); defaults warn-only until authored policy.
 
 ## Branch Policy Disclosure (#746)
 

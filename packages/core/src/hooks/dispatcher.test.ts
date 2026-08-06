@@ -882,8 +882,11 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "session-start-degraded" });
-    expect(decision.message).toBe(
+    expect(decision.message).toContain(
       "Directive SessionStart bookkeeping reported exit 2 on its non-blocking path: no active scope",
+    );
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
     );
     expect(sessionStart).toHaveBeenCalledWith(resolve("/project"));
   });
@@ -900,8 +903,12 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "session-start-degraded" });
-    expect(decision.message).toBe(
+    expect(decision.message).toContain(
       "Directive SessionStart bookkeeping reported exit 1 on its non-blocking path.",
+    );
+    // Soft AGENTS re-bind still surfaces on degraded SessionStart (#3171).
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
     );
   });
 
@@ -920,8 +927,11 @@ describe("direct-write hook policy", () => {
       }),
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "session-start-degraded" });
-    expect(decision.message).toBe(
+    expect(decision.message).toContain(
       "Directive SessionStart bookkeeping failed on its non-blocking path: Error: read-only bookkeeping failed",
+    );
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
     );
   });
 
@@ -937,7 +947,14 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "session-start" });
-    expect(decision.message).toBe("SessionStart bookkeeping completed on a non-blocking path.");
+    expect(decision.message).toContain(
+      "SessionStart bookkeeping completed on a non-blocking path.",
+    );
+    // Soft cue on SessionStart without requiring a write tool (#3171 / Codex best-effort).
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
+    expect(decision.message).toContain("Operational-ask trap");
   });
 
   it("skips SessionStart bookkeeping when .no-deft-directive is present (#2926)", () => {
@@ -1158,6 +1175,11 @@ describe("direct-write hook policy", () => {
 
     expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-rearm" });
     expect(markCompactStale).toHaveBeenCalledWith(resolve("/project"));
+    // Soft checklist appended; hard re-arm message retained (#3171).
+    expect(decision.message).toContain("Marked session ritual stale after context compaction.");
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
   });
 
   it("reports session.compact noop when no ritual state exists (#2113)", () => {
@@ -1177,6 +1199,10 @@ describe("direct-write hook policy", () => {
       }),
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-noop" });
+    // Soft still surfaces when ritual was absent (#3171).
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
   });
 
   it("keeps session.compact non-blocking when re-arm throws (#2113)", () => {
@@ -1195,6 +1221,9 @@ describe("direct-write hook policy", () => {
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "session-compact-rearm-degraded" });
     expect(decision.message).toContain("write failed");
+    expect(decision.message).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
   });
 
   it("fails closed when ritual inspection throws", () => {
@@ -1840,6 +1869,116 @@ describe("provider codecs", () => {
     expect(renderHostDecision("claude", allow)).toBe("");
     expect(renderHostDecision("grok", allow)).toBe("");
     expect(renderHostDecision("codex", allow)).toBe("");
+  });
+
+  it("injects soft AGENTS re-bind on SessionStart for Claude/Codex/Grok/Cursor (#3171)", () => {
+    const claude = decideHook(
+      {
+        host: "claude",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams(),
+    );
+    const claudeWire = JSON.parse(renderHostDecision("claude", claude)) as {
+      hookSpecificOutput: { hookEventName: string; additionalContext: string };
+    };
+    expect(claudeWire.hookSpecificOutput.hookEventName).toBe("SessionStart");
+    expect(claudeWire.hookSpecificOutput.additionalContext).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
+
+    const codex = decideHook(
+      {
+        host: "codex",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams(),
+    );
+    const codexWire = JSON.parse(renderHostDecision("codex", codex)) as {
+      hookSpecificOutput: { additionalContext: string };
+    };
+    expect(codexWire.hookSpecificOutput.additionalContext).toContain("Operational-ask trap");
+
+    const grok = decideHook(
+      {
+        host: "grok",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams(),
+    );
+    const grokWire = JSON.parse(renderHostDecision("grok", grok)) as {
+      decision: string;
+      additional_context: string;
+    };
+    expect(grokWire.decision).toBe("allow");
+    expect(grokWire.additional_context).toContain("Summary");
+    expect(grokWire.additional_context).toContain("Operational-ask trap");
+
+    const cursor = decideHook(
+      {
+        host: "cursor",
+        event: "session.start",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams(),
+    );
+    const cursorWire = JSON.parse(renderHostDecision("cursor", cursor)) as {
+      permission: string;
+      code: string;
+      additional_context: string;
+    };
+    expect(cursorWire.permission).toBe("allow");
+    expect(cursorWire.code).toBe("session-start");
+    expect(cursorWire.additional_context).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
+  });
+
+  it("injects soft AGENTS re-bind on session.compact for file hosts (#3171)", () => {
+    const markCompactStale = () => ({
+      changed: true,
+      statePath: "/project/.deft/ritual-state.json",
+      message: "Marked session ritual stale after context compaction.",
+    });
+    const cursor = decideHook(
+      {
+        host: "cursor",
+        event: "session.compact",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({ markCompactStale }),
+    );
+    const cursorWire = JSON.parse(renderHostDecision("cursor", cursor)) as {
+      user_message: string;
+      code: string;
+    };
+    expect(cursorWire.code).toBe("session-compact-rearm");
+    expect(cursorWire.user_message).toContain("Soft AGENTS re-bind checklist");
+
+    const claude = decideHook(
+      {
+        host: "claude",
+        event: "session.compact",
+        projectRoot: "/project",
+        payload: {},
+      },
+      readySeams({ markCompactStale }),
+    );
+    const claudeWire = JSON.parse(renderHostDecision("claude", claude)) as {
+      hookSpecificOutput: { hookEventName: string; additionalContext: string };
+    };
+    expect(claudeWire.hookSpecificOutput.hookEventName).toBe("PostCompact");
+    expect(claudeWire.hookSpecificOutput.additionalContext).toContain(
+      "never authorizes skipping the mutation ritual",
+    );
   });
 
   it("emits explicit Cursor permission allow with code for failClosed deposits (#2864)", () => {

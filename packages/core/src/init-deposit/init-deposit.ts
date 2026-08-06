@@ -16,6 +16,7 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { stampLiveGeneration } from "../freshness/generation.js";
 import { renderProjectDefinition } from "../render/project-render.js";
+import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-deposit.js";
 import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import {
   type AgentHookReadinessResult,
@@ -284,6 +285,10 @@ export async function runInitDeposit(
   writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
   writeAgentHookDeposit(projectDir, io);
   writeSlashCommandDeposit(projectDir, io);
+  // #3171: OpenClaw soft AGENTS re-bind skill when OC signals present (fail-closed otherwise).
+  depositOpenClawSoftRebindSkill({
+    /* env defaults; skip when OpenClaw not detected */
+  });
   // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
   depositOpenClawL2ProductCommands({
     projectRoot: projectDir,

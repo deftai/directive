@@ -82,7 +82,7 @@ describe("hook-dispatch CLI", () => {
     });
   });
 
-  it("keeps SessionStart non-blocking and silent", () => {
+  it("keeps SessionStart non-blocking and injects soft AGENTS re-bind (#3171)", () => {
     const out: string[] = [];
     const err: string[] = [];
     const code = run(["--host", "claude", "--event", "session.start"], {
@@ -93,7 +93,15 @@ describe("hook-dispatch CLI", () => {
     });
 
     expect(code).toBe(0);
-    expect(out).toEqual([]);
+    // Soft checklist is host-injected on stdout; SessionStart stays exit 0.
+    const wire = JSON.parse(out.join("")) as {
+      hookSpecificOutput: { hookEventName: string; additionalContext: string };
+    };
+    expect(wire.hookSpecificOutput.hookEventName).toBe("SessionStart");
+    expect(wire.hookSpecificOutput.additionalContext).toContain(
+      "Directive soft post-compact AGENTS re-bind (#3171 / #2769)",
+    );
+    expect(wire.hookSpecificOutput.additionalContext).toContain("non-blocking path");
     expect(err.join("")).toContain("non-blocking path");
   });
 

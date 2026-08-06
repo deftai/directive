@@ -37,6 +37,11 @@ import {
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath, resolveWriteFence } from "../policy/write-fence.js";
+import {
+  appendSoftAgentsRebindToMessage,
+  decisionCarriesSoftAgentsRebind,
+  formatSoftAgentsRebindChecklist,
+} from "../session/compact-ritual.js";
 import { detectBranch } from "../session/git.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
@@ -1006,7 +1011,8 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
           host: input.host,
           toolName: null,
           projectRoot,
-          message: result.message,
+          // Soft checklist still surfaces after compact even when ritual was absent (#3171).
+          message: appendSoftAgentsRebindToMessage(result.message),
           scopePath: null,
         };
       }
@@ -1017,7 +1023,7 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
         host: input.host,
         toolName: null,
         projectRoot,
-        message: result.message,
+        message: appendSoftAgentsRebindToMessage(result.message),
         scopePath: null,
       };
     } catch (cause) {
@@ -1028,9 +1034,10 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
         host: input.host,
         toolName: null,
         projectRoot,
-        message:
+        message: appendSoftAgentsRebindToMessage(
           "Directive compact re-arm bookkeeping failed on its non-blocking path: " +
-          `${String(cause)}`,
+            `${String(cause)}`,
+        ),
         scopePath: null,
       };
     }
@@ -1066,9 +1073,11 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
           host: input.host,
           toolName: null,
           projectRoot,
-          message:
+          // Best-effort soft cue on SessionStart (Codex gap + resume/amnesia) (#3171).
+          message: appendSoftAgentsRebindToMessage(
             `Directive SessionStart bookkeeping reported exit ${result.code} on its non-blocking path` +
-            `${detail.length > 0 ? `: ${detail}` : "."}`,
+              `${detail.length > 0 ? `: ${detail}` : "."}`,
+          ),
           scopePath: null,
         };
       }
@@ -1080,7 +1089,9 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
         host: input.host,
         toolName: null,
         projectRoot,
-        message: `Directive SessionStart bookkeeping failed on its non-blocking path: ${String(cause)}`,
+        message: appendSoftAgentsRebindToMessage(
+          `Directive SessionStart bookkeeping failed on its non-blocking path: ${String(cause)}`,
+        ),
         scopePath: null,
       };
     }
@@ -1091,7 +1102,10 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
       host: input.host,
       toolName: null,
       projectRoot,
-      message: "SessionStart bookkeeping completed on a non-blocking path.",
+      // Soft AGENTS re-bind on SessionStart without requiring a write tool (#3171 / #2769).
+      message: appendSoftAgentsRebindToMessage(
+        "SessionStart bookkeeping completed on a non-blocking path.",
+      ),
       scopePath: null,
     };
   }
@@ -1197,12 +1211,27 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
 }
 
 /**
+ * Soft AGENTS re-bind text for host injection when decision carries soft path (#3171).
+ * Prefer the checklist portion of the decision message; fall back to SoT formatter.
+ */
+function softAgentsRebindWireText(decision: HookDecision): string | null {
+  if (!decisionCarriesSoftAgentsRebind({ event: decision.event, code: decision.code })) {
+    return null;
+  }
+  if (decision.message.includes("Soft AGENTS re-bind checklist:")) {
+    return decision.message;
+  }
+  return formatSoftAgentsRebindChecklist();
+}
+
+/**
  * Render host-facing hook output.
  *
  * Cursor deposits use `failClosed: true`. Cursor treats empty/null stdout as a
  * hook failure and blocks the tool — so Cursor allows must emit explicit
  * `{"permission":"allow"}`. Other hosts keep empty allow so the host permission
- * flow is unchanged.
+ * flow is unchanged — except session.start / session.compact soft re-bind
+ * injection (#3171), which surfaces checklist text without a write tool.
  *
  * Cursor stdout always includes `code` (stable machine-readable decision code)
  * so agents can distinguish policy denials from host-integration failures
@@ -1211,8 +1240,46 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
  */
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {
   if (decision.verdict === "allow") {
+    const soft = softAgentsRebindWireText(decision);
     if (host === "cursor") {
+      if (decision.event === "session.start" && soft !== null) {
+        // Cursor sessionStart injects additional_context into the conversation.
+        return JSON.stringify({
+          permission: "allow",
+          code: decision.code,
+          additional_context: soft,
+        });
+      }
+      if (decision.event === "session.compact" && soft !== null) {
+        // Cursor preCompact is observational; user_message surfaces the soft cue.
+        // Hard re-arm still ran via bookkeeping; agent path also gets SessionStart on resume.
+        return JSON.stringify({
+          user_message: soft,
+          code: decision.code,
+        });
+      }
       return JSON.stringify({ permission: "allow", code: decision.code });
+    }
+    if (
+      soft !== null &&
+      (decision.event === "session.start" || decision.event === "session.compact")
+    ) {
+      if (host === "claude" || host === "codex") {
+        const hookEventName = decision.event === "session.start" ? "SessionStart" : "PostCompact";
+        return JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName,
+            additionalContext: soft,
+          },
+        });
+      }
+      if (host === "grok") {
+        return JSON.stringify({
+          decision: "allow",
+          reason: soft,
+          additional_context: soft,
+        });
+      }
     }
     return "";
   }

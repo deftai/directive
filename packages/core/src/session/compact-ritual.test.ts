@@ -1,14 +1,25 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { decideHook } from "../hooks/dispatcher.js";
+import { decideHook, renderHostDecision } from "../hooks/dispatcher.js";
 import {
+  appendSoftAgentsRebindToMessage,
+  depositOpenClawSoftRebindSkill,
+  formatOpenClawSoftRebindSkillMarkdown,
+  formatSoftAgentsRebindChecklist,
   inspectSessionRitual,
+  isManagedOpenClawSoftRebindSkill,
+  isSoftAgentsRebindText,
   markRitualStaleAfterCompact,
   newRitualStatePayload,
+  OPENCLAW_SOFT_REBIND_SKILL_ID,
   ritualStep,
+  SOFT_AGENTS_REBIND_CHECKLIST,
+  SOFT_AGENTS_REBIND_MARKER,
+  SOFT_REBIND_HOST_MATRIX,
+  softAgentsRebindForbiddenHits,
   writeRitualState,
 } from "./index.js";
 
@@ -137,6 +148,8 @@ describe("session.compact hook dispatch (#2113)", () => {
       payload: {},
     });
     expect(compact).toMatchObject({ verdict: "allow", code: "session-compact-rearm" });
+    // Soft re-bind does not weaken hard deny (#3171).
+    expect(isSoftAgentsRebindText(compact.message)).toBe(true);
 
     const denied = decideHook({
       host: "cursor",
@@ -176,5 +189,126 @@ describe("session.compact hook dispatch (#2113)", () => {
     expect(ready.code).toBe(0);
 
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("soft AGENTS re-bind SoT (#3171 / #2769)", () => {
+  it("exposes a single shared checklist with pass-3 obligations", () => {
+    const ids = SOFT_AGENTS_REBIND_CHECKLIST.map((item) => item.id);
+    expect(ids).toEqual([
+      "reread-agents",
+      "confirm-learned",
+      "deposit-integrity",
+      "summary-not-sot",
+      "operational-ask-trap",
+      "mutation-vs-readonly",
+    ]);
+    const text = formatSoftAgentsRebindChecklist();
+    expect(text).toContain(SOFT_AGENTS_REBIND_MARKER);
+    expect(text).toMatch(/AGENTS\.md/i);
+    expect(text).toMatch(/Operational-ask trap/i);
+    expect(text).toMatch(/Summary/i);
+    expect(text).toMatch(/session:ready|session:start --rearm/i);
+    expect(softAgentsRebindForbiddenHits(text)).toEqual([]);
+  });
+
+  it("documents the five-host matrix including OpenClaw required + Codex gap", () => {
+    expect(SOFT_REBIND_HOST_MATRIX.map((row) => row.host)).toEqual([
+      "cursor",
+      "claude",
+      "grok",
+      "codex",
+      "openclaw",
+    ]);
+    const codex = SOFT_REBIND_HOST_MATRIX.find((row) => row.host === "codex");
+    expect(codex?.hardCompact).toBe("unsupported");
+    expect(codex?.softRebind).toBe("docs-best-effort");
+    const openclaw = SOFT_REBIND_HOST_MATRIX.find((row) => row.host === "openclaw");
+    expect(openclaw?.softRebind).toBe("required");
+    expect(openclaw?.hardCompact).toBe("unsupported");
+  });
+
+  it("appends soft checklist without dropping hard re-arm recovery text", () => {
+    const hard = "Marked session ritual re-arm needed; run session:start --rearm.";
+    const combined = appendSoftAgentsRebindToMessage(hard);
+    expect(combined.startsWith(hard)).toBe(true);
+    expect(isSoftAgentsRebindText(combined)).toBe(true);
+    // Idempotent when already present.
+    expect(appendSoftAgentsRebindToMessage(combined)).toBe(combined);
+  });
+
+  it("surfaces soft checklist on Cursor/Claude/Grok compact without a write tool", () => {
+    for (const host of ["cursor", "claude", "grok"] as const) {
+      const decision = decideHook({
+        host,
+        event: "session.compact",
+        projectRoot: "/tmp/soft-rebind-no-root",
+        payload: {},
+      });
+      expect(decision.verdict).toBe("allow");
+      expect(isSoftAgentsRebindText(decision.message)).toBe(true);
+      expect(decision.message).toMatch(/Operational-ask trap/i);
+      const wire = renderHostDecision(host, decision);
+      expect(wire.length).toBeGreaterThan(0);
+      expect(wire).toContain("Soft AGENTS re-bind checklist");
+    }
+  });
+
+  it("never instructs skipping mutation ritual for writes", () => {
+    const checklist = formatSoftAgentsRebindChecklist();
+    const skill = formatOpenClawSoftRebindSkillMarkdown();
+    for (const text of [checklist, skill]) {
+      expect(softAgentsRebindForbiddenHits(text)).toEqual([]);
+      expect(text.toLowerCase()).toMatch(/never authorizes skipping/);
+    }
+  });
+});
+
+describe("OpenClaw soft re-bind skill deposit (#3171)", () => {
+  it("generates a managed skill body from the shared checklist SoT", () => {
+    const body = formatOpenClawSoftRebindSkillMarkdown();
+    expect(isManagedOpenClawSoftRebindSkill(body)).toBe(true);
+    expect(body).toContain(OPENCLAW_SOFT_REBIND_SKILL_ID);
+    expect(isSoftAgentsRebindText(body)).toBe(true);
+    expect(body).toMatch(/Family-2/i);
+    expect(body).toMatch(/not.*file-host|does \*\*not\*\* claim file-host/i);
+  });
+
+  it("deposits the skill when OpenClaw is forced and is idempotent", () => {
+    const root = mkdtempSync(join(tmpdir(), "oc-soft-rebind-"));
+    const skillsDir = join(root, "workspace", "skills");
+    mkdirSync(skillsDir, { recursive: true });
+
+    const first = depositOpenClawSoftRebindSkill({
+      forceDeposit: true,
+      skillsDirs: [skillsDir],
+    });
+    expect(first.skipped).toBe(false);
+    expect(first.changed).toBe(true);
+    expect(first.writtenPaths.length).toBe(1);
+
+    const skillPath = join(skillsDir, OPENCLAW_SOFT_REBIND_SKILL_ID, "SKILL.md");
+    const body = readFileSync(skillPath, "utf8");
+    expect(isManagedOpenClawSoftRebindSkill(body)).toBe(true);
+    expect(isSoftAgentsRebindText(body)).toBe(true);
+
+    const second = depositOpenClawSoftRebindSkill({
+      forceDeposit: true,
+      skillsDirs: [skillsDir],
+    });
+    expect(second.changed).toBe(false);
+    expect(second.present).toBe(true);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("skips deposit when OpenClaw is not detected", () => {
+    const result = depositOpenClawSoftRebindSkill({
+      env: {},
+      homeDir: join(tmpdir(), "no-openclaw-home-soft-rebind"),
+      forceDeposit: false,
+    });
+    expect(result.skipped).toBe(true);
+    expect(result.skipReason).toBe("openclaw-not-detected");
   });
 });

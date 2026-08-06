@@ -1,5 +1,7 @@
+export * from "./compact-ritual.js";
 export * from "./git.js";
 export * from "./json.js";
+export * from "./openclaw-soft-rebind-deposit.js";
 export * from "./posture.js";
 export * from "./process-cost.js";
 export * from "./resume-conditions.js";
