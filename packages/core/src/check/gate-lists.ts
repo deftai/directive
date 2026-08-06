@@ -45,6 +45,10 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:branch",
   "verify:encoding",
   "verify:forward-coverage",
+  // #3145: test/source boundary + approved-scope provenance + consumer gate composition
+  "verify:test-boundary",
+  "verify:scope-provenance",
+  "verify:consumer-check-contract",
   "verify:vbrief-conformance",
   "verify:destructive-gh-verbs",
   "verify:scm-boundary",
@@ -72,6 +76,10 @@ export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:cache-fresh",
   "verify:wip-cap",
   "verify:orphan-active",
+  // #3145 enforcement trio (test placement, scope provenance, gate composition)
+  "verify:test-boundary",
+  "verify:scope-provenance",
+  "verify:consumer-check-contract",
   "vbrief:validate",
   "verify-strategy-output",
 ];
