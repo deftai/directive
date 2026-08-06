@@ -218,4 +218,18 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     expect(result.failClass).toBe("FC14");
     expect(result.maxIdenticalCount).toBeGreaterThan(2);
   });
+
+  it("reconstructs bare-word streaming deltas without whitespace", () => {
+    // Host streams "Checkingworktrees..." with no spaces between tokens.
+    const tokens = ["Checking", "worktrees", "and", "open", "PRs", "next", "to", "confirm", "leaf", "completion", "status."];
+    const events: ParentTurnEvent[] = [];
+    for (let rep = 0; rep < 3; rep++) {
+      for (const t of tokens) {
+        events.push({ kind: "assistant_text", text: t });
+      }
+    }
+    const result = evaluateParentTurnShape({ events, afterSubagentAnnounce: true });
+    expect(result.ok).toBe(false);
+    expect(result.failClass).toBe("FC14");
+  });
 });
