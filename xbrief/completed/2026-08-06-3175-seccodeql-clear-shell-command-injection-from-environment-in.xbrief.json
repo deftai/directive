@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3175 CodeQL shell-command-injection in engine-invoke.cjs",
-    "updated": "2026-08-06T21:27:55Z"
+    "updated": "2026-08-06T21:43:39Z"
   },
   "plan": {
     "id": "3175-codeql-engine-invoke-shell",
     "title": "sec(codeql): clear shell-command-injection-from-environment in engine-invoke.cjs (alert #74)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Open CodeQL alert #74 flags js/shell-command-injection-from-environment in tasks/engine-invoke.cjs where a shell command depends on an uncontrolled absolute path from the environment. Fix the sink safely without breaking vendored/global CLI engine invoke.",
       "ImplementationPlan": "1. Edit tasks/engine-invoke.cjs (and tests if present) to avoid shelling uncontrolled env paths — prefer execFile/spawn with fixed argv and validated paths.\n2. Add or extend a focused regression test or script smoke for engine-invoke.\n3. CHANGELOG [Unreleased] Security/Fixed for #3175; confirm code-scanning alert #74 closes after merge.",
@@ -19,14 +19,14 @@
     "items": [
       {
         "title": "Clear shell-command-injection alert #74",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given CodeQL alert #74 on tasks/engine-invoke.cjs, when the fix lands on master, then js/shell-command-injection-from-environment no longer fires on that sink (or is dismissed with documented false-positive rationale after safe hardening)."
         }
       },
       {
         "title": "Preserve engine invoke behavior",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given vendored and global CLI invoke paths, when engine-invoke runs via task, then normal session/engine verbs still work."
         }
@@ -56,7 +56,26 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "CodeQL alert remediation #3175."
-      }
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3177,
+        "prBase": "master",
+        "mergeCommit": "33d7f6f8d893ec5a8ea8f9a18263e6961c3905ef",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7f1d8f25f1778e498370fb54308c5e4906532da1",
+        "verifiedAt": "2026-08-06T21:43:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-06T21:43:39Z",
+      "capacityBucket": "technical-debt"
     },
     "tags": [
       "bug",
@@ -69,6 +88,6 @@
         "title": "Issue #3175"
       }
     ],
-    "updated": "2026-08-06T21:27:55Z"
+    "updated": "2026-08-06T21:43:39Z"
   }
 }

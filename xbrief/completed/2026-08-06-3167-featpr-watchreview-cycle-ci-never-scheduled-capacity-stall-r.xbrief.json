@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3167 — pr:watch CI weather reason codes + review-cycle thrash caps",
-    "updated": "2026-08-06T20:03:55Z"
+    "updated": "2026-08-06T21:43:30Z"
   },
   "plan": {
     "id": "3167-pr-watch-ci-weather-codes",
     "title": "feat(pr-watch,review-cycle): ci_never_scheduled + capacity-stall reason codes and babysit thrash caps",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Under Blacksmith capacity thrash or Actions outages, babysit and drive-to:merge-ready workers thrash on re-push and long watches even when Greptile is CLEAN. This story adds machine-distinguishable pr:watch / pr:merge-ready reason codes (including ci_never_scheduled), review-cycle thrash caps and BLOCKED handoffs, SLizard non-blocking wait policy, and an opt-in outage merge playbook — without defaulting to skip-ci.",
       "ImplementationPlan": "1. Extend packages/core/src/pr-watch and packages/core/src/pr-merge-readiness modules to emit distinct reason codes: ci_never_scheduled, runner_capacity_stall, ci_failures, ci_cancelled_no_failover, plus existing greptile fields; expose in --json and add unit tests.\n2. Edit content/skills/deft-directive-review-cycle/SKILL.md for thrash caps (empty-commit/close-reopen limits), BLOCKED handoff template, SLizard advisory-only for merge-ready wait, and opt-in outage admin-merge playbook; cross-link envelope SLA (#3153) and sibling CI workflow #3168.\n3. Wire any CLI/task help strings for the new codes; CHANGELOG [Unreleased] for #3167; verify with core tests and task check.",
@@ -19,21 +19,21 @@
     "items": [
       {
         "title": "pr:watch reason codes for CI weather",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a PR HEAD with no required CI check-run within the probe window, when pr:watch or pr:merge-ready runs with --json, then the result distinguishes ci_never_scheduled from runner_capacity_stall, completed ci_failures, and ci_cancelled_no_failover."
         }
       },
       {
         "title": "Review-cycle thrash caps and BLOCKED handoff",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given review-cycle babysit under ci_never_scheduled or capacity stall, when re-trigger attempts hit the documented cap, then the skill requires a structured BLOCKED handoff instead of unbounded empty-commit or close-reopen loops."
         }
       },
       {
         "title": "SLizard advisory + outage playbook",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given merge-ready wait policy, when Greptile Step 6 is clean, then SLizard is not a wait gate; outage admin-merge is documented as opt-in/human with audit comment, not autonomous default skip-ci."
         }
@@ -69,7 +69,26 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard",
         "missing_traces_justification": "Issue #3167 filed from CI weather cohort ops; full AC in issue body."
-      }
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3173,
+        "prBase": "master",
+        "mergeCommit": "7f1d8f25f1778e498370fb54308c5e4906532da1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7f1d8f25f1778e498370fb54308c5e4906532da1",
+        "verifiedAt": "2026-08-06T21:43:30Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-06T21:43:30Z",
+      "capacityBucket": "new-capability"
     },
     "tags": [
       "enhancement",
@@ -90,6 +109,6 @@
         "title": "Sibling CI workflow #3168"
       }
     ],
-    "updated": "2026-08-06T20:03:55Z"
+    "updated": "2026-08-06T21:43:30Z"
   }
 }
