@@ -61,20 +61,45 @@ describe("ensureInitGitignoreLines", () => {
     expect(lines.join("")).toContain(".gitignore updated");
   });
 
-  it("ignores triage-cache files on both vbrief/ and xbrief/ layouts (#2348)", () => {
+  it("ignores triage-cache files on both vbrief/ and xbrief/ layouts (#2348 / #3146)", () => {
     // The engine writes operator-private triage-cache files under the active
-    // layout's `.triage-cache/`. Before #2348 only the `xbrief/` set was in the
-    // baseline, so on an `xbrief/` project those paths were trackable.
+    // layout's `.triage-cache/`. Before #2348 only one layout was covered;
+    // #3146 adds per-clone session state filenames without blanket-ignoring
+    // the whole directory (hybrid #1144 — slices.jsonl stays trackable).
     for (const leaf of [
       "candidates.jsonl",
       "summary-history.jsonl",
       "scope-lifecycle.jsonl",
       "decompositions/",
       "doctor-state.json",
+      "staleness-tickler-state.json",
+      "release-availability-state.json",
     ]) {
-      expect(CANONICAL_GITIGNORE_BASELINE).toContain(`xbrief/.triage-cache/${leaf}`);
+      expect(CANONICAL_GITIGNORE_BASELINE).toContain(`vbrief/.triage-cache/${leaf}`);
       expect(CANONICAL_GITIGNORE_BASELINE).toContain(`xbrief/.triage-cache/${leaf}`);
     }
+    // Hybrid policy: never blanket-ignore the triage-cache directory.
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("vbrief/.triage-cache/");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("xbrief/.triage-cache/");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("vbrief/.triage-cache");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("xbrief/.triage-cache");
+  });
+
+  it("ensureInitGitignoreLines deposits #3146 session-state entries on greenfield", () => {
+    const root = freshRoot("gitignore-3146-deposit-");
+    ensureInitGitignoreLines(root, { printf: () => {} });
+    const text = readGitignore(root);
+    for (const leaf of ["staleness-tickler-state.json", "release-availability-state.json"]) {
+      expect(text).toContain(`vbrief/.triage-cache/${leaf}`);
+      expect(text).toContain(`xbrief/.triage-cache/${leaf}`);
+    }
+    // Hybrid: never blanket the triage-cache directory as a whole line.
+    const active = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith("#"));
+    expect(active).not.toContain("xbrief/.triage-cache/");
+    expect(active).not.toContain("vbrief/.triage-cache/");
   });
 
   it("covers xBRIEF-era eval result paths on both layouts (#2206)", () => {

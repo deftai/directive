@@ -45,6 +45,11 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   "vbrief/.triage-cache/scope-lifecycle.jsonl",
   "vbrief/.triage-cache/decompositions/",
   "vbrief/.triage-cache/doctor-state.json",
+  // Per-clone session state (#3146): throttle / release-availability JSON
+  // written under the lifecycle .triage-cache; selective ignore only (hybrid
+  // #1144 — never blanket-ignore the whole .triage-cache directory).
+  "vbrief/.triage-cache/staleness-tickler-state.json",
+  "vbrief/.triage-cache/release-availability-state.json",
   // Symmetric `xbrief/` layout entries (#2348). On the migrated `xbrief/` tree
   // the engine writes operator-private triage-cache files to
   // `xbrief/.triage-cache/`; without these the paths are trackable, violating
@@ -55,6 +60,8 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   "xbrief/.triage-cache/scope-lifecycle.jsonl",
   "xbrief/.triage-cache/decompositions/",
   "xbrief/.triage-cache/doctor-state.json",
+  "xbrief/.triage-cache/staleness-tickler-state.json",
+  "xbrief/.triage-cache/release-availability-state.json",
   "vbrief/*.lock",
   ".deft/core.bak-*/",
   ".deft/*.bak-*",
@@ -385,3 +392,4 @@ export async function reconstituteDepositFromContent(
   await copyContent(contentRoot, deftDir);
   return { reconstituted: wasAbsent };
 }
+

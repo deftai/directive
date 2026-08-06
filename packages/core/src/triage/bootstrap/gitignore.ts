@@ -33,6 +33,9 @@ export const GITIGNORE_EVAL_ENTRIES: readonly string[] = [
   "xbrief/.triage-cache/scope-lifecycle.jsonl",
   "xbrief/.triage-cache/decompositions/",
   "xbrief/.triage-cache/doctor-state.json",
+  // Per-clone session state (#3146); selective only — hybrid policy preserved.
+  "xbrief/.triage-cache/staleness-tickler-state.json",
+  "xbrief/.triage-cache/release-availability-state.json",
 ];
 
 /** Layout-aware gitignore lines for triage working-set files (#1703). */
@@ -44,6 +47,9 @@ export function gitignoreTriageCacheEntries(projectRoot: string): readonly strin
     triageCacheRelPath(projectRoot, "scope-lifecycle.jsonl"),
     decomp.endsWith("/") ? decomp : `${decomp}/`,
     triageCacheRelPath(projectRoot, "doctor-state.json"),
+    // Per-clone session state (#3146); selective only — hybrid policy preserved.
+    triageCacheRelPath(projectRoot, "staleness-tickler-state.json"),
+    triageCacheRelPath(projectRoot, "release-availability-state.json"),
   ];
 }
 
@@ -96,6 +102,10 @@ const EVAL_ENTRIES_RATIONALE =
   "#                               throttle state gating the 24h/4h\n" +
   "#                               re-probe window; #1308 / #1464). Local\n" +
   "#                               to each clone; never committed.\n" +
+  "#   - staleness-tickler-state.json -> gitignored (per-clone upgrade\n" +
+  "#                               tickler throttle; #2488 / #3146).\n" +
+  "#   - release-availability-state.json -> gitignored (per-clone npm\n" +
+  "#                               release-availability throttle; #1692 / #3146).\n" +
   "#   - slices.jsonl           -> TRACKED (team-shared cohort records\n" +
   "#                               produced by slicing skills; see\n" +
   "#                               #1132 / D13).\n" +
@@ -129,12 +139,16 @@ committed.
 | \`scope-lifecycle.jsonl\` | No | Local audit trail for scope demotions (\`deft scope:demote\`). Each operator's stream stays on their machine. |
 | \`decompositions/\` | No | Draft story-decomposition scratch. Produced child story xBRIEFs live in lifecycle folders via \`deft scope:decompose\`. |
 | \`doctor-state.json\` | No | Per-clone throttle state for \`deft doctor\` re-probe timing. |
+| \`staleness-tickler-state.json\` | No | Per-clone upgrade-tickler throttle state. |
+| \`release-availability-state.json\` | No | Per-clone release-availability probe throttle state. |
 
 Paths listed as "No" above are added to \`.gitignore\` during bootstrap; anything
 not listed remains committable by default. The selective ignore entries live in
 the repo-root \`.gitignore\` (\`vbrief/.triage-cache/candidates.jsonl\`,
 \`vbrief/.triage-cache/summary-history.jsonl\`, \`vbrief/.triage-cache/scope-lifecycle.jsonl\`,
-\`vbrief/.triage-cache/decompositions/\`, and \`vbrief/.triage-cache/doctor-state.json\`).
+\`vbrief/.triage-cache/decompositions/\`, \`vbrief/.triage-cache/doctor-state.json\`,
+\`vbrief/.triage-cache/staleness-tickler-state.json\`, and
+\`vbrief/.triage-cache/release-availability-state.json\`).
 
 ## Fresh clone
 

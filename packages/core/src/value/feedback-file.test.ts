@@ -296,4 +296,119 @@ describe("feedback-file CLI", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("parses equals-form flags and rejects unknown options (#3144)", () => {
+    const parsed = parseFeedbackFileArgs([
+      "--summary=Equals summary",
+      "--context=ctx-eq",
+      "--expected=pass",
+      "--actual=fail",
+      "--notes=session-eq",
+      "--repo=other/repo",
+      "--project-root=/tmp/x",
+      "--dry-run",
+      "--json",
+    ]);
+    expect(parsed.summary).toBe("Equals summary");
+    expect(parsed.context).toBe("ctx-eq");
+    expect(parsed.expected).toBe("pass");
+    expect(parsed.actual).toBe("fail");
+    expect(parsed.sessionNotes).toBe("session-eq");
+    expect(parsed.repo).toBe("other/repo");
+    expect(parsed.projectRoot).toBe("/tmp/x");
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.json).toBe(true);
+    expect(parseFeedbackFileArgs(["--bogus"]).error).toMatch(/unrecognized/);
+  });
+
+  it("skips dedup when DEFT_NO_NETWORK=1 and dry-runs after confirm (#3144)", () => {
+    const root = makeConsumerProject();
+    const prev = process.env.DEFT_NO_NETWORK;
+    process.env.DEFT_NO_NETWORK = "1";
+    try {
+      const draft = runFeedbackFile({
+        summary: "Offline draft",
+        projectRoot: root,
+        confirm: false,
+      });
+      expect(draft.outcome).toBe("draft");
+      expect(draft.message).toMatch(/duplicate detection skipped/);
+
+      const dry = runFeedbackFile({
+        summary: "Offline confirm",
+        projectRoot: root,
+        confirm: true,
+        dryRun: true,
+      });
+      expect(dry.outcome).toBe("draft");
+      expect(dry.exitCode).toBe(0);
+      expect(dry.message).toMatch(/Dry run/);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_NO_NETWORK;
+      } else {
+        process.env.DEFT_NO_NETWORK = prev;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("emits json CLI output and falls back when html_url is missing (#3144)", () => {
+    const root = makeConsumerProject();
+    try {
+      const code = feedbackFileMain(["--summary", "Json path", "--project-root", root, "--json"]);
+      expect(code).toBe(1);
+
+      const filed = runFeedbackFile({
+        summary: "No url filed",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: (args: readonly string[]) => {
+            if (args.includes("POST")) {
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({ number: 77 }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          },
+        },
+      });
+      expect(filed.outcome).toBe("filed");
+      expect(filed.issueUrl).toContain("/issues/77");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("returns config error when project root cannot be resolved (#3144)", () => {
+    const result = runFeedbackFile({
+      summary: "No root",
+      projectRoot: join(tmpdir(), "deft-feedback-missing-root-xyz"),
+      confirm: true,
+    });
+    expect(result.outcome).toBe("error-config");
+    expect(result.exitCode).toBe(2);
+  });
+
+  it("handles empty-title duplicate needle and missing issue html_url (#3144)", () => {
+    expect(findDuplicateIssue("deftai/directive", "   ", {})).toBeNull();
+    const match = findDuplicateIssue("deftai/directive", "Gap title", {
+      runGhApiFn: vi.fn(() => ({
+        returncode: 0,
+        stdout: JSON.stringify([
+          { title: "Gap title", html_url: "" },
+          { title: 123 },
+          {
+            title: "[framework-gap] Gap title",
+            html_url: "https://github.com/deftai/directive/issues/9",
+          },
+        ]),
+        stderr: "",
+      })),
+    });
+    expect(match?.url).toContain("/issues/9");
+  });
 });

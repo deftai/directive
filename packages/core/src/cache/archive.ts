@@ -151,18 +151,25 @@ function loadPlan(path: string): Record<string, unknown> | null {
 /** Parse github issue URI → `{repo: owner/name, number}` when possible. */
 function issueRefFromUri(uri: string): { repo: string; number: number } | null {
   const cleaned = uri.replace(/\/+$/, "");
-  const m = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/i.exec(cleaned);
+  // Accept github.com and www.github.com (case-insensitive host).
+  // Digits may include leading zeros (rare URL forms); Number() normalizes.
+  const m = /(?:https?:\/\/)?(?:www\.)?github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/i.exec(
+    cleaned,
+  );
   if (m) {
     // Lowercase owner/repo so protection matches case-folded cache keys (#1137 review).
+    // Leading zeros normalize via Number(); reject 0 / non-positive.
+    const num = Number(m[3]);
+    if (!(num >= 1)) return null;
     return {
       repo: `${(m[1] ?? "").toLowerCase()}/${(m[2] ?? "").toLowerCase()}`,
-      number: Number.parseInt(m[3] ?? "", 10),
+      number: num,
     };
   }
   const slash = cleaned.lastIndexOf("/");
   const tail = slash >= 0 ? cleaned.slice(slash + 1) : cleaned;
-  if (/^\d+$/.test(tail)) {
-    return { repo: "", number: Number.parseInt(tail, 10) };
+  if (/^[1-9]\d*$/.test(tail)) {
+    return { repo: "", number: Number(tail) };
   }
   return null;
 }

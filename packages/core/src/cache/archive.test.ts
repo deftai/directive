@@ -332,6 +332,186 @@ describe("archiveClosedEntries", () => {
     expect(result.skipped.some((s) => s.reason === "non-terminal-decision")).toBe(true);
   });
 
+  it("lifecycle protection accepts www.github.com URIs with repo identity", () => {
+    const projectRoot = tempRoot();
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    const clock = new FixedClock(new Date("2026-08-01T00:00:00Z"));
+    const dir = join(projectRoot, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "www.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "www",
+          status: "running",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://www.github.com/deftai/directive/issues/311",
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "other/repo/311",
+      {
+        number: 311,
+        title: "other",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "deftai/directive/311",
+      {
+        number: 311,
+        title: "protected",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    const result = archiveClosedEntries({
+      cacheRoot,
+      projectRoot,
+      olderThanDays: 30,
+      dryRun: true,
+      clock,
+    });
+    expect(
+      result.skipped.some(
+        (s) => s.key === "deftai/directive/311" && s.reason === "open-lifecycle-scope",
+      ),
+    ).toBe(true);
+    expect(result.archived.some((a) => a.key === "other/repo/311")).toBe(true);
+  });
+
+  it("lifecycle protection keeps repo scope for leading-zero issue URLs", () => {
+    const projectRoot = tempRoot();
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    const clock = new FixedClock(new Date("2026-08-01T00:00:00Z"));
+    const dir = join(projectRoot, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "leading-zero.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "leading-zero",
+          status: "running",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/0311",
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "other/repo/311",
+      {
+        number: 311,
+        title: "other",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    writeLiveEntry(
+      cacheRoot,
+      "deftai/directive/311",
+      {
+        number: 311,
+        title: "protected",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    const result = archiveClosedEntries({
+      cacheRoot,
+      projectRoot,
+      olderThanDays: 30,
+      dryRun: true,
+      clock,
+    });
+    expect(
+      result.skipped.some(
+        (s) => s.key === "deftai/directive/311" && s.reason === "open-lifecycle-scope",
+      ),
+    ).toBe(true);
+    expect(result.archived.some((a) => a.key === "other/repo/311")).toBe(true);
+  });
+
+  it("openLifecycleReferencedKeys covers URI edge cases", () => {
+    const projectRoot = tempRoot();
+    const dir = join(projectRoot, "xbrief", "proposed");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "edges.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "edges",
+          status: "proposed",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "http://github.com/Acme/Widget/issues/7/",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/0",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://www.github.com/other/repo/issues/0042",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "not-a-github-uri/99",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "garbage",
+            },
+            { type: "x-xbrief/github-issue", uri: 123 },
+            null,
+            "skip-me",
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    // Invalid plan JSON should be skipped without throwing.
+    writeFileSync(join(dir, "bad.xbrief.json"), "{not-json\n", "utf8");
+    // Plan without references array.
+    writeFileSync(
+      join(dir, "norefs.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "x", status: "proposed" } })}\n`,
+      "utf8",
+    );
+    const keys = openLifecycleReferencedKeys(projectRoot);
+    expect(keys.has("acme/widget#7")).toBe(true);
+    expect(keys.has("other/repo#42")).toBe(true);
+    expect(keys.has("#99")).toBe(true);
+    // Repo-scoped parse rejects issue 0; bare fallback may still record #0.
+    expect(keys.has("deftai/directive#0")).toBe(false);
+  });
+
   it("lifecycle protection is case-insensitive on owner/repo", () => {
     const projectRoot = tempRoot();
     const cacheRoot = join(projectRoot, ".deft-cache");

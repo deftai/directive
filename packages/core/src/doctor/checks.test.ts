@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
+import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 import {
   checkGitignoreCoverage,
@@ -287,32 +288,9 @@ describe("checkGitignoreCoverage (#2206)", () => {
   });
 
   it("passes when all canonical entries are present", () => {
-    const lines = [
-      ".deft-cache/",
-      ".deft/cache/",
-      ".deft/.cli/",
-      ".deft/ritual-state.json",
-      ".deft/last-session.json",
-      ".deft/routing.local.json",
-      ".deft-directive-disable",
-      "vbrief/.triage-cache/candidates.jsonl",
-      "vbrief/.triage-cache/summary-history.jsonl",
-      "vbrief/.triage-cache/scope-lifecycle.jsonl",
-      "vbrief/.triage-cache/decompositions/",
-      "vbrief/.triage-cache/doctor-state.json",
-      "xbrief/.triage-cache/candidates.jsonl",
-      "xbrief/.triage-cache/summary-history.jsonl",
-      "xbrief/.triage-cache/scope-lifecycle.jsonl",
-      "xbrief/.triage-cache/decompositions/",
-      "xbrief/.triage-cache/doctor-state.json",
-      "vbrief/*.lock",
-      ".deft/core.bak-*/",
-      ".deft/*.bak-*",
-      ".deft/xbrief-migrate-backup-*/",
-      "*.premigrate.*",
-      "vbrief/.eval/results/",
-      "xbrief/.eval/results/",
-    ].join("\n");
+    // Join the live baseline so this fixture cannot drift when #3146-class
+    // selective triage-cache state entries are added to CANONICAL_GITIGNORE_BASELINE.
+    const lines = CANONICAL_GITIGNORE_BASELINE.join("\n");
     const result = checkGitignoreCoverage("/proj", seamsFor(lines));
     expect(result.status).toBe("pass");
     expect((result.data?.missing as string[]).length).toBe(0);

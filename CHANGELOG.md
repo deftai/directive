@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cache archive: parse `www.github.com` lifecycle URIs with repo identity (#1137 residual / PR #3142).** Open-scope protection for multi-repo caches no longer drops owner/repo when lifecycle refs use `www.github.com` (or leading-zero issue path segments). Keeps archive protection repo-scoped instead of bare `#N` fallback. Refs #1137, #3141.
+- **`vbrief:activate` containment root is the project checkout (#3147).** Legacy `task vbrief:activate` used the destination folder as the `containedWrite` root, so a dest-folder symlink whose realpath is outside the checkout was treated as contained and could divert the write (and unlink the pending source) outside the tree. The activator now runs `assertProjectionContained` on the destination before mkdir/write (parity with `scope:activate` / #2447) and uses `projectRoot` as the containment root. Vitest covers refuse + no outside write + pending preserved. Closes #3147. Refs #2447, #3077, #2980.
+- **Vitest branch coverage restored above 85% (#3144).** Focused autonomy policy resolve/validate/recommend edges, pending-decisions backlog parse/summarize branches, triageScopeIgnores matchers, and feedback:file CLI/offline paths clear the v0.96.0 84.89% hairline so release Step 5 passes without `--allow-coverage-debt`. Closes #3144.
+
 ### Removed
 
 ## [0.96.0] - 2026-08-06
@@ -48,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **gitignore: ignore generated triage-cache session state (#3146).** Canonical init/deposit baseline, triage-bootstrap selective lists, and Go `deft-install` `canonicalGitignoreLines` now ignore `staleness-tickler-state.json` and `release-availability-state.json` under both `xbrief/.triage-cache/` and `vbrief/.triage-cache/` (plus legacy `.eval` paths on the Go rail). Hybrid #1144 policy preserved — no blanket `.triage-cache` ignore. Closes #3146. Refs #2348, #1144, #2488, #1692.
 - **Hard-stop parent text-repetition hang (FC14 / soft #2943 insufficient) (#3131).** Soft skill prose after `subagent_announce` did not stop parents from burning the output budget on identical progress sentences with zero tools. Ships machine-checkable `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape` (N>2 near-identical assistant text units with no `tool_use`/`yield` → `failClass: FC14`; post-announce progress-only multi-sentence also illegal). Swarm hard gates, OpenClaw host adapter, openclaw-agent-host operator recovery for current beta pins, and preamble §11 document the legal shapes (tool batch, yield, or one non-repeated short answer). Soft prose is not sole mitigation. Closes #3131. Refs #2943.
 - **core-guard allowlist: upgrade co-travel for package pin + GENERATION.json (#3127).** Expand `installerManagedMatchers()` (TS deposit + Go parity) so a single framework-upgrade PR may include `.deft/core/**`, existing installer-managed deposits, `package.json` / lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`), and `.deft/GENERATION.json` without tripping `no-mixed-core-and-app`. Mixing core with true app/product paths still fails. UPGRADING documents the one-upgrade-PR shape; commit hygiene notes the co-travel unit. Closes #3127. Refs #1430, #3117, #1440.
 
