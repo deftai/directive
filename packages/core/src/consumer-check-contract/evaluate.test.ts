@@ -197,6 +197,33 @@ tasks:
     expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
   });
 
+  it("does not treat verify:consumer-check-contract as full check:consumer", () => {
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/ci.yml", "- run: task verify:consumer-check-contract\n"],
+      ]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.gateId === "verify:test-boundary")).toBe(true);
+  });
+
+  it("does not treat echo of check:consumer as full check", () => {
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/ci.yml", '- run: echo "see check:consumer docs"\n'],
+      ]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
   it("enforce off softens missing verify tasks to warn", () => {
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,

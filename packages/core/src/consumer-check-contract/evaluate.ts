@@ -89,10 +89,20 @@ export function extractWorkflowRunCommands(text: string): string[] {
 
 /** True when a run command is a full check aggregate (not a single verify gate). */
 export function runCommandIsFullCheck(cmd: string): boolean {
-  const lower = cmd.toLowerCase();
-  if (lower.includes("deft check") || lower.includes("directive check")) return true;
-  if (/(^|[\s&;|])task(\s+deft:)?\s*check(\s|$)/.test(lower)) return true;
-  if (lower.includes("check:consumer") || lower.includes("check:framework-source")) return true;
+  const lower = cmd.toLowerCase().trim();
+  // Echo/docs do not execute gates (Greptile P1).
+  if (
+    /^\s*echo\b/.test(lower) ||
+    (lower.includes("echo ") && !/\b(?:deft|directive|task)\b/.test(lower.split("echo")[0] ?? ""))
+  ) {
+    if (/^\s*echo\b/.test(lower)) return false;
+  }
+  if (/^\s*echo\b/.test(lower)) return false;
+  // Word-boundary matches only — verify:consumer-check-contract must NOT match check:consumer.
+  if (/\bdeft\s+check\b/.test(lower) || /\bdirective\s+check\b/.test(lower)) return true;
+  if (/\btask\s+(?:deft:)?check\b/.test(lower)) return true;
+  if (/(?:^|[\s&;|])(?:task\s+)?check:consumer(?:\s|$)/.test(lower)) return true;
+  if (/(?:^|[\s&;|])(?:task\s+)?check:framework-source(?:\s|$)/.test(lower)) return true;
   return false;
 }
 
@@ -111,24 +121,53 @@ export function workflowExecutesCheck(text: string): boolean {
   return extractWorkflowRunCommands(text).some(runCommandIsFullCheck);
 }
 
-/** True when root Taskfile invokes the check orchestrator (not free-text docs). */
-export function taskfileInvokesCheckOrchestrator(text: string): boolean {
-  // Only list-item cmds under a tasks: body — skip bare free text / comments.
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
+/** Extract the body of a top-level go-task task (indent=2 key). */
+export function extractTaskBody(taskfileText: string, taskName: string): string {
+  const lines = taskfileText.replace(/\r\n/g, "\n").split("\n");
+  const body: string[] = [];
+  let inTask = false;
+  let taskIndent = 0;
   for (const raw of lines) {
     const stripped = raw.trim();
-    if (!stripped || stripped.startsWith("#")) continue;
-    // Framework ENGINE_CMD only when it is a YAML value under cmds/vars (list item or property)
-    if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
-    if (stripped.startsWith("-") && /\bdispatchTaskCheck\b/.test(stripped)) return true;
-    if (!stripped.startsWith("-") && !stripped.startsWith("ENGINE_CMD:")) continue;
-    const lower = stripped.toLowerCase();
-    if (
-      lower.includes("deft check") ||
-      lower.includes("directive check") ||
-      /task\s+(?:deft:)?check\b/.test(lower)
-    ) {
-      return true;
+    if (!stripped || stripped.startsWith("#")) {
+      if (inTask) body.push(raw);
+      continue;
+    }
+    const indent = raw.length - raw.trimStart().length;
+    if (!inTask) {
+      if (new RegExp(`^${taskName.replace(/:/g, "\\:")}\\s*:`).test(stripped) && indent <= 2) {
+        inTask = true;
+        taskIndent = indent;
+      }
+      continue;
+    }
+    if (indent <= taskIndent && /^[\w:-]+:/.test(stripped)) {
+      break;
+    }
+    body.push(raw);
+  }
+  return body.join("\n");
+}
+
+/** True when the check / check:consumer / check:framework-source task invokes orchestrator. */
+export function taskfileInvokesCheckOrchestrator(text: string): boolean {
+  for (const taskName of ["check", "check:consumer", "check:framework-source"]) {
+    const body = extractTaskBody(text, taskName);
+    if (body.length === 0) continue;
+    // Only scan this task body (not unrelated tasks — Greptile P1).
+    for (const raw of body.split("\n")) {
+      const stripped = raw.trim();
+      if (!stripped || stripped.startsWith("#")) continue;
+      if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
+      if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
+      const lower = stripped.toLowerCase();
+      if (
+        /\bdeft\s+check\b/.test(lower) ||
+        /\bdirective\s+check\b/.test(lower) ||
+        /\btask\s+(?:deft:)?check\b/.test(lower)
+      ) {
+        return true;
+      }
     }
   }
   return false;

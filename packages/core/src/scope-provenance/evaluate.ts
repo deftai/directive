@@ -381,10 +381,29 @@ export function evaluateScopeProvenance(
         computeFileScopeDigest(normalizeFileScope(extractFileScope(payload))) &&
       isHumanApprovalStamp(approved.humanApproval);
 
+    // Same-PR approval rewrite without independent renewal is hard-fail expansion,
+    // not a soft missing-digest migration warning (Greptile P1).
+    if (approvalRecordRewritten && modified && renewed === null) {
+      const currentScope = normalizeFileScope(extractFileScope(payload));
+      findings.push({
+        xbriefRelPath: rel,
+        planId: planId ?? rel,
+        kind: "self-authorizing-scope-expansion",
+        expandedPaths: currentScope,
+        detail:
+          "approved-scope record rewritten in the same change set as the active xBRIEF; " +
+          "cannot self-authorize via concurrent approval rewrite",
+        remediation:
+          "Record renewed human approval outside the implementation PR (or pass an " +
+          "independent renewed stamp). Same-PR approval rewrites do not authorize expansion (#3145).",
+      });
+      continue;
+    }
+
     const finding = evaluateOneScopeProvenance({
       xbriefRelPath: rel,
       currentPayload: payload,
-      approved: approvalRecordRewritten && renewed === null ? null : approved,
+      approved,
       xbriefModifiedInChangeSet: modified,
       enforce,
       renewedHumanApproval: renewed ?? (recordMatchesCurrent ? approved?.humanApproval : null),
