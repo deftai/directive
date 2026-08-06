@@ -277,7 +277,7 @@ Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a succ
 - ⊗ Continue "one more fix" after the envelope is exhausted.
 - ⊗ Reset the counter by opening a new commit, rewording the same change, or swapping workers while the same failure class remains.
 
-**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit-breaker enforcement (cross-revision ledger, material-progress gate) is sibling **#3143** -- do not invent a parallel ledger in this skill.
+**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit-breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, `.deft/delivery-attempts/`). Docs: `docs/delivery-attempt.md`. Route delivery/acceptance automatic retries through that gate; do not invent a parallel ledger in this skill.
 
 ## Step 3: Build Phase by Phase
 

@@ -208,7 +208,7 @@ Review fix cycles are multi-iteration work and MUST carry dual stop (`main.md` `
 - ⊗ Continue silent fix rounds after the envelope is exhausted.
 - ⊗ Reset the fix-batch counter solely by re-pushing, empty-committing, or swapping workers when the same primary finding fingerprint remains (poll-wait timer MAY reset for a new HEAD; the dual-stop fix-batch counter MUST NOT).
 
-**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit breaker is sibling **#3143**.
+**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`). Docs: `docs/delivery-attempt.md`.
 
 ### Step 3: Fix all findings in ONE batch commit
 

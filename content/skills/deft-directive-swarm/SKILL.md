@@ -138,7 +138,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! On failure stop: halt automatic continuation; emit an operator-visible report (what was tried, what is missing, what human decision is needed). ⊗ Silent re-dispatch or infinite monitor continuation after the envelope is exhausted.
 
-! Composes with minimal-subgraph repair guidance (#2439): keep repairs minimal **and** bounded by dual-stop -- minimal repair is not a license to thrash. Durable delivery/acceptance circuit-breaker enforcement is sibling **#3143** (not implemented here).
+! Composes with minimal-subgraph repair guidance (#2439): keep repairs minimal **and** bounded by dual-stop -- minimal repair is not a license to thrash. Durable delivery/acceptance circuit-breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, unit ledger). Docs: `docs/delivery-attempt.md`. Skill defaults remain behavioral; mechanical gate lives in core.
 
 ### Envelope selection SLA (#3153)
 
