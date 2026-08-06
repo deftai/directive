@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,6 +14,8 @@ import { activate } from "./activate.js";
 
 const FIXTURE_NAME = "2026-05-01-test.xbrief.json";
 const FIXED_NOW = new Date("2026-06-19T12:00:00.000Z");
+/** Symlink fixtures require non-Windows (parity with scope lifecycle #2447 tests). */
+const itSymlink = it.skipIf(process.platform === "win32");
 
 function writeVbrief(
   base: string,
@@ -216,4 +226,53 @@ describe("activate", () => {
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("only pending/ vBRIEFs can be activated");
   });
+});
+
+describe("activate projection containment (#3147 / #2447 parity)", () => {
+  const roots: string[] = [];
+
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  function tempRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    roots.push(root);
+    return root;
+  }
+
+  itSymlink(
+    "refuses activate when xbrief/active is a symlink outside the project (no outside write, pending preserved)",
+    () => {
+      const root = tempRoot("deft-activate-symlink-");
+      const escapeDir = tempRoot("deft-activate-escape-");
+      mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+      const escapeActive = join(escapeDir, "active");
+      mkdirSync(escapeActive, { recursive: true });
+      symlinkSync(escapeActive, join(root, "xbrief", "active"));
+
+      const src = join(root, "xbrief", "pending", FIXTURE_NAME);
+      writeFileSync(
+        src,
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+          plan: { title: "T", status: "pending", items: [] },
+        }),
+        "utf8",
+      );
+
+      const result = activate(src, { now: FIXED_NOW });
+      expect(result.exitCode).toBe(1);
+      expect(result.message).toContain("projection write refused");
+      // Pending source must not be unlinked on refuse.
+      expect(existsSync(src)).toBe(true);
+      // No write diverted outside the checkout via the escaping active/ symlink.
+      expect(existsSync(join(escapeActive, FIXTURE_NAME))).toBe(false);
+      expect(existsSync(join(escapeActive, `${FIXTURE_NAME}.tmp`))).toBe(false);
+      const unchanged = JSON.parse(readFileSync(src, "utf8")) as { plan: { status: string } };
+      expect(unchanged.plan.status).toBe("pending");
+    },
+  );
 });

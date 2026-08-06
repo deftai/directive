@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`vbrief:activate` refuses escaping `xbrief/active` symlinks (#3147).** Legacy `task vbrief:activate` used `resolve(activeDir)` as the `containedWrite` root, so an `active/` symlink whose realpath is outside the checkout was treated as contained and could divert the write (and unlink the pending source) outside the tree. The path now calls `assertProjectionContained(projectRoot, activeDir)` before mkdir/write (parity with `scope:activate` / #2447) and uses `projectRoot` as the containment root. Vitest covers refuse + no outside write + pending preserved. Closes #3147. Refs #2447, #3077, #2980.
+
 ### Removed
 
 ## [0.96.0] - 2026-08-06
