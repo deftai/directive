@@ -208,26 +208,20 @@ export function evaluatePreDispatch(
   }
 
   // --- Operator override (bounded, audited) ---
-  if (input.trigger === "override" || overrideUsable(ledger, now)) {
-    if (overrideUsable(ledger, now)) {
-      return result(
-        input,
-        ledger,
-        "ALLOW_OVERRIDE",
-        "audited operator override permits next attempt",
-        {
-          retryability: anticipated?.retryability ?? null,
-          fingerprint,
-          sameFailureCount,
-          materialClass: progress.classification,
-          resume: ledger.resumeCondition,
-        },
-      );
-    }
-    if (input.trigger === "override") {
-      // Explicit override trigger without remaining quota → fall through to normal rules
-      // (and typically block); do not invent allowance.
-    }
+  if (overrideUsable(ledger, now)) {
+    return result(
+      input,
+      ledger,
+      "ALLOW_OVERRIDE",
+      "audited operator override permits next attempt",
+      {
+        retryability: anticipated?.retryability ?? null,
+        fingerprint,
+        sameFailureCount,
+        materialClass: progress.classification,
+        resume: ledger.resumeCondition,
+      },
+    );
   }
 
   // --- Resume when condition satisfied ---
