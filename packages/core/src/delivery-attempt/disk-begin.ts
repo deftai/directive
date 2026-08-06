@@ -81,7 +81,11 @@ export function beginAttemptOnDisk(
       }
       throw new Error(`delivery-attempt ${decision.decision}: ${decision.reason}`);
     }
-    const { ledger, attempt } = beginAttempt(current, input);
+    const { ledger, attempt } = beginAttempt(current, {
+      ...input,
+      // Only burn override quota when the gate decision required it.
+      consumeOverride: decision.decision === "ALLOW_OVERRIDE",
+    });
     saveUnitLedger(projectRoot, ledger);
     return { ledger, attempt };
   });

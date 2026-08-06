@@ -162,14 +162,34 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     expect(ledger.override?.remainingAttempts).toBe(1);
     expect(ledger.blockedDecision).toBeNull();
 
-    // ALLOW_OVERRIDE may still pass trigger "automatic" — must consume quota
+    // ALLOW_OVERRIDE path may still pass trigger "automatic" — must consume via flag
     ({ ledger } = beginAttempt(ledger, {
       sourceRevision: "r2",
       trigger: "automatic",
       attemptId: "a2",
+      consumeOverride: true,
     }));
     expect(ledger.override?.remainingAttempts).toBe(0);
     expect(ledger.attempts.length).toBe(2);
+  });
+
+  it("ordinary begin does not consume override quota without consumeOverride", () => {
+    let ledger = emptyUnitLedger({
+      scopeId: "s",
+      targetId: "t",
+      workflowId: "w",
+    });
+    ledger = recordOperatorOverride(ledger, {
+      actor: "scott",
+      rationale: "pre-staged for later block",
+      allowedAttempts: 2,
+    });
+    ({ ledger } = beginAttempt(ledger, {
+      sourceRevision: "r1",
+      trigger: "automatic",
+      attemptId: "a1",
+    }));
+    expect(ledger.override?.remainingAttempts).toBe(2);
   });
 
   it("unit ledger filenames are full digests that do not collide on prefix", () => {

@@ -553,6 +553,12 @@ export function beginAttempt(
     readonly externalRunId?: string | null;
     readonly materialDelta?: readonly MaterialDeltaClaim[];
     readonly now?: string;
+    /**
+     * When true, decrement override.remainingAttempts (ALLOW_OVERRIDE path).
+     * Also set when trigger is `"override"`. Ordinary automatic/retry begins
+     * that do not need override MUST leave this false so quota is preserved.
+     */
+    readonly consumeOverride?: boolean;
   },
 ): { ledger: DeliveryUnitLedger; attempt: DeliveryAttemptRecord } {
   const now = utcIso(input.now);
@@ -572,11 +578,13 @@ export function beginAttempt(
     externalRunId: input.externalRunId ?? null,
   };
 
-  // Consume override allowance on any begin while remainingAttempts > 0.
-  // evaluatePreDispatch may ALLOW_OVERRIDE while the caller still passes
-  // trigger "automatic" / "retry" (#3143 Greptile P1).
+  // Consume override only when this begin is authorized by ALLOW_OVERRIDE
+  // (consumeOverride) or an explicit override trigger — not on ordinary allows
+  // that happen to leave remainingAttempts > 0 on the ledger.
   let override = ledger.override;
-  if (override !== null && override.remainingAttempts > 0) {
+  const shouldConsume =
+    input.consumeOverride === true || input.trigger === "override";
+  if (shouldConsume && override !== null && override.remainingAttempts > 0) {
     override = { ...override, remainingAttempts: override.remainingAttempts - 1 };
   }
 

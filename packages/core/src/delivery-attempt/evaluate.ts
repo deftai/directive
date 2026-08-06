@@ -18,7 +18,7 @@ import type {
   ResumeCondition,
   Retryability,
 } from "./types.js";
-import { isAllowDecision, mergePolicy, utcIso } from "./types.js";
+import { isAllowDecision, isBlockDecision, mergePolicy, utcIso } from "./types.js";
 
 function decisionClass(code: PreDispatchDecision): PreDispatchDecisionEvent["decision"] {
   if (code.startsWith("ALLOW_")) return "allow";
@@ -103,13 +103,52 @@ function overrideUsable(ledger: DeliveryUnitLedger, nowIso: string): boolean {
  * Evaluate whether a delivery dispatch may proceed.
  *
  * Pure w.r.t. the provided ledger snapshot — callers load/save durability.
+ *
+ * Operator override is applied **only** when the natural gate would `BLOCK_*`
+ * (not before ordinary ALLOW paths, and not for DENY_* such as duplicate active).
+ * That keeps bounded override quota for dispatches that truly need it.
  */
 export function evaluatePreDispatch(
   ledger: DeliveryUnitLedger,
   input: PreDispatchInput,
 ): PreDispatchResult {
-  const policy: DeliveryBudgetPolicy = mergePolicy(input.policy);
   const now = utcIso(input.now);
+  const raw = evaluatePreDispatchNatural(ledger, input);
+  if (raw.allowed || !isBlockDecision(raw.decision) || !overrideUsable(ledger, now)) {
+    return raw;
+  }
+  const anticipated = input.anticipatedFailure ?? ledger.lastFailure;
+  const fingerprint = anticipated?.fingerprint ?? null;
+  const sameFailureCount = fingerprint !== null ? (ledger.sameFailureCounts[fingerprint] ?? 0) : 0;
+  const progress = evaluateMaterialProgress({
+    claims: input.materialDelta,
+    failure: anticipated,
+    evaluatedRevision: input.sourceRevision,
+  });
+  return result(
+    input,
+    ledger,
+    "ALLOW_OVERRIDE",
+    `audited operator override permits next attempt (natural gate: ${raw.decision})`,
+    {
+      retryability: anticipated?.retryability ?? null,
+      fingerprint,
+      sameFailureCount,
+      materialClass: progress.classification,
+      resume: ledger.resumeCondition,
+    },
+  );
+}
+
+/**
+ * Natural gate without override short-circuit. Override is applied by
+ * {@link evaluatePreDispatch} only when this returns BLOCK_*.
+ */
+function evaluatePreDispatchNatural(
+  ledger: DeliveryUnitLedger,
+  input: PreDispatchInput,
+): PreDispatchResult {
+  const policy: DeliveryBudgetPolicy = mergePolicy(input.policy);
   const anticipated = input.anticipatedFailure ?? ledger.lastFailure;
   const fingerprint = anticipated?.fingerprint ?? null;
   const sameFailureCount = fingerprint !== null ? (ledger.sameFailureCounts[fingerprint] ?? 0) : 0;
@@ -207,23 +246,6 @@ export function evaluatePreDispatch(
     );
   }
 
-  // --- Operator override (bounded, audited) ---
-  if (overrideUsable(ledger, now)) {
-    return result(
-      input,
-      ledger,
-      "ALLOW_OVERRIDE",
-      "audited operator override permits next attempt",
-      {
-        retryability: anticipated?.retryability ?? null,
-        fingerprint,
-        sameFailureCount,
-        materialClass: progress.classification,
-        resume: ledger.resumeCondition,
-      },
-    );
-  }
-
   // --- Resume when condition satisfied ---
   if (ledger.resumeCondition?.satisfied && (input.trigger === "resume" || progress.isMaterial)) {
     return result(input, ledger, "ALLOW_RESUME", "resume condition satisfied", {
@@ -235,9 +257,10 @@ export function evaluatePreDispatch(
     });
   }
 
-  // --- Prior block without satisfied resume / override ---
+  // --- Prior block without satisfied resume ---
+  // (usable operator override is applied by evaluatePreDispatch wrapper)
   if (ledger.blockedDecision !== null) {
-    if (!progress.isMaterial && !overrideUsable(ledger, now)) {
+    if (!progress.isMaterial) {
       const resume =
         ledger.resumeCondition ??
         ({
