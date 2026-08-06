@@ -190,6 +190,26 @@ Babysit and review-cycle are **not** a second unbounded implementation mandate. 
 ⊗ Expand active story scope past xBRIEF AC mid-babysit without follow-up or consented amend (#2881).
 ⊗ Treat confidence-only holds as authorization to invent new subsystems in-tree.
 
+
+### Dual stop — review fix loops (#2442)
+
+Review fix cycles are multi-iteration work and MUST carry dual stop (`main.md` `## Dual Stop Rule (#2442)`). Single-turn re-checks are exempt.
+
+**Defaults for this skill (override only with an explicit operator envelope):**
+
+| Loop class | Success stop | Default failure stop |
+|------------|--------------|----------------------|
+| Greptile / bot fix batch (Step 3 → re-review) | No P0/P1 on current HEAD; confidence meets `minGreptileConfidence` | **max 3** fix-batch iterations **or** **2** consecutive re-reviews with the same primary P0/P1 fingerprint and no material fix |
+| Confidence-only hold (0 P0/P1, score below floor) | Confidence meets floor, or operator chooses document/accept path | **max 1** optional polish pass, then stop (do not redesign unbounded — see confidence-only holds above) |
+
+**On failure stop:**
+
+- ! Halt automatic re-fix. Prefer `BLOCKED:` with PR number, HEAD SHA, blocker class (`review_cycle_cap` / `greptile_p0_p1` / `no_progress`), what was tried, and human decision needed (preamble §11 / #2843).
+- ⊗ Continue silent fix rounds after the envelope is exhausted.
+- ⊗ Reset the iteration counter solely by re-pushing an empty commit or swapping workers when the same findings remain.
+
+**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit breaker is sibling **#3143**.
+
 ### Step 3: Fix all findings in ONE batch commit
 
 ! Apply [`coding/review.md`](../../coding/review.md) single-batch, cross-file grep, and local structured-data validation rules. Land **all** in-scope fixes in one commit (or one intentional batch), never per-finding pushes.

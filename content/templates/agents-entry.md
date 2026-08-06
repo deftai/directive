@@ -70,7 +70,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Dual stop rule (#2442)
 
-! Multi-iteration autonomous work (implement-fix, pre-PR polish, swarm repair/monitor, review fix cycles) MUST have a **success stop** and a **failure/budget stop** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. On failure stop: halt with an operator-visible report (tried / missing / human decision); ⊗ thrash past the envelope. Depth: `.deft/core/main.md` `## Dual Stop Rule (#2442)`; build/swarm skill defaults. Delivery/acceptance mechanical ledger is #3143.
+! Multi-iteration autonomous work (implement-fix, pre-PR polish, swarm repair/monitor, review fix cycles) MUST have a **success stop** and a **failure/budget stop** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. On failure stop: halt with an operator-visible report (tried / missing / human decision); ⊗ thrash past the envelope. Depth: `.deft/core/main.md` `## Dual Stop Rule (#2442)`. Defaults: build skill (implement/pre-PR), swarm Phase 4/core-ops (repair/monitor), review-cycle skill (fix batches, default max 3). Delivery/acceptance mechanical ledger is #3143.
 
 ## Through-merge worker dispatch (#3032)
 
