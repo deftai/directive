@@ -62,26 +62,18 @@ Loop body, per candidate (top-of-queue first):
 3. On `yes` -- promote via the canonical lifecycle verb:
 
    ```pwsh path=null start=null
-   # D18 #1136 fallback: the eventual --from-issue=<N> shape is OPEN but not
-   # yet implemented. Until #1136 lands, the monitor resolves the candidate's
-   # xBRIEF file from the issue number (file lives in xbrief/proposed/ from a
-   # prior triage:accept step, D10 / #1129) and passes the path to
-   # `task scope:promote`. Same lifecycle command, just routed through the
-   # file path rather than the issue-number shortcut.
-   task scope:promote xbrief/proposed/<file>.xbrief.json
-   # TODO(#1136): when D18 ships, replace the two-step (resolve file from #N,
-   # then pass to `task scope:promote`) with the deterministic one-step
-   # `task scope:promote --from-issue=<N>` invocation. The integration point
-   # is this Phase 0c loop body; the operator-facing prompt collapses from
-   # "Promote #<N>? [resolved to <path>]" to "Promote #<N>?" with the path
-   # resolution done inside the task.
+   # D18 #1136: promote by issue number (provenance locates proposed/ artifact;
+   # gates on latest candidates.jsonl decision == accept).
+   task scope:promote -- --from-issue=<N> [--repo OWNER/NAME]
+   # Path form remains valid for refinement scaffolds / disambiguation:
+   # task scope:promote -- xbrief/proposed/<file>.xbrief.json
    ```
 
    Re-run `task triage:summary` (or read the post-promote count directly) to refresh the `pending/ + active/` total before the next loop iteration.
 4. On `skip` -- drop this candidate from the current session's cohort; it stays in the queue for the next session. Advance to the next ranked candidate.
 5. On `stop` -- exit the loop early; the partial cohort proceeds to Phase 0d.
 
-! **D18 #1136 integration point**: the eventual `task scope:promote --from-issue=<N>` shape (D18 / #1136) is OPEN but not yet implemented. When it lands, the prompt above will be replaced with a deterministic `task scope:promote --from-issue=<N>` invocation; the operator no longer needs to resolve the xBRIEF file path manually. Until then, the file-path fallback above is the canonical Phase 0c verb -- it is the same `task scope:promote` lifecycle command, just routed through the file path rather than the issue-number shortcut. Track via #1136.
+! **D18 #1136**: prefer `task scope:promote -- --from-issue=<N>` in this Phase 0c loop so the monitor does not resolve the xBRIEF path by hand. Path-based `task scope:promote -- <file>` remains for scaffolds and multi-match disambiguation (`--path`). Non-accept latest decisions refuse unless `--force-no-cache`; missing decision soft-warns (`--strict` hard-fails).
 
 ! **WIP-cap exit-clean prose**: When WIP cap is reached, swarm Phase 0 stops adding to the cohort and exits cleanly with a count of what was filled. Operator can demote (D1 / #1121, `task scope:demote <existing>` or `task scope:demote --batch --older-than-days 30`) to free slots or `--force` to override (the override is audit-logged as `wip_cap_override` in `xbrief/.eval/scope-lifecycle.jsonl` per D4 / #1124).
 

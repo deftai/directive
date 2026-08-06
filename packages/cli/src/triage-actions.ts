@@ -37,6 +37,10 @@ interface ParsedArgs {
   comment?: string;
   ofN?: number;
   projectRoot: string;
+  /** After accept+ingest, promote to pending (#1136). */
+  autoPromote?: boolean;
+  /** WIP-cap override for auto-promote leg (#1136). */
+  force?: boolean;
   error?: string;
 }
 
@@ -112,6 +116,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
       parsed.projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--auto-promote") {
+      parsed.autoPromote = true;
+    } else if (arg === "--force") {
+      parsed.force = true;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -158,8 +166,14 @@ export function run(argv: string[]): number {
 
   try {
     if (args.cmd === "accept") {
-      const decisionId = accept(n, repo, deps, { actor: args.actor, projectRoot });
-      process.stdout.write(`accept #${n} (${repo}) -> ${decisionId}\n`);
+      const decisionId = accept(n, repo, deps, {
+        actor: args.actor,
+        projectRoot,
+        autoPromote: args.autoPromote === true,
+        force: args.force === true,
+      });
+      const promoteNote = args.autoPromote === true ? " + auto-promote" : "";
+      process.stdout.write(`accept #${n} (${repo}) -> ${decisionId}${promoteNote}\n`);
     } else if (args.cmd === "reject") {
       const decisionId = reject(n, repo, args.reason ?? "", deps, {
         actor: args.actor,

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -298,6 +298,70 @@ describe("accept", () => {
     expect(accept(9, "deftai/directive", deps, { projectRoot: root })).toBe("prior-id");
     const path = resolveAuditLogPath(root);
     expect(existsSync(path)).toBe(false);
+  });
+
+  it("--auto-promote promotes the ingested proposed path (#1136)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const proposedPath = join(root, "xbrief", "proposed", "auto.xbrief.json");
+    writeFileSync(
+      proposedPath,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "#77", updated: "2026-08-01T00:00:00Z" },
+        plan: {
+          title: "auto",
+          status: "proposed",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/77",
+          },
+          items: [],
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/77",
+            },
+          ],
+          updated: "2026-08-01T00:00:00Z",
+        },
+      }),
+    );
+    const deps = fakeDeps(root);
+    deps.issueIngest = {
+      ingestSingleForAccept() {
+        return proposedPath;
+      },
+    };
+    const decisionId = accept(77, "deftai/directive", deps, {
+      actor: "agent:test",
+      projectRoot: root,
+      autoPromote: true,
+    });
+    expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
+    expect(existsSync(join(root, "xbrief", "pending", "auto.xbrief.json"))).toBe(true);
+    expect(existsSync(proposedPath)).toBe(false);
+  });
+
+  it("--auto-promote surfaces promote failure without rolling back accept (#1136)", () => {
+    const root = makeRepo();
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    // No proposed artifact → promote fails
+    const deps = fakeDeps(root);
+    deps.issueIngest = {
+      ingestSingleForAccept() {
+        return null;
+      },
+    };
+    expect(() =>
+      accept(88, "deftai/directive", deps, {
+        actor: "agent:test",
+        projectRoot: root,
+        autoPromote: true,
+      }),
+    ).toThrow(/auto-promote failed/);
+    // Accept audit remains
+    expect(readFileSync(resolveAuditLogPath(root), "utf8")).toContain('"decision":"accept"');
   });
 });
 

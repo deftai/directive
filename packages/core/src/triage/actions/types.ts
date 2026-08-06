@@ -19,11 +19,14 @@ export interface CandidatesLog {
 }
 
 export interface IssueIngest {
+  /**
+   * Ingest issue into proposed/; return absolute path when known (#1136 auto-promote).
+   */
   ingestSingleForAccept(
     issueNumber: number,
     repo: string,
     options?: { projectRoot?: string },
-  ): void;
+  ): string | null | undefined;
 }
 
 export interface ScmRunner {
@@ -46,6 +49,10 @@ export interface TriageActionsDeps {
 export interface AcceptOptions {
   actor?: string | null;
   projectRoot?: string;
+  /** After accept+ingest, promote proposed → pending (#1136). */
+  autoPromote?: boolean;
+  /** WIP-cap override for the auto-promote leg. */
+  force?: boolean;
 }
 
 export interface RejectOptions {

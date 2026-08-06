@@ -52,10 +52,10 @@ const _PHASE0_COHORT_RECOVERY_TOKENS = [
   "queue is the canonical record",
 ];
 const _PHASE0_D18_FALLBACK_TOKENS = [
-  "D18 #1136 fallback",
-  "TODO(#1136)",
+  "D18 #1136",
   "--from-issue=<N>",
-  "OPEN but not",
+  "task scope:promote -- --from-issue=<N>",
+  "force-no-cache",
 ];
 const _SWEEP_STEP_HEADER = "### Step 1.5: Cohort Completion Sweep (#1487)";
 const _SWEEP_STEP_END = "### Step 2: Close Issues and Update Origins";
@@ -425,11 +425,11 @@ describe("test_swarm_skill", () => {
     expect(block).toContain(token);
   });
   it.each([
-    "D18 #1136 fallback",
-    "TODO(#1136)",
+    "D18 #1136",
     "--from-issue=<N>",
-    "OPEN but not",
-  ])("swarm_phase0_d18_1136_fallback_token_present %s", (token) => {
+    "task scope:promote -- --from-issue=<N>",
+    "force-no-cache",
+  ])("swarm_phase0_d18_1136_from_issue_token_present %s", (token) => {
     const block = _phase0_step0_block(_read_swarm());
     expect(block).toContain(token);
   });

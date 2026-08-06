@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
@@ -24,7 +24,9 @@ import {
   renderOpenUmbrellaWarning,
 } from "./open-umbrella-warning.js";
 import { resolveProjectRoot } from "./project-context.js";
-import { recordWipCapOverride, runTransition, type TransitionOptions } from "./transition.js";
+import { promoteFromIssue } from "./promote-from-issue.js";
+import { promotePath } from "./promote-path.js";
+import { runTransition, type TransitionOptions } from "./transition.js";
 import {
   findByDecisionId,
   isAlreadyUndone,
@@ -32,7 +34,6 @@ import {
   undoBatch,
   undoOne,
 } from "./undo.js";
-import { checkWipCap, formatWipCapRefusal } from "./wip-cap-check.js";
 
 export interface LifecycleArgs {
   action: string;
@@ -41,6 +42,16 @@ export interface LifecycleArgs {
   force?: boolean;
   batch?: boolean;
   batchFiles?: string[];
+  /** Promote from triage-cache issue number (#1136). */
+  fromIssue?: number;
+  /** Repo slug for --from-issue (#1136). */
+  repo?: string;
+  /** Missing decision hard-fails (#1136). */
+  strict?: boolean;
+  /** Skip triage reciprocity gate (#1136). */
+  forceNoCache?: boolean;
+  /** Disambiguate multiple proposed artifacts for --from-issue (#1136). */
+  pathFlag?: string;
   /** Explicit non-delivery disposition for code-bearing complete (#3041). */
   nonDeliveryDisposition?: NonDeliveryDisposition;
   /** Optional delivery evidence flags for complete (#3041). */
@@ -68,10 +79,13 @@ export interface UndoArgs {
 
 const LIFECYCLE_USAGE_STDERR =
   "usage: scope_lifecycle.py [-h] [--project-root PROJECT_ROOT] [--force] [--batch]\n" +
+  "                          [--from-issue N] [--repo OWNER/NAME] [--strict] [--force-no-cache]\n" +
+  "                          [--path PATH]\n" +
   "                          {activate,block,cancel,complete,fail,promote,restore,unblock}\n" +
   "                          [file ...]\n" +
   "scope_lifecycle.py: error: the following arguments are required: action, file\n" +
-  "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n";
+  "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n" +
+  "(promote --from-issue=N may omit file; #1136)\n";
 
 function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error?: string } {
   if (argv.length < 1) {
@@ -86,6 +100,10 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let force = false;
   let batch = false;
   const batchFiles: string[] = [];
+  let fromIssue: number | undefined;
+  let strict = false;
+  let forceNoCache = false;
+  let pathFlag: string | undefined;
   let nonDeliveryDisposition: NonDeliveryDisposition | undefined;
   let prNumber: number | undefined;
   let mergeCommit: string | undefined;
@@ -102,6 +120,27 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       force = true;
     } else if (arg === "--batch") {
       batch = true;
+    } else if (arg === "--strict") {
+      strict = true;
+    } else if (arg === "--force-no-cache") {
+      forceNoCache = true;
+    } else if (arg === "--from-issue") {
+      const raw = argv[i + 1];
+      i += 1;
+      if (raw === undefined) {
+        return { args: null, error: "usage" };
+      }
+      fromIssue = Number.parseInt(raw, 10);
+    } else if (arg?.startsWith("--from-issue=")) {
+      fromIssue = Number.parseInt(arg.slice("--from-issue=".length), 10);
+    } else if (arg === "--path") {
+      pathFlag = argv[i + 1];
+      i += 1;
+      if (pathFlag === undefined) {
+        return { args: null, error: "usage" };
+      }
+    } else if (arg?.startsWith("--path=")) {
+      pathFlag = arg.slice("--path=".length);
     } else if (arg === "--project-root") {
       projectRoot = argv[i + 1];
       i += 1;
@@ -162,19 +201,21 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       return { args: null, error: "usage" };
     }
   }
+  // Delivery evidence uses --repo as repository; --from-issue also uses --repo as triage slug.
+  // Prefer treating --repo as triage slug when --from-issue is set (#1136).
   const deliveryEvidence: DeliveryEvidenceInput | undefined =
     prNumber !== undefined ||
     mergeCommit !== undefined ||
     prBase !== undefined ||
     deliveryBranch !== undefined ||
-    repo !== undefined ||
+    (repo !== undefined && fromIssue === undefined) ||
     mergedAt !== undefined
       ? {
           prNumber: prNumber !== undefined && Number.isFinite(prNumber) ? prNumber : null,
           mergeCommit: mergeCommit ?? null,
           prBase: prBase ?? null,
           deliveryBranch: deliveryBranch ?? null,
-          repository: repo ?? null,
+          repository: fromIssue === undefined ? (repo ?? null) : null,
           mergedAt: mergedAt ?? (mergeCommit !== undefined ? "supplied" : null),
           verifier: "scope:complete",
         }
@@ -191,6 +232,27 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
         force,
         batch: true,
         batchFiles: batchFiles.length > 0 ? batchFiles : file.length > 0 ? [file] : [],
+      },
+    };
+  }
+  if (fromIssue !== undefined) {
+    if (action !== "promote") {
+      return { args: null, error: "usage" };
+    }
+    if (Number.isNaN(fromIssue) || fromIssue < 1) {
+      return { args: null, error: "usage" };
+    }
+    return {
+      args: {
+        action,
+        file: file.length > 0 ? file : (pathFlag ?? ""),
+        projectRoot,
+        force,
+        fromIssue,
+        repo,
+        strict,
+        forceNoCache,
+        pathFlag: pathFlag ?? (file.length > 0 ? file : undefined),
       },
     };
   }
@@ -225,6 +287,11 @@ export function lifecycleMain(argv: string[]): number {
     force,
     batch,
     batchFiles,
+    fromIssue,
+    repo,
+    strict,
+    forceNoCache,
+    pathFlag,
     nonDeliveryDisposition,
     deliveryEvidence,
   } = parsed.args;
@@ -251,22 +318,62 @@ export function lifecycleMain(argv: string[]): number {
     return result.exitCode;
   }
 
+  if (fromIssue !== undefined && action === "promote") {
+    const result = promoteFromIssue({
+      issueNumber: fromIssue,
+      repo: repo ?? null,
+      projectRoot,
+      force: force === true,
+      forceNoCache: forceNoCache === true,
+      strict: strict === true,
+      explicitPath: pathFlag,
+    });
+    for (const line of result.warnings) {
+      process.stderr.write(`${line}\n`);
+    }
+    if (result.ok) {
+      process.stdout.write(`${result.message}\n`);
+      if (result.wipCapOverride) {
+        process.stderr.write(
+          "\u26a0  WIP cap exceeded; promote allowed via --force. " +
+            "audit: scope-lifecycle.jsonl entry tagged wip_cap_override (#1124).\n",
+        );
+      }
+      return 0;
+    }
+    process.stderr.write(`Error: ${result.message}\n`);
+    return result.exitCode;
+  }
+
   const [filePath, error] = resolveFilePath(file, projectRoot);
   if (error !== null || filePath === null) {
     process.stderr.write(`Error: ${error}\n`);
     return 2;
   }
 
-  let capCheck: ReturnType<typeof checkWipCap> | null = null;
+  // Path-based promote uses shared promotePath for WIP + optional audit consistency (#1136).
   if (action === "promote") {
-    const rootForCap = resolveProjectRoot(projectRoot);
-    if (rootForCap !== null) {
-      capCheck = checkWipCap(rootForCap, force === true);
-      if (!capCheck.allowed) {
-        process.stderr.write(`${formatWipCapRefusal(capCheck)}\n`);
-        return 1;
+    const promoteResult = promotePath(filePath, {
+      projectRoot,
+      force: force === true,
+    });
+    if (promoteResult.ok) {
+      process.stdout.write(`${promoteResult.message}\n`);
+      if (promoteResult.wipCapOverride) {
+        process.stderr.write(
+          "\u26a0  WIP cap exceeded " +
+            `(promote allowed via --force). ` +
+            "audit: scope-lifecycle.jsonl entry tagged wip_cap_override (#1124).\n",
+        );
       }
+      return 0;
     }
+    process.stderr.write(
+      promoteResult.exitCode === 1 && promoteResult.message.includes("WIP")
+        ? `${promoteResult.message}\n`
+        : `Error: ${promoteResult.message}\n`,
+    );
+    return promoteResult.exitCode;
   }
 
   const transitionOptions: TransitionOptions = {
@@ -276,23 +383,6 @@ export function lifecycleMain(argv: string[]): number {
   };
   const result = runTransition(action, filePath, new Date(), transitionOptions);
   if (result.ok) {
-    if (action === "promote" && capCheck !== null && capCheck.forceOverride) {
-      const rootForAudit = resolveProjectRoot(projectRoot);
-      if (rootForAudit !== null) {
-        const newPath = join(
-          rootForAudit,
-          "vbrief",
-          "pending",
-          filePath.split(/[/\\]/).pop() ?? "",
-        );
-        recordWipCapOverride(newPath, rootForAudit, capCheck);
-      }
-      process.stderr.write(
-        "\u26a0  WIP cap exceeded " +
-          `(count=${capCheck.count}, cap=${capCheck.cap}); promote allowed via --force. ` +
-          "audit: vbrief/.eval/scope-lifecycle.jsonl entry tagged wip_cap_override (#1124).\n",
-      );
-    }
     process.stdout.write(`${result.message}\n`);
     if (action === "complete") {
       try {

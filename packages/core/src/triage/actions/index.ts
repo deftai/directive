@@ -4,6 +4,8 @@ import { cacheGet } from "../../cache/operations.js";
 import { ingestSingleForAccept as ingestSingleForAcceptTs } from "../../intake/issue-ingest.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
+import { findProposedArtifactsForIssue, promoteFromIssue } from "../../scope/promote-from-issue.js";
+import { promotePath } from "../../scope/promote-path.js";
 import {
   createCandidatesLog,
   findByIssue,
@@ -105,7 +107,8 @@ function defaultIssueIngest(): IssueIngest {
       // Delegate to the native TS intake path (#2350). The legacy Python
       // `scripts/issue_ingest.py` shell-out was orphaned when #1933 removed the
       // Python surface, leaving `triage:accept` raising ModuleNotFoundError.
-      ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
+      const [, path] = ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
+      return path;
     },
   };
 }
@@ -283,6 +286,61 @@ function ensureRejectedLabelApplied(
   }
 }
 
+/**
+ * After a successful accept (or idempotent re-accept), promote proposed → pending (#1136).
+ * Surfaces WIP-cap refusals with the same messaging as scope:promote.
+ */
+function runAutoPromote(
+  issueNumber: number,
+  repo: string,
+  projectRoot: string,
+  decisionId: string,
+  ingestedPath: string | null | undefined,
+  force: boolean | undefined,
+): void {
+  let path = typeof ingestedPath === "string" && ingestedPath.length > 0 ? ingestedPath : null;
+  if (path === null) {
+    const matches = findProposedArtifactsForIssue(projectRoot, issueNumber);
+    if (matches.length === 1) {
+      path = matches[0] ?? null;
+    } else if (matches.length > 1) {
+      throw new TriageError(
+        `accept #${issueNumber} (${repo}): --auto-promote found multiple proposed artifacts:\n` +
+          matches.map((p) => `  - ${p}`).join("\n") +
+          `\nPromote one with: task scope:promote -- <path>`,
+      );
+    }
+  }
+  if (path === null) {
+    // Fall back to full from-issue resolution (may still fail on missing artifact).
+    const fromIssue = promoteFromIssue({
+      issueNumber,
+      repo,
+      projectRoot,
+      force: force === true,
+      // Decision is accept; gate passes.
+    });
+    if (!fromIssue.ok) {
+      throw new TriageError(
+        `accept #${issueNumber} (${repo}): accept recorded but --auto-promote failed: ${fromIssue.message}`,
+      );
+    }
+    return;
+  }
+  const result = promotePath(path, {
+    projectRoot,
+    force: force === true,
+    fromIssue: issueNumber,
+    cacheDecisionId: decisionId,
+    cacheStateAtPromote: "accept",
+  });
+  if (!result.ok) {
+    throw new TriageError(
+      `accept #${issueNumber} (${repo}): accept recorded but --auto-promote failed: ${result.message}`,
+    );
+  }
+}
+
 /** Record an accept audit entry and delegate vBRIEF authoring to issue_ingest. */
 export function accept(
   issueNumber: number,
@@ -294,18 +352,32 @@ export function accept(
   const actor = resolveActor(options.actor);
   const prior = isIdempotentRepeat(deps, issueNumber, repo, "accept", projectRoot);
   if (prior !== null) {
+    if (options.autoPromote === true) {
+      runAutoPromote(issueNumber, repo, projectRoot, prior.decision_id, null, options.force);
+    }
     return prior.decision_id;
   }
 
   const entry = buildEntry(deps, "accept", issueNumber, repo, actor);
   const logPath = logPathFor(projectRoot);
   const decisionId = deps.candidatesLog.append(entry, { path: logPath });
+  let ingestedPath: string | null | undefined = null;
   try {
-    deps.issueIngest.ingestSingleForAccept(issueNumber, repo, { projectRoot });
+    ingestedPath = deps.issueIngest.ingestSingleForAccept(issueNumber, repo, { projectRoot });
   } catch (exc) {
     rollbackAuditEntry(decisionId, projectRoot, logPath);
     throw new TriageError(
       `accept #${issueNumber} (${repo}): issue:ingest delegation failed; audit entry rolled back. Cause: ${exc instanceof Error ? exc.message : String(exc)}`,
+    );
+  }
+  if (options.autoPromote === true) {
+    runAutoPromote(
+      issueNumber,
+      repo,
+      projectRoot,
+      decisionId,
+      typeof ingestedPath === "string" ? ingestedPath : null,
+      options.force,
     );
   }
   return decisionId;
