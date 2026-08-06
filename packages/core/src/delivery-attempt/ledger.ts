@@ -371,7 +371,11 @@ function isProcessAlive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    // ESRCH → no such process (dead). EPERM → process exists but this user
+    // cannot signal it — treat as alive so we never reclaim a live foreign lock.
+    if (code === "EPERM") return true;
     return false;
   }
 }
