@@ -307,8 +307,14 @@ export function evaluateCiGate(
     // - Operator-ignored aggregator never clears
     // - Green aggregator clears cancelled primary/failover (failover path done)
     // - Non-suite required cancellations always block (mixed cancel)
-    const stripConclusionParen = (label: string): string =>
-      label.replace(/\s*\([^)]*\)\s*$/, "");
+    // Strip trailing " (conclusion)" without nested-paren regex (CodeQL js/polynomial-redos).
+    const stripConclusionParen = (label: string): string => {
+      const open = label.lastIndexOf(" (");
+      if (open < 0 || !label.endsWith(")")) {
+        return label;
+      }
+      return label.slice(0, open);
+    };
 
     const cancelledNonSuite = cancelledRequired.filter(
       (label) => suiteFamilyOf(stripConclusionParen(label)) === null,
