@@ -373,18 +373,15 @@ export function taskBodyInvokesCheckOrchestrator(body: string): boolean {
     if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) {
       hasEngineCheckCmd = true;
     }
-    // dispatchTaskCheck only when it appears as an executable token, not inert text.
+    // dispatchTaskCheck only as the command being invoked (not an arbitrary arg).
     const cmd = stripped.replace(/^-\s+/, "");
+    const unquoted = stripQuotedSegments(cmd).trim();
+    // Forms: dispatchTaskCheck ... | node path/dispatchTaskCheck.js | npx ...dispatchTaskCheck
     if (
-      /^(?:npx\s+|node\s+)?.*\bdispatchTaskCheck\b/.test(cmd) &&
-      !/^echo\b/i.test(cmd) &&
-      !isPureAssignmentLine(cmd)
+      /^(?:sudo\s+)?dispatchTaskCheck\b/.test(unquoted) ||
+      /^(?:sudo\s+)?(?:node|npx)\s+\S*dispatchTaskCheck\S*/.test(unquoted)
     ) {
-      // Still reject if only inside quotes as inert documentation
-      const unquoted = stripQuotedSegments(cmd);
-      if (/\bdispatchTaskCheck\b/.test(unquoted)) {
-        hasDispatch = true;
-      }
+      hasDispatch = true;
     }
     if (
       lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||

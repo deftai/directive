@@ -374,6 +374,7 @@ tasks:
   check:
     cmds:
       - echo "call dispatchTaskCheck later"
+      - true dispatchTaskCheck
 `;
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: root,
