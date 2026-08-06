@@ -221,4 +221,28 @@ describe("evaluateScopeProvenance (#3145)", () => {
     });
     expect(result.exitCode).toBe(0);
   });
+
+  it("detects expansion when changedFiles simulate a PR branch (not bare HEAD)", () => {
+    // PR CI often has a clean working tree; callers inject changedFiles from
+    // origin/master...HEAD. This documents that base-ref must not be bare HEAD.
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["src/app.ts"]),
+    });
+    const active = new Map<string, string>([
+      [
+        "xbrief/active/story.xbrief.json",
+        JSON.stringify(xbrief("story-1", ["src/app.ts", "infra/new.py"])),
+      ],
+    ]);
+    const result = evaluateScopeProvenance("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: ["xbrief/active/story.xbrief.json", "infra/new.py"],
+      activeXbriefs: active,
+      approvedRecords: [approved],
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("self-authorizing-scope-expansion");
+  });
 });

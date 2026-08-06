@@ -94,6 +94,28 @@ describe("evaluateConsumerCheckContract (#3145)", () => {
     expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
   });
 
+  it("does not treat mere check:consumer name mention as full-check composition", () => {
+    // Incomplete deps + incidental check:consumer string must still fail.
+    const root = `
+version: '3'
+tasks:
+  check:
+    deps:
+      - verify:branch
+  docs:
+    cmds:
+      - echo "see check:consumer docs"
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
   it("passes when verify.yml defines gates and check composes them", () => {
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,

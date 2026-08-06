@@ -22,6 +22,7 @@ export {
 export {
   evaluateOneScopeProvenance,
   evaluateScopeProvenance,
+  resolveDefaultBaseRef,
   type ScopeProvenanceFinding,
   type ScopeProvenanceOptions,
   type ScopeProvenanceResult,

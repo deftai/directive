@@ -79,19 +79,49 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
   return { status: result.status ?? 1, stdout: result.stdout ?? "" };
 }
 
+/**
+ * Resolve a PR-aware base ref. Bare `HEAD` only shows uncommitted changes, so
+ * CI/PR checkouts would miss committed active-xBRIEF expansion. Prefer
+ * origin/master (or main) for merge-base comparison.
+ */
+export function resolveDefaultBaseRef(projectRoot: string): string {
+  for (const cand of ["origin/master", "origin/main", "master", "main"]) {
+    if (git(["rev-parse", "--verify", "-q", cand], projectRoot).status === 0) {
+      return cand;
+    }
+  }
+  return "HEAD";
+}
+
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
   if (inside.status !== 0) {
     throw new GitCommandError("not a git working tree");
   }
-  const hasHead = git(["rev-parse", "--verify", "-q", baseRef], projectRoot).status === 0;
-  if (!hasHead) {
+  // Normalize: if caller passed HEAD, upgrade to default branch so PR commits
+  // are visible (Greptile P1 / #3145).
+  let resolved = baseRef;
+  if (baseRef === "HEAD" || baseRef === "") {
+    resolved = resolveDefaultBaseRef(projectRoot);
+  }
+  const hasBase = git(["rev-parse", "--verify", "-q", resolved], projectRoot).status === 0;
+  if (!hasBase) {
     return [];
   }
   const out = new Set<string>();
-  const diff = git(["diff", "--name-only", baseRef], projectRoot);
+  // Triple-dot includes all commits on the branch relative to merge-base.
+  const range = resolved === "HEAD" || resolved.includes("...") ? resolved : `${resolved}...HEAD`;
+  const diff = git(["diff", "--name-only", range], projectRoot);
   if (diff.status === 0) {
     for (const line of diff.stdout.split("\n")) {
+      const t = line.replace(/\r$/, "").trim().replace(/\\/g, "/");
+      if (t.length > 0) out.add(t);
+    }
+  }
+  // Also include working-tree changes vs HEAD (unstaged / staged / untracked).
+  const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
+  if (vsHead.status === 0) {
+    for (const line of vsHead.stdout.split("\n")) {
       const t = line.replace(/\r$/, "").trim().replace(/\\/g, "/");
       if (t.length > 0) out.add(t);
     }
@@ -220,14 +250,17 @@ export function evaluateScopeProvenance(
 ): ScopeProvenanceResult {
   const root = resolve(projectRoot);
   const enforce = options.enforce ?? false;
-  const baseRef = options.baseRef ?? "HEAD";
 
   let changed: string[];
   try {
-    changed =
-      options.changedFiles !== undefined
-        ? [...options.changedFiles].map((p) => p.replace(/\\/g, "/"))
-        : changedFilesVsBase(root, baseRef);
+    if (options.changedFiles !== undefined) {
+      changed = [...options.changedFiles].map((p) => p.replace(/\\/g, "/"));
+    } else {
+      // Default is PR-aware (origin/master...), not bare HEAD — bare HEAD misses
+      // committed PR diffs on clean checkouts (#3145 Greptile P1).
+      const baseRef = options.baseRef ?? resolveDefaultBaseRef(root);
+      changed = changedFilesVsBase(root, baseRef);
+    }
   } catch (err: unknown) {
     if (err instanceof GitNotFoundError) {
       return configError(

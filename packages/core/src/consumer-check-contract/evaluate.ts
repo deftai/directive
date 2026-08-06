@@ -206,7 +206,6 @@ export function evaluateConsumerCheckContract(
 
   // 2) Root check aggregate should reference required gates OR invoke full deft check
   const checkTargets = ["check", "check:consumer", "check:framework-source"];
-  let checkBodyMentionsDirectiveCheck = false;
   const composed = new Set<string>();
 
   for (const target of checkTargets) {
@@ -215,20 +214,26 @@ export function evaluateConsumerCheckContract(
       composed.add(d);
     }
   }
-  if (
+  // True only for real orchestrator / CLI check entrypoints — NOT mere mentions of
+  // task names like check:consumer (which would bypass incomplete dep lists; Greptile P1).
+  const invokesFullDirectiveCheck =
     textReferencesGate(rootText, "deft check") ||
     textReferencesGate(rootText, "directive check") ||
-    /dispatchTaskCheck|check:consumer|check:framework-source/.test(rootText)
-  ) {
-    checkBodyMentionsDirectiveCheck = true;
-  }
+    /\bdispatchTaskCheck\b/.test(rootText) ||
+    /ENGINE_CMD:\s*['"]?check\b/.test(rootText);
 
-  // Baseline CONSUMER_CHECK_GATES presence is advisory here; #3145 focuses on enforcement trio.
-  // If the project composes full `deft check` / framework check orchestrator, treat as composed
-  // only when verify.yml defines the tasks (step 1). For consumer custom check tasks that list
-  // deps explicitly, require the gates by name.
+  const verifyDefinesRequired =
+    verifyText !== null &&
+    required.every((gateId) => {
+      if (!gateId.startsWith("verify:")) return true;
+      return taskDefinedInTaskfileYaml(verifyText, gateId.slice("verify:".length));
+    });
+
+  // Full-check composition is trusted only when verify.yml defines every required gate.
+  // Otherwise (or when check lists explicit deps), require each gate by name in deps.
   const hasExplicitCheckDeps = composed.size > 0;
-  if (hasExplicitCheckDeps && !checkBodyMentionsDirectiveCheck) {
+  const trustFullCheck = invokesFullDirectiveCheck && verifyDefinesRequired;
+  if (hasExplicitCheckDeps && !trustFullCheck) {
     for (const gateId of required) {
       const listed =
         composed.has(gateId) ||
@@ -270,11 +275,14 @@ export function evaluateConsumerCheckContract(
 
   if (workflows.size > 0) {
     const allCi = [...workflows.values()].join("\n");
+    // Only real Directive/task check entrypoints compose gates. Bare package-manager
+    // test runners (npm test / vitest) do NOT satisfy the contract (Greptile P2).
     const ciMentionsCheck =
       textReferencesGate(allCi, "deft check") ||
       textReferencesGate(allCi, "task check") ||
       textReferencesGate(allCi, "directive check") ||
-      /npm test|pnpm test|vitest/.test(allCi);
+      textReferencesGate(allCi, "check:consumer") ||
+      textReferencesGate(allCi, "check:framework-source");
 
     for (const gateId of required) {
       const mentioned =

@@ -17,7 +17,8 @@ interface ParsedArgs {
 export function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     projectRoot: ".",
-    baseRef: "HEAD",
+    // Empty means use PR-aware default (origin/master...), not bare HEAD.
+    baseRef: "",
     enforce: false,
     quiet: false,
   };
@@ -60,7 +61,7 @@ export function run(argv: string[]): number {
   }
   const projectRoot = resolve(args.projectRoot);
   const result = scopeProvenance.evaluateScopeProvenance(projectRoot, {
-    baseRef: args.baseRef,
+    ...(args.baseRef.length > 0 ? { baseRef: args.baseRef } : {}),
     enforce: args.enforce,
   });
   if (result.exitCode === 0) {
