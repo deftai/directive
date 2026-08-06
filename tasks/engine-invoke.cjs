@@ -113,12 +113,13 @@ function main() {
   // stdio inherit (not pipe): piped stdout/stderr deadlocks when the child emits
   // more than the OS pipe buffer before exit — observed as greenfield smoke
   // hanging then CI SIGTERM exit 143 with no output (#2554 / #2547).
+  // shell:false is a literal at the call site (not plan.shell) so static
+  // analyzers see a non-shell spawn; win32 global still uses a quoted cmd.exe
+  // wrapper inside buildSpawnPlan, never shell:true (#2911 / #3175).
   const result = spawnSync(plan.command, plan.args, {
     stdio: "inherit",
     env: childEnv,
-    // Never shell:true — even on win32 global (subprocess-scm-01 / #2911). The
-    // win32 .cmd shim is reached through a tightly quoted cmd.exe wrapper below.
-    shell: plan.shell,
+    shell: false,
     // CREATE_NO_WINDOW: hide console windows from Cursor Task / nested shells (#2563).
     windowsHide: true,
   });
@@ -135,6 +136,11 @@ function main() {
  * quoted so metacharacters stay inside a single argv token — aligned with
  * tasks/engine-pm-run.cjs executeAllowlisted().
  *
+ * Vendored vs global branches are deliberately disjoint (#3175 / CodeQL alert
+ * #74): process.execPath (AbsolutePathSource) is only the vendored non-shell
+ * command and must never flow into the win32 cmd.exe `/c` string, where it
+ * would be shell-interpreted as part of a constructed command line.
+ *
  * @param {string} mode
  * @param {string} target
  * @param {string[]} argv
@@ -143,26 +149,25 @@ function main() {
  */
 function buildSpawnPlan(mode, target, argv, opts = {}) {
   const platform = opts.platform || process.platform;
-  const nodePath = opts.nodePath || process.execPath;
 
-  let execPath;
-  let execArgv;
   if (mode === "vendored") {
-    execPath = nodePath;
-    execArgv = [target, ...argv];
-  } else if (mode === "global") {
-    execPath = target;
-    execArgv = argv;
-  } else {
-    return null;
+    // Non-shell: Node binary + script path + operator argv. process.execPath is
+    // only used here as the executable name with shell:false — never joined into
+    // a cmd.exe command line (CodeQL js/shell-command-injection-from-environment).
+    const nodePath = opts.nodePath || process.execPath;
+    return { command: nodePath, args: [target, ...argv], shell: false };
   }
 
-  if (mode === "global" && platform === "win32") {
-    const commandLine = [execPath, ...execArgv].map(quoteWin32Arg).join(" ");
-    return { command: "cmd.exe", args: ["/d", "/s", "/c", commandLine], shell: false };
+  if (mode === "global") {
+    if (platform === "win32") {
+      // Only the global shim name/path and operator argv — no process.execPath.
+      const commandLine = [target, ...argv].map(quoteWin32Arg).join(" ");
+      return { command: "cmd.exe", args: ["/d", "/s", "/c", commandLine], shell: false };
+    }
+    return { command: target, args: argv, shell: false };
   }
 
-  return { command: execPath, args: execArgv, shell: false };
+  return null;
 }
 
 if (require.main === module) {
