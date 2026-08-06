@@ -21,6 +21,23 @@ export function isBotReviewCheck(name: string): boolean {
   return n.includes("greptile") || n.includes("slizard") || n.includes("coderabbit");
 }
 
+/**
+ * Suite family for cancelled↔green sibling matching (#3167 / Greptile P1).
+ * Unrelated greens (CodeQL, Socket, …) must not clear a cancelled TypeScript/Go lane.
+ * Returns null when the check is not a TS/Go CI suite job.
+ */
+export function suiteFamilyOf(name: string): "typescript" | "go" | null {
+  const n = name.toLowerCase();
+  if (n.includes("typescript") || n.includes("type script")) {
+    return "typescript";
+  }
+  // "Go (…)" primary/failover/aggregator; avoid bare "go" false positives (e.g. CodeQL go analyze).
+  if (/\bgo\s*\(/.test(n) || n.startsWith("go ") || n === "go") {
+    return "go";
+  }
+  return null;
+}
+
 export type CiReadyState =
   | "ready"
   | "blocked"
@@ -143,7 +160,6 @@ export function evaluateCiGate(
   const pendingProbes: CheckRunRecord[] = [];
   const conclusions: CiCheckConclusion[] = [];
   let workflowCheckCount = 0;
-  let successCount = 0;
   let operatorIgnoredOnly = false;
 
   for (const run of checkRuns) {
@@ -170,7 +186,6 @@ export function evaluateCiGate(
     workflowCheckCount += 1;
 
     if (run.status === "completed" && SUCCESS_CONCLUSIONS.has(run.conclusion)) {
-      successCount += 1;
       continue;
     }
 
@@ -254,18 +269,45 @@ export function evaluateCiGate(
           "Wait for required checks to finish before merge.",
       );
     }
-  } else if (cancelledRequired.length > 0 && successCount === 0) {
-    // Cancelled lanes with no green required sibling = failover skipped/not armed (#3167).
-    readyState = "ci_cancelled_no_failover";
-    failedRequired = [...cancelledRequired];
-    failures.push(
-      `Required CI check-runs cancelled without failover (ci_cancelled_no_failover): ` +
-        `${cancelledRequired.join(", ")}. ` +
-        "Primary cancelled and no green required sibling (#3167 / #3168). " +
-        "Do not multi-hour re-push thrash; BLOCKED after thrash caps.",
+  } else if (cancelledRequired.length > 0) {
+    // Cancelled primary is cleared only by a green required sibling in the SAME suite
+    // family (TS primary → TS failover/aggregator). Unrelated greens (CodeQL, Socket)
+    // must not make the gate ready (#3167 Greptile P1).
+    const cancelledFamilies = new Set(
+      cancelledRequired
+        .map((label) => suiteFamilyOf(label.replace(/\s*\([^)]*\)\s*$/, "")))
+        .filter((f): f is "typescript" | "go" => f !== null),
     );
+    const greenFamilies = new Set(
+      conclusions
+        .filter(
+          (c) =>
+            c.required &&
+            c.status === "completed" &&
+            SUCCESS_CONCLUSIONS.has(c.conclusion) &&
+            suiteFamilyOf(c.name) !== null,
+        )
+        .map((c) => suiteFamilyOf(c.name) as "typescript" | "go"),
+    );
+    const uncleared =
+      cancelledFamilies.size === 0
+        ? cancelledRequired // non-suite cancels still block
+        : [...cancelledFamilies].filter((f) => !greenFamilies.has(f));
+
+    if (uncleared.length > 0) {
+      readyState = "ci_cancelled_no_failover";
+      failedRequired = [...cancelledRequired];
+      failures.push(
+        `Required CI check-runs cancelled without failover (ci_cancelled_no_failover): ` +
+          `${cancelledRequired.join(", ")}. ` +
+          "Primary cancelled and no green same-suite sibling (#3167 / #3168). " +
+          "Do not multi-hour re-push thrash; BLOCKED after thrash caps.",
+      );
+    } else {
+      // Every cancelled suite family has a green sibling (failover/aggregator).
+      readyState = "ready";
+    }
   } else {
-    // successCount > 0 with optional cancelled siblings (replaced primary) → ready.
     readyState = "ready";
   }
 

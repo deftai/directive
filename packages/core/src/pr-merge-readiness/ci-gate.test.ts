@@ -165,6 +165,39 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     ]);
   });
 
+  it("does not clear cancelled suite when only unrelated checks are green (#3167 P1)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "CodeQL", conclusion: "success" }),
+        run({ name: "Socket Security: Project Report", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+    expect(result.failures.join(" ")).toContain("ci_cancelled_no_failover");
+    expect(result.failures.join(" ")).toContain("same-suite");
+  });
+
+  it("does not clear cancelled TypeScript via green Go sibling only (#3167 P1)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "Go (test + build)", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+  });
+
   it("prefers ci_failures over cancelled when both present (#3167)", () => {
     const result = evaluateCiGate(
       [
