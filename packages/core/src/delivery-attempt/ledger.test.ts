@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -295,7 +295,7 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     expect(nestedSawHeld).toBe(true);
   });
 
-  it("withUnitLock reclaims when live PID is past stale window (PID reuse)", () => {
+  it("withUnitLock reclaims live PID only when lock mtime heartbeat is stale", () => {
     const root = tmpRoot();
     const dir = deliveryAttemptsDir(root);
     mkdirSync(dir, { recursive: true });
@@ -304,12 +304,15 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     writeFileSync(
       lockPath,
       `${JSON.stringify({
-        pid: process.pid, // appears alive but startedAt is stale → reclaimable
+        pid: process.pid, // appears alive
         token: "pid-reuse",
         startedAt: new Date(staleStarted).toISOString(),
       })}\n`,
       { flag: "wx", encoding: "utf8" },
     );
+    // Heartbeat stopped long ago → PID-reuse residual reclaimable
+    const old = new Date(staleStarted);
+    utimesSync(lockPath, old, old);
     const value = withUnitLock(
       root,
       "s",
@@ -319,5 +322,30 @@ describe("delivery-attempt ledger durability (#3143)", () => {
       { nowMs: Date.now(), staleMs: UNIT_LOCK_STALE_MS },
     );
     expect(value).toBe("ok");
+  });
+
+  it("withUnitLock does not reclaim live holder with fresh heartbeat mtime", () => {
+    const root = tmpRoot();
+    const dir = deliveryAttemptsDir(root);
+    mkdirSync(dir, { recursive: true });
+    const lockPath = join(dir, `${unitLedgerFilename("s", "t", "w")}.lock`);
+    // startedAt is old but mtime is fresh → long critical section, not reclaimable
+    writeFileSync(
+      lockPath,
+      `${JSON.stringify({
+        pid: process.pid,
+        token: "long-holder",
+        startedAt: new Date(Date.now() - UNIT_LOCK_STALE_MS - 60_000).toISOString(),
+      })}\n`,
+      { flag: "wx", encoding: "utf8" },
+    );
+    const now = new Date();
+    utimesSync(lockPath, now, now);
+    expect(() =>
+      withUnitLock(root, "s", "t", "w", () => "nope", {
+        nowMs: Date.now(),
+        staleMs: UNIT_LOCK_STALE_MS,
+      }),
+    ).toThrow(/unit lock held/);
   });
 });

@@ -13,7 +13,9 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   unlinkSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -364,21 +366,30 @@ function lockStartedAtMs(rec: UnitLockRecord): number | null {
  * Whether an existing lock may be reclaimed.
  * - unreadable/corrupt → reclaimable
  * - owner PID dead → reclaimable
- * - owner PID alive but startedAt older than staleMs → reclaimable (PID reuse)
- * - owner PID alive and fresh → not reclaimable
+ * - owner PID alive with fresh lock mtime/heartbeat → NOT reclaimable
+ *   (long critical sections keep heartbeat via utimes; never revoke live holders)
+ * - owner PID alive but lock mtime older than staleMs → reclaimable (PID reuse
+ *   residual: a different process inherited the pid number and is not heartbeating)
+ * - when lockPath is omitted (pure tests): fall back to startedAt age
  */
 export function isUnitLockReclaimable(
   rec: UnitLockRecord | null,
   nowMs: number,
   staleMs: number = UNIT_LOCK_STALE_MS,
+  lockPath?: string,
 ): boolean {
   if (rec === null) return true;
-  const started = lockStartedAtMs(rec);
-  const agedOut = started !== null && nowMs - started >= staleMs;
-  if (isProcessAlive(rec.pid)) {
-    return agedOut;
+  if (!isProcessAlive(rec.pid)) return true;
+  if (lockPath !== undefined) {
+    try {
+      const st = statSync(lockPath);
+      return nowMs - st.mtimeMs >= staleMs;
+    } catch {
+      return true;
+    }
   }
-  return true;
+  const started = lockStartedAtMs(rec);
+  return started !== null && nowMs - started >= staleMs;
 }
 
 function writeLockExclusive(path: string, record: UnitLockRecord): void {
@@ -451,9 +462,9 @@ export function withUnitLock<T>(
       const code = (err as NodeJS.ErrnoException).code;
       if (code !== "EEXIST") throw err;
     }
-    // Existing reclaim ticket — only take over if reclaimable (dead/stale).
+    // Existing reclaim ticket — only take over if reclaimable (dead/stale heartbeat).
     const existingReclaim = readLockRecord(reclaimPath);
-    if (!isUnitLockReclaimable(existingReclaim, nowMs, staleMs)) {
+    if (!isUnitLockReclaimable(existingReclaim, nowMs, staleMs, reclaimPath)) {
       const pid = existingReclaim?.pid;
       throw heldError(pid !== undefined ? ` (reclaim by pid ${pid})` : " (reclaim in progress)");
     }
@@ -476,7 +487,7 @@ export function withUnitLock<T>(
     if (code !== "EEXIST") throw err;
 
     const existing = readLockRecord(lockPath);
-    if (!isUnitLockReclaimable(existing, nowMs, staleMs)) {
+    if (!isUnitLockReclaimable(existing, nowMs, staleMs, lockPath)) {
       throw heldError(
         existing !== null ? ` by pid ${existing.pid}` : "",
       );
@@ -486,7 +497,7 @@ export function withUnitLock<T>(
     acquireReclaimTicket();
     try {
       const again = readLockRecord(lockPath);
-      if (!isUnitLockReclaimable(again, nowMs, staleMs)) {
+      if (!isUnitLockReclaimable(again, nowMs, staleMs, lockPath)) {
         throw heldError(again !== null ? ` by pid ${again.pid}` : "");
       }
       try {
@@ -504,9 +515,25 @@ export function withUnitLock<T>(
     }
   }
 
+  // Heartbeat while holding: refresh mtime so long critical sections are never
+  // treated as PID-reuse stale. Interval is unref'd so tests/CLI can exit.
+  const hbMs = Math.max(1_000, Math.min(Math.floor(staleMs / 3), 30_000));
+  const heartbeat = setInterval(() => {
+    try {
+      const t = new Date();
+      utimesSync(lockPath, t, t);
+    } catch {
+      /* released or raced */
+    }
+  }, hbMs);
+  if (typeof heartbeat.unref === "function") {
+    heartbeat.unref();
+  }
+
   try {
     return fn();
   } finally {
+    clearInterval(heartbeat);
     unlinkIfOurs(lockPath, token, process.pid);
   }
 }

@@ -145,12 +145,13 @@ Pure in-memory helpers (`evaluatePreDispatch`, `beginAttempt`, `completeAttempt`
 remain for tests and single-threaded hosts. Multi-worker orchestration MUST use
 `beginAttemptOnDisk` / `completeAttemptOnDisk` (or `withUnitLock` around an
 equivalent sequence). Abandoned unit locks are reclaimed when the owner PID is
-dead, the lock record is corrupt, or the lock `startedAt` is older than the
-stale window (default 5 minutes — covers PID reuse). Reclaim is serialized via
-an exclusive `*.lock.reclaim` ticket so concurrent reclaimers cannot unlink a
-live replacement lock. If a lock remains stuck (e.g. live holder hung longer
-than the stale window and you still cannot proceed), delete the matching
-`.lock` / `.lock.reclaim` files under `.deft/delivery-attempts/` manually.
+dead, the lock record is corrupt, or the owner PID appears alive but the lock
+file mtime has not been heartbeated within the stale window (default 5 minutes —
+covers PID reuse without revoking a live holder still in the critical section).
+Reclaim is serialized via an exclusive `*.lock.reclaim` ticket so concurrent
+reclaimers cannot unlink a live replacement lock. If a lock remains stuck,
+delete the matching `.lock` / `.lock.reclaim` files under
+`.deft/delivery-attempts/` manually.
 
 ## Observability
 
