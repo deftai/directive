@@ -6,9 +6,41 @@
 
 ### Through-merge / N=1 still uses the launch path (#3032)
 
-! When operator intent is **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work, the parent (monitor) conversation MUST NOT implement product code or own the implementation PR as the leaf. Parent MUST run this skill's launch path: worktree isolation when available, worker envelope with `drive-to: merge-ready`, xBRIEF preflight, pre-pr + review-cycle, then merge/`scope:complete` per #1880 Gap C.
+! When operator intent is **through merge**, **drive to merge**, **land/ship issue**, or explicit **drive-to: merge-ready** for story work, the parent (monitor) conversation MUST NOT implement product code or own the implementation PR as the leaf. Parent MUST run this skill's launch path: worktree isolation when available, worker envelope with the unit-of-work boundary selected below (`drive-to: merge-ready` default, or deliberate `stop-at: pr-open` per the envelope selection SLA), xBRIEF preflight, pre-pr + review-cycle, then merge/`scope:complete` per #1880 Gap C.
 ! **Cohort size N=1 is still a cohort for dispatch.** Solo through-merge uses the same swarm/solo-worker launch path as multi-story (`dispatch_kind: solo` or a one-story swarm-cohort). Do not treat "only one issue" as permission for the parent to code.
 ⊗ Parent implements, babysits product fix loops, or skips worktree + worker dispatch for through-merge / drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+
+### Envelope selection SLA — `drive-to: merge-ready` vs `stop-at: pr-open` (#3153)
+
+! **Cohort through-merge intent still means stories land on master.** Choosing `stop-at: pr-open` changes **who owns which mile** (implement leaf vs review-cycle babysit owner), not whether the cohort ships. Happy-path single-leaf ownership remains valid; this SLA does **not** replace Gap C with "always split."
+
+! **Default for story / through-merge dispatch:** `drive-to: merge-ready` — the implementation leaf owns implement → pre-pr → push → PR → Greptile review-cycle → CI → merge-ready (and `scope:complete` when the envelope includes that step) as **one** unit (#1880 Gap C / #3032).
+
+! **Select the envelope at Phase 0 allocation / Phase 3 dispatch prep** (before spawn). Record the choice in the worker prompt unit-of-work line. Re-evaluate only when a leaf returns `BLOCKED` / thin DONE and a **new** continuation is planned — never re-label a live `drive-to: merge-ready` leaf as if it had been `stop-at: pr-open`.
+
+#### Decision tree (concrete triggers)
+
+| Trigger | Envelope | Notes |
+|---------|----------|--------|
+| Happy path / short story / green CI expected / no wall-clock budget stated | **`drive-to: merge-ready`** (default) | One leaf owns full path; silent PR-open handback remains forbidden |
+| Operator (or xBRIEF) states a wall-clock / context budget that is likely shorter than CI + conf-floor wait | **`stop-at: pr-open` recommended** | Parent/monitor **must** spawn or retain one review-cycle babysit owner on the open PR (partner contract: `skills/deft-directive-review-cycle/SKILL.md` § Partner merge-path) |
+| Known or observed **runner capacity stall** (`ci_ready_state=runner_capacity_stall` / #2672) dominating wall clock before implement finishes | **`stop-at: pr-open` recommended** | Do not lower conf floors or `--skip-ci`; split so implement leaf does not burn host budget waiting on runners; babysit owns failover wait |
+| Large multi-gate story (many required checks, multi-round Greptile, dogfood conf floor, expected multi-hour non-impl wait) | **`stop-at: pr-open` recommended** | Keeps implement leaf focused; merge path owned by review-cycle babysit with sticky lease (#3090 / #3044) |
+| **Conf-only residual** after implement: 0 P0/P1, score below `minGreptileConfidence`, product AC met (#2881 / #3095) | Prefer **`drive-to: merge-ready`** leaf to exit **`BLOCKED`** (not thin DONE) **or** deliberate **`stop-at: pr-open`** + babysit if the split was pre-declared | Confidence-only holds are **not** a mandate to redesign; babysit offers document/accept/minimal polish — not unbounded redesign |
+| Host leaf cannot nest a review-monitor (Cursor Task / Claude Code nested-spawn limits #2797 / #3134) **and** Approach 1 sibling is desired | **`stop-at: pr-open` required** for the implement leaf | Orchestrator spawns sibling review-monitor + lease; same as existing leaf-boundary rules |
+| Explicit operator override | Honor operator | Still declare envelope in dispatch; partner ownership rules still apply |
+
+#### Thin DONE and recovery (fail-closed)
+
+! A `drive-to: merge-ready` leaf that exits with PR URL but **no** merge / merge-ready evidence is **FAILED thin DONE** (#2943 / preamble §11) — not success and not a designed handoff.
+! Recovery: parent/monitor ground-truths once, then backgrounds **exactly one** continuation owner scoped `drive-to: merge-ready` on the same worktree/PR **or** one review-cycle babysit owner with sticky `<!-- deft:review-owner -->` lease. ⊗ Dual lease / parallel babysit (#3044). ⊗ Cursor global babysit freestyle (#2261).
+! A **deliberate** `stop-at: pr-open` exit (PR open + structured handback) is **not** thin DONE — it is a designed handoff that **requires** the review-cycle partner merge-path contract immediately (same turn tool dispatch or registered owner).
+
+⊗ Re-scope a live `drive-to: merge-ready` worker mid-flight to "PR-open is enough" without a new dispatch envelope.
+⊗ Choose `stop-at: pr-open` without a named babysit / review-monitor owner plan (silent drop of merge path).
+⊗ Lower Greptile floors, skip CI, or use `--skip-ci` as the alternative to envelope selection (#2672 / #3095).
+
+Cross-links: Phase 3 Worker-owns-lifecycle (`references/core-phase-3.md`), review-cycle partner merge-path (`skills/deft-directive-review-cycle/SKILL.md`), preamble Gap C (`templates/agent-prompt-preamble.md` § Orchestrator dispatch doctrine).
 
 ### Headless cohort fast-path: low-ceremony launch (C1 / #1387)
 

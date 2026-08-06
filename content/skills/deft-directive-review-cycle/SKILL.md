@@ -380,6 +380,27 @@ Remediation:
 
 ! **Swarm monitor must not self-implement (#2843 / Gap C):** When a cohort monitor receives `BLOCKED` or DONE-with-blockers from a `drive-to: merge-ready` implementation leaf, the monitor MUST NOT enter the review/fix loop inline on Tier 1 — background-dispatch ONE continuation leaf scoped `drive-to: merge-ready` on the same worktree. Monitor-inline review-cycle is permitted only on Tier 3 or with explicit operator consent (see `skills/deft-directive-swarm/SKILL.md` Phase 5 completion-notification decision tree).
 
+### Partner merge-path when implement stops at PR-open (#3153)
+
+! This skill is the **required partner** for the swarm **Envelope selection SLA** (`skills/deft-directive-swarm/references/core-phase-0.md` / Phase 3). When an implement leaf was deliberately scoped **`stop-at: pr-open`** (or a merge-ready leaf failed thin DONE and recovery chose babysit ownership), the parent/monitor MUST **not** leave the open PR without a merge-path owner.
+
+! **First-class merge-path ownership (MUST, same turn as PR ground-truth):**
+
+1. ! Spawn **or** retain **exactly one** review-cycle owner for the open PR:
+   - **Approach 1** review-monitor (`worker_role: review-monitor`) with sticky `<!-- deft:review-owner -->` lease (#3090 / #3044 / dual-invoke `review-monitor:register` when available), **or**
+   - A continuation leaf scoped **`drive-to: merge-ready`** on that PR/worktree that owns babysit → merge-ready in its tool loop, **or**
+   - Documented **parent-retained** ownership (`review_cycle: in_progress:<pr>#parent-retained`) with an explicit next poll/fix action — never silent hold.
+2. ! Route through **this skill** — ⊗ Cursor global babysit (`#2261`), freestyle main-session poll, or dual parallel monitors (`#3044`).
+3. ! Apply Owner Continuity Gate (#3090) and Single review-monitor lease (#3044) without exception: one sticky lease; force-takeover only when the prior owner is dead.
+4. ! **Post-merge `scope:complete` (#2321 / Gap C):** When the implement leaf stopped at pr-open, it MUST NOT have run `task scope:complete`. The merge-path owner (or swarm Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort` / monitor) MUST run `task scope:complete` or `task scope:cancel` after merge. `task verify:orphan-active` fails closed on stranded active briefs.
+5. ! **Thin DONE recovery (#2943 / #3153):** A failed `drive-to: merge-ready` leaf that only opened a PR is **not** success. After ground truth, hand merge path to **one** of the owners above — never improvise a second lease or re-dispatch implement + babysit in parallel without releasing the first.
+
+! **Cohort through-merge intent is unchanged:** stories still land on master. Envelope selection only assigns **who owns implement vs who owns Greptile/CI/merge** under capacity stall, conf floors, wall-clock budgets, or large multi-gate stories. Happy-path single `drive-to: merge-ready` leaves remain the default and do not use this partner handoff.
+
+! **Does not authorize:** lowering `minGreptileConfidence`, `--skip-ci` for capacity stalls, or unbounded redesign on conf-only holds (#2881 / #2672 / #3095).
+
+Cross-links: swarm decision tree `skills/deft-directive-swarm/references/core-phase-0.md` § Envelope selection SLA; Phase 3 Gap C `skills/deft-directive-swarm/references/core-phase-3.md`; thin SKILL pointer `skills/deft-directive-swarm/SKILL.md` § Envelope selection SLA.
+
 
 
 ! Select the monitoring approach based on runtime capability detection (the matrix in `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1, extended per #1342 slices 1-2 for `spawn_subagent` / "grok-build", per #1877 for Cursor as first-class Tier-1 tiers, per #2876 for OpenClaw `sessions_spawn`, and per #3134 for Claude Code `claude-code` / `claude-agent`). Probe the environment (tool set + env vars) to obtain the stable platform descriptor (`grok-build`, `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, `claude-code`, `openclaw`, etc.) from the launch adapter / `get_platform_capabilities` and map the descriptor to the appropriate tier + dispatch primitive (`start_agent`, `spawn_subagent`, the Cursor `Task` tool, Claude Code `Agent` / `claude-agent`, or OpenClaw `sessions_spawn`). The descriptor (not hard-coded tool presence) is the single source of truth for both launch and review monitoring.
@@ -657,6 +678,8 @@ task lifecycle:event -- emit plan:approved \
 
 ## Anti-Patterns
 
+- ⊗ Leave a deliberate `stop-at: pr-open` (or thin-DONE recovery) open PR without spawning/retaining one review-cycle babysit owner + lease continuity and post-merge `scope:complete` plan (#3153)
+- ⊗ Dual-lease or freestyle Cursor global babysit for the partner merge-path after implement stops at PR-open (#3153 / #2261 / #3044)
 - ⊗ End owning turn with 0 children, no sticky lease, and no finish after drive-to-merge / babysit / shepherd claim — silent hold (#3090)
 - ⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without `done` or verifiable `in_progress:<pr>#…` lease/parent-retained (#3090)
 - ⊗ Treat check-run SUCCESS alone as CLEAN / merge-ready while dual-source P0/P1 remain (#3090)

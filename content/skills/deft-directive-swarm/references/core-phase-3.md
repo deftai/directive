@@ -126,11 +126,17 @@ Cross-references: `packages/core/src/swarm/routing.ts` (`SWARM_WORKER_ROLES`), `
 
 ! **Worker-owns-lifecycle (Gap C):** Every implementation-worker dispatch prompt MUST declare the unit-of-work boundary: `stop-at: pr-open` OR `drive-to: merge-ready` (default for story xBRIEF work). Workers scoped `drive-to: merge-ready` own pre-PR, push, PR open, Greptile review-cycle poll/fix, and the #1259 Step 6 fail-closed exit as ONE dispatch — they spawn their own review poller per `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers. The monitor MUST NOT plan a separate post-PR review leaf for a worker already scoped merge-ready.
 
+! **Envelope selection at launch (#3153):** Choose the unit-of-work boundary using the Phase 0 **Envelope selection SLA** decision tree (`references/core-phase-0.md`) before spawn. Default remains `drive-to: merge-ready`. When the tree recommends or requires `stop-at: pr-open` (capacity stall, wall-clock budget, large multi-gate, host nested-monitor limits), the monitor MUST pre-plan the **partner merge-path owner** (review-cycle babysit / Approach 1 review-monitor) and dispatch or retain that owner when the implement leaf hands back — same turn as ground-truth of PR open, not improvised thin-DONE recovery. Cohort through-merge still means land on master; only mile ownership splits.
+
+! **Deliberate `stop-at: pr-open` is not silent Gap C handback:** Silent PR-open handback for a worker whose envelope already said `drive-to: merge-ready` remains **forbidden**. A **pre-declared** `stop-at: pr-open` plus an immediately owned review-cycle babysit path is the supported alternative under the #3153 SLA. Partner contract depth: `skills/deft-directive-review-cycle/SKILL.md` § Partner merge-path when implement stops at PR-open.
+
 ! **Post-merge scope lifecycle (#2321 / Gap C):** Workers scoped `stop-at: pr-open` MUST NOT run `task scope:complete` before exit — their activation checkpoint rides into master on merge. The monitor (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort` on the headless path) MUST run `task scope:complete` or `task scope:cancel` for each shipped story xBRIEF after its PR merges. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `task scope:complete` on their active xBRIEF as part of the same unit of work (after merge when appropriate). `task verify:orphan-active` fails closed when active/running briefs remain after their issues close or PR merges.
 
 ! **Background / independent dispatch (Gap D):** Dispatch implementation, fix, and review-cycle workers independently / in the background when the platform supports it. On Cursor, use the Task tool background path (`run_in_background: true`); on Claude Code, use the `Agent` tool with `run_in_background: true` (or host equivalent) (#3134); on OpenClaw, use `sessions_spawn` with the host's non-blocking / background session flags so the monitor conversation stays interactive. Foreground dispatch is for short tasks (<~3 min) only.
 
 ⊗ Hand back at PR-open and re-dispatch separate review-monitor or fix leaf agents for a worker whose envelope scoped `drive-to: merge-ready` (#1880 Gap C).
+
+⊗ Dispatch `stop-at: pr-open` without a named review-cycle babysit / merge-path owner plan — that drops the merge mile (#3153).
 
 ⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when background dispatch is available (#1880 Gap D).
 

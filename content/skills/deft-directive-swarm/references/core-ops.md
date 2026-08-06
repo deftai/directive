@@ -87,8 +87,10 @@ CONSTRAINTS:
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ! Multi-iteration prompts MUST name dual-stop defaults (or point at `main.md` / build skill #2442) so workers do not thrash without a failure envelope
+- ! **Unit-of-work envelope (#3153 / Gap C):** The prompt MUST declare `drive-to: merge-ready` **or** `stop-at: pr-open` (default merge-ready for story work). When `stop-at: pr-open`, state that the parent/monitor owns review-cycle babysit + post-merge `scope:complete` (worker MUST NOT `scope:complete` at exit). Selection tree: `references/core-phase-0.md` Envelope selection SLA.
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
 - ⊗ Write unconditional `DO NOT STOP until all steps are complete` without a dual-stop exception — that conflicts with the failure stop and causes thrash (#2442)
+- ⊗ Omit the unit-of-work envelope line or leave merge-path ownership ambiguous after a deliberate `stop-at: pr-open` (#3153)
 
 ## Push Autonomy
 
@@ -148,6 +150,9 @@ CONSTRAINTS:
 - ⊗ Multi-sentence progress-only first response after leaf completion announce (`subagent_announce` / parent-push) with zero tools / yield — tool-first ground-truth batch, host yield, or one short non-repeated answer only (#2943 text-repetition hang)
 - ⊗ N>2 near-identical assistant sentences in one turn with no tool_use / yield — FC14 hard-stop (`evaluateParentTurnShape` in `packages/core/src/parent-turn-shape/`; soft prose not sole mitigation) (#3131 / #2943)
 - ⊗ Treat thin DONE (completion without PR URL / merge evidence) as success — re-dispatch or take over after ground truth (#2943)
+- ⊗ Treat a `drive-to: merge-ready` exit with PR open but no merge-ready evidence as a designed handoff — it is FAILED thin DONE; recover with **one** continuation or review-cycle babysit owner, never dual lease (#3153 / #2943 / #3044)
+- ⊗ Dispatch `stop-at: pr-open` without a named review-cycle partner merge-path owner (babysit / Approach 1 monitor + sticky lease + post-merge `scope:complete` plan) (#3153)
+- ⊗ Freestyle Cursor global babysit or a second parallel review-monitor when recovering thin DONE or owning a stop-at:pr-open handoff (#2261 / #3044 / #3153)
 - ⊗ Second+ user-visible consolidate / final for the same child `runId` / settle batch without new evidence or principal reopen — completion latch silent-replay path (`templates/agent-prompt-preamble.md` §11.5 / #3092)
 - ⊗ Full dual-source re-QC solely because the harness re-delivered the same settle event (#3092)
 - ⊗ Run multi-iteration repair, monitor, or implement-fix loops without a dual-stop failure envelope (max iterations and/or no-progress and/or budget) (#2442)

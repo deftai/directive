@@ -140,6 +140,15 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! Composes with minimal-subgraph repair guidance (#2439): keep repairs minimal **and** bounded by dual-stop -- minimal repair is not a license to thrash. Durable delivery/acceptance circuit-breaker enforcement is sibling **#3143** (not implemented here).
 
+### Envelope selection SLA (#3153)
+
+! Before dispatching an implementation leaf, select `drive-to: merge-ready` (default) **or** deliberate `stop-at: pr-open` using the decision tree in [`references/core-phase-0.md`](references/core-phase-0.md) (capacity stall, conf-only residual, wall-clock budget, large multi-gate, host nest limits). Phase 3 launch + Gap C: [`references/core-phase-3.md`](references/core-phase-3.md). Partner merge-path when the leaf stops at PR-open: [`../deft-directive-review-cycle/SKILL.md`](../deft-directive-review-cycle/SKILL.md) § Partner merge-path.
+
+! Cohort through-merge still lands on master under either envelope; only **who owns which mile** changes. Thin DONE for merge-ready leaves remains fail-closed (#2943) — recover with **one** continuation/babysit owner (no dual lease).
+
+⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready` (#1880 Gap C).
+⊗ `stop-at: pr-open` without a named review-cycle babysit owner plan (#3153).
+
 ## Runtime Capability Detection (summary)
 
 ! Before selecting a launch method, probe the environment. Full probe text: [`references/core-phase-3.md`](references/core-phase-3.md).
@@ -188,5 +197,6 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
 - ⊗ Misclassify Claude Code as `cursor-composer` / `generic-terminal` (#3134)
 - ⊗ Run multi-iteration repair/monitor loops without a failure stop or with silent continuation after the envelope is exhausted (#2442)
+- ⊗ Silent PR-open handback for `drive-to: merge-ready`, or `stop-at: pr-open` without a review-cycle partner owner (#3153 / Gap C)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).
