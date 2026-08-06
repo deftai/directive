@@ -127,12 +127,16 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
     } else if (arg === "--from-issue") {
       const raw = argv[i + 1];
       i += 1;
-      if (raw === undefined) {
+      if (raw === undefined || !/^[1-9]\d*$/.test(raw)) {
         return { args: null, error: "usage" };
       }
       fromIssue = Number.parseInt(raw, 10);
     } else if (arg?.startsWith("--from-issue=")) {
-      fromIssue = Number.parseInt(arg.slice("--from-issue=".length), 10);
+      const raw = arg.slice("--from-issue=".length);
+      if (!/^[1-9]\d*$/.test(raw)) {
+        return { args: null, error: "usage" };
+      }
+      fromIssue = Number.parseInt(raw, 10);
     } else if (arg === "--path") {
       pathFlag = argv[i + 1];
       i += 1;

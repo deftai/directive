@@ -44,50 +44,129 @@ export interface PromoteFromIssueResult extends PromotePathResult {
   readonly cacheDecisionId: string | null;
 }
 
+/** Collapse CR/LF in operator-facing messages (SLizard CWE-116). */
+function sanitizeMsg(value: string): string {
+  return value.replace(/\r?\n/g, " ");
+}
+
+/** True when brief references or Origin point at owner/name issue N. */
+function briefMatchesIssueAndRepo(
+  data: Record<string, unknown>,
+  issueNumber: number,
+  repo: string | null,
+): boolean {
+  if (provenanceIssueNumber(data) !== issueNumber) {
+    // Also accept plan.references github-issue URIs without Origin text.
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      return false;
+    }
+    const refs = (plan as Record<string, unknown>).references;
+    if (!Array.isArray(refs)) {
+      return false;
+    }
+    let hit = false;
+    for (const ref of refs) {
+      if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
+      const uri = String((ref as Record<string, unknown>).uri ?? "");
+      if (uri.includes(`/issues/${issueNumber}`)) {
+        hit = true;
+        if (
+          repo === null ||
+          uri.includes(`github.com/${repo}/`) ||
+          uri.includes(`${repo}/issues/`)
+        ) {
+          return true;
+        }
+      }
+    }
+    return hit && repo === null;
+  }
+  if (repo === null) {
+    return true;
+  }
+  const plan = data.plan;
+  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
+    const refs = (plan as Record<string, unknown>).references;
+    if (Array.isArray(refs)) {
+      for (const ref of refs) {
+        if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
+        const uri = String((ref as Record<string, unknown>).uri ?? "");
+        if (
+          uri.includes(`/issues/${issueNumber}`) &&
+          (uri.includes(`github.com/${repo}/`) || uri.includes(`${repo}/issues/`))
+        ) {
+          return true;
+        }
+      }
+    }
+    const narratives = (plan as Record<string, unknown>).narratives;
+    if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
+      const origin = String((narratives as Record<string, unknown>).Origin ?? "");
+      if (origin.includes(`github.com/${repo}/issues/${issueNumber}`)) {
+        return true;
+      }
+    }
+  }
+  // Provenance matched issue number but no repo-scoped URI — refuse when repo known.
+  return false;
+}
+
 /**
- * Locate proposed/ artifacts whose provenance owns ``issueNumber``.
- * Uses scanProvenanceRefs plus a proposed/-only Origin fallback.
+ * Locate lifecycle artifacts whose provenance owns ``issueNumber`` (optionally repo-scoped).
  */
-export function findProposedArtifactsForIssue(projectRoot: string, issueNumber: number): string[] {
+export function findLifecycleArtifactsForIssue(
+  projectRoot: string,
+  issueNumber: number,
+  options: { folder?: "proposed" | "pending"; repo?: string | null } = {},
+): string[] {
+  const folder = options.folder ?? "proposed";
+  const repo = options.repo ?? null;
   const root = resolve(projectRoot);
   let lifecycleRoot: string;
   try {
     lifecycleRoot = resolveLifecycleRoot(root);
   } catch {
-    // No xbrief/ or vbrief/ layout yet — nothing proposed.
     return [];
   }
+
   const byIssue = scanProvenanceRefs(lifecycleRoot);
   const rels = (byIssue.get(issueNumber) ?? []).filter((rel) => {
-    const folder = rel.split(/[/\\]/)[0];
-    return folder === "proposed";
+    const f = rel.split(/[/\\]/)[0];
+    return f === folder;
   });
 
-  const absFromScan = rels.map((rel) => join(lifecycleRoot, rel));
+  const candidates = rels.map((rel) => join(lifecycleRoot, rel));
 
-  // Fallback: proposed/ files whose Origin/provenance mentions #N but lack
-  // github-issue refs (hand scaffolds). Only when scan returned nothing.
-  if (absFromScan.length > 0) {
-    return uniqueExisting(absFromScan);
-  }
-
-  const proposedDir = join(lifecycleRoot, "proposed");
-  if (!existsSync(proposedDir)) {
-    return [];
-  }
-  const fallback: string[] = [];
-  for (const name of readdirSync(proposedDir).filter((f) => hasArtifactSuffix(f))) {
-    const abs = join(proposedDir, name);
-    try {
-      const data = JSON.parse(readFileSync(abs, "utf8")) as Record<string, unknown>;
-      if (provenanceIssueNumber(data) === issueNumber) {
-        fallback.push(abs);
-      }
-    } catch {
-      /* skip unreadable */
+  // Always also scan the folder for Origin-only scaffolds.
+  const folderDir = join(lifecycleRoot, folder);
+  if (existsSync(folderDir)) {
+    for (const name of readdirSync(folderDir).filter((f) => hasArtifactSuffix(f))) {
+      candidates.push(join(folderDir, name));
     }
   }
-  return uniqueExisting(fallback);
+
+  const out: string[] = [];
+  for (const abs of uniqueExisting(candidates)) {
+    try {
+      const data = JSON.parse(readFileSync(abs, "utf8")) as Record<string, unknown>;
+      if (briefMatchesIssueAndRepo(data, issueNumber, repo)) {
+        out.push(abs);
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  return uniqueExisting(out);
+}
+
+/** Locate proposed/ artifacts for issue N (repo-scoped when provided). */
+export function findProposedArtifactsForIssue(
+  projectRoot: string,
+  issueNumber: number,
+  repo: string | null = null,
+): string[] {
+  return findLifecycleArtifactsForIssue(projectRoot, issueNumber, { folder: "proposed", repo });
 }
 
 function uniqueExisting(paths: string[]): string[] {
@@ -151,6 +230,7 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
       cacheDecisionId: null,
     };
   }
+  const repoSafe = sanitizeMsg(repo);
 
   const n = options.issueNumber;
   if (!Number.isInteger(n) || n < 1) {
@@ -177,8 +257,8 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
         return {
           ok: false,
           message:
-            `No triage-cache decision for #${n} (${repo}). ` +
-            `Accept first: task triage:accept -- --issue ${n} --repo ${repo} ` +
+            `No triage-cache decision for #${n} (${repoSafe}). ` +
+            `Accept first: task triage:accept -- --issue ${n} --repo ${repoSafe} ` +
             `(or omit --strict to soft-warn and proceed; --force-no-cache skips the gate).`,
           exitCode: 1,
           warnings,
@@ -189,16 +269,15 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
         };
       }
       warnings.push(
-        `[scope:promote --from-issue] no triage-cache decision for #${n} (${repo}); proceeding (soft warn). Use --strict to fail.`,
+        `[scope:promote --from-issue] no triage-cache decision for #${n} (${repoSafe}); proceeding (soft warn). Use --strict to fail.`,
       );
     } else if (latest.decision !== "accept") {
-      // Refuse any non-accept latest decision (defer/reject/needs-ac/mark-duplicate/…).
       return {
         ok: false,
         message:
-          `Refusing promote for #${n} (${repo}): latest triage decision is '${latest.decision}' ` +
+          `Refusing promote for #${n} (${repoSafe}): latest triage decision is '${sanitizeMsg(latest.decision)}' ` +
           `(decision_id=${latest.decision_id}). ` +
-          `Accept first: task triage:accept -- --issue ${n} --repo ${repo} ` +
+          `Accept first: task triage:accept -- --issue ${n} --repo ${repoSafe} ` +
           `or override with --force-no-cache.`,
         exitCode: 1,
         warnings,
@@ -211,24 +290,83 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
   } else {
     warnings.push(
       `[scope:promote --from-issue] --force-no-cache: skipped reciprocity gate for #${n} ` +
-        `(cache decision was ${cacheState === null ? "absent" : `'${cacheState}'`}).`,
+        `(cache decision was ${cacheState === null ? "absent" : `'${sanitizeMsg(cacheState)}'`}).`,
     );
   }
 
-  let matched = findProposedArtifactsForIssue(projectRoot, n);
+  // Already in pending/ for this issue → idempotent success (auto-promote re-entry).
+  const alreadyPending = findLifecycleArtifactsForIssue(projectRoot, n, {
+    folder: "pending",
+    repo,
+  });
+  if (alreadyPending.length === 1 && options.explicitPath === undefined) {
+    warnings.push(
+      `[scope:promote --from-issue] #${n} already pending (${sanitizeMsg(alreadyPending[0] ?? "")}); no-op.`,
+    );
+    return {
+      ok: true,
+      message: `No-op: issue #${n} already has pending scope ${alreadyPending[0]}`,
+      exitCode: 0,
+      warnings,
+      repo,
+      matchedPaths: alreadyPending,
+      cacheStateAtPromote: cacheState,
+      cacheDecisionId: forceNoCache && cacheState !== "accept" ? null : cacheDecisionId,
+      destPath: alreadyPending[0],
+    };
+  }
+
+  let matched = findProposedArtifactsForIssue(projectRoot, n, repo);
   if (options.explicitPath !== undefined && options.explicitPath.trim().length > 0) {
     const raw = options.explicitPath.trim();
     const explicit = isAbsolute(raw) ? resolve(raw) : resolve(projectRoot, raw);
-    if (matched.length === 0) {
-      matched = [explicit];
-    } else {
+    if (!existsSync(explicit)) {
+      return {
+        ok: false,
+        message: `Explicit path not found: ${sanitizeMsg(explicit)}`,
+        exitCode: 2,
+        warnings,
+        repo,
+        matchedPaths: matched,
+        cacheStateAtPromote: cacheState,
+        cacheDecisionId,
+      };
+    }
+    // Never accept an unrelated path — must match issue provenance (and repo).
+    try {
+      const data = JSON.parse(readFileSync(explicit, "utf8")) as Record<string, unknown>;
+      if (!briefMatchesIssueAndRepo(data, n, repo)) {
+        return {
+          ok: false,
+          message: `Explicit path is not a provenance match for #${n} (${repoSafe}): ${sanitizeMsg(explicit)}.`,
+          exitCode: 2,
+          warnings,
+          repo,
+          matchedPaths: matched,
+          cacheStateAtPromote: cacheState,
+          cacheDecisionId,
+        };
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        message: `Explicit path is not readable JSON: ${sanitizeMsg(explicit)} (${String(err)})`,
+        exitCode: 2,
+        warnings,
+        repo,
+        matchedPaths: matched,
+        cacheStateAtPromote: cacheState,
+        cacheDecisionId,
+      };
+    }
+    if (matched.length > 0) {
       const hit = matched.find((p) => resolve(p) === explicit);
       if (hit === undefined) {
         return {
           ok: false,
           message:
-            `Explicit path is not a proposed artifact for #${n}: ${explicit}. ` +
-            `Matched: ${matched.join(", ")}`,
+            `Explicit path is not among proposed matches for #${n}: ${sanitizeMsg(explicit)}. ` +
+            `Matched: ${matched.map(sanitizeMsg).join(", ")}`,
           exitCode: 2,
           warnings,
           repo,
@@ -238,6 +376,8 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
         };
       }
       matched = [hit];
+    } else {
+      matched = [explicit];
     }
   }
 
@@ -245,8 +385,8 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
     return {
       ok: false,
       message:
-        `No proposed/ scope artifact found for issue #${n}. ` +
-        `Ingest first (task triage:accept -- --issue ${n} --repo ${repo}) ` +
+        `No proposed/ scope artifact found for issue #${n} (${repoSafe}). ` +
+        `Ingest first (task triage:accept -- --issue ${n} --repo ${repoSafe}) ` +
         `or pass an explicit path: task scope:promote -- <path>.`,
       exitCode: 1,
       warnings,
@@ -258,7 +398,7 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
   }
 
   if (matched.length > 1) {
-    const list = matched.map((p) => `  - ${p}`).join("\n");
+    const list = matched.map((p) => `  - ${sanitizeMsg(p)}`).join("\n");
     return {
       ok: false,
       message:
@@ -284,11 +424,12 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
     cacheDecisionId: forceNoCache && cacheState !== "accept" ? null : cacheDecisionId,
     cacheStateAtPromote: cacheState,
     forceNoCache,
+    requireAudit: true,
   });
 
   warnings.push(
     `[scope:promote --from-issue] cache decision for #${n} was ` +
-      `${cacheState === null ? "absent" : `'${cacheState}'`}` +
+      `${cacheState === null ? "absent" : `'${sanitizeMsg(cacheState)}'`}` +
       (promoteResult.ok ? " (proceeded)" : " (promote failed)"),
   );
 

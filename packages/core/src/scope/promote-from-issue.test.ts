@@ -267,6 +267,32 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
     expect(result.message).toMatch(/b\.xbrief\.json/);
   });
 
+  it("refuses --path that does not match issue provenance", () => {
+    const root = makeRoot();
+    writeProposed(root, "other.xbrief.json", 999);
+    seedDecision(root, 18, "accept");
+
+    const result = promoteFromIssue({
+      issueNumber: 18,
+      repo: "o/r",
+      projectRoot: root,
+      explicitPath: join(root, "xbrief", "proposed", "other.xbrief.json"),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/not a provenance match/);
+  });
+
+  it("is a no-op when issue is already pending", () => {
+    const root = makeRoot();
+    writeProposed(root, "story.xbrief.json", 21);
+    seedDecision(root, 21, "accept");
+    expect(promoteFromIssue({ issueNumber: 21, repo: "o/r", projectRoot: root }).ok).toBe(true);
+    const again = promoteFromIssue({ issueNumber: 21, repo: "o/r", projectRoot: root });
+    expect(again.ok).toBe(true);
+    expect(again.message).toMatch(/already pending|No-op/i);
+  });
+
   it("path promote without from-issue does not require cache decision", () => {
     const root = makeRoot();
     const path = writeProposed(root, "manual.xbrief.json", 18);

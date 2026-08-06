@@ -24,9 +24,13 @@ import type { AuditEntry, TriageActionsDeps } from "./types.js";
 // #2350: assert the accept path delegates to the native TS intake ingest,
 // not the removed legacy Python `issue_ingest` shell-out. Mocking the intake
 // module keeps the regression test deterministic (no cache/network fetch).
-vi.mock("../../intake/issue-ingest.js", () => ({
-  ingestSingleForAccept: vi.fn(() => ["created", "/tmp/2350.xbrief.json"]),
-}));
+vi.mock("../../intake/issue-ingest.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../intake/issue-ingest.js")>();
+  return {
+    ...actual,
+    ingestSingleForAccept: vi.fn(() => ["created", "/tmp/2350.xbrief.json"]),
+  };
+});
 
 const temps: string[] = [];
 afterEach(() => {

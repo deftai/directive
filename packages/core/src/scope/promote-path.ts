@@ -27,6 +27,11 @@ export interface PromotePathOptions {
   readonly forceNoCache?: boolean;
   /** Write promote audit entry even without from-issue linkage (default: only when linkage present). */
   readonly alwaysAudit?: boolean;
+  /**
+   * When true, audit append failure is a hard error (from-issue / auto-promote
+   * require from_issue + cache fields). Default false for plain path promote.
+   */
+  readonly requireAudit?: boolean;
 }
 
 export interface PromotePathResult {
@@ -111,8 +116,20 @@ export function promotePath(filePath: string, options: PromotePathOptions = {}):
       }
       append(entry, canonicalLogPath(root));
       auditEntry = entry;
-    } catch {
-      /* best-effort audit; promote already succeeded */
+    } catch (err) {
+      if (options.requireAudit === true) {
+        return {
+          ok: false,
+          message:
+            `Promoted ${basename} to pending/ but required scope audit failed: ${String(err)}. ` +
+            `Artifact is in pending/; re-run promote will no-op once audit is writable.`,
+          exitCode: 1,
+          destPath,
+          auditEntry: null,
+          wipCapOverride: capCheck.forceOverride,
+        };
+      }
+      /* best-effort audit for plain path promote */
     }
   }
 

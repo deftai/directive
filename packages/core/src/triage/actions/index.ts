@@ -4,7 +4,11 @@ import { cacheGet } from "../../cache/operations.js";
 import { ingestSingleForAccept as ingestSingleForAcceptTs } from "../../intake/issue-ingest.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
-import { findProposedArtifactsForIssue, promoteFromIssue } from "../../scope/promote-from-issue.js";
+import {
+  findLifecycleArtifactsForIssue,
+  findProposedArtifactsForIssue,
+  promoteFromIssue,
+} from "../../scope/promote-from-issue.js";
 import { promotePath } from "../../scope/promote-path.js";
 import {
   createCandidatesLog,
@@ -298,9 +302,18 @@ function runAutoPromote(
   ingestedPath: string | null | undefined,
   force: boolean | undefined,
 ): void {
+  // Already pending for this issue → idempotent success (repeat accept --auto-promote).
+  const pending = findLifecycleArtifactsForIssue(projectRoot, issueNumber, {
+    folder: "pending",
+    repo,
+  });
+  if (pending.length >= 1) {
+    return;
+  }
+
   let path = typeof ingestedPath === "string" && ingestedPath.length > 0 ? ingestedPath : null;
   if (path === null) {
-    const matches = findProposedArtifactsForIssue(projectRoot, issueNumber);
+    const matches = findProposedArtifactsForIssue(projectRoot, issueNumber, repo);
     if (matches.length === 1) {
       path = matches[0] ?? null;
     } else if (matches.length > 1) {
@@ -318,7 +331,6 @@ function runAutoPromote(
       repo,
       projectRoot,
       force: force === true,
-      // Decision is accept; gate passes.
     });
     if (!fromIssue.ok) {
       throw new TriageError(
@@ -333,6 +345,7 @@ function runAutoPromote(
     fromIssue: issueNumber,
     cacheDecisionId: decisionId,
     cacheStateAtPromote: "accept",
+    requireAudit: true,
   });
   if (!result.ok) {
     throw new TriageError(
