@@ -327,23 +327,42 @@ export function extractTaskBody(taskfileText: string, taskName: string): string 
 }
 
 /**
+ * Drop YAML/shell comment lines (and trailing `# ...` on otherwise empty marker
+ * lines) before orchestrator matching so commented markers cannot grant trust.
+ */
+export function stripTaskBodyComments(body: string): string {
+  const out: string[] = [];
+  for (const raw of body.split("\n")) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    // Full-line list item that is only a comment: - # ...
+    if (/^-\s+#/.test(stripped)) continue;
+    out.push(raw);
+  }
+  return out.join("\n");
+}
+
+/**
  * True when a Taskfile task body actually dispatches the check orchestrator.
  * ENGINE_CMD alone is inert metadata — require engine:invoke / dispatchTaskCheck
  * (or a command-position runner) so inert YAML cannot grant trust (Greptile).
+ * Comments are stripped first so commented markers cannot bypass (Greptile conf=3).
  */
 export function taskBodyInvokesCheckOrchestrator(body: string): boolean {
   if (body.trim().length === 0) return false;
-  const hasEngineInvoke = /\bengine:invoke\b/.test(body);
-  const hasDispatch = /\bdispatchTaskCheck\b/.test(body);
-  const hasEngineCheckCmd = /ENGINE_CMD:\s*['"]?check\b/.test(body);
+  const live = stripTaskBodyComments(body);
+  if (live.trim().length === 0) return false;
+  const hasEngineInvoke = /\bengine:invoke\b/.test(live);
+  const hasDispatch = /\bdispatchTaskCheck\b/.test(live);
+  const hasEngineCheckCmd = /ENGINE_CMD:\s*['"]?check\b/.test(live);
   // Framework Taskfile pattern: task: engine:invoke + ENGINE_CMD: 'check ...'
   if (hasEngineInvoke && hasEngineCheckCmd) return true;
   if (hasDispatch && hasEngineCheckCmd) return true;
   if (hasDispatch) return true;
 
-  for (const raw of body.split("\n")) {
+  for (const raw of live.split("\n")) {
     const stripped = raw.trim();
-    if (!stripped || stripped.startsWith("#")) continue;
+    if (!stripped) continue;
     if (isNonExecutingCommandLine(stripped)) continue;
     if (lineMasksCheckFailure(stripped)) continue;
     const cmd = stripped.replace(/^-\s+/, "");

@@ -366,6 +366,27 @@ tasks:
     expect(result.exitCode).toBe(1);
   });
 
+  it("does not trust commented engine:invoke + ENGINE_CMD markers", () => {
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - echo only
+      # - task: engine:invoke
+      #   vars:
+      #     ENGINE_CMD: 'check --project-root .'
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
   it("does not trust inert ENGINE_CMD without engine:invoke", () => {
     const root = `
 version: '3'
