@@ -362,14 +362,23 @@ var canonicalGitignoreLines = []string{
 	// per-project, never committed. MUST stay file-specific so the
 	// trackable .deft/core/ framework payload is unaffected.
 	".deft/routing.local.json",
-	// Selective vbrief/.eval/* entries -- MUST equal GITIGNORE_EVAL_ENTRIES in
-	// scripts/_triage_bootstrap_gitignore.py, in the same order (parity test
-	// TestCanonicalGitignoreEvalEntriesMatchPythonSource pins this).
+	// Selective vbrief/.eval/* entries -- legacy layout path still deposited for
+	// back-compat with pre-#2344 consumers. Prefer .triage-cache/ entries below
+	// for the active post-migration layout (#3146 session state).
 	"vbrief/.eval/candidates.jsonl",
 	"vbrief/.eval/summary-history.jsonl",
 	"vbrief/.eval/scope-lifecycle.jsonl",
 	"vbrief/.eval/decompositions/",
 	"vbrief/.eval/doctor-state.json",
+	// Per-clone session state (#3146) — selective ignore only (hybrid #1144).
+	"vbrief/.eval/staleness-tickler-state.json",
+	"vbrief/.eval/release-availability-state.json",
+	// Symmetric .triage-cache paths matching packages/core init-deposit baseline
+	// (#2348 / #3146). Runtime writes state under .triage-cache/, not .eval/.
+	"vbrief/.triage-cache/staleness-tickler-state.json",
+	"vbrief/.triage-cache/release-availability-state.json",
+	"xbrief/.triage-cache/staleness-tickler-state.json",
+	"xbrief/.triage-cache/release-availability-state.json",
 	"vbrief/*.lock",
 	".deft/core.bak-*/",
 	".deft/*.bak-*",

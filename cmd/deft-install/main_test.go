@@ -988,6 +988,7 @@ func TestEnsureGitignoreLines_CreatesNew(t *testing.T) {
 		t.Fatalf("missing .gitignore: %v", err)
 	}
 	// #1464: selective per-file eval entries, NOT the blanket vbrief/.eval/.
+	// #3146: per-clone session state under .triage-cache (and legacy .eval).
 	for _, want := range []string{
 		".deft-cache/",
 		".deft/ritual-state.json",
@@ -996,6 +997,12 @@ func TestEnsureGitignoreLines_CreatesNew(t *testing.T) {
 		"vbrief/.eval/summary-history.jsonl",
 		"vbrief/.eval/scope-lifecycle.jsonl",
 		"vbrief/.eval/doctor-state.json",
+		"vbrief/.eval/staleness-tickler-state.json",
+		"vbrief/.eval/release-availability-state.json",
+		"vbrief/.triage-cache/staleness-tickler-state.json",
+		"vbrief/.triage-cache/release-availability-state.json",
+		"xbrief/.triage-cache/staleness-tickler-state.json",
+		"xbrief/.triage-cache/release-availability-state.json",
 	} {
 		if !strings.Contains(string(data), want) {
 			t.Errorf(".gitignore missing canonical line %q", want)
