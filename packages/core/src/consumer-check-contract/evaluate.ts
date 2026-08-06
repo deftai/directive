@@ -194,13 +194,41 @@ export function stripQuotedSegments(line: string): string {
 }
 
 /**
+ * True when a shell line masks check failures (`|| true`, `| true`, `|| :`).
+ * Such lines must not satisfy composition (Greptile conf=3).
+ */
+export function lineMasksCheckFailure(line: string): boolean {
+  const lower = stripQuotedSegments(line).toLowerCase();
+  // check ... || true / || : / || exit 0  (":" is non-word — do not use \b after it)
+  const maskTail = String.raw`\|\|\s*(?:true\b|:|exit\s+0\b)`;
+  if (
+    new RegExp(String.raw`(?:deft|directive)\s+check\b[\s\S]*${maskTail}`).test(lower) ||
+    new RegExp(String.raw`task\s+(?:deft:)?check\b[\s\S]*${maskTail}`).test(lower) ||
+    new RegExp(
+      String.raw`(?:task\s+)?check:(?:consumer|framework-source)\b[\s\S]*${maskTail}`,
+    ).test(lower)
+  ) {
+    return true;
+  }
+  // pipe to true
+  if (
+    /(?:deft|directive)\s+check\b[\s\S]*\|\s*true\b/.test(lower) ||
+    /task\s+(?:deft:)?check\b[\s\S]*\|\s*true\b/.test(lower)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * True when `line` invokes a runner at command position (start / after chain),
- * not merely mentions it inside an argument.
+ * not merely mentions it inside an argument, and does not mask failures.
  */
 export function lineHasCommandPositionRunner(
   line: string,
   runnerPattern: RegExp,
 ): boolean {
+  if (lineMasksCheckFailure(line)) return false;
   const lower = stripQuotedSegments(line).toLowerCase().trim().replace(/^-\s+/, "");
   if (lower.length === 0) return false;
   // Known argument-only tools never execute our gates.
@@ -208,7 +236,7 @@ export function lineHasCommandPositionRunner(
   // Command position: line start or after shell chain / env-prefix assignments.
   const withoutEnv = lower.replace(/^(?:[a-z_][\w]*=(?:\S+)\s+)*/i, "");
   if (runnerPattern.test(withoutEnv)) return true;
-  // Chained: ... && task check
+  // Chained: ... && task check  (but not || true — already rejected above)
   const chainParts = withoutEnv.split(/(?:&&|\|\||;)/);
   return chainParts.some((part) => runnerPattern.test(part.trim()));
 }
@@ -308,27 +336,43 @@ export function extractTaskBody(taskfileText: string, taskName: string): string 
   return body.join("\n");
 }
 
+/**
+ * True when a Taskfile task body actually dispatches the check orchestrator.
+ * ENGINE_CMD alone is inert metadata — require engine:invoke / dispatchTaskCheck
+ * (or a command-position runner) so inert YAML cannot grant trust (Greptile).
+ */
+export function taskBodyInvokesCheckOrchestrator(body: string): boolean {
+  if (body.trim().length === 0) return false;
+  const hasEngineInvoke = /\bengine:invoke\b/.test(body);
+  const hasDispatch = /\bdispatchTaskCheck\b/.test(body);
+  const hasEngineCheckCmd = /ENGINE_CMD:\s*['"]?check\b/.test(body);
+  // Framework Taskfile pattern: task: engine:invoke + ENGINE_CMD: 'check ...'
+  if (hasEngineInvoke && hasEngineCheckCmd) return true;
+  if (hasDispatch && hasEngineCheckCmd) return true;
+  if (hasDispatch) return true;
+
+  for (const raw of body.split("\n")) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    if (isNonExecutingCommandLine(stripped)) continue;
+    if (lineMasksCheckFailure(stripped)) continue;
+    const cmd = stripped.replace(/^-\s+/, "");
+    // Bare ENGINE_CMD without invoke is NOT enough.
+    if (
+      lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||
+      lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** True when the check / check:consumer / check:framework-source task invokes orchestrator. */
 export function taskfileInvokesCheckOrchestrator(text: string): boolean {
   for (const taskName of ["check", "check:consumer", "check:framework-source"]) {
     const body = extractTaskBody(text, taskName);
-    if (body.length === 0) continue;
-    // Only scan this task body (not unrelated tasks — Greptile P1).
-    for (const raw of body.split("\n")) {
-      const stripped = raw.trim();
-      if (!stripped || stripped.startsWith("#")) continue;
-      // Echo/docs in the aggregate body do not execute the orchestrator (Greptile P1).
-      if (isNonExecutingCommandLine(stripped)) continue;
-      if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
-      if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
-      const cmd = stripped.replace(/^-\s+/, "");
-      if (
-        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||
-        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)
-      ) {
-        return true;
-      }
-    }
+    if (taskBodyInvokesCheckOrchestrator(body)) return true;
   }
   return false;
 }
@@ -491,23 +535,7 @@ export function evaluateConsumerCheckContract(
 
   /** True when this task body alone invokes the check orchestrator (not whole file). */
   function taskInvokesOrchestrator(taskName: string): boolean {
-    const body = extractTaskBody(rootTaskfile, taskName);
-    if (body.length === 0) return false;
-    for (const raw of body.split("\n")) {
-      const stripped = raw.trim();
-      if (!stripped || stripped.startsWith("#")) continue;
-      if (isNonExecutingCommandLine(stripped)) continue;
-      if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) return true;
-      if (/\bdispatchTaskCheck\b/.test(stripped)) return true;
-      const cmd = stripped.replace(/^-\s+/, "");
-      if (
-        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||
-        lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)
-      ) {
-        return true;
-      }
-    }
-    return false;
+    return taskBodyInvokesCheckOrchestrator(extractTaskBody(rootTaskfile, taskName));
   }
 
   let anyAggregateDefined = false;

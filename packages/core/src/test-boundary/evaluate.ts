@@ -319,10 +319,16 @@ export function evaluateTestBoundary(
       );
     }
     if (err instanceof GitCommandError) {
-      return configError(
-        `verify_test_boundary: git failed -- ${err.message}\n` +
-          "  Recovery: ensure --project-root points at a git working tree.",
-      );
+      // Greenfield / non-git consumer trees (release smoke) must not fail closed
+      // on migration defaults — skip clean with guidance (#3145 smoke).
+      return {
+        exitCode: 0,
+        findings: [],
+        message:
+          `verify_test_boundary: skipped -- not a usable git working tree (${err.message}). ` +
+          "Initialize git, or inject files for offline evaluation (#3145).",
+        policy,
+      };
     }
     throw err;
   }

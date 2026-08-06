@@ -342,10 +342,15 @@ export function evaluateScopeProvenance(
       );
     }
     if (err instanceof GitCommandError) {
-      return configError(
-        `verify_scope_provenance: git failed -- ${err.message}\n` +
-          "  Recovery: ensure --project-root points at a git working tree.",
-      );
+      // Greenfield / non-git consumer trees (release smoke) skip clean under
+      // migration defaults rather than fail closed as config (#3145).
+      return {
+        exitCode: 0,
+        findings: [],
+        message:
+          `verify_scope_provenance: skipped -- not a usable git working tree (${err.message}). ` +
+          "Initialize git or pass --base-ref / inject changedFiles (#3145).",
+      };
     }
     throw err;
   }

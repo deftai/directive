@@ -351,6 +351,58 @@ tasks:
     expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
   });
 
+  it("does not treat failure-masked task check as full check", () => {
+    expect(runCommandIsFullCheck("task check || true")).toBe(false);
+    expect(runCommandIsFullCheck("deft check || :")).toBe(false);
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: ROOT_WITH_CHECK_DEPS,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/ci.yml", "- run: task check || true\n"],
+      ]),
+      ciWarnOnly: false,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
+  it("does not trust inert ENGINE_CMD without engine:invoke", () => {
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - ENGINE_CMD: 'check --project-root .'
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
+  it("trusts engine:invoke + ENGINE_CMD check orchestrator", () => {
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'check --project-root .'
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+  });
+
   it("does not treat printf of task check as full check", () => {
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
