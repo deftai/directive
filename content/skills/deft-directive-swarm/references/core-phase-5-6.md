@@ -39,6 +39,21 @@ For each agent's PR:
 
 ! **Completion latch after first consolidate (#3092):** After the parent has emitted **one** user/caller-visible consolidate for a child `runId` / settle batch (accept or reject), **identical or equivalent completion replay** for the same key MUST be **silent** (no tools, no re-QC, no second final; host silent token when defined, e.g. OpenClaw `NO_REPLY`). Re-open only on new `runId`/batch, principal explicit reopen, or **materially new** evidence (new HEAD, new blocker class) — not fat re-embeds of the same rollup. Replay storms: at most one fail-loud note, then silent. Full MUST + anti-patterns: `templates/agent-prompt-preamble.md` §11.5. Orthogonal to empty settle ≠ done (#3044).
 
+### Human-merge observe path for `stop-at: pr-open` (#3153)
+
+! When any cohort story was dispatched **`stop-at: pr-open`** (or thin-DONE recovery handed merge path to babysit) **and** merge authority is human-only (`requireHumanMerge` / no bot merge), the monitor is the **default durable owner** of post-merge `scope:complete` (review-cycle partner merge-path). Greptile CLEAN alone is **not** lifecycle complete.
+
+! **Required observe path before declaring the cohort closed:**
+
+1. ! Keep a machine-checkable list of open cohort PRs marked `awaiting-human-merge` (PR number, HEAD, story xBRIEF path) in the monitor checkpoint.
+2. ! Until each listed PR is `MERGED` (or closed without merge → cancel path), the monitor MUST use one of:
+   - **Background merge observer** (preferred on Tier 1): Approach 1 poller or short sub-agent that probes `gh api repos/<owner>/<repo>/pulls/<N>` for `merged == true` / `state`, then signals the parent; parent runs Step 1.5 sweep for that story.
+   - **Parent-retained re-entry:** parent keeps `review_cycle: in_progress:<pr>#parent-retained` and **MUST** re-check merge state on every re-invocation / next tool turn until merged — first tool action on re-entry is the merge-state probe.
+   - **Phase 6 Step 1 pre-sweep re-poll (always):** Immediately before Step 1.5 `task swarm:complete-cohort` / `task swarm:finalize-cohort`, re-poll **every** cohort PR via REST `pulls/<N>` and refuse the sweep while any `awaiting-human-merge` PR is still open. ⊗ Run the completion sweep solely because Greptile was CLEAN earlier.
+3. ! After merge is observed: run post-merge verification (closing keywords) then Step 1.5 sweep / `task scope:complete` for the story.
+
+Cross-link: `skills/deft-directive-review-cycle/SKILL.md` § Partner merge-path / Post-CLEAN wake path. ⊗ Ownership-in-name-only (sticky lease with no observer).
+
 ### Complete xBRIEFs
 
 ! The cohort's story xBRIEFs are completed by the deterministic **cohort completion sweep** in Phase 6 (`task swarm:complete-cohort`, Phase 6 Step 1.5 below), which runs AFTER the merge cascade. Do NOT move story xBRIEFs out of `xbrief/active/` before their PRs merge — a pre-merge move creates premature state if the merge cascade fails. This section is where the monitor records, per story, what the post-merge sweep will finalize:
@@ -214,6 +229,8 @@ This is defense in depth -- run it even when the pre-merge inspection above pass
 ### Step 1.5: Cohort Completion Sweep (#1487)
 
 ! **REQUIRED.** Once the cohort's PRs are merged (Step 1 complete), the monitor MUST run the deterministic cohort completion sweep so the finished swarm leaves NO stranded xBRIEFs. This step closes the gap where a completed cohort left its story xBRIEFs in `xbrief/active/` and their decompose-created epic parents in `xbrief/pending/` -- nothing in the swarm flow swept them to `completed/` (observed in the 2026-06-03 swarm: after the cohort's PRs merged, the child story xBRIEFs stayed in `active/` and their epic parents stayed in `pending/`).
+
+! **Pre-sweep merge re-poll for human-merge / `stop-at: pr-open` (#3153):** Before invoking `task swarm:complete-cohort` or `task swarm:finalize-cohort`, re-read each cohort PR's merge state via REST. If any PR marked `awaiting-human-merge` is still open, **halt** the sweep, keep durable ownership, and continue the observe path (Phase 5 human-merge section) until merge or operator cancel. ⊗ Sweep on Greptile CLEAN alone while a human-merge PR is still open.
 
 ```pwsh path=null start=null
 # Sweep the whole cohort by glob (typical close-out)...
