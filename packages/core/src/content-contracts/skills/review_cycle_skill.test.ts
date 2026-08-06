@@ -239,6 +239,33 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("#2672");
   });
 
+  it("ci_weather reason codes thrash caps and BLOCKED (#3167)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("CI weather reason codes + thrash caps (#3167)");
+    expect(text).toContain("ci_never_scheduled");
+    expect(text).toContain("ci_cancelled_no_failover");
+    expect(text).toContain("ci_failures");
+    expect(text).toContain("BLOCKED: ci_weather");
+    expect(text).toContain("at most 2");
+    expect(text).toContain("#3153");
+    expect(text).toContain("#3168");
+  });
+
+  it("slizard advisory-only for merge-ready wait (#3167)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("SLizard advisory-only for merge-ready wait (#3167)");
+    expect(text).toContain("advisory only");
+    expect(text).toMatch(/Required bot for \*\*merge-ready wait\*\*.*Greptile/s);
+  });
+
+  it("outage admin-merge playbook opt-in (#3167)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Outage admin-merge playbook");
+    expect(text).toContain("opt-in");
+    expect(text).toContain("audit note");
+    expect(text).toContain("never the autonomous agent default");
+  });
+
   it("empty_announce_not_done_and_single_lease (#3044)", () => {
     const text = readReviewCycleSkill();
     expect(text).toContain("Empty announce");

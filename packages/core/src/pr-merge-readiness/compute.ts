@@ -170,6 +170,8 @@ function applyCiGateForHead(
         ignored_checks: [...(options.ignoreCheckNames ?? [])],
         failed_required: [],
         pending_required: [],
+        capacity_stalled_required: [],
+        cancelled_required: [],
         conclusions: [],
       },
       slizard: {

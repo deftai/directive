@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateCiGate } from "./ci-gate.js";
+import { evaluateCiGate, isBotReviewCheck } from "./ci-gate.js";
 import type { CheckRunRecord } from "./gh.js";
 import { DEFAULT_CAPACITY_STALL_MS } from "./runner-capacity-stall.js";
 
@@ -15,7 +15,16 @@ function run(partial: Partial<CheckRunRecord> & Pick<CheckRunRecord, "name">): C
   };
 }
 
-describe("evaluateCiGate (#2169 / #2672)", () => {
+describe("isBotReviewCheck (#3167)", () => {
+  it("matches greptile / slizard / coderabbit", () => {
+    expect(isBotReviewCheck("Greptile Review")).toBe(true);
+    expect(isBotReviewCheck("SLizard")).toBe(true);
+    expect(isBotReviewCheck("CodeRabbit")).toBe(true);
+    expect(isBotReviewCheck("TypeScript (build + lint + test)")).toBe(false);
+  });
+});
+
+describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
   it("returns ready when all required checks passed", () => {
     const result = evaluateCiGate(
       [run({ name: "TypeScript (build + lint + test)" }), run({ name: "Go (test + build)" })],
@@ -85,7 +94,7 @@ describe("evaluateCiGate (#2169 / #2672)", () => {
     expect(result.summary.capacity_stalled_required).toEqual(["TypeScript (build + lint + test)"]);
   });
 
-  it("returns blocked on failed required checks", () => {
+  it("returns ci_failures on failed required checks (#3167)", () => {
     const result = evaluateCiGate(
       [
         run({
@@ -96,7 +105,104 @@ describe("evaluateCiGate (#2169 / #2672)", () => {
       ],
       { nowMs: NOW },
     );
-    expect(result.summary.ready_state).toBe("blocked");
+    expect(result.summary.ready_state).toBe("ci_failures");
+    expect(result.summary.failed_required).toEqual(["TypeScript (build + lint + test) (failure)"]);
+    expect(result.failures.join(" ")).toContain("ci_failures");
+  });
+
+  it("returns ci_never_scheduled when check-runs are empty (#3167)", () => {
+    const result = evaluateCiGate([], { nowMs: NOW });
+    expect(result.summary.ready_state).toBe("ci_never_scheduled");
+    expect(result.failures.join(" ")).toContain("ci_never_scheduled");
+  });
+
+  it("returns ci_never_scheduled when only bot review checks are present (#3167)", () => {
+    const result = evaluateCiGate(
+      [
+        run({ name: "Greptile Review", conclusion: "success" }),
+        run({ name: "SLizard", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_never_scheduled");
+    expect(result.summary.checked_count).toBe(0);
+  });
+
+  it("returns ci_cancelled_no_failover when only cancelled required remain (#3167)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+    expect(result.summary.cancelled_required).toEqual([
+      "TypeScript (blacksmith primary) (cancelled)",
+    ]);
+    expect(result.failures.join(" ")).toContain("ci_cancelled_no_failover");
+  });
+
+  it("stays ready when cancelled primary has a green required sibling (#3167)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.failures).toEqual([]);
+    expect(result.summary.cancelled_required).toEqual([
+      "TypeScript (blacksmith primary) (cancelled)",
+    ]);
+  });
+
+  it("prefers ci_failures over cancelled when both present (#3167)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({
+          name: "TypeScript (build + lint + test)",
+          status: "completed",
+          conclusion: "failure",
+        }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_failures");
+  });
+
+  it("prefers pending over cancelled while failover may still arm (#3167)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({
+          name: "TypeScript (GH-hosted failover)",
+          status: "queued",
+          conclusion: "none",
+          created_at: new Date(NOW - 60_000).toISOString(),
+          started_at: null,
+        }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("not_ready_yet");
   });
 
   it("honors skipCi", () => {
@@ -104,5 +210,14 @@ describe("evaluateCiGate (#2169 / #2672)", () => {
       skipCi: true,
     });
     expect(result.summary.ready_state).toBe("skipped");
+  });
+
+  it("stays ready when all non-bot checks are operator-ignored (not never_scheduled)", () => {
+    const result = evaluateCiGate([run({ name: "Flaky Optional", conclusion: "failure" })], {
+      ignoreCheckNames: ["Flaky Optional"],
+      nowMs: NOW,
+    });
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.failures).toEqual([]);
   });
 });

@@ -8,6 +8,8 @@ import {
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
   VERDICT_CI_BLOCKED,
+  VERDICT_CI_CANCELLED_NO_FAILOVER,
+  VERDICT_CI_NEVER_SCHEDULED,
   VERDICT_CLEAN,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
@@ -126,20 +128,28 @@ export function watch(
       return build(VERDICT_ERRORED, EXIT_TERMINAL_ERROR, probe, poll);
     }
 
-    // #2672: capacity stall is distinct from ordinary not_ready_yet — surface
-    // immediately (exit 2) so agents wait for auto-failover instead of --skip-ci.
+    // #2672 / #3167: CI weather states are distinct terminal exits (exit 2).
+    // Agents must thrash-cap / BLOCKED rather than multi-hour empty-commit loops.
     if (probe.ciReadyState === "runner_capacity_stall") {
       return build(VERDICT_RUNNER_CAPACITY_STALL, EXIT_TERMINAL_ERROR, probe, poll);
     }
+    if (probe.ciReadyState === "ci_never_scheduled") {
+      return build(VERDICT_CI_NEVER_SCHEDULED, EXIT_TERMINAL_ERROR, probe, poll);
+    }
+    if (probe.ciReadyState === "ci_cancelled_no_failover") {
+      return build(VERDICT_CI_CANCELLED_NO_FAILOVER, EXIT_TERMINAL_ERROR, probe, poll);
+    }
 
-    // #2688: Greptile side satisfied on HEAD but CI red — fail loud toward a
-    // fix loop instead of burning max-wait-minutes on idle Greptile polls.
-    if (probe.cleanGateHoldout === "ci_failures") {
+    // #2688 / #3167: Greptile side satisfied on HEAD but CI red (ci_failures) —
+    // fail loud toward a fix loop instead of burning max-wait-minutes.
+    const ciProductBlocked =
+      probe.cleanGateHoldout === "ci_failures" || probe.ciReadyState === "ci_failures";
+    if (ciProductBlocked) {
       ciBlockedStreak += 1;
     } else {
       ciBlockedStreak = 0;
     }
-    if (oneShot && probe.cleanGateHoldout === "ci_failures") {
+    if (oneShot && ciProductBlocked) {
       return build(VERDICT_CI_BLOCKED, EXIT_TERMINAL_ERROR, probe, poll);
     }
     if (!oneShot && ciBlockedStreak >= DEFAULT_CI_BLOCKED_THRESHOLD) {

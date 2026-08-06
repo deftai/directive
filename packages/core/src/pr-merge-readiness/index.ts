@@ -6,6 +6,7 @@ export {
   type CiGateSummary,
   type CiReadyState,
   evaluateCiGate,
+  isBotReviewCheck,
 } from "./ci-gate.js";
 export { type ComputeGateOptions, computeGateResult, type FetchMergeabilityFn } from "./compute.js";
 export * from "./constants.js";

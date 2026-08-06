@@ -115,7 +115,7 @@ export function probeOnce(
   }
 
   const shaMatch = lastReviewedSha !== null && lastReviewedSha === headSha;
-  const [isClean, cleanGateHoldout] = evaluateCleanGate({
+  let [isClean, cleanGateHoldout] = evaluateCleanGate({
     lastReviewedSha,
     headSha,
     hasBlocking: findings.has_blocking,
@@ -125,6 +125,21 @@ export function probeOnce(
     terminalCheckRun,
     minConfidence,
   });
+
+  // #3167: weather not-ready states must never surface as CLEAN even when the
+  // Greptile side of the clean gate is satisfied (empty CI was previously ready).
+  if (
+    isClean &&
+    (ciReadyState === "ci_never_scheduled" ||
+      ciReadyState === "runner_capacity_stall" ||
+      ciReadyState === "ci_cancelled_no_failover" ||
+      ciReadyState === "ci_failures" ||
+      ciReadyState === "blocked" ||
+      ciReadyState === "not_ready_yet")
+  ) {
+    isClean = false;
+    cleanGateHoldout = ciReadyState === "not_ready_yet" ? "terminal_check_run" : ciReadyState;
+  }
 
   return {
     found,

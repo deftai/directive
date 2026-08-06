@@ -32,6 +32,16 @@ export const VERDICT_CI_BLOCKED = "CI_BLOCKED";
  * claimed (#2672). Exit 2 — wait for auto-failover; never --skip-ci.
  */
 export const VERDICT_RUNNER_CAPACITY_STALL = "RUNNER_CAPACITY_STALL";
+/**
+ * No CI workflow check-run scheduled for HEAD (bots-only or empty) (#3167).
+ * Exit 2 — thrash-cap then BLOCKED; do not multi-hour empty-commit loops.
+ */
+export const VERDICT_CI_NEVER_SCHEDULED = "CI_NEVER_SCHEDULED";
+/**
+ * Primary CI cancelled and no green required sibling / failover (#3167).
+ * Exit 2 — thrash-cap then BLOCKED; workflow arming is sibling #3168.
+ */
+export const VERDICT_CI_CANCELLED_NO_FAILOVER = "CI_CANCELLED_NO_FAILOVER";
 /** --one-shot only: a single probe with no terminal verdict yet. */
 export const VERDICT_PENDING = "PENDING";
 /** External/config fault mid-probe (unresolvable repo/HEAD, gh unavailable). */
@@ -67,7 +77,8 @@ export const WATCH_HELP =
   "exit codes:\n" +
   "  0  CLEAN       SHA-matched review, confidence >= policy min (default 4; dogfood 5), no P0/P1, CI green\n" +
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +
-  "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | RUNNER_CAPACITY_STALL | config / usage error\n";
+  "  2  ERRORED | STALL | TIMEOUT | CI_BLOCKED | RUNNER_CAPACITY_STALL |\n" +
+  "     CI_NEVER_SCHEDULED | CI_CANCELLED_NO_FAILOVER | config / usage error\n";
 /**
  * Consecutive polls where the CLEAN gate is wedged on HEAD (!has_blocking &&
  * !is_clean with a holdout other than sha_match) before STALL (#1039). Stale-SHA

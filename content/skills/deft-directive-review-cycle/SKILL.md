@@ -317,6 +317,66 @@ Remediation:
 
 ⊗ Use `--skip-ci` / merge-with-pending because CI is capacity-stalled — the failover path is the unblock; skip-ci is an incident-only release escape hatch (#2652), not a runner-capacity remedy.
 
+### CI weather reason codes + thrash caps (#3167)
+
+`pr:watch` / `pr:merge-ready` expose machine-distinguishable `ci_ready_state` values (also `--json`) so agents stop conflating Actions weather with product test failure:
+
+| `ci_ready_state` / verdict | Meaning | Agent action |
+|----------------------------|---------|--------------|
+| `ci_never_scheduled` / `CI_NEVER_SCHEDULED` | No CI workflow check-run for HEAD (empty or bots-only: Greptile/SLizard) | Cap re-triggers; then **BLOCKED** — do not multi-hour empty-commit thrash |
+| `runner_capacity_stall` / `RUNNER_CAPACITY_STALL` | Required still `queued`, no runner past budget (#2672) | Wait auto-failover; ⊗ `--skip-ci` |
+| `ci_failures` / `CI_BLOCKED` | Completed `failure` / `timed_out` with product evidence (#2688) | Own like Greptile P0 — fix or escalate |
+| `ci_cancelled_no_failover` / `CI_CANCELLED_NO_FAILOVER` | Primary `cancelled` and no green required sibling (failover skipped/not armed; workflow sibling **#3168**) | Cap re-triggers; then **BLOCKED** |
+| Greptile CLEAN fields / `greptile_pending` | Existing Step 6 / SHA / confidence | Unchanged |
+
+! **Thrash caps (MUST):** Under stable `ci_never_scheduled`, `ci_cancelled_no_failover`, or repeated capacity stall after failover wait budget, limit **CI re-trigger attempts** (empty-commit push, close/reopen, rebase-for-enqueue) to **at most 2** total across the ownership span. On the **2nd** failed re-trigger (or immediately when the weather code is stable and Greptile Step 6 is already clean), stop automatic re-push and emit a structured **BLOCKED** handoff.
+
+! **BLOCKED handoff template (CI weather):**
+
+```text
+BLOCKED: ci_weather
+PR: <N>
+HEAD: <sha>
+REASON: ci_never_scheduled|ci_cancelled_no_failover|runner_capacity_stall
+GREPTILE: CLEAN|P0/P1|pending (Step 6 fields)
+CI: <ci_ready_state from pr:watch --json>
+ATTEMPTS: empty-commit=<0-2> close-reopen=<0-2>
+REMEDIATION: wait for Actions recovery | human admin-merge playbook below | fix workflow (#3168) | operator decision
+REDISPATCH_OK: yes|no
+```
+
+! Ownership of Greptile CLEAN + CI holdout is still real (#2688) — **ownership ≠ infinite wait**. After thrash caps, hand off; do not burn multi-hour `gh run watch` / empty-commit loops when Greptile is already CLEAN.
+
+! **Envelope selection under CI weather (#3153):** Prefer deliberate `stop-at: pr-open` implement + this skill as the partner merge-path babysit when known capacity/outage weather dominates; see swarm Envelope selection SLA and partner merge-path section above. Cross-link only — do not re-spec the tree here.
+
+⊗ Multi-hour empty-commit / close-reopen / rebase thrash after thrash caps when `ci_ready_state` is `ci_never_scheduled` or `ci_cancelled_no_failover`.
+⊗ Treat `ci_never_scheduled` as ordinary Greptile latency (`sha_match` / `terminal_check_run` only).
+⊗ Silent `--skip-ci` / admin merge without the outage playbook audit trail below.
+
+### SLizard advisory-only for merge-ready wait (#3167)
+
+! Required bot for **merge-ready wait** / Step 6 exit ownership is **Greptile**. SLizard (Gemini Verify) is **advisory only**: timeouts, retries, missing check, or flaky SLizard conclusions MUST NOT gate the review-cycle wait loop or authorize unbounded re-push.
+
+! `task pr:merge-ready` may still surface SLizard structure when present (#2189); agents MUST NOT idle-poll or thrash solely for SLizard when Greptile Step 6 is clean. Prefer continue / BLOCKED on CI weather / human decision.
+
+⊗ Block merge-ready babysit on SLizard alone when Greptile Step 6 all-of is satisfied on HEAD.
+
+### Outage admin-merge playbook (opt-in / human, #3167)
+
+When GitHub Actions is in a **documented major outage** (or multi-hour `ci_never_scheduled` / `ci_cancelled_no_failover` after thrash caps) and product + Greptile are ready:
+
+! Admin / human merge is **opt-in**, never the autonomous agent default. Preconditions:
+
+1. ! Greptile Step 6 fail-closed all-of on current HEAD (dogfood conf floor / `minGreptileConfidence`).
+2. ! Evidence of local or prior green `task check` / merge-gate when available.
+3. ! PR comment **audit note** naming the weather code, HEAD SHA, and who authorized override.
+4. ? Optional explicit env/policy for bot merge (`DEFT_ALLOW_BOT_MERGE` / `task policy:allow-bot-merge`) — **opt-in**, never silent default skip-ci.
+
+⊗ Autonomous `--skip-ci` / `--admin` merge as the default under ordinary CI weather.
+⊗ Replace branch protection with Greptile-only merge on normal days.
+
+Workflow failover arming (Blacksmith cancelled → GH-hosted lane) is sibling issue **#3168** — this skill owns agent thrash caps and reason codes only.
+
 ### Stall Detection Rubric (#564)
 
 ! Track per poll: `startedAt` (timestamp of the first observation of the IN_PROGRESS check run for the current commit) and `commit.oid` (head SHA being reviewed). Both fields MUST be re-recorded every time the head SHA changes -- the rubric measures elapsed time on a single commit, not across the whole review cycle.
@@ -689,6 +749,9 @@ task lifecycle:event -- emit plan:approved \
 
 ## Anti-Patterns
 
+- ⊗ Multi-hour empty-commit / close-reopen thrash after CI weather thrash caps when `ci_never_scheduled` or `ci_cancelled_no_failover` (#3167)
+- ⊗ Block merge-ready wait on SLizard alone when Greptile Step 6 is clean (#3167)
+- ⊗ Silent admin / `--skip-ci` merge under Actions outage without audit comment and opt-in authority (#3167)
 - ⊗ Leave a deliberate `stop-at: pr-open` (or thin-DONE recovery) open PR without spawning/retaining one review-cycle babysit owner + lease continuity and post-merge `scope:complete` plan (#3153)
 - ⊗ Stand down at CLEAN under human-merge policy without a durable owner (sticky lease + live parent/monitor/Phase 6 closer) **and** a post-CLEAN observe path (poller / parent wake / Phase 6 re-poll) for post-merge `scope:complete` (#3153 / #1193 / #2321)
 - ⊗ Handoff human-merge cleanup to a short-lived leaf that exits at CLEAN without re-claiming the sticky lease (#3153)

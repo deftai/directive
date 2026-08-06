@@ -4,6 +4,8 @@ import {
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
   VERDICT_CI_BLOCKED,
+  VERDICT_CI_CANCELLED_NO_FAILOVER,
+  VERDICT_CI_NEVER_SCHEDULED,
   VERDICT_CLEAN,
   VERDICT_CONFIG,
   VERDICT_ERRORED,
@@ -172,6 +174,53 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
     expect(r.verdict).toBe(VERDICT_RUNNER_CAPACITY_STALL);
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
     expect(r.probe.ciCapacityStalledChecks).toEqual(["TypeScript (build + lint + test)"]);
+  });
+
+  it("ci_never_scheduled -> CI_NEVER_SCHEDULED exit 2 (#3167)", () => {
+    const r = runOneShot(
+      makeProbe({
+        isClean: false,
+        cleanGateHoldout: "ci_never_scheduled",
+        ciReadyState: "ci_never_scheduled",
+        terminalCheckRun: true,
+        confidence: 5,
+        shaMatch: true,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_CI_NEVER_SCHEDULED);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("ci_cancelled_no_failover -> CI_CANCELLED_NO_FAILOVER exit 2 (#3167)", () => {
+    const r = runOneShot(
+      makeProbe({
+        isClean: false,
+        cleanGateHoldout: "ci_cancelled_no_failover",
+        ciReadyState: "ci_cancelled_no_failover",
+        ciFailedChecks: ["TypeScript (blacksmith primary) (cancelled)"],
+        ciFailures: 1,
+        confidence: 5,
+        shaMatch: true,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_CI_CANCELLED_NO_FAILOVER);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("ci_ready_state=ci_failures -> CI_BLOCKED exit 2 (#3167)", () => {
+    const r = runOneShot(
+      makeProbe({
+        isClean: false,
+        cleanGateHoldout: "ci_failures",
+        ciReadyState: "ci_failures",
+        ciFailures: 1,
+        ciFailedChecks: ["TypeScript (build + lint + test) (failure)"],
+        confidence: 5,
+        shaMatch: true,
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_CI_BLOCKED);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
   });
 });
 

@@ -1,0 +1,95 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3167 — pr:watch CI weather reason codes + review-cycle thrash caps",
+    "updated": "2026-08-06T20:03:55Z"
+  },
+  "plan": {
+    "id": "3167-pr-watch-ci-weather-codes",
+    "title": "feat(pr-watch,review-cycle): ci_never_scheduled + capacity-stall reason codes and babysit thrash caps",
+    "status": "running",
+    "narratives": {
+      "Description": "Under Blacksmith capacity thrash or Actions outages, babysit and drive-to:merge-ready workers thrash on re-push and long watches even when Greptile is CLEAN. This story adds machine-distinguishable pr:watch / pr:merge-ready reason codes (including ci_never_scheduled), review-cycle thrash caps and BLOCKED handoffs, SLizard non-blocking wait policy, and an opt-in outage merge playbook — without defaulting to skip-ci.",
+      "ImplementationPlan": "1. Extend packages/core/src/pr-watch and packages/core/src/pr-merge-readiness modules to emit distinct reason codes: ci_never_scheduled, runner_capacity_stall, ci_failures, ci_cancelled_no_failover, plus existing greptile fields; expose in --json and add unit tests.\n2. Edit content/skills/deft-directive-review-cycle/SKILL.md for thrash caps (empty-commit/close-reopen limits), BLOCKED handoff template, SLizard advisory-only for merge-ready wait, and opt-in outage admin-merge playbook; cross-link envelope SLA (#3153) and sibling CI workflow #3168.\n3. Wire any CLI/task help strings for the new codes; CHANGELOG [Unreleased] for #3167; verify with core tests and task check.",
+      "UserStory": "As a review-cycle owner, I want pr:watch to name CI weather states and thrash caps, so that agents stop multi-hour re-push loops when Greptile is clean but Actions never schedules checks.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3167",
+      "Overview": "Sibling of #3168 (workflow failover). Related #2672, #2688, #3153, #2943, #3095.",
+      "Labels": "enhancement, determinism, agent-experience, harness, area:skills"
+    },
+    "items": [
+      {
+        "title": "pr:watch reason codes for CI weather",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a PR HEAD with no required CI check-run within the probe window, when pr:watch or pr:merge-ready runs with --json, then the result distinguishes ci_never_scheduled from runner_capacity_stall, completed ci_failures, and ci_cancelled_no_failover."
+        }
+      },
+      {
+        "title": "Review-cycle thrash caps and BLOCKED handoff",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given review-cycle babysit under ci_never_scheduled or capacity stall, when re-trigger attempts hit the documented cap, then the skill requires a structured BLOCKED handoff instead of unbounded empty-commit or close-reopen loops."
+        }
+      },
+      {
+        "title": "SLizard advisory + outage playbook",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given merge-ready wait policy, when Greptile Step 6 is clean, then SLizard is not a wait gate; outage admin-merge is documented as opt-in/human with audit comment, not autonomous default skip-ci."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-watch/evaluate.ts",
+          "packages/core/src/pr-watch/index.ts",
+          "packages/core/src/pr-merge-readiness/evaluate.ts",
+          "packages/core/src/pr-merge-readiness/index.ts",
+          "packages/core/src/pr-watch/evaluate.test.ts",
+          "packages/core/src/pr-merge-readiness/evaluate.test.ts",
+          "content/skills/deft-directive-review-cycle/SKILL.md"
+        ],
+        "verify_commands": [
+          "npm test -w @deftai/directive-core -- --run pr-watch",
+          "task check"
+        ],
+        "expected_outputs": [
+          "pr:watch/pr:merge-ready CI weather reason codes + tests",
+          "review-cycle thrash caps and SLizard non-blocking",
+          "CHANGELOG #3167",
+          "PR open and drive-to merge-ready"
+        ],
+        "depends_on": [],
+        "conflict_group": "pr-watch-ci-weather",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue #3167 filed from CI weather cohort ops; full AC in issue body."
+      }
+    },
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "harness",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3167",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3167"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3168",
+        "type": "x-xbrief/refs",
+        "title": "Sibling CI workflow #3168"
+      }
+    ],
+    "updated": "2026-08-06T20:03:55Z"
+  }
+}

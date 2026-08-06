@@ -17,8 +17,9 @@ export interface WatchProbe {
   /** Failed required check identities (name + conclusion), when CI was probed. */
   readonly ciFailedChecks: readonly string[];
   /**
-   * CI gate ready_state from evaluateCiGate (#2169 / #2672).
-   * Includes `runner_capacity_stall` distinct from `not_ready_yet`.
+   * CI gate ready_state from evaluateCiGate (#2169 / #2672 / #3167).
+   * Weather codes: `ci_never_scheduled`, `runner_capacity_stall`,
+   * `ci_failures`, `ci_cancelled_no_failover` (plus `not_ready_yet` / `ready`).
    */
   readonly ciReadyState: string | null;
   /** Required checks classified as capacity-stalled (#2672). */

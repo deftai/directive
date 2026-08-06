@@ -43,18 +43,38 @@ function makeFakeGh(cfg: FakeGhConfig) {
   };
 }
 
+const GREEN_CI = [
+  { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
+];
+
 describe("probeOnce (canonical greptile-detector integration)", () => {
   it("CLEAN body on a matching HEAD -> isClean, no blocking", () => {
     const probe = probeOnce(
       1056,
       "deftai/directive",
-      makeFakeGh({ headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN }),
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: GREEN_CI,
+      }),
     );
     expect(probe.error).toBeNull();
     expect(probe.shaMatch).toBe(true);
     expect(probe.isClean).toBe(true);
     expect(probe.hasBlocking).toBe(false);
     expect(probe.confidence).toBe(5);
+    expect(probe.ciReadyState).toBe("ready");
+  });
+
+  it("empty check-runs with clean Greptile -> ci_never_scheduled, not CLEAN (#3167)", () => {
+    const probe = probeOnce(
+      1056,
+      "deftai/directive",
+      makeFakeGh({ headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: [] }),
+    );
+    expect(probe.ciReadyState).toBe("ci_never_scheduled");
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("ci_never_scheduled");
   });
 
   it("P1 findings on a matching HEAD -> hasBlocking, sha-matched, not clean", () => {
@@ -115,6 +135,27 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.ciFailures).toBe(1);
     expect(probe.isClean).toBe(false);
     expect(probe.cleanGateHoldout).toBe("ci_failures");
+    expect(probe.ciReadyState).toBe("ci_failures");
+  });
+
+  it("cancelled primary without green sibling -> ci_cancelled_no_failover (#3167)", () => {
+    const probe = probeOnce(
+      1056,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: [
+          {
+            name: "TypeScript (blacksmith primary)",
+            status: "completed",
+            conclusion: "cancelled",
+          },
+        ],
+      }),
+    );
+    expect(probe.ciReadyState).toBe("ci_cancelled_no_failover");
+    expect(probe.isClean).toBe(false);
   });
 
   it("unresolvable HEAD -> config error probe", () => {
