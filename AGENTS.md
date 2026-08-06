@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=57db33829082 refreshed=2026-08-05T23:48:11Z session=9234ece4f0fc -->
+<!-- deft:managed-section v3 sha=695d1fc2726c refreshed=2026-08-06T16:45:57Z session=c73f0d7e6bb3 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -229,6 +229,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
+! **Dual stop (#2442):** multi-iteration work MUST have success + failure/budget stop (max iters / no-progress / budget); single-turn exempt; halt with operator-visible report; ⊗ thrash. Defaults: build, swarm, review-cycle skills. See main.md Dual Stop Rule. Ledger #3143.
 
 ## Through-merge worker dispatch (#3032)
 

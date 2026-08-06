@@ -44,7 +44,8 @@ TASK: You must complete N [type] fixes on this branch ([branch-name]) in the def
 This is a git worktree. Do NOT just read files and stop — you must implement all changes,
 run iteration-lane validation during implement/fix loops, full task check before push,
 commit, push, create a PR, and run the review cycle.
-DO NOT STOP until all steps are complete.
+Drive every step to completion, subject to dual-stop (#2442): if a multi-iteration fix/repair
+loop hits its failure/budget stop, halt with BLOCKED (operator-visible report) — do not thrash past the envelope.
 
 STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned xBRIEF(s) from xbrief/active/.
 Read skills/deft-directive-review-cycle/SKILL.md.
@@ -75,16 +76,19 @@ CONSTRAINTS:
 - Use conventional commits: type(scope): description
 - Iteration commits: affected/static fast lane only; full task check required before push (#1704)
 - Never force-push
+- Dual stop (#2442): multi-iteration fix/repair loops need success + failure/budget stop (build defaults: max 5 quality-fix iters or 3 identical no-progress; pre-PR: max 3 polish passes). On halt: operator-visible report (tried / missing / human decision). Single-turn work is exempt. Delivery/acceptance mechanical ledger is #3143.
 ```
 
 ### Template Rules
 
 - ! First line MUST start with `TASK:` followed by an imperative statement
-- ! Include `DO NOT STOP until all steps are complete` in the preamble
+- ! Include a drive-to-completion instruction that is **subordinate to dual-stop** (#2442): complete all steps unless a multi-iteration failure/budget envelope is exhausted — then `BLOCKED` with an operator-visible report (do not use unconditional "DO NOT STOP" language that overrides the failure stop)
 - ! Each task MUST include its xBRIEF filename and origin issue number
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
+- ! Multi-iteration prompts MUST name dual-stop defaults (or point at `main.md` / build skill #2442) so workers do not thrash without a failure envelope
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
+- ⊗ Write unconditional `DO NOT STOP until all steps are complete` without a dual-stop exception — that conflicts with the failure stop and causes thrash (#2442)
 
 ## Push Autonomy
 
@@ -146,3 +150,6 @@ CONSTRAINTS:
 - ⊗ Treat thin DONE (completion without PR URL / merge evidence) as success — re-dispatch or take over after ground truth (#2943)
 - ⊗ Second+ user-visible consolidate / final for the same child `runId` / settle batch without new evidence or principal reopen — completion latch silent-replay path (`templates/agent-prompt-preamble.md` §11.5 / #3092)
 - ⊗ Full dual-source re-QC solely because the harness re-delivered the same settle event (#3092)
+- ⊗ Run multi-iteration repair, monitor, or implement-fix loops without a dual-stop failure envelope (max iterations and/or no-progress and/or budget) (#2442)
+- ⊗ Silently continue, re-dispatch, or open another identical attempt after the failure stop fires — halt with an operator-visible report (what was tried, what is missing, what human decision is needed) (#2442)
+- ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143, not prompt-only thrashing control (#2442)

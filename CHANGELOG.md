@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dual stop rule for multi-iteration agent work (#2442).** Documents success + failure/budget stops in `main.md` (single-turn exempt). Build, swarm, and review-cycle skill defaults (max iterations + no-progress + operator-visible halt / BLOCKED). Swarm prompts: drive-to-completion subordinate to dual-stop. Preamble §10.6; consumer AGENTS via agents-entry. Delivery/acceptance mechanical circuit breaker is sibling #3143. Closes #2442. Refs #1613, #3143, #2439.
+
 ### Changed
 
 ### Fixed
