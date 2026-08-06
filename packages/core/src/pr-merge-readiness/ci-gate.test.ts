@@ -180,7 +180,7 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     );
     expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
     expect(result.failures.join(" ")).toContain("ci_cancelled_no_failover");
-    expect(result.failures.join(" ")).toContain("authoritative aggregator");
+    expect(result.failures.join(" ")).toContain("authoritative suite aggregator");
   });
 
   it("does not clear cancelled TypeScript via green Go sibling only (#3167 P1)", () => {
@@ -227,6 +227,45 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
       { nowMs: NOW },
     );
     expect(result.summary.ready_state).toBe("ready");
+  });
+
+  it("does not clear cancel via operator-ignored aggregator (#3167 P1)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (Blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+      ],
+      {
+        nowMs: NOW,
+        ignoreCheckNames: ["TypeScript (build + lint + test)"],
+      },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+  });
+
+  it("does not drop non-suite cancellations when suite aggregator is green (#3167 P1)", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (Blacksmith primary)",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({
+          name: "Security policy gate",
+          status: "completed",
+          conclusion: "cancelled",
+        }),
+        run({ name: "TypeScript (build + lint + test)", conclusion: "success" }),
+      ],
+      { nowMs: NOW },
+    );
+    expect(result.summary.ready_state).toBe("ci_cancelled_no_failover");
+    expect(result.summary.cancelled_required.join(" ")).toContain("Security policy gate");
   });
 
   it("prefers ci_failures over cancelled when both present (#3167)", () => {

@@ -300,42 +300,51 @@ export function evaluateCiGate(
       );
     }
   } else if (cancelledRequired.length > 0) {
-    // Cancelled suite jobs clear only when the AUTHORITATIVE aggregator for that
-    // suite family is green (#3167 Greptile P1s):
+    // Cancelled suite jobs clear only when a NON-IGNORED AUTHORITATIVE aggregator
+    // for that suite family is green (#3167 Greptile P1s):
     // - Unrelated greens (CodeQL, Socket) never clear
     // - Green primary/failover never clear a cancelled aggregator
-    // - Green aggregator clears cancelled primary/failover (failover path completed)
+    // - Operator-ignored aggregator never clears
+    // - Green aggregator clears cancelled primary/failover (failover path done)
+    // - Non-suite required cancellations always block (mixed cancel)
+    const stripConclusionParen = (label: string): string =>
+      label.replace(/\s*\([^)]*\)\s*$/, "");
+
+    const cancelledNonSuite = cancelledRequired.filter(
+      (label) => suiteFamilyOf(stripConclusionParen(label)) === null,
+    );
     const cancelledFamilies = new Set(
       cancelledRequired
-        .map((label) => suiteFamilyOf(label.replace(/\s*\([^)]*\)\s*$/, "")))
+        .map((label) => suiteFamilyOf(stripConclusionParen(label)))
         .filter((f): f is "typescript" | "go" => f !== null),
     );
     const greenAuthoritativeFamilies = new Set(
       conclusions
         .filter(
           (c) =>
+            c.required &&
+            !c.ignored &&
             c.status === "completed" &&
             SUCCESS_CONCLUSIONS.has(c.conclusion) &&
             isAuthoritativeSuiteAggregator(c.name),
         )
         .map((c) => suiteFamilyOf(c.name) as "typescript" | "go"),
     );
-    const uncleared =
-      cancelledFamilies.size === 0
-        ? cancelledRequired // non-suite cancels still block
-        : [...cancelledFamilies].filter((f) => !greenAuthoritativeFamilies.has(f));
+    const unclearedFamilies = [...cancelledFamilies].filter(
+      (f) => !greenAuthoritativeFamilies.has(f),
+    );
 
-    if (uncleared.length > 0) {
+    if (unclearedFamilies.length > 0 || cancelledNonSuite.length > 0) {
       readyState = "ci_cancelled_no_failover";
       failedRequired = [...cancelledRequired];
       failures.push(
         `Required CI check-runs cancelled without failover (ci_cancelled_no_failover): ` +
           `${cancelledRequired.join(", ")}. ` +
-          "Cancelled suite lane with no green authoritative aggregator (#3167 / #3168). " +
+          "Cancelled required check with no green non-ignored authoritative suite aggregator (#3167 / #3168). " +
           "Do not multi-hour re-push thrash; BLOCKED after thrash caps.",
       );
     } else {
-      // Every cancelled suite family has a green authoritative aggregator.
+      // Every cancelled suite family has a green non-ignored aggregator; no non-suite cancels.
       readyState = "ready";
     }
   } else {
