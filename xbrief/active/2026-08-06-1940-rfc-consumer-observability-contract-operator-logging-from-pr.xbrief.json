@@ -1,0 +1,89 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #1940 thin v1 operator-log hygiene (pass-1 current shape)",
+    "updated": "2026-08-06T23:33:11Z"
+  },
+  "plan": {
+    "id": "1940-operator-log-hygiene-thin-v1",
+    "title": "RFC: consumer observability contract — operator logging thin v1 (SLizard reference)",
+    "status": "running",
+    "narratives": {
+      "Description": "Thin v1 for #1940: land operator-log hygiene pattern/lesson content (failure modes + anti-patterns; SLizard external reference only), build/probe checklist + REFERENCES discovery pointer, optional consumer pack stub, CHANGELOG, then pass-2 current-shape update with PR link and close #1940. Explicit non-goals: no setup schema, no core deft check mandate, no Insights/LLM telemetry.",
+      "ImplementationPlan": "1. Create content/patterns/operator-log-hygiene.md with the six failure modes, anti-patterns, positive rules, thin non-goals, and SLizard as external reference only.\n2. Create content/docs/operator-log-hygiene-checklist.md as copy-paste build/probe checklist; add REFERENCES.md keyword row and a short pointer in content/skills/deft-directive-build/SKILL.md (or pack source + packs:render).\n3. Optional: add a consumer pack stub under content/packs or docs with Taskfile target name + validator skeleton comments; wire docs only — not framework deft check.\n4. CHANGELOG [Unreleased] for #1940; content-contract pins if required; verify with content tests or rg pin checks.\n5. Update issue #1940 current-shape comment to pass-2 shipped with PR link via REST; close #1940.",
+      "UserStory": "As a consumer operator building a service with operator-facing logs, I want Deft guidance and a checklist at story/probe time, so that I do not reinvent SLizard-class hygiene under production fire.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1940; ship bar is Current shape pass-1 thin v1 only.",
+      "Overview": "Pass-1 thin DoD locked 2026-08-06. Fat A–F body is historical max scope. Related #2603 #481 are different lanes.",
+      "Labels": "enhancement, rfc, patterns, consumer-example, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Pattern/lesson content with failure modes and anti-patterns",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content/patterns/operator-log-hygiene.md exists, when an agent opens it, then it lists the six case-study failure modes, anti-patterns, positive rules, explicit non-goals (no core schema, no default-on, not Insights/LLM telemetry), and cites SLizard only as an external reference path/issue pointer."
+        }
+      },
+      {
+        "title": "Build/probe checklist + discovery pointer",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given REFERENCES.md and content/docs/operator-log-hygiene-checklist.md, when searching for operator log or observability keywords, then the checklist path is discoverable and the checklist is copy-paste usable for story AC or probe locked decisions."
+        }
+      },
+      {
+        "title": "Optional pack stub and CHANGELOG; close #1940",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the merged PR for #1940, when inspected, then CHANGELOG [Unreleased] mentions #1940, no plan.observability schema and no core deft check hard-fail were added, the #1940 current-shape comment is pass-2 with the PR URL, and issue #1940 is closed."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/patterns/operator-log-hygiene.md",
+          "content/docs/operator-log-hygiene-checklist.md",
+          "REFERENCES.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "meta/lessons.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "rg -n \"operator-log hygiene|operator log\" REFERENCES.md content/patterns content/docs",
+          "task packs:render"
+        ],
+        "expected_outputs": [
+          "operator-log hygiene pattern + checklist",
+          "REFERENCES discovery pointer",
+          "optional pack stub or defer note",
+          "pass-2 current shape + close #1940"
+        ],
+        "depends_on": [],
+        "conflict_group": "operator-log-hygiene-1940",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Thin v1 from issue #1940 Current shape pass-1; fat RFC body not ship bar."
+      }
+    },
+    "tags": [
+      "enhancement",
+      "rfc",
+      "patterns",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1940",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1940"
+      }
+    ],
+    "updated": "2026-08-06T23:33:11Z"
+  }
+}

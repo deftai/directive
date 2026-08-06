@@ -36,6 +36,20 @@
       "body": null
     },
     {
+      "id": "operator-log-hygiene",
+      "title": "Operator-log hygiene (#1940)",
+      "description": "Consumer guidance for structured, operator-facing logs: six failure modes, anti-patterns, positive rules, explicit non-goals (no core schema, no default-on, not Insights/LLM telemetry). SLizard is external reference only. Checklist and optional consumer pack stub under docs/.",
+      "triggers": [
+        "operator-log-hygiene",
+        "operator log",
+        "operator-facing logs",
+        "operator logging",
+        "observability checklist"
+      ],
+      "path": "patterns/operator-log-hygiene.md",
+      "body": null
+    },
+    {
       "id": "multi-agent",
       "title": "Multi-agent identity separation pattern (#983)",
       "description": "Status: stable pattern, v1 docs-only. v1 deliberately scopes to a single shared bot/App credential for all workers; per-worker token rotation is deferred to a follow-up. Per #983 non-goals.",

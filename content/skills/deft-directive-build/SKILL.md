@@ -316,6 +316,23 @@ task test:coverage  # >=85% or PROJECT-DEFINITION.xbrief.json override
 - ⊗ Re-run full install/session ceremony after offline seed when ritual is already complete (#3010) — use `session:ready` for recovery only.
 
 
+## Operator-log hygiene (lazy-load, #1940)
+
+When the story touches **operator-facing** services (dashboards, multi-process
+workers, WARN/ERROR operators triage):
+
+- ~ SHOULD load `patterns/operator-log-hygiene.md` and apply the copy-paste
+  checklist in `docs/operator-log-hygiene-checklist.md` to story AC or probe
+  locked decisions before claiming logging done
+- ⊗ MUST NOT treat this as Product Insights (#2603) or LLM-call telemetry
+  (#481) — those are different lanes
+- ⊗ MUST NOT assume core `deft check` enforces a log schema by default —
+  consumer-owned shape; optional pack stub under
+  `docs/operator-log-hygiene-consumer-pack-stub.md`
+
+Discovery keywords: operator log, operator-facing logs, observability checklist
+— also indexed in `REFERENCES.md`.
+
 ## Coding Standards (Summary)
 
 Read full files when you need detail:

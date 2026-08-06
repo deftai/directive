@@ -197,6 +197,17 @@ Load as needed:
 - Contains: treat skills as software, controlled install sources (not stars-as-proof), vet linked targets, pin versions with re-vet on change, least privilege for fetched actions; complements #480 runtime trap defenses and #1700 outbound disclosure
 - Source material: agent marketplace supply-chain incidents; coordinates with `meta/security.md` (#480)
 
+### When Building Operator-Facing Services (operator logs)
+
+**Keywords:** operator log, operator-facing logs, operator logging, observability checklist, operator-log hygiene, WARN/ERROR operators
+
+**[patterns/operator-log-hygiene.md](./content/patterns/operator-log-hygiene.md)** - Operator-log hygiene (#1940)
+- Load: When implementing services humans operate (dashboards, multi-process workers, operator-visible WARN/ERROR), or when story AC / probe locked decisions touch logging
+- Contains: six case-study failure modes, anti-patterns, positive rules, explicit non-goals (no core schema, no default-on, not Insights/LLM telemetry); SLizard as **external reference only**
+- Checklist (copy-paste): [docs/operator-log-hygiene-checklist.md](./content/docs/operator-log-hygiene-checklist.md)
+- Optional consumer pack stub: [docs/operator-log-hygiene-consumer-pack-stub.md](./content/docs/operator-log-hygiene-consumer-pack-stub.md)
+- Different lanes: Product Insights #2603; LLM telemetry `patterns/llm-app.md` / #481
+
 ### When Managing Context or Long Tasks
 
 - **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
