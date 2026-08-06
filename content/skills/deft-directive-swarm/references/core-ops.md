@@ -76,7 +76,7 @@ CONSTRAINTS:
 - Use conventional commits: type(scope): description
 - Iteration commits: affected/static fast lane only; full task check required before push (#1704)
 - Never force-push
-- Dual stop (#2442): multi-iteration fix/repair loops need success + failure/budget stop (build defaults: max 5 quality-fix iters or 3 identical no-progress; pre-PR: max 3 polish passes). On halt: operator-visible report (tried / missing / human decision). Single-turn work is exempt. Delivery/acceptance mechanical ledger is #3143.
+- Dual stop (#2442): multi-iteration fix/repair loops need success + failure/budget stop (build defaults: max 5 quality-fix iters or 3 identical no-progress; pre-PR: max 3 polish passes). On halt: operator-visible report (tried / missing / human decision). Single-turn work is exempt. Delivery/acceptance mechanical ledger is #3143 (`packages/core/src/delivery-attempt/` / `docs/delivery-attempt.md`).
 ```
 
 ### Template Rules
@@ -157,4 +157,4 @@ CONSTRAINTS:
 - ⊗ Full dual-source re-QC solely because the harness re-delivered the same settle event (#3092)
 - ⊗ Run multi-iteration repair, monitor, or implement-fix loops without a dual-stop failure envelope (max iterations and/or no-progress and/or budget) (#2442)
 - ⊗ Silently continue, re-dispatch, or open another identical attempt after the failure stop fires — halt with an operator-visible report (what was tried, what is missing, what human decision is needed) (#2442)
-- ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143, not prompt-only thrashing control (#2442)
+- ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143 (`packages/core/src/delivery-attempt/`), not prompt-only thrashing control (#2442)

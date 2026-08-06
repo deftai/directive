@@ -532,7 +532,7 @@ The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 
 
 Multi-iteration implement, pre-PR, repair, and monitor loops require **two** stops: **success** (goal / AC / checker met) and **failure or budget** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. Principle and defaults: `main.md` `## Dual Stop Rule (#2442)`; build skill dual-stop table; swarm Phase 4 / core-ops.
 
-! On failure stop: halt; emit an operator-visible report (what was tried, what is missing, what human decision is needed). Prefer `BLOCKED:` over silent retry. ⊗ Thrash past the envelope. Durable delivery/acceptance mechanical enforcement is **#3143** (not prompt-only).
+! On failure stop: halt; emit an operator-visible report (what was tried, what is missing, what human decision is needed). Prefer `BLOCKED:` over silent retry. ⊗ Thrash past the envelope. Durable delivery/acceptance mechanical enforcement is **#3143** (`packages/core/src/delivery-attempt/`; not prompt-only).
 
 ## 11. Mandatory DONE message even on early exit
 

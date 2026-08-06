@@ -251,6 +251,10 @@
       "types": "./dist/parent-turn-shape/index.d.ts",
       "default": "./dist/parent-turn-shape/index.js"
     },
+    "./delivery-attempt": {
+      "types": "./dist/delivery-attempt/index.d.ts",
+      "default": "./dist/delivery-attempt/index.js"
+    },
     "./intake": {
       "types": "./dist/intake/index.d.ts",
       "default": "./dist/intake/index.js"

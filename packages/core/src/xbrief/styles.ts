@@ -5,7 +5,21 @@
  * not a second dialect.
  */
 
+import { parseMarkdownHeading } from "../text/redos-safe.js";
 import type { XbriefDocument, XbriefStyle } from "./types.js";
+
+/**
+ * Linear frontmatter ``key: value`` parse (no nested quantifiers).
+ * Replaces ``/^key:\s*(.+)\s*$/`` flagged as CodeQL js/polynomial-redos (#3174).
+ */
+function frontmatterField(line: string, key: string): string | null {
+  const prefix = `${key}:`;
+  if (!line.startsWith(prefix)) {
+    return null;
+  }
+  const value = line.slice(prefix.length).trim();
+  return value.length > 0 ? value : null;
+}
 
 /** Required H2 section titles in the markdown form per style. */
 export const MD_REQUIRED_SECTIONS: Readonly<Record<XbriefStyle, readonly string[]>> = {
@@ -236,25 +250,26 @@ export function parseMarkdownMeta(md: string): {
       continue;
     }
     if (inFront) {
-      const idMatch = /^id:\s*(.+)\s*$/.exec(line);
-      if (idMatch?.[1] !== undefined) id = idMatch[1].trim();
-      const styleMatch = /^style:\s*(.+)\s*$/.exec(line);
-      if (styleMatch?.[1] !== undefined) style = styleMatch[1].trim();
+      // Linear field parse — avoids js/polynomial-redos on \s*(.+)\s* (#3174 alerts #84-#85).
+      const idValue = frontmatterField(line, "id");
+      if (idValue !== null) id = idValue;
+      const styleValue = frontmatterField(line, "style");
+      if (styleValue !== null) style = styleValue;
       continue;
     }
 
-    const h1 = /^#\s+(.+)$/.exec(line);
-    if (h1?.[1] !== undefined && title === null) {
-      title = h1[1].trim();
-    }
-
-    const h2 = /^##\s+(.+)$/.exec(line);
-    if (h2?.[1] !== undefined) {
-      const name = h2[1].trim();
-      sections.add(name);
-      afterTitleH2 = name === "Title";
-      afterStatusH2 = name === "Status";
-      continue;
+    // Linear ATX heading parse — avoids js/polynomial-redos on ^#+\s+(.+)$ (#3174 alerts #86-#87).
+    const heading = parseMarkdownHeading(line);
+    if (heading !== null) {
+      const name = heading.text.trim();
+      if (heading.hashes === "#" && title === null) {
+        title = name;
+      } else if (heading.hashes === "##") {
+        sections.add(name);
+        afterTitleH2 = name === "Title";
+        afterStatusH2 = name === "Status";
+        continue;
+      }
     }
 
     if (afterTitleH2 && line.trim().length > 0 && !line.startsWith("#")) {

@@ -98,7 +98,7 @@ Loop engineering requires **two** stop conditions on multi-iteration autonomous 
 
 - #1613 covers STOP when plan **preconditions** fail (reality mismatch). Dual stop covers the case where the plan is still "valid" but the agent must quit after N failed attempts, N identical no-progress outcomes, or a budget limit.
 - Skills name concrete defaults: `skills/deft-directive-build/SKILL.md` (implement / pre-PR loops), `skills/deft-directive-swarm/SKILL.md` and its Phase 4 / core-ops references (repair / monitor loops).
-- **Delivery / acceptance mechanical enforcement** (durable attempt ledger, material-progress circuit breaker, cross-revision budgets) is **#3143** -- not this story. #2442 is the principle + skill defaults; #3143 is the deterministic gate. Do not implement or claim the #3143 ledger here.
+- **Delivery / acceptance mechanical enforcement** (durable attempt ledger, material-progress circuit breaker, cross-revision budgets) is **#3143** — library: `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, unit ledger under `.deft/delivery-attempts/`). Docs: `content/docs/delivery-attempt.md`. #2442 is the principle + skill defaults; #3143 is the deterministic pre-dispatch gate. Route delivery/acceptance loops through that surface rather than inventing a parallel ledger.
 
 **Adaptive Teaching:**
 - ~ When a recommendation is accepted without question, be concise

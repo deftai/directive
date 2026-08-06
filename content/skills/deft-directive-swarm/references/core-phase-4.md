@@ -74,7 +74,7 @@ tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-wi
 
 ! When the failure stop fires: **halt** automatic repair/re-dispatch; emit an **operator-visible halt report** (what was tried, current stage, missing evidence, human decision needed). Prefer `BLOCKED:` over thin `DONE` when the unit cannot reach merge-ready inside the envelope.
 
-! Composes with minimal-subgraph repair (#2439): repairs stay minimal **and** dual-stop bounded. Mechanical delivery/acceptance circuit breaker is **#3143** (not this reference).
+! Composes with minimal-subgraph repair (#2439): repairs stay minimal **and** dual-stop bounded. Mechanical delivery/acceptance circuit breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`). Docs: `docs/delivery-attempt.md`.
 
 ⊗ Silently continue the monitor repair loop after the envelope is exhausted.
 ⊗ Count a worker swap or session handoff as a fresh unlimited budget when the same failure class remains.
