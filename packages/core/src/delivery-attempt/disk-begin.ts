@@ -8,7 +8,9 @@
 import { evaluatePreDispatch } from "./evaluate.js";
 import {
   beginAttempt,
+  completeAttempt,
   loadOrCreateUnitLedger,
+  loadUnitLedger,
   markBlocked,
   saveUnitLedger,
   withUnitLock,
@@ -82,5 +84,43 @@ export function beginAttemptOnDisk(
     const { ledger, attempt } = beginAttempt(current, input);
     saveUnitLedger(projectRoot, ledger);
     return { ledger, attempt };
+  });
+}
+
+export interface CompleteAttemptOnDiskInput {
+  readonly scopeId: string;
+  readonly targetId: string;
+  readonly workflowId: string;
+  readonly attemptId?: string;
+  readonly externalRunId?: string | null;
+  readonly status: "succeeded" | "failed" | "cancelled" | "blocked";
+  readonly failure?: FailureInfo | null;
+  readonly materialDelta?: readonly MaterialDeltaClaim[];
+  readonly elapsedSeconds?: number;
+  readonly toolCallCount?: number;
+  readonly hostTokenCount?: number | null;
+  readonly now?: string;
+}
+
+/**
+ * Exclusive lock + reload + complete + save so completion cannot clobber a
+ * concurrent begin write (#3143 Greptile race diagram).
+ */
+export function completeAttemptOnDisk(
+  projectRoot: string,
+  input: CompleteAttemptOnDiskInput,
+): DeliveryUnitLedger {
+  return withUnitLock(projectRoot, input.scopeId, input.targetId, input.workflowId, () => {
+    const current =
+      loadUnitLedger(projectRoot, input.scopeId, input.targetId, input.workflowId) ??
+      loadOrCreateUnitLedger(projectRoot, {
+        scopeId: input.scopeId,
+        targetId: input.targetId,
+        workflowId: input.workflowId,
+        now: input.now,
+      });
+    const next = completeAttempt(current, input);
+    saveUnitLedger(projectRoot, next);
+    return next;
   });
 }

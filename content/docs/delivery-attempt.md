@@ -100,55 +100,51 @@ history.
 
 ## Typical call shape
 
+Use the **locked disk APIs** for concurrent-safe begin/complete. Do not evaluate
+on a stale in-memory snapshot and then `saveUnitLedger` without the unit lock.
+
 ```ts
 import {
-  evaluatePreDispatch,
-  loadOrCreateUnitLedger,
-  beginAttempt,
-  completeAttempt,
-  saveUnitLedger,
-  markBlocked,
+  beginAttemptOnDisk,
+  completeAttemptOnDisk,
   buildFailureInfo,
 } from "@deftai/directive-core/delivery-attempt";
 
-const ledger = loadOrCreateUnitLedger(projectRoot, {
-  scopeId,
-  targetId,
-  workflowId,
-});
-const evaluation = evaluatePreDispatch(ledger, {
-  scopeId,
-  targetId,
-  workflowId,
-  sourceRevision,
-  trigger: "automatic",
-  anticipatedFailure: lastFailure,
-  materialDelta: claims,
-});
-if (!evaluation.allowed) {
-  const blocked = markBlocked(
-    ledger,
-    evaluation.decision,
-    evaluation.handoff!.resumeCondition,
-  );
-  saveUnitLedger(projectRoot, blocked);
-  // emit BLOCKED handoff to operator
+// beginAttemptOnDisk: exclusive lock → reload → evaluatePreDispatch → begin → save
+let attempt;
+try {
+  const begun = beginAttemptOnDisk(projectRoot, {
+    scopeId,
+    targetId,
+    workflowId,
+    sourceRevision,
+    trigger: "automatic",
+    anticipatedFailure: lastFailure,
+    materialDelta: claims,
+  });
+  attempt = begun.attempt;
+} catch (err) {
+  // DENY_*/BLOCK_* — handoff already persisted when blocked
   return;
 }
-const { ledger: open, attempt } = beginAttempt(ledger, {
-  sourceRevision,
-  trigger: "automatic",
-  attemptId: evaluation.nextAttemptId ?? undefined,
-});
-saveUnitLedger(projectRoot, open);
+
 // ... run workflow ...
-const closed = completeAttempt(open, {
+
+// completeAttemptOnDisk: exclusive lock → reload → complete → save
+const closed = completeAttemptOnDisk(projectRoot, {
+  scopeId,
+  targetId,
+  workflowId,
   attemptId: attempt.attemptId,
   status: "failed",
   failure: buildFailureInfo({ stage, code, message, retryability }),
 });
-saveUnitLedger(projectRoot, closed);
 ```
+
+Pure in-memory helpers (`evaluatePreDispatch`, `beginAttempt`, `completeAttempt`)
+remain for tests and single-threaded hosts. Multi-worker orchestration MUST use
+`beginAttemptOnDisk` / `completeAttemptOnDisk` (or `withUnitLock` around an
+equivalent sequence). Abandoned unit locks older than 5 minutes are recovered.
 
 ## Observability
 

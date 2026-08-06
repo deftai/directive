@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { beginAttemptOnDisk } from "./disk-begin.js";
+import { beginAttemptOnDisk, completeAttemptOnDisk } from "./disk-begin.js";
 import { buildFailureInfo } from "./fingerprint.js";
 import { beginAttempt, completeAttempt, emptyUnitLedger, saveUnitLedger } from "./ledger.js";
 
@@ -54,5 +54,26 @@ describe("beginAttemptOnDisk (#3143)", () => {
         anticipatedFailure: failure,
       }),
     ).toThrow(/BLOCK_/);
+  });
+
+  it("completeAttemptOnDisk reloads under lock", () => {
+    const root = mkdtempSync(join(tmpdir(), "da-disk-c-"));
+    temps.push(root);
+    const { attempt } = beginAttemptOnDisk(root, {
+      scopeId: "s",
+      targetId: "t",
+      workflowId: "w",
+      sourceRevision: "r1",
+      trigger: "automatic",
+      attemptId: "a1",
+    });
+    const closed = completeAttemptOnDisk(root, {
+      scopeId: "s",
+      targetId: "t",
+      workflowId: "w",
+      attemptId: attempt.attemptId,
+      status: "succeeded",
+    });
+    expect(closed.attempts[0]?.status).toBe("succeeded");
   });
 });

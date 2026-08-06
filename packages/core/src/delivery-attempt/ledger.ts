@@ -15,6 +15,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   unlinkSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -322,12 +323,16 @@ export function saveUnitLedger(projectRoot: string, ledger: DeliveryUnitLedger):
  * Exclusive unit lock for begin/complete on disk (#3143 concurrent-snapshot P1).
  * Uses O_EXCL create of a lock file under the delivery-attempts dir.
  */
+/** Stale lock age (ms) after which a crashed owner may be recovered. */
+export const UNIT_LOCK_STALE_MS = 5 * 60 * 1000;
+
 export function withUnitLock<T>(
   projectRoot: string,
   scopeId: string,
   targetId: string,
   workflowId: string,
   fn: () => T,
+  options?: { readonly nowMs?: number; readonly staleMs?: number },
 ): T {
   const dir = deliveryAttemptsDir(projectRoot);
   mkdirSync(dir, { recursive: true });
@@ -335,17 +340,36 @@ export function withUnitLock<T>(
   const lockPath = join(dir, lockName);
   const root = resolve(projectRoot);
   assertWriteTargetSafe(root, lockPath);
+  const nowMs = options?.nowMs ?? Date.now();
+  const staleMs = options?.staleMs ?? UNIT_LOCK_STALE_MS;
   let fd: number | null = null;
   try {
     fd = openSync(lockPath, "wx");
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "EEXIST") {
-      throw new Error(
-        `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
-      );
+      // Recover abandoned locks from crashed workers (#3143 Greptile).
+      let mtimeMs = 0;
+      try {
+        mtimeMs = statSync(lockPath).mtimeMs;
+      } catch {
+        mtimeMs = 0;
+      }
+      if (nowMs - mtimeMs >= staleMs) {
+        try {
+          unlinkSync(lockPath);
+        } catch {
+          /* race with other recoverer */
+        }
+        fd = openSync(lockPath, "wx");
+      } else {
+        throw new Error(
+          `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
+        );
+      }
+    } else {
+      throw err;
     }
-    throw err;
   }
   try {
     return fn();

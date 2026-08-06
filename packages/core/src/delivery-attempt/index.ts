@@ -11,6 +11,8 @@
 export {
   type BeginAttemptOnDiskInput,
   beginAttemptOnDisk,
+  type CompleteAttemptOnDiskInput,
+  completeAttemptOnDisk,
 } from "./disk-begin.js";
 export {
   evaluateAndPrepareBlock,
