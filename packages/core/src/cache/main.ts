@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { latestDecisions, readAuditLog } from "../triage/actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 import {
   archiveClosedEntries,
   DEFAULT_ARCHIVE_OLDER_THAN_DAYS,
@@ -383,15 +385,28 @@ function cmdArchiveClosed(args: string[]): number {
     }
   }
 
+  const resolvedProjectRoot = projectRoot ?? process.cwd();
   const resolvedCacheRoot =
     cacheRoot ?? (projectRoot !== undefined ? resolve(projectRoot, ".deft-cache") : undefined);
+
+  let latestDecisionMap: Map<string, string> | null = null;
+  if (terminalDecisionOnly) {
+    try {
+      const logPath = resolveCandidatesLogPath(resolvedProjectRoot);
+      latestDecisionMap = latestDecisions(readAuditLog(logPath, repo ?? null));
+    } catch {
+      latestDecisionMap = new Map();
+    }
+  }
+
   const result = archiveClosedEntries({
     olderThanDays,
     source,
     repo: repo ?? null,
     dryRun,
     terminalDecisionOnly,
-    projectRoot,
+    latestDecisions: latestDecisionMap,
+    projectRoot: resolvedProjectRoot,
     cacheRoot: resolvedCacheRoot,
     reason,
   });
@@ -402,6 +417,7 @@ function cmdArchiveClosed(args: string[]): number {
     older_than_days: result.olderThanDays,
     source: result.source,
     repo: result.repo,
+    terminal_decision_only: terminalDecisionOnly,
     archived_count: result.archivedCount,
     skipped_count: result.skippedCount,
     archived: result.archived.map((c) => ({
@@ -410,6 +426,7 @@ function cmdArchiveClosed(args: string[]): number {
       archive_dir: c.archiveDir,
       age_basis: c.ageBasis,
       closed_at: c.closedAt,
+      pre_archive_decision: c.preArchiveDecision,
     })),
     skipped: result.skipped.map((s) => ({
       key: s.key,
@@ -532,7 +549,13 @@ function cmdRestoreFromArchive(args: string[]): number {
       key = args[i + 1];
       i += 1;
     } else if (arg === "--issue") {
-      issue = Number.parseInt(args[i + 1] ?? "", 10);
+      const rawIssue = args[i + 1] ?? "";
+      if (!/^[1-9]\d*$/.test(rawIssue)) {
+        throw new CacheError(
+          `--issue must be a positive integer (got ${JSON.stringify(rawIssue)})`,
+        );
+      }
+      issue = Number.parseInt(rawIssue, 10);
       i += 1;
     } else if (arg === "--repo") {
       repo = args[i + 1];

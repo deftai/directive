@@ -148,12 +148,26 @@ function loadPlan(path: string): Record<string, unknown> | null {
   }
 }
 
+/** Parse github issue URI → `{repo: owner/name, number}` when possible. */
+function issueRefFromUri(uri: string): { repo: string; number: number } | null {
+  const cleaned = uri.replace(/\/+$/, "");
+  const m = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/i.exec(cleaned);
+  if (m) {
+    return { repo: `${m[1]}/${m[2]}`, number: Number.parseInt(m[3] ?? "", 10) };
+  }
+  const tail = cleaned.split("/").pop() ?? "";
+  if (/^\d+$/.test(tail)) {
+    return { repo: "", number: Number.parseInt(tail, 10) };
+  }
+  return null;
+}
+
 /**
- * Issue numbers referenced by open lifecycle scopes in
- * `xbrief/{proposed,pending,active}/` (#1137 eligibility gate).
+ * Open-lifecycle protection set: preferred keys are `owner/repo#N`.
+ * Bare `#N` keys are also recorded when the plan URI has no repo (conservative).
  */
-export function openLifecycleReferencedIssueNumbers(projectRoot: string): ReadonlySet<number> {
-  const out = new Set<number>();
+export function openLifecycleReferencedKeys(projectRoot: string): ReadonlySet<string> {
+  const out = new Set<string>();
   let base: string;
   try {
     base = resolveLifecycleRoot(projectRoot);
@@ -168,12 +182,57 @@ export function openLifecycleReferencedIssueNumbers(projectRoot: string): Readon
       .sort()) {
       const plan = loadPlan(join(folderDir, name));
       if (plan === null) continue;
-      for (const n of issueNumbersFromPlan(plan)) {
-        out.add(n);
+      const refs = plan.references;
+      if (!Array.isArray(refs)) continue;
+      for (const ref of refs) {
+        if (typeof ref !== "object" || ref === null) continue;
+        const typed = ref as Record<string, unknown>;
+        const uri = typed.uri;
+        if (typeof uri !== "string") continue;
+        const parsed = issueRefFromUri(uri);
+        if (parsed) {
+          if (parsed.repo) {
+            // Repo-scoped protection only — multi-repo caches stay independent.
+            out.add(`${parsed.repo}#${parsed.number}`);
+          } else {
+            out.add(`#${parsed.number}`);
+          }
+          continue;
+        }
+        // Non-github URI with numeric tail: bare-number protect (conservative).
+        for (const n of issueNumbersFromPlan({ references: [ref] })) {
+          out.add(`#${n}`);
+        }
       }
     }
   }
   return out;
+}
+
+/**
+ * Issue numbers referenced by open lifecycle scopes (legacy numeric view).
+ * Prefer {@link openLifecycleReferencedKeys} for multi-repo caches.
+ */
+export function openLifecycleReferencedIssueNumbers(projectRoot: string): ReadonlySet<number> {
+  const out = new Set<number>();
+  for (const key of openLifecycleReferencedKeys(projectRoot)) {
+    const m = /#(\d+)$/.exec(key);
+    if (m) out.add(Number.parseInt(m[1] ?? "", 10));
+  }
+  return out;
+}
+
+/** True when cache key `owner/repo/N` is protected by open lifecycle refs. */
+export function isLifecycleProtected(
+  cacheKey: string,
+  protectedKeys: ReadonlySet<string>,
+): boolean {
+  const m = GH_KEY_RE.exec(cacheKey);
+  if (!m) return false;
+  const repo = `${m[1]}/${m[2]}`;
+  const n = m[3] ?? "";
+  // Prefer exact repo match; bare #N only when URI had no repo (conservative).
+  return protectedKeys.has(`${repo}#${n}`) || protectedKeys.has(`#${n}`);
 }
 
 function collectLiveMetaPaths(srcRoot: string): string[] {
@@ -287,11 +346,18 @@ export interface ArchiveClosedOptions {
   terminalDecisionOnly?: boolean;
   /** Override protected issue set (tests); default scans open lifecycle. */
   protectedIssueNumbers?: ReadonlySet<number> | null;
+  /** Override protected keys `owner/repo#N` / `#N` (preferred multi-repo form). */
+  protectedKeys?: ReadonlySet<string> | null;
   reason?: string;
   clock?: Clock;
 }
 
+/** Align with candidates-log latestDecisions key: `${repo}\0${n}`. */
 function decisionKey(repo: string, issueNumber: number): string {
+  return `${repo}\0${issueNumber}`;
+}
+
+function decisionKeyAlt(repo: string, issueNumber: number): string {
   return `${repo}#${issueNumber}`;
 }
 
@@ -323,8 +389,16 @@ export function archiveClosedEntries(options: ArchiveClosedOptions = {}): Archiv
   const thresholdMs = olderThanDays * 24 * 60 * 60 * 1000;
   const now = clock.now();
 
-  const protectedIssues =
-    options.protectedIssueNumbers ?? openLifecycleReferencedIssueNumbers(projectRoot);
+  let protectedKeys: ReadonlySet<string>;
+  if (options.protectedKeys) {
+    protectedKeys = options.protectedKeys;
+  } else if (options.protectedIssueNumbers) {
+    const synthetic = new Set<string>();
+    for (const n of options.protectedIssueNumbers) synthetic.add(`#${n}`);
+    protectedKeys = synthetic;
+  } else {
+    protectedKeys = openLifecycleReferencedKeys(projectRoot);
+  }
 
   const archived: ArchiveCandidate[] = [];
   const skipped: ArchiveSkip[] = [];
@@ -389,12 +463,12 @@ export function archiveClosedEntries(options: ArchiveClosedOptions = {}): Archiv
     }
 
     const issueNum = issueNumberFromKey(key);
-    if (issueNum !== null && protectedIssues.has(issueNum)) {
+    if (isLifecycleProtected(key, protectedKeys)) {
       skipped.push({
         source,
         key,
         reason: "open-lifecycle-scope",
-        detail: `issue #${issueNum} referenced in proposed/pending/active`,
+        detail: `issue ${key} referenced in proposed/pending/active`,
       });
       continue;
     }
@@ -404,6 +478,7 @@ export function archiveClosedEntries(options: ArchiveClosedOptions = {}): Archiv
       const keyRepo = repoFromKey(key) ?? "";
       preArchiveDecision =
         options.latestDecisions.get(decisionKey(keyRepo, issueNum)) ??
+        options.latestDecisions.get(decisionKeyAlt(keyRepo, issueNum)) ??
         options.latestDecisions.get(String(issueNum)) ??
         null;
     }
@@ -628,6 +703,11 @@ export function restoreFromArchive(options: RestoreFromArchiveOptions = {}): Res
   if (!key) {
     if (options.issue === undefined || options.issue === null) {
       throw new CacheError("restore requires --issue N or --key owner/repo/N");
+    }
+    if (!Number.isInteger(options.issue) || options.issue < 1) {
+      throw new CacheError(
+        `--issue must be a positive integer (got ${JSON.stringify(options.issue)})`,
+      );
     }
     if (!options.repo || !REPO_RE.test(options.repo)) {
       throw new CacheError(

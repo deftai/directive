@@ -317,7 +317,8 @@ describe("archiveClosedEntries", () => {
       },
       { fetched_at: "2026-01-01T00:00:00Z" },
     );
-    const decisions = new Map<string, string>([["deftai/directive#500", "accept"]]);
+    // candidates-log key form: repo\0issue
+    const decisions = new Map<string, string>([["deftai/directive\u0000500", "accept"]]);
     const result = archiveClosedEntries({
       cacheRoot,
       projectRoot,
@@ -329,6 +330,39 @@ describe("archiveClosedEntries", () => {
     });
     expect(result.archivedCount).toBe(0);
     expect(result.skipped.some((s) => s.reason === "non-terminal-decision")).toBe(true);
+  });
+
+  it("lifecycle protection is repo-scoped (multi-repo same number)", () => {
+    const projectRoot = tempRoot();
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    const clock = new FixedClock(new Date("2026-08-01T00:00:00Z"));
+    writeScope(projectRoot, "active", 300, "2026-08-01-300.xbrief.json");
+    writeLiveEntry(
+      cacheRoot,
+      "other/repo/300",
+      {
+        number: 300,
+        title: "other repo",
+        body: "x",
+        state: "closed",
+        closed_at: "2026-01-01T00:00:00Z",
+      },
+      { fetched_at: "2026-01-01T00:00:00Z" },
+    );
+    const result = archiveClosedEntries({
+      cacheRoot,
+      projectRoot,
+      olderThanDays: 30,
+      dryRun: true,
+      clock,
+    });
+    // other/repo/300 must NOT be blocked by deftai/directive#300 scope
+    expect(result.archived.some((a) => a.key === "other/repo/300")).toBe(true);
+  });
+
+  it("rejects malformed --issue on restore CLI", async () => {
+    const { main } = await import("./main.js");
+    expect(main(["restore-from-archive", "--issue", "42abc", "--repo", "a/b"])).toBe(1);
   });
 });
 
