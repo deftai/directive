@@ -260,7 +260,10 @@ function readJsonObject(path: string): Record<string, unknown> | null {
 function issueNumberFromKey(key: string): number | null {
   const m = GH_KEY_RE.exec(key);
   if (!m) return null;
-  return Number.parseInt(m[3] ?? "", 10);
+  const raw = m[3] ?? "";
+  // GH_KEY_RE already requires digits; re-check full-string positive int for SLizard.
+  if (!/^[1-9]\d*$/.test(raw)) return null;
+  return Number(raw);
 }
 
 function repoFromKey(key: string): string | null {

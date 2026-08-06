@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Hard-stop parent text-repetition hang (FC14 / soft #2943 insufficient) (#3131).** Soft skill prose after `subagent_announce` did not stop parents from burning the output budget on identical progress sentences with zero tools. Ships machine-checkable `evaluateParentTurnShape` in `@deftai/directive-core/parent-turn-shape` (N>2 near-identical assistant text units with no `tool_use`/`yield` → `failClass: FC14`; post-announce progress-only multi-sentence also illegal). Swarm hard gates, OpenClaw host adapter, openclaw-agent-host operator recovery for current beta pins, and preamble §11 document the legal shapes (tool batch, yield, or one non-repeated short answer). Soft prose is not sole mitigation. Closes #3131. Refs #2943.
 - **core-guard allowlist: upgrade co-travel for package pin + GENERATION.json (#3127).** Expand `installerManagedMatchers()` (TS deposit + Go parity) so a single framework-upgrade PR may include `.deft/core/**`, existing installer-managed deposits, `package.json` / lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`), and `.deft/GENERATION.json` without tripping `no-mixed-core-and-app`. Mixing core with true app/product paths still fails. UPGRADING documents the one-upgrade-PR shape; commit hygiene notes the co-travel unit. Closes #3127. Refs #1430, #3117, #1440.
 
 ### Removed

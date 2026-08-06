@@ -696,9 +696,9 @@ describe("test_swarm_skill", () => {
 
   it("swarm_parent_monitor_tool_first_after_leaf_announce_2943", () => {
     const text = _read_swarm();
-    expect(text).toContain("Parent-monitor after leaf announce (#2943)");
-    expect(text).toContain("Parent-monitor after `subagent_announce` (#2943)");
-    expect(text).toContain("Parent tool-first after leaf announce (#2943)");
+    expect(text).toContain("Parent-monitor after leaf announce (#2943");
+    expect(text).toContain("Parent-monitor after `subagent_announce` (#2943");
+    expect(text).toContain("Parent tool-first after leaf announce (#2943");
     expect(text).toContain("tool-first");
     expect(text).toContain("sessions_yield");
     expect(text).toContain("Thin DONE = failed leaf");
@@ -711,9 +711,23 @@ describe("test_swarm_skill", () => {
     expect(text).toMatch(/⊗[^\n]*[Tt]hin DONE[^\n]*success[^\n]*#2943/);
   });
 
+  it("swarm_parent_turn_shape_hard_stop_fc14_3131", () => {
+    // Soft prose alone is not enough — hard-stop is machine-checkable (#3131).
+    const text = _read_swarm();
+    expect(text).toContain("#3131");
+    expect(text).toContain("FC14");
+    expect(text).toContain("evaluateParentTurnShape");
+    expect(text).toContain("parent-turn-shape");
+    expect(text).toMatch(/N\s*>\s*2|N>2/);
+    expect(text).toMatch(/hard-stop|#3131 hard-stop/i);
+    expect(text).toMatch(/soft[^\n]*not[^\n]*sole mitigation|not[^\n]*sole mitigation/i);
+    // Thin SKILL dispatch card + OpenClaw adapter + ops anti-patterns.
+    expect(text).toMatch(/⊗[^\n]*N>2[^\n]*#3131|⊗[^\n]*near-identical[^\n]*#3131/);
+  });
+
   it("openclaw_agent_host_parent_monitor_policy_2943", () => {
     const doc = readRepoFile("docs/openclaw-agent-host.md");
-    expect(doc).toContain("Parent-monitor after `subagent_announce` (#2943)");
+    expect(doc).toContain("Parent-monitor after `subagent_announce` (#2943");
     expect(doc).toContain("tool-first");
     expect(doc).toContain("sessions_yield");
     expect(doc).toContain("Thin DONE = failed leaf");
@@ -739,6 +753,17 @@ describe("test_swarm_skill", () => {
     expect(host).toContain("Nested Agent boundary");
   });
 
+  it("openclaw_agent_host_fc14_hard_stop_and_operator_recovery_3131", () => {
+    const doc = readRepoFile("docs/openclaw-agent-host.md");
+    expect(doc).toContain("#3131");
+    expect(doc).toContain("FC14");
+    expect(doc).toContain("evaluateParentTurnShape");
+    expect(doc).toContain("parent-turn-shape");
+    expect(doc).toContain("Operator recovery — FC14 parent hang");
+    expect(doc).toMatch(/Abort the parent turn/i);
+    expect(doc).toMatch(/soft[^\n]*not[^\n]*sole mitigation|not[^\n]*sole mitigation/i);
+    expect(doc).toMatch(/⊗[^\n]*N>2[^\n]*#3131|⊗[^\n]*near-identical[^\n]*#3131/);
+  });
   it("gates_surface_dual_invoke_order (#2893)", () => {
     const text = _read_swarm();
     expect(text).toContain("Gates-surface dual invoke (#2893)");
