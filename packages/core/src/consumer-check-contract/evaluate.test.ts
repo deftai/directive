@@ -366,6 +366,23 @@ tasks:
     expect(result.exitCode).toBe(1);
   });
 
+  it("does not trust inert dispatchTaskCheck argument text", () => {
+    const root = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - echo "call dispatchTaskCheck later"
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: root,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
   it("does not trust commented engine:invoke + ENGINE_CMD markers", () => {
     const root = `
 version: '3'

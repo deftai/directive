@@ -352,28 +352,53 @@ export function taskBodyInvokesCheckOrchestrator(body: string): boolean {
   if (body.trim().length === 0) return false;
   const live = stripTaskBodyComments(body);
   if (live.trim().length === 0) return false;
-  const hasEngineInvoke = /\bengine:invoke\b/.test(live);
-  const hasDispatch = /\bdispatchTaskCheck\b/.test(live);
-  const hasEngineCheckCmd = /ENGINE_CMD:\s*['"]?check\b/.test(live);
-  // Framework Taskfile pattern: task: engine:invoke + ENGINE_CMD: 'check ...'
-  if (hasEngineInvoke && hasEngineCheckCmd) return true;
-  if (hasDispatch && hasEngineCheckCmd) return true;
-  if (hasDispatch) return true;
+
+  let hasEngineInvoke = false;
+  let hasDispatch = false;
+  let hasEngineCheckCmd = false;
+  let hasCommandRunner = false;
 
   for (const raw of live.split("\n")) {
     const stripped = raw.trim();
     if (!stripped) continue;
     if (isNonExecutingCommandLine(stripped)) continue;
     if (lineMasksCheckFailure(stripped)) continue;
+    // YAML structural keys (not shell) — only count as markers when not inert args.
+    if (/^(?:-\s*)?task:\s*engine:invoke\b/.test(stripped) || /\bengine:invoke\b/.test(stripped)) {
+      // Reject pure argument form: echo "engine:invoke"
+      if (!/^echo\b/i.test(stripped.replace(/^-\s+/, ""))) {
+        hasEngineInvoke = true;
+      }
+    }
+    if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) {
+      hasEngineCheckCmd = true;
+    }
+    // dispatchTaskCheck only when it appears as an executable token, not inert text.
     const cmd = stripped.replace(/^-\s+/, "");
-    // Bare ENGINE_CMD without invoke is NOT enough.
+    if (
+      /^(?:npx\s+|node\s+)?.*\bdispatchTaskCheck\b/.test(cmd) &&
+      !/^echo\b/i.test(cmd) &&
+      !isPureAssignmentLine(cmd)
+    ) {
+      // Still reject if only inside quotes as inert documentation
+      const unquoted = stripQuotedSegments(cmd);
+      if (/\bdispatchTaskCheck\b/.test(unquoted)) {
+        hasDispatch = true;
+      }
+    }
     if (
       lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/) ||
       lineHasCommandPositionRunner(cmd, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)
     ) {
-      return true;
+      hasCommandRunner = true;
     }
   }
+
+  // Framework Taskfile pattern: task: engine:invoke + ENGINE_CMD: 'check ...'
+  if (hasEngineInvoke && hasEngineCheckCmd) return true;
+  if (hasDispatch && hasEngineCheckCmd) return true;
+  if (hasDispatch) return true;
+  if (hasCommandRunner) return true;
   return false;
 }
 

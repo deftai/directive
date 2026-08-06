@@ -421,10 +421,17 @@ export function evaluateScopeProvenance(
       continue;
     }
     const planId = extractPlanId(payload);
-    const approved =
+    const approvedCandidate =
       (planId !== null ? approvedByPlan.get(planId) : undefined) ??
       (planId !== null ? readApprovedScopeRecord(root, planId) : null) ??
       null;
+    // Bind approval to this xBRIEF path — do not reuse another plan's stamp when
+    // plan.id was rewritten to match (Greptile conf=1).
+    const approved =
+      approvedCandidate !== null &&
+      normalizeRepoRelPath(approvedCandidate.xbriefRelPath) === normalizeRepoRelPath(rel)
+        ? approvedCandidate
+        : null;
 
     const modified = changedSet.has(normalizeRepoRelPath(rel));
     // Only an explicit renewed stamp from options (or a pre-existing on-disk
