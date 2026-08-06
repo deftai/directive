@@ -365,46 +365,6 @@ export function withUnitLock<T>(
   }
 }
 
-/**
- * Disk-safe begin: exclusive lock + re-check active attempts before write.
- * Prevents two workers from both evaluating empty active state and overwriting.
- */
-export function beginAttemptOnDisk(
-  projectRoot: string,
-  input: {
-    readonly scopeId: string;
-    readonly targetId: string;
-    readonly workflowId: string;
-    readonly phaseId?: string;
-    readonly attemptId?: string;
-    readonly sourceRevision: string;
-    readonly trigger: AttemptTrigger;
-    readonly status?: "queued" | "running";
-    readonly workerId?: string | null;
-    readonly externalRunId?: string | null;
-    readonly materialDelta?: readonly MaterialDeltaClaim[];
-    readonly now?: string;
-  },
-): { ledger: DeliveryUnitLedger; attempt: DeliveryAttemptRecord } {
-  return withUnitLock(projectRoot, input.scopeId, input.targetId, input.workflowId, () => {
-    const current = loadOrCreateUnitLedger(projectRoot, {
-      scopeId: input.scopeId,
-      targetId: input.targetId,
-      workflowId: input.workflowId,
-      phaseId: input.phaseId,
-      now: input.now,
-    });
-    if (hasActiveAttempt(current)) {
-      throw new Error(
-        `delivery-attempt DENY_DUPLICATE_ACTIVE: unit already has queued/running attempt(s)`,
-      );
-    }
-    const { ledger, attempt } = beginAttempt(current, input);
-    saveUnitLedger(projectRoot, ledger);
-    return { ledger, attempt };
-  });
-}
-
 /** Load or create empty unit ledger. */
 export function loadOrCreateUnitLedger(
   projectRoot: string,

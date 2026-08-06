@@ -9,6 +9,10 @@
  */
 
 export {
+  type BeginAttemptOnDiskInput,
+  beginAttemptOnDisk,
+} from "./disk-begin.js";
+export {
   evaluateAndPrepareBlock,
   evaluatePreDispatch,
 } from "./evaluate.js";
@@ -29,7 +33,6 @@ export {
 export {
   activeAttempts,
   beginAttempt,
-  beginAttemptOnDisk,
   clearBlockIfResumed,
   completeAttempt,
   deliveryAttemptsDir,

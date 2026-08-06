@@ -2,10 +2,10 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { beginAttemptOnDisk } from "./disk-begin.js";
 import { buildFailureInfo } from "./fingerprint.js";
 import {
   beginAttempt,
-  beginAttemptOnDisk,
   completeAttempt,
   emptyUnitLedger,
   hasActiveAttempt,
