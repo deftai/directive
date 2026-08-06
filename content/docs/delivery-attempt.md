@@ -144,7 +144,9 @@ const closed = completeAttemptOnDisk(projectRoot, {
 Pure in-memory helpers (`evaluatePreDispatch`, `beginAttempt`, `completeAttempt`)
 remain for tests and single-threaded hosts. Multi-worker orchestration MUST use
 `beginAttemptOnDisk` / `completeAttemptOnDisk` (or `withUnitLock` around an
-equivalent sequence). Abandoned unit locks older than 5 minutes are recovered.
+equivalent sequence). Abandoned unit locks are reclaimed only when the owner
+PID is dead (or the lock record is corrupt). If a lock is stuck after PID
+reuse, delete the `.lock` file under `.deft/delivery-attempts/` manually.
 
 ## Observability
 

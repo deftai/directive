@@ -7,17 +7,14 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import {
-  closeSync,
   existsSync,
-  fsyncSync,
   mkdirSync,
-  openSync,
   readdirSync,
   readFileSync,
   renameSync,
   rmSync,
   unlinkSync,
-  writeSync,
+  writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
@@ -358,21 +355,17 @@ function readLockRecord(lockPath: string): UnitLockRecord | null {
   }
 }
 
-function writeLockRecordFd(fd: number, record: UnitLockRecord): void {
-  const body = Buffer.from(`${JSON.stringify(record)}\n`, "utf8");
-  writeSync(fd, body, 0, body.length, 0);
-  try {
-    fsyncSync(fd);
-  } catch {
-    /* best-effort */
-  }
-}
-
 /**
- * Acquire exclusive unit lock. Recovery is allowed only when the lock owner
- * PID is dead (or the record is corrupt/empty). Age-only reclaim is a last
- * resort when no PID can be read — never when the owner process is still
- * alive (#3143 Greptile confidence on live-lock revocation).
+ * Acquire exclusive unit lock.
+ *
+ * Create is atomic: `writeFileSync(..., { flag: "wx" })` writes the owner
+ * record in the exclusive create (no empty-file window).
+ *
+ * Recovery when EEXIST:
+ * - owner PID alive → refuse (never revoke live holders)
+ * - owner PID dead OR record unreadable/corrupt → reclaim
+ * - PID appears alive but startedAt older than staleMs → refuse still
+ *   (PID reuse residual: operator may delete the .lock file manually)
  */
 export function withUnitLock<T>(
   projectRoot: string,
@@ -389,56 +382,37 @@ export function withUnitLock<T>(
   const root = resolve(projectRoot);
   assertWriteTargetSafe(root, lockPath);
   const nowMs = options?.nowMs ?? Date.now();
-  const staleMs = options?.staleMs ?? UNIT_LOCK_STALE_MS;
   const token = randomBytes(8).toString("hex");
-  let fd: number | null = null;
+  const record: UnitLockRecord = {
+    pid: process.pid,
+    token,
+    startedAt: new Date(nowMs).toISOString(),
+  };
 
-  const tryCreate = (): number => {
-    const handle = openSync(lockPath, "wx");
-    try {
-      writeLockRecordFd(handle, {
-        pid: process.pid,
-        token,
-        startedAt: new Date(nowMs).toISOString(),
-      });
-    } catch {
-      /* body write best-effort; exclusive create is the authority */
-    }
-    return handle;
+  const tryCreate = (): void => {
+    writeFileSync(lockPath, `${JSON.stringify(record)}\n`, { flag: "wx", encoding: "utf8" });
   };
 
   try {
-    fd = tryCreate();
+    tryCreate();
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code !== "EEXIST") throw err;
 
     const existing = readLockRecord(lockPath);
-    const ownerAlive = existing !== null && isProcessAlive(existing.pid);
-    if (ownerAlive) {
+    if (existing !== null && isProcessAlive(existing.pid)) {
       throw new Error(
         `delivery-attempt unit lock held by pid ${existing.pid} for ${scopeId}/${targetId}/${workflowId}`,
       );
     }
-
-    // Owner dead, missing, or unreadable — reclaim if dead or age-only empty.
-    let reclaim = existing === null || !isProcessAlive(existing.pid);
-    if (!reclaim && existing !== null) {
-      const started = Date.parse(existing.startedAt);
-      reclaim = !Number.isFinite(started) || nowMs - started >= staleMs;
-    }
-    if (!reclaim) {
-      throw new Error(
-        `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
-      );
-    }
+    // Dead owner or corrupt/empty record → reclaim.
     try {
       unlinkSync(lockPath);
     } catch {
       /* race */
     }
     try {
-      fd = tryCreate();
+      tryCreate();
     } catch (retryErr) {
       throw new Error(
         `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
@@ -450,18 +424,10 @@ export function withUnitLock<T>(
   try {
     return fn();
   } finally {
-    // Only unlink if we still own the token (another recoverer must not delete our work).
     const stillOurs = (() => {
       const rec = readLockRecord(lockPath);
       return rec !== null && rec.token === token && rec.pid === process.pid;
     })();
-    if (fd !== null) {
-      try {
-        closeSync(fd);
-      } catch {
-        /* best-effort */
-      }
-    }
     if (stillOurs) {
       try {
         unlinkSync(lockPath);
