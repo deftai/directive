@@ -23639,6 +23639,54 @@
           "match": {
             "labels": {
               "any-of": [
+                "agent-safety"
+              ]
+            }
+          },
+          "action": "escalate",
+          "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "urgent"
+              ]
+            }
+          },
+          "action": "escalate",
+          "reason": "urgent ranking — human prioritization (experimental #1423 dogfood)"
+        },
+        {
+          "match": {
+            "labels": {
+              "all-of": [
+                "security",
+                "bug"
+              ]
+            }
+          },
+          "action": "escalate",
+          "reason": "security bug — human review (not bare security label; many enhancements share security facet)"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "adoption-blocker",
+                "Upgrade Blocker",
+                "blocks-merge",
+                "blocks-release-tag"
+              ]
+            }
+          },
+          "action": "escalate",
+          "reason": "release/adoption gate — human sequencing (experimental; sparse on open backlog today)"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
                 "status:superseded-pending"
               ]
             }
@@ -23691,8 +23739,41 @@
           "action": "defer",
           "reason": "auto-close on linked PR merge",
           "resume-on": "<linked-PR>:merged"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "hold"
+              ]
+            }
+          },
+          "action": "defer",
+          "reason": "hold label — do not work yet (complements body hold-markers)"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "status:blocked"
+              ]
+            }
+          },
+          "action": "defer",
+          "reason": "status:blocked — waiting on dependency/decision"
         }
       ],
+      "triageLabelMirror": {
+        "enabled": true,
+        "idempotencyLabel": "triaged",
+        "alwaysLabels": ["triaged"],
+        "actionLabels": {
+          "defer": ["triage:deferred"],
+          "archive": ["triage:archived"],
+          "accept": ["triage:lifecycle-linked"],
+          "escalate": ["triage:needs-human"]
+        }
+      },
       "triageScopeIgnores": [
         {
           "label": "wontfix"
