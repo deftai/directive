@@ -314,6 +314,8 @@ describe("evaluatePreDispatch regression suite (#3143)", () => {
         trigger: i === 1 ? "automatic" : "override",
         attemptId: `a${i}`,
         workerId: "worker-a",
+        // Override-authorized dispatches must set consumeOverride so quota is spent.
+        consumeOverride: i > 1,
       }));
       ledger = completeAttempt(ledger, {
         attemptId: `a${i}`,
