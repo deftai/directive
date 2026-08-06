@@ -458,6 +458,37 @@ describe("evaluatePreDispatch regression suite (#3143)", () => {
     expect(r2.decision).toBe("BLOCK_TOOL_OR_TOKEN_BUDGET");
   });
 
+  it("override cannot bypass DENY_DUPLICATE_ACTIVE even when a budget would block", () => {
+    const failure = failDeterministic();
+    let ledger = emptyUnitLedger(unit);
+    ({ ledger } = beginAttempt(ledger, {
+      sourceRevision: "rev-1",
+      trigger: "automatic",
+      attemptId: "a1",
+    }));
+    // Active attempt still running + elapsed budget exhausted + usable override
+    ledger = {
+      ...ledger,
+      totalElapsedSeconds: 10_000,
+      lastFailure: failure,
+    };
+    ledger = recordOperatorOverride(ledger, {
+      actor: "scott",
+      rationale: "should not open a second active",
+      allowedAttempts: 1,
+    });
+    const r = evaluatePreDispatch(
+      ledger,
+      baseInput({
+        trigger: "override",
+        anticipatedFailure: failure,
+        policy: { maxElapsedSeconds: 100 },
+      }),
+    );
+    expect(r.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(r.allowed).toBe(false);
+  });
+
   // 14. Override audit
   it("14. bounded operator override permits only declared next attempts and preserves history", () => {
     const failure = failDeterministic();

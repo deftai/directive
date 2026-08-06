@@ -158,6 +158,24 @@ function evaluatePreDispatchNatural(
     evaluatedRevision: input.sourceRevision,
   });
 
+  // --- Duplicate active (DENY — must run before any BLOCK path that override can lift) ---
+  const active = activeAttempts(ledger);
+  if (active.length >= policy.maxActiveAttempts) {
+    return result(
+      input,
+      ledger,
+      "DENY_DUPLICATE_ACTIVE",
+      `active attempt already exists (${active.map((a) => a.attemptId).join(", ")})`,
+      {
+        retryability: anticipated?.retryability ?? null,
+        fingerprint,
+        sameFailureCount,
+        materialClass: progress.classification,
+        resume: ledger.resumeCondition,
+      },
+    );
+  }
+
   // --- Usage budgets (elapsed / tool / token) ---
   const elapsed = ledger.totalElapsedSeconds + (input.usage?.elapsedSeconds ?? 0);
   const tools = ledger.totalToolCallCount + (input.usage?.toolCallCount ?? 0);
@@ -226,24 +244,6 @@ function evaluatePreDispatchNatural(
         blockedDecision: "BLOCK_TOOL_OR_TOKEN_BUDGET",
       },
     });
-  }
-
-  // --- Duplicate active ---
-  const active = activeAttempts(ledger);
-  if (active.length >= policy.maxActiveAttempts) {
-    return result(
-      input,
-      ledger,
-      "DENY_DUPLICATE_ACTIVE",
-      `active attempt already exists (${active.map((a) => a.attemptId).join(", ")})`,
-      {
-        retryability: anticipated?.retryability ?? null,
-        fingerprint,
-        sameFailureCount,
-        materialClass: progress.classification,
-        resume: ledger.resumeCondition,
-      },
-    );
   }
 
   // --- Resume when condition satisfied ---
