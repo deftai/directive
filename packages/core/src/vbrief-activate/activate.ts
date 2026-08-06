@@ -9,6 +9,10 @@ import {
 } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { utcNowIso } from "../scope/vbrief-json.js";
 import { pythonJsonPretty } from "../vbrief-build/json.js";
 import {
@@ -168,6 +172,22 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     };
   }
 
+  // Resolve destination early so containment can refuse before any mutation.
+  // Parity with scope:activate / #2447: projectRoot is parent of the xbrief/ root.
+  const vbriefDir = dirname(dirname(vbriefPath));
+  const projectRoot = dirname(vbriefDir);
+  const activeDir = `${vbriefDir}/${ACTIVE_FOLDER}`;
+  try {
+    // #3147 / #2447: refuse when active/ (or a parent) is a symlink escaping the checkout.
+    // Run before mutating the source payload or unlinking pending so a refusal leaves state intact.
+    assertProjectionContained(projectRoot, activeDir);
+  } catch (err: unknown) {
+    if (err instanceof ProjectionContainmentError) {
+      return { exitCode: 1, message: err.message };
+    }
+    throw err;
+  }
+
   planObj.status = TARGET_STATUS;
 
   let info = payload.vBRIEFInfo;
@@ -183,8 +203,6 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
   }
   (info as Record<string, unknown>).updated = utcNowIso(now);
 
-  const vbriefDir = dirname(dirname(vbriefPath));
-  const activeDir = `${vbriefDir}/${ACTIVE_FOLDER}`;
   try {
     mkdirSync(activeDir, { recursive: true });
   } catch (err: unknown) {
@@ -203,13 +221,14 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     };
   }
 
-  const tmpBase = `${fileName}.tmp`;
   const tmp = `${dest}.tmp`;
   try {
-    // #2980 wave D: product write sink routes through containedWrite.
+    // #2980 wave D + #3147: product write sink routes through containedWrite with
+    // checkout root as containment root (not resolve(activeDir), which treats an
+    // escaping active/ realpath as "contained" relative to itself).
     containedWrite({
-      root: resolve(activeDir),
-      target: tmpBase,
+      root: resolve(projectRoot),
+      target: resolve(tmp),
       data: pythonJsonPretty(payload),
       mode: "create",
     });
