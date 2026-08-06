@@ -1,0 +1,74 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3175 CodeQL shell-command-injection in engine-invoke.cjs",
+    "updated": "2026-08-06T21:27:55Z"
+  },
+  "plan": {
+    "id": "3175-codeql-engine-invoke-shell",
+    "title": "sec(codeql): clear shell-command-injection-from-environment in engine-invoke.cjs (alert #74)",
+    "status": "running",
+    "narratives": {
+      "Description": "Open CodeQL alert #74 flags js/shell-command-injection-from-environment in tasks/engine-invoke.cjs where a shell command depends on an uncontrolled absolute path from the environment. Fix the sink safely without breaking vendored/global CLI engine invoke.",
+      "ImplementationPlan": "1. Edit tasks/engine-invoke.cjs (and tests if present) to avoid shelling uncontrolled env paths — prefer execFile/spawn with fixed argv and validated paths.\n2. Add or extend a focused regression test or script smoke for engine-invoke.\n3. CHANGELOG [Unreleased] Security/Fixed for #3175; confirm code-scanning alert #74 closes after merge.",
+      "UserStory": "As a maintainer, I want the engine-invoke CodeQL shell-injection warning cleared, so that Task/CLI bridging does not appear as an env-injection sink.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3175",
+      "Overview": "Code scanning alert 74; warning; CWE-078/088.",
+      "Labels": "bug, security"
+    },
+    "items": [
+      {
+        "title": "Clear shell-command-injection alert #74",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given CodeQL alert #74 on tasks/engine-invoke.cjs, when the fix lands on master, then js/shell-command-injection-from-environment no longer fires on that sink (or is dismissed with documented false-positive rationale after safe hardening)."
+        }
+      },
+      {
+        "title": "Preserve engine invoke behavior",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given vendored and global CLI invoke paths, when engine-invoke runs via task, then normal session/engine verbs still work."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/engine-invoke.cjs",
+          "tasks/engine-invoke.test.cjs"
+        ],
+        "verify_commands": [
+          "node --test tasks/engine-invoke.test.cjs",
+          "task check"
+        ],
+        "expected_outputs": [
+          "CodeQL alert #74 cleared",
+          "CHANGELOG #3175",
+          "PR through merge"
+        ],
+        "depends_on": [],
+        "conflict_group": "codeql-engine-invoke",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "CodeQL alert remediation #3175."
+      }
+    },
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3175",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3175"
+      }
+    ],
+    "updated": "2026-08-06T21:27:55Z"
+  }
+}

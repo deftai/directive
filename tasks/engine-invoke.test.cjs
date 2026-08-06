@@ -186,3 +186,33 @@ describe("buildSpawnPlan — other paths keep shell:false", () => {
     assert.equal(buildSpawnPlan("bogus", "deft", ["release"], WIN32), null);
   });
 });
+
+describe("buildSpawnPlan — CodeQL absolute-path isolation (#3175 / alert #74)", () => {
+  it("never places nodePath/process.execPath into the win32 cmd.exe command line", () => {
+    const evilNode = String.raw`C:\Program Files\nodejs\node.exe`;
+    const plan = buildSpawnPlan("global", "deft", ["release", "--summary", "ok"], {
+      platform: "win32",
+      nodePath: evilNode,
+    });
+    assert.equal(plan.shell, false);
+    assert.equal(plan.command, "cmd.exe");
+    assert.deepEqual(plan.args.slice(0, 3), ["/d", "/s", "/c"]);
+    // Global win32 must only join target + operator argv — not the Node binary.
+    assert.equal(plan.args[3].includes(evilNode), false);
+    assert.equal(plan.args[3].includes("Program Files"), false);
+    assert.equal(plan.args[3].includes("node.exe"), false);
+    assert.deepEqual(splitCmdTokens(plan.args[3]), ["deft", "release", "--summary", "ok"]);
+  });
+
+  it("uses nodePath only as the non-shell vendored command (never cmd.exe)", () => {
+    const nodePath = String.raw`C:\Program Files\nodejs\node.exe`;
+    const plan = buildSpawnPlan("vendored", String.raw`C:\repo\packages\cli\dist\bin.js`, ["session:start"], {
+      platform: "win32",
+      nodePath,
+    });
+    assert.equal(plan.shell, false);
+    assert.equal(plan.command, nodePath);
+    assert.notEqual(plan.command, "cmd.exe");
+    assert.deepEqual(plan.args, [String.raw`C:\repo\packages\cli\dist\bin.js`, "session:start"]);
+  });
+});
