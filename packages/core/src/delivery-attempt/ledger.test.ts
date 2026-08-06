@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -7,14 +7,18 @@ import { buildFailureInfo } from "./fingerprint.js";
 import {
   beginAttempt,
   completeAttempt,
+  deliveryAttemptsDir,
   emptyUnitLedger,
   hasActiveAttempt,
+  isUnitLockReclaimable,
   loadUnitLedger,
   MemoryLedgerStore,
   markBlocked,
   recordOperatorOverride,
   saveUnitLedger,
+  UNIT_LOCK_STALE_MS,
   unitLedgerFilename,
+  withUnitLock,
 } from "./ledger.js";
 
 const temps: string[] = [];
@@ -229,5 +233,91 @@ describe("delivery-attempt ledger durability (#3143)", () => {
     });
     expect(ledger.attempts.find((a) => a.attemptId === "a2")?.status).toBe("succeeded");
     expect(ledger.failedAttemptCount).toBe(1);
+  });
+
+  it("isUnitLockReclaimable: live fresh PID not reclaimable; dead/stale/corrupt are", () => {
+    const now = Date.now();
+    expect(isUnitLockReclaimable(null, now)).toBe(true);
+    expect(
+      isUnitLockReclaimable(
+        { pid: process.pid, token: "live", startedAt: new Date(now).toISOString() },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isUnitLockReclaimable(
+        { pid: process.pid, token: "old", startedAt: new Date(now - UNIT_LOCK_STALE_MS - 1).toISOString() },
+        now,
+      ),
+    ).toBe(true);
+    // Unlikely-alive PID
+    expect(
+      isUnitLockReclaimable(
+        { pid: 2_147_483_646, token: "dead", startedAt: new Date(now).toISOString() },
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it("withUnitLock reclaims abandoned lock via reclaim ticket (dead owner)", () => {
+    const root = tmpRoot();
+    const dir = deliveryAttemptsDir(root);
+    mkdirSync(dir, { recursive: true });
+    const lockPath = join(dir, `${unitLedgerFilename("s", "t", "w")}.lock`);
+    // Plant a dead-owner lock
+    writeFileSync(
+      lockPath,
+      `${JSON.stringify({
+        pid: 2_147_483_646,
+        token: "abandoned",
+        startedAt: new Date(Date.now() - 60_000).toISOString(),
+      })}\n`,
+      { flag: "wx", encoding: "utf8" },
+    );
+    expect(existsSync(lockPath)).toBe(true);
+    const value = withUnitLock(root, "s", "t", "w", () => 42);
+    expect(value).toBe(42);
+    // Released after success
+    expect(existsSync(lockPath)).toBe(false);
+  });
+
+  it("withUnitLock refuses live holder and does not steal under reclaim race", () => {
+    const root = tmpRoot();
+    let nestedSawHeld = false;
+    withUnitLock(root, "s", "t", "w", () => {
+      try {
+        withUnitLock(root, "s", "t", "w", () => "should-not");
+      } catch (err) {
+        nestedSawHeld = String(err).includes("unit lock held");
+      }
+      return "outer";
+    });
+    expect(nestedSawHeld).toBe(true);
+  });
+
+  it("withUnitLock reclaims when live PID is past stale window (PID reuse)", () => {
+    const root = tmpRoot();
+    const dir = deliveryAttemptsDir(root);
+    mkdirSync(dir, { recursive: true });
+    const lockPath = join(dir, `${unitLedgerFilename("s", "t", "w")}.lock`);
+    const staleStarted = Date.now() - UNIT_LOCK_STALE_MS - 5_000;
+    writeFileSync(
+      lockPath,
+      `${JSON.stringify({
+        pid: process.pid, // appears alive but startedAt is stale → reclaimable
+        token: "pid-reuse",
+        startedAt: new Date(staleStarted).toISOString(),
+      })}\n`,
+      { flag: "wx", encoding: "utf8" },
+    );
+    const value = withUnitLock(
+      root,
+      "s",
+      "t",
+      "w",
+      () => "ok",
+      { nowMs: Date.now(), staleMs: UNIT_LOCK_STALE_MS },
+    );
+    expect(value).toBe("ok");
   });
 });

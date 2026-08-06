@@ -321,7 +321,7 @@ export function saveUnitLedger(projectRoot: string, ledger: DeliveryUnitLedger):
  * Exclusive unit lock for begin/complete on disk (#3143 concurrent-snapshot P1).
  * Uses O_EXCL create of a lock file under the delivery-attempts dir.
  */
-/** Stale lock age (ms) used only when owner PID cannot be probed. */
+/** Stale lock age (ms): live PID older than this is treated as PID-reuse residual. */
 export const UNIT_LOCK_STALE_MS = 5 * 60 * 1000;
 
 interface UnitLockRecord {
@@ -355,17 +355,60 @@ function readLockRecord(lockPath: string): UnitLockRecord | null {
   }
 }
 
+function lockStartedAtMs(rec: UnitLockRecord): number | null {
+  const t = Date.parse(rec.startedAt);
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Whether an existing lock may be reclaimed.
+ * - unreadable/corrupt → reclaimable
+ * - owner PID dead → reclaimable
+ * - owner PID alive but startedAt older than staleMs → reclaimable (PID reuse)
+ * - owner PID alive and fresh → not reclaimable
+ */
+export function isUnitLockReclaimable(
+  rec: UnitLockRecord | null,
+  nowMs: number,
+  staleMs: number = UNIT_LOCK_STALE_MS,
+): boolean {
+  if (rec === null) return true;
+  const started = lockStartedAtMs(rec);
+  const agedOut = started !== null && nowMs - started >= staleMs;
+  if (isProcessAlive(rec.pid)) {
+    return agedOut;
+  }
+  return true;
+}
+
+function writeLockExclusive(path: string, record: UnitLockRecord): void {
+  writeFileSync(path, `${JSON.stringify(record)}\n`, { flag: "wx", encoding: "utf8" });
+}
+
+function unlinkIfOurs(path: string, token: string, pid: number): void {
+  const rec = readLockRecord(path);
+  if (rec !== null && rec.token === token && rec.pid === pid) {
+    try {
+      unlinkSync(path);
+    } catch {
+      /* best-effort */
+    }
+  }
+}
+
 /**
  * Acquire exclusive unit lock.
  *
  * Create is atomic: `writeFileSync(..., { flag: "wx" })` writes the owner
  * record in the exclusive create (no empty-file window).
  *
- * Recovery when EEXIST:
- * - owner PID alive → refuse (never revoke live holders)
- * - owner PID dead OR record unreadable/corrupt → reclaim
- * - PID appears alive but startedAt older than staleMs → refuse still
- *   (PID reuse residual: operator may delete the .lock file manually)
+ * Recovery when EEXIST (abandoned / corrupt / PID-reuse stale):
+ * 1. Take an exclusive **reclaim ticket** (`*.lock.reclaim`) with `wx`.
+ * 2. Under that ticket, re-read the lock; only unlink if still reclaimable.
+ * 3. Create the replacement lock with `wx`, then drop the ticket.
+ *
+ * The ticket serializes reclaimers so a delayed contender cannot unlink a
+ * live replacement lock (Greptile P1: stale recovery revokes replacement).
  */
 export function withUnitLock<T>(
   projectRoot: string,
@@ -379,62 +422,92 @@ export function withUnitLock<T>(
   mkdirSync(dir, { recursive: true });
   const lockName = `${unitLedgerFilename(scopeId, targetId, workflowId)}.lock`;
   const lockPath = join(dir, lockName);
+  const reclaimPath = `${lockPath}.reclaim`;
   const root = resolve(projectRoot);
   assertWriteTargetSafe(root, lockPath);
+  assertWriteTargetSafe(root, reclaimPath);
   const nowMs = options?.nowMs ?? Date.now();
+  const staleMs = options?.staleMs ?? UNIT_LOCK_STALE_MS;
   const token = randomBytes(8).toString("hex");
   const record: UnitLockRecord = {
     pid: process.pid,
     token,
     startedAt: new Date(nowMs).toISOString(),
   };
+  const unitLabel = `${scopeId}/${targetId}/${workflowId}`;
 
-  const tryCreate = (): void => {
-    writeFileSync(lockPath, `${JSON.stringify(record)}\n`, { flag: "wx", encoding: "utf8" });
+  const heldError = (detail: string, cause?: unknown): Error =>
+    new Error(`delivery-attempt unit lock held for ${unitLabel}${detail}`, cause ? { cause } : undefined);
+
+  const tryCreateLock = (): void => {
+    writeLockExclusive(lockPath, record);
+  };
+
+  const acquireReclaimTicket = (): void => {
+    try {
+      writeLockExclusive(reclaimPath, record);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== "EEXIST") throw err;
+    }
+    // Existing reclaim ticket — only take over if reclaimable (dead/stale).
+    const existingReclaim = readLockRecord(reclaimPath);
+    if (!isUnitLockReclaimable(existingReclaim, nowMs, staleMs)) {
+      const pid = existingReclaim?.pid;
+      throw heldError(pid !== undefined ? ` (reclaim by pid ${pid})` : " (reclaim in progress)");
+    }
+    try {
+      unlinkSync(reclaimPath);
+    } catch {
+      /* race */
+    }
+    try {
+      writeLockExclusive(reclaimPath, record);
+    } catch (retryErr) {
+      throw heldError(" (reclaim in progress)", retryErr);
+    }
   };
 
   try {
-    tryCreate();
+    tryCreateLock();
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code !== "EEXIST") throw err;
 
     const existing = readLockRecord(lockPath);
-    if (existing !== null && isProcessAlive(existing.pid)) {
-      throw new Error(
-        `delivery-attempt unit lock held by pid ${existing.pid} for ${scopeId}/${targetId}/${workflowId}`,
+    if (!isUnitLockReclaimable(existing, nowMs, staleMs)) {
+      throw heldError(
+        existing !== null ? ` by pid ${existing.pid}` : "",
       );
     }
-    // Dead owner or corrupt/empty record → reclaim.
+
+    // Serialize reclaim so we never unlink another worker's replacement lock.
+    acquireReclaimTicket();
     try {
-      unlinkSync(lockPath);
-    } catch {
-      /* race */
-    }
-    try {
-      tryCreate();
-    } catch (retryErr) {
-      throw new Error(
-        `delivery-attempt unit lock held for ${scopeId}/${targetId}/${workflowId}; retry after the other worker finishes`,
-        { cause: retryErr },
-      );
+      const again = readLockRecord(lockPath);
+      if (!isUnitLockReclaimable(again, nowMs, staleMs)) {
+        throw heldError(again !== null ? ` by pid ${again.pid}` : "");
+      }
+      try {
+        unlinkSync(lockPath);
+      } catch {
+        /* already gone */
+      }
+      try {
+        tryCreateLock();
+      } catch (retryErr) {
+        throw heldError("; retry after the other worker finishes", retryErr);
+      }
+    } finally {
+      unlinkIfOurs(reclaimPath, token, process.pid);
     }
   }
 
   try {
     return fn();
   } finally {
-    const stillOurs = (() => {
-      const rec = readLockRecord(lockPath);
-      return rec !== null && rec.token === token && rec.pid === process.pid;
-    })();
-    if (stillOurs) {
-      try {
-        unlinkSync(lockPath);
-      } catch {
-        /* best-effort */
-      }
-    }
+    unlinkIfOurs(lockPath, token, process.pid);
   }
 }
 
