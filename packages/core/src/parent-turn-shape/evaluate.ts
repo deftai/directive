@@ -246,10 +246,8 @@ function maxIdenticalCluster(units: readonly string[]): number {
     if (next > maxFreq) maxFreq = next;
   }
 
-  // Union-find near-identity clustering. Cap only for pathological mega-turns
-  // (exact-frequency still covers the classic hang of identical clones).
-  const CLUSTER_CAP = 256;
-  const maxComponent = units.length <= CLUSTER_CAP ? maxNearIdentityComponent(units) : maxFreq;
+  // Always run union-find near-identity clustering (no unit-count bypass).
+  const maxComponent = maxNearIdentityComponent(units);
 
   return Math.max(maxRun, maxFreq, maxComponent);
 }

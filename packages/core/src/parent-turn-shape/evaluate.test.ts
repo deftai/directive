@@ -219,26 +219,17 @@ describe("evaluateParentTurnShape — hard-stop (FC14)", () => {
     expect(result.maxIdenticalCount).toBeGreaterThan(2);
   });
 
-  it("reconstructs bare-word streaming deltas without whitespace", () => {
-    // Host streams "Checkingworktrees..." with no spaces between tokens.
-    const tokens = [
-      "Checking",
-      "worktrees",
-      "and",
-      "open",
-      "PRs",
-      "next",
-      "to",
-      "confirm",
-      "leaf",
-      "completion",
-      "status.",
-    ];
+  it("reconstructs streaming deltas with missing space after sentence end", () => {
+    // Word tokens include leading spaces; period arrives as its own delta with
+    // no following space before the next repeated sentence starts.
+    const words = PROGRESS.replace(/\.$/, "").split(" ");
     const events: ParentTurnEvent[] = [];
     for (let rep = 0; rep < 3; rep++) {
-      for (const t of tokens) {
-        events.push({ kind: "assistant_text", text: t });
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i] ?? "";
+        events.push({ kind: "assistant_text", text: i === 0 ? w : ` ${w}` });
       }
+      events.push({ kind: "assistant_text", text: "." });
     }
     const result = evaluateParentTurnShape({ events, afterSubagentAnnounce: true });
     expect(result.ok).toBe(false);
