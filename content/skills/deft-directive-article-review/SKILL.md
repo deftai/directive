@@ -114,16 +114,18 @@ Look for lessons applicable to projects that directive-guided agents build:
 
 Titles alone are insufficient for ownership verdicts (evidence: #3163). Body-level reads are mandatory.
 
-- ! Run `gh issue list --repo deftai/directive --state open --limit 100` (or REST `gh api repos/deftai/directive/issues?state=open&per_page=100`) to retrieve candidate open issues — use titles only as a **shortlist**, not as the ownership decision
-- ! For each suggestion from Step 4, identify candidate related/owning issues (title scan, semantic match, prior citations)
+- ! Shortlist open **issues** only: prefer `gh issue list --repo deftai/directive --state open --limit 100` (issues, not PRs). If using REST `gh api repos/deftai/directive/issues?state=open&per_page=100`, **exclude** entries that have a `pull_request` field — GitHub's issues list mixes PRs in; never treat a PR as an owning issue for dedupe
+- ! For each suggestion from Step 4, identify candidate related/owning issues (title scan, semantic match, prior citations) from the issue-only shortlist
 - ! For every issue claimed as related or owning: read the **full issue body**. If the body is a stub or pointer-only, also read recent comments (REST `issues/<N>/comments`) before judging ownership
-- ! Prefer local cache when present: `.deft-cache/github-issue/deftai/directive/<N>/` (or project-equivalent) satisfies the body-read requirement offline — do not skip body-level ownership solely because network is unavailable if cache exists
-- ! Verify every issue number cited in the analysis **exists** and that its **state** matches the claim (open vs closed) — anti-hallucination; fabricated or wrong-state citations are a known failure mode
+- ! Prefer local cache when present: `.deft-cache/github-issue/deftai/directive/<N>/` (or project-equivalent) may satisfy the body-read requirement offline **only when** the cache entry includes a usable body (and comments when the body is a stub) and is not known-stale for this review (re-fetch live when network is available and cache age/TTL is expired or missing body/comments). Do not skip body-level ownership solely because network is unavailable if a complete cache entry exists
+- ! Verify every issue number cited in the analysis **exists**, is an **issue** (not a PR), and that its **state** matches the claim (open vs closed) — anti-hallucination; fabricated or wrong-state citations are a known failure mode
 - ! If a suggestion duplicates an open issue (body-level ownership): drop it from the proposal and note the existing issue number
 - ! If a suggestion extends or relates to an open issue: flag it as "extends #N" / "related to #N" rather than proposing a standalone new issue
 - ~ Prefer **amend/comment on an owning open issue** over filing a new issue; reserve new issues for verified-untracked findings
 - ~ Scan the open issue list for trends (e.g. a cluster of agent-safety issues, a cluster of pattern/ gaps) — use trends to sharpen framing or prioritization of remaining suggestions
 - ⊗ Decide ownership or file a "related to #N" claim from **titles only** — body (and stub-comment) reads are required for related/owning claims
+- ⊗ Treat pull requests from the REST issues list as ownership targets without filtering `pull_request`
+- ⊗ Accept a cache hit as body-read complete when the entry lacks body (or required stub comments) or is expired/stale without a live re-fetch when network is available
 - ⊗ Propose a new issue for something already tracked — body-level deduplication is mandatory
 - ⊗ Cite issue numbers without verifying existence and state
 
