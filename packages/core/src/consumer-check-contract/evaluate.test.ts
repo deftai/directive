@@ -354,6 +354,7 @@ tasks:
   it("does not treat failure-masked task check as full check", () => {
     expect(runCommandIsFullCheck("task check || true")).toBe(false);
     expect(runCommandIsFullCheck("deft check || :")).toBe(false);
+    expect(runCommandIsFullCheck("deft check || echo ignored")).toBe(false);
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
       verifyTaskfileText: VERIFY_YML_COMPLETE,
