@@ -230,7 +230,7 @@ describe("activate statSync failure branch", () => {
     mkdirSync(pending, { recursive: true });
 
     const propPath = join(pending, "prop.xbrief.json");
-    writeFileSync(propPath, '{foo:1}', "utf8");
+    writeFileSync(propPath, "{foo:1}", "utf8");
     const { activate } = await import("./activate.js");
     const propResult = activate(propPath);
     expect(propResult.exitCode).toBe(1);
