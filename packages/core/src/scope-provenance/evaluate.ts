@@ -210,6 +210,36 @@ export function normalizeRepoRelPath(p: string): string {
   return p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/");
 }
 
+/**
+ * True when `rel` appears in the changed-path set under any normalization that
+ * Git C-quoting / slash folding may produce (Greptile conf=4 residual).
+ */
+export function changedSetHasPath(changedSet: ReadonlySet<string>, rel: string): boolean {
+  const candidates = new Set<string>([
+    normalizeRepoRelPath(rel),
+    normalizeRepoRelPath(unquoteGitPath(rel)),
+    rel.replace(/\\/g, "/"),
+  ]);
+  for (const c of candidates) {
+    if (changedSet.has(c)) return true;
+  }
+  const want = normalizeRepoRelPath(rel);
+  const wantBase = want.split("/").pop() ?? want;
+  for (const p of changedSet) {
+    const n = normalizeRepoRelPath(p);
+    if (candidates.has(n)) return true;
+    // Same leaf under xbrief/active/ (C-quote / escape divergence)
+    if (
+      want.includes("xbrief/active/") &&
+      n.includes("xbrief/active/") &&
+      (n.split("/").pop() ?? n) === wantBase
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function listActiveXbriefPaths(projectRoot: string): string[] {
   const activeDir = join(projectRoot, "xbrief", "active");
   if (!existsSync(activeDir)) return [];
@@ -429,7 +459,7 @@ export function evaluateScopeProvenance(
         ? approvedCandidate
         : null;
 
-    const modified = changedSet.has(normalizeRepoRelPath(rel));
+    const modified = changedSetHasPath(changedSet, rel);
     // Only an explicit renewed stamp from options (or a pre-existing on-disk
     // digest that was NOT rewritten in this change set) may authorize expansion.
     // Same-PR rewrite of .deft/approved-scope/<id>.json is NOT sufficient
