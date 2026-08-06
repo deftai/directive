@@ -177,9 +177,24 @@ describe("evaluateScopeProvenance (#3145)", () => {
     expect(result.message).toMatch(/cannot authorize/i);
   });
 
-  it("warns without failing when digest missing (migration)", () => {
+  it("hard-fails modified xBRIEF with non-empty scope and no digest (plan-id reset / expansion)", () => {
+    // Default path must not soft-warn past AC when file_scope is present.
     const active = new Map<string, string>([
       ["xbrief/active/story.xbrief.json", JSON.stringify(xbrief("story-1", ["src/a.ts"]))],
+    ]);
+    const result = evaluateScopeProvenance("/tmp/proj", {
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      activeXbriefs: active,
+      approvedRecords: [],
+      enforce: false,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("active-xbrief-modified-without-digest");
+  });
+
+  it("warns without failing for body-only modified xBRIEF with empty scope (migration)", () => {
+    const active = new Map<string, string>([
+      ["xbrief/active/story.xbrief.json", JSON.stringify(xbrief("story-1", []))],
     ]);
     const result = evaluateScopeProvenance("/tmp/proj", {
       changedFiles: ["xbrief/active/story.xbrief.json"],

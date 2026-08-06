@@ -363,13 +363,11 @@ export function taskBodyInvokesCheckOrchestrator(body: string): boolean {
     if (!stripped) continue;
     if (isNonExecutingCommandLine(stripped)) continue;
     if (lineMasksCheckFailure(stripped)) continue;
-    // YAML structural keys (not shell) — only count as markers when not inert args.
-    if (/^(?:-\s*)?task:\s*engine:invoke\b/.test(stripped) || /\bengine:invoke\b/.test(stripped)) {
-      // Reject pure argument form: echo "engine:invoke"
-      if (!/^echo\b/i.test(stripped.replace(/^-\s+/, ""))) {
-        hasEngineInvoke = true;
-      }
+    // YAML go-task form only: "- task: engine:invoke" (not inert ENGINE_INVOKE: keys).
+    if (/^(?:-\s*)?task:\s*engine:invoke\b/.test(stripped)) {
+      hasEngineInvoke = true;
     }
+    // Exact YAML key form (not ENGINE_CMD_DOCS: or assignment noise).
     if (/^ENGINE_CMD:\s*['"]?check\b/.test(stripped)) {
       hasEngineCheckCmd = true;
     }

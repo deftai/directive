@@ -259,28 +259,24 @@ export function evaluateOneScopeProvenance(input: {
   }
 
   if (input.approved === null) {
-    if (!input.enforce) {
-      // Migration / discovery: warn-level finding is returned by caller as soft
-      return {
-        xbriefRelPath: input.xbriefRelPath,
-        planId,
-        kind: "active-xbrief-modified-without-digest",
-        expandedPaths: currentScope,
-        detail: "active xBRIEF modified in change set but no approved-scope digest is recorded",
-        remediation:
-          "Record an approved-scope digest at activation (migration: warn-only until " +
-          "enforcement is enabled). " +
-          remediationForExpansion(),
-      };
-    }
+    // Non-empty file_scope without a path-bound approval is expansion risk
+    // (includes plan.id renames that drop the prior approval). Hard-fail so the
+    // default check path cannot soft-warn past AC "fails until renewed approval".
+    // Empty-scope body-only edits may still soft-warn under migration (no enforce).
+    const hard =
+      input.enforce || currentScope.length > 0;
     return {
       xbriefRelPath: input.xbriefRelPath,
       planId,
       kind: "active-xbrief-modified-without-digest",
       expandedPaths: currentScope,
-      detail:
-        "active xBRIEF modified in change set but no approved-scope digest is recorded (enforce)",
-      remediation: remediationForExpansion(),
+      detail: hard
+        ? "active xBRIEF modified in change set without a path-bound approved-scope digest " +
+          "(expansion or plan-id reset not permitted without renewed human approval)"
+        : "active xBRIEF modified in change set but no approved-scope digest is recorded",
+      remediation:
+        "Record an approved-scope digest at activation for this xBRIEF path. " +
+        remediationForExpansion(),
     };
   }
 
@@ -494,13 +490,18 @@ export function evaluateScopeProvenance(
 
     if (finding === null) continue;
 
-    // Soft migration findings: missing digest without enforce
-    if (finding.kind === "active-xbrief-modified-without-digest" && !enforce) {
+    // Soft migration: body-only edits (empty file_scope) without digest when !enforce.
+    // Non-empty scope without path-bound approval hard-fails (plan-id reset / expansion).
+    if (
+      finding.kind === "active-xbrief-modified-without-digest" &&
+      !enforce &&
+      finding.expandedPaths.length === 0
+    ) {
       softFindings.push(finding);
       continue;
     }
 
-    // Self-auth expansion always hard-fails when modified
+    // Self-auth expansion and non-empty scope without digest always hard-fail
     findings.push(finding);
   }
 
