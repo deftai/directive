@@ -456,6 +456,62 @@ describe("archiveClosedEntries", () => {
     expect(result.archived.some((a) => a.key === "other/repo/311")).toBe(true);
   });
 
+  it("openLifecycleReferencedKeys covers URI edge cases", () => {
+    const projectRoot = tempRoot();
+    const dir = join(projectRoot, "xbrief", "proposed");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "edges.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "edges",
+          status: "proposed",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "http://github.com/Acme/Widget/issues/7/",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/0",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://www.github.com/other/repo/issues/0042",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "not-a-github-uri/99",
+            },
+            {
+              type: "x-xbrief/github-issue",
+              uri: "garbage",
+            },
+            { type: "x-xbrief/github-issue", uri: 123 },
+            null,
+            "skip-me",
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    // Invalid plan JSON should be skipped without throwing.
+    writeFileSync(join(dir, "bad.xbrief.json"), "{not-json\n", "utf8");
+    // Plan without references array.
+    writeFileSync(
+      join(dir, "norefs.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "x", status: "proposed" } })}\n`,
+      "utf8",
+    );
+    const keys = openLifecycleReferencedKeys(projectRoot);
+    expect(keys.has("acme/widget#7")).toBe(true);
+    expect(keys.has("other/repo#42")).toBe(true);
+    expect(keys.has("#99")).toBe(true);
+    // Repo-scoped parse rejects issue 0; bare fallback may still record #0.
+    expect(keys.has("deftai/directive#0")).toBe(false);
+  });
+
   it("lifecycle protection is case-insensitive on owner/repo", () => {
     const projectRoot = tempRoot();
     const cacheRoot = join(projectRoot, ".deft-cache");

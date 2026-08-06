@@ -158,8 +158,9 @@ function issueRefFromUri(uri: string): { repo: string; number: number } | null {
   );
   if (m) {
     // Lowercase owner/repo so protection matches case-folded cache keys (#1137 review).
-    const num = Number(m[3] ?? "");
-    if (!Number.isInteger(num) || num < 1) return null;
+    // Leading zeros normalize via Number(); reject 0 / non-positive.
+    const num = Number(m[3]);
+    if (!(num >= 1)) return null;
     return {
       repo: `${(m[1] ?? "").toLowerCase()}/${(m[2] ?? "").toLowerCase()}`,
       number: num,
