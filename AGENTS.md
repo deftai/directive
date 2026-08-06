@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=433601b93b51 refreshed=2026-08-06T16:20:37Z session=0ec5944e8ad9 -->
+<!-- deft:managed-section v3 sha=744a0415ab76 refreshed=2026-08-06T16:38:15Z session=129b61633e35 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -229,10 +229,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
-
-## Dual stop rule (#2442)
-
-! Multi-iteration autonomous work (implement-fix, pre-PR polish, swarm repair/monitor, review fix cycles) MUST have a **success stop** and a **failure/budget stop** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. On failure stop: halt with an operator-visible report (tried / missing / human decision); ⊗ thrash past the envelope. Depth: `.deft/core/main.md` `## Dual Stop Rule (#2442)`. Defaults: build skill (implement/pre-PR), swarm Phase 4/core-ops (repair/monitor), review-cycle skill (fix batches, default max 3). Delivery/acceptance mechanical ledger is #3143.
+! **Dual stop (#2442):** multi-iteration work needs success + failure/budget stop; single-turn exempt; halt with report; ⊗ thrash. Defaults in build/swarm/review-cycle skills. Ledger #3143.
 
 ## Through-merge worker dispatch (#3032)
 
