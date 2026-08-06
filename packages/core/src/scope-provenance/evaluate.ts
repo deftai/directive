@@ -103,6 +103,36 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
   return null;
 }
 
+/** Normalize git --name-only paths (including C-quoted paths). */
+export function unquoteGitPath(raw: string): string {
+  const t = raw.replace(/\r$/, "").trim().replace(/\\/g, "/");
+  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
+    try {
+      // git C-quotes: "path with spaces" / "weird\tname"
+      return JSON.parse(
+        t.replace(/\\([abtnvfr"'\\])/g, (_, c: string) => {
+          const map: Record<string, string> = {
+            a: "\x07",
+            b: "\b",
+            t: "\t",
+            n: "\n",
+            v: "\v",
+            f: "\f",
+            r: "\r",
+            '"': '"',
+            "'": "'",
+            "\\": "\\",
+          };
+          return map[c] ?? c;
+        }),
+      ) as string;
+    } catch {
+      return t.slice(1, -1);
+    }
+  }
+  return t;
+}
+
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
   if (inside.status !== 0) {
@@ -133,7 +163,7 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   const diff = git(["diff", "--name-only", range], projectRoot);
   if (diff.status === 0) {
     for (const line of diff.stdout.split("\n")) {
-      const t = line.replace(/\r$/, "").trim().replace(/\\/g, "/");
+      const t = unquoteGitPath(line);
       if (t.length > 0) out.add(t);
     }
   }
@@ -141,14 +171,14 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
   if (vsHead.status === 0) {
     for (const line of vsHead.stdout.split("\n")) {
-      const t = line.replace(/\r$/, "").trim().replace(/\\/g, "/");
+      const t = unquoteGitPath(line);
       if (t.length > 0) out.add(t);
     }
   }
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
   if (untracked.status === 0) {
     for (const line of untracked.stdout.split("\n")) {
-      const t = line.replace(/\r$/, "").trim().replace(/\\/g, "/");
+      const t = unquoteGitPath(line);
       if (t.length > 0) out.add(t);
     }
   }

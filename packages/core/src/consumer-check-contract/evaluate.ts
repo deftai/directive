@@ -77,12 +77,36 @@ export function textReferencesGate(text: string, gateId: string): boolean {
 /** Executable run/script command lines from a workflow (skips comments). */
 export function extractWorkflowRunCommands(text: string): string[] {
   const out: string[] = [];
-  for (const raw of text.replace(/\r\n/g, "\n").split("\n")) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i] ?? "";
     const stripped = raw.trim();
     if (!stripped || stripped.startsWith("#")) continue;
-    const m = stripped.match(/^(?:-\s*)?(?:run|script)\s*:\s*(.+)$/i);
-    if (m?.[1] === undefined) continue;
-    out.push(m[1].replace(/^["']|["']$/g, "").trim());
+    const m = stripped.match(/^(?:-\s*)?(?:run|script)\s*:\s*(.*)$/i);
+    if (m === null) continue;
+    const rest = (m[1] ?? "").trim();
+    // Block scalar: run: | or run: >
+    if (rest === "|" || rest === ">" || rest.startsWith("|") || rest.startsWith(">")) {
+      const indent = raw.length - raw.trimStart().length;
+      const body: string[] = [];
+      for (let j = i + 1; j < lines.length; j += 1) {
+        const lr = lines[j] ?? "";
+        if (lr.trim().length === 0) {
+          body.push("");
+          continue;
+        }
+        const li = lr.length - lr.trimStart().length;
+        if (li <= indent) break;
+        body.push(lr.slice(indent + 2)); // typical 2-space indent under block
+        i = j;
+      }
+      const joined = body.join("\n").trim();
+      if (joined.length > 0) out.push(joined);
+      continue;
+    }
+    if (rest.length > 0) {
+      out.push(rest.replace(/^["']|["']$/g, "").trim());
+    }
   }
   return out;
 }
