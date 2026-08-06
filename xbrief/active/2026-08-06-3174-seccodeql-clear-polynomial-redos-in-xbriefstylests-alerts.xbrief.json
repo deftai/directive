@@ -1,0 +1,75 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3174 CodeQL polynomial-redos in xbrief/styles.ts",
+    "updated": "2026-08-06T21:27:52Z"
+  },
+  "plan": {
+    "id": "3174-codeql-xbrief-styles-redos",
+    "title": "sec(codeql): clear polynomial-redos in xbrief/styles.ts (alerts #84-#87)",
+    "status": "running",
+    "narratives": {
+      "Description": "Four open CodeQL js/polynomial-redos warnings in packages/core/src/xbrief/styles.ts (security code-scanning alerts #84-#87) flag regexes that can run slowly on pathological spaced input. Clear the findings with safe parsers or bounded regexes while keeping style/heading parse behavior.",
+      "ImplementationPlan": "1. Edit packages/core/src/xbrief/styles.ts around the flagged id:/style:/heading regexes (CodeQL L239-L251 region) to use linear-time parsing or non-polynomial patterns.\n2. Extend packages/core/src/xbrief tests (or styles-adjacent tests) for normal and adversarial long-space inputs; verify npm test for xbrief styles still passes.\n3. CHANGELOG [Unreleased] Security/Fixed for #3174; confirm alerts auto-close after merge.",
+      "UserStory": "As a maintainer, I want CodeQL polynomial-redos alerts on xBRIEF styles cleared, so that security-and-quality stays green without ReDoS risk on untrusted style text.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3174",
+      "Overview": "Code scanning alerts 84-87; warning severity; single-file cluster.",
+      "Labels": "bug, security"
+    },
+    "items": [
+      {
+        "title": "Clear four polynomial-redos sites",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given CodeQL alerts #84-#87 on packages/core/src/xbrief/styles.ts, when the fix lands on master, then those js/polynomial-redos alerts close or are no longer raised on the fixed lines."
+        }
+      },
+      {
+        "title": "Preserve style parse behavior",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given existing xBRIEF style/heading parsing tests and adversarial long-space inputs, when tests run, then legitimate inputs still parse correctly and pathological inputs do not hang."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief/styles.ts",
+          "packages/core/src/xbrief/styles.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npm test -w @deftai/directive-core -- --run styles",
+          "task check"
+        ],
+        "expected_outputs": [
+          "CodeQL redos alerts 84-87 cleared",
+          "CHANGELOG #3174",
+          "PR through merge"
+        ],
+        "depends_on": [],
+        "conflict_group": "codeql-xbrief-redos",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "CodeQL alert remediation #3174."
+      }
+    },
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3174",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3174"
+      }
+    ],
+    "updated": "2026-08-06T21:27:52Z"
+  }
+}
