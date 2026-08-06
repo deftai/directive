@@ -60,6 +60,25 @@ tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-wi
 ~ Pair the status line with worktree git checks and `task pr:merge-ready` so operators see progress **and** tool mix without reading raw tool logs.
 ⊗ Treat raw “ran N tools” as a structured mix — always bucket when events are available (#2967).
 
+### Dual stop on monitor and repair loops (#2442)
+
+! Phase 4 monitoring is multi-iteration work. It MUST obey dual stop (`main.md` `## Dual Stop Rule (#2442)`): **success** (leaf DONE with PR/merge evidence, or clean gate) **and** a **failure/budget** stop. One-shot status probes are exempt.
+
+**Default failure envelope (monitor / repair class):**
+
+| Stop | Default |
+|------|---------|
+| max iterations | **3** repair actions for the same leaf/PR failure class (resume prompt, takeover complete-remaining-steps, re-dispatch replacement, review re-trigger) |
+| no-progress | same error / same Greptile finding class / same idle stage **3+** times with no material worktree or review change |
+| budget | honor `pr:watch` / poll max-wait and Greptile service-error single-retry+escalate caps; do not nest an unbounded poll outside them |
+
+! When the failure stop fires: **halt** automatic repair/re-dispatch; emit an **operator-visible halt report** (what was tried, current stage, missing evidence, human decision needed). Prefer `BLOCKED:` over thin `DONE` when the unit cannot reach merge-ready inside the envelope.
+
+! Composes with minimal-subgraph repair (#2439): repairs stay minimal **and** dual-stop bounded. Mechanical delivery/acceptance circuit breaker is **#3143** (not this reference).
+
+⊗ Silently continue the monitor repair loop after the envelope is exhausted.
+⊗ Count a worker swap or session handoff as a fresh unlimited budget when the same failure class remains.
+
 ### Takeover Triggers
 
 ! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event — verified via worktree state (`git status`, `git log --oneline -3`) and sub-agent lifecycle signals showing no in-flight work (for grok-build / spawn_subagent agents: polling is via worktree state + `get_command_or_subagent_output` rather than tab observation; for openclaw / sessions_spawn agents: worktree state + parent completion announce / heartbeat records, not Grok Build poll output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original agents (Warp tabs, spawn_subagent processes, or OpenClaw sessions) can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).
@@ -69,9 +88,9 @@ tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-wi
 - Agent process has exited and PR has not been created
 - Agent process has exited and Greptile review cycle was not started
 - Agent is idle for >5 minutes after PR creation with no review activity
-- Agent is stuck in an error loop (same error 3+ times)
+- Agent is stuck in an error loop (same error 3+ times) — this is a dual-stop no-progress signal (#2442); after takeover, remaining repair actions still count against the default failure envelope above
 
-When taking over: read the agent's current state (git log, diff, PR comments), complete remaining steps manually following the same deft process.
+When taking over: read the agent's current state (git log, diff, PR comments), complete remaining steps manually following the same deft process. If takeover itself cannot clear the failure class within the dual-stop envelope, halt with the operator-visible report rather than thrashing.
 
 ### Duplicate-Agent Failure Mode (a.k.a. Duplicate-Tab Failure Mode)
 

@@ -127,6 +127,19 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! After the parent emits **one** user/caller-visible consolidate for a child `runId` / settle batch, **identical or equivalent completion replay** for the same key MUST be **silent** (no tools, no re-QC, no second final; host silent token when defined, e.g. OpenClaw `NO_REPLY`). Re-open only on new `runId`/batch, principal explicit reopen, or materially new evidence (new HEAD, new blocker class). Replay storms: at most one fail-loud note, then silent. Full MUST: `templates/agent-prompt-preamble.md` §11.5. Depth: `references/core-phase-5-6.md`. Orthogonal to empty settle ≠ done (#3044).
 
+### Dual stop — repair and monitor loops (#2442)
+
+! Multi-iteration swarm **repair** and **monitor** loops MUST carry dual stop: success (goal/AC/clean gate) **and** a failure/budget stop. Single-turn probes (one status check, one heartbeat read) are exempt. Principle: `main.md` `## Dual Stop Rule (#2442)`. Defaults and halt-report shape live in [`references/core-phase-4.md`](references/core-phase-4.md) (monitor / takeover) and [`references/core-ops.md`](references/core-ops.md) (prompts + anti-patterns).
+
+! Default failure envelope for repair/monitor class work (unless the operator or xBRIEF names a stricter one):
+- **max iterations:** 3 monitor repair actions (re-dispatch, takeover complete, re-trigger review) for the same leaf/PR failure class, **or**
+- **no-progress:** same error / same Greptile P0-P1 fingerprint / same idle state **3+** times with no material worktree or review change (composes with Phase 4 "stuck in an error loop" takeover trigger), **or**
+- **budget:** existing poll caps (`pr:watch` max-wait, Greptile service-error single retry + escalate) count as budget stops -- do not invent a second unbounded poll loop outside them.
+
+! On failure stop: halt automatic continuation; emit an operator-visible report (what was tried, what is missing, what human decision is needed). ⊗ Silent re-dispatch or infinite monitor continuation after the envelope is exhausted.
+
+! Composes with minimal-subgraph repair guidance (#2439): keep repairs minimal **and** bounded by dual-stop -- minimal repair is not a license to thrash. Durable delivery/acceptance circuit-breaker enforcement is sibling **#3143** (not implemented here).
+
 ## Runtime Capability Detection (summary)
 
 ! Before selecting a launch method, probe the environment. Full probe text: [`references/core-phase-3.md`](references/core-phase-3.md).
@@ -174,5 +187,6 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Skip Phase 0 approval before Phase 1
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
 - ⊗ Misclassify Claude Code as `cursor-composer` / `generic-terminal` (#3134)
+- ⊗ Run multi-iteration repair/monitor loops without a failure stop or with silent continuation after the envelope is exhausted (#2442)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

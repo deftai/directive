@@ -71,6 +71,35 @@ See #634, #642. See [ADR-001](./docs/decisions/ADR-001.md) for the token-economi
 - ⊗ Continue executing a skill past its explicit instruction boundary — when a skill's steps are complete, stop and return to the calling context; do not drift into adjacent work (#198)
 - ! The end of a skill's final step is an exit condition — do not continue into adjacent work, even if it seems related or trivial
 
+## Dual Stop Rule (#2442)
+
+Loop engineering requires **two** stop conditions on multi-iteration autonomous work: a **success stop** (goal / AC / checker met) and a **failure or budget stop** (retries exhausted, no progress, or time/token budget). Directive already has strong success-shaped gates (`task check`, acceptance criteria, STOP on plan precondition mismatch -- #1613). This section requires the complementary failure envelope so agents escalate instead of thrashing forever.
+
+**Applies to:** multi-iteration autonomous loops -- build quality / implement-fix loops, pre-PR polish cycles, swarm repair and monitor loops, research fan-out, review fix cycles, and similar retrying work.
+
+**Does not apply to:** single-turn tasks (one shot answer, one file edit, one status probe). Not every task is a loop; do not invent iteration caps where there is no multi-step retry envelope.
+
+**Required stops on every multi-iteration loop:**
+
+1. ! **Success stop** -- goal, acceptance criteria, or checker is met; exit the loop and continue the skill or report done.
+2. ! **Failure stop** -- at least one of:
+   - **max iterations** (task-class default; e.g. a short quality-fix class vs a longer research class)
+   - **no-progress** (same outcome or same failure fingerprint N times in a row with no material change)
+   - **explicit budget** (time, tool-call, or token budget when the host exposes it)
+
+**On failure stop:**
+
+- ! Halt the loop. Do not silently continue, re-dispatch, or open a new identical attempt without an operator decision.
+- ! Emit an **operator-visible halt report** that states: (a) what was tried, (b) what is still missing or failing, (c) what human decision is needed next (scope change, unblock, override, or abandon).
+- ⊗ Keep iterating after the failure envelope is exhausted because "one more try" might work.
+- ⊗ Reset iteration counters solely by creating a new revision, swapping workers, or compacting context when the same failure class remains.
+
+**Relation to other rules:**
+
+- #1613 covers STOP when plan **preconditions** fail (reality mismatch). Dual stop covers the case where the plan is still "valid" but the agent must quit after N failed attempts, N identical no-progress outcomes, or a budget limit.
+- Skills name concrete defaults: `skills/deft-directive-build/SKILL.md` (implement / pre-PR loops), `skills/deft-directive-swarm/SKILL.md` and its Phase 4 / core-ops references (repair / monitor loops).
+- **Delivery / acceptance mechanical enforcement** (durable attempt ledger, material-progress circuit breaker, cross-revision budgets) is **#3143** -- not this story. #2442 is the principle + skill defaults; #3143 is the deterministic gate. Do not implement or claim the #3143 ledger here.
+
 **Adaptive Teaching:**
 - ~ When a recommendation is accepted without question, be concise
 - ! When a recommendation is questioned or overridden, explain the reasoning

@@ -258,6 +258,27 @@ All xBRIEFs (including those read from `xbrief/active/` and any new xBRIEFs this
 
 **Cost model (swarm-heavy path):** moves from roughly `O(commits × full-gate)` toward `O(merges × full-gate) + O(iterations × cheap-proxy)` when workers iterate with affected/static gates and run full `task check` only at PR/merge.
 
+### Dual stop — multi-iteration implement and pre-PR loops (#2442)
+
+Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a success stop and a failure/budget stop (`main.md` `## Dual Stop Rule (#2442)`). Single-turn edits and one-shot probes are exempt.
+
+**Defaults for this skill (override only with an explicit operator envelope or xBRIEF field):**
+
+| Loop class | Success stop | Default failure stop |
+|------------|--------------|----------------------|
+| Implement / quality fix (tests, lint, typecheck, coverage, AC) | Affected/static gates green for the change; AC met | **max 5** fix iterations **or** **3** consecutive identical outcomes (same failing command + same primary error class) with no material code/config change |
+| Pre-PR polish (`deft-directive-pre-pr` Read-Write-Lint-Diff) | Full pass with zero further edits | **max 3** polish passes **or** **2** consecutive no-diff / same-diff outcomes |
+| Full `task check` re-run after a red merge chokepoint | `task check` green | Counts toward the implement/quality fix envelope above (do not open a separate unbounded check-retry loop) |
+
+**On failure stop:**
+
+- ! Halt the loop. Surface an **operator-visible halt report** with: (1) iterations attempted and which stop fired (max-iter / no-progress / budget), (2) commands and primary failure fingerprints tried, (3) what is still red or missing, (4) the human decision needed (unblock dependency, rescope AC, waive with audit, abandon).
+- ! Prefer a structured `BLOCKED:` terminal (preamble §11 / #2843) when exiting a drive-to:merge-ready or parent-dispatched unit early because the envelope is exhausted.
+- ⊗ Continue "one more fix" after the envelope is exhausted.
+- ⊗ Reset the counter by opening a new commit, rewording the same change, or swapping workers while the same failure class remains.
+
+**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit-breaker enforcement (cross-revision ledger, material-progress gate) is sibling **#3143** -- do not invent a parallel ledger in this skill.
+
 ## Step 3: Build Phase by Phase
 
 For each phase:
@@ -343,6 +364,7 @@ feat(phase-2): add REST API endpoints with integration tests
 - ! Lint/type errors → fix them; ≉ add ignore comments without documented reason
 - ! Scope xBRIEF ambiguous -> ask user; ⊗ guess
 - ! Scope needs changes -> propose, get approval, update the scope xBRIEF first
+- ! Multi-iteration fix loops obey dual-stop defaults above (#2442); on envelope exhaustion halt with an operator-visible report -- do not thrash
 
 
 ## Probe-then-fill remote claims (#3120)
@@ -388,3 +410,5 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term
 - ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
 - ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
+- ⊗ Run multi-iteration implement / pre-PR loops without a failure stop (max iterations and/or no-progress) or without an operator-visible halt report when the envelope is exhausted (#2442)
+- ⊗ Silently continue after dual-stop failure halt — escalate; do not thrash (#2442)
