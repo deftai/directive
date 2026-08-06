@@ -42,6 +42,7 @@ import {
   renderGlobalInstall,
   resolveEngine,
 } from "../resolution/index.js";
+import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-deposit.js";
 import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import {
@@ -724,6 +725,8 @@ export async function runRefreshDeposit(
   // #75 residual: multi-host thin skill discovery (mirror `.agents/skills` inventory).
   writeMultiHostSkillDiscovery(projectDir, io);
   writeSlashCommandDeposit(projectDir, io);
+  // #3171: OpenClaw soft AGENTS re-bind skill when OC signals present (fail-closed otherwise).
+  depositOpenClawSoftRebindSkill({});
   // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
   depositOpenClawL2ProductCommands({
     projectRoot: projectDir,

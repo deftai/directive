@@ -66,6 +66,7 @@ import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { runNpmRegistryMirrorCheck } from "./npm-registry.js";
 import { runOpenClawL2AdapterCheck } from "./openclaw-l2-adapter.js";
 import { runOpenClawSkillPinsCheck } from "./openclaw-skills.js";
+import { runOpenClawSoftRebindCheck } from "./openclaw-soft-rebind.js";
 import { createPlainSink } from "./output.js";
 import {
   readTextSafe,
@@ -505,6 +506,18 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       isTty: seams.isTty,
       readYn: seams.readYn,
     },
+  });
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking OpenClaw soft AGENTS re-bind skill...");
+  runOpenClawSoftRebindCheck(sink, addFinding, {
+    projectRoot,
+    fixMode,
+    jsonMode,
+    allAgents: flags.openclawAllAgents,
+    seams,
   });
 
   if (!jsonMode) {

@@ -9,6 +9,7 @@ export * from "./manifest.js";
 export * from "./npm-registry.js";
 export * from "./openclaw-l2-adapter.js";
 export * from "./openclaw-skills.js";
+export * from "./openclaw-soft-rebind.js";
 export * from "./paths.js";
 export * from "./payload-staleness.js";
 export * from "./release-availability.js";
