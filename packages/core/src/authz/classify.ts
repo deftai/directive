@@ -379,9 +379,10 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
   if (!hasProg) return false;
 
   const lower = command.toLowerCase();
-  // Strict write signals — not bare open( (reads use open too).
+  // Strict write signals — not bare open( (reads use open too) and not bare `.write`
+  // as data/property text (Greptile residual: `print('.write')` must stay unclassifiable).
   const writeish =
-    lower.includes(".write") ||
+    lower.includes(".write(") ||
     lower.includes("writefile") ||
     lower.includes("writetext") ||
     lower.includes("writefilesync") ||
@@ -389,8 +390,8 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("out-file") ||
     lower.includes("fs.write") ||
     lower.includes("createwritestream") ||
-    lower.includes("path.write") ||
-    lower.includes("file.write") ||
+    lower.includes("path.write(") ||
+    lower.includes("file.write(") ||
     lower.includes("spurt") ||
     lower.includes(">>") ||
     lower.includes("mode='w'") ||
@@ -403,14 +404,15 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes(",'a'") ||
     lower.includes(',"a"') ||
     lower.includes("trunc") ||
-    lower.includes("unlink") ||
+    lower.includes("unlink(") ||
     lower.includes("rmsync") ||
     lower.includes("rm_rf") ||
     lower.includes("shutil.rmtree") ||
-    lower.includes("os.remove") ||
-    lower.includes("os.unlink") ||
+    lower.includes("os.remove(") ||
+    lower.includes("os.unlink(") ||
     lower.includes("fs.unlink") ||
-    lower.includes("fs.rm") ||
+    lower.includes("fs.rm(") ||
+    lower.includes("fs.rmsync") ||
     // open(..., 'w' / "w" / 'wb' / "a" / '>') — write modes only (not bare open for read).
     (lower.includes("open(") &&
       (lower.includes(",'w") ||
@@ -451,11 +453,15 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
   if (writeish) return true;
   if (
     obfuscatedPath &&
-    (lower.includes("open(") ||
-      lower.includes(".write") ||
+    (lower.includes(".write(") ||
       lower.includes("writefile") ||
       lower.includes("fs.write") ||
-      lower.includes(">>"))
+      lower.includes(">>") ||
+      (lower.includes("open(") &&
+        (lower.includes(",'w") ||
+          lower.includes(',"w') ||
+          lower.includes(",'>") ||
+          lower.includes(',">'))))
   ) {
     return true;
   }
