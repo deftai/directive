@@ -465,7 +465,10 @@ export function withUnitLock<T>(
   const unitLabel = `${scopeId}/${targetId}/${workflowId}`;
 
   const heldError = (detail: string, cause?: unknown): Error =>
-    new Error(`delivery-attempt unit lock held for ${unitLabel}${detail}`, cause ? { cause } : undefined);
+    new Error(
+      `delivery-attempt unit lock held for ${unitLabel}${detail}`,
+      cause ? { cause } : undefined,
+    );
 
   const tryCreateLock = (): void => {
     writeLockExclusive(lockPath, record);
@@ -551,12 +554,7 @@ export function loadOrCreateUnitLedger(
     readonly now?: string;
   },
 ): DeliveryUnitLedger {
-  const result = loadUnitLedgerResult(
-    projectRoot,
-    input.scopeId,
-    input.targetId,
-    input.workflowId,
-  );
+  const result = loadUnitLedgerResult(projectRoot, input.scopeId, input.targetId, input.workflowId);
   if (result.status === "ok") return result.ledger;
   if (result.status === "corrupt") {
     throw new Error(

@@ -6,11 +6,7 @@ import {
   normalizeFileScope,
   scopeExpansion,
 } from "./digest.js";
-import {
-  evaluateOneScopeProvenance,
-  evaluateScopeProvenance,
-  unquoteGitPath,
-} from "./evaluate.js";
+import { evaluateOneScopeProvenance, evaluateScopeProvenance, unquoteGitPath } from "./evaluate.js";
 
 function xbrief(planId: string, fileScope: string[]): Record<string, unknown> {
   return {

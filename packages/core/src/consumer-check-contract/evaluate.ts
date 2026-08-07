@@ -202,7 +202,10 @@ export function lineMasksShellStatus(line: string): boolean {
   const lower = stripQuotedSegments(line).toLowerCase();
   if (/\|\|/.test(lower)) return true;
   // Pipeline `|` but not `||` (already handled) and not fd redirs `2>&1` / `>&2`.
-  const noFd = lower.replace(/\d*>&?\d+/g, " ").replace(/>&\d+/g, " ").replace(/&>\S*/g, " ");
+  const noFd = lower
+    .replace(/\d*>&?\d+/g, " ")
+    .replace(/>&\d+/g, " ")
+    .replace(/&>\S*/g, " ");
   if (/\|/.test(noFd)) return true;
   if (/;/.test(lower)) return true;
   if (lineHasBackgroundJob(line)) return true;
@@ -253,10 +256,7 @@ export function lineMasksCheckFailure(line: string): boolean {
  * True when `line` invokes a runner at command position (start / after chain),
  * not merely mentions it inside an argument, and does not mask failures.
  */
-export function lineHasCommandPositionRunner(
-  line: string,
-  runnerPattern: RegExp,
-): boolean {
+export function lineHasCommandPositionRunner(line: string, runnerPattern: RegExp): boolean {
   if (lineMasksCheckFailure(line)) return false;
   // Backgrounded gates/runners are not awaited (covers verify:* & forms too).
   if (lineHasBackgroundJob(line)) return false;
@@ -279,27 +279,17 @@ export function runCommandIsFullCheck(cmd: string): boolean {
     if (isNonExecutingCommandLine(raw)) continue;
     const line = raw.trim().replace(/^-\s+/, "");
     // Word-boundary / command-position matches only.
-    if (
-      lineHasCommandPositionRunner(line, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/)
-    ) {
+    if (lineHasCommandPositionRunner(line, /^(?:sudo\s+)?(?:deft|directive)\s+check\b/)) {
       return true;
     }
     if (lineHasCommandPositionRunner(line, /^(?:sudo\s+)?task\s+(?:deft:)?check\b/)) {
       return true;
     }
-    if (
-      lineHasCommandPositionRunner(
-        line,
-        /^(?:sudo\s+)?(?:task\s+)?check:consumer(?:\s|$)/,
-      )
-    ) {
+    if (lineHasCommandPositionRunner(line, /^(?:sudo\s+)?(?:task\s+)?check:consumer(?:\s|$)/)) {
       return true;
     }
     if (
-      lineHasCommandPositionRunner(
-        line,
-        /^(?:sudo\s+)?(?:task\s+)?check:framework-source(?:\s|$)/,
-      )
+      lineHasCommandPositionRunner(line, /^(?:sudo\s+)?(?:task\s+)?check:framework-source(?:\s|$)/)
     ) {
       return true;
     }

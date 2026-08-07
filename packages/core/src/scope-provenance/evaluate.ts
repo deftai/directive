@@ -153,11 +153,7 @@ export function unquoteGitPath(raw: string): string {
 }
 
 /** Read a repo-relative path as of `ref` (null if missing). */
-function readRepoFileAtRef(
-  projectRoot: string,
-  ref: string,
-  relPath: string,
-): string | null {
+function readRepoFileAtRef(projectRoot: string, ref: string, relPath: string): string | null {
   const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
   const result = git(["show", `${ref}:${path}`], projectRoot);
   if (result.status !== 0) return null;
@@ -219,7 +215,10 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
 
 /** Normalize repo-relative paths for exact set membership (always POSIX separators). */
 export function normalizeRepoRelPath(p: string): string {
-  return p.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/{2,}/g, "/");
+  return p
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/{2,}/g, "/");
 }
 
 /**
@@ -305,8 +304,7 @@ export function evaluateOneScopeProvenance(input: {
     // (includes plan.id renames that drop the prior approval). Hard-fail so the
     // default check path cannot soft-warn past AC "fails until renewed approval".
     // Empty-scope body-only edits may still soft-warn under migration (no enforce).
-    const hard =
-      input.enforce || currentScope.length > 0;
+    const hard = input.enforce || currentScope.length > 0;
     return {
       xbriefRelPath: input.xbriefRelPath,
       planId,
@@ -371,11 +369,7 @@ export function evaluateScopeProvenance(
       changed = [...options.changedFiles].map((p) => p.replace(/\\/g, "/"));
       // Prefer explicit baseRef for base-scope comparisons; do not force git
       // discovery on pure injected-seam tests (cwd may not be a repo).
-      if (
-        options.baseRef !== undefined &&
-        options.baseRef !== "" &&
-        options.baseRef !== "HEAD"
-      ) {
+      if (options.baseRef !== undefined && options.baseRef !== "" && options.baseRef !== "HEAD") {
         discoveryBaseRef = options.baseRef;
       } else {
         try {
@@ -526,14 +520,10 @@ export function evaluateScopeProvenance(
       existsSync(join(root, approvalRecordRel)) &&
       isHumanApprovalStamp(approved.humanApproval)
     ) {
-      const currentDigest = computeFileScopeDigest(
-        normalizeFileScope(extractFileScope(payload)),
-      );
+      const currentDigest = computeFileScopeDigest(normalizeFileScope(extractFileScope(payload)));
       if (approved.fileScopeDigest === currentDigest) {
         const baseRaw =
-          discoveryBaseRef !== null
-            ? readRepoFileAtRef(root, discoveryBaseRef, rel)
-            : null;
+          discoveryBaseRef !== null ? readRepoFileAtRef(root, discoveryBaseRef, rel) : null;
         if (baseRaw === null) {
           // New active xBRIEF with untracked matching approval → fail closed.
           approvalDiskOnly = true;

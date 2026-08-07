@@ -358,9 +358,7 @@ tasks:
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
       verifyTaskfileText: VERIFY_YML_COMPLETE,
-      ciWorkflows: new Map([
-        [".github/workflows/ci.yml", "- run: task check || true\n"],
-      ]),
+      ciWorkflows: new Map([[".github/workflows/ci.yml", "- run: task check || true\n"]]),
       ciWarnOnly: false,
       enforce: true,
     });
@@ -379,9 +377,7 @@ tasks:
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
       verifyTaskfileText: VERIFY_YML_COMPLETE,
-      ciWorkflows: new Map([
-        [".github/workflows/ci.yml", "- run: task check &\n"],
-      ]),
+      ciWorkflows: new Map([[".github/workflows/ci.yml", "- run: task check &\n"]]),
       ciWarnOnly: false,
       enforce: true,
     });
@@ -468,9 +464,7 @@ tasks:
     const result = evaluateConsumerCheckContract("/tmp/consumer", {
       rootTaskfileText: ROOT_WITH_CHECK_DEPS,
       verifyTaskfileText: VERIFY_YML_COMPLETE,
-      ciWorkflows: new Map([
-        [".github/workflows/ci.yml", "- run: printf 'task check'\\n"],
-      ]),
+      ciWorkflows: new Map([[".github/workflows/ci.yml", "- run: printf 'task check'\\n"]]),
       ciWarnOnly: false,
       enforce: true,
     });
