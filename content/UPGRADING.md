@@ -260,26 +260,29 @@ The `deft-directive-sync` skill (and any agent following this upgrade path) MUST
 - ! Missing global CLI → remediate with `npm i -g @deftai/directive@latest` (not GitHub release-asset archaeology).
 - ! Git submodule update remains **legacy / back-compat only**; npm + `directive update` / `deft update` is the primary path.
 
-### One upgrade PR shape (#3127)
+### One upgrade PR shape (#3127 / #3193)
 
-A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `deft-core-guard` (`no-mixed-core-and-app`, #1430) allowlists the upgrade co-travel unit so deposit + pin + freshness stamp land together:
+A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `deft-core-guard` (`no-mixed-core-and-app`, #1430) allowlists the upgrade co-travel unit so deposit + pin + freshness stamp land together — and **content-constrains** package/lock when they co-travel with `.deft/core/**` (#3193):
 
 | Include in the upgrade PR | Why |
 | --- | --- |
 | `.deft/core/**` | Framework deposit payload |
 | Existing installer-managed deposits (`AGENTS.md`, hooks, skill stubs, slash commands, Taskfile include, `xbrief/.deft-version`, …) | Already framework-adjacent |
-| `package.json` + lockfile (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) when the change is the `@deftai/directive` pin (and lock follow-through) | npm pin doctor compares to deposit; part of the upgrade unit |
-| `.deft/GENERATION.json` | Live freshness stamp from `init` / `update` (#3117) |
+| `package.json` when the **only** dependency-key changes are `@deftai/directive*` under `dependencies` / `devDependencies` / `optionalDependencies` / `peerDependencies` (not scripts/settings that merely contain the substring) | npm pin doctor compares to deposit; pin unit only (#3193) |
+| lockfile (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) when changes are **follow-through** for that pin (Directive identity + necessary transitive/resolution lines), not unrelated direct product dependency identity | Lock follow-through for the pin unit (#3193) |
+| `.deft/GENERATION.json` | Live freshness stamp from `init` / `update` (#3117); remains path-allowlisted |
 
 | Keep out of the upgrade PR | Why |
 | --- | --- |
 | Application source, tests, product docs | True app/product work — guard still fails if mixed with `.deft/core/**` |
+| Unrelated `package.json` fields (scripts, metadata, non-Directive deps) co-travelling with deposit | Content-aware guard rejects (#3193); path allowlist alone is not enough |
+| Unrelated lock direct product dep bumps riding the pin exemption | Content-aware guard rejects (#3193) |
 | Consumer kit narrative / host prose not deposited by Directive | Not installer-managed |
 | Arbitrary playbooks, cast, features | Product scope, not upgrade |
 
-**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade.
+**Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade. Consumers should **not** hand-roll a forked `deft-core-guard.yml` for normal upgrades — the deposited workflow already enforces pin-only + lock follow-through.
 
-Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117).
+Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#3193](https://github.com/deftai/directive/issues/3193), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117).
 
 Machine-readable skill exit line (for agents/operators):
 

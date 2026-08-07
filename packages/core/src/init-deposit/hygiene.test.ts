@@ -15,6 +15,7 @@ import {
   assertInstallerAllowlistHonors1430,
   CONSUMER_GUARD_MUST_FIRE,
   classifyMixedCoreAndApp,
+  classifyMixedCoreAndAppContentAware,
   depositStagePaths,
   findPackageAbsentDepositPaths,
   findPackageAbsentDepositPathsSync,
@@ -23,7 +24,14 @@ import {
   installerManagedGuardEre,
   installerManagedMatchers,
   isDepositGeneratedMetadata,
+  isDirectiveDependencyKey,
   isInstallerManagedPath,
+  isPackageJsonDirectivePinOnlyDiff,
+  isPackageLockDirectivePinFollowThrough,
+  isPnpmLockDirectivePinFollowThrough,
+  isUpgradePinPathContentAllowed,
+  isYarnLockDirectivePinFollowThrough,
+  pnpmLockRootDirectDeps,
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
   reconcileDepositToContentPackage,
@@ -156,6 +164,438 @@ describe("upgrade co-travel allowlist (#3127)", () => {
     ]);
     expect(result.wouldFail).toBe(true);
     expect(result.app).toContain("docs/playbooks/my-product.md");
+  });
+});
+
+describe("content-aware pin + lock follow-through (#3193)", () => {
+  const basePkg = JSON.stringify(
+    {
+      name: "app",
+      private: true,
+      scripts: { build: "tsc", note: "npx @deftai/directive doctor" },
+      dependencies: { lodash: "^4.17.21" },
+      devDependencies: { "@deftai/directive": "0.96.0", typescript: "^5" },
+    },
+    null,
+    2,
+  );
+  const pinOnlyPkg = JSON.stringify(
+    {
+      name: "app",
+      private: true,
+      scripts: { build: "tsc", note: "npx @deftai/directive doctor" },
+      dependencies: { lodash: "^4.17.21" },
+      devDependencies: { "@deftai/directive": "0.97.0", typescript: "^5" },
+    },
+    null,
+    2,
+  );
+  const unrelatedFieldPkg = JSON.stringify(
+    {
+      name: "app",
+      private: true,
+      scripts: { build: "tsc && eslint", note: "npx @deftai/directive doctor" },
+      dependencies: { lodash: "^4.17.21" },
+      devDependencies: { "@deftai/directive": "0.97.0", typescript: "^5" },
+    },
+    null,
+    2,
+  );
+  const otherDepPkg = JSON.stringify(
+    {
+      name: "app",
+      private: true,
+      scripts: { build: "tsc", note: "npx @deftai/directive doctor" },
+      dependencies: { lodash: "^4.17.21", leftpad: "1.0.0" },
+      devDependencies: { "@deftai/directive": "0.97.0", typescript: "^5" },
+    },
+    null,
+    2,
+  );
+
+  const baseNpmLock = JSON.stringify({
+    name: "app",
+    lockfileVersion: 3,
+    packages: {
+      "": {
+        name: "app",
+        dependencies: { lodash: "^4.17.21" },
+        devDependencies: { "@deftai/directive": "0.96.0" },
+      },
+      "node_modules/lodash": { version: "4.17.21" },
+      "node_modules/@deftai/directive": { version: "0.96.0" },
+      "node_modules/@deftai/directive/node_modules/internal-util": { version: "1.0.0" },
+    },
+  });
+  const pinFollowNpmLock = JSON.stringify({
+    name: "app",
+    lockfileVersion: 3,
+    packages: {
+      "": {
+        name: "app",
+        dependencies: { lodash: "^4.17.21" },
+        devDependencies: { "@deftai/directive": "0.97.0" },
+      },
+      "node_modules/lodash": { version: "4.17.21" },
+      "node_modules/@deftai/directive": { version: "0.97.0" },
+      "node_modules/@deftai/directive/node_modules/internal-util": { version: "1.1.0" },
+      "node_modules/some-transitive": { version: "2.0.0" },
+    },
+  });
+  const mixedNpmLock = JSON.stringify({
+    name: "app",
+    lockfileVersion: 3,
+    packages: {
+      "": {
+        name: "app",
+        dependencies: { lodash: "^4.18.0" },
+        devDependencies: { "@deftai/directive": "0.97.0" },
+      },
+      "node_modules/lodash": { version: "4.18.0" },
+      "node_modules/@deftai/directive": { version: "0.97.0" },
+    },
+  });
+
+  const basePnpm = [
+    "lockfileVersion: '9.0'",
+    "",
+    "importers:",
+    "",
+    "  .:",
+    "    dependencies:",
+    "      lodash:",
+    "        specifier: ^4.17.21",
+    "        version: 4.17.21",
+    "    devDependencies:",
+    "      '@deftai/directive':",
+    "        specifier: 0.96.0",
+    "        version: 0.96.0",
+    "",
+    "packages:",
+    "",
+    "  lodash@4.17.21:",
+    "    resolution: {integrity: sha512-base}",
+    "",
+    "  '@deftai/directive@0.96.0':",
+    "    resolution: {integrity: sha512-pin-base}",
+    "",
+  ].join("\n");
+  const pinFollowPnpm = [
+    "lockfileVersion: '9.0'",
+    "",
+    "importers:",
+    "",
+    "  .:",
+    "    dependencies:",
+    "      lodash:",
+    "        specifier: ^4.17.21",
+    "        version: 4.17.21",
+    "    devDependencies:",
+    "      '@deftai/directive':",
+    "        specifier: 0.97.0",
+    "        version: 0.97.0",
+    "",
+    "packages:",
+    "",
+    "  lodash@4.17.21:",
+    "    resolution: {integrity: sha512-base}",
+    "",
+    "  '@deftai/directive@0.97.0':",
+    "    resolution: {integrity: sha512-pin-head}",
+    "  some-transitive@2.0.0:",
+    "    resolution: {integrity: sha512-transitive}",
+    "",
+  ].join("\n");
+  const mixedPnpm = [
+    "lockfileVersion: '9.0'",
+    "",
+    "importers:",
+    "",
+    "  .:",
+    "    dependencies:",
+    "      lodash:",
+    "        specifier: ^4.18.0",
+    "        version: 4.18.0",
+    "    devDependencies:",
+    "      '@deftai/directive':",
+    "        specifier: 0.97.0",
+    "        version: 0.97.0",
+    "",
+    "packages:",
+    "",
+    "  lodash@4.18.0:",
+    "    resolution: {integrity: sha512-bumped}",
+    "",
+  ].join("\n");
+
+  const baseYarn = [
+    "# yarn lockfile v1",
+    "",
+    '"@deftai/directive@0.96.0":',
+    '  version "0.96.0"',
+    '  resolved "https://registry.npmjs.org/@deftai/directive/-/directive-0.96.0.tgz"',
+    "",
+    "lodash@^4.17.21:",
+    '  version "4.17.21"',
+    '  resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"',
+    "",
+  ].join("\n");
+  const pinFollowYarn = [
+    "# yarn lockfile v1",
+    "",
+    '"@deftai/directive@0.97.0":',
+    '  version "0.97.0"',
+    '  resolved "https://registry.npmjs.org/@deftai/directive/-/directive-0.97.0.tgz"',
+    "  dependencies:",
+    '    internal-util "1.1.0"',
+    "",
+    "lodash@^4.17.21:",
+    '  version "4.17.21"',
+    '  resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"',
+    "",
+    "internal-util@1.1.0:",
+    '  version "1.1.0"',
+    "",
+  ].join("\n");
+  const mixedYarn = [
+    "# yarn lockfile v1",
+    "",
+    '"@deftai/directive@0.97.0":',
+    '  version "0.97.0"',
+    '  resolved "https://registry.npmjs.org/@deftai/directive/-/directive-0.97.0.tgz"',
+    "",
+    "lodash@^4.17.21:",
+    '  version "4.18.0"',
+    '  resolved "https://registry.npmjs.org/lodash/-/lodash-4.18.0.tgz"',
+    "",
+  ].join("\n");
+
+  it("recognizes @deftai/directive* dependency keys only", () => {
+    expect(isDirectiveDependencyKey("@deftai/directive")).toBe(true);
+    expect(isDirectiveDependencyKey("@deftai/directive-content")).toBe(true);
+    expect(isDirectiveDependencyKey("@deftai/directive-core")).toBe(true);
+    expect(isDirectiveDependencyKey("lodash")).toBe(false);
+    expect(isDirectiveDependencyKey("@types/node")).toBe(false);
+  });
+
+  it("passes package.json when only @deftai/directive* dep keys change", () => {
+    expect(isPackageJsonDirectivePinOnlyDiff(basePkg, pinOnlyPkg)).toBe(true);
+  });
+
+  it("fails package.json when scripts/settings change even if they mention directive", () => {
+    expect(isPackageJsonDirectivePinOnlyDiff(basePkg, unrelatedFieldPkg)).toBe(false);
+  });
+
+  it("fails package.json when an unrelated product dependency key changes", () => {
+    expect(isPackageJsonDirectivePinOnlyDiff(basePkg, otherDepPkg)).toBe(false);
+  });
+
+  it("passes package-lock.json pin identity + transitive follow-through", () => {
+    expect(isPackageLockDirectivePinFollowThrough(baseNpmLock, pinFollowNpmLock)).toBe(true);
+  });
+
+  it("fails package-lock.json when an unrelated direct product dep identity changes", () => {
+    expect(isPackageLockDirectivePinFollowThrough(baseNpmLock, mixedNpmLock)).toBe(false);
+  });
+
+  it("passes pnpm-lock.yaml pin follow-through (CI lock format)", () => {
+    expect(isPnpmLockDirectivePinFollowThrough(basePnpm, pinFollowPnpm)).toBe(true);
+  });
+
+  it("fails pnpm-lock.yaml when root importer product dep version changes", () => {
+    expect(isPnpmLockDirectivePinFollowThrough(basePnpm, mixedPnpm)).toBe(false);
+  });
+
+  it("passes yarn.lock pin follow-through and fails mixed product identity", () => {
+    expect(isYarnLockDirectivePinFollowThrough(baseYarn, pinFollowYarn)).toBe(true);
+    expect(isYarnLockDirectivePinFollowThrough(baseYarn, mixedYarn)).toBe(false);
+  });
+
+  it("content-aware: deposit + pin-only package + lock follow-through + GENERATION passes", () => {
+    const result = classifyMixedCoreAndAppContentAware(
+      [
+        ".deft/core/VERSION",
+        ".deft/core/main.md",
+        "AGENTS.md",
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        ".deft/GENERATION.json",
+      ],
+      {
+        "package.json": { base: basePkg, head: pinOnlyPkg },
+        "package-lock.json": { base: baseNpmLock, head: pinFollowNpmLock },
+        "pnpm-lock.yaml": { base: basePnpm, head: pinFollowPnpm },
+      },
+    );
+    expect(result.wouldFail).toBe(false);
+    expect(result.app).toHaveLength(0);
+    expect(result.pinContentRejected).toEqual([]);
+    expect(result.installerManaged).toEqual(
+      expect.arrayContaining([
+        "package.json",
+        "package-lock.json",
+        "pnpm-lock.yaml",
+        ".deft/GENERATION.json",
+        "AGENTS.md",
+      ]),
+    );
+  });
+
+  it("content-aware: core + unrelated package.json field fails", () => {
+    const result = classifyMixedCoreAndAppContentAware(
+      [".deft/core/VERSION", "package.json", ".deft/GENERATION.json"],
+      {
+        "package.json": { base: basePkg, head: unrelatedFieldPkg },
+      },
+    );
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toContain("package.json");
+    expect(result.pinContentRejected).toContain("package.json");
+  });
+
+  it("content-aware: core + mixed lock (unrelated product dep) fails", () => {
+    const result = classifyMixedCoreAndAppContentAware(
+      [".deft/core/VERSION", "package.json", "package-lock.json", "pnpm-lock.yaml"],
+      {
+        "package.json": { base: basePkg, head: pinOnlyPkg },
+        "package-lock.json": { base: baseNpmLock, head: mixedNpmLock },
+        "pnpm-lock.yaml": { base: basePnpm, head: pinFollowPnpm },
+      },
+    );
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toContain("package-lock.json");
+    expect(result.pinContentRejected).toContain("package-lock.json");
+    expect(result.installerManaged).toContain("package.json");
+  });
+
+  it("content-aware: missing content for pin path with core fails closed", () => {
+    const result = classifyMixedCoreAndAppContentAware([".deft/core/VERSION", "package.json"], {});
+    expect(result.wouldFail).toBe(true);
+    expect(result.pinContentRejected).toContain("package.json");
+  });
+
+  it("content-aware: without core, package content is not reclassified", () => {
+    const result = classifyMixedCoreAndAppContentAware(["package.json", "src/app.ts"], {
+      "package.json": { base: basePkg, head: unrelatedFieldPkg },
+    });
+    expect(result.core).toHaveLength(0);
+    expect(result.wouldFail).toBe(false);
+    expect(result.installerManaged).toContain("package.json");
+    expect(result.app).toEqual(["src/app.ts"]);
+  });
+
+  it("rejects invalid JSON / non-object package-lock bodies", () => {
+    expect(isPackageJsonDirectivePinOnlyDiff("{", "{}")).toBe(false);
+    expect(isPackageLockDirectivePinFollowThrough("not-json", "{}")).toBe(false);
+    expect(isPackageLockDirectivePinFollowThrough("null", "{}")).toBe(false);
+    expect(isPackageLockDirectivePinFollowThrough("[]", "{}")).toBe(false);
+    expect(isPackageLockDirectivePinFollowThrough("{}", "[]")).toBe(false);
+  });
+
+  it("accepts npm lockfile v1 dependencies map pin follow-through", () => {
+    const base = JSON.stringify({
+      lockfileVersion: 1,
+      dependencies: {
+        lodash: { version: "4.17.21" },
+        "@deftai/directive": { version: "0.96.0" },
+      },
+    });
+    const head = JSON.stringify({
+      lockfileVersion: 1,
+      dependencies: {
+        lodash: { version: "4.17.21" },
+        "@deftai/directive": { version: "0.97.0" },
+      },
+    });
+    expect(isPackageLockDirectivePinFollowThrough(base, head)).toBe(true);
+  });
+
+  it("fails when product node_modules entry metadata changes without root identity change", () => {
+    const base = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          dependencies: { lodash: "^4.17.21" },
+          devDependencies: { "@deftai/directive": "0.96.0" },
+        },
+        "node_modules/lodash": { version: "4.17.21", integrity: "sha512-aaa" },
+        "node_modules/@deftai/directive": { version: "0.96.0" },
+      },
+    });
+    const head = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          dependencies: { lodash: "^4.17.21" },
+          devDependencies: { "@deftai/directive": "0.97.0" },
+        },
+        "node_modules/lodash": { version: "4.17.21", integrity: "sha512-bbb" },
+        "node_modules/@deftai/directive": { version: "0.97.0" },
+      },
+    });
+    expect(isPackageLockDirectivePinFollowThrough(base, head)).toBe(false);
+  });
+
+  it("pnpm parser handles quoted importers, sibling packages, and leave-importers", () => {
+    const raw = [
+      "lockfileVersion: '9.0'",
+      "settings:",
+      "  autoInstallPeers: true",
+      "",
+      "importers:",
+      "",
+      "  '.':",
+      "    dependencies:",
+      '      "left-pad":',
+      "        specifier: 1.0.0",
+      "        version: 1.0.0",
+      "    peerDependencies:",
+      "      typescript:",
+      "        specifier: ^5",
+      "        version: 5.0.0",
+      "    otherField:",
+      "      ignored: true",
+      "",
+      "  packages/cli:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier: 1.0.0",
+      "        version: 1.0.0",
+      "",
+      "packages:",
+      "",
+      "  left-pad@1.0.0:",
+      "    resolution: {integrity: sha512-x}",
+      "",
+    ].join("\n");
+    const deps = pnpmLockRootDirectDeps(raw);
+    expect(deps["left-pad"]).toBe("1.0.0");
+    expect(deps.typescript).toBe("5.0.0");
+    expect(deps.lodash).toBeUndefined();
+  });
+
+  it("yarn fails when a non-directive package is removed from the lock", () => {
+    const base = [
+      "lodash@^4.17.21:",
+      '  version "4.17.21"',
+      "",
+      '"@deftai/directive@0.96.0":',
+      '  version "0.96.0"',
+      "",
+    ].join("\n");
+    const head = ['"@deftai/directive@0.97.0":', '  version "0.97.0"', ""].join("\n");
+    expect(isYarnLockDirectivePinFollowThrough(base, head)).toBe(false);
+  });
+
+  it("isUpgradePinPathContentAllowed covers each lock path and rejects unknown paths", () => {
+    expect(isUpgradePinPathContentAllowed("package.json", basePkg, pinOnlyPkg)).toBe(true);
+    expect(isUpgradePinPathContentAllowed("package-lock.json", baseNpmLock, pinFollowNpmLock)).toBe(
+      true,
+    );
+    expect(isUpgradePinPathContentAllowed("pnpm-lock.yaml", basePnpm, pinFollowPnpm)).toBe(true);
+    expect(isUpgradePinPathContentAllowed("yarn.lock", baseYarn, pinFollowYarn)).toBe(true);
+    expect(isUpgradePinPathContentAllowed("README.md", "a", "b")).toBe(false);
   });
 });
 

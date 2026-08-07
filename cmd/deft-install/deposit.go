@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,12 @@ import (
 	"regexp"
 	"strings"
 )
+
+// coreGuardPinContentPy is the #3193 content-aware pin/lock checker embedded in
+// the deposited deft-core-guard workflow (python3 on ubuntu-latest).
+//
+//go:embed core_guard_pin_content.py
+var coreGuardPinContentPy string
 
 // coreGlob is the gitignore/linguist/CodeQL-style glob that matches every file
 // under the vendored framework payload. The payload at .deft/core/ is packaged,
@@ -137,9 +144,12 @@ func installerManagedMatchers() []installerManagedMatcher {
 		{exact: "greptile.json"},
 		{exact: codeqlConfigRelPath},
 		{exact: coreGuardWorkflowRelPath},
-		// Upgrade co-travel unit (#3127): npm pin + lock follow-through and the
-		// freshness live stamp (#3117). Path-level allow for v1; true app paths
-		// still fail when mixed with .deft/core/** (#1430).
+		// Upgrade co-travel unit (#3127 / #3193): path-allow package/lock +
+		// GENERATION so they are not auto-classified as "app". When mixed with
+		// .deft/core/**, the deposited guard content-checks package.json for
+		// @deftai/directive* dependency-key pin-only and lockfiles for pin
+		// follow-through (#3193). GENERATION stays path-only (#3117). True app
+		// paths still fail when mixed with .deft/core/** (#1430).
 		{exact: "package.json"},
 		{exact: "package-lock.json"},
 		{exact: "pnpm-lock.yaml"},
@@ -286,25 +296,40 @@ func guardWouldFail(changed []string) bool {
 }
 
 // coreGuardWorkflowContent renders the optional CI guard deposited at
-// coreGuardWorkflowRelPath (#1430, #1440). It fails a PR that mixes changes to
-// the vendored framework payload (.deft/core/**) with changes to the consumer's
-// own files, so a framework update from deft-install/upgrade lands in its own PR
-// and reviewers can treat it as a packaged, machine-managed bump. It is
-// deposited create-if-absent and is safe for consumers to delete.
+// coreGuardWorkflowRelPath (#1430, #1440, #3127, #3193). It fails a PR that
+// mixes changes to the vendored framework payload (.deft/core/**) with changes
+// to the consumer's own files, so a framework update from deft-install/upgrade
+// lands in its own PR and reviewers can treat it as a packaged, machine-managed
+// bump. It is deposited create-if-absent and is safe for consumers to delete.
 //
 // The "app" set subtracts the installer-managed allowlist (#1440) so a
 // `deft-install --upgrade` PR -- which legitimately rewrites root files like
 // AGENTS.md and vbrief scaffolding alongside .deft/core/** -- is no longer
 // rejected by construction. The allowlist regex is rendered from
 // installerManagedGuardERE so the deposited guard and the installer never drift.
+//
+// When .deft/core/** is present, package.json / lockfiles are further
+// content-checked for @deftai/directive* pin-only + lock follow-through (#3193)
+// via the embedded python3 script (core_guard_pin_content.py).
 func coreGuardWorkflowContent() string {
+	// Indent embedded python for the workflow `run: |` block and wrap in a
+	// single-quoted heredoc so GHA does not expand shell variables inside PY.
+	var pinBody strings.Builder
+	for _, line := range strings.Split(strings.TrimSuffix(coreGuardPinContentPy, "\n"), "\n") {
+		pinBody.WriteString("          ")
+		pinBody.WriteString(line)
+		pinBody.WriteByte('\n')
+	}
+	pinContent := "          python3 - \"$BASE_SHA\" \"$HEAD_SHA\" <<'PY'\n" + pinBody.String() + "PY"
+
 	return `name: deft-core-guard
 
-# Deft framework guard (#1430): a single PR should not mix changes to the
-# vendored framework payload (.deft/core/**) with changes to your own project
-# files. Framework updates come from ` + "`deft-install`" + ` / upgrade and should
-# land in their own PR so reviewers (and bot reviewers) can treat them as
-# packaged, machine-managed assets. Delete this file if you do not want the guard.
+# Deft framework guard (#1430 / #3127 / #3193): a single PR should not mix changes to the
+# vendored framework payload (.deft/core/**) with true application/product files.
+# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock
+# + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only
+# and lockfiles are pin follow-through (#3193). Framework updates come from ` + "`deft-install`" + ` /
+# upgrade and should land without product feature work. Delete this file if you do not want the guard.
 on:
   pull_request:
 
@@ -340,6 +365,10 @@ jobs:
             echo "--- framework (.deft/core/**) changes ---"; printf '%s\n' "$core"
             echo "--- non-framework changes ---"; printf '%s\n' "$app"
             exit 1
+          fi
+          # Content-aware pin unit (#3193): path allowlist is not enough for package/lock.
+          if [ -n "$core" ]; then
+` + pinContent + `
           fi
           echo "OK: no mixed framework + app changes."
 `

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Core-guard content-aware pin + lock follow-through (#3193).** Deposited `deft-core-guard` still path-allowlists package/lock + `.deft/GENERATION.json` for one-upgrade-PR co-travel (#3127), but when `.deft/core/**` is present it requires `package.json` diffs to be `@deftai/directive*` **dependency-key** pin-only (not scripts/settings that merely contain the substring) and lockfiles (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) to be pin follow-through — not unrelated direct product deps. TS classifier + deposited workflow python check + UPGRADING one-upgrade-PR docs. Closes #3193. Refs #3127, #1430, #3117.
+
 - **Shared `task check` runs cheap gates before the vitest+coverage suite (#3188).** Framework and consumer gate lists place branch/cache/orphan/contract-class preflight before `ts:check-lane`; the cached sequential orchestrator aborts on the first fast-gate failure so the suite never starts (logged). Consumer benefit is intentional; SHA suite stamp/resume stays release-scoped (#3187). Closes #3188. Refs #3187, #3189, #1713.
 
 ### Fixed

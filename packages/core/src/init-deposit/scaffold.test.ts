@@ -195,6 +195,12 @@ describe("init-deposit scaffold", () => {
     );
     const guard = readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
     expect(extractCoreGuardCheckoutUsesLine(guard)).toBe(coreGuardCheckoutUsesLine());
+    // Content-aware pin unit (#3193) deposited with the path allowlist (#3127).
+    expect(guard).toContain("#3193");
+    expect(guard).toContain("python3 -");
+    expect(guard).toContain("@deftai/directive");
+    expect(guard).toContain("package-lock.json");
+    expect(guard).toContain("pnpm-lock.yaml");
   });
 
   it("skips AGENTS.md rewrite when the managed section is already current", () => {

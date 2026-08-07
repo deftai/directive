@@ -320,11 +320,12 @@ func printCommitGuidance(w *Wizard, paths []string, staged bool) {
 		return
 	}
 	addCmd := "git add " + strings.Join(paths, " ")
-	w.printf("\nCommit hygiene (#1453, #1671, #3127): keep the framework upgrade in its OWN branch/PR.\n")
+	w.printf("\nCommit hygiene (#1453, #1671, #3127, #3193): keep the framework upgrade in its OWN branch/PR.\n")
 	w.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n")
 	w.printf("deft-core-guard CI check.\n")
 	w.printf("One upgrade PR MAY co-travel: .deft/core/** + installer-managed deposits + package.json\n")
-	w.printf("pin/lock + .deft/GENERATION.json. True app/product paths still require a separate PR.\n")
+	w.printf("pin/lock (Directive pin-only + lock follow-through, #3193) + .deft/GENERATION.json.\n")
+	w.printf("True app/product paths still require a separate PR.\n")
 	if staged {
 		w.printf("The installer already staged ONLY these framework + installer-managed paths:\n")
 		w.printf("  %s\n", addCmd)

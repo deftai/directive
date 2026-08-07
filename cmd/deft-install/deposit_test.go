@@ -585,6 +585,28 @@ func upgradeOnlyChangeSet() []string {
 	return changed
 }
 
+// TestCoreGuard_ContentAwarePinEmbed pins #3193: deposited workflow embeds the
+// python3 pin/lock content checker (not path-only package.json exemption).
+func TestCoreGuard_ContentAwarePinEmbed(t *testing.T) {
+	content := coreGuardWorkflowContent()
+	for _, want := range []string{
+		"#3193",
+		"python3 -",
+		"@deftai/directive",
+		"package-lock.json",
+		"pnpm-lock.yaml",
+		"yarn.lock",
+		"is_dir_key",
+	} {
+		if !strings.Contains(content, want) {
+			t.Errorf("deposited guard must embed content-aware pin check fragment %q", want)
+		}
+	}
+	if coreGuardPinContentPy == "" {
+		t.Fatal("go:embed core_guard_pin_content.py must be non-empty")
+	}
+}
+
 // TestCoreGuard_UpgradeCoTravelPinAndGeneration pins #3127: pin + GENERATION
 // co-travel with .deft/core/**; true app paths still fail.
 func TestCoreGuard_UpgradeCoTravelPinAndGeneration(t *testing.T) {
