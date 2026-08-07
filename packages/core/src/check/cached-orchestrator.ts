@@ -12,7 +12,12 @@ import {
   formatConsumerGateIntegrityFailure,
 } from "./consumer-gate-integrity.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
-import { checkGateId, checkGateSpawnArgs, gatesForCheckTarget } from "./gate-lists.js";
+import {
+  checkGateId,
+  checkGateSpawnArgs,
+  gatesForCheckTarget,
+  isSuiteCheckGate,
+} from "./gate-lists.js";
 
 export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly onGateStart?: (gateId: string) => void;
@@ -45,6 +50,11 @@ function captureSpawn(
 /**
  * Run check gates sequentially with content-hash caching (#1713).
  * Falls back to fail-open execution for undeclared / non-cacheable gates.
+ *
+ * Gate order is fast-before-slow (#3188): non-suite gates complete (or fail)
+ * before any suite gate (`ts:check-lane` / vitest+coverage) is started. A
+ * non-zero exit aborts the loop immediately — the suite never starts after a
+ * fast-gate failure (observable via `onGateStart` / suite start log).
  */
 export function dispatchCachedTaskCheck(
   frameworkRoot: string,
@@ -88,6 +98,11 @@ export function dispatchCachedTaskCheck(
 
   for (const gateSpec of gates) {
     const gateId = checkGateId(gateSpec);
+    // #3188: log suite entry so operators/tests can prove fast failures never
+    // reach vitest+coverage (suite gates are ordered last in gate-lists).
+    if (isSuiteCheckGate(gateSpec)) {
+      process.stderr.write(`check: starting suite gate ${gateId} after fast preflight (#3188)\n`);
+    }
     options.onGateStart?.(gateId);
     const contract = resolveTaskContract(gateId);
     const taskArgs = checkGateSpawnArgs(gateSpec, taskfilePath);
@@ -113,7 +128,13 @@ export function dispatchCachedTaskCheck(
       },
     });
     options.onGateComplete?.(gateId, result.exitCode, result.fromCache);
+    // Fail-fast: do not start later gates (including suite) after a failure.
     if (result.exitCode !== 0) {
+      if (!isSuiteCheckGate(gateSpec)) {
+        process.stderr.write(
+          `check: fast gate ${gateId} failed (exit ${result.exitCode}); skipping remaining gates including suite (#3188)\n`,
+        );
+      }
       return result.exitCode;
     }
   }

@@ -6,6 +6,10 @@
  * vendored-consumer context (#1519) and dispatches to the appropriate
  * aggregate Taskfile target.
  *
+ * Default path uses the cached sequential gate runner (#1713) with
+ * fast-before-slow ordering (#3188): cheap gates run before `ts:check-lane`
+ * (vitest+coverage). A fast-gate failure aborts before the suite starts.
+ *
  * Exit codes (three-state, mirrors _project_context.py):
  *   0 -- all gates passed
  *   1 -- one or more gates failed

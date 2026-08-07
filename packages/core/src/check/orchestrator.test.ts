@@ -2,6 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
+import { isSuiteCheckGate } from "./gate-lists.js";
 import {
   dispatchTaskCheck,
   isFrameworkRepoRoot,
@@ -278,6 +280,54 @@ tasks:
       useTaskCache: false,
     });
     expect(code).toBe(2);
+    errWrite.mockRestore();
+  });
+});
+
+describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
+  it("does not start ts:check-lane when an earlier fast gate fails", () => {
+    const started: string[] = [];
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    const code = dispatchCachedTaskCheck("/fw-root-3188", "/fw-root-3188", {
+      noCache: true,
+      onGateStart: (gateId) => {
+        started.push(gateId);
+      },
+      gateSpawnFn: (gateId) => {
+        if (gateId === "verify:cache-fresh") {
+          return { exitCode: 1, stdout: "", stderr: "forced stale cache\n" };
+        }
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(started).toContain("verify:cache-fresh");
+    expect(started.some(isSuiteCheckGate)).toBe(false);
+    expect(started).not.toContain("ts:check-lane");
+    const skipMsg = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    expect(skipMsg).toMatch(/fast gate verify:cache-fresh failed/);
+    expect(skipMsg).toMatch(/skipping remaining gates including suite \(#3188\)/);
+    errWrite.mockRestore();
+  });
+
+  it("logs suite start only after all fast gates pass", () => {
+    const started: string[] = [];
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    const code = dispatchCachedTaskCheck("/fw-root-3188-ok", "/fw-root-3188-ok", {
+      noCache: true,
+      onGateStart: (gateId) => {
+        started.push(gateId);
+      },
+      gateSpawnFn: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    });
+
+    expect(code).toBe(0);
+    expect(started[started.length - 1]).toBe("ts:check-lane");
+    const logs = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    expect(logs).toMatch(/starting suite gate ts:check-lane after fast preflight \(#3188\)/);
     errWrite.mockRestore();
   });
 });

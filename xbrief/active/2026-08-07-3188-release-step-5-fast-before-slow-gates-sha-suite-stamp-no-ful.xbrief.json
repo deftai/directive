@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3188 swarm through-merge cohort",
+    "updated": "2026-08-07T15:33:15.263Z"
+  },
+  "plan": {
+    "title": "release: Step 5 fast-before-slow gates + SHA suite stamp",
+    "status": "running",
+    "narratives": {
+      "Description": "When shared task check co-lists cheap gates with the long vitest+coverage suite, late or early cheap failures still pay full suite cost if ordering is wrong. This story reorders gate-lists/orchestrator so fast preflight gates run before the expensive suite path for framework and consumer deposits. Release-local suite stamp remains owned by #3187; this story owns check composition ordering only.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3188",
+      "Overview": "## Summary\n\nSibling to #3187 (auto-hatch branch coverage hairline without re-running the suite).\n\nWhen `task release` Step 5 fails for a **small, non-suite** reason (e.g. `verify:cache-fresh` stale-by-drift after vitest already ran ~20–30m), the operator fixes the small issue and re-invokes release — which **re-runs the full check + vitest coverage suite** from scratch. There is no SHA-bound stamp and no “cheap gates first” split, so late/small failures cost a full suite.\n\n**v0.97.0 evidence:** full Step 5 → coverage hairline → re-run with hatch → suite green, then fail on cache-fresh → fetch-all → **third** full Step 5.\n\n## Goals\n\n1. **Gate ordering:** run cheap/fast gates before the expensive vitest+coverage suite so cache/lifecycle noise fails in seconds, not after half an hour.\n2. **Resume / stamp:** if suite already passed (or hatch-passed) at HEAD `S`, skip re-running the suite when only later gates or re-entry need work — fail closed if SHA/tree changed.\n\n## Proposed design\n\n### A. Split Step 5 (or underlying `task check` path used by release)\n\n```\nStep 5a — fast preflight (seconds–few min)\n  cache-fresh, orphan-active, contained-writes --enforce, license-sync,\n  contract-drift, branch policy surfaces, other non-vitest gates…\n\nStep 5b — suite + coverage (long)\n  vitest with coverage / thresholds (or #3187 auto-hatch path)\n```\n\nRelease (and optionally `task check` composition) runs **5a → 5b**. Failures in 5a never pay for 5b.\n\n### B. SHA-bound suite stamp (after green 5b or PASS_WITH_DEBT)\n\nWrite something like:\n\n```json\n{\n  \"schemaVersion\": 1,\n  \"headSha\": \"<git rev-parse HEAD>\",\n  \"suite\": \"pass\" | \"pass_with_debt\",\n  \"debtIssue\": null | 3185,\n  \"recordedAt\": \"ISO-8601\"\n}\n```\n\nOn re-entry at same clean HEAD: skip 5b, re-run 5a only (or only the failed gate).  \n**Fail closed** if: dirty tree, HEAD ≠ stamp, stamp missing/corrupt, or suite config material change (optional later).\n\n### C. Interaction with #3187\n\n- #3187: one suite run → auto-hatch if ledger allows → continue **without** second suite.\n- This issue: even without hatch, **don’t re-run suite** for late small failures or re-entry at same SHA.\n- Together: typical cut pays **one** suite; cache-fresh fixes pay **fast only**.\n\n## Non-goals\n\n- Skip suite when HEAD moved or product sources changed.\n- `vitest --changed` as release bar (must measure whole tree).\n- Soft-pass real test failures.\n- Rely on wall-clock or “last run was recent” without SHA binding.\n\n## Acceptance\n\n- [ ] Fast gates run before vitest+coverage on the release Step 5 path (and documented).\n- [ ] Intentional fail of a fast gate (e.g. forced stale cache) fails without starting full coverage suite (observable in logs / timing).\n- [ ] After suite green at SHA S, re-invoke release at same S after fixing only a fast-gate issue does **not** re-run vitest+coverage (stamp hit logged).\n- [ ] Dirty tree or different HEAD invalidates stamp (suite runs again).\n- [ ] Unit tests for stamp read/write/invalidation and ordering contract.\n- [ ] `docs/RELEASING.md` + release skill updated.\n\n## Consumer impact\n\n| Surface | Helps consumers? |\n|---|---|\n| **Release-only stamp / Step 5 resume** | **No direct** — consumers do not run `task release` on the framework cut path. |\n| **Fast-before-slow ordering in shared `task check` / gate lists** | **Yes, if** ordering lands in the shared check composition used by framework **and** consumer deposits — fail-fast on cheap gates (cache-fresh, branch, orphan, etc.) without waiting on long suites where those gates are co-listed. |\n| **#3187 auto-hatch** | **No direct** — hatch is release Step 5 coverage-debt; consumers may have their own coverage thresholds but not this hatch ledger. |\n| **Faster framework releases** | **Indirect yes** — more frequent/reliable `@deftai/directive` cuts, less operator burnout on release day. |\n| **Pre-cut hygiene docs** | **Mild yes** if documented as optional consumer `task check` hygiene (cache-fresh before long local CI). |\n\n**Recommendation in implementation:** put **ordering** in shared gate composition where safe (consumer benefit); keep **suite stamp / resume** release-scoped (or behind `task release` only) unless a separate consumer “check resume” story is filed.\n\n## References\n\n- #3187 — auto-hatch branch hairline (no fail+re-run for debt)\n- #2866 — open-issue ledger hatch rules\n- #3185 — v0.97.0 coverage-debt hatch\n- #2859 — file-and-merge for real product defects\n- Session: v0.97.0 cut (dirty tree → coverage fail → hatch re-run → cache-fresh fail → third full Step 5)\n\n## Out of scope / later\n\n- Coverage-only re-eval from saved `coverage-summary.json` without re-instrumenting (P3).\n- Win32 worker / vitest 4 upgrade performance (#2634 class).\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-07T15:21:27Z)\n\n## Amendment (coordination with #3189 / #3187)\n\n**Split ship paths:**\n1. **Fast-before-slow ordering** — may land in **shared** `task check` / gate composition (helps consumers immediately; no #3189 required).\n2. **SHA suite stamp / resume** — release-scoped v1 is fine; **general local check resume for consumers** should respect `plan.policy.checkResume` from **#3189** (default off when unset; CI never trusts local stamps).\n\n**Related:**\n- #3187 — auto-hatch (one suite for hairline); stamp should record `pass_with_debt` + issue number\n- #3189 — policy + session nudge (consent for consumer resume/hatch expansion)\n\n**Acceptance add:**\n- [ ] Stamp never honored by CI required checks in v1.\n- [ ] If `checkResume` policy exists and is `localStamp=off` or unset, consumer local check does not skip suite via stamp (release Step 5 may still use release-local stamp until unified).",
+      "Labels": "enhancement",
+      "UserStory": "As a developer running task check, I want cheap gates to fail before the long coverage suite starts, so that cache and lifecycle noise costs seconds instead of half an hour.",
+      "ImplementationPlan": "1. In packages/core/src/check/gate-lists.ts order cheap gates (cache-fresh, orphan-active, branch policy, contract-drift class) before vitest/coverage suite entries. 2. In packages/core/src/check/orchestrator.ts (and cached-orchestrator if needed) ensure a fast-gate failure aborts before starting the coverage suite; log/timing evidence. 3. Unit tests in gate-lists.test.ts and orchestrator.test.ts prove ordering and fail-fast. 4. Brief CHANGELOG + any consumer-check docs cross-link. Do NOT edit packages/core/src/release/* or release skill (owned by #3187). Verify: npm test -w @deftai/directive-core -- --run check/gate-lists and check/orchestrator."
+    },
+    "items": [
+      {
+        "title": "Fast gates ordered before suite",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given gate-lists used by task check / release check path, when listed, then non-vitest cheap gates appear before vitest+coverage suite entries."
+        }
+      },
+      {
+        "title": "Fast fail does not start suite",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an intentional fast-gate failure, when orchestrator runs, then vitest+coverage suite does not start (observable in logs or test doubles)."
+        }
+      },
+      {
+        "title": "Unit tests for ordering contract",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given check unit tests, when run, then ordering and fail-fast contracts are covered without live network."
+        }
+      },
+      {
+        "title": "CHANGELOG note",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given merge, when CHANGELOG is read, then #3188 documents fast-before-slow check ordering."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3188",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3188: release: Step 5 fast-before-slow gates + SHA suite stamp (no full re-run for small late fails)"
+      }
+    ],
+    "id": "3188-release-step5-fast-before-slow-suite-stamp",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/gate-lists.test.ts",
+          "packages/core/src/check/orchestrator.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/index.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npm test -w @deftai/directive-core -- --run check/gate-lists",
+          "npm test -w @deftai/directive-core -- --run check/orchestrator"
+        ],
+        "expected_outputs": [
+          "fast-before-slow ordering",
+          "SHA suite stamp",
+          "docs",
+          "CHANGELOG #3188",
+          "PR through merge (with #3187)"
+        ],
+        "depends_on": [],
+        "conflict_group": "check-fast-before-slow-3188",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Check composition only. Suite stamp and release skill owned by #3187. No packages/core/src/release/ edits."
+      }
+    },
+    "updated": "2026-08-07T15:31:02Z"
+  }
+}

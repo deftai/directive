@@ -22,6 +22,9 @@ export {
   checkGateSpawnArgs,
   FRAMEWORK_CHECK_GATES,
   gatesForCheckTarget,
+  isFastBeforeSlowOrder,
+  isSuiteCheckGate,
+  SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 export type { CheckOrchestratorOptions, CheckOrchestratorSeams } from "./orchestrator.js";
 export {
