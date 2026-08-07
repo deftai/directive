@@ -75,7 +75,7 @@ function writeCoverageCheckResumeBundle(
 ): ApplyCoverageCheckResumePresetResult {
   const path = projectDefinitionPath(projectRoot);
   try {
-    const { changed } = projectDefinitionMutationLock(projectRoot, () => {
+    const writeResult = projectDefinitionMutationLock(projectRoot, () => {
       const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
       if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
         throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
@@ -170,8 +170,8 @@ function writeCoverageCheckResumeBundle(
     });
 
     const summary = formatCoverageCheckResumeBundleStatus(projectRoot);
-    const auditLine = changed.auditOk
-      ? changed.changed
+    const auditLine = writeResult.auditOk
+      ? writeResult.changed
         ? "  audit: meta/policy-changes.log updated."
         : "  no-op: value already matched (audit entry still appended for trail)."
       : "  warning: policy write succeeded but audit log append failed; decision is durable.";
@@ -183,7 +183,7 @@ function writeCoverageCheckResumeBundle(
     return {
       exitCode: 0,
       stdout: `${lines.join("\n")}\n`,
-      changed: changed.changed,
+      changed: writeResult.changed,
       preset: input.preset,
     };
   } catch (err: unknown) {
