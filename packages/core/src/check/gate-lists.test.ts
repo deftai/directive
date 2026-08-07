@@ -5,6 +5,9 @@ import {
   checkGateSpawnArgs,
   FRAMEWORK_CHECK_GATES,
   gatesForCheckTarget,
+  isFastBeforeSlowOrder,
+  isSuiteCheckGate,
+  SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 
 describe("gate-lists (#2791)", () => {
@@ -66,5 +69,46 @@ describe("gate-lists (#2791)", () => {
       expect(framework).toContain(gate);
       expect(consumer).toContain(gate);
     }
+  });
+});
+
+describe("gate-lists fast-before-slow (#3188)", () => {
+  it("classifies ts:check-lane as the suite gate", () => {
+    expect(SUITE_CHECK_GATE_IDS).toContain("ts:check-lane");
+    expect(isSuiteCheckGate("ts:check-lane")).toBe(true);
+    expect(isSuiteCheckGate("verify:cache-fresh")).toBe(false);
+    expect(isSuiteCheckGate({ task: "ts:check-lane" })).toBe(true);
+  });
+
+  it("places all suite gates after every non-suite gate on framework list", () => {
+    expect(isFastBeforeSlowOrder(FRAMEWORK_CHECK_GATES)).toBe(true);
+    const ids = FRAMEWORK_CHECK_GATES.map(checkGateId);
+    const suiteIdx = ids.indexOf("ts:check-lane");
+    expect(suiteIdx).toBe(ids.length - 1);
+    for (const cheap of [
+      "verify:cache-fresh",
+      "verify:orphan-active",
+      "verify:branch",
+      "verify:contract-drift",
+      "verify:license-sync",
+    ]) {
+      expect(ids.indexOf(cheap)).toBeGreaterThanOrEqual(0);
+      expect(ids.indexOf(cheap)).toBeLessThan(suiteIdx);
+    }
+  });
+
+  it("keeps consumer gate list free of suite gates and fast-before-slow valid", () => {
+    expect(isFastBeforeSlowOrder(CONSUMER_CHECK_GATES)).toBe(true);
+    expect(CONSUMER_CHECK_GATES.some(isSuiteCheckGate)).toBe(false);
+  });
+
+  it("rejects an ordering that puts a cheap gate after the suite", () => {
+    expect(isFastBeforeSlowOrder(["ts:check-lane", "verify:cache-fresh"])).toBe(false);
+    expect(isFastBeforeSlowOrder(["verify:cache-fresh", "ts:check-lane"])).toBe(true);
+  });
+
+  it("exposes ordered gates via gatesForCheckTarget", () => {
+    expect(isFastBeforeSlowOrder(gatesForCheckTarget("check:framework-source"))).toBe(true);
+    expect(isFastBeforeSlowOrder(gatesForCheckTarget("check:consumer"))).toBe(true);
   });
 });

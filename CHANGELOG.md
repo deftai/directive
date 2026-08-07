@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Shared `task check` runs cheap gates before the vitest+coverage suite (#3188).** Framework and consumer gate lists place branch/cache/orphan/contract-class preflight before `ts:check-lane`; the cached sequential orchestrator aborts on the first fast-gate failure so the suite never starts (logged). Consumer benefit is intentional; SHA suite stamp/resume stays release-scoped (#3187). Closes #3188. Refs #3187, #3189, #1713.
+
 ### Fixed
 
 ### Removed

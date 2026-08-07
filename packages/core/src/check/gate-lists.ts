@@ -27,23 +27,61 @@ export function checkGateSpawnArgs(spec: CheckGateSpec, taskfilePath: string): s
   return [task, "--taskfile", taskfilePath];
 }
 
+/**
+ * Gates that own the long vitest+coverage (or equivalent) suite path.
+ * Shared `task check` composition runs every non-suite gate first so cheap
+ * failures never pay suite wall-clock (#3188). Release suite stamp/resume
+ * remains #3187 / release-scoped.
+ */
+export const SUITE_CHECK_GATE_IDS: readonly string[] = ["ts:check-lane"];
+
+export function isSuiteCheckGate(spec: CheckGateSpec | string): boolean {
+  const id = typeof spec === "string" ? spec : checkGateId(spec);
+  return (SUITE_CHECK_GATE_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * True when every suite gate appears after all non-suite gates (#3188).
+ * Empty lists and suite-only lists are valid; a non-suite after a suite is not.
+ */
+export function isFastBeforeSlowOrder(gates: readonly CheckGateSpec[]): boolean {
+  let sawSuite = false;
+  for (const gate of gates) {
+    if (isSuiteCheckGate(gate)) {
+      sawSuite = true;
+    } else if (sawSuite) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Framework-source check composition (#1713 / #3188).
+ *
+ * Order contract: cheap preflight gates first; `ts:check-lane` (lint+build+
+ * vitest coverage suite) last so a stale cache / orphan-active / branch miss
+ * fails in seconds without starting the suite.
+ */
 export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
-  "ts:check-lane",
+  // --- Fast preflight (seconds–few min) — #3188 ---
+  "verify:branch",
+  "verify:encoding",
+  "verify:cache-fresh",
+  "verify:orphan-active",
+  "verify:license-sync",
+  "verify:contract-drift",
   "toolchain:check",
   "verify:stubs",
   "verify:links",
   "verify:rule-ownership",
   "verify:biome-config",
   "verify:content-manifest",
-  "verify:license-sync",
   "verify:skill-external-fetch-gate",
-  "verify:contract-drift",
   "verify:cursor-tier1",
   "verify:openclaw-tier1",
   "verify:go-freeze",
   "verify:bridge-drift",
-  "verify:branch",
-  "verify:encoding",
   "verify:forward-coverage",
   // #3145: test/source boundary + approved-scope provenance + consumer gate composition
   "verify:test-boundary",
@@ -54,11 +92,9 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:scm-boundary",
   "verify:xbrief-drift",
   "verify:no-task-runtime",
-  "verify:cache-fresh",
   "verify:pack-drift",
   // Public surface for Taskfile verify-wip-cap-framework-self-check (#1124 / #2791)
   { task: "verify:wip-cap", args: ["--allow-over-cap"] },
-  "verify:orphan-active",
   "verify:agents-md-budget",
   // Public surfaces for internal eval-relocation framework shims (#2791)
   { task: "verify:eval-health-relocation", args: ["--base-ref", "origin/master"] },
@@ -67,15 +103,18 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "codebase:validate-structure",
   "verify:codebase-map-fresh",
   "verify-strategy-output",
+  // --- Suite last: vitest + coverage via ts:check-lane (#3188) ---
+  "ts:check-lane",
 ];
 
 export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
-  "doctor",
-  "toolchain:check-consumer",
+  // Cheap lifecycle / policy first (no suite co-list today; keep fail-fast order)
   "verify:branch",
   "verify:cache-fresh",
   "verify:wip-cap",
   "verify:orphan-active",
+  "doctor",
+  "toolchain:check-consumer",
   // #3145 enforcement trio (test placement, scope provenance, gate composition)
   "verify:test-boundary",
   "verify:scope-provenance",
