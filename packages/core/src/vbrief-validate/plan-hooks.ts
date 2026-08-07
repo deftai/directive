@@ -1,3 +1,5 @@
+import { validateCheckResume } from "../policy/check-resume.js";
+import { validateCoverageDebt } from "../policy/coverage-debt.js";
 import { validateHostHooks } from "../policy/host-hooks.js";
 import { validateHostSlashCommands } from "../policy/host-slash-commands.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -224,6 +226,44 @@ export function validateStalenessTicklerOnPlan(plan: unknown, filepath: string):
   return out;
 }
 
+/** vbrief_validate hook: validate ``plan.policy.coverageDebt`` (#3189). */
+export function validateCoverageDebtOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("coverageDebt" in (policy as JsonObject))) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const err of validateCoverageDebt((policy as JsonObject).coverageDebt)) {
+    out.push(`${filepath}: ${err} (#3189)`);
+  }
+  return out;
+}
+
+/** vbrief_validate hook: validate ``plan.policy.checkResume`` (#3189). */
+export function validateCheckResumeOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("checkResume" in (policy as JsonObject))) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const err of validateCheckResume((policy as JsonObject).checkResume)) {
+    out.push(`${filepath}: ${err} (#3189)`);
+  }
+  return out;
+}
+
 /** Run all PROJECT-DEFINITION policy hooks (mirrors lazy-import block in Python). */
 export function runProjectDefinitionHooks(plan: unknown, filepath: string): string[] {
   const errors: string[] = [];
@@ -280,6 +320,12 @@ export function runProjectDefinitionHooks(plan: unknown, filepath: string): stri
   }
   try {
     errors.push(...validateOpenClawProductCommandsOnPlan(plan, filepath));
+  } catch {
+    /* hook must not break validation */
+  }
+  try {
+    errors.push(...validateCoverageDebtOnPlan(plan, filepath));
+    errors.push(...validateCheckResumeOnPlan(plan, filepath));
   } catch {
     /* hook must not break validation */
   }
