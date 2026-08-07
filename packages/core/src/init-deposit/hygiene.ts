@@ -421,22 +421,16 @@ export function isPackageLockDirectivePinFollowThrough(baseRaw: string, headRaw:
     !Array.isArray(headObj.packages)
       ? (headObj.packages as Record<string, unknown>)
       : {};
-  const productKeys = new Set(
-    [...Object.keys(baseRoot), ...Object.keys(headRoot)].filter(
-      (k) => !isDirectiveDependencyKey(k),
-    ),
-  );
-  // Freeze the full package tree for each non-directive root direct dep
-  // (including nested node_modules/<product>/node_modules/* records) so product
-  // resolution/integrity churn cannot ride the pin exemption (#3193 Greptile).
+  // Freeze every non-@deftai/directive package record (including hoisted
+  // transitives and nested product trees). Only packages[""] root dep maps
+  // (directive keys only) and node_modules/@deftai/directive* trees may change.
   const allPkgKeys = new Set([...Object.keys(basePkgs), ...Object.keys(headPkgs)]);
-  for (const name of productKeys) {
-    const prefix = `node_modules/${name}`;
-    for (const key of allPkgKeys) {
-      if (key === prefix || key.startsWith(`${prefix}/`)) {
-        if (!deepEqualJson(basePkgs[key], headPkgs[key])) return false;
-      }
+  for (const key of allPkgKeys) {
+    if (key === "") continue;
+    if (key.includes("node_modules/@deftai/directive") || key.includes("/@deftai/directive/")) {
+      continue;
     }
+    if (!deepEqualJson(basePkgs[key], headPkgs[key])) return false;
   }
   return true;
 }
@@ -580,8 +574,8 @@ export function pnpmPackagesByName(raw: string): Map<string, string> {
 
 /**
  * pnpm-lock.yaml follow-through: root importer (`.`) non-directive direct dep
- * identities must be unchanged, and packages-section records for those product
- * names must be byte-stable (#3193).
+ * identities must be unchanged, and every non-@deftai/directive packages-section
+ * record (including transitive product packages) must be byte-stable (#3193).
  */
 export function isPnpmLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
   const baseRoot = pnpmLockRootDirectDeps(baseRaw);
@@ -589,58 +583,26 @@ export function isPnpmLockDirectivePinFollowThrough(baseRaw: string, headRaw: st
   if (!onlyDirectiveDirectDepsDiffer(baseRoot, headRoot)) return false;
   const basePkgs = pnpmPackagesByName(baseRaw);
   const headPkgs = pnpmPackagesByName(headRaw);
-  const productNames = new Set(
-    [...Object.keys(baseRoot), ...Object.keys(headRoot)].filter(
-      (k) => !isDirectiveDependencyKey(k),
-    ),
-  );
-  for (const name of productNames) {
+  const names = new Set([...basePkgs.keys(), ...headPkgs.keys()]);
+  for (const name of names) {
+    if (isDirectiveDependencyKey(name)) continue;
     if ((basePkgs.get(name) ?? null) !== (headPkgs.get(name) ?? null)) return false;
   }
   return true;
 }
 
 /**
- * yarn.lock (v1) package identity blocks:
- * - non-@deftai/directive* packages present on base must keep identical blocks
- *   (or fail if removed)
- * - head-only non-directive packages are allowed only when a Directive package
- *   block also changed (pin follow-through); otherwise they fail as unrelated
- *   product lock additions (#3193 Greptile).
- * Directive package blocks may change freely.
+ * yarn.lock (v1) package identity blocks: every non-@deftai/directive* package
+ * must keep identical block text (or fail if added/removed). Directive package
+ * blocks may change freely as pin follow-through (#3193).
  */
 export function isYarnLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
   const baseBlocks = yarnLockPackageBlocks(baseRaw);
   const headBlocks = yarnLockPackageBlocks(headRaw);
-  for (const [name, baseBody] of baseBlocks) {
+  const names = new Set([...baseBlocks.keys(), ...headBlocks.keys()]);
+  for (const name of names) {
     if (isDirectiveDependencyKey(name)) continue;
-    const headBody = headBlocks.get(name);
-    if (headBody === undefined) return false; // non-directive package removed
-    if (headBody !== baseBody) return false;
-  }
-  let directiveChanged = false;
-  for (const [name, baseBody] of baseBlocks) {
-    if (!isDirectiveDependencyKey(name)) continue;
-    if (headBlocks.get(name) !== baseBody) {
-      directiveChanged = true;
-      break;
-    }
-  }
-  if (!directiveChanged) {
-    for (const name of headBlocks.keys()) {
-      if (isDirectiveDependencyKey(name)) {
-        if (!baseBlocks.has(name)) {
-          directiveChanged = true;
-          break;
-        }
-      }
-    }
-  }
-  if (!directiveChanged) {
-    for (const name of headBlocks.keys()) {
-      if (isDirectiveDependencyKey(name)) continue;
-      if (!baseBlocks.has(name)) return false; // head-only product package, no pin change
-    }
+    if ((baseBlocks.get(name) ?? null) !== (headBlocks.get(name) ?? null)) return false;
   }
   return true;
 }

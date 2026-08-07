@@ -128,14 +128,14 @@ def npm_lock_ok(base, head):
         bp = {}
     if not isinstance(hp, dict):
         hp = {}
-    product = [k for k in set(br) | set(hr) if not is_dir_key(k)]
     all_keys = set(bp) | set(hp)
-    for name in product:
-        prefix = f"node_modules/{name}"
-        for key in all_keys:
-            if key == prefix or key.startswith(prefix + "/"):
-                if not deep_eq(bp.get(key), hp.get(key)):
-                    return False
+    for key in all_keys:
+        if key == "":
+            continue
+        if "node_modules/@deftai/directive" in key or "/@deftai/directive/" in key:
+            continue
+        if not deep_eq(bp.get(key), hp.get(key)):
+            return False
     return True
 
 
@@ -234,8 +234,9 @@ def pnpm_ok(base, head):
     if not only_dir_diff(br, hr):
         return False
     bp, hp = pnpm_packages_by_name(base), pnpm_packages_by_name(head)
-    product = [k for k in set(br) | set(hr) if not is_dir_key(k)]
-    for name in product:
+    for name in set(bp) | set(hp):
+        if is_dir_key(name):
+            continue
         if bp.get(name) != hp.get(name):
             return False
     return True
@@ -279,29 +280,11 @@ def yarn_blocks(raw):
 
 def yarn_ok(base, head):
     bb, hb = yarn_blocks(base), yarn_blocks(head)
-    for name, body in bb.items():
+    for name in set(bb) | set(hb):
         if is_dir_key(name):
             continue
-        if name not in hb:
+        if bb.get(name) != hb.get(name):
             return False
-        if hb[name] != body:
-            return False
-    directive_changed = False
-    for name, body in bb.items():
-        if is_dir_key(name) and hb.get(name) != body:
-            directive_changed = True
-            break
-    if not directive_changed:
-        for name in hb:
-            if is_dir_key(name) and name not in bb:
-                directive_changed = True
-                break
-    if not directive_changed:
-        for name in hb:
-            if is_dir_key(name):
-                continue
-            if name not in bb:
-                return False
     return True
 
 

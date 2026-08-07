@@ -239,7 +239,6 @@ describe("content-aware pin + lock follow-through (#3193)", () => {
       "node_modules/lodash": { version: "4.17.21" },
       "node_modules/@deftai/directive": { version: "0.97.0" },
       "node_modules/@deftai/directive/node_modules/internal-util": { version: "1.1.0" },
-      "node_modules/some-transitive": { version: "2.0.0" },
     },
   });
   const mixedNpmLock = JSON.stringify({
@@ -302,8 +301,6 @@ describe("content-aware pin + lock follow-through (#3193)", () => {
     "",
     "  '@deftai/directive@0.97.0':",
     "    resolution: {integrity: sha512-pin-head}",
-    "  some-transitive@2.0.0:",
-    "    resolution: {integrity: sha512-transitive}",
     "",
   ].join("\n");
   const mixedPnpm = [
@@ -352,9 +349,6 @@ describe("content-aware pin + lock follow-through (#3193)", () => {
     "lodash@^4.17.21:",
     '  version "4.17.21"',
     '  resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"',
-    "",
-    "internal-util@1.1.0:",
-    '  version "1.1.0"',
     "",
   ].join("\n");
   const mixedYarn = [

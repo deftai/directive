@@ -81,7 +81,7 @@ class TestNpmLock(unittest.TestCase):
                     },
                     "node_modules/lodash": {"version": "4.17.21"},
                     "node_modules/@deftai/directive": {"version": "0.97.0"},
-                    "node_modules/some-transitive": {"version": "2.0.0"},
+                    "node_modules/@deftai/directive/node_modules/internal": {"version": "1.0.0"},
                 },
             }
         )
@@ -183,9 +183,6 @@ class TestYarnLock(unittest.TestCase):
                 "",
                 "lodash@^4.17.21:",
                 '  version "4.17.21"',
-                "",
-                "internal-util@1.0.0:",
-                '  version "1.0.0"',
                 "",
             ]
         )
