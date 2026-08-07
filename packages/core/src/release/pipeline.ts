@@ -1,6 +1,15 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { assertProjectionContained } from "../fs/projection-containment.js";
+import { readCoverageTotalsFromReport } from "../vitest-runner/coverage-debt.js";
+import {
+  buildCoverageDebtIssueDraft,
+  classifyStep5Failure,
+  evaluateAutoHatch,
+  formatAutoHatchBanner,
+  parseExitCodeFromReason,
+  reasonLooksLikeTimeout,
+} from "./auto-hatch.js";
 import { prependUpgradeBanner, promoteChangelog, sectionForVersion } from "./changelog.js";
 import {
   EXIT_CONFIG_ERROR,
@@ -12,6 +21,10 @@ import {
   VERIFY_DRAFT_INTERVAL_SECONDS,
   VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
+import {
+  createCoverageDebtIssue,
+  probeOpenCoverageDebtLedger,
+} from "./coverage-debt-ledger.js";
 import { checkTagAvailable, createGithubRelease, readTextFile, verifyReleaseDraft } from "./gh.js";
 import {
   checkGitClean,
@@ -20,6 +33,7 @@ import {
   currentBranch,
   pushRelease,
   releaseCommitSubject,
+  runGit,
 } from "./git.js";
 import {
   checkVbriefLifecycleSyncNative,
@@ -29,8 +43,50 @@ import {
 import { todayIso } from "./paths.js";
 import { runReleaseCheck } from "./preflight.js";
 import { formatSkipCiIncidentWarning } from "./skip-ci-incident.js";
+import { evaluateSuiteStamp, writeSuiteStamp } from "./suite-stamp.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPrereleaseTag } from "./version.js";
+
+function resolveHeadSha(projectRoot: string, seams: ReleaseSeams): string | null {
+  if (seams.headSha) return seams.headSha(projectRoot);
+  const result = runGit(projectRoot, ["rev-parse", "HEAD"], seams);
+  if (result.status !== 0) return null;
+  const sha = result.stdout.trim();
+  return sha || null;
+}
+
+function resolveCoverageTotals(projectRoot: string, seams: ReleaseSeams) {
+  if (seams.readCoverageTotals) return seams.readCoverageTotals(projectRoot);
+  return readCoverageTotalsFromReport(join(projectRoot, "coverage"));
+}
+
+function recordSuiteStamp(
+  projectRoot: string,
+  suite: "pass" | "pass_with_debt",
+  debtIssue: number | null,
+  seams: ReleaseSeams,
+): void {
+  const headSha = resolveHeadSha(projectRoot, seams);
+  if (!headSha) return;
+  try {
+    writeSuiteStamp(
+      projectRoot,
+      {
+        headSha,
+        suite,
+        debtIssue,
+        recordedAt: new Date().toISOString(),
+      },
+      {
+        readFile: seams.readFile,
+        writeFile: seams.writeFile,
+        fileExists: seams.fileExists,
+      },
+    );
+  } catch {
+    // Stamp is best-effort; never fail a green/hatch cut on stamp I/O.
+  }
+}
 
 export function emit(step: number, label: string, status: string, target = process.stderr): void {
   target.write(`[${step}/${TOTAL_STEPS}] ${label}... ${status}\n`);
@@ -137,6 +193,10 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   // the ci_local.py bridge, but the emitted label/dry-run text is kept
   // byte-identical to the Python oracle (scripts/release.py) so the #1729
   // golden-diff release-parity gate stays green until the oracle is retired.
+  //
+  // #3187: SHA suite stamp may skip a re-run at the same clean HEAD; branch-only
+  // hairline failures may auto-file coverage-debt and PASS_WITH_DEBT without a
+  // second suite. CI never trusts the stamp.
   label = "Pre-flight CI (task ci:local | fallback task check)";
   if (config.skipCi) {
     if (config.allowSkipCiIssue !== null && config.allowSkipCiIssue > 0) {
@@ -154,24 +214,131 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       `DRYRUN (would run task ci:local with task check fallback${debtNote}; hard timeout ${RELEASE_CHECK_TIMEOUT_MINUTES}m)`,
     );
   } else {
-    const [ok, reason] = runCiFn(projectRoot, config.allowCoverageDebtIssue);
-    if (ok) {
+    const isCi = seams.isCi?.() ?? Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
+    const [treeClean] = checkGitClean(projectRoot, seams);
+    const headSha = resolveHeadSha(projectRoot, seams);
+    const stampEval = evaluateSuiteStamp({
+      projectRoot,
+      headSha,
+      treeClean,
+      isCi,
+      io: {
+        readFile: seams.readFile,
+        writeFile: seams.writeFile,
+        fileExists: seams.fileExists,
+      },
+    });
+
+    if (stampEval.kind === "hit") {
       const debtNote =
-        config.allowCoverageDebtIssue !== null
-          ? ` (coverage-debt acknowledged #${config.allowCoverageDebtIssue})`
-          : "";
-      emit(5, label, `OK (${reason}${debtNote})`);
-    } else {
-      const debtHint =
-        config.allowCoverageDebtIssue === null
-          ? "; pass --allow-coverage-debt=#N only after operator review"
+        stampEval.stamp.suite === "pass_with_debt" && stampEval.stamp.debtIssue != null
+          ? ` PASS_WITH_DEBT(#${stampEval.stamp.debtIssue})`
           : "";
       emit(
         5,
         label,
-        `FAIL (${reason}${debtHint}; Step 5 hard timeout is ${RELEASE_CHECK_TIMEOUT_MINUTES}m — cancel hung vitest and see docs/RELEASING.md § Vitest coverage hang recovery)`,
+        `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote})`,
       );
-      return EXIT_VIOLATION;
+    } else {
+      const [ok, reason] = runCiFn(projectRoot, config.allowCoverageDebtIssue);
+      if (ok) {
+        const debtIssue = config.allowCoverageDebtIssue;
+        const debtNote =
+          debtIssue !== null ? ` (coverage-debt acknowledged #${debtIssue})` : "";
+        recordSuiteStamp(
+          projectRoot,
+          debtIssue !== null ? "pass_with_debt" : "pass",
+          debtIssue,
+          seams,
+        );
+        emit(5, label, `OK (${reason}${debtNote})`);
+      } else {
+        // #3187 auto-hatch: one suite → classify → maybe file debt → continue.
+        const totals = resolveCoverageTotals(projectRoot, seams);
+        const exitCode = parseExitCodeFromReason(reason);
+        const classification = classifyStep5Failure({
+          output: reason,
+          totals,
+          exitCode,
+          timedOut: reasonLooksLikeTimeout(reason) || exitCode === 124,
+        });
+
+        const openDebt =
+          seams.listOpenCoverageDebtIssues?.(config.repo, projectRoot) ??
+          probeOpenCoverageDebtLedger(config.repo, projectRoot, {
+            spawnText: seams.spawnText,
+            whichGh: seams.whichGh,
+            readFile: seams.readFile,
+            fileExists: seams.fileExists,
+          });
+
+        let decision;
+        try {
+          decision = evaluateAutoHatch({
+            classification,
+            totals,
+            openDebtIssues: openDebt,
+            existingDebtIssue: null,
+            createIssue:
+              totals && classification === "BRANCH_HAIRLINE" && openDebt.length === 0
+                ? () => {
+                    const draft = buildCoverageDebtIssueDraft({
+                      version,
+                      totals,
+                      autoHatched: true,
+                    });
+                    if (seams.createCoverageDebtIssue) {
+                      return seams.createCoverageDebtIssue(
+                        config.repo,
+                        projectRoot,
+                        draft.title,
+                        draft.body,
+                      );
+                    }
+                    return createCoverageDebtIssue(
+                      config.repo,
+                      projectRoot,
+                      draft.title,
+                      draft.body,
+                      {
+                        spawnText: seams.spawnText,
+                        whichGh: seams.whichGh,
+                      },
+                    );
+                  }
+                : undefined,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          emit(
+            5,
+            label,
+            `FAIL (${reason}; auto-hatch issue create failed: ${msg}; Step 5 hard timeout is ${RELEASE_CHECK_TIMEOUT_MINUTES}m)`,
+          );
+          return EXIT_VIOLATION;
+        }
+
+        if (decision.kind === "pass_with_debt") {
+          process.stderr.write(formatAutoHatchBanner(decision.issue, decision.totals));
+          recordSuiteStamp(projectRoot, "pass_with_debt", decision.issue, seams);
+          emit(
+            5,
+            label,
+            `OK (PASS_WITH_DEBT(#${decision.issue}); auto-hatch ${decision.created ? "filed" : "bound"}; suite not re-run)`,
+          );
+        } else {
+          const debtHint =
+            config.allowCoverageDebtIssue === null
+              ? "; pass --allow-coverage-debt=#N only after operator review (or auto-hatch on branch-only hairline with empty ledger, #3187)"
+              : "";
+          emit(
+            5,
+            label,
+            `FAIL (${reason}; auto-hatch: ${decision.reason}${debtHint}; Step 5 hard timeout is ${RELEASE_CHECK_TIMEOUT_MINUTES}m — cancel hung vitest and see docs/RELEASING.md § Vitest coverage hang recovery)`,
+          );
+          return EXIT_VIOLATION;
+        }
+      }
     }
   }
 
