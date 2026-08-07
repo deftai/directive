@@ -14,10 +14,13 @@ import {
   renameSync,
   rmSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedWrite,
+} from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import type {
   AttemptStatus,
@@ -408,8 +411,27 @@ export function isUnitLockReclaimable(rec: UnitLockRecord | null): boolean {
   return !isProcessAlive(rec.pid);
 }
 
-function writeLockExclusive(path: string, record: UnitLockRecord): void {
-  writeFileSync(path, `${JSON.stringify(record)}\n`, { flag: "wx", encoding: "utf8" });
+/**
+ * Exclusive lock create via containedWrite mode=create (O_EXCL under root).
+ * Maps CONTAINED_WRITE_EXISTS → EEXIST so reclaim callers keep errno checks.
+ */
+function writeLockExclusive(projectRoot: string, path: string, record: UnitLockRecord): void {
+  try {
+    containedWrite({
+      root: resolve(projectRoot),
+      target: path,
+      data: `${JSON.stringify(record)}\n`,
+      mode: "create",
+    });
+  } catch (err) {
+    if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+      const e = new Error(`EEXIST: file already exists, open '${path}'`) as NodeJS.ErrnoException;
+      e.code = "EEXIST";
+      e.path = path;
+      throw e;
+    }
+    throw err;
+  }
 }
 
 function unlinkIfOurs(path: string, token: string, pid: number): void {
@@ -426,14 +448,14 @@ function unlinkIfOurs(path: string, token: string, pid: number): void {
 /**
  * Acquire exclusive unit lock.
  *
- * Create is atomic: `writeFileSync(..., { flag: "wx" })` writes the owner
- * record in the exclusive create (no empty-file window).
+ * Create is atomic: `containedWrite(..., mode: "create")` (O_EXCL) writes the
+ * owner record in the exclusive create (no empty-file window).
  *
  * Recovery when EEXIST (dead owner or corrupt record only):
- * 1. Take an exclusive **reclaim ticket** (`*.lock.reclaim`) with `wx`.
+ * 1. Take an exclusive **reclaim ticket** (`*.lock.reclaim`) with create mode.
  * 2. Under that ticket, re-read the lock; only unlink if still reclaimable
  *    (owner still dead / corrupt). Live PIDs are never unlinked.
- * 3. Create the replacement lock with `wx`, then drop the ticket.
+ * 3. Create the replacement lock with create mode, then drop the ticket.
  *
  * The ticket serializes reclaimers so a delayed contender cannot unlink a
  * live replacement lock.
@@ -471,12 +493,12 @@ export function withUnitLock<T>(
     );
 
   const tryCreateLock = (): void => {
-    writeLockExclusive(lockPath, record);
+    writeLockExclusive(projectRoot, lockPath, record);
   };
 
   const acquireReclaimTicket = (): void => {
     try {
-      writeLockExclusive(reclaimPath, record);
+      writeLockExclusive(projectRoot, reclaimPath, record);
       return;
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
@@ -494,7 +516,7 @@ export function withUnitLock<T>(
       /* race */
     }
     try {
-      writeLockExclusive(reclaimPath, record);
+      writeLockExclusive(projectRoot, reclaimPath, record);
     } catch (retryErr) {
       throw heldError(" (reclaim in progress)", retryErr);
     }

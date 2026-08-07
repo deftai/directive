@@ -7,8 +7,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 
 /** Immutable approved-scope record written under `.deft/approved-scope/`. */
 export interface ApprovedScopeRecord {
@@ -144,7 +145,12 @@ export function writeApprovedScopeRecord(projectRoot: string, record: ApprovedSc
   const dir = approvedScopeDir(projectRoot);
   mkdirSync(dir, { recursive: true });
   const path = approvedScopeRecordPath(projectRoot, record.planId);
-  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  containedWrite({
+    root: resolve(projectRoot),
+    target: path,
+    data: `${JSON.stringify(record, null, 2)}\n`,
+    mode: "replace",
+  });
   return path;
 }
 

@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Biome format on master tip (#3183).** `biome check --write` for delivery-attempt / consumer-check-contract / scope-provenance format-only drift that red-X'd merge gate and TypeScript primary. No logic change. Closes #3183.
+- **Merge-gate red on master tip (#3183).** Biome format-only write for delivery-attempt / consumer-check-contract / scope-provenance; migrate unit-lock exclusive create and approved-scope digest persist onto `containedWrite` so `verify:contained-writes --enforce` passes. Closes #3183.
 
 - **CodeQL shell-command-injection-from-environment cleared in engine-invoke (#3175 / alert #74).** `buildSpawnPlan` keeps vendored and global paths disjoint so `process.execPath` is only the non-shell vendored Node command and never joins the win32 `cmd.exe /c` string (path-insensitive AbsolutePathSource → shell-interpreted sink). Call site hard-codes `shell: false`. Regression tests pin the isolation. Closes #3175. Refs CodeQL alert #74, #2911, #2547.
 - **CodeQL polynomial-redos in xBRIEF markdown meta parse (#3174).** `parseMarkdownMeta` no longer uses nested `\s*(.+)\s*` / heading regexes for frontmatter `id`/`style` and ATX H1/H2; linear `frontmatterField` + shared `parseMarkdownHeading` clear security-and-quality alerts #84–#87. Adversarial long-space unit tests guard the path. Closes #3174.
