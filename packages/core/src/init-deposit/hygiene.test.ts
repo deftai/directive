@@ -537,6 +537,109 @@ describe("content-aware pin + lock follow-through (#3193)", () => {
     expect(isPackageLockDirectivePinFollowThrough(base, head)).toBe(false);
   });
 
+  it("fails when nested product package records change under a root product dep", () => {
+    const base = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          dependencies: { lodash: "^4.17.21" },
+          devDependencies: { "@deftai/directive": "0.96.0" },
+        },
+        "node_modules/lodash": { version: "4.17.21" },
+        "node_modules/lodash/node_modules/nested": { version: "1.0.0" },
+        "node_modules/@deftai/directive": { version: "0.96.0" },
+      },
+    });
+    const head = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {
+          dependencies: { lodash: "^4.17.21" },
+          devDependencies: { "@deftai/directive": "0.97.0" },
+        },
+        "node_modules/lodash": { version: "4.17.21" },
+        "node_modules/lodash/node_modules/nested": { version: "1.0.1" },
+        "node_modules/@deftai/directive": { version: "0.97.0" },
+      },
+    });
+    expect(isPackageLockDirectivePinFollowThrough(base, head)).toBe(false);
+  });
+
+  it("fails pnpm when product packages-section resolution changes with stable root versions", () => {
+    const base = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier: ^4.17.21",
+      "        version: 4.17.21",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.96.0",
+      "        version: 0.96.0",
+      "",
+      "packages:",
+      "",
+      "  lodash@4.17.21:",
+      "    resolution: {integrity: sha512-base}",
+      "",
+      "  '@deftai/directive@0.96.0':",
+      "    resolution: {integrity: sha512-pin-base}",
+      "",
+    ].join("\n");
+    const head = [
+      "lockfileVersion: '9.0'",
+      "",
+      "importers:",
+      "",
+      "  .:",
+      "    dependencies:",
+      "      lodash:",
+      "        specifier: ^4.17.21",
+      "        version: 4.17.21",
+      "    devDependencies:",
+      "      '@deftai/directive':",
+      "        specifier: 0.97.0",
+      "        version: 0.97.0",
+      "",
+      "packages:",
+      "",
+      "  lodash@4.17.21:",
+      "    resolution: {integrity: sha512-changed}",
+      "",
+      "  '@deftai/directive@0.97.0':",
+      "    resolution: {integrity: sha512-pin-head}",
+      "",
+    ].join("\n");
+    expect(isPnpmLockDirectivePinFollowThrough(base, head)).toBe(false);
+  });
+
+  it("fails yarn when a head-only product package is added without a Directive pin change", () => {
+    const base = [
+      "lodash@^4.17.21:",
+      '  version "4.17.21"',
+      "",
+      '"@deftai/directive@0.96.0":',
+      '  version "0.96.0"',
+      "",
+    ].join("\n");
+    const head = [
+      "lodash@^4.17.21:",
+      '  version "4.17.21"',
+      "",
+      '"@deftai/directive@0.96.0":',
+      '  version "0.96.0"',
+      "",
+      "left-pad@1.0.0:",
+      '  version "1.0.0"',
+      "",
+    ].join("\n");
+    expect(isYarnLockDirectivePinFollowThrough(base, head)).toBe(false);
+  });
+
   it("pnpm parser handles quoted importers, sibling packages, and leave-importers", () => {
     const raw = [
       "lockfileVersion: '9.0'",

@@ -426,9 +426,17 @@ export function isPackageLockDirectivePinFollowThrough(baseRaw: string, headRaw:
       (k) => !isDirectiveDependencyKey(k),
     ),
   );
+  // Freeze the full package tree for each non-directive root direct dep
+  // (including nested node_modules/<product>/node_modules/* records) so product
+  // resolution/integrity churn cannot ride the pin exemption (#3193 Greptile).
+  const allPkgKeys = new Set([...Object.keys(basePkgs), ...Object.keys(headPkgs)]);
   for (const name of productKeys) {
-    const entryKey = `node_modules/${name}`;
-    if (!deepEqualJson(basePkgs[entryKey], headPkgs[entryKey])) return false;
+    const prefix = `node_modules/${name}`;
+    for (const key of allPkgKeys) {
+      if (key === prefix || key.startsWith(`${prefix}/`)) {
+        if (!deepEqualJson(basePkgs[key], headPkgs[key])) return false;
+      }
+    }
   }
   return true;
 }
@@ -512,21 +520,93 @@ export function pnpmLockRootDirectDeps(raw: string): Record<string, string> {
 }
 
 /**
- * pnpm-lock.yaml follow-through: root importer (`.`) non-directive direct dep
- * identities must be unchanged (#3193).
+ * Extract pnpm `packages:` section records keyed by the package name (not
+ * name@version). Used to freeze product package resolution blocks.
  */
-export function isPnpmLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
-  return onlyDirectiveDirectDepsDiffer(
-    pnpmLockRootDirectDeps(baseRaw),
-    pnpmLockRootDirectDeps(headRaw),
-  );
+export function pnpmPackagesByName(raw: string): Map<string, string> {
+  const map = new Map<string, string[]>();
+  const lines = raw.split(/\r?\n/);
+  let inPackages = false;
+  let currentName: string | null = null;
+  let buf: string[] = [];
+  const flush = (): void => {
+    if (currentName === null) return;
+    const prev = map.get(currentName) ?? [];
+    prev.push(buf.join("\n"));
+    map.set(currentName, prev);
+    currentName = null;
+    buf = [];
+  };
+  const unquote = (s: string): string => {
+    const t = s.trim();
+    if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
+      return t.slice(1, -1);
+    }
+    return t;
+  };
+  for (const line of lines) {
+    if (/^packages:\s*$/.test(line)) {
+      flush();
+      inPackages = true;
+      continue;
+    }
+    if (!inPackages) continue;
+    if (/^[^\s#]/.test(line) && !line.startsWith("packages")) {
+      flush();
+      break;
+    }
+    // Package key at 2-space indent: `  lodash@4.17.21:` or `  '@scope/pkg@1.0.0':`
+    const keyMatch = line.match(/^ {2}(.+?):\s*$/);
+    if (keyMatch) {
+      flush();
+      const key = unquote(keyMatch[1] ?? "");
+      // name@version or @scope/name@version — strip version suffix after last @
+      // that is not the scope marker.
+      const at = key.startsWith("@") ? key.indexOf("@", 1) : key.indexOf("@");
+      currentName = at > 0 ? key.slice(0, at) : key;
+      buf = [line];
+      continue;
+    }
+    if (currentName !== null) buf.push(line);
+  }
+  flush();
+  // Join multi-version records for stable compare.
+  const out = new Map<string, string>();
+  for (const [name, blocks] of map) {
+    out.set(name, blocks.slice().sort().join("\n---\n"));
+  }
+  return out;
 }
 
 /**
- * yarn.lock (v1) package identity blocks: non-@deftai/directive* packages that
- * exist on both sides must have identical block text; new packages may appear
- * as pin transitive follow-through; removing a non-directive package fails
- * (product dep dropped from the lock while co-travelling with core).
+ * pnpm-lock.yaml follow-through: root importer (`.`) non-directive direct dep
+ * identities must be unchanged, and packages-section records for those product
+ * names must be byte-stable (#3193).
+ */
+export function isPnpmLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
+  const baseRoot = pnpmLockRootDirectDeps(baseRaw);
+  const headRoot = pnpmLockRootDirectDeps(headRaw);
+  if (!onlyDirectiveDirectDepsDiffer(baseRoot, headRoot)) return false;
+  const basePkgs = pnpmPackagesByName(baseRaw);
+  const headPkgs = pnpmPackagesByName(headRaw);
+  const productNames = new Set(
+    [...Object.keys(baseRoot), ...Object.keys(headRoot)].filter(
+      (k) => !isDirectiveDependencyKey(k),
+    ),
+  );
+  for (const name of productNames) {
+    if ((basePkgs.get(name) ?? null) !== (headPkgs.get(name) ?? null)) return false;
+  }
+  return true;
+}
+
+/**
+ * yarn.lock (v1) package identity blocks:
+ * - non-@deftai/directive* packages present on base must keep identical blocks
+ *   (or fail if removed)
+ * - head-only non-directive packages are allowed only when a Directive package
+ *   block also changed (pin follow-through); otherwise they fail as unrelated
+ *   product lock additions (#3193 Greptile).
  * Directive package blocks may change freely.
  */
 export function isYarnLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
@@ -537,6 +617,30 @@ export function isYarnLockDirectivePinFollowThrough(baseRaw: string, headRaw: st
     const headBody = headBlocks.get(name);
     if (headBody === undefined) return false; // non-directive package removed
     if (headBody !== baseBody) return false;
+  }
+  let directiveChanged = false;
+  for (const [name, baseBody] of baseBlocks) {
+    if (!isDirectiveDependencyKey(name)) continue;
+    if (headBlocks.get(name) !== baseBody) {
+      directiveChanged = true;
+      break;
+    }
+  }
+  if (!directiveChanged) {
+    for (const name of headBlocks.keys()) {
+      if (isDirectiveDependencyKey(name)) {
+        if (!baseBlocks.has(name)) {
+          directiveChanged = true;
+          break;
+        }
+      }
+    }
+  }
+  if (!directiveChanged) {
+    for (const name of headBlocks.keys()) {
+      if (isDirectiveDependencyKey(name)) continue;
+      if (!baseBlocks.has(name)) return false; // head-only product package, no pin change
+    }
   }
   return true;
 }

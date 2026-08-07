@@ -129,10 +129,13 @@ def npm_lock_ok(base, head):
     if not isinstance(hp, dict):
         hp = {}
     product = [k for k in set(br) | set(hr) if not is_dir_key(k)]
+    all_keys = set(bp) | set(hp)
     for name in product:
-        key = f"node_modules/{name}"
-        if not deep_eq(bp.get(key), hp.get(key)):
-            return False
+        prefix = f"node_modules/{name}"
+        for key in all_keys:
+            if key == prefix or key.startswith(prefix + "/"):
+                if not deep_eq(bp.get(key), hp.get(key)):
+                    return False
     return True
 
 
@@ -186,8 +189,56 @@ def pnpm_root_deps(raw):
     return out
 
 
+def pnpm_packages_by_name(raw):
+    out = {}
+    blocks = {}
+    in_pkg = False
+    cur = None
+    buf = []
+
+    def flush():
+        nonlocal cur, buf
+        if cur is None:
+            return
+        blocks.setdefault(cur, []).append("\n".join(buf))
+        cur, buf = None, []
+
+    for line in raw.splitlines():
+        if re.match(r"^packages:\s*$", line):
+            flush()
+            in_pkg = True
+            continue
+        if not in_pkg:
+            continue
+        if re.match(r"^[^\s#]", line) and not line.startswith("packages"):
+            flush()
+            break
+        m = re.match(r"^ {2}(.+?):\s*$", line)
+        if m:
+            flush()
+            key = unq(m.group(1))
+            at = key.find("@", 1) if key.startswith("@") else key.find("@")
+            cur = key[:at] if at > 0 else key
+            buf = [line]
+            continue
+        if cur is not None:
+            buf.append(line)
+    flush()
+    for name, blist in blocks.items():
+        out[name] = "\n---\n".join(sorted(blist))
+    return out
+
+
 def pnpm_ok(base, head):
-    return only_dir_diff(pnpm_root_deps(base), pnpm_root_deps(head))
+    br, hr = pnpm_root_deps(base), pnpm_root_deps(head)
+    if not only_dir_diff(br, hr):
+        return False
+    bp, hp = pnpm_packages_by_name(base), pnpm_packages_by_name(head)
+    product = [k for k in set(br) | set(hr) if not is_dir_key(k)]
+    for name in product:
+        if bp.get(name) != hp.get(name):
+            return False
+    return True
 
 
 def yarn_blocks(raw):
@@ -235,6 +286,22 @@ def yarn_ok(base, head):
             return False
         if hb[name] != body:
             return False
+    directive_changed = False
+    for name, body in bb.items():
+        if is_dir_key(name) and hb.get(name) != body:
+            directive_changed = True
+            break
+    if not directive_changed:
+        for name in hb:
+            if is_dir_key(name) and name not in bb:
+                directive_changed = True
+                break
+    if not directive_changed:
+        for name in hb:
+            if is_dir_key(name):
+                continue
+            if name not in bb:
+                return False
     return True
 
 
