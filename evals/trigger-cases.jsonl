@@ -67,3 +67,6 @@
 {"id":"xbrief-pos-1","query":"xbrief create a dense scope brief at out/path","skill":"deft-directive-xbrief","should_trigger":true}
 {"id":"xbrief-pos-2","query":"run xbrief:verify on the mission artifact","skill":"deft-directive-xbrief","should_trigger":true}
 {"id":"xbrief-neg-1","query":"scope:promote the pending story for implementation","skill":"deft-directive-xbrief","should_trigger":false}
+{"id":"portfolio-priority-pos-1","query":"run portfolio priority brief on competing RFCs","skill":"deft-directive-portfolio-priority","should_trigger":true}
+{"id":"portfolio-priority-pos-2","query":"cluster open issues into a priority brief shortlist","skill":"deft-directive-portfolio-priority","should_trigger":true}
+{"id":"portfolio-priority-neg-1","query":"what should I work on next from the queue","skill":"deft-directive-portfolio-priority","should_trigger":false}

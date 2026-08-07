@@ -1,6 +1,10 @@
 {
   "version": 1,
-  "platforms": ["cursor", "codex", "opencode"],
+  "platforms": [
+    "cursor",
+    "codex",
+    "opencode"
+  ],
   "defaultInstallTier": "daily-core",
   "dailyCoreFrontmatterBudgetBytes": 2080,
   "tiers": {
@@ -18,15 +22,16 @@
     "standard": {
       "description": "Operational workflows — install on demand; not injected into Cursor session bootstrap by default.",
       "skills": [
+        "deft-directive-cost",
         "deft-directive-decompose",
         "deft-directive-feedback",
-        "deft-directive-product-signal",
-        "deft-directive-cost",
-        "deft-directive-glossary",
         "deft-directive-gh-arch",
         "deft-directive-gh-slice",
+        "deft-directive-glossary",
         "deft-directive-interview",
+        "deft-directive-portfolio-priority",
         "deft-directive-probe",
+        "deft-directive-product-signal",
         "deft-directive-refinement",
         "deft-directive-write-skill",
         "deft-directive-xbrief"
