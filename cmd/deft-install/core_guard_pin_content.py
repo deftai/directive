@@ -136,6 +136,25 @@ def npm_lock_ok(base, head):
             continue
         if not deep_eq(bp.get(key), hp.get(key)):
             return False
+    # lockfileVersion 1: freeze nested dependencies tree without directive keys
+    if not bp and not hp:
+        def strip_dir(v):
+            if not isinstance(v, dict):
+                return v
+            out = {}
+            for k, val in v.items():
+                if is_dir_key(k):
+                    continue
+                if isinstance(val, dict):
+                    nxt = dict(val)
+                    if "dependencies" in val:
+                        nxt["dependencies"] = strip_dir(val["dependencies"])
+                    out[k] = nxt
+                else:
+                    out[k] = val
+            return out
+        if not deep_eq(strip_dir(b.get("dependencies")), strip_dir(h.get("dependencies"))):
+            return False
     return True
 
 
@@ -229,16 +248,55 @@ def pnpm_packages_by_name(raw):
     return out
 
 
+def pnpm_section_by_name(raw, section):
+    blocks, out = {}, {}
+    in_sec, cur, buf = False, None, []
+    sec_re = re.compile(r"^" + re.escape(section) + r":\s*$")
+
+    def flush():
+        nonlocal cur, buf
+        if cur is None:
+            return
+        blocks.setdefault(cur, []).append("\n".join(buf))
+        cur, buf = None, []
+
+    for line in raw.splitlines():
+        if sec_re.match(line):
+            flush()
+            in_sec = True
+            continue
+        if not in_sec:
+            continue
+        if re.match(r"^[^\s#]", line) and not line.startswith(section):
+            flush()
+            break
+        m = re.match(r"^ {2}(.+?):\s*$", line)
+        if m:
+            flush()
+            key = unq(m.group(1))
+            at = key.find("@", 1) if key.startswith("@") else key.find("@")
+            cur = key[:at] if at > 0 else key
+            buf = [line]
+            continue
+        if cur is not None:
+            buf.append(line)
+    flush()
+    for name, blist in blocks.items():
+        out[name] = "\n---\n".join(sorted(blist))
+    return out
+
+
 def pnpm_ok(base, head):
     br, hr = pnpm_root_deps(base), pnpm_root_deps(head)
     if not only_dir_diff(br, hr):
         return False
-    bp, hp = pnpm_packages_by_name(base), pnpm_packages_by_name(head)
-    for name in set(bp) | set(hp):
-        if is_dir_key(name):
-            continue
-        if bp.get(name) != hp.get(name):
-            return False
+    for section in ("packages", "snapshots"):
+        bp, hp = pnpm_section_by_name(base, section), pnpm_section_by_name(head, section)
+        for name in set(bp) | set(hp):
+            if is_dir_key(name):
+                continue
+            if bp.get(name) != hp.get(name):
+                return False
     return True
 
 

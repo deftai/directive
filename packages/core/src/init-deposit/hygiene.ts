@@ -379,6 +379,27 @@ function npmLockRootDirectDeps(lock: Record<string, unknown>): Record<string, st
   return {};
 }
 
+/** Strip @deftai/directive* keys recursively from an npm v1 dependencies tree. */
+function stripDirectiveFromNpmV1Deps(value: unknown): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (isDirectiveDependencyKey(k)) continue;
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+      const entry = v as Record<string, unknown>;
+      const next: Record<string, unknown> = { ...entry };
+      if (entry.dependencies !== undefined) {
+        next.dependencies = stripDirectiveFromNpmV1Deps(entry.dependencies);
+      }
+      out[k] = next;
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 /**
  * package-lock.json follow-through: non-@deftai/directive* root direct dependency
  * identities (and their `node_modules/<name>` package entries when present) must
@@ -431,6 +452,19 @@ export function isPackageLockDirectivePinFollowThrough(baseRaw: string, headRaw:
       continue;
     }
     if (!deepEqualJson(basePkgs[key], headPkgs[key])) return false;
+  }
+
+  // Legacy npm lockfileVersion 1: no packages map — freeze the full nested
+  // dependencies tree after stripping @deftai/directive* keys (#3193 Greptile).
+  if (Object.keys(basePkgs).length === 0 && Object.keys(headPkgs).length === 0) {
+    if (
+      !deepEqualJson(
+        stripDirectiveFromNpmV1Deps(baseObj.dependencies),
+        stripDirectiveFromNpmV1Deps(headObj.dependencies),
+      )
+    ) {
+      return false;
+    }
   }
   return true;
 }
@@ -577,16 +611,76 @@ export function pnpmPackagesByName(raw: string): Map<string, string> {
  * identities must be unchanged, and every non-@deftai/directive packages-section
  * record (including transitive product packages) must be byte-stable (#3193).
  */
+/**
+ * Extract a top-level pnpm section (`packages:` or `snapshots:`) keyed by package name.
+ */
+function pnpmNamedSectionByName(
+  raw: string,
+  section: "packages" | "snapshots",
+): Map<string, string> {
+  const map = new Map<string, string[]>();
+  const lines = raw.split(/\r?\n/);
+  let inSection = false;
+  let currentName: string | null = null;
+  let buf: string[] = [];
+  const sectionRe = new RegExp(`^${section}:\\s*$`);
+  const flush = (): void => {
+    if (currentName === null) return;
+    const prev = map.get(currentName) ?? [];
+    prev.push(buf.join("\n"));
+    map.set(currentName, prev);
+    currentName = null;
+    buf = [];
+  };
+  const unquote = (s: string): string => {
+    const t = s.trim();
+    if ((t.startsWith("'") && t.endsWith("'")) || (t.startsWith('"') && t.endsWith('"'))) {
+      return t.slice(1, -1);
+    }
+    return t;
+  };
+  for (const line of lines) {
+    if (sectionRe.test(line)) {
+      flush();
+      inSection = true;
+      continue;
+    }
+    if (!inSection) continue;
+    if (/^[^\s#]/.test(line) && !line.startsWith(section)) {
+      flush();
+      break;
+    }
+    const keyMatch = line.match(/^ {2}(.+?):\s*$/);
+    if (keyMatch) {
+      flush();
+      const key = unquote(keyMatch[1] ?? "");
+      const at = key.startsWith("@") ? key.indexOf("@", 1) : key.indexOf("@");
+      currentName = at > 0 ? key.slice(0, at) : key;
+      buf = [line];
+      continue;
+    }
+    if (currentName !== null) buf.push(line);
+  }
+  flush();
+  const out = new Map<string, string>();
+  for (const [name, blocks] of map) {
+    out.set(name, blocks.slice().sort().join("\n---\n"));
+  }
+  return out;
+}
+
 export function isPnpmLockDirectivePinFollowThrough(baseRaw: string, headRaw: string): boolean {
   const baseRoot = pnpmLockRootDirectDeps(baseRaw);
   const headRoot = pnpmLockRootDirectDeps(headRaw);
   if (!onlyDirectiveDirectDepsDiffer(baseRoot, headRoot)) return false;
-  const basePkgs = pnpmPackagesByName(baseRaw);
-  const headPkgs = pnpmPackagesByName(headRaw);
-  const names = new Set([...basePkgs.keys(), ...headPkgs.keys()]);
-  for (const name of names) {
-    if (isDirectiveDependencyKey(name)) continue;
-    if ((basePkgs.get(name) ?? null) !== (headPkgs.get(name) ?? null)) return false;
+  for (const section of ["packages", "snapshots"] as const) {
+    const baseSec = pnpmNamedSectionByName(baseRaw, section);
+    const headSec = pnpmNamedSectionByName(headRaw, section);
+    const names = new Set([...baseSec.keys(), ...headSec.keys()]);
+    for (const name of names) {
+      if (isDirectiveDependencyKey(name)) continue;
+      if ((baseSec.get(name) ?? null) !== (headSec.get(name) ?? null)) return false;
+    }
   }
   return true;
 }
