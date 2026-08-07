@@ -44,6 +44,7 @@ import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
+import { maybeFormatCoverageCheckResumeNudge } from "./coverage-check-resume-nudge.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 import { emitSessionStartProcessCost } from "./process-cost.js";
@@ -611,6 +612,16 @@ function runSessionRearm(
     lines.push(humanMergeLine);
   }
 
+  // #3189: re-arm still surfaces undecided coverage/check-resume once per ritual.
+  try {
+    const coverageNudge = maybeFormatCoverageCheckResumeNudge({ projectRoot });
+    if (coverageNudge.length > 0) {
+      lines.push(coverageNudge.trimEnd());
+    }
+  } catch {
+    // best-effort — re-arm must not abort
+  }
+
   const priorQuick = eligibility.state.quickSteps;
   const priorTriage = priorQuick.triage_welcome ?? ritualStep({ ok: true, ts: instant });
   const policyOk = policyResult.error === null || policyResult.source === "default-fail-closed";
@@ -1084,6 +1095,16 @@ export function runSessionStart(
   const consentPrompt = maybeFormatProductSignalConsentPrompt({ projectRoot });
   if (consentPrompt.length > 0) {
     lines.push(consentPrompt.trimEnd());
+  }
+
+  // #3189: skippable coverageDebt/checkResume project-decision nudge (fail-open; never blocks).
+  try {
+    const coverageNudge = maybeFormatCoverageCheckResumeNudge({ projectRoot });
+    if (coverageNudge.length > 0) {
+      lines.push(coverageNudge.trimEnd());
+    }
+  } catch {
+    // best-effort operator advisory — session start must not abort
   }
 
   const writeStarted = performance.now();

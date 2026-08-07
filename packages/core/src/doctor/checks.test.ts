@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 import {
+  checkCoverageCheckResumePolicy,
   checkGitignoreCoverage,
   checkInstallPathConsistency,
   checkLegacyLayout,
@@ -200,6 +201,52 @@ describe("checks", () => {
   it("runChecksImpl config error for missing project root", () => {
     const result = runChecksImpl("/nope", { isDir: () => false });
     expect(result.exitCode).toBe(2);
+  });
+
+  it("coverage-check-resume-policy is exit-exempt when undecided (#3189)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-ccr-"));
+    try {
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "T", status: "running", items: [], policy: {} },
+        }),
+        "utf8",
+      );
+      const only = checkCoverageCheckResumePolicy(root);
+      expect(only.status).toBe("skip");
+      expect(only.detail).toContain("undecided");
+      expect(only.detail).toContain("advisory");
+      expect(deriveExitCode([only], [])).toBe(0);
+
+      // decided path passes
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "T",
+            status: "running",
+            items: [],
+            policy: {
+              coverageDebt: { status: "decided", mode: "off", autoFile: false },
+              checkResume: {
+                status: "decided",
+                localStamp: "off",
+                ciTrustsLocalStamp: false,
+              },
+            },
+          },
+        }),
+        "utf8",
+      );
+      const decided = checkCoverageCheckResumePolicy(root);
+      expect(decided.status).toBe("pass");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("runChecks missing AGENTS.md", () => {

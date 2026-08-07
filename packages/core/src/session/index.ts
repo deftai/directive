@@ -1,4 +1,5 @@
 export * from "./compact-ritual.js";
+export * from "./coverage-check-resume-nudge.js";
 export * from "./git.js";
 export * from "./json.js";
 export * from "./openclaw-soft-rebind-deposit.js";

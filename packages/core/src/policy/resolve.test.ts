@@ -390,8 +390,9 @@ describe("inspectAllPolicies", () => {
     roots.push(r);
     writeProjectDef(r, {});
     // deliveryBranch (#3041) + minGreptileConfidence (#3095) + hostSlashCommands (#3054)
-    // + openClawProductCommands (#3064) + hostSkillDiscovery (#75) + triageLabelMirror (#1423).
-    expect(inspectAllPolicies(r)).toHaveLength(22);
+    // + openClawProductCommands (#3064) + hostSkillDiscovery (#75) + triageLabelMirror (#1423)
+    // + coverageDebt + checkResume (#3189).
+    expect(inspectAllPolicies(r)).toHaveLength(24);
   });
 
   it("surfaces typed allowDirectCommits", () => {

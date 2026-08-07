@@ -9,6 +9,16 @@ import {
   inspectOpenClawProductCommands,
 } from "../slash/openclaw-deposit.js";
 import {
+  FIELD_CHECK_RESUME,
+  FIELD_CHECK_RESUME_CLI_ALIAS,
+  inspectCheckResume,
+} from "./check-resume.js";
+import {
+  FIELD_COVERAGE_DEBT,
+  FIELD_COVERAGE_DEBT_CLI_ALIAS,
+  inspectCoverageDebt,
+} from "./coverage-debt.js";
+import {
   FIELD_DELIVERY_BRANCH,
   FIELD_DELIVERY_BRANCH_CLI_ALIAS,
   inspectDeliveryBranch,
@@ -61,6 +71,9 @@ import { DEFAULT_WIP_CAP } from "./wip.js";
 export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
 export * from "./capacity.js";
+export * from "./check-resume.js";
+export * from "./coverage-check-resume-presets.js";
+export * from "./coverage-debt.js";
 export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
 export * from "./delivery-branch.js";
@@ -377,6 +390,32 @@ function inspectValueFeedbackField(
   };
 }
 
+function inspectCoverageDebtField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectCoverageDebt(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
+function inspectCheckResumeField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectCheckResume(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectStalenessTicklerField(data: Record<string, unknown> | null): PolicyField {
   const field = inspectStalenessTickler(data);
   return {
@@ -528,6 +567,8 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectRuntimeAuthorityField,
   inspectProductSignalField,
   inspectValueFeedbackField,
+  inspectCoverageDebtField,
+  inspectCheckResumeField,
   inspectRequireHumanMergeField,
   inspectHotfixCriteriaField,
 ];
@@ -545,27 +586,31 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
       ? FIELD_VALUE_FEEDBACK
       : name === FIELD_PRODUCT_SIGNAL_CLI_ALIAS
         ? FIELD_PRODUCT_SIGNAL
-        : name === FIELD_STALENESS_TICKLER_CLI_ALIAS
-          ? FIELD_STALENESS_TICKLER
-          : name === FIELD_RUNTIME_AUTHORITY_CLI_ALIAS
-            ? FIELD_RUNTIME_AUTHORITY
-            : name === FIELD_HOST_HOOKS_CLI_ALIAS
-              ? FIELD_HOST_HOOKS
-              : name === FIELD_HOST_SLASH_COMMANDS_CLI_ALIAS
-                ? FIELD_HOST_SLASH_COMMANDS
-                : name === FIELD_OPENCLAW_PRODUCT_COMMANDS_CLI_ALIAS
-                  ? FIELD_OPENCLAW_PRODUCT_COMMANDS
-                  : name === FIELD_HOST_SKILL_DISCOVERY_CLI_ALIAS
-                    ? FIELD_HOST_SKILL_DISCOVERY
-                    : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
-                      ? FIELD_REQUIRE_HUMAN_MERGE
-                      : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
-                        ? FIELD_HOTFIX_CRITERIA
-                        : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
-                          ? FIELD_DELIVERY_BRANCH
-                          : name === FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS
-                            ? FIELD_MIN_GREPTILE_CONFIDENCE
-                            : name;
+        : name === FIELD_COVERAGE_DEBT_CLI_ALIAS
+          ? FIELD_COVERAGE_DEBT
+          : name === FIELD_CHECK_RESUME_CLI_ALIAS
+            ? FIELD_CHECK_RESUME
+            : name === FIELD_STALENESS_TICKLER_CLI_ALIAS
+              ? FIELD_STALENESS_TICKLER
+              : name === FIELD_RUNTIME_AUTHORITY_CLI_ALIAS
+                ? FIELD_RUNTIME_AUTHORITY
+                : name === FIELD_HOST_HOOKS_CLI_ALIAS
+                  ? FIELD_HOST_HOOKS
+                  : name === FIELD_HOST_SLASH_COMMANDS_CLI_ALIAS
+                    ? FIELD_HOST_SLASH_COMMANDS
+                    : name === FIELD_OPENCLAW_PRODUCT_COMMANDS_CLI_ALIAS
+                      ? FIELD_OPENCLAW_PRODUCT_COMMANDS
+                      : name === FIELD_HOST_SKILL_DISCOVERY_CLI_ALIAS
+                        ? FIELD_HOST_SKILL_DISCOVERY
+                        : name === FIELD_REQUIRE_HUMAN_MERGE_CLI_ALIAS
+                          ? FIELD_REQUIRE_HUMAN_MERGE
+                          : name === FIELD_HOTFIX_CRITERIA_CLI_ALIAS
+                            ? FIELD_HOTFIX_CRITERIA
+                            : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
+                              ? FIELD_DELIVERY_BRANCH
+                              : name === FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS
+                                ? FIELD_MIN_GREPTILE_CONFIDENCE
+                                : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }
