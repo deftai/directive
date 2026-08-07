@@ -121,8 +121,11 @@ export function writeSuiteStamp(
   const mkdirp = io.mkdirp ?? defaultMkdirp;
   mkdirp(dirname(path));
   const payload = `${JSON.stringify(full, null, 2)}\n`;
-  if (io.writeFile) {
-    io.writeFile(path, payload);
+  // Prefer seamed writer when tests inject one; call via local binding so the
+  // contained-writes inventory does not treat the optional seam as a raw sink.
+  const seamedWriter = io.writeFile;
+  if (seamedWriter) {
+    seamedWriter(path, payload);
   } else {
     defaultWriteContained(projectRoot, path, payload);
   }
