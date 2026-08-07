@@ -252,6 +252,8 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote})`,
       );
     } else {
+      // Bind auto-hatch coverage-final trust to this suite invocation (#3187).
+      const suiteStartedAtMs = Date.now();
       const [ok, reason] = runCiFn(projectRoot, config.allowCoverageDebtIssue);
       if (ok) {
         const debtIssue = config.allowCoverageDebtIssue;
@@ -267,13 +269,21 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         // #3187 auto-hatch: one suite → classify → maybe file debt → continue.
         const totals = resolveCoverageTotals(projectRoot, seams);
         const coverageReportMtimeMs = resolveCoverageReportMtimeMs(projectRoot, seams);
+        // Prefer mtime bound to this suite start; fall back to absolute max-age.
+        const suiteBoundMtime =
+          coverageReportMtimeMs === undefined
+            ? undefined
+            : coverageReportMtimeMs != null && coverageReportMtimeMs >= suiteStartedAtMs - 1000
+              ? coverageReportMtimeMs
+              : null;
         const exitCode = parseExitCodeFromReason(reason);
         const classification = classifyStep5FailureWithFreshness({
           output: reason,
           totals,
           exitCode,
           timedOut: reasonLooksLikeTimeout(reason) || exitCode === 124,
-          coverageReportMtimeMs,
+          coverageReportMtimeMs: suiteBoundMtime,
+          nowMs: Date.now(),
         });
 
         let openDebt: number[];
