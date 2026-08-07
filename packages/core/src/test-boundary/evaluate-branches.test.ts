@@ -1,6 +1,8 @@
 /**
  * Branch coverage for test-boundary evaluate helpers (#3185 coverage-debt hairline).
  */
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   evaluateTestBoundary,
@@ -54,8 +56,14 @@ describe("matchPolicyGlob / matchesRootGlob branches (#3185)", () => {
 
 describe("evaluateTestBoundary edge branches (#3185)", () => {
   it("returns config error when injected policyPath is missing", () => {
-    const result = evaluateTestBoundary("/tmp/tb-missing", {
-      policyPath: "/tmp/does-not-exist-tb-policy-3185.json",
+    // Unique path under OS temp so host state cannot leave a shared fixed
+    // pathname present (Greptile P2 on PR #3194).
+    const missingPolicy = join(
+      tmpdir(),
+      `does-not-exist-tb-policy-3185-${process.pid}-${Date.now()}.json`,
+    );
+    const result = evaluateTestBoundary(join(tmpdir(), "tb-missing"), {
+      policyPath: missingPolicy,
       files: [],
     });
     expect(result.exitCode).toBe(2);
