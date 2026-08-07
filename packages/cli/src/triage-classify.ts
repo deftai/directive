@@ -27,6 +27,11 @@ export interface ParsedArgs {
   allowCrossRepo: boolean;
   /** Opt-in: include closed issues (default open-only, #3125). */
   includeClosed: boolean;
+  /**
+   * Opt-in re-enrich: re-plan already-stamped issues with additive label deltas
+   * (#3197). Requires --mirror; dry-run by default until --apply.
+   */
+  reEnrich: boolean;
   /** Raw --author value (LOGIN, @me, comma allow-list); null = no filter (#3129). */
   author: string | null;
   /** Apply batch size (rate-limit awareness). */
@@ -72,6 +77,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     repo: null,
     allowCrossRepo: false,
     includeClosed: false,
+    reEnrich: false,
     author: null,
     batchSize: null,
     delayMs: null,
@@ -93,6 +99,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.allowCrossRepo = true;
     } else if (arg === "--include-closed") {
       parsed.includeClosed = true;
+    } else if (arg === "--re-enrich") {
+      parsed.reEnrich = true;
     } else if (arg === "--author-mine") {
       parsed.author = "@me";
     } else if (arg === "--author") {
@@ -200,6 +208,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
       error: "--apply requires --mirror (Tier-1 label mirror / bootstrap mass-triage, #1423)",
     };
   }
+  if (parsed.reEnrich && !parsed.doMirror) {
+    return {
+      ...parsed,
+      error: "--re-enrich requires --mirror (additive re-plan of already-stamped issues, #3197)",
+    };
+  }
   if (
     (parsed.includeClosed ||
       parsed.author !== null ||
@@ -278,6 +292,7 @@ export function run(argv: string[], options: RunOptions = {}): number {
       repo: args.repo,
       allowCrossRepo: args.allowCrossRepo,
       includeClosed: args.includeClosed,
+      reEnrich: args.reEnrich,
       ...(authorFilter !== null && authorFilter !== undefined ? { authorFilter } : {}),
       ...(args.batchSize !== null ? { batchSize: args.batchSize } : {}),
       ...(args.delayMs !== null ? { delayMs: args.delayMs } : {}),

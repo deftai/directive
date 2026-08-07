@@ -92,6 +92,14 @@ describe("parseArgs", () => {
     });
   });
 
+  it("parses --re-enrich (#3197)", () => {
+    expect(parseArgs(["--mirror", "--re-enrich"])).toMatchObject({
+      doMirror: true,
+      reEnrich: true,
+    });
+    expect(parseArgs(["--mirror"]).reEnrich).toBe(false);
+  });
+
   it("parses --author and --author-mine (#3129)", () => {
     expect(parseArgs(["--mirror", "--author", "alice"]).author).toBe("alice");
     expect(parseArgs(["--mirror", "--author=bob"]).author).toBe("bob");
@@ -101,6 +109,10 @@ describe("parseArgs", () => {
 
   it("rejects --apply without --mirror", () => {
     expect(parseArgs(["--apply"]).error).toContain("--mirror");
+  });
+
+  it("rejects --re-enrich without --mirror (#3197)", () => {
+    expect(parseArgs(["--re-enrich"]).error).toContain("--mirror");
   });
 
   it("rejects --include-closed without --mirror", () => {

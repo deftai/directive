@@ -297,11 +297,11 @@ export const registryData = {
     "task triage:classify": {
       name: "task triage:classify",
       summary: "Inspect / validate auto-classification; bootstrap mass-triage label mirror",
-      refs: "(D10 / #1129, #1423 Wave 1–2 / #3125, #3129)",
+      refs: "(D10 / #1129, #1423 Wave 1–2 / #3125, #3129, #3197)",
       description:
-        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror is the bootstrap mass-triage entrypoint (#3125): classifies the github-issue cache and mirrors outcomes as SCM labels. Open-only by default (opt-in --include-closed); optional --author LOGIN scopes plan/apply to matching author.login (AND with open-only; #3129); dry-run digest shows totals + by state/rule/action + samples and surfaces the author filter; --apply batches writes with rate-limit delay. Never calls triage:accept / never writes proposed/ xBRIEFs.",
+        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror is the bootstrap mass-triage entrypoint (#3125): classifies the github-issue cache and mirrors outcomes as SCM labels. Open-only by default (opt-in --include-closed); optional --author LOGIN scopes plan/apply to matching author.login (AND with open-only; #3129). Default re-run skips already-stamped (idempotency) issues; after policy/rule changes use --re-enrich to re-classify already-triaged issues and plan additive label deltas only (#3197; re-run vs re-enrich discovery #3124). Dry-run digest shows totals + by state/rule/action + samples, first-time vs re-enrich planned rows, and surfaces the author filter; --apply batches writes with rate-limit delay. Never calls triage:accept / never writes proposed/ xBRIEFs.",
       usage:
-        "task triage:classify -- [--list | --validate | --mirror [--apply] [--include-closed] [--author LOGIN|@me] [--repo owner/name] [--batch-size N] [--delay-ms N] [--sample-limit N] [--json] [--allow-cross-repo]]",
+        "task triage:classify -- [--list | --validate | --mirror [--apply] [--re-enrich] [--include-closed] [--author LOGIN|@me] [--repo owner/name] [--batch-size N] [--delay-ms N] [--sample-limit N] [--json] [--allow-cross-repo]]",
       flags: [
         ["--list", "(default)", "Print effective rules + hold markers."],
         ["--validate", "(off)", "Validate plan.policy.triageAutoClassify + triageLabelMirror."],
@@ -314,6 +314,11 @@ export const registryData = {
           "--apply",
           "(off)",
           "With --mirror: write labels via SCM (batched; requires github SCM boundary).",
+        ],
+        [
+          "--re-enrich",
+          "(off)",
+          "With --mirror: re-classify already-stamped issues; plan additive label deltas only (dry-run default; #3197 / #3124 re-run vs re-enrich).",
         ],
         [
           "--include-closed",
@@ -340,6 +345,8 @@ export const registryData = {
         "task triage:classify -- --mirror --author @me --repo owner/name",
         "task triage:classify -- --mirror --repo owner/name --json",
         "task triage:classify -- --mirror --apply --repo owner/name --batch-size 10 --delay-ms 1000",
+        "task triage:classify -- --mirror --re-enrich --repo owner/name",
+        "task triage:classify -- --mirror --re-enrich --apply --repo owner/name",
         "task triage:classify -- --mirror --include-closed --repo owner/name",
       ],
       see_also: [
@@ -348,8 +355,10 @@ export const registryData = {
         "task vbrief:reconcile:labels",
         "#1119 / D10",
         "#1423",
+        "#3124",
         "#3125",
         "#3129",
+        "#3197",
       ],
       placeholder: false,
     },

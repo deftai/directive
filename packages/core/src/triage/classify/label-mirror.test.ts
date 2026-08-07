@@ -354,7 +354,111 @@ describe("mirrorLabels", () => {
     expect(code).toBe(0);
     expect(outcome.skipped_already_triaged).toBe(1);
     expect(outcome.planned).toBe(0);
+    expect(outcome.re_enrich_planned).toBe(0);
+    expect(outcome.filters.re_enrich).toBe(false);
     expect(outcome.items[0]?.status).toBe("skipped_already_triaged");
+  });
+
+  it("--re-enrich plans additive labels on already-triaged issues (#3197)", () => {
+    const root = tmpRoot();
+    writeProject(root, {
+      triageLabelMirror: {
+        actionLabels: { defer: ["status:deferred", "triage:deferred"] },
+      },
+    });
+    // Already stamped with triaged only — missing action chips after policy change.
+    writeCachedIssue(root, "acme/demo", 30, {
+      number: 30,
+      state: "open",
+      body: "HOLDING for later — blocked on partner",
+      labels: [{ name: "triaged" }],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    // First-time issue (no stamp) should still plan as first-time under re-enrich.
+    writeCachedIssue(root, "acme/demo", 31, {
+      number: 31,
+      state: "open",
+      body: "HOLDING for later — new candidate",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+
+    // Default path still skips the stamped issue.
+    const [, skipOutcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    expect(skipOutcome.skipped_already_triaged).toBe(1);
+    expect(skipOutcome.planned).toBe(1);
+    expect(skipOutcome.re_enrich_planned).toBe(0);
+
+    const [code, outcome] = mirrorLabels(root, {
+      dryRun: true,
+      useLiveLabels: false,
+      reEnrich: true,
+    });
+    expect(code).toBe(0);
+    expect(outcome.filters.re_enrich).toBe(true);
+    expect(outcome.skipped_already_triaged).toBe(0);
+    expect(outcome.planned).toBe(2);
+    expect(outcome.re_enrich_planned).toBe(1);
+
+    const reRow = outcome.items.find((i) => i.issue_number === 30);
+    expect(reRow?.status).toBe("planned");
+    expect(reRow?.re_enrich).toBe(true);
+    expect(reRow?.add).toEqual(expect.arrayContaining(["status:deferred", "triage:deferred"]));
+    expect(reRow?.add).not.toContain("triaged"); // already present; additive-only
+
+    const firstRow = outcome.items.find((i) => i.issue_number === 31);
+    expect(firstRow?.status).toBe("planned");
+    expect(firstRow?.re_enrich).toBeUndefined();
+    expect(firstRow?.add).toEqual(
+      expect.arrayContaining(["triaged", "status:deferred", "triage:deferred"]),
+    );
+
+    const report = renderLabelMirrorReport(outcome);
+    expect(report).toContain("re_enrich=on");
+    expect(report).toContain("planned_kind:");
+    expect(report).toContain("re_enrich=1");
+    expect(report).toContain("kind=re-enrich");
+    expect(report).toContain("kind=first-time");
+
+    const json = labelMirrorOutcomeToJson(outcome);
+    expect(json.re_enrich_planned).toBe(1);
+    expect((json.filters as { re_enrich: boolean }).re_enrich).toBe(true);
+  });
+
+  it("--re-enrich apply writes additive labels only; never removals (#3197)", () => {
+    const root = tmpRoot();
+    writeProject(root, {
+      triageLabelMirror: {
+        actionLabels: { defer: ["status:deferred"] },
+      },
+    });
+    writeCachedIssue(root, "acme/demo", 32, {
+      number: 32,
+      state: "open",
+      body: "HOLDING for later",
+      labels: [{ name: "triaged" }, { name: "legacy-chip" }],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    const client = new FakeLabelClient();
+    client.labels.set("acme/demo:32", ["legacy-chip", "triaged"]);
+    const [code, outcome] = mirrorLabels(root, {
+      dryRun: false,
+      client,
+      allowCrossRepo: true,
+      useLiveLabels: true,
+      reEnrich: true,
+      delayMs: 0,
+    });
+    expect(code).toBe(0);
+    expect(outcome.re_enrich_applied).toBe(1);
+    expect(client.applyCalls).toHaveLength(1);
+    const [, , add, remove] = client.applyCalls[0] ?? ["", 0, [], []];
+    expect(add).toEqual(["status:deferred"]);
+    expect(remove).toEqual([]); // additive-only v1
+    // legacy-chip must remain (not stripped)
+    expect(client.labels.get("acme/demo:32")?.sort()).toEqual(
+      ["legacy-chip", "status:deferred", "triaged"].sort(),
+    );
   });
 
   it("--apply writes labels via LabelClient; re-run is no-op", () => {
@@ -448,6 +552,11 @@ describe("mirrorLabels", () => {
     expect(json.dry_run).toBe(true);
     expect(Array.isArray(json.items)).toBe(true);
     expect(json.skipped_closed).toBe(0);
+    expect(json.re_enrich_planned).toBe(0);
+    expect(json.re_enrich_applied).toBe(0);
+    expect((json.filters as { re_enrich: boolean }).re_enrich).toBe(false);
+    expect(report).toContain("re_enrich=off");
+    expect(report).toContain("kind=first-time");
   });
 
   it("refuses cross-repo apply without allowCrossRepo", () => {

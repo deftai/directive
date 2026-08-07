@@ -1,5 +1,5 @@
 /**
- * Tier-1 deterministic SCM label mirror (#1423 Wave 1 + Wave 2 bootstrap).
+ * Tier-1 deterministic SCM label mirror (#1423 Wave 1 + Wave 2 bootstrap + #3197 re-enrich).
  *
  * Classifies cached issues with the existing #1129 engine, then mirrors the
  * outcome as SCM labels (dry-run default, --apply to write). Never accepts into
@@ -8,6 +8,10 @@
  * Wave 2 (#3125): open-only default, operator digest (totals + by state/rule/action
  * + samples), batched rate-limit-aware apply. Bootstrap mass-triage entrypoint is
  * `triage:classify -- --mirror` with these filters (not triage:accept).
+ *
+ * #3197 re-enrich: default keeps one-shot skip on idempotencyLabel; opt-in
+ * `--re-enrich` re-classifies already-stamped issues and plans **additive**
+ * label deltas only (v1; no removals / no full reconcile).
  *
  * Intentionally does NOT import from ./index.js (SLizard P1 cycle). The classify
  * engine is injected via LabelMirrorEngine / mirrorLabels() wrapper in index.ts.
@@ -213,6 +217,12 @@ export interface LabelMirrorItem {
   readonly add: readonly string[];
   readonly status: LabelMirrorStatus;
   readonly message?: string;
+  /**
+   * True when this row re-planned an issue that already carried the idempotency
+   * label under opt-in re-enrich mode (#3197). Distinguishes first-time stamp
+   * rows from re-enrich additive backfill in dry-run digests.
+   */
+  readonly re_enrich?: boolean;
 }
 
 /** Operator digest aggregates for bootstrap mass-triage (#3125 / #1423 Wave 2). */
@@ -233,6 +243,8 @@ export interface LabelMirrorFilters {
   readonly author: string | null;
   /** Resolved author logins for machine consumers. */
   readonly author_logins: readonly string[] | null;
+  /** Whether this run used opt-in re-enrich mode (#3197). */
+  readonly re_enrich: boolean;
 }
 
 export interface LabelMirrorOutcome {
@@ -250,6 +262,16 @@ export interface LabelMirrorOutcome {
   /** Issues skipped by --author filter (#3129). */
   readonly skipped_author: number;
   readonly errors: number;
+  /**
+   * Planned rows that re-enriched already-stamped issues (subset of planned; #3197).
+   * Zero when re_enrich mode is off.
+   */
+  readonly re_enrich_planned: number;
+  /**
+   * Applied rows that re-enriched already-stamped issues (subset of applied; #3197).
+   * Zero when re_enrich mode is off.
+   */
+  readonly re_enrich_applied: number;
   readonly filters: LabelMirrorFilters;
   readonly digest: LabelMirrorDigest;
   readonly items: readonly LabelMirrorItem[];
@@ -289,6 +311,14 @@ export interface LabelMirrorOptions {
   readonly delayMs?: number;
   /** Injectable sleep for tests (receives ms). Default busy-wait when delayMs > 0. */
   readonly sleepMs?: LabelMirrorSleepFn;
+  /**
+   * Opt-in re-enrich mode (#3197): re-classify issues that already carry the
+   * idempotency label and plan **additive** label deltas only (no removals).
+   * Default false preserves one-shot `skipped_already_triaged` behavior.
+   * Still dry-run by default; pair with dryRun:false / CLI `--apply` to write.
+   * Never triage:accept / never xBRIEF writes.
+   */
+  readonly reEnrich?: boolean;
   /** Required: classify engine (provided by classify/index mirrorLabels wrapper). */
   readonly engine: LabelMirrorEngine;
 }
@@ -638,6 +668,7 @@ export function mirrorLabels(
       ? options.authorFilter
       : null;
   const sampleLimit = options.sampleLimit ?? DEFAULT_DIGEST_SAMPLE_LIMIT;
+  const reEnrich = options.reEnrich === true;
   const batchSize =
     options.batchSize !== undefined
       ? Math.max(1, Math.floor(options.batchSize))
@@ -659,6 +690,7 @@ export function mirrorLabels(
     repo: repoFilter,
     author: authorFilter !== null ? authorFilter.display : null,
     author_logins: authorFilter !== null ? authorFilter.allowLogins : null,
+    re_enrich: reEnrich,
   };
 
   const items: LabelMirrorItem[] = [];
@@ -687,6 +719,8 @@ export function mirrorLabels(
         skipped_unreadable: 0,
         skipped_closed: 0,
         skipped_author: 0,
+        re_enrich_planned: 0,
+        re_enrich_applied: 0,
         errors: 0,
         digest: emptyDigest,
         items: [
@@ -730,6 +764,8 @@ export function mirrorLabels(
   let skippedUnreadable = 0;
   let skippedClosed = 0;
   let skippedAuthor = 0;
+  let reEnrichPlanned = 0;
+  let reEnrichApplied = 0;
   let errors = 0;
   let applyWritesSinceSleep = 0;
 
@@ -827,7 +863,11 @@ export function mirrorLabels(
       current = issueLabelNames(issue);
     }
 
-    if (current.includes(policy.idempotencyLabel)) {
+    // Default one-shot: already stamped → skip. Opt-in --re-enrich continues past
+    // the stamp and plans additive deltas only (#3197; never removals in v1).
+    const alreadyStamped =
+      policy.idempotencyLabel.length > 0 && current.includes(policy.idempotencyLabel);
+    if (alreadyStamped && !reEnrich) {
       skippedAlready += 1;
       items.push({
         repo,
@@ -844,6 +884,7 @@ export function mirrorLabels(
       });
       continue;
     }
+    const isReEnrichRow = alreadyStamped && reEnrich;
 
     // Pass number set only when this exact repo+number is referenced from xBRIEF.
     const key = `${repo.toLowerCase()}\0${issueNumber}`;
@@ -860,6 +901,26 @@ export function mirrorLabels(
     });
 
     if (classification === null) {
+      // Re-enrich of a stamped issue with no current rule match: leave labels as-is
+      // (additive-only v1 never strips triaged / action chips). Count as unchanged.
+      if (isReEnrichRow) {
+        unchanged += 1;
+        items.push({
+          repo,
+          issue_number: issueNumber,
+          state,
+          action: null,
+          reason: null,
+          ruleKind: null,
+          current: [...current].sort(),
+          desired: [...current].sort(),
+          add: [],
+          status: "unchanged",
+          re_enrich: true,
+          message: `re-enrich: no classify match; left existing labels (incl. ${policy.idempotencyLabel})`,
+        });
+        continue;
+      }
       skippedNoMatch += 1;
       items.push({
         repo,
@@ -878,7 +939,9 @@ export function mirrorLabels(
 
     const desired = desiredLabelsForClassification(classification.action, policy);
     const currentSet = new Set(current);
+    // Additive-only: never plan removals even under re-enrich (#3197 v1).
     const add = desired.filter((label) => !currentSet.has(label)).sort();
+    const reEnrichFlag = isReEnrichRow ? ({ re_enrich: true } as const) : {};
 
     if (add.length === 0) {
       unchanged += 1;
@@ -893,12 +956,16 @@ export function mirrorLabels(
         desired,
         add: [],
         status: "unchanged",
+        ...reEnrichFlag,
       });
       continue;
     }
 
     if (dryRun) {
       planned += 1;
+      if (isReEnrichRow) {
+        reEnrichPlanned += 1;
+      }
       items.push({
         repo,
         issue_number: issueNumber,
@@ -910,6 +977,7 @@ export function mirrorLabels(
         desired,
         add,
         status: "planned",
+        ...reEnrichFlag,
       });
       continue;
     }
@@ -934,6 +1002,7 @@ export function mirrorLabels(
         add,
         status: "error",
         message: mutateGate.reason ?? `refusing cross-repo mutation on ${repo}`,
+        ...reEnrichFlag,
       });
       continue;
     }
@@ -952,6 +1021,7 @@ export function mirrorLabels(
         add,
         status: "error",
         message: "no LabelClient available for apply",
+        ...reEnrichFlag,
       });
       continue;
     }
@@ -963,8 +1033,12 @@ export function mirrorLabels(
         sleepMs(delayMs);
       }
       applyWritesSinceSleep += 1;
+      // Additive-only: remove list is always empty (never strip labels; #3197).
       client.apply(repo, issueNumber, add, []);
       applied += 1;
+      if (isReEnrichRow) {
+        reEnrichApplied += 1;
+      }
       items.push({
         repo,
         issue_number: issueNumber,
@@ -976,6 +1050,7 @@ export function mirrorLabels(
         desired,
         add,
         status: "applied",
+        ...reEnrichFlag,
       });
     } catch (exc) {
       errors += 1;
@@ -992,6 +1067,7 @@ export function mirrorLabels(
         add,
         status: "error",
         message: formatMissingLabelHint(rawMsg, add),
+        ...reEnrichFlag,
       });
       // Partial failure: continue remaining issues (idempotent re-run skips applied).
     }
@@ -1009,6 +1085,8 @@ export function mirrorLabels(
     skipped_unreadable: skippedUnreadable,
     skipped_closed: skippedClosed,
     skipped_author: skippedAuthor,
+    re_enrich_planned: reEnrichPlanned,
+    re_enrich_applied: reEnrichApplied,
     errors,
     digest,
     items,
@@ -1028,17 +1106,34 @@ function formatCountMap(map: Readonly<Record<string, number>>): string[] {
 export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
   const lines: string[] = [];
   const mode = outcome.dry_run ? "dry-run" : "apply";
-  lines.push(`triage:classify --mirror (${mode}) — bootstrap mass-triage (#1423 Wave 2)`);
+  const reEnrichOn = outcome.filters.re_enrich === true;
+  lines.push(
+    reEnrichOn
+      ? `triage:classify --mirror --re-enrich (${mode}) — additive re-enrich (#3197 / #1423)`
+      : `triage:classify --mirror (${mode}) — bootstrap mass-triage (#1423 Wave 2)`,
+  );
   const stateFilter = outcome.filters.include_closed ? "all (include-closed)" : "open-only";
   const repoPart = outcome.filters.repo ?? "*";
   const authorPart = outcome.filters.author ?? "*";
-  lines.push(`filters: state=${stateFilter} repo=${repoPart} author=${authorPart}`);
+  const reEnrichPart = reEnrichOn ? "on (additive-only)" : "off";
+  lines.push(
+    `filters: state=${stateFilter} repo=${repoPart} author=${authorPart} re_enrich=${reEnrichPart}`,
+  );
+  const firstTimePlanned = Math.max(0, outcome.planned - outcome.re_enrich_planned);
+  const firstTimeApplied = Math.max(0, outcome.applied - outcome.re_enrich_applied);
   lines.push(
     `scanned=${outcome.scanned} planned=${outcome.planned} applied=${outcome.applied} ` +
       `unchanged=${outcome.unchanged} already_triaged=${outcome.skipped_already_triaged} ` +
       `no_match=${outcome.skipped_no_match} closed_skipped=${outcome.skipped_closed} ` +
       `author_skipped=${outcome.skipped_author} ` +
       `unreadable=${outcome.skipped_unreadable} errors=${outcome.errors}`,
+  );
+  // Distinguish first-time stamp rows vs re-enrich additive backfill (#3197 / #3124 re-run vs re-enrich).
+  lines.push(
+    `planned_kind: first_time=${firstTimePlanned} re_enrich=${outcome.re_enrich_planned}` +
+      (outcome.dry_run
+        ? ""
+        : ` | applied_kind: first_time=${firstTimeApplied} re_enrich=${outcome.re_enrich_applied}`),
   );
   lines.push(
     `idempotencyLabel=${outcome.policy.idempotencyLabel} alwaysLabels=${JSON.stringify(outcome.policy.alwaysLabels)}`,
@@ -1071,9 +1166,10 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
       const actionPart = item.action !== null ? ` action=${item.action}` : "";
       const rulePart = item.ruleKind !== null ? ` rule=${item.ruleKind}` : "";
       const statePart = item.state !== null ? ` state=${item.state}` : "";
+      const kindPart = item.re_enrich === true ? " kind=re-enrich" : " kind=first-time";
       const addPart = sanitizeReportFragment(item.add.join(", +"));
       lines.push(
-        `- ${item.repo}#${item.issue_number}:${statePart}${actionPart}${rulePart} +${addPart}`,
+        `- ${item.repo}#${item.issue_number}:${statePart}${actionPart}${rulePart}${kindPart} +${addPart}`,
       );
     }
     if (outcome.digest.sample_truncated) {
@@ -1100,6 +1196,11 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
   if (already.length > 0) {
     lines.push("");
     lines.push(`Skipped (already ${outcome.policy.idempotencyLabel}): ${already.length}`);
+    if (!reEnrichOn) {
+      lines.push(
+        "  Tip: after actionLabels / rule changes, use --mirror --re-enrich (dry-run) to plan additive chips on already-stamped issues (#3197; re-run vs re-enrich #3124).",
+      );
+    }
   }
 
   const noMatch = outcome.items.filter((i) => i.status === "skipped_no_match");
@@ -1120,7 +1221,9 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
   if (outcome.dry_run && writeTotal > 0) {
     lines.push("");
     lines.push(
-      "Dry-run — re-run with --mirror --apply to write these labels via SCM (batched; never triage:accept).",
+      reEnrichOn
+        ? "Dry-run — re-run with --mirror --re-enrich --apply to write additive labels via SCM (batched; never triage:accept; never removals)."
+        : "Dry-run — re-run with --mirror --apply to write these labels via SCM (batched; never triage:accept).",
     );
   }
 
@@ -1141,12 +1244,15 @@ export function labelMirrorOutcomeToJson(outcome: LabelMirrorOutcome): Record<st
     skipped_unreadable: outcome.skipped_unreadable,
     skipped_closed: outcome.skipped_closed,
     skipped_author: outcome.skipped_author,
+    re_enrich_planned: outcome.re_enrich_planned,
+    re_enrich_applied: outcome.re_enrich_applied,
     errors: outcome.errors,
     filters: {
       include_closed: outcome.filters.include_closed,
       repo: outcome.filters.repo,
       author: outcome.filters.author,
       author_logins: outcome.filters.author_logins,
+      re_enrich: outcome.filters.re_enrich,
     },
     digest: {
       by_state: { ...outcome.digest.by_state },
@@ -1183,6 +1289,7 @@ function itemToJson(i: LabelMirrorItem): Record<string, unknown> {
     add: [...i.add],
     status: i.status,
     ...(i.message !== undefined ? { message: i.message } : {}),
+    ...(i.re_enrich === true ? { re_enrich: true } : {}),
   };
 }
 
