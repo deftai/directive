@@ -477,6 +477,8 @@ User-facing surface for the Phase 0 triage workflow and the unified content cach
 
 Directive does not guess your mix. Either you name the next units in order (**ordered plan**), or you let the ranked backlog suggest (**queue**). Labels bias the queue; they do not override an active plan.
 
+**See also (pre-promotion portfolio):** when the need is to cluster competing RFCs/issues into a propose-not-apply priority brief (not single-item queue ranking), use `skills/deft-directive-portfolio-priority/SKILL.md` (#3201 / #3198) — classify is filter-only; no SCM label writes.
+
 | Path | When | Who sets it | Bare "what's next?" means |
 |---|---|---|---|
 | **Ordered plan** | You know the next few units (A then B then stop) | `task plan-sequence:set -- --file <json>` | Current sequence entry only; exhaustion fails closed |
