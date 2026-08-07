@@ -111,4 +111,13 @@ describe("test_portfolio_priority_skill", () => {
     expect(text).toContain("deft-directive-portfolio-priority");
     expect(text).toContain("portfolio priority");
   });
+
+  it("portfolio_priority_skill_in_consumer_discovery_inventory", () => {
+    // Install-time multi-host deposit SoT (#75 residual / Greptile on #3203).
+    const inventory = readRepoFile("packages/core/src/init-deposit/skill-discovery-deposit.ts");
+    expect(inventory).toContain('dir: "deft-directive-portfolio-priority"');
+    expect(inventory).toContain(
+      "Read and follow: .deft/core/skills/deft-directive-portfolio-priority/SKILL.md",
+    );
+  });
 });
