@@ -847,13 +847,32 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
 }
 
 /**
- * Surface undecided coverageDebt / checkResume policy (#3189).
- * Exit-exempt fail so doctor discloses without hard-blocking CI.
+ * Surface undecided / invalid coverageDebt + checkResume policy (#3189).
+ * Advisory skip when undecided; never hard-fails doctor / check:consumer.
  * Decided-off is quiet; dismiss-with-reason is pass with reason in detail.
+ * Invalid typed blocks resolve fail-closed and surface via source=default-on-error.
  */
 export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult {
   const debt = resolveCoverageDebt(projectRoot);
   const resume = resolveCheckResume(projectRoot);
+  if (debt.source === "default-on-error" || resume.source === "default-on-error") {
+    return {
+      name: "coverage-check-resume-policy",
+      status: "skip",
+      detail:
+        "advisory: coverageDebt and/or checkResume block is invalid; " +
+        "resolution is fail-closed (mode off, localStamp off, CI never trusts stamps). " +
+        `coverageDebt.error=${JSON.stringify(debt.error)}; ` +
+        `checkResume.error=${JSON.stringify(resume.error)}. ` +
+        "Fix the typed block or re-apply Strict / Hatch-aware / dismiss-with-reason.",
+      data: {
+        coverageDebt: { status: debt.status, source: debt.source, error: debt.error },
+        checkResume: { status: resume.status, source: resume.source, error: resume.error },
+        advisory: true,
+        invalid: true,
+      },
+    };
+  }
   const undecided = debt.status === "unset" || resume.status === "unset";
   if (!undecided) {
     const dismissParts: string[] = [];
