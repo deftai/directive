@@ -131,8 +131,11 @@ export function dispatchCachedTaskCheck(
     // Fail-fast: do not start later gates (including suite) after a failure.
     if (result.exitCode !== 0) {
       if (!isSuiteCheckGate(gateSpec)) {
+        const remaining = gates.some(isSuiteCheckGate)
+          ? "skipping remaining gates including suite"
+          : "skipping remaining gates";
         process.stderr.write(
-          `check: fast gate ${gateId} failed (exit ${result.exitCode}); skipping remaining gates including suite (#3188)\n`,
+          `check: fast gate ${gateId} failed (exit ${result.exitCode}); ${remaining} (#3188)\n`,
         );
       }
       return result.exitCode;

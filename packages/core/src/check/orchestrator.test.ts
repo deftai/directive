@@ -312,6 +312,81 @@ describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
     errWrite.mockRestore();
   });
 
+  it("does not claim suite skip when consumer list has no suite gate", () => {
+    // Minimal deposit that passes #3070 consumer-gate integrity so the
+    // sequential runner reaches CONSUMER_CHECK_GATES (no suite entries).
+    const framework = mkdtempSync(join(tmpdir(), "deft-3188-fw-"));
+    tempDirs.push(framework);
+    mkdirSync(join(framework, "tasks"), { recursive: true });
+    writeFileSync(
+      join(framework, "Taskfile.yml"),
+      `version: '3'
+includes:
+  verify:
+    taskfile: ./tasks/verify.yml
+  toolchain:
+    taskfile: ./tasks/toolchain.yml
+  vbrief:
+    taskfile: ./tasks/vbrief.yml
+tasks:
+  doctor:
+    cmds: [echo doctor]
+  verify-strategy-output:
+    cmds: [echo strategy]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "verify.yml"),
+      `version: '3'
+tasks:
+  branch:
+    cmds: [echo ok]
+  cache-fresh:
+    cmds: [echo ok]
+  wip-cap:
+    cmds: [echo ok]
+  orphan-active:
+    cmds: [echo ok]
+  test-boundary:
+    cmds: [echo ok]
+  scope-provenance:
+    cmds: [echo ok]
+  consumer-check-contract:
+    cmds: [echo ok]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "toolchain.yml"),
+      "version: '3'\ntasks:\n  check-consumer:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "vbrief.yml"),
+      "version: '3'\ntasks:\n  validate:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const project = join(tmpdir(), "consumer-project-3188");
+    const code = dispatchCachedTaskCheck(framework, project, {
+      noCache: true,
+      gateSpawnFn: (gateId) => {
+        if (gateId === "verify:branch") {
+          return { exitCode: 1, stdout: "", stderr: "branch fail\n" };
+        }
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    expect(code).toBe(1);
+    const skipMsg = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    expect(skipMsg).toMatch(/skipping remaining gates \(#3188\)/);
+    expect(skipMsg).not.toMatch(/including suite/);
+    errWrite.mockRestore();
+  });
+
   it("logs suite start only after all fast gates pass", () => {
     const started: string[] = [];
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
