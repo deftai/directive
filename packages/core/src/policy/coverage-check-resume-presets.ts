@@ -139,26 +139,32 @@ function writeCoverageCheckResumeBundle(
       if (changedFlag) {
         atomicWriteProjectDefinition(path, data);
       }
-      const note = input.note.replace(/\n/g, " ").replace(/\r/g, " ");
-      appendAuditLog(
-        projectRoot,
-        [
-          `actor=${input.actor}`,
-          `preset=${input.preset}`,
-          "coverageDebt.status=decided",
-          `mode=${nextDebt.mode}`,
-          `autoFile=${String(nextDebt.autoFile)}`,
-          "checkResume.status=decided",
-          `localStamp=${nextResume.localStamp}`,
-          "ciTrustsLocalStamp=false",
-          `dismissReason=${JSON.stringify(dismissReason)}`,
-          `previousDebt=${JSON.stringify(previousDebt ?? null)}`,
-          `previousResume=${JSON.stringify(previousResume ?? null)}`,
-          note ? `note=${note}` : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
-      );
+      // Audit is best-effort after durable write: a log I/O failure must not
+      // flip a successful decision into command failure (partial-report bug).
+      try {
+        const note = input.note.replace(/\n/g, " ").replace(/\r/g, " ");
+        appendAuditLog(
+          projectRoot,
+          [
+            `actor=${input.actor}`,
+            `preset=${input.preset}`,
+            "coverageDebt.status=decided",
+            `mode=${nextDebt.mode}`,
+            `autoFile=${String(nextDebt.autoFile)}`,
+            "checkResume.status=decided",
+            `localStamp=${nextResume.localStamp}`,
+            "ciTrustsLocalStamp=false",
+            `dismissReason=${JSON.stringify(dismissReason)}`,
+            `previousDebt=${JSON.stringify(previousDebt ?? null)}`,
+            `previousResume=${JSON.stringify(previousResume ?? null)}`,
+            note ? `note=${note}` : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
+      } catch {
+        /* audit best-effort */
+      }
       return { changed: changedFlag };
     });
 
@@ -166,8 +172,8 @@ function writeCoverageCheckResumeBundle(
     const lines = [
       `\u2713 coverageDebt+checkResume decided via preset=${input.preset} (atomic write).`,
       changed
-        ? "  audit: meta/policy-changes.log updated."
-        : "  no-op: value already matched (audit entry still appended for trail).",
+        ? "  audit: meta/policy-changes.log updated (best-effort)."
+        : "  no-op: value already matched.",
       summary,
     ];
     return {

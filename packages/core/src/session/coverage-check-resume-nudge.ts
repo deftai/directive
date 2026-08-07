@@ -69,6 +69,11 @@ export function formatCoverageCheckResumeNudge(): string {
 /**
  * Emit the nudge when eligible; headless / decided callers get an empty string.
  * Never blocks -- session-start always continues.
+ *
+ * Design note (#3189): session-start is non-interactive for agent hosts (same
+ * class as product-signal D17). Choice dispatch is via CLI verbs named in the
+ * nudge body (`policy:coverage-check-resume-preset|later|dismiss`), not a
+ * blocking TTY menu inside session:start.
  */
 export function maybeFormatCoverageCheckResumeNudge(
   options: CoverageCheckResumeNudgeEligibilityOptions,
