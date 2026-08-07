@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#3185).** Focused test-boundary policy/evaluate edges, scope-provenance digest IO, consumer-check-contract pure helpers, OpenClaw soft-rebind doctor branches, and platform-status weather URL edges clear the v0.97.0 84.95% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.66%, branches 85.1%, functions 95.98%. Closes #3185.
 - **Security: UAT Shell fail-closed for authz obfuscation, kill-switch/policy, assist-scratch symlink (#3186).** Under active UAT, write-capable programmatic Shell and kill-switch/policy authority mutators classify as settings (no `shell-op-unclassifiable` fail-open); assist-scratch allows only realpath-contained non-symlink scratch roots. Closes #3186.
 
 ### Removed
