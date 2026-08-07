@@ -139,8 +139,9 @@ function writeCoverageCheckResumeBundle(
       if (changedFlag) {
         atomicWriteProjectDefinition(path, data);
       }
-      // Audit is best-effort after durable write: a log I/O failure must not
-      // flip a successful decision into command failure (partial-report bug).
+      let auditOk = true;
+      // Audit after durable write: failure must not reverse the decision, but
+      // the operator report must not claim the audit trail was updated.
       try {
         const note = input.note.replace(/\n/g, " ").replace(/\r/g, " ");
         appendAuditLog(
@@ -163,23 +164,26 @@ function writeCoverageCheckResumeBundle(
             .join(" "),
         );
       } catch {
-        /* audit best-effort */
+        auditOk = false;
       }
-      return { changed: changedFlag };
+      return { changed: changedFlag, auditOk };
     });
 
     const summary = formatCoverageCheckResumeBundleStatus(projectRoot);
+    const auditLine = changed.auditOk
+      ? changed.changed
+        ? "  audit: meta/policy-changes.log updated."
+        : "  no-op: value already matched (audit entry still appended for trail)."
+      : "  warning: policy write succeeded but audit log append failed; decision is durable.";
     const lines = [
       `\u2713 coverageDebt+checkResume decided via preset=${input.preset} (atomic write).`,
-      changed
-        ? "  audit: meta/policy-changes.log updated (best-effort)."
-        : "  no-op: value already matched.",
+      auditLine,
       summary,
     ];
     return {
       exitCode: 0,
       stdout: `${lines.join("\n")}\n`,
-      changed,
+      changed: changed.changed,
       preset: input.preset,
     };
   } catch (err: unknown) {
