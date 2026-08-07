@@ -53,18 +53,38 @@ When Phase 1 `task ci:local` / `task check` fails on a **fixable product or test
 
 The full agent contract (including the explicit rejection of AGENTS.md / agents-entry bulk for this reminder) lives in `skills/deft-directive-release/SKILL.md` § **Fixable check failure — file-and-merge before resume (#2859)**. Production `--skip-ci` with `--allow-skip-ci=#N` remains incident-only per § Vitest coverage hang recovery above.
 
-## Coverage debt hatch during release (#2866)
+## Coverage debt hatch during release (#2866 / #3187)
 
-When **`task release` Step 5** fails on Vitest coverage below the 85% goal, use this hatch **only** when **branches** is the **sole** metric below 85% (lines, functions, and statements all ≥ 85%). Confirm from the Step 5 output or `task coverage:hotspots`. If any other metric also misses, or the failure is a hang / failing test / non-coverage defect, pause and follow § Fixable check failure during release (#2859).
+When **`task release` Step 5** fails on Vitest coverage below the 85% goal, use this hatch **only** when **branches** is the **sole** metric below 85% (lines, functions, and statements all ≥ 85%). Confirm from the Step 5 output, `coverage/coverage-final.json`, or `task coverage:hotspots`. If any other metric also misses, or the failure is a hang / failing test / non-coverage defect, pause and follow § Fixable check failure during release (#2859).
 
 **Runtime note:** `--allow-coverage-debt=#N` zeros all vitest coverage thresholds for the Step 5 run (`vitest.config.ts`, #2573). File debt only for branch-only hairlines; acceptance criteria must restore **all four metrics** to ≥ 85%.
 
-1. **No open coverage-debt issue** → union three probes: (a) open issues with `coverage-debt in:title,body`, (b) open issues with `allow-coverage-debt in:body`, (c) open issues cited via `--allow-coverage-debt=#N` in `CHANGELOG.md` `[Unreleased]` or the last three release sections (legacy hatch debt before markers were mandatory). If all empty, file `#N` with title prefix `coverage-debt:` and body containing both `coverage-debt` and `--allow-coverage-debt`, then continue with `--allow-coverage-debt=#N` on `task release`. On PowerShell use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` (#2621).
+### Auto-hatch after one suite (#3187)
+
+`task release` Step 5 classifies a non-zero suite as `REAL_FAILURE` | `BRANCH_HAIRLINE` | `OTHER_COVERAGE` | `UNKNOWN`:
+
+| Class | Behavior |
+| --- | --- |
+| `BRANCH_HAIRLINE` + **empty** open debt ledger | Auto-file `#N` with markers, mark `PASS_WITH_DEBT(#N)`, **continue without re-running vitest** |
+| `BRANCH_HAIRLINE` + **open** prior debt | Fail closed — restore coverage and close `#N` first (no consecutive soft-pass) |
+| `REAL_FAILURE` / `OTHER_COVERAGE` / `UNKNOWN` | Fail closed — no auto-issue |
+
+Never soft-pass without a durable issue (file-before-continue). Manual `--allow-coverage-debt=#N` remains valid (PowerShell: `--allow-coverage-debt=N` or `"#N"`, #2621).
+
+### Open-issue ledger probes
+
+1. **No open coverage-debt issue** → union three probes: (a) open issues with `coverage-debt in:title,body`, (b) open issues with `allow-coverage-debt in:body`, (c) open issues cited via `--allow-coverage-debt=#N` in `CHANGELOG.md` `[Unreleased]` or the last three release sections (legacy hatch debt before markers were mandatory). If all empty, auto-hatch (or operator) files `#N` with title prefix `coverage-debt:` and body containing both markers `coverage-debt` and `--allow-coverage-debt`.
 2. **Open coverage-debt issue from a prior hatch still exists** → do **not** soft-pass again; restore all four metrics to ≥ 85% and close the debt issue before the cut proceeds.
 
-The hatch is **release-scoped only** — not the default for ordinary PR / `task check` work. Hangs, failing tests, multi-metric coverage misses, and other non-coverage Step 5 failures stay under § Fixable check failure during release (#2859).
+### SHA suite stamp (#3187)
 
-Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)**.
+After suite **green** or `PASS_WITH_DEBT`, release writes a local stamp at `.deft/release-suite-stamp.json` (gitignored) bound to `git rev-parse HEAD`. Re-invoke at the same **clean** HEAD skips the suite (logs `suite stamp hit`). Dirty tree, different HEAD, corrupt stamp, or **CI** (`CI` / `GITHUB_ACTIONS`) → stamp miss; suite runs again. CI never trusts laptop stamps. Gate ordering (fast before slow) is owned by #3188; the stamp is the re-entry skip.
+
+### Scope
+
+The hatch is **framework-release-first / release-scoped only** — not the default for ordinary PR / `task check` work. Consumer auto-hatch expansion requires `plan.policy.coverageDebt` (#3189). Hangs, failing tests, multi-metric coverage misses, and other non-coverage Step 5 failures stay under § Fixable check failure during release (#2859).
+
+Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 branch-coverage threshold — open-issue ledger hatch (#2866 / #3187)**.
 
 ## Routine vs hard cut for Step 5 (#2953)
 
@@ -75,7 +95,7 @@ Release Step 5 (`task check` with Vitest coverage) is the longest local gate. Tw
 - Run full Step 5: `task release -- <version>` with **no** `--skip-ci`.
 - Use when the tip is unproven, the change set is large, or you need maximum local certainty before the tag.
 - Coverage soft-pass remains **only** via the explicit hatches already documented:
-  - branch-only hairline → `--allow-coverage-debt=#N` (#2866 / #2573)
+  - branch-only hairline → auto-hatch `PASS_WITH_DEBT(#N)` (#3187) or manual `--allow-coverage-debt=#N` (#2866 / #2573)
   - incident hang / untested ship → `--skip-ci` + `--allow-skip-ci=#N` (#2652)
 - ⊗ Silent soft-pass of coverage (no `#N`, no loud WARN) is forbidden in every mode.
 

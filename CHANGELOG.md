@@ -16,11 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Release Step 5 auto-hatch for branch coverage hairlines + SHA suite stamp (#3187).** After one suite, classifies `REAL_FAILURE` | `BRANCH_HAIRLINE` | `OTHER_COVERAGE` | `UNKNOWN`; on branch-only hairline with empty open coverage-debt ledger auto-files a marker-compliant debt issue and continues as `PASS_WITH_DEBT(#N)` without re-running vitest; open prior debt / non-hairline / unparseable still fail closed. Writes a local `.deft/release-suite-stamp.json` after green or hatch so re-entry at the same clean HEAD skips the suite; dirty tree, different HEAD, or CI never trusts the stamp. Framework-release-first (consumer policy is #3189; check gate ordering is #3188). Docs: release skill + `docs/RELEASING.md`. Closes #3187.
+
 ### Changed
+
+- **Shared `task check` runs cheap gates before the vitest+coverage suite (#3188).** Framework and consumer gate lists place branch/cache/orphan/contract-class preflight before `ts:check-lane`; the cached sequential orchestrator aborts on the first fast-gate failure so the suite never starts (logged). Consumer benefit is intentional; SHA suite stamp/resume stays release-scoped (#3187). Closes #3188. Refs #3187, #3189, #1713.
 
 ### Fixed
 
 - **Vitest branch coverage restored above 85% (#3185).** Focused test-boundary policy/evaluate edges, scope-provenance digest IO, consumer-check-contract pure helpers, OpenClaw soft-rebind doctor branches, and platform-status weather URL edges clear the v0.97.0 84.95% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.66%, branches 85.1%, functions 95.98%. Closes #3185.
+- **Security: UAT Shell fail-closed for authz obfuscation, kill-switch/policy, assist-scratch symlink (#3186).** Under active UAT, write-capable programmatic Shell and kill-switch/policy authority mutators classify as settings (no `shell-op-unclassifiable` fail-open); assist-scratch allows only realpath-contained non-symlink scratch roots. Closes #3186.
 
 ### Removed
 

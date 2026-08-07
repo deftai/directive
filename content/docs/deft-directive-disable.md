@@ -80,6 +80,12 @@ rm .deft-directive-disable
 # Start a NEW agent session
 ```
 
+## Agent self-serve ban under UAT (#3186)
+
+Operators plant and remove this flag **outside** an agent session (or with a prior human-origin grant). Under **active UAT**, PreToolUse classifies Shell writes that create `.deft-directive-disable` (and permanent opt-out `.no-deft-directive`) as **settings** and **denies** them without a human grant — same posture as `authz:grant` (#3110). Agents must not self-serve the kill-switch to bypass Write / push / PR / merge gates.
+
+Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:disable-directive` (peers) are also settings under UAT and require a human grant.
+
 ## Non-goals (v1)
 
 - ⊗ Auto-delete `.deft/` or uninstall deposit

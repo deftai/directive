@@ -193,12 +193,79 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Ordinary cleanup / non-store opaque dest stays unclassifiable (no overclassify).
     expect(classifyShellAuthzOps("rm -rf $TMPDIR/build")).toEqual([]);
     expect(classifyShellAuthzOps("rm -rf $HOME/.cache/tmp")).toEqual([]);
-    // Unrelated app state.json (shell or programmatic) is NOT an authz settings mutation.
+    // Shell expanded app state.json without authz context stays unclassifiable.
     expect(classifyShellAuthzOps('echo hi > "$APP_DIR/state.json"')).toEqual([]);
+    // #3186: write-capable programmatic shells classify as settings (UAT fail-closed rule)
+    // even for non-authz destinations — evaluate still allows outside UAT (authz-inactive).
     expect(
       classifyShellAuthzOps(
         "python -c \"import os; open(os.environ['APP_DIR']+'/state.json','w').write('{}')\"",
       ),
+    ).toContain("settings");
+  });
+
+  it("classifies kill-switch plant and policy authority mutators as settings (#3186)", () => {
+    for (const cmd of [
+      "echo > .deft-directive-disable",
+      "touch .deft-directive-disable",
+      "printf '' > ./.deft-directive-disable",
+      "New-Item -Path .deft-directive-disable -ItemType File",
+      "echo x > .no-deft-directive",
+      "deft policy:allow-bot-merge -- --confirm",
+      "task policy:allow-direct-commits -- --confirm",
+      "directive policy:disable-directive -- --confirm",
+      "npx deft policy allow-bot-merge --confirm",
+      "env FOO=1 deft policy:enable-directive",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Read-only policy show stays unclassifiable.
+    expect(classifyShellAuthzOps("deft policy:show --field wipCap")).toEqual([]);
+    // Non-mutator policy subcommands / unrelated shell stay empty.
+    expect(classifyShellAuthzOps("git status")).toEqual([]);
+  });
+
+  it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
+    // Base64/byte path construction — residual after #3110 literal path match.
+    expect(
+      classifyShellAuthzOps(
+        "python3 -c \"import base64; p=base64.b64decode('LmRlZnQvYXV0aHovc3RhdGUuanNvbg==').decode(); open(p,'w').write('{}')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "node -e \"const p=Buffer.from('LmRlZnQvYXV0aHo=','base64').toString(); require('fs').writeFileSync(p,'{}')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "python -c \"p=bytes([0x2e,0x64,0x65,0x66,0x74]).decode(); open(p+'/authz/x','w').write('x')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("perl -e \"open(F,'>',pack('H*','2e64656674')); print F '{}'\""),
+    ).toContain("settings");
+    // Path-qualified / versioned interpreters (Greptile P1).
+    expect(
+      classifyShellAuthzOps("/usr/bin/python3 -c \"open('.deft/authz/x','w').write('{}')\""),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("python3.11 -c \"open('x','w').write('y')\"")).toContain(
+      "settings",
+    );
+    // Compound safe prefix must not hide write residual (SLizard).
+    expect(classifyShellAuthzOps("pytest && python -c \"open('x','w').write('y')\"")).toContain(
+      "settings",
+    );
+    // Print-only / read-only programmatic shell stays unclassifiable.
+    expect(classifyShellAuthzOps('python -c "print(1)"')).toEqual([]);
+    expect(classifyShellAuthzOps("node -e \"console.log('ok')\"")).toEqual([]);
+    expect(classifyShellAuthzOps("python -c \"print(open('report.txt').read())\"")).toEqual([]);
+    // `.write` / `.write(` as quoted data is not a write API (Greptile conf residual).
+    expect(classifyShellAuthzOps("python -c \"print('.write is a method name')\"")).toEqual([]);
+    expect(classifyShellAuthzOps("python -c \"print('.write(')\"")).toEqual([]);
+    expect(
+      classifyShellAuthzOps("python -c \"import base64; print(base64.b64decode('YQ=='))\""),
     ).toEqual([]);
   });
 
