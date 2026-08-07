@@ -72,8 +72,10 @@ describe("extractFileScope / extractPlanId branches (#3185)", () => {
 
 describe("buildApprovedScopeRecord / disk IO branches (#3185)", () => {
   it("falls back plan id from basename and optional body digest", () => {
+    // Use POSIX separators so node:path basename is portable on Linux CI
+    // (Windows basename also accepts "\\", but Linux treats them as literal).
     const rec = buildApprovedScopeRecord({
-      xbriefRelPath: "xbrief\\active\\story.xbrief.json",
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
       payload: { plan: { metadata: { swarm: { file_scope: ["z.ts"] } } } },
       xbriefRawText: '{"plan":{}}',
       approvedAt: "2026-08-07T00:00:00Z",
@@ -82,6 +84,18 @@ describe("buildApprovedScopeRecord / disk IO branches (#3185)", () => {
     expect(rec.xbriefRelPath).toBe("xbrief/active/story.xbrief.json");
     expect(rec.xbriefBodyDigest).toBe(computeTextDigest('{"plan":{}}'));
     expect(rec.fileScopeDigest).toBe(computeFileScopeDigest(["z.ts"]));
+  });
+
+  it("normalizes backslash xbriefRelPath separators without treating them as plan id", () => {
+    const rec = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief\\active\\story-bs.xbrief.json",
+      payload: {
+        plan: { id: "explicit-id", metadata: { swarm: { file_scope: [] } } },
+      },
+    });
+    // plan.id wins when present; path is always stored with POSIX separators.
+    expect(rec.planId).toBe("explicit-id");
+    expect(rec.xbriefRelPath).toBe("xbrief/active/story-bs.xbrief.json");
   });
 
   it("includes humanApproval without body digest when raw text omitted", () => {
