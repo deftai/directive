@@ -159,6 +159,20 @@ function hasGhApiPath(tokens: readonly string[], needle: string): boolean {
  */
 const AUTHZ_MUTATING_SUBCOMMANDS = new Set(["grant", "uat-start", "uat-suspend", "revoke"]);
 
+/**
+ * Policy authority mutators that weaken merge / branch / directive gates (#3186).
+ * Classified as **settings** — agents must not self-serve these under active UAT.
+ */
+const POLICY_AUTHORITY_MUTATORS = new Set([
+  "allow-bot-merge",
+  "allow-direct-commits",
+  "disable-directive",
+  "enable-directive",
+]);
+
+/** Kill-switch / permanent opt-out basenames agents must not plant under UAT (#3186 / #3039). */
+const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
+
 function authzSubcommandFromToken(token: string): string | null {
   const t = normalizeToken(token);
   if (t.startsWith("authz:")) {
@@ -166,6 +180,15 @@ function authzSubcommandFromToken(token: string): string | null {
     return AUTHZ_MUTATING_SUBCOMMANDS.has(sub) ? sub : null;
   }
   return AUTHZ_MUTATING_SUBCOMMANDS.has(t) ? t : null;
+}
+
+function policyMutatorFromToken(token: string): string | null {
+  const t = normalizeToken(token);
+  if (t.startsWith("policy:")) {
+    const sub = t.slice("policy:".length);
+    return POLICY_AUTHORITY_MUTATORS.has(sub) ? sub : null;
+  }
+  return POLICY_AUTHORITY_MUTATORS.has(t) ? t : null;
 }
 
 /**
@@ -195,6 +218,271 @@ function hasAuthzMutatingCli(tokens: readonly string[]): boolean {
     const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
     if (authzSubcommandFromToken(next) !== null) return true;
   }
+  return false;
+}
+
+/**
+ * Detect `policy:allow-bot-merge` / `policy allow-direct-commits` / peers (#3186).
+ * O(n) token walk — no nested-quantifier regex on untrusted input.
+ */
+function hasPolicyAuthorityMutator(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i];
+    if (raw === undefined) break;
+    const t = normalizeToken(raw);
+    if (policyMutatorFromToken(t) !== null && t.startsWith("policy:")) {
+      return true;
+    }
+    const isPolicyBin =
+      t === "policy" ||
+      t.endsWith("/policy") ||
+      t.endsWith("\\policy") ||
+      t.endsWith("/policy.js") ||
+      t.endsWith("\\policy.js") ||
+      t.endsWith("/policy.ts") ||
+      t.endsWith("\\policy.ts");
+    if (!isPolicyBin) continue;
+    const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
+    if (policyMutatorFromToken(next) !== null) return true;
+  }
+  return false;
+}
+
+/**
+ * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039).
+ * Planting the kill-switch under UAT would full-bypass subsequent gates without operator recovery.
+ */
+function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  let mentionsKill = false;
+  for (const name of KILL_SWITCH_BASENAMES) {
+    if (lower.includes(name)) {
+      mentionsKill = true;
+      break;
+    }
+  }
+  if (!mentionsKill) return false;
+
+  // Redirect dest region after each `>` / `>>` (O(n)).
+  for (let i = 0; i < lower.length; i++) {
+    if (lower[i] !== ">") continue;
+    let j = i + 1;
+    if (j < lower.length && lower[j] === ">") j++;
+    let end = j;
+    while (
+      end < lower.length &&
+      lower[end] !== "|" &&
+      lower[end] !== ";" &&
+      lower[end] !== "&" &&
+      lower[end] !== "\n"
+    ) {
+      end++;
+    }
+    const dest = lower.slice(j, end);
+    for (const name of KILL_SWITCH_BASENAMES) {
+      if (dest.includes(name)) return true;
+    }
+  }
+
+  // Write/destructive bins with a kill-switch path argument (touch, New-Item, …).
+  const killWriteBins = new Set([
+    ...INDIRECT_WRITE_BINS,
+    "touch",
+    "new-item",
+    "ni",
+    "echo",
+    "printf",
+    "type",
+  ]);
+  for (let ti = 0; ti < tokens.length; ti++) {
+    if (!killWriteBins.has(normalizeToken(tokens[ti] as string))) continue;
+    for (let tj = ti + 1; tj < tokens.length; tj++) {
+      const p = pathishToken(tokens[tj] as string);
+      for (const name of KILL_SWITCH_BASENAMES) {
+        if (p.includes(name)) return true;
+      }
+    }
+  }
+  // Bare `touch .deft-directive-disable` — first token may be touch, path later.
+  for (const t of tokens) {
+    const p = pathishToken(t);
+    for (const name of KILL_SWITCH_BASENAMES) {
+      // Exact basename or ends with /basename
+      if (p === name || p.endsWith(`/${name}`)) {
+        // Require some write shape (redirect already handled; touch/ni/echo/…)
+        if (
+          hasWriteShape(command, tokens) ||
+          lower.includes("touch") ||
+          lower.includes("new-item")
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * True when a token is a write-capable language/runtime interpreter (#3186).
+ * Matches bare names, versioned bins (`python3.11`), and path-qualified forms
+ * (`/usr/bin/python3`, `C:\Python311\python.exe`) — exact Set membership alone
+ * would fail-open on absolute/versioned paths (Greptile P1).
+ */
+function isProgrammaticWriteBinToken(token: string): boolean {
+  const t = normalizeToken(token);
+  if (t.length === 0) return false;
+  // Path-qualified: keep final path segment after / or \ (normalizeToken strips quotes only).
+  const pathish = token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+  const base = pathish.includes("/") ? (pathish.slice(pathish.lastIndexOf("/") + 1) as string) : t;
+  const bare = base.endsWith(".exe") ? base.slice(0, -4) : base;
+
+  if (
+    bare === "python" ||
+    bare === "python3" ||
+    bare === "node" ||
+    bare === "nodejs" ||
+    bare === "perl" ||
+    bare === "ruby" ||
+    bare === "pwsh" ||
+    bare === "powershell"
+  ) {
+    return true;
+  }
+  // Versioned: python3.11, python3.12, node18, …
+  if (bare.startsWith("python3.") || bare.startsWith("python2.")) return true;
+  if (/^python\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^node\d+$/.test(bare)) return true;
+  return false;
+}
+
+/**
+ * True when `needle` occurs in `haystack` outside single/double-quoted regions (O(n)).
+ * Escaped quotes (`\'` / `\"`) stay inside the string. Used so `print('.write(')` is not
+ * a write API while `open(p,'w').write('x')` still matches `.write(` (Greptile conf residual).
+ */
+function includesOutsideQuotes(haystack: string, needle: string): boolean {
+  if (needle.length === 0 || haystack.length < needle.length) return false;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++; // skip escaped char inside quotes
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (haystack.startsWith(needle, i)) return true;
+  }
+  return false;
+}
+
+/**
+ * True when command uses a programmatic bin with a **write** API, optionally with
+ * path-obfuscation markers (base64/bytes/chr). Pure reads / print-only stay unclassifiable.
+ *
+ * Chosen rule (#3186): classify write-capable programmatic Shell as **settings** so
+ * active UAT fails closed (not shell-op-unclassifiable allow) even when the path is
+ * built at runtime without a literal `.deft/authz` substring. Outside UAT, evaluate
+ * still returns authz-inactive allow — classification alone is not a hard deny.
+ *
+ * Read-only `open(...).read()` does **not** count as writeish (Greptile P1).
+ * Quoted data containing `.write(` does **not** count (Greptile conf residual).
+ * Obfuscation alone without a write API does **not** classify (avoid deny on decode-only).
+ */
+function hasWriteCapableProgrammaticShell(command: string, tokens: readonly string[]): boolean {
+  let hasProg = false;
+  for (const t of tokens) {
+    if (isProgrammaticWriteBinToken(t)) {
+      hasProg = true;
+      break;
+    }
+  }
+  if (!hasProg) return false;
+
+  const lower = command.toLowerCase();
+  // Shell wrappers put whole scripts in "…" after -c/-e, so long API names (writeFileSync)
+  // use full-string includes. Short ambiguous `.write(` uses quote-aware match so
+  // `print('.write(')` is not a write API (Greptile conf residual).
+  const writeApi =
+    lower.includes("writefilesync") ||
+    lower.includes("writefile") ||
+    lower.includes("writetext") ||
+    lower.includes("set-content") ||
+    lower.includes("out-file") ||
+    lower.includes("fs.write") ||
+    lower.includes("createwritestream") ||
+    lower.includes("path.write(") ||
+    lower.includes("file.write(") ||
+    lower.includes("spurt") ||
+    lower.includes(">>") ||
+    lower.includes("unlink(") ||
+    lower.includes("rmsync") ||
+    lower.includes("rm_rf") ||
+    lower.includes("shutil.rmtree") ||
+    lower.includes("os.remove(") ||
+    lower.includes("os.unlink(") ||
+    lower.includes("fs.unlink") ||
+    lower.includes("fs.rm(") ||
+    lower.includes("fs.rmsync") ||
+    // Short `.write(` only counts outside quotes (avoids print('.write(') false positive).
+    // Also match when it appears after a shell -c/-e opening quote as code (common PoC shape):
+    // if the command has write mode open or other write API, those already hit above.
+    includesOutsideQuotes(lower, ".write(") ||
+    // Script body after -c/-e often sits in one double-quoted region: still detect `.write(`
+    // as code when paired with an assignment/call shape (f.write / .write(x)).
+    (lower.includes(".write(") &&
+      (lower.includes("open(") || lower.includes("=open") || lower.includes("fs.")));
+
+  // open(..., 'w' / "w" / 'a' / '>') — mode tokens are quoted; match on full command.
+  const openWriteMode =
+    lower.includes("open(") &&
+    (lower.includes(",'w") ||
+      lower.includes(',"w') ||
+      lower.includes(", 'w") ||
+      lower.includes(', "w') ||
+      lower.includes(",'a") ||
+      lower.includes(',"a') ||
+      lower.includes(", 'a") ||
+      lower.includes(', "a') ||
+      lower.includes(",'>") ||
+      lower.includes(',">') ||
+      lower.includes(", '>") ||
+      lower.includes(', ">') ||
+      lower.includes("mode='w") ||
+      lower.includes('mode="w') ||
+      lower.includes("mode='a") ||
+      lower.includes('mode="a') ||
+      lower.includes("mode=w"));
+
+  const writeish = writeApi || openWriteMode;
+
+  // Path construction that hides the destination from literal classifiers.
+  const obfuscatedPath =
+    lower.includes("base64") ||
+    lower.includes("fromcharcode") ||
+    lower.includes("bytes([") ||
+    lower.includes("bytearray") ||
+    lower.includes("buffer.from") ||
+    lower.includes("codecs.decode") ||
+    lower.includes("unhexlify") ||
+    lower.includes("fromhex") ||
+    lower.includes("string.fromcharcode") ||
+    lower.includes("atob(") ||
+    lower.includes("btoa(") ||
+    lower.includes("chr(");
+
+  // Fail-closed residual: write-ish programmatic shell (obfuscation alone not enough).
+  if (writeish) return true;
+  void obfuscatedPath;
   return false;
 }
 
@@ -633,6 +921,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // #3110: authz authority CLI + store **writes** (literal / split / $VAR / rm) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (hasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
+  // #3186: kill-switch plant + policy authority mutators → settings (UAT fail-closed).
+  if (hasKillSwitchShellWrite(cmd, tokens)) found.add("settings");
+  if (hasPolicyAuthorityMutator(tokens)) found.add("settings");
   // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
   // OR `cd .deft/authz && cp … grants/x` (write bin without redirect).
   // When the command cds into an authz path, any write shape is settings (relative dest has no "authz" text).
@@ -674,6 +965,12 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
     }
   }
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
+  // #3186: programmatic write/obfuscated-path shells fail closed as settings (not unclassifiable allow).
+  // Always merge settings even when other ops already matched (e.g. `pytest && python -c '…write…'`)
+  // so a compound safe prefix cannot hide a write-capable residual (SLizard residual).
+  if (hasWriteCapableProgrammaticShell(cmd, tokens)) {
+    found.add("settings");
+  }
 
   return [...found];
 }
