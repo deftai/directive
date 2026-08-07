@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Security: UAT Shell fail-closed for authz obfuscation, kill-switch/policy, assist-scratch symlink (#3186).** Residual AppSec at `4bf54335` after #3110/#1802/#3039: (1) write-capable programmatic Shell (`python`/`node`/`perl`/…) with write API or base64/byte path construction classifies as **settings** so active UAT never fail-opens via `shell-op-unclassifiable` onto `.deft/authz`; (2) Shell plant of `.deft-directive-disable` / `.no-deft-directive` and `policy:allow-bot-merge` / `allow-direct-commits` / `disable-directive` (peers) classify as settings and deny under UAT without a human grant; (3) assist-scratch allow realpaths the scratch root, requires `assertProjectionContained`, and refuses symlink / out-of-project realpaths before `write-assist-scratch-ready`. Regression tests in authz classify + incident + hooks dispatcher. Docs note on kill-switch agent self-serve ban. Closes #3186. Refs #3110, #1802, #3039.
+
 ### Removed
 
 ## [0.97.0] - 2026-08-07

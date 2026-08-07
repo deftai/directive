@@ -344,3 +344,81 @@ describe("CLI self-mint via shell under UAT (#3110)", () => {
     }
   });
 });
+
+describe("UAT residual fail-closed (#3186)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies kill-switch plant and policy authority mutators under UAT", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "echo > .deft-directive-disable",
+      "touch .deft-directive-disable",
+      "deft policy:allow-bot-merge -- --confirm",
+      "task policy:allow-direct-commits -- --confirm",
+      "deft policy:disable-directive -- --confirm",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies obfuscated programmatic writes under UAT (not shell-op-unclassifiable allow)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "python3 -c \"import base64; p=base64.b64decode('LmRlZnQvYXV0aHovc3RhdGUuanNvbg==').decode(); open(p,'w').write('{}')\"",
+      "node -e \"const p=Buffer.from('LmRlZnQvYXV0aHo=','base64').toString(); require('fs').writeFileSync(p+'/state.json','{}')\"",
+      "python -c \"p=bytes([0x2e,0x64,0x65,0x66,0x74]).decode(); open(p+'/authz/x','w').write('x')\"",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("still allows print-only programmatic shell under UAT (not write-capable)", () => {
+    const seams = uatSeams();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: 'python -c "print(1)"' } },
+      },
+      seams,
+    );
+    // Unclassifiable non-write shell remains fail-open (host gap for push/merge only).
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+});

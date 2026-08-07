@@ -193,13 +193,62 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Ordinary cleanup / non-store opaque dest stays unclassifiable (no overclassify).
     expect(classifyShellAuthzOps("rm -rf $TMPDIR/build")).toEqual([]);
     expect(classifyShellAuthzOps("rm -rf $HOME/.cache/tmp")).toEqual([]);
-    // Unrelated app state.json (shell or programmatic) is NOT an authz settings mutation.
+    // Shell expanded app state.json without authz context stays unclassifiable.
     expect(classifyShellAuthzOps('echo hi > "$APP_DIR/state.json"')).toEqual([]);
+    // #3186: write-capable programmatic shells classify as settings (UAT fail-closed rule)
+    // even for non-authz destinations — evaluate still allows outside UAT (authz-inactive).
     expect(
       classifyShellAuthzOps(
         "python -c \"import os; open(os.environ['APP_DIR']+'/state.json','w').write('{}')\"",
       ),
-    ).toEqual([]);
+    ).toContain("settings");
+  });
+
+  it("classifies kill-switch plant and policy authority mutators as settings (#3186)", () => {
+    for (const cmd of [
+      "echo > .deft-directive-disable",
+      "touch .deft-directive-disable",
+      "printf '' > ./.deft-directive-disable",
+      "New-Item -Path .deft-directive-disable -ItemType File",
+      "echo x > .no-deft-directive",
+      "deft policy:allow-bot-merge -- --confirm",
+      "task policy:allow-direct-commits -- --confirm",
+      "directive policy:disable-directive -- --confirm",
+      "npx deft policy allow-bot-merge --confirm",
+      "env FOO=1 deft policy:enable-directive",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Read-only policy show stays unclassifiable.
+    expect(classifyShellAuthzOps("deft policy:show --field wipCap")).toEqual([]);
+    // Non-mutator policy subcommands / unrelated shell stay empty.
+    expect(classifyShellAuthzOps("git status")).toEqual([]);
+  });
+
+  it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
+    // Base64/byte path construction — residual after #3110 literal path match.
+    expect(
+      classifyShellAuthzOps(
+        "python3 -c \"import base64; p=base64.b64decode('LmRlZnQvYXV0aHovc3RhdGUuanNvbg==').decode(); open(p,'w').write('{}')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "node -e \"const p=Buffer.from('LmRlZnQvYXV0aHo=','base64').toString(); require('fs').writeFileSync(p,'{}')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "python -c \"p=bytes([0x2e,0x64,0x65,0x66,0x74]).decode(); open(p+'/authz/x','w').write('x')\"",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("perl -e \"open(F,'>',pack('H*','2e64656674')); print F '{}'\""),
+    ).toContain("settings");
+    // Print-only programmatic shell stays unclassifiable (no write / no obfuscation).
+    expect(classifyShellAuthzOps('python -c "print(1)"')).toEqual([]);
+    expect(classifyShellAuthzOps("node -e \"console.log('ok')\"")).toEqual([]);
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {

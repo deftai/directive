@@ -601,6 +601,66 @@ describe("direct-write hook policy", () => {
 
       expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
     });
+
+    itSymlink(
+      "refuses assist scratch when .deft-scratch is a symlink outside project (#3186)",
+      () => {
+        const project = mkdtempSync(join(tmpdir(), "assist-scratch-proj-"));
+        const outside = mkdtempSync(join(tmpdir(), "assist-scratch-out-"));
+        hookTemps.push(project, outside);
+        symlinkSync(outside, join(project, ".deft-scratch"));
+
+        expect(isAllowlistedAssistScratchPath(project, ".deft-scratch/notes.md")).toBe(false);
+        expect(
+          isAssistScratchWrite(project, ".deft-scratch/notes.md", {
+            tool_input: { worker_role: "assist" },
+          }),
+        ).toBe(false);
+
+        const decision = decideHook(
+          {
+            host: "claude",
+            event: "tool.before",
+            projectRoot: project,
+            payload: {
+              tool_name: "Write",
+              posture: "assist",
+              tool_input: { file_path: join(project, ".deft-scratch", "notes.md") },
+            },
+          },
+          noScopeSeams(),
+        );
+        // Falls through mutation gates (no active scope) — not write-assist-scratch-ready.
+        expect(decision.verdict).toBe("deny");
+        expect(decision.code).not.toBe("write-assist-scratch-ready");
+      },
+    );
+
+    it("allows real contained .deft-scratch directory under assist posture (#3186 non-regression)", () => {
+      const project = mkdtempSync(join(tmpdir(), "assist-scratch-real-"));
+      hookTemps.push(project);
+      mkdirSync(join(project, ".deft-scratch"), { recursive: true });
+
+      expect(isAllowlistedAssistScratchPath(project, ".deft-scratch/notes.md")).toBe(true);
+
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: project,
+          payload: {
+            tool_name: "Write",
+            posture: "assist",
+            tool_input: { file_path: join(project, ".deft-scratch", "notes.md") },
+          },
+        },
+        noScopeSeams(),
+      );
+      expect(decision).toMatchObject({
+        verdict: "allow",
+        code: "write-assist-scratch-ready",
+      });
+    });
   });
 
   it("allows Write of xbrief/proposed/*.xbrief.json with no active scope (#2625)", () => {
