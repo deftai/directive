@@ -324,33 +324,54 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
 }
 
 /**
- * Programmatic language bins that can construct paths at runtime (byte/base64/chr)
- * and write FS without a literal `.deft/authz` string (#3186 residual after #3110).
+ * True when a token is a write-capable language/runtime interpreter (#3186).
+ * Matches bare names, versioned bins (`python3.11`), and path-qualified forms
+ * (`/usr/bin/python3`, `C:\Python311\python.exe`) — exact Set membership alone
+ * would fail-open on absolute/versioned paths (Greptile P1).
  */
-const PROGRAMMATIC_WRITE_BINS = new Set([
-  "python",
-  "python3",
-  "node",
-  "nodejs",
-  "perl",
-  "ruby",
-  "pwsh",
-  "powershell",
-]);
+function isProgrammaticWriteBinToken(token: string): boolean {
+  const t = normalizeToken(token);
+  if (t.length === 0) return false;
+  // Path-qualified: keep final path segment after / or \ (normalizeToken strips quotes only).
+  const pathish = token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+  const base = pathish.includes("/") ? (pathish.slice(pathish.lastIndexOf("/") + 1) as string) : t;
+  const bare = base.endsWith(".exe") ? base.slice(0, -4) : base;
+
+  if (
+    bare === "python" ||
+    bare === "python3" ||
+    bare === "node" ||
+    bare === "nodejs" ||
+    bare === "perl" ||
+    bare === "ruby" ||
+    bare === "pwsh" ||
+    bare === "powershell"
+  ) {
+    return true;
+  }
+  // Versioned: python3.11, python3.12, node18, …
+  if (bare.startsWith("python3.") || bare.startsWith("python2.")) return true;
+  if (/^python\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^node\d+$/.test(bare)) return true;
+  return false;
+}
 
 /**
- * True when command uses a programmatic bin with a write-ish API and/or path-obfuscation
- * markers (base64/bytes/chr). Pure reads / print-only scripts stay unclassifiable.
+ * True when command uses a programmatic bin with a **write** API, optionally with
+ * path-obfuscation markers (base64/bytes/chr). Pure reads / print-only stay unclassifiable.
  *
  * Chosen rule (#3186): classify write-capable programmatic Shell as **settings** so
  * active UAT fails closed (not shell-op-unclassifiable allow) even when the path is
  * built at runtime without a literal `.deft/authz` substring. Outside UAT, evaluate
  * still returns authz-inactive allow — classification alone is not a hard deny.
+ *
+ * Read-only `open(...).read()` does **not** count as writeish (Greptile P1).
+ * Obfuscation alone without a write API does **not** classify (avoid deny on decode-only).
  */
 function hasWriteCapableProgrammaticShell(command: string, tokens: readonly string[]): boolean {
   let hasProg = false;
   for (const t of tokens) {
-    if (PROGRAMMATIC_WRITE_BINS.has(normalizeToken(t))) {
+    if (isProgrammaticWriteBinToken(t)) {
       hasProg = true;
       break;
     }
@@ -358,8 +379,8 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
   if (!hasProg) return false;
 
   const lower = command.toLowerCase();
+  // Strict write signals — not bare open( (reads use open too).
   const writeish =
-    lower.includes("open(") ||
     lower.includes(".write") ||
     lower.includes("writefile") ||
     lower.includes("writetext") ||
@@ -374,8 +395,13 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes(">>") ||
     lower.includes("mode='w'") ||
     lower.includes('mode="w"') ||
+    lower.includes("mode=w") ||
     lower.includes(",'w'") ||
     lower.includes(',"w"') ||
+    lower.includes(",'w+") ||
+    lower.includes(',"w+') ||
+    lower.includes(",'a'") ||
+    lower.includes(',"a"') ||
     lower.includes("trunc") ||
     lower.includes("unlink") ||
     lower.includes("rmsync") ||
@@ -384,7 +410,25 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("os.remove") ||
     lower.includes("os.unlink") ||
     lower.includes("fs.unlink") ||
-    lower.includes("fs.rm");
+    lower.includes("fs.rm") ||
+    // open(..., 'w' / "w" / 'wb' / "a" / '>') — write modes only (not bare open for read).
+    (lower.includes("open(") &&
+      (lower.includes(",'w") ||
+        lower.includes(',"w') ||
+        lower.includes(", 'w") ||
+        lower.includes(', "w') ||
+        lower.includes(",'a") ||
+        lower.includes(',"a') ||
+        lower.includes(", 'a") ||
+        lower.includes(', "a') ||
+        lower.includes(",'>") ||
+        lower.includes(',">') ||
+        lower.includes(", '>") ||
+        lower.includes(', ">') ||
+        lower.includes("mode='w") ||
+        lower.includes('mode="w') ||
+        lower.includes("mode='a") ||
+        lower.includes('mode="a')));
 
   // Path construction that hides the destination from literal classifiers.
   const obfuscatedPath =
@@ -394,18 +438,27 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("bytearray") ||
     lower.includes("buffer.from") ||
     lower.includes("codecs.decode") ||
-    lower.includes(".decode(") ||
-    lower.includes("chr(") ||
     lower.includes("unhexlify") ||
     lower.includes("fromhex") ||
     lower.includes("string.fromcharcode") ||
     lower.includes("atob(") ||
-    lower.includes("btoa(");
+    lower.includes("btoa(") ||
+    // chr(...) path construction (not bare .decode on ordinary strings).
+    lower.includes("chr(");
 
-  // Fail-closed residual: write-ish programmatic shell, OR any programmatic bin with
-  // obfuscated path construction (even if write API spelling is exotic).
+  // Fail-closed residual: write-ish programmatic shell; obfuscation only when paired
+  // with a write signal (decode-only / print-only stays unclassifiable).
   if (writeish) return true;
-  if (obfuscatedPath) return true;
+  if (
+    obfuscatedPath &&
+    (lower.includes("open(") ||
+      lower.includes(".write") ||
+      lower.includes("writefile") ||
+      lower.includes("fs.write") ||
+      lower.includes(">>"))
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -889,9 +942,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   }
   if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
   // #3186: programmatic write/obfuscated-path shells fail closed as settings (not unclassifiable allow).
-  // Documented rule: write-capable python/node/perl (etc.) with write API or base64/byte path
-  // construction never fail-open via shell-op-unclassifiable under active UAT.
-  if (found.size === 0 && hasWriteCapableProgrammaticShell(cmd, tokens)) {
+  // Always merge settings even when other ops already matched (e.g. `pytest && python -c '…write…'`)
+  // so a compound safe prefix cannot hide a write-capable residual (SLizard residual).
+  if (hasWriteCapableProgrammaticShell(cmd, tokens)) {
     found.add("settings");
   }
 

@@ -246,9 +246,21 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("perl -e \"open(F,'>',pack('H*','2e64656674')); print F '{}'\""),
     ).toContain("settings");
-    // Print-only programmatic shell stays unclassifiable (no write / no obfuscation).
+    // Path-qualified / versioned interpreters (Greptile P1).
+    expect(
+      classifyShellAuthzOps("/usr/bin/python3 -c \"open('.deft/authz/x','w').write('{}')\""),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("python3.11 -c \"open('x','w').write('y')\"")).toContain(
+      "settings",
+    );
+    // Compound safe prefix must not hide write residual (SLizard).
+    expect(classifyShellAuthzOps("pytest && python -c \"open('x','w').write('y')\"")).toContain(
+      "settings",
+    );
+    // Print-only / read-only programmatic shell stays unclassifiable.
     expect(classifyShellAuthzOps('python -c "print(1)"')).toEqual([]);
     expect(classifyShellAuthzOps("node -e \"console.log('ok')\"")).toEqual([]);
+    expect(classifyShellAuthzOps("python -c \"print(open('report.txt').read())\"")).toEqual([]);
   });
 
   it("covers gh flag forms and hook name variants (#2986)", () => {
