@@ -103,10 +103,10 @@ Live verify: #3086 open; #3158 open.
 
 | # | State | Title | Notes |
 |--:|-------|-------|-------|
-| **#2741** | open | Epic: inter-run memory & learning | **Current shape (pass-2):** Memory SoR this epic (not #1545); Wave 0 includes #2742,#688,**#978**; Wave 1 #832–#834; closed #2700 abandoned |
-| **#978** | open | agent-memory-selection decision guide | Current-shape open child of #2741 (Wave 0); no standalone current-shape comment |
+| **#2741** | open | Epic: inter-run memory & learning | **Current shape (pass-2):** Memory SoR this epic (not #1545); Wave 0 #2742,#688,**#978**; Wave 1 #832–#834; Wave 4 consumer guidance / optional (**#978 matrix**, #76); closed #2700 abandoned |
+| **#978** | open | agent-memory-selection decision guide | Current-shape open child of #2741 in **Wave 0** (decision framework) **and** **Wave 4** (consumer-guidance matrix); no standalone current-shape comment |
 
-**Recommendation:** **#2741** is directive product epic (ownership/children/wave from **current-shape**, not body alone — #1152 / #2066). Shortlist **#978** as portable patterns deliverable **under** #2741 Wave 0 narrative; do not open a second memory epic. Atom issues #832–#834 are Wave 1 children — park as standalone roots.
+**Recommendation:** **#2741** is directive product epic (ownership/children/wave from **current-shape**, not body alone — #1152 / #2066). Shortlist **#978** under #2741 with **both** current-shape placements preserved: Wave 0 decision-framework role **and** Wave 4 consumer-guidance / matrix follow-through — do not collapse to Wave 0-only when disposing into a decision log or plan sequence. Do not open a second memory epic. Atom issues #832–#834 are Wave 1 children — park as standalone roots.
 
 ### F5 — Contracts / goals / verifiable specs
 
