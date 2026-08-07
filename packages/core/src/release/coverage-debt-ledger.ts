@@ -3,9 +3,9 @@
  *
  * Production path uses `gh`; all I/O is seamed for unit tests (no live network).
  */
-import { existsSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   type CoverageDebtIssueProbe,
   extractCoverageDebtCitationsFromChangelog,
@@ -189,8 +189,15 @@ export function createCoverageDebtIssue(
     throw new Error("gh CLI not found on PATH — cannot file coverage-debt issue");
   }
 
-  const notesFile = join(mkdtempSync(join(tmpdir(), "deft-coverage-debt-")), "body.md");
-  writeFileSync(notesFile, body, { encoding: "utf8" });
+  // Body file under projectRoot via containedWrite (#2951) — not OS temp raw write.
+  const notesRel = join(".deft", "tmp", `coverage-debt-body-${process.pid}-${Date.now()}.md`);
+  const notesFile = join(projectRoot, notesRel);
+  containedWrite({
+    root: projectRoot,
+    target: notesFile,
+    data: body,
+    mode: "replace",
+  });
   try {
     const result = spawn(
       seams,
@@ -208,7 +215,11 @@ export function createCoverageDebtIssue(
     if (!m) {
       throw new Error(`gh issue create succeeded but no issue URL in stdout: ${url}`);
     }
-    return Number.parseInt(m[1] ?? "", 10);
+    const n = Number.parseInt(m[1] ?? "", 10);
+    if (!Number.isFinite(n) || n <= 0 || String(n) !== (m[1] ?? "")) {
+      throw new Error(`gh issue create returned non-integer issue id: ${m[1]}`);
+    }
+    return n;
   } finally {
     try {
       unlinkSync(notesFile);

@@ -6,8 +6,9 @@
  * suite. Dirty tree, different HEAD, corrupt stamp → fail closed (run suite).
  * CI never trusts this stamp (it is not committed and not read by GHA paths).
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 
 export const SUITE_STAMP_SCHEMA_VERSION = 1 as const;
 export const SUITE_STAMP_RELPATH = join(".deft", "release-suite-stamp.json");
@@ -33,15 +34,26 @@ export interface SuiteStampIo {
   readonly mkdirp?: (dir: string) => void;
 }
 
-function defaultIo(): Required<SuiteStampIo> {
-  return {
-    readFile: (p) => readFileSync(p, "utf8"),
-    writeFile: (p, c) => writeFileSync(p, c, "utf8"),
-    fileExists: (p) => existsSync(p),
-    mkdirp: (dir) => {
-      mkdirSync(dir, { recursive: true });
-    },
-  };
+function defaultRead(path: string): string {
+  return readFileSync(path, "utf8");
+}
+
+function defaultExists(path: string): boolean {
+  return existsSync(path);
+}
+
+function defaultMkdirp(dir: string): void {
+  mkdirSync(dir, { recursive: true });
+}
+
+/** Contained write under projectRoot (no raw writeFileSync — #2951). */
+function defaultWriteContained(projectRoot: string, path: string, content: string): void {
+  containedWrite({
+    root: projectRoot,
+    target: path,
+    data: content,
+    mode: "replace",
+  });
 }
 
 export function suiteStampPath(projectRoot: string): string {
@@ -76,11 +88,12 @@ export function parseSuiteStamp(raw: string): SuiteStamp | null {
 }
 
 export function readSuiteStamp(projectRoot: string, io: SuiteStampIo = {}): SuiteStamp | null {
-  const fs = { ...defaultIo(), ...io };
+  const readFile = io.readFile ?? defaultRead;
+  const fileExists = io.fileExists ?? defaultExists;
   const path = suiteStampPath(projectRoot);
-  if (!fs.fileExists(path)) return null;
+  if (!fileExists(path)) return null;
   try {
-    return parseSuiteStamp(fs.readFile(path));
+    return parseSuiteStamp(readFile(path));
   } catch {
     return null;
   }
@@ -91,7 +104,6 @@ export function writeSuiteStamp(
   stamp: Omit<SuiteStamp, "schemaVersion"> & { schemaVersion?: number },
   io: SuiteStampIo = {},
 ): SuiteStamp {
-  const fs = { ...defaultIo(), ...io };
   const full: SuiteStamp = {
     schemaVersion: SUITE_STAMP_SCHEMA_VERSION,
     headSha: stamp.headSha.trim().toLowerCase(),
@@ -106,8 +118,14 @@ export function writeSuiteStamp(
     throw new Error("suite-stamp: pass_with_debt requires debtIssue");
   }
   const path = suiteStampPath(projectRoot);
-  fs.mkdirp(dirname(path));
-  fs.writeFile(path, `${JSON.stringify(full, null, 2)}\n`);
+  const mkdirp = io.mkdirp ?? defaultMkdirp;
+  mkdirp(dirname(path));
+  const payload = `${JSON.stringify(full, null, 2)}\n`;
+  if (io.writeFile) {
+    io.writeFile(path, payload);
+  } else {
+    defaultWriteContained(projectRoot, path, payload);
+  }
   return full;
 }
 
