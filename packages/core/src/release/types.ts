@@ -76,4 +76,30 @@ export interface ReleaseSeams {
     repo: string,
     projectRoot: string,
   ) => [boolean, string];
+  /**
+   * #3187 — open coverage-debt issue numbers (marker + CHANGELOG ledger).
+   * When omitted, production probes via gh + CHANGELOG.
+   */
+  readonly listOpenCoverageDebtIssues?: (repo: string, projectRoot: string) => number[];
+  /**
+   * #3187 — create coverage-debt tracking issue; return issue number.
+   * When omitted, production uses `gh issue create`.
+   */
+  readonly createCoverageDebtIssue?: (
+    repo: string,
+    projectRoot: string,
+    title: string,
+    body: string,
+  ) => number;
+  /**
+   * #3187 — read coverage totals after a failed Step 5 suite (coverage-final.json).
+   * When omitted, reads `coverage/coverage-final.json` under projectRoot.
+   */
+  readonly readCoverageTotals?: (
+    projectRoot: string,
+  ) => import("../vitest-runner/coverage-debt.js").CoverageTotals | null;
+  /** #3187 — current HEAD sha for suite stamp binding. */
+  readonly headSha?: (projectRoot: string) => string | null;
+  /** #3187 — CI detector; when true suite stamp is never trusted. */
+  readonly isCi?: () => boolean;
 }

@@ -114,11 +114,23 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure during release for the operator runbook and the existing `--allow-skip-ci=#N` incident contract.
 
-### Step 5 branch-coverage threshold — open-issue ledger hatch (#2866)
+### Step 5 branch-coverage threshold — open-issue ledger hatch (#2866 / #3187)
 
-! When **`task release` Step 5** fails on Vitest coverage below the 85% goal, apply this hatch **only** when **branches** is the **sole** metric below 85% (hairline branch miss — lines, functions, and statements all ≥ 85%). Confirm via the Step 5 failure output or `task coverage:hotspots` before hatching. If **any other metric** is also below 85%, or the failure is a hang / failing test / non-coverage defect, STOP — use § Fixable check failure — file-and-merge before resume (#2859) instead.
+! When **`task release` Step 5** fails on Vitest coverage below the 85% goal, apply this hatch **only** when **branches** is the **sole** metric below 85% (hairline branch miss — lines, functions, and statements all ≥ 85%). Confirm via the Step 5 failure output, `coverage/coverage-final.json`, or `task coverage:hotspots` before hatching. If **any other metric** is also below 85%, or the failure is a hang / failing test / non-coverage defect, STOP — use § Fixable check failure — file-and-merge before resume (#2859) instead.
 
 **Runtime disclosure (#2573):** `--allow-coverage-debt=#N` sets vitest coverage thresholds to zero for the release Step 5 run (`vitest.config.ts`). The hatch is justified only for branch-only hairlines; the filed debt issue MUST require restoring **all four metrics** (lines, functions, branches, statements) to ≥ 85% before close.
+
+**Auto-hatch in `task release` Step 5 (#3187):** the pipeline classifies a non-zero Step 5 as `REAL_FAILURE` | `BRANCH_HAIRLINE` | `OTHER_COVERAGE` | `UNKNOWN` after **one** suite run.
+
+1. `REAL_FAILURE` | `OTHER_COVERAGE` | `UNKNOWN` → **fail closed** (no auto-issue). Route product defects via #2859.
+2. `BRANCH_HAIRLINE` + **any open** coverage-debt ledger entry → **fail closed** ("restore coverage; close `#N` first") — consecutive soft-pass ban (#2866).
+3. `BRANCH_HAIRLINE` + **empty** open debt ledger → **auto-file** `#N` with markers `coverage-debt` and `--allow-coverage-debt`, measured metrics, cut version, and acceptance (all four metrics ≥ 85%); mark Step 5 `PASS_WITH_DEBT(#N)`; **continue the cut without re-running vitest**. Loud stderr banner + cite `#N` in CHANGELOG / release notes.
+
+! **File before continue** — never soft-pass without a durable issue number.
+
+? Operators MAY still pass `--allow-coverage-debt=#N` manually (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — #2621) when re-running after a pre-filed debt issue.
+
+**SHA suite stamp (#3187, coordinates with #3188 check ordering):** after suite **green** or `PASS_WITH_DEBT`, write a local SHA-bound stamp under `.deft/release-suite-stamp.json` (gitignored). Re-entry at the **same clean HEAD** skips the suite; dirty tree or different HEAD invalidates the stamp. ⊗ CI never trusts the stamp (GHA has no committed stamp; `CI`/`GITHUB_ACTIONS` force miss).
 
 **Open-issue ledger (release-scoped only):**
 
@@ -128,15 +140,18 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure d
      gh issue list --repo <owner>/<repo> --state open --search "coverage-debt in:title,body" --limit 20
      gh issue list --repo <owner>/<repo> --state open --search "allow-coverage-debt in:body" --limit 20
      ```
-   - **CHANGELOG citation scan** (legacy hatch issues filed before markers were mandatory): parse `CHANGELOG.md` `[Unreleased]` plus the last three `## [version]` sections for `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations; for each `#N`, run `gh issue view N --json state --jq .state` — `OPEN` counts as unpaid debt even when title/body lack the new markers (#2866).
-2. If **no open coverage-debt issue exists** → file `#N` with title prefix `coverage-debt:` and body containing both markers `coverage-debt` and `--allow-coverage-debt`, documenting measured metrics, branch-only trigger, and acceptance criteria (restore **all four** coverage metrics ≥ 85%). Continue the cut with `--allow-coverage-debt=#N` on `task release` (PowerShell-safe: `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"` — see Anti-Patterns #2621). The open `#N` remains WIP until coverage is restored and the issue is closed.
+   - **CHANGELOG citation scan** (legacy hatch issues filed before markers were mandatory): parse `CHANGELOG.md` `[Unreleased]` plus the last three `## [version]` sections for `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations; for each `#N`, probe issue state via REST — `OPEN` (or unknown) counts as unpaid debt even when title/body lack the new markers (#2866).
+2. If **no open coverage-debt issue exists** → auto-hatch files `#N` (or operator files manually) with title prefix `coverage-debt:` and body containing both markers. The open `#N` remains WIP until coverage is restored and the issue is closed.
 3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real coverage (all four metrics ≥ 85%) and close the debt issue before the cut proceeds.
+
+**Framework-release-first (#3187):** auto-hatch applies to framework `task release` Step 5 (e.g. deftai/directive). Consumer expansion of auto-hatch is blocked on project `plan.policy.coverageDebt` (#3189) — refuse when `status=unset` or `mode=off`. Do not auto-file debt on the framework repo from consumer trees; consumer ledger is always the consumer repo.
 
 ⊗ Auto-pass on a near-miss band without `#N` (#2573).
 ⊗ Silent soft-pass with no tracked issue.
 ⊗ File a debt issue without `coverage-debt` / `allow-coverage-debt` markers in title or body — the ledger query will miss it and permit a consecutive soft-pass (#2866).
 ⊗ Use this carve-out when lines, functions, or statements are also below 85%, or for hangs, failing tests, or non-coverage Step 5 failures — those stay under #2859 file-and-merge.
 ⊗ Treat file-debt-then-hatch as the default for ordinary PR / `task check` work outside a release cut — this hatch is release-scoped only.
+⊗ Trust a laptop suite stamp in CI or after HEAD/tree drift (#3187).
 
 See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch during release.
 
@@ -373,4 +388,6 @@ Where `<one-line guidance>` is one of:
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
 - ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** env prefix on those three git commands only — see Branch-Protection Policy Guard, #2623)
 - ⊗ Pass `--allow-coverage-debt=#N` unquoted on Windows PowerShell (#2621) -- `#` starts a comment and silently drops the issue number. Use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"`
-- ⊗ Soft-pass coverage debt while an **open** coverage-debt issue from a prior hatch still exists (#2866 / #2573) -- restore real branch coverage >= 85% and close the debt issue before reusing `--allow-coverage-debt`; the ledger is open GitHub issues, not prior CHANGELOG citations (#2618 superseded by open-issue ledger)
+- ⊗ Soft-pass coverage debt while an **open** coverage-debt issue from a prior hatch still exists (#2866 / #2573 / #3187) -- restore real branch coverage >= 85% and close the debt issue before reusing `--allow-coverage-debt` or expecting auto-hatch; the ledger is open GitHub issues, not prior CHANGELOG citations (#2618 superseded by open-issue ledger)
+- ⊗ Re-run the full Step 5 suite after a legal branch-only hairline when auto-hatch already filed `#N` and continued (`PASS_WITH_DEBT`) — that is the ceremony tax #3187 removes
+- ⊗ Trust `.deft/release-suite-stamp.json` in CI or after HEAD/tree drift (#3187)
