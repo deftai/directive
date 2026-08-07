@@ -269,11 +269,12 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         // #3187 auto-hatch: one suite → classify → maybe file debt → continue.
         const totals = resolveCoverageTotals(projectRoot, seams);
         const coverageReportMtimeMs = resolveCoverageReportMtimeMs(projectRoot, seams);
-        // Prefer mtime bound to this suite start; fall back to absolute max-age.
+        // Prefer mtime bound to this suite start (strict: after suite start).
+        // No pre-start slack — a prior hairline report must not mask a later fail.
         const suiteBoundMtime =
           coverageReportMtimeMs === undefined
             ? undefined
-            : coverageReportMtimeMs != null && coverageReportMtimeMs >= suiteStartedAtMs - 1000
+            : coverageReportMtimeMs != null && coverageReportMtimeMs > suiteStartedAtMs
               ? coverageReportMtimeMs
               : null;
         const exitCode = parseExitCodeFromReason(reason);
