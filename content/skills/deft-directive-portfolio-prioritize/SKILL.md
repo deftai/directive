@@ -55,7 +55,7 @@ Sits **between** automated label-mirror triage (#1423 / #3197 A-side) and post-p
 
 ## Phase 0 — Cache freshness
 
-1. ! Run `task verify:cache-fresh`. Exit 0 → proceed. Exit 1 → refresh (`task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` or printed remediation). Exit 2 → `task triage:bootstrap` first.
+1. ! Run `task verify:cache-fresh`. Exit 0 → proceed. Exit 1 → refresh (`task cache:fetch-all -- --source github-issue --repo OWNER/NAME` or printed remediation). Exit 2 → `task triage:bootstrap` first.
 2. ⊗ Cluster or rank against a stale cache without saying so — state freshness limits in the brief.
 
 ## Phase 1 — Scope + filter
