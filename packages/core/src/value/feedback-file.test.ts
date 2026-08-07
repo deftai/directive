@@ -355,6 +355,9 @@ describe("feedback-file CLI", () => {
 
   it("emits json CLI output and falls back when html_url is missing (#3144)", () => {
     const root = makeConsumerProject();
+    // Offline so draft path does not flaky-fail on live gh dedup (exit 2 network).
+    const prevNet = process.env.DEFT_NO_NETWORK;
+    process.env.DEFT_NO_NETWORK = "1";
     try {
       const code = feedbackFileMain(["--summary", "Json path", "--project-root", root, "--json"]);
       expect(code).toBe(1);
@@ -379,6 +382,11 @@ describe("feedback-file CLI", () => {
       expect(filed.outcome).toBe("filed");
       expect(filed.issueUrl).toContain("/issues/77");
     } finally {
+      if (prevNet === undefined) {
+        delete process.env.DEFT_NO_NETWORK;
+      } else {
+        process.env.DEFT_NO_NETWORK = prevNet;
+      }
       rmSync(root, { recursive: true, force: true });
     }
   });

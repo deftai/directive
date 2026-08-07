@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3180 platform status probe + outage attribution for CI weather",
-    "updated": "2026-08-06T23:16:35Z"
+    "updated": "2026-08-07T00:26:56Z"
   },
   "plan": {
     "id": "3180-ci-platform-status-attribution",
     "title": "feat(scm,ci): platform status probe + outage attribution for CI weather handoffs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pr:watch and review-cycle now name CI weather symptoms (#3167) and workflow failover arms on Blacksmith capacity death (#3168), but agents still lack a MUST probe of public status pages to attribute holds to upstream outage vs repo config. This story adds playbook + handoff fields and surfaces static status URLs on weather-class gate output without auto-merge from status alone.",
       "ImplementationPlan": "1. Document MUST probe sequence (GitHub Status Actions/Webhooks + Blacksmith Status) and attribution table (platform vs capacity vs repo_config) in content/scm/github.md and content/skills/deft-directive-review-cycle/SKILL.md CI weather / BLOCKED section; anti-patterns for workflow thrash during attributed platform outage.\n2. Surface static status page URLs in pr:watch / pr:merge-ready human and JSON output when ci_ready_state is weather-class (packages/core/src/pr-watch and pr-merge-readiness); no network fetch required for v1.\n3. Cross-link #3167, #3168, #2672, #2688; content or unit test pins for key tokens; CHANGELOG [Unreleased] for #3180; verify with core tests and task check.",
@@ -19,21 +19,21 @@
     "items": [
       {
         "title": "Document MUST status-page probe and attribution",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given CI weather codes or CI never starts for HEAD, when agents follow scm/github.md and review-cycle, then they MUST probe GitHub Status and Blacksmith Status and apply the platform vs capacity vs repo_config attribution table with anti-thrash rules during platform outage."
         }
       },
       {
         "title": "Gate output surfaces status URLs on weather states",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given pr:watch or pr:merge-ready with weather-class ci_ready_state, when JSON or human output is emitted, then static GitHub and Blacksmith status page URLs are included (network fetch not required for v1)."
         }
       },
       {
         "title": "BLOCKED handoff template fields",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a BLOCKED: ci_weather handoff, when written per review-cycle, then it includes platform_status_github, platform_status_blacksmith, optional incident URL, and attribution enum fields."
         }
@@ -73,7 +73,26 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Issue #3180 follow-up to #3167/#3168 CI weather cohort."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3181,
+        "prBase": null,
+        "mergeCommit": "69b3b7f4af6262b9ff260b58c829dcd1c80dac57",
+        "deliveryBranch": "master",
+        "deliveryCommit": "970f728c607e2791e8578204beeb84f74dd869d8",
+        "verifiedAt": "2026-08-07T00:26:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-07T00:26:56Z",
+      "capacityBucket": "new-capability"
     },
     "tags": [
       "enhancement",
@@ -100,6 +119,6 @@
         "title": "Issue #3168"
       }
     ],
-    "updated": "2026-08-06T23:16:35Z"
+    "updated": "2026-08-07T00:26:56Z"
   }
 }

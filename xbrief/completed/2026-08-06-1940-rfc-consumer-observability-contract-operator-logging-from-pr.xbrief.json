@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #1940 thin v1 operator-log hygiene (pass-1 current shape)",
-    "updated": "2026-08-06T23:33:11Z"
+    "updated": "2026-08-07T00:27:00Z"
   },
   "plan": {
     "id": "1940-operator-log-hygiene-thin-v1",
     "title": "RFC: consumer observability contract — operator logging thin v1 (SLizard reference)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Thin v1 for #1940: land operator-log hygiene pattern/lesson content (failure modes + anti-patterns; SLizard external reference only), build/probe checklist + REFERENCES discovery pointer, optional consumer pack stub, CHANGELOG, then pass-2 current-shape update with PR link and close #1940. Explicit non-goals: no setup schema, no core deft check mandate, no Insights/LLM telemetry.",
       "ImplementationPlan": "1. Create content/patterns/operator-log-hygiene.md with the six failure modes, anti-patterns, positive rules, thin non-goals, and SLizard as external reference only.\n2. Create content/docs/operator-log-hygiene-checklist.md as copy-paste build/probe checklist; add REFERENCES.md keyword row and a short pointer in content/skills/deft-directive-build/SKILL.md (or pack source + packs:render).\n3. Optional: add a consumer pack stub under content/packs or docs with Taskfile target name + validator skeleton comments; wire docs only — not framework deft check.\n4. CHANGELOG [Unreleased] for #1940; content-contract pins if required; verify with content tests or rg pin checks.\n5. Update issue #1940 current-shape comment to pass-2 shipped with PR link via REST; close #1940.",
@@ -19,21 +19,21 @@
     "items": [
       {
         "title": "Pattern/lesson content with failure modes and anti-patterns",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given content/patterns/operator-log-hygiene.md exists, when an agent opens it, then it lists the six case-study failure modes, anti-patterns, positive rules, explicit non-goals (no core schema, no default-on, not Insights/LLM telemetry), and cites SLizard only as an external reference path/issue pointer."
         }
       },
       {
         "title": "Build/probe checklist + discovery pointer",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given REFERENCES.md and content/docs/operator-log-hygiene-checklist.md, when searching for operator log or observability keywords, then the checklist path is discoverable and the checklist is copy-paste usable for story AC or probe locked decisions."
         }
       },
       {
         "title": "Optional pack stub and CHANGELOG; close #1940",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the merged PR for #1940, when inspected, then CHANGELOG [Unreleased] mentions #1940, no plan.observability schema and no core deft check hard-fail were added, the #1940 current-shape comment is pass-2 with the PR URL, and issue #1940 is closed."
         }
@@ -69,7 +69,26 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard",
         "missing_traces_justification": "Thin v1 from issue #1940 Current shape pass-1; fat RFC body not ship bar."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3182,
+        "prBase": null,
+        "mergeCommit": "970f728c607e2791e8578204beeb84f74dd869d8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "970f728c607e2791e8578204beeb84f74dd869d8",
+        "verifiedAt": "2026-08-07T00:27:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-07T00:27:00Z",
+      "capacityBucket": "agentic-debt"
     },
     "tags": [
       "enhancement",
@@ -84,6 +103,6 @@
         "title": "Issue #1940"
       }
     ],
-    "updated": "2026-08-06T23:33:11Z"
+    "updated": "2026-08-07T00:27:00Z"
   }
 }

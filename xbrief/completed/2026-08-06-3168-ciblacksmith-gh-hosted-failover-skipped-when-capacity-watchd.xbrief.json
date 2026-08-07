@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3168 — arm GH-hosted failover when Blacksmith capacity dies",
-    "updated": "2026-08-06T20:03:57Z"
+    "updated": "2026-08-07T00:26:47Z"
   },
   "plan": {
     "id": "3168-blacksmith-failover-arming",
     "title": "ci(blacksmith): GH-hosted failover skipped when capacity-watchdog cancelled — arm failover for true capacity death",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "CI already has Blacksmith primaries, a capacity watchdog, and GH-hosted failover (#2672), but cohort runs showed primaries cancelled, the watchdog cancelled, and failover jobs skipped so required aggregators never went green. This story hardens the workflow graph and classify/cancel scripts so true capacity death arms failover and aggregator checks succeed when either primary or failover passes.",
       "ImplementationPlan": "1. Edit .github/workflows/ci.yml to isolate capacity-watchdog from Blacksmith job cancellation, harden failover job if conditions, and ensure aggregators treat successful GH-hosted failover as green for required check names.\n2. Extend .github/scripts/classify-ci-job-state.py and cancel-queued-ci-primary.py (plus resolve-ci-authoritative-lane.py if needed) so cancelled primary without runner claim arms failover like queued past stall budget; keep no-failover for in_progress with runner (#2652).\n3. Add script fixtures/tests for classify/cancel arm rules; document primary vs failover vs aggregator job names in workflow comments; CHANGELOG [Unreleased] for #3168; verify with script tests and a documented dry-run checklist.",
@@ -19,28 +19,28 @@
     "items": [
       {
         "title": "Failover runs on capacity death",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Blacksmith primary still queued/missing past stall budget or cancelled without a runner claim, when the CI workflow graph completes the watchdog path, then TypeScript/Go GH-hosted failover jobs run (not skipped solely because the watchdog was cancelled with the primaries)."
         }
       },
       {
         "title": "Aggregator green on failover success",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given GH-hosted failover TS/Go succeeds, when branch-protection required aggregator names are evaluated, then TypeScript (build + lint + test) (and Go aggregator if applicable) report success."
         }
       },
       {
         "title": "No failover for true in_progress hangs",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a primary job in_progress with a claimed runner, when the watchdog classifies state, then failover is not armed (#2652)."
         }
       },
       {
         "title": "Script tests and name map",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given classify/cancel scripts, when fixtures for cancelled-without-runner and queued-past-budget run, then arm rules are asserted; workflow comments document primary vs failover vs aggregator names."
         }
@@ -76,7 +76,26 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Issue #3168 filed from cohort CI weather; full AC in issue body."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3170,
+        "prBase": null,
+        "mergeCommit": "eab3f78af5001601fbd18c56a070c0ef3f14b8d5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "970f728c607e2791e8578204beeb84f74dd869d8",
+        "verifiedAt": "2026-08-07T00:26:47Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-07T00:26:47Z",
+      "capacityBucket": "technical-debt"
     },
     "tags": [
       "bug",
@@ -99,6 +118,6 @@
         "title": "Issue #2672 capacity failover design"
       }
     ],
-    "updated": "2026-08-06T20:03:57Z"
+    "updated": "2026-08-07T00:26:47Z"
   }
 }
