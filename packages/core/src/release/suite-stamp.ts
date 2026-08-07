@@ -60,9 +60,7 @@ export function parseSuiteStamp(raw: string): SuiteStamp | null {
     if (!isValidHeadSha(parsed.headSha)) return null;
     if (parsed.suite !== "pass" && parsed.suite !== "pass_with_debt") return null;
     const debt =
-      parsed.debtIssue === null || parsed.debtIssue === undefined
-        ? null
-        : Number(parsed.debtIssue);
+      parsed.debtIssue === null || parsed.debtIssue === undefined ? null : Number(parsed.debtIssue);
     if (debt !== null && (!Number.isFinite(debt) || debt <= 0)) return null;
     if (typeof parsed.recordedAt !== "string" || !parsed.recordedAt) return null;
     return {
@@ -77,10 +75,7 @@ export function parseSuiteStamp(raw: string): SuiteStamp | null {
   }
 }
 
-export function readSuiteStamp(
-  projectRoot: string,
-  io: SuiteStampIo = {},
-): SuiteStamp | null {
+export function readSuiteStamp(projectRoot: string, io: SuiteStampIo = {}): SuiteStamp | null {
   const fs = { ...defaultIo(), ...io };
   const path = suiteStampPath(projectRoot);
   if (!fs.fileExists(path)) return null;

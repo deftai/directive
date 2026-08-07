@@ -239,6 +239,45 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
     }
   });
 
+  it("fails closed when ledger probe throws (no empty-ledger re-hatch)", () => {
+    const cap = captureStderr();
+    let created = false;
+    const seams: ReleaseSeams = {
+      todayIso: () => "2026-08-07",
+      spawnText: (_c, a) => {
+        if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
+        if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };
+        if (a.includes("rev-parse")) {
+          return { status: 0, stdout: "aaaabbbbccccddddeeeeffffaaaabbbbccccdddd\n", stderr: "" };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      checkTagAvailable: () => [true, "ok"],
+      runCi: () => [false, "task check failed (exit 1)"],
+      readCoverageTotals: () => hairlineTotals,
+      listOpenCoverageDebtIssues: () => {
+        throw new Error("gh rate limited");
+      },
+      createCoverageDebtIssue: () => {
+        created = true;
+        return 1;
+      },
+      fileExists: (p) => p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md"),
+      readFile: () => CHANGELOG,
+      writeFile: () => undefined,
+      refreshRoadmap: () => [true, "ok"],
+      isCi: () => false,
+    };
+
+    try {
+      expect(runPipeline(baseConfig(tempProject()), seams)).toBe(1);
+      expect(created).toBe(false);
+      expect(cap.lines.join("")).toMatch(/ledger probe failed closed/);
+    } finally {
+      cap.restore();
+    }
+  });
+
   it("does not trust suite stamp under CI", () => {
     const cap = captureStderr();
     let runCiCalls = 0;

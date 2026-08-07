@@ -98,11 +98,7 @@ describe("write/read/evaluate suite stamp", () => {
       },
       mkdirp: () => undefined,
     };
-    writeSuiteStamp(
-      "/proj",
-      { headSha: SHA, suite: "pass", debtIssue: null, recordedAt: "t" },
-      io,
-    );
+    writeSuiteStamp("/proj", { headSha: SHA, suite: "pass", debtIssue: null, recordedAt: "t" }, io);
 
     expect(
       evaluateSuiteStamp({

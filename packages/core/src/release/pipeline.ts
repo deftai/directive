@@ -1,10 +1,10 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { assertProjectionContained } from "../fs/projection-containment.js";
 import { readCoverageTotalsFromReport } from "../vitest-runner/coverage-debt.js";
 import {
   buildCoverageDebtIssueDraft,
-  classifyStep5Failure,
+  classifyStep5FailureWithFreshness,
   evaluateAutoHatch,
   formatAutoHatchBanner,
   parseExitCodeFromReason,
@@ -21,10 +21,7 @@ import {
   VERIFY_DRAFT_INTERVAL_SECONDS,
   VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
-import {
-  createCoverageDebtIssue,
-  probeOpenCoverageDebtLedger,
-} from "./coverage-debt-ledger.js";
+import { createCoverageDebtIssue, probeOpenCoverageDebtLedger } from "./coverage-debt-ledger.js";
 import { checkTagAvailable, createGithubRelease, readTextFile, verifyReleaseDraft } from "./gh.js";
 import {
   checkGitClean,
@@ -58,6 +55,21 @@ function resolveHeadSha(projectRoot: string, seams: ReleaseSeams): string | null
 function resolveCoverageTotals(projectRoot: string, seams: ReleaseSeams) {
   if (seams.readCoverageTotals) return seams.readCoverageTotals(projectRoot);
   return readCoverageTotalsFromReport(join(projectRoot, "coverage"));
+}
+
+function resolveCoverageReportMtimeMs(
+  projectRoot: string,
+  seams: ReleaseSeams,
+): number | null | undefined {
+  // Explicit readCoverageTotals seam (tests) → omit mtime so freshness does not force UNKNOWN.
+  if (seams.readCoverageTotals) return undefined;
+  const finalPath = join(projectRoot, "coverage", "coverage-final.json");
+  try {
+    if (!existsSync(finalPath)) return null;
+    return statSync(finalPath).mtimeMs;
+  } catch {
+    return null;
+  }
 }
 
 function recordSuiteStamp(
@@ -243,8 +255,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       const [ok, reason] = runCiFn(projectRoot, config.allowCoverageDebtIssue);
       if (ok) {
         const debtIssue = config.allowCoverageDebtIssue;
-        const debtNote =
-          debtIssue !== null ? ` (coverage-debt acknowledged #${debtIssue})` : "";
+        const debtNote = debtIssue !== null ? ` (coverage-debt acknowledged #${debtIssue})` : "";
         recordSuiteStamp(
           projectRoot,
           debtIssue !== null ? "pass_with_debt" : "pass",
@@ -255,24 +266,37 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       } else {
         // #3187 auto-hatch: one suite → classify → maybe file debt → continue.
         const totals = resolveCoverageTotals(projectRoot, seams);
+        const coverageReportMtimeMs = resolveCoverageReportMtimeMs(projectRoot, seams);
         const exitCode = parseExitCodeFromReason(reason);
-        const classification = classifyStep5Failure({
+        const classification = classifyStep5FailureWithFreshness({
           output: reason,
           totals,
           exitCode,
           timedOut: reasonLooksLikeTimeout(reason) || exitCode === 124,
+          coverageReportMtimeMs,
         });
 
-        const openDebt =
-          seams.listOpenCoverageDebtIssues?.(config.repo, projectRoot) ??
-          probeOpenCoverageDebtLedger(config.repo, projectRoot, {
-            spawnText: seams.spawnText,
-            whichGh: seams.whichGh,
-            readFile: seams.readFile,
-            fileExists: seams.fileExists,
-          });
+        let openDebt: number[];
+        try {
+          openDebt =
+            seams.listOpenCoverageDebtIssues?.(config.repo, projectRoot) ??
+            probeOpenCoverageDebtLedger(config.repo, projectRoot, {
+              spawnText: seams.spawnText,
+              whichGh: seams.whichGh,
+              readFile: seams.readFile,
+              fileExists: seams.fileExists,
+            });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          emit(
+            5,
+            label,
+            `FAIL (${reason}; auto-hatch ledger probe failed closed: ${msg}; Step 5 hard timeout is ${RELEASE_CHECK_TIMEOUT_MINUTES}m)`,
+          );
+          return EXIT_VIOLATION;
+        }
 
-        let decision;
+        let decision: ReturnType<typeof evaluateAutoHatch>;
         try {
           decision = evaluateAutoHatch({
             classification,

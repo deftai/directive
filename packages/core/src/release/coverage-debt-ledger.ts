@@ -42,6 +42,13 @@ function spawn(
   return run(cmd, args, { cwd, timeoutMs: 60_000, env: { ...process.env } });
 }
 
+class LedgerProbeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LedgerProbeError";
+  }
+}
+
 function listIssuesBySearch(
   ghPath: string,
   repo: string,
@@ -68,12 +75,22 @@ function listIssuesBySearch(
     ],
     projectRoot,
   );
-  if (result.status !== 0) return [];
+  if (result.status !== 0) {
+    throw new LedgerProbeError(
+      `coverage-debt ledger search failed (${search}): ${(result.stderr || result.stdout).trim() || `exit ${result.status}`}`,
+    );
+  }
   try {
     const rows = JSON.parse(result.stdout || "[]") as CoverageDebtIssueProbe[];
-    return Array.isArray(rows) ? rows : [];
-  } catch {
-    return [];
+    if (!Array.isArray(rows)) {
+      throw new LedgerProbeError(`coverage-debt ledger search returned non-array for ${search}`);
+    }
+    return rows;
+  } catch (err) {
+    if (err instanceof LedgerProbeError) throw err;
+    throw new LedgerProbeError(
+      `coverage-debt ledger search unparseable JSON for ${search}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
@@ -101,6 +118,9 @@ function viewIssueState(
 /**
  * Probe open coverage-debt ledger: marker searches + CHANGELOG citation scan.
  * Citation numbers whose state is OPEN or UNKNOWN count as unpaid (fail closed).
+ *
+ * Fail closed: gh marker-search failures throw (do not treat as empty ledger).
+ * Missing gh falls through to CHANGELOG citations only (still fail-closed on UNKNOWN).
  */
 export function probeOpenCoverageDebtLedger(
   repo: string,
@@ -118,20 +138,8 @@ export function probeOpenCoverageDebtLedger(
     ghPath === null
       ? []
       : [
-          ...listIssuesBySearch(
-            ghPath,
-            repo,
-            projectRoot,
-            "coverage-debt in:title,body",
-            seams,
-          ),
-          ...listIssuesBySearch(
-            ghPath,
-            repo,
-            projectRoot,
-            "allow-coverage-debt in:body",
-            seams,
-          ),
+          ...listIssuesBySearch(ghPath, repo, projectRoot, "coverage-debt in:title,body", seams),
+          ...listIssuesBySearch(ghPath, repo, projectRoot, "allow-coverage-debt in:body", seams),
         ];
   const fromMarkers = filterOpenCoverageDebtIssues(markerHits);
 

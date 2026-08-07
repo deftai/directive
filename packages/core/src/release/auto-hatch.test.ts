@@ -125,9 +125,7 @@ describe("ledger helpers", () => {
         body: "use --allow-coverage-debt",
       }),
     ).toBe(true);
-    expect(issueHasCoverageDebtMarkers({ number: 2, title: "fix tests", body: "n/a" })).toBe(
-      false,
-    );
+    expect(issueHasCoverageDebtMarkers({ number: 2, title: "fix tests", body: "n/a" })).toBe(false);
   });
 
   it("filters open debt issues", () => {
@@ -250,5 +248,43 @@ describe("draft + banner + reason helpers", () => {
     expect(parseExitCodeFromReason("task check failed (exit 1)")).toBe(1);
     expect(parseExitCodeFromReason("task check timed out after 20m")).toBeNull();
     expect(reasonLooksLikeTimeout("task check timed out after 20m")).toBe(true);
+  });
+});
+
+describe("coverage report freshness (#3187 Greptile P1)", () => {
+  it("rejects stale mtimes and accepts fresh", async () => {
+    const { isCoverageReportFresh, classifyStep5FailureWithFreshness } = await import(
+      "./auto-hatch.js"
+    );
+    const now = 1_000_000;
+    expect(isCoverageReportFresh(now - 60_000, now)).toBe(true);
+    expect(isCoverageReportFresh(now - 40 * 60 * 1000, now)).toBe(false);
+    expect(isCoverageReportFresh(null, now)).toBe(false);
+
+    expect(
+      classifyStep5FailureWithFreshness({
+        totals: hairlineTotals,
+        output: "task check failed (exit 1)",
+        coverageReportMtimeMs: now - 60_000,
+        nowMs: now,
+      }),
+    ).toBe("BRANCH_HAIRLINE");
+
+    expect(
+      classifyStep5FailureWithFreshness({
+        totals: hairlineTotals,
+        output: "task check failed (exit 1)",
+        coverageReportMtimeMs: now - 40 * 60 * 1000,
+        nowMs: now,
+      }),
+    ).toBe("UNKNOWN");
+
+    // Seam/tests without mtime still classify from totals.
+    expect(
+      classifyStep5FailureWithFreshness({
+        totals: hairlineTotals,
+        output: "task check failed (exit 1)",
+      }),
+    ).toBe("BRANCH_HAIRLINE");
   });
 });

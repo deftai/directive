@@ -11,11 +11,7 @@ import {
 } from "../vitest-runner/coverage-debt.js";
 
 /** Machine-checkable Step 5 failure classes (#3187). */
-export type Step5FailureClass =
-  | "REAL_FAILURE"
-  | "BRANCH_HAIRLINE"
-  | "OTHER_COVERAGE"
-  | "UNKNOWN";
+export type Step5FailureClass = "REAL_FAILURE" | "BRANCH_HAIRLINE" | "OTHER_COVERAGE" | "UNKNOWN";
 
 export interface ClassifyStep5FailureInput {
   /** Combined reason / stdout / stderr from the Step 5 check (may be thin). */
@@ -134,9 +130,7 @@ export function issueHasCoverageDebtMarkers(issue: CoverageDebtIssueProbe): bool
  * - open issues with coverage-debt / --allow-coverage-debt markers
  * - citation-only probes (`{ number }` only) from CHANGELOG scan after state check
  */
-export function filterOpenCoverageDebtIssues(
-  issues: readonly CoverageDebtIssueProbe[],
-): number[] {
+export function filterOpenCoverageDebtIssues(issues: readonly CoverageDebtIssueProbe[]): number[] {
   const open = new Set<number>();
   for (const issue of issues) {
     if (!issue.number || issue.number <= 0) continue;
@@ -363,4 +357,40 @@ export function parseExitCodeFromReason(reason: string): number | null {
 
 export function reasonLooksLikeTimeout(reason: string): boolean {
   return /timed out|timeout/i.test(reason);
+}
+
+/**
+ * Refuse to trust a coverage-final.json older than the Step 5 wall budget (+buffer).
+ * Prevents a stale hairline report from masking a later non-coverage check failure (#3187 Greptile P1).
+ */
+export function isCoverageReportFresh(
+  mtimeMs: number | null | undefined,
+  nowMs: number = Date.now(),
+  maxAgeMs: number = 25 * 60 * 1000,
+): boolean {
+  if (mtimeMs == null || !Number.isFinite(mtimeMs) || mtimeMs <= 0) return false;
+  const age = nowMs - mtimeMs;
+  if (age < 0) return true; // clock skew: treat as fresh
+  return age <= maxAgeMs;
+}
+
+/**
+ * When totals come only from on-disk coverage-final and the failure reason is thin,
+ * require a fresh report before classifying BRANCH_HAIRLINE.
+ */
+export function classifyStep5FailureWithFreshness(
+  input: ClassifyStep5FailureInput & {
+    readonly coverageReportMtimeMs?: number | null;
+    readonly nowMs?: number;
+  },
+): Step5FailureClass {
+  const classified = classifyStep5Failure(input);
+  if (classified !== "BRANCH_HAIRLINE") return classified;
+  const mtime = input.coverageReportMtimeMs;
+  // Explicit totals injected without mtime (unit tests / seams) remain trusted.
+  if (mtime === undefined) return classified;
+  if (!isCoverageReportFresh(mtime, input.nowMs)) {
+    return "UNKNOWN";
+  }
+  return classified;
 }
