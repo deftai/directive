@@ -67,3 +67,6 @@
 {"id":"xbrief-pos-1","query":"xbrief create a dense scope brief at out/path","skill":"deft-directive-xbrief","should_trigger":true}
 {"id":"xbrief-pos-2","query":"run xbrief:verify on the mission artifact","skill":"deft-directive-xbrief","should_trigger":true}
 {"id":"xbrief-neg-1","query":"scope:promote the pending story for implementation","skill":"deft-directive-xbrief","should_trigger":false}
+{"id":"portfolio-prioritize-pos-1","query":"run a portfolio prioritization pass over the patterns backlog","skill":"deft-directive-portfolio-prioritize","should_trigger":true}
+{"id":"portfolio-prioritize-pos-2","query":"write a priority brief with shortlist and park list","skill":"deft-directive-portfolio-prioritize","should_trigger":true}
+{"id":"portfolio-prioritize-neg-1","query":"what is next on the triage queue for buildable work","skill":"deft-directive-portfolio-prioritize","should_trigger":false}

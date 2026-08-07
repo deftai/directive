@@ -488,6 +488,8 @@ Directive does not guess your mix. Either you name the next units in order (**or
 
 **Mix / balance:** Portfolio mix (tech debt vs features, etc.) is set at authoring time via sequence contents or queue ranking labels — not runtime auto-balance.
 
+**Pre-promotion portfolio pass (#3198):** When the need is *cluster competing RFCs, name conflicts, emit shortlist + park* (not buildable queue selection), use skill [`deft-directive-portfolio-prioritize`](./skills/deft-directive-portfolio-prioritize/SKILL.md). Inputs are the local github-issue cache (+ optional classify dry-run as **filter** only). Output is a propose-not-apply priority brief with dispose checklist toward #1396 + plan-sequence. It does **not** replace `triage:queue`, does **not** write SCM labels / mirror apply, and does **not** run `triage:accept` or scope lifecycle.
+
 ### Triage Tasks
 
 - `task triage:bootstrap -- [--repo OWNER/NAME] [--limit N] [--state {open|closed|all}] [--batch-size N] [--delay-ms N]` -- seed the local triage cache and audit layer.
