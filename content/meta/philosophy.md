@@ -8,6 +8,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Self-Improving, Not Self-Editing (#3164)
+
+Directive improves **across merges** through issues, PRs, and quality gates. It does not rewrite live constitution rules mid-run (**propose-not-apply**).
+
+Constitution (managed AGENTS.md, pinned skills, policy) stays gated. Playbook-tier prose (e.g. lessons) may stay agent-writable because it sits at the bottom of the Rule Authority ladder.
+
+Full stance and MUST/MAY bullets: [main.md § Self-Improving, Not Self-Editing](../../main.md#self-improving-not-self-editing-3164). Parent epic #3179; safety-via-gates #1200; trajectory/refine #2741.
+
+---
+
 ## Deterministic > Probabilistic
 
 Prefer deterministic components for repeatable actions over probabilistic ones.

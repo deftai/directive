@@ -58,6 +58,22 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 See #634, #642. See [ADR-001](./docs/decisions/ADR-001.md) for the token-economics rationale behind this ordering (vBRIEF-as-canonical for the agentic-consumed surface).
 
+## Self-Improving, Not Self-Editing (#3164)
+
+**Stance:** Directive is **self-improving**, not **self-editing**. Improvement goes through formal gates (**propose-not-apply**).
+
+Continual-Harness-class hosts may rewrite prompts, skills, and memory mid-run. Directive does not. A running session must not mutate live operating rules in place.
+
+- ! Directive MUST NOT self-edit live operating rules mid-run (managed AGENTS.md, pinned skills, policy flags, and other constitution-tier content)
+- ! Refine and meta-loops **propose** changes; issues, PRs, and quality gates **dispose**
+- ! Learn between merges — not by mid-session rewrite of the constitution
+- ? Prose lessons (`meta/lessons.md`; Continuous Improvement below) MAY stay agent-writable. They sit at the bottom of the Rule Authority ladder and cannot override structural rules
+- ⊗ Treat mid-run self-edit of constitution, skills, or policy as the default learning model
+
+This is not timidity; it is identity. It follows from the Rule Authority ladder above and from safety via formal gates, not alignment (#1200). A framework whose value is that the gates sit outside the agent cannot let a session rewrite the gates' substrate and stay coherent.
+
+Parent epic: #3179 (self-improving under gates). Trajectory / refine constraint: #2741 — refine proposes; gates dispose. Proposer runtime (SkillOpt / skill-variant) is tracked on #2436 / #1307 and is out of scope for this stance naming.
+
 **Decision Making:**
 - ! Follow established patterns in current context
 - ~ Question assumptions and probe for clarity
@@ -277,6 +293,7 @@ See [`skills/deft-directive-refinement/SKILL.md`](./content/skills/deft-directiv
 - ~ When repeated correction or better approach found, codify in `./lessons.md`
 - ? Modify `./lessons.md` without prior approval
 - ~ When using codified instruction, inform user which rule was applied
+- ! Promote constitution-tier improvements (skills, policy, managed AGENTS rules) through issue / PR / quality gate — not mid-run self-edit (see [Self-Improving, Not Self-Editing (#3164)](#self-improving-not-self-editing-3164))
 
 **Observation:**
 - ~ Think beyond immediate task
