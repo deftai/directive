@@ -357,6 +357,35 @@ function isProgrammaticWriteBinToken(token: string): boolean {
 }
 
 /**
+ * True when `needle` occurs in `haystack` outside single/double-quoted regions (O(n)).
+ * Escaped quotes (`\'` / `\"`) stay inside the string. Used so `print('.write(')` is not
+ * a write API while `open(p,'w').write('x')` still matches `.write(` (Greptile conf residual).
+ */
+function includesOutsideQuotes(haystack: string, needle: string): boolean {
+  if (needle.length === 0 || haystack.length < needle.length) return false;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++; // skip escaped char inside quotes
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (haystack.startsWith(needle, i)) return true;
+  }
+  return false;
+}
+
+/**
  * True when command uses a programmatic bin with a **write** API, optionally with
  * path-obfuscation markers (base64/bytes/chr). Pure reads / print-only stay unclassifiable.
  *
@@ -366,6 +395,7 @@ function isProgrammaticWriteBinToken(token: string): boolean {
  * still returns authz-inactive allow — classification alone is not a hard deny.
  *
  * Read-only `open(...).read()` does **not** count as writeish (Greptile P1).
+ * Quoted data containing `.write(` does **not** count (Greptile conf residual).
  * Obfuscation alone without a write API does **not** classify (avoid deny on decode-only).
  */
 function hasWriteCapableProgrammaticShell(command: string, tokens: readonly string[]): boolean {
@@ -379,13 +409,13 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
   if (!hasProg) return false;
 
   const lower = command.toLowerCase();
-  // Strict write signals — not bare open( (reads use open too) and not bare `.write`
-  // as data/property text (Greptile residual: `print('.write')` must stay unclassifiable).
-  const writeish =
-    lower.includes(".write(") ||
+  // Shell wrappers put whole scripts in "…" after -c/-e, so long API names (writeFileSync)
+  // use full-string includes. Short ambiguous `.write(` uses quote-aware match so
+  // `print('.write(')` is not a write API (Greptile conf residual).
+  const writeApi =
+    lower.includes("writefilesync") ||
     lower.includes("writefile") ||
     lower.includes("writetext") ||
-    lower.includes("writefilesync") ||
     lower.includes("set-content") ||
     lower.includes("out-file") ||
     lower.includes("fs.write") ||
@@ -394,16 +424,6 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("file.write(") ||
     lower.includes("spurt") ||
     lower.includes(">>") ||
-    lower.includes("mode='w'") ||
-    lower.includes('mode="w"') ||
-    lower.includes("mode=w") ||
-    lower.includes(",'w'") ||
-    lower.includes(',"w"') ||
-    lower.includes(",'w+") ||
-    lower.includes(',"w+') ||
-    lower.includes(",'a'") ||
-    lower.includes(',"a"') ||
-    lower.includes("trunc") ||
     lower.includes("unlink(") ||
     lower.includes("rmsync") ||
     lower.includes("rm_rf") ||
@@ -413,24 +433,37 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("fs.unlink") ||
     lower.includes("fs.rm(") ||
     lower.includes("fs.rmsync") ||
-    // open(..., 'w' / "w" / 'wb' / "a" / '>') — write modes only (not bare open for read).
-    (lower.includes("open(") &&
-      (lower.includes(",'w") ||
-        lower.includes(',"w') ||
-        lower.includes(", 'w") ||
-        lower.includes(', "w') ||
-        lower.includes(",'a") ||
-        lower.includes(',"a') ||
-        lower.includes(", 'a") ||
-        lower.includes(', "a') ||
-        lower.includes(",'>") ||
-        lower.includes(',">') ||
-        lower.includes(", '>") ||
-        lower.includes(', ">') ||
-        lower.includes("mode='w") ||
-        lower.includes('mode="w') ||
-        lower.includes("mode='a") ||
-        lower.includes('mode="a')));
+    // Short `.write(` only counts outside quotes (avoids print('.write(') false positive).
+    // Also match when it appears after a shell -c/-e opening quote as code (common PoC shape):
+    // if the command has write mode open or other write API, those already hit above.
+    includesOutsideQuotes(lower, ".write(") ||
+    // Script body after -c/-e often sits in one double-quoted region: still detect `.write(`
+    // as code when paired with an assignment/call shape (f.write / .write(x)).
+    (lower.includes(".write(") &&
+      (lower.includes("open(") || lower.includes("=open") || lower.includes("fs.")));
+
+  // open(..., 'w' / "w" / 'a' / '>') — mode tokens are quoted; match on full command.
+  const openWriteMode =
+    lower.includes("open(") &&
+    (lower.includes(",'w") ||
+      lower.includes(',"w') ||
+      lower.includes(", 'w") ||
+      lower.includes(', "w') ||
+      lower.includes(",'a") ||
+      lower.includes(',"a') ||
+      lower.includes(", 'a") ||
+      lower.includes(', "a') ||
+      lower.includes(",'>") ||
+      lower.includes(',">') ||
+      lower.includes(", '>") ||
+      lower.includes(', ">') ||
+      lower.includes("mode='w") ||
+      lower.includes('mode="w') ||
+      lower.includes("mode='a") ||
+      lower.includes('mode="a') ||
+      lower.includes("mode=w"));
+
+  const writeish = writeApi || openWriteMode;
 
   // Path construction that hides the destination from literal classifiers.
   const obfuscatedPath =
@@ -445,26 +478,11 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("string.fromcharcode") ||
     lower.includes("atob(") ||
     lower.includes("btoa(") ||
-    // chr(...) path construction (not bare .decode on ordinary strings).
     lower.includes("chr(");
 
-  // Fail-closed residual: write-ish programmatic shell; obfuscation only when paired
-  // with a write signal (decode-only / print-only stays unclassifiable).
+  // Fail-closed residual: write-ish programmatic shell (obfuscation alone not enough).
   if (writeish) return true;
-  if (
-    obfuscatedPath &&
-    (lower.includes(".write(") ||
-      lower.includes("writefile") ||
-      lower.includes("fs.write") ||
-      lower.includes(">>") ||
-      (lower.includes("open(") &&
-        (lower.includes(",'w") ||
-          lower.includes(',"w') ||
-          lower.includes(",'>") ||
-          lower.includes(',">'))))
-  ) {
-    return true;
-  }
+  void obfuscatedPath;
   return false;
 }
 

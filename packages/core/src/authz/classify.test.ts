@@ -261,8 +261,9 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps('python -c "print(1)"')).toEqual([]);
     expect(classifyShellAuthzOps("node -e \"console.log('ok')\"")).toEqual([]);
     expect(classifyShellAuthzOps("python -c \"print(open('report.txt').read())\"")).toEqual([]);
-    // `.write` as data text is not a write API (Greptile residual).
+    // `.write` / `.write(` as quoted data is not a write API (Greptile conf residual).
     expect(classifyShellAuthzOps("python -c \"print('.write is a method name')\"")).toEqual([]);
+    expect(classifyShellAuthzOps("python -c \"print('.write(')\"")).toEqual([]);
     expect(
       classifyShellAuthzOps("python -c \"import base64; print(base64.b64decode('YQ=='))\""),
     ).toEqual([]);
