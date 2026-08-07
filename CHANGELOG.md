@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#3185).** Focused test-boundary policy/evaluate edges, scope-provenance digest IO, consumer-check-contract pure helpers, OpenClaw soft-rebind doctor branches, and platform-status weather URL edges clear the v0.97.0 84.95% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.66%, branches 85.1%, functions 95.98%. Closes #3185.
+
 ### Removed
 
 ## [0.97.0] - 2026-08-07
