@@ -54,9 +54,9 @@ describe("coverage-check-resume session nudge (#3189)", () => {
     expect(text).toContain("Later");
     expect(text).toContain("Discuss");
     expect(text).toContain("Back");
-    expect(text).toContain("applyStrictCoverageCheckResumePreset");
-    expect(text).toContain("applyHatchAwareCoverageCheckResumePreset");
-    expect(text).toContain("dismissCoverageCheckResume");
+    expect(text).toContain("coverage-check-resume-preset");
+    expect(text).toContain("coverage-check-resume-later");
+    expect(text).toContain("coverage-check-resume-dismiss");
     expect(formatCoverageCheckResumeNudge()).toContain(
       COVERAGE_CHECK_RESUME_NUDGE_WHAT.slice(0, 20),
     );

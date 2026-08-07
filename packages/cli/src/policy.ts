@@ -8,12 +8,16 @@ import { resolve as pathResolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ALLOW_BOT_MERGE_CAPABILITY_COST,
+  applyHatchAwareCoverageCheckResumePreset,
+  applyLaterCoverageCheckResumeSkip,
+  applyStrictCoverageCheckResumePreset,
   clearValueFeedback,
   createNoDeftDirectiveFlag,
   describeShadowedPlanExtension,
   detectNoDeftDirective,
   detectShadowedPlanExtensions,
   disclosureLine,
+  dismissCoverageCheckResume,
   enableValueFeedback,
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,
@@ -70,6 +74,9 @@ interface SetArgs {
     | "allow-bot-merge"
     | "enable-value-feedback"
     | "clear-value-feedback"
+    | "coverage-check-resume-preset"
+    | "coverage-check-resume-dismiss"
+    | "coverage-check-resume-later"
     | "disable-directive"
     | "enable-directive"
     | "resolve";
@@ -80,6 +87,9 @@ interface SetArgs {
   format: "text" | "json";
   changedOnly: boolean;
   field: string | null;
+  /** Strict | hatch-aware for coverage-check-resume-preset; reason for dismiss. */
+  preset?: string;
+  reason?: string;
   error?: string;
 }
 
@@ -173,7 +183,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|coverage-check-resume-preset|coverage-check-resume-dismiss|coverage-check-resume-later|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -214,6 +224,9 @@ export function parseArgs(argv: string[]): SetArgs {
     cmd === "allow-bot-merge" ||
     cmd === "enable-value-feedback" ||
     cmd === "clear-value-feedback" ||
+    cmd === "coverage-check-resume-preset" ||
+    cmd === "coverage-check-resume-dismiss" ||
+    cmd === "coverage-check-resume-later" ||
     cmd === "disable-directive" ||
     cmd === "enable-directive"
   ) {
@@ -229,15 +242,37 @@ export function parseArgs(argv: string[]): SetArgs {
               ? policyColonInvocation("enable-value-feedback")
               : cmd === "clear-value-feedback"
                 ? policyColonInvocation("clear-value-feedback")
-                : cmd === "disable-directive"
-                  ? policyColonInvocation("disable-directive")
-                  : policyColonInvocation("enable-directive");
+                : cmd === "coverage-check-resume-preset"
+                  ? policyColonInvocation("coverage-check-resume-preset")
+                  : cmd === "coverage-check-resume-dismiss"
+                    ? policyColonInvocation("coverage-check-resume-dismiss")
+                    : cmd === "coverage-check-resume-later"
+                      ? policyColonInvocation("coverage-check-resume-later")
+                      : cmd === "disable-directive"
+                        ? policyColonInvocation("disable-directive")
+                        : policyColonInvocation("enable-directive");
     let note = "";
     let projectRoot = ".";
+    let preset = "";
+    let reason = "";
     for (let i = 1; i < argv.length; i += 1) {
       const arg = argv[i];
       if (arg === "--confirm") {
         confirm = true;
+      } else if (arg === "--preset") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --preset: expected one argument");
+        preset = v;
+        i += 1;
+      } else if (arg?.startsWith("--preset=")) {
+        preset = arg.slice("--preset=".length);
+      } else if (arg === "--reason") {
+        const v = argv[i + 1];
+        if (v === undefined) return makeSetError("argument --reason: expected one argument");
+        reason = v;
+        i += 1;
+      } else if (arg?.startsWith("--reason=")) {
+        reason = arg.slice("--reason=".length);
       } else if (arg === "--actor") {
         const v = argv[i + 1];
         if (v === undefined) return makeSetError("argument --actor: expected one argument");
@@ -259,6 +294,11 @@ export function parseArgs(argv: string[]): SetArgs {
         i += 1;
       } else if (arg?.startsWith("--project-root=")) {
         projectRoot = arg.slice("--project-root=".length);
+      } else if (
+        cmd === "coverage-check-resume-preset" &&
+        (arg === "strict" || arg === "hatch-aware")
+      ) {
+        preset = arg;
       } else {
         return makeSetError(`unrecognized argument: ${arg}`);
       }
@@ -272,6 +312,8 @@ export function parseArgs(argv: string[]): SetArgs {
       format: "text",
       changedOnly: false,
       field: null,
+      preset,
+      reason,
     };
   }
 
@@ -539,6 +581,15 @@ export function run(argv: string[]): number {
   if (args.cmd === "clear-value-feedback") {
     return runClearValueFeedback(args);
   }
+  if (args.cmd === "coverage-check-resume-preset") {
+    return runCoverageCheckResumePreset(args);
+  }
+  if (args.cmd === "coverage-check-resume-dismiss") {
+    return runCoverageCheckResumeDismiss(args);
+  }
+  if (args.cmd === "coverage-check-resume-later") {
+    return runCoverageCheckResumeLater();
+  }
   if (args.cmd === "disable-directive") {
     return runDisableDirective(args);
   }
@@ -546,6 +597,50 @@ export function run(argv: string[]): number {
     return runEnableDirective(args);
   }
   return 2;
+}
+
+/** Apply Strict or Hatch-aware coverageDebt+checkResume preset (#3189). */
+function runCoverageCheckResumePreset(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  const preset = (args.preset ?? "").trim().toLowerCase();
+  if (preset !== "strict" && preset !== "hatch-aware") {
+    process.stdout.write(
+      "usage: policy coverage-check-resume-preset --preset strict|hatch-aware [--project-root PATH]\n" +
+        "  (or: policy:coverage-check-resume-preset strict|hatch-aware)\n",
+    );
+    return 1;
+  }
+  const result =
+    preset === "strict"
+      ? applyStrictCoverageCheckResumePreset(root, { actor: args.actor, note: args.note })
+      : applyHatchAwareCoverageCheckResumePreset(root, { actor: args.actor, note: args.note });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+/** Dismiss-with-reason for coverageDebt+checkResume (#3189). */
+function runCoverageCheckResumeDismiss(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  const reason = (args.reason ?? "").trim();
+  if (reason.length === 0) {
+    process.stdout.write(
+      "usage: policy coverage-check-resume-dismiss --reason TEXT [--project-root PATH]\n",
+    );
+    return 1;
+  }
+  const result = dismissCoverageCheckResume(root, reason, {
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+/** Later skip — no PROJECT-DEFINITION write (#3189). */
+function runCoverageCheckResumeLater(): number {
+  const result = applyLaterCoverageCheckResumeSkip();
+  process.stdout.write(result.stdout);
+  return result.exitCode;
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {

@@ -238,8 +238,13 @@ export function validateCoverageDebtOnPlan(plan: unknown, filepath: string): str
   if (!("coverageDebt" in (policy as JsonObject))) {
     return [];
   }
+  const raw = (policy as JsonObject).coverageDebt;
+  // Explicit null is a typed key with invalid value — fail closed at validation time.
+  if (raw === null) {
+    return [`${filepath}: plan.policy.coverageDebt must be an object; got null (#3189)`];
+  }
   const out: string[] = [];
-  for (const err of validateCoverageDebt((policy as JsonObject).coverageDebt)) {
+  for (const err of validateCoverageDebt(raw)) {
     out.push(`${filepath}: ${err} (#3189)`);
   }
   return out;
@@ -257,8 +262,12 @@ export function validateCheckResumeOnPlan(plan: unknown, filepath: string): stri
   if (!("checkResume" in (policy as JsonObject))) {
     return [];
   }
+  const raw = (policy as JsonObject).checkResume;
+  if (raw === null) {
+    return [`${filepath}: plan.policy.checkResume must be an object; got null (#3189)`];
+  }
   const out: string[] = [];
-  for (const err of validateCheckResume((policy as JsonObject).checkResume)) {
+  for (const err of validateCheckResume(raw)) {
     out.push(`${filepath}: ${err} (#3189)`);
   }
   return out;

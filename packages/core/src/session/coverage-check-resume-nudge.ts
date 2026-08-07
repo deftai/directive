@@ -26,11 +26,19 @@ export const COVERAGE_CHECK_RESUME_NUDGE_WHAT =
   "  * Later -- skip this session; does NOT set status=decided; nag again next ritual\n" +
   "  * Discuss -- talk through the trade-offs\n" +
   "  * Back -- leave this prompt without choosing\n" +
-  "Agent apply path (writes PROJECT-DEFINITION; production SoT API in @deftai/directive-core/policy):\n" +
-  "  Strict -> applyStrictCoverageCheckResumePreset(projectRoot)\n" +
-  "  Hatch-aware -> applyHatchAwareCoverageCheckResumePreset(projectRoot)\n" +
-  "  Later -> applyLaterCoverageCheckResumeSkip() (no PD write)\n" +
-  "  Dismiss-with-reason -> dismissCoverageCheckResume(projectRoot, reason)\n" +
+  "Apply path (writes PROJECT-DEFINITION):\n" +
+  "  Strict -> `" +
+  policyColonInvocation("coverage-check-resume-preset", " -- --preset strict") +
+  "`\n" +
+  "  Hatch-aware -> `" +
+  policyColonInvocation("coverage-check-resume-preset", " -- --preset hatch-aware") +
+  "`\n" +
+  "  Later -> `" +
+  policyColonInvocation("coverage-check-resume-later") +
+  "` (no PD write)\n" +
+  "  Dismiss-with-reason -> `" +
+  policyColonInvocation("coverage-check-resume-dismiss", ' -- --reason "…"') +
+  "`\n" +
   "Stop nag only after Strict / Hatch-aware (status=decided) or dismiss-with-reason " +
   `(visible via \`${policyColonInvocation("show", " --field=coverageDebt")}\` / doctor).`;
 
