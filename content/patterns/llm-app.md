@@ -28,6 +28,7 @@ also #480 for the framework-side defenses against the same trap classes).
 - [../tools/telemetry.md](../tools/telemetry.md) — `## LLM-specific observability (#481)` extends general telemetry guidance for LLM calls
 - [../patterns/multi-agent.md](./multi-agent.md) — credential separation pattern for swarm workers (orthogonal identity track)
 - [./agent-skill-supply-chain.md](./agent-skill-supply-chain.md) — inbound supply-chain controls for skills, plugins, and MCP servers (#1937)
+- [../context/tool-design.md](../context/tool-design.md) `## Tool-surface grammar (#3085)` — flat params; nesting × heterogeneity tax
 
 ## Prompt construction
 
@@ -83,6 +84,14 @@ the model's.
 - ~ SHOULD log all tool invocations with inputs and outputs for audit trail (queryable, separate from app logs — see `## LLM-specific observability`)
 - ~ SHOULD implement a denylist of tool-argument patterns known to be dangerous (`rm -rf /`, `DROP TABLE`, shell metacharacters in path arguments) as a defense-in-depth probe BEFORE schema validation
 - ⊗ MUST NOT grant tools the ability to modify their own definitions, spawn new tools, or escalate their own permission scope mid-session
+
+**Argument-surface grammar (reliability / tokens, not authz):** prefer flat,
+homogeneous, non-nested parameters. Reliability degrades with
+nesting × heterogeneity × cleverness. Provider schema mins/maxes are
+documentation unless the harness validates. Full principle, good/bad
+shapes, and Code Mode complementarity: [../context/tool-design.md](../context/tool-design.md)
+`## Tool-surface grammar (#3085)`. This section stays the security lane;
+do not invent a second vocabulary for the same idea.
 
 ## RAG and retrieval
 

@@ -214,7 +214,7 @@ Load as needed:
 - **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
 - **[context/working-memory.md](./content/context/working-memory.md)** - Scratchpad and externalization patterns with xBRIEF; `xbrief/plan.xbrief.json` + scope xBRIEF relationship
 - **[context/long-horizon.md](./content/context/long-horizon.md)** - Multi-session checkpoint/resume patterns; lifecycle folder conventions
-- **[context/tool-design.md](./content/context/tool-design.md)** - Designing AI-consumable tools
+- **[context/tool-design.md](./content/context/tool-design.md)** - Designing AI-consumable tools; tool-surface grammar (flat params, nesting tax) (#3085)
 - **[context/deterministic-split.md](./content/context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
 - **[context/fractal-summaries.md](./content/context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
 - **[context/examples.md](./content/context/examples.md)** - Few-shot and behavioral example guidance
