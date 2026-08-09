@@ -11,6 +11,8 @@ import {
   applyHatchAwareCoverageCheckResumePreset,
   applyLaterCoverageCheckResumeSkip,
   applyStrictCoverageCheckResumePreset,
+  CEREMONY_DEPTHS,
+  type CeremonyDepth,
   clearValueFeedback,
   createNoDeftDirectiveFlag,
   describeShadowedPlanExtension,
@@ -40,6 +42,7 @@ import {
   resolveHumanMergePolicy,
   resolvePolicy,
   resolveValueFeedback,
+  setCeremonyDial,
   setPolicy,
   setRequireHumanMerge,
 } from "@deftai/directive-core/policy";
@@ -74,6 +77,7 @@ interface SetArgs {
     | "allow-bot-merge"
     | "enable-value-feedback"
     | "clear-value-feedback"
+    | "set-ceremony-dial"
     | "coverage-check-resume-preset"
     | "coverage-check-resume-dismiss"
     | "coverage-check-resume-later"
@@ -90,6 +94,10 @@ interface SetArgs {
   /** Strict | hatch-aware for coverage-check-resume-preset; reason for dismiss. */
   preset?: string;
   reason?: string;
+  /** #3214 ceremony dial override depth for set-ceremony-dial. */
+  ceremonyOverride?: CeremonyDepth | null;
+  /** #3214 ceremony dial enabled flag for set-ceremony-dial. */
+  ceremonyEnabled?: boolean;
   error?: string;
 }
 
@@ -183,7 +191,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|coverage-check-resume-preset|coverage-check-resume-dismiss|coverage-check-resume-later|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|coverage-check-resume-preset|coverage-check-resume-dismiss|coverage-check-resume-later|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -224,6 +232,7 @@ export function parseArgs(argv: string[]): SetArgs {
     cmd === "allow-bot-merge" ||
     cmd === "enable-value-feedback" ||
     cmd === "clear-value-feedback" ||
+    cmd === "set-ceremony-dial" ||
     cmd === "coverage-check-resume-preset" ||
     cmd === "coverage-check-resume-dismiss" ||
     cmd === "coverage-check-resume-later" ||
@@ -242,19 +251,23 @@ export function parseArgs(argv: string[]): SetArgs {
               ? policyColonInvocation("enable-value-feedback")
               : cmd === "clear-value-feedback"
                 ? policyColonInvocation("clear-value-feedback")
-                : cmd === "coverage-check-resume-preset"
-                  ? policyColonInvocation("coverage-check-resume-preset")
-                  : cmd === "coverage-check-resume-dismiss"
-                    ? policyColonInvocation("coverage-check-resume-dismiss")
-                    : cmd === "coverage-check-resume-later"
-                      ? policyColonInvocation("coverage-check-resume-later")
-                      : cmd === "disable-directive"
-                        ? policyColonInvocation("disable-directive")
-                        : policyColonInvocation("enable-directive");
+                : cmd === "set-ceremony-dial"
+                  ? policyColonInvocation("set-ceremony-dial")
+                  : cmd === "coverage-check-resume-preset"
+                    ? policyColonInvocation("coverage-check-resume-preset")
+                    : cmd === "coverage-check-resume-dismiss"
+                      ? policyColonInvocation("coverage-check-resume-dismiss")
+                      : cmd === "coverage-check-resume-later"
+                        ? policyColonInvocation("coverage-check-resume-later")
+                        : cmd === "disable-directive"
+                          ? policyColonInvocation("disable-directive")
+                          : policyColonInvocation("enable-directive");
     let note = "";
     let projectRoot = ".";
     let preset = "";
     let reason = "";
+    let ceremonyOverride: CeremonyDepth | null | undefined;
+    let ceremonyEnabled: boolean | undefined;
     for (let i = 1; i < argv.length; i += 1) {
       const arg = argv[i];
       if (arg === "--confirm") {
@@ -299,6 +312,50 @@ export function parseArgs(argv: string[]): SetArgs {
         (arg === "strict" || arg === "hatch-aware")
       ) {
         preset = arg;
+      } else if (cmd === "set-ceremony-dial" && (arg === "--override" || arg === "--depth")) {
+        const v = argv[i + 1];
+        if (v === undefined) {
+          return makeSetError(
+            `argument ${arg}: expected one argument (minimal|rapid|standard|elevated|null)`,
+          );
+        }
+        if (v === "null" || v === "none" || v === "clear") {
+          ceremonyOverride = null;
+        } else if ((CEREMONY_DEPTHS as readonly string[]).includes(v)) {
+          ceremonyOverride = v as CeremonyDepth;
+        } else {
+          return makeSetError(
+            `argument ${arg}: expected minimal|rapid|standard|elevated|null, got ${JSON.stringify(v)}`,
+          );
+        }
+        i += 1;
+      } else if (
+        cmd === "set-ceremony-dial" &&
+        (arg?.startsWith("--override=") || arg?.startsWith("--depth="))
+      ) {
+        const v = arg.slice(arg.indexOf("=") + 1);
+        if (v === "null" || v === "none" || v === "clear") {
+          ceremonyOverride = null;
+        } else if ((CEREMONY_DEPTHS as readonly string[]).includes(v)) {
+          ceremonyOverride = v as CeremonyDepth;
+        } else {
+          return makeSetError(
+            `argument --override: expected minimal|rapid|standard|elevated|null, got ${JSON.stringify(v)}`,
+          );
+        }
+      } else if (cmd === "set-ceremony-dial" && arg === "--enabled") {
+        const v = argv[i + 1];
+        if (v === undefined || (v !== "true" && v !== "false")) {
+          return makeSetError("argument --enabled: expected true|false");
+        }
+        ceremonyEnabled = v === "true";
+        i += 1;
+      } else if (cmd === "set-ceremony-dial" && arg?.startsWith("--enabled=")) {
+        const v = arg.slice("--enabled=".length);
+        if (v !== "true" && v !== "false") {
+          return makeSetError("argument --enabled: expected true|false");
+        }
+        ceremonyEnabled = v === "true";
       } else {
         return makeSetError(`unrecognized argument: ${arg}`);
       }
@@ -314,6 +371,8 @@ export function parseArgs(argv: string[]): SetArgs {
       field: null,
       preset,
       reason,
+      ceremonyOverride,
+      ceremonyEnabled,
     };
   }
 
@@ -581,6 +640,9 @@ export function run(argv: string[]): number {
   if (args.cmd === "clear-value-feedback") {
     return runClearValueFeedback(args);
   }
+  if (args.cmd === "set-ceremony-dial") {
+    return runSetCeremonyDial(args);
+  }
   if (args.cmd === "coverage-check-resume-preset") {
     return runCoverageCheckResumePreset(args);
   }
@@ -639,6 +701,27 @@ function runCoverageCheckResumeDismiss(args: SetArgs): number {
 /** Later skip — no PROJECT-DEFINITION write (#3189). */
 function runCoverageCheckResumeLater(): number {
   const result = applyLaterCoverageCheckResumeSkip();
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+/** Persist plan.policy.ceremonyDial override/enabled (#3214). */
+function runSetCeremonyDial(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  if (args.ceremonyOverride === undefined && args.ceremonyEnabled === undefined) {
+    process.stdout.write(
+      "usage: policy set-ceremony-dial -- --confirm [--override minimal|rapid|standard|elevated|null] [--enabled true|false] [--project-root PATH]\n" +
+        `  Inspect: ${policyColonInvocation("show", " --field=ceremonyDial")}\n`,
+    );
+    return 1;
+  }
+  const result = setCeremonyDial(root, {
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+    ...(args.ceremonyOverride !== undefined ? { override: args.ceremonyOverride } : {}),
+    ...(args.ceremonyEnabled !== undefined ? { enabled: args.ceremonyEnabled } : {}),
+  });
   process.stdout.write(result.stdout);
   return result.exitCode;
 }

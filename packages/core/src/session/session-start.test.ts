@@ -369,6 +369,10 @@ describe("runSessionStart ceremony dial (#3214)", () => {
       triage_welcome: { deferred_reason?: string };
     };
     expect(quick.triage_welcome.deferred_reason).toMatch(/ceremony-dial/);
+    // Gated readiness steps must remain available (not auto-deferred).
+    const gated = result.payload.gated_steps as Record<string, { deferred_reason?: string }>;
+    expect(gated.doctor?.deferred_reason).toBeUndefined();
+    expect(gated.cache_fresh?.deferred_reason).toBeUndefined();
   });
 
   it("non-project shape selects minimal and points at #3014 research", () => {

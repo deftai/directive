@@ -165,10 +165,12 @@ describe("selectCeremonyDepth precedence", () => {
     expect(minimal.composition.rapidStrategy).toBeNull();
   });
 
-  it("rapid/minimal profiles auto-defer heavy steps", () => {
-    expect(ceremonyDialProfile("rapid").autoDeferSteps).toEqual(
-      expect.arrayContaining(["triage_welcome", "doctor", "cache_fresh"]),
-    );
+  it("rapid/minimal profiles auto-defer cold triage only (not gated readiness)", () => {
+    expect(ceremonyDialProfile("rapid").autoDeferSteps).toEqual(["triage_welcome"]);
+    expect(ceremonyDialProfile("minimal").autoDeferSteps).toEqual(["triage_welcome"]);
+    // Gated mutation readiness must never be auto-deferred (Greptile P1).
+    expect(ceremonyDialProfile("rapid").autoDeferSteps).not.toContain("doctor");
+    expect(ceremonyDialProfile("rapid").autoDeferSteps).not.toContain("cache_fresh");
     expect(ceremonyDialProfile("rapid").skipFatPath).toBe(true);
     expect(ceremonyDialProfile("minimal").lifecycleWrites).toBe("minimal");
     expect(ceremonyDialProfile("standard").autoDeferSteps).toEqual([]);
@@ -270,8 +272,9 @@ describe("resolveCeremonyDial + policy surface", () => {
     });
     const merged = mergeCeremonyDialDeferrals({ triage_welcome: "operator-skip" }, selection);
     expect(merged.triage_welcome).toBe("operator-skip");
-    expect(merged.doctor).toMatch(/ceremony-dial/);
-    expect(merged.cache_fresh).toMatch(/ceremony-dial/);
+    // Gated readiness steps are not auto-deferred by the dial.
+    expect(merged.doctor).toBeUndefined();
+    expect(merged.cache_fresh).toBeUndefined();
   });
 
   it("format + dict helpers are stable", () => {

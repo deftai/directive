@@ -261,6 +261,7 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:allow-direct-commits": "allow-direct-commits",
   "policy:allow-bot-merge": "allow-bot-merge",
   "policy:enable-value-feedback": "enable-value-feedback",
+  "policy:set-ceremony-dial": "set-ceremony-dial",
   "policy:clear-value-feedback": "clear-value-feedback",
   "policy:coverage-check-resume-preset": "coverage-check-resume-preset",
   "policy:coverage-check-resume-dismiss": "coverage-check-resume-dismiss",

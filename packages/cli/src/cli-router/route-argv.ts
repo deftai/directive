@@ -91,6 +91,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],
   "policy:allow-bot-merge": ["policy", "allow-bot-merge"],
   "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
+  "policy:set-ceremony-dial": ["policy", "set-ceremony-dial"],
   "policy:coverage-check-resume-preset": ["policy", "coverage-check-resume-preset"],
   "policy:coverage-check-resume-dismiss": ["policy", "coverage-check-resume-dismiss"],
   "policy:coverage-check-resume-later": ["policy", "coverage-check-resume-later"],

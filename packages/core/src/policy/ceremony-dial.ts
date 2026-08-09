@@ -109,17 +109,26 @@ export interface CeremonyDialSelection {
   readonly error: string | null;
 }
 
+/**
+ * Profiles scale *cold* ceremony only.
+ *
+ * ! Do NOT auto-defer gated readiness steps (`doctor`, `cache_fresh`,
+ *   `agent_hooks`) — those stay required for mutation authorization
+ *   (`verify:session-ritual --tier=gated`). Rapid/minimal only lighten
+ *   cold session:start fat path (triage welcome + optional tools/network).
+ */
 const PROFILES: Readonly<Record<CeremonyDepth, CeremonyDialProfile>> = {
   minimal: {
     depth: "minimal",
-    autoDeferSteps: ["triage_welcome", "doctor", "cache_fresh"],
+    // Cold-path only: never defer gated readiness (Greptile P1 #3214).
+    autoDeferSteps: ["triage_welcome"],
     skipFatPath: true,
     lifecycleWrites: "minimal",
     label: "minimal (non-project / #3014 direction)",
   },
   rapid: {
     depth: "rapid",
-    autoDeferSteps: ["triage_welcome", "doctor", "cache_fresh"],
+    autoDeferSteps: ["triage_welcome"],
     skipFatPath: true,
     lifecycleWrites: "light",
     label: "rapid (strategies/rapid.md light path)",
