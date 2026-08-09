@@ -96,33 +96,41 @@ export function looksLikeFilesystemTarget(targetId: string): boolean {
 /**
  * Canonical unit target for ledger keys so relative/absolute/separator/case
  * variants of the same worktree do not split gate state (#3228 Greptile P1).
+ *
+ * Rules:
+ * - If the target exists under projectRoot (or looks like a path), normalize
+ *   via resolve + realpath (when present) + separator fold + lowercase.
+ * - Otherwise keep as opaque (branch/ref names such as `feat/foo`).
  */
 export function normalizeTargetId(projectRoot: string, targetId: string): string {
   const trimmed = targetId.trim();
   if (trimmed.length === 0) return trimmed;
-  if (!looksLikeFilesystemTarget(trimmed)) {
+
+  const abs = resolve(projectRoot, trimmed);
+  const exists = existsSync(abs);
+  // Bare names that resolve to an existing dir/file are filesystem targets too
+  // (not only ".deft-scratch/..." heuristics).
+  if (!exists && !looksLikeFilesystemTarget(trimmed)) {
     return trimmed;
   }
-  let abs = resolve(projectRoot, trimmed);
-  // Collapse symlink aliases when the path exists (#3228 Greptile P1).
-  if (existsSync(abs)) {
+
+  let pathKey = abs;
+  if (exists) {
     try {
-      abs = realpathSync(abs);
+      pathKey = realpathSync(abs);
     } catch {
       // Keep resolved path if realpath fails (permissions / race).
     }
   }
-  abs = normalize(abs).replace(/\\/g, "/");
-  // Case-insensitive volumes: Windows + default macOS — one ledger key.
-  // Linux stays case-sensitive (realpath already collapsed symlinks).
-  if (process.platform === "win32" || process.platform === "darwin") {
-    abs = abs.toLowerCase();
+  pathKey = normalize(pathKey).replace(/\\/g, "/");
+  // Case-fold always for filesystem keys so case-insensitive volumes (Windows,
+  // default macOS, some Linux mounts) cannot split the ledger. Opaque branch
+  // ids never reach this branch.
+  pathKey = pathKey.toLowerCase();
+  if (pathKey.length > 1 && pathKey.endsWith("/")) {
+    pathKey = pathKey.slice(0, -1);
   }
-  // Drop trailing slash so `.../wt` and `.../wt/` match.
-  if (abs.length > 1 && abs.endsWith("/")) {
-    abs = abs.slice(0, -1);
-  }
-  return abs;
+  return pathKey;
 }
 
 function unitFields(input: SwarmPreDispatchInput): {

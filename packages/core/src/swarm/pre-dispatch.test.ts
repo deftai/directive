@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -267,5 +267,31 @@ describe("swarmPreDispatch (#3228)", () => {
     });
     expect(r.exitCode).toBe(0);
     expect(r.targetId).toBe("feat/my-story");
+  });
+
+  it("bare relative dir that exists under project is path-normalized", () => {
+    const root = tempRoot();
+    const bare = "wt-bare";
+    mkdirSync(join(root, bare));
+    const first = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-bare",
+      targetId: bare,
+      action: "begin",
+      sourceRevision: "r1",
+    });
+    expect(first.exitCode).toBe(0);
+    expect(first.targetId).not.toBe(bare);
+    expect(first.targetId.toLowerCase()).toContain("wt-bare");
+
+    const peer = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-bare",
+      targetId: join(root, bare),
+      action: "begin",
+      sourceRevision: "r2",
+    });
+    expect(peer.exitCode).toBe(1);
+    expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
   });
 });
