@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=63f1c02a12f4 refreshed=2026-08-07T16:10:03Z session=1759e40a4670 -->
+<!-- deft:managed-section v3 sha=8d82d291bc34 refreshed=2026-08-09T20:22:31Z session=026df50fe21c -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -252,6 +252,9 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Value feedback and attribution (#1709)
 
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
+
+## Structured decision log (#1396 / #3211)
+! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
 
 ## Eval and framework health (#1703)
 

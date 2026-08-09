@@ -91,6 +91,9 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
 
+## Structured decision log (#1396 / #3211)
+! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
+
 ## Eval and framework health (#1703)
 
 ! `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Release: `deft eval:run` / `deft eval:report`; skill routing: `deft eval:triggers` (#1586 / #1703).
