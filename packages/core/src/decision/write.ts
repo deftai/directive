@@ -35,6 +35,8 @@ export interface DecisionWriteInput {
   readonly bodyFile?: string;
   /** Force standalone under xbrief/decisions/ even when --scope is set (still links). */
   readonly standalone?: boolean;
+  /** When true, replace an existing decision file at the same path. Default: fail if exists. */
+  readonly force?: boolean;
   readonly projectRoot?: string | null;
   readonly dryRun?: boolean;
   readonly json?: boolean;
@@ -197,6 +199,19 @@ export function runDecisionWrite(options: DecisionWriteInput): DecisionWriteResu
 
   try {
     mkdirSync(dirname(absPath), { recursive: true });
+    if (existsSync(absPath) && options.force !== true) {
+      return {
+        outcome: "error-io",
+        exitCode: 2,
+        path: relPath,
+        scopePath: null,
+        record: recordOut,
+        message:
+          `Error: decision file already exists: ${relPath}\n` +
+          "  Refusing to overwrite (would destroy prior rationale). " +
+          "Pass --force to replace, or use a distinct --id / decision text.\n",
+      };
+    }
     const data = `${JSON.stringify(
       {
         schemaVersion: recordOut.schemaVersion,
@@ -292,6 +307,7 @@ export interface DecisionWriteCliArgs {
   relatedIssues?: number[];
   bodyFile?: string;
   standalone?: boolean;
+  force?: boolean;
   dryRun?: boolean;
   json?: boolean;
   projectRoot?: string;
@@ -319,6 +335,7 @@ export function parseDecisionWriteArgs(argv: readonly string[]): DecisionWriteCl
     if (arg === "--dry-run") out.dryRun = true;
     else if (arg === "--json") out.json = true;
     else if (arg === "--standalone") out.standalone = true;
+    else if (arg === "--force") out.force = true;
     else if (arg === "--decision" || arg.startsWith("--decision=")) {
       const [v, ni] = takeValue(i, "--decision", "--decision=");
       out.decision = v;
@@ -429,6 +446,7 @@ export function decisionWriteMain(argv: readonly string[]): number {
     relatedIssues: args.relatedIssues,
     bodyFile: args.bodyFile,
     standalone: args.standalone,
+    force: args.force,
     dryRun: args.dryRun,
     json: args.json,
     projectRoot: args.projectRoot,

@@ -9,6 +9,7 @@ import {
   DECISION_FILE_SUFFIX,
   DECISIONS_DIR_REL,
   type DecisionRecord,
+  sanitizeForTerminal,
   validateDecisionRecord,
 } from "./schema.js";
 
@@ -175,9 +176,18 @@ export function runDecisionList(options: DecisionListOptions = {}): DecisionList
   }
 
   const lines = entries.map((e) => {
-    const scopes = e.activeScopeRefs.length > 0 ? ` scope=${e.activeScopeRefs.join(",")}` : "";
-    const tags = e.tags.length > 0 ? ` tags=${e.tags.join(",")}` : "";
-    return `${e.path}\n  ${e.decision}\n  confidence=${e.confidence} ts=${e.timestamp}${scopes}${tags}\n  revisit: ${e.revisitTrigger}`;
+    const scopes =
+      e.activeScopeRefs.length > 0
+        ? ` scope=${sanitizeForTerminal(e.activeScopeRefs.join(","))}`
+        : "";
+    const tags = e.tags.length > 0 ? ` tags=${sanitizeForTerminal(e.tags.join(","))}` : "";
+    return (
+      `${sanitizeForTerminal(e.path)}\n` +
+      `  ${sanitizeForTerminal(e.decision)}\n` +
+      `  confidence=${sanitizeForTerminal(e.confidence)} ts=${sanitizeForTerminal(e.timestamp)}` +
+      `${scopes}${tags}\n` +
+      `  revisit: ${sanitizeForTerminal(e.revisitTrigger)}`
+    );
   });
 
   return {
@@ -211,10 +221,22 @@ export function parseDecisionListArgs(argv: readonly string[]): DecisionListCliA
       else out.scope = arg.slice("--scope=".length);
     } else if (arg === "--issue" || arg.startsWith("--issue=")) {
       const raw = arg === "--issue" ? argv[++i] : arg.slice("--issue=".length);
-      if (raw !== undefined && /^\d+$/.test(raw.trim())) out.issue = Number(raw.trim());
+      if (raw === undefined || raw.trim().length === 0 || raw.startsWith("-")) {
+        return { ...out, error: "--issue requires a positive integer" };
+      }
+      if (!/^\d+$/.test(raw.trim())) {
+        return { ...out, error: `--issue must be a positive integer, got: ${raw}` };
+      }
+      out.issue = Number(raw.trim());
     } else if (arg === "--limit" || arg.startsWith("--limit=")) {
       const raw = arg === "--limit" ? argv[++i] : arg.slice("--limit=".length);
-      if (raw !== undefined && /^\d+$/.test(raw.trim())) out.limit = Number(raw.trim());
+      if (raw === undefined || raw.trim().length === 0 || raw.startsWith("-")) {
+        return { ...out, error: "--limit requires a positive integer" };
+      }
+      if (!/^\d+$/.test(raw.trim()) || Number(raw.trim()) <= 0) {
+        return { ...out, error: `--limit must be a positive integer, got: ${raw}` };
+      }
+      out.limit = Number(raw.trim());
     } else if (arg === "--project-root" || arg.startsWith("--project-root=")) {
       if (arg === "--project-root") out.projectRoot = argv[++i];
       else out.projectRoot = arg.slice("--project-root=".length);

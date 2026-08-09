@@ -34,6 +34,19 @@ describe("slugifyDecision", () => {
   it("falls back for empty input", () => {
     expect(slugifyDecision("   ")).toBe("decision");
   });
+
+  it("collapses punctuation linearly", () => {
+    expect(slugifyDecision("---hello---world---")).toBe("hello-world");
+    expect(slugifyDecision("a".repeat(80)).length).toBe(64);
+  });
+});
+
+describe("sanitizeForTerminal", () => {
+  it("strips control characters", async () => {
+    const { sanitizeForTerminal } = await import("./schema.js");
+    expect(sanitizeForTerminal("ok\u001b[31mred\u0007bell")).toBe("ok[31mredbell");
+    expect(sanitizeForTerminal("line\nbreak")).toBe("line break");
+  });
 });
 
 describe("decisionFilename", () => {

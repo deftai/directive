@@ -177,6 +177,17 @@ describe("runDecisionWrite", () => {
     expect(result.outcome).toBe("error-config");
   });
 
+  it("refuses overwrite without --force", () => {
+    const root = makeProject();
+    const first = runDecisionWrite({ ...baseInput, projectRoot: root });
+    expect(first.exitCode).toBe(0);
+    const second = runDecisionWrite({ ...baseInput, projectRoot: root });
+    expect(second.exitCode).toBe(2);
+    expect(second.message).toContain("already exists");
+    const forced = runDecisionWrite({ ...baseInput, force: true, projectRoot: root });
+    expect(forced.exitCode).toBe(0);
+  });
+
   it("skips re-linking an existing scope pointer", () => {
     const root = makeProject();
     const scope = "xbrief/active/story.xbrief.json";
@@ -188,7 +199,6 @@ describe("runDecisionWrite", () => {
       scope,
       projectRoot: root,
     });
-    // Second write with different id still attaches; re-run same path is replace
     expect(second.exitCode).toBe(0);
   });
 

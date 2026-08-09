@@ -102,16 +102,51 @@ export function normalizeTimestamp(raw?: string | null): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-/** Derive a kebab-case slug from free text (max 64 chars). */
+/**
+ * Derive a kebab-case slug from free text (max 64 chars).
+ * Linear-time (no polynomial regex) for CodeQL safety on library input.
+ */
 export function slugifyDecision(text: string): string {
-  const base = text
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64)
-    .replace(/-+$/g, "");
-  return base.length > 0 ? base : "decision";
+  const lower = text.trim().toLowerCase();
+  let out = "";
+  let pendingHyphen = false;
+  for (let i = 0; i < lower.length && out.length < 64; i += 1) {
+    const ch = lower[i] as string;
+    const code = ch.charCodeAt(0);
+    const isAlnum =
+      (code >= 48 && code <= 57) || // 0-9
+      (code >= 97 && code <= 122); // a-z
+    if (isAlnum) {
+      if (pendingHyphen && out.length > 0) {
+        out += "-";
+        if (out.length >= 64) break;
+      }
+      out += ch;
+      pendingHyphen = false;
+    } else {
+      pendingHyphen = true;
+    }
+  }
+  return out.length > 0 ? out : "decision";
+}
+
+/** Strip terminal control / C0 / DEL chars for safe plaintext list rendering. */
+export function sanitizeForTerminal(text: string): string {
+  let out = "";
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    // Drop C0 controls (except tab/LF/CR) and DEL; keep printable + high unicode.
+    if (code === 9 || code === 10 || code === 13) {
+      out += " ";
+      continue;
+    }
+    if (code < 32 || code === 127) {
+      continue;
+    }
+    // ESC and CSI-like sequences start at 0x1b which is already dropped.
+    out += text[i];
+  }
+  return out;
 }
 
 /** Date prefix YYYY-MM-DD from an ISO timestamp. */

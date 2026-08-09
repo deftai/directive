@@ -30,6 +30,7 @@ export {
   decisionFilename,
   formatDecisionValidationErrors,
   normalizeTimestamp,
+  sanitizeForTerminal,
   slugifyDecision,
   validateDecisionRecord,
 } from "./schema.js";

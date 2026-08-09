@@ -74,6 +74,12 @@ describe("parseDecisionListArgs", () => {
     expect(args.limit).toBe(5);
     expect(args.json).toBe(true);
   });
+
+  it("fails closed on malformed issue/limit", () => {
+    expect(parseDecisionListArgs(["--issue", "abc"]).error).toContain("positive integer");
+    expect(parseDecisionListArgs(["--limit", "nope"]).error).toContain("positive integer");
+    expect(parseDecisionListArgs(["--issue"]).error).toContain("--issue");
+  });
 });
 
 describe("runDecisionList", () => {
