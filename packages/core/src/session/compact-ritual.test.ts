@@ -86,6 +86,7 @@ function freshRitualRoot(): { root: string; head: string } {
         alignment: ritualStep({ ok: true, ts: started }),
         branch_policy: ritualStep({ ok: true, ts: started }),
         triage_welcome: ritualStep({ ok: true, ts: started }),
+        verify_tools: ritualStep({ ok: true, ts: started }),
       },
       gatedSteps: {
         agent_hooks: ritualStep({ ok: true, ts: started }),
@@ -171,6 +172,7 @@ describe("session.compact hook dispatch (#2113)", () => {
           alignment: ritualStep({ ok: true, ts: refreshedStarted }),
           branch_policy: ritualStep({ ok: true, ts: refreshedStarted }),
           triage_welcome: ritualStep({ ok: true, ts: refreshedStarted }),
+          verify_tools: ritualStep({ ok: true, ts: refreshedStarted }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: refreshedStarted }),

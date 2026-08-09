@@ -87,6 +87,7 @@ describe("ephemeral posture verify-session-ritual (#2180)", () => {
           alignment: ritualStep({ ok: true, ts: staleStarted }),
           branch_policy: ritualStep({ ok: true, ts: staleStarted }),
           triage_welcome: ritualStep({ ok: true, ts: staleStarted }),
+          verify_tools: ritualStep({ ok: true, ts: staleStarted }),
         },
       }),
     );

@@ -83,6 +83,7 @@ describe("verify-session-ritual failed-step messaging", () => {
           alignment: ritualStep({ ok: true, ts: NOW }),
           branch_policy: ritualStep({ ok: false, ts: NOW, message: "policy off" }),
           triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
         },
       }),
     );
@@ -109,6 +110,7 @@ describe("verify-session-ritual failed-step messaging", () => {
           alignment: ritualStep({ ok: true, ts: NOW }),
           branch_policy: ritualStep({ ok: true, ts: NOW }),
           triage_welcome: ritualStep({ ok: false, ts: NOW, deferredReason: "later" }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
         },
       }),
     );
@@ -134,6 +136,7 @@ describe("verify-session-ritual failed-step messaging", () => {
           alignment: ritualStep({ ok: true, ts: NOW }),
           branch_policy: ritualStep({ ok: true, ts: NOW }),
           triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: NOW }),
@@ -170,6 +173,7 @@ describe("verify-session-ritual failed-step messaging", () => {
           alignment: ritualStep({ ok: true, ts: NOW }),
           branch_policy: ritualStep({ ok: true, ts: NOW }),
           triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: NOW }),
@@ -225,6 +229,7 @@ describe("verify-session-ritual failed-step messaging", () => {
           alignment: ritualStep({ ok: true, ts: NOW }),
           branch_policy: ritualStep({ ok: true, ts: NOW }),
           triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: NOW }),
@@ -264,6 +269,7 @@ describe("verify-session-ritual failed-step messaging", () => {
           alignment: ritualStep({ ok: false, ts: NOW, message: "nope" }),
           branch_policy: ritualStep({ ok: true, ts: NOW }),
           triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
         },
       }),
     );

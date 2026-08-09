@@ -128,6 +128,7 @@ describe("verifySessionRitual gated tier via defaultRitualRunner", () => {
           alignment: ritualStep({ ok: true, ts: now }),
           branch_policy: ritualStep({ ok: true, ts: now }),
           triage_welcome: ritualStep({ ok: true, ts: now }),
+          verify_tools: ritualStep({ ok: true, ts: now }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: now, message: "seeded for test" }),

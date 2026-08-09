@@ -30,6 +30,10 @@ describe("session:start TS module (maps tests/cli/test_session_start.py)", () =>
     const result = runSessionStart(root, {
       now: new Date("2026-06-09T01:00:00Z"),
       runGit: fakeGit(head, resolve(root)),
+      // Headless: tools readiness is constant; stub for CI sandboxes.
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
     });
     expect(result.code).toBe(0);
     expect(result.lines.join("\n")).toContain("Deft Directive active");
@@ -38,8 +42,9 @@ describe("session:start TS module (maps tests/cli/test_session_start.py)", () =>
       quick_steps: Record<string, unknown>;
     };
     expect(state.schemaVersion).toBe(1);
+    // #3214/#3156: verify_tools is a quick-step on cold ritual-state.
     expect(Object.keys(state.quick_steps).sort()).toEqual(
-      ["alignment", "branch_policy", "triage_welcome"].sort(),
+      ["alignment", "branch_policy", "triage_welcome", "verify_tools"].sort(),
     );
   });
 
@@ -51,6 +56,9 @@ describe("session:start TS module (maps tests/cli/test_session_start.py)", () =>
       deferrals: { doctor: "postponed" },
       now: new Date("2026-06-09T01:00:00Z"),
       runGit: fakeGit(head, resolve(root)),
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
     });
     expect(result.code).toBe(0);
     const state = JSON.parse(readFileSync(join(root, ".deft", "ritual-state.json"), "utf8")) as {
@@ -78,8 +86,9 @@ describe("deft-ts session:start dispatcher smoke", () => {
     const state = JSON.parse(readFileSync(statePath, "utf8")) as {
       quick_steps: Record<string, unknown>;
     };
+    // #3214/#3156: verify_tools is persisted on quick_steps (real tool probe in CLI path).
     expect(Object.keys(state.quick_steps).sort()).toEqual(
-      ["alignment", "branch_policy", "triage_welcome"].sort(),
+      ["alignment", "branch_policy", "triage_welcome", "verify_tools"].sort(),
     );
   });
 

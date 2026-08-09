@@ -100,6 +100,7 @@ describe("verify-session-ritual branches", () => {
           alignment: ritualStep({ ok: true, ts: started }),
           branch_policy: ritualStep({ ok: true, ts: started }),
           triage_welcome: ritualStep({ ok: true, ts: started }),
+          verify_tools: ritualStep({ ok: true, ts: started }),
         },
       }),
     );
@@ -130,6 +131,7 @@ describe("verify-session-ritual branches", () => {
           alignment: ritualStep({ ok: false, ts: now }),
           branch_policy: ritualStep({ ok: true, ts: now }),
           triage_welcome: ritualStep({ ok: true, ts: now }),
+          verify_tools: ritualStep({ ok: true, ts: now }),
         },
       }),
     );
@@ -176,6 +178,7 @@ describe("verify-session-ritual branches", () => {
           alignment: ritualStep({ ok: true, ts: now }),
           branch_policy: ritualStep({ ok: true, ts: now }),
           triage_welcome: ritualStep({ ok: true, ts: now }),
+          verify_tools: ritualStep({ ok: true, ts: now }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: now, message: "done" }),
@@ -215,6 +218,7 @@ describe("verify-session-ritual branches", () => {
         alignment: ritualStep({ ok: true, ts: now }),
         branch_policy: ritualStep({ ok: true, ts: now }),
         triage_welcome: ritualStep({ ok: true, ts: now }),
+        verify_tools: ritualStep({ ok: true, ts: now }),
       },
     });
     payload.gated_steps = {};
@@ -246,6 +250,7 @@ describe("verify-session-ritual branches", () => {
           alignment: ritualStep({ ok: true, ts: now }),
           branch_policy: ritualStep({ ok: true, ts: now }),
           triage_welcome: ritualStep({ ok: true, ts: now }),
+          verify_tools: ritualStep({ ok: true, ts: now }),
         },
       }),
     );

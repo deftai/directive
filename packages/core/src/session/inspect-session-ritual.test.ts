@@ -42,6 +42,7 @@ it("inspects gated ritual state without auto-running or rewriting missing gated 
           alignment: ritualStep({ ok: true, ts: now }),
           branch_policy: ritualStep({ ok: true, ts: now }),
           triage_welcome: ritualStep({ ok: true, ts: now }),
+          verify_tools: ritualStep({ ok: true, ts: now }),
         },
         gatedSteps: {
           agent_hooks: ritualStep({ ok: true, ts: now }),

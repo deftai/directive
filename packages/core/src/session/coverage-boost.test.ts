@@ -240,6 +240,7 @@ describe("session coverage boost", () => {
           alignment: ritualStep({ ok: true, ts: now }),
           branch_policy: ritualStep({ ok: true, ts: now }),
           triage_welcome: ritualStep({ ok: true, ts: now }),
+          verify_tools: ritualStep({ ok: true, ts: now }),
         },
       }),
     );

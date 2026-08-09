@@ -51,7 +51,27 @@ function seedConsumerProject(): string {
 describe("runSessionStart consumer project root (#2032)", () => {
   it("writes ritual-state.json under the consumer project root, not framework deposit", () => {
     const root = seedConsumerProject();
-    const result = runSessionStart(root, { writeHistory: false });
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeScm: () => ({
+        ready: true,
+        binary: "gh",
+        binaryPath: "/usr/bin/gh",
+        authState: "authenticated",
+        githubAuthMode: "host-gh",
+        runtimeMode: "local-unsandboxed",
+        injectedTokenPresent: false,
+        depth: "shallow",
+        detail: "ok",
+        remediation: null,
+        skippedGates: [],
+        login: null,
+        failureKind: null,
+      }),
+    });
     expect(result.code).toBe(0);
     const statePath = ritualStatePath(root);
     expect(statePath).toBe(join(root, ".deft", "ritual-state.json"));
@@ -64,7 +84,27 @@ describe("runSessionStart consumer project root (#2032)", () => {
 
   it("emits a migrate nudge for unstamped canonical-vendored deposits (#2059)", () => {
     const root = seedConsumerProject();
-    const result = runSessionStart(root, { writeHistory: false });
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeScm: () => ({
+        ready: true,
+        binary: "gh",
+        binaryPath: "/usr/bin/gh",
+        authState: "authenticated",
+        githubAuthMode: "host-gh",
+        runtimeMode: "local-unsandboxed",
+        injectedTokenPresent: false,
+        depth: "shallow",
+        detail: "ok",
+        remediation: null,
+        skippedGates: [],
+        login: null,
+        failureKind: null,
+      }),
+    });
     expect(result.code).toBe(0);
     expect(result.lines.join("\n")).toContain("directive migrate");
   });
@@ -76,7 +116,27 @@ describe("runSessionStart consumer project root (#2032)", () => {
       "tag: 'v0.59.0'\nsha: abc\ninstall_root: '.deft/core'\nmanaged_by: 'npm'\n",
       "utf8",
     );
-    const result = runSessionStart(root, { writeHistory: false });
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeScm: () => ({
+        ready: true,
+        binary: "gh",
+        binaryPath: "/usr/bin/gh",
+        authState: "authenticated",
+        githubAuthMode: "host-gh",
+        runtimeMode: "local-unsandboxed",
+        injectedTokenPresent: false,
+        depth: "shallow",
+        detail: "ok",
+        remediation: null,
+        skippedGates: [],
+        login: null,
+        failureKind: null,
+      }),
+    });
     expect(result.code).toBe(0);
     expect(result.lines.join("\n")).not.toContain("directive migrate");
   });
