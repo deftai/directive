@@ -12,6 +12,11 @@ afterEach(() => {
 });
 
 describe("session-start parseArgs", () => {
+  const emptyDial = {
+    ceremonyDialInputs: { taskSize: null, modelTier: null, projectShape: null },
+    ceremonyDepthOverride: null,
+  };
+
   it("defaults project root to cwd", () => {
     expect(parseArgs([])).toEqual({
       projectRoot: ".",
@@ -21,6 +26,7 @@ describe("session-start parseArgs", () => {
       readOnly: false,
       withNetwork: false,
       ceremonyTier: "cold",
+      ...emptyDial,
     });
   });
 
@@ -42,6 +48,7 @@ describe("session-start parseArgs", () => {
       readOnly: false,
       withNetwork: false,
       ceremonyTier: "cold",
+      ...emptyDial,
     });
   });
 
@@ -54,6 +61,7 @@ describe("session-start parseArgs", () => {
       readOnly: false,
       withNetwork: false,
       ceremonyTier: "cold",
+      ...emptyDial,
     });
   });
 
@@ -66,6 +74,7 @@ describe("session-start parseArgs", () => {
       readOnly: true,
       withNetwork: false,
       ceremonyTier: "cold",
+      ...emptyDial,
     });
   });
 
@@ -78,6 +87,7 @@ describe("session-start parseArgs", () => {
       readOnly: false,
       withNetwork: true,
       ceremonyTier: "cold",
+      ...emptyDial,
     });
   });
 
@@ -86,6 +96,23 @@ describe("session-start parseArgs", () => {
     expect(parseArgs(["--tier", "rearm"]).ceremonyTier).toBe("rearm");
     expect(parseArgs(["--tier=rearm"]).ceremonyTier).toBe("rearm");
     expect(parseArgs(["--tier=cold"]).ceremonyTier).toBe("cold");
+  });
+
+  it("parses ceremony dial inputs (#3214)", () => {
+    const parsed = parseArgs([
+      "--task-size",
+      "S",
+      "--model-tier=frontier",
+      "--project-shape",
+      "project",
+      "--ceremony-depth=rapid",
+    ]);
+    expect(parsed.ceremonyDialInputs).toEqual({
+      taskSize: "S",
+      modelTier: "frontier",
+      projectShape: "project",
+    });
+    expect(parsed.ceremonyDepthOverride).toBe("rapid");
   });
 
   it("rejects invalid --tier values", () => {

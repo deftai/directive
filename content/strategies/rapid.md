@@ -8,6 +8,8 @@
 
 Quick prototyping workflow -- v0.20 date-prefixed story vBRIEF output with minimal gates and fast iteration.
 
+**Ceremony dial (#3214):** when `plan.policy.ceremonyDial` (or session inputs) selects depth `rapid` — default for S-task × frontier model on a project-shaped session — session ritual / gate depth follows this light path. See `task policy:show --field=ceremonyDial`. Non-project sessions select `minimal` and compose the #3014 minimal AGENTS profile research pointer instead.
+
 **v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Rapid now emits only the canonical v0.20 shape (date-prefixed story vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). See the dedicated ## v0.20 Output Shape section and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.

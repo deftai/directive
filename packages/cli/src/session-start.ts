@@ -2,6 +2,15 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  CEREMONY_DEPTHS,
+  type CeremonyDepth,
+  type CeremonyDialInputs,
+  normalizeCeremonyModelTier,
+  normalizeCeremonyProjectShape,
+  normalizeCeremonyTaskSize,
+  selectCeremonyDepth,
+} from "@deftai/directive-core/policy";
+import {
   COLD_CEREMONY_TIER,
   parseDeferrals,
   READ_ONLY_POSTURE,
@@ -22,7 +31,22 @@ export interface ParsedSessionStartArgs {
   withNetwork: boolean;
   /** #2992: cold (full) vs rearm (clock/HEAD refresh without fat path). */
   ceremonyTier: SessionCeremonyTier;
+  /** #3214: optional dial inputs for ritual-depth selection. */
+  ceremonyDialInputs: CeremonyDialInputs;
+  /**
+   * #3214: force depth for this session only (does not persist policy).
+   * Applied as resolve inputs via a one-shot config override in run().
+   */
+  ceremonyDepthOverride: CeremonyDepth | null;
   error?: string;
+}
+
+function parseCeremonyDepth(raw: string): CeremonyDepth | null {
+  const value = raw.trim().toLowerCase();
+  if ((CEREMONY_DEPTHS as readonly string[]).includes(value)) {
+    return value as CeremonyDepth;
+  }
+  return null;
 }
 
 function parseCeremonyTier(raw: string): SessionCeremonyTier | null {
@@ -43,7 +67,14 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     readOnly: false,
     withNetwork: false,
     ceremonyTier: COLD_CEREMONY_TIER,
+    ceremonyDialInputs: {},
+    ceremonyDepthOverride: null,
   };
+  const dialInputs: {
+    taskSize?: ReturnType<typeof normalizeCeremonyTaskSize>;
+    modelTier?: ReturnType<typeof normalizeCeremonyModelTier>;
+    projectShape?: ReturnType<typeof normalizeCeremonyProjectShape>;
+  } = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--json") {
@@ -99,10 +130,124 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
       i += 1;
     } else if (arg?.startsWith("--defer=")) {
       parsed.deferValues.push(arg.slice("--defer=".length));
+    } else if (arg === "--task-size" || arg === "--ceremony-task-size") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: `argument ${arg}: expected one argument (S|M|L|XL)` };
+      }
+      const size = normalizeCeremonyTaskSize(value);
+      if (size === null) {
+        return {
+          ...parsed,
+          error: `argument ${arg}: expected S|M|L|XL (or small|medium|large), got ${JSON.stringify(value)}`,
+        };
+      }
+      dialInputs.taskSize = size;
+      i += 1;
+    } else if (arg?.startsWith("--task-size=") || arg?.startsWith("--ceremony-task-size=")) {
+      const value = arg.slice(arg.indexOf("=") + 1);
+      const size = normalizeCeremonyTaskSize(value);
+      if (size === null) {
+        return {
+          ...parsed,
+          error: `argument --task-size: expected S|M|L|XL, got ${JSON.stringify(value)}`,
+        };
+      }
+      dialInputs.taskSize = size;
+    } else if (arg === "--model-tier" || arg === "--ceremony-model-tier") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          ...parsed,
+          error: `argument ${arg}: expected one argument (frontier|mid|low)`,
+        };
+      }
+      const tier = normalizeCeremonyModelTier(value);
+      if (tier === null) {
+        return {
+          ...parsed,
+          error: `argument ${arg}: expected frontier|mid|low, got ${JSON.stringify(value)}`,
+        };
+      }
+      dialInputs.modelTier = tier;
+      i += 1;
+    } else if (arg?.startsWith("--model-tier=") || arg?.startsWith("--ceremony-model-tier=")) {
+      const value = arg.slice(arg.indexOf("=") + 1);
+      const tier = normalizeCeremonyModelTier(value);
+      if (tier === null) {
+        return {
+          ...parsed,
+          error: `argument --model-tier: expected frontier|mid|low, got ${JSON.stringify(value)}`,
+        };
+      }
+      dialInputs.modelTier = tier;
+    } else if (arg === "--project-shape" || arg === "--ceremony-project-shape") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          ...parsed,
+          error: `argument ${arg}: expected one argument (project|non-project)`,
+        };
+      }
+      const shape = normalizeCeremonyProjectShape(value);
+      if (shape === null) {
+        return {
+          ...parsed,
+          error: `argument ${arg}: expected project|non-project, got ${JSON.stringify(value)}`,
+        };
+      }
+      dialInputs.projectShape = shape;
+      i += 1;
+    } else if (
+      arg?.startsWith("--project-shape=") ||
+      arg?.startsWith("--ceremony-project-shape=")
+    ) {
+      const value = arg.slice(arg.indexOf("=") + 1);
+      const shape = normalizeCeremonyProjectShape(value);
+      if (shape === null) {
+        return {
+          ...parsed,
+          error: `argument --project-shape: expected project|non-project, got ${JSON.stringify(value)}`,
+        };
+      }
+      dialInputs.projectShape = shape;
+    } else if (arg === "--ceremony-depth") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          ...parsed,
+          error:
+            "argument --ceremony-depth: expected one argument (minimal|rapid|standard|elevated)",
+        };
+      }
+      const depth = parseCeremonyDepth(value);
+      if (depth === null) {
+        return {
+          ...parsed,
+          error: `argument --ceremony-depth: expected minimal|rapid|standard|elevated, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.ceremonyDepthOverride = depth;
+      i += 1;
+    } else if (arg?.startsWith("--ceremony-depth=")) {
+      const value = arg.slice("--ceremony-depth=".length);
+      const depth = parseCeremonyDepth(value);
+      if (depth === null) {
+        return {
+          ...parsed,
+          error: `argument --ceremony-depth: expected minimal|rapid|standard|elevated, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.ceremonyDepthOverride = depth;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
   }
+  parsed.ceremonyDialInputs = {
+    taskSize: dialInputs.taskSize ?? null,
+    modelTier: dialInputs.modelTier ?? null,
+    projectShape: dialInputs.projectShape ?? null,
+  };
   return parsed;
 }
 
@@ -140,12 +285,22 @@ export function run(argv: readonly string[]): number {
 
   let result: ReturnType<typeof runSessionStart>;
   try {
+    // #3214: --ceremony-depth forces this session only (not persisted to policy).
     result = runSessionStart(projectRoot, {
       deferrals,
       writeHistory: !args.noHistory,
       posture: args.readOnly ? READ_ONLY_POSTURE : undefined,
       allowOptionalNetwork: args.withNetwork ? true : undefined,
       ceremonyTier: args.ceremonyTier,
+      ceremonyDialInputs: args.ceremonyDialInputs,
+      ...(args.ceremonyDepthOverride !== null
+        ? {
+            ceremonyDial: selectCeremonyDepth({
+              config: { enabled: true, override: args.ceremonyDepthOverride },
+              inputs: args.ceremonyDialInputs,
+            }),
+          }
+        : {}),
     });
   } finally {
     process.stdout.write = prevWrite;

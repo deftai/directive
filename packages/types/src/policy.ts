@@ -77,6 +77,20 @@ export interface PlanPolicy {
   readonly autoDeployOnMerge?: boolean;
   /** Structural hotfix eligibility thresholds (#1193). */
   readonly hotfixCriteria?: HotfixCriteria;
+  /**
+   * Ceremony dial (#3214): scale session ritual / gate depth by task size ×
+   * model tier × project shape. Selection policy over rapid strategy + #3014
+   * minimal profile pointers — not a new subsystem.
+   */
+  readonly ceremonyDial?: {
+    /** When false, always use standard (full) ceremony. Default true. */
+    readonly enabled?: boolean;
+    /**
+     * Force ritual depth. One of minimal|rapid|standard|elevated.
+     * null/omit → matrix selection from session inputs.
+     */
+    readonly override?: "minimal" | "rapid" | "standard" | "elevated" | null;
+  };
   readonly [key: `x-${string}`]: unknown;
 }
 
@@ -110,4 +124,5 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.requireHumanMerge",
   "plan.policy.hotfixCriteria",
   "plan.policy.autoDeployOnMerge",
+  "plan.policy.ceremonyDial",
 ] as const;

@@ -304,3 +304,90 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     expect(result.lines).toContain(OPTIONAL_NETWORK_SKIPPED_MESSAGE);
   });
 });
+
+describe("runSessionStart ceremony dial (#3214)", () => {
+  it("records standard dial by default and keeps fat path", () => {
+    const root = tempRoot();
+    let toolsCalled = false;
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      verifyTools: () => {
+        toolsCalled = true;
+        return { exitCode: 0 };
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines.join("\n")).toContain("[deft ceremony-dial] depth=standard");
+    const dial = result.payload.ceremony_dial as { depth: string; source: string };
+    expect(dial.depth).toBe("standard");
+    expect(toolsCalled).toBe(true);
+    const state = JSON.parse(readFileSync(ritualStatePath(root), "utf8")) as {
+      ceremony_dial: { depth: string };
+    };
+    expect(state.ceremony_dial.depth).toBe("standard");
+  });
+
+  it("S × frontier selects rapid, skips fat path, defers heavy steps", () => {
+    const root = tempRoot();
+    let toolsCalled = false;
+    let triageCalled = false;
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "project",
+      },
+      verifyTools: () => {
+        toolsCalled = true;
+        return { exitCode: 0 };
+      },
+      runTriageWelcome: () => {
+        triageCalled = true;
+        return { exitCode: 0 };
+      },
+      runStalenessTickler: () => {
+        throw new Error("tickler must not run on rapid dial");
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines.join("\n")).toContain("depth=rapid");
+    expect(result.lines.join("\n")).toContain("content/strategies/rapid.md");
+    const dial = result.payload.ceremony_dial as {
+      depth: string;
+      composition: { rapidStrategy: string | null };
+    };
+    expect(dial.depth).toBe("rapid");
+    expect(dial.composition.rapidStrategy).toContain("rapid.md");
+    expect(toolsCalled).toBe(false);
+    expect(triageCalled).toBe(false);
+    const steps = result.payload.steps as SessionStartStepTiming[];
+    expect(steps.find((s) => s.name === "verify_tools")?.skipped).toBe(true);
+    expect(steps.find((s) => s.name === "triage_welcome")?.skipped).toBe(true);
+    const quick = result.payload.quick_steps as {
+      triage_welcome: { deferred_reason?: string };
+    };
+    expect(quick.triage_welcome.deferred_reason).toMatch(/ceremony-dial/);
+  });
+
+  it("non-project shape selects minimal and points at #3014 research", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "non-project",
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const dial = result.payload.ceremony_dial as {
+      depth: string;
+      composition: { minimalAgentsProfile: string | null };
+    };
+    expect(dial.depth).toBe("minimal");
+    expect(dial.composition.minimalAgentsProfile).toContain("#3014");
+  });
+});

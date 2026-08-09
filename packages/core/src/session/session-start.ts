@@ -11,6 +11,14 @@ import {
   formatEnvironmentContext,
 } from "../platform/shell-context.js";
 import {
+  type CeremonyDialInputs,
+  type CeremonyDialSelection,
+  ceremonyDialToDict,
+  formatCeremonyDialStatusLine,
+  mergeCeremonyDialDeferrals,
+  resolveCeremonyDial,
+} from "../policy/ceremony-dial.js";
+import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
   detectDeftDirectiveDisable,
@@ -170,6 +178,16 @@ export interface SessionStartOptions {
    * network is enabled. Inject in tests.
    */
   readonly probeScm?: (options: ProbeScmReadinessOptions) => ScmReadinessReport;
+  /**
+   * #3214: ceremony dial inputs (task size × model tier × project shape).
+   * When set, session:start selects ritual depth and scales fat-path work.
+   */
+  readonly ceremonyDialInputs?: CeremonyDialInputs;
+  /**
+   * #3214: optional pre-resolved dial (tests). When omitted, resolveCeremonyDial
+   * loads plan.policy.ceremonyDial and applies inputs.
+   */
+  readonly ceremonyDial?: CeremonyDialSelection;
 }
 
 /** Format preferred `session:start` recovery command for cold vs re-arm (#2992). */
@@ -861,12 +879,21 @@ export function runSessionStart(
   const stepTimings: SessionStartStepTiming[] = [];
   const allowOptionalNetwork = resolveSessionStartOptionalNetwork(options);
 
+  // #3214: select ritual depth before building deferral maps so rapid/minimal
+  // auto-defer heavy steps and skip fat cold-path work.
+  const ceremonyDialSelection: CeremonyDialSelection =
+    options.ceremonyDial ??
+    resolveCeremonyDial(projectRoot, { inputs: options.ceremonyDialInputs });
+  const effectiveDeferrals = mergeCeremonyDialDeferrals(deferrals, ceremonyDialSelection);
+  const skipFatPath = ceremonyDialSelection.profile.skipFatPath;
+
   const { head: gitHeadValue, error: gitError } = gitHead(projectRoot, runGit);
   if (gitHeadValue === null) {
     const payload = {
       ready: false,
       exit_code: 2,
       ceremony_tier: COLD_CEREMONY_TIER,
+      ceremony_dial: ceremonyDialToDict(ceremonyDialSelection),
       environment: environmentContextToDict(environment),
       message: gitError ?? "could not resolve git HEAD",
     };
@@ -890,15 +917,16 @@ export function runSessionStart(
 
   const quickSteps: Record<string, Record<string, unknown>> = recordDeferredSteps(
     QUICK_STEPS,
-    deferrals,
+    effectiveDeferrals,
     instant,
   );
   const gatedSteps: Record<string, Record<string, unknown>> = recordDeferredSteps(
     GATED_STEPS,
-    deferrals,
+    effectiveDeferrals,
     instant,
   );
   const lines: string[] = [];
+  lines.push(formatCeremonyDialStatusLine(ceremonyDialSelection));
 
   // Resolve USER.md via the shared first-hit-wins resolver so the alignment
   // step finds preferences automatically in mismatched / headless sandboxes
@@ -971,7 +999,8 @@ export function runSessionStart(
     stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
   }
 
-  {
+  // #3214: rapid/minimal dial depths skip fat cold-path work (same spirit as re-arm).
+  if (!skipFatPath) {
     const stepStarted = performance.now();
     const verifyToolsFn =
       options.verifyTools ??
@@ -985,9 +1014,11 @@ export function runSessionStart(
       });
     verifyToolsFn((line) => lines.push(line));
     stepTimings.push({ name: "verify_tools", duration_ms: elapsedMs(stepStarted) });
+  } else {
+    stepTimings.push({ name: "verify_tools", duration_ms: 0, skipped: true });
   }
 
-  if (!quickSteps.triage_welcome) {
+  if (!quickSteps.triage_welcome && !skipFatPath) {
     const stepStarted = performance.now();
     const captured: string[] = [];
     const triageCommand = ["triage_welcome.run_default_mode", "--project-root", projectRoot];
@@ -1045,7 +1076,8 @@ export function runSessionStart(
   }
 
   // #2991: npm release probe is optional network — off by default so ritual write is not blocked.
-  if (allowOptionalNetwork) {
+  // #3214: also skipped under rapid/minimal dial (lifecycleWrites light/minimal).
+  if (allowOptionalNetwork && !skipFatPath) {
     const stepStarted = performance.now();
     try {
       const releaseAvailability = (
@@ -1058,16 +1090,20 @@ export function runSessionStart(
     stepTimings.push({ name: "release_probe", duration_ms: elapsedMs(stepStarted) });
   } else {
     stepTimings.push({ name: "release_probe", duration_ms: 0, skipped: true });
-    lines.push(OPTIONAL_NETWORK_SKIPPED_MESSAGE);
+    if (!skipFatPath) {
+      lines.push(OPTIONAL_NETWORK_SKIPPED_MESSAGE);
+    }
   }
 
-  try {
-    const tickler = (options.runStalenessTickler ?? maybeRunStalenessTickler)(projectRoot, {
-      now: instant,
-    });
-    lines.push(...tickler.lines);
-  } catch {
-    // Staleness tickler is best-effort and must never block session start.
+  if (!skipFatPath) {
+    try {
+      const tickler = (options.runStalenessTickler ?? maybeRunStalenessTickler)(projectRoot, {
+        now: instant,
+      });
+      lines.push(...tickler.lines);
+    } catch {
+      // Staleness tickler is best-effort and must never block session start.
+    }
   }
 
   if (!runningInsideDeftRepo(projectRoot) && shouldEmitMigrateNudge(projectRoot)) {
@@ -1109,14 +1145,19 @@ export function runSessionStart(
 
   const writeStarted = performance.now();
   const coldSessionId = (options.newSessionId ?? randomUUID)();
-  const payload = newRitualStatePayload({
-    sessionId: coldSessionId,
-    gitHead: gitHeadValue,
-    worktreePath: worktreePath(projectRoot, runGit),
-    startedAt: instant,
-    quickSteps,
-    gatedSteps,
-  });
+  const dialDict = ceremonyDialToDict(ceremonyDialSelection);
+  const payload: Record<string, unknown> = {
+    ...newRitualStatePayload({
+      sessionId: coldSessionId,
+      gitHead: gitHeadValue,
+      worktreePath: worktreePath(projectRoot, runGit),
+      startedAt: instant,
+      quickSteps,
+      gatedSteps,
+    }),
+    // #3214: record dial choice on ritual-state for audit / later re-arm context.
+    ceremony_dial: dialDict,
+  };
   let statePath: string;
   try {
     statePath = writeRitualState(projectRoot, payload);
@@ -1180,13 +1221,14 @@ export function runSessionStart(
     ready: code === 0,
     exit_code: code,
     ceremony_tier: COLD_CEREMONY_TIER,
+    ceremony_dial: dialDict,
     state_path: statePath,
     ...(freshnessBind ? { freshness: freshnessBind } : {}),
     quick_steps: quickSteps,
     gated_steps: gatedSteps,
     steps: stepTimings,
     duration_ms: totalMs,
-    optional_network: allowOptionalNetwork,
+    optional_network: allowOptionalNetwork && !skipFatPath,
     user_md: {
       path: userMd.path,
       rung: userMd.rung,
