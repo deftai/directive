@@ -180,8 +180,9 @@ describe("shared-benchmark manifest wire (#1584)", () => {
       "utf8",
     );
     const pin = resolveFrameworkVersionPin({ override: "0.99.0" });
-    const { applied, manifest } = applyVersionPinToSharedBenchmark(root, pin);
+    const { applied, persisted, manifest } = applyVersionPinToSharedBenchmark(root, pin);
     expect(applied).toBe(true);
+    expect(persisted).toBe(false);
     expect(manifest?.frameworkVersion).toBe("0.99.0");
     expect(manifest?.metadata).toMatchObject({
       harness: "skill-eval-harness",
@@ -190,11 +191,36 @@ describe("shared-benchmark manifest wire (#1584)", () => {
     });
   });
 
+  it("persists the pin to disk when persist=true", () => {
+    const root = seedProject();
+    mkdirSync(join(root, "evals"), { recursive: true });
+    writeFileSync(
+      join(root, SHARED_BENCHMARK_MANIFEST_REL),
+      JSON.stringify({ name: "shared", metadata: { harness: "skill-eval-harness" } }),
+      "utf8",
+    );
+    const pin = resolveFrameworkVersionPin({ override: "0.99.1" });
+    const { applied, persisted } = applyVersionPinToSharedBenchmark(root, pin, {
+      persist: true,
+    });
+    expect(applied).toBe(true);
+    expect(persisted).toBe(true);
+    const reloaded = loadSharedBenchmarkManifest(root);
+    expect(reloaded?.frameworkVersion).toBe("0.99.1");
+    expect(reloaded?.metadata).toMatchObject({
+      frameworkVersion: "0.99.1",
+      versionPurityGate: "#3215",
+    });
+  });
+
   it("no-ops when shared-benchmark manifest is absent", () => {
     const root = seedProject();
     const pin = resolveFrameworkVersionPin({ override: "0.99.0" });
-    const { applied, manifest } = applyVersionPinToSharedBenchmark(root, pin);
+    const { applied, persisted, manifest } = applyVersionPinToSharedBenchmark(root, pin, {
+      persist: true,
+    });
     expect(applied).toBe(false);
+    expect(persisted).toBe(false);
     expect(manifest).toBeNull();
     expect(loadSharedBenchmarkManifest(root)).toBeNull();
   });

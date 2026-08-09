@@ -438,8 +438,24 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
     summary,
   };
 
-  // #1584: when shared-benchmark.json is present, wire the recorded version into the shape.
-  const sharedBenchmark = applyVersionPinToSharedBenchmark(projectRoot, frameworkVersionPin);
+  // #1584 / #3215: when shared-benchmark.json is present, wire + persist the pin.
+  let sharedBenchmark: {
+    applied: boolean;
+    persisted: boolean;
+    manifest: Record<string, unknown> | null;
+  } = { applied: false, persisted: false, manifest: null };
+  try {
+    sharedBenchmark = applyVersionPinToSharedBenchmark(projectRoot, frameworkVersionPin, {
+      persist,
+    });
+  } catch (err: unknown) {
+    return {
+      code: 2,
+      record,
+      message: `eval:run: failed to wire shared-benchmark pin: ${String(err)}`,
+      sharedBenchmarkManifest: null,
+    };
+  }
 
   if (persist) {
     try {
@@ -462,8 +478,10 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
     `  rotating holdout task: ${rotatingHoldout?.id ?? "none"}`,
     `  runId=${record.runId}`,
   ];
-  if (sharedBenchmark.applied) {
-    lines.push("  shared-benchmark manifest: frameworkVersion wired (#1584 / #3215)");
+  if (sharedBenchmark.persisted) {
+    lines.push("  shared-benchmark manifest: frameworkVersion pin persisted (#1584 / #3215)");
+  } else if (sharedBenchmark.applied) {
+    lines.push("  shared-benchmark manifest: frameworkVersion wired in-memory (#1584 / #3215)");
   }
   return {
     code: 0,

@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { containedWrite } from "../fs/contained-write.js";
 
 /** Repo-relative path for the #1584 shared-benchmark manifest. */
 export const SHARED_BENCHMARK_MANIFEST_REL = "evals/shared-benchmark.json";
@@ -244,15 +245,33 @@ export function loadSharedBenchmarkManifest(projectRoot: string): Record<string,
 
 /**
  * When a #1584 shared-benchmark manifest exists under the project root, return it
- * with the framework version pin wired in. Does not write to disk (caller owns I/O).
+ * with the framework version pin wired in. When `persist` is true, write the
+ * wired manifest back to disk so subsequent consumers see the pin (#3215 Greptile).
  */
 export function applyVersionPinToSharedBenchmark(
   projectRoot: string,
   pin: FrameworkVersionPin,
-): { readonly applied: boolean; readonly manifest: Record<string, unknown> | null } {
+  options?: { readonly persist?: boolean },
+): {
+  readonly applied: boolean;
+  readonly persisted: boolean;
+  readonly manifest: Record<string, unknown> | null;
+} {
   const existing = loadSharedBenchmarkManifest(projectRoot);
   if (existing === null) {
-    return { applied: false, manifest: null };
+    return { applied: false, persisted: false, manifest: null };
   }
-  return { applied: true, manifest: wireFrameworkVersionIntoManifest(existing, pin) };
+  const manifest = wireFrameworkVersionIntoManifest(existing, pin);
+  const shouldPersist = options?.persist === true;
+  if (!shouldPersist) {
+    return { applied: true, persisted: false, manifest };
+  }
+  // #2980: product write sink routes through containedWrite.
+  containedWrite({
+    root: resolve(projectRoot),
+    target: SHARED_BENCHMARK_MANIFEST_REL,
+    data: `${JSON.stringify(manifest, null, 2)}\n`,
+    mode: "replace",
+  });
+  return { applied: true, persisted: true, manifest };
 }
