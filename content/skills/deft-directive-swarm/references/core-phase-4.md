@@ -79,9 +79,35 @@ tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-wi
 ⊗ Silently continue the monitor repair loop after the envelope is exhausted.
 ⊗ Count a worker swap or session handoff as a fresh unlimited budget when the same failure class remains.
 
+### Pre-dispatch deny gate (#3228 / #3143)
+
+! **Before any implement-leaf spawn or re-dispatch** (initial launch, resume-fail recovery, residual batch, thin-DONE recovery, takeover replacement): run the deterministic pre-dispatch gate. Non-zero exit means **do not spawn**.
+
+```
+# Register / begin an attempt when no active peer exists (exit 0 allow / 1 deny / 2 config)
+task swarm:pre-dispatch -- \
+  --scope-id <story-or-issue-or-xbrief-id> \
+  --target-id <worktree-path-or-branch>
+
+# Terminal: complete the attempt when the leaf exits
+task swarm:pre-dispatch -- \
+  --scope-id <id> --target-id <target> \
+  --action complete --status succeeded|failed|cancelled|blocked
+
+# Takeover: cancel prior attempt, THEN pre-dispatch begin again (never dual active)
+task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel
+task swarm:pre-dispatch -- --scope-id <id> --target-id <target>   # begin
+```
+
+! Gate authority is **#3143** `DENY_DUPLICATE_ACTIVE` (`maxActiveAttempts: 1`) on the delivery-attempt unit ledger (`scopeId` + `targetId` + `workflowId`, default workflow `drive-to:merge-ready`). CLI is authoritative; this section is a pointer only.
+⊗ Spawn a second implement leaf while pre-dispatch exits 1 (active attempt exists).
+⊗ Treat "resume failed" / host false-alive as license to skip the gate.
+⊗ Lift DENY by concurrent dual active — escape hatch is cancel-then-begin, not override-while-both-run.
+Docs: `docs/delivery-attempt.md`.
+
 ### Takeover Triggers
 
-! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event — verified via worktree state (`git status`, `git log --oneline -3`) and sub-agent lifecycle signals showing no in-flight work (for grok-build / spawn_subagent agents: polling is via worktree state + `get_command_or_subagent_output` rather than tab observation; for openclaw / sessions_spawn agents: worktree state + parent completion announce / heartbeat records, not Grok Build poll output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original agents (Warp tabs, spawn_subagent processes, or OpenClaw sessions) can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).
+! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event — verified via worktree state (`git status`, `git log --oneline -3`) and sub-agent lifecycle signals showing no in-flight work (for grok-build / spawn_subagent agents: polling is via worktree state + `get_command_or_subagent_output` rather than tab observation; for openclaw / sessions_spawn agents: worktree state + parent completion announce / heartbeat records, not Grok Build poll output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original agents (Warp tabs, spawn_subagent processes, or OpenClaw sessions) can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below). Run `task swarm:pre-dispatch` after cancel when replacing — see Pre-dispatch deny gate above.
 
 ! Take over an agent's workflow if ANY of these occur:
 
@@ -98,8 +124,8 @@ When taking over: read the agent's current state (git log, diff, PR comments), c
 
 **Recovery guidance:**
 - ! Keep original agents active until their PR is merged — do not terminate agent processes that appear stalled (for Warp tabs: keep the tab open; for grok-build / spawn_subagent agents: verify via `get_command_or_subagent_output` before replacing; for openclaw / sessions_spawn: verify via heartbeat + absence of parent completion announce)
-- ! If an agent appears stalled, attempt to resume it in its original context (for Warp: go to the original Warp tab and say "continue from where you left off"; for grok-build: re-query via `get_command_or_subagent_output` or send a resume message; for openclaw: re-announce / resume the same session rather than spawning a replacement) rather than spawning a replacement
-- ! If the original agent is truly unrecoverable (Warp crash, tab closed, spawn_subagent process terminated, or OpenClaw session ended without recovery), only then create a new agent — and first verify the worktree state (`git status`, `git log`, `gh pr list`) to avoid conflicting with any in-flight work
+- ! If an agent appears stalled, attempt to resume it in its original context (for Warp: go to the original Warp tab and say "continue from where you left off"; for grok-build: re-query via `get_command_or_subagent_output` or send a resume message; for openclaw: re-announce / resume the same session rather than spawning a replacement) rather than spawning a replacement — resume does **not** open a second delivery-attempt (`task swarm:pre-dispatch` will DENY while the first is active)
+- ! If the original agent is truly unrecoverable (Warp crash, tab closed, spawn_subagent process terminated, or OpenClaw session ended without recovery), only then create a new agent — cancel the prior attempt via `task swarm:pre-dispatch -- --action cancel`, run pre-dispatch begin (exit 0 required), and verify worktree state (`git status`, `git log`, `gh pr list`) before spawn
 
 ### Context-Length Warning
 

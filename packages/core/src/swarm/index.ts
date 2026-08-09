@@ -5,6 +5,8 @@ export * from "./finalize-cohort.js";
 export { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
 export * from "./launch.js";
 export { launchMain, parseLaunchArgv } from "./launch-cli.js";
+export * from "./pre-dispatch.js";
+export { parsePreDispatchArgv, preDispatchMain } from "./pre-dispatch-cli.js";
 export * from "./readiness.js";
 export { readinessMain } from "./readiness-cli.js";
 export * from "./routing.js";

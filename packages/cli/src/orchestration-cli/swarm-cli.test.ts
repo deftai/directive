@@ -55,4 +55,26 @@ describe("deft-ts swarm:* dispatcher (#1838 s4)", () => {
   it("swarm-verify-review-clean requires --pr with exit 2", async () => {
     expect(await dispatch(["swarm-verify-review-clean"], silentIo())).toBe(2);
   });
+
+  it("swarm-pre-dispatch rejects missing scope/target with exit 2", async () => {
+    const root = emptyProject();
+    expect(await dispatch(["swarm-pre-dispatch", "--project-root", root], silentIo())).toBe(2);
+  });
+
+  it("swarm-pre-dispatch allows begin then denies duplicate active", async () => {
+    const root = emptyProject();
+    const beginArgs = [
+      "swarm-pre-dispatch",
+      "--project-root",
+      root,
+      "--scope-id",
+      "story-1",
+      "--target-id",
+      "wt-1",
+      "--source-revision",
+      "abc",
+    ];
+    expect(await dispatch(beginArgs, silentIo())).toBe(0);
+    expect(await dispatch(beginArgs, silentIo())).toBe(1);
+  });
 });

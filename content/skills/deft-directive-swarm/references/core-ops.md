@@ -158,3 +158,4 @@ CONSTRAINTS:
 - ⊗ Run multi-iteration repair, monitor, or implement-fix loops without a dual-stop failure envelope (max iterations and/or no-progress and/or budget) (#2442)
 - ⊗ Silently continue, re-dispatch, or open another identical attempt after the failure stop fires — halt with an operator-visible report (what was tried, what is missing, what human decision is needed) (#2442)
 - ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143 (`packages/core/src/delivery-attempt/`), not prompt-only thrashing control (#2442)
+- ⊗ Spawn a second implement leaf without `task swarm:pre-dispatch` exit 0, or while exit 1 (`DENY_DUPLICATE_ACTIVE`) — gate is authoritative (#3228 / #3143); takeover is cancel-then-begin, not dual active

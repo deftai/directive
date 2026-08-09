@@ -534,6 +534,8 @@ Multi-iteration implement, pre-PR, repair, and monitor loops require **two** sto
 
 ! On failure stop: halt; emit an operator-visible report (what was tried, what is missing, what human decision is needed). Prefer `BLOCKED:` over silent retry. ⊗ Thrash past the envelope. Durable delivery/acceptance mechanical enforcement is **#3143** (`packages/core/src/delivery-attempt/`; not prompt-only).
 
+! **Implement-leaf pre-dispatch (#3228):** Before spawning a peer implement leaf on a unit (story/worktree), monitors/orchestrators MUST run `task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree-or-branch>` (exit **0** allow / **1** active deny / **2** config). Non-zero → do not spawn. Gate is #3143 `DENY_DUPLICATE_ACTIVE`. Takeover = `--action cancel` then pre-dispatch begin again. Pointer only — skill depth: swarm `core-phase-4.md`.
+
 ## 11. Mandatory DONE message even on early exit
 
 Every worker MUST send a final status message before exiting its tool loop, regardless of outcome:

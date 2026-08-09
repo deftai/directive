@@ -573,7 +573,7 @@ flowchart TD
 - `task release:*` -- release, publish, rollback, and e2e release rehearsal.
   - Step 3 (`Pre-flight vBRIEF lifecycle sync`) fetches GitHub issue states via REST. On HTTP 403 rate-limit exhaustion it sleeps once (capped at 120s) and retries before failing.
   - When Step 3 still fails with rate-limit exhaustion, stderr includes a `gh api rate_limit` probe (`core.remaining`, reset time) and recovery guidance. After local `task vbrief:validate` (or `task xbrief:validate`) exits 0, operators may pass `--allow-vbrief-drift` to skip Step 3 for that cut — reserved for transient SCM bucket stalls, not unreviewed lifecycle drift.
-- `task swarm:*` -- readiness, launch, review-clean verification, and cohort completion.
+- `task swarm:*` -- readiness, launch, pre-dispatch deny gate (#3228), review-clean verification, and cohort completion.
 - `task slice:*` -- feature-slice helpers.
 - `task policy:*` and `task capacity:*` -- policy inspection and allocation helpers.
 

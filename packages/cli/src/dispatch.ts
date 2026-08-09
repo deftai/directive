@@ -202,6 +202,7 @@ export const CORE_MODULE_VERBS = [
   "swarm-launch",
   "swarm-complete-cohort",
   "swarm-finalize-cohort",
+  "swarm-pre-dispatch",
   "swarm-readiness",
   "swarm-routing-verify",
   "swarm-routing-set",
@@ -2724,6 +2725,12 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
         "@deftai/directive-core/dist/swarm/finalize-cohort-cli.js"
       );
       return finalizeCohortMain;
+    }
+    case "swarm-pre-dispatch": {
+      const { preDispatchMain } = await import(
+        "@deftai/directive-core/dist/swarm/pre-dispatch-cli.js"
+      );
+      return preDispatchMain;
     }
     case "swarm-readiness": {
       const { readinessMain } = await import("@deftai/directive-core/dist/swarm/readiness-cli.js");

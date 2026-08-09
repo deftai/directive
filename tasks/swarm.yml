@@ -16,6 +16,22 @@ tasks:
         vars:
           ENGINE_CMD: 'swarm-readiness {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
+  # swarm:pre-dispatch -- implement-leaf pre-dispatch gate (#3228 / #3143).
+  # Before starting a peer implement leaf on a unit, if a non-terminal attempt
+  # already exists → exit 1 DENY_DUPLICATE_ACTIVE and do not spawn.
+  # begin (default) begins an attempt on allow; complete/cancel terminalise.
+  # Takeover = cancel prior attempt, then pre-dispatch begin again.
+  # Exit: 0 allow / 1 active deny or gate block / 2 config.
+  # Skill citation: skills/deft-directive-swarm/references/core-phase-4.md
+  pre-dispatch:
+    desc: "Pre-dispatch gate for implement leaves: DENY_DUPLICATE_ACTIVE when unit already has an active attempt (#3228 / #3143). Exit 0 allow / 1 deny / 2 config."
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'swarm-pre-dispatch {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
+
   # swarm:launch -- deterministic headless launch engine (#1387). Turns an
   # operator-supplied, pre-approved cohort into a ready-to-spawn launch
   # manifest: resolves --stories (issue numbers / story ids / paths) against

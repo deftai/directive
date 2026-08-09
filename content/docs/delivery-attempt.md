@@ -90,13 +90,29 @@ and tool-call budgets still apply.
 `allowedAttempts`, and optional expiry. Overrides do **not** erase attempt
 history.
 
+## Swarm implement-leaf wiring (#3228)
+
+Portable CLI gate on the swarm re-dispatch path (not library-only):
+
+```
+task swarm:pre-dispatch -- --scope-id <story|issue|xbrief-id> --target-id <worktree|branch>
+# exit 0 allow (beginAttempt) / 1 DENY_DUPLICATE_ACTIVE or other gate block / 2 config
+```
+
+Default unit key: `scopeId` + `targetId` + `workflowId=drive-to:merge-ready`.
+Actions: `begin` (default), `complete` (`--status succeeded|failed|cancelled|blocked`), `cancel` (takeover step 1).
+Monitors MUST run begin before any peer implement spawn; spawn only on exit 0.
+Takeover: cancel prior attempt, then begin again — never concurrent dual active.
+Implementation: `packages/core/src/swarm/pre-dispatch.ts` + `task swarm:pre-dispatch`.
+
 ## Skill routing
 
 | Surface | Role |
 |---------|------|
 | `main.md` Dual Stop Rule (#2442) | Principle; points here for delivery/acceptance |
 | build / swarm / review-cycle skills | Behavioral dual-stop defaults; point here for mechanical gate |
-| swarm `core-ops` / `core-phase-4` | Prompt + monitor envelopes; do not invent a second ledger |
+| swarm `core-ops` / `core-phase-4` | Prompt + monitor envelopes; pre-dispatch CLI pointer (#3228); do not invent a second ledger |
+| `task swarm:pre-dispatch` | Authoritative implement-leaf gate (#3228); wires `DENY_DUPLICATE_ACTIVE` |
 
 ## Typical call shape
 
