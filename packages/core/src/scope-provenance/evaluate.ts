@@ -262,10 +262,77 @@ function listActiveXbriefPaths(projectRoot: string): string[] {
 function remediationForExpansion(): string {
   return (
     "Renew human approval: re-record the approved-scope digest after operator review " +
-    "(`task scope:record-approved-scope` / write `.deft/approved-scope/<plan-id>.json` " +
-    "with humanApproval stamp). Editing the active xBRIEF alone does not authorize new " +
-    "paths (#3145). See content/docs/scope-provenance.md."
+    "(`task scope:record-approved-scope -- <xbrief-path> --actor <you>` writes " +
+    "`.deft/approved-scope/<plan-id>.json` with a humanApproval stamp). Commit that " +
+    "approval on the merge base (or a prior PR) before expanding or activating the " +
+    "scoped xBRIEF in the implementation change set. Editing the active xBRIEF alone " +
+    "does not authorize new paths (#3145 / #3205). See content/docs/scope-provenance.md."
   );
+}
+
+/**
+ * Parse + lightly validate an approved-scope JSON blob (base-ref `git show` or disk).
+ * Returns null when schema fields required for authorization are missing/malformed.
+ */
+export function parseApprovedScopeRecordRaw(raw: string): ApprovedScopeRecord | null {
+  try {
+    const data = JSON.parse(raw) as unknown;
+    if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
+    const rec = data as Record<string, unknown>;
+    if (rec.schemaVersion !== undefined && rec.schemaVersion !== 1) return null;
+    if (typeof rec.planId !== "string" || rec.planId.trim().length === 0) return null;
+    if (typeof rec.xbriefRelPath !== "string" || rec.xbriefRelPath.trim().length === 0) {
+      return null;
+    }
+    if (typeof rec.fileScopeDigest !== "string" || rec.fileScopeDigest.length === 0) {
+      return null;
+    }
+    if (!Array.isArray(rec.fileScope)) return null;
+    return data as ApprovedScopeRecord;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when the merge-base approved-scope record authorizes the current scope and
+ * the current disk record is semantically unchanged from that base authority (#3205).
+ *
+ * Authority comes from the approval record on the base, not from whether the active
+ * xBRIEF path existed on the base (pending→active is the normal first activation).
+ */
+export function baseApprovalAuthorizesCurrent(input: {
+  readonly projectRoot: string;
+  readonly baseRef: string | null;
+  readonly approvalRecordRel: string;
+  readonly planId: string;
+  readonly xbriefRelPath: string;
+  readonly currentDigest: string;
+  readonly currentApproved: ApprovedScopeRecord;
+}): boolean {
+  if (input.baseRef === null || input.baseRef === "") return false;
+  const baseRaw = readRepoFileAtRef(input.projectRoot, input.baseRef, input.approvalRecordRel);
+  if (baseRaw === null) return false;
+  const baseRec = parseApprovedScopeRecordRaw(baseRaw);
+  if (baseRec === null) return false;
+  if (!isHumanApprovalStamp(baseRec.humanApproval)) return false;
+  if (baseRec.planId !== input.planId) return false;
+  if (normalizeRepoRelPath(baseRec.xbriefRelPath) !== normalizeRepoRelPath(input.xbriefRelPath)) {
+    return false;
+  }
+  // Base record must authorize the *current* file_scope (digest match).
+  if (baseRec.fileScopeDigest !== input.currentDigest) return false;
+  // Current on-disk/injected record must not diverge from base authority fields.
+  if (input.currentApproved.fileScopeDigest !== baseRec.fileScopeDigest) return false;
+  if (input.currentApproved.planId !== baseRec.planId) return false;
+  if (
+    normalizeRepoRelPath(input.currentApproved.xbriefRelPath) !==
+    normalizeRepoRelPath(baseRec.xbriefRelPath)
+  ) {
+    return false;
+  }
+  if (!isHumanApprovalStamp(input.currentApproved.humanApproval)) return false;
+  return true;
 }
 
 function configError(message: string): ScopeProvenanceResult {
@@ -328,13 +395,32 @@ export function evaluateOneScopeProvenance(input: {
     return null;
   }
 
-  const expanded = scopeExpansion(input.approved.fileScope, currentScope);
-  if (expanded.length === 0) {
-    // Scope shrink or identical after normalize — body edit without expansion is OK
-    if (input.approved.fileScopeDigest === currentDigest) {
+  // Matching digest without human origin: empty-scope body edits may soft-warn
+  // via the missing-digest path only when no usable approval; agent/malformed
+  // stamps must not authorize non-empty scopes (#3205).
+  if (input.approved.fileScopeDigest === currentDigest) {
+    if (currentScope.length === 0) {
       return null;
     }
-    // Digest mismatch without path expansion (reorder/noise) — still OK for v1
+    if (!isHumanApprovalStamp(input.approved.humanApproval)) {
+      return {
+        xbriefRelPath: input.xbriefRelPath,
+        planId,
+        kind: "active-xbrief-modified-without-digest",
+        expandedPaths: currentScope,
+        detail:
+          "active xBRIEF modified with a non-human (agent/missing) approved-scope stamp; " +
+          "only humanApproval stamps authorize non-empty file_scope",
+        remediation:
+          "Record a human-origin approval via `task scope:record-approved-scope -- " +
+          "<xbrief-path> --actor <you>` (#3145 / #3205).",
+      };
+    }
+  }
+
+  const expanded = scopeExpansion(input.approved.fileScope, currentScope);
+  if (expanded.length === 0) {
+    // Scope shrink or digest noise without path expansion — OK for v1
     return null;
   }
 
@@ -506,40 +592,37 @@ export function evaluateScopeProvenance(
           (n.endsWith(`/${safe}.json`) || n.endsWith(`${safe}.json`))
         );
       });
-    // Ignored / untracked approved-scope files never appear in git changedSet.
-    // Concurrent rewrite attack: scope *expanded* vs base AND an untracked disk
-    // approval was rewritten to match the *new* digest. Body-only xBRIEF edits
-    // with a pre-existing matching approval must NOT fail (Greptile conf=2).
+    // Disk-only / concurrent-rewrite inference (#3205):
+    // Authority is the *approval record on the merge base*, not whether the
+    // active xBRIEF path existed there. pending→active leaves the active path
+    // absent on base; treating that as an approval rewrite is a false positive.
+    // Fail closed when base approval is missing, malformed, agent-stamped,
+    // path/plan/digest mismatched, or the current record diverged from base.
+    // Same-PR git changes still hard-fail via approvalInGitChange.
     let approvalDiskOnly = false;
     if (
       modified &&
       approved !== null &&
       renewed === null &&
       approvalRecordRel !== null &&
+      planId !== null &&
       !approvalInGitChange &&
       existsSync(join(root, approvalRecordRel)) &&
       isHumanApprovalStamp(approved.humanApproval)
     ) {
       const currentDigest = computeFileScopeDigest(normalizeFileScope(extractFileScope(payload)));
       if (approved.fileScopeDigest === currentDigest) {
-        const baseRaw =
-          discoveryBaseRef !== null ? readRepoFileAtRef(root, discoveryBaseRef, rel) : null;
-        if (baseRaw === null) {
-          // New active xBRIEF with untracked matching approval → fail closed.
+        const baseAuthorizes = baseApprovalAuthorizesCurrent({
+          projectRoot: root,
+          baseRef: discoveryBaseRef,
+          approvalRecordRel,
+          planId,
+          xbriefRelPath: rel,
+          currentDigest,
+          currentApproved: approved,
+        });
+        if (!baseAuthorizes) {
           approvalDiskOnly = true;
-        } else {
-          try {
-            const basePayload = JSON.parse(baseRaw) as unknown;
-            const baseDigest = computeFileScopeDigest(
-              normalizeFileScope(extractFileScope(basePayload)),
-            );
-            // Only concurrent-rewrite when file-scope actually grew/changed.
-            if (baseDigest !== currentDigest) {
-              approvalDiskOnly = true;
-            }
-          } catch {
-            approvalDiskOnly = true;
-          }
         }
       }
     }
@@ -565,8 +648,9 @@ export function evaluateScopeProvenance(
           "approved-scope record rewritten in the same change set as the active xBRIEF; " +
           "cannot self-authorize via concurrent approval rewrite",
         remediation:
-          "Record renewed human approval outside the implementation PR (or pass an " +
-          "independent renewed stamp). Same-PR approval rewrites do not authorize expansion (#3145).",
+          "Commit human approval via `task scope:record-approved-scope` on the merge base " +
+          "(or a prior PR), then activate/expand without rewriting the approval in this " +
+          "change set. Same-PR approval rewrites do not authorize expansion (#3145 / #3205).",
       });
       continue;
     }

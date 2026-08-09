@@ -156,3 +156,19 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'scope-demote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
+
+  # First-adoption / renewal of approved-scope digests (#3205).
+  # Mint a human-origin .deft/approved-scope/<plan-id>.json so
+  # verify:scope-provenance can authorize pending→active and operator-approved
+  # expansion without same-PR self-authorization.
+  #   task scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott
+  #   task scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scott --kind renewed-approval
+  record-approved-scope:
+    desc: "Record human-approved file_scope digest under .deft/approved-scope/<plan-id>.json (#3205). Requires --actor <human>. Refuses agent stamps. Path-binds pending→active. Commit on merge base before activation/expansion PR."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope:record-approved-scope {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'

@@ -110,6 +110,7 @@ export const CLI_MODULE_VERBS = [
   "release-publish",
   "release-rollback",
   "scope-lifecycle",
+  "scope-record-approved-scope",
   "lifecycle-event",
   "lifecycle-stats",
   "session-start",
@@ -339,6 +340,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:forward-coverage": "verify-forward-coverage",
   "verify:test-boundary": "verify-test-boundary",
   "verify:scope-provenance": "verify-scope-provenance",
+  "scope:record-approved-scope": "scope-record-approved-scope",
   "verify:consumer-check-contract": "verify-consumer-check-contract",
   "coverage:hotspots": "coverage-hotspots",
   "verify:branch": "verify-branch",
@@ -2921,6 +2923,7 @@ const SCOPE_COMMAND_NAMES = [
   "scope:complete",
   "scope:demote",
   "scope:undo",
+  "scope:record-approved-scope",
 ] as const;
 
 /**

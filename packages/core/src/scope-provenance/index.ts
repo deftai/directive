@@ -20,8 +20,10 @@ export {
   writeApprovedScopeRecord,
 } from "./digest.js";
 export {
+  baseApprovalAuthorizesCurrent,
   evaluateOneScopeProvenance,
   evaluateScopeProvenance,
+  parseApprovedScopeRecordRaw,
   resolveDefaultBaseRef,
   type ScopeProvenanceFinding,
   type ScopeProvenanceOptions,

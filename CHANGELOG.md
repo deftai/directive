@@ -16,9 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task scope:record-approved-scope` first-adoption / renewal surface (#3205).** Operator CLI deposits human-origin `.deft/approved-scope/<plan-id>.json` digests (`--actor` required; agent stamps refused; pending→active path binding). Taskfile + dispatch alias; docs in `content/docs/scope-provenance.md` cover first-adoption and multi-PR expansion. Closes #3205.
+
 ### Changed
 
 ### Fixed
+
+- **`verify:scope-provenance` base-visible approval false positive on pending→active (#3205).** Authority now comes from the validated human approval record in the merge base (schema, plan id, path, digest; current record unchanged), not from whether the active xBRIEF path existed on the base. Same-PR approval rewrites, missing/malformed/agent/mismatched base approvals, and expansion beyond base-approved scope still fail closed. Real-Git regression matrix. Closes #3205. Refs #3145.
 
 ### Removed
 

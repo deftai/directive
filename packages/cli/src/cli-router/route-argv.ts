@@ -210,6 +210,9 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
     if (verb === "demote") return { kind: "dispatch", argv: ["scope-demote", ...rest] };
     if (verb === "decompose") return { kind: "dispatch", argv: ["scope-decompose", ...rest] };
     if (verb === "undo") return { kind: "dispatch", argv: ["scope-undo", ...rest] };
+    if (verb === "record-approved-scope") {
+      return { kind: "dispatch", argv: ["scope-record-approved-scope", ...rest] };
+    }
   }
 
   if (ns === "verify") {
