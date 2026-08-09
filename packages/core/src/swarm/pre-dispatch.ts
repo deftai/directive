@@ -9,16 +9,20 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
+import { isAbsolute, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
   activeAttempts,
-  beginAttemptOnDisk,
+  beginAttempt,
   completeAttemptOnDisk,
   type DeliveryAttemptRecord,
   evaluatePreDispatch,
   loadOrCreateUnitLedger,
   loadUnitLedger,
+  markBlocked,
   type PreDispatchDecision,
+  saveUnitLedger,
+  withUnitLock,
 } from "../delivery-attempt/index.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import { runText } from "./subprocess.js";
@@ -59,8 +63,6 @@ export interface SwarmPreDispatchResult {
   readonly activeAttemptIds: readonly string[];
 }
 
-const DECISION_FROM_ERROR = /^delivery-attempt ([A-Z0-9_]+):\s*(.*)$/;
-
 export function resolveSourceRevision(projectRoot: string, explicit?: string): string {
   if (explicit !== undefined && explicit.trim().length > 0) {
     return explicit.trim();
@@ -73,6 +75,46 @@ export function resolveSourceRevision(projectRoot: string, explicit?: string): s
   return "unknown";
 }
 
+/**
+ * True when targetId should be treated as a filesystem path (worktree), not an
+ * opaque branch/ref id. Branch names with `/` (e.g. `feat/foo`) stay opaque.
+ */
+export function looksLikeFilesystemTarget(targetId: string): boolean {
+  const t = targetId.trim();
+  if (t.length === 0) return false;
+  if (isAbsolute(t) || t.startsWith(".") || t.includes("\\")) return true;
+  if (/^[A-Za-z]:[\\/]/.test(t)) return true;
+  const lower = t.toLowerCase().replace(/\\/g, "/");
+  return (
+    lower.includes(".deft-scratch/") ||
+    lower.includes("/worktrees/") ||
+    lower.startsWith("worktrees/")
+  );
+}
+
+/**
+ * Canonical unit target for ledger keys so relative/absolute/separator/case
+ * variants of the same worktree do not split gate state (#3228 Greptile P1).
+ */
+export function normalizeTargetId(projectRoot: string, targetId: string): string {
+  const trimmed = targetId.trim();
+  if (trimmed.length === 0) return trimmed;
+  if (!looksLikeFilesystemTarget(trimmed)) {
+    return trimmed;
+  }
+  let abs = resolve(projectRoot, trimmed);
+  abs = normalize(abs).replace(/\\/g, "/");
+  // Windows paths are case-insensitive; collapse case to one ledger key.
+  if (process.platform === "win32") {
+    abs = abs.toLowerCase();
+  }
+  // Drop trailing slash so `.../wt` and `.../wt/` match.
+  if (abs.length > 1 && abs.endsWith("/")) {
+    abs = abs.slice(0, -1);
+  }
+  return abs;
+}
+
 function unitFields(input: SwarmPreDispatchInput): {
   scopeId: string;
   targetId: string;
@@ -80,7 +122,7 @@ function unitFields(input: SwarmPreDispatchInput): {
 } {
   return {
     scopeId: input.scopeId.trim(),
-    targetId: input.targetId.trim(),
+    targetId: normalizeTargetId(input.projectRoot, input.targetId),
     workflowId: (input.workflowId ?? IMPLEMENT_LEAF_WORKFLOW_ID).trim(),
   };
 }
@@ -121,17 +163,45 @@ function listActiveIds(
   return activeAttempts(ledger).map((a) => a.attemptId);
 }
 
-function parseDecisionFromError(message: string): {
+/**
+ * Parse beginAttemptOnDisk-style error messages without a ReDoS-prone regex
+ * (CodeQL: polynomial regex on uncontrolled data).
+ */
+export function parseDecisionFromError(message: string): {
   decision: PreDispatchDecision | null;
   reason: string;
 } {
-  const m = DECISION_FROM_ERROR.exec(message);
-  if (m === null) {
+  const prefix = "delivery-attempt ";
+  if (!message.startsWith(prefix)) {
     return { decision: null, reason: message };
   }
+  const rest = message.slice(prefix.length);
+  const colon = rest.indexOf(":");
+  if (colon <= 0) {
+    return { decision: null, reason: message };
+  }
+  const code = rest.slice(0, colon).trim();
+  // Bound check: decision codes are short fixed tokens (ALLOW_*/DENY_*/BLOCK_*).
+  if (code.length > 64 || code.length < 6) {
+    return { decision: null, reason: message };
+  }
+  if (!code.startsWith("ALLOW_") && !code.startsWith("DENY_") && !code.startsWith("BLOCK_")) {
+    return { decision: null, reason: message };
+  }
+  for (let i = 0; i < code.length; i += 1) {
+    const c = code.charCodeAt(i);
+    const ok =
+      (c >= 65 && c <= 90) || // A-Z
+      (c >= 48 && c <= 57) || // 0-9
+      c === 95; // _
+    if (!ok) {
+      return { decision: null, reason: message };
+    }
+  }
+  const reason = rest.slice(colon + 1).trim();
   return {
-    decision: m[1] as PreDispatchDecision,
-    reason: (m[2] ?? message).trim(),
+    decision: code as PreDispatchDecision,
+    reason: reason.length > 0 ? reason : message,
   };
 }
 
@@ -140,49 +210,61 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   const sourceRevision = resolveSourceRevision(input.projectRoot, input.sourceRevision);
   const trigger: AttemptTrigger = input.trigger ?? "automatic";
 
-  // Evaluate first for a structured decision code (same inputs as begin under lock).
-  // beginAttemptOnDisk re-evaluates under exclusive lock so races still fail closed.
-  const previewLedger = loadOrCreateUnitLedger(input.projectRoot, {
-    scopeId,
-    targetId,
-    workflowId,
-    now: input.now,
-  });
-  const preview = evaluatePreDispatch(previewLedger, {
-    scopeId,
-    targetId,
-    workflowId,
-    sourceRevision,
-    trigger,
-    now: input.now,
-  });
-  if (!preview.allowed) {
-    return baseResult(input, "begin", {
-      exitCode: EXIT_GATE_FAILED,
-      decision: preview.decision,
-      reason: preview.reason,
-      activeAttemptIds: listActiveIds(input.projectRoot, scopeId, targetId, workflowId),
-    });
-  }
-
+  // Exclusive lock → reload → evaluate → begin+save (same decision under lock;
+  // no stale preview decision on the success path).
   try {
-    const { attempt } = beginAttemptOnDisk(input.projectRoot, {
-      scopeId,
-      targetId,
-      workflowId,
-      sourceRevision,
-      trigger,
-      status: "running",
-      workerId: input.workerId ?? null,
-      externalRunId: input.externalRunId ?? null,
-      now: input.now,
-    });
-    return baseResult(input, "begin", {
-      exitCode: EXIT_OK,
-      decision: preview.decision,
-      reason: `allowed; attempt ${attempt.attemptId} begun`,
-      attempt,
-      activeAttemptIds: [attempt.attemptId],
+    return withUnitLock(input.projectRoot, scopeId, targetId, workflowId, () => {
+      const current = loadOrCreateUnitLedger(input.projectRoot, {
+        scopeId,
+        targetId,
+        workflowId,
+        now: input.now,
+      });
+      const decision = evaluatePreDispatch(current, {
+        scopeId,
+        targetId,
+        workflowId,
+        sourceRevision,
+        trigger,
+        now: input.now,
+      });
+      if (!decision.allowed) {
+        if (decision.handoff !== null) {
+          const blocked = markBlocked(
+            current,
+            decision.decision,
+            decision.handoff.resumeCondition,
+            input.now,
+          );
+          saveUnitLedger(input.projectRoot, blocked);
+        }
+        return baseResult(input, "begin", {
+          exitCode: EXIT_GATE_FAILED,
+          decision: decision.decision,
+          reason: decision.reason,
+          activeAttemptIds: activeAttempts(current).map((a) => a.attemptId),
+        });
+      }
+      const { ledger, attempt } = beginAttempt(current, {
+        scopeId,
+        targetId,
+        workflowId,
+        sourceRevision,
+        trigger,
+        status: "running",
+        workerId: input.workerId ?? null,
+        externalRunId: input.externalRunId ?? null,
+        now: input.now,
+        consumeOverride: decision.decision === "ALLOW_OVERRIDE",
+      });
+      saveUnitLedger(input.projectRoot, ledger);
+      return baseResult(input, "begin", {
+        exitCode: EXIT_OK,
+        decision: decision.decision,
+        reason: `allowed; attempt ${attempt.attemptId} begun`,
+        attempt,
+        activeAttemptIds: [attempt.attemptId],
+      });
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -210,10 +292,6 @@ function runComplete(
 ): SwarmPreDispatchResult {
   const { scopeId, targetId, workflowId } = unitFields(input);
   const status: CompleteStatus = action === "cancel" ? "cancelled" : (input.status ?? "succeeded");
-
-  if (action === "complete" && input.status === undefined) {
-    // Default succeeded is fine for terminal success; explicit --status preferred.
-  }
 
   const ledger = loadUnitLedger(input.projectRoot, scopeId, targetId, workflowId);
   if (ledger === null) {

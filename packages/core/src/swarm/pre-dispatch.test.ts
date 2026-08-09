@@ -65,7 +65,7 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(r.attempt?.status).toBe("running");
     expect(r.activeAttemptIds).toHaveLength(1);
 
-    const ledger = requireLedger(root, unit.scopeId, unit.targetId, unit.workflowId);
+    const ledger = requireLedger(root, r.scopeId, r.targetId, r.workflowId);
     expect(activeAttempts(ledger)).toHaveLength(1);
   });
 
@@ -90,7 +90,7 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(second.attempt).toBeNull();
     expect(second.activeAttemptIds).toEqual(first.activeAttemptIds);
 
-    const ledger = requireLedger(root, unit.scopeId, unit.targetId, unit.workflowId);
+    const ledger = requireLedger(root, first.scopeId, first.targetId, first.workflowId);
     expect(activeAttempts(ledger)).toHaveLength(1);
   });
 
@@ -164,7 +164,7 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(takeover.exitCode).toBe(0);
     expect(takeover.attempt?.workerId).toBe("replacement-leaf");
 
-    const ledger = requireLedger(root, unit.scopeId, unit.targetId, unit.workflowId);
+    const ledger = requireLedger(root, takeover.scopeId, takeover.targetId, takeover.workflowId);
     expect(activeAttempts(ledger)).toHaveLength(1);
   });
 
@@ -190,7 +190,7 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(peer.exitCode).toBe(1);
     expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
     expect(
-      activeAttempts(requireLedger(root, unit.scopeId, unit.targetId, unit.workflowId)),
+      activeAttempts(requireLedger(root, first.scopeId, first.targetId, first.workflowId)),
     ).toHaveLength(1);
   });
 
@@ -229,5 +229,43 @@ describe("swarmPreDispatch (#3228)", () => {
     const report = formatPreDispatchReport(denied);
     expect(report).toContain("DENY_DUPLICATE_ACTIVE");
     expect(report).toContain("do not spawn");
+  });
+
+  it("equivalent worktree path forms share one unit key (deny peer)", () => {
+    const root = tempRoot();
+    const rel = ".deft-scratch/worktrees/3228-peer";
+    const first = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-path",
+      targetId: rel,
+      action: "begin",
+      sourceRevision: "r1",
+    });
+    expect(first.exitCode).toBe(0);
+
+    const abs = join(root, rel);
+    const peer = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-path",
+      targetId: abs,
+      action: "begin",
+      sourceRevision: "r2",
+    });
+    expect(peer.exitCode).toBe(1);
+    expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(peer.targetId).toBe(first.targetId);
+  });
+
+  it("branch-like targets stay opaque (not path-normalized)", () => {
+    const root = tempRoot();
+    const r = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-branch",
+      targetId: "feat/my-story",
+      action: "begin",
+      sourceRevision: "r1",
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.targetId).toBe("feat/my-story");
   });
 });
