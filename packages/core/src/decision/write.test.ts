@@ -200,6 +200,9 @@ describe("runDecisionWrite", () => {
       projectRoot: root,
     });
     expect(second.exitCode).toBe(0);
+    const scopeDoc = JSON.parse(readFileSync(join(root, scope), "utf8"));
+    expect(scopeDoc.plan.narratives.Decisions).toContain("dual-location-layout");
+    expect(scopeDoc.plan.narratives.Decisions).toContain("dual-location-layout-2");
   });
 
   it("decisionWriteMain json path and flags", () => {

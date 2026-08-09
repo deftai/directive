@@ -90,6 +90,9 @@ function mergeInput(options: DecisionWriteInput, projectRoot: string): Record<st
 /**
  * Append a pointer line to plan.narratives.Decisions on a scope xBRIEF without
  * removing existing narratives (validators accept unknown narrative keys as strings).
+ *
+ * Concurrent writers: read-modify-replace with post-write verify + retry so a
+ * later attach does not silently drop an earlier decision pointer.
  */
 export function appendScopeDecisionPointer(
   projectRoot: string,
@@ -101,37 +104,62 @@ export function appendScopeDecisionPointer(
   if (!existsSync(scopeAbs)) {
     throw new Error(`scope xBRIEF not found: ${scopeRelPath}`);
   }
-  const raw = readFileSync(scopeAbs, "utf8");
-  const doc: unknown = JSON.parse(raw);
-  if (doc === null || typeof doc !== "object" || Array.isArray(doc)) {
-    throw new Error(`invalid scope xBRIEF JSON: ${scopeRelPath}`);
-  }
-  const plan = (doc as Record<string, unknown>).plan;
-  if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
-    throw new Error(`scope xBRIEF missing plan: ${scopeRelPath}`);
-  }
-  const narrativesRaw = (plan as Record<string, unknown>).narratives;
-  const narratives: Record<string, unknown> =
-    narrativesRaw !== null && typeof narrativesRaw === "object" && !Array.isArray(narrativesRaw)
-      ? { ...(narrativesRaw as Record<string, unknown>) }
-      : {};
 
-  const pointer = `- ${decisionRelPath} — ${decisionSummary}`;
-  const existing =
-    typeof narratives.Decisions === "string" ? (narratives.Decisions as string).trim() : "";
-  if (existing.includes(decisionRelPath)) {
-    return;
-  }
-  narratives.Decisions = existing.length > 0 ? `${existing}\n${pointer}` : pointer;
-  (plan as Record<string, unknown>).narratives = narratives;
+  const pointerNeedle = decisionRelPath;
+  const maxAttempts = 4;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const raw = readFileSync(scopeAbs, "utf8");
+    const doc: unknown = JSON.parse(raw);
+    if (doc === null || typeof doc !== "object" || Array.isArray(doc)) {
+      throw new Error(`invalid scope xBRIEF JSON: ${scopeRelPath}`);
+    }
+    const plan = (doc as Record<string, unknown>).plan;
+    if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
+      throw new Error(`scope xBRIEF missing plan: ${scopeRelPath}`);
+    }
+    const narrativesRaw = (plan as Record<string, unknown>).narratives;
+    const narratives: Record<string, unknown> =
+      narrativesRaw !== null && typeof narrativesRaw === "object" && !Array.isArray(narrativesRaw)
+        ? { ...(narrativesRaw as Record<string, unknown>) }
+        : {};
 
-  const data = `${JSON.stringify(doc, null, 2)}\n`;
-  containedWrite({
-    root: resolve(projectRoot),
-    target: scopeAbs,
-    data,
-    mode: "replace",
-  });
+    const pointer = `- ${decisionRelPath} — ${decisionSummary}`;
+    const existing =
+      typeof narratives.Decisions === "string" ? (narratives.Decisions as string).trim() : "";
+    if (existing.includes(pointerNeedle)) {
+      return;
+    }
+    narratives.Decisions = existing.length > 0 ? `${existing}\n${pointer}` : pointer;
+    (plan as Record<string, unknown>).narratives = narratives;
+
+    const data = `${JSON.stringify(doc, null, 2)}\n`;
+    containedWrite({
+      root: resolve(projectRoot),
+      target: scopeAbs,
+      data,
+      mode: "replace",
+    });
+
+    // Verify pointer survived concurrent replace.
+    try {
+      const verifyRaw = readFileSync(scopeAbs, "utf8");
+      const verifyDoc: unknown = JSON.parse(verifyRaw);
+      const vPlan = (verifyDoc as Record<string, unknown>)?.plan as
+        | Record<string, unknown>
+        | undefined;
+      const vNarr = vPlan?.narratives as Record<string, unknown> | undefined;
+      const vDec = typeof vNarr?.Decisions === "string" ? vNarr.Decisions : "";
+      if (vDec.includes(pointerNeedle)) {
+        return;
+      }
+    } catch {
+      // retry
+    }
+  }
+  throw new Error(
+    `failed to attach decision pointer to ${scopeRelPath} after ${maxAttempts} attempts ` +
+      `(concurrent writers may be contending on plan.narratives.Decisions)`,
+  );
 }
 
 /** Write a validated decision record to disk (standalone + optional scope pointer). */
