@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **greenfield-python-free-smoke vs `verify:consumer-check-contract` (#3218).** After #3145, include-only consumer Taskfiles from `directive init` (`includes.deft → ./.deft/core/Taskfile.yml`, no root `check` deps) hard-failed the composition gate (`exit 201` / #3188), reddening greenfield smoke on master and unrelated docs PRs. Root cause: **gate false positive** — composition lives in the included framework Taskfile + `tasks/verify.yml`, not root deps. Gate now trusts the canonical deft include when no local check aggregates are defined; incomplete local root deps still fail closed. Regression tests + docs in `content/docs/consumer-check-contract.md`. Closes #3218. Refs #3145, #3188, #2022.
+
 ### Removed
 
 ## [0.98.1] - 2026-08-09
