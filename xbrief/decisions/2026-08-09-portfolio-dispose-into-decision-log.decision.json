@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "portfolio-dispose-into-decision-log",
+  "decision": "Portfolio priority briefs (#3198/#3201) remain propose-not-apply; operator dispose of shortlist/park MUST land in a structured decision record via task decision:write (or interim issue comment until this surface existed), not chat alone or the brief file as SoT.",
+  "governingRule": {
+    "description": "Propose-not-apply: brief proposes; operator disposes. Brief is not the decision record.",
+    "path": "content/skills/deft-directive-portfolio-priority/SKILL.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Treat the priority brief markdown as the durable dispose record",
+      "whyNot": "Briefs re-open debate; no required revisit trigger or alternatives"
+    },
+    {
+      "option": "Auto-promote shortlist into plan-sequence without human dispose",
+      "whyNot": "Violates propose-not-apply and portfolio non-goals"
+    },
+    {
+      "option": "Chat-only dispose",
+      "whyNot": "Next session re-litigates park/promote (intent debt)"
+    }
+  ],
+  "whyWinner": "A thin decision log event preserves park/promote rationale and revisit triggers across multi-agent handoff without merging #1513 lessons or boiling #2741 memory.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-09T12:00:00Z",
+  "revisitTrigger": "After two portfolio passes where agents still re-litigate park/promote despite decision records, revisit UX of decision:list / skill dispose checklist. If plan-sequence absorbs dispose fully for ordered work, keep decision log for process/architecture only.",
+  "tags": [
+    "portfolio",
+    "dispose",
+    "dogfood"
+  ],
+  "relatedIssues": [
+    3198,
+    3201,
+    3200,
+    1396
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "scm-label-mirror-first-mass-apply",
+  "decision": "On first mass-apply of SCM label-mirror for deftai/directive (2026-08-08 / #1423), run visionik-first then full open apply; accept one-shot stamp plus later re-enrich (#3197/#3199); leave known hold-marker false positives as literal mirror output for dogfood rather than hand-editing labels.",
+  "governingRule": {
+    "description": "Classify/label-mirror is a filter and stamp surface; productize only after real dogfood evidence. Revisit triggers live in a structured decision record, not only digest comments.",
+    "path": "content/skills/deft-directive-triage/SKILL.md",
+    "rfc2119": "SHOULD"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Skip first mass-apply until hold markers are perfect",
+      "whyNot": "Blocks dogfood of re-enrich and portfolio filter paths; no real stamp data"
+    },
+    {
+      "option": "Hand-correct every hold false positive before apply",
+      "whyNot": "Hides classifier failure modes that re-enrich is meant to address"
+    },
+    {
+      "option": "Treat digest comment as the only durable policy record",
+      "whyNot": "Comments record what was stamped, not alternatives or revisit triggers for later agents"
+    }
+  ],
+  "whyWinner": "A real first-apply on the maintainer repo unblocks re-enrich design and gives portfolio/classify filter real partitions, while keeping policy reversible via explicit revisit triggers instead of silent reverse-by-next-agent.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-08T18:00:00Z",
+  "revisitTrigger": "When hold-marker false positives are fixed, re-run with --re-enrich (additive only). Do not reverse first-apply policy without new dogfood data. Do not treat the portfolio priority brief as SoT for this process choice.",
+  "tags": [
+    "scm",
+    "label-mirror",
+    "process",
+    "dogfood"
+  ],
+  "relatedIssues": [
+    1423,
+    3197,
+    3199,
+    1396
+  ]
+}

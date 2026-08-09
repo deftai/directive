@@ -405,6 +405,20 @@ feat(phase-2): add REST API endpoints with integration tests
 
 > "The project is built and all quality checks pass. Describe any new features you'd like to add — I'll follow the deft standards we've set up."
 
+
+## Significant decision log (#1396)
+
+! When this scope makes a **significant** choice (architecture, product behavior, security, public/private boundary, data model, runtime topology, hard-to-reverse process), record it with `task decision:write` (or `--body-file` for multi-line fields) so later agents load rationale without inventing it.
+
+~ Prefer attaching with `--scope <active-xbrief>` when the decision is bound to this story; use standalone `xbrief/decisions/` for cross-cutting / multi-scope process choices.
+
+~ Before claiming a process/architecture path was 'already decided', run `task decision:list -- --query <topic>` (or `--issue N`).
+
+⊗ Require a decision record for every trivial scope or routine fix.
+⊗ Merge lessons (#1513) into decision records, or replace ADRs under `docs/decisions/ADR-*.md`.
+
+Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
+
 ## Anti-Patterns
 
 - ⊗ Skip tests or write them after implementation

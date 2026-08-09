@@ -234,6 +234,8 @@ export const CORE_MODULE_VERBS = [
   "value-readback",
   "product-signal",
   "freshness-report",
+  "decision-write",
+  "decision-list",
 ] as const;
 
 /** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
@@ -432,6 +434,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "feedback:file": "feedback-file",
   "value:show": "value-readback",
   "triage:metrics": "value-readback",
+  "decision:write": "decision-write",
+  "decision:list": "decision-list",
   "eval:run": "eval-run",
   "eval:triggers": "eval-triggers",
   "eval:report": "eval-report",
@@ -2857,6 +2861,14 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "freshness-report": {
       const { mainEntry } = await import("@deftai/directive-core/dist/freshness/cli.js");
       return mainEntry;
+    }
+    case "decision-write": {
+      const { writeMainEntry } = await import("@deftai/directive-core/dist/decision/index.js");
+      return writeMainEntry;
+    }
+    case "decision-list": {
+      const { listMainEntry } = await import("@deftai/directive-core/dist/decision/index.js");
+      return listMainEntry;
     }
     default:
       throw new Error(`unknown core verb: ${verb}`);

@@ -48,7 +48,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ SCM label writes, mirror `--apply`, or re-enrich apply from this skill
 - ⊗ `task triage:accept` / reject / defer / needs-ac / mark-duplicate / bulk-*
 - ⊗ Scope lifecycle (`scope:promote` / `activate` / `complete` / `cancel`) from this skill
-- ⊗ Treat the brief as a decision record — dispose into #1396 / plan-sequence / operator comment
+- ⊗ Treat the brief as a decision record — dispose via `task decision:write` / plan-sequence / operator comment (#1396)
 
 ## Inputs
 
@@ -117,7 +117,7 @@ Before citing any `#N` in the brief:
 ### Phase 6 — Dispose checklist (hand off)
 
 1. ! Present the dispose checklist to the operator (accept/edit shortlist + park; record dispose; optional plan-sequence for P1).
-2. ! Point dispose targets: **#1396**-shaped decision log (or interim issue comment), and/or `task plan-sequence:set`.
+2. ! Point dispose targets: `task decision:write` (#1396 structured decision log under `xbrief/decisions/`; optional interim issue comment only if the write surface is unavailable), and/or `task plan-sequence:set`.
 3. ⊗ Auto-promote shortlist into plan-sequence without explicit operator dispose.
 4. ⊗ Exit treating the brief alone as durable prioritization memory (#2741 class).
 
@@ -134,7 +134,7 @@ Before citing any `#N` in the brief:
 ## EXIT
 
 ! Confirm: `deft-directive-portfolio-priority complete -- exiting skill.`
-~ Chain: operator dispose (#1396 / plan-sequence) · `deft-directive-triage` for single-item queue work · `deft-directive-refinement` after accept on a different path · do **not** chain into mirror apply.
+~ Chain: operator dispose (`task decision:write` / plan-sequence) · `deft-directive-triage` for single-item queue work · `deft-directive-refinement` after accept on a different path · do **not** chain into mirror apply.
 ⊗ Silent exit.
 
 ## References

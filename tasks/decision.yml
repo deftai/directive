@@ -1,0 +1,30 @@
+version: '3'
+
+# tasks/decision.yml -- structured agent decision log (#1396).
+#
+# Per `conventions/task-caching.md`, tasks forwarding user-facing flags via
+# {{.CLI_ARGS}} MUST NOT declare `sources:` / `generates:`.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  write:
+    desc: "Write a lightweight structured decision record (#1396). -- task decision:write -- [--decision TEXT] [--governing-rule ...] [--alternative ...] [--why-winner ...] [--confidence low|medium|high] [--revisit-trigger ...] [--scope PATH] [--body-file PATH] [--json] [--dry-run]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'decision:write --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  list:
+    desc: "List structured decision records under xbrief/decisions/ (#1396). -- task decision:list -- [--query TEXT] [--scope PATH] [--issue N] [--limit N] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'decision:list --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

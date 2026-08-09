@@ -344,6 +344,10 @@ includes:
   value:
     taskfile: ./tasks/value.yml
     optional: true
+  # Structured agent decision log (#1396). Inner tasks write/list → decision:write / decision:list.
+  decision:
+    taskfile: ./tasks/decision.yml
+    optional: true
   product-signal:
     taskfile: ./tasks/product-signal.yml
     optional: true

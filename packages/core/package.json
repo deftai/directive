@@ -131,6 +131,15 @@
       "types": "./dist/value/readback.d.ts",
       "default": "./dist/value/readback.js"
     },
+    "./decision": {
+      "types": "./dist/decision/index.d.ts",
+      "default": "./dist/decision/index.js"
+    },
+    "./decision/index": {
+      "types": "./dist/decision/index.d.ts",
+      "default": "./dist/decision/index.js"
+    },
+
     "./events": {
       "types": "./dist/events/attribution-ledger.d.ts",
       "default": "./dist/events/attribution-ledger.js"

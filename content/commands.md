@@ -183,6 +183,25 @@ flowchart TD
 
 ---
 
+## Structured decision log (#1396)
+
+Lightweight intent-debt records for **significant** choices (architecture, product behavior, security, public/private boundary, data model, runtime topology, hard-to-reverse process). Not every trivial scope. Not ADR migration; leave `docs/decisions/ADR-*.md` alone. Split from lessons (#1513).
+
+| Command | Purpose |
+|---------|---------|
+| `task decision:write` | Validate and write `xbrief/decisions/YYYY-MM-DD-<slug>.decision.json`; optional `--scope` appends a pointer under `plan.narratives.Decisions` |
+| `task decision:list` | List/filter records (`--query`, `--scope`, `--issue`, `--json`) |
+
+Required fields: decision, governing rule/constraint, alternatives considered, why winner, confidence, timestamp, revisit trigger; active scope ref(s) when applicable.
+
+! For significant choices during build / pre-PR / portfolio dispose, record via `task decision:write` (or `--body-file` on Windows for multi-line fields).
+⊗ Require a decision record before every `scope:complete` in v1 (guidance only; no deterministic complete-hook yet).
+⊗ Store chat transcripts or replace git history with this surface.
+
+Docs: [docs/decision-log.md](./docs/decision-log.md) · layout: `xbrief/decisions/README.md`. Consumers: portfolio dispose (#3198/#3201), process dogfood (#1423).
+
+---
+
 ## Generated Document Commands
 
 Edit the xBRIEF source, then render the markdown view.

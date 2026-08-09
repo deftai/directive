@@ -186,6 +186,18 @@ After exiting:
 - ! Run `task check` one final time to confirm clean state
 - ~ The branch is now ready for push and PR creation
 
+
+## Significant decision log (#1396)
+
+! Before push, if this PR encodes a **significant** choice not already recorded, run `task decision:write` (significance filter: architecture, product behavior, security, boundaries, data model, topology, hard-to-reverse process).
+
+~ Check `task decision:list` for related process policy so the PR does not silently reverse a dogfood decision.
+
+⊗ Invent revisit-free rationale in the PR body as a substitute for a decision record when the choice is significant.
+⊗ Noise the log with trivial scope completions.
+
+Docs: `docs/decision-log.md`.
+
 ## Anti-Patterns
 
 - ⊗ Submit a PR without running this pre-PR loop (Read-Write-Lint-Diff) -- every PR branch should pass at least one full cycle
