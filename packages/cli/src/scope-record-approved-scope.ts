@@ -7,10 +7,36 @@
  * authorize pending→active and operator-approved expansion without same-PR
  * self-authorization.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
 import { isDirectEntrypoint } from "./entrypoint.js";
+
+/** True when `candidate` is the same as or a descendant of `root` after realpath. */
+export function isPathInsideRoot(root: string, candidate: string): boolean {
+  let rootReal: string;
+  let candReal: string;
+  try {
+    rootReal = realpathSync(root);
+    // realpathSync fails if path does not exist; fall back to resolve for missing targets
+    candReal = existsSync(candidate) ? realpathSync(candidate) : resolve(candidate);
+  } catch {
+    return false;
+  }
+  const rel = relative(rootReal, candReal);
+  if (rel === "") return true;
+  if (
+    rel.startsWith(`..${sep}`) ||
+    rel === ".." ||
+    rel.startsWith("../") ||
+    rel.startsWith("..\\")
+  ) {
+    return false;
+  }
+  // Absolute relative() means different drive/root (win32)
+  if (resolve(rel) === rel && rel.includes(":")) return false;
+  return !rel.startsWith("..");
+}
 
 const { buildApprovedScopeRecord, isHumanApprovalStamp, writeApprovedScopeRecord } =
   scopeProvenance;
@@ -59,26 +85,21 @@ export function resolveApprovalXbriefRelPath(
       ? sourceRelOrAbs
       : join(root, sourceRelOrAbs),
   );
-  const rootPrefix = root.endsWith("/") || root.endsWith("\\") ? root : `${root}/`;
-  const absNorm = abs.replace(/\\/g, "/");
-  const rootNorm = root.replace(/\\/g, "/");
-  const prefixNorm = rootPrefix.replace(/\\/g, "/");
-  if (
-    absNorm !== rootNorm &&
-    !absNorm.startsWith(prefixNorm) &&
-    !absNorm.startsWith(`${rootNorm}/`)
-  ) {
+  // Lexical + realpath containment (symlink to outside root must fail closed — #3205 Greptile).
+  if (!isPathInsideRoot(root, abs)) {
     return null;
   }
-  let rel =
-    absNorm === rootNorm
-      ? ""
-      : absNorm.startsWith(`${rootNorm}/`)
-        ? absNorm.slice(rootNorm.length + 1)
-        : absNorm.startsWith(prefixNorm)
-          ? absNorm.slice(prefixNorm.length)
-          : "";
-  if (rel.length === 0) return null;
+  let rel = relative(root, abs).replace(/\\/g, "/");
+  if (rel.length === 0 || rel.startsWith("../") || rel === "..") {
+    return null;
+  }
+  try {
+    if (existsSync(abs) && lstatSync(abs).isSymbolicLink() && !isPathInsideRoot(root, abs)) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
   // Normalize pending → active for future-active binding (issue #3205 multi-PR).
   if (rel.startsWith("xbrief/pending/")) {
     rel = `xbrief/active/${basename(rel)}`;
@@ -180,6 +201,13 @@ export function run(argv: string[]): number {
     }
   }
   const fullPath = existsSync(xbriefAbs) ? xbriefAbs : resolve(args.xbriefPath);
+  if (!isPathInsideRoot(projectRoot, fullPath)) {
+    process.stderr.write(
+      "scope_record_approved_scope: xBRIEF path escapes --project-root " +
+        "(symlink or absolute outside-root targets refused) (#3205).\n",
+    );
+    return 2;
+  }
   let raw: string;
   try {
     raw = readFileSync(fullPath, "utf8");

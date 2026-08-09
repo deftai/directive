@@ -1,8 +1,13 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseArgs, resolveApprovalXbriefRelPath, run } from "./scope-record-approved-scope.js";
+import {
+  isPathInsideRoot,
+  parseArgs,
+  resolveApprovalXbriefRelPath,
+  run,
+} from "./scope-record-approved-scope.js";
 
 describe("scope-record-approved-scope CLI (#3205)", () => {
   let root: string | undefined;
@@ -37,6 +42,31 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     expect(
       resolveApprovalXbriefRelPath("xbrief/active/s.xbrief.json", ".", "C:/abs/override.json"),
     ).toBeNull();
+  });
+
+  it("rejects in-root symlink whose target is outside project root", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-sym-"));
+    const outside = mkdtempSync(join(tmpdir(), "scope-record-out-"));
+    const outsideFile = join(outside, "evil.xbrief.json");
+    writeFileSync(
+      outsideFile,
+      JSON.stringify({
+        plan: { id: "evil", metadata: { swarm: { file_scope: ["src/x.ts"] } } },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const linkPath = join(root, "xbrief/pending/story.xbrief.json");
+    try {
+      symlinkSync(outsideFile, linkPath);
+    } catch {
+      // Windows without symlink privilege: skip rather than fail the suite
+      return;
+    }
+    expect(isPathInsideRoot(root, linkPath)).toBe(false);
+    expect(resolveApprovalXbriefRelPath(linkPath, root)).toBeNull();
+    const code = run([linkPath, "--project-root", root, "--actor", "scott"]);
+    expect(code).toBe(2);
   });
 
   it("writes human approval digest and refuses agent stamps", () => {
