@@ -8,7 +8,7 @@
  * self-authorization.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
@@ -36,20 +36,49 @@ function usage(): string {
   );
 }
 
-/** Map pending/ → active/ for path-bound approval records. */
+/**
+ * Map pending/ → active/ for path-bound approval records.
+ * Returns null when the source cannot be expressed as a repo-relative path under projectRoot
+ * (absolute outside-root paths must not be stamped into xbriefRelPath — #3205 Greptile).
+ */
 export function resolveApprovalXbriefRelPath(
   sourceRelOrAbs: string,
   projectRoot: string,
   override?: string,
-): string {
+): string | null {
   if (override !== undefined && override.trim().length > 0) {
-    return override.replace(/\\/g, "/").replace(/^\.\//, "");
+    const o = override.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (o.startsWith("/") || /^[A-Za-z]:\//.test(o)) return null;
+    return o;
   }
   const root = resolve(projectRoot);
-  const abs = resolve(sourceRelOrAbs);
-  let rel = abs.startsWith(root)
-    ? abs.slice(root.length).replace(/\\/g, "/").replace(/^\//, "")
-    : sourceRelOrAbs.replace(/\\/g, "/").replace(/^\.\//, "");
+  const abs = resolve(
+    sourceRelOrAbs.includes(":") ||
+      sourceRelOrAbs.startsWith("/") ||
+      sourceRelOrAbs.startsWith("\\")
+      ? sourceRelOrAbs
+      : join(root, sourceRelOrAbs),
+  );
+  const rootPrefix = root.endsWith("/") || root.endsWith("\\") ? root : `${root}/`;
+  const absNorm = abs.replace(/\\/g, "/");
+  const rootNorm = root.replace(/\\/g, "/");
+  const prefixNorm = rootPrefix.replace(/\\/g, "/");
+  if (
+    absNorm !== rootNorm &&
+    !absNorm.startsWith(prefixNorm) &&
+    !absNorm.startsWith(`${rootNorm}/`)
+  ) {
+    return null;
+  }
+  let rel =
+    absNorm === rootNorm
+      ? ""
+      : absNorm.startsWith(`${rootNorm}/`)
+        ? absNorm.slice(rootNorm.length + 1)
+        : absNorm.startsWith(prefixNorm)
+          ? absNorm.slice(prefixNorm.length)
+          : "";
+  if (rel.length === 0) return null;
   // Normalize pending → active for future-active binding (issue #3205 multi-PR).
   if (rel.startsWith("xbrief/pending/")) {
     rel = `xbrief/active/${basename(rel)}`;
@@ -186,7 +215,13 @@ export function run(argv: string[]): number {
     projectRoot,
     args.xbriefRelPath.length > 0 ? args.xbriefRelPath : undefined,
   );
-  // Prefer project-relative path for binding even when source is absolute outside root.
+  if (xbriefRelPath === null) {
+    process.stderr.write(
+      "scope_record_approved_scope: xBRIEF path must resolve under --project-root " +
+        "(repo-relative path required for approval binding) (#3205).\n",
+    );
+    return 2;
+  }
   const record = buildApprovedScopeRecord({
     xbriefRelPath,
     payload,

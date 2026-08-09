@@ -288,6 +288,10 @@ export function parseApprovedScopeRecordRaw(raw: string): ApprovedScopeRecord | 
       return null;
     }
     if (!Array.isArray(rec.fileScope)) return null;
+    // Digest must match the recorded path list — never trust a forged digest alone (#3205 Greptile).
+    const scopePaths = rec.fileScope.filter((x): x is string => typeof x === "string");
+    const expected = computeFileScopeDigest(scopePaths);
+    if (rec.fileScopeDigest !== expected) return null;
     return data as ApprovedScopeRecord;
   } catch {
     return null;
@@ -420,7 +424,22 @@ export function evaluateOneScopeProvenance(input: {
 
   const expanded = scopeExpansion(input.approved.fileScope, currentScope);
   if (expanded.length === 0) {
-    // Scope shrink or digest noise without path expansion — OK for v1
+    // Scope shrink or digest noise without path expansion — OK for v1 when human-stamped.
+    // Non-empty current scope still requires human origin (agent shrink must not bypass #3205).
+    if (currentScope.length > 0 && !isHumanApprovalStamp(input.approved.humanApproval)) {
+      return {
+        xbriefRelPath: input.xbriefRelPath,
+        planId,
+        kind: "active-xbrief-modified-without-digest",
+        expandedPaths: currentScope,
+        detail:
+          "active xBRIEF modified with a non-human approved-scope stamp (scope shrink/noise path); " +
+          "only humanApproval stamps authorize non-empty file_scope",
+        remediation:
+          "Record a human-origin approval via `task scope:record-approved-scope -- " +
+          "<xbrief-path> --actor <you>` (#3145 / #3205).",
+      };
+    }
     return null;
   }
 
@@ -471,12 +490,19 @@ export function evaluateScopeProvenance(
       if (baseRef === undefined || baseRef === "" || baseRef === "HEAD") {
         const resolved = resolveDefaultBaseRef(root);
         if (resolved === null) {
-          return configError(
-            "verify_scope_provenance: no merge-base ref found (origin/master|main, " +
-              "DEFT_BASE_REF, or GITHUB_BASE_REF).\n" +
-              "  Recovery: fetch the default branch or pass --base-ref <ref>. " +
-              "Bare HEAD cannot see committed PR scope expansion (#3145).",
-          );
+          // Greenfield / single-commit consumer trees often have no origin/* and no
+          // default-branch ref yet. Fail closed only when the caller demanded an
+          // explicit --base-ref; otherwise soft-skip (same posture as non-git trees)
+          // so verify:scope-provenance does not brick `task check` on init (#3205 smoke).
+          return {
+            exitCode: 0,
+            findings: [],
+            message:
+              "verify_scope_provenance: skipped -- no merge-base ref found " +
+              "(origin/master|main, DEFT_BASE_REF, or GITHUB_BASE_REF). " +
+              "Fetch the default branch or pass --base-ref <ref> before enforcing " +
+              "PR scope expansion (#3145 / #3205).",
+          };
         }
         baseRef = resolved;
       }

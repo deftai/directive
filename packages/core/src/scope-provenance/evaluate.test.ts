@@ -6,7 +6,12 @@ import {
   normalizeFileScope,
   scopeExpansion,
 } from "./digest.js";
-import { evaluateOneScopeProvenance, evaluateScopeProvenance, unquoteGitPath } from "./evaluate.js";
+import {
+  evaluateOneScopeProvenance,
+  evaluateScopeProvenance,
+  parseApprovedScopeRecordRaw,
+  unquoteGitPath,
+} from "./evaluate.js";
 
 function xbrief(planId: string, fileScope: string[]): Record<string, unknown> {
   return {
@@ -277,5 +282,18 @@ describe("evaluateScopeProvenance (#3145)", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings[0]?.kind).toBe("self-authorizing-scope-expansion");
+  });
+
+  it("rejects base approval records whose digest disagrees with fileScope (#3205)", () => {
+    const forged = JSON.stringify({
+      schemaVersion: 1,
+      planId: "story-1",
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      approvedAt: "2026-08-01T00:00:00Z",
+      fileScope: ["src/app.ts"],
+      fileScopeDigest: "0".repeat(64),
+      humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
+    });
+    expect(parseApprovedScopeRecordRaw(forged)).toBeNull();
   });
 });

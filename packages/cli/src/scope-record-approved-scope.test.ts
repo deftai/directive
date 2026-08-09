@@ -32,6 +32,13 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     );
   });
 
+  it("rejects absolute paths outside project root", () => {
+    expect(resolveApprovalXbriefRelPath("C:/other/story.xbrief.json", "C:/proj")).toBeNull();
+    expect(
+      resolveApprovalXbriefRelPath("xbrief/active/s.xbrief.json", ".", "C:/abs/override.json"),
+    ).toBeNull();
+  });
+
   it("writes human approval digest and refuses agent stamps", () => {
     root = mkdtempSync(join(tmpdir(), "scope-record-"));
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
