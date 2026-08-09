@@ -93,7 +93,12 @@ export const REARM_CEREMONY_TIER: SessionCeremonyTier = "rearm";
 
 // verify_tools is mutation readiness recorded on cold path (#3214 / #3156) —
 // included so re-arm refuses after a tools-failed cold start.
-export const QUICK_STEPS = ["alignment", "branch_policy", "triage_welcome", "verify_tools"] as const;
+export const QUICK_STEPS = [
+  "alignment",
+  "branch_policy",
+  "triage_welcome",
+  "verify_tools",
+] as const;
 export const GATED_STEPS = ["agent_hooks", "doctor", "cache_fresh"] as const;
 export type GatedStepName = (typeof GATED_STEPS)[number];
 
