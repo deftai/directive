@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Decision log dogfood: patterns portfolio pilot dispose (#1396 / #3200).** `xbrief/decisions/2026-08-09-patterns-portfolio-pilot-dispose.decision.json` records operator shortlist/park for the patterns `no_match` pilot (P1 #852/#3085; park classes). Refs #3198, #3201, #886.
+
 - **Structured agent decision log — `task decision:write` / `task decision:list` (#1396).** Lightweight `deft.decision.v1` JSON under `xbrief/decisions/` (dual location: standalone cross-cutting files + optional scope xBRIEF `plan.narratives.Decisions` pointer). Required fields: decision, governing rule, alternatives, why winner, confidence, scope refs, timestamp, revisit trigger. Guidance-only significance filter for build/pre-pr/portfolio; no hard complete-hook. Dogfood seeds: SCM label-mirror first mass-apply policy (#1423) and portfolio dispose-into-decision-log (#3198/#3201). Docs: `content/docs/decision-log.md`. Leaves `docs/decisions/ADR-*.md` as the heavyweight architecture lane. Closes #1396. Refs #3198, #3201, #1423, #1513.
 
 ### Changed

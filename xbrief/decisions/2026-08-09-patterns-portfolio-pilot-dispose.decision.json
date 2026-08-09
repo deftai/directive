@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "patterns-portfolio-pilot-dispose",
+  "decision": "Dispose the 2026-08-07 patterns portfolio pilot (#3200): accept shortlist order P1 #852 (goal-gate) and #3085 (tool-surface grammar); P2 agent-app pack #839→#841→#840→#842 and #978 under epic #2741; P3 #3066 under epic #3082 and #971/#973 after #852. Keep #3086 on escalate/interrupt (not park-as-content). Park agent-app atoms without pack index, memory atoms under #2741/#978, older multi-agent scatter for revisit after #3155/#2705, web-stack opinions, hold/rfc planned pattern rows, and research-bias items until a product epic pulls them. Do not treat the brief markdown as SoT.",
+  "governingRule": {
+    "description": "Portfolio briefs are propose-not-apply; operator dispose of shortlist/park MUST land in structured decision log via task decision:write.",
+    "path": "content/skills/deft-directive-portfolio-priority/SKILL.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Leave pilot shortlist/park only in the analysis markdown and #3198 comment",
+      "whyNot": "Next session re-litigates the same 92-issue patterns no_match portfolio; brief is proposal not dispose"
+    },
+    {
+      "option": "Auto-load P1 into plan-sequence without human dispose",
+      "whyNot": "Violates propose-not-apply; portfolio skill non-goal"
+    },
+    {
+      "option": "Deep-dive entire patterns no_match set before any park",
+      "whyNot": "Blocks forward motion; pack/index discipline is the point of the pilot"
+    },
+    {
+      "option": "Park #3085 with other patterns content",
+      "whyNot": "Tool-surface grammar pairs with live escalate #3086 harness reliability; high leverage P1"
+    }
+  ],
+  "whyWinner": "Accepts the pilot's family matrix as operator disposition so multi-agent handoff has a durable shortlist/park and revisit triggers without SCM label writes or auto-promote.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-09T17:19:45Z",
+  "revisitTrigger": "Re-open when capacity exists for #852 or #3085, or after a fresh portfolio skill pass on patterns shows material conflict with this shortlist. Re-open multi-agent park class after #3155/#2705 decisions. Do not reverse park classes from title-only reads.",
+  "tags": [
+    "portfolio",
+    "patterns",
+    "dispose",
+    "dogfood"
+  ],
+  "relatedIssues": [
+    3200,
+    3198,
+    3201,
+    852,
+    3085,
+    3086,
+    839,
+    841,
+    840,
+    842,
+    978,
+    2741,
+    3082,
+    3066,
+    971,
+    973,
+    886,
+    1396
+  ]
+}\n
