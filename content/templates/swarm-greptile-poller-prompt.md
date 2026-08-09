@@ -210,19 +210,47 @@ _TIER3_COUNT_RE = re.compile(
 )
 _TIER3_LINE_RE = re.compile(r"^\s*P[01]\s+--\s", re.MULTILINE)
 _TIER3_NEGATIONS = ("No ", "Zero ", "no ", "NO ")
-# #3225 advisory should-not-merge family (case-insensitive; fence-stripped body)
+# #3225 advisory should-not-merge family — LINE-ANCHORED (parity with
+# packages/core/src/content-contracts/skills/greptile-detector.ts).
+# Mid-sentence descriptive mentions ("adds should-not-merge matching") MUST NOT
+# trigger; Summary:/Decision: labels, bullets, and short subject prefixes
+# ("The PR is …") are stripped before the match.
 _ADVISORY_SHOULD_NOT_MERGE_RES = (
-    re.compile(r"\bnot\s+safe\s+to\s+merge\b", re.IGNORECASE),
+    re.compile(r"\bnot\s+(?:yet\s+)?safe\s+to\s+merge\b", re.IGNORECASE),
     re.compile(r"\bshould\s*[-–—]?\s*not\s*[-–—]?\s*merge\b", re.IGNORECASE),
     re.compile(r"\bsafe\s+to\s+merge\s+once\s+corrected\b", re.IGNORECASE),
     re.compile(r"\bdo\s+not\s+merge\b", re.IGNORECASE),
     re.compile(r"\bnot\s+ready\s+to\s+merge\b", re.IGNORECASE),
     re.compile(r"\bnot\s+ready\s+for\s+merge\b", re.IGNORECASE),
 )
+_ADVISORY_LINE_PREFIX_RE = re.compile(
+    r"^(?:Summary|Decision|Verdict)\s*:\s*",
+    re.IGNORECASE,
+)
+_ADVISORY_SUBJECT_RE = re.compile(
+    r"^(?:the\s+pr|this\s+pr|this\s+change|the\s+change|this\s+diff)\s+is\s+",
+    re.IGNORECASE,
+)
+
+def _line_has_anchored_advisory(line: str) -> bool:
+    bare = line.strip()
+    bare = _ADVISORY_LINE_PREFIX_RE.sub("", bare, count=1)
+    bare = re.sub(r"^(?:[-*•]\s+)+", "", bare)
+    bare = re.sub(r"^\*\*", "", bare)
+    bare = re.sub(r"\*\*$", "", bare)
+    bare = _ADVISORY_SUBJECT_RE.sub("", bare, count=1).strip()
+    if not bare:
+        return False
+    for pat in _ADVISORY_SHOULD_NOT_MERGE_RES:
+        m = pat.search(bare)
+        if m is not None and m.start() <= 2:
+            return True
+    return False
 
 def _has_tier3_sentinel(body: str) -> bool:
-    if any(p.search(body) for p in _ADVISORY_SHOULD_NOT_MERGE_RES):
-        return True
+    for line in body.splitlines():
+        if _line_has_anchored_advisory(line):
+            return True
     for m in _TIER3_COUNT_RE.finditer(body):
         line = _line_for(body, m.start())
         if any(neg in line for neg in _TIER3_NEGATIONS):

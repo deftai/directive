@@ -143,6 +143,11 @@ function lineHasAnchoredAdvisory(line: string, patterns: readonly RegExp[]): boo
   bare = bare.replace(/^(?:Summary|Decision|Verdict)\s*:\s*/i, "");
   bare = bare.replace(/^(?:[-*•]\s+)+/, "");
   bare = bare.replace(/^\*\*/, "").replace(/\*\*$/, "");
+  // Explicit subject-prefixed verdicts Greptile uses: "The PR is not safe to merge…"
+  bare = bare.replace(
+    /^(?:the\s+pr|this\s+pr|this\s+change|the\s+change|this\s+diff)\s+is\s+/i,
+    "",
+  );
   bare = bare.trim();
   if (bare.length === 0) {
     return false;
@@ -381,6 +386,16 @@ Looks solid from a findings perspective.
 Not safe to merge until the operator confirms residual risk handling.
 
 Last reviewed commit: [feat: residual](https://github.com/deftai/directive/commit/advisory04abcdef12)
+`;
+
+/** Subject-prefixed verdict Greptile commonly emits (#3225 residual). */
+export const BODY_ADVISORY_SUBJECT_PREFIXED = `Greptile review of head advisory05
+
+## Confidence Score: 4/5
+
+The PR is not safe to merge until residual risk is documented on the auth path.
+
+Last reviewed commit: [feat: subject](https://github.com/deftai/directive/commit/advisory05abcdef12)
 `;
 
 export const BODY_TIER3_COUNT_PROSE_ONLY = `Greptile review of head deadbeef

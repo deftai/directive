@@ -9,6 +9,7 @@ import {
   BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF,
   BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3,
   BODY_ADVISORY_STANDALONE_NOT_SAFE,
+  BODY_ADVISORY_SUBJECT_PREFIXED,
   BODY_CLEAN,
   BODY_CONFIDENCE_HEADING_ONLY,
   BODY_ESCAPED_BRACKET_LINK_TEXT,
@@ -108,10 +109,14 @@ describe("test_swarm_poller_template", () => {
     expect(hasShouldNotMergeProse(BODY_ADVISORY_STANDALONE_NOT_SAFE)).toBe(true);
     expect(detect(BODY_ADVISORY_STANDALONE_NOT_SAFE).has_blocking === true).toBe(true);
   });
-  it("tier3_mid_sentence_not_yet_safe_does_not_line_anchor_block (#3225)", () => {
+  it("tier3_subject_prefixed_not_safe_still_blocks (#3225)", () => {
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_SUBJECT_PREFIXED)).toBe(true);
+    expect(detect(BODY_ADVISORY_SUBJECT_PREFIXED).has_blocking === true).toBe(true);
+  });
+  it("tier3_descriptive_adds_phrase_does_not_line_anchor_block (#3225)", () => {
     const mid =
       "## Confidence Score: 5/5\n\n" +
-      "The PR is not yet safe to merge because the detector thrash residual remains.\n\n" +
+      "Adding should-not-merge matching and Not safe to merge detection to overview prose.\n\n" +
       "No P0 or P1 issues found.\n";
     expect(hasShouldNotMergeProse(mid)).toBe(false);
   });
