@@ -9,6 +9,7 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
+import { existsSync, realpathSync } from "node:fs";
 import { isAbsolute, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
@@ -103,9 +104,18 @@ export function normalizeTargetId(projectRoot: string, targetId: string): string
     return trimmed;
   }
   let abs = resolve(projectRoot, trimmed);
+  // Collapse symlink aliases when the path exists (#3228 Greptile P1).
+  if (existsSync(abs)) {
+    try {
+      abs = realpathSync(abs);
+    } catch {
+      // Keep resolved path if realpath fails (permissions / race).
+    }
+  }
   abs = normalize(abs).replace(/\\/g, "/");
-  // Windows paths are case-insensitive; collapse case to one ledger key.
-  if (process.platform === "win32") {
+  // Case-insensitive volumes: Windows + default macOS — one ledger key.
+  // Linux stays case-sensitive (realpath already collapsed symlinks).
+  if (process.platform === "win32" || process.platform === "darwin") {
     abs = abs.toLowerCase();
   }
   // Drop trailing slash so `.../wt` and `.../wt/` match.
