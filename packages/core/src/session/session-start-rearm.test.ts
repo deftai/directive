@@ -91,6 +91,13 @@ function seedRitual(
       quickSteps: {
         alignment: ritualStep({ ok: true, ts }),
         branch_policy: ritualStep({ ok: true, ts }),
+        // #3214: seed tools outcome so re-arm preserves without re-run.
+        verify_tools: ritualStep({
+          ok: true,
+          ts,
+          message: "verify:tools seed",
+          exitCode: 0,
+        }),
         triage_welcome: ritualStep({
           ok: input.triageOk !== false,
           ts,
