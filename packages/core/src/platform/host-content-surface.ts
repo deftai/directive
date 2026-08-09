@@ -275,7 +275,7 @@ export function formatHostContentSurfaceLines(report: HostContentSurfaceReport):
     );
   }
 
-  if (managed === "stale" || managed === "missing") {
+  if (managed === "stale" || managed === "missing" || managed === "absent") {
     lines.push(
       "[deft host-surface] managed AGENTS section drift — run `deft agents:refresh` " +
         "(or `task agents:refresh`) so pins/managed constitution match the deposit",

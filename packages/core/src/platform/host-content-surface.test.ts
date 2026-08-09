@@ -174,4 +174,19 @@ describe("probeHostContentSurface + format (#3162)", () => {
     expect(lines[0]).toContain("class=file-first");
     expect(lines[0]).toContain("managed=current");
   });
+
+  it("absent AGENTS.md includes agents:refresh remediation", () => {
+    const root = tempRoot();
+    const report = probeHostContentSurface(root, {
+      environ: {},
+      agentsMdSeams: {
+        readTemplate: () =>
+          "<!-- deft:managed-section v3 -->\n! always-pin example\n<!-- /deft:managed-section -->",
+        resolveSha: () => "deadbeefcafe",
+      },
+    });
+    expect(report.managedSection.state).toBe("absent");
+    const lines = formatHostContentSurfaceLines(report);
+    expect(lines.some((l) => l.includes("agents:refresh"))).toBe(true);
+  });
 });

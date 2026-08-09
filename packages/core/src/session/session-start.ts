@@ -511,12 +511,14 @@ function resolveSessionScmReadiness(
 function resolveHostContentSurface(
   projectRoot: string,
   options: SessionStartOptions,
+  runtimeMode?: string | null,
 ): { report: ReturnType<typeof maybeFormatHostContentSurfaceLines>["report"]; lines: string[] } {
   try {
     const seams = options.hostContentSurfaceSeams ?? {};
     return maybeFormatHostContentSurfaceLines(projectRoot, {
       ...seams,
       environ: seams.environ ?? options.env,
+      runtimeMode: seams.runtimeMode ?? runtimeMode ?? null,
     });
   } catch {
     // best-effort — session start must not abort on host-surface probe failures (#3162)
@@ -556,7 +558,7 @@ function runReadOnlySessionStart(
   // #2275: report SCM availability even on read-only alignment (shallow; no network).
   const scm = resolveSessionScmReadiness(options, false);
   // #3162: host content-surface class + managed drift (advisory).
-  const hostSurface = resolveHostContentSurface(projectRoot, options);
+  const hostSurface = resolveHostContentSurface(projectRoot, options, scm.runtimeMode);
   lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
   lines.push(userMdLine);
   lines.push(formatEnvironmentContext(environment));
@@ -638,7 +640,7 @@ function runSessionRearm(
   // #2275: re-arm still reports SCM state (shallow; no network).
   const scm = resolveSessionScmReadiness(options, false);
   // #3162: host content-surface class + managed drift (advisory).
-  const hostSurface = resolveHostContentSurface(projectRoot, options);
+  const hostSurface = resolveHostContentSurface(projectRoot, options, scm.runtimeMode);
 
   const lines: string[] = [
     READ_ONLY_ALIGNMENT_MESSAGE,
@@ -992,7 +994,7 @@ export function runSessionStart(
 
   // #3162: host content-surface class + managed AGENTS drift (advisory; never blocks).
   const hostSurfaceStepStarted = performance.now();
-  const hostSurface = resolveHostContentSurface(projectRoot, options);
+  const hostSurface = resolveHostContentSurface(projectRoot, options, scm.runtimeMode);
   lines.push(...hostSurface.lines);
   stepTimings.push({
     name: "host_content_surface",
