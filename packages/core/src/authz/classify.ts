@@ -181,10 +181,20 @@ const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] 
 const DOWNLOADER_DECODER_BINS = new Set(["curl", "wget", "xxd", "openssl"]);
 
 /**
- * Destination flag spellings for downloaders/decoders (#3206).
+ * File destination flags for downloaders/decoders (#3206).
  * normalizeToken lowercases, so wget `-O` and curl `-o` share `-o`.
  */
-const DOWNLOADER_DEST_FLAGS = new Set(["-o", "--output", "--output-document", "-out", "--out"]);
+const DOWNLOADER_FILE_DEST_FLAGS = new Set([
+  "-o",
+  "--output",
+  "--output-document",
+  "-out",
+  "--out",
+]);
+
+/** Directory destination flags (curl --output-dir / wget -P); bin-scoped below. */
+const CURL_DIR_DEST_FLAGS = new Set(["--output-dir"]);
+const WGET_DIR_DEST_FLAGS = new Set(["-p", "--directory-prefix"]);
 
 /** Final path segment of a token (path-qualified bins / .exe). */
 function binBareName(token: string): string {
@@ -193,13 +203,24 @@ function binBareName(token: string): string {
   return base.endsWith(".exe") ? base.slice(0, -4) : base;
 }
 
+/** True when token names a downloader/decoder bin (bare or path-qualified). */
 function isDownloaderDecoderBin(token: string): boolean {
+  const n = normalizeToken(token);
+  if (n.startsWith("-")) return false;
   return DOWNLOADER_DECODER_BINS.has(binBareName(token));
 }
 
+function isDownloaderDestFlag(flag: string, bin: string): boolean {
+  if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) return true;
+  if (bin === "curl" && CURL_DIR_DEST_FLAGS.has(flag)) return true;
+  if (bin === "wget" && WGET_DIR_DEST_FLAGS.has(flag)) return true;
+  return false;
+}
+
 /**
- * Destinations from curl/wget/xxd/openssl via -o/--output/-O/-out (separate, =value,
- * or attached short form) and path-like positionals for xxd/openssl (#3206).
+ * Destinations from curl/wget/xxd/openssl via -o/--output/-O/-out/--output-dir/-P
+ * (separate, =value, or attached short form) and xxd -r path-like write positionals (#3206).
+ * openssl uses flags only (no positional dests — avoids treating -in paths as writes).
  * O(n) token walk — no nested-quantifier regex on untrusted input.
  */
 function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
@@ -212,17 +233,44 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     }
     const bin = binBareName(tokens[i] as string);
     i++;
+    // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
+    let xxdReverse = false;
     while (i < tokens.length) {
       const raw = tokens[i] as string;
-      if (isDownloaderDecoderBin(raw) && !raw.startsWith("-")) break;
-
       const n = normalizeToken(raw);
+
+      // New bare bin starts another command segment (not pathish ./wget operands).
+      if (
+        !n.startsWith("-") &&
+        !raw.includes("/") &&
+        !raw.includes("\\") &&
+        isDownloaderDecoderBin(raw)
+      ) {
+        break;
+      }
+
+      if (bin === "xxd" && (n === "-r" || n === "--reverse")) {
+        xxdReverse = true;
+        i++;
+        continue;
+      }
+
+      // Skip openssl/xxd input flags + value so -in PATH is not a write dest.
+      if (n === "-in" || n === "--in" || n === "-inform" || n === "--inform") {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-")) {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
 
       // --flag=value (and rare -out=value)
       if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
         const eq = raw.indexOf("=");
         const flag = normalizeToken(raw.slice(0, eq));
-        if (DOWNLOADER_DEST_FLAGS.has(flag)) {
+        if (isDownloaderDestFlag(flag, bin)) {
           dests.push(pathishToken(raw.slice(eq + 1)));
         }
         i++;
@@ -241,10 +289,16 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           i++;
           continue;
         }
+        // wget attached -Pdir
+        if (bin === "wget" && n.startsWith("-p") && n.length > 2 && !n.startsWith("-proxy")) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
       }
 
-      // Separate value: -o PATH / --output PATH / -out PATH
-      if (DOWNLOADER_DEST_FLAGS.has(n)) {
+      // Separate value: -o PATH / --output PATH / -out PATH / --output-dir / -P
+      if (isDownloaderDestFlag(n, bin)) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-")) {
           dests.push(pathishToken(next));
@@ -255,8 +309,8 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         continue;
       }
 
-      // xxd reverse / openssl: path-like positionals (not http(s) URLs).
-      if ((bin === "xxd" || bin === "openssl") && !n.startsWith("-")) {
+      // xxd -r only: path-like write positionals (not http(s) URLs). openssl: flags only.
+      if (bin === "xxd" && xxdReverse && !n.startsWith("-")) {
         const p = pathishToken(raw);
         if (
           (p.includes("/") || p.startsWith(".") || p.includes("\\")) &&
