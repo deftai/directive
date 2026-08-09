@@ -26,6 +26,11 @@ const CONFIDENCE_HEADING_RE = /^#{1,6}\s*Confidence Score:\s*(\d+)\s*\/\s*5\s*$/
  * only in comment body text without formal Changes-Requested. Patterns are
  * applied after code-fence strip; case-insensitive. Composes with
  * minGreptileConfidence (#3095): either signal alone is blocking.
+ *
+ * Matching is scoped to **verdict-bearing regions** (Confidence Score detail /
+ * heading sections, Summary:/Decision: lines) so descriptive overview prose
+ * that names the detector phrases ("adds should-not-merge parsing") does not
+ * false-block a clean review (Greptile residual on PR #3227 / #1004 class).
  */
 const ADVISORY_SHOULD_NOT_MERGE_RES: readonly RegExp[] = [
   /\bnot\s+safe\s+to\s+merge\b/i,
@@ -35,6 +40,13 @@ const ADVISORY_SHOULD_NOT_MERGE_RES: readonly RegExp[] = [
   /\bdo\s+not\s+merge\b/i,
   /\bnot\s+ready\s+to\s+merge\b/i,
   /\bnot\s+ready\s+for\s+merge\b/i,
+];
+
+/** High-signal only — safe as whole-body fallback when no confidence region exists. */
+const ADVISORY_HIGH_SIGNAL_RES: readonly RegExp[] = [
+  /\bnot\s+safe\s+to\s+merge\b/i,
+  /\bshould-not-merge\b/i,
+  /\bsafe\s+to\s+merge\s+once\s+corrected\b/i,
 ];
 
 const NAIVE_INLINE_SHA_RE = /Last reviewed commit:\s*([0-9a-f]{7,40})/;
@@ -69,13 +81,64 @@ export function parseConfidence(body: string): number | null {
 }
 
 /**
+ * Extract verdict-bearing text windows from a bot rolling-summary body (#3225).
+ * Prefers Confidence Score sections and Summary:/Decision: lines over whole-body
+ * Overview tables that may *describe* advisory phrases without issuing them.
+ */
+export function extractAdvisoryVerdictRegions(body: string): string {
+  const text = stripCodeFences(body);
+  const regions: string[] = [];
+
+  // Per-details blocks only — do not span from Overview into Confidence Score.
+  for (const m of text.matchAll(/<details\b[^>]*>[\s\S]*?<\/details>/gi)) {
+    const block = m[0] ?? "";
+    if (/Confidence\s+Score/i.test(block)) {
+      regions.push(block);
+    }
+  }
+
+  for (const m of text.matchAll(
+    /(?:^|\n)#{1,6}\s*Confidence\s+Score\s*:[^\n]*\n([\s\S]*?)(?=\n#{1,6}\s|\n<details\b|\n---\s*$|\n\*?\*?Last reviewed|\z)/gi,
+  )) {
+    regions.push(m[0] ?? "");
+  }
+
+  for (const m of text.matchAll(
+    /(?:^|\n)(?:\*\*)?Confidence\s+Score(?:\*\*)?\s*:\s*\d+\s*\/\s*5[^\n]*\n([\s\S]{0,800})/gi,
+  )) {
+    regions.push(m[0] ?? "");
+  }
+
+  for (const m of text.matchAll(
+    /(?:^|\n)(?:Summary|Decision|Verdict)\s*:\s*([^\n]+(?:\n(?![A-Z][^\n]{0,40}:)[^\n]+)*)/gi,
+  )) {
+    regions.push(m[0] ?? "");
+  }
+
+  return regions.filter((r) => r.trim().length > 0).join("\n\n");
+}
+
+function anyPatternMatches(text: string, patterns: readonly RegExp[]): boolean {
+  return patterns.some((re) => {
+    re.lastIndex = 0;
+    return re.test(text);
+  });
+}
+
+/**
  * True when comment body prose records an advisory should-not-merge / not-safe
  * verdict (#3225). Code-fence regions are stripped first so detector docs do
- * not self-trigger (#1004).
+ * not self-trigger (#1004). Scans verdict-bearing regions when present; falls
+ * back to high-signal whole-body phrases only when no confidence/summary region
+ * is found (fixture / minimal bodies).
  */
 export function hasShouldNotMergeProse(body: string): boolean {
+  const regions = extractAdvisoryVerdictRegions(body);
+  if (regions.length > 0) {
+    return anyPatternMatches(regions, ADVISORY_SHOULD_NOT_MERGE_RES);
+  }
   const text = stripCodeFences(body);
-  return ADVISORY_SHOULD_NOT_MERGE_RES.some((re) => re.test(text));
+  return anyPatternMatches(text, ADVISORY_HIGH_SIGNAL_RES);
 }
 
 /**
@@ -232,6 +295,28 @@ No P0 or P1 issues found via badges.
 Summary: Do not merge until the operator documents residual risk.
 
 Last reviewed commit: [docs: note](https://github.com/deftai/directive/commit/advisory02abcdef12)
+`;
+
+/**
+ * Overview prose names the detector phrase without issuing a verdict (#3225 residual).
+ * Confidence section is clean — must NOT set shouldNotMerge.
+ */
+export const BODY_ADVISORY_DESCRIPTIVE_ONLY = `Greptile review of head advisory03
+
+<details><summary><h3>Greptile Summary</h3></summary>
+
+This PR adds should-not-merge prose detection and Not safe to merge matching to
+merge-ready. Descriptive overview only — no blocking residual on the product path.
+
+</details>
+
+<details open><summary><h3>Confidence Score: 5/5</h3></summary>
+
+No P0 or P1 issues found. The change looks clean and well-tested.
+
+</details>
+
+Last reviewed commit: [feat: detector](https://github.com/deftai/directive/commit/advisory03abcdef12)
 `;
 
 export const BODY_TIER3_COUNT_PROSE_ONLY = `Greptile review of head deadbeef

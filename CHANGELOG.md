@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Advisory reviewer verdicts block mechanical merge-readiness (#3225).** `pr:merge-ready` / `pr:watch` / the shared greptile detector now parse should-not-merge / not-safe-to-merge (and related) prose from bot comment bodies and treat it as a hard block independent of formal Changes-Requested or GitHub Ready-to-merge. Composes with `minGreptileConfidence` (#3095). Review-cycle + swarm merge-path skills state mechanical mergeability is necessary, never sufficient. Closes #3225. Refs #3095, #1282, #1101, #2308.
+- **Advisory reviewer verdicts block mechanical merge-readiness (#3225).** `pr:merge-ready` / `pr:watch` / the shared greptile detector now parse should-not-merge / not-safe-to-merge (and related) prose from bot comment bodies and treat it as a hard block independent of formal Changes-Requested or GitHub Ready-to-merge. Matching is scoped to Confidence Score / Summary / Decision regions so descriptive overview mentions of the detector phrases do not false-block. Composes with `minGreptileConfidence` (#3095). Review-cycle + swarm merge-path skills state mechanical mergeability is necessary, never sufficient. Closes #3225. Refs #3095, #1282, #1101, #2308, #1004.
 
 - **PlanItem effort estimate S/M/L/XL with time anchors (#1581).** Optional `effort` enum on plan items (schema + TypeScript types): S under 2h, M half-day 2-4h, L 1-2 days, XL needs breakdown. Docs in `vbrief/vbrief.md`. `scope:activate` / `vbrief:activate` fail closed while any nested item still has `effort: "XL"`. Build/swarm/refinement skill guidance sizes agents and prompts for estimate. Omitted field still validates. Closes #1581.
 

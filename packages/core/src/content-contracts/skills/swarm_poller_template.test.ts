@@ -5,6 +5,7 @@ import {
   BODY_AC4_MARKDOWN_LINK_CLEAN,
   BODY_AC4_THIRD_CONFIDENCE_FORM,
   BODY_AC4_TRUNCATED,
+  BODY_ADVISORY_DESCRIPTIVE_ONLY,
   BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF,
   BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3,
   BODY_CLEAN,
@@ -95,6 +96,12 @@ describe("test_swarm_poller_template", () => {
     expect(result.has_blocking === true).toBe(true);
     expect(hasShouldNotMergeProse(BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF)).toBe(true);
     expect(parseConfidence(BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF)).toBe(5);
+  });
+  it("tier3_descriptive_overview_should_not_merge_does_not_false_block (#3225)", () => {
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_DESCRIPTIVE_ONLY)).toBe(false);
+    const result = detect(BODY_ADVISORY_DESCRIPTIVE_ONLY);
+    expect(result.has_blocking === false).toBe(true);
+    expect(parseConfidence(BODY_ADVISORY_DESCRIPTIVE_ONLY)).toBe(5);
   });
   it("tier3_count_prose_three_p1_findings_triggers_blocking", () => {
     const result = detect(BODY_TIER3_COUNT_PROSE_ONLY);
