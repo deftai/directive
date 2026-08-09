@@ -227,16 +227,30 @@ export function parseDecisionListArgs(argv: readonly string[]): DecisionListCliA
       if (!/^\d+$/.test(raw.trim())) {
         return { ...out, error: `--issue must be a positive integer, got: ${raw}` };
       }
-      out.issue = Number(raw.trim());
+      const n = Number(raw.trim());
+      if (!Number.isSafeInteger(n) || n <= 0) {
+        return {
+          ...out,
+          error: `--issue must be a safe positive integer (<= ${Number.MAX_SAFE_INTEGER}), got: ${raw}`,
+        };
+      }
+      out.issue = n;
     } else if (arg === "--limit" || arg.startsWith("--limit=")) {
       const raw = arg === "--limit" ? argv[++i] : arg.slice("--limit=".length);
       if (raw === undefined || raw.trim().length === 0 || raw.startsWith("-")) {
         return { ...out, error: "--limit requires a positive integer" };
       }
-      if (!/^\d+$/.test(raw.trim()) || Number(raw.trim()) <= 0) {
+      if (!/^\d+$/.test(raw.trim())) {
         return { ...out, error: `--limit must be a positive integer, got: ${raw}` };
       }
-      out.limit = Number(raw.trim());
+      const n = Number(raw.trim());
+      if (!Number.isSafeInteger(n) || n <= 0) {
+        return {
+          ...out,
+          error: `--limit must be a safe positive integer (<= ${Number.MAX_SAFE_INTEGER}), got: ${raw}`,
+        };
+      }
+      out.limit = n;
     } else if (arg === "--project-root" || arg.startsWith("--project-root=")) {
       if (arg === "--project-root") out.projectRoot = argv[++i];
       else out.projectRoot = arg.slice("--project-root=".length);

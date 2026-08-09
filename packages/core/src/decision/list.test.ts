@@ -79,6 +79,8 @@ describe("parseDecisionListArgs", () => {
     expect(parseDecisionListArgs(["--issue", "abc"]).error).toContain("positive integer");
     expect(parseDecisionListArgs(["--limit", "nope"]).error).toContain("positive integer");
     expect(parseDecisionListArgs(["--issue"]).error).toContain("--issue");
+    expect(parseDecisionListArgs(["--issue", "9007199254740992"]).error).toContain("safe");
+    expect(parseDecisionListArgs(["--limit", "0"]).error).toContain("safe");
   });
 });
 

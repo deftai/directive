@@ -261,11 +261,13 @@ export function runDecisionWrite(options: DecisionWriteInput): DecisionWriteResu
       2,
     )}\n`;
 
+    // Prefer exclusive create unless --force. Concurrent writers that both
+    // pass the pre-check still fail closed via create/EXISTS instead of replace.
     containedWrite({
       root: projectRoot,
       target: absPath,
       data,
-      mode: existsSync(absPath) ? "replace" : "create",
+      mode: options.force === true ? "replace" : "create",
     });
 
     let scopePath: string | null = null;
