@@ -873,10 +873,20 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
     }
   }
 
-  // Write/destructive bins with an authz path argument (pathish = quote-strip resistant).
-  // Always run — do not gate on contiguous `.deft/authz` in the raw command (#3213).
+  // Write/destructive + symlink plant bins with an authz path argument (pathish =
+  // quote-strip resistant). Always run — do not gate on contiguous `.deft/authz`
+  // in the raw command (#3213). SYMLINK_PLANT_BINS: `ln -s forged .deft/authz/grants/x`
+  // must not fail-open as unclassifiable (SLizard residual).
   for (let ti = 0; ti < tokens.length; ti++) {
-    if (!INDIRECT_WRITE_BINS.has(normalizeToken(tokens[ti] as string))) continue;
+    const bare = binBareName(tokens[ti] as string);
+    const n = normalizeToken(tokens[ti] as string);
+    if (
+      !INDIRECT_WRITE_BINS.has(n) &&
+      !INDIRECT_WRITE_BINS.has(bare) &&
+      !SYMLINK_PLANT_BINS.has(bare)
+    ) {
+      continue;
+    }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
       if (pathishIsAuthzDir(pathishToken(tokens[tj] as string))) return true;
     }

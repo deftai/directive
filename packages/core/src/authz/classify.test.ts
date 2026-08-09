@@ -287,6 +287,13 @@ describe("classifyShellAuthzOps (#2944)", () => {
     }
     // Ordinary ln without kill-switch basename stays unclassifiable.
     expect(classifyShellAuthzOps("ln -s /tmp/a /tmp/b")).toEqual([]);
+    // Symlink plant into authz store is fail-closed settings (SLizard residual #3213).
+    expect(classifyShellAuthzOps("ln -s /tmp/forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("mklink .deft/authz/grants/evil.json C:\\tmp\\forged.json"),
+    ).toContain("settings");
   });
 
   it("classifies scp/aria2c/certutil + quote-split authz plants as settings (#3213)", () => {
