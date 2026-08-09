@@ -169,6 +169,51 @@ tasks:
         "includes:\n  deft:\n    taskfile: '.deft/core/Taskfile.yml'\n",
       ),
     ).toBe(".deft/core/Taskfile.yml");
+    expect(
+      resolveCanonicalDeftTaskfileInclude("includes:\n  deft: ./.deft/core/Taskfile.yml\n"),
+    ).toBe("./.deft/core/Taskfile.yml");
+  });
+
+  it("does not treat path text outside includes as a canonical include (Greptile P1 #3218)", () => {
+    // Comment / docs / cmds must not activate include-trust exemption.
+    const commentOnly = `version: '3'
+# taskfile: ./.deft/core/Taskfile.yml
+tasks:
+  check:
+    deps:
+      - verify:branch
+`;
+    expect(resolveCanonicalDeftTaskfileInclude(commentOnly)).toBe(null);
+
+    const cmdOnly = `version: '3'
+tasks:
+  docs:
+    cmds:
+      - echo "taskfile: ./.deft/core/Taskfile.yml"
+`;
+    expect(resolveCanonicalDeftTaskfileInclude(cmdOnly)).toBe(null);
+
+    const varOnly = `version: '3'
+vars:
+  NOTE: "see taskfile: ./.deft/core/Taskfile.yml"
+tasks:
+  check:
+    deps:
+      - verify:branch
+`;
+    expect(resolveCanonicalDeftTaskfileInclude(varOnly)).toBe(null);
+
+    // Path text present but not under includes → no trust; incomplete check still fails.
+    const result = evaluateConsumerCheckContract("/tmp/spoof", {
+      rootTaskfileText: commentOnly,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      includedFrameworkTaskfileText: FRAMEWORK_INCLUDED_TASKFILE,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
   });
 
   it("frameworkTaskfileComposesRequiredGates requires verify + check deps (#3218)", () => {

@@ -66,21 +66,70 @@ export interface ConsumerCheckContractOptions {
 /**
  * Relative path forms accepted for the deft-install canonical Taskfile include
  * (init-deposit `MINIMAL_TASKFILE` / `CANONICAL_TASKFILE_INCLUDE`).
+ * Use only as a path-value matcher — never as a whole-file text search (Greptile P1 #3218).
  */
-export const CANONICAL_DEFT_TASKFILE_INCLUDE_RE =
-  /taskfile:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?/i;
+export const CANONICAL_DEFT_TASKFILE_PATH_RE = /^(?:\.\.?\/)?\.deft\/core\/Taskfile\.yml$/i;
+
+/** `taskfile: ./.deft/core/Taskfile.yml` under an includes: child (object form). */
+const INCLUDE_TASKFILE_KEY_RE =
+  /^taskfile:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
+
+/** Short form `name: ./.deft/core/Taskfile.yml` under includes:. */
+const INCLUDE_SHORT_FORM_RE =
+  /^[\w.-]+:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
+
+/** @deprecated Prefer path/line parsers; kept for export stability. */
+export const CANONICAL_DEFT_TASKFILE_INCLUDE_RE = INCLUDE_TASKFILE_KEY_RE;
 
 /**
  * Return the relative path of the canonical `.deft/core/Taskfile.yml` include when
- * present in a consumer root Taskfile; otherwise null.
+ * present as an **active** go-task `includes:` entry; otherwise null.
  *
  * Greenfield `directive init` deposits an include-only Taskfile (#3218); composition
  * lives in the included framework graph, not in root `check` deps.
+ *
+ * Greptile P1 (#3218): must not treat path text in comments, cmds, vars, or non-include
+ * keys as an include — only lines inside a top-level `includes:` block count.
  */
 export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): string | null {
-  const m = CANONICAL_DEFT_TASKFILE_INCLUDE_RE.exec(rootTaskfileText);
-  if (m?.[1] === undefined) return null;
-  return m[1].replace(/\\/g, "/");
+  const lines = rootTaskfileText.replace(/\r\n/g, "\n").split("\n");
+  let inIncludes = false;
+  let includesIndent = 0;
+
+  for (const raw of lines) {
+    const stripped = raw.trim();
+    if (!stripped || stripped.startsWith("#")) continue;
+    // Full-line list comment: - # ...
+    if (/^-\s+#/.test(stripped)) continue;
+    const indent = raw.length - raw.trimStart().length;
+
+    if (!inIncludes) {
+      // Top-level includes: only (indent 0 or document-level).
+      if (/^includes\s*:/.test(stripped) && indent <= 1) {
+        inIncludes = true;
+        includesIndent = indent;
+      }
+      continue;
+    }
+
+    // Left the includes block: another key at the same or shallower indent.
+    if (indent <= includesIndent && /^[\w.-]+\s*:/.test(stripped)) {
+      if (/^includes\s*:/.test(stripped)) {
+        includesIndent = indent;
+        continue;
+      }
+      inIncludes = false;
+      continue;
+    }
+
+    if (indent <= includesIndent) continue;
+
+    const m = INCLUDE_TASKFILE_KEY_RE.exec(stripped) ?? INCLUDE_SHORT_FORM_RE.exec(stripped);
+    if (m?.[1] !== undefined && CANONICAL_DEFT_TASKFILE_PATH_RE.test(m[1])) {
+      return m[1].replace(/\\/g, "/");
+    }
+  }
+  return null;
 }
 
 /**
