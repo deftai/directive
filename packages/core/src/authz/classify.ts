@@ -411,13 +411,16 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // scp / certutil: track last non-flag pathish as dest within this segment only.
-      // Trailing `;`/`&`/`|` glued to a path: strip with O(n) walk (no poly-regex; CodeQL).
+      // Trailing `;`/`&`/`|` glued to a path: strip with O(n) walk (no poly-regex; CodeQL)
+      // and **end the segment** so later tokens (`echo ok`) cannot replace the dest.
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
         let end = raw.length;
+        let gluedOp = false;
         while (end > 0) {
           const ch = raw[end - 1] as string;
           if (ch === ";" || ch === "&" || ch === "|") {
             end--;
+            gluedOp = true;
             continue;
           }
           break;
@@ -426,6 +429,10 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         const p = pathishToken(cleaned);
         if (p.length > 0) {
           lastPositionalPath = p;
+        }
+        if (gluedOp) {
+          i++;
+          break;
         }
       }
       i++;

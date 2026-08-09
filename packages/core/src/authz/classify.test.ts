@@ -323,6 +323,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json\necho ok"),
     ).toContain("settings");
+    // Glued operator (no space): strip op and end segment (Greptile residual).
+    expect(
+      classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json;echo ok"),
+    ).toContain("settings");
     expect(
       classifyShellAuthzOps("scp -o ProxyCommand=none host:g.json .deft/authz/grants/evil.json"),
     ).toContain("settings");
