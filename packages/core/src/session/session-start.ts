@@ -712,14 +712,42 @@ function runSessionRearm(
 
   const priorQuick = eligibility.state.quickSteps;
   const priorTriage = priorQuick.triage_welcome ?? ritualStep({ ok: true, ts: instant });
-  const priorTools =
-    priorQuick.verify_tools ??
-    ritualStep({
-      ok: true,
+  // Greptile P1: legacy ritual-state without verify_tools must re-run tools —
+  // never invent ok:true. When prior exists, preserve without re-run (#2992).
+  let toolsStep: Record<string, unknown>;
+  if (priorQuick.verify_tools && typeof priorQuick.verify_tools === "object") {
+    const priorTools = priorQuick.verify_tools as Record<string, unknown>;
+    toolsStep = {
+      ...priorTools,
+      ts: ritualStep({ ok: priorTools.ok === true, ts: instant }).ts,
+      message:
+        typeof priorTools.message === "string"
+          ? priorTools.message
+          : "verify:tools preserved on re-arm",
+    };
+  } else {
+    const verifyToolsFn =
+      options.verifyTools ??
+      ((output) => {
+        const toolLines: string[] = [];
+        const result = verifyRequiredTools({ outputFn: (line) => toolLines.push(line) });
+        for (const line of toolLines) {
+          output(line);
+        }
+        return { exitCode: result.exitCode };
+      });
+    const toolsOutcome = verifyToolsFn((line) => lines.push(line));
+    const toolsOk = toolsOutcome.exitCode === 0;
+    toolsStep = ritualStep({
+      ok: toolsOk,
       ts: instant,
-      message: "verify:tools preserved on re-arm (not re-run)",
-      exitCode: 0,
+      message: toolsOk
+        ? "verify:tools re-run on re-arm (legacy ritual lacked tools step)"
+        : `verify:tools failed on re-arm (exit ${toolsOutcome.exitCode})`,
+      exitCode: toolsOutcome.exitCode,
+      durationMs: 0,
     });
+  }
   const policyOk = policyResult.error === null || policyResult.source === "default-fail-closed";
   const quickSteps: Record<string, Record<string, unknown>> = {
     alignment: ritualStep({
@@ -735,15 +763,7 @@ function runSessionRearm(
       exitCode: policyOk ? 0 : 2,
       durationMs: 0,
     }),
-    // Preserve prior tools outcome; re-arm skips re-running verify:tools (#2992).
-    verify_tools: {
-      ...priorTools,
-      ts: ritualStep({ ok: priorTools.ok === true, ts: instant }).ts,
-      message:
-        typeof priorTools.message === "string"
-          ? priorTools.message
-          : "verify:tools preserved on re-arm",
-    },
+    verify_tools: toolsStep,
     // Preserve prior triage outcome; do not re-run welcome / self-heal on re-arm.
     triage_welcome: {
       ...priorTriage,
