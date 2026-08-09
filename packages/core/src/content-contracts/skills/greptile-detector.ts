@@ -33,7 +33,8 @@ const CONFIDENCE_HEADING_RE = /^#{1,6}\s*Confidence Score:\s*(\d+)\s*\/\s*5\s*$/
  * false-block a clean review (Greptile residual on PR #3227 / #1004 class).
  */
 const ADVISORY_SHOULD_NOT_MERGE_RES: readonly RegExp[] = [
-  /\bnot\s+safe\s+to\s+merge\b/i,
+  // "not safe to merge" | "not yet safe to merge"
+  /\bnot\s+(?:yet\s+)?safe\s+to\s+merge\b/i,
   // should-not-merge | should not merge | should–not–merge (hyphen optional each side)
   /\bshould\s*[-–—]?\s*not\s*[-–—]?\s*merge\b/i,
   /\bsafe\s+to\s+merge\s+once\s+corrected\b/i,
@@ -42,9 +43,14 @@ const ADVISORY_SHOULD_NOT_MERGE_RES: readonly RegExp[] = [
   /\bnot\s+ready\s+for\s+merge\b/i,
 ];
 
-/** High-signal only — safe as whole-body fallback when no confidence region exists. */
+/**
+ * High-signal phrases scanned outside Overview tables after fence strip.
+ * Soft phrases (do not merge / should not merge with spaces) stay region-only
+ * so explanatory Confidence residual prose naming the detector does not thrash
+ * indefinitely (#2881 / PR #3227 conf 4 residual).
+ */
 const ADVISORY_HIGH_SIGNAL_RES: readonly RegExp[] = [
-  /\bnot\s+safe\s+to\s+merge\b/i,
+  /\bnot\s+(?:yet\s+)?safe\s+to\s+merge\b/i,
   /\bshould-not-merge\b/i,
   /\bsafe\s+to\s+merge\s+once\s+corrected\b/i,
 ];
@@ -126,19 +132,43 @@ function anyPatternMatches(text: string, patterns: readonly RegExp[]): boolean {
 }
 
 /**
+ * Strip Greptile Overview / Important-Files tables that describe detector work
+ * without issuing a verdict (#3225 / #1004 residual).
+ */
+function stripDescriptiveOverviewSurfaces(text: string): string {
+  return text
+    .replace(/<details\b[^>]*>[\s\S]*?Greptile Summary[\s\S]*?<\/details>/gi, " ")
+    .replace(
+      /\|[^\n]*Filename[^\n]*Overview[^\n]*\|[\s\S]*?(?=\n<details\b|\n#{1,6}\s|\n\*?\*?Last reviewed|\z)/gi,
+      " ",
+    );
+}
+
+/**
  * True when comment body prose records an advisory should-not-merge / not-safe
  * verdict (#3225). Code-fence regions are stripped first so detector docs do
- * not self-trigger (#1004). Scans verdict-bearing regions when present; falls
- * back to high-signal whole-body phrases only when no confidence/summary region
- * is found (fixture / minimal bodies).
+ * not self-trigger (#1004).
+ *
+ * Hybrid scan (#3225 residual PR #3227):
+ * 1. Soft + high-signal phrases in Confidence / Summary / Decision regions
+ * 2. High-signal phrases on non-overview body (catches standalone warnings
+ *    outside a clean Confidence section without Overview self-hits)
+ * 3. High-signal whole-body fallback when no verdict region exists (fixtures)
  */
 export function hasShouldNotMergeProse(body: string): boolean {
-  const regions = extractAdvisoryVerdictRegions(body);
-  if (regions.length > 0) {
-    return anyPatternMatches(regions, ADVISORY_SHOULD_NOT_MERGE_RES);
-  }
   const text = stripCodeFences(body);
-  return anyPatternMatches(text, ADVISORY_HIGH_SIGNAL_RES);
+  const regions = extractAdvisoryVerdictRegions(body);
+  if (regions.length > 0 && anyPatternMatches(regions, ADVISORY_SHOULD_NOT_MERGE_RES)) {
+    return true;
+  }
+  const nonOverview = stripDescriptiveOverviewSurfaces(text);
+  if (anyPatternMatches(nonOverview, ADVISORY_HIGH_SIGNAL_RES)) {
+    return true;
+  }
+  if (regions.length === 0) {
+    return anyPatternMatches(text, ADVISORY_HIGH_SIGNAL_RES);
+  }
+  return false;
 }
 
 /**
@@ -317,6 +347,20 @@ No P0 or P1 issues found. The change looks clean and well-tested.
 </details>
 
 Last reviewed commit: [feat: detector](https://github.com/deftai/directive/commit/advisory03abcdef12)
+`;
+
+/** Standalone high-signal warning outside Confidence section must still block. */
+export const BODY_ADVISORY_STANDALONE_NOT_SAFE = `Greptile review of head advisory04
+
+<details open><summary><h3>Confidence Score: 5/5</h3></summary>
+
+Looks solid from a findings perspective.
+
+</details>
+
+Not safe to merge until the operator confirms residual risk handling.
+
+Last reviewed commit: [feat: residual](https://github.com/deftai/directive/commit/advisory04abcdef12)
 `;
 
 export const BODY_TIER3_COUNT_PROSE_ONLY = `Greptile review of head deadbeef

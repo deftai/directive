@@ -8,6 +8,7 @@ import {
   BODY_ADVISORY_DESCRIPTIVE_ONLY,
   BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF,
   BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3,
+  BODY_ADVISORY_STANDALONE_NOT_SAFE,
   BODY_CLEAN,
   BODY_CONFIDENCE_HEADING_ONLY,
   BODY_ESCAPED_BRACKET_LINK_TEXT,
@@ -102,6 +103,10 @@ describe("test_swarm_poller_template", () => {
     const result = detect(BODY_ADVISORY_DESCRIPTIVE_ONLY);
     expect(result.has_blocking === false).toBe(true);
     expect(parseConfidence(BODY_ADVISORY_DESCRIPTIVE_ONLY)).toBe(5);
+  });
+  it("tier3_standalone_not_safe_outside_confidence_still_blocks (#3225)", () => {
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_STANDALONE_NOT_SAFE)).toBe(true);
+    expect(detect(BODY_ADVISORY_STANDALONE_NOT_SAFE).has_blocking === true).toBe(true);
   });
   it("tier3_count_prose_three_p1_findings_triggers_blocking", () => {
     const result = detect(BODY_TIER3_COUNT_PROSE_ONLY);
