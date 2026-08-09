@@ -271,16 +271,18 @@ function isShellSegmentBreak(token: string): boolean {
 }
 
 /**
- * First unquoted shell-list operator (`;` `&` `|`) in a token, or -1.
- * Quoted operators (e.g. `'file;name'`) are literal data and must not end scp segments (#3213).
- * O(n); escapes inside quotes skip the next char.
+ * First unquoted, unescaped shell-list operator (`;` `&` `|`) in a token, or -1.
+ * Quoted operators (e.g. `'file;name'`) and escaped unquoted ops (e.g. `path\;file`)
+ * are literal data and must not end scp segments (#3213 Greptile residual).
+ * O(n). Unquoted / double-quoted `\` escapes the next char; single-quoted `\` is literal.
  */
 function firstUnquotedShellOpIndex(raw: string): number {
   let inSingle = false;
   let inDouble = false;
   for (let k = 0; k < raw.length; k++) {
     const ch = raw[k] as string;
-    if (ch === "\\" && k + 1 < raw.length && (inSingle || inDouble)) {
+    // Outside single quotes, backslash escapes the next character (POSIX-ish).
+    if (ch === "\\" && k + 1 < raw.length && !inSingle) {
       k++;
       continue;
     }
@@ -329,8 +331,10 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
 
-      // Compound lists / pipelines end this bin's segment (Greptile P1 residual).
-      if (isShellSegmentBreak(raw) || isShellSegmentBreak(n)) {
+      // Bare shell ops end this bin's segment. Do NOT use normalizeToken here —
+      // quoted `';'` becomes `;` after strip and would cut before the real authz dest
+      // (Greptile P1 residual #3213). Glued ops are handled by firstUnquotedShellOpIndex.
+      if (isShellSegmentBreak(raw)) {
         break;
       }
 
@@ -442,13 +446,9 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // scp / certutil: pathish operands (quote-aware glued-op cut).
+      // certutil under UAT: any `.deft/authz` / kill-switch pathish is fail-closed settings
+      // (read vs write thrash deferred — prefer deny over dest-parser perfection; #3213).
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
-        // certutil: skip pure-read subcommands (no dest collect) — `-dump`/`-verify`/…
-        // Write-ish: -urlcache, -decode, -encode, -f (fetch), -addstore, …
-        if (bin === "certutil") {
-          // Handled via pathish collect only when write-shaped flags appear later in segment;
-          // pathish still recorded; hasAuthzDirShellWrite needs dest under .deft/authz.
-        }
         const cut = firstUnquotedShellOpIndex(raw);
         const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
         const p = pathishToken(cleaned);

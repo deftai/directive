@@ -343,6 +343,26 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("scp .deft/authz/state.json user@host:/tmp/backup.json"),
     ).toContain("settings");
+    // Escaped unquoted op mid-source must not cut before protected dest (Greptile P1 #3213).
+    expect(
+      classifyShellAuthzOps("scp user@host:path\\;file .deft/authz/grants/evil.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("scp user@host:path\\&file .deft/authz/grants/evil.json"),
+    ).toContain("settings");
+    // Quoted bare op token is literal data — must not end segment before authz dest.
+    expect(classifyShellAuthzOps("scp host:g.json ';' .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps('scp host:g.json ";" .deft/authz/grants/evil.json')).toContain(
+      "settings",
+    );
+    // certutil + .deft/authz pathish is fail-closed settings even on read-ish subcommands
+    // (UAT prefer deny; no dest-parser perfection thrash — #3213 operator design).
+    expect(classifyShellAuthzOps("certutil -hashfile .deft/authz/state.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("certutil -dump .deft/authz/grants/x.json")).toContain("settings");
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
