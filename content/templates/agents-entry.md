@@ -117,6 +117,10 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Development Process
 
+### Gate integrity (#3156)
+
+! When a quality gate fails, fix the product/process/test under test — ⊗ clear red by editing the gate definition, verifier, reward, required check, coverage floor, or policy flag solely to go green. Deliberate gate changes go through issue/PR + review. Depth: `.deft/core/docs/gate-integrity.md` (refine-internal SkillOpt stays on #2436).
+
 ### Implementation Intent Gate (#810 / #1193)
 
 ! `deft xbrief:preflight -- <path>` on `xbrief/active/` before code-writing; action-verb (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) (#810). Slash-command sessions inherit only that verb (`DEFT_SESSION_SLASH_VERB`); non-implement verbs (`/github-issue`, `/triage`, …) MUST NOT authorize implement/push/PR/merge/deploy (#1193) — `commands.md` / `contracts/intent-ceiling.md`.

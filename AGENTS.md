@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=8d82d291bc34 refreshed=2026-08-09T20:22:31Z session=026df50fe21c -->
+<!-- deft:managed-section v3 sha=0a2dfe20d62b refreshed=2026-08-09T23:50:03Z session=aa2fafa12b70 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -278,6 +278,10 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Detect OS/shell; use portable syntax or explicit shell (#2568). `.deft/core/scm/github.md` (#2157/#2369): PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
 
 ## Development Process
+
+### Gate integrity (#3156)
+
+! When a quality gate fails, fix the product/process/test under test — ⊗ clear red by editing the gate definition, verifier, reward, required check, coverage floor, or policy flag solely to go green. Deliberate gate changes go through issue/PR + review. Depth: `.deft/core/docs/gate-integrity.md` (refine-internal SkillOpt stays on #2436).
 
 ### Implementation Intent Gate (#810 / #1193)
 
