@@ -30,6 +30,25 @@ Exposure surfaces for Directive's own swarm mode: a swarm cohort where multiple 
 
 Cross-references: [`../meta/security.md`](../meta/security.md) `### 5. Systemic (Compositional Fragment)` (trap-class mitigation pointer), [`../main.md`](../../main.md) `## Agent Trap Defenses (#480)` (framework-layer instruction-hierarchy rule that forbids fragment aggregation), [`../vbrief/vbrief.md`](../vbrief/vbrief.md) `### TrustLevel (#480)` (per-fragment provenance the merge step inspects), [`../patterns/llm-app.md`](../patterns/llm-app.md) `## Multi-agent and orchestration` (application-layer analogue).
 
+## Communication Topology (#3155)
+
+Agent-to-agent messaging follows a **nuclear-family** graph: each agent may exchange orchestration messages only with its **parent**, its **siblings** (same parent/cohort), and its **children**. The Prime Agent practice is shortest useful graph, not agents everywhere.
+
+This is a security and chaos bound for Directive swarm and any local A2A surfaces that inherit swarm doctrine — not the full outbound A2A client protocol (#2705). Retained addressable children (#3158) make this bound *more* important: long-lived children MUST still only message within the nuclear family.
+
+- ! Orchestrators and workers MUST limit agent-to-agent messaging to parent, sibling (same cohort / same parent), and child edges only
+- ! When designing dispatch graphs (solo worker, cohort, nested sub-agents), MUST adopt the shortest useful nuclear-family graph that covers the work — do not grow edges "just in case"
+- ! Cross-cohort or cross-session coordination MUST go through a shared parent (or durable shared artifacts the parent owns: issues, PRs, xBRIEF, decision log) — not peer mesh links between unrelated sessions
+- ! Untrusted content carried on allowed nuclear-family edges remains subject to `## Compositional Fragment Defense (#480)` — topology bounds *who* may talk; fragment defense bounds *how* aggregated content is trusted
+- ~ Prefer parent-mediated fan-in/fan-out over sibling side-channels when either would work; sibling messages are for cohort coordination, not a substitute for parent authority
+- ⊗ Open-mesh agent-to-agent messaging across arbitrary sessions, cohorts, or unrelated agent IDs ("agents everywhere")
+- ⊗ Treat retained / re-addressable children (#3158) as license to mesh outside the nuclear family
+- ⊗ Implement remote open-mesh A2A product mode as default swarm topology; outbound A2A client posture and wire protocol remain #2705 / #2706 / #2707
+
+**Security rationale:** each extra A2A edge multiplies confused-deputy and compositional-fragment surface (untrusted peer content entering another agent context). Bounding the graph to parent/sibling/child caps that multiplier. Detail: [`../meta/security.md`](../meta/security.md) `## Unbounded A2A graphs (#3155)`, ADR [`../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md`](../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md).
+
+**Cross-links:** parent epic [#3179](https://github.com/deftai/directive/issues/3179) (bounded multi-agent graphs); pair [#3158](https://github.com/deftai/directive/issues/3158) (retained children — document only here); A2A client posture [#2705](https://github.com/deftai/directive/issues/2705) (this topology is a decision input; full client ADR remaining work stays on #2705).
+
 ## Communication Protocols
 
 **Explicit Context:**
@@ -231,6 +250,7 @@ new_state = state.model_copy(deep=True, update={'status': 'completed'})
 
 ## Anti-Patterns
 
+- ⊗ Open-mesh agent messaging across cohorts or sessions (violates nuclear-family topology #3155)
 - ⊗ Assuming previous agent's context
 - ⊗ Modifying files without declaring scope
 - ⊗ Committing without task ID reference
@@ -298,3 +318,5 @@ task check
 - [git.md](../scm/git.md) - Commit conventions, branch strategy
 - [taskfile.md](../tools/taskfile.md) - Build and test automation
 - [testing.md](../coding/testing.md) - Testing requirements
+- [meta/security.md](../meta/security.md) - Agent trap taxonomy; unbounded A2A graph surface (#3155)
+- [ADR-003 nuclear-family topology](../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md) - Accepted bounded-graph posture; #2705 client ADR remainder deferred
