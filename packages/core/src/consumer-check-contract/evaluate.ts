@@ -50,6 +50,81 @@ export interface ConsumerCheckContractOptions {
   /** When true, missing CI references warn only (default true for migration). */
   readonly ciWarnOnly?: boolean;
   readonly enforce?: boolean;
+  /**
+   * Inject included framework Taskfile text (canonical `.deft/core/Taskfile.yml`).
+   * When undefined, resolve from disk via {@link resolveCanonicalDeftTaskfileInclude}.
+   * #3218 greenfield include-only consumers.
+   */
+  readonly includedFrameworkTaskfileText?: string | null;
+  /**
+   * Inject included framework `tasks/verify.yml` text next to the canonical include.
+   * When undefined, resolve from disk beside the included Taskfile.
+   */
+  readonly includedVerifyTaskfileText?: string | null;
+}
+
+/**
+ * Relative path forms accepted for the deft-install canonical Taskfile include
+ * (init-deposit `MINIMAL_TASKFILE` / `CANONICAL_TASKFILE_INCLUDE`).
+ */
+export const CANONICAL_DEFT_TASKFILE_INCLUDE_RE =
+  /taskfile:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?/i;
+
+/**
+ * Return the relative path of the canonical `.deft/core/Taskfile.yml` include when
+ * present in a consumer root Taskfile; otherwise null.
+ *
+ * Greenfield `directive init` deposits an include-only Taskfile (#3218); composition
+ * lives in the included framework graph, not in root `check` deps.
+ */
+export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): string | null {
+  const m = CANONICAL_DEFT_TASKFILE_INCLUDE_RE.exec(rootTaskfileText);
+  if (m?.[1] === undefined) return null;
+  return m[1].replace(/\\/g, "/");
+}
+
+/**
+ * True when a framework (included) Taskfile composes every required gate via
+ * `check` / `check:consumer` / `check:framework-source` deps or an orchestrator body,
+ * and `tasks/verify.yml` defines the local task keys.
+ */
+export function frameworkTaskfileComposesRequiredGates(
+  frameworkTaskfileText: string,
+  verifyTaskfileText: string | null,
+  required: readonly string[] = REQUIRED_CONSUMER_ENFORCEMENT_GATES,
+): boolean {
+  if (verifyTaskfileText === null || frameworkTaskfileText.trim().length === 0) {
+    return false;
+  }
+  for (const gateId of required) {
+    if (!gateId.startsWith("verify:")) continue;
+    if (!taskDefinedInTaskfileYaml(verifyTaskfileText, gateId.slice("verify:".length))) {
+      return false;
+    }
+  }
+
+  const checkTargets = ["check", "check:consumer", "check:framework-source"] as const;
+  for (const target of checkTargets) {
+    const deps = extractCheckDeps(frameworkTaskfileText, target);
+    const body = extractTaskBody(frameworkTaskfileText, target);
+    const defined = deps.length > 0 || body.trim().length > 0;
+    if (!defined) continue;
+
+    if (taskBodyInvokesCheckOrchestrator(body)) {
+      return true;
+    }
+
+    const allListed = required.every((gateId) => {
+      for (const d of deps) {
+        const name = d.trim();
+        if (name === gateId) return true;
+        if (name === `task ${gateId}` || name === `task:${gateId}`) return true;
+      }
+      return false;
+    });
+    if (allListed) return true;
+  }
+  return false;
 }
 
 function readText(path: string): string | null {
@@ -627,12 +702,52 @@ export function evaluateConsumerCheckContract(
     }
   }
 
+  // Include-only greenfield (#3218): root Taskfile from `directive init` only wires
+  // `includes.deft → ./.deft/core/Taskfile.yml`. Composition lives in the included
+  // framework Taskfile + tasks/verify.yml. Trust that graph when no local check
+  // aggregates are defined. A partial local check aggregate still fails closed —
+  // the include must not conceal incomplete root deps.
+  let includeComposes = false;
+  const includeRel = resolveCanonicalDeftTaskfileInclude(rootTaskfile);
+  if (includeRel !== null) {
+    let includedTf: string | null;
+    if (options.includedFrameworkTaskfileText !== undefined) {
+      includedTf = options.includedFrameworkTaskfileText;
+    } else {
+      const absInclude = join(root, includeRel.replace(/^\.\//, ""));
+      includedTf = readText(absInclude);
+    }
+
+    let includedVerify: string | null;
+    if (options.includedVerifyTaskfileText !== undefined) {
+      includedVerify = options.includedVerifyTaskfileText;
+    } else if (includedTf !== null) {
+      const includeDir = join(
+        root,
+        includeRel.replace(/^\.\//, "").replace(/[/\\]Taskfile\.yml$/i, ""),
+      );
+      includedVerify = readText(join(includeDir, "tasks", "verify.yml"));
+    } else {
+      includedVerify = null;
+    }
+
+    if (includedTf !== null) {
+      includeComposes = frameworkTaskfileComposesRequiredGates(
+        includedTf,
+        includedVerify,
+        required,
+      );
+    }
+  }
+
   // No check aggregates defined at all — still a composition gap when enforce
-  // (unless trust via whole-file orchestrator is impossible without a body).
+  // (unless trust via whole-file orchestrator, or canonical deft include composition).
   if (!anyAggregateDefined) {
-    // Preserve prior behavior for empty/missing check tasks: fail each required gate.
     const invokesAny = taskfileInvokesCheckOrchestrator(rootTaskfile);
-    if (!(invokesAny && verifyDefinesRequired)) {
+    if (includeComposes || (invokesAny && verifyDefinesRequired)) {
+      // Include-only greenfield or root orchestrator body — clean for check-task.
+    } else {
+      // Preserve prior behavior for empty/missing check tasks: fail each required gate.
       for (const gateId of required) {
         findings.push({
           gateId,

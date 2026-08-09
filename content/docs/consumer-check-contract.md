@@ -16,11 +16,34 @@ A consumer could omit Directive enforcement gates from its `check` task and CI w
 
 It fails with a concrete repair path when definitions or explicit check deps omit them. CI workflows that neither invoke the gates nor a composing entrypoint (`task check` / `deft check`) produce **warnings** by default (migration).
 
+### Greenfield include-only Taskfile (#3218)
+
+After `directive init`, the consumer root `Taskfile.yml` is often **include-only**:
+
+```yaml
+includes:
+  deft:
+    taskfile: ./.deft/core/Taskfile.yml
+    optional: true
+```
+
+Operators run `task deft:check` (namespaced include). Composition lives in the **included** framework `Taskfile.yml` + `.deft/core/tasks/verify.yml`, not in root `check` deps.
+
+`verify:consumer-check-contract` **trusts that included graph** when:
+
+1. The root Taskfile declares the canonical `.deft/core/Taskfile.yml` include, and
+2. No local `check` / `check:consumer` / `check:framework-source` aggregate is defined at the root, and
+3. The included framework Taskfile defines the required gates in `tasks/verify.yml` and composes them (deps or check orchestrator body).
+
+A **partial local** root check aggregate still fails closed — the include must not conceal incomplete root deps.
+
+Root cause of red `greenfield-python-free-smoke` after #3145: the gate only inspected the root Taskfile, treated include-only greenfield as “no check composition,” and hard-failed (`exit 201` via #3188). That was a **gate false positive** for the intentional deposit shape, not a missing deposit wiring bug.
+
 ## Repair path
 
-1. Restore deposit Taskfiles: `deft update` (includes `tasks/verify.yml`)
-2. Ensure `check:consumer` / `check:framework-source` deps list the three gates (framework source already ships this wiring)
-3. Prefer CI that runs `task check` or `deft check` rather than a partial custom graph
+1. Restore deposit Taskfiles: `deft update` (includes `tasks/verify.yml` under `.deft/core/`)
+2. Ensure `check:consumer` / `check:framework-source` deps list the three gates (framework source already ships this wiring), **or** keep the include-only greenfield shape so the gate follows the canonical include
+3. Prefer CI that runs `task check` / `task deft:check` / `deft check` rather than a partial custom graph (installer-only workflows such as `deft-core-guard` stay warn-only for CI composition)
 
 ## Relation to #3070
 

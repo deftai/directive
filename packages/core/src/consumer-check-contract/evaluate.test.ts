@@ -3,11 +3,38 @@ import {
   evaluateConsumerCheckContract,
   extractCheckDeps,
   extractWorkflowRunCommands,
+  frameworkTaskfileComposesRequiredGates,
   isPureAssignmentLine,
   REQUIRED_CONSUMER_ENFORCEMENT_GATES,
+  resolveCanonicalDeftTaskfileInclude,
   runCommandIsFullCheck,
   textReferencesGate,
 } from "./evaluate.js";
+
+/** Greenfield `directive init` shape (packages/core init-deposit MINIMAL_TASKFILE). */
+const MINIMAL_GREENFIELD_ROOT = `version: '3'
+
+includes:
+  deft:
+    taskfile: ./.deft/core/Taskfile.yml
+    optional: true
+`;
+
+/** Framework-shaped check:consumer + check orchestrator (subset sufficient for #3218). */
+const FRAMEWORK_INCLUDED_TASKFILE = `
+version: '3'
+tasks:
+  check:
+    cmds:
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}"'
+  check:consumer:
+    deps:
+      - verify:test-boundary
+      - verify:scope-provenance
+      - verify:consumer-check-contract
+`;
 
 const VERIFY_YML_COMPLETE = `
 version: '3'
@@ -128,6 +155,113 @@ tasks:
     });
     expect(result.exitCode).toBe(0);
     expect(result.findings).toHaveLength(0);
+  });
+
+  it("resolves canonical deft Taskfile include path (#3218)", () => {
+    expect(resolveCanonicalDeftTaskfileInclude(MINIMAL_GREENFIELD_ROOT)).toBe(
+      "./.deft/core/Taskfile.yml",
+    );
+    expect(
+      resolveCanonicalDeftTaskfileInclude("version: '3'\ntasks:\n  check:\n    deps: []\n"),
+    ).toBe(null);
+    expect(
+      resolveCanonicalDeftTaskfileInclude(
+        "includes:\n  deft:\n    taskfile: '.deft/core/Taskfile.yml'\n",
+      ),
+    ).toBe(".deft/core/Taskfile.yml");
+  });
+
+  it("frameworkTaskfileComposesRequiredGates requires verify + check deps (#3218)", () => {
+    expect(
+      frameworkTaskfileComposesRequiredGates(FRAMEWORK_INCLUDED_TASKFILE, VERIFY_YML_COMPLETE),
+    ).toBe(true);
+    expect(
+      frameworkTaskfileComposesRequiredGates(FRAMEWORK_INCLUDED_TASKFILE, VERIFY_YML_MISSING),
+    ).toBe(false);
+    expect(frameworkTaskfileComposesRequiredGates(ROOT_MISSING_DEPS, VERIFY_YML_COMPLETE)).toBe(
+      false,
+    );
+  });
+
+  it("passes include-only greenfield when included framework composes gates (#3218)", () => {
+    // Root cause of greenfield-python-free-smoke exit 201: MINIMAL_TASKFILE has no
+    // root check deps; composition lives under .deft/core after directive init.
+    const result = evaluateConsumerCheckContract("/tmp/greenfield", {
+      rootTaskfileText: MINIMAL_GREENFIELD_ROOT,
+      verifyTaskfileText: null,
+      includedFrameworkTaskfileText: FRAMEWORK_INCLUDED_TASKFILE,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.filter((f) => f.surface === "check-task")).toHaveLength(0);
+  });
+
+  it("fails include-only greenfield when included framework omits gates (#3218 regression)", () => {
+    const incompleteIncluded = `
+version: '3'
+tasks:
+  check:consumer:
+    deps:
+      - verify:branch
+`;
+    const result = evaluateConsumerCheckContract("/tmp/greenfield", {
+      rootTaskfileText: MINIMAL_GREENFIELD_ROOT,
+      verifyTaskfileText: null,
+      includedFrameworkTaskfileText: incompleteIncluded,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
+  it("does not let canonical include conceal incomplete local check deps (#3218)", () => {
+    const rootWithPartialAndInclude = `version: '3'
+includes:
+  deft:
+    taskfile: ./.deft/core/Taskfile.yml
+    optional: true
+tasks:
+  check:
+    deps:
+      - verify:branch
+`;
+    const result = evaluateConsumerCheckContract("/tmp/consumer", {
+      rootTaskfileText: rootWithPartialAndInclude,
+      verifyTaskfileText: VERIFY_YML_COMPLETE,
+      includedFrameworkTaskfileText: FRAMEWORK_INCLUDED_TASKFILE,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some(
+        (f) => f.surface === "check-task" && f.detail.includes("aggregate 'check'"),
+      ),
+    ).toBe(true);
+  });
+
+  it("soft-warns CI-only for include-only greenfield with guard workflow (#3218)", () => {
+    // deft-core-guard is deposited by init and does not run task check — CI notes
+    // stay warn-only; check-task must not fail when include composes.
+    const result = evaluateConsumerCheckContract("/tmp/greenfield", {
+      rootTaskfileText: MINIMAL_GREENFIELD_ROOT,
+      verifyTaskfileText: null,
+      includedFrameworkTaskfileText: FRAMEWORK_INCLUDED_TASKFILE,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map([
+        [".github/workflows/deft-core-guard.yml", "name: deft-core-guard\nrun: echo guard\n"],
+      ]),
+      ciWarnOnly: true,
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/WARN/i);
+    expect(result.findings.every((f) => f.surface === "ci-workflow")).toBe(true);
   });
 
   it("soft-warns CI omissions when ciWarnOnly", () => {
