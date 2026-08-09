@@ -274,10 +274,10 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     i++;
     // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
     let xxdReverse = false;
-    // scp / certutil: collect all non-flag pathish positionals in this segment (#3213 P1).
-    // Prefer every pathish (not only last) so a protected dest is never dropped when a
-    // later operand appears; last remains the usual write dest for deny checks.
-    const segmentPathish: string[] = [];
+    // scp / certutil: last non-flag pathish in this segment is the write dest (#3213).
+    // Only the last operand is a dest (scp SRC… DEST) so reads FROM `.deft/authz` stay
+    // unclassifiable; segment breaks prevent compound `scp …; echo` from overwriting dest.
+    let lastPositionalPath: string | null = null;
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -394,7 +394,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
       }
 
-      // scp / certutil: every non-flag pathish in the segment is a candidate dest (#3213 P1).
+      // scp / certutil: track last non-flag pathish as dest within this segment only.
       // Trailing `;`/`&`/`|` glued to a path: strip with O(n) walk (no poly-regex; CodeQL).
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
         let end = raw.length;
@@ -409,14 +409,13 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         const cleaned = end === raw.length ? raw : raw.slice(0, end);
         const p = pathishToken(cleaned);
         if (p.length > 0) {
-          segmentPathish.push(p);
+          lastPositionalPath = p;
         }
       }
       i++;
     }
-    // Prefer last pathish as primary dest, but keep all so earlier authz paths stay visible.
-    for (const p of segmentPathish) {
-      dests.push(p);
+    if (lastPositionalPath !== null) {
+      dests.push(lastPositionalPath);
     }
   }
   return dests;
