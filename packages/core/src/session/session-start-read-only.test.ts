@@ -2,10 +2,16 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
 import { READ_ONLY_POSTURE, READ_ONLY_RESULT_MESSAGE, runSessionStart } from "./session-start.js";
+
+/** Full ceremony — fat-path assertions must not use two-stage cold rapid default. */
+const STANDARD_DIAL = selectCeremonyDepth({
+  config: { enabled: true, override: "standard" },
+});
 
 const temps: string[] = [];
 const environment: EnvironmentContext = {
@@ -89,6 +95,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       runTriageWelcome: () => ({ exitCode: 0 }),
       probeEnvironment: () => environment,
       probeScm: probeScmOk,
+      ceremonyDial: STANDARD_DIAL,
       allowOptionalNetwork: true,
       probeReleaseAvailability: () => ({
         lines: ["[deft release] Newer Directive release available: v1.0.1"],
@@ -119,6 +126,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       runTriageWelcome: () => ({ exitCode: 0 }),
       probeEnvironment: () => environment,
       probeScm: probeScmOk,
+      ceremonyDial: STANDARD_DIAL,
       probeReleaseAvailability: () => {
         releaseProbeCalls += 1;
         return { lines: ["unexpected release probe"] };

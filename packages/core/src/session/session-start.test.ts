@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
+import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import type { GitRunResult } from "./git.js";
@@ -15,6 +16,11 @@ import {
   type SessionStartOptions,
   type SessionStartStepTiming,
 } from "./session-start.js";
+
+/** Full ceremony profile — used when tests assert fat-path / optional-network behavior. */
+const STANDARD_DIAL = selectCeremonyDepth({
+  config: { enabled: true, override: "standard" },
+});
 
 const temps: string[] = [];
 const environment: EnvironmentContext = {
@@ -199,6 +205,8 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       ...baseOptions(root, () =>
         userMdResult({ path: join(root, "USER.md"), rung: "workspace-local" }),
       ),
+      // Force standard so fat-path steps run (cold default is rapid two-stage).
+      ceremonyDial: STANDARD_DIAL,
       probeReleaseAvailability: () => {
         releaseCalls += 1;
         return { lines: ["should not run"] };
@@ -268,6 +276,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     let releaseCalls = 0;
     const result = runSessionStart(root, {
       ...baseOptions(root, () => userMdResult()),
+      ceremonyDial: STANDARD_DIAL,
       allowOptionalNetwork: true,
       probeReleaseAvailability: () => {
         releaseCalls += 1;
@@ -294,6 +303,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       verifyTools: () => ({ exitCode: 0 }),
       resolveUserMd: () => userMdResult(),
       probeEnvironment: () => environment,
+      ceremonyDial: STANDARD_DIAL,
       runStalenessTickler: () => ({ lines: [], prompted: false }),
       probeReleaseAvailability: () => {
         throw new Error("release probe must not run on hot path");
@@ -306,11 +316,12 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
 });
 
 describe("runSessionStart ceremony dial (#3214)", () => {
-  it("records standard dial by default and keeps fat path", () => {
+  it("records rapid dial by default (two-stage cold) and still runs verify_tools", () => {
     const root = tempRoot();
     let toolsCalled = false;
     const result = runSessionStart(root, {
       ...baseOptions(root, () => userMdResult()),
+      env: {},
       verifyTools: () => {
         toolsCalled = true;
         return { exitCode: 0 };
@@ -318,17 +329,18 @@ describe("runSessionStart ceremony dial (#3214)", () => {
       runStalenessTickler: () => ({ lines: [], prompted: false }),
     });
     expect(result.code).toBe(0);
-    expect(result.lines.join("\n")).toContain("[deft ceremony-dial] depth=standard");
+    expect(result.lines.join("\n")).toContain("[deft ceremony-dial] depth=rapid");
     const dial = result.payload.ceremony_dial as { depth: string; source: string };
-    expect(dial.depth).toBe("standard");
+    expect(dial.depth).toBe("rapid");
+    // Mutation readiness constant (#3156) — tools run even on cold rapid default.
     expect(toolsCalled).toBe(true);
     const state = JSON.parse(readFileSync(ritualStatePath(root), "utf8")) as {
       ceremony_dial: { depth: string };
     };
-    expect(state.ceremony_dial.depth).toBe("standard");
+    expect(state.ceremony_dial.depth).toBe("rapid");
   });
 
-  it("S × frontier selects rapid, skips fat path, defers heavy steps", () => {
+  it("S × frontier selects rapid, skips ceremony fat path, keeps readiness", () => {
     const root = tempRoot();
     let toolsCalled = false;
     let triageCalled = false;
@@ -360,10 +372,11 @@ describe("runSessionStart ceremony dial (#3214)", () => {
     };
     expect(dial.depth).toBe("rapid");
     expect(dial.composition.rapidStrategy).toContain("rapid.md");
-    expect(toolsCalled).toBe(false);
+    // #3156 gate integrity: verify_tools always runs; triage is ceremony-only skip.
+    expect(toolsCalled).toBe(true);
     expect(triageCalled).toBe(false);
     const steps = result.payload.steps as SessionStartStepTiming[];
-    expect(steps.find((s) => s.name === "verify_tools")?.skipped).toBe(true);
+    expect(steps.find((s) => s.name === "verify_tools")?.skipped).toBeUndefined();
     expect(steps.find((s) => s.name === "triage_welcome")?.skipped).toBe(true);
     const quick = result.payload.quick_steps as {
       triage_welcome: { deferred_reason?: string };
@@ -373,6 +386,34 @@ describe("runSessionStart ceremony dial (#3214)", () => {
     const gated = result.payload.gated_steps as Record<string, { deferred_reason?: string }>;
     expect(gated.doctor?.deferred_reason).toBeUndefined();
     expect(gated.cache_fresh?.deferred_reason).toBeUndefined();
+    expect(gated.agent_hooks?.deferred_reason).toBeUndefined();
+  });
+
+
+  it("provisional M size escalates to standard without plan-item effort", () => {
+    const root = tempRoot();
+    let toolsCalled = false;
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: {},
+      ceremonyDialHints: { verb: "implement" },
+      verifyTools: () => {
+        toolsCalled = true;
+        return { exitCode: 0 };
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const dial = result.payload.ceremony_dial as {
+      depth: string;
+      inputs: { taskSize: string | null };
+      provisional: { taskSize: string | null; reasons: string[] };
+    };
+    expect(dial.inputs.taskSize).toBe("M");
+    expect(dial.depth).toBe("standard");
+    expect(dial.provisional.reasons.some((r) => r.includes("verb"))).toBe(true);
+    // Readiness constant: tools still run on escalated standard.
+    expect(toolsCalled).toBe(true);
   });
 
   it("non-project shape selects minimal and points at #3014 research", () => {

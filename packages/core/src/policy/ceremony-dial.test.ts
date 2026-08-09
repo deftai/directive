@@ -17,7 +17,14 @@ import {
   normalizeCeremonyTaskSize,
   resolveCeremonyDial,
   selectCeremonyDepth,
+  detectCeremonyProjectShape,
+  ENV_CEREMONY_MODEL_TIER,
+  ENV_CEREMONY_TASK_SIZE,
+  estimateProvisionalCeremonyInputs,
+  mergeCeremonyDialInputsWithProvisional,
+  resolveSessionCeremonyDialInputs,
   selectCeremonyDepthFromMatrix,
+  selectCeremonyDepthFromPartialEvidence,
   setCeremonyDial,
   validateCeremonyDial,
 } from "./ceremony-dial.js";
@@ -115,18 +122,30 @@ describe("selectCeremonyDepthFromMatrix (#3214)", () => {
     ).toBe("elevated");
   });
 
-  it("returns standard when size or tier missing", () => {
-    expect(selectCeremonyDepthFromMatrix({ taskSize: "S" })).toBe("standard");
-    expect(selectCeremonyDepthFromMatrix({ modelTier: "frontier" })).toBe("standard");
+  it("two-stage partial evidence: start light; escalate on M/L or mid/low", () => {
+    // Size-only.
+    expect(selectCeremonyDepthFromMatrix({ taskSize: "S" })).toBe("rapid");
+    expect(selectCeremonyDepthFromMatrix({ taskSize: "M" })).toBe("standard");
+    expect(selectCeremonyDepthFromMatrix({ taskSize: "L" })).toBe("elevated");
+    // Tier-only.
+    expect(selectCeremonyDepthFromMatrix({ modelTier: "frontier" })).toBe("rapid");
+    expect(selectCeremonyDepthFromMatrix({ modelTier: "mid" })).toBe("standard");
+    expect(selectCeremonyDepthFromMatrix({ modelTier: "low" })).toBe("elevated");
+    // Both missing.
+    expect(selectCeremonyDepthFromPartialEvidence({ taskSize: null, modelTier: null })).toBe(
+      "rapid",
+    );
   });
 });
 
 describe("selectCeremonyDepth precedence", () => {
-  it("uses standard when no inputs (safe default)", () => {
+  it("uses rapid when no inputs (two-stage cold default)", () => {
     const s = selectCeremonyDepth({});
-    expect(s.depth).toBe("standard");
+    expect(s.depth).toBe("rapid");
     expect(s.source).toBe("default");
-    expect(s.profile.skipFatPath).toBe(false);
+    // Ceremony light — but readiness is not part of skipFatPath contract for tools.
+    expect(s.profile.skipFatPath).toBe(true);
+    expect(s.profile.autoDeferSteps).toEqual(["triage_welcome"]);
   });
 
   it("override wins over matrix", () => {
@@ -224,7 +243,8 @@ describe("resolveCeremonyDial + policy surface", () => {
     const field = inspectCeremonyDial(data, root);
     expect(field.name).toBe(FIELD_CEREMONY_DIAL);
     expect(field.current.enabled).toBe(true);
-    expect(field.current.selectedDepth).toBe("standard");
+    // Two-stage cold default when no size/tier inputs: rapid (#3214 design note).
+    expect(field.current.selectedDepth).toBe("rapid");
   });
 
   it("policy:show alias ceremonyDial resolves", () => {
@@ -283,5 +303,72 @@ describe("resolveCeremonyDial + policy surface", () => {
     });
     expect(formatCeremonyDialStatusLine(s)).toContain("depth=rapid");
     expect(ceremonyDialToDict(s).depth).toBe("rapid");
+  });
+});
+
+describe("provisional intake estimate (#3214 design note option 1)", () => {
+  it("classifies size from verb / file count / prompt without confirmation", () => {
+    expect(estimateProvisionalCeremonyInputs({ verb: "fix", env: {} }).taskSize).toBe("S");
+    expect(estimateProvisionalCeremonyInputs({ verb: "implement", env: {} }).taskSize).toBe("M");
+    expect(estimateProvisionalCeremonyInputs({ verb: "refactor", env: {} }).taskSize).toBe("L");
+    expect(
+      estimateProvisionalCeremonyInputs({
+        filePaths: Array.from({ length: 15 }, (_, i) => `f${i}.ts`),
+        env: {},
+      }).taskSize,
+    ).toBe("L");
+    expect(
+      estimateProvisionalCeremonyInputs({
+        promptText: "through-merge cohort multi-repo platform overhaul",
+        env: {},
+      }).taskSize,
+    ).toBe("XL");
+  });
+
+  it("env overrides and deposit project-shape detection", () => {
+    const root = makeProject({});
+    const est = estimateProvisionalCeremonyInputs({
+      projectRoot: root,
+      env: {
+        [ENV_CEREMONY_TASK_SIZE]: "M",
+        [ENV_CEREMONY_MODEL_TIER]: "frontier",
+      },
+    });
+    expect(est.taskSize).toBe("M");
+    expect(est.modelTier).toBe("frontier");
+    expect(est.projectShape).toBe("project");
+    expect(detectCeremonyProjectShape(root)).toBe("project");
+    expect(detectCeremonyProjectShape(join(tmpdir(), "no-such-ceremony-root"))).toBeNull();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("explicit inputs win over provisional; max-wins hard tasks escalate", () => {
+    const provisional = estimateProvisionalCeremonyInputs({
+      verb: "fix",
+      fileCount: 25,
+      env: {},
+    });
+    // fileCount L beats verb S (apps-bank: hard-looking scope escalates).
+    expect(provisional.taskSize).toBe("L");
+    const merged = mergeCeremonyDialInputsWithProvisional(
+      { taskSize: "S", modelTier: null, projectShape: "project" },
+      provisional,
+    );
+    expect(merged.taskSize).toBe("S"); // explicit wins
+    expect(merged.projectShape).toBe("project");
+  });
+
+  it("resolveSessionCeremonyDialInputs fills vanilla deposit without policy opt-in", () => {
+    const root = makeProject({});
+    const { inputs, provisional } = resolveSessionCeremonyDialInputs(root, undefined, {
+      verb: "build",
+      env: {},
+    });
+    expect(provisional.projectShape).toBe("project");
+    expect(inputs.projectShape).toBe("project");
+    expect(inputs.taskSize).toBe("M");
+    // M + no tier → standard (escalate on substantial size).
+    expect(selectCeremonyDepth({ inputs }).depth).toBe("standard");
+    rmSync(root, { recursive: true, force: true });
   });
 });

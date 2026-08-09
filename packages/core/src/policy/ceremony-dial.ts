@@ -7,11 +7,15 @@
  *   - #3014 minimal consumer AGENTS profile (research pointer; not yet a shipped deposit)
  *   - effort estimate (#1581), model routing (#1976/#818), host capability (#1461)
  *
- * Defaults: S-task × frontier → rapid; non-project → minimal; else scales up.
+ * Two-stage dial (#3214 design note / #1581 ordering):
+ *   cold-start / incomplete inputs → **rapid** (start light; no plan-item deadlock)
+ *   escalate when evidence arrives (provisional M/L, mid/low tier, full matrix)
+ * Full matrix: S × frontier → rapid; non-project → minimal; else scales up.
  * Override always available via plan.policy.ceremonyDial.override; audited on write.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
@@ -110,12 +114,15 @@ export interface CeremonyDialSelection {
 }
 
 /**
- * Profiles scale *cold* ceremony only.
+ * Profiles scale *cold ceremony* only — verification depth is constant (#3156).
  *
  * ! Do NOT auto-defer gated readiness steps (`doctor`, `cache_fresh`,
  *   `agent_hooks`) — those stay required for mutation authorization
- *   (`verify:session-ritual --tier=gated`). Rapid/minimal only lighten
- *   cold session:start fat path (triage welcome + optional tools/network).
+ *   (`verify:session-ritual --tier=gated`). Gated verify treats
+ *   `deferred_reason` as satisfied, so dial-driven deferral would skip gates.
+ * ! `verify_tools` also remains required on every dial depth (not skipFatPath).
+ * ~ Rapid/minimal MAY lighten informational cold path only: triage welcome,
+ *   optional network/release probe, staleness tickler.
  */
 const PROFILES: Readonly<Record<CeremonyDepth, CeremonyDialProfile>> = {
   minimal: {
@@ -263,14 +270,46 @@ export function normalizeCeremonyProjectShape(raw: unknown): CeremonyProjectShap
 }
 
 /**
- * Pure default matrix (#3214 acceptance):
+ * Two-stage / partial-evidence selection when size or tier is missing (#3214 design note).
+ *
+ * Start light (rapid) on cold incomplete inputs; escalate when partial evidence already
+ * implies heavier ceremony (apps-bank safety: hard/substantial work must not stay rapid).
+ * Does not invent plan-item effort (#1581 post-planning only).
+ */
+export function selectCeremonyDepthFromPartialEvidence(inputs: {
+  readonly taskSize: CeremonyTaskSize | null;
+  readonly modelTier: CeremonyModelTier | null;
+}): CeremonyDepth {
+  const size = inputs.taskSize;
+  const tier = inputs.modelTier;
+
+  // Size known, tier unknown — escalate on substantial size.
+  if (size !== null && tier === null) {
+    if (size === "S") return "rapid";
+    if (size === "M") return "standard";
+    return "elevated"; // L / XL
+  }
+
+  // Tier known, size unknown — mid/low need structure; frontier can start light.
+  if (size === null && tier !== null) {
+    if (tier === "frontier") return "rapid";
+    if (tier === "mid") return "standard";
+    return "elevated"; // low
+  }
+
+  // Both unknown: two-stage cold default.
+  return "rapid";
+}
+
+/**
+ * Pure default matrix (#3214 acceptance + two-stage design note):
  * - non-project → minimal (#3014 direction)
  * - S × frontier → rapid (strategies/rapid.md)
  * - S × mid → standard (mid-tier gains from structure)
  * - S × low → elevated
  * - M × low → elevated; M otherwise → standard
  * - L/XL → elevated (except L × frontier stays standard)
- * Missing inputs → caller decides (selectCeremonyDepth uses standard).
+ * - Incomplete size/tier → two-stage partial evidence (default rapid; escalate on M/L or mid/low)
  */
 export function selectCeremonyDepthFromMatrix(inputs: CeremonyDialInputs): CeremonyDepth {
   const shape = inputs.projectShape ?? null;
@@ -281,9 +320,10 @@ export function selectCeremonyDepthFromMatrix(inputs: CeremonyDialInputs): Cerem
   const size = inputs.taskSize ?? null;
   const tier = inputs.modelTier ?? null;
 
-  // Incomplete matrix inputs: do not invent rapid/minimal without evidence.
+  // Two-stage dial: incomplete matrix starts light; escalates on partial evidence.
+  // ⊗ Do not default incomplete → standard (that was the #1581-ordering anti-pattern).
   if (size === null || tier === null) {
-    return "standard";
+    return selectCeremonyDepthFromPartialEvidence({ taskSize: size, modelTier: tier });
   }
 
   if (size === "S" && tier === "frontier") return "rapid";
@@ -331,7 +371,7 @@ export interface SelectCeremonyDepthOptions {
  * Deterministic depth selection (pure; no IO).
  *
  * Precedence: disabled → standard; override → forced depth; else matrix on inputs;
- * empty inputs → standard.
+ * empty inputs → **rapid** (two-stage cold default; escalate when evidence arrives).
  */
 export function selectCeremonyDepth(
   options: SelectCeremonyDepthOptions = {},
@@ -375,7 +415,8 @@ export function selectCeremonyDepth(
   const hasAnyInput =
     inputs.taskSize !== null || inputs.modelTier !== null || inputs.projectShape !== null;
   if (!hasAnyInput) {
-    const depth: CeremonyDepth = "standard";
+    // Two-stage dial cold default (#3214 design note / #1581 ordering).
+    const depth: CeremonyDepth = "rapid";
     return {
       depth,
       source: "default",
@@ -515,7 +556,7 @@ export function inspectCeremonyDial(
   if (data === null) {
     return {
       name: FIELD_CEREMONY_DIAL,
-      current: { ...defaults, selectedDepth: "standard" },
+      current: { ...defaults, selectedDepth: "rapid" },
       default: defaults,
       source: "default",
     };
@@ -707,4 +748,293 @@ export function mergeCeremonyDialDeferrals(
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Intake-time provisional estimate (#3214 design note option 1 / #1581 ordering)
+// ---------------------------------------------------------------------------
+
+/** Env keys for headless dial inputs (no operator confirmation). */
+export const ENV_CEREMONY_TASK_SIZE = "DEFT_CEREMONY_TASK_SIZE";
+export const ENV_CEREMONY_MODEL_TIER = "DEFT_CEREMONY_MODEL_TIER";
+export const ENV_CEREMONY_PROJECT_SHAPE = "DEFT_CEREMONY_PROJECT_SHAPE";
+/** Optional host model hint used when DEFT_CEREMONY_MODEL_TIER is unset. */
+export const ENV_CEREMONY_MODEL_HINT = "DEFT_MODEL";
+
+export interface ProvisionalCeremonyEstimateHints {
+  /** Free-text task / prompt (optional; headless may omit). */
+  readonly promptText?: string | null;
+  /** Closed-verb or action verb token when known. */
+  readonly verb?: string | null;
+  /** Paths in scope (files or dirs); used for file-count / multi-area signals. */
+  readonly filePaths?: readonly string[] | null;
+  /** Explicit file count when paths are not enumerated. */
+  readonly fileCount?: number | null;
+  /** Process env for headless size/tier/shape overrides. */
+  readonly env?: NodeJS.ProcessEnv;
+  /** Project root for deposit-based project-shape detection. */
+  readonly projectRoot?: string | null;
+}
+
+export interface ProvisionalCeremonyEstimate {
+  readonly taskSize: CeremonyTaskSize | null;
+  readonly modelTier: CeremonyModelTier | null;
+  readonly projectShape: CeremonyProjectShape | null;
+  /** Why each filled field was chosen (headless diagnostics). */
+  readonly reasons: readonly string[];
+}
+
+const SMALL_VERBS = new Set([
+  "fix",
+  "typo",
+  "docs",
+  "doc",
+  "chore",
+  "lint",
+  "format",
+  "rename",
+  "bump",
+  "patch",
+  "tweak",
+  "nit",
+  "spellcheck",
+]);
+
+const MEDIUM_VERBS = new Set([
+  "implement",
+  "add",
+  "feature",
+  "update",
+  "ship",
+  "build",
+  "wire",
+  "land",
+  "extend",
+  "improve",
+  "refine",
+]);
+
+const LARGE_VERBS = new Set([
+  "refactor",
+  "migrate",
+  "swarm",
+  "epic",
+  "redesign",
+  "rewrite",
+  "overhaul",
+  "rearchitect",
+  "through-merge",
+  "through_merge",
+  "port",
+  "extract",
+]);
+
+const XL_PROMPT_MARKERS =
+  /\b(multi[- ]?repo|platform[- ]wide|full rewrite|architecture overhaul|cohort|through[- ]merge)\b/i;
+const LARGE_PROMPT_MARKERS =
+  /\b(refactor|migrate|swarm|epic|redesign|rearchitect|umbrella|multi[- ]file|large)\b/i;
+const SMALL_PROMPT_MARKERS =
+  /\b(typo|nit|docs? only|one[- ]liner|single[- ]line|trivial|cosmetic|spelling)\b/i;
+
+/**
+ * Detect project shape from deposit layout (headless, no prompts).
+ * Returns `project` when vanilla deposit markers exist; **null** when unknown
+ * (two-stage cold default stays rapid — do not invent non-project without evidence).
+ * Explicit `non-project` comes from CLI/env only.
+ */
+export function detectCeremonyProjectShape(projectRoot: string): CeremonyProjectShape | null {
+  try {
+    const pd = join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    if (existsSync(pd) && statSync(pd).isFile()) {
+      return "project";
+    }
+    const agents = join(projectRoot, "AGENTS.md");
+    const xbriefDir = join(projectRoot, "xbrief");
+    if (existsSync(agents) && existsSync(xbriefDir) && statSync(xbriefDir).isDirectory()) {
+      return "project";
+    }
+    const deftCore = join(projectRoot, ".deft", "core");
+    if (existsSync(deftCore) && statSync(deftCore).isDirectory()) {
+      return "project";
+    }
+  } catch {
+    // unknown on IO errors — stay null so cold default remains rapid
+  }
+  return null;
+}
+
+function rankSize(size: CeremonyTaskSize): number {
+  switch (size) {
+    case "S":
+      return 0;
+    case "M":
+      return 1;
+    case "L":
+      return 2;
+    case "XL":
+      return 3;
+    default:
+      return 0;
+  }
+}
+
+function maxSize(a: CeremonyTaskSize | null, b: CeremonyTaskSize | null): CeremonyTaskSize | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return rankSize(a) >= rankSize(b) ? a : b;
+}
+
+function sizeFromFileCount(count: number): CeremonyTaskSize | null {
+  if (count <= 0) return null;
+  if (count <= 2) return "S";
+  if (count <= 10) return "M";
+  if (count <= 40) return "L";
+  return "XL";
+}
+
+function sizeFromVerb(verb: string): CeremonyTaskSize | null {
+  const v = verb.trim().toLowerCase().replace(/_/g, "-");
+  if (v.length === 0) return null;
+  if (SMALL_VERBS.has(v)) return "S";
+  if (MEDIUM_VERBS.has(v)) return "M";
+  if (LARGE_VERBS.has(v)) return "L";
+  const first = v.split(/[\s:/]+/)[0] ?? "";
+  if (SMALL_VERBS.has(first)) return "S";
+  if (MEDIUM_VERBS.has(first)) return "M";
+  if (LARGE_VERBS.has(first)) return "L";
+  return null;
+}
+
+function sizeFromPrompt(text: string): CeremonyTaskSize | null {
+  const t = text.trim();
+  if (t.length === 0) return null;
+  if (XL_PROMPT_MARKERS.test(t) || t.length > 4000) return "XL";
+  if (LARGE_PROMPT_MARKERS.test(t) || t.length > 1500) return "L";
+  if (SMALL_PROMPT_MARKERS.test(t) && t.length < 400) return "S";
+  if (t.length > 600) return "M";
+  if (t.length < 120) return "S";
+  return null;
+}
+
+/**
+ * Headless-safe provisional S/M/L (+ optional tier/shape) **before** ritual.
+ * No operator confirmation. Plan-item effort (#1581) later confirms/corrects.
+ *
+ * Signals (max-wins for size): env → verb class → file-scope count → prompt shape.
+ * Project shape: env, else deposit detection when projectRoot is set.
+ */
+export function estimateProvisionalCeremonyInputs(
+  hints: ProvisionalCeremonyEstimateHints = {},
+): ProvisionalCeremonyEstimate {
+  const env = hints.env ?? process.env;
+  const reasons: string[] = [];
+
+  let taskSize: CeremonyTaskSize | null = normalizeCeremonyTaskSize(
+    env[ENV_CEREMONY_TASK_SIZE] ?? env.DEFT_TASK_SIZE,
+  );
+  if (taskSize !== null) {
+    reasons.push(`taskSize=${taskSize} from env`);
+  }
+
+  const modelTier: CeremonyModelTier | null = normalizeCeremonyModelTier(
+    env[ENV_CEREMONY_MODEL_TIER] ?? env[ENV_CEREMONY_MODEL_HINT],
+  );
+  if (modelTier !== null) {
+    reasons.push(`modelTier=${modelTier} from env`);
+  }
+
+  let projectShape: CeremonyProjectShape | null = normalizeCeremonyProjectShape(
+    env[ENV_CEREMONY_PROJECT_SHAPE],
+  );
+  if (projectShape !== null) {
+    reasons.push(`projectShape=${projectShape} from env`);
+  }
+
+  if (taskSize === null && typeof hints.verb === "string") {
+    const fromVerb = sizeFromVerb(hints.verb);
+    if (fromVerb !== null) {
+      taskSize = fromVerb;
+      reasons.push(`taskSize=${fromVerb} from verb=${hints.verb.trim()}`);
+    }
+  }
+
+  {
+    let fileCount = typeof hints.fileCount === "number" ? hints.fileCount : null;
+    if (fileCount === null && Array.isArray(hints.filePaths)) {
+      fileCount = hints.filePaths.length;
+    }
+    if (fileCount !== null && fileCount > 0) {
+      const fromFiles = sizeFromFileCount(fileCount);
+      if (fromFiles !== null) {
+        const next = maxSize(taskSize, fromFiles);
+        if (next !== taskSize) {
+          taskSize = next;
+          reasons.push(`taskSize=${next} from fileCount=${fileCount}`);
+        }
+      }
+    }
+  }
+
+  if (typeof hints.promptText === "string" && hints.promptText.trim().length > 0) {
+    const fromPrompt = sizeFromPrompt(hints.promptText);
+    if (fromPrompt !== null) {
+      const next = maxSize(taskSize, fromPrompt);
+      if (next !== taskSize) {
+        taskSize = next;
+        reasons.push(`taskSize=${next} from prompt shape`);
+      }
+    }
+  }
+
+  if (
+    projectShape === null &&
+    typeof hints.projectRoot === "string" &&
+    hints.projectRoot.length > 0
+  ) {
+    const detected = detectCeremonyProjectShape(hints.projectRoot);
+    if (detected !== null) {
+      projectShape = detected;
+      reasons.push(`projectShape=${detected} from deposit layout`);
+    }
+  }
+
+  return { taskSize, modelTier, projectShape, reasons };
+}
+
+/**
+ * Merge explicit dial inputs over provisional estimates. Explicit non-null wins.
+ * Used by session:start so vanilla deposit gets provisional fill without policy opt-in.
+ */
+export function mergeCeremonyDialInputsWithProvisional(
+  explicit: CeremonyDialInputs | undefined,
+  provisional: ProvisionalCeremonyEstimate,
+): CeremonyDialInputs {
+  return {
+    taskSize: explicit?.taskSize ?? provisional.taskSize ?? null,
+    modelTier: explicit?.modelTier ?? provisional.modelTier ?? null,
+    projectShape: explicit?.projectShape ?? provisional.projectShape ?? null,
+  };
+}
+
+/**
+ * Resolve dial inputs for session:start: explicit CLI/options first, then
+ * headless provisional classifier (env / verb / files / prompt / deposit).
+ * ⊗ Does not read plan-item effort (#1581) — that lands post-planning only.
+ */
+export function resolveSessionCeremonyDialInputs(
+  projectRoot: string,
+  explicit?: CeremonyDialInputs,
+  options: Omit<ProvisionalCeremonyEstimateHints, "projectRoot"> = {},
+): {
+  readonly inputs: CeremonyDialInputs;
+  readonly provisional: ProvisionalCeremonyEstimate;
+} {
+  const provisional = estimateProvisionalCeremonyInputs({
+    ...options,
+    projectRoot,
+  });
+  return {
+    inputs: mergeCeremonyDialInputsWithProvisional(explicit, provisional),
+    provisional,
+  };
 }

@@ -16,7 +16,9 @@ import {
   ceremonyDialToDict,
   formatCeremonyDialStatusLine,
   mergeCeremonyDialDeferrals,
+  type ProvisionalCeremonyEstimateHints,
   resolveCeremonyDial,
+  resolveSessionCeremonyDialInputs,
 } from "../policy/ceremony-dial.js";
 import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
@@ -180,12 +182,18 @@ export interface SessionStartOptions {
   readonly probeScm?: (options: ProbeScmReadinessOptions) => ScmReadinessReport;
   /**
    * #3214: ceremony dial inputs (task size × model tier × project shape).
-   * When set, session:start selects ritual depth and scales fat-path work.
+   * Missing fields are filled by the headless provisional classifier
+   * (env / verb / file-scope / deposit layout) — no plan-item effort (#1581).
    */
   readonly ceremonyDialInputs?: CeremonyDialInputs;
   /**
+   * #3214: optional intake hints for provisional size (prompt/verb/files).
+   * Vanilla deposit session:start runs provisional fill without policy opt-in.
+   */
+  readonly ceremonyDialHints?: Omit<ProvisionalCeremonyEstimateHints, "projectRoot" | "env">;
+  /**
    * #3214: optional pre-resolved dial (tests). When omitted, resolveCeremonyDial
-   * loads plan.policy.ceremonyDial and applies inputs.
+   * loads plan.policy.ceremonyDial and applies inputs (after provisional fill).
    */
   readonly ceremonyDial?: CeremonyDialSelection;
 }
@@ -879,11 +887,19 @@ export function runSessionStart(
   const stepTimings: SessionStartStepTiming[] = [];
   const allowOptionalNetwork = resolveSessionStartOptionalNetwork(options);
 
-  // #3214: select ritual depth before building deferral maps so rapid/minimal
-  // auto-defer heavy steps and skip fat cold-path work.
+  // #3214 / #3156: select ritual (ceremony) depth before building deferral maps.
+  // Rapid/minimal auto-defer informational cold steps only; mutation readiness
+  // (doctor, cache_fresh, agent_hooks, verify_tools) stays constant.
+  // Two-stage + provisional intake (#3214 design note / #1581 ordering): fill
+  // missing size/tier/shape from env/verb/files/deposit BEFORE resolve — never
+  // block on plan-item effort (post-planning only). Cold incomplete → rapid.
+  const { inputs: resolvedDialInputs, provisional: provisionalDial } =
+    resolveSessionCeremonyDialInputs(projectRoot, options.ceremonyDialInputs, {
+      ...options.ceremonyDialHints,
+      env: options.env,
+    });
   const ceremonyDialSelection: CeremonyDialSelection =
-    options.ceremonyDial ??
-    resolveCeremonyDial(projectRoot, { inputs: options.ceremonyDialInputs });
+    options.ceremonyDial ?? resolveCeremonyDial(projectRoot, { inputs: resolvedDialInputs });
   const effectiveDeferrals = mergeCeremonyDialDeferrals(deferrals, ceremonyDialSelection);
   const skipFatPath = ceremonyDialSelection.profile.skipFatPath;
 
@@ -927,6 +943,9 @@ export function runSessionStart(
   );
   const lines: string[] = [];
   lines.push(formatCeremonyDialStatusLine(ceremonyDialSelection));
+  if (provisionalDial.reasons.length > 0 && options.ceremonyDial === undefined) {
+    lines.push(`[deft ceremony-dial] provisional: ${provisionalDial.reasons.join("; ")}`);
+  }
 
   // Resolve USER.md via the shared first-hit-wins resolver so the alignment
   // step finds preferences automatically in mismatched / headless sandboxes
@@ -999,8 +1018,10 @@ export function runSessionStart(
     stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
   }
 
-  // #3214: rapid/minimal dial depths skip fat cold-path work (same spirit as re-arm).
-  if (!skipFatPath) {
+  // #3214 / #3156: verify_tools is mutation readiness — always run, even under
+  // rapid/minimal. Dial skipFatPath only lightens *ceremony* (triage welcome,
+  // optional network, staleness tickler), never readiness gates.
+  {
     const stepStarted = performance.now();
     const verifyToolsFn =
       options.verifyTools ??
@@ -1014,10 +1035,9 @@ export function runSessionStart(
       });
     verifyToolsFn((line) => lines.push(line));
     stepTimings.push({ name: "verify_tools", duration_ms: elapsedMs(stepStarted) });
-  } else {
-    stepTimings.push({ name: "verify_tools", duration_ms: 0, skipped: true });
   }
 
+  // #3214: rapid/minimal skip informational cold-path ceremony only.
   if (!quickSteps.triage_welcome && !skipFatPath) {
     const stepStarted = performance.now();
     const captured: string[] = [];
@@ -1145,7 +1165,15 @@ export function runSessionStart(
 
   const writeStarted = performance.now();
   const coldSessionId = (options.newSessionId ?? randomUUID)();
-  const dialDict = ceremonyDialToDict(ceremonyDialSelection);
+  const dialDict = {
+    ...ceremonyDialToDict(ceremonyDialSelection),
+    provisional: {
+      taskSize: provisionalDial.taskSize,
+      modelTier: provisionalDial.modelTier,
+      projectShape: provisionalDial.projectShape,
+      reasons: [...provisionalDial.reasons],
+    },
+  };
   const payload: Record<string, unknown> = {
     ...newRitualStatePayload({
       sessionId: coldSessionId,
