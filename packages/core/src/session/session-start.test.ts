@@ -381,13 +381,43 @@ describe("runSessionStart ceremony dial (#3214)", () => {
     expect(steps.find((s) => s.name === "triage_welcome")?.skipped).toBe(true);
     const quick = result.payload.quick_steps as {
       triage_welcome: { deferred_reason?: string };
+      verify_tools: { ok?: boolean; deferred_reason?: string };
     };
     expect(quick.triage_welcome.deferred_reason).toMatch(/ceremony-dial/);
+    // verify_tools is persisted on ritual-state quick_steps (not deferred).
+    expect(quick.verify_tools?.ok).toBe(true);
+    expect(quick.verify_tools?.deferred_reason).toBeUndefined();
     // Gated readiness steps must remain available (not auto-deferred).
     const gated = result.payload.gated_steps as Record<string, { deferred_reason?: string }>;
     expect(gated.doctor?.deferred_reason).toBeUndefined();
     expect(gated.cache_fresh?.deferred_reason).toBeUndefined();
     expect(gated.agent_hooks?.deferred_reason).toBeUndefined();
+  });
+
+  it("persists verify_tools failure on ritual-state and fails ready", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "project",
+      },
+      verifyTools: () => ({ exitCode: 2 }),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.payload.ready).toBe(false);
+    const quick = result.payload.quick_steps as {
+      verify_tools: { ok: boolean; exit_code?: number; message?: string };
+    };
+    expect(quick.verify_tools.ok).toBe(false);
+    expect(quick.verify_tools.exit_code).toBe(2);
+    expect(quick.verify_tools.message).toMatch(/verify:tools failed/);
+    const state = JSON.parse(readFileSync(ritualStatePath(root), "utf8")) as {
+      quick_steps: { verify_tools: { ok: boolean } };
+    };
+    expect(state.quick_steps.verify_tools.ok).toBe(false);
   });
 
   it("provisional M size escalates to standard without plan-item effort", () => {

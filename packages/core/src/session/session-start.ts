@@ -91,7 +91,9 @@ export type SessionCeremonyTier = (typeof SESSION_CEREMONY_TIERS)[number];
 export const COLD_CEREMONY_TIER: SessionCeremonyTier = "cold";
 export const REARM_CEREMONY_TIER: SessionCeremonyTier = "rearm";
 
-export const QUICK_STEPS = ["alignment", "branch_policy", "triage_welcome"] as const;
+// verify_tools is mutation readiness recorded on cold path (#3214 / #3156) —
+// included so re-arm refuses after a tools-failed cold start.
+export const QUICK_STEPS = ["alignment", "branch_policy", "triage_welcome", "verify_tools"] as const;
 export const GATED_STEPS = ["agent_hooks", "doctor", "cache_fresh"] as const;
 export type GatedStepName = (typeof GATED_STEPS)[number];
 
@@ -272,7 +274,13 @@ export function assessRearmEligibility(
     }
   }
   for (const stepName of QUICK_STEPS) {
-    if (!stepPassesForRearm(state.quickSteps[stepName])) {
+    const step = state.quickSteps[stepName];
+    // Legacy ritual-state (pre-#3214 tools persistence) omits verify_tools —
+    // treat missing as pass; explicit failure still refuses re-arm.
+    if (stepName === "verify_tools" && (step === undefined || step === null)) {
+      continue;
+    }
+    if (!stepPassesForRearm(step)) {
       return {
         eligible: false,
         reason: `quick step '${stepName}' is missing or failed (full cold session:start required)`,
@@ -699,6 +707,14 @@ function runSessionRearm(
 
   const priorQuick = eligibility.state.quickSteps;
   const priorTriage = priorQuick.triage_welcome ?? ritualStep({ ok: true, ts: instant });
+  const priorTools =
+    priorQuick.verify_tools ??
+    ritualStep({
+      ok: true,
+      ts: instant,
+      message: "verify:tools preserved on re-arm (not re-run)",
+      exitCode: 0,
+    });
   const policyOk = policyResult.error === null || policyResult.source === "default-fail-closed";
   const quickSteps: Record<string, Record<string, unknown>> = {
     alignment: ritualStep({
@@ -714,6 +730,15 @@ function runSessionRearm(
       exitCode: policyOk ? 0 : 2,
       durationMs: 0,
     }),
+    // Preserve prior tools outcome; re-arm skips re-running verify:tools (#2992).
+    verify_tools: {
+      ...priorTools,
+      ts: ritualStep({ ok: priorTools.ok === true, ts: instant }).ts,
+      message:
+        typeof priorTools.message === "string"
+          ? priorTools.message
+          : "verify:tools preserved on re-arm",
+    },
     // Preserve prior triage outcome; do not re-run welcome / self-heal on re-arm.
     triage_welcome: {
       ...priorTriage,
@@ -1080,8 +1105,8 @@ export function runSessionStart(
   // #3214 / #3156: verify_tools is mutation readiness — always run, even under
   // rapid/minimal. Dial skipFatPath only lightens *ceremony* (triage welcome,
   // optional network, staleness tickler), never readiness gates.
-  // Greptile P1: honor nonzero tools exit so ready≠true when git/task/gh missing.
-  let verifyToolsFailed = false;
+  // Persist outcome into quick_steps so ritual-state records failure (not only
+  // process exit) — re-arm / later readers must not see a green cold start.
   {
     const stepStarted = performance.now();
     const verifyToolsFn =
@@ -1095,13 +1120,24 @@ export function runSessionStart(
         return { exitCode: result.exitCode };
       });
     const toolsOutcome = verifyToolsFn((line) => lines.push(line));
-    if (toolsOutcome.exitCode !== 0) {
-      verifyToolsFailed = true;
-      lines.push(
-        `[deft session] verify:tools failed (exit ${toolsOutcome.exitCode}); session not ready.`,
-      );
+    const durationMs = elapsedMs(stepStarted);
+    const toolsOk = toolsOutcome.exitCode === 0;
+    const toolsMessage = toolsOk
+      ? "verify:tools ok"
+      : `verify:tools failed (exit ${toolsOutcome.exitCode}); session not ready.`;
+    if (!toolsOk) {
+      lines.push(`[deft session] ${toolsMessage}`);
     }
-    stepTimings.push({ name: "verify_tools", duration_ms: elapsedMs(stepStarted) });
+    // Record on quick_steps (durable ritual-state) in addition to step timings.
+    quickSteps.verify_tools = ritualStep({
+      ok: toolsOk,
+      ts: instant,
+      message: toolsMessage,
+      exitCode: toolsOutcome.exitCode,
+      command: ["verify:tools"],
+      durationMs,
+    });
+    stepTimings.push({ name: "verify_tools", duration_ms: durationMs });
   }
 
   // #3214: rapid/minimal skip informational cold-path ceremony only.
@@ -1277,8 +1313,8 @@ export function runSessionStart(
   const failed = Object.entries(quickSteps)
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
-  // Include required-tool failures in readiness (Greptile P1 #3214).
-  const code = failed.length > 0 || verifyToolsFailed ? 1 : 0;
+  // verify_tools is recorded on quick_steps; failure makes ready=false.
+  const code = failed.length > 0 ? 1 : 0;
   const totalMs = elapsedMs(overallStarted);
 
   // #3117: bind live deposit generation when payload surfaces load (cold path).
