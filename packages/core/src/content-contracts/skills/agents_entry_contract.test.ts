@@ -106,11 +106,21 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Skills",
   "## Skill pin policy (#2508)",
   "## Through-merge worker dispatch (#3032)",
+  "## Mid-scope gate capability tier (#3158 / #954)",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",
   "## Contextual guardrails (runtime-detect lazy-load)",
   "## Content packs",
+] as const;
+
+/** Always-on mid-scope gate capability tier (#3158) — retain vs split-dispatch. */
+const MID_SCOPE_GATE_CAPABILITY_TIER_MARKERS = [
+  "Mid-scope gate capability tier (#3158 / #954)",
+  "split-dispatch",
+  "continue-by-agent-id",
+  "message-later",
+  "constitution self-edit",
 ] as const;
 
 /** Always-on temporary kill-switch (#3039) — check before further DD process load. */
@@ -728,6 +738,11 @@ describe("test_agents_entry_contract", () => {
   it("through_merge_dispatch_markers_present_in_both_files", () => {
     expect(missingMarkers(template, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
+  });
+
+  it("mid_scope_gate_capability_tier_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, MID_SCOPE_GATE_CAPABILITY_TIER_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, MID_SCOPE_GATE_CAPABILITY_TIER_MARKERS)).toEqual([]);
   });
 
   it("deft_directive_disable_markers_present_in_both_files", () => {

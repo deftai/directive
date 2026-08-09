@@ -158,6 +158,22 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ⊗ Offer Warp-specific launch paths when not inside Warp.
 ⊗ Classify Claude Code as `cursor-composer` / `generic-terminal` when Claude-unique signals are present (#3134).
 
+## Retained addressable sub-agents (#3158)
+
+Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../../swarm/swarm.md) `## Retained addressable sub-agents (#3158)`.
+
+| Mode | When | Mid-scope gate |
+|------|------|----------------|
+| **retained-child** (message-later / steer-mid-flight) | Host keeps a live, addressable child (`agent_id` / session name); parent can re-message or steer mid-flight | Single dispatch MAY pause for approval and continue the **same** child |
+| **dispatch-and-collect** (one-shot) | Host has no continue/resume; worker terminal on tool-loop exit | **Split-dispatch** mandatory (#954): Scope A → report → approve → Scope B |
+
+! After platform detect, read the loaded host adapter's **Retained / continue-by-id** note. Prefer continue-by-agent-id / resume-by-name / steerable mid-flight **only when that adapter documents support**.
+! When the host cannot retain: keep one-shot envelopes and split-dispatch mid-scope gates. Do not claim message-later semantics the platform cannot deliver.
+! Stance (#3164): retention is **orchestration only** — not mid-run constitution self-edit (managed AGENTS, pinned skills, policy).
+! Topology (#3155): retained children MUST obey nuclear-family A2A bounds (parent/sibling/child only).
+⊗ Force a second full dispatch on a retain-capable host solely because a mid-scope gate exists — re-message the live child instead.
+⊗ Invent retain / resume on hosts whose adapter marks one-shot only.
+
 ## Phase overview
 
 | Phase | Goal | Depth |
@@ -194,5 +210,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
 - ⊗ Misclassify Claude Code as `cursor-composer` / `generic-terminal` (#3134)
 - ⊗ Run multi-iteration repair/monitor loops without a failure stop or with silent continuation after the envelope is exhausted (#2442)
+- ⊗ Force a second full dispatch on a retain-capable host solely for a mid-scope gate, or invent retain on one-shot hosts (#3158)
+- ⊗ Use retained-child messaging for mid-run constitution self-edit (#3158 / #3164)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

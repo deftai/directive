@@ -120,6 +120,22 @@ Cross-references: `packages/core/src/platform/platform-capabilities.ts` (#1557a)
 Cross-references: `packages/core/src/swarm/routing.ts` (`SWARM_WORKER_ROLES`), `templates/agent-prompt-preamble.md` (dispatch envelope metadata), `docs/the-harness-is-everything.md` (orchestrator -> commodity-coder layering). Refs #1531.
 
 
+### Retained vs one-shot dispatch mode (#3158)
+
+! After platform detection (Step 1) and before spawn, classify the host as **retain-capable** or **one-shot** using the loaded host adapter's retained / continue-by-id note (and `swarm/swarm.md` § Retained addressable sub-agents).
+
+| Classification | Dispatch posture | Mid-scope user-approval gate |
+|----------------|------------------|------------------------------|
+| **retain-capable** | Prefer **retained-child** when the unit of work needs iterative refinement, standing expertise, or mid-flight steer; keep persistent `agent_id` / session handle | Single dispatch MAY include a mid-scope gate — parent **re-messages** the same live child (message-later / steer-mid-flight). Do not force a second full dispatch solely for the gate. |
+| **one-shot** (default when adapter does not document retain) | **dispatch-and-collect** — closed envelope; worker terminal on tool-loop exit | **Split-dispatch** remains mandatory (#954 / preamble §10): Scope A completes → user approves → Scope B as a new dispatch |
+
+! Record the mode in monitor notes when non-default (e.g. `dispatch_mode: retained-child` + retained `agent_id`) so Phase 4 does not spawn a duplicate on the same worktree while a retained child is still addressable.
+! Stance (#3164): retention is orchestration only — ⊗ mid-run rewrite of managed AGENTS, pinned skills, or policy via retained messaging.
+~ Topology bounds for retained A2A messaging: obey landed nuclear-family bounds in swarm/swarm.md § Communication Topology (#3155).
+
+⊗ Treat every host as retain-capable without adapter evidence.
+⊗ Spawn a replacement on a worktree that still has a live retained child the parent can re-message (#261 / #263 duplicate-agent class).
+
 ### Orchestrator dispatch doctrine (#1880)
 
 ! **Deliberate model routing before ANY dispatch:** Before launching ANY worker in this phase (cohort OR solo), run `task verify:routing` and resolve each `(dispatch_provider, worker_role)` via `task swarm:routing-set` / `.deft/routing.local.json`. Populate `## Worker metadata` per `templates/agent-prompt-preamble.md` §2.6 and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the monitor's model. Deterministic gate enforcement is #1877; this rule is behavioral doctrine (#1880).

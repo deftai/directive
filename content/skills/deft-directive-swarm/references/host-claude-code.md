@@ -81,6 +81,13 @@ Probe order (must match engine `probeMonitoringTier` / `resolveDispatchProvider`
 
 ! Pre-spawn verification and Duplicate-Agent rules in `references/core-phase-4.md` apply.
 
+## Retained / continue-by-id (#3158)
+
+! **Default one-shot after Agent completion:** Claude Code background `Agent` leaves that exit are typically terminal — prefer **split-dispatch** for mid-scope user-approval gates (#954) unless the host documents continue/resume of the same agent id.
+? When the host supports re-attach or re-prompt of a still-live Agent with context intact, treat as **retain-capable** for message-later / steer-mid-flight.
+! Nested-Agent boundary above still forbids implementation leaves from retaining a second-level review-monitor as a substitute for split ownership rules.
+~ Stance: orchestration only (#3164).
+
 ## Phase handoff (see also core #2934)
 
 ! After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status — see `references/core-phase-5-6.md` and the thin SKILL MUST block. ⊗ End the turn with only narrative “I will spawn…”.

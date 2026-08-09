@@ -35,3 +35,10 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ! Heartbeat liveness on the Grok Build hybrid path is required — see `references/core-phase-4.md` Heartbeat liveness check (#1365) and `docs/subagent-heartbeat.md`.
 ! Poll coordination uses worktree state + `get_command_or_subagent_output` (not OpenClaw parent-announce).
+
+## Retained / continue-by-id (#3158)
+
+! **Default one-shot:** `spawn_subagent` workers that finish their tool loop are observed terminal (`succeeded` / failed); the `agent_id` is not a general message-later inbox. Mid-scope user-approval gates MUST use **split-dispatch** (#954) unless this host later documents continue-by-agent-id.
+? While a worker is still `in_progress` and the host exposes a live steer / re-prompt channel to that `agent_id`, the parent MAY steer mid-flight without a second spawn — that is the only retain-capable slice on this path today.
+! After terminal exit, always dispatch a successor for remaining scope; do not invent re-attach semantics.
+~ Stance: orchestration only (#3164).

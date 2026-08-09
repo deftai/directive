@@ -34,4 +34,10 @@ Ask the user to open N new Warp terminal tabs. For each tab, the user:
 
 **Tradeoff:** Requires the user to manually open and manage one Warp tab per agent.
 
+## Retained / continue-by-id (#3158)
+
+! **Retain-capable when the tab or `start_agent` session stays live:** Warp agents are interruptible and steerable mid-run. Prefer **message-later / steer-mid-flight** on the same tab or agent handle rather than a second full dispatch for mid-scope gates.
+! When a Warp agent has exited terminal with no resume handle, fall back to **one-shot / split-dispatch** (#954).
+~ Record the retained handle (tab / agent id) in monitor notes. Stance: orchestration only (#3164) — not constitution self-edit.
+
 ? If not running inside Warp at all (no `WARP_*` variables, no `start_agent`), use the same tab approach but with any terminal emulator — the user pastes prompts into their preferred terminal or agent interface.

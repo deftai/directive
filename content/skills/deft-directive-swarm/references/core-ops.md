@@ -160,3 +160,6 @@ CONSTRAINTS:
 - ⊗ Silently continue, re-dispatch, or open another identical attempt after the failure stop fires — halt with an operator-visible report (what was tried, what is missing, what human decision is needed) (#2442)
 - ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143 (`packages/core/src/delivery-attempt/`), not prompt-only thrashing control (#2442)
 - ⊗ Spawn a second implement leaf without `task swarm:pre-dispatch` exit 0, or while exit 1 (`DENY_DUPLICATE_ACTIVE`) — gate is authoritative (#3228 / #3143); takeover is cancel-then-begin, not dual active
+- ⊗ Force a second full dispatch on a retain-capable host solely because a mid-scope approval gate exists — re-message the live child (message-later / steer-mid-flight) instead (#3158)
+- ⊗ Claim retained-child / continue-by-agent-id semantics on hosts whose adapter marks one-shot only — capability-gate first; default split-dispatch (#3158 / #954)
+- ⊗ Use retained-child messaging to rewrite managed AGENTS, pinned skills, or policy mid-run — retention is orchestration only (#3158 / #3164)

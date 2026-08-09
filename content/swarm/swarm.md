@@ -47,7 +47,39 @@ This is a security and chaos bound for Directive swarm and any local A2A surface
 
 **Security rationale:** each extra A2A edge multiplies confused-deputy and compositional-fragment surface (untrusted peer content entering another agent context). Bounding the graph to parent/sibling/child caps that multiplier. Detail: [`../meta/security.md`](../meta/security.md) `## Unbounded A2A graphs (#3155)`, ADR [`../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md`](../../../docs/decisions/ADR-003-a2a-nuclear-family-topology.md).
 
-**Cross-links:** parent epic [#3179](https://github.com/deftai/directive/issues/3179) (bounded multi-agent graphs); pair [#3158](https://github.com/deftai/directive/issues/3158) (retained children — document only here); A2A client posture [#2705](https://github.com/deftai/directive/issues/2705) (this topology is a decision input; full client ADR remaining work stays on #2705).
+**Cross-links:** parent epic [#3179](https://github.com/deftai/directive/issues/3179) (bounded multi-agent graphs); pair [#3158](https://github.com/deftai/directive/issues/3158) (retained children); A2A client posture [#2705](https://github.com/deftai/directive/issues/2705) (this topology is a decision input; full client ADR remaining work stays on #2705).
+
+## Retained addressable sub-agents (#3158)
+
+Named mode **alongside** dispatch-and-collect for multi-agent orchestration. Extends status-polled multi-session workers (#2510) and recursive sub-agent delegation (#673); neither fully names this semantic.
+
+| Mode | Semantic |
+|------|----------|
+| **dispatch-and-collect** (default historical swarm) | One-shot envelope per child; worker is terminal when its tool loop ends; parent collects result and may spawn a successor. Mid-scope user-approval gates use **split-dispatch** (Scope A → report → approve → Scope B) (#954). |
+| **retained-child** (message-later / steer-mid-flight) | Child is a full agent with **persistent identity** (`agent_id` / session name). Results arrive as **messages** (not only one blocked return). Parent MAY **steer mid-flight** and **re-message the same child later** with context intact when the host keeps the child addressable. |
+
+**When to retain vs one-shot:**
+
+- ~ **Retain** for iterative refinement, standing expertise (same specialist across multiple related asks), mid-scope gates where re-attaching is cheaper than a second full dispatch, or long-lived pollers the parent still needs to steer.
+- ~ **One-shot / dispatch-and-collect** for closed unit-of-work envelopes (`drive-to: merge-ready` leaves that own their lifecycle end-to-end), hosts that cannot resume, and any child that exits terminal with no resume primitive.
+
+**Capability gate (host-dependent):**
+
+- ! Orchestrators MUST capability-gate retained-child mode on the runtime platform descriptor and host adapter (`skills/deft-directive-swarm` route table). Hosts that document continue-by-agent-id, resume-by-name, or steerable mid-flight sessions MAY use a **single dispatch with a mid-scope gate** and re-message the live child.
+- ! Hosts that treat a paused or completed worker as terminal (`agent_id` unreachable after tool-loop exit) MUST keep the **split-dispatch** mandate for mid-scope user-approval gates (#954). Do not invent retain semantics the host cannot enforce.
+- ⊗ Assume every host retains children. Capability-gate first; fall back to one-shot + split-dispatch.
+
+**Topology coupling (#3155):**
+
+- ! Retained children MUST obey **nuclear-family** messaging bounds (`## Communication Topology (#3155)`): parent / sibling / child only — not open mesh.
+- ⊗ Treat retain / message-later as license to mesh outside the nuclear family.
+
+**Stance (#3164 / #3179):**
+
+- ! Retention is for **orchestration** (addressable children, message-later, steer-mid-flight) — **not** mid-run constitution self-edit.
+- ⊗ Use retained-child messaging to rewrite managed AGENTS.md, pinned skills, policy flags, or other constitution substrate mid-run. Self-improvement stays propose-not-apply through gates (#3164).
+
+Skill depth: `skills/deft-directive-swarm/SKILL.md` (retained mode pointer) + per-host `references/host-*.md` continue/resume notes. Always-on mid-scope tier: `templates/agents-entry.md` § Mid-scope gate capability tier. Preamble: `templates/agent-prompt-preamble.md` §10.
 
 ## Communication Protocols
 

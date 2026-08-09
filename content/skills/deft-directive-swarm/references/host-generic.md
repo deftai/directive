@@ -25,3 +25,9 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 ## Serial self-execution / manual paste
 
 When no orchestration primitive is detected, follow the `generic-terminal` branch in `references/core-phase-3.md` Step 1 (serial self-execution downgrade + manual paste fallback).
+
+## Retained / continue-by-id (#3158)
+
+! **One-shot only:** generic-terminal and cloud escape paths have no platform continue-by-agent-id. Treat every paste / serial self-execution / `oz agent run-cloud` run as **dispatch-and-collect**.
+! Mid-scope user-approval gates MUST use **split-dispatch** (new paste / new run after approval) — never claim retained-child messaging on this descriptor.
+~ Stance: orchestration only (#3164).

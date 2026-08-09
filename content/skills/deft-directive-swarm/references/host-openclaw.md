@@ -93,6 +93,13 @@ Skill residual of #2874 / #2876 (spawn routing fixed; post-spawn ownership still
 ! Long pollers MUST honour on-disk heartbeats (`docs/subagent-heartbeat.md`, #1166).
 ! Pre-spawn verification and Duplicate-Agent rules in `references/core-phase-4.md` apply; resume the same OpenClaw session when possible rather than spawning a replacement on the same worktree.
 
+## Retained / continue-by-id (#3158)
+
+! **Retain-capable when the OpenClaw session remains addressable:** Prefer continue / resume by session id or name (host continue-by-agent-id surface) for message-later and steer-mid-flight instead of a second `sessions_spawn` on the same worktree for mid-scope gates.
+! When the session is terminal or the host cannot re-attach, use **one-shot + split-dispatch** (#954).
+! Resume the same session rather than spawning a replacement while the prior session is still live (#261 / #263).
+~ Stance: orchestration only (#3164). Topology bounds: #3155 nuclear-family (retain does not license open mesh).
+
 ### Parent-monitor after `subagent_announce` (#2943 / hard-stop #3131)
 
 ! When a leaf completion arrives via `subagent_announce` (parent-push completion), the parent’s **first response** MUST be one of:

@@ -23,3 +23,10 @@ Load this file only after detect selects Cursor. Do not load other host adapters
 ## Nested Task boundary
 
 ! Cursor ownership split (#2797 / #2893) lives in `references/core-phase-3.md` Orchestrator dispatch doctrine — a Cursor `Task` implementation leaf MUST NOT nested-spawn a review-monitor Task.
+
+## Retained / continue-by-id (#3158)
+
+! **Default one-shot after Task completion:** Cursor `Task` leaves that exit their tool loop are typically terminal — prefer **split-dispatch** for mid-scope user-approval gates (#954) unless the host surfaces an explicit continue/resume-by-agent-id for that Task.
+? When the host documents resume of the same Task / agent id with context intact, treat as **retain-capable** for message-later / steer-mid-flight and re-message instead of a full second Task spawn.
+! Liveness failures (`task verify:subagent-alive` exit `1` / `REDISPATCH_OK`) still authorize replacement re-dispatch — retain does not override the false-alive contract (#2824).
+~ Stance: orchestration only (#3164).

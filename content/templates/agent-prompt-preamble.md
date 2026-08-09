@@ -486,9 +486,9 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 
 Reference: issue #1880 (doctrine), #1877 (gate enforcement), #954 (multi-agent discipline). Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 dispatch + Phase 5→6, `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring.
 
-## 10. Dispatcher lifecycle hygiene -- workers are all-or-nothing
+## 10. Dispatcher lifecycle hygiene -- workers are all-or-nothing (capability-tiered, #3158)
 
-If your dispatch envelope contains a "pause for user approval" step in the middle of the worker's scope, REWRITE IT into two dispatches:
+**Default (hosts without retain):** If your dispatch envelope contains a "pause for user approval" step in the middle of the worker's scope, REWRITE IT into two dispatches:
 
 - WRONG: `Implement deliverables 1-3, then pause and wait for user confirmation before opening the PR.`
   - Worker implements 1-3, sends "paused, awaiting confirmation" message, exits its tool loop, lifecycle goes `succeeded` (terminal). User approval message hits a dead `agent_id`. Dispatcher must spawn a successor anyway -- the gate accomplished nothing except adding a context-handoff cost.
@@ -497,11 +497,13 @@ If your dispatch envelope contains a "pause for user approval" step in the middl
   - User reviews diff.
   - Dispatch B: `Open PR via REST, apply label, run review-cycle skill.`
 
-Lifecycle events (`succeeded`, `failed`, `blocked`, `in_progress`, `cancelled`, `errored`) are emitted by the platform observing the worker's process state -- the worker does not choose them directly. A worker that finishes its tool loop with a "paused" message will be observed as `succeeded` (terminal); the agent_id becomes unreachable. The only ways for a worker to remain reachable mid-flight are: keep the tool loop alive (long-lived poll / sleep) or be observed by the platform as `blocked` via a sanctioned blocked_action. Neither is a natural fit for "I finished sub-task A and want approval before sub-task B."
+Lifecycle events (`succeeded`, `failed`, `blocked`, `in_progress`, `cancelled`, `errored`) are emitted by the platform observing the worker's process state -- the worker does not choose them directly. A worker that finishes its tool loop with a "paused" message will be observed as `succeeded` (terminal); the agent_id becomes unreachable. The only ways for a worker to remain reachable mid-flight are: keep the tool loop alive (long-lived poll / sleep) or be observed by the platform as `blocked` via a sanctioned blocked_action. Neither is a natural fit for "I finished sub-task A and want approval before sub-task B" **when the host cannot re-attach**.
 
-Workers must therefore be all-or-nothing on their dispatch envelope. Approval gates split scope at the dispatcher layer.
+**Capability tier (#3158):** On hosts that **retain** a live, addressable child (continue-by-agent-id / resume-by-name / steerable mid-flight session — see host adapter retained notes and `swarm/swarm.md` § Retained addressable sub-agents), a single dispatch MAY include a mid-scope gate: the parent re-messages the same child after approval instead of forcing a second full dispatch. Capability-gate first via platform descriptor; do not invent retain on one-shot hosts. Retention is for **orchestration** (message-later, steer-mid-flight) only — not mid-run constitution self-edit (#3164). Topology bounds: #3155 nuclear-family (retain does not license open mesh).
 
-Reference: scope-expansion comment 4399553752 on issue #954.
+On hosts without retain, workers remain all-or-nothing on their dispatch envelope. Approval gates split scope at the dispatcher layer.
+
+Reference: scope-expansion comment 4399553752 on issue #954; retained-child amendment #3158.
 
 ## 10.5 Heartbeat contract (#1365)
 

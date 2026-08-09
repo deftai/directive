@@ -89,6 +89,11 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
 ⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
 
+## Mid-scope gate capability tier (#3158 / #954)
+
+! Mid-scope gates: **split-dispatch** when `agent_id` is terminal; retain-capable hosts (continue-by-agent-id / message-later / steer-mid-flight) MAY re-message the live child. Retention = orchestration only — not constitution self-edit (#3164). Depth: preamble §10; `deft-directive-swarm`. Topology: #3155 nuclear-family. ⊗ Invent retain on one-shot hosts.
+
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
