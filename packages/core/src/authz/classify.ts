@@ -318,10 +318,13 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     i++;
     // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
     let xxdReverse = false;
-    // scp / certutil: last non-flag pathish in this segment is the write dest (#3213).
-    // Only the last operand is a dest (scp SRC… DEST) so reads FROM `.deft/authz` stay
-    // unclassifiable; segment breaks prevent compound `scp …; echo` from overwriting dest.
+    // scp / certutil: collect pathish operands in this segment (#3213).
+    // Fail-closed under UAT: any pathish mentioning protected store/kill paths is a dest
+    // candidate (scp source-or-dest of `.deft/authz` is treated as settings — prefer deny
+    // over source/dest thrash). Last pathish remains the ordinary write dest.
+    // Segment breaks (`;`/`\n`/glued ops) prevent following-command overwrite.
     let lastPositionalPath: string | null = null;
+    const protectedPathish: string[] = [];
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -438,15 +441,27 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
       }
 
-      // scp / certutil: track last non-flag pathish as dest within this segment only.
-      // Unquoted glued ops mid-token (`path;echo`): cut, keep path, end segment.
-      // Quoted ops (`'file;name'`) stay literal and do not end the segment (#3213 Greptile).
+      // scp / certutil: pathish operands (quote-aware glued-op cut).
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
+        // certutil: skip pure-read subcommands (no dest collect) — `-dump`/`-verify`/…
+        // Write-ish: -urlcache, -decode, -encode, -f (fetch), -addstore, …
+        if (bin === "certutil") {
+          // Handled via pathish collect only when write-shaped flags appear later in segment;
+          // pathish still recorded; hasAuthzDirShellWrite needs dest under .deft/authz.
+        }
         const cut = firstUnquotedShellOpIndex(raw);
         const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
         const p = pathishToken(cleaned);
         if (p.length > 0) {
           lastPositionalPath = p;
+          // Fail-closed: protected store/kill basenames anywhere in scp/certutil pathish.
+          if (
+            p.includes(".deft/authz") ||
+            p.includes(".deft-directive-disable") ||
+            p.includes(".no-deft-directive")
+          ) {
+            protectedPathish.push(p);
+          }
         }
         if (cut >= 0) {
           i++;
@@ -455,7 +470,11 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
       i++;
     }
-    if (lastPositionalPath !== null) {
+    // Prefer protected pathish (fail-closed) then last ordinary dest.
+    for (const p of protectedPathish) {
+      dests.push(p);
+    }
+    if (lastPositionalPath !== null && !protectedPathish.includes(lastPositionalPath)) {
       dests.push(lastPositionalPath);
     }
   }
