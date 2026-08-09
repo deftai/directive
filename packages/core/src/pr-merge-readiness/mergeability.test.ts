@@ -166,6 +166,22 @@ describe("verdictBlockIsSoftOnly", () => {
     ).toBe(false);
   });
 
+  it("advisory should-not-merge prose is a HARD block even at conf 5 (#3225)", () => {
+    expect(
+      verdictBlockIsSoftOnly(
+        verdict({
+          found: true,
+          lastReviewedSha: HEAD,
+          confidence: 5,
+          shouldNotMerge: true,
+          p0Count: 0,
+          p1Count: 0,
+        }),
+        HEAD,
+      ),
+    ).toBe(false);
+  });
+
   it("confidence below resolved dogfood min=5 is a HARD block (#3095)", () => {
     // 4/5 would be soft under consumer default (4) but MUST stay hard when policy/dogfood is 5
     // so GitHub CLEAN reconciliation cannot clear a dogfood confidence holdout.

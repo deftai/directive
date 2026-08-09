@@ -116,6 +116,23 @@ describe("parseGreptileBody", () => {
     expect(v.confidence).toBeNull();
   });
 
+  it("parses advisory should-not-merge prose with conf 3/5 (#3225)", () => {
+    const body =
+      "## Confidence Score: 3/5\n\n" +
+      "Summary: should-not-merge — residual risk too high.\n\n" +
+      `Last reviewed commit: [x](https://github.com/o/r/commit/${HEAD})\n`;
+    const v = parseGreptileBody(body);
+    expect(v.found).toBe(true);
+    expect(v.confidence).toBe(3);
+    expect(v.shouldNotMerge).toBe(true);
+    expect(v.p0Count).toBe(0);
+    expect(v.p1Count).toBe(0);
+  });
+
+  it("does not flag clean bodies as should-not-merge (#3225)", () => {
+    expect(parseGreptileBody(cleanBody()).shouldNotMerge).toBe(false);
+  });
+
   it("isInformalClean helper respects canonical fields", () => {
     const v = parseGreptileBody(cleanBody());
     expect(isInformalCleanMissingCanonicalFields(v, cleanBody())).toBe(false);
@@ -166,6 +183,22 @@ describe("evaluateGates", () => {
 
   it("passes confidence 4", () => {
     expect(evaluateGates(1, HEAD, verdict({ confidence: 4 }))).toEqual([]);
+  });
+
+  it("fails on advisory should-not-merge prose even when conf meets floor (#3225)", () => {
+    const failures = evaluateGates(1, HEAD, verdict({ confidence: 5, shouldNotMerge: true }));
+    expect(failures.some((f) => f.includes("should-not-merge"))).toBe(true);
+    expect(failures.some((f) => f.includes("necessary, never sufficient"))).toBe(true);
+  });
+
+  it("fails conf 3/5 advisory prose live-case regardless of formal review (#3225)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({ confidence: 3, shouldNotMerge: true, p0Count: 0, p1Count: 0 }),
+    );
+    expect(failures.some((f) => f.includes("confidence is 3/5"))).toBe(true);
+    expect(failures.some((f) => f.includes("should-not-merge"))).toBe(true);
   });
 
   it("fails on P1 findings", () => {

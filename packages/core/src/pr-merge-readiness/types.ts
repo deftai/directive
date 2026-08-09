@@ -9,6 +9,12 @@ export interface GreptileVerdict {
   readonly informalClean: boolean;
   /** Greptile deliberately skipped review for an excluded PR author (#2375). */
   readonly excludedAuthor: boolean;
+  /**
+   * Advisory should-not-merge / not-safe-to-merge prose in the bot comment body
+   * (#3225). Independent of formal Changes-Requested review state; a hard block
+   * for merge-ready even when GitHub reports Ready-to-merge.
+   */
+  readonly shouldNotMerge: boolean;
   readonly rawBodyExcerpt: string;
 }
 

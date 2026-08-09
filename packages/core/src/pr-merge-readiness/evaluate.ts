@@ -78,6 +78,19 @@ export function evaluateGates(
       );
     }
 
+    // #3225: advisory should-not-merge prose blocks regardless of formal review
+    // state / Ready-to-merge mechanical box. Composes with minGreptileConfidence
+    // (#3095): sub-threshold conf already fails above; this catches high-conf
+    // prose blocks and conf-only paths that still name should-not-merge.
+    if (verdict.shouldNotMerge) {
+      failures.push(
+        "Reviewer bot comment prose records a should-not-merge / not-safe-to-merge " +
+          "advisory verdict (no formal Changes-Requested required). " +
+          "Mechanical Ready-to-merge / green checks are necessary, never sufficient (#3225). " +
+          "Address residual risk or wait for a clean advisory re-review before merge.",
+      );
+    }
+
     if (verdict.p0Count > 0 || verdict.p1Count > 0) {
       failures.push(
         `Greptile reports ${verdict.p0Count} P0 and ${verdict.p1Count} P1 findings ` +

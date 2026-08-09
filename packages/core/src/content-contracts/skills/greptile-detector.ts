@@ -21,6 +21,22 @@ const TIER3_NEGATIONS = ["No ", "Zero ", "no ", "NO "] as const;
 const CONFIDENCE_INLINE_RE = /Confidence Score:\s*(\d+)\s*\/\s*5/;
 const CONFIDENCE_HEADING_RE = /^#{1,6}\s*Confidence Score:\s*(\d+)\s*\/\s*5\s*$/m;
 
+/**
+ * Advisory should-not-merge prose (#3225) — reviewer bots often record a block
+ * only in comment body text without formal Changes-Requested. Patterns are
+ * applied after code-fence strip; case-insensitive. Composes with
+ * minGreptileConfidence (#3095): either signal alone is blocking.
+ */
+const ADVISORY_SHOULD_NOT_MERGE_RES: readonly RegExp[] = [
+  /\bnot\s+safe\s+to\s+merge\b/i,
+  // should-not-merge | should not merge | should–not–merge (hyphen optional each side)
+  /\bshould\s*[-–—]?\s*not\s*[-–—]?\s*merge\b/i,
+  /\bsafe\s+to\s+merge\s+once\s+corrected\b/i,
+  /\bdo\s+not\s+merge\b/i,
+  /\bnot\s+ready\s+to\s+merge\b/i,
+  /\bnot\s+ready\s+for\s+merge\b/i,
+];
+
 const NAIVE_INLINE_SHA_RE = /Last reviewed commit:\s*([0-9a-f]{7,40})/;
 const MARKDOWN_LINK_SHA_RE =
   /Last reviewed commit:\s*\[.*?\]\(https?:\/\/github\.com\/[^/]+\/[^/]+\/commit\/(?<sha>[0-9a-f]{7,40})/;
@@ -50,6 +66,36 @@ export function parseConfidence(body: string): number | null {
     m = CONFIDENCE_HEADING_RE.exec(body);
   }
   return m ? Number.parseInt(m[1] ?? "0", 10) : null;
+}
+
+/**
+ * True when comment body prose records an advisory should-not-merge / not-safe
+ * verdict (#3225). Code-fence regions are stripped first so detector docs do
+ * not self-trigger (#1004).
+ */
+export function hasShouldNotMergeProse(body: string): boolean {
+  const text = stripCodeFences(body);
+  return ADVISORY_SHOULD_NOT_MERGE_RES.some((re) => re.test(text));
+}
+
+/**
+ * Structured advisory verdict from bot comment body (#3225 / #1282 style).
+ * Confidence is independent of formal GitHub review state; compose with
+ * `minGreptileConfidence` (#3095) at the clean gate.
+ */
+export interface AdvisoryReviewerVerdict {
+  readonly confidence: number | null;
+  readonly shouldNotMerge: boolean;
+  readonly hasBlocking: boolean;
+}
+
+export function parseAdvisoryReviewerVerdict(body: string): AdvisoryReviewerVerdict {
+  const findings = detect(body);
+  return {
+    confidence: parseConfidence(body),
+    shouldNotMerge: hasShouldNotMergeProse(body),
+    hasBlocking: findings.has_blocking,
+  };
 }
 
 export function detect(body: string): DetectResult {
@@ -85,10 +131,9 @@ export function detect(body: string): DetectResult {
     }
   }
 
-  let tier3_sentinel = false;
-  if (body.includes("Not safe to merge")) {
-    tier3_sentinel = true;
-  }
+  // Tier 3: advisory should-not-merge prose (#3225 extends "Not safe to merge")
+  // plus count-prose and line-anchored P0/P1 sentinels (#910).
+  let tier3_sentinel = hasShouldNotMergeProse(body);
   if (!tier3_sentinel) {
     for (const m of body.matchAll(TIER3_COUNT_RE)) {
       const line = lineFor(body, m.index ?? 0);
@@ -164,6 +209,29 @@ Last reviewed commit: [refactor: thing](https://github.com/deftai/directive/comm
 
 Summary: Not safe to merge until the mocked-import test defect and the two
 previously filed P1s are resolved.
+`;
+
+/** #3225 live-case shape: conf 3/5 + should-not-merge prose, zero badges. */
+export const BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3 = `Greptile review of head advisory01
+
+## Confidence Score: 3/5
+
+Summary: should-not-merge — residual risk on the auth path is too high for
+this change set. Formal review state is still Comment (not Changes Requested).
+
+Last reviewed commit: [feat: advisory](https://github.com/deftai/directive/commit/advisory01abcdef12)
+`;
+
+/** Green mechanical path trap: high conf but explicit do-not-merge prose. */
+export const BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF = `Greptile review of head advisory02
+
+Confidence Score: 5/5
+
+No P0 or P1 issues found via badges.
+
+Summary: Do not merge until the operator documents residual risk.
+
+Last reviewed commit: [docs: note](https://github.com/deftai/directive/commit/advisory02abcdef12)
 `;
 
 export const BODY_TIER3_COUNT_PROSE_ONLY = `Greptile review of head deadbeef
