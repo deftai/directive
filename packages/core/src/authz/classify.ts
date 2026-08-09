@@ -395,9 +395,18 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // scp / certutil: every non-flag pathish in the segment is a candidate dest (#3213 P1).
-      // Trailing `;` glued to a path is stripped by pathishToken's quote strip only — strip ops.
+      // Trailing `;`/`&`/`|` glued to a path: strip with O(n) walk (no poly-regex; CodeQL).
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
-        const cleaned = raw.replace(/[;&|]+$/g, "");
+        let end = raw.length;
+        while (end > 0) {
+          const ch = raw[end - 1] as string;
+          if (ch === ";" || ch === "&" || ch === "|") {
+            end--;
+            continue;
+          }
+          break;
+        }
+        const cleaned = end === raw.length ? raw : raw.slice(0, end);
         const p = pathishToken(cleaned);
         if (p.length > 0) {
           segmentPathish.push(p);
