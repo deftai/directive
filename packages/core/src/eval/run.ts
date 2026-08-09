@@ -438,12 +438,27 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
     summary,
   };
 
-  // #1584 / #3215: when shared-benchmark.json is present, wire + persist the pin.
+  // Persist ledger first so a failed golden-run write never leaves a dangling
+  // shared-benchmark pin without a matching run row (#3215 Greptile).
+  if (persist) {
+    try {
+      persistGoldenRun(projectRoot, record);
+    } catch (err: unknown) {
+      return {
+        code: 2,
+        record,
+        message: `eval:run: failed to persist golden run: ${String(err)}`,
+        sharedBenchmarkManifest: null,
+      };
+    }
+  }
+
+  // #1584 / #3215: wire (+ persist when ledger was written) shared-benchmark pin.
   let sharedBenchmark: {
     applied: boolean;
     persisted: boolean;
     manifest: Record<string, unknown> | null;
-  } = { applied: false, persisted: false, manifest: null };
+  };
   try {
     sharedBenchmark = applyVersionPinToSharedBenchmark(projectRoot, frameworkVersionPin, {
       persist,
@@ -455,19 +470,6 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
       message: `eval:run: failed to wire shared-benchmark pin: ${String(err)}`,
       sharedBenchmarkManifest: null,
     };
-  }
-
-  if (persist) {
-    try {
-      persistGoldenRun(projectRoot, record);
-    } catch (err: unknown) {
-      return {
-        code: 2,
-        record,
-        message: `eval:run: failed to persist golden run: ${String(err)}`,
-        sharedBenchmarkManifest: sharedBenchmark.manifest,
-      };
-    }
   }
 
   const lines = [
