@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`verify:scope-provenance` base-visible approval false positive on pending→active (#3205).** Authority now comes from the validated human approval record in the merge base (schema, plan id, path, digest; current record unchanged), not from whether the active xBRIEF path existed on the base. Same-PR approval rewrites, missing/malformed/agent/mismatched base approvals, and expansion beyond base-approved scope still fail closed. Real-Git regression matrix. Closes #3205. Refs #3145.
 
+- **Security: UAT Shell fail-closed for curl/wget/xxd/openssl plant of authz grants and kill-switch (#3206).** Downloader/decoder destination flags (-o / --output / -O / -out, including = and attached short forms) that target .deft/authz/** or kill-switch basenames (.deft-directive-disable, .no-deft-directive) classify as settings under active UAT — residual fail-open after #3186. Ordinary downloads stay unclassifiable. Closes #3206. Refs #3186, #3110, #3039.
+
 ### Removed
 
 ## [0.98.0] - 2026-08-07
@@ -47,7 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Security: UAT Shell fail-closed for curl/wget/xxd/openssl plant of authz grants and kill-switch (#3206).** Downloader/decoder destination flags (`-o` / `--output` / `-O` / `-out`, including `=` and attached short forms) that target `.deft/authz/**` or kill-switch basenames (`.deft-directive-disable`, `.no-deft-directive`) classify as settings under active UAT — residual fail-open after #3186. Ordinary downloads stay unclassifiable. Closes #3206. Refs #3186, #3110, #3039.
 - **Vitest branch coverage restored above 85% (#3185).** Focused test-boundary policy/evaluate edges, scope-provenance digest IO, consumer-check-contract pure helpers, OpenClaw soft-rebind doctor branches, and platform-status weather URL edges clear the v0.97.0 84.95% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.66%, branches 85.1%, functions 95.98%. Closes #3185.
 - **Security: UAT Shell fail-closed for authz obfuscation, kill-switch/policy, assist-scratch symlink (#3186).** Under active UAT, write-capable programmatic Shell and kill-switch/policy authority mutators classify as settings (no `shell-op-unclassifiable` fail-open); assist-scratch allows only realpath-contained non-symlink scratch roots. Closes #3186.
 
