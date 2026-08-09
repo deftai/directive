@@ -43,6 +43,7 @@ These are the specific blocks the study measured *hurting* agent quality — tre
 
 When a workflow skill must not be skipped on trigger miss (implementation, pre-PR, review-cycle, swarm), name it in AGENTS.md as an **always-pin** — not by pasting the skill body. Tier definitions, default pin list, and anti-patterns (do not pin entire language packs): [`skill-pin-policy.md`](./skill-pin-policy.md).
 
+On REPL-first or self-mutating hosts, pins and file gates have honest limits — see [`host-surface-assumptions.md`](./host-surface-assumptions.md) (#3162).
 ## Relationship to directive's own dogfooding
 
 Directive holds its own AGENTS.md to this bar via the `verify:agents-md-budget` ratchet (#645) and the consumer-side advisory signal (`agentsMdAdvisory`, #2155). The doc-sprawl awareness step in the `deft-directive-sync` skill (#647) surfaces reachable-doc-volume drift before it silently degrades agent quality. This doc is the "how to structure it well" companion to those "keep it from bloating" guards.

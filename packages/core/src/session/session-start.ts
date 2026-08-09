@@ -5,6 +5,11 @@ import { bindSessionGeneration } from "../freshness/bind.js";
 import { readLiveGeneration } from "../freshness/generation.js";
 import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import {
+  type HostContentSurfaceSeams,
+  hostContentSurfaceToDict,
+  maybeFormatHostContentSurfaceLines,
+} from "../platform/host-content-surface.js";
+import {
   detectEnvironmentContext,
   type EnvironmentContext,
   environmentContextToDict,
@@ -146,6 +151,11 @@ export interface SessionStartOptions {
   readonly verifyTools?: (output: (line: string) => void) => { exitCode: number };
   readonly resolveUserMd?: (projectRoot: string) => ResolveUserMdResult;
   readonly probeEnvironment?: () => EnvironmentContext;
+  /**
+   * #3162: host content-surface class + managed-section drift seams (tests inject).
+   * Fail-open advisory only — never blocks session:start.
+   */
+  readonly hostContentSurfaceSeams?: HostContentSurfaceSeams;
   readonly probeReleaseAvailability?: (
     projectRoot: string,
     options: ReleaseAvailabilityProbeOptions,
@@ -498,6 +508,36 @@ function resolveSessionScmReadiness(
   }
 }
 
+function resolveHostContentSurface(
+  projectRoot: string,
+  options: SessionStartOptions,
+): { report: ReturnType<typeof maybeFormatHostContentSurfaceLines>["report"]; lines: string[] } {
+  try {
+    const seams = options.hostContentSurfaceSeams ?? {};
+    return maybeFormatHostContentSurfaceLines(projectRoot, {
+      ...seams,
+      environ: seams.environ ?? options.env,
+    });
+  } catch {
+    // best-effort — session start must not abort on host-surface probe failures (#3162)
+    return {
+      report: {
+        contentClass: "unknown",
+        classSource: "probe-error",
+        signals: [],
+        managedSection: {
+          state: "unknown",
+          embeddedSha: null,
+          bodyHash: null,
+          path: `${projectRoot}/AGENTS.md`,
+        },
+        runtimeMode: null,
+      },
+      lines: [],
+    };
+  }
+}
+
 function runReadOnlySessionStart(
   projectRoot: string,
   options: SessionStartOptions,
@@ -515,10 +555,13 @@ function runReadOnlySessionStart(
     : safeDiagnostic;
   // #2275: report SCM availability even on read-only alignment (shallow; no network).
   const scm = resolveSessionScmReadiness(options, false);
+  // #3162: host content-surface class + managed drift (advisory).
+  const hostSurface = resolveHostContentSurface(projectRoot, options);
   lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
   lines.push(userMdLine);
   lines.push(formatEnvironmentContext(environment));
   lines.push(...formatScmReadinessLines(scm));
+  lines.push(...hostSurface.lines);
   const resultPayload = {
     ready: true,
     exit_code: 0,
@@ -540,6 +583,7 @@ function runReadOnlySessionStart(
     },
     environment: environmentContextToDict(environment),
     scm: scmReadinessToDict(scm),
+    host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     message: READ_ONLY_RESULT_MESSAGE,
   };
   return { code: 0, payload: resultPayload, lines };
@@ -593,12 +637,15 @@ function runSessionRearm(
   const alignmentMessage = `${READ_ONLY_ALIGNMENT_MESSAGE} ${userMdLine}`;
   // #2275: re-arm still reports SCM state (shallow; no network).
   const scm = resolveSessionScmReadiness(options, false);
+  // #3162: host content-surface class + managed drift (advisory).
+  const hostSurface = resolveHostContentSurface(projectRoot, options);
 
   const lines: string[] = [
     READ_ONLY_ALIGNMENT_MESSAGE,
     userMdLine,
     formatEnvironmentContext(environment),
     ...formatScmReadinessLines(scm),
+    ...hostSurface.lines,
     REARM_SKIPPED_FAT_PATH_MESSAGE,
   ];
 
@@ -770,6 +817,7 @@ function runSessionRearm(
       },
       environment: environmentContextToDict(environment),
       scm: scmReadinessToDict(scm),
+      host_content_surface: hostContentSurfaceToDict(hostSurface.report),
       message: code === 0 ? "session ritual re-armed" : "session ritual re-arm failed",
     },
     lines,
@@ -941,6 +989,15 @@ export function runSessionStart(
   const scm = resolveSessionScmReadiness(options, allowOptionalNetwork);
   lines.push(...formatScmReadinessLines(scm));
   stepTimings.push({ name: "scm_readiness", duration_ms: elapsedMs(scmStepStarted) });
+
+  // #3162: host content-surface class + managed AGENTS drift (advisory; never blocks).
+  const hostSurfaceStepStarted = performance.now();
+  const hostSurface = resolveHostContentSurface(projectRoot, options);
+  lines.push(...hostSurface.lines);
+  stepTimings.push({
+    name: "host_content_surface",
+    duration_ms: elapsedMs(hostSurfaceStepStarted),
+  });
 
   if (!quickSteps.branch_policy) {
     const stepStarted = performance.now();
@@ -1195,6 +1252,7 @@ export function runSessionStart(
     },
     environment: environmentContextToDict(environment),
     scm: scmReadinessToDict(scm),
+    host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
   // #2994: local process-cost event (best-effort; never blocks ceremony).
