@@ -12,10 +12,13 @@ Canonical contract (Wave 0 design for [#2742](https://github.com/deftai/directiv
 
 That note inventories Directive memory SoTs (`USER.md` Personal, lessons/packs, triage cache, session ritual, decision/continue), defines **hot / cold / operator-gated** tiers with freeze and budget rules, lists non-goals, and retargets #688, #978, #832–#835, and #479.
 
+**Structured decision log (#1396 / cold-path #3211):** single durable *why* events — not a second memory product. Record significant choices with `task decision:write`; re-load with `task decision:list` or `xbrief/decisions/`; depth [`content/docs/decision-log.md`](./decision-log.md). Distinct from triage labels, heavyweight `docs/decisions/ADR-*.md`, and lessons (#1513).
+
 ## Rules (discovery only)
 
 - ! Prefer the design note vocabulary over free-floating “agent-memory contracts” or Mem0-default RAG for Directive core.
 - ! Attach Wave 1+ pattern work (#832–#834, #835, #479) to the tiers and SoTs in the design note.
+- ! For significant architecture/product/security/process choices, use the decision log (`decision:write` / `decision:list`) rather than inventing parallel intent-debt storage.
 - ⊗ Revive `x-vbrief/agent-memory` / `swarm/agent-memory.md` (#2700 solution shape abandoned).
 - ⊗ Implement mid-session mutable always-in hot memory without freeze-at-session-start.
 
@@ -24,4 +27,5 @@ That note inventories Directive memory SoTs (`USER.md` Personal, lessons/packs, 
 - Session ritual: `content/commands.md` § Session-start ritual  
 - Continue checkpoints: `content/resilience/continue-here.md`  
 - Prompt assembly (freeze mechanism): `content/patterns/prompt-assembly-layer-ordering.md`  
+- Structured decision log: [`content/docs/decision-log.md`](./decision-log.md) (`task decision:write` / `task decision:list`, #1396)  
 - Skills Index: `REFERENCES.md` → When Managing Context or Long Tasks
