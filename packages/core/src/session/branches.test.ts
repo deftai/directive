@@ -305,6 +305,12 @@ describe("session branches", () => {
         throw new Error("boom");
       },
       writeHistory: false,
+      // #3214: force full ceremony so triage runs (cold default is rapid).
+      ceremonyDialInputs: {
+        taskSize: "M",
+        modelTier: "mid",
+        projectShape: "project",
+      },
     });
     expect(result.code).toBe(1);
     const [state] = readRitualState(root);

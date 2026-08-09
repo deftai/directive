@@ -133,6 +133,12 @@ describe("package-manager network scope (#2182)", () => {
       allowOptionalNetwork: true,
       runStalenessTickler: () => ({ lines: [], prompted: false }),
       runTriageWelcome: () => ({ exitCode: 0 }),
+      // #3214: force full ceremony so optional release probe runs (cold default is rapid).
+      ceremonyDialInputs: {
+        taskSize: "M",
+        modelTier: "mid",
+        projectShape: "project",
+      },
     });
 
     expect(result.code === 0 || result.code === 1).toBe(true);
