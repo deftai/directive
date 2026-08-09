@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
-import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
+import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import type { GitRunResult } from "./git.js";
 import {
@@ -388,7 +388,6 @@ describe("runSessionStart ceremony dial (#3214)", () => {
     expect(gated.cache_fresh?.deferred_reason).toBeUndefined();
     expect(gated.agent_hooks?.deferred_reason).toBeUndefined();
   });
-
 
   it("provisional M size escalates to standard without plan-item effort", () => {
     const root = tempRoot();
