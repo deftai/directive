@@ -74,9 +74,15 @@ export const CANONICAL_DEFT_TASKFILE_PATH_RE = /^(?:\.\.?\/)?\.deft\/core\/Taskf
 const INCLUDE_TASKFILE_KEY_RE =
   /^taskfile:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
 
-/** Short form `name: ./.deft/core/Taskfile.yml` under includes:. */
-const INCLUDE_SHORT_FORM_RE =
-  /^[\w.-]+:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
+/**
+ * Short form under includes: — **must** be namespace `deft` so `task deft:check`
+ * remains the documented greenfield entrypoint (Greptile conf residual #3218).
+ */
+const INCLUDE_DEFT_SHORT_FORM_RE =
+  /^deft:\s*['"]?((?:\.\.?\/)?\.deft\/core\/Taskfile\.yml)['"]?\s*(?:#.*)?$/i;
+
+/** Object-form entry start for the `deft` namespace only. */
+const INCLUDE_DEFT_ENTRY_START_RE = /^deft\s*:\s*(?:#.*)?$/i;
 
 /** @deprecated Prefer path/line parsers; kept for export stability. */
 export const CANONICAL_DEFT_TASKFILE_INCLUDE_RE = INCLUDE_TASKFILE_KEY_RE;
@@ -90,9 +96,10 @@ export const CANONICAL_DEFT_TASKFILE_INCLUDE_RE = INCLUDE_TASKFILE_KEY_RE;
  *
  * Greptile P1 (#3218):
  * - Path text in comments / cmds / vars / non-include keys must not match.
- * - Only **direct** include entries count: short form `name: path` or object form
- *   `name: { taskfile: path }` (immediate property). Nested
+ * - Only **direct** include entries count: short form `deft: path` or object form
+ *   `deft: { taskfile: path }` (immediate property). Nested
  *   `includes.some.nested.taskfile` is not an executable go-task include.
+ * - Namespace must be `deft` so the documented `task deft:check` entrypoint exists.
  */
 export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): string | null {
   const lines = rootTaskfileText.replace(/\r\n/g, "\n").split("\n");
@@ -102,6 +109,8 @@ export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): s
   let directChildIndent: number | null = null;
   /** Indent of immediate properties under the current object-form include entry. */
   let entryBodyIndent: number | null = null;
+  /** True while inside the body of the `deft:` include entry. */
+  let inDeftEntryBody = false;
 
   for (const raw of lines) {
     const stripped = raw.trim();
@@ -117,6 +126,7 @@ export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): s
         includesIndent = indent;
         directChildIndent = null;
         entryBodyIndent = null;
+        inDeftEntryBody = false;
       }
       continue;
     }
@@ -127,11 +137,13 @@ export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): s
         includesIndent = indent;
         directChildIndent = null;
         entryBodyIndent = null;
+        inDeftEntryBody = false;
         continue;
       }
       inIncludes = false;
       directChildIndent = null;
       entryBodyIndent = null;
+      inDeftEntryBody = false;
       continue;
     }
 
@@ -144,16 +156,20 @@ export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): s
     // Direct include entry line (namespace key under includes:).
     if (indent === directChildIndent) {
       entryBodyIndent = null;
-      const short = INCLUDE_SHORT_FORM_RE.exec(stripped);
+      inDeftEntryBody = false;
+      const short = INCLUDE_DEFT_SHORT_FORM_RE.exec(stripped);
       if (short?.[1] !== undefined && CANONICAL_DEFT_TASKFILE_PATH_RE.test(short[1])) {
         return short[1].replace(/\\/g, "/");
       }
-      // Object-form entry start (`name:` / `name: # comment`) — wait for body props.
+      // Object-form `deft:` entry — only this namespace exposes task deft:check.
+      if (INCLUDE_DEFT_ENTRY_START_RE.test(stripped)) {
+        inDeftEntryBody = true;
+      }
       continue;
     }
 
-    // Nested under a direct include entry: only immediate properties count.
-    if (indent > directChildIndent) {
+    // Nested under a direct include entry: only immediate props of `deft:` count.
+    if (indent > directChildIndent && inDeftEntryBody) {
       if (entryBodyIndent === null) {
         entryBodyIndent = indent;
       }

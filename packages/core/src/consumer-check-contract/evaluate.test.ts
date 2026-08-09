@@ -174,6 +174,28 @@ tasks:
     ).toBe("./.deft/core/Taskfile.yml");
   });
 
+  it("requires include namespace deft for task deft:check entrypoint (Greptile #3218)", () => {
+    // Arbitrary namespace with the same path does not expose task deft:check.
+    const otherNs = `version: '3'
+includes:
+  other:
+    taskfile: ./.deft/core/Taskfile.yml
+    optional: true
+`;
+    expect(resolveCanonicalDeftTaskfileInclude(otherNs)).toBe(null);
+
+    const result = evaluateConsumerCheckContract("/tmp/other-ns", {
+      rootTaskfileText: otherNs,
+      verifyTaskfileText: null,
+      includedFrameworkTaskfileText: FRAMEWORK_INCLUDED_TASKFILE,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
   it("does not treat nested non-direct include taskfile as canonical (Greptile P1 #3218)", () => {
     // includes.some.nested.taskfile is not an executable go-task include entry.
     const nested = `version: '3'
