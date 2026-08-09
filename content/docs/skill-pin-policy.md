@@ -75,6 +75,14 @@ Operator phrases such as **through merge**, **drive to merge**, **land/ship issu
 
 ! AGENTS.md carries short always-on `!` / `⊗` bullets under **Through-merge worker dispatch (#3032)** (agents-entry + maintainer multi-agent doctrine). N=1 still uses the swarm/solo launch path; parent MUST NOT implement when background subagent/worktree dispatch is available. See also swarm Phase 0 `references/core-phase-0.md` and #1880 Gap C.
 
+## Host honesty (#3162)
+
+Always-pin names in AGENTS.md are **agent process gates**. They do not alone stop a host refine loop or REPL-kernel work product that never becomes a file.
+
+- Pins are constitution locks **when the host honors them** (Tier-1 hooks / cooperative deposit).
+- Full #830 pin product (lifecycle demotion immunity + host-path deny) is separate; this policy is the #2508 always-pin tier only.
+- File gates vs REPL-first / self-mutating limits: [`host-surface-assumptions.md`](./host-surface-assumptions.md). Stance: do not reverse #3164.
+
 ## Related
 
 - Skills Index: `REFERENCES.md` § Skills Index
@@ -82,3 +90,4 @@ Operator phrases such as **through merge**, **drive to merge**, **land/ship issu
 - Trigger coverage evals: #1586
 - Review-surface precedence: #2308 / `deft-directive-review-cycle`
 - Through-merge parent-must-dispatch: #3032 / AGENTS.md `## Through-merge worker dispatch (#3032)`
+- Host-surface assumptions (file gates vs REPL / self-mutate): [`host-surface-assumptions.md`](./host-surface-assumptions.md) (#3162)

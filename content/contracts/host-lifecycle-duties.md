@@ -84,12 +84,21 @@ Full operator steps: [`../docs/openclaw-agent-host.md`](../docs/openclaw-agent-h
 | **Buzz / Pi** | Session-first family-2 peers. Implement a dedicated `host-*.md` adapter when scheduled; reuse this duty table. Do not invent full platform abstraction in this cut. |
 | **Warp / Grok Build** | Family-1-adjacent spawn hosts; deposit + AGENTS still own session orientation. Swarm launch adapters are separate from cold-start Skills Index load. |
 
+## Content-surface honesty (#3162)
+
+Session start records a **host content-surface class** (`file-first` / `repl-first` / `self-mutating` / `unknown`) and managed AGENTS section drift. Operators set `DEFT_HOST_CONTENT_SURFACE` (or REPL / self-mutate env flags) when the host is not file-first.
+
+! Do not assume file gates or agent-only pins see host-kernel work product or host refine CRUDs.
+
+Full honesty matrix and Tier-1 hook home: [`../docs/host-surface-assumptions.md`](../docs/host-surface-assumptions.md). Stance #3164 unchanged.
+
 ## Anti-patterns
 
 - ⊗ Freestyle host tools first on Deft-shaped intent, then maybe open a skill.
 - ⊗ Treat host skill inventory (`available_skills`, workspace skill folders) as the Directive Skills Index without a bridge.
 - ⊗ Assume IDE deposit behavior on a session-first host that started outside the project root.
 - ⊗ Abstract multi-host portability RFC with zero OpenClaw (or second-family) behavior change.
+- ⊗ Assume file/git gates saw REPL-kernel or mid-run host-refine work product (#3162).
 
 ## Acceptance pointer
 

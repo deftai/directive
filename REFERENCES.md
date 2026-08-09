@@ -219,7 +219,8 @@ Load as needed:
 - **[context/fractal-summaries.md](./content/context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
 - **[context/examples.md](./content/context/examples.md)** - Few-shot and behavioral example guidance
 - **[docs/inter-run-learning.md](./content/docs/inter-run-learning.md)** - Inter-run learning surface pointer (#2742 / epic #2741); hot/cold/operator-gated contract over USER.md, packs, triage cache, session ritual, decision/continue — load before inventing agent-memory patterns
-- Load: When tasks are complex, multi-phase, multi-session, or when context budget / cross-run memory is a concern
+- **[docs/decision-log.md](./content/docs/decision-log.md)** - Structured agent decision log (#1396 / #3211); `task decision:write` / `task decision:list`, `xbrief/decisions/`, intent debt, dispose, revisit trigger — cold-path SoT for durable *why* (not triage, ADRs, or lessons)
+- Load: When tasks are complex, multi-phase, multi-session, or when context budget / cross-run memory is a concern; when recovering or recording significant choices
 
 ### When Verifying Agent Work
 

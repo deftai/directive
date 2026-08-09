@@ -1,6 +1,7 @@
 export * from "./agents-consumer-header.js";
 export * from "./agents-md.js";
 export * from "./constants.js";
+export * from "./host-content-surface.js";
 export * from "./ip-risk.js";
 export * from "./linear-scan.js";
 export * from "./platform-capabilities.js";
