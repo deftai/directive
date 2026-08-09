@@ -20,7 +20,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { statSync } from "node:fs";
+import { lstatSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 
@@ -89,9 +89,18 @@ export interface DeftDirectiveDisableState {
   readonly active: boolean;
 }
 
+/**
+ * Regular-file check that does **not** treat a symlink as an intentional kill-switch
+ * (#3213 residual after #3206). `statSync().isFile()` follows links, so
+ * `ln -sf /etc/hosts .deft-directive-disable` would activate enforcement off.
+ * Prefer `lstatSync`: only a non-symlink regular file counts as present.
+ */
 function defaultIsFile(path: string): boolean {
   try {
-    return statSync(path).isFile();
+    const lst = lstatSync(path);
+    // Attacker-planted symlink → not an intentional operator flag (#3213).
+    if (lst.isSymbolicLink()) return false;
+    return lst.isFile();
   } catch {
     return false;
   }

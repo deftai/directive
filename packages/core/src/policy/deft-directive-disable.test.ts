@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -63,6 +63,23 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     const root = tempRoot();
     mkdirSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME));
     expect(detectDeftDirectiveDisable(root).present).toBe(false);
+  });
+
+  it("does not activate on a symlink plant of the kill-switch (#3213)", () => {
+    const root = tempRoot();
+    const target = join(root, "real-hosts-like.txt");
+    writeFileSync(target, "x", "utf8");
+    const flag = join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
+    try {
+      symlinkSync(target, flag);
+    } catch {
+      // Windows may require elevated privileges for file symlinks; skip if unsupported.
+      return;
+    }
+    const state = detectDeftDirectiveDisable(root, { isGitTracked: () => false });
+    expect(state.present).toBe(false);
+    expect(state.active).toBe(false);
+    expect(isDeftDirectiveDisableActive(root, { isGitTracked: () => false })).toBe(false);
   });
 
   it("reports deposit present without treating it as inconsistent", () => {

