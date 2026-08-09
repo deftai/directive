@@ -16,6 +16,8 @@ Constitution (managed AGENTS.md, pinned skills, policy) stays gated. Playbook-ti
 
 Full stance and MUST/MAY bullets: [main.md § Self-Improving, Not Self-Editing](../../main.md#self-improving-not-self-editing-3164). Parent epic #3179; safety-via-gates #1200; trajectory/refine #2741.
 
+Host honesty when the **runtime** self-mutates or is REPL-first (file gates / pins cannot see host-kernel work): [host-surface-assumptions.md](../docs/host-surface-assumptions.md) (#3162). Does not reverse this stance.
+
 ---
 
 ## Deterministic > Probabilistic

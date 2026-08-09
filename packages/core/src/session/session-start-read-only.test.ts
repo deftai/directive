@@ -154,6 +154,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
     expect(steps.map((s) => s.name)).toEqual([
       "alignment",
       "scm_readiness",
+      "host_content_surface",
       "branch_policy",
       "verify_tools",
       "triage_welcome",

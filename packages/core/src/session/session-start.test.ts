@@ -235,6 +235,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     expect(names).toEqual([
       "alignment",
       "scm_readiness",
+      "host_content_surface",
       "branch_policy",
       "verify_tools",
       "triage_welcome",
