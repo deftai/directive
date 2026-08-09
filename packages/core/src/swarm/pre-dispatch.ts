@@ -98,9 +98,11 @@ export function looksLikeFilesystemTarget(targetId: string): boolean {
  * variants of the same worktree do not split gate state (#3228 Greptile P1).
  *
  * Rules:
- * - If the target exists under projectRoot (or looks like a path), normalize
- *   via resolve + realpath (when present) + separator fold + lowercase.
- * - Otherwise keep as opaque (branch/ref names such as `feat/foo`).
+ * - Worktree / filesystem targets: always resolve to a stable absolute key
+ *   (even before the directory exists) so pre/post-mkdir identity cannot
+ *   change. realpath when present collapses symlink aliases.
+ * - Opaque branch/ref only when the id looks like a multi-segment git ref
+ *   (`feat/foo`) AND is not path-like AND does not exist on disk.
  */
 export function normalizeTargetId(projectRoot: string, targetId: string): string {
   const trimmed = targetId.trim();
@@ -108,9 +110,11 @@ export function normalizeTargetId(projectRoot: string, targetId: string): string
 
   const abs = resolve(projectRoot, trimmed);
   const exists = existsSync(abs);
-  // Bare names that resolve to an existing dir/file are filesystem targets too
-  // (not only ".deft-scratch/..." heuristics).
-  if (!exists && !looksLikeFilesystemTarget(trimmed)) {
+
+  // Multi-segment git-style refs stay opaque only when not path-like / missing.
+  // Bare names always get the stable absolute key (pre/post create).
+  const gitStyleRef = trimmed.includes("/") && !looksLikeFilesystemTarget(trimmed);
+  if (gitStyleRef && !exists) {
     return trimmed;
   }
 
@@ -119,13 +123,11 @@ export function normalizeTargetId(projectRoot: string, targetId: string): string
     try {
       pathKey = realpathSync(abs);
     } catch {
-      // Keep resolved path if realpath fails (permissions / race).
+      // Keep resolve() key if realpath fails — still stable absolute identity.
     }
   }
   pathKey = normalize(pathKey).replace(/\\/g, "/");
-  // Case-fold always for filesystem keys so case-insensitive volumes (Windows,
-  // default macOS, some Linux mounts) cannot split the ledger. Opaque branch
-  // ids never reach this branch.
+  // Case-fold always for filesystem keys (Windows / macOS / some Linux mounts).
   pathKey = pathKey.toLowerCase();
   if (pathKey.length > 1 && pathKey.endsWith("/")) {
     pathKey = pathKey.slice(0, -1);

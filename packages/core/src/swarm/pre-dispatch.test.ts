@@ -294,4 +294,28 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(peer.exitCode).toBe(1);
     expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
   });
+
+  it("bare target key is stable before and after mkdir (no dual ledger)", () => {
+    const root = tempRoot();
+    const bare = "wt-precreate";
+    const first = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-pre",
+      targetId: bare,
+      action: "begin",
+      sourceRevision: "r1",
+    });
+    expect(first.exitCode).toBe(0);
+    mkdirSync(join(root, bare));
+    const peer = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-pre",
+      targetId: bare,
+      action: "begin",
+      sourceRevision: "r2",
+    });
+    expect(peer.exitCode).toBe(1);
+    expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(peer.targetId).toBe(first.targetId);
+  });
 });
