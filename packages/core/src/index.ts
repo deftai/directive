@@ -27,6 +27,7 @@ export * as evalCrud from "./eval/crud-telemetry.js";
 export * as evalHealth from "./eval/health.js";
 export * as evalReport from "./eval/report.js";
 export * as evalRun from "./eval/run.js";
+export * as evalVersionPin from "./eval/version-pin.js";
 export * as events from "./events/attribution-ledger.js";
 export * from "./forward-coverage/evaluate.js";
 export * as freshness from "./freshness/index.js";

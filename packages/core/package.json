@@ -156,6 +156,10 @@
       "types": "./dist/eval/report.d.ts",
       "default": "./dist/eval/report.js"
     },
+    "./eval/version-pin": {
+      "types": "./dist/eval/version-pin.d.ts",
+      "default": "./dist/eval/version-pin.js"
+    },
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"

@@ -2,11 +2,15 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { readCorePackageVersion } from "../engine-version.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveEvalPath } from "../layout/resolve.js";
 import { BYTE_DIFF_WHOLE_FILE_THRESHOLD, InstrumentedVbriefCrud } from "./crud-telemetry.js";
 import { evaluateHealth } from "./health.js";
+import {
+  applyVersionPinToSharedBenchmark,
+  type FrameworkVersionPin,
+  resolveFrameworkVersionPin,
+} from "./version-pin.js";
 
 export const GOLDEN_RUNS_HISTORY_REL = "results/golden-runs.jsonl";
 export const GOLDEN_RUN_SCHEMA_VERSION = 1 as const;
@@ -70,7 +74,13 @@ export interface GoldenTaskResult {
 export interface GoldenRunRecord {
   readonly schemaVersion: typeof GOLDEN_RUN_SCHEMA_VERSION;
   readonly runId: string;
+  /** Framework version pin for this run (alias of frameworkVersionPin.frameworkVersion). */
   readonly directiveVersion: string;
+  /**
+   * Resolved framework version pin captured at run start (#3215).
+   * Optional for ledger rows written before the purity gate shipped.
+   */
+  readonly frameworkVersionPin?: FrameworkVersionPin;
   readonly model: string;
   readonly harness: string;
   readonly seeds: readonly number[];
@@ -104,6 +114,8 @@ export interface RunGoldenEvalResult {
   readonly code: 0 | 1 | 2;
   readonly record: GoldenRunRecord | null;
   readonly message: string;
+  /** #1584 shared-benchmark manifest after version pin wire, when present on disk. */
+  readonly sharedBenchmarkManifest?: Record<string, unknown> | null;
 }
 
 function passRate(results: readonly GoldenTaskResult[], holdout: boolean): number {
@@ -361,10 +373,15 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
   }
 
   const projectRoot = options.projectRoot ?? process.cwd();
-  const directiveVersion = options.directiveVersion ?? readCorePackageVersion();
+  const now = options.now ?? (() => new Date());
+  // #3215: resolve framework version once at run start (package.json pin or override).
+  const frameworkVersionPin = resolveFrameworkVersionPin({
+    override: options.directiveVersion,
+    now,
+  });
+  const directiveVersion = frameworkVersionPin.frameworkVersion;
   const harness = options.harness ?? "deterministic-fixture";
   const seeds = options.seeds ?? [1, 2, 3];
-  const now = options.now ?? (() => new Date());
   const persist = options.persist ?? true;
 
   if (seeds.length === 0) {
@@ -409,6 +426,7 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
     schemaVersion: GOLDEN_RUN_SCHEMA_VERSION,
     runId: runIdFor(directiveVersion, options.model, harness, seeds),
     directiveVersion,
+    frameworkVersionPin,
     model: options.model,
     harness,
     seeds,
@@ -420,6 +438,9 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
     summary,
   };
 
+  // #1584: when shared-benchmark.json is present, wire the recorded version into the shape.
+  const sharedBenchmark = applyVersionPinToSharedBenchmark(projectRoot, frameworkVersionPin);
+
   if (persist) {
     try {
       persistGoldenRun(projectRoot, record);
@@ -428,16 +449,26 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
         code: 2,
         record,
         message: `eval:run: failed to persist golden run: ${String(err)}`,
+        sharedBenchmarkManifest: sharedBenchmark.manifest,
       };
     }
   }
 
   const lines = [
     `eval:run v${record.directiveVersion} model=${record.model} harness=${record.harness} seeds=[${record.seeds.join(",")}]`,
+    `  framework version pin: ${frameworkVersionPin.frameworkVersion} (source=${frameworkVersionPin.source})`,
     `  primary pass rate: ${(summary.primaryPassRate * 100).toFixed(1)}% (${summary.primaryTotal} trials)`,
     `  holdout pass rate: ${(summary.holdoutPassRate * 100).toFixed(1)}% (${summary.holdoutTotal} trials)`,
     `  rotating holdout task: ${rotatingHoldout?.id ?? "none"}`,
     `  runId=${record.runId}`,
   ];
-  return { code: 0, record, message: lines.join("\n") };
+  if (sharedBenchmark.applied) {
+    lines.push("  shared-benchmark manifest: frameworkVersion wired (#1584 / #3215)");
+  }
+  return {
+    code: 0,
+    record,
+    message: lines.join("\n"),
+    sharedBenchmarkManifest: sharedBenchmark.manifest,
+  };
 }

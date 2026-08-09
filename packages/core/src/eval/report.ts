@@ -1,6 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolveEvalPath } from "../layout/resolve.js";
 import { GOLDEN_RUNS_HISTORY_REL, type GoldenRunRecord, type GoldenTaskResult } from "./run.js";
+import {
+  aggregateCellWithVersionPurity,
+  type CellVersionPurity,
+  evaluateLedgerVersionPurity,
+  type MixedVersionPolicy,
+} from "./version-pin.js";
 
 export const REPORT_SCHEMA_VERSION = 1 as const;
 
@@ -23,6 +29,16 @@ export interface HoldoutTripwire {
   readonly holdoutDelta: number;
 }
 
+/** Version purity evidence for report consumers (#3215). */
+export interface VersionPurityEvidence {
+  readonly pure: boolean;
+  readonly summary: string;
+  readonly cells: readonly CellVersionPurity[];
+  readonly championCellAllowed: boolean;
+  readonly challengerCellAllowed: boolean;
+  readonly policy: MixedVersionPolicy;
+}
+
 /** Version-diff report between champion and challenger golden runs. */
 export interface GoldenEvalReport {
   readonly schemaVersion: typeof REPORT_SCHEMA_VERSION;
@@ -33,6 +49,8 @@ export interface GoldenEvalReport {
   readonly challengerRunId: string;
   readonly deltas: readonly MetricDelta[];
   readonly holdoutTripwire: HoldoutTripwire;
+  /** Cell-level framework version purity for the reported model (#3215). */
+  readonly versionPurity: VersionPurityEvidence;
 }
 
 export interface ReportGoldenEvalOptions {
@@ -40,6 +58,11 @@ export interface ReportGoldenEvalOptions {
   readonly championVersion: string;
   readonly challengerVersion: string;
   readonly model: string;
+  /**
+   * Mixed-version cell policy (#3215). Default `refuse` fails the report when
+   * ledger runs for this model disagree on framework version within a treatment.
+   */
+  readonly mixedVersionPolicy?: MixedVersionPolicy;
 }
 
 export interface ReportGoldenEvalResult {
@@ -173,6 +196,28 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+/**
+ * Map a golden-run ledger row to the #3215 versioned-run identity.
+ * Treatment is model@harness@version so cross-version champion/challenger
+ * comparisons stay distinct cells; pin disagreements under one version refuse.
+ */
+export function goldenRunToVersionedRun(record: GoldenRunRecord): {
+  frameworkVersion: string;
+  treatment: string;
+  model: string;
+  harness: string;
+  runId: string;
+} {
+  const pin = record.frameworkVersionPin?.frameworkVersion ?? record.directiveVersion;
+  return {
+    frameworkVersion: pin,
+    treatment: `${record.model}@${record.harness}@${record.directiveVersion}`,
+    model: record.model,
+    harness: record.harness,
+    runId: record.runId,
+  };
+}
+
 /** Diff two directive versions with metric deltas and significance (#1703 Tier 2). */
 export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGoldenEvalResult {
   if (!options.championVersion.trim() || !options.challengerVersion.trim()) {
@@ -187,7 +232,51 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
   }
 
   const projectRoot = options.projectRoot ?? process.cwd();
+  const policy = options.mixedVersionPolicy ?? "refuse";
   const records = readGoldenRuns(projectRoot);
+  const modelRecords = records.filter((r) => r.model === options.model);
+
+  // Within each version×model×harness cell, refuse/flag if pins disagree (#3215).
+  // Cross-version champion vs challenger is intentional and uses distinct cells.
+  const championCellRuns = modelRecords
+    .filter((r) => r.directiveVersion === options.championVersion)
+    .map(goldenRunToVersionedRun);
+  const challengerCellRuns = modelRecords
+    .filter((r) => r.directiveVersion === options.challengerVersion)
+    .map(goldenRunToVersionedRun);
+  const championAgg = aggregateCellWithVersionPurity({
+    runs: championCellRuns,
+    treatment: `champion@${options.model}@${options.championVersion}`,
+    policy,
+  });
+  const challengerAgg = aggregateCellWithVersionPurity({
+    runs: challengerCellRuns,
+    treatment: `challenger@${options.model}@${options.challengerVersion}`,
+    policy,
+  });
+  const ledgerPurity = evaluateLedgerVersionPurity(modelRecords.map(goldenRunToVersionedRun));
+
+  if (!championAgg.allowed || !challengerAgg.allowed) {
+    const versionPurity: VersionPurityEvidence = {
+      pure: false,
+      summary: [
+        !championAgg.allowed ? championAgg.purity.message : null,
+        !challengerAgg.allowed ? challengerAgg.purity.message : null,
+      ]
+        .filter((line): line is string => line !== null)
+        .join(" "),
+      cells: [championAgg.purity, challengerAgg.purity],
+      championCellAllowed: championAgg.allowed,
+      challengerCellAllowed: challengerAgg.allowed,
+      policy,
+    };
+    return {
+      code: 1,
+      report: null,
+      message: `eval:report: mixed framework versions in treatment cell(s) — aggregation refused (#3215)\n  ${versionPurity.summary}`,
+    };
+  }
+
   const champion = findLatestGoldenRun(records, options.championVersion, options.model);
   const challenger = findLatestGoldenRun(records, options.challengerVersion, options.model);
 
@@ -247,6 +336,14 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
   ];
 
   const holdoutTripwire = evaluateHoldoutTripwire(champion, challenger);
+  const versionPurity: VersionPurityEvidence = {
+    pure: championAgg.purity.pure && challengerAgg.purity.pure && ledgerPurity.pure,
+    summary: `${championAgg.purity.message} ${challengerAgg.purity.message}`,
+    cells: [championAgg.purity, challengerAgg.purity, ...ledgerPurity.cells],
+    championCellAllowed: championAgg.allowed,
+    challengerCellAllowed: challengerAgg.allowed,
+    policy,
+  };
   const report: GoldenEvalReport = {
     schemaVersion: REPORT_SCHEMA_VERSION,
     championVersion: options.championVersion,
@@ -256,6 +353,7 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
     challengerRunId: challenger.runId,
     deltas,
     holdoutTripwire,
+    versionPurity,
   };
 
   const lines = [
@@ -270,6 +368,9 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
       return `  ${d.metric}: ${formatPercent(d.champion)} -> ${formatPercent(d.challenger)} (delta ${(d.delta * 100).toFixed(1)}pp, ${sig})`;
     }),
     `  ${holdoutTripwire.summary}`,
+    `  version purity: ${versionPurity.pure ? "ok" : "mixed"} — ${versionPurity.summary}`,
+    `  champion cell pin: v${champion.frameworkVersionPin?.frameworkVersion ?? champion.directiveVersion}`,
+    `  challenger cell pin: v${challenger.frameworkVersionPin?.frameworkVersion ?? challenger.directiveVersion}`,
   ];
 
   const code = holdoutTripwire.triggered ? 1 : 0;

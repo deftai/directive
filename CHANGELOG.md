@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Eval cell framework version pin — no mixed-version runs (#3215).** Golden `eval:run` records a resolved framework version pin (package.json or override) at run start; cell-level purity check refuses (default) or flags aggregation when runs in one treatment disagree; `eval:report` surfaces version purity evidence; wires pin into `#1584` `evals/shared-benchmark.json` shape when present (`packages/core/src/eval/version-pin.ts`). Extends #3081 empiricism. Closes #3215. Refs #1584, #1703.
+
 - **Goal-gate determinism pattern (#852).** New `content/patterns/goal-gate-determinism.md`: skills and playbooks MUST rigidize goals, acceptance criteria, quality gates, exit/handoff, scope, stop conditions, and preserve constraints; execution path stays flexible guidance. Dual grade (execution vs implementation), spurious-pass ratchet, skill design checklist. Discovery via `REFERENCES.md`; light anchors on write-skill + build skill, fail-loud (#1006) and verification cross-links. Doctrine SoT for content-manifest v2 durability (#1669); does not rewrite every skill. Tracking #852. Refs #782, #805, #603, #1006, #1874.
 
 - **Tool-surface grammar guidance (#3085).** Prefer flat, homogeneous tool params; treat nesting × heterogeneity × cleverness as a reliability and token tax. Lands in context tool-design with a cross-link from the LLM-app tool-calling section (security lane stays separate). Pattern only — no mass tool migration. Tracking #3085.
