@@ -103,6 +103,10 @@ const subpathAliases: Record<string, string> = {
     import.meta.dirname,
     "packages/core/src/eval/report.ts",
   ),
+  "@deftai/directive-core/eval/version-pin": resolve(
+    import.meta.dirname,
+    "packages/core/src/eval/version-pin.ts",
+  ),
   "@deftai/directive-core/eval": resolve(import.meta.dirname, "packages/core/src/eval/health.ts"),
   "@deftai/directive-core/triage": sub("core", "triage"),
   "@deftai/directive-core/release": sub("core", "release"),

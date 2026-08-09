@@ -103,7 +103,12 @@ Cross-cutting process/architecture decisions often have empty `activeScopeRefs`.
 - `xbrief/decisions/2026-08-08-scm-label-mirror-first-mass-apply.decision.json`
 - `xbrief/decisions/2026-08-09-portfolio-dispose-into-decision-log.decision.json`
 
+## Cold-path discovery (#3211)
+
+! Always-on AGENTS managed pointer (via `content/templates/agents-entry.md` + `task agents:refresh`), Level-0 `REFERENCES.md` under context/long tasks, and [`inter-run-learning.md`](./inter-run-learning.md) link this surface so a fresh session can name `decision:list` without loading build or pre-pr skills.
+
 ## See also
 
 - [`xbrief/decisions/README.md`](../../xbrief/decisions/README.md)
 - `task decision:write` / `task decision:list` in [`commands.md`](../commands.md)
+- [`inter-run-learning.md`](./inter-run-learning.md) (cold memory SoTs; this log is the durable *why* lane)
