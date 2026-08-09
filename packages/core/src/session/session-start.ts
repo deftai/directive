@@ -1021,6 +1021,8 @@ export function runSessionStart(
   // #3214 / #3156: verify_tools is mutation readiness — always run, even under
   // rapid/minimal. Dial skipFatPath only lightens *ceremony* (triage welcome,
   // optional network, staleness tickler), never readiness gates.
+  // Greptile P1: honor nonzero tools exit so ready≠true when git/task/gh missing.
+  let verifyToolsFailed = false;
   {
     const stepStarted = performance.now();
     const verifyToolsFn =
@@ -1033,7 +1035,13 @@ export function runSessionStart(
         }
         return { exitCode: result.exitCode };
       });
-    verifyToolsFn((line) => lines.push(line));
+    const toolsOutcome = verifyToolsFn((line) => lines.push(line));
+    if (toolsOutcome.exitCode !== 0) {
+      verifyToolsFailed = true;
+      lines.push(
+        `[deft session] verify:tools failed (exit ${toolsOutcome.exitCode}); session not ready.`,
+      );
+    }
     stepTimings.push({ name: "verify_tools", duration_ms: elapsedMs(stepStarted) });
   }
 
@@ -1210,7 +1218,8 @@ export function runSessionStart(
   const failed = Object.entries(quickSteps)
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
-  const code = failed.length > 0 ? 1 : 0;
+  // Include required-tool failures in readiness (Greptile P1 #3214).
+  const code = failed.length > 0 || verifyToolsFailed ? 1 : 0;
   const totalMs = elapsedMs(overallStarted);
 
   // #3117: bind live deposit generation when payload surfaces load (cold path).
