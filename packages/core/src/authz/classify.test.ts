@@ -319,6 +319,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json ; echo ok"),
     ).toContain("settings");
+    // Newline-separated compound (shellTokens emits `;` for `\n` — residual after `;` fix).
+    expect(
+      classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json\necho ok"),
+    ).toContain("settings");
     expect(
       classifyShellAuthzOps("scp -o ProxyCommand=none host:g.json .deft/authz/grants/evil.json"),
     ).toContain("settings");

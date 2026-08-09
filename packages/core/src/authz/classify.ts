@@ -17,17 +17,33 @@ import type { AuthzOperation } from "./types.js";
 
 export type AuthzClassifiedOp = AuthzOperation | "test" | "evidence" | "unknown";
 
-/** Split on whitespace without nested quantifiers (O(n)). */
+/**
+ * Split on whitespace without nested quantifiers (O(n)).
+ * Newlines become `;` segment breaks so compound lists like
+ * `scp …authz…\necho ok` keep the scp dest (#3213 Greptile residual).
+ * Bare space/tab/CR still only separate tokens.
+ */
 function shellTokens(command: string): string[] {
   const out: string[] = [];
   let cur = "";
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
     if (c === undefined) break;
-    if (c === " " || c === "\t" || c === "\n" || c === "\r") {
+    if (c === " " || c === "\t" || c === "\r") {
       if (cur.length > 0) {
         out.push(cur);
         cur = "";
+      }
+      continue;
+    }
+    if (c === "\n") {
+      if (cur.length > 0) {
+        out.push(cur);
+        cur = "";
+      }
+      // Emit a segment break once (avoid runs of `;` from blank lines).
+      if (out.length > 0 && out[out.length - 1] !== ";") {
+        out.push(";");
       }
       continue;
     }
