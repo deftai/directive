@@ -246,9 +246,6 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
         });
       }
       const { ledger, attempt } = beginAttempt(current, {
-        scopeId,
-        targetId,
-        workflowId,
         sourceRevision,
         trigger,
         status: "running",
