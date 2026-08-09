@@ -83,18 +83,25 @@ export const CANONICAL_DEFT_TASKFILE_INCLUDE_RE = INCLUDE_TASKFILE_KEY_RE;
 
 /**
  * Return the relative path of the canonical `.deft/core/Taskfile.yml` include when
- * present as an **active** go-task `includes:` entry; otherwise null.
+ * present as an **active, direct** go-task `includes:` entry; otherwise null.
  *
  * Greenfield `directive init` deposits an include-only Taskfile (#3218); composition
  * lives in the included framework graph, not in root `check` deps.
  *
- * Greptile P1 (#3218): must not treat path text in comments, cmds, vars, or non-include
- * keys as an include — only lines inside a top-level `includes:` block count.
+ * Greptile P1 (#3218):
+ * - Path text in comments / cmds / vars / non-include keys must not match.
+ * - Only **direct** include entries count: short form `name: path` or object form
+ *   `name: { taskfile: path }` (immediate property). Nested
+ *   `includes.some.nested.taskfile` is not an executable go-task include.
  */
 export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): string | null {
   const lines = rootTaskfileText.replace(/\r\n/g, "\n").split("\n");
   let inIncludes = false;
   let includesIndent = 0;
+  /** Indent of direct children under `includes:` (include entry keys). */
+  let directChildIndent: number | null = null;
+  /** Indent of immediate properties under the current object-form include entry. */
+  let entryBodyIndent: number | null = null;
 
   for (const raw of lines) {
     const stripped = raw.trim();
@@ -108,6 +115,8 @@ export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): s
       if (/^includes\s*:/.test(stripped) && indent <= 1) {
         inIncludes = true;
         includesIndent = indent;
+        directChildIndent = null;
+        entryBodyIndent = null;
       }
       continue;
     }
@@ -116,17 +125,45 @@ export function resolveCanonicalDeftTaskfileInclude(rootTaskfileText: string): s
     if (indent <= includesIndent && /^[\w.-]+\s*:/.test(stripped)) {
       if (/^includes\s*:/.test(stripped)) {
         includesIndent = indent;
+        directChildIndent = null;
+        entryBodyIndent = null;
         continue;
       }
       inIncludes = false;
+      directChildIndent = null;
+      entryBodyIndent = null;
       continue;
     }
 
     if (indent <= includesIndent) continue;
 
-    const m = INCLUDE_TASKFILE_KEY_RE.exec(stripped) ?? INCLUDE_SHORT_FORM_RE.exec(stripped);
-    if (m?.[1] !== undefined && CANONICAL_DEFT_TASKFILE_PATH_RE.test(m[1])) {
-      return m[1].replace(/\\/g, "/");
+    if (directChildIndent === null) {
+      directChildIndent = indent;
+    }
+
+    // Direct include entry line (namespace key under includes:).
+    if (indent === directChildIndent) {
+      entryBodyIndent = null;
+      const short = INCLUDE_SHORT_FORM_RE.exec(stripped);
+      if (short?.[1] !== undefined && CANONICAL_DEFT_TASKFILE_PATH_RE.test(short[1])) {
+        return short[1].replace(/\\/g, "/");
+      }
+      // Object-form entry start (`name:` / `name: # comment`) — wait for body props.
+      continue;
+    }
+
+    // Nested under a direct include entry: only immediate properties count.
+    if (indent > directChildIndent) {
+      if (entryBodyIndent === null) {
+        entryBodyIndent = indent;
+      }
+      // Deeper than one property level → not an executable include taskfile key.
+      if (indent !== entryBodyIndent) continue;
+
+      const m = INCLUDE_TASKFILE_KEY_RE.exec(stripped);
+      if (m?.[1] !== undefined && CANONICAL_DEFT_TASKFILE_PATH_RE.test(m[1])) {
+        return m[1].replace(/\\/g, "/");
+      }
     }
   }
   return null;

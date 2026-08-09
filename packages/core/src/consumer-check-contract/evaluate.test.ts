@@ -174,6 +174,28 @@ tasks:
     ).toBe("./.deft/core/Taskfile.yml");
   });
 
+  it("does not treat nested non-direct include taskfile as canonical (Greptile P1 #3218)", () => {
+    // includes.some.nested.taskfile is not an executable go-task include entry.
+    const nested = `version: '3'
+includes:
+  somekey:
+    nested:
+      taskfile: ./.deft/core/Taskfile.yml
+`;
+    expect(resolveCanonicalDeftTaskfileInclude(nested)).toBe(null);
+
+    const result = evaluateConsumerCheckContract("/tmp/nested-include", {
+      rootTaskfileText: nested,
+      verifyTaskfileText: null,
+      includedFrameworkTaskfileText: FRAMEWORK_INCLUDED_TASKFILE,
+      includedVerifyTaskfileText: VERIFY_YML_COMPLETE,
+      ciWorkflows: new Map(),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.surface === "check-task")).toBe(true);
+  });
+
   it("does not treat path text outside includes as a canonical include (Greptile P1 #3218)", () => {
     // Comment / docs / cmds must not activate include-trust exemption.
     const commentOnly = `version: '3'
