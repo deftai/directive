@@ -76,6 +76,13 @@ describe("runGoldenEval", () => {
     expect(result.record?.results.length).toBeGreaterThan(0);
     expect(result.record?.summary.primaryTotal).toBeGreaterThan(0);
     expect(result.record?.summary.holdoutTotal).toBeGreaterThan(0);
+    // #3215: framework version pin recorded at run start
+    expect(result.record?.frameworkVersionPin).toEqual({
+      frameworkVersion: "0.70.0-golden-test",
+      source: "override",
+      resolvedAt: "2026-07-05T20:00:00Z",
+    });
+    expect(result.message).toContain("framework version pin: 0.70.0-golden-test");
 
     const ledgerPath = goldenRunsHistoryPath(root);
     expect(existsSync(ledgerPath)).toBe(true);
@@ -84,7 +91,52 @@ describe("runGoldenEval", () => {
     expect(parsed).toMatchObject({
       directiveVersion: "0.70.0-golden-test",
       model: "composer-fixture",
+      frameworkVersionPin: {
+        frameworkVersion: "0.70.0-golden-test",
+        source: "override",
+      },
     });
+  });
+
+  it("wires and persists frameworkVersion into #1584 shared-benchmark when present", () => {
+    const root = seedProject();
+    mkdirSync(join(root, "evals"), { recursive: true });
+    const manifestPath = join(root, "evals", "shared-benchmark.json");
+    writeFileSync(manifestPath, JSON.stringify({ name: "shared", cases: [] }), "utf8");
+    const result = runGoldenEval({
+      projectRoot: root,
+      model: "composer-fixture",
+      seeds: [1],
+      directiveVersion: "0.98.0",
+      persist: true,
+      now: () => new Date("2026-08-09T18:00:00.000Z"),
+    });
+    expect(result.code).toBe(0);
+    expect(result.sharedBenchmarkManifest?.frameworkVersion).toBe("0.98.0");
+    expect(result.message).toContain("frameworkVersion pin persisted");
+    const onDisk: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+    expect(onDisk).toMatchObject({ frameworkVersion: "0.98.0", name: "shared" });
+    // Ledger row exists when the pin is persisted (no dangling pin without a run).
+    expect(existsSync(goldenRunsHistoryPath(root))).toBe(true);
+  });
+
+  it("does not write shared-benchmark pin when persist=false", () => {
+    const root = seedProject();
+    mkdirSync(join(root, "evals"), { recursive: true });
+    const manifestPath = join(root, "evals", "shared-benchmark.json");
+    writeFileSync(manifestPath, JSON.stringify({ name: "shared", cases: [] }), "utf8");
+    const result = runGoldenEval({
+      projectRoot: root,
+      model: "composer-fixture",
+      seeds: [1],
+      directiveVersion: "0.98.0",
+      persist: false,
+    });
+    expect(result.code).toBe(0);
+    expect(result.sharedBenchmarkManifest?.frameworkVersion).toBe("0.98.0");
+    expect(result.message).toContain("wired in-memory");
+    const onDisk: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
+    expect(onDisk).toEqual({ name: "shared", cases: [] });
   });
 
   it("returns config error when model is missing", () => {
