@@ -333,6 +333,19 @@ workers, WARN/ERROR operators triage):
 Discovery keywords: operator log, operator-facing logs, observability checklist
 — also indexed in `REFERENCES.md`.
 
+## Goal-gate determinism (lazy-load, #852)
+
+When authoring or tightening story acceptance criteria, quality gates, or skill
+steps during build:
+
+- ~ SHOULD load `patterns/goal-gate-determinism.md` — goals, AC, gates, exit,
+  scope, stop, and preserve are rigid; pure execution path is flexible guidance
+- ⊗ MUST NOT treat "all process steps done" as verification — outcomes and
+  gates own "done" (see also `verification/verification.md` and Fail Loud #1006)
+
+Discovery keywords: goal-gate-determinism, rigid goals flexible path — also
+indexed in `REFERENCES.md`.
+
 ## Coding Standards (Summary)
 
 Read full files when you need detail:

@@ -62,6 +62,7 @@ Ask the user (one question at a time):
 - ! Include negative triggers in `description` (`Do NOT trigger on …`) so near-miss phrases do not load the wrong skill
 - ~ Use the trigger words the user would naturally say
 - ! Use RFC2119 notation throughout (!=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY)
+- ! Apply **goal-gate determinism** (#852): rigid goal, acceptance criteria, quality gates, exit/handoff, and scope `⊗` boundaries; demote pure execution steps to `~` unless they are gates — see [`patterns/goal-gate-determinism.md`](../../patterns/goal-gate-determinism.md)
 - ~ Include attribution blockquote if inspired by an external source
 - ~ When porting Warp-tuned playbooks, read [`references/composer-skill-porting.md`](../../references/composer-skill-porting.md) for fast-path vs isolation, short-chat expectations, and Composer naming
 
@@ -162,6 +163,7 @@ The description is **the only thing the agent sees** when deciding whether to lo
 
 - ⊗ Omitting RFC2119 notation — deft skills use it consistently
 - ⊗ Putting all content in SKILL.md when it exceeds 150 lines — split into `references/*.md` or `REFERENCE.md`
+- ⊗ Prescribing a rigid tool-call path as MUST when only the goal/gates need determinism — use goal-gate-determinism (#852)
 
 - ⊗ Putting every agent-host branch (Warp, Cursor, OpenClaw, Grok Build, generic) in one always-loaded SKILL body when a host-neutral core + per-host adapter split is feasible (#2928)
 

@@ -4,7 +4,7 @@ Goal-backward verification of agent output — check outcomes, not checklists.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [coding/testing.md](../coding/testing.md) | [verification/uat.md](./uat.md) | [core/glossary.md](../glossary.md)
+**⚠️ See also**: [coding/testing.md](../coding/testing.md) | [verification/uat.md](./uat.md) | [core/glossary.md](../glossary.md) | [patterns/goal-gate-determinism.md](../patterns/goal-gate-determinism.md) (#852 — rigid goals/gates; flexible execution path)
 
 > Adapted from [GSD](https://github.com/gsd-build/get-shit-done) verification model.
 

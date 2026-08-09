@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Goal-gate determinism pattern (#852).** New `content/patterns/goal-gate-determinism.md`: skills and playbooks MUST rigidize goals, acceptance criteria, quality gates, exit/handoff, scope, stop conditions, and preserve constraints; execution path stays flexible guidance. Dual grade (execution vs implementation), spurious-pass ratchet, skill design checklist. Discovery via `REFERENCES.md`; light anchors on write-skill + build skill, fail-loud (#1006) and verification cross-links. Doctrine SoT for content-manifest v2 durability (#1669); does not rewrite every skill. Tracking #852. Refs #782, #805, #603, #1006, #1874.
+
 - **Tool-surface grammar guidance (#3085).** Prefer flat, homogeneous tool params; treat nesting × heterogeneity × cleverness as a reliability and token tax. Lands in context tool-design with a cross-link from the LLM-app tool-calling section (security lane stays separate). Pattern only — no mass tool migration. Tracking #3085.
 
 - **Decision log dogfood: patterns portfolio pilot dispose (#1396 / #3200).** `xbrief/decisions/2026-08-09-patterns-portfolio-pilot-dispose.decision.json` records operator shortlist/park for the patterns `no_match` pilot (P1 #852/#3085; park classes). Refs #3198, #3201, #886.

@@ -230,6 +230,16 @@ Load as needed:
 - **[contracts/agent-hook-readiness.md](./content/contracts/agent-hook-readiness.md)** - Fail-closed enabled-host registration/functionality gate; distinct Codex trust and interception reporting
 - Load: When completing tasks/features, before marking work done
 
+### When Authoring Skills or Acceptance Gates
+
+**Keywords:** goal-gate-determinism, goals and gates, rigid goals flexible path, skill scaffolding, acceptance criteria vs steps, stop conditions, preserve constraints, ratchet gate
+
+**[patterns/goal-gate-determinism.md](./content/patterns/goal-gate-determinism.md)** - Goal-gate determinism (#852)
+- Load: When writing or revising skills, scope xBRIEFs, acceptance criteria, agent playbooks, or evaluator loops that mix "what done means" with "how to get there"
+- Contains: rigid goal / AC / quality gates / exit / scope / stop / preserve; flexible execution path; dual grade (execution vs implementation); spurious-pass ratchet; skill design checklist
+- Complements: agent-loop (#782), typed-skill-boundary (#805), fail-loud (#1006), verification.md; content-manifest v2 (#1669) encodes durability — this file is doctrine SoT
+- Skill authoring: `skills/deft-directive-write-skill/SKILL.md`
+
 ### When Handling Session Interruptions
 
 - **[resilience/continue-here.md](./content/resilience/continue-here.md)** - Interruption recovery protocol with xBRIEF; `xbrief/continue.xbrief.json` + scope xBRIEF relationship
