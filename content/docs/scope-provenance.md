@@ -1,6 +1,6 @@
 # Approved-scope provenance (`verify:scope-provenance`)
 
-Refs: #3145 · #3205 · Related: #1310, #2944 human-origin grants, #516 file scope
+Refs: #3145 · #3205 · Related: #1310, #2944 human-origin grants, #516 file scope · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156)
 
 ## Problem
 

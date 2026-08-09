@@ -74,6 +74,17 @@ This is not timidity; it is identity. It follows from the Rule Authority ladder 
 
 Parent epic: #3179 (self-improving under gates). Trajectory / refine constraint: #2741 — refine proposes; gates dispose. Proposer runtime (SkillOpt / skill-variant) is tracked on #2436 / #1307 and is out of scope for this stance naming.
 
+## Gate Integrity (#3156)
+
+**Rule:** When a gate fails, the fix MUST NOT be an edit to the gate.
+
+- ⊗ Clear a failing product/process gate by mutating the gate definition, verifier, reward, required check, coverage floor, policy flag, or eval fixture that is red — solely to go green
+- ! Fix the product, process, test, or docs under test; deliberate gate changes go through issue/PR + review with explicit rationale (same disposal model as constitution-tier under #3164)
+- ! Treat refine-loop-internal protected regions (SkillOpt reward/validator region) as owned by #2436 — do not re-implement that stack under this rule
+- ~ Full doctrine, Factorio/Continual Harness evidence pointer, and pre-PR discoverability: [content/docs/gate-integrity.md](./content/docs/gate-integrity.md)
+
+Parent epic: #3179. Extends #782 / #1499 / #3145 verification-independence themes.
+
 **Decision Making:**
 - ! Follow established patterns in current context
 - ~ Question assumptions and probe for clarity
