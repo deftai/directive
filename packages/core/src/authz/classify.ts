@@ -238,10 +238,28 @@ function isDownloaderDestFlag(flag: string, bin: string): boolean {
 }
 
 /**
+ * OpenSSH/scp flags that take a separate value token (`-o ProxyCommand=…`, `-i key`, `-P port`).
+ * Not dest flags — must skip so value tokens are not mistaken for write destinations (#3213).
+ * Case-sensitive where needed: scp `-P` (port) takes a value; `-p` (preserve) does not.
+ */
+const SCP_VALUE_FLAGS_LOWER = new Set(["-o", "-i", "-c", "-s", "-j", "-f", "-l", "-b"]);
+const SCP_VALUE_FLAGS_EXACT = new Set(["-P", "-F", "-S", "-J"]);
+
+/** Shell metacharacters that end a command segment (compound lists / pipelines). */
+function isShellSegmentBreak(token: string): boolean {
+  const t = token.trim();
+  if (t.length === 0) return false;
+  if (t === ";" || t === "|" || t === "||" || t === "&&" || t === "&") return true;
+  // Trailing operator glued to a prior token is handled by pathish stripping; bare ops here.
+  return false;
+}
+
+/**
  * Destinations from curl/wget/xxd/openssl/scp/aria2c/certutil via -o/--output/-O/-out/
  * --output-dir/-P/-d/--dir (separate, =value, or attached short form), xxd -r path-like
- * write positionals (#3206), and last-positional dest for scp/certutil (#3213).
+ * write positionals (#3206), and positional dests for scp/certutil (#3213).
  * openssl uses flags only (no positional dests — avoids treating -in paths as writes).
+ * Segment stops at shell operators so compound `scp …authz…; echo` cannot overwrite dests.
  * O(n) token walk — no nested-quantifier regex on untrusted input.
  */
 function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
@@ -256,11 +274,18 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     i++;
     // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
     let xxdReverse = false;
-    // scp / certutil: last non-flag pathish is the write dest (#3213).
-    let lastPositionalPath: string | null = null;
+    // scp / certutil: collect all non-flag pathish positionals in this segment (#3213 P1).
+    // Prefer every pathish (not only last) so a protected dest is never dropped when a
+    // later operand appears; last remains the usual write dest for deny checks.
+    const segmentPathish: string[] = [];
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
+
+      // Compound lists / pipelines end this bin's segment (Greptile P1 residual).
+      if (isShellSegmentBreak(raw) || isShellSegmentBreak(n)) {
+        break;
+      }
 
       // New bare bin starts another command segment (not pathish ./wget operands).
       if (
@@ -289,13 +314,30 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         continue;
       }
 
-      // --flag=value (and rare -out=value)
+      // scp: skip OpenSSH value-taking flags + their values (-o Option=Value, -i key, -P port).
+      if (
+        bin === "scp" &&
+        (SCP_VALUE_FLAGS_LOWER.has(n) ||
+          SCP_VALUE_FLAGS_EXACT.has(raw) ||
+          SCP_VALUE_FLAGS_EXACT.has(n))
+      ) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      // --flag=value (and rare -out=value); scp -oOption=Value attached form also lands here.
       if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
         const eq = raw.indexOf("=");
         const flag = normalizeToken(raw.slice(0, eq));
         if (isDownloaderDestFlag(flag, bin)) {
           dests.push(pathishToken(raw.slice(eq + 1)));
         }
+        // scp attached -oProxyCommand=… is not a file dest — skip without recording.
         i++;
         continue;
       }
@@ -330,7 +372,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       // Separate value: -o PATH / --output PATH / -out PATH / --output-dir / -P / -d
       if (isDownloaderDestFlag(n, bin)) {
         const next = tokens[i + 1];
-        if (next !== undefined && !String(next).startsWith("-")) {
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           dests.push(pathishToken(next));
           i += 2;
           continue;
@@ -352,17 +394,20 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
       }
 
-      // scp / certutil: track last non-flag pathish as dest (not a bare remote host: alone).
+      // scp / certutil: every non-flag pathish in the segment is a candidate dest (#3213 P1).
+      // Trailing `;` glued to a path is stripped by pathishToken's quote strip only — strip ops.
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
-        const p = pathishToken(raw);
+        const cleaned = raw.replace(/[;&|]+$/g, "");
+        const p = pathishToken(cleaned);
         if (p.length > 0) {
-          lastPositionalPath = p;
+          segmentPathish.push(p);
         }
       }
       i++;
     }
-    if (lastPositionalPath !== null) {
-      dests.push(lastPositionalPath);
+    // Prefer last pathish as primary dest, but keep all so earlier authz paths stay visible.
+    for (const p of segmentPathish) {
+      dests.push(p);
     }
   }
   return dests;

