@@ -75,6 +75,43 @@ describe("runTransition", () => {
     expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
   });
 
+  it("refuses activate when a plan item has effort XL (#1581)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "xl-story.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        items: [{ id: "big", title: "Needs breakdown", status: "pending", effort: "XL" }],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/effort=XL|#1581/);
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "xl-story.xbrief.json"))).toBe(false);
+  });
+
+  it("activates when plan items use S/M/L effort (#1581)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "sized.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        items: [
+          { id: "s", title: "Small", status: "pending", effort: "S" },
+          { id: "m", title: "Medium", status: "pending", effort: "M" },
+        ],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "sized.xbrief.json"))).toBe(true);
+  });
+
   it("completes active to completed with stamp", () => {
     root = makeRepo();
     const file = writeVbrief(root, "active", "running");

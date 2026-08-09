@@ -82,6 +82,25 @@ describe("activate", () => {
     expect(payload.vBRIEFInfo.updated).toBe("2026-06-19T12:00:00Z");
   });
 
+  it("refuses activate when a plan item has effort XL (#1581)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+        plan: {
+          title: "T",
+          status: "pending",
+          items: [{ id: "big", title: "Needs breakdown", status: "pending", effort: "XL" }],
+        },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toMatch(/effort=XL|#1581/);
+    expect(existsSync(src)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", FIXTURE_NAME))).toBe(false);
+  });
+
   it("accepts approved status", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "pending", { status: "approved" });

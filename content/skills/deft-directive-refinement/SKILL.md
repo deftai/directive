@@ -264,6 +264,14 @@ The task scans every xBRIEF with a GitHub-backed reference (whether the referenc
 
 ! Move xBRIEFs between lifecycle folders using deterministic task commands. The status values below align with the canonical v0.6 Status enum (`draft | proposed | approved | pending | running | completed | blocked | failed | cancelled`) — note that `failed` is also a valid terminal transition for active work that could not complete.
 
+### Effort estimate on accept (#1581)
+
+! When accepting an item from `proposed/` to `pending/` (`task scope:promote`), prompt for an optional `PlanItem.effort` estimate when plan items lack one. Time anchors: `S` <2h, `M` half-day (2-4h), `L` 1-2 days, `XL` needs breakdown before start.
+~ Prefer writing `effort` on each executable plan item so swarm sizing and `deft-directive-cost` have a per-item signal without a separate cost pass.
+! If the operator sets `effort: "XL"`, keep the scope in proposed/pending and break the item into S/M/L sub-items before any `task scope:activate` — activate fails closed on XL (#1581).
+? Omit `effort` when sizing is unknown; validation still passes (field is optional).
+! Plan-item effort is **post-planning** authority: it confirms or corrects provisional intake size at planning/accept time. It is **not** available at session start and MUST NOT be required for initial ceremony/ritual depth (#3214 two-stage rapid→escalate). Headless: no confirmation prompt required for estimates or stage transitions.
+
 ### Available Commands
 
 - `task scope:promote <file>` -- proposed/ -> pending/ (status: pending)

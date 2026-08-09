@@ -13,6 +13,7 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { evaluateEffortActivateGate } from "../scope/effort-activate-gate.js";
 import { utcNowIso } from "../scope/vbrief-json.js";
 import { pythonJsonPretty } from "../vbrief-build/json.js";
 import {
@@ -170,6 +171,12 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
         `plan.status is '${status}' -- only ${formatEligibleStatusList()} can be flipped to ` +
         `'${TARGET_STATUS}'.`,
     };
+  }
+
+  // #1581: fail closed when any plan item still has effort=XL (needs breakdown).
+  const effortGate = evaluateEffortActivateGate(planObj);
+  if (!effortGate.ok) {
+    return { exitCode: 1, message: effortGate.message };
   }
 
   // Resolve destination early so containment can refuse before any mutation.

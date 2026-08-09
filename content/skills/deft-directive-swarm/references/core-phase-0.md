@@ -200,11 +200,13 @@ Cross-references:
 - ! Identify epic/phase scope xBRIEFs from the readiness report and route them to decomposition
 - ! Identify dependency conflicts between candidate xBRIEFs (e.g. story A depends on story B via `planRef` or `edges`, but B is assigned to a different agent or is incomplete)
 - ! Flag any candidate xBRIEFs whose prerequisites are unmet
+- ! **Effort XL (#1581):** scan `plan.items` (nested) for `effort: "XL"`. XL means "needs breakdown" (anchors: S <2h, M 2-4h, L 1-2d). Flag XL items as blockers before dispatch; `task scope:activate` / `task vbrief:activate` fail closed until each XL item is broken into S/M/L. Omitted effort is not a hard blocker (field optional). Plan-item effort is post-planning authority only — not a session-start ritual input (#3214 two-stage rapid→escalate).
 
 ### Step 3: Plan Allocation
 
 ! The monitor allocates one or more xBRIEFs to each agent based on scope, complexity, and dependencies. There is no fixed per-agent limit.
 
+- ! **Respect `PlanItem.effort` when present (#1581):** S/M → safe single-agent dispatch; L → prefer a dedicated agent (or parallel worktrees when the file scope allows); XL → do not dispatch — break down first (same rule as the activate gate).
 - ! **Small/independent stories** can be batched to a single agent only after explicit operator approval or an approved allocation plan -- group related or low-complexity xBRIEFs together and record the batching rationale
 - ! **Large/complex stories** get dedicated agents — a story with broad file scope or high acceptance criteria count should not share an agent
 - ! **Dependency-aware grouping** — xBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering

@@ -30,6 +30,7 @@ import {
   type NonDeliveryDisposition,
   stampDeliveryProvenance,
 } from "./delivery-evidence.js";
+import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { utcNowIso } from "./vbrief-json.js";
@@ -195,6 +196,14 @@ export function runTransition(
   }
 
   const nowIso = utcNowIso(now);
+
+  // #1581: fail closed before activating a scope that still has XL plan items.
+  if (act === "activate") {
+    const effortGate = evaluateEffortActivateGate(planObj);
+    if (!effortGate.ok) {
+      return { ok: false, message: effortGate.message };
+    }
+  }
 
   // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
   if (act === "complete") {

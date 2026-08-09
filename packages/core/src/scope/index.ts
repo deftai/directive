@@ -4,6 +4,7 @@ export * from "./constants.js";
 export * from "./decomposed-refs.js";
 export * from "./delivery-evidence.js";
 export * from "./demote.js";
+export * from "./effort-activate-gate.js";
 export * from "./main.js";
 export * from "./open-umbrella-warning.js";
 export * from "./project-context.js";

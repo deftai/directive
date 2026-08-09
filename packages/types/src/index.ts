@@ -10,13 +10,15 @@ export {
   type VBriefVersion,
   XBRIEF_REFERENCE_PREFIX,
 } from "./constants.js";
-export type {
-  EngineInfo,
-  Plan,
-  PlanArchitecture,
-  PlanItem,
-  VBriefDocument,
-  VBriefInfo,
+export {
+  type EngineInfo,
+  PLAN_ITEM_EFFORTS,
+  type Plan,
+  type PlanArchitecture,
+  type PlanItem,
+  type PlanItemEffort,
+  type VBriefDocument,
+  type VBriefInfo,
 } from "./document.js";
 export {
   collectExtensionProperties,

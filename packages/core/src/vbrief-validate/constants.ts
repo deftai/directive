@@ -25,6 +25,9 @@ export const VALID_INFO_ROOT_KEYS = new Set(["vBRIEFInfo", "xBRIEFInfo"]);
 /** v0.8 PlanItem.type enum values (optional field). */
 export const VALID_PLAN_ITEM_TYPES = new Set(["task", "group", "milestone", "epic"]);
 
+/** Optional PlanItem.effort enum (#1581). Time anchors: S <2h, M 2-4h, L 1-2d, XL needs breakdown. */
+export const VALID_PLAN_ITEM_EFFORTS = new Set(["S", "M", "L", "XL"]);
+
 /** D13: status-to-folder mapping (#533 adds ``failed`` in completed/). */
 export const FOLDER_ALLOWED_STATUSES: Readonly<Record<string, ReadonlySet<string>>> = {
   proposed: new Set(["draft", "proposed"]),

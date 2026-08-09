@@ -15,12 +15,20 @@ export interface VBriefInfo {
   readonly [key: `x-${string}`]: unknown;
 }
 
+/** Optional PlanItem effort estimate (#1581). Time anchors: S <2h, M 2-4h, L 1-2d, XL needs breakdown. */
+export const PLAN_ITEM_EFFORTS = ["S", "M", "L", "XL"] as const;
+
+/** S/M/L/XL effort band for scope plan items (#1581). */
+export type PlanItemEffort = (typeof PLAN_ITEM_EFFORTS)[number];
+
 /** Nested plan item (`PlanItem` in vbrief-core.schema.json). */
 export interface PlanItem {
   readonly id?: string;
   readonly uid?: string;
   readonly title: string;
   readonly status: Status;
+  /** Optional effort band; omit is valid. XL must not activate until broken into S/M/L (#1581). */
+  readonly effort?: PlanItemEffort;
   readonly narrative?: Readonly<Record<string, string>>;
   readonly items?: readonly PlanItem[];
   /** @deprecated Prefer `items`. Retained for schema compatibility. */

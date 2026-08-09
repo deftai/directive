@@ -419,6 +419,43 @@ Scope vBRIEFs use a small set of **canonical narrative keys** at the `plan.narra
 }
 ```
 
+### Effort estimate (S/M/L/XL) (#1581)
+
+`PlanItem.effort` is an **optional** sizing field on each plan item. Existing items that omit it still validate.
+
+| Value | Time anchor | Meaning |
+|-------|-------------|---------|
+| `S` | less than 2 hours | Safe single-agent slice |
+| `M` | half-day (2–4 hours) | Single-agent; modest scope |
+| `L` | 1–2 days | May warrant a dedicated agent or parallel worktrees |
+| `XL` | needs breakdown | **Must not enter `active/` / `running`** until broken into S/M/L items |
+
+#### Authority and ordering (compose with ceremony dial #3214)
+
+Plan-item `effort` is **post-planning** authority. Estimates live on scope plan items after planning has produced those items. Session-start ceremony (ritual, deposit load, gate setup) runs **before** planning, so plan-item effort is **not** available as session-start ritual input.
+
+- ! Treat `PlanItem.effort` as the planning-time confirm/correct signal for provisional intake size — not as a required input for initial ritual depth
+- ⊗ Claim or require plan-item `effort` at session start to choose ceremony depth — that wiring deadlocks (no plan items yet)
+- ~ Ceremony dial (#3214) SHOULD use a **two-stage** path: start every session at **rapid** depth, then escalate to full ceremony when the plan lands M/L or the task proves project-shaped; optional intake-time provisional S/M/L is a tiebreaker only
+- ! Headless / autonomous runs MUST apply provisional estimates and stage transitions **without** operator confirmation prompts
+
+Rules:
+
+- ! When present, `effort` MUST be one of `S`, `M`, `L`, `XL` (case-sensitive)
+- ? Omit `effort` when sizing is unknown; validation does not require the field
+- ! XL items MUST be broken into S/M/L sub-items (or re-estimated to S/M/L) before `task scope:activate` / `task vbrief:activate` — both paths fail closed while any nested item still has `effort: "XL"`
+- ~ Swarm allocation SHOULD read `effort` when sizing agents (XL blocks dispatch until breakdown; L may warrant a dedicated agent; S/M are safe single-agent)
+- ~ Refinement SHOULD prompt for an estimate when accepting proposed → pending so cost signal is present before activation
+
+```json
+{
+  "id": "auth-slice",
+  "title": "Wire OAuth callback",
+  "status": "pending",
+  "effort": "M"
+}
+```
+
 ### Hierarchical Items (v0.6)
 
 Specs with phases, subphases, and tasks express nesting via `PlanItem.items`:

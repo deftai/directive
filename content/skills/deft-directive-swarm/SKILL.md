@@ -172,6 +172,11 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! Follow phases in order. Depth files hold the operative MUST rules; this page is the dispatch card.
 
+## Effort estimate on dispatch (#1581)
+
+! When plan items carry optional `effort` (S/M/L/XL with time anchors in `vbrief/vbrief.md`), use them for sizing: S/M single-agent, L may need a dedicated agent, XL blocks dispatch until broken into S/M/L. Activate fails closed on XL. Depth: [`references/core-phase-0.md`](references/core-phase-0.md) Steps 2–3.
+! Plan-item effort is **post-planning** (confirms/corrects provisional intake estimates). It is **not** session-start ritual input; ceremony dial (#3214) starts rapid and escalates — do not block cold-start ritual on missing plan-item `effort`. Headless: no operator confirmation for size or stage transitions.
+
 ## Critical anti-patterns (dispatch card)
 
 - ⊗ Load all host adapters “just in case” (#2928)
@@ -183,6 +188,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 - ⊗ Rely on soft skill prose alone as the sole parent-hang mitigation (#3131)
 - ⊗ Second+ user-visible consolidate for the same child runId without new evidence (#3092)
 - ⊗ Assign overlapping files to multiple agents
+- ⊗ Dispatch or activate work that still has `plan.items[].effort: "XL"` without breakdown (#1581)
 - ⊗ Merge before Greptile exit condition (score > 3, no P0/P1)
 - ⊗ Skip Phase 0 approval before Phase 1
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)

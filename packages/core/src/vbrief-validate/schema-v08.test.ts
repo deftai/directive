@@ -63,6 +63,38 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     expect(validateVbriefSchema(withoutOptional, "optional-absent.json")).toEqual([]);
   });
 
+  it("accepts optional PlanItem.effort S/M/L/XL and rejects invalid (#1581)", () => {
+    for (const effort of ["S", "M", "L", "XL"] as const) {
+      const doc = {
+        ...MINIMAL_V08,
+        plan: {
+          ...MINIMAL_V08.plan,
+          items: [{ id: "t1", title: "Task", status: "pending", effort }],
+        },
+      };
+      expect(validateVbriefSchema(doc, `effort-${effort}.json`)).toEqual([]);
+    }
+
+    const omitted = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [{ id: "t1", title: "Task", status: "pending" }],
+      },
+    };
+    expect(validateVbriefSchema(omitted, "effort-omitted.json")).toEqual([]);
+
+    const bad = {
+      ...MINIMAL_V08,
+      plan: {
+        ...MINIMAL_V08.plan,
+        items: [{ id: "t1", title: "Task", status: "pending", effort: "XXL" }],
+      },
+    };
+    const errors = validateVbriefSchema(bad, "effort-bad.json");
+    expect(errors.some((e) => e.includes("invalid effort"))).toBe(true);
+  });
+
   it("rejects plan.status auto (item-only in v0.8)", () => {
     const errors = validateVbriefSchema(
       {

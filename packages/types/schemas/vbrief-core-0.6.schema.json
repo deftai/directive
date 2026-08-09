@@ -509,6 +509,11 @@
             "critical"
           ]
         },
+        "effort": {
+          "type": "string",
+          "enum": ["S", "M", "L", "XL"],
+          "description": "Optional effort estimate with time anchors: S <2h, M half-day (2-4h), L 1-2 days, XL needs breakdown into S/M/L before activation. Omitted items still validate."
+        },
         "dueDate": {
           "$ref": "#/$defs/dateTime"
         },

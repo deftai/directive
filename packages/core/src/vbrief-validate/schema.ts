@@ -3,6 +3,7 @@ import {
   PROJECT_DEF_EXPECTED_NARRATIVES,
   VALID_INFO_ROOT_KEYS,
   VALID_ITEM_STATUSES,
+  VALID_PLAN_ITEM_EFFORTS,
   VALID_PLAN_ITEM_TYPES,
   VALID_PLAN_STATUSES,
   VALID_VBRIEF_VERSIONS,
@@ -65,6 +66,10 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
 
   if ("type" in item && !VALID_PLAN_ITEM_TYPES.has(String(item.type))) {
     errors.push(`${itemPath} invalid type: ${pyStrRepr(String(item.type))}`);
+  }
+
+  if ("effort" in item && !VALID_PLAN_ITEM_EFFORTS.has(String(item.effort))) {
+    errors.push(`${itemPath} invalid effort: ${pyStrRepr(String(item.effort))}`);
   }
 
   if ("summary" in item && typeof item.summary !== "string") {
