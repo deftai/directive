@@ -108,6 +108,13 @@ describe("test_swarm_poller_template", () => {
     expect(hasShouldNotMergeProse(BODY_ADVISORY_STANDALONE_NOT_SAFE)).toBe(true);
     expect(detect(BODY_ADVISORY_STANDALONE_NOT_SAFE).has_blocking === true).toBe(true);
   });
+  it("tier3_mid_sentence_not_yet_safe_does_not_line_anchor_block (#3225)", () => {
+    const mid =
+      "## Confidence Score: 5/5\n\n" +
+      "The PR is not yet safe to merge because the detector thrash residual remains.\n\n" +
+      "No P0 or P1 issues found.\n";
+    expect(hasShouldNotMergeProse(mid)).toBe(false);
+  });
   it("tier3_count_prose_three_p1_findings_triggers_blocking", () => {
     const result = detect(BODY_TIER3_COUNT_PROSE_ONLY);
     expect(result.tier1_p0).toBe(0);

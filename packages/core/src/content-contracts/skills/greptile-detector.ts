@@ -132,16 +132,38 @@ function anyPatternMatches(text: string, patterns: readonly RegExp[]): boolean {
 }
 
 /**
- * Strip Greptile Overview / Important-Files tables that describe detector work
- * without issuing a verdict (#3225 / #1004 residual).
+ * True when a line is a **verdict-shaped** advisory phrase (#3225 residual).
+ * Requires the match near the start of the line (after optional Summary:/Decision:
+ * label, bullet, or bold). Mid-sentence descriptive mentions
+ * ("adds should-not-merge parsing", "The PR is not yet safe to merge because…")
+ * do not count — those are residual discussion, not the bot's verdict line.
  */
-function stripDescriptiveOverviewSurfaces(text: string): string {
-  return text
-    .replace(/<details\b[^>]*>[\s\S]*?Greptile Summary[\s\S]*?<\/details>/gi, " ")
-    .replace(
-      /\|[^\n]*Filename[^\n]*Overview[^\n]*\|[\s\S]*?(?=\n<details\b|\n#{1,6}\s|\n\*?\*?Last reviewed|\z)/gi,
-      " ",
-    );
+function lineHasAnchoredAdvisory(line: string, patterns: readonly RegExp[]): boolean {
+  let bare = line.trim();
+  bare = bare.replace(/^(?:Summary|Decision|Verdict)\s*:\s*/i, "");
+  bare = bare.replace(/^(?:[-*•]\s+)+/, "");
+  bare = bare.replace(/^\*\*/, "").replace(/\*\*$/, "");
+  bare = bare.trim();
+  if (bare.length === 0) {
+    return false;
+  }
+  for (const re of patterns) {
+    re.lastIndex = 0;
+    const m = re.exec(bare);
+    if (m !== null && (m.index ?? 0) <= 2) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function textHasAnchoredAdvisory(text: string, patterns: readonly RegExp[]): boolean {
+  for (const line of text.split(/\r?\n/)) {
+    if (lineHasAnchoredAdvisory(line, patterns)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -149,24 +171,22 @@ function stripDescriptiveOverviewSurfaces(text: string): string {
  * verdict (#3225). Code-fence regions are stripped first so detector docs do
  * not self-trigger (#1004).
  *
- * Hybrid scan (#3225 residual PR #3227):
- * 1. Soft + high-signal phrases in Confidence / Summary / Decision regions
- * 2. High-signal phrases on non-overview body (catches standalone warnings
- *    outside a clean Confidence section without Overview self-hits)
- * 3. High-signal whole-body fallback when no verdict region exists (fixtures)
+ * Line-anchored hybrid scan (PR #3227 residuals):
+ * 1. Soft + high-signal **line-anchored** phrases in Confidence / Summary /
+ *    Decision regions (and whole body)
+ * 2. Same line-anchored high-signal set on whole body (standalone warnings)
+ * Mid-sentence residual discussion does not hard-block; conf floor still does (#3095).
  */
 export function hasShouldNotMergeProse(body: string): boolean {
   const text = stripCodeFences(body);
   const regions = extractAdvisoryVerdictRegions(body);
-  if (regions.length > 0 && anyPatternMatches(regions, ADVISORY_SHOULD_NOT_MERGE_RES)) {
+  if (regions.length > 0 && textHasAnchoredAdvisory(regions, ADVISORY_SHOULD_NOT_MERGE_RES)) {
     return true;
   }
-  const nonOverview = stripDescriptiveOverviewSurfaces(text);
-  if (anyPatternMatches(nonOverview, ADVISORY_HIGH_SIGNAL_RES)) {
+  // Soft + high line-anchored anywhere (covers standalone spaced Do not merge /
+  // should not merge outside Confidence regions without Overview mid-sentence hits).
+  if (textHasAnchoredAdvisory(text, ADVISORY_SHOULD_NOT_MERGE_RES)) {
     return true;
-  }
-  if (regions.length === 0) {
-    return anyPatternMatches(text, ADVISORY_HIGH_SIGNAL_RES);
   }
   return false;
 }
