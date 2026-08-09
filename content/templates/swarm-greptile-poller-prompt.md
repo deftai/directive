@@ -224,7 +224,7 @@ _ADVISORY_SHOULD_NOT_MERGE_RES = (
     re.compile(r"\bnot\s+ready\s+for\s+merge\b", re.IGNORECASE),
 )
 _ADVISORY_LINE_PREFIX_RE = re.compile(
-    r"^(?:Summary|Decision|Verdict)\s*:\s*",
+    r"^(?:Summary|Decision|Verdict)\s*[:\-–—]\s*",
     re.IGNORECASE,
 )
 _ADVISORY_SUBJECT_RE = re.compile(
@@ -234,16 +234,19 @@ _ADVISORY_SUBJECT_RE = re.compile(
 
 def _line_has_anchored_advisory(line: str) -> bool:
     bare = line.strip()
+    bare = re.sub(r"^>\s*", "", bare)
     bare = _ADVISORY_LINE_PREFIX_RE.sub("", bare, count=1)
     bare = re.sub(r"^(?:[-*•]\s+)+", "", bare)
     bare = re.sub(r"^\*\*", "", bare)
     bare = re.sub(r"\*\*$", "", bare)
+    bare = re.sub(r"^_", "", bare)
+    bare = re.sub(r"_$", "", bare)
     bare = _ADVISORY_SUBJECT_RE.sub("", bare, count=1).strip()
     if not bare:
         return False
     for pat in _ADVISORY_SHOULD_NOT_MERGE_RES:
         m = pat.search(bare)
-        if m is not None and m.start() <= 2:
+        if m is not None and m.start() <= 4:
             return True
     return False
 

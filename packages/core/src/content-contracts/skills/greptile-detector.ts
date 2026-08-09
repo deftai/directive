@@ -140,9 +140,12 @@ function anyPatternMatches(text: string, patterns: readonly RegExp[]): boolean {
  */
 function lineHasAnchoredAdvisory(line: string, patterns: readonly RegExp[]): boolean {
   let bare = line.trim();
-  bare = bare.replace(/^(?:Summary|Decision|Verdict)\s*:\s*/i, "");
+  // Blockquote / common markdown wrappers Greptile residual (PR #3227 conf 4).
+  bare = bare.replace(/^>\s*/, "");
+  bare = bare.replace(/^(?:Summary|Decision|Verdict)\s*[:\-–—]\s*/i, "");
   bare = bare.replace(/^(?:[-*•]\s+)+/, "");
   bare = bare.replace(/^\*\*/, "").replace(/\*\*$/, "");
+  bare = bare.replace(/^_/, "").replace(/_$/, "");
   // Explicit subject-prefixed verdicts Greptile uses: "The PR is not safe to merge…"
   bare = bare.replace(
     /^(?:the\s+pr|this\s+pr|this\s+change|the\s+change|this\s+diff)\s+is\s+/i,
@@ -155,7 +158,8 @@ function lineHasAnchoredAdvisory(line: string, patterns: readonly RegExp[]): boo
   for (const re of patterns) {
     re.lastIndex = 0;
     const m = re.exec(bare);
-    if (m !== null && (m.index ?? 0) <= 2) {
+    // Allow small lead-in after wrappers (em-dash residual, thin markdown).
+    if (m !== null && (m.index ?? 0) <= 4) {
       return true;
     }
   }
