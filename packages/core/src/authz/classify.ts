@@ -271,6 +271,34 @@ function isShellSegmentBreak(token: string): boolean {
 }
 
 /**
+ * First unquoted shell-list operator (`;` `&` `|`) in a token, or -1.
+ * Quoted operators (e.g. `'file;name'`) are literal data and must not end scp segments (#3213).
+ * O(n); escapes inside quotes skip the next char.
+ */
+function firstUnquotedShellOpIndex(raw: string): number {
+  let inSingle = false;
+  let inDouble = false;
+  for (let k = 0; k < raw.length; k++) {
+    const ch = raw[k] as string;
+    if (ch === "\\" && k + 1 < raw.length && (inSingle || inDouble)) {
+      k++;
+      continue;
+    }
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (ch === ";" || ch === "&" || ch === "|") return k;
+  }
+  return -1;
+}
+
+/**
  * Destinations from curl/wget/xxd/openssl/scp/aria2c/certutil via -o/--output/-O/-out/
  * --output-dir/-P/-d/--dir (separate, =value, or attached short form), xxd -r path-like
  * write positionals (#3206), and positional dests for scp/certutil (#3213).
@@ -411,17 +439,10 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // scp / certutil: track last non-flag pathish as dest within this segment only.
-      // Glued ops mid-token (`path;echo` / `path&&x`): cut at first op, keep path, end segment
-      // (O(n) scan — no poly-regex; CodeQL + Greptile residual).
+      // Unquoted glued ops mid-token (`path;echo`): cut, keep path, end segment.
+      // Quoted ops (`'file;name'`) stay literal and do not end the segment (#3213 Greptile).
       if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
-        let cut = -1;
-        for (let k = 0; k < raw.length; k++) {
-          const ch = raw[k] as string;
-          if (ch === ";" || ch === "&" || ch === "|") {
-            cut = k;
-            break;
-          }
-        }
+        const cut = firstUnquotedShellOpIndex(raw);
         const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
         const p = pathishToken(cleaned);
         if (p.length > 0) {

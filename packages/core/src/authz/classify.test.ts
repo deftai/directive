@@ -327,6 +327,10 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json;echo ok")).toContain(
       "settings",
     );
+    // Quoted operator in source must not end segment before real authz dest.
+    expect(classifyShellAuthzOps("scp 'weird;name.json' .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
     expect(
       classifyShellAuthzOps("scp -o ProxyCommand=none host:g.json .deft/authz/grants/evil.json"),
     ).toContain("settings");
