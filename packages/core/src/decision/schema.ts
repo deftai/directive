@@ -130,20 +130,39 @@ export function slugifyDecision(text: string): string {
   return out.length > 0 ? out : "decision";
 }
 
-/** Strip terminal control / C0 / DEL chars for safe plaintext list rendering. */
+/**
+ * Strip terminal / bidi control chars for safe plaintext list rendering.
+ * Drops C0 (except tab/LF/CR → space), DEL, C1 (U+0080–U+009F), and
+ * Unicode bidi overrides / isolates / embeddings used for deceptive reordering.
+ */
 export function sanitizeForTerminal(text: string): string {
   let out = "";
   for (let i = 0; i < text.length; i += 1) {
     const code = text.charCodeAt(i);
-    // Drop C0 controls (except tab/LF/CR) and DEL; keep printable + high unicode.
+    // Tab / LF / CR → space (never pass raw control layout to the terminal).
     if (code === 9 || code === 10 || code === 13) {
       out += " ";
       continue;
     }
+    // C0 + DEL
     if (code < 32 || code === 127) {
       continue;
     }
-    // ESC and CSI-like sequences start at 0x1b which is already dropped.
+    // C1 controls (including when encoded as U+0080–U+009F)
+    if (code >= 0x80 && code <= 0x9f) {
+      continue;
+    }
+    // Bidi control characters (deceptive reordering)
+    // LRE/RLE/PDF/LRO/RLO, LRI/RLI/FSI/PDI, and related marks.
+    if (
+      code === 0x061c || // ALM
+      code === 0x200e || // LRM
+      code === 0x200f || // RLM
+      (code >= 0x202a && code <= 0x202e) || // LRE..RLO
+      (code >= 0x2066 && code <= 0x2069) // LRI..PDI
+    ) {
+      continue;
+    }
     out += text[i];
   }
   return out;

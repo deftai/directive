@@ -42,10 +42,12 @@ describe("slugifyDecision", () => {
 });
 
 describe("sanitizeForTerminal", () => {
-  it("strips control characters", async () => {
+  it("strips control characters and bidi overrides", async () => {
     const { sanitizeForTerminal } = await import("./schema.js");
     expect(sanitizeForTerminal("ok\u001b[31mred\u0007bell")).toBe("ok[31mredbell");
     expect(sanitizeForTerminal("line\nbreak")).toBe("line break");
+    expect(sanitizeForTerminal("safe\u202Eevil")).toBe("safeevil");
+    expect(sanitizeForTerminal("a\u0080b\u009fc")).toBe("abc");
   });
 });
 
