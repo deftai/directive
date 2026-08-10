@@ -646,6 +646,134 @@ describe("runXbriefMigration convergence (#2270)", () => {
   });
 });
 
+const SAMPLE_HYBRID_V06 = {
+  xBRIEFInfo: {
+    version: "0.6",
+    description: "hybrid residual",
+    created: "2026-06-30T00:00:00Z",
+    updated: "2026-06-30T00:00:00Z",
+  },
+  plan: {
+    title: "Hybrid residual",
+    status: "running",
+    items: [],
+    references: [
+      {
+        uri: "https://github.com/deftai/directive/issues/3236",
+        type: "x-vbrief/github-issue",
+        title: "Issue #3236",
+      },
+      {
+        uri: "xbrief/active/child.xbrief.json",
+        type: "x-vbrief/plan",
+        title: "Child",
+      },
+    ],
+  },
+} as const;
+
+function scaffoldHybridXbriefOnly(base: string): string {
+  const project = join(base, "consumer");
+  mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "active"), { recursive: true });
+  writeFileSync(
+    join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"),
+    `${JSON.stringify(SAMPLE_HYBRID_V06, null, 2)}\n`,
+    "utf8",
+  );
+  execFileSync("git", ["init"], { cwd: project });
+  return project;
+}
+
+describe("runXbriefMigration hybrid in-place rewrite (#3236)", () => {
+  it("rewrites hybrid xBRIEFInfo@0.6 envelopes on an xbrief-only tree", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-rewrite-"));
+    temps.push(base);
+    const project = scaffoldHybridXbriefOnly(base);
+    const artifact = join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("rewritten");
+    if (outcome.kind === "rewritten") {
+      expect(outcome.files).toBe(1);
+      expect(outcome.message).toMatch(/Rewrote 1 hybrid xBRIEFInfo@0\.6/);
+    }
+
+    const rewritten = JSON.parse(readFileSync(artifact, "utf8"));
+    expect(rewritten.xBRIEFInfo.version).toBe("0.8");
+    expect(rewritten).not.toHaveProperty("vBRIEFInfo");
+    expect(rewritten.plan.references[0].type).toBe("x-xbrief/github-issue");
+    expect(rewritten.plan.references[1].type).toBe("x-xbrief/plan");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("is idempotent: second pass on already-0.8 hybrid trees is a clean noop", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-idem-"));
+    temps.push(base);
+    const project = scaffoldHybridXbriefOnly(base);
+    const artifact = join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json");
+
+    expect(runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO).kind).toBe(
+      "rewritten",
+    );
+    const afterFirst = readFileSync(artifact, "utf8");
+
+    const second = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(second.kind).toBe("noop");
+    expect(readFileSync(artifact, "utf8")).toBe(afterFirst);
+    expect(JSON.parse(afterFirst).xBRIEFInfo.version).toBe("0.8");
+  });
+
+  it("emits the rewrite report on stdout with exit 0", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-emit-"));
+    temps.push(base);
+    const project = scaffoldHybridXbriefOnly(base);
+    const outs: string[] = [];
+    const code = emitXbriefMigration(
+      runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO),
+      { writeOut: (t) => outs.push(t), writeErr: () => {} },
+    );
+    expect(code).toBe(0);
+    expect(outs.join("")).toMatch(/Rewrote 1 hybrid xBRIEFInfo@0\.6/);
+  });
+
+  it("does not rewrite schema deposits; hybrid envelopes still rewrite beside them (#3236 / #2368)", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-schema-"));
+    temps.push(base);
+    const project = scaffoldHybridXbriefOnly(base);
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "schemas"), { recursive: true });
+    const schemaPath = join(project, MIGRATED_ARTIFACT_DIR, "schemas", "vbrief-core.schema.json");
+    const schemaBody = JSON.stringify({
+      vBRIEFInfo: { version: "0.6", description: "stale deposit" },
+    });
+    writeFileSync(schemaPath, schemaBody, "utf8");
+
+    const outcome = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(outcome.kind).toBe("rewritten");
+    expect(
+      JSON.parse(
+        readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"), "utf8"),
+      ).xBRIEFInfo.version,
+    ).toBe("0.8");
+    // Schema deposit is not a lifecycle artifact — left for directive update.
+    expect(readFileSync(schemaPath, "utf8")).toBe(schemaBody);
+  });
+
+  it("refuses a dirty hybrid-only tree unless force is passed", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-hybrid-dirty-"));
+    temps.push(base);
+    const project = scaffoldHybridXbriefOnly(base);
+    writeFileSync(join(project, "dirty.txt"), "change\n", "utf8");
+
+    const outcome = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    expect(outcome.kind).toBe("refused");
+    expect(
+      JSON.parse(
+        readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"), "utf8"),
+      ).xBRIEFInfo.version,
+    ).toBe("0.6");
+  });
+});
+
 describe("convergeLegacyVbriefRoot (#2270)", () => {
   it("returns removed when the legacy dir is already absent", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-converge-absent-"));

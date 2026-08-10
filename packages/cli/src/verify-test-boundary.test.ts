@@ -15,9 +15,10 @@ describe("verify-test-boundary CLI (#3145)", () => {
     expect(a.error).toMatch(/unrecognized/);
   });
 
+  // Framework-root scan can exceed the default 5s under CI load (#3145 smoke).
   it("runs against framework root without config error", () => {
     // Exit 2 is config path noise; smoke only requires the CLI entry not throw.
     const code = run(["--project-root", ".", "--quiet"]);
     expect([0, 1, 2]).toContain(code);
-  });
+  }, 30_000);
 });
