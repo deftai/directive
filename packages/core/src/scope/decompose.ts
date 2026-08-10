@@ -1077,9 +1077,20 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
-  // Exclusive claim + revalidate under lock before protected writes (#3239).
-  // Single-use is marked spent at claim time so concurrent applies fail closed.
-  // If writes fail after claim, operator remints (preferred over double-apply).
+  // Exclusive claim: revalidate under lock → write all children + parent → then
+  // mark single-use usedAt (#3239 residual). Concurrent claimants fail closed on
+  // the lock; apply throw leaves the grant unspent for retry. Dead-PID locks reclaim.
+  const writeProtected = (): void => {
+    for (const { target } of childPaths) {
+      mkdirSync(dirname(target), { recursive: true });
+    }
+    for (let i = 0; i < childPaths.length; i += 1) {
+      // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
+      writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
+    }
+    writeJson(projectRoot, parentPath, parent);
+  };
+
   if (authz.humanApprovalRef !== null) {
     const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef, {
       revalidate: (grant) => {
@@ -1092,21 +1103,15 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
         });
         return again.allowed ? { ok: true as const } : { ok: false as const, reason: again.reason };
       },
+      apply: writeProtected,
     });
     if (!claim.ok) {
       throw new DecompositionError(claim.reason);
     }
+  } else {
+    writeProtected();
   }
 
-  for (const { target } of childPaths) {
-    mkdirSync(dirname(target), { recursive: true });
-  }
-  for (let i = 0; i < childPaths.length; i += 1) {
-    // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
-    writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
-  }
-
-  writeJson(projectRoot, parentPath, parent);
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }

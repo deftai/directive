@@ -7,6 +7,7 @@ import { authzStatePath } from "./paths.js";
 import {
   appendAuthzAudit,
   claimSingleUseGrantForApply,
+  isGrantClaimLockReclaimable,
   listActiveHumanGrants,
   loadAuthzState,
   loadAuthzStateResult,
@@ -356,7 +357,7 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     expect(loadGrant(root, g.id)?.semantics.usedAt).toBe("2026-08-10T12:00:00Z");
   });
 
-  it("existing lock fails closed (no stale auto-clear)", () => {
+  it("live-pid lock fails closed (no reclaim of live holder)", () => {
     const root = tempRoot();
     const g = mintHumanOriginGrant({
       projectRoot: root,
@@ -367,8 +368,16 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     const lockDir = join(root, ".deft", "authz", "locks");
     mkdirSync(lockDir, { recursive: true });
     const lockPath = join(lockDir, "fresh-lock.lock");
-    writeFileSync(lockPath, "live-pid\n", "utf8");
-    // Keep mtime current — not stale.
+    // Current process is alive — reclaim must not steal this critical section.
+    writeFileSync(
+      lockPath,
+      `${JSON.stringify({
+        pid: process.pid,
+        startedAt: "2026-08-10T00:00:00Z",
+        token: "live-holder",
+      })}\n`,
+      "utf8",
+    );
     const claim = claimSingleUseGrantForApply(root, g.id);
     expect(claim.ok).toBe(false);
     if (!claim.ok) expect(claim.reason).toMatch(/reserved|concurrent/i);
@@ -392,6 +401,124 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     });
     expect(seen).toBe(true);
     expect(claim.ok).toBe(true);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
+  });
+
+  it("apply success marks usedAt only after apply runs", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "apply-ok",
+    });
+    const order: string[] = [];
+    const claim = claimSingleUseGrantForApply(root, g.id, {
+      apply: () => {
+        order.push("apply");
+        expect(loadGrant(root, g.id)?.semantics.usedAt).toBeNull();
+      },
+    });
+    order.push("after");
+    expect(claim.ok).toBe(true);
+    expect(order).toEqual(["apply", "after"]);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
+  });
+
+  it("apply throw leaves single-use grant unspent (failure-safe)", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "apply-fail",
+    });
+    expect(() =>
+      claimSingleUseGrantForApply(root, g.id, {
+        apply: () => {
+          throw new Error("partial write failed");
+        },
+      }),
+    ).toThrow(/partial write failed/);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeNull();
+    // Lock released in finally — retry can claim again.
+    const retry = claimSingleUseGrantForApply(root, g.id, {
+      apply: () => {
+        /* ok */
+      },
+    });
+    expect(retry.ok).toBe(true);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
+  });
+
+  it("dead-pid lock is reclaimed so valid approval is not permanently blocked", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "dead-lock",
+    });
+    const lockDir = join(root, ".deft", "authz", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, "dead-lock.lock");
+    // PID unlikely to exist; if it does and is alive, reclaim would correctly fail closed.
+    writeFileSync(
+      lockPath,
+      `${JSON.stringify({
+        pid: 2_147_483_647,
+        startedAt: "2020-01-01T00:00:00Z",
+        token: "crashed-holder",
+      })}\n`,
+      "utf8",
+    );
+    expect(isGrantClaimLockReclaimable({ pid: 2_147_483_647, startedAt: "", token: "x" })).toBe(
+      true,
+    );
+    const claim = claimSingleUseGrantForApply(root, g.id, {
+      apply: () => {
+        /* protected writes */
+      },
+    });
+    expect(claim.ok).toBe(true);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
+  });
+
+  it("isGrantClaimLockReclaimable treats live pid as non-reclaimable", () => {
+    expect(
+      isGrantClaimLockReclaimable({
+        pid: process.pid,
+        startedAt: "2026-08-10T00:00:00Z",
+        token: "self",
+      }),
+    ).toBe(false);
+    expect(isGrantClaimLockReclaimable(null)).toBe(true);
+  });
+
+  it("concurrent-style: second claim fails while first holds lock during apply", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "concurrent",
+    });
+    let second: ReturnType<typeof claimSingleUseGrantForApply> | null = null;
+    const first = claimSingleUseGrantForApply(root, g.id, {
+      apply: () => {
+        second = claimSingleUseGrantForApply(root, g.id, {
+          apply: () => {
+            /* should not run */
+          },
+        });
+      },
+    });
+    expect(first.ok).toBe(true);
+    expect(second).not.toBeNull();
+    expect(second?.ok).toBe(false);
+    if (second !== null && !second.ok) {
+      expect(second.reason).toMatch(/reserved|concurrent/i);
+    }
     expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
   });
 });

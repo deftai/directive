@@ -1348,4 +1348,28 @@ describe("applyDecomposition structural authz (#3239)", () => {
     const after = loadGrant(proj, grant.id);
     expect(after?.semantics.usedAt).toBeNull();
   });
+
+  it("single-use grant is spent only after successful multi-file apply", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const grant = mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      singleUse: true,
+      grantId: "single-use-ok",
+    });
+    expect(loadGrant(proj, grant.id)?.semantics.usedAt).toBeNull();
+    applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+    });
+    expect(loadGrant(proj, grant.id)?.semantics.usedAt).toBeTruthy();
+    const childFiles = readdirSafe(join(proj, "xbrief", "pending")).filter(
+      (f) => f !== "parent.xbrief.json",
+    );
+    expect(childFiles.length).toBeGreaterThan(0);
+  });
 });

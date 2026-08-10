@@ -270,22 +270,90 @@ export function markGrantUsed(
   return used;
 }
 
+/** Exclusive claim lock body under `.deft/authz/locks/<id>.lock` (#3239). */
+export interface GrantClaimLockRecord {
+  readonly pid: number;
+  readonly startedAt: string;
+  readonly token: string;
+}
+
+function isProcessAlive(pid: number): boolean {
+  if (!Number.isFinite(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    // ESRCH → dead. EPERM → exists but unsignalable — treat as alive (never reclaim).
+    if (code === "EPERM") return true;
+    return false;
+  }
+}
+
+/**
+ * Whether a claim lock may be reclaimed after a crashed holder (#3239).
+ * Live owner PIDs are never reclaimed (no mtime-only steal of a live critical section).
+ * Corrupt / unreadable records are reclaimable; PID-reuse residual needs manual delete.
+ */
+export function isGrantClaimLockReclaimable(rec: GrantClaimLockRecord | null): boolean {
+  if (rec === null) return true;
+  return !isProcessAlive(rec.pid);
+}
+
+function readGrantClaimLockRecord(lockPath: string): GrantClaimLockRecord | null {
+  try {
+    const raw = readFileSync(lockPath, "utf8").trim();
+    // JSON form (current). Legacy: "pid\niso\n" lines from earlier #3239 revisions.
+    if (raw.startsWith("{")) {
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      const o = parsed as Record<string, unknown>;
+      const pid = typeof o.pid === "number" ? o.pid : Number(o.pid);
+      const startedAt = typeof o.startedAt === "string" ? o.startedAt : "";
+      const token = typeof o.token === "string" ? o.token : "";
+      if (!Number.isFinite(pid) || token.length === 0) return null;
+      return { pid, startedAt, token };
+    }
+    const lines = raw.split(/\r?\n/);
+    const pid = Number(lines[0]);
+    if (!Number.isFinite(pid)) return null;
+    return {
+      pid,
+      startedAt: typeof lines[1] === "string" ? lines[1] : "",
+      token: "legacy",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface ClaimSingleUseGrantOptions {
   readonly now?: Date;
   /**
    * Re-check grant after exclusive lock (revocation/expiry/origin/bindings).
-   * Called before single-use mark so an invalidated grant cannot authorize writes.
+   * Called before protected apply / single-use mark so an invalidated grant cannot authorize writes.
    */
   readonly revalidate?: (grant: HumanOriginGrant) => { ok: true } | { ok: false; reason: string };
+  /**
+   * Protected work under the exclusive claim (#3239 residual).
+   * Order: lock → revalidate → apply → mark single-use usedAt → release lock.
+   * If apply throws, usedAt is not set (grant reusable) and the lock is released.
+   * Concurrent claimants fail closed while the lock is held.
+   */
+  readonly apply?: (grant: HumanOriginGrant) => void;
 }
 
 /**
- * Claim a single-use grant for structural apply before protected writes (#3239).
- * Multi-use grants return ok without mutating. Single-use: exclusive lock + re-load
- * + revalidate + mark used so concurrent applies cannot both observe unspent and both write.
- * If later writes fail, the grant stays spent (operator remints) — preferred over
- * double-apply of one approval. Leftover lock files after crash require manual remint
- * or lock removal (no auto-clear race).
+ * Claim a single-use grant for structural apply (#3239).
+ *
+ * Concurrent-safe + failure-safe order when `apply` is provided:
+ *   exclusive lock → re-load → revalidate → apply (writes) → mark usedAt → release lock.
+ * Multi-use grants run apply (if any) without mutating usedAt.
+ * Without `apply`, single-use is marked under the lock immediately (claim-only / test path).
+ *
+ * Crash recovery: lock files hold pid+token. Dead-PID (or corrupt) locks are reclaimable
+ * via exclusive recreate (only one winner). Live PIDs are never reclaimed — no mtime-only
+ * steal of a live critical section. PID-reuse residual: operator deletes the lock file.
  */
 export function claimSingleUseGrantForApply(
   projectRoot: string,
@@ -299,13 +367,19 @@ export function claimSingleUseGrantForApply(
   const root = resolve(projectRoot);
   const lockRel = join(".deft", "authz", "locks", `${safe}.lock`);
   const lockPath = join(root, lockRel);
+  const lockToken = randomBytes(8).toString("hex");
+  const lockBody = `${JSON.stringify({
+    pid: process.pid,
+    startedAt: utcIso(now),
+    token: lockToken,
+  } satisfies GrantClaimLockRecord)}\n`;
 
   const tryCreateLock = (): boolean => {
     try {
       containedWrite({
         root,
         target: lockPath,
-        data: `${process.pid}\n${utcIso(now)}\n`,
+        data: lockBody,
         mode: "create",
       });
       return true;
@@ -318,16 +392,27 @@ export function claimSingleUseGrantForApply(
     }
   };
 
-  // No stale-lock auto-clear: concurrent recreate races are fail-closed (#3239 Greptile).
-  // Operators remint after a crashed claim that left a lock file, or delete the lock.
-  const locked = tryCreateLock();
+  let locked = tryCreateLock();
+  if (!locked) {
+    // Dead-PID / corrupt lock reclaim: delete only when reclaimable, then one exclusive retry.
+    // Two reclaimers may both delete; only one create-exclusive succeeds (#3239).
+    const existing = readGrantClaimLockRecord(lockPath);
+    if (isGrantClaimLockReclaimable(existing)) {
+      try {
+        rmSync(lockPath, { force: true });
+      } catch {
+        /* best-effort */
+      }
+      locked = tryCreateLock();
+    }
+  }
   if (!locked) {
     return {
       ok: false,
       reason:
         `Directive denied scope:decompose apply: grant ${grantId} is already reserved ` +
         "or spent by a concurrent apply. Human action required: remint if the prior apply failed " +
-        "(or remove a leftover `.deft/authz/locks/<id>.lock` after a crash).",
+        "(or remove a leftover `.deft/authz/locks/<id>.lock` after a dead-holder crash if reclaim fails).",
     };
   }
 
@@ -346,6 +431,9 @@ export function claimSingleUseGrantForApply(
       }
     }
     if (!grant.semantics.singleUse) {
+      if (opts.apply !== undefined) {
+        opts.apply(grant);
+      }
       return { ok: true, grant };
     }
     if (grant.semantics.usedAt !== null) {
@@ -355,6 +443,10 @@ export function claimSingleUseGrantForApply(
           `Directive denied scope:decompose apply: single-use grant ${grantId} already spent at ` +
           `${grant.semantics.usedAt}.`,
       };
+    }
+    // Transactional path: run protected writes before spending the grant.
+    if (opts.apply !== undefined) {
+      opts.apply(grant);
     }
     const used: HumanOriginGrant = {
       ...grant,
@@ -366,6 +458,8 @@ export function claimSingleUseGrantForApply(
     saveGrant(projectRoot, used);
     return { ok: true, grant: used };
   } finally {
+    // Only the owner removes its lock; force so a partial crash mid-claim still cleans up
+    // when the process is still alive to run finally. Dead-process leftovers use reclaim.
     rmSync(lockPath, { force: true });
   }
 }
