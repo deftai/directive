@@ -3,12 +3,28 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeSync,
+} from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { isHumanOrigin } from "./origin.js";
-import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
+import {
+  authzAuditPath,
+  authzDir,
+  authzGrantPath,
+  authzGrantsDir,
+  authzStatePath,
+} from "./paths.js";
 import {
   AUTHZ_OPERATIONS,
   type AuthzAuditRecord,
@@ -268,6 +284,85 @@ export function markGrantUsed(
   };
   saveGrant(projectRoot, used);
   return used;
+}
+
+/**
+ * Claim a single-use grant for structural apply before protected writes (#3239).
+ * Multi-use grants return ok without mutating. Single-use: exclusive lock + re-load
+ * + mark used so concurrent applies cannot both observe unspent and both write.
+ * If later writes fail, the grant stays spent (operator remints) — preferred over
+ * double-apply of one approval.
+ */
+export function claimSingleUseGrantForApply(
+  projectRoot: string,
+  grantId: string,
+  now: Date = new Date(),
+): { ok: true; grant: HumanOriginGrant } | { ok: false; reason: string } {
+  const root = resolve(projectRoot);
+  const safe = grantId.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const lockDir = join(authzDir(projectRoot), "locks");
+  const lockPath = join(lockDir, `${safe}.lock`);
+  try {
+    mkdirSync(lockDir, { recursive: true });
+  } catch {
+    /* dir may exist */
+  }
+  let lockFd: number | null = null;
+  try {
+    // Exclusive create — concurrent claim fails closed.
+    lockFd = openSync(lockPath, "wx");
+    writeSync(lockFd, `${process.pid}\n${utcIso(now)}\n`);
+  } catch {
+    return {
+      ok: false,
+      reason:
+        `Directive denied scope:decompose apply: grant ${grantId} is already reserved ` +
+        "or spent by a concurrent apply. Human action required: remint if the prior apply failed.",
+    };
+  }
+  try {
+    const grant = loadGrant(projectRoot, grantId);
+    if (grant === null) {
+      return {
+        ok: false,
+        reason: `Directive denied scope:decompose apply: grant ${grantId} missing.`,
+      };
+    }
+    if (!grant.semantics.singleUse) {
+      return { ok: true, grant };
+    }
+    if (grant.semantics.usedAt !== null) {
+      return {
+        ok: false,
+        reason:
+          `Directive denied scope:decompose apply: single-use grant ${grantId} already spent at ` +
+          `${grant.semantics.usedAt}.`,
+      };
+    }
+    const used: HumanOriginGrant = {
+      ...grant,
+      semantics: {
+        ...grant.semantics,
+        usedAt: utcIso(now),
+      },
+    };
+    saveGrant(projectRoot, used);
+    return { ok: true, grant: used };
+  } finally {
+    if (lockFd !== null) {
+      try {
+        closeSync(lockFd);
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      rmSync(lockPath, { force: true });
+    } catch {
+      /* best-effort */
+    }
+    void root;
+  }
 }
 
 export function saveAuthzState(projectRoot: string, state: AuthzState): void {

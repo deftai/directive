@@ -11,7 +11,7 @@ import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
-import { markGrantUsed } from "../authz/store.js";
+import { claimSingleUseGrantForApply } from "../authz/store.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
@@ -1031,8 +1031,8 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
     `AUTHZ grant=${authz.humanApprovalRef ?? "unknown"} digest=${draftDigest.slice(0, 12)}`,
   );
 
-  // Parent mutation validation before any filesystem writes so single-use grants
-  // are not spent on a path that will fail closed below (#3239 Greptile P1).
+  // Parent mutation validation before claim/writes so invalid parents do not
+  // spend a single-use grant (#3239).
   let parentPlan = parent.plan;
   if (parentPlan === null || parentPlan === undefined) {
     parentPlan = {};
@@ -1077,6 +1077,16 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
+  // Claim single-use grants before protected writes so concurrent applies cannot
+  // both observe unspent and both mutate (#3239 Greptile P1). Failed later writes
+  // leave single-use spent (operator remints) — preferred over double-apply.
+  if (authz.humanApprovalRef !== null) {
+    const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef);
+    if (!claim.ok) {
+      throw new DecompositionError(claim.reason);
+    }
+  }
+
   for (const { target } of childPaths) {
     mkdirSync(dirname(target), { recursive: true });
   }
@@ -1086,10 +1096,6 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   }
 
   writeJson(projectRoot, parentPath, parent);
-  // Consume single-use grants only after successful child+parent writes.
-  if (authz.humanApprovalRef !== null) {
-    markGrantUsed(projectRoot, authz.humanApprovalRef);
-  }
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }
