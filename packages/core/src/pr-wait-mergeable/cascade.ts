@@ -59,8 +59,9 @@ export interface WaitMergeableOptions {
   /** When true, skip human-merge / intent preflight (tests only). */
   readonly skipHumanMergeGate?: boolean;
   /**
-   * When true, skip head-bound plan:approved gate (#3235). Default false.
-   * Independent of skipHumanMergeGate so tests can exercise head binding alone.
+   * When true, skip head-bound plan:approved gate (#3235).
+   * Default: same as skipHumanMergeGate (test harnesses that skip human-merge
+   * also skip head-binding unless they opt in with skipMergeApprovalHeadGate=false).
    */
   readonly skipMergeApprovalHeadGate?: boolean;
   /** Inject head-bound approval enforcer (unit tests). */
@@ -227,8 +228,12 @@ export function waitMergeableAndMerge(
   // current HEAD; best-effort disable auto-merge + recovery instructions.
   // Re-read live HEAD immediately before merge (TOCTOU / Greptile P1) and pin
   // `gh pr merge --match-head-commit` to that exact SHA.
+  // Default skip when human-merge gate is skipped (unit-test harness convention).
+  const skipHeadGate =
+    options.skipMergeApprovalHeadGate === true ||
+    (options.skipMergeApprovalHeadGate === undefined && options.skipHumanMergeGate === true);
   let matchHeadCommit: string | null = null;
-  if (options.skipMergeApprovalHeadGate !== true) {
+  if (!skipHeadGate) {
     const readiness =
       typeof monitorPayload.readiness === "object" &&
       monitorPayload.readiness !== null &&
