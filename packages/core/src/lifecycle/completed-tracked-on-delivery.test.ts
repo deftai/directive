@@ -219,4 +219,134 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(result.message).toContain("not a git worktree");
     expect(result.message).toContain("skip");
   });
+
+  it("returns config error when project root path is missing", () => {
+    const result = evaluateCompletedTracked(
+      join(tmpdir(), "deft-completed-tracked-missing-root-xyz"),
+      { skipGh: true },
+    );
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("project root does not exist");
+  });
+
+  it("quiet mode suppresses pass and fail message bodies", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "quiet-miss.xbrief.json", issuePlan(9010));
+    writeCachedIssue(root, "deftai/directive", 9010, "closed");
+    const miss = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      quiet: true,
+    });
+    expect(miss.code).toBe(1);
+    expect(miss.message.length).toBeGreaterThan(0); // fail still reports remediation
+    expect(miss.stream).toBe("stderr");
+
+    writeBrief(root, "completed", "quiet-ok.xbrief.json", issuePlan(9011));
+    writeCachedIssue(root, "deftai/directive", 9011, "closed");
+    git(root, ["add", "xbrief/completed/quiet-ok.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "quiet land"]);
+    // Remove the untracked miss so only landed 9011 remains as closed scoped.
+    // 9010 still untracked completed → still fail; use resolveIssueState instead.
+    const passRoot = makeGitRepo();
+    writeBrief(passRoot, "completed", "only-ok.xbrief.json", issuePlan(9012));
+    writeCachedIssue(passRoot, "deftai/directive", 9012, "closed");
+    git(passRoot, ["add", "xbrief/completed/only-ok.xbrief.json"]);
+    git(passRoot, ["commit", "-q", "-m", "land"]);
+    const pass = evaluateCompletedTracked(passRoot, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      quiet: true,
+    });
+    expect(pass.code).toBe(0);
+    expect(pass.message).toBe("");
+    expect(pass.stream).toBe("none");
+  });
+
+  it("uses live gh when cache misses and skipGh is false", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "live-gh.xbrief.json", issuePlan(9020));
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: false,
+      tip: "HEAD",
+      runGh: (cmd) => {
+        if (cmd.join(" ").includes("/issues/9020")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "closed" }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "miss" };
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9020);
+  });
+
+  it("does not fail when issue state cannot be resolved", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "unknown-state.xbrief.json", issuePlan(9021));
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("skips unreadable local briefs and tip blobs that are not plans", () => {
+    const root = makeGitRepo();
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "completed", "bad.xbrief.json"), "{not-json", "utf8");
+    writeFileSync(
+      join(root, "xbrief", "completed", "no-plan.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" } }),
+      "utf8",
+    );
+    writeBrief(root, "completed", "good.xbrief.json", issuePlan(9030));
+    writeCachedIssue(root, "deftai/directive", 9030, "closed");
+    git(root, ["add", "xbrief/completed"]);
+    git(root, ["commit", "-q", "-m", "mixed completed"]);
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("truncates long origin lists in the fail message", () => {
+    const root = makeGitRepo();
+    for (let i = 0; i < 4; i += 1) {
+      writeBrief(root, "active", `origin-${i}.xbrief.json`, {
+        ...issuePlan(9040),
+        status: "running",
+        title: `origin ${i}`,
+      });
+    }
+    writeCachedIssue(root, "deftai/directive", 9040, "closed");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("more origin path");
+  });
+
+  it("honors resolveIssueState test seam", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "seam.xbrief.json", issuePlan(9050));
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      tip: "HEAD",
+      resolveIssueState: () => "closed",
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9050);
+  });
 });

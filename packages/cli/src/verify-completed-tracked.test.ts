@@ -76,6 +76,20 @@ describe("parseArgs", () => {
       skipGh: true,
     });
   });
+
+  it("parses equals-form flags", () => {
+    expect(
+      parseArgs(["--project-root=/root", "--repo=deftai/directive", "--tip=origin/main"]),
+    ).toMatchObject({
+      projectRoot: "/root",
+      repo: "deftai/directive",
+      tip: "origin/main",
+    });
+  });
+
+  it("errors when --tip is missing its value", () => {
+    expect(parseArgs(["--tip"]).error).toMatch(/--tip/);
+  });
 });
 
 describe("run", () => {
