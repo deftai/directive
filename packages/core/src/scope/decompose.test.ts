@@ -283,6 +283,24 @@ describe("validateDraft", () => {
     expect(() => validateDraft([story] as Record<string, unknown>[])).toThrow("unknown story");
   });
 
+  it("rejects size=large with parallel_safe=true (readiness parity #3252)", () => {
+    const story = goodStory("story-large-parallel");
+    (story.swarm as Record<string, unknown>).size = "large";
+    (story.swarm as Record<string, unknown>).parallel_safe = true;
+    expect(() => validateDraft([story] as Record<string, unknown>[])).toThrow(DecompositionError);
+    expect(() => validateDraft([story] as Record<string, unknown>[])).toThrow(
+      "size=large cannot be parallel_safe=true",
+    );
+  });
+
+  it("allows size=large with parallel_safe=false when not concurrent-ready", () => {
+    const story = goodStory("story-large-seq");
+    (story.swarm as Record<string, unknown>).size = "large";
+    (story.swarm as Record<string, unknown>).parallel_safe = false;
+    (story.swarm as Record<string, unknown>).readiness = "sequential";
+    expect(validateDraft([story] as Record<string, unknown>[])).toEqual(["story-large-seq"]);
+  });
+
   it("throws on non-array stories draft", () => {
     expect(() => {
       const draft = { stories: "bad" };
@@ -1055,6 +1073,23 @@ describe("decomposeMain extra CLI branches", () => {
       draftPath,
       "--date",
       "2026-06-01",
+      "--project-root",
+      proj,
+    ]);
+    expect(code).toBe(1);
+  });
+
+  it("check mode rejects size=large with parallel_safe=true (#3252)", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const story = goodStory("story-large-check");
+    (story.swarm as Record<string, unknown>).size = "large";
+    (story.swarm as Record<string, unknown>).parallel_safe = true;
+    writeJson(draftPath, { stories: [story] });
+    const code = decomposeMain([
+      parentPath,
+      "--draft",
+      draftPath,
+      "--check",
       "--project-root",
       proj,
     ]);

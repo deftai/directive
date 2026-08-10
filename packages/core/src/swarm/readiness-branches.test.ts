@@ -65,7 +65,8 @@ describe("readiness branch coverage", () => {
     });
     const { exitCode, report } = readinessReport(project, [path]);
     expect(exitCode).toBe(1);
-    expect(report).toContain("size=large");
+    // Same message family as scope:decompose --check validateDraft (#3252).
+    expect(report).toContain("size=large cannot be parallel_safe=true");
     rmSync(project, { recursive: true, force: true });
   });
 
