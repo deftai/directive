@@ -85,6 +85,18 @@ Parent epic: #3179 (self-improving under gates). Trajectory / refine constraint:
 
 Parent epic: #3179. Extends #782 / #1499 / #3145 verification-independence themes.
 
+## Thin Fail-Closed Design (#3265)
+
+**Rule:** Prefer one thin, fail-closed deterministic check over long skill process or multi-surface first ships.
+
+- ! Prefer **one fail-closed deterministic check** with **one remediation string** for the first ship of a process gap
+- ! Treat skill-only / RFC2119 process closes as **incomplete** when the same rule can fail closed via `task`, doctor, or release preflight
+- ! Prefer **thin closable slices** (optional complexity goes to a follow-up issue) over boil-the-ocean first ships
+- ⊗ Close a process gap with skill MUST text alone when a gate surface exists and is not landed
+- ⊗ Expand first-ship scope to multi-role matrices or multi-surface walls when one check plus one remediation would close the gap
+
+See Rule Authority (deterministic > prose). Safety via formal gates: #1200. Gate integrity: #3156. Practice examples: #3237, #3264.
+
 **Decision Making:**
 - ! Follow established patterns in current context
 - ~ Question assumptions and probe for clarity
