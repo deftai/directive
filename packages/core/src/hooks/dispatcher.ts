@@ -370,9 +370,9 @@ export function isAssistScratchWrite(
   environ: NodeJS.ProcessEnv = process.env,
 ): boolean {
   if (!isAllowlistedAssistScratchPath(projectRoot, targetPath)) return false;
-  // Structural classification only — compose with #3080 ephemeral markers.
+  // Structural classification only — compose with #3080 / #3259 ephemeral markers.
   if (isAssistPosture(payload, environ)) return true;
-  if (isEphemeralSpawn(payload)) return true;
+  if (isEphemeralSpawn(payload, environ)) return true;
   return false;
 }
 
@@ -943,14 +943,18 @@ function inspectMutationGates(
     if (!outsideRoot || isSpawnTool(toolName)) {
       let proposedPathHint: string;
       if (isSpawnTool(toolName)) {
-        // Multi-path recovery for implement-class spawns (#3080 AC4).
+        // Multi-path recovery for implement-class spawns (#3080 AC4 / #3259 honesty).
+        // Structural markers only — free-text prompt brackets are not sufficient.
         proposedPathHint =
           " Recovery: (1) Product implementation — run `deft scope:activate -- <path>` " +
           "for the approved xBRIEF, then re-run the pre-start_agent gate stack. " +
-          "(2) Read-only research — spawn with `subagent_type`/`worker_role` explore. " +
-          "(3) Ephemeral docs/analysis — spawn with `worker_role: ephemeral` " +
-          "(aliases: docs, assist; see commands.md), or continue in the parent without " +
-          "a lifecycle story. Do not invent a fake scope only to satisfy this gate.";
+          "(2) Read-only research — spawn with structural `subagent_type`/`worker_role` explore. " +
+          "(3) Ephemeral docs/local-dev — set structural tool fields " +
+          "`worker_role`/`subagent_type` ∈ {ephemeral, docs, assist} (hosts that support them), " +
+          "or set session assist (`DEFT_SESSION_POSTURE=assist` or `DEFT_HOOK_ASSIST=1`), " +
+          "or run local-dev Shell (`docker compose` / `pnpm dev`) in the parent without a " +
+          "lifecycle story. Free-text markers such as `[worker_role: ephemeral]` in the " +
+          "prompt are NOT sufficient. Do not invent a fake scope only to satisfy this gate.";
       } else if (
         options.proposedLifecycleExempt &&
         relTarget !== null &&
@@ -1214,9 +1218,9 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
         scopePath: null,
       };
     }
-    // Ephemeral/docs/assist: write-capable non-lifecycle spawn; no active xBRIEF (#3080).
-    // Does not authorize push/merge/deploy — those remain on shell/MCP matchers.
-    if (isEphemeralSpawn(input.payload)) {
+    // Ephemeral/docs/assist (+ session assist env #3259): non-lifecycle spawn;
+    // no active xBRIEF. Does not authorize push/merge/deploy — shell/MCP matchers.
+    if (isEphemeralSpawn(input.payload, environ)) {
       return {
         verdict: "allow",
         code: "spawn-ephemeral-ready",

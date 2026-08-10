@@ -1526,6 +1526,7 @@ describe("ephemeral spawn posture (#3080)", () => {
           tool_name: "Task",
           tool_input: { subagent_type: "generalPurpose", prompt: "ship it" },
         },
+        environ: {},
       },
       emptyScopeSeams(),
     );
@@ -1534,6 +1535,94 @@ describe("ephemeral spawn posture (#3080)", () => {
     expect(decision.message).toMatch(/explore/i);
     expect(decision.message).toMatch(/ephemeral/i);
     expect(decision.message).toMatch(/Do not invent a fake scope/i);
+  });
+
+  it("deny recovery states free-text markers are not sufficient (#3259 AC4)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            subagent_type: "generalPurpose",
+            prompt: "[worker_role: ephemeral] start local app",
+          },
+        },
+        environ: {},
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/NOT sufficient/i);
+    expect(decision.message).toMatch(/DEFT_SESSION_POSTURE|DEFT_HOOK_ASSIST/);
+    expect(decision.message).toMatch(/parent|Shell|docker compose|pnpm dev/i);
+  });
+
+  it("session assist env allows Task without active xBRIEF (#3259 AC3)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            subagent_type: "generalPurpose",
+            prompt: "docker compose up && pnpm dev",
+          },
+        },
+        environ: { DEFT_HOOK_ASSIST: "1" },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ephemeral-ready" });
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("DEFT_SESSION_POSTURE assist allows Task without active xBRIEF (#3259 AC3)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "health check localhost" },
+        },
+        environ: { DEFT_SESSION_POSTURE: "assist" },
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ephemeral-ready" });
+  });
+
+  it("free-text only without assist env still denies (#3259 AC2)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            subagent_type: "generalPurpose",
+            prompt: "[worker_role: ephemeral] start local AgentSentri",
+          },
+        },
+        environ: {},
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
   });
 
   it("implement wins when ephemeral marker conflicts with drive-to merge-ready (AC6)", () => {
@@ -1550,6 +1639,28 @@ describe("ephemeral spawn posture (#3080)", () => {
             prompt: "implement",
           },
         },
+        environ: {},
+      },
+      emptyScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+  });
+
+  it("implement wins when session assist env conflicts with drive-to (#3259 AC6)", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: {
+            subagent_type: "generalPurpose",
+            drive_to: "merge-ready",
+            prompt: "implement feature",
+          },
+        },
+        environ: { DEFT_HOOK_ASSIST: "1" },
       },
       emptyScopeSeams(),
     );
@@ -1565,6 +1676,7 @@ describe("ephemeral spawn posture (#3080)", () => {
         event: "tool.before",
         projectRoot: "/project",
         payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        environ: {},
       },
       readySeams({ inspectRitual, inspectScope }),
     );

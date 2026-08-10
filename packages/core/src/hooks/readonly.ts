@@ -139,8 +139,8 @@ export function isAssistPosture(
   if (posture !== null && ASSIST_POSTURE_MARKERS.has(normalizePostureToken(posture))) {
     return true;
   }
-  // Shared taxonomy with #3080 ephemeral spawn markers.
-  if (isEphemeralSpawn(payload)) return true;
+  // Shared taxonomy with #3080 / #3259 ephemeral spawn markers.
+  if (isEphemeralSpawn(payload, environ)) return true;
   return false;
 }
 
@@ -203,33 +203,61 @@ function hasImplementConflictSignal(
 }
 
 /**
- * Ephemeral / assist / docs spawns skip active-xBRIEF implementation gates (#3080).
- * True only with an explicit allowlisted marker. Absent marker → false (fail closed).
- * When an ephemeral marker conflicts with implement envelope signals, implement wins.
+ * Session assist env tokens that count as structural ephemeral markers for spawn (#3259).
+ * Reuses #1802 ASSIST_POSTURE_MARKERS / DEFT_HOOK_ASSIST — not free-text NLP.
  */
-export function isEphemeralSpawn(payload: unknown): boolean {
+function hasSessionAssistEphemeralEnv(environ: NodeJS.ProcessEnv): boolean {
+  const envPosture = (environ[ASSIST_SESSION_POSTURE_ENV] ?? "").trim();
+  if (envPosture.length > 0 && ASSIST_POSTURE_MARKERS.has(normalizePostureToken(envPosture))) {
+    return true;
+  }
+  return envTruthy(environ, "DEFT_HOOK_ASSIST");
+}
+
+/**
+ * Ephemeral / assist / docs spawns skip active-xBRIEF implementation gates (#3080 / #3259).
+ * True only with an explicit allowlisted marker. Absent marker → false (fail closed).
+ * Markers: structural `worker_role`/`subagent_type` ∈ {ephemeral,docs,assist}, OR
+ * session assist env (`DEFT_SESSION_POSTURE` assist-set / `DEFT_HOOK_ASSIST=1`) for spawn.
+ * Free-text prompt strings are never classified. When a marker conflicts with implement
+ * envelope signals, implement wins.
+ */
+export function isEphemeralSpawn(
+  payload: unknown,
+  environ: NodeJS.ProcessEnv = process.env,
+): boolean {
   const input = record(payload);
-  if (input === null) return false;
-  const toolInput = toolInputRecord(input) ?? input;
-  const subagentType =
-    fieldString(toolInput, "subagent_type") ??
-    fieldString(toolInput, "subagentType") ??
-    fieldString(input, "subagent_type") ??
-    fieldString(input, "subagentType");
-  const workerRole =
-    fieldString(toolInput, "worker_role") ??
-    fieldString(toolInput, "workerRole") ??
-    fieldString(input, "worker_role") ??
-    fieldString(input, "workerRole");
-  const marker =
-    (workerRole !== null && EPHEMERAL_ROLE_MARKERS.has(workerRole.toLowerCase())
-      ? workerRole.toLowerCase()
-      : null) ??
-    (subagentType !== null && EPHEMERAL_ROLE_MARKERS.has(subagentType.toLowerCase())
-      ? subagentType.toLowerCase()
-      : null);
-  if (marker === null) return false;
-  // Implement signals win over ephemeral markers (fail closed).
-  if (hasImplementConflictSignal(toolInput, input)) return false;
+  const toolInput = input !== null ? (toolInputRecord(input) ?? input) : null;
+
+  let hasMarker = false;
+  if (input !== null && toolInput !== null) {
+    const subagentType =
+      fieldString(toolInput, "subagent_type") ??
+      fieldString(toolInput, "subagentType") ??
+      fieldString(input, "subagent_type") ??
+      fieldString(input, "subagentType");
+    const workerRole =
+      fieldString(toolInput, "worker_role") ??
+      fieldString(toolInput, "workerRole") ??
+      fieldString(input, "worker_role") ??
+      fieldString(input, "workerRole");
+    if (
+      (workerRole !== null && EPHEMERAL_ROLE_MARKERS.has(workerRole.toLowerCase())) ||
+      (subagentType !== null && EPHEMERAL_ROLE_MARKERS.has(subagentType.toLowerCase()))
+    ) {
+      hasMarker = true;
+    }
+  }
+  // #3259 D1-B: session assist env is a structural ephemeral marker for spawn tools.
+  // Call sites gate "spawn only"; this helper stays pure classification.
+  if (!hasMarker && hasSessionAssistEphemeralEnv(environ)) {
+    hasMarker = true;
+  }
+  if (!hasMarker) return false;
+
+  // Implement signals win over ephemeral markers including session assist env (fail closed).
+  if (input !== null && toolInput !== null && hasImplementConflictSignal(toolInput, input)) {
+    return false;
+  }
   return true;
 }

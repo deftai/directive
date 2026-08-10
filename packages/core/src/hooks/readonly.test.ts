@@ -57,10 +57,57 @@ describe("ephemeral spawn detection (#3080)", () => {
   });
 
   it("fails closed on unmarked / generalPurpose (ambiguous → implement)", () => {
-    expect(isEphemeralSpawn({ tool_input: { subagent_type: "generalPurpose" } })).toBe(false);
-    expect(isEphemeralSpawn({ tool_input: { prompt: "write a brochure" } })).toBe(false);
-    expect(isEphemeralSpawn(null)).toBe(false);
-    expect(isEphemeralSpawn({ tool_input: { worker_role: "leaf-implementation" } })).toBe(false);
+    const noAssist = {};
+    expect(isEphemeralSpawn({ tool_input: { subagent_type: "generalPurpose" } }, noAssist)).toBe(
+      false,
+    );
+    expect(isEphemeralSpawn({ tool_input: { prompt: "write a brochure" } }, noAssist)).toBe(false);
+    expect(isEphemeralSpawn(null, noAssist)).toBe(false);
+    expect(isEphemeralSpawn({ tool_input: { worker_role: "leaf-implementation" } }, noAssist)).toBe(
+      false,
+    );
+  });
+
+  it("fails closed on free-text prompt brackets (no NLP, #3259)", () => {
+    const noAssist = {};
+    expect(
+      isEphemeralSpawn(
+        {
+          tool_input: {
+            subagent_type: "generalPurpose",
+            prompt: "[worker_role: ephemeral] start docker compose",
+          },
+        },
+        noAssist,
+      ),
+    ).toBe(false);
+  });
+
+  it("session assist env counts as structural ephemeral marker (#3259)", () => {
+    expect(
+      isEphemeralSpawn(
+        { tool_input: { subagent_type: "generalPurpose", prompt: "pnpm dev" } },
+        { [ASSIST_SESSION_POSTURE_ENV]: "assist" },
+      ),
+    ).toBe(true);
+    expect(
+      isEphemeralSpawn(
+        { tool_input: { subagent_type: "generalPurpose" } },
+        { [ASSIST_SESSION_POSTURE_ENV]: "research-notes" },
+      ),
+    ).toBe(true);
+    expect(
+      isEphemeralSpawn(
+        { tool_input: { subagent_type: "generalPurpose" } },
+        { DEFT_HOOK_ASSIST: "1" },
+      ),
+    ).toBe(true);
+    expect(
+      isEphemeralSpawn(
+        { tool_input: { subagent_type: "generalPurpose" } },
+        { [ASSIST_SESSION_POSTURE_ENV]: "mutation" },
+      ),
+    ).toBe(false);
   });
 
   it("implement signals win over ephemeral markers (fail closed)", () => {
@@ -92,6 +139,32 @@ describe("ephemeral spawn detection (#3080)", () => {
       isEphemeralSpawn({
         tool_input: { worker_role: "ephemeral", driveTo: "merge" },
       }),
+    ).toBe(false);
+  });
+
+  it("implement signals win over session assist env (#3259 AC6)", () => {
+    expect(
+      isEphemeralSpawn(
+        {
+          tool_input: {
+            subagent_type: "generalPurpose",
+            drive_to: "merge-ready",
+            prompt: "implement feature",
+          },
+        },
+        { DEFT_HOOK_ASSIST: "1" },
+      ),
+    ).toBe(false);
+    expect(
+      isEphemeralSpawn(
+        {
+          tool_input: {
+            worker_role: "leaf-implementation",
+            prompt: "ship it",
+          },
+        },
+        { [ASSIST_SESSION_POSTURE_ENV]: "assist" },
+      ),
     ).toBe(false);
   });
 });
