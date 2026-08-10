@@ -11,7 +11,7 @@ import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
-import { markGrantUsed } from "../authz/store.js";
+import { claimSingleUseGrantForApply } from "../authz/store.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
@@ -1077,15 +1077,25 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
-  // Re-check covering grant immediately before writes (revocation/expiry/binding).
-  const recheck = evaluateDecomposeStructuralApply({
-    projectRoot,
-    parentPath,
-    draftPath,
-    draftDigest,
-  });
-  if (!recheck.allowed) {
-    throw new DecompositionError(recheck.reason);
+  // Exclusive claim + revalidate under lock before protected writes (#3239).
+  // Single-use is marked spent at claim time so concurrent applies fail closed.
+  // If writes fail after claim, operator remints (preferred over double-apply).
+  if (authz.humanApprovalRef !== null) {
+    const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef, {
+      revalidate: (grant) => {
+        const again = evaluateDecomposeStructuralApply({
+          projectRoot,
+          parentPath,
+          draftPath,
+          draftDigest,
+          grants: [grant],
+        });
+        return again.allowed ? { ok: true as const } : { ok: false as const, reason: again.reason };
+      },
+    });
+    if (!claim.ok) {
+      throw new DecompositionError(claim.reason);
+    }
   }
 
   for (const { target } of childPaths) {
@@ -1097,12 +1107,6 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   }
 
   writeJson(projectRoot, parentPath, parent);
-  // Mark single-use spent only after successful writes (retry stays possible).
-  // Concurrent double-apply of one single-use grant is residual local-file risk
-  // (#983 OOS / aligned-agent threat model #2944).
-  if (recheck.humanApprovalRef !== null) {
-    markGrantUsed(projectRoot, recheck.humanApprovalRef);
-  }
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }
