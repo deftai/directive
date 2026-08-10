@@ -21,10 +21,12 @@ const HEAD_C = "8454cc81ba780266055231a3cc49c5bb9b6c181d";
 function planApproved(
   pr: number,
   headSha: string | null,
-  opts: { approver?: string; at?: string } = {},
+  opts: { approver?: string; at?: string; repo?: string } = {},
 ): BehavioralEventRecord {
+  const repo = opts.repo ?? "example/repo";
   const payload: Record<string, unknown> = {
-    plan_ref: `https://github.com/example/repo/pull/${pr}`,
+    plan_ref: `https://github.com/${repo}/pull/${pr}`,
+    repository: repo,
     approver: opts.approver ?? "operator",
     pr_number: pr,
     approval_phrase: "yes",
@@ -56,6 +58,7 @@ describe("headShaMatches", () => {
     // Overlong is not a valid approved binding; evaluation treats as missing_binding.
     const r = evaluateMergeApprovalHead({
       prNumber: 1,
+      repo: "example/repo",
       currentHeadSha: HEAD_A,
       records: [
         {
@@ -65,6 +68,7 @@ describe("headShaMatches", () => {
           detected_at: "2026-08-10T00:00:00.000Z",
           payload: {
             plan_ref: "https://github.com/example/repo/pull/1",
+            repository: "example/repo",
             approver: "op",
             pr_number: 1,
             head_sha: overlong,
@@ -119,6 +123,7 @@ describe("evaluateMergeApprovalHead", () => {
   it("allows when approved_head_sha == current_head_sha", () => {
     const r = evaluateMergeApprovalHead({
       prNumber: 525,
+      repo: "example/repo",
       currentHeadSha: HEAD_A,
       records: [planApproved(525, HEAD_A)],
       requireHumanMerge: true,
@@ -131,6 +136,7 @@ describe("evaluateMergeApprovalHead", () => {
   it("fails closed when HEAD changes after approval (single push)", () => {
     const r = evaluateMergeApprovalHead({
       prNumber: 525,
+      repo: "example/repo",
       currentHeadSha: HEAD_B,
       records: [planApproved(525, HEAD_A)],
       requireHumanMerge: true,
@@ -150,6 +156,7 @@ describe("evaluateMergeApprovalHead", () => {
     for (const head of [HEAD_B, HEAD_C]) {
       const r = evaluateMergeApprovalHead({
         prNumber: 525,
+        repo: "example/repo",
         currentHeadSha: head,
         records,
         requireHumanMerge: true,
@@ -164,6 +171,7 @@ describe("evaluateMergeApprovalHead", () => {
   it("fails closed when approval lacks head_sha binding under strict mode", () => {
     const r = evaluateMergeApprovalHead({
       prNumber: 10,
+      repo: "example/repo",
       currentHeadSha: HEAD_A,
       records: [planApproved(10, null)],
       requireHumanMerge: true,
@@ -185,9 +193,22 @@ describe("evaluateMergeApprovalHead", () => {
     expect(r.allowed).toBe(true);
   });
 
+  it("fails closed when approval exists but repository is omitted", () => {
+    const r = evaluateMergeApprovalHead({
+      prNumber: 525,
+      currentHeadSha: HEAD_A,
+      records: [planApproved(525, HEAD_A)],
+      requireHumanMerge: true,
+      // no repo
+    });
+    expect(r.allowed).toBe(false);
+    expect(r.message).toContain("repository is unknown");
+  });
+
   it("still enforces stale approval when requireHumanMerge is false but approval present", () => {
     const r = evaluateMergeApprovalHead({
       prNumber: 3,
+      repo: "example/repo",
       currentHeadSha: HEAD_C,
       records: [planApproved(3, HEAD_A)],
       requireHumanMerge: false,
@@ -203,7 +224,7 @@ describe("enforceMergeApprovalHead", () => {
     const disableCalls: Array<[number, string | null]> = [];
     const r = enforceMergeApprovalHead({
       prNumber: 525,
-      // omit repo so fixture plan_ref (example/repo) still matches by PR number
+      repo: "example/repo",
       currentHeadSha: HEAD_C,
       records: [planApproved(525, HEAD_A)],
       requireHumanMerge: true,
@@ -216,7 +237,7 @@ describe("enforceMergeApprovalHead", () => {
     expect(r.allowed).toBe(false);
     expect(r.status).toBe("stale");
     expect(r.auto_merge_disabled).toBe(true);
-    expect(disableCalls).toEqual([[525, null]]);
+    expect(disableCalls).toEqual([[525, "example/repo"]]);
     expect(r.recovery).toContain("auto-merge was disabled");
     expect(r.recovery).toContain(HEAD_C);
   });
@@ -224,6 +245,7 @@ describe("enforceMergeApprovalHead", () => {
   it("reports recovery when auto-merge disable fails", () => {
     const r = enforceMergeApprovalHead({
       prNumber: 1,
+      repo: "example/repo",
       currentHeadSha: HEAD_B,
       records: [planApproved(1, HEAD_A)],
       requireHumanMerge: true,
@@ -237,6 +259,7 @@ describe("enforceMergeApprovalHead", () => {
     let called = false;
     const r = enforceMergeApprovalHead({
       prNumber: 2,
+      repo: "example/repo",
       currentHeadSha: HEAD_A,
       records: [planApproved(2, HEAD_A)],
       disableAutoMergeFn: () => {
@@ -256,6 +279,7 @@ describe("enforceMergeApprovalHead", () => {
     writeFileSync(join(root, ".deft-cache", "events.jsonl"), `${line}\n`, "utf8");
     const r = evaluateMergeApprovalHead({
       prNumber: 77,
+      repo: "example/repo",
       projectRoot: root,
       currentHeadSha: HEAD_B,
       requireHumanMerge: true,

@@ -121,7 +121,9 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
 
   // --- pr:watch ---
   const watchFn = options.watchFn ?? watch;
-  const repo = options.repo ?? process.env.GH_REPO ?? null;
+  // Prefer explicit repo; GH_REPO next. Repo is required for head-bound approval
+  // scoping when plan:approved records exist (#3235 cross-repo collision).
+  const repo = options.repo ?? process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY ?? null;
   let watchResult: WatchResult;
   try {
     watchResult = watchFn(prNumber, repo, {

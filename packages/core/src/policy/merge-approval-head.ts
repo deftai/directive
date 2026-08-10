@@ -313,6 +313,43 @@ export function evaluateMergeApprovalHead(
         ? join(input.projectRoot, DEFAULT_EVENT_LOG)
         : null;
 
+  const wantRepo =
+    typeof input.repo === "string" && input.repo.includes("/") ? input.repo : null;
+
+  // Fail closed when approvals exist for this PR number but callers omitted repo
+  // (cross-repo same-number collision / Greptile #3235).
+  if (input.approval === undefined && wantRepo === null) {
+    const unscoped = findLatestPlanApprovalForPr(prNumber, {
+      logPath: resolvedLogPath,
+      readEventsFn: input.readEventsFn,
+      records: input.records,
+      repo: null,
+    });
+    if (unscoped !== null && (requireHumanMerge || enforceWhenApprovalPresent)) {
+      const recovery = buildMergeApprovalRecovery({
+        prNumber,
+        approvedHeadSha: unscoped.head_sha,
+        currentHeadSha,
+        status: "stale",
+        autoMergeDisabled: null,
+      });
+      return {
+        status: "stale",
+        allowed: false,
+        approved_head_sha: unscoped.head_sha,
+        current_head_sha: currentHeadSha,
+        pr_number: prNumber,
+        require_human_merge: requireHumanMerge,
+        auto_merge_disabled: null,
+        message:
+          `❌ merge-approval-head (#3235): plan:approved exists for PR #${prNumber} but ` +
+          "repository is unknown — pass --repo owner/repo (or GH_REPO) so approval " +
+          "lookup cannot apply a foreign same-number event.",
+        recovery,
+      };
+    }
+  }
+
   const approval =
     input.approval !== undefined
       ? input.approval
@@ -320,7 +357,7 @@ export function evaluateMergeApprovalHead(
           logPath: resolvedLogPath,
           readEventsFn: input.readEventsFn,
           records: input.records,
-          repo: input.repo ?? null,
+          repo: wantRepo,
         });
 
   if (approval === null) {
