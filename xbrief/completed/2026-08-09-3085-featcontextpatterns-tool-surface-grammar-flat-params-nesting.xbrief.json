@@ -1,0 +1,57 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3085",
+    "updated": "2026-08-09T19:44:50Z"
+  },
+  "plan": {
+    "title": "feat(context,patterns): tool-surface grammar — flat params, nesting×heterogeneity tax",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(context,patterns): tool-surface grammar — flat params, nesting×heterogeneity tax",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3085",
+      "Overview": "## Summary\n\nEncode a **tool-surface grammar** principle for Directive and for projects Directive creates: prefer flat, homogeneous, non-nested tool parameters; treat nested objects/arrays-as-escaped-JSON as a reliability and token tax.\n\n**Rule of thumb (source post):** reliability degrades with **nesting × heterogeneity × cleverness**. Tool \"calls\" are dialect sampling in the token stream — not a special model decision act. Schema design is a first-order reliability and cost surface, not cosmetics.\n\n**Source:** Can Bölük (@_can1357) — https://x.com/_can1357/status/2084104053651317140 (2026-08-03). Article review skill; control-group \"emoji channel\" is *not* a product recommendation.\n\n## Problem\n\n- `content/context/tool-design.md` covers minimal tool sets, token-efficient *outputs*, and descriptions — silent on **argument-surface sampling cost**.\n- `patterns/llm-app.md` Tool/function calling is strong on **security** (schema validation, confused deputy, least privilege) and weak on **how param shapes affect sample reliability and envelope tokens**.\n- Related open work prefers **fewer tools via code abstraction / Code Mode** (#1167, #2593) and multi-step token breakpoints (#1170). That is complementary: those reduce *how many* tools; this issue shapes *how each remaining tool looks* at the dialect layer.\n\n## Proposal\n\n### Axis 1 (Directive)\n\n1. Extend `content/context/tool-design.md` (and optionally a short cross-link from `patterns/llm-app.md`) with:\n   - Flat scalar/string params over nested JSON-in-parameter\n   - Homogeneous parameter sets over mixed clever packing\n   - Explicit note that provider schemas/mins/maxes are documentation unless the harness validates\n   - Prefer designs like the post's \"vector/flat\" shape over batch-JSON-in-string when the host owns the tools\n2. Authoring guidance for Directive-owned task/skill tool surfaces and any host-facing schemas we document\n\n### Axis 2 (consumer projects)\n\n1. MCP / product-agent schema authoring defaults in `patterns/llm-app.md` (or `tool-design.md` consumed by both)\n2. Default flat args; when multi-step composition is needed, point to #1167 / #2593 (code abstraction) rather than inventing deeper nested tool packs\n\n## Non-goals\n\n- Shipping emoji/plaintext \"tools\" as a product default (source post: control group only; at ~40 tools native ergonomics win)\n- Replacing Code Mode / DSL abstraction work\n- Provider-specific dialect catalogs as a full product\n\n## Related\n\n- Complementary: #1167, #2593, #1170\n- Cost envelope follow-on: comment amendment on #3078 (protocol token tax / model-tier after shape)\n- Soft: #788, #865, #847, #818\n\n## Acceptance sketch\n\n- [ ] Named principle + anti-patterns landed under `context/tool-design.md` (and linked from llm-app tool section)\n- [ ] Clear complementarity paragraph vs code-abstraction / Code Mode issues\n- [ ] STE-friendly short form suitable for agent load-on-demand\n\n## Confidence\n\n**High** — actionable now; clear content home; source is empirical practitioner ablation, not pure speculation.\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-03T16:35:21Z)\n\n## Cohort links (article review)\n\n- Sibling: #3086 harness tool-dialect failure catalog\n- Cost-stack extension (no new issue): #3078 amendment comment\n- Complementary (pre-existing): #1167, #2593, #1170",
+      "Labels": "enhancement, patterns, context-engineering, agent-experience, patterns:agent-app, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Named principle + anti-patterns landed under `context/tool-design.md` (and linked from llm-app tool section)",
+        "status": "completed",
+        "completed": "2026-08-10T02:26:53Z"
+      },
+      {
+        "title": "Clear complementarity paragraph vs code-abstraction / Code Mode issues",
+        "status": "completed",
+        "completed": "2026-08-10T02:26:53Z"
+      },
+      {
+        "title": "STE-friendly short form suitable for agent load-on-demand",
+        "status": "completed",
+        "completed": "2026-08-10T02:26:53Z"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "patterns",
+      "context-engineering",
+      "agent-experience",
+      "patterns:agent-app",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3085",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3085: feat(context,patterns): tool-surface grammar — flat params, nesting×heterogeneity tax"
+      }
+    ],
+    "updated": "2026-08-09T19:44:50Z",
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-08-09T19:44:50Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match",
+      "completedVia": "reconcile:issues after PR #3216 merge (issues closed COMPLETED)"
+    }
+  }
+}

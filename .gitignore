@@ -175,3 +175,7 @@ swarm_grok_issue.md
 
 # Generated interactive Rule Map (build with `task docs:rule-map`); RULE-MAP.md is committed.
 docs/rule-map/
+
+# Local task / agent operator scratch logs (reconcile, release dry-runs, cohort notes).
+# Not source of truth; re-creatable. Keep out of version control.
+.task/
