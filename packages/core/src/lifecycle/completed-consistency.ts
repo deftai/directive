@@ -136,8 +136,9 @@ export function evaluateCompletedPlanConsistency(
     });
   }
 
-  // Fail closed when plan.items is present but not a checklist array (cannot verify terminal).
-  if (plan.items !== undefined && plan.items !== null && !Array.isArray(plan.items)) {
+  // Fail closed when plan.items is present but not a checklist array (incl. null).
+  // Omitted (undefined) items = empty terminal checklist; null is malformed shape.
+  if (plan.items !== undefined && !Array.isArray(plan.items)) {
     findings.push({
       relPath,
       planStatus,
@@ -232,7 +233,14 @@ function listConsistencyLifecycleRoots(projectRoot: string): readonly RootProbe[
     if (!exists) return;
 
     try {
-      if (!statSync(absRoot).isDirectory()) return;
+      if (!statSync(absRoot).isDirectory()) {
+        ordered.push({
+          kind: "unreadable",
+          dirName,
+          detail: `lifecycle root exists but is not a directory (cannot inventory completed/)`,
+        });
+        return;
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       ordered.push({
@@ -286,7 +294,16 @@ function scanCompletedDir(
 
   try {
     if (!statSync(completedDir).isDirectory()) {
-      return { findings: [], scanned: 0, completedPresent: false };
+      return {
+        findings: [
+          unreadableFinding(
+            `${pathPrefix}/completed`,
+            "completed path exists but is not a directory (cannot inventory)",
+          ),
+        ],
+        scanned: 0,
+        completedPresent: true,
+      };
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

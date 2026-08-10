@@ -202,14 +202,28 @@ describe("completed lifecycle consistency (#3242)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("scan is green when completed path is a file not a directory", () => {
+  it("scan fails closed when completed path is a file not a directory (#3242)", () => {
     const root = mkdtempSync(join(tmpdir(), "cc-file-"));
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(join(root, "xbrief", "completed"), "not-a-dir", "utf8");
     const result = scanCompletedLifecycleConsistency(root);
-    expect(result.ok).toBe(true);
-    expect(result.message).toMatch(/absent|OK/);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("not a directory");
+    expect(result.findings.some((f) => f.kind === "unreadable")).toBe(true);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it("evaluate fails closed when plan.items is null (#3242)", () => {
+    const result = evaluateCompletedPlanConsistency(
+      {
+        title: "null-items",
+        status: "completed",
+        items: null as unknown as [],
+      },
+      { relPath: "xbrief/completed/null-items.xbrief.json" },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("plan.items is non-array");
   });
 
   it("scan fails closed on legacy vbrief/completed corpus with status drift", () => {
