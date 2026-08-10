@@ -164,13 +164,20 @@ function defaultResolveIssueState(
   skipGh: boolean,
 ): "open" | "closed" | null {
   const cached = readCachedIssueState(projectRoot, ref);
-  if (cached !== null) {
-    return cached;
+  // Closed cache is fail-closed evidence (safe to trust without live).
+  if (cached === "closed") {
+    return "closed";
   }
   if (skipGh) {
-    return null;
+    return cached;
   }
-  return fetchIssueStateLive(ref, runGh);
+  // Stale open cache can hide post-close land debt (#3264 Greptile P1).
+  // Prefer live when network is allowed; fall back to cache / null.
+  const live = fetchIssueStateLive(ref, runGh);
+  if (live !== null) {
+    return live;
+  }
+  return cached;
 }
 
 function collectIssuesFromPlan(
@@ -477,6 +484,10 @@ export function evaluateCompletedTracked(
     };
   }
 
+  // Terminal land may be on the delivery tip (post-merge truth) OR on HEAD
+  // (lifecycle PR / finalize branch that is about to land). Checking only the
+  // remote tip would deadlock lifecycle PRs that already commit completed/
+  // on the branch but have not merged yet (SLizard P1 #3264).
   const tipTerminalPaths = listTreePaths(root, tip, terminalPrefixes(), runGit);
   const tipTerminalHits = issuesFromBlobPaths(
     root,
@@ -487,6 +498,20 @@ export function evaluateCompletedTracked(
     `tip:${tip}`,
   );
   const landedKeys = new Set(tipTerminalHits.map((h) => issueKey(h.issue)));
+  if (tip !== "HEAD" && refExists(root, "HEAD", runGit)) {
+    const headTerminalPaths = listTreePaths(root, "HEAD", terminalPrefixes(), runGit);
+    const headTerminalHits = issuesFromBlobPaths(
+      root,
+      "HEAD",
+      headTerminalPaths,
+      defaultRepo,
+      runGit,
+      "tip:HEAD",
+    );
+    for (const hit of headTerminalHits) {
+      landedKeys.add(issueKey(hit.issue));
+    }
+  }
 
   const missing: MissingCompletedLand[] = [];
   for (const [key, entry] of originMap) {

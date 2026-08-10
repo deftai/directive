@@ -349,4 +349,50 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(result.code).toBe(1);
     expect(result.missing[0]?.issue.number).toBe(9050);
   });
+
+  it("revalidates stale open cache via live gh when skipGh is false (#3264 P1)", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "stale-open.xbrief.json", issuePlan(9060));
+    writeCachedIssue(root, "deftai/directive", 9060, "open");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: false,
+      tip: "HEAD",
+      runGh: (cmd) => {
+        if (cmd.join(" ").includes("/issues/9060")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "closed" }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "miss" };
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9060);
+  });
+
+  it("accepts terminal land committed on HEAD even when delivery tip lacks it", () => {
+    const root = makeGitRepo();
+    // Delivery tip is the first commit (no completed/). Later HEAD lands completed.
+    writeBrief(root, "completed", "pr-land.xbrief.json", issuePlan(9070));
+    writeCachedIssue(root, "deftai/directive", 9070, "closed");
+    git(root, ["add", "xbrief/completed/pr-land.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "lifecycle PR land"]);
+    const first = gitRev(root, "HEAD~1");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: first,
+    });
+    expect(result.code).toBe(0);
+  });
 });
+
+function gitRev(root: string, rev: string): string {
+  return execFileSync("git", ["rev-parse", rev], {
+    cwd: root,
+    encoding: "utf8",
+  }).trim();
+}
