@@ -1,3 +1,4 @@
+export * from "./active-cli.js";
 export * from "./compact-ritual.js";
 export * from "./coverage-check-resume-nudge.js";
 export * from "./git.js";
