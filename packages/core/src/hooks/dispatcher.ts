@@ -1278,11 +1278,15 @@ function softAgentsRebindWireText(decision: HookDecision): string | null {
 /**
  * Render host-facing hook output.
  *
- * Cursor deposits use `failClosed: true`. Cursor treats empty/null stdout as a
- * hook failure and blocks the tool — so Cursor allows must emit explicit
- * `{"permission":"allow"}`. Other hosts keep empty allow so the host permission
- * flow is unchanged — except session.start / session.compact soft re-bind
- * injection (#3171), which surfaces checklist text without a write tool.
+ * Cursor deposits use `failClosed: true` with a tool.before timeout above the
+ * gated-ritual / live agent-hook readiness budget
+ * (`CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS` in init-deposit/agent-hooks; #3246).
+ * Cursor treats empty/null stdout (or a host timeout kill) as a hook failure
+ * and blocks the tool — so Cursor allows must emit explicit
+ * `{"permission":"allow"}` within the deposit timeout. Other hosts keep empty
+ * allow so the host permission flow is unchanged — except session.start /
+ * session.compact soft re-bind injection (#3171), which surfaces checklist
+ * text without a write tool.
  *
  * Cursor stdout always includes `code` (stable machine-readable decision code)
  * so agents can distinguish policy denials from host-integration failures

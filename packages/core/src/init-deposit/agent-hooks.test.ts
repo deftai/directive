@@ -19,9 +19,12 @@ import {
 import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
 import {
   AGENT_HOOK_PATHS,
+  CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+  CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
   DIRECT_WRITE_HOOK_MATCHER,
   inspectAgentHookDeposit,
   MCP_HOOK_MATCHER,
+  NESTED_HOOK_TIMEOUT_SECONDS,
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
@@ -94,6 +97,122 @@ describe("writeAgentHookDeposit", () => {
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "codex")).toMatchObject({
       compactSupport: "unsupported",
     });
+
+    // #3246: Cursor tool.before budget must clear gated ritual + live readiness.
+    const cursor = JSON.parse(readFileSync(join(root, ".cursor/hooks.json"), "utf8")) as {
+      hooks: {
+        sessionStart: Array<{ timeout?: number }>;
+        preToolUse: Array<{
+          matcher?: string;
+          failClosed?: boolean;
+          timeout?: number;
+          command?: string;
+        }>;
+        preCompact: Array<{ timeout?: number }>;
+      };
+    };
+    expect(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(30);
+    expect(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS).toBeGreaterThan(CURSOR_SESSION_HOOK_TIMEOUT_SECONDS);
+    for (const entry of cursor.hooks.preToolUse) {
+      if (!entry.command?.includes("--host cursor --event tool.before")) continue;
+      expect(entry.failClosed).toBe(true);
+      expect(entry.timeout).toBe(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS);
+    }
+    expect(
+      cursor.hooks.sessionStart.some((e) => e.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS),
+    ).toBe(true);
+    expect(
+      cursor.hooks.preCompact.some((e) => e.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS),
+    ).toBe(true);
+    // Spawn matcher is one of the failClosed preToolUse deposits.
+    expect(
+      cursor.hooks.preToolUse.some(
+        (e) =>
+          e.matcher === SPAWN_HOOK_MATCHER &&
+          e.failClosed === true &&
+          e.timeout === CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
+      ),
+    ).toBe(true);
+    // Nested hosts keep their shorter command timeout.
+    const claude = JSON.parse(readFileSync(join(root, ".claude/settings.json"), "utf8")) as {
+      hooks: { PreToolUse: Array<{ hooks: Array<{ timeout?: number }> }> };
+    };
+    expect(
+      claude.hooks.PreToolUse.some((group) =>
+        group.hooks.some((h) => h.timeout === NESTED_HOOK_TIMEOUT_SECONDS),
+      ),
+    ).toBe(true);
+  });
+
+  it("repairs legacy Cursor tool.before timeout:5 deposits as drifted (#3246)", () => {
+    const root = project();
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor/hooks.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            sessionStart: [
+              {
+                command: "deft-hook --host cursor --event session.start",
+                timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+              },
+            ],
+            preToolUse: [
+              {
+                command: "deft-hook --host cursor --event tool.before",
+                matcher: DIRECT_WRITE_HOOK_MATCHER,
+                failClosed: true,
+                timeout: 5,
+              },
+              {
+                command: "deft-hook --host cursor --event tool.before",
+                matcher: SPAWN_HOOK_MATCHER,
+                failClosed: true,
+                timeout: 5,
+              },
+              {
+                command: "deft-hook --host cursor --event tool.before",
+                matcher: SHELL_HOOK_MATCHER,
+                failClosed: true,
+                timeout: 5,
+              },
+              {
+                command: "deft-hook --host cursor --event tool.before",
+                matcher: MCP_HOOK_MATCHER,
+                failClosed: true,
+                timeout: 5,
+              },
+            ],
+            preCompact: [
+              {
+                command: "deft-hook --host cursor --event session.compact",
+                timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const before = inspectAgentHookDeposit(root).find((entry) => entry.host === "cursor");
+    expect(before?.status).toBe("drifted");
+
+    writeAgentHookDeposit(root);
+    const after = inspectAgentHookDeposit(root).find((entry) => entry.host === "cursor");
+    expect(after?.status).toBe("healthy");
+    const repaired = JSON.parse(readFileSync(join(root, ".cursor/hooks.json"), "utf8")) as {
+      hooks: { preToolUse: Array<{ timeout?: number; matcher?: string }> };
+    };
+    for (const entry of repaired.hooks.preToolUse) {
+      if (entry.matcher === SPAWN_HOOK_MATCHER) {
+        expect(entry.timeout).toBe(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS);
+      }
+    }
   });
 
   it("deposits exactly one direct-write matcher for each supported host (#2790)", () => {

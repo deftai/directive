@@ -31,6 +31,29 @@ export const AGENT_HOOK_PATHS = [
   ".codex/hooks.json",
 ] as const;
 
+/**
+ * Cursor session.start / session.compact deposit timeout (seconds).
+ * Lightweight ceremony paths — keep tight so stalled hooks fail fast.
+ */
+export const CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 5;
+
+/**
+ * Cursor preToolUse (tool.before) deposit timeout (seconds).
+ *
+ * Mutation tool.before runs `inspectMutationGates` → gated
+ * `verifySessionRitual`, which re-runs non-cacheable agent-hook readiness on
+ * every boundary. Live readiness alone has a multi-host fixture ceiling of
+ * ~12s (`content/contracts/agent-hook-readiness.md`); the historical deposit
+ * default of 5s was below that budget. Under Cursor `failClosed: true`, a
+ * host timeout kill surfaces as opaque exit-1 with no Directive decision
+ * code (#3246 / related #2864). Keep this above the readiness ceiling plus
+ * dispatch overhead so allow/deny can render within the host budget.
+ */
+export const CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30;
+
+/** Nested Claude/Grok/Codex command-hook default timeout (seconds). */
+export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
+
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
 export type AgentHookRegistrationStatus = "healthy" | "disabled" | "missing" | "drifted";
 
@@ -143,7 +166,7 @@ function nestedGroup(host: NestedHookHost, event: HookEvent, matcher?: string) {
       {
         type: "command",
         command: command(host, event),
-        timeout: 5,
+        timeout: NESTED_HOOK_TIMEOUT_SECONDS,
       },
     ],
   };
@@ -237,35 +260,47 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   const preCompact = eventArray(hooks, "preCompact", path).filter(
     (entry) => !isManagedCursorEntry(entry),
   );
-  hooks.sessionStart = [...session, { command: command("cursor", "session.start"), timeout: 5 }];
+  hooks.sessionStart = [
+    ...session,
+    {
+      command: command("cursor", "session.start"),
+      timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+    },
+  ];
   hooks.preToolUse = [
     ...preTool,
     {
       command: command("cursor", "tool.before"),
       matcher: DIRECT_WRITE_HOOK_MATCHER,
       failClosed: true,
-      timeout: 5,
+      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
     },
     {
       command: command("cursor", "tool.before"),
       matcher: SPAWN_HOOK_MATCHER,
       failClosed: true,
-      timeout: 5,
+      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
     },
     {
       command: command("cursor", "tool.before"),
       matcher: SHELL_HOOK_MATCHER,
       failClosed: true,
-      timeout: 5,
+      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
     },
     {
       command: command("cursor", "tool.before"),
       matcher: MCP_HOOK_MATCHER,
       failClosed: true,
-      timeout: 5,
+      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
     },
   ];
-  hooks.preCompact = [...preCompact, { command: command("cursor", "session.compact"), timeout: 5 }];
+  hooks.preCompact = [
+    ...preCompact,
+    {
+      command: command("cursor", "session.compact"),
+      timeout: CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
+    },
+  ];
   return { ...config, version: 1, hooks };
 }
 
@@ -455,6 +490,17 @@ function hasNestedRegistration(
   );
 }
 
+function isCursorToolBeforeEntry(value: unknown, matcher: string): boolean {
+  const hook = object(value);
+  return (
+    hook?.command === command("cursor", "tool.before") &&
+    hook.matcher === matcher &&
+    hook.failClosed === true &&
+    // #3246: budget must cover gated ritual + live agent-hook readiness.
+    hook.timeout === CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS
+  );
+}
+
 function hasCursorRegistration(config: Record<string, unknown>): boolean {
   const hooks = object(config.hooks);
   if (hooks === null || config.version !== 1) return false;
@@ -463,38 +509,10 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
   const preCompact = Array.isArray(hooks.preCompact) ? hooks.preCompact : [];
   return (
     session.some((entry) => object(entry)?.command === command("cursor", "session.start")) &&
-    preTool.some((entry) => {
-      const hook = object(entry);
-      return (
-        hook?.command === command("cursor", "tool.before") &&
-        hook.matcher === DIRECT_WRITE_HOOK_MATCHER &&
-        hook.failClosed === true
-      );
-    }) &&
-    preTool.some((entry) => {
-      const hook = object(entry);
-      return (
-        hook?.command === command("cursor", "tool.before") &&
-        hook.matcher === SPAWN_HOOK_MATCHER &&
-        hook.failClosed === true
-      );
-    }) &&
-    preTool.some((entry) => {
-      const hook = object(entry);
-      return (
-        hook?.command === command("cursor", "tool.before") &&
-        hook.matcher === SHELL_HOOK_MATCHER &&
-        hook.failClosed === true
-      );
-    }) &&
-    preTool.some((entry) => {
-      const hook = object(entry);
-      return (
-        hook?.command === command("cursor", "tool.before") &&
-        hook.matcher === MCP_HOOK_MATCHER &&
-        hook.failClosed === true
-      );
-    }) &&
+    preTool.some((entry) => isCursorToolBeforeEntry(entry, DIRECT_WRITE_HOOK_MATCHER)) &&
+    preTool.some((entry) => isCursorToolBeforeEntry(entry, SPAWN_HOOK_MATCHER)) &&
+    preTool.some((entry) => isCursorToolBeforeEntry(entry, SHELL_HOOK_MATCHER)) &&
+    preTool.some((entry) => isCursorToolBeforeEntry(entry, MCP_HOOK_MATCHER)) &&
     preCompact.some((entry) => object(entry)?.command === command("cursor", "session.compact"))
   );
 }
