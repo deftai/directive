@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import { resolveCandidatesLogPath, TRIAGE_CANDIDATES_LOG_REL_PATH } from "../cache-path.js";
 import { CandidatesLogError } from "./errors.js";
-import type { AuditEntry, CandidatesLog } from "./types.js";
-
-/** Display/back-compat constant; resolution flows through resolveTriageCachePath (#1703). */
+import type {
+  AuditEntry,
+  CandidatesLog,
+} from "./types.js"; /** Display/back-compat constant; resolution flows through resolveTriageCachePath (#1703). */
 export const AUDIT_LOG_REL_PATH = TRIAGE_CANDIDATES_LOG_REL_PATH;
 
 export { resolveCandidatesLogPath };
@@ -140,6 +142,34 @@ function resolveLogPath(projectRoot: string, override?: string): string {
   return resolveCandidatesLogPath(projectRoot);
 }
 
+/**
+ * Containment root for candidates-log product writes (#3245).
+ * Prefer project root when the log is nested under it; otherwise parent dir
+ * (matches intake candidates-log parity for override paths outside the tree).
+ */
+function containmentRootForLog(projectRoot: string, logPath: string): string {
+  const rootAbs = resolve(projectRoot);
+  const logAbs = resolve(logPath);
+  const parent = dirname(logAbs);
+  mkdirSync(parent, { recursive: true });
+  const rel = relative(rootAbs, logAbs);
+  if (rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel)) {
+    return rootAbs;
+  }
+  return resolve(parent);
+}
+
+/** #3245 / #2980: product append refuses leaf symlink follow (in-tree or escape). */
+function appendAuditLine(projectRoot: string, logPath: string, line: string): void {
+  const root = containmentRootForLog(projectRoot, logPath);
+  containedWrite({
+    root,
+    target: logPath,
+    data: line.endsWith("\n") ? line : `${line}\n`,
+    mode: "append",
+  });
+}
+
 function stableStringify(entry: AuditEntry): string {
   const sortedKeys = Object.keys(entry).sort();
   const sorted: Record<string, unknown> = {};
@@ -226,11 +256,9 @@ export function createCandidatesLog(defaultProjectRoot: string): CandidatesLog {
     append(entry: AuditEntry, options?: { path?: string }): string {
       validateEntry(entry);
       const logPath = resolveLogPath(defaultProjectRoot, options?.path);
-      mkdirSync(join(logPath, ".."), { recursive: true });
-      appendFileSync(logPath, `${stableStringify(entry)}\n`, { encoding: "utf8" });
+      appendAuditLine(defaultProjectRoot, logPath, `${stableStringify(entry)}\n`);
       return entry.decision_id;
     },
-
     latestDecision(
       issueNumber: number,
       repo: string,
@@ -275,11 +303,16 @@ export function rollbackAuditEntry(
     }
   }
   if (removed) {
-    writeFileSync(path, kept.join(""), { encoding: "utf8" });
+    // #3245: replace rewrite also refuses leaf symlink follow.
+    containedWrite({
+      root: containmentRootForLog(projectRoot, path),
+      target: path,
+      data: kept.join(""),
+      mode: "replace",
+    });
   }
   return removed;
 }
-
 export function resolveAuditLogPath(projectRoot: string): string {
   return resolveCandidatesLogPath(projectRoot);
 }
