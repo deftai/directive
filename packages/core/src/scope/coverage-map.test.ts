@@ -438,4 +438,115 @@ describe("coverage-map (#3238)", () => {
     expect(emptyMap.ok).toBe(false);
     expect(emptyMap.errors.some((e) => e.includes("coverage_map is required"))).toBe(true);
   });
+
+  it("covers remaining extract/parse edge branches", () => {
+    // asStrList: empty string, non-list scalar, string list metadata
+    const parent = {
+      plan: {
+        items: [
+          null,
+          "skip",
+          { id: "  ", title: "blank-id" },
+          { id: "dup", title: "first" },
+          { id: "dup", kind: "negative_invariant", title: "" },
+          { id: "kind-type", type: "negative_invariant" },
+        ],
+        requirements: [{ id: "req-neg", kind: "negative_invariant", title: "n" }],
+        metadata: { requirement_ids: "single-id", requirementIds: 12 },
+      },
+    };
+    const reqs = extractParentRequirements(parent);
+    expect(reqs.find((r) => r.id === "dup")?.negativeInvariant).toBe(true);
+    expect(reqs.find((r) => r.id === "dup")?.title).toBe("first");
+    expect(reqs.some((r) => r.id === "single-id")).toBe(true);
+    expect(reqs.find((r) => r.id === "kind-type")?.negativeInvariant).toBe(true);
+    expect(reqs.find((r) => r.id === "req-neg")?.negativeInvariant).toBe(true);
+
+    // disposition non-string; change_kind hyphen and invalid
+    expect(parseCoverageMap({ r: { disposition: 1 } }).errors.length).toBeGreaterThan(0);
+    expect(
+      parseBehavioralDeltas([
+        {
+          deltaId: "camel-d",
+          parentRequirementIds: ["r"],
+          changeKind: "remove-invariant",
+          summary: "s",
+          before: "b",
+          after: "a",
+          rationale: "why",
+        },
+      ]).deltas,
+    ).toHaveLength(1);
+    expect(
+      parseBehavioralDeltas([
+        {
+          delta_id: "bad-kind",
+          parent_requirement_ids: ["r"],
+          change_kind: "not-a-kind",
+          summary: "s",
+          before: "b",
+          after: "a",
+          rationale: "why",
+        },
+      ]).errors.some((e) => e.includes("change_kind")),
+    ).toBe(true);
+    expect(
+      parseBehavioralDeltas([
+        {
+          delta_id: "no-parents",
+          parent_requirement_ids: [],
+          change_kind: "other",
+          summary: "s",
+          before: "b",
+          after: "a",
+          rationale: "why",
+        },
+      ]).errors.some((e) => e.includes("parent_requirement_ids")),
+    ).toBe(true);
+
+    // object-map with empty parent_requirement_id override
+    expect(
+      parseCoverageMap({
+        "": { disposition: "covered", parent_requirement_id: "  " },
+      }).errors.some((e) => e.includes("parent_requirement_id")),
+    ).toBe(true);
+
+    // non-object draft falls through
+    const nonObjDraft = validateCoverageMap({
+      parent: abcParent,
+      draft: null,
+    });
+    expect(nonObjDraft.ok).toBe(false);
+
+    // complete split so incomplete-parts branch is not taken (hit size>=2 arm)
+    const completeSplit = validateCoverageMap({
+      parent: { plan: { items: [{ id: "r1" }] } },
+      draft: {
+        coverage_map: [
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g",
+            part: "1",
+          },
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g",
+            part: "2",
+          },
+        ],
+      },
+    });
+    expect(completeSplit.ok).toBe(true);
+
+    // missing delta_id path inside validate (parse error + entry report)
+    const missDelta = validateCoverageMap({
+      parent: { plan: { items: [{ id: "r1", kind: "negative_invariant" }] } },
+      draft: {
+        coverage_map: [{ parent_requirement_id: "r1", disposition: "behavioral_delta" }],
+      },
+    });
+    expect(missDelta.ok).toBe(false);
+  });
 });
