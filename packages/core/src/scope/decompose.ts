@@ -22,6 +22,7 @@ import {
 } from "../layout/resolve.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
 import { formatBriefJson } from "./vbrief-json.js";
 
 // ---------------------------------------------------------------------------
@@ -945,6 +946,15 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   const stories = storySpecs(draft);
   const stIds = validateDraft(stories);
 
+  // #3238: semantic fidelity — parent requirement IDs + coverage map (structure only).
+  const coverage = validateCoverageMap({ parent, draft, storyIds: stIds });
+  if (!coverage.ok) {
+    const summary = coverage.errors.join("; ");
+    throw new DecompositionError(
+      `semantic coverage failed: ${summary}\n${formatCoverageReportLine(coverage.report)}`,
+    );
+  }
+
   let outputDir: string;
   const draftOutputDir = draft.output_dir;
   if (typeof draftOutputDir === "string" && draftOutputDir.trim().length > 0) {
@@ -979,6 +989,10 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
 
   const parentRel = relToVbrief(vbriefDirPath, parentPath);
   const actions: string[] = [`VALIDATED ${stories.length} story decomposition draft`];
+  // Machine-readable coverage report (always emit when parent authored IDs or map present).
+  if (coverage.report.parent_requirement_ids.length > 0 || coverage.report.entries.length > 0) {
+    actions.push(formatCoverageReportLine(coverage.report));
+  }
 
   const childPaths: Array<{ target: string; storyId: string; title: string }> = [];
   const childDocs: JsonObj[] = [];

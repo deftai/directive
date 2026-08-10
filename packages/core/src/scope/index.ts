@@ -2,6 +2,7 @@ export * from "./acceptance-evidence.js";
 export * from "./audit-log.js";
 export * from "./batch-promote.js";
 export * from "./constants.js";
+export * from "./coverage-map.js";
 export * from "./decomposed-refs.js";
 export * from "./delivery-evidence.js";
 export * from "./demote.js";

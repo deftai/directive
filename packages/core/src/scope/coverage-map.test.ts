@@ -1,0 +1,196 @@
+/**
+ * Unit tests for coverage-map.ts (#3238 / epic #3237 Q1/Q7/Q8).
+ * Integration with scope:decompose --check lives in decompose.test.ts.
+ */
+
+import { describe, expect, it } from "vitest";
+import {
+  extractParentRequirements,
+  formatCoverageReportLine,
+  parseBehavioralDeltas,
+  parseCoverageMap,
+  validateCoverageMap,
+} from "./coverage-map.js";
+
+const abcParent = {
+  xBRIEFInfo: { version: "0.8" },
+  plan: {
+    id: "epic-state-machine",
+    title: "Ordered state machine A-B-C",
+    status: "pending",
+    items: [
+      {
+        id: "req-ordered-a-b-c",
+        title: "Ordered stages A then B then C",
+        status: "pending",
+        narrative: {
+          Acceptance: "Given stage A, when advancing, then B then C in order.",
+        },
+      },
+      {
+        id: "req-forbid-a-to-c",
+        title: "Forbidden shortcut A to C",
+        kind: "negative_invariant",
+        status: "pending",
+        narrative: {
+          Acceptance: "Given stage A, when A-to-C is requested, then reject it.",
+        },
+      },
+      {
+        id: "req-terminal-failure",
+        title: "Terminal failure path",
+        status: "pending",
+        narrative: {
+          Acceptance: "Given failed transition, when recovery fails, then terminal failure.",
+        },
+      },
+    ],
+    metadata: { kind: "epic" },
+  },
+};
+
+describe("coverage-map (#3238)", () => {
+  it("extracts authored IDs and negative invariants from parent items", () => {
+    const reqs = extractParentRequirements(abcParent);
+    expect(reqs.map((r) => r.id).sort()).toEqual([
+      "req-forbid-a-to-c",
+      "req-ordered-a-b-c",
+      "req-terminal-failure",
+    ]);
+    expect(reqs.find((r) => r.id === "req-forbid-a-to-c")?.negativeInvariant).toBe(true);
+  });
+
+  it("parses object-map and array coverage_map forms", () => {
+    const asMap = parseCoverageMap({
+      "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["s1"] },
+    });
+    expect(asMap.errors).toEqual([]);
+    expect(asMap.entries).toHaveLength(1);
+
+    const asArray = parseCoverageMap([
+      {
+        parent_requirement_id: "req-ordered-a-b-c",
+        disposition: "deferred",
+        provenance: { reason: "later", target_path: "xbrief/proposed/later.xbrief.json" },
+      },
+    ]);
+    expect(asArray.errors).toEqual([]);
+    expect(asArray.entries[0]?.disposition).toBe("deferred");
+  });
+
+  it("rejects unknown disposition and incomplete deferred side fields", () => {
+    const badDisp = parseCoverageMap({
+      "req-x": { disposition: "maybe" },
+    });
+    expect(badDisp.errors.some((e) => e.includes("disposition"))).toBe(true);
+
+    const badDeferred = parseCoverageMap({
+      "req-x": { disposition: "deferred", provenance: { reason: "only" } },
+    });
+    expect(badDeferred.errors.some((e) => e.includes("target_story_id"))).toBe(true);
+  });
+
+  it("rejects behavioral_delta without delta_id and incomplete delta records", () => {
+    const noId = parseCoverageMap({
+      "req-x": { disposition: "behavioral_delta" },
+    });
+    expect(noId.errors.some((e) => e.includes("delta_id"))).toBe(true);
+
+    const incomplete = parseBehavioralDeltas([{ delta_id: "d1", change_kind: "remove_invariant" }]);
+    expect(incomplete.errors.some((e) => e.includes("missing/invalid"))).toBe(true);
+  });
+
+  it("fails incomplete coverage listing uncovered IDs", () => {
+    const result = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["s1"] },
+        },
+      },
+      storyIds: ["s1"],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.report.uncovered.sort()).toEqual(["req-forbid-a-to-c", "req-terminal-failure"]);
+  });
+
+  it("fails silent removal of negative invariant", () => {
+    const result = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered" },
+          "req-terminal-failure": { disposition: "covered" },
+        },
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("silent removal"))).toBe(true);
+  });
+
+  it("accepts full A-B-C map and formats COVERAGE_REPORT line", () => {
+    const result = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["s1"] },
+          "req-forbid-a-to-c": { disposition: "covered", child_story_ids: ["s1"] },
+          "req-terminal-failure": { disposition: "covered", child_story_ids: ["s1"] },
+        },
+      },
+      storyIds: ["s1"],
+    });
+    expect(result.ok).toBe(true);
+    const line = formatCoverageReportLine(result.report);
+    expect(line.startsWith("COVERAGE_REPORT ")).toBe(true);
+    expect(JSON.parse(line.slice("COVERAGE_REPORT ".length)).ok).toBe(true);
+  });
+
+  it("links behavioral_delta disposition to a complete delta record", () => {
+    const missing = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered" },
+          "req-forbid-a-to-c": { disposition: "behavioral_delta", delta_id: "delta-1" },
+          "req-terminal-failure": { disposition: "covered" },
+        },
+        behavioral_deltas: [],
+      },
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.errors.some((e) => e.includes("no linked record"))).toBe(true);
+
+    const ok = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered" },
+          "req-forbid-a-to-c": { disposition: "behavioral_delta", delta_id: "delta-1" },
+          "req-terminal-failure": { disposition: "covered" },
+        },
+        behavioral_deltas: [
+          {
+            delta_id: "delta-1",
+            parent_requirement_ids: ["req-forbid-a-to-c"],
+            change_kind: "remove_invariant",
+            summary: "Allow shortcut",
+            before: "forbid A-to-C",
+            after: "allow A-to-C",
+            rationale: "operator approved recovery path",
+          },
+        ],
+      },
+    });
+    expect(ok.ok).toBe(true);
+  });
+
+  it("no-ops when parent has no authored requirement IDs", () => {
+    const result = validateCoverageMap({
+      parent: { plan: { items: [], metadata: { kind: "phase" } } },
+      draft: { stories: [] },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.report.parent_requirement_ids).toEqual([]);
+  });
+});

@@ -16,6 +16,11 @@ import { loadGrant, saveGrant } from "../authz/store.js";
 import { SCOPE_DECOMPOSE_APPLY_STRUCTURAL } from "../authz/types.js";
 import { ContainedWriteError } from "../fs/contained-write.js";
 import {
+  extractParentRequirements,
+  formatCoverageReportLine,
+  validateCoverageMap,
+} from "./coverage-map.js";
+import {
   acceptanceTextsFromItems,
   applyDecomposition,
   asStrList,
@@ -1371,5 +1376,451 @@ describe("applyDecomposition structural authz (#3239)", () => {
       (f) => f !== "parent.xbrief.json",
     );
     expect(childFiles.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #3238 semantic fidelity — parent requirement IDs + coverage map
+// Fixture: ordered state machine A → B → C; forbids A → C shortcut.
+// ---------------------------------------------------------------------------
+
+/** Parent with authored IDs for A-then-B-then-C and negative invariant forbidding A-to-C. */
+function abcParent(): Record<string, unknown> {
+  return {
+    xBRIEFInfo: { version: "0.8" },
+    plan: {
+      id: "epic-state-machine",
+      title: "Ordered state machine A-B-C",
+      status: "pending",
+      narratives: {
+        Description:
+          "Parent defines ordered stages A then B then C and forbids the A-to-C shortcut.",
+        Acceptance: "Stages advance A→B→C only; A→C is rejected.",
+      },
+      items: [
+        {
+          id: "req-ordered-a-b-c",
+          title: "Ordered stages A then B then C",
+          status: "pending",
+          narrative: {
+            Acceptance:
+              "Given stage A, when advancing, then the machine reaches B then C in order.",
+          },
+        },
+        {
+          id: "req-forbid-a-to-c",
+          title: "Forbidden shortcut A to C",
+          kind: "negative_invariant",
+          status: "pending",
+          narrative: {
+            Acceptance:
+              "Given stage A, when an A-to-C transition is requested, then the machine rejects it.",
+          },
+        },
+        {
+          id: "req-terminal-failure",
+          title: "Terminal failure path",
+          status: "pending",
+          narrative: {
+            Acceptance:
+              "Given a failed transition, when recovery is not possible, then the machine ends in terminal failure.",
+          },
+        },
+      ],
+      metadata: { kind: "epic" },
+      references: [],
+    },
+  };
+}
+
+/** Valid coverage map covering every parent ID with disposition covered. */
+function abcValidCoverage(): Record<string, unknown> {
+  return {
+    "req-ordered-a-b-c": {
+      disposition: "covered",
+      child_story_ids: ["story-stages"],
+    },
+    "req-forbid-a-to-c": {
+      disposition: "covered",
+      child_story_ids: ["story-stages"],
+    },
+    "req-terminal-failure": {
+      disposition: "covered",
+      child_story_ids: ["story-stages"],
+    },
+  };
+}
+
+function stagesStory(): Record<string, unknown> {
+  return {
+    ...goodStory("story-stages", "State machine stages"),
+    swarm: {
+      ...(goodStory().swarm as Record<string, unknown>),
+      file_scope: ["src/sm/stages.ts", "tests/sm/stages.test.ts"],
+      verify_commands: ["npm test -- sm/stages"],
+      conflict_group: "state-machine",
+    },
+  };
+}
+
+describe("semantic coverage map (#3238)", () => {
+  it("extracts parent requirement IDs and marks negative invariants", () => {
+    const reqs = extractParentRequirements(abcParent());
+    expect(reqs.map((r) => r.id).sort()).toEqual([
+      "req-forbid-a-to-c",
+      "req-ordered-a-b-c",
+      "req-terminal-failure",
+    ]);
+    expect(reqs.find((r) => r.id === "req-forbid-a-to-c")?.negativeInvariant).toBe(true);
+    expect(reqs.find((r) => r.id === "req-ordered-a-b-c")?.negativeInvariant).toBe(false);
+  });
+
+  it("parent with no authored IDs skips coverage gate (backward compatible)", () => {
+    const result = validateCoverageMap({
+      parent: goodParent(),
+      draft: goodDraft(),
+      storyIds: ["story-auth-model", "story-auth-routes"],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.report.parent_requirement_ids).toEqual([]);
+  });
+
+  it("incomplete coverage map fails listing uncovered parent IDs", () => {
+    const result = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+          // missing req-forbid-a-to-c and req-terminal-failure
+        },
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.report.uncovered.sort()).toEqual(["req-forbid-a-to-c", "req-terminal-failure"]);
+    expect(result.errors.some((e) => e.includes("uncovered parent requirement IDs"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("req-forbid-a-to-c"))).toBe(true);
+  });
+
+  it("negative invariant omitted without behavioral_delta fails closed", () => {
+    const result = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+          "req-terminal-failure": { disposition: "covered", child_story_ids: ["story-stages"] },
+          // req-forbid-a-to-c intentionally omitted → silent removal
+        },
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some(
+        (e) =>
+          e.includes("negative invariant") &&
+          e.includes("req-forbid-a-to-c") &&
+          e.includes("silent removal"),
+      ),
+    ).toBe(true);
+  });
+
+  it("behavioral_delta disposition without linked delta_id record fails", () => {
+    const result = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+          "req-forbid-a-to-c": {
+            disposition: "behavioral_delta",
+            // missing delta_id
+          },
+          "req-terminal-failure": { disposition: "covered", child_story_ids: ["story-stages"] },
+        },
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((e) => e.includes("behavioral_delta") && e.includes("delta_id")),
+    ).toBe(true);
+  });
+
+  it("behavioral_delta with delta_id but no linked record fails", () => {
+    const result = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+          "req-forbid-a-to-c": {
+            disposition: "behavioral_delta",
+            delta_id: "delta-missing",
+          },
+          "req-terminal-failure": { disposition: "covered", child_story_ids: ["story-stages"] },
+        },
+        behavioral_deltas: [],
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some((e) => e.includes("delta-missing") && e.includes("no linked record")),
+    ).toBe(true);
+  });
+
+  it("valid A-B-C coverage map succeeds and emits machine-readable report", () => {
+    const result = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: abcValidCoverage(),
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.report.uncovered).toEqual([]);
+    expect(result.report.schema).toBe("deft.decompose.coverage_report.v1");
+    expect(result.report.negative_invariant_ids).toContain("req-forbid-a-to-c");
+    const line = formatCoverageReportLine(result.report);
+    expect(line.startsWith("COVERAGE_REPORT ")).toBe(true);
+    const parsed = JSON.parse(line.slice("COVERAGE_REPORT ".length)) as {
+      ok: boolean;
+      parent_requirement_ids: string[];
+    };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.parent_requirement_ids).toHaveLength(3);
+  });
+
+  it("valid map with behavioral_delta remove_invariant for A-to-C succeeds", () => {
+    const result = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+          "req-forbid-a-to-c": {
+            disposition: "behavioral_delta",
+            delta_id: "delta-allow-shortcut",
+          },
+          "req-terminal-failure": { disposition: "covered", child_story_ids: ["story-stages"] },
+        },
+        behavioral_deltas: [
+          {
+            delta_id: "delta-allow-shortcut",
+            parent_requirement_ids: ["req-forbid-a-to-c"],
+            change_kind: "remove_invariant",
+            summary: "Allow A-to-C in emergency recovery path",
+            before: "A-to-C forbidden",
+            after: "A-to-C permitted under recovery flag",
+            rationale: "Operator-approved recovery exception for degraded mode",
+          },
+        ],
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("split disposition requires complete split_group parts", () => {
+    const incomplete = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [stagesStory()],
+        coverage_map: [
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "split",
+            split_group: "stages",
+            part: "1",
+            child_story_ids: ["story-stages"],
+          },
+          {
+            parent_requirement_id: "req-forbid-a-to-c",
+            disposition: "covered",
+            child_story_ids: ["story-stages"],
+          },
+          {
+            parent_requirement_id: "req-terminal-failure",
+            disposition: "covered",
+            child_story_ids: ["story-stages"],
+          },
+        ],
+      },
+      storyIds: ["story-stages"],
+    });
+    expect(incomplete.ok).toBe(false);
+    expect(incomplete.errors.some((e) => e.includes("incomplete"))).toBe(true);
+
+    const complete = validateCoverageMap({
+      parent: abcParent(),
+      draft: {
+        stories: [
+          stagesStory(),
+          {
+            ...goodStory("story-stages-b", "State machine B path"),
+            swarm: {
+              ...(goodStory().swarm as Record<string, unknown>),
+              file_scope: ["src/sm/b.ts", "tests/sm/b.test.ts"],
+              verify_commands: ["npm test -- sm/b"],
+              conflict_group: "state-machine",
+              depends_on: ["story-stages"],
+            },
+          },
+        ],
+        coverage_map: [
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "split",
+            split_group: "stages",
+            part: "1",
+            child_story_ids: ["story-stages"],
+          },
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "split",
+            split_group: "stages",
+            part: "2",
+            child_story_ids: ["story-stages-b"],
+          },
+          {
+            parent_requirement_id: "req-forbid-a-to-c",
+            disposition: "covered",
+            child_story_ids: ["story-stages"],
+          },
+          {
+            parent_requirement_id: "req-terminal-failure",
+            disposition: "deferred",
+            provenance: {
+              reason: "Terminal path deferred to follow-up story",
+              target_path: "xbrief/proposed/future-terminal.xbrief.json",
+            },
+          },
+        ],
+      },
+      storyIds: ["story-stages", "story-stages-b"],
+    });
+    expect(complete.ok).toBe(true);
+  });
+
+  it("decompose --check with incomplete coverage exits non-zero and lists uncovered IDs", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(parentPath, abcParent());
+    writeJson(draftPath, {
+      stories: [stagesStory()],
+      coverage_map: {
+        "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+      },
+    });
+
+    const code = decomposeMain([
+      parentPath,
+      "--draft",
+      draftPath,
+      "--check",
+      "--project-root",
+      proj,
+    ]);
+    expect(code).toBe(1);
+  });
+
+  it("decompose --check with negative invariant omitted exits non-zero", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(parentPath, abcParent());
+    writeJson(draftPath, {
+      stories: [stagesStory()],
+      coverage_map: {
+        "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+        "req-terminal-failure": { disposition: "covered", child_story_ids: ["story-stages"] },
+      },
+    });
+
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: true,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/negative invariant|silent removal|uncovered/i);
+  });
+
+  it("decompose --check with behavioral_delta missing delta_id exits non-zero", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(parentPath, abcParent());
+    writeJson(draftPath, {
+      stories: [stagesStory()],
+      coverage_map: {
+        "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["story-stages"] },
+        "req-forbid-a-to-c": { disposition: "behavioral_delta" },
+        "req-terminal-failure": { disposition: "covered", child_story_ids: ["story-stages"] },
+      },
+    });
+
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: true,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/delta_id|behavioral_delta/i);
+  });
+
+  it("decompose --check with valid A-B-C coverage map exits 0 and prints COVERAGE_REPORT", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(parentPath, abcParent());
+    writeJson(draftPath, {
+      stories: [stagesStory()],
+      coverage_map: abcValidCoverage(),
+    });
+
+    const actions = applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: true,
+      date: "2026-06-01",
+    });
+    expect(actions[0]).toContain("VALIDATED");
+    expect(actions.some((a) => a.startsWith("COVERAGE_REPORT "))).toBe(true);
+    const reportLine = actions.find((a) => a.startsWith("COVERAGE_REPORT "));
+    expect(reportLine).toBeDefined();
+    if (reportLine === undefined) throw new Error("expected COVERAGE_REPORT line");
+    const report = JSON.parse(reportLine.slice("COVERAGE_REPORT ".length)) as {
+      ok: boolean;
+      uncovered: string[];
+      schema: string;
+    };
+    expect(report.ok).toBe(true);
+    expect(report.uncovered).toEqual([]);
+    expect(report.schema).toBe("deft.decompose.coverage_report.v1");
+
+    const code = decomposeMain([
+      parentPath,
+      "--draft",
+      draftPath,
+      "--check",
+      "--project-root",
+      proj,
+    ]);
+    expect(code).toBe(0);
   });
 });
