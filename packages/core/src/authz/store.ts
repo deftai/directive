@@ -3,20 +3,9 @@
  */
 
 import { randomBytes } from "node:crypto";
-import {
-  closeSync,
-  existsSync,
-  mkdirSync,
-  openSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-  writeSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { isHumanOrigin } from "./origin.js";
 import {
@@ -316,30 +305,38 @@ export function claimSingleUseGrantForApply(
   const opts: ClaimSingleUseGrantOptions = options instanceof Date ? { now: options } : options;
   const now = opts.now ?? new Date();
   const safe = grantId.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const lockDir = join(authzDir(projectRoot), "locks");
-  const lockPath = join(lockDir, `${safe}.lock`);
-  mkdirSync(lockDir, { recursive: true });
+  const root = resolve(projectRoot);
+  const lockRel = join(".deft", "authz", "locks", `${safe}.lock`);
+  const lockPath = join(root, lockRel);
 
-  const tryOpenLock = (): number | null => {
+  const tryCreateLock = (): boolean => {
     try {
-      const fd = openSync(lockPath, "wx");
-      writeSync(fd, `${process.pid}\n${utcIso(now)}\n`);
-      return fd;
-    } catch {
-      return null;
+      containedWrite({
+        root,
+        target: lockPath,
+        data: `${process.pid}\n${utcIso(now)}\n`,
+        mode: "create",
+      });
+      return true;
+    } catch (err) {
+      if (err instanceof ContainedWriteError && err.code === "CONTAINED_WRITE_EXISTS") {
+        return false;
+      }
+      // Other containment/IO failures fail closed as reservation denial.
+      return false;
     }
   };
 
-  let lockFd = tryOpenLock();
-  if (lockFd === null && existsSync(lockPath)) {
+  let locked = tryCreateLock();
+  if (!locked && existsSync(lockPath)) {
     // Stale-lock recovery: if lock file is old enough, remove once and retry.
     const mtimeMs = statSync(lockPath).mtimeMs;
     if (now.getTime() - mtimeMs > AUTHZ_GRANT_CLAIM_LOCK_STALE_MS) {
       rmSync(lockPath, { force: true });
-      lockFd = tryOpenLock();
+      locked = tryCreateLock();
     }
   }
-  if (lockFd === null) {
+  if (!locked) {
     return {
       ok: false,
       reason:
@@ -383,7 +380,6 @@ export function claimSingleUseGrantForApply(
     saveGrant(projectRoot, used);
     return { ok: true, grant: used };
   } finally {
-    closeSync(lockFd);
     rmSync(lockPath, { force: true });
   }
 }
