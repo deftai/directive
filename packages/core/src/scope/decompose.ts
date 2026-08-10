@@ -7,9 +7,11 @@
  * that draft, writes the child story vBRIEFs, and updates the parent scope references.
  */
 
-import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
+import { claimSingleUseGrantForApply } from "../authz/store.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
@@ -53,6 +55,14 @@ type JsonObj = Record<string, unknown>;
 // ---------------------------------------------------------------------------
 
 function loadJson(path: string): JsonObj {
+  return loadJsonWithRaw(path).data;
+}
+
+/**
+ * Single-read load: parse + return exact on-disk bytes used for #3239 digest binding.
+ * Avoids TOCTOU between validation snapshot and authz hash.
+ */
+function loadJsonWithRaw(path: string): { data: JsonObj; raw: string } {
   let raw: string;
   try {
     raw = readFileSync(path, "utf8");
@@ -68,7 +78,7 @@ function loadJson(path: string): JsonObj {
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     throw new DecompositionError(`${path}: expected a JSON object`);
   }
-  return data as JsonObj;
+  return { data: data as JsonObj, raw };
 }
 
 function writeJson(projectRoot: string, path: string, data: JsonObj): void {
@@ -929,7 +939,9 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   const vbriefDirPath = vbriefDir(projectRoot);
 
   const parent = loadJson(parentPath);
-  const draft = loadJson(draftPath);
+  // Single draft read: digest must bind the exact bytes used to build child docs (#3239 P1).
+  const { data: draft, raw: draftRaw } = loadJsonWithRaw(draftPath);
+  const draftDigest = sha256Hex(draftRaw);
   const stories = storySpecs(draft);
   const stIds = validateDraft(stories);
 
@@ -1004,14 +1016,23 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
 
   if (checkOnly) return actions;
 
-  for (const { target } of childPaths) {
-    mkdirSync(dirname(target), { recursive: true });
+  // #3239: structural apply requires human-origin grant bound to exact draft digest
+  // from the single load above. --check is ungated (returned earlier).
+  const authz = evaluateDecomposeStructuralApply({
+    projectRoot,
+    parentPath,
+    draftPath,
+    draftDigest,
+  });
+  if (!authz.allowed) {
+    throw new DecompositionError(authz.reason);
   }
-  for (let i = 0; i < childPaths.length; i += 1) {
-    // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
-    writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
-  }
+  actions.push(
+    `AUTHZ grant=${authz.humanApprovalRef ?? "unknown"} digest=${draftDigest.slice(0, 12)}`,
+  );
 
+  // Parent mutation validation before claim/writes so invalid parents do not
+  // spend a single-use grant (#3239).
   let parentPlan = parent.plan;
   if (parentPlan === null || parentPlan === undefined) {
     parentPlan = {};
@@ -1056,7 +1077,57 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
-  writeJson(projectRoot, parentPath, parent);
+  // Exclusive claim: revalidate under lock → mark single-use usedAt → write all
+  // children + parent; apply throw rolls usedAt back for retry (#3239 residual).
+  // Partial child files created in this attempt are best-effort removed so retry
+  // is not blocked by "child already exists".
+  const writeProtected = (): void => {
+    const created: string[] = [];
+    try {
+      for (const { target } of childPaths) {
+        mkdirSync(dirname(target), { recursive: true });
+      }
+      for (let i = 0; i < childPaths.length; i += 1) {
+        // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
+        const target = childPaths[i]!.target;
+        // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
+        writeJson(projectRoot, target, childDocs[i]!);
+        created.push(target);
+      }
+      writeJson(projectRoot, parentPath, parent);
+    } catch (err) {
+      for (const path of created.reverse()) {
+        try {
+          rmSync(path, { force: true });
+        } catch {
+          /* best-effort rollback of this attempt's children */
+        }
+      }
+      throw err;
+    }
+  };
+
+  if (authz.humanApprovalRef !== null) {
+    const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef, {
+      revalidate: (grant) => {
+        const again = evaluateDecomposeStructuralApply({
+          projectRoot,
+          parentPath,
+          draftPath,
+          draftDigest,
+          grants: [grant],
+        });
+        return again.allowed ? { ok: true as const } : { ok: false as const, reason: again.reason };
+      },
+      apply: writeProtected,
+    });
+    if (!claim.ok) {
+      throw new DecompositionError(claim.reason);
+    }
+  } else {
+    writeProtected();
+  }
+
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }

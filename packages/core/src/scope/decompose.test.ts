@@ -7,6 +7,13 @@ import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  mintDecomposeStructuralApplyGrant,
+  sha256FileHex,
+  toProjectRelativePosix,
+} from "../authz/decompose-apply.js";
+import { loadGrant, saveGrant } from "../authz/store.js";
+import { SCOPE_DECOMPOSE_APPLY_STRUCTURAL } from "../authz/types.js";
 import { ContainedWriteError } from "../fs/contained-write.js";
 import {
   acceptanceTextsFromItems,
@@ -22,6 +29,11 @@ import {
   storyQualityIssues,
   validateDraft,
 } from "./decompose.js";
+
+/** #3239: mint human-origin structural grant for a draft about to be applied. */
+function approveApply(proj: string, parentPath: string, draftPath: string): void {
+  mintDecomposeStructuralApplyGrant({ projectRoot: proj, parentPath, draftPath });
+}
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -345,6 +357,7 @@ describe("applyDecomposition", () => {
     const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
     mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     const actions = applyDecomposition({
       projectRoot: proj,
       parentPath,
@@ -354,6 +367,7 @@ describe("applyDecomposition", () => {
     });
     expect(actions.some((a) => a.startsWith("CREATE"))).toBe(true);
     expect(actions.some((a) => a.startsWith("UPDATE"))).toBe(true);
+    expect(actions.some((a) => a.startsWith("AUTHZ"))).toBe(true);
     // Two child files should be created in pending
     const childDir = join(proj, "xbrief", "pending");
     const childFiles = readdirSafe(childDir).filter((f) => f !== "2026-05-12-parent.xbrief.json");
@@ -409,6 +423,7 @@ describe("applyDecomposition", () => {
     mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
     const draft = goodDraft();
     writeJson(draftPath, draft);
+    approveApply(proj, parentPath, draftPath);
     applyDecomposition({
       projectRoot: proj,
       parentPath,
@@ -446,6 +461,7 @@ describe("applyDecomposition symlink containment (#2781)", () => {
       const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
       mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
       writeJson(draftPath, goodDraft());
+      approveApply(proj, parentPath, draftPath);
       expect(() =>
         applyDecomposition({
           projectRoot: proj,
@@ -509,6 +525,7 @@ describe("decomposeMain", () => {
     const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
     mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     expect(
       decomposeMain([
         parentPath,
@@ -901,6 +918,7 @@ describe("applyDecomposition error + mutation branches", () => {
       plan: { id: "ip-1", title: "IP-1", status: "pending", narratives: {}, items: [] },
     });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     const actions = applyDecomposition({
       projectRoot: proj,
       parentPath,
@@ -919,6 +937,7 @@ describe("applyDecomposition error + mutation branches", () => {
     const { proj, parentPath, draftPath } = setup();
     writeJson(parentPath, { xBRIEFInfo: { version: "0.8" } });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     const actions = applyDecomposition({
       projectRoot: proj,
       parentPath,
@@ -933,6 +952,7 @@ describe("applyDecomposition error + mutation branches", () => {
     const { proj, parentPath, draftPath } = setup();
     writeJson(parentPath, { xBRIEFInfo: { version: "0.8" }, plan: [] });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     expect(() =>
       applyDecomposition({
         projectRoot: proj,
@@ -951,6 +971,7 @@ describe("applyDecomposition error + mutation branches", () => {
       plan: { id: "ip-1", title: "IP-1", status: "pending", metadata: [] },
     });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     expect(() =>
       applyDecomposition({
         projectRoot: proj,
@@ -975,6 +996,7 @@ describe("applyDecomposition error + mutation branches", () => {
       },
     });
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     expect(() =>
       applyDecomposition({
         projectRoot: proj,
@@ -1054,6 +1076,7 @@ describe("decomposeMain extra CLI branches", () => {
   it("supports --draft= and --project-root= equals forms", () => {
     const { proj, parentPath, draftPath } = setup();
     writeJson(draftPath, goodDraft());
+    approveApply(proj, parentPath, draftPath);
     const code = decomposeMain([
       parentPath,
       `--draft=${draftPath}`,
@@ -1143,6 +1166,7 @@ describe("alternate field extraction", () => {
     const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
     mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, { stories: [altStory()] });
+    approveApply(proj, parentPath, draftPath);
     const actions = applyDecomposition({
       projectRoot: proj,
       parentPath,
@@ -1159,5 +1183,193 @@ describe("alternate field extraction", () => {
     expect(narratives.ImplementationPlan).toBe(GOOD_PLAN);
     expect(narratives.UserStory).toBe(GOOD_US);
     expect(narratives.Traces).toBe("FR-1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #3239 structural apply authz (exact draft digest human-origin grant)
+// ---------------------------------------------------------------------------
+
+describe("applyDecomposition structural authz (#3239)", () => {
+  function setup(): { proj: string; parentPath: string; draftPath: string } {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    writeJson(parentPath, goodParent());
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(draftPath, goodDraft());
+    return { proj, parentPath, draftPath };
+  }
+
+  it("apply without grant fails closed and writes no children", () => {
+    const { proj, parentPath, draftPath } = setup();
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/no human-origin grant|scope:decompose apply/i);
+    const childFiles = readdirSafe(join(proj, "xbrief", "pending")).filter(
+      (f) => f !== "parent.xbrief.json",
+    );
+    expect(childFiles).toHaveLength(0);
+  });
+
+  it("grant for digest X cannot apply changed draft Y", () => {
+    const { proj, parentPath, draftPath } = setup();
+    approveApply(proj, parentPath, draftPath);
+    // Mutate draft bytes after approval → digest Y
+    const mutated = goodDraft();
+    const mutatedStories = mutated.stories as Record<string, unknown>[];
+    const firstStory = mutatedStories[0];
+    if (firstStory !== undefined) {
+      firstStory.title = "Mutated title after approval";
+    }
+    writeJson(draftPath, mutated);
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/digest|invalidates/i);
+    const childFiles = readdirSafe(join(proj, "xbrief", "pending")).filter(
+      (f) => f !== "parent.xbrief.json",
+    );
+    expect(childFiles).toHaveLength(0);
+  });
+
+  it("matching human-origin structural grant allows apply", () => {
+    const { proj, parentPath, draftPath } = setup();
+    approveApply(proj, parentPath, draftPath);
+    const actions = applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+    });
+    expect(actions.some((a) => a.startsWith("CREATE"))).toBe(true);
+    expect(actions.some((a) => a.startsWith("AUTHZ"))).toBe(true);
+  });
+
+  it("--check without grant still validates", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const actions = applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: true,
+      date: "2026-06-01",
+    });
+    expect(actions[0]).toContain("VALIDATED");
+    expect(actions.some((a) => a.startsWith("CHECK"))).toBe(true);
+  });
+
+  it("agent-origin grant is rejected", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const digest = sha256FileHex(draftPath);
+    saveGrant(proj, {
+      schemaVersion: 1,
+      id: "agent-forged",
+      origin: {
+        kind: "agent-authored",
+        actor: "agent",
+        mintedAt: "2026-08-10T00:00:00Z",
+        mintedVia: "self",
+        eventRef: null,
+      },
+      scope: {
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: proj,
+        surfaces: [],
+        operations: [SCOPE_DECOMPOSE_APPLY_STRUCTURAL],
+        storyIds: [],
+        issueIds: [],
+        cohortId: null,
+        contentDigest: digest,
+        parentPath: toProjectRelativePosix(proj, parentPath),
+        targetPath: toProjectRelativePosix(proj, draftPath),
+      },
+      semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
+    });
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/agent|human-origin|origin/i);
+  });
+
+  it("CLI apply without grant exits non-zero", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const code = decomposeMain([
+      parentPath,
+      "--draft",
+      draftPath,
+      "--date",
+      "2026-06-01",
+      "--project-root",
+      proj,
+    ]);
+    expect(code).toBe(1);
+  });
+
+  it("single-use grant is not spent when parent plan validation fails after authz", () => {
+    const { proj, parentPath, draftPath } = setup();
+    writeJson(parentPath, { xBRIEFInfo: { version: "0.8" }, plan: [] });
+    writeJson(draftPath, goodDraft());
+    const grant = mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      singleUse: true,
+      grantId: "single-use-fail",
+    });
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow("plan must be an object");
+    const after = loadGrant(proj, grant.id);
+    expect(after?.semantics.usedAt).toBeNull();
+  });
+
+  it("single-use grant is spent only after successful multi-file apply", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const grant = mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      singleUse: true,
+      grantId: "single-use-ok",
+    });
+    expect(loadGrant(proj, grant.id)?.semantics.usedAt).toBeNull();
+    applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+    });
+    expect(loadGrant(proj, grant.id)?.semantics.usedAt).toBeTruthy();
+    const childFiles = readdirSafe(join(proj, "xbrief", "pending")).filter(
+      (f) => f !== "parent.xbrief.json",
+    );
+    expect(childFiles.length).toBeGreaterThan(0);
   });
 });

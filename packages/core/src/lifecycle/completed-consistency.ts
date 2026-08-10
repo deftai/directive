@@ -10,17 +10,26 @@
  * Used by doctor (corpus scan) and scope:complete (post-reconcile assert).
  * Does not couple history/changes ledgers.
  */
-import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
 } from "../layout/resolve.js";
-import { FOLDER_ALLOWED_STATUSES } from "../vbrief-validate/constants.js";
+import { FOLDER_ALLOWED_STATUSES, VALID_ITEM_STATUSES } from "../vbrief-validate/constants.js";
 
 /** Item statuses that still represent unfinished checklist work (#2862 / #3240 / #3242). */
 export const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
+
+/**
+ * Terminal checklist statuses for completed-folder fail-closed (#3242).
+ * Align with #3240 non-terminal set: any valid item status that is not
+ * pending|proposed|running is terminal; unknown/invalid statuses fail closed.
+ */
+export const TERMINAL_ITEM_STATUSES = new Set(
+  [...VALID_ITEM_STATUSES].filter((s) => !NON_TERMINAL_ITEM_STATUSES.has(s)),
+);
 
 /** Statuses allowed under completed/ (D2/D13). */
 export const COMPLETED_FOLDER_PLAN_STATUSES: ReadonlySet<string> =
@@ -91,10 +100,23 @@ export function collectOpenPlanItems(items: unknown, pathPrefix = "plan.items"):
       return;
     }
     const status = String(rec.status ?? "").trim();
-    if (NON_TERMINAL_ITEM_STATUSES.has(status) || status.length === 0) {
+    if (status.length === 0) {
       hits.push({
         path,
-        status: status.length > 0 ? status : "(empty)",
+        status: "(empty)",
+        title: itemLabel(rec, path),
+      });
+    } else if (NON_TERMINAL_ITEM_STATUSES.has(status)) {
+      hits.push({
+        path,
+        status,
+        title: itemLabel(rec, path),
+      });
+    } else if (!TERMINAL_ITEM_STATUSES.has(status)) {
+      // Unknown/invalid status is not verified terminal — fail closed (#3242).
+      hits.push({
+        path,
+        status: `(unknown:${status})`,
         title: itemLabel(rec, path),
       });
     }
@@ -170,13 +192,19 @@ export function evaluateCompletedPlanConsistency(
     });
   } else {
     const openItems = collectOpenPlanItems(plan.items);
-    // Structural malformations (non-object slots / nested non-array) are hard
-    // unreadable findings — not advisory open_items — so doctor exit fails closed.
+    // Structural malformations + unknown statuses are hard unreadable findings —
+    // not advisory open_items — so doctor exit fails closed.
     const structural = openItems.filter(
-      (h) => h.status === "(non-object)" || h.status === "(non-array)",
+      (h) =>
+        h.status === "(non-object)" ||
+        h.status === "(non-array)" ||
+        h.status.startsWith("(unknown:"),
     );
     const checklistOpen = openItems.filter(
-      (h) => h.status !== "(non-object)" && h.status !== "(non-array)",
+      (h) =>
+        h.status !== "(non-object)" &&
+        h.status !== "(non-array)" &&
+        !h.status.startsWith("(unknown:"),
     );
     if (structural.length > 0) {
       const itemLines = structural
@@ -276,7 +304,16 @@ function listConsistencyLifecycleRoots(projectRoot: string): readonly RootProbe[
     if (!exists) return;
 
     try {
-      if (!statSync(absRoot).isDirectory()) {
+      const st = lstatSync(absRoot);
+      if (st.isSymbolicLink()) {
+        ordered.push({
+          kind: "unreadable",
+          dirName,
+          detail: `lifecycle root is a symlink (refusing to follow; cannot inventory completed/)`,
+        });
+        return;
+      }
+      if (!st.isDirectory()) {
         ordered.push({
           kind: "unreadable",
           dirName,
@@ -289,7 +326,7 @@ function listConsistencyLifecycleRoots(projectRoot: string): readonly RootProbe[
       ordered.push({
         kind: "unreadable",
         dirName,
-        detail: `lifecycle root unreadable (stat failed): ${msg}`,
+        detail: `lifecycle root unreadable (lstat failed): ${msg}`,
       });
       return;
     }
@@ -336,7 +373,20 @@ function scanCompletedDir(
   }
 
   try {
-    if (!statSync(completedDir).isDirectory()) {
+    const st = lstatSync(completedDir);
+    if (st.isSymbolicLink()) {
+      return {
+        findings: [
+          unreadableFinding(
+            `${pathPrefix}/completed`,
+            "completed/ is a symlink (refusing to follow; cannot inventory)",
+          ),
+        ],
+        scanned: 0,
+        completedPresent: true,
+      };
+    }
+    if (!st.isDirectory()) {
       return {
         findings: [
           unreadableFinding(
@@ -352,7 +402,10 @@ function scanCompletedDir(
     const msg = err instanceof Error ? err.message : String(err);
     return {
       findings: [
-        unreadableFinding(`${pathPrefix}/completed`, `completed/ unreadable (stat failed): ${msg}`),
+        unreadableFinding(
+          `${pathPrefix}/completed`,
+          `completed/ unreadable (lstat failed): ${msg}`,
+        ),
       ],
       scanned: 0,
       completedPresent: true,

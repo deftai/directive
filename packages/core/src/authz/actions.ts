@@ -100,6 +100,12 @@ export interface MintGrantInput {
   readonly now?: Date;
   /** When true, pin grant id into state.activeGrantIds. */
   readonly pinActive?: boolean;
+  /** SHA-256 hex of exact draft bytes for scope.decompose.apply.structural (#3239). */
+  readonly contentDigest?: string | null;
+  /** Project-relative parent artifact path (#3239). */
+  readonly parentPath?: string | null;
+  /** Project-relative draft/target path (#3239). */
+  readonly targetPath?: string | null;
 }
 
 export function mintHumanOriginGrant(input: MintGrantInput): HumanOriginGrant {
@@ -132,6 +138,9 @@ export function mintHumanOriginGrant(input: MintGrantInput): HumanOriginGrant {
       storyIds: input.storyIds ?? [],
       issueIds: input.issueIds ?? [],
       cohortId: input.cohortId ?? null,
+      contentDigest: input.contentDigest ?? null,
+      parentPath: input.parentPath ?? null,
+      targetPath: input.targetPath ?? null,
     },
     semantics: {
       expiresAt: input.expiresAt ?? null,

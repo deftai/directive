@@ -226,6 +226,20 @@ describe("completed lifecycle consistency (#3242)", () => {
     expect(result.message).toContain("plan.items is non-array");
   });
 
+  it("evaluate fails closed on unknown item status (#3242)", () => {
+    const result = evaluateCompletedPlanConsistency(
+      {
+        title: "unknown-status",
+        status: "completed",
+        items: [{ title: "weird", status: "bogus" }],
+      },
+      { relPath: "xbrief/completed/unknown.xbrief.json" },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("(unknown:bogus)");
+    expect(result.findings.some((f) => f.kind === "unreadable")).toBe(true);
+  });
+
   it("evaluate fails closed on non-object item slots and nested non-array collections (#3242)", () => {
     const result = evaluateCompletedPlanConsistency(
       {
