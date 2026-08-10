@@ -232,6 +232,35 @@ describe("required status contexts (#3234)", () => {
     expect(result.error).toContain("parse");
   });
 
+  it("marks resolutionFailed when one source succeeds and the other hard-fails", () => {
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/rules/branches/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [{ context: "terraform-plan" }],
+              },
+            },
+          ]),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/protection")) {
+        return { returncode: 0, stdout: "{not-json", stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected: ${joined}` };
+    };
+    const result = fetchRequiredStatusContexts("o/r", "master", runGh);
+    expect(result.resolutionFailed).toBe(true);
+    expect(result.sources).toEqual(["rulesets"]);
+    expect(result.contexts).toEqual([{ name: "terraform-plan" }]);
+    expect(result.error).toContain("parse");
+  });
+
   it("fetchPrBaseRef extracts base.ref", () => {
     const runGh: RunGhFn = () => ({
       returncode: 0,

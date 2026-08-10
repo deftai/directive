@@ -650,9 +650,10 @@ export function fetchRequiredStatusContexts(
   const contexts = [...found.values()].sort((a, b) =>
     requiredContextLabel(a).localeCompare(requiredContextLabel(b)),
   );
-  // Fail closed when we hit hard errors and never obtained a trusted source.
-  // Partial success (at least one source) still returns what we parsed.
-  const resolutionFailed = hardFailure && sources.length === 0;
+  // Fail closed on any hard error (parse / non-404), even when another source
+  // contributed contexts. Partial inventory can omit unique required checks
+  // from the failed source (#3234 Greptile conf residual).
+  const resolutionFailed = hardFailure;
 
   return {
     contexts,
