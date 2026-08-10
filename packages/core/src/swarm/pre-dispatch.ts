@@ -9,7 +9,6 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
-import { existsSync, realpathSync } from "node:fs";
 import { isAbsolute, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
@@ -97,25 +96,17 @@ export function looksLikeFilesystemTarget(targetId: string): boolean {
  * Canonical unit target for ledger keys so relative/absolute/separator/case
  * variants of the same worktree do not split gate state (#3228 Greptile P1).
  *
- * Always resolve under projectRoot to a stable absolute key (even before the
- * path exists, including slash-containing branch-like ids). realpath collapses
- * symlink aliases when present; case-fold prevents case-insensitive FS splits.
- * Existence never changes the ledger key.
+ * Always resolve under projectRoot to a stable absolute lexical key (even
+ * before the path exists). Do **not** realpath: following a symlink that is
+ * created between dispatches would change the key and split ledgers.
+ * Case-fold prevents case-insensitive FS splits. Existence never changes
+ * the ledger key.
  */
 export function normalizeTargetId(projectRoot: string, targetId: string): string {
   const trimmed = targetId.trim();
   if (trimmed.length === 0) return trimmed;
 
-  const abs = resolve(projectRoot, trimmed);
-  let pathKey = abs;
-  if (existsSync(abs)) {
-    try {
-      pathKey = realpathSync(abs);
-    } catch {
-      // Keep resolve() key if realpath fails — still stable absolute identity.
-    }
-  }
-  pathKey = normalize(pathKey).replace(/\\/g, "/").toLowerCase();
+  let pathKey = normalize(resolve(projectRoot, trimmed)).replace(/\\/g, "/").toLowerCase();
   if (pathKey.length > 1 && pathKey.endsWith("/")) {
     pathKey = pathKey.slice(0, -1);
   }
