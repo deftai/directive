@@ -1,0 +1,62 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1326"
+  },
+  "plan": {
+    "title": "fix(templates,skills,tests): templates/swarm-greptile-poller-prompt.md \\Last reviewed commit:\\ regex breaks on markdown-escaped brackets in link text (PR #1267 recurrence)",
+    "status": "cancelled",
+    "narratives": {
+      "Description": "fix(templates,skills,tests): templates/swarm-greptile-poller-prompt.md \\Last reviewed commit:\\ regex breaks on markdown-escaped brackets in link text (PR #1267 recurrence)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1326",
+      "Overview": "## Summary\r\n\r\nThe canonical Greptile poller template at `templates/swarm-greptile-poller-prompt.md` has a regex bug in the `Last reviewed commit:` SHA-extraction pattern. The current regex uses `[^\\]]*` for the markdown-link text segment, which stops at the FIRST `]` in the body. When Greptile's rolling-summary link text contains markdown-escaped brackets (e.g. a commit title like `docs(changelog): add \\[Unreleased\\] entry ...`), the regex stops on the escaped `\\]` and never reaches the actual link-closing `](`. Result: `last_reviewed_sha = None`, the CLEAN gate's first condition (`sha_match`) blocks, and the poller either fires a STALL (#1039) within ~4.5 min OR (pre-#1039) burns its 30-min TIMEOUT cap on a textbook-clean review.\r\n\r\n## Recurrence record\r\n\r\nPR #1267 (2026-05-22). The maintainer pushed two follow-up commits (merge from master + a CHANGELOG entry with title `docs(changelog): add [Unreleased] entry for #1267 ...`). The dispatched review-cycle sub-agent (`019e5151-5f5f-7c44-a8dc-ac1587450ffd`) wedged on the `sha_match` holdout for 3 consecutive polls and exited via STALL.\r\n\r\nGround truth on the PR: `Confidence Score: 5/5 -- Safe to merge`, 0 P0, 0 P1 across all four detector tiers, all 7 CI checks pass — the poller saw a clean review but could not parse the `Last reviewed commit:` link because the link text contained `\\[Unreleased\\]`. The (5) STALL exit fired correctly within ~3 min (the parse-gap fail-loud surface from #1039 worked as designed).\r\n\r\n## Current regex (broken on escaped brackets)\r\n\r\n```python\r\nr\"Last reviewed commit:\\s*\\[[^\\]]*\\]\\(https?://github\\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{7,40})\"\r\n```\r\n\r\n`[^\\]]*` is greedy negated-class and stops at the first `]`. In Greptile's rolling-summary link, the link text often includes the commit title verbatim — any commit subject containing literal `]` (markdown-escaped or otherwise) breaks the match.\r\n\r\n## Suggested fix\r\n\r\nSwap `[^\\]]*` for non-greedy `.*?`:\r\n\r\n```python\r\nr\"Last reviewed commit:\\s*\\[.*?\\]\\(https?://github\\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{7,40})\"\r\n```\r\n\r\nThe non-greedy `.*?` lets the link text contain any character including escaped brackets while still stopping at the actual `](` that introduces the URL. Confirmed against Greptile's rolling-summary on PR #1267 — matches correctly.\r\n\r\n## Surfaces to update\r\n\r\nThis is a multi-surface fix because the canonical regex is encoded in three places:\r\n\r\n1. **`templates/swarm-greptile-poller-prompt.md`** — the primary canonical encoding (in both the inline regex example AND the `## Implementation Notes` section that cites the pattern verbatim).\r\n2. **`skills/deft-directive-review-cycle/SKILL.md`** — the canonical SHA-comparison parse step (currently references the same broken regex shape inline).\r\n3. **`tests/content/test_swarm_poller_template.py`** — the content sync tests that pin the canonical regex string. The replacement string MUST be updated in lockstep AND a new positive regression test added with a fixture body containing escaped brackets in the link text (e.g. `Last reviewed commit: [docs: add \\[Unreleased\\] entry ...](https://github.com/...)`).\r\n\r\n## Acceptance criteria\r\n\r\n- `templates/swarm-greptile-poller-prompt.md` `Last reviewed commit:` regex updated to use non-greedy `.*?` for link text.\r\n- `skills/deft-directive-review-cycle/SKILL.md` mirror updated.\r\n- `tests/content/test_swarm_poller_template.py` updated:\r\n  - Sync test (pins the new canonical string) updated.\r\n  - New positive regression test: synthetic Greptile body containing `[<title with \\[Unreleased\\]>](https://github.com/.../commit/<40-char-sha>)` → `last_reviewed_sha` extracted correctly.\r\n  - Existing positive tests (link text without escaped brackets) continue to pass.\r\n- A short cross-reference in `meta/lessons.md` `## Triple-Tier Greptile Findings Detector in Poller Template (2026-05)` (or a new sibling section) citing this issue + the PR #1267 recurrence record. Per `main.md` Rule Authority [AXIOM], the rule body lives in the template + the content test; the lessons entry is a cross-reference only.\r\n- The new regression test fails on the broken regex AND passes on the proposed fix.\r\n\r\n## Out of scope\r\n\r\n- Other detector tiers (Tier 1 badge, Tier 2 bold-bullet, Tier 2.5 SLizard heading, Tier 3 inline-prose) are unaffected — they don't depend on link-text parsing.\r\n- The `## Confidence parse` regex is also unaffected — link text isn't involved.\r\n- The CLEAN-gate `evaluate_clean_gate` function is unaffected — the bug is purely upstream in the SHA-extraction step that feeds `last_reviewed_sha`.\r\n\r\n## Recurrence chain\r\n\r\nThis is the fourth recurrence in the canonical poller template's detector-gap chain after:\r\n- #910 (triple-tier detector — added Tier 2 and Tier 3 after badge-only false-negatives)\r\n- #1035 (Tier 2.5 SLizard heading form + confidence-heading fallback)\r\n- #1039 (5) STALL terminal exit + Tier 1 instrumentation + Tier 3 per-condition fail-loud — caught this case correctly via STALL within ~3 min instead of burning the 30-min TIMEOUT)\r\n\r\nThe #1039 STALL surface worked exactly as designed here. This issue closes the upstream parse-gap that triggered the STALL.\r\n",
+      "Labels": "bug, Workflow"
+    },
+    "items": [
+      {
+        "title": "regex updated to use non-greedy  for link text.",
+        "status": "proposed"
+      },
+      {
+        "title": "mirror updated.",
+        "status": "proposed"
+      },
+      {
+        "title": "updated:",
+        "status": "proposed"
+      },
+      {
+        "title": "Sync test (pins the new canonical string) updated.",
+        "status": "proposed"
+      },
+      {
+        "title": "New positive regression test: synthetic Greptile body containing  →  extracted correctly.",
+        "status": "proposed"
+      },
+      {
+        "title": "Existing positive tests (link text without escaped brackets) continue to pass.",
+        "status": "proposed"
+      },
+      {
+        "title": "A short cross-reference in   (or a new sibling section) citing this issue + the PR #1267 recurrence record. Per  Rule Authority [AXIOM], the rule body lives in the template + the content test; the lessons entry is a cross-reference only.",
+        "status": "proposed"
+      },
+      {
+        "title": "The new regression test fails on the broken regex AND passes on the proposed fix.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "Workflow"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1326",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1326: fix(templates,skills,tests): templates/swarm-greptile-poller-prompt.md \\Last reviewed commit:\\ regex breaks on markdown-escaped brackets in link text (PR #1267 recurrence)"
+      }
+    ],
+    "updated": "2026-06-17T00:07:42Z"
+  }
+}
