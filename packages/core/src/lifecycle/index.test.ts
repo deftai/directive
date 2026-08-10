@@ -8,5 +8,7 @@ describe("lifecycle index exports", () => {
     expect(typeof lifecycle.events.emit).toBe("function");
     expect(typeof lifecycle.collectLifecycleStats).toBe("function");
     expect(typeof lifecycle.formatLifecycleStatsText).toBe("function");
+    expect(typeof lifecycle.scanCompletedLifecycleConsistency).toBe("function");
+    expect(typeof lifecycle.evaluateCompletedPlanConsistency).toBe("function");
   });
 });

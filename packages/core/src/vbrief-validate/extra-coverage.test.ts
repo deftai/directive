@@ -82,6 +82,46 @@ describe("vbrief-validate extra coverage", () => {
         "xbrief",
       ),
     ).toEqual([]);
+    // Mismatch branch: running under completed/ (pairs with #3242 folder/status gate).
+    const mismatch = validateFolderStatus(
+      "xbrief/completed/x.xbrief.json",
+      { plan: { status: "running" } },
+      "xbrief",
+    );
+    expect(mismatch.length).toBe(1);
+    expect(mismatch[0]).toContain("running");
+    expect(mismatch[0]).toContain("completed/");
+    // plan as array / non-object
+    expect(
+      validateFolderStatus(
+        "xbrief/active/x.xbrief.json",
+        { plan: [] as unknown as object },
+        "xbrief",
+      ),
+    ).toEqual([]);
+    expect(
+      validateFolderStatus(
+        "xbrief/active/x.xbrief.json",
+        { plan: "nope" as unknown as object },
+        "xbrief",
+      ),
+    ).toEqual([]);
+  });
+
+  it("covers displayPath and lifecycleFolderFor residual edges (#3242 headroom)", () => {
+    expect(lifecycleFolderFor("/proj/xbrief/pending/a.xbrief.json", "/proj/xbrief")).toBe(
+      "pending",
+    );
+    expect(lifecycleFolderFor("/proj/xbrief/cancelled/a.xbrief.json", "/proj/xbrief")).toBe(
+      "cancelled",
+    );
+    expect(displayPath("/proj/xbrief/pending/a.xbrief.json", "/proj/xbrief")).toContain(
+      "pending/a.xbrief.json",
+    );
+    expect(scopeIdsForRefUri("file://pending/2026-01-01-story.xbrief.json").has("story")).toBe(
+      true,
+    );
+    expect(scopeIdsForRefUri("2026-01-01-story.xbrief.json").has("2026-01-01-story")).toBe(true);
   });
 
   it("covers filename convention branches", () => {

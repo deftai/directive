@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 import {
+  checkCompletedLifecycleConsistency,
+  checkCompletedOpenItems,
   checkCoverageCheckResumePolicy,
   checkGitignoreCoverage,
   checkInstallPathConsistency,
@@ -26,6 +28,119 @@ describe("checks", () => {
     expect(deriveExitCode([{ name: "x", status: "fail", detail: "d" }], [])).toBe(1);
     expect(deriveExitCode([{ name: "x", status: "error", detail: "d" }], [])).toBe(2);
     expect(deriveExitCode([], ["err"])).toBe(2);
+    expect(
+      deriveExitCode([{ name: "completed-open-items", status: "fail", detail: "advisory" }], []),
+    ).toBe(0);
+  });
+
+  it("fails closed when completed/ plan.status is running (#3242)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cc-status-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "drift.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "drift",
+            status: "running",
+            items: [{ title: "a", status: "completed" }],
+          },
+        }),
+        "utf8",
+      );
+      const result = checkCompletedLifecycleConsistency(root);
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("completed/drift.xbrief.json");
+      expect(result.detail).toContain("plan.status=running");
+      expect(result.detail).toContain("folder=completed");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports open plan.items under completed/ as exit-exempt fail (#3242)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cc-items-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "open.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "open",
+            status: "completed",
+            items: [{ title: "todo", status: "pending" }],
+          },
+        }),
+        "utf8",
+      );
+      const statusCheck = checkCompletedLifecycleConsistency(root);
+      expect(statusCheck.status).toBe("pass");
+      const itemsCheck = checkCompletedOpenItems(root);
+      expect(itemsCheck.status).toBe("fail");
+      expect(itemsCheck.detail).toContain("pending");
+      expect(itemsCheck.detail).toContain("completed/open.xbrief.json");
+      expect(deriveExitCode([itemsCheck], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes completed lifecycle checks when status and items are terminal (#3242)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cc-ok-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "ok.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "ok",
+            status: "completed",
+            items: [{ title: "done", status: "completed" }],
+          },
+        }),
+        "utf8",
+      );
+      expect(checkCompletedLifecycleConsistency(root).status).toBe("pass");
+      expect(checkCompletedOpenItems(root).status).toBe("pass");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("runChecksImpl includes completed-lifecycle checks and hard-fails status drift (#3242)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cc-impl-"));
+    try {
+      writeFileSync(join(root, "AGENTS.md"), "# agents\n", "utf8");
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "drift.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "drift", status: "running", items: [] },
+        }),
+        "utf8",
+      );
+      const result = runChecksImpl(root, {
+        isDir: (p) => p === root || p.includes("xbrief"),
+        isFile: (p) => p.endsWith("AGENTS.md"),
+        readText: (p) => (p.endsWith("AGENTS.md") ? "# agents\n" : null),
+      });
+      const names = result.checks.map((c) => c.name);
+      expect(names).toContain("completed-lifecycle-consistency");
+      expect(names).toContain("completed-open-items");
+      const statusCheck = result.checks.find((c) => c.name === "completed-lifecycle-consistency");
+      expect(statusCheck?.status).toBe("fail");
+      expect(result.exitCode).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("skips quick-start when install root unknown", () => {

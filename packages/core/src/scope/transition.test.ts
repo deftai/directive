@@ -136,6 +136,50 @@ describe("runTransition", () => {
     expect(data.plan.metadata.completedAt).toMatch(/Z$/);
   });
 
+  it("fails complete when plan.items remain non-terminal after reconcile (#3242)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "empty-item-status.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "empty-status-item",
+        status: "running",
+        items: [
+          // empty status is not advanced by #2862 and is non-terminal for #3242
+          { title: "ghost criterion" },
+          { title: "ok", status: "completed" },
+        ],
+      },
+    });
+    const result = runTransition("complete", path, new Date("2026-08-10T12:00:00.000Z"), {
+      skipAcceptanceEvidenceGate: true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#3242|non-terminal|Completed lifecycle consistency/);
+    expect(result.message).toMatch(/ghost criterion|plan\.items\[0\]/);
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "completed", "empty-item-status.xbrief.json"))).toBe(
+      false,
+    );
+  });
+
+  it("fails complete when pending plan.items lack acceptance evidence (#3240/#3242)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "pending-open.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "open-checklist",
+        status: "running",
+        items: [{ title: "still open", status: "pending" }],
+      },
+    });
+    const result = runTransition("complete", path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Acceptance evidence required|#3240|still open/);
+    expect(existsSync(path)).toBe(true);
+  });
+
   it("advances non-terminal own plan.items and stamps xBRIEFInfo.updated on complete (#2862)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "active", "mixed-items.xbrief.json");

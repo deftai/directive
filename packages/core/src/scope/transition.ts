@@ -6,6 +6,7 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
 import type { GitRunner } from "../session/git.js";
 import {
   type CriterionAcceptanceReport,
@@ -266,6 +267,19 @@ export function runTransition(
 
   if (act === "complete") {
     stampCompletionMetadata(planObj, projectRoot, nowIso);
+    // #3242 / epic #3237 Q4: after reconcile, completed lifecycle must match
+    // plan.status=completed and terminal plan.items (compose with #3240).
+    const consistency = evaluateCompletedPlanConsistency(planObj, {
+      relPath: basename,
+      requireStatus: "completed",
+    });
+    if (!consistency.ok) {
+      return {
+        ok: false,
+        message: consistency.message,
+        acceptanceReports,
+      };
+    }
   }
 
   const formatted = formatBriefJson(data);

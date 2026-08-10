@@ -14,6 +14,7 @@ import {
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
@@ -852,6 +853,87 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
  * Decided-off is quiet; dismiss-with-reason is pass with reason in detail.
  * Invalid typed blocks resolve fail-closed and surface via source=default-on-error.
  */
+/**
+ * Fail closed when completed/ plan.status disagrees with the folder (#3242 AC1 / epic #3237 Q4).
+ * Open plan.items under completed/ are reported by `checkCompletedOpenItems` (exit-exempt
+ * until historical corpora are backfilled; scope:complete enforces items hard).
+ */
+export function checkCompletedLifecycleConsistency(projectRoot: string): CheckResult {
+  const checkName = "completed-lifecycle-consistency";
+  const result = scanCompletedLifecycleConsistency(projectRoot);
+  const statusFindings = result.findings.filter((f) => f.kind === "status_mismatch");
+  if (statusFindings.length === 0) {
+    return {
+      name: checkName,
+      status: "pass",
+      detail:
+        "Completed folder/status consistency OK (#3242): no plan.status drift under completed/",
+      data: {
+        finding_count: 0,
+        open_items_deferred_to: "completed-open-items",
+      },
+    };
+  }
+  const message =
+    `Completed lifecycle folder/status consistency failed (#3242). ` +
+    `${statusFindings.length} finding(s):\n` +
+    statusFindings.map((f) => `  - ${f.detail}`).join("\n") +
+    `\nRule: completed/ requires plan.status in [completed|failed].`;
+  return {
+    name: checkName,
+    status: "fail",
+    detail: message,
+    data: {
+      finding_count: statusFindings.length,
+      findings: statusFindings.map((f) => ({
+        rel_path: f.relPath,
+        plan_status: f.planStatus,
+        kind: f.kind,
+        detail: f.detail,
+      })),
+    },
+  };
+}
+
+/**
+ * Surface non-terminal plan.items under completed/ (#3242). Exit-exempt so
+ * historical pre-#2862 corpora do not red-light doctor; scope:complete fails closed.
+ */
+export function checkCompletedOpenItems(projectRoot: string): CheckResult {
+  const checkName = "completed-open-items";
+  const result = scanCompletedLifecycleConsistency(projectRoot);
+  const openFindings = result.findings.filter((f) => f.kind === "open_items");
+  if (openFindings.length === 0) {
+    return {
+      name: checkName,
+      status: "pass",
+      detail:
+        "Completed open-items consistency OK (#3242): no non-terminal plan.items under completed/",
+      data: { finding_count: 0 },
+    };
+  }
+  const message =
+    `Completed lifecycle open plan.items (#3242, advisory). ` +
+    `${openFindings.length} artifact(s) under completed/ still list non-terminal items:\n` +
+    openFindings.map((f) => `  - ${f.detail}`).join("\n") +
+    `\nscope:complete fails closed on this class; historical corpus is advisory until backfill.`;
+  return {
+    name: checkName,
+    status: "fail",
+    detail: message,
+    data: {
+      finding_count: openFindings.length,
+      advisory: true,
+      findings: openFindings.map((f) => ({
+        rel_path: f.relPath,
+        plan_status: f.planStatus,
+        kind: f.kind,
+        detail: f.detail,
+      })),
+    },
+  };
+}
+
 export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult {
   const debt = resolveCoverageDebt(projectRoot);
   const resume = resolveCheckResume(projectRoot);
@@ -935,6 +1017,8 @@ export function deriveExitCode(checks: readonly CheckResult[], errors: readonly 
     "stale-xbrief-schema-deposit",
     "typescript-7-side-by-side",
     "coverage-check-resume-policy",
+    // Historical pre-#2862 completed/ corpora; hard fail is scope:complete (#3242).
+    "completed-open-items",
   ]);
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
@@ -983,6 +1067,8 @@ export function runChecksImpl(
     checks.push(checkGitignoreCoverage(projectRoot, seams));
     checks.push(checkTypescript7SideBySide(projectRoot, seams));
     checks.push(checkCoverageCheckResumePolicy(projectRoot));
+    checks.push(checkCompletedLifecycleConsistency(projectRoot));
+    checks.push(checkCompletedOpenItems(projectRoot));
     return {
       projectRoot,
       installRoot: null,
@@ -1002,6 +1088,8 @@ export function runChecksImpl(
   checks.push(checkGitignoreCoverage(projectRoot, seams));
   checks.push(checkTypescript7SideBySide(projectRoot, seams));
   checks.push(checkCoverageCheckResumePolicy(projectRoot));
+  checks.push(checkCompletedLifecycleConsistency(projectRoot));
+  checks.push(checkCompletedOpenItems(projectRoot));
   return {
     projectRoot,
     installRoot,

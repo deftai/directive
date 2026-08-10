@@ -1,3 +1,4 @@
+export * from "./completed-consistency.js";
 export * from "./event.js";
 export * as eventDetect from "./event-detect.js";
 export * as events from "./events.js";
