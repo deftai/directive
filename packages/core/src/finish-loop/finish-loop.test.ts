@@ -329,6 +329,7 @@ describe("runPrFinishLoop", () => {
   it("merge succeeds when policy allows and mergeFn returns 0", () => {
     const root = tmpRoot();
     mintFinishLoopTemplateGrant({ projectRoot: root });
+    let pinned: string | null | undefined;
     const r = runPrFinishLoop({
       projectRoot: root,
       prNumber: 3,
@@ -346,12 +347,16 @@ describe("runPrFinishLoop", () => {
           autoDeployOnMerge: false,
         },
       }),
-      mergeFn: () => 0,
+      mergeFn: (_pr, _repo, opts) => {
+        pinned = opts?.matchHeadCommit;
+        return 0;
+      },
       writeProgress: false,
     });
     expect(r.exitCode).toBe(EXIT_OK);
     expect(r.haltReason).toBe("merged");
     expect(r.mergeAttempted).toBe(true);
+    expect(pinned).toBe("abc");
   });
 });
 

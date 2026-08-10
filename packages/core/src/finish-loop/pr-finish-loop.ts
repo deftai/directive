@@ -43,8 +43,15 @@ export interface PrFinishLoopOptions {
   readonly now?: Date;
   /** Inject watch for tests. */
   readonly watchFn?: (prNumber: number, repo: string | null, options?: WatchOptions) => WatchResult;
-  /** Inject merge cascade for tests; returns exit code. */
-  readonly mergeFn?: (prNumber: number, repo: string | null) => number;
+  /**
+   * Inject merge cascade for tests; returns exit code.
+   * Optional `matchHeadCommit` pins the merge to the gated head (#3235).
+   */
+  readonly mergeFn?: (
+    prNumber: number,
+    repo: string | null,
+    options?: { readonly matchHeadCommit?: string | null },
+  ) => number;
   readonly agentMergeFn?: typeof evaluateAgentMerge;
   readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
   readonly writeProgress?: boolean;
@@ -267,12 +274,46 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
     };
   }
 
-  // Optional merge when policy allows
+  // Optional merge when policy allows — re-read head and pin matchHeadCommit
+  // so a push between the earlier gate and merge cannot land unapproved code (#3235).
   if (options.mergeFn !== undefined) {
-    const rc = options.mergeFn(prNumber, repo);
+    const mergeHead =
+      typeof watchResult.probe.headSha === "string" ? watchResult.probe.headSha : null;
+    if (options.skipMergeApprovalHeadGate !== true) {
+      const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+      const recheck = headGateFn({
+        prNumber,
+        repo,
+        projectRoot,
+        currentHeadSha: mergeHead,
+        disableAutoMergeOnDeny: true,
+      });
+      if (!recheck.allowed) {
+        const message = [
+          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: stale merge approval at merge time.`,
+          recheck.message,
+          recheck.recovery ?? "",
+        ]
+          .filter((line) => line.length > 0)
+          .join("\n");
+        log("merge", "stale-merge-approval", message);
+        return {
+          exitCode: EXIT_ACTION_REQUIRED,
+          haltReason: "stale-merge-approval",
+          message,
+          prNumber,
+          watchVerdict: VERDICT_CLEAN,
+          mergeAttempted: false,
+          mergeSkippedReason: "stale-merge-approval",
+          grantId: null,
+        };
+      }
+    }
+    const pinnedHead = mergeHead;
+    const rc = options.mergeFn(prNumber, repo, { matchHeadCommit: pinnedHead });
     if (rc === 0) {
       const message = `pr:finish-loop MERGED PR #${prNumber}`;
-      log("merge", "merged", message);
+      log("merge", "merged", message, { matchHeadCommit: pinnedHead });
       return {
         exitCode: EXIT_OK,
         haltReason: "merged",
