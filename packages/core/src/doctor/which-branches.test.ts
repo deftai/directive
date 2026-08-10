@@ -128,5 +128,4 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
     expect(paths).toEqual(["/only/bin/deft"]);
     expect(vi.mocked(execFileSync)).not.toHaveBeenCalled();
   });
-
 });

@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
-import { formatFrameworkCommand } from "../render/framework-commands.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { formatFrameworkCommand } from "../render/framework-commands.js";
 import {
   type ActiveCliCheckResult,
   type ActiveCliCheckSeams,
