@@ -11,7 +11,7 @@ import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
-import { claimSingleUseGrantForApply } from "../authz/store.js";
+import { markGrantUsed } from "../authz/store.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
