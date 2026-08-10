@@ -629,6 +629,21 @@ describe("swarm verify-review-clean deep coverage", () => {
           stderr: "",
         };
       }
+      if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            head: { sha },
+            base: { ref: "master" },
+            mergeable: true,
+            mergeable_state: "clean",
+          }),
+          stderr: "",
+        };
+      }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     });
     const result = verifyReviewClean({
@@ -720,6 +735,21 @@ describe("swarm verify-review-clean deep coverage", () => {
                 conclusion: "success",
               },
             ],
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            head: { sha },
+            base: { ref: "master" },
+            mergeable: true,
+            mergeable_state: "clean",
           }),
           stderr: "",
         };
