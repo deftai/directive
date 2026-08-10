@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { containedWrite } from "../../fs/contained-write.js";
 import { resolveCandidatesLogPath, TRIAGE_CANDIDATES_LOG_REL_PATH } from "../cache-path.js";
 import { CandidatesLogError } from "./errors.js";
-import type { AuditEntry, CandidatesLog } from "./types.js";/** Display/back-compat constant; resolution flows through resolveTriageCachePath (#1703). */
+import type {
+  AuditEntry,
+  CandidatesLog,
+} from "./types.js"; /** Display/back-compat constant; resolution flows through resolveTriageCachePath (#1703). */
 export const AUDIT_LOG_REL_PATH = TRIAGE_CANDIDATES_LOG_REL_PATH;
 
 export { resolveCandidatesLogPath };
