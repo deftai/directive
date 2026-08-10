@@ -23,7 +23,6 @@
         "narrative": {
           "Acceptance": "Given active UAT and shell commands that extract or download into .deft/authz/grants, when classify+decideHook run, the op is settings/write-shaped fail-closed (not empty allow)."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Classify archive/alt-downloader plants into authz"
       },
@@ -31,7 +30,6 @@
         "narrative": {
           "Acceptance": "Given active UAT and alt-downloader/archive targeting .deft-directive-disable as a regular file, when classified, decision is fail-closed settings (not allow)."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Classify regular-file kill-switch plants"
       },
@@ -39,7 +37,6 @@
         "narrative": {
           "Acceptance": "Given candidates.jsonl is a leaf symlink to an in-tree tracked file, when triage append runs, write is refused or contained so the target tracked file is not corrupted."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Triage-cache append refuses leaf symlink follow"
       },
@@ -47,7 +44,6 @@
         "narrative": {
           "Acceptance": "Given Vitest fixtures for residual PoCs and #3206/#3213 regressions, when suites run, all pass; CHANGELOG cites #3245 without exploit detail."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Tests + CHANGELOG"
       }

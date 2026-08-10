@@ -19,87 +19,93 @@
     },
     "items": [
       {
-        "effort": "M",
         "title": "Session assist allows ephemeral spawn",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given DEFT_HOOK_ASSIST=1 or DEFT_SESSION_POSTURE in the assist set and no implement envelope signals, when a Task spawn is classified, the engine returns spawn-ephemeral-ready without requiring xbrief/active."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
-          "recorded_at": "2026-08-10T20:58:27.865Z",
-          "recorded_by": "agent:parent-post-merge-3259"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
+            "recorded_at": "2026-08-10T20:58:27.865Z",
+            "recorded_by": "agent:parent-post-merge-3259"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Unmarked implement still denied",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given no session assist env and no structural ephemeral worker_role, when a generalPurpose Task spawn runs without active xBRIEF, the engine returns spawn-not-ready."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
-          "recorded_at": "2026-08-10T20:58:27.865Z",
-          "recorded_by": "agent:parent-post-merge-3259"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
+            "recorded_at": "2026-08-10T20:58:27.865Z",
+            "recorded_by": "agent:parent-post-merge-3259"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Implement conflict wins",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given session assist env AND drive-to:merge-ready or implement worker_role in the envelope, when Task spawn is classified without active xBRIEF, spawn is denied (implement wins)."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
-          "recorded_at": "2026-08-10T20:58:27.865Z",
-          "recorded_by": "agent:parent-post-merge-3259"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
+            "recorded_at": "2026-08-10T20:58:27.865Z",
+            "recorded_by": "agent:parent-post-merge-3259"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Structural #3080 still works",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given structural worker_role or subagent_type in ephemeral|docs|assist, when Task spawn runs without active xBRIEF, spawn-ephemeral-ready still holds."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
-          "recorded_at": "2026-08-10T20:58:27.865Z",
-          "recorded_by": "agent:parent-post-merge-3259"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
+            "recorded_at": "2026-08-10T20:58:27.865Z",
+            "recorded_by": "agent:parent-post-merge-3259"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Recovery and docs honesty",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a spawn-not-ready deny, when the operator reads recovery text and commands.md, free-text bracket markers are stated as insufficient and parent Shell or session assist is named as the Cursor local-dev path."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
-          "recorded_at": "2026-08-10T20:58:27.865Z",
-          "recorded_by": "agent:parent-post-merge-3259"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/hooks/dispatcher.test.ts:#3259",
+            "recorded_at": "2026-08-10T20:58:27.865Z",
+            "recorded_by": "agent:parent-post-merge-3259"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Tests and CHANGELOG",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given the PR, when vitest runs packages/core/src/hooks and CHANGELOG is opened, tests cover AC paths above and [Unreleased] cites #3259."
         },
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3261",
-          "recorded_at": "2026-08-10T20:58:27.865Z",
-          "recorded_by": "agent:parent-post-merge-3259"
+        "metadata": {
+          "evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3261",
+            "recorded_at": "2026-08-10T20:58:27.865Z",
+            "recorded_by": "agent:parent-post-merge-3259"
+          }
         }
       }
     ],

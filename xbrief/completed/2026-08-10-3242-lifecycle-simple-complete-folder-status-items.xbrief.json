@@ -20,45 +20,48 @@
     },
     "items": [
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a file in xbrief/completed with plan.status=running, when doctor or the complete verifier runs, it fails closed naming the path and both statuses."
         },
         "title": "Folder vs status",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/lifecycle/completed-consistency.test.ts:folder vs status fail-closed",
-          "recorded_at": "2026-08-10T20:52:43.723Z",
-          "recorded_by": "agent:parent-post-merge-3242"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/lifecycle/completed-consistency.test.ts:folder vs status fail-closed",
+            "recorded_at": "2026-08-10T20:52:43.723Z",
+            "recorded_by": "agent:parent-post-merge-3242"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given plan.items with a pending entry, when scope:complete runs, it exits non-zero."
         },
         "title": "Open items block complete",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/lifecycle/completed-consistency.test.ts:open plan.items block complete",
-          "recorded_at": "2026-08-10T20:52:43.723Z",
-          "recorded_by": "agent:parent-post-merge-3242"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/lifecycle/completed-consistency.test.ts:open plan.items block complete",
+            "recorded_at": "2026-08-10T20:52:43.723Z",
+            "recorded_by": "agent:parent-post-merge-3242"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given completed folder, plan.status=completed, and all items terminal, when the verifier runs, this check is green."
         },
         "title": "Tests+CHANGELOG",
         "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3260",
-          "recorded_at": "2026-08-10T20:52:43.723Z",
-          "recorded_by": "agent:parent-post-merge-3242"
+        "metadata": {
+          "evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3260",
+            "recorded_at": "2026-08-10T20:52:43.723Z",
+            "recorded_by": "agent:parent-post-merge-3242"
+          }
         }
       }
     ],

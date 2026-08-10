@@ -82,8 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - **`pr:merge-ready` fails closed on absent ruleset/branch-protection required check contexts (#3234).** Resolves required status-check context names from REST (`rules/branches/{base}` + classic branch protection), compares them to exact-HEAD check runs, and blocks with `ci_absent_required` + named `absent_required` when a required context has no matching check run (path-filtered workflows never schedule). Preserves existing success / skipped / pending / failed / capacity-stall handling for observed runs. Surfaces `required_contexts` in CI partial_data. Closes #3234.
@@ -102,8 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task scope:record-approved-scope` first-adoption / renewal surface (#3205).** Operator CLI deposits human-origin `.deft/approved-scope/<plan-id>.json` digests (`--actor` required; agent stamps refused; pending→active path binding). Taskfile + dispatch alias; docs in `content/docs/scope-provenance.md` cover first-adoption and multi-PR expansion. Closes #3205.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -127,8 +123,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project policy for coverage-debt hatch + local check resume with skippable session nudge (#3189).** `plan.policy.coverageDebt` (`status` unset|decided, `mode` off|warn|hatch, `autoFile`) and `plan.policy.checkResume` (`status`, `localStamp` off|on, `ciTrustsLocalStamp` fixed false in v1). Missing/unset is fail-closed (no hatch, no local stamp, CI never trusts laptop stamps) but still nags on interactive mutation session-start until Strict / Hatch-aware / dismiss-with-reason. Later does not decide. Headless/CI does not block. Surfaces: `policy:show --field=coverageDebt|checkResume`, doctor `coverage-check-resume-policy` (exit-exempt), docs in `content/docs/consumer-check-contract.md`. Non-goal: consumer never auto-files coverage-debt on deftai/directive. Closes #3189. Refs #3187, #3188, #2866.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Core-guard content-aware pin + lock follow-through (#3193).** Deposited `deft-core-guard` still path-allowlists package/lock + `.deft/GENERATION.json` for one-upgrade-PR co-travel (#3127), but when `.deft/core/**` is present it requires `package.json` diffs to be `@deftai/directive*` **dependency-key** pin-only (not scripts/settings that merely contain the substring) and lockfiles (`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock`) to be pin follow-through — not unrelated direct product deps. TS classifier + deposited workflow python check + UPGRADING one-upgrade-PR docs. Closes #3193. Refs #3127, #1430, #3117.
 
@@ -158,8 +152,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Maintainer dogfood: directive SCM label-mirror `actionLabels` + escalate/defer rules (#1423 / #3124 notes).** `xbrief/PROJECT-DEFINITION.xbrief.json` enables the full machine map (`triage:deferred` / `archived` / `lifecycle-linked` / `needs-human`) and repo-shaped `triageAutoClassify` escalate rules (`agent-safety`, `urgent`, `security`+`bug`, release gates) plus `hold` / `status:blocked` defer. Capture write-up: `docs/analysis/2026-08-06-scm-label-mirror-dogfood-capture.md` (dry-run evidence, consumer recommended baseline; no mass mirror `--apply`). Tracking #1423, #3124. Refs #2609, #2611. Discovery packaging tips on #3124 remain open.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **article-review Step 5 body-level dedupe + citation verify (#3163).** Titles are a shortlist only; related/owning claims require full issue body reads (and recent comments when the body is a stub). Cited issue numbers must exist and match claimed state (anti-hallucination). Prefer amend/comment on owning open issues over new filings; optional `.deft-cache/github-issue/` offline body-read path. Pack source + `task packs:render`. Closes #3163.
 
@@ -195,8 +187,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Label quarantine: zero-open twins → lowercase `legacy:*`.** Renamed dead non-colon twins and unused defaults (e.g. `docs`→`legacy:docs`, `skills`→`legacy:skills`, `installer`→`legacy:installer`, `release`→`legacy:release`, plus `github` / `github-actions` / `packaging` / `testing` / unused GH defaults) so closed history stays filterable and new work cannot pick the bare names. Prefer colon facets (`area:*`, …). Catalog policy in `.github/ISSUE_LABELS.md`. Refs #2609, #3128.
 - **docs: npm v12 install-time security defaults.** UPGRADING documents `allowScripts` off, `--allow-git` / `--allow-remote` default none, Directive consumer path (no package allowlist for `@deftai/directive*`; app trees use `npm approve-scripts`), globals/`npx` config flags, monorepo pnpm `allowBuilds` (esbuild) as install-script SoT, and OIDC publish notes. CONTRIBUTING points monorepo install scripts at `allowBuilds`; README upgrade callout links the section.
 - **Label mirror defaults to open-only (#3125).** Wave 1 `--mirror` dry-run planned closed archive stamps via `universal:closed-never-triaged`; Wave 2 skips closed unless `--include-closed`, so brownfield dry-runs match open backlog scale instead of full closed history.
@@ -220,8 +210,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Upgrade SCM release handoff after deposit (#1604).** Successful framework deposit is no longer a silent stop after a local framework-only commit. `deft-directive-sync` leads with npm + `directive update` / `deft update` + doctor, demotes submodule to legacy, and finishes Phase 8 SCM handoff in exactly one terminal state: `released` | `pr-open` | `blocked:<reason>`. Policy-aware PR vs direct-commit paths honor `requireHumanMerge`. UPGRADING documents the handoff; content-contract tests pin stop-after-commit as a failure mode. Closes #1604.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Triage Phase 3 current-state validity + URL-first operator brief (#3116).** Residual of closed #1418 after #2890: `deft-directive-triage` Phase 3 now `!` requires a **URL-first** lead line and **current-state validity** (`still-open` | `partial` | `likely-shipped` | `needs-re-scope` + one-line evidence) before the decision menu. `task triage:show --format=operator` emits the canonical issue URL first and a validity placeholder agents complete; content-contract pins the MUST bullets. Closes #3116. Refs #1418, #2890.
 
 ### Fixed
@@ -244,8 +232,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ephemeral Task/spawn posture without active xBRIEF (#3080).** PreToolUse spawn classification gains a third posture beside implement and explore (#1185): `worker_role` / `subagent_type` ∈ {`ephemeral`, `docs`, `assist`} allows Multitask docs/analysis dispatch without `scope:activate` (`spawn-ephemeral-ready`). Unmarked `generalPurpose` still requires active scope (fail closed); implement envelope signals win over ephemeral markers. Deny text for missing active scope lists activate | explore | ephemeral recoveries. Docs: three postures in `content/commands.md` hook section. Does not weaken story-start / preflight for real implement. Closes #3080.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **Functional agent-hook mutation readiness (#3100).** `deft verify:hooks-installed --scope=agent --live` now fail-closes enabled hosts on structural drift or installed-shim allow/deny failures across Claude, Grok, Cursor, and Codex. Init/update report the post-deposit result; `session:ready` and a non-deferrable gated ritual step require it without adding the probe to cold `session:start`. Codex trust and real interception remain honest separate states (`manual-review-required`, `not-directly-verified`), and `hostHooks` opt-out remains healthy/disabled. Closes #3100.
@@ -284,8 +270,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **Untangle RWLDL from `deft-directive-pre-pr` naming (#449).** Pre-pr skill prose uses **pre-PR / Read-Write-Lint-Diff** (not “RWLDL loop”); Formerly note points at `tools/RWLDL.md` for the broader micro/macro quality loop; Skills Index drops `rwldl` as a pre-pr trigger (keep `pre-pr`, `quality loop`, `self-review`); REFERENCES tools section loads `tools/RWLDL.md` for deep quality work. Pack source + `packs:render`. Closes #449.
 
@@ -302,8 +286,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Temporary test kill-switch `.deft-directive-disable` (#3039).** Root-only **local (untracked)** flag disables Directive **enforcement** (host SessionStart / PreToolUse / compact hooks, `session:start` ritual write, doctor short-circuit) while allowing the deposit to remain — distinct from permanent `.no-deft-directive` (#2926). A **tracked/committed** flag is misconfig: doctor warns and enforcement stays on (repo content cannot disable hooks for clones). Shared detector in `packages/core/src/policy/deft-directive-disable.ts`; recovery requires **delete the file** and a **new agent session**. Doctor reports `disabled-test-kill-switch` when active. AGENTS always-on contract via agents-entry; deposit gitignore baseline includes the flag path. Docs: `content/docs/deft-directive-disable.md`. Consumer note: A/B and DevHammer “without DD enforcement” arm. Closes #3039.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Through-merge / drive-to:merge-ready must dispatch a worker; N=1 uses swarm path (#3032).** AGENTS.md and `agents-entry` now carry always-on `!` / `⊗` bullets: parent conversation MUST NOT implement product code or babysit fix/CI loops when background subagent/worktree dispatch is available; parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) even when cohort size is 1. Swarm Phase 0 + core-ops anti-patterns encode the same rule; skill-pin-policy cross-refs the false-negative class; lessons pack records the #3027 recurrence. Contract markers in `agents_entry_contract`. Refs #1880 Gap C/D, #2508, #954.
 
@@ -335,8 +317,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - **Fail-closed consumer denylist on installerManagedMatchers (#3030).** Added `CONSUMER_GUARD_MUST_FIRE` + `assertInstallerAllowlistHonors1430()` (TS + Go) so re-allowlisting consumer PROJECT-DEFINITION or scope briefs fails unit tests and deposit-time ERE emission. `classifyMixedCoreAndApp` pins core+PD mixed vs core+`xbrief/.deft-version` not mixed (#2277). Builds on #3029 matcher removal. Init seed (#3013) unchanged — create ≠ allowlist. Closes #3030. Refs #1430, #3029, #3013, #2277.
@@ -364,8 +344,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Inter-run learning surface design (Wave 0 bridge for epic #2741) (#2742).** Canonical design note `docs/analysis/2026-07-31-inter-run-learning-surface.md` inventories existing Directive memory SoTs (USER.md Personal, lessons/packs, triage cache, session ritual, decision/continue), defines hot/cold/operator-gated tiers with freeze-at-session-start and budgets, lists non-goals (no Mem0-default RAG, no revived #2700 agent-memory artifacts, no mid-session mutable hot memory), and retargets #688 #978 #832–#835 #479. Discovery pointer: `content/docs/inter-run-learning.md` + `REFERENCES.md`. Design + docs only; storage backends out of scope. Closes #2742. Refs #2741, #2700.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Cold vs re-arm session ceremony tiers (#2992).** `session:start --rearm` (or `--tier=rearm`) refreshes ritual clock + HEAD/worktree bind without fat cold path (`verify:tools`, triage welcome, release probe, tickler) when prior state is on the same worktree with continuous HEAD and passing quick steps. Compact (#2113) marks `rearm_needed`; inspect/verify and PreToolUse denials prefer re-arm recovery messaging when full cold is unnecessary (missing state, worktree change, discontinuous HEAD still force cold). Docs: `content/commands.md` § Mutable ritual. Closes #2992. Parent epic #2990. Refs #2991, #2113.
 - **Slim mutation `session:start` hot path + step timings (#2991).** Optional network (npm release probe, triage cache empty-hydrate / self-heal) no longer blocks ritual-state write by default. Opt in with `--with-network` or `DEFT_SESSION_START_NETWORK=1`. `--json` exposes per-step `duration_ms` (`steps[]` + total) for attribution. Docs: `content/commands.md` § Mutable ritual. Closes #2991. Parent epic #2990.
@@ -403,8 +381,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Contained-write residual complete — leftovers + fail-closed check (#2980 wave D).** Migrates residual product sinks (triage writers/bootstrap, task-surface, capacity, category-b, codebase map, packs, session ritual-state, plan-sequence, product-signal, swarm, lifecycle hygiene, scope decompose/demote/undo, value/policy audit appends, and related leftovers) onto `containedWrite`. Wires `task verify:contained-writes -- --enforce` into `task check` / `check:framework-source` via `verify-contained-writes-enforce`. Allowlist retains containment/deposit primitives, lock/stream primitives, and temporary cited residual modules for shrink follow-ups. Go installer contained-write remains deferred/frozen. Closes #2980. Refs #2951.
 - **Contained-write residual — init-deposit product sinks (#2980 wave A).** Migrates `packages/core/src/init-deposit` product raw writes (scaffold, gitignore, prettierignore, agent-hooks, headless-manifest, migrate, xbrief-projections) onto `containedWrite`. Leaves `deposit/copy-tree` and `deposit/contain` as allowlisted low-level primitives. Inventory: `task verify:contained-writes` no longer reports those init-deposit product modules. Part of residual #2980 / epic #2951 (does not close the epic).
 - **Contained-writes scanner hygiene — exclude e2e/parity harness noise (#2980).** `verify:contained-writes` drops `release-e2e/**`, `integration-e2e/**`, and `**/parity-scenarios.ts` from product findings via `NON_PRODUCT_HARNESS_PATH_MARKERS` so `--enforce` targets real product sinks. Docs state Go installer contained-write is deferred/frozen; residual scope is TS product + enforce. Implements scanner hygiene + docs of #2980 (epic #2951 residual; product migration waves remain open).
@@ -432,8 +408,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Controlled English writing bar for docs and issues (#2927).** Canonical short page states four pragmatic rules (short sentences, active voice, one term = one meaning, first-use definitions) plus non-goals (no full STE certification, no big-bang rewrite, no red CI style gate in v1). Linked from `AGENTS.md`, `content/docs/getting-started.md`, and `content/QUICK-START.md`. Closes #2927.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **xBRIEF is the sole public work-state name; vBRIEF is legacy (#2907).** Product guidance (README, CONCEPTS, ARCHITECTURE, glossary, UPGRADING, getting-started) teaches `xbrief/` / `.xbrief.json` / scope xBRIEF only. Single authoritative rename/history note in `content/UPGRADING.md` (migrate path, old extensions, deprecated `vbrief:*` aliases). Glossary lifecycle terms rewritten under xBRIEF with a **vBRIEF (legacy)** pointer. Schema reference `content/vbrief/vbrief.md` labeled legacy/schema-lineage. Content contracts guard public-canon surfaces. Closes #2907. Refs #2034, #2110.
 - **Swarm skill host-adapter progressive load + OpenClaw isolation/handoff gates (#2928, #2929, #2934).** `deft-directive-swarm` is split into a thin SKILL (detect + route table + hard gates) and hand-authored `references/core-*.md` + `references/host-*.md` adapters. Default load is core + **one** host adapter after detect; loading all hosts “just in case” is forbidden. OpenClaw adapter hard-requires worktree/worktree-map before parallel `sessions_spawn` and blocks shared-checkout DIY dispatch (#2929). After coding cohort complete, same-turn next-phase tool dispatch or explicit terminal status is required — prose-only “I will spawn…” handoff is forbidden (#2934). Write-skill documents the multi-host convention; `openclaw-agent-host.md` links the adapter without forking SoT. Content contracts read the ordered skill surface. Closes #2928. Closes #2929. Closes #2934.
@@ -473,8 +447,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **OpenClaw poller/preamble + heartbeat templates (#2879).** Greptile poller template names OpenClaw `sessions_spawn` and parent push/announce completion channel (alongside Warp `start_agent` and grok-build `spawn_subagent`); agent preamble lists OpenClaw as a first-class provider-neutral backend with Gap D background-dispatch and §10.5 heartbeat mapping; `docs/subagent-heartbeat.md` documents OpenClaw file-heartbeat + supplementary native liveness and `REDISPATCH_OK` posture. Closes #2879. Refs #2874, #1365, #2824.
 - **Babysit/review must not expand active story past xBRIEF AC (#2881).** Out-of-AC Greptile findings default to follow-up issue or consented brief amend; P0 carve-out limited to already-touched surfaces; confidence-only holds (0 P0/P1) do not authorize unbounded redesign; `issue:emit` related-ref footgun documented (github-issue type marks already tracked). Closes #2881.
 
@@ -501,8 +473,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doctor `--full` live-probes deposited agent hooks (#2852).** After structural registration checks pass, doctor spawns the configured `deft-hook` command with Cursor `tool.before` allow and deny fixtures and warns when stdout is empty, unparseable, or missing an expected deny — surfacing #2846-class packaging failures that structurally valid deposits hide. Closes #2852.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Release Phase 1 routes fixable `task check` failures through file-and-merge (#2859).** When `task ci:local` / `task check` fails on a shippable defect during a cut, the release skill requires filing a tracked issue and merging a fix before resuming — not inline hotfix theater or untracked `--skip-ci`. AGENTS.md bulk for this reminder was considered and rejected. Closes #2859.
 - **Release Step 5 branch-coverage hairlines use open-issue ledger hatch (#2866).** When `task release` Step 5 fails only on Vitest branch coverage below 85% and no open coverage-debt issue exists, file `#N` and continue with `--allow-coverage-debt=#N` (PowerShell-safe); while a prior hatch debt issue remains open, soft-pass is forbidden until coverage is restored. Non-coverage failures stay under #2859 file-and-merge. Closes #2866.
@@ -537,8 +507,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Review-cycle ownership is GitHub-anchored (#2814).** Agents must succeed at `task review-monitor:register` on GitHub before claiming an active monitor; `task verify:review-monitor` requires an unexpired GitHub lease on Tier 1 (local heartbeat alone is insufficient).
 
 ### Fixed
@@ -568,8 +536,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Swarm/build/pre-pr gate policy (#1704).** Moves swarm-heavy workflows toward `O(merges × full-gate) + O(iterations × cheap-proxy)` from `O(commits × full-gate)`.
 
 ### Fixed
@@ -591,8 +557,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent agent-host hook opt-out (#2752).** `plan.policy.hostHooks` lets consumers disable Directive hook deposit per host (`claude`, `cursor`, `grok`, `codex`). Opted-out hosts are skipped on `deft update` / `directive init`, managed entries are stripped without deleting unrelated settings, and doctor / `verify:hooks-installed` no longer recommend repair. Inspect with `deft policy:show --field=hostHooks`.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -628,8 +592,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - **Orphan-active guard for stop-at:pr-open lifecycle leaks (#2321).** Dispatch doctrine now assigns post-merge `scope:complete` / `scope:cancel` ownership to orchestrators for `stop-at: pr-open` workers and requires `drive-to: merge-ready` workers to complete their xBRIEF; `task verify:orphan-active` fails when `xbrief/active/` still holds `plan.status == running` briefs whose referenced issues are all closed or whose linked PR merged. Completes three previously orphaned active briefs surfaced by the new gate (#2313, #2607, #2744). Closes #2321.
@@ -653,8 +615,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consented product check-in to an internal partner sink (#2693).** Opt-in typed policy `plan.policy.productSignal` (default off) with `task product-signal:enable -- --confirm`, install-level consent file, CLI `task product-signal:status|consent|submit`, skill `deft-directive-product-signal`, versioned payload with minimized `localSignalSummary` (value/health/helped) and optional `skillsSummary` hook. Submits pulse/portrait standing threads to internal `deftai/product-signal` via `GitHubPrivateSinkAdapter`; fail-open on headless and sink unreachable. Refs #2603.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **`product-signal:bootstrap-sink` sets visibility to internal** after create (org-visible, not public). Docs match. Refs #2693.
 
@@ -681,8 +641,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 ### Removed
@@ -696,8 +654,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Consumer `deft coverage:hotspots` / `task coverage:hotspots` surfaces branch headroom before the global gate (#2683).** Reads `coverage/coverage-final.json`, compares global metrics to project vitest thresholds (default 85%), fails closed below the branch floor or below configured headroom (default 0.3pp), lists lowest modules and git-diff uncovered branch samples, and supports `--json`. Pre-PR skill guidance now steers targeted `--coverage` runs and headroom above the project floor; complements `verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573). Closes #2683.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Release skill Phase 1 / Phase 3 long steps must stay off the operator chat (#2692).** `deft-directive-release` now pins #1880 Gap D: background or subagent-dispatch `reconcile:issues`, ritual-stale cache refresh, `ci:local`/`check`, and `release:e2e` when the host supports it; keep version/`--summary`/dry-run gates interactive; avoid PowerShell `Select-Object -Last` buffering. Closes #2692.
 
@@ -726,8 +682,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **CI TypeScript and Go jobs run on GitHub-hosted `ubuntu-latest`.** Required `CI` had been stuck `queued` for hours on Blacksmith `blacksmith-4vcpu-ubuntu-2404` with nothing `in_progress`; Windows already used `windows-latest`. Unblocks PR CI when Blacksmith capacity stalls.
 - **Release-tag parsing lives in one module (#2525).** `packages/core/src/release/version.ts` now owns parse, publishability, PEP 440 normalization, and prerelease ordering; platform latest-tag selection and doctor release checks consume that contract instead of a duplicate parser in `resolve-version.ts`. Closes #2525.
 
@@ -748,8 +702,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`lifecycle:event` approval recorder on the consumer Taskfile/CLI surface (#2631).** Review-cycle merge-gate approval now records `plan:approved` via `task lifecycle:event` / `deft lifecycle:event`, with idempotent dedupe for repeated approvals on the same PR and HEAD SHA. Closes #2631.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -778,8 +730,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Release closeout commits `policy:enforce-branches` with a scoped push (#2623).** The release skill now requires committing the typed-flag restore in the same closeout (scoped `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` on those git commands only) so origin does not stay opted-in or leave a dirty enforce under protection ON.
 - **PowerShell-safe coverage-debt flag examples (#2621).** Release help and the release skill document `--allow-coverage-debt=N` (no bare `#`) so Windows shells do not strip the issue number.
 
@@ -798,8 +748,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Windows swarm guidance no longer prefers cloud or concurrency=1 (#2563 follow-up).** Preamble §3.8 and the swarm skill now treat local parallel Cursor Task cohorts as first-class on Windows; they document the shipped `windowsHide` + warm-dist mitigations and forbid regressing them, instead of steering agents to cloud or a single worker.
 
 ### Added
@@ -811,8 +759,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Explicit coverage-debt escape hatch for release preflight (#2573).** `task release … --allow-coverage-debt=#N` is the only soft-pass path when Vitest metrics sit below the 85% goal; the pipeline emits loud attribution (measured vs goal, issue `#N`) and warns when recent releases overuse the flag. Raw env bypass is scoped to release Step 5 only — no auto near-miss band, no open-debt oracle.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Agents must route bare "what's next?" through `triage:queue`, not xBRIEF- or GitHub-only scans (#2576).** AGENTS.md, the triage skill, and `commands.md` anti-patterns forbid concluding an empty backlog from lifecycle folder walks or live issue lists without the cache-backed ranked queue. Closes #2576.
 - **Branch-coverage floor is 85% on every platform.** Removed the Windows-only `84.85` branches carve in `vitest.config.ts`; hairline win32 misses are operator-owned via `--allow-coverage-debt=#N`, not config nibble.
@@ -852,8 +798,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - **Session orientation reports the host OS and source-attributed shell context.** `session:start` now exposes structured environment metadata in text and JSON, distinguishes harness-provided execution shells from user defaults, and pairs detection with portable-shell guidance so agents do not assume Bash under macOS/zsh. Closes #2568.
@@ -872,8 +816,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Helped and health metrics persist outside the project tree.** `crud-metrics.jsonl` and `health-history.jsonl` now append under the resolved user-data metrics home (`helped/` and `health/` subdirs) via `DEFT_METRICS_HOME` / platform AppData or XDG defaults; no fallback to `xbrief/.eval/results/`. Closes #2545. Refs #2544.
 
 ### Added
@@ -882,8 +824,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ordered-plan continuation stops "next" from escaping an approved sequence.** Agents bind bare "what's next?" / "proceed" to the narrowest operator-approved plan via `plan-sequence:*` and `verify:plan-sequence`; exhausted plans fail closed instead of pulling the triage queue. AGENTS keeps a pointer-thin #1149 precedence line; full rules live in the preamble and skills. Closes #2402.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Always-on session bootstrap names the Windows USER.md path.** Managed Session routing now tells agents to resolve USER.md via `deft session:start` output (`%APPDATA%\deft\USER.md` on win32, not invented `~/.config/deft`); canonical table lives in `commands.md`. Closes #2544.
 
@@ -915,8 +855,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Read-only Directive session posture defers ceremony until you start changing things.** Questions, Plan Mode, and ticket-shaping now default to alignment-only context loads without writing `.deft/ritual-state.json`, triage welcome, branch-policy dumps, or install side effects; the full mutable ritual still runs at mutation boundaries. Use `deft session:start -- --read-only` for explicit alignment-only mode. Closes #2176. Refs #2491.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Process and reading cards in AGENTS.md are pointer-thin.** Umbrella status, triage queue, issue body→comments, development-process gates, and contextual guardrails collapse to `!` / `⊗` pointers at `commands.md`, the agent preamble, and SCM docs — clearing the Phase-2 managed ≤8192 B bar. Closes #2502. Refs #2491.
 
@@ -969,8 +907,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Universal always-on guardrails are pointer-thin.** Session ritual, WIP cap, branch policy, implementation-intent, and story-start rules in AGENTS.md / agents-entry compress to one-line imperatives plus gate/skill/doc pointers; bulk lives in `commands.md`, `scm/github.md`, and swarm skill. Closes #2453. Refs #2369.
 
 - **Contextual guardrails lazy-load on runtime match.** PowerShell encoding, safe-subprocess capture, cascade automation, and SCM-boundary rules move out of the always-on AGENTS.md / agents-entry surface into `scm/github.md`; runtime-detect trigger pointers remain. Closes #2454. Refs #2369.
@@ -995,8 +931,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Responsible disclosure policy for security reports.** A root `SECURITY.md` directs reporters away from public GitHub issues and documents private reporting via GitHub Private Vulnerability Reporting (preferred) and `security@deftai.dev`, plus supported versions, scope, response expectations, and safe-harbor language. Closes #2405.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Onboarding no longer gates every user on a contributor question.** `QUICK-START.md` and the setup skill now default straight into the consumer project flow; framework contributors are routed via a non-blocking `CONTRIBUTING.md` / `--maintainer` pointer instead of an up-front fork. Closes #1813.
 - **Structured top-level `directive --help` for faster command discovery.** Running `directive` or `directive --help` now shows a curated page with version, usage, common options, and grouped everyday commands instead of dumping every registered verb; run `directive commands` for the full list. Closes #2172.
@@ -1028,8 +962,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - **Session/runtime tasks on unbuilt source checkouts now fall back to global deft.** When `packages/cli/dist/bin.js` is missing but a working global `deft`/`directive` is on PATH, ritual verbs (`session:start`, `verify:session-ritual`, `verify:tools`, `triage:summary`, `triage:welcome`, `verify:cache-fresh`) invoke the global CLI with a one-line version-skew warning instead of failing closed; build-gated verbs still require `task build`. Optional `DEFT_USE_GLOBAL_CLI=1` forces global for any verb. Closes #2409. Refs #2181.
@@ -1054,8 +986,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `directive doctor` now checks that the consumer `.gitignore` carries the canonical Deft entries (`.deft-cache/`, `.deft/.cli/`, triage-cache, backup patterns, and xBRIEF-era eval paths). Missing coverage is flagged as an advisory finding with `directive update` as the one-step fix. Closes #2206.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Greenfield onboarding now reliably enters setup Phase 2 when USER.md already exists.** The AGENTS.md "First Session" routing for "USER.md exists but no PROJECT-DEFINITION.xbrief.json" is now a mandatory `!` directive with an explicit `⊗` prohibition against responding to user queries before completing setup — fixing the adoption-blocker where a pre-existing USER.md silently skipped Phase 2. Closes #2033.
 - **Stale Python-script references purged from docs, skills, and templates.** After the #2022 TS-native migration removed the `scripts/` directory, several docs and skills still cited deleted `.py` files as live surfaces (e.g. `uv run python scripts/preflight_branch.py`, `scripts/_events.py`, `scripts/policy.py::disclosure_line`). All audited references across AGENTS.md, agents-entry.md, agent-prompt-preamble.md, and SKILL.md files are now repointed to their `task`/TS successors or removed. The `registry-data.ts` banner no longer falsely claims generation from the deleted `scripts/triage_help.py`. Closes #2310.
@@ -1083,8 +1013,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 ### Removed
@@ -1098,8 +1026,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every structured or numbered agent question now carries an always-loaded Discuss/Back escape: AGENTS.md and the consumer template state the runtime obligation, the orchestrator preamble adds a pre-prompt self-check, and contract tests verify propagation. Closes #1470. Refs #767.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Upgrade guide documents triage-cache relocation (#2349).** UPGRADING.md now explains the v0.71.0 move of the triage working-set from `.eval/` to `.triage-cache/`, the lazy automatic migration, and the canonical-wins conflict policy; stale operator-facing docs and task descriptions now cite `.triage-cache/` instead of legacy `.eval/` triage paths. Refs #1703. Closes #2349.
 
@@ -1143,8 +1069,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **`task triage:metrics` help now matches the shipped command.** The help registry no longer describes the old summary-history.jsonl placeholder; it documents the value-feedback attribution-ledger trend (per-class and per-event counts over a window, gated on the opt-in policy). Refs #2338.
 - **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
 
@@ -1162,8 +1086,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`triage:scope --set-preset small|mid|mega` sets your whole triage subscription in one command (#2301).** Instead of adding labels and milestones one at a time, you can now apply a named subscription preset — the same `small` / `mid` / `mega` presets the onboarding flow offers — directly from `triage:scope`. It writes through the shared preset writer (so the namespaced `x-directive/policy` key, audit trail, and lock all behave identically to onboarding) and is mutually exclusive with the other mutation flags. Closes #2301. Refs #2295.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **The framework default WIP cap is now 20, up from 10 (#2319).** The WIP cap limits how many scope xBRIEFs can be in flight at once (`pending/` + `active/`) before `scope:promote` refuses. Decomposing an epic into its swarm-ready story cohort routinely produces 6-10 child stories, so a default of 10 blocked staging even one or two epics for a swarm. Consumers can still set any cap per-project via the typed `plan.policy.wipCap`; this only moves the framework default. Closes #2319.
 - The frozen pre-v0.20 migration path is now durable-by-documentation. `deft doctor` / `task migrate:preflight` guidance now anchors recovery on the permanent `v0.59.0` git tag (GitHub serves a source tarball for any tag, so recovery no longer hinges on an uploaded release asset), spells out the two-hop migration chain (pre-v0.20 flat → vBRIEF v0.6 → xBRIEF), and adds a manual `directive init` fresh-start fallback for when the frozen payload is unreachable. Closes #2297.
@@ -1202,8 +1124,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **`directive doctor` is now a strictly read-only, decision-oriented diagnostic (#2267).** It reports your operating mode (hybrid / vendored / greenfield / brownfield / pre-cutover) plus an engine/pin/VERSION reconciliation line, surfaces cross-platform `.deft/.cli/<platform>` engine skew, and derives its verdict from the shared `plan()` classifier so there is a single source of truth. When action is required it emits exactly one `Next command:` paired with a root-cause and a remediation "does / why safe" rationale, suppressing secondary migration advice until the primary blocker clears, never printing a bare `task` command in a project without Taskfile wiring, and never mutating project files. Refs #2267, #2203.
 
 ### Fixed
@@ -1219,8 +1139,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -1239,8 +1157,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task swarm:finalize-cohort` auto-sweeps merged cohort briefs to `completed/` without a hand-authored lifecycle PR (#2225).** After a `stop-at: pr-open` swarm's PRs merge, the new surface resolves each merged story from its `Closes #N` link (or an explicit `--stories` list), runs the same deterministic `completeCohort(...)` sweep as `task swarm:complete-cohort`, and lands the `active/` -> `completed/` moves on a feature branch with an auto-opened PR — so WIP resets without the extra ceremony PR every cycle. `task swarm:complete-cohort` remains the idempotent manual primitive. Closes #2225. Refs #1880, #1487, #1369.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **`deft install-upgrade` now redirects to `deft update`, ending the two-verb upgrade confusion (#2064).** The two commands used to overlap: `deft update` file-swaps the vendored payload, but `install-upgrade` only rewrote the version marker/manifest without swapping — so on a stale deposit it reported a confident false "Project already at X. Nothing to do." that steered operators away from the command that actually works. `install-upgrade` (and its `task upgrade` alias) now print a one-line notice and delegate to the exact `deft update` path, so `deft update` is the single canonical upgrade verb. Closes #2064. Refs #2057, #2058, #2053.
 - **TS-native `directive init` / `directive update` now stage the project-root `Taskfile.yml` deft include as installer-managed (#1576).** When the installer appends or repairs the `includes.deft` block in a consumer root Taskfile, that path is added to scoped staging and reported in `--json` `staged_paths`, and the deposited `deft-core-guard` allowlist exempts it alongside `.deft/core/**` so upgrade PRs do not look like mixed framework+app commits. The frozen Go installer is unchanged (#1912); this fix lands on the TS update path (#1933). Closes #1576. Refs #1453, #1912, #1933.
@@ -1300,8 +1216,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **AGENTS.md stays leaner while keeping the same story and implementation gates (#2192).** The managed guidance now states the one-story-per-branch default once, keeps the swarm-cohort carve-out beside it, and shortens the preflight install-mechanism prose to pointers for ordering, workflow, and recovery. The line-budget ratchet tightens to the smaller generated surface. Closes #2192. Refs #2153, #645, #810, #1378.
 - **New consumer installs no longer scaffold rot-prone AGENTS.md Status/Known Issues headers (#2065).** Fresh installs now emit a bounded unmanaged header — project one-liner plus a Session orientation pointer at `xbrief/`, triage, and GitHub issues — and the managed section tells agents not to treat the header as the work queue. Option A (retire the pattern); parent #1882. Closes #2065.
 
@@ -1335,8 +1249,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - **npm consumer upgrade path no longer ships a dangling `.deft/core/main.md` reference, a broken `migrate:preflight` layout probe, or false-positive `verify:xbrief-drift` hits on vendored fixtures (#2146).** The content prepack now deposits repo-root `main.md` and `SKILL.md` into `.deft/core/`; bare `deft migrate:preflight` / `deft migrate:xbrief` resolve the consumer `.deft/core` deposit instead of probing `node_modules/vbrief/schemas`; and the xbrief drift gate excludes `.deft/core/**` from the consumer data-plane scan. Closes #2146.
@@ -1352,8 +1264,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue ingest now fetches GitHub issue comments by default and folds the thread into the ingested overview, so corrective maintainer comments reach workers instead of a body-only snapshot. Closes #2143.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -1381,8 +1291,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Docs and skills now describe the xBRIEF layout and migration path (#2111).** Agent-facing guidance (skills, templates, commands, and key docs) uses xBRIEF prose, `xbrief/` lifecycle paths, `*.xbrief.json` artifacts, and `deft migrate:xbrief` for legacy trees still read-accepted under `vbrief/` / `x-vbrief/`. The consumer AGENTS.md managed section and propagation contract tests were refreshed to match. Closes #2111.
 
 ### Added
@@ -1401,8 +1309,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Directive policy/completedNote keys are now namespaced (#1650).** The two directive-owned plan keys are stored under the `x-directive/` extension prefix (`plan.policy` → `plan["x-directive/policy"]`, `plan.completedNote` → `plan["x-directive/completedNote"]`), and the conformance gate no longer grandfathers their bare forms — any future bare `plan.policy`/`plan.completedNote` now fails conformance. Engine readers tolerate the legacy bare form so unmigrated consumer project definitions keep working; run `deft migrate:category-b` to namespace an existing corpus. User-facing field names (e.g. `plan.policy.wipCap`) are unchanged. Refs #2034. Closes #1650.
 
 - **xBRIEF v0.8 schema adoption (#2107).** The directive validator now accepts xBRIEF v0.8 documents alongside legacy v0.6 artifacts. New optional structural fields in v0.8 are validated when present; existing v0.6 files continue to pass unchanged. Refs #2034. Closes #2107.
@@ -1420,8 +1326,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public contract layer on npm (#1799).** `@deftai/directive-types` now exports the v0.6 vBRIEF document model, policy types, reference shapes, gate exit codes, and a published `vbrief-core-0.6.schema.json` subpath so downstream TS and non-TS consumers stop hand-mirroring the canonical contract. Adds `verify:contract-drift` to keep the npm schema copy and TS constants aligned with `content/vbrief/schemas/vbrief-core.schema.json`. Closes #1799.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -1458,8 +1362,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 - Refreshed the project-identity narratives so they describe deft as TypeScript-native. `PROJECT-DEFINITION.vbrief.json` and `specification.vbrief.json` (and the rendered `SPECIFICATION.md` / `PRD.md`) previously still listed Python tooling, the `run`/`run.py`/`run.bat` launchers, and the #1530 migration as current — all removed at v0.63.0. The `codeStructure` metadata dropped the stale `python-tooling` module and now points its validator references at the TypeScript engine. Closes #2089.
@@ -1473,8 +1375,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Release dist packaging works under archiver v8** — the TypeScript release build (`build-dist`) was still calling archiver's removed v7 factory API, so `task release` failed at the packaging step with `TypeError: archiver is not a function`; it now uses archiver v8's per-format classes, creates the output directory if missing, and is covered by a real archive-build test so the calling convention can't silently regress. Refs #1860.
 
@@ -1500,8 +1400,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **#2022 Python-purge tracker lifecycle reconciled** — Phase 2 consumer rewire and the #2022 execution-tracker epic vBRIEFs moved to `completed/` with `ExecutionStatus` reflecting shipped Phases 0–5; child `planRef` paths updated after the parent move. Refs #2022, #1860.
 - **Pre-v0.20 document-model migration moves to a frozen release path** — current npm deposits no longer ship `task migrate:vbrief`; `task migrate:preflight` detects legacy state and points operators at pinned **v0.59.0** (Go installer or git tag) with Python + uv. Closes #2068. Refs #2022, #1860.
 
@@ -1520,8 +1418,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -1543,8 +1439,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Rendered spec scope sections use the Scope outlook heading** — `task spec:render` and Python `spec_render.py` emit `## Scope outlook` with aligned bucket labels; PRD export filters stakeholder-excluded config narratives. Refs #2013.
 - **Setup and strategy docs steer greenfield export through `project:export-spec`** — Phase 3 export prompts, speckit Phase 3→4 gates, and the v0.20 contract now document `task project:export-spec` (with `--audience=internal` for proposed scopes) instead of legacy `task spec:render`; upgrade guidance tells v0.60.x consumers to run `deft update` for TS-native git hook refresh (#2049). Closes #2050.
 
@@ -1564,8 +1458,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PROJECT-DEFINITION staleness flags can be cleared after review** — `task project:ack-staleness` records a completed-scope watermark on `plan.metadata.staleness_review` so `task project:render` stops repeating the same narrative warnings until new completed work arrives. Distinct from `task reconcile:issues` (scope origin freshness). Closes #640.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **The npm content deposit no longer bundles Python** — `@deftai/directive-content` prepack stops copying `scripts/` and filters `.py` files; `directive init` and `directive update` prune any Python artifacts from the deposited `.deft/core/` payload so greenfield installs run without Python on PATH. Refs #2022 Phase 3.
 - **Consumer change, commit, and install task guards no longer embed Python one-liners** — `task change:changelog:check`, `task change:init`, `task commit:lint`, and `task install:uninstall` dispatch through native deft-ts handlers instead of `uv run python -c`, so task guards work on machines with no Python installed while preserving `#1011`/`#566` path semantics via `{{.DEFT_ROOT}}` and `USER_WORKING_DIR`. Refs #2022.
 - **Consumer migrate and install tasks no longer shell into Python for preflight or upgrade** — `task migrate:preflight` and `task upgrade` dispatch through native deft-ts handlers instead of `uv run python`. The `#2013` `migrate:vbrief` holdout remains documented: `scripts/migrate_vbrief.py` stays on the consumer path until the spec-authority umbrella resolves its port decision. Refs #2022, #2013.
@@ -1586,8 +1478,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`deft doctor` now shows a pre-cutover status line** — running the doctor tells operators whether a project still needs the pre-v0.20 document-model migration or is already on the current vBRIEF model. Refs #2022.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **`deft pack-migrate` now runs without Python installed** — the five pack-migrate verbs (skills, rules, strategies, patterns, swarm-spec) are now served by native TypeScript handlers instead of shelling out to bundled Python scripts, so pack rendering works on a machine that has no Python. Output is byte-for-byte identical to the previous Python contract. Refs #2022.
 - **Editing a typed policy field no longer needs Python** — the `policy-set` write path (`task policy:wip-cap`, `task policy:enforce-branches` / `allow-direct-commits`, and the `subagent-backend(s)` surfaces) is now a native TypeScript handler instead of shelling into a bundled Python script, so changing a policy and recording its `meta/policy-changes.log` audit row works on a machine with no Python. Output and the audit trail are byte-for-byte identical to the previous Python contract. Refs #2022.
 - **The release pre-flight now runs the native TypeScript `task check` instead of the Python `ci_local.py` bridge** — Step 5 of the maintainer release flow dispatches the context-aware TypeScript check orchestrator directly, so cutting a release no longer depends on the `ci_local.py` python-bridge shim. Refs #2022.
@@ -1610,8 +1500,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Maintainers now have a runbook for rebuilding the frozen Go installer at release time** — `docs/RELEASING.md` gains a "Frozen Go-installer bridge" section that names where the freeze line lives (the `LAST_GO_INSTALLER` constant in `sot.ts`), explains how the CI freeze gate decides whether to build the Go binaries, and gives the exact before/after-release steps to roll the freeze forward and re-pin. The release skill's pre-flight now points operators to it. Refs #2001, #1912.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **The session-start health gate now points at the node-independent installer binary** — the DEFT-PREAMBLE that agents run before anything else (in `main.md`, the root `SKILL.md`, and the `main-001` rule) now invokes `deft-install gate` instead of `python3 .deft/core/run gate`, so the gate still fires on a broken or Node-less install. Refs #2001, #1933.
 
 ### Fixed
@@ -1627,8 +1515,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Doc and release rehearsals now catch npm CLI drift before publish** — a new check compares every `directive` / `deft` command cited in UPGRADING.md and the AGENTS.md managed section against the live CLI router so documented verbs cannot outpace registration, and the release end-to-end rehearsal packs all four npm packages, installs them into a clean layout, and runs `directive doctor` to fail on module-not-found import bugs like the #1993 regression. Closes #1996.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - Release skill now treats tag push as the irrevocable npm gate and reframes Phase 5 as optional GitHub draft QA rather than a publish-authority gate; the happy path auto-publishes the GitHub release after draft assets verify. Closes #2002.
 
@@ -1648,8 +1534,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **The `npx @deftai/directive` CLI works again for every command** — on a fresh npm install most verbs (`doctor`, `cache`, `triage`, `release`, `pr`) crashed with a "Cannot find module `@deftai/core`" error because the CLI loaded its sibling engine by a workspace-relative path that only resolves inside the source monorepo. The CLI now imports the engine by its published package name, so the npm-native path the freeze steers consumers toward actually runs. A new check fails the build if a workspace-relative cross-package import is ever reintroduced. Refs #1993.
 - **The local `cache-fresh` check no longer gets permanently stuck on closed issues** — the pre-flight freshness gate aged out cached entries for closed issues, but its own recovery command (`cache:fetch-all --force`) only refreshes open issues, so the hint was a dead end and the gated session-ritual stack stayed blocked. The gate now judges freshness over open issues only (closed issues are terminal), so it agrees with what the recovery command can actually refresh. Closes #1991.
@@ -1663,8 +1547,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **The Go installer is now frozen at v0.56.0 — future Deft upgrades come from npm** — the legacy stage-1 bridge is pinned to its final published Go-installer release (`v0.56.0`). From here, the release pipeline's freeze gate enforces the line: tags at or below v0.56.0 still build Go binaries, anything above skips the Go build cleanly (per #1987) and ships via npm only. Existing legacy on-disk layouts are still migrated by the frozen v0.56.0 installer, which then hands off to `npx @deftai/directive` for all subsequent updates. Closes #1912. Refs #1972.
 
 ### Fixed
@@ -1695,8 +1577,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Architecture docs now describe the planned npm-native distribution model** — a clearly-marked "Wave 5 Target" section records the two-package npm model, the resolve-and-copy materialization step, and the frozen Go binary's reduced role as a health gate. Fenced as target architecture, not current behavior, so it cannot be misread as today's flow. Refs #1669 #1942 #1933.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **The Go-installer freeze gate now keys off the release tag instead of the installer source literal** — `verify:go-freeze` previously weighed the pinned bridge source-of-truth against the `var version` constant in the Go installer source, but that value is injected at build time, so pinning the SoT to a real 0.x tag would have false-failed the gate. The gate now compares the release tag against the frozen line (advisory when no tag is supplied), and the release workflow refuses to build a Go installer above the pinned tag. Refs #1972.
 - **Installer docs are clearer that Node is always required, and that setup is directory-scoped** — the README, UPGRADING.md, QUICK-START.md, and the AGENTS.md managed-section template no longer frame the Go installer as a "no-Node bootstrap." Node 20+ is always required to *run* Deft (the live gates run on the TypeScript engine), so the Go installer is reframed consistently as a legacy/offline + layout-migration bridge with an explicit "install Node first" pointer for machines without Node. The README also gains a note that project setup writes `.deft/` and `AGENTS.md` into the current working directory, so you should `cd` into your intended project folder first. Refs #1912 #761.
 - **Codebase MAP rollout docs now close out the #1595/#958 implementation path** -- Project/spec source and codebase docs now mark PR1-4 plus PR6 complete, stop describing consumer propagation as future work, and route optional headers, local indexes/materialized views, brownfield reconstruction, and glossary/comment convention to their follow-up trackers. Refs #1498 #1595 #958 #1871 #1618 #1589 #931.
@@ -1722,8 +1602,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Install and upgrade docs now lead with npm (#761)** — README Getting Started, UPGRADING, RELEASING, QUICK-START, and AGENTS.md now treat `npm i -g @deftai/directive` as the canonical install/upgrade path; the frozen Go installer is documented only as a legacy no-Node bootstrap bridge. Removes pip, webinstaller, and stale "not yet published" hedging. Closes #761.
 
 - **Sync skill now points to npm for updates (post-#761 cleanup)** — the `deft-directive-sync` skill's "Canonical bootstrap / update path" note still told operators to update via the Go installer (`deft-install --yes --upgrade`), contradicting the #761 npm cutover. It now leads with `npm i -g @deftai/directive@latest`, keeps the frozen Go installer as the no-Node bridge, and flags the in-skill submodule sync as the legacy flow. Refs #761 #1912.
@@ -1746,8 +1624,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **npm publishing now uses OIDC trusted publishing instead of a stored token (#1919, #1909)** — The publish workflow authenticates to npm via GitHub's short-lived OIDC identity rather than a long-lived `NPM_TOKEN` secret, so there is no standing credential to leak or rotate. Requires a one-time per-package trusted-publisher configuration on npmjs.com. Refs #1919 #1909.
 
 ### Fixed
@@ -1761,8 +1637,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Directive is now installable from npm: this release publishes @deftai/directive* with supply-chain provenance and a unified directive CLI.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Leaner, cleaner npm packages ahead of first publish (#11, #1669)** — The published `@deftai/directive*` packages now ship only runtime JavaScript and type declarations: TypeScript build-cache files and source maps are excluded (cutting `@deftai/directive-core` roughly in half), and the framework's own internal migration records (legacy report, reconciliation report, safety manifest) no longer ship inside `@deftai/directive-content` — they are repo-only maintainer artifacts and now live at the maintainer root. Consumers get smaller installs with no behavior change. Refs #11 #1669.
 
 ### Added
@@ -1774,8 +1648,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs now state Deft = company, Directive = product, and show the npm install path (#423, #11, #1670)** — The identity model (Deft is the company, Directive is the product) is now documented, and `npm i -g @deftai/directive` with the `directive` command (`deft` alias) is called out as the emerging canonical install channel. The Go bootstrap installer remains documented during the staged retire window. Refs #423 #11 #1670.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Published npm packages now use product-scoped @deftai/directive* names (#11 #1670)** -- The three workspace packages rename to `@deftai/directive`, `@deftai/directive-core`, and `@deftai/directive-types`, with all cross-package imports updated. The CLI exposes `directive` as the canonical bin and retains `deft` as an alias, both routing to the same entrypoint. Refs #11 #1670.
 - **Product slash commands now live under `/deft:directive:*`** — Directive framework commands (`change`, `run:<strategy>`, etc.) are namespaced under `/deft:directive:*` to match the `deft-directive-*` skills and leave room for sibling-product namespaces. Prior `/deft:*` product forms remain as deprecation-warning aliases; cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. Refs #418 #1670.
@@ -1792,8 +1664,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase MAP guidance now propagates to agent-facing surfaces (#1595 PR6)** -- Agents now use the generated codebase MAP as orientation before broad codebase scanning while durable codebase-structure metadata remains authoritative. Refs #1498 #1595 #1839.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Pack renderer now shares the canonical content-root resolver (#1894)** -- The packs render and slice surface no longer carries its own copy of the source-vs-consumer `content/` path logic; it imports the same helper as the rest of the TypeScript engine so dual-layout resolution cannot drift. Closes #1894.
 - **All shippable framework content now lives under a single `content/` root (#1875)** -- Maintainers working in the framework repo will find every shippable asset (skills, templates, packs, languages, strategies, coding/scm/verification guides, and more) relocated under `content/`, with engine code, harness config, and repo-development files staying at the root. The `verify:content-manifest` gate now enforces this as a location invariant rather than a flat top-level classification. This is purely a source-repo reorganization: the consumer-facing `.deft/core/` deposit, AGENTS.md routing, and skill pointers are byte-for-byte unchanged because both packaging paths flatten the `content/` prefix away -- the release-archive build and the `deft-install` bootstrap binary (which deposits straight from the GitHub source tarball) now apply the same flatten, so a fresh install or upgrade lands `.deft/core/coding/...` rather than `.deft/core/content/coding/...`. Refs #1875, #1669.
 
@@ -1811,8 +1681,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `task verify:content-manifest` gate classifies every git-tracked top-level repository entry into one of four buckets (content, engine, harness, repo-dev) via `conventions/content-manifest.json`, and fails CI when a top-level entry is unclassified, a classified path goes stale, a bucket is invalid, or a path is duplicated. This is the Wave-1 shippability audit that turns the brittle installer denylist into an allowlist-by-classification, giving the engine/content split an authoritative source of truth. Refs #1821, #1669.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Orchestrators now have explicit dispatch doctrine for worker lifecycle, background launch, and model routing (#1880)** -- The canonical preamble, swarm, and review-cycle skills encode three rules from the #1878 session: implementation workers default to owning PR through merge-ready as one unit of work (not hand back at PR-open for separate review agents), long-running workers must launch in the background (Cursor Task `run_in_background: true`) so the conversation stays interactive, and every dispatch requires a deliberate per-role model routing decision via `task verify:routing` / `task swarm:routing-set` rather than silently inheriting the parent model. Deterministic gate enforcement for undecided routes remains tracked under #1877. Ships in v0.53.2. Refs #1880, #1877.
 
 ### Fixed
@@ -1827,8 +1695,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **`task release:publish` and `triage:scope` no longer fail with a blank error on large repos (#1867)** -- Several `gh api --paginate` capture sites inherited Node's 1 MB stdout limit, so once a repo's release or label/milestone list grew past ~1 MB the command aborted with an empty error message (this blocked the v0.53.0 publish until a manual workaround). All `gh`/git capture sites now share a single 64 MB ceiling and surface the real failure reason instead of a blank one, so publish, rollback, and `triage:scope --diff-from-upstream` work on mature repos. Refs #1867.
@@ -1850,8 +1716,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Wave 8.5 content skills contract tests in vitest (#1838 s1)** -- Additive vitest specs under `packages/core/src/content-contracts/skills/` mirror the `tests/content/` skills, AGENTS.md, preamble, interview, speckit, cost, glossary, refinement, triage, swarm, and probe substring/shape contracts; the Python pytest suite stays green unchanged for Wave 9 teardown. Refs #1838 #1530.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **TS check lane runner ported to TypeScript; `task check` is now 100% TS-dispatched (#1854)** -- `task ts:check-lane` (run by `task check`) now invokes `node packages/cli/dist/bin.js ts-check-lane` instead of a Python helper, and the `task triage`/`task scope` help screens dispatch through the TS `triage-help` verb. With these last flips, no non-bootstrap Python remains in the `task check` path. The full Python delete is deferred to the clean sweep at #1860 (gated on the #1669 consumption-model bootstrap retirement), because the legacy `run` bootstrap still re-exposes the core. Refs #1854 #1530.
 - **task check now dispatched by the TypeScript orchestrator -- no live Python in the gate stack (#1854 s5)** -- The `task check` target (and three residue gates: `verify:destructive-gh-verbs`, `verify:cache-fresh`, `verify:architecture-sor`) no longer call Python scripts at runtime. The check orchestrator is ported as `packages/core/src/check/orchestrator.ts`; the destructive-gh-verb classifier and cache-freshness gate are ported as `packages/core/src/preflight-gh/` and `packages/core/src/preflight-cache/` respectively. The Taskfile `check` target now calls `node packages/cli/dist/bin.js check`, which detects the framework-source vs vendored-consumer context and dispatches to `check:framework-source` or `check:consumer`. All three new modules have vitest unit suites. Branch coverage: 85.02%. Refs #1854 #1530 #1519.
 - **Install/migrate CLI test tail audited for Wave 8.5 retire-vs-retarget (#1838 s7)** -- Classified 21 in-scope `tests/cli/` migrate/precutover/cmd/upgrade/run/setup/vendored/safe/remote/task/ts files as retire-at-Wave-9 (accepted non-port or legacy Python run) or retarget (doctor, toolchain-check); added additive vitest specs under `packages/cli/src/install-cli/` for the live deft-ts verbs. Python pytest oracles stay green until #1731. Refs #1838 #1530.
@@ -1866,8 +1730,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed `task pr:*` and `task swarm:*` after the Wave 8 flip (#1828 s5 follow-up)** -- The pr/swarm Taskfile gates referenced `ts:build` without the leading-colon absolute namespace marker, so from the included fragments it resolved to the non-existent `pr:ts:build`/`swarm:ts:build` and broke `task pr:wait-mergeable-and-merge`, `task swarm:launch`, and siblings. Quoted `:ts:build` restores cross-namespace resolution. Refs #1828 #1530.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Verify and preflight gates now run on the TypeScript engine (#1828 s2)** -- Consumer-critical `task verify:*` and `task vbrief:*` preflight gates in `tasks/verify.yml` and `tasks/vbrief.yml` route through the unified `deft-ts` dispatcher (`packages/cli/dist/bin.js`) with `ts:build` as a dependency so a clean checkout self-builds first. Python scripts remain in-tree as parity oracles; gates without a TS port yet (including `verify:cache-fresh`, session ritual, scm-boundary, and architecture-sor) still invoke Python until their Wave 8 follow-ups land. Refs #1828 #1530.
 - **Triage task surface now routes through the TypeScript engine (#1828 s3)** -- Every `task triage:*` gate in the triage Taskfile cluster invokes `deft-ts` via `packages/cli/dist/bin.js` with a `:ts:build` dependency, so queue, classify, welcome, scope, bulk, bootstrap, and smoketest operators hit the ported engine while Python scripts remain in-tree as parity oracles. Refs #1828 #1530.
 - **Scope and vBRIEF lifecycle gates now run on the TypeScript engine (#1828 s4)** -- The scope promote/activate/complete family, slice record-existing, issue ingest, and reconcile-issues Taskfile gates route through the unified `deft-ts` dispatcher instead of inline Python, with Python scripts kept in-tree as parity oracles. Operators get identical lifecycle transitions and intake output while Wave 8 of the migration proceeds. Refs #1828 #1530.
@@ -1919,8 +1781,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase MAP generation is live (#1595 PR4)** -- `task codebase:map` now renders `.planning/codebase/MAP.md` from a selected `codebase-map.v1` artifact, and `task verify:codebase-map-fresh` detects projection drift. Provider policy is artifact-at-a-path via `plan.policy.projectionProviders["codebase-map"].artifactPath` with optional provider/version expectations; stale or mismatched provider artifacts fall back to the deterministic default extractor instead of becoming canonical command metadata. Refs #1498 #1530 #1710.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **PR, swarm, and release Taskfile gates now execute on the TypeScript engine (#1828 s5)** -- Live `task pr:*`, `task swarm:*`, and `task release*` invocations route through the unified `deft-ts` dispatcher (`packages/cli/dist/bin.js`) instead of `uv run python scripts/*.py`, with `ts:build` as a dependency so a clean tree always has compiled output. Python scripts remain in-tree as parity oracles; golden-diff harnesses for the flipped surfaces stay CLEAN cache-off. Refs #1828 #1530.
 - **Wave 8.6 Bucket-A task entrypoints now route through deft-ts (#1854 s1)** -- `task session:start`, `task issue:emit`, `task pr:check-closing-keywords`, `task swarm:readiness`, and `task toolchain:check` invoke the unified TypeScript dispatcher instead of direct `uv run python scripts/*.py` calls, using the already-ported verbs with no new TS code. Python scripts remain as parity oracles until #1731. Refs #1854 #1530.
 
@@ -1928,8 +1788,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cache quarantine scanner shell-vector detection is now ReDoS-safe (#1811 follow-up)** -- The `BODY_VECTOR_RE` regex in the cache quarantine scanner triggered a CodeQL `js/polynomial-redos` alert that the #1811 cleanup missed (and that mis-attributed to an unrelated PR). It is replaced with a single-pass linear recognizer that preserves byte-identical match semantics for the three shell-injection vectors (`curl|wget|fetch ... | sh`, `base64 -d/--decode/-D`, and `eval` delimiters), so scanner behavior and cache parity are unchanged. Refs #1811 #1530.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Wave 8.6 verify.yml cluster now routes through the TypeScript engine (#1854 s3)** -- `task verify:stubs`, `verify:links`, `verify:rule-ownership`, `verify:scm-boundary`, `verify:capacity`, `verify:session-ritual`, `verify-strategy-output`, and `verify:no-task-runtime` invoke `deft-ts` via `packages/cli/dist/bin.js` instead of `uv run python`, with Python scripts kept as parity oracles. `verify:destructive-gh-verbs` and `verify:cache-fresh` remain on Python until their core modules land. Refs #1854 #1530.
 
 ### Removed
@@ -1945,8 +1803,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase structure now has a provider-ready contract layer (#1595)** -- Directive can emit a dependency-free `codebase-map.v1` artifact, validate an external `codebase-provider.v1` response, and fall back to the default extractor when no conformant provider is configured. The codeStructure validator now dogfoods PR3 discipline checks that keep authored metadata free of derived facts while the projection registry keeps canonical entries command-agnostic. Refs #1498 #1530 #1659.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Deft commands now run without `task` on your PATH (#1659)** -- framework verbs (triage, session, check, release, doctor, tool verification) dispatch through a package-first `deft <verb>` surface instead of requiring the go-task runner at runtime; generated consumer `AGENTS.md` guidance now leads with `deft <verb>` while preserving the existing Taskfile wrappers for back-compat. Closes #1659. Refs #11 #1670.
 - **Project architecture docs now match the implemented framework shape** -- `PROJECT-DEFINITION`, the rendered specification, architecture/concepts/file-map docs, command guidance, and codebase planning notes now describe the Taskfile-first, vBRIEF-backed, `.deft/core` installer, triage/cache/scope, packs, release/PR, and codeStructure contract model instead of the older four-component `run`-centric narrative. Refs #1498 #1595 #1659.
 
@@ -1965,8 +1821,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarms now commit and push the vBRIEF lifecycle moves as part of close-out (#1358)** -- the swarm skill's Phase 6 gains a required step (Step 2b) so that after the merge cascade, the monitor fast-forwards its local base branch, then commits the cohort's `active/` -> `completed/` vBRIEF moves in a single `chore(vbrief): complete <slugs> post-merge` commit on the base branch and pushes it. Previously those moves sat uncommitted until someone hand-ran the closeout, which left the next release's lifecycle-sync gate flagging drift. The step is framed as the authoritative post-swarm lifecycle record that prevents that drift, with `task reconcile:issues -- --apply-lifecycle-fixes` documented as the recovery path. Closes #1358.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **Review cycles no longer exit or merge on a partial or stale bot review (#1259)** -- the review-cycle Step 6 exit check is now a fail-closed all-of that passes only when a single fresh fetch shows a terminal Greptile check-run, a reviewed SHA pinned to the current HEAD, a HEAD-matching `Last reviewed commit:` marker, confidence above 3, and zero P0/P1 findings; any missing or ambiguous field keeps the loop running. A new pre-merge re-poll gate re-checks review state immediately before `gh pr merge`, so a verdict observed earlier in the loop can no longer authorize a merge against stale state. The same terminal-check-run requirement now also gates the swarm-dispatched poller (the primary path for parallel review cycles), so an `INCOMPLETE_BUT_RATED` review -- rated and SHA-matched but whose Greptile check-run has not terminally landed -- no longer reports a premature clean exit. Closes #1259.
@@ -1993,8 +1847,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **Consumer session ritual gates no longer depend on task namespace re-entry (#1648)** -- `task deft:verify:session-ritual -- --tier=gated` now records the doctor and cache-fresh checks by invoking their Python entrypoints in-process instead of reconstructing `task <prefix>:...` commands. Cache freshness preserves the framework wrapper's bootstrap allowance, so fresh checkouts keep passing while vendored consumers avoid nested Taskfile namespace failures. Closes #1648. Refs #1659.
 - **The session-ritual gate can no longer hang forever on a stuck check (#1648)** -- converting the gated `doctor` and cache-fresh checks to in-process calls had dropped the 5-minute cap the old subprocess runner enforced, so a check blocked on I/O or a slow resource could freeze the step-0 gate and silently stall agent dispatch. Each in-process check now runs under the same bounded timeout and a hang is recorded as a fail-closed failure, so dispatch aborts cleanly instead of waiting indefinitely. Refs #1655 #1659.
@@ -2015,8 +1867,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Content packs are now documented in the README** -- a new "Content packs" section explains how `task packs:slice` lets agents pull versioned, drift-checked slices of the framework corpus (lessons, skills, rules, strategies, patterns, swarm spec) by stable slice name, with the `--list-packs` / `--list` discovery commands.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Bug-labelled issues now rank ahead of feature and RFC work in the triage queue (#1657)** -- `bug` is now a triage ranking label, appended after the existing escalation labels (`blocks-merge`, `blocks-release-tag`, `adoption-blocker`, `breaking-change`, `urgent`). Explicit release-blockers still win, but an open bug now surfaces above the large mass of unlabelled / feature / RFC items instead of sorting purely by recency. The change is also reflected in the consumer-example default so downstream projects inherit bug-prioritisation as the recommended baseline. Closes #1657. Refs #1128 #1186.
 
 ### Fixed
@@ -2040,8 +1890,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **directive's own vBRIEFs now conform to the standard it anchors, and a gate stops new drift before it lands (#1620)** -- the reference-implementation corpus had accumulated bare, non-standard keys (a plan-level issue pointer and a couple of mis-spelled fields) that masqueraded as core and produced a downstream false failure. A one-shot, idempotent migration moves those into their correct 0.6 home, and a new `task verify:vbrief-conformance` gate (wired into `task check` and the pre-commit hook) now fails the build whenever a vBRIEF carries a key that is neither 0.6 spec-core nor explicitly namespaced. A small temporary allow-list covers two genuine directive extensions until the upstream namespace lands (tracked in #1650). Closes #1620.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **`task triage:queue` now hides blocked work so the queue shows only what you can grab next (#1286)** -- items whose linked vBRIEF is parked (status `blocked`) or still waiting on an unresolved dependency are demoted into a new `[BLOCKED]` group at the bottom of the queue by default. Pass `--include-blocked` to bring them back into their natural place when you want the full picture. Closes #1286. Refs #1284.
 - **The "vBRIEF as source of truth for all docs" issue now matches the current architecture (#1292)** -- issue #336 was reframed from its obsolete "five new core vBRIEF content types" mechanism into a documentation-tier application of the Rule Authority [AXIOM]: framework `.md` files are rendered projections of canonical structured source, implemented via the #714 four-tier model and its tier-3 extension packs (#1294 / #1295 / #1296) under the #1284 epic. Contributors reading #336 after the decomposition no longer chase a dropped mechanism. Closes #1292. Refs #336, #1284.
 
@@ -2062,8 +1910,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **Session-start runtime files no longer dirty freshly installed consumer repositories (#1609)** -- the installer and relocator now deposit selective `.gitignore` entries for `.deft/ritual-state.json` and `.deft/last-session.json`, keeping the ritual sentinels local while preserving the tracked `.deft/core/` framework payload. Closes #1609.
 
@@ -2080,8 +1926,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Session startup now warns when the local default branch is stale (#1596)** -- the ritual compares the repository default branch with its upstream and prints a concise non-blocking warning for behind, ahead, diverged, missing-upstream, or remote-refresh failure states. Cleanly synced branches stay quiet, so operators get stale-base visibility without extra noise. Closes #1596.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **Greenfield swarm launches now explain how to proceed when full orchestration is unavailable (#1053)** -- the swarm skill now separates project-infrastructure readiness from machine-tool checks, defaults interactive worktrees to ignored `.deft-scratch/worktrees/` paths, and offers an explicitly labeled serial self-execution downgrade when only a generic terminal is available. Manual prompt paste remains available as an opt-in fallback, but the guidance no longer presents serial execution as true parallel swarm orchestration. Refs #1053.
@@ -2100,8 +1944,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **Vendored encoding checks no longer fail on framework-owned history after upgrade (#1382)** -- consumer installs now omit non-runtime framework history from the packaged payload, and the encoding verifier recognizes its own documented exception files when they live under `.deft/core/`. Consumer-owned mojibake still fails the gate, but packaged Deft artifacts no longer block `task deft:verify:encoding` immediately after upgrade. Closes #1382.
 
@@ -2114,8 +1956,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Interactive swarm setup asks for the intended sub-agent backend before launch (#1568)** -- swarm operators now see a numbered Composer/local, Cursor cloud, or Grok Build choice before headless launch planning when no backend policy is set. The prompt separates operator preference from probe availability, so a probe-available cloud backend is not treated as the default. Closes #1568.
 
 - **Issue-creation workflows now nudge agents toward existing labels (#1510)** -- Directive skills that file or surface GitHub issues now recommend checking the repository's label set, choosing suitable existing labels when practical, and explicitly noting when no label is applied. The guidance stays advisory so issue creation is not blocked when no label fits, while still reducing unlabeled triage drift. Closes #1510.
@@ -2137,8 +1977,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **GitHub Markdown body posting now has a safe path for backticks and shell metacharacters (#1555)** -- agents can post issue bodies, PR bodies, and issue/PR comments through `task scm:body:*` without embedding Markdown in double-quoted shell commands, preserving literal backticks, dollar signs, quotes, and fenced code blocks. The helper performs live `gh` read-back after mutations so cached `ghx` GETs cannot hide stale body content. Closes #1555. Refs #1554.
 
@@ -2154,8 +1992,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Headless swarm launch enforces selected sub-agent backend (#1531e)** -- `task swarm:launch` now refuses to emit a manifest when `plan.policy.swarmSubagentBackend` is missing or probe-unavailable, listing detected alternatives and the policy command to choose one; successful launches include audit-visible backend, dispatch provider, and worker-role metadata on each manifest entry without altering the #1378 allocation-context contract. Refs #1531.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Dispatched workers see provider-neutral backend and role metadata in the agent preamble (#1531c)** -- the agent preamble now carries a worker metadata section that records dispatch provider, assigned role, and backend routing identity separately from the five-field #1378 allocation-context contract; role-boundary expectations apply uniformly across Composer, Grok Build, Cursor/cloud, and future adapters, and workers must surface routing metadata in their terminal status messages for postmortem audit traceability. Refs #1531.
 
 - **Swarm skill documents provider-neutral sub-agent routing (#1531)** -- heterogeneous dispatch guidance now separates dispatch provider, worker role, and model selection; Composer-class, Grok Build, Cursor/cloud, and future adapters are first-class backends with strong-agent gates for orchestration, review, rebase, merge, and release. Refs #1531.
@@ -2175,8 +2011,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **Desktop-app and TUI projects no longer silently fail the coverage gate over un-runnable GUI event loops (#1027)** -- pygame/tkinter entry points can't run headlessly, so they reported near-zero coverage and dragged the whole suite below the 85% threshold after an agent had already reported a passing run. The setup skill now warns when a project is a Desktop App or TUI and recommends excluding the display-bound entry point from coverage, and the Python guide documents the headless-test pattern (`SDL_VIDEODRIVER=dummy`) plus a `[tool.coverage.run] omit` example for event-loop modules. Closes #1027.
@@ -2200,8 +2034,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 ### Removed
@@ -2217,8 +2049,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **QUICK-START.md can now finish a stale-AGENTS.md refresh and a pre-cutover migration in one agent session (#1114)** -- on a big-jump upgrade that trips both Case G (stale AGENTS.md) and Case H (pre-cutover artifacts), the agent used to stop and force a second session between the two. A new combined Case G+H path refreshes AGENTS.md first, runs the migration second, and emits a single restart at the end, removing the wasted session round-trip while producing the same end state. Closes #1114.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **`task check` now type-checks the `tests/` tree, so a tests/ type error fails locally instead of only on CI (#1475)** -- the local pre-commit gate (`core:lint`) ran mypy over only `run.py`, while CI runs `mypy tests/`; a type error under `tests/` therefore passed `task check` locally and only reddened master after merge. `core:lint` now runs mypy over `run.py` and `tests/`, sharing the same `[tool.mypy]` config CI uses, bringing the local type-check scope to parity with CI. Closes #1475.
 - **The <1000-line file-size limit is now a recommendation, not a hard cap (#1488)** -- `coding/coding.md` previously stated files MUST be under 1000 lines, but the rule was unenforced, contradicted by the framework's own source, and pushed contributors toward over-fragmented shallow modules. It is now a SHOULD / review-trigger: a large file flags a cohesion check rather than an automatic violation, with one-responsibility-per-file remaining the hard rule. Friendlier for brownfield adoption, where existing files routinely exceed an arbitrary line ceiling. Closes #1488.
 
@@ -2241,8 +2071,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New `task triage:reconcile` self-heals the triage audit log when it desyncs from your vBRIEFs (#1468)** -- if `vbrief/.eval/candidates.jsonl` is reset or lost (it is operator-private and gitignored, so branch churn can silently wipe it), already-accepted issues started showing up as `untriaged` in `task triage:summary` with no repair path short of a full `task triage:bootstrap` re-fetch. The new idempotent verb derives the missing `accept` decisions directly from the `proposed/`/`pending/`/`active/` vBRIEFs that carry a GitHub-issue reference -- no cache re-fetch, no manual JSONL editing -- and never overrides an existing decision. `task triage:summary` now also emits a `[triage:reconcile] N` hint when it detects the divergence, pointing you at the repair verb. Closes #1468.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **`deft-install --upgrade` now refuses a dirty working tree by default instead of warning and proceeding (#1458)** -- an upgrade rewrites the framework payload (`.deft/core/**`) and installer-managed files, and committing those mixed with your own work trips the `deft-core-guard` CI check. The installer now fails loudly -- non-zero exit, no payload swap -- on both the interactive and `--yes`/non-interactive paths when the tree is dirty, with a clear message explaining why a clean tree is wanted plus the clean-up-first vs `--force` tradeoffs. `--force` / `--allow-dirty` still upgrades a dirty tree, and `--require-clean` is kept as an accepted no-op alias. Clean-tree upgrades and initial installs are unaffected. Closes #1458.
 
 ### Fixed
@@ -2263,8 +2091,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **`deft-install` now gitignores `*.premigrate.*` migration snapshots so they are not left as an untracked, guard-tripping artefact (#1450)** -- the vBRIEF migration / spec-render step run during install/upgrade writes pre-migration safety snapshots (`ROADMAP.premigrate.md`, `SPECIFICATION.premigrate.md`, `vbrief/specification.premigrate.vbrief.json`) into the consumer working tree, but the installer's canonical `.gitignore` deposit did not cover them -- so `git add -A` swept them in and, mixed with a `.deft/core/**` change, they tripped the deft-core-guard (#1440) as "app" files. The installer deposit now includes the leading-slash-free `*.premigrate.*` glob (matching both the repo-root snapshots and the nested `vbrief/` one at any depth), the same leaked-artefact hygiene class as the `vbrief/*.lock` (#1311) and `.deft/*.bak-*` (#1445) guards. Closes #1450.
 - **Vendored installs no longer bleed the consumer repo's git tag into the framework version, and the `0.0.0-dev` sentinel is never persisted into consumer markers/manifests (#1454)** -- on a vendored `.deft/core/` install with no `<install>/VERSION` manifest and no `.deft-version`, both `run::_resolve_version()` and its mirror `scripts/resolve_version.py` fell through to `git describe`, which -- because git discovers the enclosing `.git` by walking upward -- reported the *consumer's* latest tag as the framework version. The `git describe` fallback is now gated on the framework payload directory being its OWN git top-level (`git rev-parse --show-toplevel` resolving to the payload dir itself): a vendored payload skips git and resolves to `0.0.0-dev` instead of the consumer's tag, while framework-self-dev (where the payload IS the repo) still resolves the real tag. Separately, `_write_version_marker` and `_write_install_manifest` now refuse to write the `0.0.0-dev` sentinel into a consumer's `.deft-version` / `<install>/VERSION`, preserving any prior recorded value rather than clobbering it (the resolver may still RETURN the sentinel in-process; only the WRITE is suppressed). Salvaged from #1447. Closes #1454.
@@ -2278,8 +2104,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **`task project:render` (and triage mutations) no longer leak a `vbrief/PROJECT-DEFINITION.vbrief.json.lock` file (#1311)** -- the PROJECT-DEFINITION mutation lock created its sidecar `.lock` file on acquisition but never removed it, so a clean render or policy mutation left an untracked 1-byte file in `vbrief/` that `git add -A` trapped on the next chore commit. The lock context manager now deletes the sidecar on exit (happy path and on exception), and the same cleanup discipline is applied to the `vbrief/.eval/*.lock` audit-log sidecars (candidates / slices / scope-lifecycle). The installer's canonical `.gitignore` deposit also gains `vbrief/*.lock` as a belt-and-suspenders guard so consumers are protected even on an interrupted render. Closes #1311.
@@ -2299,8 +2123,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **`task doctor` no longer emits a spurious AGENTS.md-freshness warning (#1389)** -- the freshness check now computes a real fresh/stale/unreadable verdict by comparing the installed managed section against the current framework template, instead of an interim stub that always reported `unreadable`. A consumer whose `AGENTS.md` managed section is present, readable, and current now sees no warning on `task doctor`; a genuinely stale section still points at `task agents:refresh`, and a genuinely unreadable or missing section still warns. Closes #1389.
 - **`deft-core-guard` no longer rejects `deft-install --upgrade` PRs (#1440)** -- the deposited guard counted every installer-managed root file as consumer "app" code, so a `deft-install --upgrade` could never land as a single green PR. The guard now treats installer-managed deposits (`AGENTS.md`, `.agents/`, `.gitattributes`/`.gitignore`, `greptile.json`, the CodeQL config, the guard workflow itself, and the `vbrief/` scaffolding plus `vbrief/.deft-version`) as part of the framework deposit, so an upgrade-only PR passes. Mixing `.deft/core/**` with genuine app files or consumer vBRIEF data (`vbrief/**/*.vbrief.json`) still fails, and the allowlist is rendered from a single in-installer source so the guard and the installer cannot drift. Closes #1440.
@@ -2316,8 +2138,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **`deft-install --upgrade` no longer leaves a duplicate AGENTS.md managed section (#1437)** -- on a vendored install whose `AGENTS.md` already carried a managed section stamped with provenance attributes (the marker `run agents:refresh` and the relocator write), the upgrade appended a second managed section instead of refreshing the existing one, which left `task doctor` reporting the section as unreadable. The installer now recognises an attributed marker and rewrites it in place, and the rewrite is self-healing: an install already broken with two or more managed sections is collapsed back to exactly one on the next upgrade, with your own prose around the section preserved. Closes #1437.
 - **`deft-install --upgrade` now refreshes `vbrief/.deft-version` so the install stays doctor-clean (#1437)** -- the vendored file-swap upgrade refreshed the framework payload and its version manifest but left the bare `vbrief/.deft-version` marker at its old value, so `task doctor` flagged a version-drift mismatch right after a successful upgrade. The upgrade now regenerates that marker from the manifest as part of the swap, so a fresh `--upgrade` is self-consistent and passes doctor without a manual follow-up step. Closes #1437.
@@ -2332,8 +2152,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Directive release notes now lead with an upgrade-guidance banner (#1413)** -- every maintainer-mode GitHub release for deftai/directive is now prefixed with a standard "Upgrading from an older version?" section pointing at the canonical `deft-install --yes --upgrade --repo-root . --json` command and #1411, sourced from an editable `.github/release-notes/upgrade-banner.md` template. Consumer-mode releases are unaffected. Closes #1413.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **README documents the vendored (git-free) vs clone install layouts (#1433)** -- Getting Started and the upgrade banner no longer describe only the clone model; they now explain both payload origins (binary/clone with `.git` vs webinstaller/vendored without `.git`), that `deft-install --upgrade` detects the layout and refreshes accordingly, and that it never runs git against the consumer repo. Refs #1428, #1425.
 
 ### Fixed
@@ -2349,8 +2167,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Installer deposits the framework-payload neutralization on every install (#1430)** -- the Go installer now writes (idempotently, create-if-absent, preserving existing entries) `.gitattributes` linguist `generated`/`vendored` markers for `.deft/core/**`, a Greptile `ignorePatterns` entry in `greptile.json`, a CodeQL `paths-ignore` entry in `.github/codeql/codeql-config.yml`, and an optional `.github/workflows/deft-core-guard.yml` CI guard that fails a PR mixing `.deft/core/**` with non-framework paths. Consumers' language stats, bot reviewers, and CI now treat the vendored framework payload as packaged, machine-managed assets rather than consumer source. Closes #1430. Refs #1428.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Fresh installs vendor the framework via a git-free tarball; `--upgrade` migrates clone payloads to vendored (#1429)** -- `deft-install` no longer `git clone`s the framework on a fresh install. It downloads the release tarball at the resolved ref and extracts it into `.deft/core/` (excluding `.git`/`.github`/`node_modules`), so a fresh deposit never carries a nested `.git`. On `--upgrade`, a legacy git-clone payload is now migrated to vendored via an atomic file swap (timestamped backup, nested `.git` removed) instead of `git fetch`/`checkout`/`pull`. The `--json` `payload_layout`/`strategy` fields report `vendored` with the `vendor` or `clone-to-vendored` strategy. Closes #1429. Refs #1428.
 
 ### Fixed
@@ -2368,8 +2184,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **`deft-install --upgrade` is now safe and works on vendored (webinstaller) installs (#1425)** -- upgrading a project installed via the webinstaller (a vendored `.deft/core/` with no `.git/` of its own) previously ran `git` against the *consumer's own repository* via git's upward `.git` discovery, failing with a misleading `pathspec` error and risking a silent checkout of the user's project. The installer now classifies the on-disk payload (clone / vendored / absent) before any git operation, refreshes vendored payloads through a git-free tarball file-swap with a timestamped backup, and never runs a mutating git command against anything but a genuine framework clone. `--json` now reports `payload_layout` and `strategy`. Closes #1425.
 
@@ -2385,8 +2199,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm skill now documents a headless / low-ceremony launch path for pre-approved cohorts (#1387)** -- operators with a curated cohort can launch through the `task swarm:launch` CLI with a single consent (the #1378 allocation-context token) instead of walking the per-phase interactive gates. The swarm skill's Phase 0 gains a headless fast-path that skips the promote-fill loop, Phase 2 accepts a pre-created worktree map, and Phase 3 consumes the emitted launch-manifest as dispatch prep (the agent spawn itself stays agent-driven). A matching gate-stack note lands in AGENTS.md so both surfaces agree. Refs #1387, #1378.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **Doctor and consumer docs now name the canonical headless upgrade command (#1409)** -- the payload-staleness check in `task doctor` / `scripts/doctor.py`, plus README, UPGRADING, the `deft-directive-sync` skill, and the AGENTS.md managed section, now surface the exact one-command refresh `deft-install --yes --upgrade --repo-root . --json` instead of a vague "re-run the installer". Legacy `task upgrade` / `run upgrade` are labeled metadata-only acknowledgment and `task relocate -- --confirm` as back-compat only, so a normal consumer following doctor guidance ends up with a fresh payload, not just refreshed metadata. Refs #1409.
 
 ### Fixed
@@ -2406,8 +2218,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Installer (`cmd/deft-install`) now calls `scripts/doctor.py --session --json` at the very end of every successful install/update (deterministic handoff for agents and humans). Doctor reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, surfaces a clear recommendation: "Framework payload is stale ... re-run the installer to pull the latest payload." Closes #1339 (Epic-5 of #1334).
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - Doctor surfaces consolidated under single implementation: `scripts/doctor.py` now owns the core doctor logic (install-integrity checks + diagnostics). `run doctor` and `task doctor` are thin shims; `--session` mode supports gate callers. Legacy `framework_doctor.py`, `_maybe_run_framework_doctor` hook, and `task framework:doctor` fully retired (no production imports or calls remain). Closes #1335, #1336.
 - Documentation / skills / agent guidance collapsed to the unified installer + doctor path (#1340 Epic-6): AGENTS.md + template, README, UPGRADING.md, and `deft-directive-sync` skill now direct agents to the published installer binary as the canonical (re)bootstrap mechanism, with the automatic doctor --session --json handoff providing staleness detection and next-step recommendations. Old paths (git submodule, `run upgrade`, legacy doctor surfaces) de-emphasized and marked legacy. Clear agent examples provided. Closes #1340.
 
@@ -2427,8 +2237,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(scripts,tasks,skills,templates): `task swarm:verify-review-clean` cohort gate before Phase 5→6 (#1364)** -- swarm monitors now have a deterministic cohort-level CLEAN gate that holds the Phase 5→6 merge discussion until every PR in the cohort is objectively CLEAN on its current HEAD (SHA match + confidence > 3 + zero P0/P1 + not errored). The new `scripts/swarm_verify_review_clean.py` re-uses the Greptile rolling-summary parser from `scripts/pr_merge_readiness.py` so the per-PR merge gate and the cohort gate stay in lockstep; three-state exit (0 clean / 1 unclean with per-PR diagnostics / 2 config error). The swarm SKILL Phase 5 Exit Condition + Phase 5→6 gate now cite the verifier, a new anti-pattern forbids keying the merge transition on poller-lifecycle completion alone, and the poller template's (1) CLEAN section declares the exact subject line + `confidence > 3` on current HEAD as the only acceptable swarm-cycle review-complete signal. Closes #1364.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **fix(scripts,tests,skills): pr_merge_readiness layered fallbacks + monitor_pr.py resilient wait-until-ready (#1368)** -- long-running swarm monitors no longer report `head: None` for 15+ minutes when a single `gh` capture fails. `scripts/pr_merge_readiness.py` now cascades primary -> fallback1 (REST + Python-side comment parse) -> fallback2 (coarse PR-view + check-run signal) and emits a `via` discriminator on every JSON response; fallback2 is structurally never CLEAN and total failure produces a `{ error, partial_data, via: "error" }` envelope so monitors step forward instead of going blind. New `scripts/monitor_pr.py` is the canonical wait-until-ready helper with adaptive 1m/3m/5m cadence, routed through `_safe_subprocess.run_text` (#1366). Swarm SKILL.md Phase 5 + Phase 6 Step 1 document the contract. Closes #1368; depends on #1366; cross-refs #1166, #1353, #1365.
@@ -2452,8 +2260,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(check,build): add deterministic validation gate for strategy output shape (#1166)** -- `task check` and the build skill now hard-fail early when a strategy has emitted non-v0.20-conformant artifacts (e.g. undated scope vBRIEFs or missing project definition). Users of yolo, interview, speckit and similar strategies receive an immediate actionable error instead of a confusing downstream build rejection. The gate is exercised on every pre-commit and in CI. Refs #1166.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **yolo strategy now emits the v0.20 output shape** -- The yolo auto-pilot strategy produces date-prefixed story vBRIEFs in `vbrief/proposed/`, invokes `task project:render` for a complete `PROJECT-DEFINITION.vbrief.json`, and seeds all five lifecycle folders. Legacy `specification.vbrief.json` output is explicitly forbidden; yolo-generated projects now pass the Pre-Cutover Detection Guard on first attempt. Resolves the yolo row from the #1166 inconsistency table. Refs #1166.
 - **feat(strategies): migrate interview (light + full) to v0.20 (#1166)** -- The most common spec strategy now emits date-prefixed scope vBRIEFs under proposed/, triggers task project:render for a complete PROJECT-DEFINITION.vbrief.json, seeds the lifecycle folders, and treats specification.vbrief.json as legacy (no longer primary). Interview-generated projects now pass the v0.20 Pre-Cutover Detection Guard on first build. Refs #1166.
 
@@ -2472,8 +2278,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 ### Removed
@@ -2489,8 +2293,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(languages): add VBA and Office.js language modules (#1333)** -- agents working on Excel automation now have first-class standards for both VBA and Office.js (Excel JavaScript API). Coverage includes error handling, type safety, range operations, application state guards, sync batching, platform awareness, custom functions, and testing patterns for each environment. PR #1333.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **feat(skills): Phase 6 poller and sub-agent spawning unified behind the platform adapter (#1342 slices 4+5)** -- Swarm and review-cycle now dispatch post-PR review-cycle pollers and sub-agents via the stable runtime platform descriptor (spawn_subagent for grok-build, start_agent for Warp-orchestrated). Mandates the canonical poller template and all #727 / #800 safety rules for every path. Enables reliable native swarm usage in Grok Build / non-Warp TUI environments. Refs #1342.
 - **fix(scripts,vbrief): canonical scratch path + input hardening for `task scope:decompose` (#1267)** -- `task scope:decompose` now validates inputs more strictly (parent + draft pair, `--date` format, parent writability) and `task vbrief:validate` fails when a decomposition draft JSON file is found at the workspace root. Drafts have a canonical scratch path under `vbrief/.eval/decompositions/<parent-slug>.json`; generated child story vBRIEFs still land in `vbrief/pending/`. Closes the operator-trap where agents left `decomposition.json` at the workspace root. PR #1267.
 - **chore(deps): bump actions/checkout from 4.3.1 to 6.0.2 (#1221)** -- two-major hop across the five SHA-pinned `actions/checkout@...` invocations in `ci.yml` (Python / Go / Windows jobs) and `release.yml` (build + verify-release + publish jobs). Cumulative breaking changes are Node 20 -> Node 24 runtime only (requires Actions Runner v2.327.1+; GH-hosted runners are current); no input renames affect our usage. PR-level CI exercised checkout@v6 across all three required job lanes before merge.
@@ -2518,8 +2320,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 - **fix(templates,agents-md,tests,scripts): propagate welcome / WIP cap / session-start ritual / skill routing from maintainer AGENTS.md into the consumer template (#1309)** -- consumer-installed AGENTS.md now carries the same session-start ritual, WIP cap, cache-as-authoritative work-selection, and skill-routing prescriptions the maintainer follows, so consumer agents see `task triage:welcome`, `task triage:queue`, `task doctor`, and the canonical 5-step ritual instead of a bootstrap-only surface. `task triage:welcome` gains a non-interactive default mode that emits the triage summary one-liner plus a state-conditional first-time / incomplete-onboarding nudge; the 6-phase interactive ritual now lives behind a new `--onboard` flag. A deterministic marker-list gate in `tests/content/test_agents_entry_contract.py` enforces the maintainer-to-template propagation so a future consumer-relevant rule cannot land on AGENTS.md without mirroring into `templates/agents-entry.md`. Closes #1309. Refs #1143, #1149, #1308.
 - **fix(triage): filesystem-truth in-flight count + scope-discrepancy line (#1270)** -- the session-start `task triage:summary` headline now reflects activated work correctly. `in-flight` reads from live `vbrief/active/*.vbrief.json` with `plan.status == "running"` (filesystem-truth) instead of the audit-log-scoped cache view, so activating a vBRIEF moves the count in lockstep with `WIP`. When the filesystem-truth and cache-scoped counts diverge, a second `[triage:scope]` line surfaces the gap and distinguishes whether `plan.policy.triageScope[]` is configured (`outside ...`) or absent/default (`not configured`). Closes #1270.
@@ -2536,8 +2336,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **fix(triage,determinism): `task verify:cache-fresh` no longer false-fails on a backfill-only cache state (#1245)** -- the pre-`start_agent` freshness gate previously refused a fresh `task triage:bootstrap` whenever every cached open issue happened to fall outside the active `plan.policy.triageScope[]` subscription, even though the backfilled `accept` audit-log rows showed the consumer was actively triaging. The recovery hint ("widen the subscription") was wrong for that state. The gate now distinguishes a backfill-only cache (cached entries present, none in subscription, audit log populated) from a genuine misconfiguration (no in-scope entries AND no triage activity); the first state exits 0 with a state-aware message so the pre-`start_agent` gate stack composes, while downstream `--for-issue` dispatch still enforces per-issue scope + decision. Closes #1245.
@@ -2591,8 +2389,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 ### Fixed
 
 ### Removed
@@ -2606,8 +2402,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(directive): add story decomposition and swarm-readiness gates** -- introduces Phase 4.5 Story Decomposition / Swarm Readiness between Speckit phase/epic scope emission and swarm implementation. Adds deterministic `task scope:decompose` and `task swarm:readiness` commands, a canonical `plan.metadata.kind` / `plan.metadata.swarm` story contract, a new `deft-directive-decompose` skill, swarm Phase 0 readiness gating, acceptance-preserving spec rendering, and regression coverage for decomposition, readiness, Speckit translation, and stale vBRIEF template guidance.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 
@@ -2628,8 +2422,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(coding): add `coding/security.md` -- baseline security standards for every project (#661, Wave 1 cohort #1098 sibling of #481 / #1096)** -- new `coding/security.md` (≤150 lines, RFC2119 legend at the top, mirrors the `coding/testing.md` shape) carries the framework's first universal security baseline so every project Deft creates inherits a non-zero security posture from day one. Six required sections per the #661 vBRIEF: **Universal Requirements** (validate-don't-sanitize, treat external data as adversarial, recurring dependency scans, secrets discipline, no custom crypto/auth); **Input Validation & Injection Prevention** (type/length/range/format checks at API boundaries; parameterized queries; context-appropriate output encoding; safe deserialization; forbids string-interpolation in SQL/shell and `eval`/`exec`/`shell=True` on untrusted input); **Authentication & Authorization** (established libraries only, server-side authorization, short-lived tokens with revocation, memory-hard password hashing, MFA on admin paths, forbids custom session/password/token handling and credential logging); **Secrets Management** (cross-references existing `coding/coding.md` Secrets rule -- `secrets/` dir + `.env` files + env-var runtime read + rotation + redaction; forbids interpolation/echo of secrets into shell strings); **Dependency Security** (lock-file pinning, language-native scanners `pip-audit`/`npm audit`/`govulncheck`/`cargo audit`, Dependabot weekly, CRITICAL/HIGH resolved-before-merge, SHA-pinning third-party Actions per #1019/#1072 precedent); **Agent-Specific Threats** (Directive ships AI agent frameworks so prompt-injection awareness, tool-output trust-boundary isolation, destructive-tool gating per the #1019 preflight pattern, bounded autonomy with allow/deny lists, and secret-redacted tool-call logging are first-class concerns -- forbids reflecting untrusted content back into privileged tool-call args, exposing internal system prompts to untrusted surfaces, and running model-suggested shell commands without a deterministic safety classifier). Closing sections cover **Tooling** (ruff S-rules / golangci-lint gosec / eslint security; gitleaks; CodeQL; trivy; GitHub Dependency Review), **Reporting Vulnerabilities** (every project documents a reporting path, acknowledge within SLA, never silently close, forbids public discussion of unfixed vulnerabilities), and **Anti-Patterns** (deferred security, silent sanitization, scanner-disabling, trusting model output as validated input, dumping environments to logs, blanket agent shell/network access, reflecting third-party content unsanitized into privileged tool calls). Companion edits: `coding/coding.md` `## Quality Standards` gains a `**Security:**` sub-block pointing at `coding/security.md` (parallels the existing `**Testing:**` cross-link to `coding/testing.md`); `REFERENCES.md` `### When Working with Tools` registers `coding/security.md` as a lazy-load entry with the load-trigger phrasing (`When handling untrusted input, auth, secrets, dependencies, or building agent surfaces`). Tier 1 deterministic enforcement: new `tests/content/test_security_standards.py` (per the [AXIOM] strongest-applicable-layer rule) pins file existence, ≤150 line ceiling, RFC2119 legend, every required section heading, the `coding.md` Secrets cross-reference, the `REFERENCES.md` lazy-load entry, and the `coding.md` Quality-Standards cross-link so a future rename or accidental deletion fails CI immediately. Refs #1098 (Wave 1 cohort umbrella), Refs #481 (sibling: patterns/ directory + LLM-app standards), Refs #1096 (sibling: ingest-dedup bug). Closes #661.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **chore(deps): bump actions/setup-python from 5.6.0 to 6.2.0 (#1078)** -- low-risk; only breaking change is Node 24 runtime (requires Actions Runner v2.327.1+; GH-hosted runners are current). Our usage at `ci.yml:38, 165` and `release.yml:172` passes only `python-version`, unchanged.
 - **chore(deps): bump actions/setup-go from 5.6.0 to 6.4.0 (#1081)** -- v6 changes default `GOTOOLCHAIN` to `local`, which disables `go.mod`'s `toolchain` directive. `ci.yml:128` uses `go-version-file: go.mod` so was unaffected; `release.yml:43` used a hardcoded `go-version: "1.22"` that the v6 default broke -- followed up by #1104 (this entry's `### Fixed` companion) which flips the release pipeline to `go-version-file: go.mod`. Caught pre-release by the dependabot-triage cohort's sub-wave C workflow_dispatch smoke; no release attempt was harmed.
 - **chore(deps): bump astral-sh/setup-uv from 5.4.2 to 8.1.0 (#1082)** -- v8.0.0 drops the floating `@v8` / `@v8.0` tags (immutable releases only), removes the deprecated `manifest-file` format, and adds the `no-project` input. We SHA-pin per #1072 so the immutable-tag transition is transparent, and we pass zero inputs to setup-uv at `ci.yml:43, 170` so the removed legacy `manifest-file` shape and the new `no-project` flag both don't affect us.
@@ -2658,8 +2450,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs(security): record 2026-05-12 audit baseline in `docs/security.md` (#1073, parent #1069 -- final slice in the 2026-05-12 supply-chain hygiene cohort)** -- new `docs/security.md` records the inaugural audit baseline for `deftai/directive`: audit date (2026-05-12), the scanners run (`osv-scanner scan source --recursive .` + `gitleaks detect --redact`; future cadence adds `trivy fs --severity CRITICAL,HIGH --ignore-unfixed`), the five findings resolved (gitleaks PEM fixture remediated via PR #1077 / #1070; `curl | bash` removed from CI via PR #1077 / #1070; 22 OSV stdlib advisories resolved via PR #1076 / #1071 -- live count diverged from the 40 cited in #1069 because intervening dependabot bumps auto-cleared the rest; `.github/dependabot.yml` deposited via PR #1077 / #1070; Actions SHA-pinning + least-privilege `permissions:` blocks via the #1072 PR landing alongside this slice, cited prospectively per the vBRIEF escape hatch), and the residual-risk verdict (`osv-scanner scan source --recursive .` reports `No issues found` on master at tag `v0.29.1`; zero gitleaks `private-key` hits after PR #1077). New `## Audit cadence` section names the quarterly + event-driven cadence (dependabot security PR failure, scanner-CI escalation, newly-disclosed advisory at the pinned toolchain version). New `## Reporting a vulnerability` section points contributors at the canonical GitHub Security Advisories flow at <https://github.com/deftai/directive/security/advisories/new>. New `## Out of scope / follow-ups` section names **#1084** (PyPI OIDC trusted-publishing workflow, deferred -- blocked-by #11 because trusted-publishing is meaningless until Deft is published to PyPI, and the PyPI proposal is still OPEN). Companion `README.md` Security cross-reference section and `## Learn More` entry point consumers at the canonical body. Closes #1073, closes #1069 (umbrella close-out for the 2026-05-12 supply-chain cohort). Refs #1072 (Actions SHA-pinning + permissions hardening, landing alongside this slice), #1084 (deferred PyPI OIDC follow-up).
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 - **fix(security): pin GitHub Actions to SHAs + least-privilege `permissions:` blocks (#1072, parent #1069)** -- closes the AFK GitHub-Actions slice of the 2026-05-12 supply-chain hardening cohort. Every remote `uses:` line in `.github/workflows/**` is now pinned to a 40-character commit SHA with a trailing `# vX.Y.Z` comment naming the upstream semver tag for Dependabot tracking + human readability: `actions/checkout@v4` -> `34e1148...` (v4.3.1, 3 sites), `actions/setup-python@v5` -> `a26af69...` (v5.6.0, 3 sites), `astral-sh/setup-uv@v5` -> `d4b2f3b...` (v5.4.2, 2 sites), `actions/setup-go@v5` -> `40f1582...` (v5.6.0, 2 sites), `arduino/setup-task@v2` -> `24c5e13...` (v2.0.0, 1 site), `actions/upload-artifact@v4` -> `ea165f8...` (v4.6.2, 2 sites), `actions/download-artifact@v4` -> `d3f86a1...` (v4.3.0, 3 sites), `softprops/action-gh-release@v2` -> `3bb1273...` (v2.6.2, 1 site). The pin per-site selects the highest semver tag matching the current major; all eight upstream `vN` aliases were cross-validated to point at the chosen SHA so Dependabot's existing major-version pin contract holds without churn (the one exception is `astral-sh/setup-uv`, whose `@v5` alias is ahead of the latest published `vN.M.P` tag -- pinning to `v5.4.2` is the safer single-version anchor). `release.yml` top-level `permissions:` flipped from `contents: write` (workflow-wide elevated scope) to default-deny `contents: read`; the `release` job (the only consumer of `softprops/action-gh-release`, which uploads binaries to the draft GitHub Release) gains an explicit per-job `permissions: contents: write` override with a `# #1072` comment naming the rationale so a future audit reads the scope contract without spelunking job history. `ci.yml` and `branch-gate.yml` already carry `permissions: contents: read` at the top level and have no job that requires elevated scope -- they pass through unchanged on the permissions axis. No workflow now relies on the default broad-scope `GITHUB_TOKEN` for any job (acceptance criterion #1072.4). Coordinates with sibling slice #1073 (docs/security.md baseline note, agent2-owned, disjoint file scope: `docs/security.md` + README security section). PyPI OIDC trusted-publishing carved out to follow-up #1084 (blocked-by #11; deft is not yet on PyPI so the OIDC scaffolding is meaningless until then). Refs #1069 (parent cohort umbrella), Refs #1073, Refs #1084. Closes #1072.
 
 ### Fixed
@@ -2677,8 +2467,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 ### Fixed
 - **fix(security): supply-chain quick-wins -- PEM fixture remediation + `curl|bash` removal + `.github/dependabot.yml` deposit (#1070, parent #1069)** -- closes the AFK child of the 2026-05-12 supply-chain hygiene audit (parent #1069). Three coordinated edits in one PR: (1) `tests/test_cache_scanner.py` PEM fixtures at the previously-flagged gitleaks `private-key` hit (commit `90dc6a1e52ad`, lines 340-344) are now synthetic split-literal markers (`"-----BEGIN RSA" + " PRIVATE KEY-----\nREDACTED-FIXTURE-BODY"`) carrying a belt-and-braces `# gitleaks:allow` annotation -- the runtime-concatenated string still matches the scanner regex at `scripts/cache_scanner.py::_CREDENTIAL_PATTERNS` so `test_positive_credentials_hard_fail` continues to flag both PEM variants, but no single source line carries the canonical BEGIN sentinel that the gitleaks rule scans for. (2) `.github/workflows/ci.yml` ghx pre-install steps for both Linux and Windows replace the prior `curl | bash` (line 57) and `irm | iex` (line 178) live-pipe patterns with download-to-temp-file + SHA256-verify + execute-on-match flows; two new pinned-checksum env vars (`GHX_INSTALL_SH_SHA256` / `GHX_INSTALL_PS1_SHA256` for `v1.5.1`) sit alongside the existing `GHX_VERSION` pin so an immutable-tag force-move (supply-chain compromise signal) fails the step with a `::warning::` rather than executing tampered code. Soft-warn-on-failure contract preserved: a checksum mismatch falls back to the `gh` runtime ladder via `scripts/scm.py::resolve_binary` exactly as a network failure does today. (3) new `.github/dependabot.yml` configures weekly version + security update PRs for `pip` (root `pyproject.toml`), `gomod` (root `go.mod` covering `cmd/deft-install/`), and `github-actions` (the workflows at `.github/workflows/**`), with `open-pull-requests-limit: 5` per ecosystem and dependency-class labels for PR triage. Companion supply-chain hardening tracks: #1071 (OSV-advisory resolution on the existing dependency manifests, in-flight from agent2), #1072 (HITL Actions SHA-pinning + least-priv `permissions:` blocks + PyPI OIDC), #1073 (`docs/security.md` baseline). Closes #1070.
@@ -2698,8 +2486,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **feat(install): record `install_root` in `<install>/VERSION` manifest as single source of truth for install-layout contract (#1062)**
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **fix(scripts,tests): framework_doctor `install-path-consistency` reads `install_root` from `<install>/VERSION` manifest first; legacy AGENTS.md parse becomes the fallback (#1062)** -- the doctor's check #4 (`install-path-consistency`) now probes `<project>/.deft/core/VERSION` and `<project>/deft/VERSION` for the new `install_root` field before falling back to `_parse_install_root_from_agents_md`. When the manifest is present but missing the field (pre-v0.29 shape), the doctor surfaces an INFO note in the check `detail` + `data.fallback_info_note` payload so operators can see when the legacy parse was taken. The check's narrow scope is preserved: it still only verifies the resolved install root resolves to a directory on disk -- the manifest-vs-bare-derivative cross-check stays owned by check #3 (`manifest-agreement`). New Python test `tests/cli/test_framework_doctor_install_root_fallback.py` (consumed alongside the existing `tests/cli/test_framework_doctor.py` suite) covers the manifest-wins / legacy-fallback / fallback-info-note paths. Refs #1062, #1046 PR-B AC-3 (predecessor check this evolves).
 
@@ -2728,8 +2514,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 
 ### Fixed
@@ -2788,8 +2572,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 
 
 ### Fixed
@@ -2821,8 +2603,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **feat(cli,tasks,events): CLI / Taskfile / events.json contract-string flip -- 9 deft/run references flipped to .deft/core/run; tests/contract/test_no_legacy_deft_run.py exclusion list narrowed (#992 PR4)** -- closes acceptance criterion 992-ac-9-pr4-cli-paths on the active scope vBRIEF `vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json`. PR4 of 4 in the v0.27 release-line cohort: post-PR1 follow-up that flips the 9 `deft/run` references PR1 deferred to non-doc surfaces. Concrete file:line targets (per the PR1 worker's grep -n output): `run` lines 65 / 655 / 1203 / 1768 / 1796 / 3004 / 3005 (CLI script docstring + upgrade-gate prose + cmd_upgrade comments + cmd_install info text); `tasks/framework.yml` line 8 (introspection-tasks header comment); `events/registry.json` line 56 (the `version:drift` event description string consumers parse for the recovery hint). The marker constant in `run` (`_AGENTS_MANAGED_OPEN`, bumped v1 -> v2 in PR1) is intentionally untouched -- this PR is a pure path-string flip, not a marker rebump. The `cmd_gate` state-detection logic in `run` (PR3's territory) is untouched -- only the literal `deft/run` substring is flipped, no logic refactor. Companion narrowing of `tests/contract/test_no_legacy_deft_run.py::_EXCLUDED_EXACT_PATHS`: removes `"run"`, `"tasks/framework.yml"`, and `"events/registry.json"` from the frozenset (they are now in scope and the contract regression sweep will fail-closed if a future change re-introduces a `deft/run` substring on any of the three surfaces); keeps the remaining exclusions (`run.py`, `run.bat`, AC-mandated `CHANGELOG.md` / `meta/lessons.md`, must-not-touch `vbrief/PROJECT-DEFINITION.vbrief.json` / `ROADMAP.md` / `SPECIFICATION.md`, scratch session logs `session.txt` / `session2.txt`, plus the directory-prefix exclusions for `history/**`, `vbrief/{active,pending,proposed,cancelled,completed,schemas}/**`, `cmd/deft-install/`, and `tests/`) verbatim. Module docstring's `Beyond-AC scope deviations` block updated to reflect the narrowed scope -- the three flipped surfaces are explicitly called out as no longer excluded. Refs #992 (parent issue stays OPEN until v0.27.0 GA); refs #411 (redirect-stub contract -- the eight legacy v0.19 -> v0.20 redirect stubs at `skills/deft-{sync,setup,build,review-cycle,roadmap-refresh,swarm,pre-pr,interview}/SKILL.md` retain their `deft/run` references per the deprecation-redirect contract; this PR does not touch them). Closes acceptance criterion 992-ac-9-pr4-cli-paths.
 
@@ -2869,8 +2649,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **docs(agents): new `## Multi-agent orchestration discipline (#954)` section in AGENTS.md with four MUST rules + meta-rule + ghx surface clarification** -- codifies the recurrence patterns surfaced during the 2026-05-07 multi-agent session into project-side rules so consumer-installed deft carries the discipline even when an orchestrator does not load the canonical preamble. Four `!` MUST rules: (1) REST-by-default for read-only `gh` calls -- forbid `gh issue view --json` / `gh pr view --json` / `gh pr ready` / `gh pr update-branch` (all GraphQL); use `gh api repos/<owner>/<repo>/issues/<N>` / `gh api repos/<owner>/<repo>/pulls/<N>` (REST) or `ghx api` (cached REST) instead -- the GraphQL bucket (5000 pts/hr) is the operational bottleneck under shared-identity workflows, not the REST `core` bucket; (2) at most one Draft↔Ready toggle per review cycle -- repeated toggles cost GraphQL mutations and trigger stale CheckRun states downstream (PR #652 merge-cascade incident traced back to a Draft re-toggle that hid a stale Greptile verdict); (3) rate-limit-aware throttle -- probe `gh api rate_limit` (the live, uncached form; do NOT use `ghx api rate_limit` for the throttle probe -- ghx is a cached read-only GET proxy and the cached value can be stale) before any GraphQL-heavy operation and HALT GraphQL paths when `graphql.remaining < 500`; the decision tree lives in `templates/agent-prompt-preamble.md` § 7; (4) dispatcher-level lifecycle hygiene -- workers MUST be all-or-nothing on their dispatch envelope; mid-scope user-approval gates require two separate dispatches (Scope A → worker reports back → user approves → Scope B) because a worker that finishes its tool loop with a `paused, awaiting reply` status message will be observed as `succeeded` (terminal) by the platform and its `agent_id` becomes unreachable -- splitting at the gate is the only enforceable mitigation (rule scope-expanded per scope-expansion comment 4399553752 on issue #954). Plus a meta-rule (`!` MUST) requiring orchestrators dispatching implementation sub-agents to include the canonical preamble verbatim or by reference in every worker's dispatch envelope, and a `⊗` MUST NOT prohibiting dispatch without the preamble -- the recurrence patterns above re-fire on every fresh dispatch that omits this institutional memory. Adds a **ghx surface clarification** distinguishing `ghx api` (cached read-only GET proxy; accepts a single positional path arg only) from `gh api -X POST/PATCH/PUT/DELETE` writes (which MUST fall through to `gh` directly because ghx multi-arg forms fail with `accepts 1 arg(s), received N`); the `scripts/scm.py::resolve_binary` ladder already encodes this distinction at runtime, this clarification mirrors it for human readers. Refs scope-expansion comment 4399553752; refs #884 (ghx adoption); refs #727 (sub-agent role separation); refs #810 (vBRIEF gate). Closes #954.
 
@@ -2926,8 +2704,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Mermaid two-color theming model** (#826): Formalized `languages/mermaid.md` around a two-color foundation (`bg=#ffffff`, `fg=#000000`). Added Two-Color Foundation section with derivation table showing all theme variable values as mechanical gradients between `bg` and `fg`. Replaced opaque Color Palette hex list with principle-grounded derivation. Added `⊗` rule prohibiting setting individual theme variables without reference to the derivation table. Init directive values unchanged — they are the correct derived values for the grayscale-on-white instance of the model. Companion rename in the same PR: `skills/deft-article-review/` -> `skills/deft-directive-article-review/` and `skills/deft-write-skill/` -> `skills/deft-directive-write-skill/` (with matching `.agents/skills/` thin pointers and `name:` frontmatter updates) so all framework skills now use the canonical `deft-directive-*` prefix; closes the test_skills.py::test_no_bare_deft_skill_directories gate (#411 v0.19->v0.20 bridge whitelist did not cover these two stragglers).
 
 - **docs(meta): codify three session-emergent patterns — gh REST fallback, cross-machine parallel agents, ghx vs deft-cache layering** -- captures patterns surfaced during the 2026-05-07 multi-agent session running #884 closeout in parallel with #947 cache-cap work on a different machine. Three new sections in `meta/lessons.md` (~70 lines, CRLF-preserved): (1) `## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload Pattern (2026-05)` — `gh issue create` and other write subcommands route through the `graphql` bucket (5000 pts/hr), separate from the `core` REST bucket (5000/hr); when `graphql` is exhausted the REST equivalents (`gh api repos/<owner>/<repo>/issues --method POST --input <payload.json>` for issue create, `--method PATCH -f state=closed -f state_reason=completed` for close, `gh api repos/.../pulls --method POST --input ...` for PR open) continue to work; canonical PS 5.1-safe `gh api --input` payload pattern uses Python `pathlib` to build both the markdown body and the JSON wrapper, avoiding the recurring PS 5.1 mojibake hazard (#236 / #240 / #283 / PR #795 / #798); (2) `## Cross-Machine Parallel Agents + Single-Agent Swarm Pattern (2026-05)` — agents on different machines but shared GitHub identity compete for the same `core` and `graphql` buckets even though file/branch isolation is automatic; explicit ownership of shared append-only files (CHANGELOG.md `[Unreleased]`) MUST be agreed before launching parallel work; the `skills/deft-directive-swarm/SKILL.md` Phase 6 Sub-Agent Role Separation pattern (#727) works as a general steerability primitive even at N=1 because parent-yields preserves conversation steerability while the sub-agent runs API-bound work; non-code closeout sub-agents do NOT require the #810 implementation preflight gate but MUST still receive an explicit action-verb directive before dispatch when shared-state side effects exist; sub-agent prompts MUST encode boundaries via explicit `⊗` MUST NOT lines around scope expansion + a halt-on-deliverable-missing rule rather than improvising fixes; (3) `## ghx Within-Session Cache vs deft-cache Cross-Session Persistence (2026-05)` — `ghx` (brunoborges/ghx, adopted via #884) and deft-cache (#883) target orthogonal failure modes — ghx is within-session in-memory read cache + singleflight coalescing + auto-invalidation on mutations; deft-cache is cross-session on-disk quarantine + ETag refresh + append-only audit log; the two layers stack (`scm:*` tasks (#881) -> `ghx` (within-session dedup) -> `cache:put` (cross-session persistence + quarantine) -> consumers); ghx does NOT save the rate-limit-during-mutation case since mutations invalidate cache entries rather than consume them — the right reflex for graphql-bucket exhaustion is REST fallback (section 1), not ghx adoption. Per Rule Authority [AXIOM] these are operational-pattern lessons with full prose bodies (not short deterministic-tier cross-references) since they describe agent-runtime coordination patterns rather than gateable rules. Refs #884 (closeout that surfaced the patterns), #883 (deft-cache layer), #881 (scm:* namespace), #727 (sub-agent role separation), #810 (implementation preflight gate), #236 / #240 / #283 / PR #795 / #798 (PS 5.1 encoding chain). Lands as `meta/lessons.md` change in companion docs PR #960.
@@ -2970,8 +2746,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **docs(upgrading): v0.25.x -> v0.26.0 migration section + tests(integration): cache layer e2e (#883 Story 4)** -- ships the consumer-facing migration guide for the v0.26.0 deft-cache unified layer cutover (closes the #883 R-C chain). New `## From v0.25.x -> v0.26.0` section in `UPGRADING.md` documents the surface removal (`task triage:cache` / `task triage:show`), the on-disk layout change (`.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` flat sidecar -> `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` per-entry directory), the operator recovery sequence (delete legacy tree; re-run `task cache:fetch-all`), audit-log preservation invariants, and the 13 unchanged `triage:*` aliases. New `tests/integration/test_cache_e2e.py` is the hermetic end-to-end fake-gh integration test parallel to v0.25.2's `test_triage_smoke.py`: 5 test functions cover (1) `cache:fetch-all` populates the new `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` layout for a 5-issue fake-gh fixture; (2) `cache:get` returns the expected `meta.json` envelope (`scanner_version`, `stale`, `fetched_at`, validated against `vbrief/schemas/cache-meta.schema.json`); (3) the global `quarantine-audit.jsonl` audit log carries one `cache:put` record per fetched issue; (4) `cache:invalidate` removes the entry directory cleanly and appends an audit record; (5) idempotent re-run of `cache:fetch-all` skips fresh entries (TTL-based meta.json freshness check). Wave 4 (FINAL) of the #883 R-C chain. Release dispatch (CHANGELOG [Unreleased] -> [v0.26.0] promotion + tag + draft + publish + epic / story vBRIEFs lifecycle move to `vbrief/completed/`) is DEFERRED to the maintainer post-merge per the overnight R-C plan; the v0.26.0 release entry MUST lead with a `### Breaking` block (NOT `### Added`) framing the surface removal + layout change. Refs #883.
 
 - **refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)** -- migrates the triage v1 read path off its bespoke `.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` cache and onto the unified `cache:*` surface from #883 Story 2. DELETED `scripts/triage_cache.py`, `tasks/triage-cache.yml`, the parent `Taskfile.yml` `triage-cache:` include block, and the `triage:cache` / `triage:show` user-facing aliases (hard cutover; no deprecation shims; UPGRADING.md migration text owned by Story 4). REWROTE four scripts to consume `cache.cache_get` for per-issue payloads and `cache.cache_fetch_all` for orchestrated populate: `scripts/triage_bulk.py` walks the new `.deft-cache/github-issue/<owner>/<repo>/<N>/` layout via `cache:get` (the legacy `_list_cached_candidates` flat-sidecar helper is removed; the cache walk reads `meta.json` through schema validation and reloads `raw.json` for the issue payload); `scripts/triage_actions.py` validates `mark_duplicate` targets via `cache.cache_get` instead of `triage_cache.show`; `scripts/triage_refresh.py` reads `meta.json.fetched_at` via `cache.cache_get` and treats `live_updatedAt > cached_fetched_at` as drift (the previous `cached_updatedAt != live_updatedAt` heuristic is replaced); `scripts/triage_bootstrap.py` becomes a four-step orchestrator: `cache:fetch-all --source=github-issue` + audit-log backfill + dual gitignore-ensure for `.deft-cache/` and `vbrief/.eval/` (the legacy gitcrawl install path is dropped per the epic design). EDITED `skills/deft-directive-refinement/SKILL.md` Phase 0 prose: Tier 1 references now point at `task cache:fetch-all` / `task cache:get`; the auto-skip probe inspects `.deft-cache/github-issue/<owner>/<repo>/`; the recovery message routes to `task cache:fetch-all` (re-populate) instead of the removed `task triage:refresh`; the `gitcrawl-fallback.md` see-also is replaced with the unified-cache see-also; the three-tier inventory model + canonical numbered action menu (Accept / Reject / Defer / Needs-AC / Mark duplicate / Discuss / Back) are preserved verbatim. EXTERNAL SURFACE UNCHANGED for the 13 kept aliases: `triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac` / `triage:mark-duplicate` / `triage:bulk-accept` / `triage:bulk-reject` / `triage:bulk-defer` / `triage:bulk-needs-ac` / `triage:status` / `triage:reset` / `triage:history` / `triage:refresh-active` / `triage:bootstrap`. EXTERNALLY REMOVED: `triage:cache` / `triage:show` (hard cutover; UPGRADING.md migration text in Story 4). New regression tests under `tests/test_triage_*.py` and `tests/integration/test_triage_smoke.py` use fake cache fixtures asserting `cache:get` is the new read path; new content tests on the refinement skill assert Phase 0 references `cache:*` and the three-tier model + action menu are intact. The #915 Tier-1-cache invariants (cache-empty hard-fail with exit 2; Tier-2 audit-log short-circuit on terminal records) are preserved verbatim. Refs #883, #845, #915.
@@ -3009,8 +2783,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 
 
@@ -3062,8 +2834,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 
 
 ### Removed
@@ -3097,8 +2867,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 
 
@@ -3145,8 +2913,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 
 
@@ -3220,8 +2986,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **feat(skills,interview): plain-English UX pass -- jargon, approval menus, diff preface (#740, refs #151 playtest umbrella, refs #767 deterministic-questions framework rule)** -- closes the consumer-adoption defect cluster surfaced by the #151 playtest where non-technical users only completed the planning flow because they had a second AI translating jargon, decoding ambiguous approval actions, and explaining red/green diffs. Three coordinated UX rules across `skills/deft-directive-interview/SKILL.md` and `strategies/interview.md`: (1) **Jargon pass** -- every technical question MUST carry a one-line plain-English context note as preamble above the structured-tool call (per Rule 2 Preamble Placement), every acronym MUST be defined inline on first use (`PRD (Product Requirements Document)`, `NFR`, `FR`, `SPEC`, `API`, `DB`, `CI`, `MVP`), and every framework recommendation MUST either explain the rationale in plain-English terms the user actually cares about (cost, speed, hiring, hosting compatibility) OR remove the rationale entirely and present it as an overridable default -- one-word `industry-standard` / `modern` / `scalable` justifications are a ⊗ anti-pattern. (2) **Approval-menu pass** -- explicit numbered approval menu after PRD review AND after SPEC review with action-shaped labels (`1. Approve and continue` / `2. Suggest changes` / `3. Edit yourself` / `4. Discuss` / `5. Back`). The menus follow the **#767 deterministic-questions framework rule**: the final two numbered options MUST be `Discuss` and `Back`, in that order. The framework rule itself is being landed by Agent 1 in #767; this PR cross-references it with a `!` MUST cross-reference at every menu site so once `contracts/deterministic-questions.md` exists this surface defers to it for canonical wording. (3) **Diff-view preface pass** -- when a PRD or SPECIFICATION review surfaces a red/green diff, the agent MUST emit a one-line non-alarming preface above it (`Here's what changed since the previous draft. Red lines were removed, green lines were added. Nothing here is broken -- this is a normal review.`) OR hide the diff entirely on the first review pass and present a plain-English summary instead. New `references/plain-english-ux.md` codifies all six rules (plain-English context note, acronyms-on-first-use, framework justifications explained-or-removed, numbered approval menu with Discuss/Back final-two per #767, diff-view preface, audience test) plus canonical PRD-review and SPECIFICATION-review approval menus and an Anti-Patterns block. Tests: 30 content tests in `tests/content/test_plain_english_ux.py` covering reference-doc rule presence, acronym-on-first-use rule named in interview surfaces, approval-menu presence (PRD + SPEC), diff-preface presence (skill + strategy PRD section + strategy SPEC section), Discuss/Back-final-two assertion via regex extractor that walks numbered-menu blocks and checks `menu[-2]` contains `Discuss` and `menu[-1]` contains `Back` on every approval menu in interview SKILL + interview strategy + reference doc canonical menus, and #767 cross-reference assertions. Closes #740.
 
 - **chore(vbrief): consistent `PhaseDescription` on every Phase 2 brief** -- set the same canonical text ("Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.") on every Phase 2 brief in `pending/` (#481, #624, #627, #628, #629, #630, #762, plus the three #635 children promoted this session). Defends against the renderer's first-wins behaviour where different `PhaseDescription` values across same-phase briefs would silently surface whichever one sorts first by filename. The medium-term structural fix (centralise in PROJECT-DEFINITION) is tracked at #762.
@@ -3279,8 +3043,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **docs(readme): cleanup pass + split into docs/** (#704): README.md trimmed from 733 to ~165 lines (TL;DR + Getting Started + pointers); long-form material rebalanced into `docs/ARCHITECTURE.md` (layered architecture, separated rule hierarchy from project-requirements ladder per T2.1, vBRIEF tooling table split by Migration / Authoring / CI per T2.7, both mermaid diagrams), `docs/CONCEPTS.md` (TDD, SDD, Convention-Over-Configuration, Safety/Reversibility, example-workflow mermaids), `docs/FILES.md` (directory tree + per-area file index, niche `platforms/` deepened per T2.6, `glossary.md` location disambiguated, `RWLDL`/`swarm` dual-source-of-truth reconciled with explicit canonical-form notes per T1.5), and `docs/RELEASING.md` (release & smoke-test workflow). Tier-1 factual fixes: T1.1 stale Platform-compatibility note replaced with manual-clone `deft/QUICK-START.md` callout; T1.2 TL;DR identity reframed away from "SKILL.md" to "layered set of standards files plus deterministic task tooling"; T1.3 `SKILL.md` annotated as one of two AI-agent entry surfaces with `AGENTS.md` canonical inside this repo; T1.4 coverage threshold standardised to ≥85% (replaced the lingering ≥75% reference); T1.5 phantom `core/user.md` reference removed and rephrased to avoid the deprecated path string, top-level `glossary.md` (short canonical) disambiguated from `core/glossary.md` (detailed reference), `RWLDL`/`swarm` dual-source-of-truth reconciled (canonical form is the skill; paired prose lives in `tools/RWLDL.md` and `swarm/swarm.md`); T1.6 stale `ideas.md` `deft/run upgrade` example replaced with a not-yet-shipped "VS Code extension surfacing scope vBRIEFs" example; T1.7 mermaid layer diagram now carries the `vbrief/` prefix on the `PROJECT-DEFINITION.vbrief.json` node. Tier-2 structural cleanups: T2.1 rules ladder kept distinct from project-requirements ladder (both summarised in README "Layered Architecture (at a glance)" and fully diagrammed in `docs/ARCHITECTURE.md`); T2.2 the three overlapping "what is Deft" sections consolidated and reordered so identity (TL;DR) precedes Getting Started; T2.3 the duplicate manual-clone callout DRY'd to a single line in the Getting Started block; T2.4 Notation Legend moved to the top so it sits before the first `!` use in the document; T2.5 the "Same instrument, different mastery" tautology dropped; T2.6 `platforms/2600.md` + `platforms/unity.md` moved into a dedicated "Niche Platforms" subsection deeper in `docs/FILES.md`; T2.7 the doc-tooling table split into three audience-targeted tables (Migration / Authoring / CI). Tier-3 split (T3.1) implemented as the rebalance described above; T3.2 mermaid density resolves naturally because the diagrams now live in the docs they belong to. All original content preserved (no deletions); internal links updated. `task check` green (2995 passed, 1 xfailed); `task verify:links` reports only the 4 pre-existing broken-link warnings (CHANGELOG examples + `scm/changelog.md` template + `templates/swarm-greptile-poller-prompt.md`) -- none in the new docs.
 
@@ -3346,8 +3108,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **refactor(events): unify behavioral + detection-bound events into `events/registry.json` with `category` field** (#635, refs #642 workflow umbrella, refs #634 determinism-tier ladder, refs #709 Repair Authority [AXIOM] proposal, refs #710 data-file-convention check follow-up): Folds the 4 behavioral framework events (`session:interrupted` + `session:resumed` paired, `plan:approved`, `legacy:detected`) into the unified `events/registry.json` introduced for the 5 detection-bound events; the prior `events/behavioral.yaml` registry is dropped (`git rm`). Every entry in the registry now carries a required `category` enum value (`detection-bound` | `behavioral`); `events/registry.schema.json` is extended to mark `category` required and to list the two enum values, with future categories landing as additive enum extensions per the [#642 workflow comment](https://github.com/deftai/directive/issues/642#issuecomment-4330742436) gate-time decision and the Repair Authority [AXIOM] proposal in #709. `scripts/_events.py` no longer carries a hard-coded `KNOWN_EVENTS` frozenset -- the helper now reads `events/registry.json` and filters to `category="behavioral"` entries via lazy proxy objects (`KNOWN_EVENTS`, `REQUIRED_PAYLOAD`) so existing imports continue to work; `scripts/_event_detect.py` is unchanged structurally and continues to validate against the full registry. `scripts/migrate_vbrief.py` resolves a post-rebase shadow conflict by importing the behavioral emitter under the distinct alias `_emit_behavioral_event` so it does not collide with the detection-bound `_emit_event` lazy-import wrapper introduced by #707 -- both helpers consume the same unified registry but enforce different category boundaries. `events/README.md` documents the unified registry, the category convention, and the additive-enum extension policy. `tests/cli/test_behavioral_events.py` updated to point at `events/registry.json` (filter behavioral entries by `category`) and gains 3 new tests: (1) `events/behavioral.yaml` is dropped post-unification; (2) every event in the unified registry carries a valid `category` value; (3) every behavioral-category event references a runtime emission surface in its `trigger`, has a non-empty `REQUIRED_PAYLOAD` entry, and lists at least one consumer. `tests/cli/test_events.py` (the detection-bound surface from #707) splits its expected-name set into `EXPECTED_DETECTION_BOUND_NAMES` (5 entries, asserted as the full detection-bound bucket) and `EXPECTED_EVENT_NAMES` (the 9-entry union), so the existing `registered_event_names()` assertion continues to pass against the larger registry. `skills/deft-directive-sync/SKILL.md` and `skills/deft-directive-review-cycle/SKILL.md` `## Framework Events Emitted Here` sections continue to reference `scripts/_events.py` for behavioral emission. Implements the unification half of `vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json`; the detection-bound surface landed via #707. Refs #635 (epic), Refs #642 (workflow umbrella), Refs #634 (determinism-tier ladder T5/T6), Refs #709 (Repair Authority [AXIOM] -- the rule motivating fix-now over defer), Refs #710 (data-file-convention check follow-up).
 
 - **chore(vbrief): PR-A scaffolding for PR #401 trim arc** (#642, #635, #233): Pre-trim scaffolding commit that authors deterministic refs the trimmed PR #401 will reference in its body. Per the canonical [#642 workflow comment](https://github.com/deftai/directive/issues/642#issuecomment-4330742436): (1) narrowed vbrief/active/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json from a 5-arc umbrella to a PR #401 trim tracker -- 3 hygiene plan.items[] (trim execution, RWLDL pre-PR, Greptile review cycle), plan.status: running, references[] gain epic #635, determinism-tier #634, the canonical workflow comment, and the existing PR #401 + #233 entries; (2) lifecycle-moved vbrief/proposed/2026-04-23-233-more-determinism-... -> vbrief/pending/ and applied the done/pending split -- removed the 8 v0.17.0-completed items (tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced task check) and surfaced the 6 genuinely-remaining tasks as plan.items[] (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release) plus a reference back to the historical vbrief/completed/2026-04-23-233-partial-... record; (3) created 4 new vBRIEFs in vbrief/proposed/ under epic #635: 2026-04-27-635-events-detection-bound-wiring (5 events with existing detectors), 2026-04-27-635-events-behavioral-wiring (3 items: paired session:interrupted/resumed, plan:approved, legacy:detected), 2026-04-27-635-rule-ownership-map-data-file-and-lint (replaces the descriptive prose section being removed from REFERENCES.md), and 2026-04-27-635-phase-0-spec-scaffolding-rfc (needs-discussion-shaped RFC; runs design-question loop before swarm assignment); (4) added history/proposals/2026-04-18-more-determinism.md -- 2-line pointer to commit 47034134cc24d6549d00b838f37a242e35c53013 (no verbatim doc archive per maintainer direction; content reachable via git history); (5) added temp/ to .gitignore so the agent transient-file convention is durable. Refs #642 (tracking umbrella stays open until split children land), Refs #635 (epic anchor for the 4 new child vBRIEFs), Refs #233 (umbrella stays open as GitHub-side tracker for the 6 remaining pending items).
@@ -3408,8 +3168,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **docs(vbrief): refinement session -- restore pre-v0.20 Phase 3-6 forward-plan structure in ROADMAP.md**: After the v0.20.0 self-migration left `vbrief/pending/` empty (all committed work landed in `vbrief/completed/`), rendered `ROADMAP.md` collapsed to a single `## Completed` section, losing the multi-phase forward-looking view that existed at commit `3925468` (tag `v0.20.0-pre-self-migration`). Walked the `deft-directive-refinement` skill end-to-end to remediate: Phase 1 ingested the 2 remaining Phase 3-6 issues that lacked scope vBRIEFs (#96, #100); Phase 2 bulk-confirmed the 31 Phase-mapped open issues with the user (Option B bulk-confirm; includes #100 added late as a Phase 6 item); Phase 4 attached `plan.metadata['x-migrator'].Phase` to each vBRIEF matching its pre-migration phase assignment (source: commit `3925468`), then ran `task scope:promote` to move all 31 from `vbrief/proposed/` to `vbrief/pending/`; Phase 5 re-ran `task roadmap:render` and `task project:render` to regenerate `ROADMAP.md` (now carrying `## Phase 3 -- Documentation & Content Fixes`, `## Phase 4`, `## Phase 5 -- Package Distribution & Install UX`, `## Phase 6 -- CLI Overhaul & New Features`, and the preserved `## Completed` section) and `vbrief/PROJECT-DEFINITION.vbrief.json` items registry (now 290 scope items, up from 288). Also normalized the two just-ingested vBRIEFs (#96, #100) from the legacy v0.5 `{type: github-issue, id: #N, url: api-url}` reference shape to the canonical v0.6 `{uri: html-url, type: x-vbrief/github-issue, title}` shape per `conventions/references.md` -- this surfaced a defect in `scripts/issue_ingest.py` that emits the legacy shape; follow-up fix tracked separately for v0.21. No items in `vbrief/completed/` were disturbed.
 
 
@@ -3469,8 +3227,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **feat(vbrief): migrate emitted `vBRIEFInfo.version` to `"0.6"` + bulk sweep existing vBRIEFs** (#533, #561): Centralised `EMITTED_VBRIEF_VERSION = "0.6"` constant in `scripts/migrate_vbrief.py` and used it across every emission site (PROJECT-DEFINITION skeleton, PRD/fidelity/legacy-artifacts spec skeletons, speckit scope builder, speckit session-scaffold envelope). Applied the flip to `scripts/_vbrief_build.py::create_scope_vbrief`, `scripts/_vbrief_speckit.py`, and `scripts/project_render.py` skeleton. The speckit session-scaffold rewrite force-sets the envelope version (previously `setdefault`) so a v0.5 speckit plan migrated today produces a v0.6 session file. Bulk-swept 82 existing `.vbrief.json` files under `vbrief/` (root + lifecycle folders) and the golden expected fixture tree `tests/fixtures/pre_cutover_customized.expected/` so byte-for-byte comparisons continue to round-trip. `*.premigrate.*` backup copies and `tests/fixtures/migration/` INPUT fixtures are intentionally excluded (the latter stay at `"0.5"` so the migrator still exercises its pre-cutover v0.5 input path). Integration test assertions in `tests/cli/test_migrate_vbrief.py`, `tests/cli/test_project_render.py`, and `tests/cli/test_vbrief_routing.py` updated to expect `"0.6"` on migrator output. `scripts/issue_ingest.py` (Agent 3-owned) is not touched. Coordinates with Agent 2's #533 schema vendor PR.
 
@@ -3614,8 +3370,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **feat(strategies): convert speckit and enterprise to vBRIEF-centric outputs** (#361, #362, #364): Updated `strategies/speckit.md` Phase 1 output from `project.md` to `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`; Phase 2 output from `specs/[feature]/spec.md` to WHAT/WHY narratives in `vbrief/specification.vbrief.json`; Phase 3 output from `specs/[feature]/plan.md` to HOW narratives enriching `vbrief/specification.vbrief.json` with `task spec:render` for human review; removed all `specs/` directory references. Updated `strategies/enterprise.md` Stage 1 to write PRD narratives to `vbrief/specification.vbrief.json` with `task prd:render` for Gate 1 review; Stage 3 to enrich specification vBRIEF with `task spec:render` for Gate 3 review; updated output artifacts section -- `specification.vbrief.json` is primary, rendered `.md` files are read-only exports. ADRs in `docs/adr/` and approval gates preserved. Added 9 tests in `tests/content/test_strategy_vbrief.py`.
 
 - **feat(strategies): convert rapid, bdd, discuss to vBRIEF-centric outputs** (#363, #365, #366): Updated `strategies/rapid.md` Step 3 to write `vbrief/specification.vbrief.json` (Light path, status: draft) instead of directly authoring SPECIFICATION.md, added `task spec:render` for read-only export, updated output artifacts to list vBRIEF as primary artifact; updated `strategies/bdd.md` Step 4 to write locked decisions to `vbrief/proposed/{feature}-bdd.vbrief.json` with `Scenarios` and `LockedDecisions` narratives instead of `{feature}-bdd-context.md`, directed test files to project test directory instead of `specs/` folder, eliminated `specs/` as BDD output; updated `strategies/discuss.md` output to `vbrief/proposed/{scope}-context.vbrief.json` with `LockedDecisions` narrative, eliminated `{scope}-context.md` as hand-authored artifact, promoted SHOULD rule to MUST for vBRIEF persistence, updated chaining gate artifact registration; added 12 tests in `tests/content/test_strategy_outputs.py`
@@ -3651,8 +3405,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **feat(cli): update cmd_spec and cmd_project for vBRIEF-centric model** (#320, Part of #309): Rewrote `cmd_project` to output `vbrief/PROJECT-DEFINITION.vbrief.json` instead of `PROJECT.md` -- uses vBRIEF v0.5 schema with `narratives` for project identity (Overview, TechStack, Languages, Strategy, Coverage, optional Branching) and empty `items` array as scope registry; rewrote `cmd_spec` to output scope vBRIEFs to `vbrief/proposed/YYYY-MM-DD-descriptive-slug.vbrief.json` instead of INTERVIEW.md/PRD.md -- uses vBRIEF v0.5 schema with `proposed` status, features as items, strategy/sizing metadata, Light path creates minimal narratives, Full path adds rich narrative placeholders (ProblemStatement, Goals, UserStories, Requirements, SuccessMetrics); added `_slugify()` helper for filename convention; updated `get_default_paths()` to return `vbrief/PROJECT-DEFINITION.vbrief.json` and `vbrief/proposed/` defaults; updated `_read_project_strategy()` and `_read_project_process()` to read from vBRIEF JSON format with legacy PROJECT.md fallback; updated all CLI help text (usage, TUI, command descriptions) to reference new vBRIEF structure; rewrote `tests/cli/test_project.py` with 12 tests for vBRIEF output; created `tests/cli/test_cmd_spec.py` with 11 tests for scope vBRIEF output; updated `tests/cli/test_project_user_defaults.py` and `tests/conftest.py` for new paths
 
@@ -3722,8 +3474,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Roadmap Refresh (2026-04-13)**: Triaged 8 items (23 individual issues including a 16-issue RFC bundle) -- #301 (Phase 1 Cleanup: tighten deft-interview routing keyword, t1.26.1), #302 (Phase 1 Cleanup: clarify deft-interview invocation contract embedded vs delegation modes, t1.27.1), #303 (Phase 1 Cleanup: fix deft-interview Rule 5 vs Rule 6 ok/confirmation-gate inconsistency, t1.28.1), #304 (Phase 1 Cleanup: regression test for deft-setup Phase 1/2 referencing deft-interview, t1.29.1), #305 (Phase 1 Adoption Blockers: Greptile review cycle bottlenecks -- 5-change bundle: mandatory deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template, t1.30.1), #307 (Phase 1 Adoption Blockers: deft-review-cycle Approach 2 silent failure in interactive sessions -- add Approach 3 blocking fallback with user warning, t1.31.1), #309 + stories #310-#324 (Phase 2 vBRIEF Architecture Cutover RFC: 18 design decisions + 15 stories; big-bang cutover to vBRIEF lifecycle folders, ROADMAP.md as generated artifact, all skills renamed to deft-directive-*, t2.12.1); closed #308 (absorbed by #309 RFC); restructured roadmap phases -- inserted Phase 2 (vBRIEF Architecture Cutover), shifted Phases 2-5 to 3-6; stale cleanup: moved #293 and #298 (both closed) to Completed; analysis comments posted on all triaged issues
 
 - **Roadmap Refresh (2026-04-12)**: Triaged 1 new issue -- #298 (Phase 1 Cleanup: flip 5 stale `[pending]` spec task statuses to `[completed]` in SPECIFICATION.md -- t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1 -- shipped v0.16.0 but SPECIFICATION.md not synced, t1.25.1); no stale entries; analysis comment posted on #298
@@ -3753,8 +3503,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Roadmap Refresh (2026-04-10)**: Triaged 6 new issues -- #288 (Phase 1 Cleanup: deft-swarm Phase 6 read-back verification after rebase conflict resolution, t1.21.1), #292 (Phase 1 Cleanup: auto-generate Slack release announcement after swarm release, t1.22.1), #293 (Phase 3: unit tests for v0.17.0 deterministic task scripts, t3.3.4), #294 (Phase 1 Cleanup: strengthen test-with-code rule across AGENTS.md/main.md/deft-swarm/deft-build, t1.23.1), #295 (Phase 1 Cleanup: resolve 5 untracked xfail gaps in known_failures.json, t1.24.1), #296 (Phase 2: skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill, t2.11.1); no stale entries; analysis comments posted on all 6 issues
 
@@ -3812,8 +3560,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Roadmap Refresh (2026-04-09)**: Triaged 4 new issues -- #256 (Phase 1 Adoption Blockers: `--body-file` temp file writes to worktree + `rm` denylist collision; fix: use OS temp dir, t1.13.2), #258 (Phase 2: Warp Drive global rules inventory for CONTRIBUTING.md, spinoff of #114, blocked on #89, t2.9.1), #261 + #263 (bundled, Phase 1 Adoption Blockers: swarm monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption, t1.13.1); no stale entries; analysis comments posted on all 4 issues
 
 - **Roadmap Refresh (2026-04-09, session 2)**: Triaged 3 new issues -- #266 (Phase 2: move installer asset links to top of README, t2.10.1), #268 (Phase 2: wrap install commands in fenced code blocks for copy button, t2.10.2), #270 (Phase 3: validate USER.md against current schema + artifact format versioning with `deft_version` field, t3.2.1); held #269 pending Warp team response (auto-approve silently skips interview questions -- investigating Mac-vs-Windows platform difference); closed #271 as duplicate of #269 (same root cause, deft-side sentry/guard mitigation tracked in #269); no stale entries; analysis comments posted on all triaged issues
@@ -3831,8 +3577,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Rename deft-rwldl skill to deft-pre-pr** (#226, t2.8.3): Renamed `skills/deft-rwldl/` to `skills/deft-pre-pr/` for clarity -- the acronym "RWLDL" was opaque and collided with the RWLDL tool pattern; updated frontmatter, `.agents/skills/` thin pointer, AGENTS.md Skill Routing table, and `tests/content/test_skills.py`; added auto-suggestion to AGENTS.md Development Process section
 
@@ -3880,8 +3624,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Roadmap Refresh (2026-04-09)**: Triaged 2 new issues -- #228 (bring run CLI into test coverage measurement, Phase 3 -- confirm #160 before implementing), #248 (roadmap refresh does not surface spec task coverage, Phase 2 -- strengthen swarm Phase 0 skeleton spec tasks); no stale entries; analysis comments posted on both issues
 
 
@@ -3909,8 +3651,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Roadmap Refresh (2026-04-09)**: Triaged 5 issues -- #221 (deft-roadmap-refresh explicit row format template, Phase 2), #226 (deft-rwldl rename + auto-suggestion triggers, Phase 2), #233 (More Determinism full initiative, Phase 5), #234 (README artifacts section, Phase 2); filed #235 as Phase 3 split-off from #233 (toolchain:check + changelog:check); filed #236/#237/#238/#239/#240/#241 to Phase 1 (#236: Get-Content -Raw UTF-8 footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted
 
@@ -3943,8 +3683,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **deft-review-cycle tiered review monitoring** (#195, t2.7.4): Replaced blocking `Start-Sleep`/`time.sleep()` shell polling in `skills/deft-review-cycle/SKILL.md` Step 4 with tiered monitoring -- Approach 1 (preferred): spawn sub-agent via `start_agent` to poll autonomously while main conversation stays interactive; Approach 2 (fallback): discrete `run_shell_command` (wait mode) calls with yield between checks; capability detection reuses `start_agent` tool-presence pattern from #188; existing exit conditions preserved; added 7 tests covering tiered monitoring section, both approaches, capability detection, and blocking sleep prohibition
 
@@ -3985,8 +3723,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Roadmap Refresh (2026-04-07)**: Triaged 5 new issues — #217 (pyproject.toml dev deps breaks task check in fresh worktrees, Phase 1 Adoption Blockers), #218 (deft-swarm release decision checkpoint, Phase 1 Adoption Blockers), #207 (Greptile re-review latency on swarm merge cascade, Phase 2), #219 (README.md stale content, Phase 2), #212 (process control in Directive discussion, Phase 5); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198 entry, added #182 description; analysis comments posted on all 5 issues
 
@@ -4042,8 +3778,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Roadmap Refresh (2026-04-06)**: Triaged 14 new issues, promoted 1, closed 2, cleaned 1 stale entry — #192 (proactive test coverage after review-fix commits, Phase 1 Adoption Blockers), #191 (remove vBRIEF defensive workarounds, deftai/vBRIEF#2 resolved, Phase 1 Adoption Blockers), #189 (closed as superseded by #191), #184 (deft-review-cycle autonomous polling imperative after push, Phase 1 Adoption Blockers), #188 (deft-swarm runtime `start_agent` capability detection + Warp environment gate, Phase 2; reshaped from static Option D label to tool-presence-based detection), #182 (deft-rwldl skill: iterative pre-PR quality loop, Phase 2), #194 (user-facing best practices guide, Phase 2), #195 (review monitor orchestration, Phase 2), #196 (roadmap-refresh cleanup convention, Phase 2), #197 (scm/github.md with gh CLI rules and Windows encoding guidance, Phase 2 -- absorbs #201), #198 (instant-fix drift and skill-context bleed rules for main.md, Phase 1), #199 (deft-swarm mandatory analyze phase, Phase 1), #200 (scan skills/ before improvising workflows, Phase 1), #202 (ASCII convention for machine-editable sections, Phase 2); promoted #188 from Phase 2 to Phase 1 (user actively testing swarm); closed #201 (absorbed by #197); moved #166 to Completed (closed on GitHub); cleaned up 2 stale entries (#133 closed 2026-04-05, #58 closed 2026-04-06); updated #147 title and scope (expanded to cover keyword routing + 3 missing skills); analysis comments posted on all issues
 
 
@@ -4092,8 +3826,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **ROADMAP.md update convention** (#170): Changed PR conventions in `AGENTS.md` from "updates happen on merge" to "updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit"; added Phase 6 Step 5 to `skills/deft-swarm/SKILL.md` codifying this as the release-time checkpoint; added ⊗ anti-pattern prohibiting ROADMAP.md edits during swarm close; added ⊗ to Phase 1 Step 2 excluding ROADMAP.md from swarm shared-file exceptions
 
 - **Mermaid gist-rendering guidance**: Codified GitHub/Gist sequence-diagram readability rules in `languages/mermaid.md` as explicit RFC2119 MUST/SHOULD guidance: do not rely on `init.background`/`themeCSS` alone, use a grey participant-only `box ... end`, keep messages/notes outside the box, and keep sequence workarounds diagram-type-scoped; added regression tests in `tests/content/test_mermaid_guidance.py` (#102)
@@ -4128,8 +3860,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Roadmap Refresh (2026-04-03)**: Triaged 5 new issues — #170 (move ROADMAP.md updates to release-time, Phase 2), #171 (hard gate against agent direct-to-master commits, Phase 1 Cleanup), #172 (deft-swarm skill oz agent run/run-cloud correction, Phase 1 Adoption Blockers — priority next), #174 (deft-roadmap-refresh review cycle chaining after PR push, Phase 2), #175 (deft-review-cycle no-push-during-review + polling cadence, Phase 1 Cleanup); analysis comments posted on all issues; meta/lessons.md updated with 3 new Windows/review-cycle encoding and monitoring lessons
 
 
@@ -4151,8 +3881,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **README restructure**: Moved Getting Started section (install, setup, spec, build) from below the architecture/layers documentation to immediately after the TL;DR; added prominent installer download callout at the top of the page (#137, t2.5.3)
 
@@ -4236,8 +3964,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Yolo Strategy Deduplication**: Refactored `strategies/yolo.md` to reference `interview.md` for shared Light/Full path flows, SPECIFICATION guidelines, and Artifacts Summary — reduced from 165 to ~115 lines (#23)
 
 - **Chaining Gate Cleanup**: Removed "Brownfield" alias from `interview.md` chaining gate options — now just "Map"
@@ -4296,8 +4022,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Roadmap Triage**: Triaged issues #101–#108 into roadmap phases; #101 absorbed into #56; #105/#106 (directive gaps) and #107/#108 (language selection UX) added to Phase 1; #102/#103/#104 (docs/standards) added to Phase 2
 
 
@@ -4319,8 +4043,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **PrintNextSteps**: Installer output updated to reflect auto-discovery — no longer tells users to manually say 'read AGENTS.md and follow it' (#94)
 
@@ -4375,8 +4097,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Bootstrap Parity**: Aligned CLI and agentic setup paths to produce consistent USER.md output (#45, #14, #61, #65)
 
@@ -4478,8 +4198,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Strategy Renames**: `default.md` → `interview.md`, `brownfield.md` → `map.md` (#16)
 
 - **Command Prefix**: Change lifecycle uses `/deft:change` (not `/deft:run:change`); session uses `/deft:continue`/`/deft:checkpoint` (#20)
@@ -4495,8 +4213,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Branch sync**: Merged master (v0.2.3 through v0.4.3) into beta (v0.5.0/v0.5.1) to unify both branches after significant divergence from the v0.2.2 fork point
 
@@ -4586,8 +4302,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **USER.md relocated**: Default path moved from `core/user.md` to `~/.config/deft/USER.md`
 
   - Configurable via `DEFT_USER_PATH` env var
@@ -4648,8 +4362,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **TUI UX Improvements**: Enhanced form design and user experience
 
   - Replaced all y/n text inputs with checkboxes for boolean options
@@ -4705,8 +4417,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Documentation Optimization**: Reduced token usage across core documentation files
 
@@ -4814,8 +4524,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **Help System**: `-h`, `--help`, `-help` flags show usage (TUI no longer launches for `./run` with no args if textual not installed)
 
 - **Menu Design**: Aligned option labels with minimal dots (longest command name sets alignment)
@@ -4837,8 +4545,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **README Getting Started**: Complete rewrite with clearer workflow
 
@@ -4866,8 +4572,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **README Quick Start**: Updated run command examples
 
   - Changed from `run` to `deft/run` prefix for clarity
@@ -4884,8 +4588,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **README Structure**: Moved copyright notice to end of file for better flow
 
   - Copyright and license info now appears at bottom after main content
@@ -4900,8 +4602,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **README Formatting**: Consolidated file descriptions to one line per file for better readability
 
   - Core, Languages, Interfaces, Tools, Templates, and Meta sections now use single-line format
@@ -4915,8 +4615,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **README TL;DR Enhancements**:
 
@@ -4936,8 +4634,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **README TL;DR**: Added note about professional-grade defaults
 
   - Highlights that Deft works out of the box without customization
@@ -4951,8 +4647,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **MIT License**: Updated from temporary usage terms to full MIT License
 
@@ -4981,8 +4675,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Project renamed from Warping to Deft**: Complete rebrand across all files and documentation
 
@@ -5053,8 +4745,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Renamed `run.py` → `run`**: Removed .py extension for cleaner command
 
@@ -5140,8 +4830,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 ### Changed
 
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
-
 - **SKILL.md Structure**: Enhanced with detailed workflow sections
 
   - Step-by-step initialization workflow (init → bootstrap → project → spec)
@@ -5171,8 +4859,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **Spec Command Output**: Improved next steps messaging in `deft.sh spec`
 
@@ -5227,8 +4913,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 - **SCM Reorganization**: Moved `tools/git.md` and `tools/github.md` to `scm/` directory
 
@@ -5337,8 +5021,6 @@ brief.invalid/ (numeric suffix on collision) so Agent C's .premigrate.* backups 
 
 
 ### Changed
-
-- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
 
 
 

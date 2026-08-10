@@ -23,7 +23,6 @@
         "narrative": {
           "Acceptance": "Given Cursor spawn/tool.before deposit defaults, when inspected, timeout is above gated-ritual cost OR mutation path skips redundant re-verify when already green; approach documented."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Raise deposit timeout or short-circuit green ritual"
       },
@@ -31,7 +30,6 @@
         "narrative": {
           "Acceptance": "Given active xBRIEF and ready ritual under normal load, when Task is evaluated, result is allow or coded deny, not only opaque Cursor failClosed exit-1."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Decision path not only host exit-1"
       },
@@ -39,7 +37,6 @@
         "narrative": {
           "Acceptance": "Given empty xbrief/active, when unmarked Task runs, deny message for no active xBRIEF still works."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Clean deny without active xBRIEF intact"
       },
@@ -47,7 +44,6 @@
         "narrative": {
           "Acceptance": "Given init-deposit/agent-hooks tests, when run, new timeout/short-circuit is locked; CHANGELOG notes deposit behavior change if user-visible."
         },
-        "effort": "M",
         "status": "completed",
         "title": "Tests + CHANGELOG"
       }

@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a decompose draft story with swarm.size=large and parallel_safe=true, when scope:decompose --check runs, the command exits non-zero and names the large/parallel_safe invariant."
         },
@@ -28,7 +27,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given the same draft fields, when swarm:readiness evaluates the story, the failure class matches the decompose check message family."
         },
@@ -36,7 +34,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given CHANGELOG.md [Unreleased], when the PR lands, it cites #3252 under Fixed."
         },

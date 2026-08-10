@@ -20,59 +20,63 @@
     },
     "items": [
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a valid draft JSON and no grant under .deft/authz/grants, when scope:decompose apply runs, it exits non-zero without writing child stories."
         },
         "title": "Apply requires human grant",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/scope/decompose.test.ts:apply without grant fails closed",
-          "recorded_at": "2026-08-10T20:35:01.788Z",
-          "recorded_by": "agent:leaf-3239-3258"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/scope/decompose.test.ts:apply without grant fails closed",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a human-origin grant bound to digest X, when the draft bytes change to digest Y, apply exits non-zero."
         },
         "title": "Digest binding",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/scope/decompose.test.ts:grant for digest X cannot apply changed draft Y",
-          "recorded_at": "2026-08-10T20:35:01.788Z",
-          "recorded_by": "agent:leaf-3239-3258"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/scope/decompose.test.ts:grant for digest X cannot apply changed draft Y",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a matching human-origin structural grant, when apply runs on that draft, apply succeeds."
         },
         "title": "Check-only ungated",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/scope/decompose.test.ts:matching human-origin structural grant allows apply",
-          "recorded_at": "2026-08-10T20:35:01.788Z",
-          "recorded_by": "agent:leaf-3239-3258"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/scope/decompose.test.ts:matching human-origin structural grant allows apply",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given --check only, when no grant exists, check still runs without requiring a grant."
         },
         "title": "Tests+CHANGELOG",
         "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3258",
-          "recorded_at": "2026-08-10T20:35:01.788Z",
-          "recorded_by": "agent:leaf-3239-3258"
+        "metadata": {
+          "evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3258",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
         }
       }
     ],

@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a recorded approval for head A, when PR HEAD becomes B, merge gates treat approval as stale and fail closed."
@@ -28,7 +27,6 @@
         "title": "SHA-bound approval contract"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given stale approval with auto-merge enabled, when the gate runs, it disables auto-merge or blocks merge until a new approval bound to current HEAD exists, with recovery text."
@@ -36,7 +34,6 @@
         "title": "Auto-merge invalidation or re-approval path"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given fixtures for multi-push auto-merge retention, when vitest runs finish-loop/pr-wait-mergeable/policy suites, cases pass; CHANGELOG cites #3235."

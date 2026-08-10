@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given two global installs with different versions and PATH preferring the older, when the post-upgrade check runs, it detects mismatch and fails closed."
@@ -28,7 +27,6 @@
         "title": "Resolve active binary and compare engine version"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a shadowing failure, when the ritual exits non-zero, stderr lists competing executable paths and versions with remediation."
@@ -36,7 +34,6 @@
         "title": "Actionable multi-prefix diagnostic"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given injectable path/version fixtures, when vitest runs session/doctor which suites, cases pass; CHANGELOG cites #3233."

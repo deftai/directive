@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given lifecycle artifacts declaring xBRIEFInfo.version major 0.6 while framework expects 0.8, when doctor runs, the envelope-major check fails closed with both versions named."
         },
@@ -28,7 +27,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given all scanned envelopes at the framework major, when doctor runs, this check does not fail for major mismatch."
         },
@@ -36,7 +34,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given CHANGELOG.md [Unreleased], when the PR lands, it cites #3243."
         },

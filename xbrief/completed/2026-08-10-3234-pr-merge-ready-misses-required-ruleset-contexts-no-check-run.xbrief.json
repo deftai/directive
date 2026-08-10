@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a PR with ruleset-required contexts, when merge-ready evaluates, the required context list includes those names even if no check run exists."
@@ -28,7 +27,6 @@
         "title": "Resolve required contexts from rulesets/protection"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a required context with no check run on HEAD, when pr:merge-ready runs, merge_ready is false and the absent context is named in output/JSON."
@@ -36,7 +34,6 @@
         "title": "Absent required context is fail-closed"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given unit fixtures covering observed-green + absent-required, when vitest runs pr-merge-readiness, cases pass; CHANGELOG cites #3234."

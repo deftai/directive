@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given xbrief/**/*.xbrief.json with xBRIEFInfo.version 0.6 and no vbrief/, when migrate:xbrief runs, envelopes become xBRIEFInfo@0.8 and exit 0 with a rewrite report."
@@ -28,7 +27,6 @@
         "title": "In-place hybrid 0.6 rewrite on xbrief-only trees"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given already-0.8 hybrid trees, when migrate:xbrief re-runs, it no-ops without corrupting files; doctor xbrief-envelope-version is clear after a successful rewrite."
@@ -36,7 +34,6 @@
         "title": "Idempotent second pass and doctor path"
       },
       {
-        "effort": "M",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given unit tests for hybrid-only trees, when vitest runs on xbrief-migrate, new cases pass; CHANGELOG cites #3236."

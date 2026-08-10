@@ -20,7 +20,6 @@
     },
     "items": [
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given pending acceptance criteria with no evidence or disposition, when scope:complete runs, it exits non-zero and lists missing criteria."
         },
@@ -28,7 +27,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a criterion requiring smoke with only kind=merge evidence, when scope:complete runs, it exits non-zero."
         },
@@ -36,7 +34,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a waived disposition with human-origin provenance on a criterion, when scope:complete runs, that criterion may complete without full evidence."
         },
@@ -44,7 +41,6 @@
         "status": "completed"
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given CHANGELOG.md [Unreleased], when the PR lands, it cites #3240."
         },
