@@ -707,6 +707,27 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     }
   });
 
+  it("fails closed when PROJECT-DEFINITION exists but is unreadable", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const def = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+      mkdirSync(dirname(def), { recursive: true });
+      writeFileSync(def, '{"xBRIEFInfo":{"version":"0.8"}}', "utf8");
+      // isFile sees the path; readText cannot read it → behind-major null.
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isFile: (p) => p === def || p.endsWith("PROJECT-DEFINITION.xbrief.json"),
+        isDir: (p) => p.includes(`${sep}xbrief`) || p.endsWith("xbrief"),
+        readText: () => null,
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("PROJECT-DEFINITION.xbrief.json");
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("reports mixed migratable and non-migratable behind-major in one fail", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
     try {
