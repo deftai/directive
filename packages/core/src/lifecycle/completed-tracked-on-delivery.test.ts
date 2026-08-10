@@ -373,26 +373,44 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(result.missing[0]?.issue.number).toBe(9060);
   });
 
-  it("accepts terminal land committed on HEAD even when delivery tip lacks it", () => {
+  it("fails when land is only on HEAD and delivery tip is an older rev (strict tip)", () => {
     const root = makeGitRepo();
-    // Delivery tip is the first commit (no completed/). Later HEAD lands completed.
     writeBrief(root, "completed", "pr-land.xbrief.json", issuePlan(9070));
     writeCachedIssue(root, "deftai/directive", 9070, "closed");
     git(root, ["add", "xbrief/completed/pr-land.xbrief.json"]);
     git(root, ["commit", "-q", "-m", "lifecycle PR land"]);
-    const first = gitRev(root, "HEAD~1");
+    const first = execFileSync("git", ["rev-parse", "HEAD~1"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
     const result = evaluateCompletedTracked(root, {
       repo: "deftai/directive",
       skipGh: true,
       tip: first,
     });
+    expect(result.code).toBe(1);
+    // Operators validating an in-flight land PR should pass --tip HEAD.
+    const headTip = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(headTip.code).toBe(0);
+  });
+
+  it("does not trust stale open cache when live gh fails (#3264 P1 residual)", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "stale-open-live-fail.xbrief.json", issuePlan(9080));
+    writeCachedIssue(root, "deftai/directive", 9080, "open");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: false,
+      tip: "HEAD",
+      runGh: () => ({ returncode: 1, stdout: "", stderr: "network down" }),
+    });
+    // Unknown state (live fail + no trusted closed) must not false-green as open skip
+    // while also not false-red: no closed evidence → code 0 with no missing.
     expect(result.code).toBe(0);
+    expect(result.missing).toEqual([]);
   });
 });
-
-function gitRev(root: string, rev: string): string {
-  return execFileSync("git", ["rev-parse", rev], {
-    cwd: root,
-    encoding: "utf8",
-  }).trim();
-}

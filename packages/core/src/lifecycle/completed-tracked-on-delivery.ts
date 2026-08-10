@@ -169,15 +169,18 @@ function defaultResolveIssueState(
     return "closed";
   }
   if (skipGh) {
+    // Offline / fixture mode: honor cache open|null as-is.
     return cached;
   }
-  // Stale open cache can hide post-close land debt (#3264 Greptile P1).
-  // Prefer live when network is allowed; fall back to cache / null.
+  // Prefer live when network is allowed. Stale open cache must not suppress a
+  // later close when live succeeds (#3264 Greptile P1). When live fails, do
+  // NOT fall back to cached open — treat as unknown so we fail closed only on
+  // positive closed evidence (cached closed above, or live closed).
   const live = fetchIssueStateLive(ref, runGh);
   if (live !== null) {
     return live;
   }
-  return cached;
+  return null;
 }
 
 function collectIssuesFromPlan(
@@ -484,10 +487,11 @@ export function evaluateCompletedTracked(
     };
   }
 
-  // Terminal land may be on the delivery tip (post-merge truth) OR on HEAD
-  // (lifecycle PR / finalize branch that is about to land). Checking only the
-  // remote tip would deadlock lifecycle PRs that already commit completed/
-  // on the branch but have not merged yet (SLizard P1 #3264).
+  // Delivery tip only — the land invariant is post-merge tip truth (#3264 AC).
+  // Lifecycle PRs that commit completed/ on a feature branch are not expected
+  // to satisfy this gate until merge; run the verb with --tip HEAD when
+  // validating an in-flight land PR. The gate is a standalone verify verb
+  // (not wired into check:consumer) so product PRs are not deadlocked.
   const tipTerminalPaths = listTreePaths(root, tip, terminalPrefixes(), runGit);
   const tipTerminalHits = issuesFromBlobPaths(
     root,
@@ -498,20 +502,6 @@ export function evaluateCompletedTracked(
     `tip:${tip}`,
   );
   const landedKeys = new Set(tipTerminalHits.map((h) => issueKey(h.issue)));
-  if (tip !== "HEAD" && refExists(root, "HEAD", runGit)) {
-    const headTerminalPaths = listTreePaths(root, "HEAD", terminalPrefixes(), runGit);
-    const headTerminalHits = issuesFromBlobPaths(
-      root,
-      "HEAD",
-      headTerminalPaths,
-      defaultRepo,
-      runGit,
-      "tip:HEAD",
-    );
-    for (const hit of headTerminalHits) {
-      landedKeys.add(issueKey(hit.issue));
-    }
-  }
 
   const missing: MissingCompletedLand[] = [];
   for (const [key, entry] of originMap) {

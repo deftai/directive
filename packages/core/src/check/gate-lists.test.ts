@@ -58,14 +58,13 @@ describe("gate-lists (#2791)", () => {
     );
   });
 
-  it("keeps verify:completed-tracked on consumer and framework gate lists (#3264)", () => {
+  it("keeps verify:completed-tracked as a standalone verb, not a check-graph gate (#3264)", () => {
+    // Delivery-tip land check is a deliberate standalone surface so lifecycle
+    // land PRs are not deadlocked by check:consumer / check:framework-source.
     const consumer = CONSUMER_CHECK_GATES.map(checkGateId);
     const framework = FRAMEWORK_CHECK_GATES.map(checkGateId);
-    expect(consumer).toContain("verify:completed-tracked");
-    expect(framework).toContain("verify:completed-tracked");
-    expect(gatesForCheckTarget("check:consumer").map(checkGateId)).toContain(
-      "verify:completed-tracked",
-    );
+    expect(consumer).not.toContain("verify:completed-tracked");
+    expect(framework).not.toContain("verify:completed-tracked");
   });
 
   it("includes #3145 enforcement gates on framework and consumer lists", () => {

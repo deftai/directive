@@ -348,8 +348,6 @@ tasks:
     cmds: [echo ok]
   orphan-active:
     cmds: [echo ok]
-  completed-tracked:
-    cmds: [echo ok]
   test-boundary:
     cmds: [echo ok]
   scope-provenance:
