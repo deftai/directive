@@ -313,8 +313,7 @@ export function evaluateMergeApprovalHead(
         ? join(input.projectRoot, DEFAULT_EVENT_LOG)
         : null;
 
-  const wantRepo =
-    typeof input.repo === "string" && input.repo.includes("/") ? input.repo : null;
+  const wantRepo = typeof input.repo === "string" && input.repo.includes("/") ? input.repo : null;
 
   // Fail closed when approvals exist for this PR number but callers omitted repo
   // (cross-repo same-number collision / Greptile #3235).
