@@ -634,14 +634,30 @@ export function validateCoverageMap(opts: {
   }
 
   // Incomplete split groups: each parent_id under a split_group needs ≥2 distinct parts.
+  // A parent requirement may belong to at most one split_group (ambiguous multi-group fails closed).
+  const splitGroupsByParent = new Map<string, Set<string>>();
   for (const [group, byParent] of splitParts) {
     for (const [parentId, parts] of byParent) {
+      let groups = splitGroupsByParent.get(parentId);
+      if (groups === undefined) {
+        groups = new Set();
+        splitGroupsByParent.set(parentId, groups);
+      }
+      groups.add(group);
       if (parts.size < 2) {
         errors.push(
           `coverage_map split_group '${group}' for '${parentId}' is incomplete ` +
             `(need ≥2 distinct parts; got ${parts.size}: ${[...parts].join(", ") || "(none)"})`,
         );
       }
+    }
+  }
+  for (const [parentId, groups] of splitGroupsByParent) {
+    if (groups.size > 1) {
+      errors.push(
+        `coverage_map parent '${parentId}' appears in multiple split_groups ` +
+          `(${[...groups].sort().join(", ")}); use exactly one split_group per parent ID`,
+      );
     }
   }
 

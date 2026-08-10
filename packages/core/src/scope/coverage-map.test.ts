@@ -528,6 +528,40 @@ describe("coverage-map (#3238)", () => {
     });
     expect(duplicateSplitPart.ok).toBe(false);
     expect(duplicateSplitPart.errors.some((e) => e.includes("duplicate split claim"))).toBe(true);
+
+    const multiGroup = validateCoverageMap({
+      parent: { plan: { items: [{ id: "r1" }] } },
+      draft: {
+        coverage_map: [
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g1",
+            part: "1",
+          },
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g1",
+            part: "2",
+          },
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g2",
+            part: "1",
+          },
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g2",
+            part: "2",
+          },
+        ],
+      },
+    });
+    expect(multiGroup.ok).toBe(false);
+    expect(multiGroup.errors.some((e) => e.includes("multiple split_groups"))).toBe(true);
   });
 
   it("covers remaining extract/parse edge branches", () => {
