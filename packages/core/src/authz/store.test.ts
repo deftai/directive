@@ -364,26 +364,7 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     expect(loadGrant(root, g.id)?.semantics.usedAt).toBe("2026-08-10T12:00:00Z");
   });
 
-  it("stale lock is recovered so claim can proceed", () => {
-    const root = tempRoot();
-    const g = mintHumanOriginGrant({
-      projectRoot: root,
-      operations: ["edit"],
-      singleUse: true,
-      grantId: "stale-lock",
-    });
-    const lockDir = join(root, ".deft", "authz", "locks");
-    mkdirSync(lockDir, { recursive: true });
-    const lockPath = join(lockDir, "stale-lock.lock");
-    writeFileSync(lockPath, "dead-pid\n", "utf8");
-    // Age the lock past the stale threshold.
-    const old = new Date(Date.now() - 120_000);
-    utimesSync(lockPath, old, old);
-    const claim = claimSingleUseGrantForApply(root, g.id);
-    expect(claim.ok).toBe(true);
-  });
-
-  it("fresh lock fails closed without stale recovery", () => {
+  it("existing lock fails closed (no stale auto-clear)", () => {
     const root = tempRoot();
     const g = mintHumanOriginGrant({
       projectRoot: root,

@@ -321,21 +321,16 @@ export function claimSingleUseGrantForApply(
     }
   };
 
-  let locked = tryCreateLock();
-  if (!locked && existsSync(lockPath)) {
-    // Stale-lock recovery: if lock file is old enough, remove once and retry.
-    const mtimeMs = statSync(lockPath).mtimeMs;
-    if (now.getTime() - mtimeMs > AUTHZ_GRANT_CLAIM_LOCK_STALE_MS) {
-      rmSync(lockPath, { force: true });
-      locked = tryCreateLock();
-    }
-  }
+  // No stale-lock auto-clear: concurrent recreate races are fail-closed (#3239 Greptile).
+  // Operators remint after a crashed claim that left a lock file, or delete the lock.
+  const locked = tryCreateLock();
   if (!locked) {
     return {
       ok: false,
       reason:
         `Directive denied scope:decompose apply: grant ${grantId} is already reserved ` +
-        "or spent by a concurrent apply. Human action required: remint if the prior apply failed.",
+        "or spent by a concurrent apply. Human action required: remint if the prior apply failed " +
+        "(or remove a leftover `.deft/authz/locks/<id>.lock` after a crash).",
     };
   }
 
