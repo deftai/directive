@@ -10,7 +10,7 @@
 import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { evaluateDecomposeStructuralApply, sha256FileHex } from "../authz/decompose-apply.js";
+import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
 import { markGrantUsed } from "../authz/store.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
@@ -55,6 +55,14 @@ type JsonObj = Record<string, unknown>;
 // ---------------------------------------------------------------------------
 
 function loadJson(path: string): JsonObj {
+  return loadJsonWithRaw(path).data;
+}
+
+/**
+ * Single-read load: parse + return exact on-disk bytes used for #3239 digest binding.
+ * Avoids TOCTOU between validation snapshot and authz hash.
+ */
+function loadJsonWithRaw(path: string): { data: JsonObj; raw: string } {
   let raw: string;
   try {
     raw = readFileSync(path, "utf8");
@@ -70,7 +78,7 @@ function loadJson(path: string): JsonObj {
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     throw new DecompositionError(`${path}: expected a JSON object`);
   }
-  return data as JsonObj;
+  return { data: data as JsonObj, raw };
 }
 
 function writeJson(projectRoot: string, path: string, data: JsonObj): void {
@@ -931,7 +939,9 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   const vbriefDirPath = vbriefDir(projectRoot);
 
   const parent = loadJson(parentPath);
-  const draft = loadJson(draftPath);
+  // Single draft read: digest must bind the exact bytes used to build child docs (#3239 P1).
+  const { data: draft, raw: draftRaw } = loadJsonWithRaw(draftPath);
+  const draftDigest = sha256Hex(draftRaw);
   const stories = storySpecs(draft);
   const stIds = validateDraft(stories);
 
@@ -1006,9 +1016,8 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
 
   if (checkOnly) return actions;
 
-  // #3239: structural apply requires human-origin grant bound to exact draft digest.
-  // --check is ungated (returned above). Fail closed before any child/parent writes.
-  const draftDigest = sha256FileHex(draftPath);
+  // #3239: structural apply requires human-origin grant bound to exact draft digest
+  // from the single load above. --check is ungated (returned earlier).
   const authz = evaluateDecomposeStructuralApply({
     projectRoot,
     parentPath,
@@ -1018,22 +1027,12 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   if (!authz.allowed) {
     throw new DecompositionError(authz.reason);
   }
-  if (authz.humanApprovalRef !== null) {
-    // Best-effort single-use consumption; multi-use grants are no-ops.
-    markGrantUsed(projectRoot, authz.humanApprovalRef);
-  }
   actions.push(
     `AUTHZ grant=${authz.humanApprovalRef ?? "unknown"} digest=${draftDigest.slice(0, 12)}`,
   );
 
-  for (const { target } of childPaths) {
-    mkdirSync(dirname(target), { recursive: true });
-  }
-  for (let i = 0; i < childPaths.length; i += 1) {
-    // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
-    writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
-  }
-
+  // Parent mutation validation before any filesystem writes so single-use grants
+  // are not spent on a path that will fail closed below (#3239 Greptile P1).
   let parentPlan = parent.plan;
   if (parentPlan === null || parentPlan === undefined) {
     parentPlan = {};
@@ -1078,7 +1077,19 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
+  for (const { target } of childPaths) {
+    mkdirSync(dirname(target), { recursive: true });
+  }
+  for (let i = 0; i < childPaths.length; i += 1) {
+    // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
+    writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
+  }
+
   writeJson(projectRoot, parentPath, parent);
+  // Consume single-use grants only after successful child+parent writes.
+  if (authz.humanApprovalRef !== null) {
+    markGrantUsed(projectRoot, authz.humanApprovalRef);
+  }
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }

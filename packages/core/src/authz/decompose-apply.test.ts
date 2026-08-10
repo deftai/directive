@@ -268,4 +268,51 @@ describe("decompose-apply helpers (#3239)", () => {
     expect(decision.allowed).toBe(false);
     expect(decision.code).toBe("authz-grant-binding-incomplete");
   });
+
+  it("case-variant parent path does not match bound parent (case-sensitive)", () => {
+    const root = tempRoot();
+    const parent = writeParent(root);
+    const draft = writeDraft(root);
+    const bound = toProjectRelativePosix(root, parent) ?? "xbrief/pending/parent.xbrief.json";
+    const flipped = bound.includes("pending")
+      ? bound.replace("pending", "PENDING")
+      : bound.replace(/xbrief/, "XBRIEF");
+    expect(flipped).not.toBe(bound);
+    const decision = evaluateDecomposeStructuralApply({
+      projectRoot: root,
+      parentPath: parent,
+      draftPath: draft,
+      draftDigest: sha256FileHex(draft),
+      grants: [
+        {
+          schemaVersion: 1,
+          id: "case-only",
+          origin: {
+            kind: "operator-cli",
+            actor: "op",
+            mintedAt: "2026-08-10T00:00:00Z",
+            mintedVia: "test",
+            eventRef: null,
+          },
+          scope: {
+            planRef: null,
+            repo: null,
+            branch: null,
+            worktree: resolve(root),
+            surfaces: [],
+            operations: [SCOPE_DECOMPOSE_APPLY_STRUCTURAL],
+            storyIds: [],
+            issueIds: [],
+            cohortId: null,
+            contentDigest: sha256FileHex(draft),
+            parentPath: flipped,
+            targetPath: toProjectRelativePosix(root, draft),
+          },
+          semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
+        },
+      ],
+    });
+    expect(decision.allowed).toBe(false);
+    expect(decision.code).toBe("authz-grant-parent-mismatch");
+  });
 });

@@ -87,8 +87,14 @@ function normalizeDigest(raw: string | null | undefined): string | null {
   return t.startsWith("sha256:") ? t.slice("sha256:".length) : t;
 }
 
+/**
+ * Exact path equality for grant binding (POSIX separators only).
+ * Case-sensitive: case-variant paths are distinct on case-sensitive filesystems
+ * (#3239 Greptile P1). Windows operators mint with the same relative form
+ * produce via toProjectRelativePosix.
+ */
 function pathsEqual(a: string, b: string): boolean {
-  return a.replace(/\\/g, "/").toLowerCase() === b.replace(/\\/g, "/").toLowerCase();
+  return a.replace(/\\/g, "/") === b.replace(/\\/g, "/");
 }
 
 function grantValidity(
@@ -292,7 +298,9 @@ export function evaluateDecomposeStructuralApply(
     }
     if (boundWorktree.length > 0) {
       const grantWt = resolve(boundWorktree);
-      if (!pathsEqual(grantWt, projectAbs)) {
+      // Worktree compare is path-normalize only (resolve); keep exact string match of
+      // resolved absolute paths without case-folding (same rule as parent/target paths).
+      if (grantWt !== projectAbs) {
         lastReject = {
           code: "authz-grant-project-mismatch",
           reason:

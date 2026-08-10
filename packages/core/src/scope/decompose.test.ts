@@ -12,7 +12,7 @@ import {
   sha256FileHex,
   toProjectRelativePosix,
 } from "../authz/decompose-apply.js";
-import { saveGrant } from "../authz/store.js";
+import { loadGrant, saveGrant } from "../authz/store.js";
 import { SCOPE_DECOMPOSE_APPLY_STRUCTURAL } from "../authz/types.js";
 import { ContainedWriteError } from "../fs/contained-write.js";
 import {
@@ -1323,5 +1323,29 @@ describe("applyDecomposition structural authz (#3239)", () => {
       proj,
     ]);
     expect(code).toBe(1);
+  });
+
+  it("single-use grant is not spent when parent plan validation fails after authz", () => {
+    const { proj, parentPath, draftPath } = setup();
+    writeJson(parentPath, { xBRIEFInfo: { version: "0.8" }, plan: [] });
+    writeJson(draftPath, goodDraft());
+    const grant = mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      singleUse: true,
+      grantId: "single-use-fail",
+    });
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow("plan must be an object");
+    const after = loadGrant(proj, grant.id);
+    expect(after?.semantics.usedAt).toBeNull();
   });
 });
