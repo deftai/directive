@@ -122,6 +122,7 @@ describe("waitMergeableAndMerge", () => {
       },
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -151,6 +152,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -172,6 +174,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -191,6 +194,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -210,6 +214,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -228,6 +233,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -253,6 +259,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -280,6 +287,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -305,6 +313,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -330,6 +339,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -370,6 +380,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -388,6 +399,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -406,6 +418,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -426,6 +439,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -444,6 +458,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.error).toContain("stderr tail:");
@@ -550,6 +565,7 @@ describe("waitMergeableAndMerge", () => {
 
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);

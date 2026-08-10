@@ -347,6 +347,7 @@ describe("runPrFinishLoop", () => {
           autoDeployOnMerge: false,
         },
       }),
+      fetchPrHeadShaFn: () => "abc",
       mergeFn: (_pr, _repo, opts) => {
         pinned = opts?.matchHeadCommit;
         return 0;

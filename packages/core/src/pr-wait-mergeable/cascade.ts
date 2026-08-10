@@ -1,5 +1,6 @@
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 import {
+  disablePullRequestAutoMerge,
   type EnforceMergeApprovalHeadInput,
   enforceMergeApprovalHead,
   fetchPrHeadShaRest,
@@ -242,8 +243,24 @@ export function waitMergeableAndMerge(
           : null;
     const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
     const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
-    const liveHead =
-      fetchHead(prNumber, repo) ?? (typeof headFromMonitor === "string" ? headFromMonitor : null);
+    // Live HEAD only — never authorize against a stale monitor snapshot when
+    // the REST read fails (would pin A while GitHub head is B).
+    const liveHead = fetchHead(prNumber, repo);
+    if (liveHead === null || liveHead.trim() === "") {
+      disablePullRequestAutoMerge(prNumber, repo);
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "stale-merge-approval",
+        exitCode: EXIT_CONFIG_ERROR,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error:
+          `❌ merge-approval-head (#3235): cannot read live PR HEAD for #${prNumber}` +
+          (headFromMonitor !== null ? ` (monitor had ${headFromMonitor.slice(0, 12)})` : "") +
+          "; refusing merge and disabling auto-merge (fail closed).",
+      });
+    }
     const headGate = headGateFn({
       prNumber,
       repo,
@@ -266,25 +283,35 @@ export function waitMergeableAndMerge(
         error: parts.join("\n"),
       });
     }
-    matchHeadCommit = headGate.current_head_sha ?? liveHead;
+    matchHeadCommit = liveHead;
   } else {
-    // Even when the approval gate is skipped, pin merge to the monitor HEAD when known.
-    const readiness =
-      typeof monitorPayload.readiness === "object" &&
-      monitorPayload.readiness !== null &&
-      !Array.isArray(monitorPayload.readiness)
-        ? (monitorPayload.readiness as Record<string, unknown>)
-        : {};
-    if (typeof readiness.head_sha === "string") {
-      matchHeadCommit = readiness.head_sha;
-    } else if (typeof monitorPayload.head_sha === "string") {
-      matchHeadCommit = monitorPayload.head_sha;
+    // Gate skipped: still prefer a live HEAD pin when available.
+    const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
+    matchHeadCommit = fetchHead(prNumber, repo);
+    if (matchHeadCommit === null) {
+      const readiness =
+        typeof monitorPayload.readiness === "object" &&
+        monitorPayload.readiness !== null &&
+        !Array.isArray(monitorPayload.readiness)
+          ? (monitorPayload.readiness as Record<string, unknown>)
+          : {};
+      if (typeof readiness.head_sha === "string") {
+        matchHeadCommit = readiness.head_sha;
+      } else if (typeof monitorPayload.head_sha === "string") {
+        matchHeadCommit = monitorPayload.head_sha;
+      }
     }
   }
 
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
     matchHeadCommit,
   });
+
+  // Pinned merge rejected (head advanced mid-call): revoke auto-merge so the
+  // unapproved head cannot land later under retained GitHub auto-merge.
+  if (mergeRc !== 0 && options.skipMergeApprovalHeadGate !== true) {
+    disablePullRequestAutoMerge(prNumber, repo);
+  }
 
   if (mergeRc === 0) {
     // Best-effort umbrella checklist + current-shape refresh after child merge (#1649).

@@ -9,8 +9,10 @@
  */
 
 import {
+  disablePullRequestAutoMerge,
   type EnforceMergeApprovalHeadInput,
   enforceMergeApprovalHead,
+  fetchPrHeadShaRest,
   type MergeApprovalHeadResult,
 } from "../policy/merge-approval-head.js";
 import { evaluateAgentMerge } from "../policy/require-human-merge.js";
@@ -54,6 +56,8 @@ export interface PrFinishLoopOptions {
   ) => number;
   readonly agentMergeFn?: typeof evaluateAgentMerge;
   readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
+  /** Inject live HEAD fetch (tests); defaults to REST pulls head.sha. */
+  readonly fetchPrHeadShaFn?: (prNumber: number, repo: string | null) => string | null;
   readonly writeProgress?: boolean;
   readonly iteration?: number;
 }
@@ -274,18 +278,35 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
     };
   }
 
-  // Optional merge when policy allows — re-read head and pin matchHeadCommit
-  // so a push between the earlier gate and merge cannot land unapproved code (#3235).
+  // Optional merge when policy allows — re-fetch live HEAD (not watch snapshot)
+  // and pin matchHeadCommit (#3235 TOCTOU).
   if (options.mergeFn !== undefined) {
-    const mergeHead =
-      typeof watchResult.probe.headSha === "string" ? watchResult.probe.headSha : null;
+    const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
+    const liveHead = fetchHead(prNumber, repo);
     if (options.skipMergeApprovalHeadGate !== true) {
+      if (liveHead === null || liveHead.trim() === "") {
+        disablePullRequestAutoMerge(prNumber, repo);
+        const message =
+          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: cannot read live HEAD ` +
+          "before merge; auto-merge disabled (fail closed, #3235).";
+        log("merge", "stale-merge-approval", message);
+        return {
+          exitCode: EXIT_ACTION_REQUIRED,
+          haltReason: "stale-merge-approval",
+          message,
+          prNumber,
+          watchVerdict: VERDICT_CLEAN,
+          mergeAttempted: false,
+          mergeSkippedReason: "stale-merge-approval",
+          grantId: null,
+        };
+      }
       const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
       const recheck = headGateFn({
         prNumber,
         repo,
         projectRoot,
-        currentHeadSha: mergeHead,
+        currentHeadSha: liveHead,
         disableAutoMergeOnDeny: true,
       });
       if (!recheck.allowed) {
@@ -309,7 +330,7 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
         };
       }
     }
-    const pinnedHead = mergeHead;
+    const pinnedHead = liveHead;
     const rc = options.mergeFn(prNumber, repo, { matchHeadCommit: pinnedHead });
     if (rc === 0) {
       const message = `pr:finish-loop MERGED PR #${prNumber}`;
@@ -325,7 +346,11 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
         grantId: null,
       };
     }
-    const message = `pr:finish-loop merge attempt failed exit=${rc} for PR #${prNumber}`;
+    // Pin mismatch / merge fail: revoke auto-merge so unapproved head cannot land.
+    disablePullRequestAutoMerge(prNumber, repo);
+    const message =
+      `pr:finish-loop merge attempt failed exit=${rc} for PR #${prNumber}; ` +
+      "disabled auto-merge after pinned-merge failure (#3235).";
     log("merge", "error", message);
     return {
       exitCode: EXIT_BLOCKED,
