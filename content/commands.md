@@ -267,6 +267,8 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 - `task verify:xbrief-conformance` -- validate xBRIEF conformance surfaces.
 - `task verify:cache-fresh` -- validate cache freshness where required.
 - `task verify:capacity`, `task verify:wip-cap`, and `task verify:judgment-gates` -- policy/capacity gates.
+- `task verify:orphan-active` -- fail closed when active/running xBRIEFs still point at closed issues or merged PRs (#2321).
+- `task verify:completed-tracked` -- fail closed when closed scoped issues lack a tracked `xbrief/completed/` or `xbrief/cancelled/` artifact on the delivery tip (#3264); remediate with `task swarm:finalize-cohort` or a lifecycle PR. Standalone verb (not part of `task check`); use `--tip HEAD` when validating an in-flight land branch.
 - `task coverage:hotspots` / `deft coverage:hotspots` -- read the latest coverage report, compare global metrics to the project's vitest thresholds, fail closed below the branch floor or below configured headroom (default 0.3pp), and list lowest modules plus uncovered branch samples for git-diff paths (`--json` for agents). Complements `deft verify:forward-coverage` (#1310) and `--allow-coverage-debt=#N` (#2573); does not replace them.
 
 Use `task --list` for the exact current verify namespace.

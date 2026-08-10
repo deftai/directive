@@ -26,6 +26,10 @@ describe("consumer check-gate integrity (#3070)", () => {
     expect(CONSUMER_CHECK_GATES.map(checkGateId)).toContain("verify:orphan-active");
   });
 
+  it("keeps verify:completed-tracked off the consumer gate list (#3264 standalone verb)", () => {
+    expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("verify:completed-tracked");
+  });
+
   it("makes check-graph namespaces non-optional in root Taskfile.yml", () => {
     const text = readFileSync(join(repoRoot(), "Taskfile.yml"), "utf8");
     const bad = checkGraphOptionalIncludeViolations(text, requiredNamespacesForGates());
@@ -35,6 +39,11 @@ describe("consumer check-gate integrity (#3070)", () => {
   it("Taskfile check:consumer deps include verify:orphan-active", () => {
     const text = readFileSync(join(repoRoot(), "Taskfile.yml"), "utf8");
     expect(text).toMatch(/check:consumer:[\s\S]*?verify:orphan-active/);
+  });
+
+  it("Taskfile still exposes verify:completed-tracked as a standalone task (#3264)", () => {
+    const text = readFileSync(join(repoRoot(), "tasks", "verify.yml"), "utf8");
+    expect(text).toMatch(/completed-tracked:/);
   });
 
   it("content package prepack ships tasks/ (incl. verify.yml) with Taskfile", () => {

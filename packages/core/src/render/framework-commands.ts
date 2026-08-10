@@ -114,6 +114,9 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
   "verify:orphan-active": spec("verify:orphan-active", "verify_orphan_active:main", {
     projectRootArg: "--project-root",
   }),
+  "verify:completed-tracked": spec("verify:completed-tracked", "verify_completed_tracked:main", {
+    projectRootArg: "--project-root",
+  }),
   "verify:pack-drift": spec("verify:pack-drift", "pack_render:main", {
     defaultArgs: ["--check"],
     cwd: "framework",
@@ -337,6 +340,7 @@ const ENTRYPOINT_VERB: Record<string, string> = {
   "preflight_cache:main": "preflight-cache",
   "preflight_wip_cap:main": "verify-wip-cap",
   "verify_orphan_active:main": "verify-orphan-active",
+  "verify_completed_tracked:main": "verify-completed-tracked",
   "pack_render:main": "pack-render",
   "validate_strategy_output:main": "validate-strategy-output",
   "vbrief_validate:main": "vbrief-validate",
