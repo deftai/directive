@@ -10,7 +10,6 @@ import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { isHumanOrigin } from "./origin.js";
 import {
   authzAuditPath,
-  authzDir,
   authzGrantPath,
   authzGrantsDir,
   authzStatePath,
