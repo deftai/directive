@@ -149,6 +149,10 @@ export interface RunWaitMergeableOptions {
   readonly monitorFn?: Parameters<typeof waitMergeableAndMerge>[2]["monitorFn"];
   readonly mergeFn?: Parameters<typeof waitMergeableAndMerge>[2]["mergeFn"];
   readonly semanticGreenFn?: Parameters<typeof waitMergeableAndMerge>[2]["semanticGreenFn"];
+  readonly skipHumanMergeGate?: boolean;
+  readonly skipMergeApprovalHeadGate?: boolean;
+  readonly fetchPrHeadShaFn?: Parameters<typeof waitMergeableAndMerge>[2]["fetchPrHeadShaFn"];
+  readonly mergeApprovalHeadFn?: Parameters<typeof waitMergeableAndMerge>[2]["mergeApprovalHeadFn"];
 }
 
 export function runWaitMergeable(
@@ -189,6 +193,10 @@ export function runWaitMergeable(
     // Explicit CLI root (or cwd) so remote-target cascade does not resolve
     // minGreptileConfidence from an unrelated directory (#3102).
     projectRoot: args.projectRoot ?? process.cwd(),
+    skipHumanMergeGate: options.skipHumanMergeGate,
+    skipMergeApprovalHeadGate: options.skipMergeApprovalHeadGate,
+    fetchPrHeadShaFn: options.fetchPrHeadShaFn,
+    mergeApprovalHeadFn: options.mergeApprovalHeadFn,
   });
 
   const summaryLabel = summaryLabelForExit(result.exitCode);
