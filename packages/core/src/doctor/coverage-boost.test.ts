@@ -79,7 +79,8 @@ describe("doctor branch coverage boost", () => {
           whichFn: () => "/bin/x",
           isDir: (p) => p === root,
           // Do not invent live xBRIEF envelopes (unreadable → fail-closed #3243).
-          isFile: (p) => !p.endsWith("deft") && !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
+          isFile: (p) =>
+            !p.endsWith("deft") && !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
           readText: () => null,
         }),
       ).toBe(0);
