@@ -277,10 +277,7 @@ function scanCompletedDir(
     const msg = err instanceof Error ? err.message : String(err);
     return {
       findings: [
-        unreadableFinding(
-          `${pathPrefix}/completed`,
-          `completed/ unreadable (stat failed): ${msg}`,
-        ),
+        unreadableFinding(`${pathPrefix}/completed`, `completed/ unreadable (stat failed): ${msg}`),
       ],
       scanned: 0,
       completedPresent: true,
