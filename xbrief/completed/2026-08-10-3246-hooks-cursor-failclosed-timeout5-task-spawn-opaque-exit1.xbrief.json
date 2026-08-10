@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Swarm story for #3246",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3246-hooks-cursor-failclosed-timeout-spawn-latency",
+    "title": "bug(hooks): raise Cursor spawn/tool.before timeout so gated ritual is not opaque failClosed exit-1",
+    "status": "completed",
+    "narratives": {
+      "Description": "Cursor preToolUse deposits use failClosed true and timeout 5 for Task/spawn matchers. After scope activate, Task is blocked with only host failClosed exit-1 because inspectMutationGates/verifySessionRitual can exceed 5s. hook-dispatch should exit 0 for allow/deny (#2864).",
+      "UserStory": "As a Cursor user with an active xBRIEF and fresh gated ritual, I want Task/spawn preToolUse to return a Directive allow or coded deny within the deposit timeout, so that Multitask is not blocked by opaque host exit-1.",
+      "ImplementationPlan": "In packages/core/src/init-deposit/agent-hooks (and related deposit defaults), raise Cursor Task/spawn tool.before timeout above known gated-ritual cost, and/or skip redundant re-verify when inspect is already green. Keep active-xBRIEF implement gate (#3080). Tests lock new defaults; CHANGELOG if user-visible. Do not edit authz classify (owned by #3245).",
+      "Origin": "https://github.com/deftai/directive/issues/3246",
+      "Overview": "bug(hooks): raise Cursor spawn/tool.before timeout so gated ritual is not opaque failClosed exit-1",
+      "Labels": "bug",
+      "NonGoals": "Out of scope bullets from issue body.",
+      "AcceptanceJustification": "Four acceptance items cover product fix, regressions, and CHANGELOG."
+    },
+    "items": [
+      {
+        "narrative": {
+          "Acceptance": "Given Cursor spawn/tool.before deposit defaults, when inspected, timeout is above gated-ritual cost OR mutation path skips redundant re-verify when already green; approach documented."
+        },
+        "status": "completed",
+        "title": "Raise deposit timeout or short-circuit green ritual"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given active xBRIEF and ready ritual under normal load, when Task is evaluated, result is allow or coded deny, not only opaque Cursor failClosed exit-1."
+        },
+        "status": "completed",
+        "title": "Decision path not only host exit-1"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given empty xbrief/active, when unmarked Task runs, deny message for no active xBRIEF still works."
+        },
+        "status": "completed",
+        "title": "Clean deny without active xBRIEF intact"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given init-deposit/agent-hooks tests, when run, new timeout/short-circuit is locked; CHANGELOG notes deposit behavior change if user-visible."
+        },
+        "status": "completed",
+        "title": "Tests + CHANGELOG"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm-cohort-3245-3246"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3246",
+        "title": "Issue #3246"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit",
+          "packages/core/src/hooks"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit packages/core/src/hooks",
+          "task check"
+        ],
+        "expected_outputs": [
+          "fix for #3246",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "hooks-3246-cursor-timeout",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC; file_scope expected touch set.",
+        "acceptance_criteria_justification": "Four items from issue triage readiness."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-08-10T16:30:00Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

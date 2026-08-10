@@ -1,0 +1,91 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug cohort story for GitHub issue #3233 (operator-approved swarm 2026-08-10).",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3233-session-stale-higher-precedence-cli",
+    "title": "fix(session): detect stale higher-precedence CLI after global upgrade",
+    "status": "completed",
+    "narratives": {
+      "Description": "Session ritual / global upgrade can upgrade Directive in one npm prefix while an older higher-precedence deft binary remains active on PATH. Upgrade appears complete but bare deft still runs the old engine and new verbs are unavailable. Observed on macOS with Homebrew 0.97.0 shadowing nvm 0.98.1.",
+      "UserStory": "As an operator after a ritual global upgrade, I want the gated ritual to verify the shell-resolved deft engine version matches the upgrade target, so that a shadowed older binary fails closed with PATH remediation.",
+      "ImplementationPlan": "After the global install step in the session ritual / upgrade path, resolve the active deft and directive binaries the current shell would execute (which/where / PATH scan), compare the resolved engine version with the requested/latest installed target, detect multi-prefix candidates where the upgraded package is not active, and fail the gated ritual with actionable prefix/PATH remediation instead of recording a successful upgrade. Prefer packages/core/src/session and packages/core/src/doctor/which.ts surfaces. Add hermetic tests with injectable path/version probes. Cite #3233 in CHANGELOG. Cross-platform: win32 and posix.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3233",
+      "Overview": "fix(session): detect stale higher-precedence CLI after global upgrade",
+      "Labels": "bug, triaged, agent-safety",
+      "NonGoals": "Epic #3237 children; docs-only mitigation; changing consumer repo rulesets.",
+      "AcceptanceJustification": "Three acceptance items cover fix, fail-closed gate, and regression tests for this single-issue bug."
+    },
+    "items": [
+      {
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given two global installs with different versions and PATH preferring the older, when the post-upgrade check runs, it detects mismatch and fails closed."
+        },
+        "title": "Resolve active binary and compare engine version"
+      },
+      {
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a shadowing failure, when the ritual exits non-zero, stderr lists competing executable paths and versions with remediation."
+        },
+        "title": "Actionable multi-prefix diagnostic"
+      },
+      {
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given injectable path/version fixtures, when vitest runs session/doctor which suites, cases pass; CHANGELOG cites #3233."
+        },
+        "title": "Tests and CHANGELOG"
+      }
+    ],
+    "tags": [
+      "bug",
+      "triaged",
+      "agent-safety",
+      "bug-cohort-3233-3236"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3233",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3233"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session",
+          "packages/core/src/doctor/which.ts",
+          "packages/core/src/doctor/which-branches.test.ts",
+          "packages/core/src/doctor",
+          "packages/core/src/engine-version.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session packages/core/src/doctor",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation for #3233",
+          "unit tests",
+          "CHANGELOG #3233"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-3233-session-cli",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC + readiness evaluation 2026-08-10; file_scope is expected touch set for #3233.",
+        "acceptance_criteria_justification": "Three items: product fix, fail-closed gate behavior, tests+CHANGELOG."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-08-10T16:30:00Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

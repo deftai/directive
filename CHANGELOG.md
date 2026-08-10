@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land completed xBRIEFs for closed 2026-08-10 cohort issues.** Product already merged; lifecycle artifacts for #3233–#3236, #3239–#3240, #3242–#3243, #3245–#3246, #3252, #3259 move into tracked `xbrief/completed/` with terminal `plan.status`/items (capacity + completedAt stamps). No product code. Refs #2321, #2578, #3242.
+
 ### Fixed
 
 - **Cursor ephemeral local-dev Task no longer needs a fake active xBRIEF (#3259).** Session assist env (`DEFT_SESSION_POSTURE` assist-set / `DEFT_HOOK_ASSIST=1`) is a structural ephemeral marker for **spawn tools only** (shared taxonomy with #1802 / #3080); implement envelope signals still win. Spawn-not-ready recovery and `commands.md` state free-text `[worker_role: ephemeral]` is not sufficient and name parent Shell + session assist as Cursor local-dev paths. Unmarked Multitask without assist still denies. Closes #3259. Refs #3080, #1802.

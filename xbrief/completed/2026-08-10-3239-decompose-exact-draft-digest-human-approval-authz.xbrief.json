@@ -1,0 +1,154 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic #3237 child story #3239",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3239-decompose-exact-draft-approval-authz",
+    "title": "feat(scope,authz): bind scope:decompose apply to human-origin draft digest grant",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:decompose apply can accept a structurally valid draft without durable proof a human approved those exact bytes. Epic #3237 locked structural apply to .deft/authz human-origin grants bound to draft digest. Without that gate, agent-origin apply remains fail-open.",
+      "UserStory": "As an operator, I want decompose apply to require a human-origin grant bound to the exact draft digest, so that agents cannot apply unapproved draft bytes.",
+      "ImplementationPlan": "Extend packages/core/src/authz grant mint/verify for operation scope.decompose.apply.structural. In packages/core/src/scope/decompose.ts apply path, require a human-origin grant binding project root identity, parent artifact path, target path, and SHA-256 draft content digest; reject missing, expired, mismatched, and agent-origin grants. Leave --check ungated. Add tests under packages/core/src/scope and packages/core/src/authz. Run vitest on those packages and task check. Cite #3239 in CHANGELOG.md.",
+      "Origin": "https://github.com/deftai/directive/issues/3239",
+      "Overview": "feat(scope,authz): bind scope:decompose apply to human-origin draft digest grant",
+      "Labels": "enhancement, process",
+      "NonGoals": "Out of issue scope; see epic #3237 current-shape.",
+      "AcceptanceJustification": "Acceptance items from locked epic contracts."
+    },
+    "items": [
+      {
+        "narrative": {
+          "Acceptance": "Given a valid draft JSON and no grant under .deft/authz/grants, when scope:decompose apply runs, it exits non-zero without writing child stories."
+        },
+        "title": "Apply requires human grant",
+        "status": "completed",
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/scope/decompose.test.ts:apply without grant fails closed",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
+        }
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given a human-origin grant bound to digest X, when the draft bytes change to digest Y, apply exits non-zero."
+        },
+        "title": "Digest binding",
+        "status": "completed",
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/scope/decompose.test.ts:grant for digest X cannot apply changed draft Y",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
+        }
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given a matching human-origin structural grant, when apply runs on that draft, apply succeeds."
+        },
+        "title": "Check-only ungated",
+        "status": "completed",
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/scope/decompose.test.ts:matching human-origin structural grant allows apply",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
+        }
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given --check only, when no grant exists, check still runs without requiring a grant."
+        },
+        "title": "Tests+CHANGELOG",
+        "status": "completed",
+        "metadata": {
+          "evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3258",
+            "recorded_at": "2026-08-10T20:35:01.788Z",
+            "recorded_by": "agent:leaf-3239-3258"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "epic-3237",
+      "swarm"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3239",
+        "title": "Issue #3239"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3237",
+        "title": "Epic #3237"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/actions.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz",
+          "packages/core/src/scope/decompose.ts",
+          "packages/core/src/scope/decompose.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope packages/core/src/authz",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3239",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [
+          "3252-decompose-readiness-parity-large-parallel-safe"
+        ],
+        "conflict_group": "epic3237-3239-draft-approval",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Epic #3237 locked decisions + issue body.",
+        "acceptance_criteria_justification": "Items map to locked contracts / issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3258,
+        "prBase": "master",
+        "mergeCommit": "ee21df2f607a574478cb4025f2b130313990adf9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ee21df2f607a574478cb4025f2b130313990adf9",
+        "verifiedAt": "2026-08-10T20:38:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-10T20:38:32Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic #3237 child story #3240",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3240-scope-complete-acceptance-evidence",
+    "title": "feat(scope): scope:complete requires typed evidence or disposition per acceptance criterion",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:complete can advance acceptance items to complete without typed per-item evidence. Merge ancestry alone can overstate deploy, smoke, or UAT readiness. Epic #3237 Q3 locked evidence kinds and dispositions for fail-closed completion.",
+      "UserStory": "As an operator, I want scope:complete to require typed evidence or a human disposition per acceptance criterion, so that merge ancestry alone cannot claim smoke or UAT complete.",
+      "ImplementationPlan": "Change the scope:complete path under packages/core/src/scope (and any shared lifecycle helpers) so each acceptance criterion requires either an evidence record (kind test|review|merge|deploy|smoke|uat|observed_behavior plus pointer) or a disposition (waived|deferred|not_applicable with human-origin provenance). Reject kind=merge alone for smoke/UAT/deploy/observed_behavior criteria. Add tests in packages/core/src/scope. Run vitest and task check. Cite #3240 in CHANGELOG.md.",
+      "Origin": "https://github.com/deftai/directive/issues/3240",
+      "Overview": "feat(scope): scope:complete requires typed evidence or disposition per acceptance criterion",
+      "Labels": "enhancement, process",
+      "NonGoals": "Out of issue scope; see epic #3237 current-shape.",
+      "AcceptanceJustification": "Acceptance items from locked epic contracts."
+    },
+    "items": [
+      {
+        "narrative": {
+          "Acceptance": "Given pending acceptance criteria with no evidence or disposition, when scope:complete runs, it exits non-zero and lists missing criteria."
+        },
+        "title": "No auto-complete without evidence",
+        "status": "completed"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given a criterion requiring smoke with only kind=merge evidence, when scope:complete runs, it exits non-zero."
+        },
+        "title": "Kind suitability",
+        "status": "completed"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given a waived disposition with human-origin provenance on a criterion, when scope:complete runs, that criterion may complete without full evidence."
+        },
+        "title": "Disposition path",
+        "status": "completed"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md [Unreleased], when the PR lands, it cites #3240."
+        },
+        "title": "Tests+CHANGELOG",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "epic-3237",
+      "swarm"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3240",
+        "title": "Issue #3240"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3237",
+        "title": "Epic #3237"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/complete.ts",
+          "packages/core/src/scope/scope-complete.ts",
+          "packages/core/src/scope"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope packages/core/src/lifecycle",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3240",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "epic3237-3240-acceptance-evidence",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Epic #3237 locked decisions + issue body.",
+        "acceptance_criteria_justification": "Items map to locked contracts / issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3256,
+        "prBase": "master",
+        "mergeCommit": "8d04a0ccd98cba7711af4c4bf95311eb6827cbb0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8d04a0ccd98cba7711af4c4bf95311eb6827cbb0",
+        "verifiedAt": "2026-08-10T17:15:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-10T17:15:12Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}
