@@ -62,9 +62,10 @@ function okActiveCli(): ActiveCliCheckResult {
       path: "/usr/local/bin/deft",
       version: "0.98.1",
       precedence: 0,
+      versionSource: "exec",
     },
     candidates: [],
-    targetVersion: null,
+    targetVersion: "0.98.1",
     message: "active CLI ok",
     lines: [],
   };
@@ -99,6 +100,7 @@ describe("verifySessionRitual active CLI gate (#3233)", () => {
           path: "/opt/homebrew/bin/deft",
           version: "0.97.0",
           precedence: 0,
+          versionSource: "exec",
         },
         candidates: [],
         targetVersion: target,
@@ -165,7 +167,7 @@ describe("verifySessionRitual active CLI gate (#3233)", () => {
           targetVersion: null,
           message: "should not run",
           lines: ["should not run"],
-        };
+        } satisfies ActiveCliCheckResult;
       },
     });
 

@@ -5,14 +5,17 @@
  * PATH entry still runs an older `deft` / `directive`. The upgrade looks
  * complete, but bare CLI invocations keep the stale engine.
  *
- * This module resolves every PATH candidate, probes engine versions, and
- * fail-closes when the shell-active binary does not match the upgrade target
- * or is shadowed by a newer lower-precedence install.
+ * Shell-active binaries may be probed with `--version`. Lower-precedence PATH
+ * candidates are inspected via package.json only (never executed) so gated
+ * ritual cannot run unselected PATH entries (#3233 Greptile P1 security).
  */
 
 import { spawnSync } from "node:child_process";
+import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { CANONICAL_UPGRADE_COMMAND } from "../doctor/constants.js";
 import { defaultWhichAll } from "../doctor/which.js";
+import { readCorePackageVersion } from "../engine-version.js";
 import { compareSemver } from "../resolution/pin.js";
 import {
   quoteWin32CommandForShell,
@@ -24,6 +27,7 @@ export const ACTIVE_CLI_COMMANDS = ["deft", "directive"] as const;
 export type ActiveCliCommand = (typeof ACTIVE_CLI_COMMANDS)[number];
 
 const SEMVER_IN_TEXT_RE = /(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/;
+const ENGINE_PKG_NAMES = new Set(["@deftai/directive", "@deftai/directive-core"]);
 
 export interface CliCandidate {
   readonly command: ActiveCliCommand;
@@ -31,12 +35,22 @@ export interface CliCandidate {
   readonly version: string | null;
   /** Zero-based PATH precedence within this command (0 = shell-active). */
   readonly precedence: number;
+  /** How the version was obtained (for diagnostics / tests). */
+  readonly versionSource: "exec" | "package-json" | "none";
 }
 
 export interface ActiveCliCheckSeams {
   readonly whichAll?: (name: string) => string[];
-  readonly probeVersion?: (executablePath: string) => string | null;
+  /**
+   * Optional override for version probing. When omitted, active binaries may
+   * spawn `--version`; shadowed binaries use package.json only.
+   */
+  readonly probeVersion?: (executablePath: string, precedence: number) => string | null;
   readonly commands?: readonly ActiveCliCommand[];
+  /** Override default upgrade-target resolution (tests). */
+  readonly resolveDefaultTarget?: (candidates: readonly CliCandidate[]) => string | null;
+  /** Inject in-process engine version for default-target resolution. */
+  readonly inProcessVersion?: string | null;
 }
 
 export interface ActiveCliCheckResult {
@@ -58,8 +72,117 @@ function parseVersionFromOutput(out: string): string | null {
   return match?.[1] ?? null;
 }
 
-/** Probe engine version from a resolved CLI path (`--version`). */
+function isPublishableSemver(version: string | null | undefined): version is string {
+  if (typeof version !== "string" || version.length === 0) return false;
+  if (version === "0.0.0" || version.includes("0.0.0-dev") || version.includes("dev")) {
+    return false;
+  }
+  return SEMVER_IN_TEXT_RE.test(version);
+}
+
+function tryReadPackageVersion(pkgPath: string): string | null {
+  try {
+    const raw = readFileSync(pkgPath, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object") return null;
+    const rec = parsed as { name?: unknown; version?: unknown; dependencies?: unknown };
+    const name = typeof rec.name === "string" ? rec.name : "";
+    if (!ENGINE_PKG_NAMES.has(name)) return null;
+    // Prefer directive-core dep when the CLI package version is a workspace/dev 0.0.0.
+    if (name === "@deftai/directive" && rec.dependencies && typeof rec.dependencies === "object") {
+      const core = (rec.dependencies as Record<string, unknown>)["@deftai/directive-core"];
+      if (typeof core === "string") {
+        const coreVer = parseVersionFromOutput(core);
+        if (coreVer !== null && isPublishableSemver(coreVer)) return coreVer;
+      }
+    }
+    return typeof rec.version === "string" && rec.version.length > 0 ? rec.version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve engine version by walking the install tree for package.json (no exec).
+ * Follows symlinks and win32 `.cmd` shims that embed a node path.
+ */
+export function readEngineVersionFromInstallTree(executablePath: string): string | null {
+  const seeds: string[] = [executablePath];
+  try {
+    if (existsSync(executablePath)) {
+      const st = lstatSync(executablePath);
+      if (st.isSymbolicLink()) {
+        try {
+          const link = readlinkSync(executablePath);
+          seeds.push(resolve(dirname(executablePath), link));
+        } catch {
+          /* ignore */
+        }
+      }
+      try {
+        seeds.push(realpathSync(executablePath));
+      } catch {
+        /* ignore */
+      }
+      // Win32 npm shims often contain a path to the real package bin.
+      if (/\.(cmd|bat)$/i.test(executablePath)) {
+        try {
+          const text = readFileSync(executablePath, "utf8");
+          const m =
+            /%~dp0[\\/](\.\.[\\/].*?node_modules[\\/]@deftai[\\/]directive[\\/][^\s"']+)/i.exec(
+              text,
+            ) ??
+            /([A-Za-z]:\\[^\r\n"']*node_modules[\\/]@deftai[\\/]directive[\\/][^\r\n"']+)/i.exec(
+              text,
+            ) ??
+            /([^\s"']*node_modules[\\/]@deftai[\\/]directive[\\/][^\s"']+)/i.exec(text);
+          if (m?.[1]) {
+            seeds.push(resolve(dirname(executablePath), m[1].replace(/\//g, "\\")));
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  for (const seed of seeds) {
+    let dir = dirname(seed);
+    for (let i = 0; i < 12; i += 1) {
+      const pkgPath = join(dir, "package.json");
+      const ver = tryReadPackageVersion(pkgPath);
+      if (ver !== null) {
+        const parsed = parseVersionFromOutput(ver) ?? ver;
+        if (isPublishableSemver(parsed) || SEMVER_IN_TEXT_RE.test(parsed)) {
+          return parseVersionFromOutput(parsed) ?? parsed;
+        }
+      }
+      // npm global: .../node_modules/@deftai/directive
+      const nested = join(dir, "node_modules", "@deftai", "directive", "package.json");
+      const nestedVer = tryReadPackageVersion(nested);
+      if (nestedVer !== null) {
+        return parseVersionFromOutput(nestedVer) ?? nestedVer;
+      }
+      const nestedCore = join(dir, "node_modules", "@deftai", "directive-core", "package.json");
+      const nestedCoreVer = tryReadPackageVersion(nestedCore);
+      if (nestedCoreVer !== null) {
+        return parseVersionFromOutput(nestedCoreVer) ?? nestedCoreVer;
+      }
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+  return null;
+}
+
+/** Probe shell-active CLI only via `--version` (never used for shadowed PATH entries). */
 export function probeCliEngineVersion(executablePath: string): string | null {
+  const fromTree = readEngineVersionFromInstallTree(executablePath);
+  if (fromTree !== null) return fromTree;
+
   const shell = shouldUseShellForCommand(executablePath);
   const cmd =
     shell && process.platform === "win32"
@@ -83,19 +206,33 @@ export function probeCliEngineVersion(executablePath: string): string | null {
   }
 }
 
+/**
+ * Version probe used by the default collector:
+ * - precedence 0 (shell-active): package.json first, then `--version` spawn
+ * - precedence > 0: package.json only (never execute shadowed PATH entries)
+ */
+export function probeCandidateVersion(executablePath: string, precedence: number): string | null {
+  if (precedence > 0) {
+    return readEngineVersionFromInstallTree(executablePath);
+  }
+  return probeCliEngineVersion(executablePath);
+}
+
 function collectCandidates(seams: ActiveCliCheckSeams): CliCandidate[] {
   const whichAll = seams.whichAll ?? ((name: string) => defaultWhichAll(name));
-  const probe = seams.probeVersion ?? probeCliEngineVersion;
+  const probe = seams.probeVersion ?? probeCandidateVersion;
   const commands = seams.commands ?? ACTIVE_CLI_COMMANDS;
   const out: CliCandidate[] = [];
   for (const command of commands) {
     const paths = whichAll(command);
     paths.forEach((path, precedence) => {
+      const version = probe(path, precedence);
       out.push({
         command,
         path,
-        version: probe(path),
+        version,
         precedence,
+        versionSource: version === null ? "none" : precedence > 0 ? "package-json" : "exec",
       });
     });
   }
@@ -146,9 +283,46 @@ function remediationLines(params: {
   return lines;
 }
 
+function maxPublishableVersion(versions: readonly (string | null | undefined)[]): string | null {
+  let best: string | null = null;
+  for (const v of versions) {
+    if (!isPublishableSemver(v)) continue;
+    if (best === null || compareSemver(v, best) === 1) {
+      best = v;
+    }
+  }
+  return best;
+}
+
+/**
+ * Default upgrade target when callers omit `targetEngineVersion` (#3233 P1):
+ * the max of (1) publishable in-process engine version and (2) versions read
+ * from all PATH candidates' install trees. Ensures a lone stale active CLI
+ * fails when the running engine (or another candidate) is newer.
+ */
+export function resolveDefaultActiveCliTarget(
+  candidates: readonly CliCandidate[],
+  inProcessVersion?: string | null,
+): string | null {
+  let inProcess = inProcessVersion;
+  if (inProcess === undefined) {
+    try {
+      inProcess = readCorePackageVersion();
+    } catch {
+      inProcess = null;
+    }
+  }
+  const fromCandidates = candidates.map((c) => c.version);
+  return maxPublishableVersion([
+    isPublishableSemver(inProcess) ? inProcess : null,
+    ...fromCandidates,
+  ]);
+}
+
 /**
  * Fail-closed check: shell-active `deft`/`directive` must match `targetVersion`
- * when provided, and must not be older than another PATH candidate (#3233).
+ * (or the resolved default target), and must not be older than another PATH
+ * candidate (#3233).
  *
  * When no CLI is on PATH, returns ok=true (absence is covered by verify:tools /
  * engine ladder — this gate only catches shadowing after a multi-prefix install).
@@ -169,6 +343,12 @@ export function checkActiveCliAgainstTarget(
       lines: [],
     };
   }
+
+  const resolveTarget =
+    seams.resolveDefaultTarget ??
+    ((cs: readonly CliCandidate[]) => resolveDefaultActiveCliTarget(cs, seams.inProcessVersion));
+  const effectiveTarget =
+    targetVersion !== null && targetVersion.length > 0 ? targetVersion : resolveTarget(candidates);
 
   // Group by command; each bare name has its own PATH-active binary.
   const byCommand = new Map<ActiveCliCommand, CliCandidate[]>();
@@ -194,24 +374,28 @@ export function checkActiveCliAgainstTarget(
       primaryActive = active;
     }
 
-    if (targetVersion !== null && targetVersion.length > 0) {
+    if (effectiveTarget !== null && effectiveTarget.length > 0) {
       if (active.version === null) {
         failures.push(
           `shell-active ${command} at ${active.path} did not report an engine version ` +
-            `(expected ${targetVersion})`,
+            `(expected ${effectiveTarget})`,
         );
-      } else if (active.version !== targetVersion) {
-        failures.push(
-          `shell-active ${command} is engine ${active.version} at ${active.path}, ` +
-            `but upgrade target is ${targetVersion}`,
-        );
-        for (const other of list) {
-          if (other.precedence === 0) continue;
-          if (
-            other.version === targetVersion ||
-            compareSemver(other.version, active.version) === 1
-          ) {
-            competing.push(other);
+      } else if (active.version !== effectiveTarget) {
+        // Fail when active is behind the target (or simply unequal for exact match).
+        const cmp = compareSemver(active.version, effectiveTarget);
+        if (cmp === -1 || cmp === null) {
+          failures.push(
+            `shell-active ${command} is engine ${active.version} at ${active.path}, ` +
+              `but upgrade target is ${effectiveTarget}`,
+          );
+          for (const other of list) {
+            if (other.precedence === 0) continue;
+            if (
+              other.version === effectiveTarget ||
+              compareSemver(other.version, active.version) === 1
+            ) {
+              competing.push(other);
+            }
           }
         }
       }
@@ -239,10 +423,10 @@ export function checkActiveCliAgainstTarget(
       code: 0,
       active: primaryActive,
       candidates,
-      targetVersion,
+      targetVersion: effectiveTarget,
       message:
-        targetVersion !== null
-          ? `active CLI engine ${activeVer} matches target ${targetVersion} (${activePath})`
+        effectiveTarget !== null
+          ? `active CLI engine ${activeVer} matches target ${effectiveTarget} (${activePath})`
           : `active CLI engine ${activeVer} is not shadowed (${activePath})`,
       lines: [],
     };
@@ -264,7 +448,7 @@ export function checkActiveCliAgainstTarget(
     ...diagnostic,
     ...remediationLines({
       active: primaryActive,
-      targetVersion,
+      targetVersion: effectiveTarget,
       newerCandidates: uniqueCompeting,
     }),
   ];
@@ -274,7 +458,7 @@ export function checkActiveCliAgainstTarget(
     code: 1,
     active: primaryActive,
     candidates,
-    targetVersion,
+    targetVersion: effectiveTarget,
     message: summary,
     lines,
   };
