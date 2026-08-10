@@ -1,13 +1,11 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import {
   evaluateConsumerGateIntegrity,
   formatConsumerGateIntegrityFailure,
 } from "../check/consumer-gate-integrity.js";
 import { contentRoot } from "../content-root.js";
-import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
@@ -37,13 +35,16 @@ import {
   reconcileVersions,
   plan as resolvePlan,
 } from "../resolution/index.js";
-import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
-import { readDeclaredArtifactVersion } from "../xbrief-migrate/transforms.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
-import { runChecks } from "./checks.js";
+import {
+  checkXbriefEnvelopeMajorVersion,
+  runChecks,
+  XBRIEF_ENVELOPE_MAJOR_CHECK,
+  XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+} from "./checks.js";
 import {
   CONSUMER_FRAMEWORK_DIRS,
   EXPECTED_CONTENT_DIRS,
@@ -89,9 +90,6 @@ import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
 import { defaultWhich } from "./which.js";
 
 const DEFAULT_RESOLUTION_PLATFORMS = ["linux", "darwin", "win32"] as const;
-
-/** Next-action command for project-envelope behind-major (#2971). */
-const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief";
 
 /**
  * Read the `packageManager` field (Corepack) from a project package.json, or
@@ -781,6 +779,11 @@ function runInstallIntegrityChecks(
       const name = String(entry.name ?? "install-integrity");
       const status = String(entry.status ?? "");
       const detail = String(entry.detail ?? "");
+      // Authoritative envelope-major emission is runXbriefEnvelopeVersionCheck
+      // (runs for framework repo + consumers). Skip install-integrity duplicate.
+      if (name === XBRIEF_ENVELOPE_MAJOR_CHECK) {
+        continue;
+      }
       if (status === "pass") {
         sink.success(`${name}: pass`);
         continue;
@@ -1129,13 +1132,12 @@ function runTaskfileIncludeCheck(
 }
 
 /**
- * Fail closed when PROJECT-DEFINITION under an xbrief/ layout still declares
- * envelope 0.6 while the framework schema is 0.8 (#2971). Greenfield (no
- * project definition yet) and current 0.8 envelopes pass. Unreadable paths
- * (test seams / permission) skip rather than false-positive fail. Behind-major
- * records `deft migrate:xbrief` as the next action — layout rename alone is not
- * enough. Distinct from deposited-schema (`stale-xbrief-schema-deposit`) which
- * must NOT route to migrate:xbrief when only framework schema files are stale.
+ * Fail closed when any scanned project xbrief lifecycle `*.xbrief.json` envelope
+ * declares a schema major behind the framework target (#2971 / #3243). Greenfield
+ * (no envelopes) skips. Behind-major records `deft migrate:xbrief` as the next
+ * action (hybrid in-place rewrite on already-xbrief trees — #3236). Distinct from
+ * deposited-schema (`stale-xbrief-schema-deposit`) which must NOT route to
+ * migrate:xbrief when only framework schema files are stale.
  */
 export function runXbriefEnvelopeVersionCheck(
   projectRoot: string,
@@ -1143,10 +1145,7 @@ export function runXbriefEnvelopeVersionCheck(
   addFinding: (f: Finding) => void,
   seams: DoctorSeams,
 ): void {
-  const checkName = "xbrief-envelope-version";
-  const isFile = seams.isFile ?? ((p: string) => existsSync(p));
-  const readText = seams.readText ?? readTextSafe;
-  const targetVersion = VBRIEF_VERSION;
+  const checkName = XBRIEF_ENVELOPE_MAJOR_CHECK;
 
   if (seams.probeXbriefEnvelope) {
     const probe = seams.probeXbriefEnvelope(projectRoot);
@@ -1154,93 +1153,91 @@ export function runXbriefEnvelopeVersionCheck(
     return;
   }
 
-  let definitionPath: string;
-  try {
-    definitionPath = resolveProjectDefinitionPath(projectRoot);
-  } catch {
-    // Pure vbrief/-only trees are already covered by layout migrate signposts.
-    const skipMessage = `${checkName}: skip -- legacy-only layout (use layout migrate first)`;
+  const result = checkXbriefEnvelopeMajorVersion(projectRoot, {
+    ...(seams.readText ? { readText: seams.readText } : {}),
+    ...(seams.isFile ? { isFile: seams.isFile } : {}),
+    ...(seams.isDir ? { isDir: seams.isDir } : {}),
+  });
+  const data = (result.data ?? {}) as Record<string, unknown>;
+  const targetVersion =
+    typeof data.target_version === "string"
+      ? data.target_version
+      : String(data.target_version ?? "");
+  const declaredFromData = data.declared_versions;
+  const declaredVersion = Array.isArray(declaredFromData)
+    ? ((declaredFromData.find((v) => typeof v === "string") as string | undefined) ?? null)
+    : null;
+
+  if (result.status === "skip") {
+    const skipMessage = `${checkName}: skip -- ${result.detail}`;
     sink.info(skipMessage);
     addFinding({
       severity: "skip",
       message: skipMessage,
       check: checkName,
       status: "skip",
-      reason: "legacy-only-layout",
+      reason: typeof data.reason === "string" ? data.reason : "skip",
+      target_version: targetVersion || undefined,
     });
     return;
   }
 
-  if (!isFile(definitionPath)) {
-    const skipMessage = `${checkName}: skip -- no PROJECT-DEFINITION yet (greenfield)`;
-    sink.info(skipMessage);
-    addFinding({
-      severity: "skip",
-      message: skipMessage,
-      check: checkName,
-      status: "skip",
-      reason: "no-project-definition",
-    });
-    return;
-  }
-
-  const text = readText(definitionPath);
-  if (text === null) {
-    // Unreadable path (permissions or injectable seams) is not proof of 0.6.
-    const skipMessage = `${checkName}: skip -- PROJECT-DEFINITION unreadable`;
-    sink.info(skipMessage);
-    addFinding({
-      severity: "skip",
-      message: skipMessage,
-      check: checkName,
-      status: "skip",
-      reason: "unreadable",
-    });
-    return;
-  }
-
-  let declaredVersion: string | null = null;
-  try {
-    const parsed: unknown = JSON.parse(text);
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      declaredVersion = readDeclaredArtifactVersion(parsed as Record<string, unknown>);
-    } else {
-      const skipMessage = `${checkName}: skip -- PROJECT-DEFINITION is not a JSON object`;
-      sink.info(skipMessage);
+  if (result.status === "pass") {
+    const status = typeof data.status === "string" ? data.status : "current";
+    if (status === "behind-minor") {
+      // Major-only check (#3243) does not fail closed, but surface an advisory
+      // when the shared scan observed behind-minor distance.
+      const warnMessage = `${checkName}: behind-minor -- ${result.detail}. Prefer \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` when convenient.`;
+      sink.warn(warnMessage);
       addFinding({
-        severity: "skip",
-        message: skipMessage,
+        severity: "warning",
+        message: warnMessage,
         check: checkName,
-        status: "skip",
-        reason: "invalid-json-shape",
+        status: "behind-minor",
+        suggestion: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+        target_version: targetVersion || undefined,
+        next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
       });
       return;
     }
-  } catch {
-    const skipMessage = `${checkName}: skip -- PROJECT-DEFINITION JSON parse failed`;
-    sink.info(skipMessage);
+    const okMessage = `${checkName}: ${result.detail}`;
+    sink.success(okMessage);
     addFinding({
       severity: "skip",
-      message: skipMessage,
+      message: okMessage,
       check: checkName,
-      status: "skip",
-      reason: "parse-error",
+      status: "current",
+      target_version: targetVersion || undefined,
     });
     return;
   }
 
-  const distance = classifyXbriefSchemaDistance(declaredVersion, targetVersion);
-  emitXbriefEnvelopeFinding(
-    checkName,
-    {
-      declaredVersion,
-      targetVersion,
-      distance,
-      stale: distance !== "current",
-    },
-    sink,
-    addFinding,
-  );
+  // fail / error → behind-major fail closed (migratable 0.6 or non-migratable)
+  const status = typeof data.status === "string" ? data.status : "behind-major";
+  const nextCommand =
+    typeof data.next_command === "string"
+      ? data.next_command
+      : data.next_command === null
+        ? null
+        : XBRIEF_ENVELOPE_MIGRATE_COMMAND;
+  const suggestion =
+    typeof data.suggestion === "string"
+      ? data.suggestion
+      : (nextCommand ?? `set xBRIEFInfo.version to framework target`);
+  const message = `${checkName}: ${result.detail}`;
+  sink.error(message);
+  addFinding({
+    severity: "error",
+    message,
+    check: checkName,
+    status,
+    suggestion,
+    declared_version: declaredVersion,
+    target_version: targetVersion || undefined,
+    next_command: nextCommand,
+    sample_paths: data.sample_paths,
+    behind_major_count: data.behind_major_count,
+  });
 }
 
 function emitXbriefEnvelopeFinding(

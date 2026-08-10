@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, sep } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
@@ -17,9 +17,12 @@ import {
   checkSkillPathsResolve,
   checkStaleXbriefSchemaDeposit,
   checkTypescript7SideBySide,
+  checkXbriefEnvelopeMajorVersion,
   deriveExitCode,
   runChecks,
   runChecksImpl,
+  scanXbriefEnvelopeVersions,
+  XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
 
 describe("checks", () => {
@@ -692,6 +695,345 @@ describe("checkStaleXbriefSchemaDeposit (#2368)", () => {
       const line = renderXbriefMigrationLine(root);
       expect(line).toContain("xBrief migration: none");
       expect(line).not.toContain("migrate:xbrief");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
+  function writeEnvelope(
+    root: string,
+    relPath: string,
+    version: string,
+    infoKey: "xBRIEFInfo" | "vBRIEFInfo" = "xBRIEFInfo",
+  ): void {
+    const full = join(root, ...relPath.split("/"));
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(
+      full,
+      JSON.stringify({
+        [infoKey]: { version, description: "fixture" },
+        plan: { title: "t", status: "running", narratives: {}, items: [] },
+      }),
+      "utf8",
+    );
+  }
+
+  it("skips greenfield with empty xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("skip");
+      expect(result.data?.reason).toBe("no-envelopes");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes when all scanned envelopes are at framework major 0.8", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/PROJECT-DEFINITION.xbrief.json", "0.8");
+      writeEnvelope(root, "xbrief/active/story.xbrief.json", "0.8");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("pass");
+      expect(result.detail).toContain("framework 0.8");
+      expect(deriveExitCode([result], [])).toBe(0);
+      const scan = scanXbriefEnvelopeVersions(root);
+      expect(scan.worstDistance).toBe("current");
+      expect(scan.behindMajor).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when lifecycle artifact declares 0.6 vs framework 0.8", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/PROJECT-DEFINITION.xbrief.json", "0.8");
+      writeEnvelope(root, "xbrief/active/stale.xbrief.json", "0.6");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("behind-major");
+      expect(result.detail).toContain("declared 0.6");
+      expect(result.detail).toContain("framework 0.8");
+      expect(result.detail).toContain("stale.xbrief.json");
+      expect(result.detail).toContain(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(result.data?.next_command).toBe(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not fail closed for behind-minor (major-only check)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      // 0.7 vs framework 0.8 is behind-minor (minorGap 1), not behind-major.
+      writeEnvelope(root, "xbrief/active/almost.xbrief.json", "0.7");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("pass");
+      expect(result.data?.worst_distance).toBe("behind-minor");
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed for non-0.6 behind-major without migrate remediation", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      // 0.5 classifies as behind-major but migrate:xbrief only rewrites exact 0.6.
+      writeEnvelope(root, "xbrief/active/ancient.xbrief.json", "0.5");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("non-migratable");
+      expect(result.detail).toContain("declared 0.5");
+      expect(result.detail).toContain("framework 0.8");
+      expect(result.detail).not.toContain(
+        `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\``,
+      );
+      // Actionable next steps — not migrate-only, not version-only bump (#3243).
+      expect(result.detail).toContain("Next actions:");
+      expect(result.detail).toMatch(/fix FS permissions/i);
+      expect(result.detail).toMatch(/re-emit full xBRIEFInfo@/i);
+      expect(result.detail).toMatch(/delete or replace invalid lifecycle artifacts/i);
+      expect(result.detail).toContain("do not only bump the version field");
+      expect(result.detail).toContain("only when declared is exact 0.6");
+      expect(result.data?.next_command).toBeNull();
+      expect(String(result.data?.suggestion ?? "")).toMatch(
+        /not version-only|re-emit|permissions|delete\/replace/i,
+      );
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a live envelope is malformed JSON (not silent skip)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const full = join(root, "xbrief", "active", "broken.xbrief.json");
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, "{ not-json", "utf8");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("broken.xbrief.json");
+      expect(result.detail).toMatch(/missing\/unreadable|non-migratable/);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when PROJECT-DEFINITION exists but is unreadable", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const def = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+      mkdirSync(dirname(def), { recursive: true });
+      writeFileSync(def, '{"xBRIEFInfo":{"version":"0.8"}}', "utf8");
+      // isFile sees the path; readText cannot read it → behind-major null.
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isFile: (p) => p === def || p.endsWith("PROJECT-DEFINITION.xbrief.json"),
+        isDir: (p) => p.includes(`${sep}xbrief`) || p.endsWith("xbrief"),
+        readText: () => null,
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("PROJECT-DEFINITION.xbrief.json");
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when PROJECT-DEFINITION stat throws non-ENOENT (not treated absent)", () => {
+    // #3243 review: EACCES/EPERM on stat must include the definition path so
+    // Doctor cannot skip/pass past a live definition it cannot inspect.
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const def = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+      mkdirSync(dirname(def), { recursive: true });
+      const eacces = Object.assign(new Error("EACCES: permission denied"), {
+        code: "EACCES",
+      });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isFile: (p) => {
+          if (p === def || p.endsWith("PROJECT-DEFINITION.xbrief.json")) {
+            throw eacces;
+          }
+          return false;
+        },
+        isDir: (p) => p.includes(`${sep}xbrief`) || p.endsWith("xbrief"),
+        readText: () => null,
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("PROJECT-DEFINITION.xbrief.json");
+      expect(result.detail).toMatch(/fix FS permissions/i);
+      expect(deriveExitCode([result], [])).toBe(1);
+      const scan = scanXbriefEnvelopeVersions(root, {
+        isFile: (p) => {
+          if (p === def || p.endsWith("PROJECT-DEFINITION.xbrief.json")) {
+            throw eacces;
+          }
+          return false;
+        },
+        isDir: (p) => p.includes(`${sep}xbrief`) || p.endsWith("xbrief"),
+        readText: () => null,
+      });
+      expect(
+        scan.entries.some((e) => e.relativePath.endsWith("PROJECT-DEFINITION.xbrief.json")),
+      ).toBe(true);
+      expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not invent PROJECT-DEFINITION when isFile throws ENOENT", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      const enoent = Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isFile: () => {
+          throw enoent;
+        },
+        isDir: (p) =>
+          p.includes(`${sep}xbrief`) || p.endsWith("xbrief") || p.endsWith(`${sep}active`),
+        readdir: () => [],
+      });
+      // Clean absence → greenfield skip, not fail closed on a phantom definition.
+      expect(result.status).toBe("skip");
+      expect(result.data?.reason).toBe("no-envelopes");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when an existing lifecycle dir cannot be listed (not skip/pass)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const activeDir = join(root, "xbrief", "active");
+      mkdirSync(activeDir, { recursive: true });
+      // Dir exists (isDir true) but readdir throws → synthetic behind-major entry.
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isDir: (p) =>
+          p === activeDir ||
+          p.endsWith(`${sep}active`) ||
+          p.includes(`${sep}xbrief`) ||
+          p.endsWith("xbrief"),
+        readdir: () => {
+          throw new Error("EACCES: permission denied");
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("xbrief/active");
+      expect(result.detail).toMatch(/missing\/unreadable|non-migratable/);
+      expect(result.data?.next_command).toBeNull();
+      expect(deriveExitCode([result], [])).toBe(1);
+      const scan = scanXbriefEnvelopeVersions(root, {
+        isDir: (p) =>
+          p === activeDir ||
+          p.endsWith(`${sep}active`) ||
+          p.includes(`${sep}xbrief`) ||
+          p.endsWith("xbrief"),
+        readdir: () => {
+          throw new Error("EACCES: permission denied");
+        },
+      });
+      expect(scan.entries.some((e) => e.relativePath === "xbrief/active")).toBe(true);
+      expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when lifecycle dir stat throws non-ENOENT before readdir", () => {
+    // #3243 review: isDirectoryPath false on EACCES used to skip readdir fail-closed.
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const activeDir = join(root, "xbrief", "active");
+      mkdirSync(activeDir, { recursive: true });
+      const eperm = Object.assign(new Error("EPERM: operation not permitted"), {
+        code: "EPERM",
+      });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isDir: (p) => {
+          if (p === activeDir || p.endsWith(`${sep}active`)) {
+            throw eperm;
+          }
+          // xbrief root present so we are not legacy-only.
+          return p.includes(`${sep}xbrief`) || p.endsWith("xbrief");
+        },
+        readdir: () => {
+          throw new Error("should not readdir after unreadable stat");
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("xbrief/active");
+      expect(result.detail).toMatch(/fix FS permissions/i);
+      expect(deriveExitCode([result], [])).toBe(1);
+      const scan = scanXbriefEnvelopeVersions(root, {
+        isDir: (p) => {
+          if (p === activeDir || p.endsWith(`${sep}active`)) {
+            throw eperm;
+          }
+          return p.includes(`${sep}xbrief`) || p.endsWith("xbrief");
+        },
+      });
+      expect(scan.entries.some((e) => e.relativePath === "xbrief/active")).toBe(true);
+      expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("skips lifecycle folder cleanly when isDir throws ENOENT", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeEnvelope(root, "xbrief/PROJECT-DEFINITION.xbrief.json", "0.8");
+      const enoent = Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isDir: (p) => {
+          if (p.endsWith(`${sep}active`) || p.endsWith(`${sep}pending`)) {
+            throw enoent;
+          }
+          return p.includes(`${sep}xbrief`) || p.endsWith("xbrief");
+        },
+      });
+      // Absent pending/active is OK when definition is current.
+      expect(result.status).toBe("pass");
+      expect(deriveExitCode([result], [])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports mixed migratable and non-migratable behind-major in one fail", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/active/stale06.xbrief.json", "0.6");
+      writeEnvelope(root, "xbrief/pending/ancient.xbrief.json", "0.5");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-mixed");
+      expect(result.detail).toContain("mixed");
+      expect(result.detail).toContain("stale06.xbrief.json");
+      expect(result.detail).toContain("ancient.xbrief.json");
+      expect(result.detail).toContain(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(result.detail).toMatch(/rewrite|structure/i);
+      expect(result.data?.migratable_count).toBe(1);
+      expect(result.data?.non_migratable_count).toBe(1);
+      expect(deriveExitCode([result], [])).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

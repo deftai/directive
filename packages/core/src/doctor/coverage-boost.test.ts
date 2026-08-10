@@ -78,7 +78,9 @@ describe("doctor branch coverage boost", () => {
         cmdDoctor(["--full", "--json", "--project-root", root], {
           whichFn: () => "/bin/x",
           isDir: (p) => p === root,
-          isFile: (p) => !p.endsWith("deft"),
+          // Do not invent live xBRIEF envelopes (unreadable → fail-closed #3243).
+          isFile: (p) =>
+            !p.endsWith("deft") && !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
           readText: () => null,
         }),
       ).toBe(0);
@@ -108,7 +110,8 @@ describe("doctor branch coverage boost", () => {
       const code = cmdDoctor(["--full", "--json", "--project-root", root], {
         whichFn: () => "/bin/x",
         isDir: (p) => p === root,
-        isFile: () => true,
+        // Avoid inventing unreadable PROJECT-DEFINITION / lifecycle envelopes (#3243).
+        isFile: (p) => !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
         readText: (p) =>
           p.includes("agents-entry")
             ? "<!-- deft:managed-section v3 -->\nt\n<!-- /deft:managed-section -->"

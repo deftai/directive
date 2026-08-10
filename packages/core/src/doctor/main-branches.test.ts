@@ -248,7 +248,8 @@ describe("taskfile interactive fix", () => {
         cmdDoctor(["--full", "--json", "--project-root", root], {
           whichFn: () => "/bin/x",
           isDir: (p) => p === root || p.includes("Taskfile.yml"),
-          isFile: () => true,
+          // Taskfile probe only — do not invent live xBRIEF envelopes (#3243).
+          isFile: (p) => !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
         }),
       ).toBe(0);
     } finally {
@@ -308,7 +309,8 @@ describe("install integrity and agents paths", () => {
         cmdDoctor(["--full", "--json", "--project-root", root], {
           whichFn: () => "/bin/x",
           isDir: (p) => p === root,
-          isFile: () => true,
+          // Agents-md probe only — exclude invented xBRIEF live paths (#3243).
+          isFile: (p) => !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
           agentsRefreshPlan: () => ({ state: "unreadable" }),
         }),
       ).toBe(0);
@@ -329,7 +331,7 @@ describe("install integrity and agents paths", () => {
         cmdDoctor(["--full", "--json", "--project-root", root], {
           whichFn: () => "/bin/x",
           isDir: (p) => p === root,
-          isFile: () => true,
+          isFile: (p) => !p.includes("xbrief") && !p.endsWith(".xbrief.json"),
           agentsRefreshPlan: () => {
             throw new Error("fail");
           },

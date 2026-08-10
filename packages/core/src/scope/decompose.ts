@@ -763,6 +763,10 @@ export function validateDraft(stories: JsonObj[]): string[] {
     if (parallelSafe !== true && parallelSafe !== false) {
       issues.push("plan.metadata.swarm.parallel_safe");
     }
+    // Parity with swarm:readiness (#3252): large work cannot be concurrent.
+    if (sw.size === "large" && parallelSafe === true) {
+      issues.push("size=large cannot be parallel_safe=true");
+    }
     if (items.length === 0) issues.push("plan.items");
     if (items.length > 0 && !itemsHaveAcceptance(items)) {
       issues.push("plan.items[].narrative.Acceptance");

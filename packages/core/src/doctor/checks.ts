@@ -1,4 +1,6 @@
-import { join } from "node:path";
+import { readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import {
   detectDualLayout,
@@ -18,10 +20,19 @@ import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consis
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
 import { policyColonInvocation } from "../policy/policy-invocation.js";
+import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
+import type { XbriefSchemaDistance } from "../staleness-tickler/types.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
 import { stripGitignoreInlineComment } from "../triage/bootstrap/gitignore.js";
-import { LEGACY_INFO_ROOT_KEY, MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
+import {
+  LEGACY_ARTIFACT_DIR,
+  LEGACY_INFO_ROOT_KEY,
+  LEGACY_VBRIEF_VERSION,
+  MIGRATED_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_SUFFIX,
+} from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence, type XbriefConvergenceState } from "../xbrief-migrate/detect.js";
+import { readDeclaredArtifactVersion } from "../xbrief-migrate/transforms.js";
 import {
   CANONICAL_UPGRADE_COMMAND,
   GO_BRIDGE_RELEASES_URL,
@@ -40,14 +51,412 @@ import {
 import { readTextSafe } from "./paths.js";
 import type { CheckResult } from "./types.js";
 
+/** Remediation verb for project envelope behind-major (#2971 / #3243 / #3236). */
+export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief" as const;
+
+/** Doctor check name for envelope major mismatch (Q5 Option 2, #3243). */
+export const XBRIEF_ENVELOPE_MAJOR_CHECK = "xbrief-envelope-version" as const;
+
 export interface CheckSeams {
   readonly readText?: (path: string) => string | null;
   readonly isFile?: (path: string) => boolean;
   readonly isDir?: (path: string) => boolean;
+  /** List directory entries; throws on enum failure (fail-closed for live lifecycle dirs). */
+  readonly readdir?: (path: string) => string[];
 }
+
+/** True when an fs error means the path is cleanly absent (not unreadable). */
+function isEnoentError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as NodeJS.ErrnoException).code === "ENOENT"
+  );
+}
+
+/**
+ * Path probe for fail-closed envelope collection (#3243 review):
+ * - present: path exists as the expected kind
+ * - absent: clean ENOENT (or seam returns false)
+ * - unreadable: exists/unknown but stat failed with non-ENOENT (EACCES/EPERM/IO)
+ *
+ * Seams may throw with `code: "ENOENT"` for absence or any other throw for unreadable.
+ */
+type PathPresence = "present" | "absent" | "unreadable";
 
 function readText(path: string, seams: CheckSeams): string | null {
   return (seams.readText ?? readTextSafe)(path);
+}
+
+function isDirectoryPath(path: string, seams: CheckSeams): boolean {
+  if (seams.isDir) {
+    return seams.isDir(path);
+  }
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** Probe whether `path` is a file, absent, or unstatable (include for fail-closed). */
+function probeFilePresence(path: string, seams: CheckSeams): PathPresence {
+  if (seams.isFile) {
+    try {
+      return seams.isFile(path) ? "present" : "absent";
+    } catch (err) {
+      return isEnoentError(err) ? "absent" : "unreadable";
+    }
+  }
+  try {
+    return statSync(path).isFile() ? "present" : "absent";
+  } catch (err) {
+    // ENOENT → cleanly missing; EACCES/EPERM/other → treat as live but unreadable
+    // so Doctor cannot skip/pass past a definition it cannot inspect (#3243).
+    return isEnoentError(err) ? "absent" : "unreadable";
+  }
+}
+
+/**
+ * Probe whether `path` is a directory, absent, or unstatable.
+ * Unreadable pending/active must fail closed via enumFailures, not silent skip.
+ */
+function probeDirectoryPresence(path: string, seams: CheckSeams): PathPresence {
+  if (seams.isDir) {
+    try {
+      return seams.isDir(path) ? "present" : "absent";
+    } catch (err) {
+      return isEnoentError(err) ? "absent" : "unreadable";
+    }
+  }
+  try {
+    return statSync(path).isDirectory() ? "present" : "absent";
+  } catch (err) {
+    return isEnoentError(err) ? "absent" : "unreadable";
+  }
+}
+
+/**
+ * Live project envelopes for fail-closed major mismatch (#3243 first ship).
+ * PROJECT-DEFINITION + pending/active in-flight work. Proposed backlog and
+ * completed/cancelled archives are not fail-closed here (historical debt; full
+ * tree rewrite remains on `deft migrate:xbrief` / #3236).
+ */
+const ENVELOPE_MAJOR_SCAN_FOLDERS = ["pending", "active"] as const;
+
+/**
+ * Collect live-path `*.xbrief.json` envelopes under xbrief/ for major check.
+ * Existing lifecycle dirs that cannot be listed are returned as
+ * `enumFailures` (directory relative paths) so the scan fails closed rather
+ * than treating the tree as empty (#3243 review).
+ */
+function collectLiveXbriefEnvelopePaths(
+  projectRoot: string,
+  seams: CheckSeams,
+): { readonly paths: readonly string[]; readonly enumFailures: readonly string[] } {
+  const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  const paths: string[] = [];
+  const enumFailures: string[] = [];
+  const definitionPath = join(migratedRoot, `PROJECT-DEFINITION${MIGRATED_ARTIFACT_SUFFIX}`);
+  // Existence must not require a successful read/stat — unreadable definitions
+  // still enter the scan so the fail-closed unreadable branch can fire
+  // (#3243 review: ENOENT = absent; EACCES/EPERM/other = include).
+  const readdir = seams.readdir ?? readdirSync;
+  const definitionPresence = probeFilePresence(definitionPath, seams);
+  if (definitionPresence === "present" || definitionPresence === "unreadable") {
+    paths.push(definitionPath);
+  }
+  for (const folder of ENVELOPE_MAJOR_SCAN_FOLDERS) {
+    const dir = join(migratedRoot, folder);
+    const dirPresence = probeDirectoryPresence(dir, seams);
+    if (dirPresence === "absent") {
+      // Clean absence (ENOENT / seam false) — greenfield-ok for that folder.
+      continue;
+    }
+    if (dirPresence === "unreadable") {
+      // Stat failed with non-ENOENT before readdir — fail closed (do not pretend empty).
+      enumFailures.push(relative(projectRoot, dir).replace(/\\/g, "/"));
+      continue;
+    }
+    let names: string[];
+    try {
+      names = readdir(dir);
+    } catch {
+      // Dir exists but cannot be listed — fail closed via synthetic scan entry
+      // (directory path; no invented filenames).
+      enumFailures.push(relative(projectRoot, dir).replace(/\\/g, "/"));
+      continue;
+    }
+    for (const name of names) {
+      if (name.endsWith(MIGRATED_ARTIFACT_SUFFIX)) {
+        paths.push(join(dir, name));
+      }
+    }
+  }
+  return { paths, enumFailures };
+}
+
+/** One scanned project envelope and its schema distance vs the framework target. */
+export interface XbriefEnvelopeScanEntry {
+  readonly relativePath: string;
+  readonly declaredVersion: string | null;
+  readonly distance: XbriefSchemaDistance;
+}
+
+/**
+ * Scan live project xbrief envelopes (PROJECT-DEFINITION + pending/active) for
+ * schema distance vs the installed framework envelope major (#3243). Complements
+ * #2971 PROJECT-DEFINITION-only probe; remediation aligns with migrate hybrid
+ * rewrite (#3236).
+ */
+export function scanXbriefEnvelopeVersions(
+  projectRoot: string,
+  seams: CheckSeams = {},
+  targetVersion: string = VBRIEF_VERSION,
+): {
+  readonly targetVersion: string;
+  readonly entries: readonly XbriefEnvelopeScanEntry[];
+  readonly worstDistance: XbriefSchemaDistance | null;
+  readonly behindMajor: readonly XbriefEnvelopeScanEntry[];
+} {
+  const { paths, enumFailures } = collectLiveXbriefEnvelopePaths(projectRoot, seams);
+  const entries: XbriefEnvelopeScanEntry[] = [];
+
+  // Existing pending/active dirs that cannot be enumerated fail closed as
+  // behind-major (null declared) — same class as unreadable files (#3243 review).
+  for (const relativePath of enumFailures) {
+    entries.push({
+      relativePath,
+      declaredVersion: null,
+      distance: "behind-major",
+    });
+  }
+
+  for (const filePath of paths) {
+    const relativePath = relative(projectRoot, filePath).replace(/\\/g, "/");
+    const text = readText(filePath, seams);
+    // Unreadable / malformed live envelopes fail closed as behind-major (null
+    // declared) so Doctor cannot skip to no-envelopes/pass (#3243 review).
+    if (text === null) {
+      entries.push({
+        relativePath,
+        declaredVersion: null,
+        distance: "behind-major",
+      });
+      continue;
+    }
+    let declared: string | null = null;
+    try {
+      const parsed: unknown = JSON.parse(text);
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+        declared = readDeclaredArtifactVersion(parsed as Record<string, unknown>);
+      } else {
+        declared = null;
+      }
+    } catch {
+      declared = null;
+    }
+    const distance = classifyXbriefSchemaDistance(declared, targetVersion);
+    entries.push({
+      relativePath,
+      declaredVersion: declared,
+      distance,
+    });
+  }
+
+  const behindMajor = entries.filter((e) => e.distance === "behind-major");
+  let worstDistance: XbriefSchemaDistance | null = null;
+  if (behindMajor.length > 0) {
+    worstDistance = "behind-major";
+  } else if (entries.some((e) => e.distance === "behind-minor")) {
+    worstDistance = "behind-minor";
+  } else if (entries.length > 0) {
+    worstDistance = "current";
+  }
+
+  return { targetVersion, entries, worstDistance, behindMajor };
+}
+
+/**
+ * Fail closed when any scanned project xBRIEF envelope declares a major behind
+ * the framework target (#3243 / epic #3237 Q5 Option 2). Behind-minor does not
+ * fail this check. Remediation: `deft migrate:xbrief` (rewrites hybrid 0.6 on
+ * already-xbrief trees — #3236). Distinct from `stale-xbrief-schema-deposit`
+ * which routes schema-only drift to `directive update`.
+ */
+export function checkXbriefEnvelopeMajorVersion(
+  projectRoot: string,
+  seams: CheckSeams = {},
+): CheckResult {
+  const checkName = XBRIEF_ENVELOPE_MAJOR_CHECK;
+  const targetVersion = VBRIEF_VERSION;
+
+  const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  const legacyRoot = join(projectRoot, LEGACY_ARTIFACT_DIR);
+  const hasMigrated = isDirectoryPath(migratedRoot, seams);
+  const hasLegacy = isDirectoryPath(legacyRoot, seams);
+
+  // Pure legacy vbrief/ trees need layout migrate first; skip rather than
+  // false-positive on missing xbrief envelopes.
+  if (hasLegacy && !hasMigrated) {
+    return {
+      name: checkName,
+      status: "skip",
+      detail: "Legacy-only layout (use layout migrate first); envelope major check skipped.",
+      data: { reason: "legacy-only-layout", target_version: targetVersion },
+    };
+  }
+
+  const scan = scanXbriefEnvelopeVersions(projectRoot, seams, targetVersion);
+  if (scan.entries.length === 0) {
+    return {
+      name: checkName,
+      status: "skip",
+      detail: "No project xBRIEF envelopes scanned (greenfield or empty lifecycle).",
+      data: {
+        reason: "no-envelopes",
+        target_version: targetVersion,
+        scanned: 0,
+      },
+    };
+  }
+
+  // Fail closed for behind-major live envelopes (#3243 / #3236):
+  // - exact 0.6 → migratable via `deft migrate:xbrief`
+  // - null / 0.5 / unreadable / … → structural rewrite (migrate does not clear)
+  // When both classes are present, report BOTH remediations in one fail so
+  // migrate-only guidance cannot hide the non-migratable repair (#3243 review).
+  const migratableBehindMajor = scan.behindMajor.filter(
+    (e) => e.declaredVersion === LEGACY_VBRIEF_VERSION,
+  );
+  const nonMigratableBehindMajor = scan.behindMajor.filter(
+    (e) => e.declaredVersion !== LEGACY_VBRIEF_VERSION,
+  );
+
+  if (migratableBehindMajor.length > 0 && nonMigratableBehindMajor.length > 0) {
+    const migSample = migratableBehindMajor.slice(0, 3);
+    const nonSample = nonMigratableBehindMajor.slice(0, 3);
+    const nonDeclared = [
+      ...new Set(nonSample.map((e) => e.declaredVersion ?? "missing/unreadable")),
+    ].join(", ");
+    return {
+      name: checkName,
+      status: "fail",
+      detail:
+        `behind-major (mixed) -- framework ${targetVersion}: ` +
+        `${migratableBehindMajor.length} migratable (${LEGACY_VBRIEF_VERSION}: ` +
+        `${migSample.map((e) => e.relativePath).join(", ")}) and ` +
+        `${nonMigratableBehindMajor.length} non-migratable (declared ${nonDeclared}: ` +
+        `${nonSample.map((e) => e.relativePath).join(", ")}). ` +
+        `Next: (1) run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` for exact ${LEGACY_VBRIEF_VERSION}; ` +
+        `(2) rewrite non-migratable live envelopes to full xBRIEFInfo@${targetVersion} structure ` +
+        `(not version-only; migrate does not clear them).`,
+      data: {
+        status: "behind-major-mixed",
+        target_version: targetVersion,
+        migratable_count: migratableBehindMajor.length,
+        non_migratable_count: nonMigratableBehindMajor.length,
+        behind_major_count: scan.behindMajor.length,
+        sample_paths: [
+          ...migSample.map((e) => e.relativePath),
+          ...nonSample.map((e) => e.relativePath),
+        ],
+        next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+        suggestion:
+          `${XBRIEF_ENVELOPE_MIGRATE_COMMAND} for 0.6; rewrite non-migratable to full ` +
+          `xBRIEFInfo@${targetVersion} structure (not version-only)`,
+      },
+    };
+  }
+
+  if (migratableBehindMajor.length > 0) {
+    const sample = migratableBehindMajor.slice(0, 5);
+    const samplePaths = sample.map((e) => e.relativePath).join(", ");
+    const more =
+      migratableBehindMajor.length > sample.length
+        ? ` (+${migratableBehindMajor.length - sample.length} more)`
+        : "";
+    return {
+      name: checkName,
+      status: "fail",
+      detail:
+        `behind-major -- declared ${LEGACY_VBRIEF_VERSION}, framework ${targetVersion} ` +
+        `(${migratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
+        `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to bump project JSON envelopes ` +
+        `to xBRIEFInfo@${targetVersion} (layout rename alone is not enough; #3236 rewrites hybrid 0.6 in place).`,
+      data: {
+        status: "behind-major",
+        declared_versions: sample.map((e) => e.declaredVersion),
+        target_version: targetVersion,
+        behind_major_count: migratableBehindMajor.length,
+        sample_paths: sample.map((e) => e.relativePath),
+        next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+        suggestion: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+      },
+    };
+  }
+
+  if (nonMigratableBehindMajor.length > 0) {
+    // Fail closed without claiming migrate:xbrief alone clears these — that verb
+    // rewrites exact 0.6 only (#3236). Give executable next actions per class
+    // (permissions / re-emit / delete-replace) so Doctor is not permanently blocked
+    // after a non-applicable remediation (#3243 review).
+    const sample = nonMigratableBehindMajor.slice(0, 5);
+    const declaredVersions = [
+      ...new Set(sample.map((e) => e.declaredVersion ?? "missing/unreadable")),
+    ].join(", ");
+    const samplePaths = sample.map((e) => e.relativePath).join(", ");
+    const more =
+      nonMigratableBehindMajor.length > sample.length
+        ? ` (+${nonMigratableBehindMajor.length - sample.length} more)`
+        : "";
+    return {
+      name: checkName,
+      status: "fail",
+      detail:
+        `behind-major (non-migratable) -- declared ${declaredVersions}, framework ${targetVersion} ` +
+        `(${nonMigratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
+        `Next actions: (1) if a path is unreadable, fix FS permissions then re-run doctor; ` +
+        `(2) re-emit full xBRIEFInfo@${targetVersion} via scope tools ` +
+        `(\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only when declared is exact ${LEGACY_VBRIEF_VERSION}); ` +
+        `(3) delete or replace invalid lifecycle artifacts after human confirm — ` +
+        `do not only bump the version field.`,
+      data: {
+        status: "behind-major-non-migratable",
+        declared_versions: sample.map((e) => e.declaredVersion),
+        target_version: targetVersion,
+        behind_major_count: nonMigratableBehindMajor.length,
+        sample_paths: sample.map((e) => e.relativePath),
+        next_command: null,
+        suggestion:
+          `fix FS permissions if unreadable; re-emit full xBRIEFInfo@${targetVersion} via scope tools ` +
+          `(migrate:xbrief only for exact ${LEGACY_VBRIEF_VERSION}); or delete/replace invalid artifacts after human confirm (not version-only)`,
+      },
+    };
+  }
+
+  // current or behind-minor: this check is major-only (#3243).
+  const declaredSummary =
+    scan.entries
+      .map((e) => e.declaredVersion)
+      .filter((v): v is string => typeof v === "string")
+      .slice(0, 3)
+      .join(", ") || targetVersion;
+  return {
+    name: checkName,
+    status: "pass",
+    detail:
+      `current -- scanned ${scan.entries.length} envelope(s) at framework major ` +
+      `(declared sample ${declaredSummary}; framework ${targetVersion})` +
+      (scan.worstDistance === "behind-minor" ? "; behind-minor is non-failing for this check" : ""),
+    data: {
+      status: scan.worstDistance ?? "current",
+      target_version: targetVersion,
+      scanned: scan.entries.length,
+      worst_distance: scan.worstDistance,
+    },
+  };
 }
 
 export function checkQuickStartResolves(
@@ -1064,6 +1473,7 @@ export function runChecksImpl(
     checks.push(checkLegacyLayout(projectRoot, seams));
     checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
     checks.push(checkStaleXbriefSchemaDeposit(projectRoot, seams));
+    checks.push(checkXbriefEnvelopeMajorVersion(projectRoot, seams));
     checks.push(checkGitignoreCoverage(projectRoot, seams));
     checks.push(checkTypescript7SideBySide(projectRoot, seams));
     checks.push(checkCoverageCheckResumePolicy(projectRoot));
@@ -1085,6 +1495,7 @@ export function runChecksImpl(
   checks.push(checkLegacyLayout(projectRoot, seams));
   checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
   checks.push(checkStaleXbriefSchemaDeposit(projectRoot, seams));
+  checks.push(checkXbriefEnvelopeMajorVersion(projectRoot, seams));
   checks.push(checkGitignoreCoverage(projectRoot, seams));
   checks.push(checkTypescript7SideBySide(projectRoot, seams));
   checks.push(checkCoverageCheckResumePolicy(projectRoot));
