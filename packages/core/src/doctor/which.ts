@@ -36,8 +36,7 @@ export function whichAllFromPath(name: string, options: WhichAllOptions = {}): s
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
   const exists = options.exists ?? existsSync;
-  const isExecutable =
-    options.isExecutable ?? ((p: string) => defaultIsExecutable(p, platform));
+  const isExecutable = options.isExecutable ?? ((p: string) => defaultIsExecutable(p, platform));
   const pathValue = env.PATH ?? env.Path ?? "";
   if (pathValue === "") {
     return [];

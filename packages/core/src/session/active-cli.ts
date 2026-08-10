@@ -319,10 +319,7 @@ export function resolveDefaultActiveCliTarget(
   }
   // Independent sources only — exclude precedence-0 (active) versions.
   const fromShadows = candidates.filter((c) => c.precedence > 0).map((c) => c.version);
-  return maxPublishableVersion([
-    isPublishableSemver(inProcess) ? inProcess : null,
-    ...fromShadows,
-  ]);
+  return maxPublishableVersion([isPublishableSemver(inProcess) ? inProcess : null, ...fromShadows]);
 }
 
 /**
