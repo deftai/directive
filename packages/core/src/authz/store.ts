@@ -270,9 +270,6 @@ export function markGrantUsed(
   return used;
 }
 
-/** Stale lock age (ms) for exclusive grant claim recovery after process death (#3239). */
-export const AUTHZ_GRANT_CLAIM_LOCK_STALE_MS = 60_000;
-
 export interface ClaimSingleUseGrantOptions {
   readonly now?: Date;
   /**
@@ -287,8 +284,8 @@ export interface ClaimSingleUseGrantOptions {
  * Multi-use grants return ok without mutating. Single-use: exclusive lock + re-load
  * + revalidate + mark used so concurrent applies cannot both observe unspent and both write.
  * If later writes fail, the grant stays spent (operator remints) — preferred over
- * double-apply of one approval. Stale locks older than AUTHZ_GRANT_CLAIM_LOCK_STALE_MS
- * are cleared once for crash recovery.
+ * double-apply of one approval. Leftover lock files after crash require manual remint
+ * or lock removal (no auto-clear race).
  */
 export function claimSingleUseGrantForApply(
   projectRoot: string,
