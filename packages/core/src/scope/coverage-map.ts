@@ -453,6 +453,8 @@ export function validateCoverageMap(opts: {
   const coveredIds = new Set<string>();
   // parent_id → set of dispositions seen (conflicting dispositions fail closed)
   const dispositionsByParent = new Map<string, Set<string>>();
+  // parent_id → entry count (non-split may appear at most once; split uses parts)
+  const entryCountByParent = new Map<string, number>();
 
   // split_group → parent_id → set of parts
   const splitParts = new Map<string, Map<string, Set<string>>>();
@@ -498,6 +500,9 @@ export function validateCoverageMap(opts: {
     }
 
     coveredIds.add(entry.parent_requirement_id);
+    const priorCount = entryCountByParent.get(entry.parent_requirement_id) ?? 0;
+    entryCountByParent.set(entry.parent_requirement_id, priorCount + 1);
+
     let dispSet = dispositionsByParent.get(entry.parent_requirement_id);
     if (dispSet === undefined) {
       dispSet = new Set();
@@ -508,6 +513,21 @@ export function validateCoverageMap(opts: {
       const detail =
         `conflicting dispositions for '${entry.parent_requirement_id}': ` +
         `${[...dispSet].sort().join(", ")} (exactly one disposition per parent ID)`;
+      errors.push(`${loc}: ${detail}`);
+      entryReports.push({
+        parent_requirement_id: entry.parent_requirement_id,
+        disposition: entry.disposition,
+        ok: false,
+        detail,
+        negative_invariant: isNeg,
+      });
+      continue;
+    }
+    // Non-split dispositions must appear exactly once per parent ID (split uses ≥2 parts).
+    if (entry.disposition !== "split" && priorCount >= 1) {
+      const detail =
+        `duplicate coverage entries for '${entry.parent_requirement_id}' ` +
+        `with disposition '${entry.disposition}' (one entry per parent ID; use split for multi-part)`;
       errors.push(`${loc}: ${detail}`);
       entryReports.push({
         parent_requirement_id: entry.parent_requirement_id,

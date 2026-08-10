@@ -439,8 +439,8 @@ describe("coverage-map (#3238)", () => {
     expect(emptyMap.errors.some((e) => e.includes("coverage_map is required"))).toBe(true);
   });
 
-  it("rejects conflicting dispositions for the same parent requirement ID", () => {
-    const result = validateCoverageMap({
+  it("rejects conflicting or duplicate non-split entries for the same parent ID", () => {
+    const conflicting = validateCoverageMap({
       parent: abcParent,
       draft: {
         coverage_map: [
@@ -466,8 +466,37 @@ describe("coverage-map (#3238)", () => {
       },
       storyIds: ["s1"],
     });
-    expect(result.ok).toBe(false);
-    expect(result.errors.some((e) => e.includes("conflicting dispositions"))).toBe(true);
+    expect(conflicting.ok).toBe(false);
+    expect(conflicting.errors.some((e) => e.includes("conflicting dispositions"))).toBe(true);
+
+    const duplicateSame = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: [
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "covered",
+            child_story_ids: ["s1"],
+          },
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "covered",
+            child_story_ids: ["s2"],
+          },
+          {
+            parent_requirement_id: "req-forbid-a-to-c",
+            disposition: "covered",
+          },
+          {
+            parent_requirement_id: "req-terminal-failure",
+            disposition: "covered",
+          },
+        ],
+      },
+      storyIds: ["s1", "s2"],
+    });
+    expect(duplicateSame.ok).toBe(false);
+    expect(duplicateSame.errors.some((e) => e.includes("duplicate coverage entries"))).toBe(true);
   });
 
   it("covers remaining extract/parse edge branches", () => {
