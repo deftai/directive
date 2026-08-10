@@ -398,7 +398,7 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(headTip.code).toBe(0);
   });
 
-  it("does not trust stale open cache when live gh fails (#3264 P1 residual)", () => {
+  it("fails closed when live gh fails for an unlanded origin (#3264 conf residual)", () => {
     const root = makeGitRepo();
     writeBrief(root, "completed", "stale-open-live-fail.xbrief.json", issuePlan(9080));
     writeCachedIssue(root, "deftai/directive", 9080, "open");
@@ -408,9 +408,8 @@ describe("evaluateCompletedTracked (#3264)", () => {
       tip: "HEAD",
       runGh: () => ({ returncode: 1, stdout: "", stderr: "network down" }),
     });
-    // Unknown state (live fail + no trusted closed) must not false-green as open skip
-    // while also not false-red: no closed evidence → code 0 with no missing.
-    expect(result.code).toBe(0);
-    expect(result.missing).toEqual([]);
+    // Unknown with live expected must not green-skip unlanded residue.
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9080);
   });
 });

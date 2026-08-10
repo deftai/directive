@@ -509,11 +509,15 @@ export function evaluateCompletedTracked(
       continue;
     }
     const state = resolveState(entry.issue);
-    if (state !== "closed") {
-      // open or unknown → no fail (fail-closed only when known closed).
+    if (state === "open") {
       continue;
     }
-    missing.push(entry);
+    // Closed: always fail. Unknown with live expected (!skipGh): also fail —
+    // cannot prove the issue is still open, so do not green-skip land debt
+    // (#3264 Greptile residual on live lookup failure).
+    if (state === "closed" || (state === null && !skipGh)) {
+      missing.push(entry);
+    }
   }
   missing.sort((a, b) => issueKey(a.issue).localeCompare(issueKey(b.issue)));
 
