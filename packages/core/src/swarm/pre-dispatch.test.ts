@@ -256,17 +256,29 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(peer.targetId).toBe(first.targetId);
   });
 
-  it("branch-like targets stay opaque (not path-normalized)", () => {
+  it("slash-containing target key is stable before and after mkdir", () => {
     const root = tempRoot();
-    const r = swarmPreDispatch({
+    const slashy = "feat/my-story";
+    const first = swarmPreDispatch({
       projectRoot: root,
       scopeId: "s-branch",
-      targetId: "feat/my-story",
+      targetId: slashy,
       action: "begin",
       sourceRevision: "r1",
     });
-    expect(r.exitCode).toBe(0);
-    expect(r.targetId).toBe("feat/my-story");
+    expect(first.exitCode).toBe(0);
+    expect(first.targetId).toContain("feat/my-story");
+    mkdirSync(join(root, "feat", "my-story"), { recursive: true });
+    const peer = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "s-branch",
+      targetId: slashy,
+      action: "begin",
+      sourceRevision: "r2",
+    });
+    expect(peer.exitCode).toBe(1);
+    expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(peer.targetId).toBe(first.targetId);
   });
 
   it("bare relative dir that exists under project is path-normalized", () => {

@@ -97,38 +97,25 @@ export function looksLikeFilesystemTarget(targetId: string): boolean {
  * Canonical unit target for ledger keys so relative/absolute/separator/case
  * variants of the same worktree do not split gate state (#3228 Greptile P1).
  *
- * Rules:
- * - Worktree / filesystem targets: always resolve to a stable absolute key
- *   (even before the directory exists) so pre/post-mkdir identity cannot
- *   change. realpath when present collapses symlink aliases.
- * - Opaque branch/ref only when the id looks like a multi-segment git ref
- *   (`feat/foo`) AND is not path-like AND does not exist on disk.
+ * Always resolve under projectRoot to a stable absolute key (even before the
+ * path exists, including slash-containing branch-like ids). realpath collapses
+ * symlink aliases when present; case-fold prevents case-insensitive FS splits.
+ * Existence never changes the ledger key.
  */
 export function normalizeTargetId(projectRoot: string, targetId: string): string {
   const trimmed = targetId.trim();
   if (trimmed.length === 0) return trimmed;
 
   const abs = resolve(projectRoot, trimmed);
-  const exists = existsSync(abs);
-
-  // Multi-segment git-style refs stay opaque only when not path-like / missing.
-  // Bare names always get the stable absolute key (pre/post create).
-  const gitStyleRef = trimmed.includes("/") && !looksLikeFilesystemTarget(trimmed);
-  if (gitStyleRef && !exists) {
-    return trimmed;
-  }
-
   let pathKey = abs;
-  if (exists) {
+  if (existsSync(abs)) {
     try {
       pathKey = realpathSync(abs);
     } catch {
       // Keep resolve() key if realpath fails — still stable absolute identity.
     }
   }
-  pathKey = normalize(pathKey).replace(/\\/g, "/");
-  // Case-fold always for filesystem keys (Windows / macOS / some Linux mounts).
-  pathKey = pathKey.toLowerCase();
+  pathKey = normalize(pathKey).replace(/\\/g, "/").toLowerCase();
   if (pathKey.length > 1 && pathKey.endsWith("/")) {
     pathKey = pathKey.slice(0, -1);
   }
