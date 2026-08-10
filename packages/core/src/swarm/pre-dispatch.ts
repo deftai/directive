@@ -119,25 +119,20 @@ export function normalizeTargetId(projectRoot: string, targetId: string): string
 /**
  * Best-effort physical identity for alias peer checks. Ledger keys stay lexical
  * (stable); when a path exists, realpath groups symlink aliases that point at
- * the same worktree so concurrent begins still DENY.
+ * the same worktree so sequential begins still DENY.
  */
 export function physicalTargetKey(projectRoot: string, targetId: string): string {
   const lexical = normalizeTargetId(projectRoot, targetId);
-  if (!existsSync(lexical)) {
-    // Windows realpath needs native separators sometimes; try resolve form too.
-    const abs = resolve(projectRoot, targetId.trim());
-    if (!existsSync(abs)) return lexical;
+  const candidates = [lexical, resolve(projectRoot, targetId.trim()), targetId.trim()];
+  for (const candidate of candidates) {
+    if (candidate.length === 0 || !existsSync(candidate)) continue;
     try {
-      return normalize(realpathSync(abs)).replace(/\\/g, "/").toLowerCase();
+      return normalize(realpathSync(candidate)).replace(/\\/g, "/").toLowerCase();
     } catch {
-      return lexical;
+      /* try next candidate */
     }
   }
-  try {
-    return normalize(realpathSync(lexical)).replace(/\\/g, "/").toLowerCase();
-  } catch {
-    return lexical;
-  }
+  return lexical;
 }
 
 /** True when another unit (same scope+workflow, different target key) is active on same physical path. */

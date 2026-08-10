@@ -338,9 +338,13 @@ describe("swarmPreDispatch (#3228)", () => {
     writeFileSync(join(realDir, "marker.txt"), "x");
     const alias = join(root, "alias-wt");
     try {
-      symlinkSync(realDir, alias, "junction");
+      // Linux CI: dir symlink; Windows: junction (no admin).
+      symlinkSync(realDir, alias, process.platform === "win32" ? "junction" : "dir");
     } catch {
       // Skip on platforms that cannot create junctions/symlinks without elevation.
+      return;
+    }
+    if (!existsSync(alias)) {
       return;
     }
     const first = swarmPreDispatch({
