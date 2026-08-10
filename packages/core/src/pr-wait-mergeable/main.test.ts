@@ -142,6 +142,9 @@ describe("runWaitMergeable", () => {
         protectedFn: makeProtectedFn(0),
         monitorFn: makeMonitorFn(0, cleanMonitorPayload(1370)),
         mergeFn: makeMergeFn(0, "merged: squash"),
+        skipHumanMergeGate: true,
+        skipMergeApprovalHeadGate: true,
+        fetchPrHeadShaFn: () => "a".repeat(40),
       },
     );
 
