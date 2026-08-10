@@ -245,6 +245,7 @@ describe("completed lifecycle consistency (#3242)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("(non-object)");
     expect(result.message).toContain("(non-array)");
+    expect(result.findings.every((f) => f.kind === "unreadable")).toBe(true);
   });
 
   it("scan fails closed on legacy vbrief/completed corpus with status drift", () => {

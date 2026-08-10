@@ -10,7 +10,7 @@
  * Used by doctor (corpus scan) and scope:complete (post-reconcile assert).
  * Does not couple history/changes ledgers.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   hasArtifactSuffix,
@@ -170,8 +170,31 @@ export function evaluateCompletedPlanConsistency(
     });
   } else {
     const openItems = collectOpenPlanItems(plan.items);
-    if (openItems.length > 0) {
-      const itemLines = openItems
+    // Structural malformations (non-object slots / nested non-array) are hard
+    // unreadable findings — not advisory open_items — so doctor exit fails closed.
+    const structural = openItems.filter(
+      (h) => h.status === "(non-object)" || h.status === "(non-array)",
+    );
+    const checklistOpen = openItems.filter(
+      (h) => h.status !== "(non-object)" && h.status !== "(non-array)",
+    );
+    if (structural.length > 0) {
+      const itemLines = structural
+        .map((h) => `${h.path} "${h.title}" status=${h.status}`)
+        .join("; ");
+      findings.push({
+        relPath,
+        planStatus,
+        folder: "completed",
+        kind: "unreadable",
+        detail:
+          `${relPath}: folder=completed plan.status=${planStatus} has ` +
+          `${structural.length} malformed plan.items shape(s): ${itemLines} (#3242)`,
+        openItems: structural,
+      });
+    }
+    if (checklistOpen.length > 0) {
+      const itemLines = checklistOpen
         .map((h) => `${h.path} "${h.title}" status=${h.status}`)
         .join("; ");
       findings.push({
@@ -181,8 +204,8 @@ export function evaluateCompletedPlanConsistency(
         kind: "open_items",
         detail:
           `${relPath}: folder=completed plan.status=${planStatus} has ` +
-          `${openItems.length} non-terminal plan.items: ${itemLines} (#3242)`,
-        openItems,
+          `${checklistOpen.length} non-terminal plan.items: ${itemLines} (#3242)`,
+        openItems: checklistOpen,
       });
     }
   }
@@ -360,6 +383,31 @@ function scanCompletedDir(
   for (const name of names) {
     const relPath = `${pathPrefix}/completed/${name}`;
     const abs = join(completedDir, name);
+    try {
+      const st = lstatSync(abs);
+      if (st.isSymbolicLink()) {
+        findings.push(
+          unreadableFinding(
+            relPath,
+            "symlink under completed/ (refusing to follow; cannot verify status/items)",
+          ),
+        );
+        continue;
+      }
+      if (!st.isFile()) {
+        findings.push(
+          unreadableFinding(
+            relPath,
+            "non-file entry under completed/ (cannot verify status/items)",
+          ),
+        );
+        continue;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      findings.push(unreadableFinding(relPath, `lstat failed: ${msg}`));
+      continue;
+    }
     let data: unknown;
     try {
       data = JSON.parse(readFileSync(abs, "utf8")) as unknown;
