@@ -667,18 +667,22 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     }
   });
 
-  it("does not fail closed for non-0.6 behind-major (migrate cannot clear)", () => {
+  it("fails closed for non-0.6 behind-major without migrate remediation", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
     try {
       // 0.5 classifies as behind-major but migrate:xbrief only rewrites exact 0.6.
       writeEnvelope(root, "xbrief/active/ancient.xbrief.json", "0.5");
       const result = checkXbriefEnvelopeMajorVersion(root);
-      expect(result.status).toBe("pass");
-      expect(result.detail).toContain("non-0.6");
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("non-migratable");
+      expect(result.detail).toContain("declared 0.5");
+      expect(result.detail).toContain("framework 0.8");
       expect(result.detail).not.toContain(
         `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\``,
       );
-      expect(deriveExitCode([result], [])).toBe(0);
+      expect(result.data?.next_command).toBeNull();
+      expect(deriveExitCode([result], [])).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -258,33 +258,58 @@ export function checkXbriefEnvelopeMajorVersion(
   const nonMigratableBehindMajor = scan.behindMajor.filter(
     (e) => e.declaredVersion !== LEGACY_VBRIEF_VERSION,
   );
-  // current, behind-minor, or non-migratable behind-major: this check is
-  // major-only for the 0.6 residual path (#3243). Non-migratable residuals
-  // pass so doctor does not recommend a command that cannot clear them.
+  if (nonMigratableBehindMajor.length > 0) {
+    // Fail closed without recommending migrate:xbrief — that verb rewrites
+    // exact 0.6 only (#3236). Operators must set xBRIEFInfo.version to the
+    // framework target (or re-emit via write-path tools).
+    const sample = nonMigratableBehindMajor.slice(0, 5);
+    const declaredVersions = [...new Set(sample.map((e) => e.declaredVersion ?? "missing"))].join(
+      ", ",
+    );
+    const samplePaths = sample.map((e) => e.relativePath).join(", ");
+    const more =
+      nonMigratableBehindMajor.length > sample.length
+        ? ` (+${nonMigratableBehindMajor.length - sample.length} more)`
+        : "";
+    return {
+      name: checkName,
+      status: "fail",
+      detail:
+        `behind-major (non-migratable) -- declared ${declaredVersions}, framework ${targetVersion} ` +
+        `(${nonMigratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
+        `\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only rewrites exact ${LEGACY_VBRIEF_VERSION}; ` +
+        `set xBRIEFInfo.version to "${targetVersion}" on live envelopes (or re-emit via scope write-path tools).`,
+      data: {
+        status: "behind-major-non-migratable",
+        declared_versions: sample.map((e) => e.declaredVersion),
+        target_version: targetVersion,
+        behind_major_count: nonMigratableBehindMajor.length,
+        sample_paths: sample.map((e) => e.relativePath),
+        next_command: null,
+        suggestion: `set xBRIEFInfo.version to "${targetVersion}"`,
+      },
+    };
+  }
+
+  // current or behind-minor: this check is major-only (#3243).
   const declaredSummary =
     scan.entries
       .map((e) => e.declaredVersion)
       .filter((v): v is string => typeof v === "string")
       .slice(0, 3)
       .join(", ") || targetVersion;
-  const residualNote =
-    nonMigratableBehindMajor.length > 0
-      ? `; ${nonMigratableBehindMajor.length} non-0.6 behind-major residual(s) not fail-closed (migrate:xbrief rewrites ${LEGACY_VBRIEF_VERSION} only)`
-      : scan.worstDistance === "behind-minor"
-        ? "; behind-minor is non-failing for this check"
-        : "";
   return {
     name: checkName,
     status: "pass",
     detail:
       `current -- scanned ${scan.entries.length} envelope(s) at framework major ` +
-      `(declared sample ${declaredSummary}; framework ${targetVersion})${residualNote}`,
+      `(declared sample ${declaredSummary}; framework ${targetVersion})` +
+      (scan.worstDistance === "behind-minor" ? "; behind-minor is non-failing for this check" : ""),
     data: {
-      status: migratableBehindMajor.length > 0 ? "behind-major" : (scan.worstDistance ?? "current"),
+      status: scan.worstDistance ?? "current",
       target_version: targetVersion,
       scanned: scan.entries.length,
       worst_distance: scan.worstDistance,
-      non_migratable_behind_major: nonMigratableBehindMajor.length,
     },
   };
 }

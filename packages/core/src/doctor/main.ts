@@ -1212,16 +1212,26 @@ export function runXbriefEnvelopeVersionCheck(
     return;
   }
 
-  // fail / error → behind-major fail closed
-  const nextCommand = XBRIEF_ENVELOPE_MIGRATE_COMMAND;
+  // fail / error → behind-major fail closed (migratable 0.6 or non-migratable)
+  const status = typeof data.status === "string" ? data.status : "behind-major";
+  const nextCommand =
+    typeof data.next_command === "string"
+      ? data.next_command
+      : data.next_command === null
+        ? null
+        : XBRIEF_ENVELOPE_MIGRATE_COMMAND;
+  const suggestion =
+    typeof data.suggestion === "string"
+      ? data.suggestion
+      : (nextCommand ?? `set xBRIEFInfo.version to framework target`);
   const message = `${checkName}: ${result.detail}`;
   sink.error(message);
   addFinding({
     severity: "error",
     message,
     check: checkName,
-    status: "behind-major",
-    suggestion: nextCommand,
+    status,
+    suggestion,
     declared_version: declaredVersion,
     target_version: targetVersion || undefined,
     next_command: nextCommand,
