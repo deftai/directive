@@ -318,11 +318,7 @@ export function claimSingleUseGrantForApply(
   const safe = grantId.replace(/[^a-zA-Z0-9._-]/g, "_");
   const lockDir = join(authzDir(projectRoot), "locks");
   const lockPath = join(lockDir, `${safe}.lock`);
-  try {
-    mkdirSync(lockDir, { recursive: true });
-  } catch {
-    /* dir may exist */
-  }
+  mkdirSync(lockDir, { recursive: true });
 
   const tryOpenLock = (): number | null => {
     try {
@@ -335,16 +331,12 @@ export function claimSingleUseGrantForApply(
   };
 
   let lockFd = tryOpenLock();
-  if (lockFd === null) {
+  if (lockFd === null && existsSync(lockPath)) {
     // Stale-lock recovery: if lock file is old enough, remove once and retry.
-    try {
-      const mtimeMs = statSync(lockPath).mtimeMs;
-      if (now.getTime() - mtimeMs > AUTHZ_GRANT_CLAIM_LOCK_STALE_MS) {
-        rmSync(lockPath, { force: true });
-        lockFd = tryOpenLock();
-      }
-    } catch {
-      /* keep fail-closed */
+    const mtimeMs = statSync(lockPath).mtimeMs;
+    if (now.getTime() - mtimeMs > AUTHZ_GRANT_CLAIM_LOCK_STALE_MS) {
+      rmSync(lockPath, { force: true });
+      lockFd = tryOpenLock();
     }
   }
   if (lockFd === null) {
@@ -391,16 +383,8 @@ export function claimSingleUseGrantForApply(
     saveGrant(projectRoot, used);
     return { ok: true, grant: used };
   } finally {
-    try {
-      closeSync(lockFd);
-    } catch {
-      /* ignore */
-    }
-    try {
-      rmSync(lockPath, { force: true });
-    } catch {
-      /* best-effort */
-    }
+    closeSync(lockFd);
+    rmSync(lockPath, { force: true });
   }
 }
 

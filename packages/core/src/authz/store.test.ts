@@ -382,4 +382,43 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     const claim = claimSingleUseGrantForApply(root, g.id);
     expect(claim.ok).toBe(true);
   });
+
+  it("fresh lock fails closed without stale recovery", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "fresh-lock",
+    });
+    const lockDir = join(root, ".deft", "authz", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, "fresh-lock.lock");
+    writeFileSync(lockPath, "live-pid\n", "utf8");
+    // Keep mtime current — not stale.
+    const claim = claimSingleUseGrantForApply(root, g.id);
+    expect(claim.ok).toBe(false);
+    if (!claim.ok) expect(claim.reason).toMatch(/reserved|concurrent/i);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeNull();
+  });
+
+  it("revalidate success allows single-use claim", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "reval-ok",
+    });
+    let seen = false;
+    const claim = claimSingleUseGrantForApply(root, g.id, {
+      revalidate: (grant) => {
+        seen = grant.id === "reval-ok";
+        return { ok: true };
+      },
+    });
+    expect(seen).toBe(true);
+    expect(claim.ok).toBe(true);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
+  });
 });
