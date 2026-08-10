@@ -71,6 +71,8 @@ function itemLabel(item: Record<string, unknown>, path: string): string {
 
 /**
  * Collect non-terminal plan.items / subItems / nested items.
+ * Fail-closed on malformed slots: non-object entries and present non-array
+ * nested collections are reported so completed corpus cannot green-skip them.
  */
 export function collectOpenPlanItems(items: unknown, pathPrefix = "plan.items"): OpenItemHit[] {
   const hits: OpenItemHit[] = [];
@@ -80,8 +82,14 @@ export function collectOpenPlanItems(items: unknown, pathPrefix = "plan.items"):
   items.forEach((item, index) => {
     const path = `${pathPrefix}[${index}]`;
     const rec = asRecord(item);
-    /* v8 ignore next -- skip non-object item slots */
-    if (rec === null) return;
+    if (rec === null) {
+      hits.push({
+        path,
+        status: "(non-object)",
+        title: path,
+      });
+      return;
+    }
     const status = String(rec.status ?? "").trim();
     if (NON_TERMINAL_ITEM_STATUSES.has(status) || status.length === 0) {
       hits.push({
@@ -90,8 +98,20 @@ export function collectOpenPlanItems(items: unknown, pathPrefix = "plan.items"):
         title: itemLabel(rec, path),
       });
     }
-    hits.push(...collectOpenPlanItems(rec.subItems, `${path}.subItems`));
-    hits.push(...collectOpenPlanItems(rec.items, `${path}.items`));
+    for (const nestedKey of ["subItems", "items"] as const) {
+      const nested = rec[nestedKey];
+      const nestedPath = `${path}.${nestedKey}`;
+      if (nested === undefined) continue;
+      if (!Array.isArray(nested)) {
+        hits.push({
+          path: nestedPath,
+          status: "(non-array)",
+          title: nestedPath,
+        });
+        continue;
+      }
+      hits.push(...collectOpenPlanItems(nested, nestedPath));
+    }
   });
   return hits;
 }

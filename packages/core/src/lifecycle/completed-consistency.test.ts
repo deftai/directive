@@ -226,6 +226,27 @@ describe("completed lifecycle consistency (#3242)", () => {
     expect(result.message).toContain("plan.items is non-array");
   });
 
+  it("evaluate fails closed on non-object item slots and nested non-array collections (#3242)", () => {
+    const result = evaluateCompletedPlanConsistency(
+      {
+        title: "nested-bad",
+        status: "completed",
+        items: [
+          "bare-string",
+          {
+            title: "parent",
+            status: "completed",
+            subItems: { not: "array" },
+          },
+        ],
+      },
+      { relPath: "xbrief/completed/nested-bad.xbrief.json" },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("(non-object)");
+    expect(result.message).toContain("(non-array)");
+  });
+
   it("scan fails closed on legacy vbrief/completed corpus with status drift", () => {
     // legacy-only layout must still be examined (Greptile: no green-skip).
     const root = mkdtempSync(join(tmpdir(), "cc-legacy-only-"));
