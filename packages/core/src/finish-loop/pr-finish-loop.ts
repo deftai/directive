@@ -198,18 +198,20 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
     };
   }
 
-  // #3235: head-bound plan:approved vs current PR HEAD (before merge path).
-  // Runs even when --merge is not requested so auto-merge is revoked on stale
-  // approval after CLEAN (multi-push retention class).
+  // #3235: head-bound plan:approved vs LIVE PR HEAD (before merge path).
+  // Always re-fetch HEAD — do not trust the watch snapshot alone (a later head
+  // may already have a fresh plan:approved; snapshot A would falsely revoke).
   if (options.skipMergeApprovalHeadGate !== true) {
-    const currentHead =
-      typeof watchResult.probe.headSha === "string" ? watchResult.probe.headSha : null;
+    const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
+    const liveHead =
+      fetchHead(prNumber, repo) ??
+      (typeof watchResult.probe.headSha === "string" ? watchResult.probe.headSha : null);
     const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
     const headGate = headGateFn({
       prNumber,
       repo,
       projectRoot,
-      currentHeadSha: currentHead,
+      currentHeadSha: liveHead,
       disableAutoMergeOnDeny: true,
     });
     if (!headGate.allowed) {

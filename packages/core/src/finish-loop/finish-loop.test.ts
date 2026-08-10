@@ -245,6 +245,7 @@ describe("runPrFinishLoop", () => {
       projectRoot: root,
       prNumber: 42,
       watchFn: () => cleanWatch(42),
+      fetchPrHeadShaFn: () => "abc",
       writeProgress: false,
     });
     expect(r.exitCode).toBe(EXIT_OK);
@@ -273,6 +274,7 @@ describe("runPrFinishLoop", () => {
       prNumber: 9,
       merge: true,
       watchFn: () => cleanWatch(9),
+      fetchPrHeadShaFn: () => "abc",
       agentMergeFn: () => ({
         exitCode: 1 as const,
         allowed: false,
@@ -301,6 +303,7 @@ describe("runPrFinishLoop", () => {
       prNumber: 525,
       merge: true,
       watchFn: () => cleanWatch(525),
+      fetchPrHeadShaFn: () => "abc",
       mergeApprovalHeadFn: (input) => {
         expect(input.currentHeadSha).toBe("abc");
         disableSeen = true;
