@@ -689,4 +689,42 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("fails closed when a live envelope is malformed JSON (not silent skip)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const full = join(root, "xbrief", "active", "broken.xbrief.json");
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, "{ not-json", "utf8");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("broken.xbrief.json");
+      expect(result.detail).toMatch(/missing\/unreadable|non-migratable/);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports mixed migratable and non-migratable behind-major in one fail", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/active/stale06.xbrief.json", "0.6");
+      writeEnvelope(root, "xbrief/pending/ancient.xbrief.json", "0.5");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-mixed");
+      expect(result.detail).toContain("mixed");
+      expect(result.detail).toContain("stale06.xbrief.json");
+      expect(result.detail).toContain("ancient.xbrief.json");
+      expect(result.detail).toContain(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(result.detail).toMatch(/rewrite|structure/i);
+      expect(result.data?.migratable_count).toBe(1);
+      expect(result.data?.non_migratable_count).toBe(1);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

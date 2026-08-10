@@ -141,8 +141,16 @@ export function scanXbriefEnvelopeVersions(
   const entries: XbriefEnvelopeScanEntry[] = [];
 
   for (const filePath of paths) {
+    const relativePath = relative(projectRoot, filePath).replace(/\\/g, "/");
     const text = readText(filePath, seams);
+    // Unreadable / malformed live envelopes fail closed as behind-major (null
+    // declared) so Doctor cannot skip to no-envelopes/pass (#3243 review).
     if (text === null) {
+      entries.push({
+        relativePath,
+        declaredVersion: null,
+        distance: "behind-major",
+      });
       continue;
     }
     let declared: string | null = null;
@@ -151,15 +159,14 @@ export function scanXbriefEnvelopeVersions(
       if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
         declared = readDeclaredArtifactVersion(parsed as Record<string, unknown>);
       } else {
-        continue;
+        declared = null;
       }
     } catch {
-      // Unparseable JSON is not proof of a major mismatch.
-      continue;
+      declared = null;
     }
     const distance = classifyXbriefSchemaDistance(declared, targetVersion);
     entries.push({
-      relativePath: relative(projectRoot, filePath).replace(/\\/g, "/"),
+      relativePath,
       declaredVersion: declared,
       distance,
     });
@@ -222,12 +229,54 @@ export function checkXbriefEnvelopeMajorVersion(
     };
   }
 
-  // Fail closed only for migratable residual hybrid envelopes (#3243 / #3236):
-  // declared exactly 0.6. Other behind-major classifications (null / 0.5 / …)
-  // are not cleared by `migrate:xbrief` and must not block with that next action.
+  // Fail closed for behind-major live envelopes (#3243 / #3236):
+  // - exact 0.6 → migratable via `deft migrate:xbrief`
+  // - null / 0.5 / unreadable / … → structural rewrite (migrate does not clear)
+  // When both classes are present, report BOTH remediations in one fail so
+  // migrate-only guidance cannot hide the non-migratable repair (#3243 review).
   const migratableBehindMajor = scan.behindMajor.filter(
     (e) => e.declaredVersion === LEGACY_VBRIEF_VERSION,
   );
+  const nonMigratableBehindMajor = scan.behindMajor.filter(
+    (e) => e.declaredVersion !== LEGACY_VBRIEF_VERSION,
+  );
+
+  if (migratableBehindMajor.length > 0 && nonMigratableBehindMajor.length > 0) {
+    const migSample = migratableBehindMajor.slice(0, 3);
+    const nonSample = nonMigratableBehindMajor.slice(0, 3);
+    const nonDeclared = [
+      ...new Set(nonSample.map((e) => e.declaredVersion ?? "missing/unreadable")),
+    ].join(", ");
+    return {
+      name: checkName,
+      status: "fail",
+      detail:
+        `behind-major (mixed) -- framework ${targetVersion}: ` +
+        `${migratableBehindMajor.length} migratable (${LEGACY_VBRIEF_VERSION}: ` +
+        `${migSample.map((e) => e.relativePath).join(", ")}) and ` +
+        `${nonMigratableBehindMajor.length} non-migratable (declared ${nonDeclared}: ` +
+        `${nonSample.map((e) => e.relativePath).join(", ")}). ` +
+        `Next: (1) run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` for exact ${LEGACY_VBRIEF_VERSION}; ` +
+        `(2) rewrite non-migratable live envelopes to full xBRIEFInfo@${targetVersion} structure ` +
+        `(not version-only; migrate does not clear them).`,
+      data: {
+        status: "behind-major-mixed",
+        target_version: targetVersion,
+        migratable_count: migratableBehindMajor.length,
+        non_migratable_count: nonMigratableBehindMajor.length,
+        behind_major_count: scan.behindMajor.length,
+        sample_paths: [
+          ...migSample.map((e) => e.relativePath),
+          ...nonSample.map((e) => e.relativePath),
+        ],
+        next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
+        suggestion:
+          `${XBRIEF_ENVELOPE_MIGRATE_COMMAND} for 0.6; rewrite non-migratable to full ` +
+          `xBRIEFInfo@${targetVersion} structure (not version-only)`,
+      },
+    };
+  }
+
   if (migratableBehindMajor.length > 0) {
     const sample = migratableBehindMajor.slice(0, 5);
     const samplePaths = sample.map((e) => e.relativePath).join(", ");
@@ -255,17 +304,13 @@ export function checkXbriefEnvelopeMajorVersion(
     };
   }
 
-  const nonMigratableBehindMajor = scan.behindMajor.filter(
-    (e) => e.declaredVersion !== LEGACY_VBRIEF_VERSION,
-  );
   if (nonMigratableBehindMajor.length > 0) {
-    // Fail closed without recommending migrate:xbrief — that verb rewrites
-    // exact 0.6 only (#3236). Operators must set xBRIEFInfo.version to the
-    // framework target (or re-emit via write-path tools).
+    // Fail closed without recommending migrate:xbrief alone — that verb rewrites
+    // exact 0.6 only (#3236). Operators must re-emit full structure.
     const sample = nonMigratableBehindMajor.slice(0, 5);
-    const declaredVersions = [...new Set(sample.map((e) => e.declaredVersion ?? "missing"))].join(
-      ", ",
-    );
+    const declaredVersions = [
+      ...new Set(sample.map((e) => e.declaredVersion ?? "missing/unreadable")),
+    ].join(", ");
     const samplePaths = sample.map((e) => e.relativePath).join(", ");
     const more =
       nonMigratableBehindMajor.length > sample.length
