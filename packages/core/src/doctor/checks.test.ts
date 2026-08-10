@@ -116,6 +116,22 @@ describe("checks", () => {
     }
   });
 
+  it("hard-fails completed-lifecycle-consistency on unreadable completed artifacts (#3242)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cc-unreadable-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "bad.xbrief.json"), "{not-json", "utf8");
+      const result = checkCompletedLifecycleConsistency(root);
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("malformed JSON");
+      expect(result.detail).toContain("completed/bad.xbrief.json");
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("runChecksImpl includes completed-lifecycle checks and hard-fails status drift (#3242)", () => {
     const root = mkdtempSync(join(tmpdir(), "doc-cc-impl-"));
     try {

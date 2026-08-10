@@ -12,7 +12,12 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+  resolveLifecycleRoot,
+} from "../layout/resolve.js";
 import { FOLDER_ALLOWED_STATUSES } from "../vbrief-validate/constants.js";
 
 /** Item statuses that still represent unfinished checklist work (#2862 / #3240 / #3242). */
@@ -22,7 +27,7 @@ export const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "runni
 export const COMPLETED_FOLDER_PLAN_STATUSES: ReadonlySet<string> =
   FOLDER_ALLOWED_STATUSES.completed as ReadonlySet<string>;
 
-export type CompletedConsistencyKind = "status_mismatch" | "open_items";
+export type CompletedConsistencyKind = "status_mismatch" | "open_items" | "unreadable";
 
 export interface OpenItemHit {
   readonly path: string;
@@ -179,15 +184,53 @@ export function formatCompletedConsistencyFailure(
 }
 
 /**
- * Scan `xbrief/completed/` (or legacy root) for Q4 mismatches.
+ * Resolve inventory root for completed/ scan: prefer canonical xbrief/, else
+ * legacy vbrief/ (read-accepted until migrate). Avoids green-skip on legacy-only.
+ */
+function resolveConsistencyLifecycleRoot(projectRoot: string): string | null {
+  const root = resolve(projectRoot);
+  try {
+    return resolveLifecycleRoot(root);
+  } catch {
+    // fall through to legacy
+  }
+  const legacy = join(root, LEGACY_ARTIFACT_DIR);
+  try {
+    if (existsSync(legacy) && statSync(legacy).isDirectory()) {
+      return legacy;
+    }
+  } catch {
+    // ignore
+  }
+  const migrated = join(root, MIGRATED_ARTIFACT_DIR);
+  try {
+    if (existsSync(migrated) && statSync(migrated).isDirectory()) {
+      return migrated;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function unreadableFinding(relPath: string, detail: string): CompletedConsistencyFinding {
+  return {
+    relPath,
+    planStatus: "(unreadable)",
+    folder: "completed",
+    kind: "unreadable",
+    detail: `${relPath}: ${detail} (#3242)`,
+  };
+}
+
+/**
+ * Scan `xbrief/completed/` (or legacy `vbrief/completed/`) for Q4 mismatches.
  * Offline / filesystem only. Missing completed/ is green (nothing to check).
+ * Malformed completed artifacts fail closed (no silent skip).
  */
 export function scanCompletedLifecycleConsistency(projectRoot: string): CompletedConsistencyResult {
-  let lifecycleRoot: string;
-  try {
-    lifecycleRoot = resolveLifecycleRoot(resolve(projectRoot));
-  } catch {
-    // No layout (or legacy-only throws) — treat as empty corpus for this check.
+  const lifecycleRoot = resolveConsistencyLifecycleRoot(projectRoot);
+  if (lifecycleRoot === null) {
     return {
       ok: true,
       findings: [],
@@ -224,14 +267,23 @@ export function scanCompletedLifecycleConsistency(projectRoot: string): Complete
     try {
       data = JSON.parse(readFileSync(abs, "utf8")) as unknown;
     } catch {
-      /* v8 ignore next -- malformed json under completed/ */
+      findings.push(
+        unreadableFinding(relPath, "malformed JSON under completed/ (cannot verify status/items)"),
+      );
       continue;
     }
     const root = asRecord(data);
-    /* v8 ignore next 3 -- non-object root or missing plan */
-    if (root === null) continue;
+    if (root === null) {
+      findings.push(
+        unreadableFinding(relPath, "non-object root under completed/ (cannot verify status/items)"),
+      );
+      continue;
+    }
     const plan = asRecord(root.plan);
-    if (plan === null) continue;
+    if (plan === null) {
+      findings.push(unreadableFinding(relPath, "missing or non-object plan under completed/"));
+      continue;
+    }
     const result = evaluateCompletedPlanConsistency(plan, { relPath });
     findings.push(...result.findings);
   }

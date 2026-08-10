@@ -1270,8 +1270,11 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
 export function checkCompletedLifecycleConsistency(projectRoot: string): CheckResult {
   const checkName = "completed-lifecycle-consistency";
   const result = scanCompletedLifecycleConsistency(projectRoot);
-  const statusFindings = result.findings.filter((f) => f.kind === "status_mismatch");
-  if (statusFindings.length === 0) {
+  // Hard fail: folder/status drift and unreadable completed artifacts (not open items).
+  const hardFindings = result.findings.filter(
+    (f) => f.kind === "status_mismatch" || f.kind === "unreadable",
+  );
+  if (hardFindings.length === 0) {
     return {
       name: checkName,
       status: "pass",
@@ -1285,16 +1288,16 @@ export function checkCompletedLifecycleConsistency(projectRoot: string): CheckRe
   }
   const message =
     `Completed lifecycle folder/status consistency failed (#3242). ` +
-    `${statusFindings.length} finding(s):\n` +
-    statusFindings.map((f) => `  - ${f.detail}`).join("\n") +
-    `\nRule: completed/ requires plan.status in [completed|failed].`;
+    `${hardFindings.length} finding(s):\n` +
+    hardFindings.map((f) => `  - ${f.detail}`).join("\n") +
+    `\nRule: completed/ requires plan.status in [completed|failed]; artifacts must be readable.`;
   return {
     name: checkName,
     status: "fail",
     detail: message,
     data: {
-      finding_count: statusFindings.length,
-      findings: statusFindings.map((f) => ({
+      finding_count: hardFindings.length,
+      findings: hardFindings.map((f) => ({
         rel_path: f.relPath,
         plan_status: f.planStatus,
         kind: f.kind,

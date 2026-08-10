@@ -162,7 +162,7 @@ describe("completed lifecycle consistency (#3242)", () => {
     expect(collectOpenPlanItems("nope")).toEqual([]);
   });
 
-  it("scan skips malformed and plan-less files under completed/", () => {
+  it("scan fails closed on malformed and plan-less files under completed/", () => {
     const root = mkdtempSync(join(tmpdir(), "cc-malformed-"));
     const dir = join(root, "xbrief", "completed");
     mkdirSync(dir, { recursive: true });
@@ -178,8 +178,13 @@ describe("completed lifecycle consistency (#3242)", () => {
       "utf8",
     );
     const result = scanCompletedLifecycleConsistency(root);
-    expect(result.ok).toBe(true);
-    expect(result.message).toMatch(/scanned 4|OK/);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("malformed JSON");
+    expect(result.message).toContain("missing or non-object plan");
+    expect(result.message).toContain("non-object root");
+    expect(result.findings.every((f) => f.kind === "unreadable" || f.relPath.includes("ok"))).toBe(
+      true,
+    );
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -193,8 +198,8 @@ describe("completed lifecycle consistency (#3242)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("scan is green when no lifecycle root can be resolved", () => {
-    // legacy-only vbrief throws from resolveLifecycleRoot → treated as empty corpus
+  it("scan fails closed on legacy vbrief/completed corpus with status drift", () => {
+    // legacy-only layout must still be examined (Greptile: no green-skip).
     const root = mkdtempSync(join(tmpdir(), "cc-legacy-only-"));
     mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
     writeFileSync(
@@ -206,8 +211,9 @@ describe("completed lifecycle consistency (#3242)", () => {
       "utf8",
     );
     const result = scanCompletedLifecycleConsistency(root);
-    expect(result.ok).toBe(true);
-    expect(result.message).toMatch(/no lifecycle root|OK/);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("plan.status=running");
+    expect(result.message).toContain("completed/legacy.vbrief.json");
     rmSync(root, { recursive: true, force: true });
   });
 
