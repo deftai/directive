@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,6 +14,7 @@ import { mintHumanOriginGrant, startUatLease, suspendUatLease } from "./actions.
 import { authzStatePath } from "./paths.js";
 import {
   appendAuthzAudit,
+  claimSingleUseGrantForApply,
   listActiveHumanGrants,
   loadAuthzState,
   loadAuthzStateResult,
@@ -287,5 +296,90 @@ describe("authz store (#2944)", () => {
       semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
     };
     expect(() => saveGrant(root, grant)).toThrow();
+  });
+});
+
+describe("claimSingleUseGrantForApply (#3239)", () => {
+  it("multi-use grant claims without marking usedAt", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: false,
+      grantId: "multi",
+    });
+    const claim = claimSingleUseGrantForApply(root, g.id);
+    expect(claim.ok).toBe(true);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeNull();
+  });
+
+  it("single-use grant marks usedAt under lock", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "once",
+    });
+    const claim = claimSingleUseGrantForApply(root, g.id);
+    expect(claim.ok).toBe(true);
+    if (claim.ok) expect(claim.grant.semantics.usedAt).toBeTruthy();
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
+    const again = claimSingleUseGrantForApply(root, g.id);
+    expect(again.ok).toBe(false);
+  });
+
+  it("revalidate can deny after lock and before mark", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "rev",
+    });
+    const claim = claimSingleUseGrantForApply(root, g.id, {
+      revalidate: () => ({ ok: false, reason: "revoked mid-flight" }),
+    });
+    expect(claim.ok).toBe(false);
+    if (!claim.ok) expect(claim.reason).toMatch(/revoked mid-flight/);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBeNull();
+  });
+
+  it("missing grant id fails closed", () => {
+    const root = tempRoot();
+    const claim = claimSingleUseGrantForApply(root, "no-such-grant");
+    expect(claim.ok).toBe(false);
+  });
+
+  it("Date overload for now still works", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "dated",
+    });
+    const claim = claimSingleUseGrantForApply(root, g.id, new Date("2026-08-10T12:00:00Z"));
+    expect(claim.ok).toBe(true);
+    expect(loadGrant(root, g.id)?.semantics.usedAt).toBe("2026-08-10T12:00:00Z");
+  });
+
+  it("stale lock is recovered so claim can proceed", () => {
+    const root = tempRoot();
+    const g = mintHumanOriginGrant({
+      projectRoot: root,
+      operations: ["edit"],
+      singleUse: true,
+      grantId: "stale-lock",
+    });
+    const lockDir = join(root, ".deft", "authz", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, "stale-lock.lock");
+    writeFileSync(lockPath, "dead-pid\n", "utf8");
+    // Age the lock past the stale threshold.
+    const old = new Date(Date.now() - 120_000);
+    utimesSync(lockPath, old, old);
+    const claim = claimSingleUseGrantForApply(root, g.id);
+    expect(claim.ok).toBe(true);
   });
 });

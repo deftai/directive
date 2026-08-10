@@ -1078,10 +1078,22 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   );
 
   // Claim single-use grants before protected writes so concurrent applies cannot
-  // both observe unspent and both mutate (#3239 Greptile P1). Failed later writes
-  // leave single-use spent (operator remints) — preferred over double-apply.
+  // both observe unspent and both mutate (#3239 Greptile P1). Revalidate under
+  // lock so revocation/expiry/binding change after evaluate cannot authorize.
+  // Failed later writes leave single-use spent (operator remints).
   if (authz.humanApprovalRef !== null) {
-    const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef);
+    const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef, {
+      revalidate: (grant) => {
+        const again = evaluateDecomposeStructuralApply({
+          projectRoot,
+          parentPath,
+          draftPath,
+          draftDigest,
+          grants: [grant],
+        });
+        return again.allowed ? { ok: true as const } : { ok: false as const, reason: again.reason };
+      },
+    });
     if (!claim.ok) {
       throw new DecompositionError(claim.reason);
     }

@@ -12,6 +12,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   writeSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -286,19 +287,34 @@ export function markGrantUsed(
   return used;
 }
 
+/** Stale lock age (ms) for exclusive grant claim recovery after process death (#3239). */
+export const AUTHZ_GRANT_CLAIM_LOCK_STALE_MS = 60_000;
+
+export interface ClaimSingleUseGrantOptions {
+  readonly now?: Date;
+  /**
+   * Re-check grant after exclusive lock (revocation/expiry/origin/bindings).
+   * Called before single-use mark so an invalidated grant cannot authorize writes.
+   */
+  readonly revalidate?: (grant: HumanOriginGrant) => { ok: true } | { ok: false; reason: string };
+}
+
 /**
  * Claim a single-use grant for structural apply before protected writes (#3239).
  * Multi-use grants return ok without mutating. Single-use: exclusive lock + re-load
- * + mark used so concurrent applies cannot both observe unspent and both write.
+ * + revalidate + mark used so concurrent applies cannot both observe unspent and both write.
  * If later writes fail, the grant stays spent (operator remints) — preferred over
- * double-apply of one approval.
+ * double-apply of one approval. Stale locks older than AUTHZ_GRANT_CLAIM_LOCK_STALE_MS
+ * are cleared once for crash recovery.
  */
 export function claimSingleUseGrantForApply(
   projectRoot: string,
   grantId: string,
-  now: Date = new Date(),
+  options: ClaimSingleUseGrantOptions | Date = {},
 ): { ok: true; grant: HumanOriginGrant } | { ok: false; reason: string } {
-  const root = resolve(projectRoot);
+  // Back-compat: second arg was `now: Date` in the first #3239 revision.
+  const opts: ClaimSingleUseGrantOptions = options instanceof Date ? { now: options } : options;
+  const now = opts.now ?? new Date();
   const safe = grantId.replace(/[^a-zA-Z0-9._-]/g, "_");
   const lockDir = join(authzDir(projectRoot), "locks");
   const lockPath = join(lockDir, `${safe}.lock`);
@@ -307,12 +323,31 @@ export function claimSingleUseGrantForApply(
   } catch {
     /* dir may exist */
   }
-  let lockFd: number | null = null;
-  try {
-    // Exclusive create — concurrent claim fails closed.
-    lockFd = openSync(lockPath, "wx");
-    writeSync(lockFd, `${process.pid}\n${utcIso(now)}\n`);
-  } catch {
+
+  const tryOpenLock = (): number | null => {
+    try {
+      const fd = openSync(lockPath, "wx");
+      writeSync(fd, `${process.pid}\n${utcIso(now)}\n`);
+      return fd;
+    } catch {
+      return null;
+    }
+  };
+
+  let lockFd = tryOpenLock();
+  if (lockFd === null) {
+    // Stale-lock recovery: if lock file is old enough, remove once and retry.
+    try {
+      const mtimeMs = statSync(lockPath).mtimeMs;
+      if (now.getTime() - mtimeMs > AUTHZ_GRANT_CLAIM_LOCK_STALE_MS) {
+        rmSync(lockPath, { force: true });
+        lockFd = tryOpenLock();
+      }
+    } catch {
+      /* keep fail-closed */
+    }
+  }
+  if (lockFd === null) {
     return {
       ok: false,
       reason:
@@ -320,6 +355,7 @@ export function claimSingleUseGrantForApply(
         "or spent by a concurrent apply. Human action required: remint if the prior apply failed.",
     };
   }
+
   try {
     const grant = loadGrant(projectRoot, grantId);
     if (grant === null) {
@@ -327,6 +363,12 @@ export function claimSingleUseGrantForApply(
         ok: false,
         reason: `Directive denied scope:decompose apply: grant ${grantId} missing.`,
       };
+    }
+    if (opts.revalidate !== undefined) {
+      const check = opts.revalidate(grant);
+      if (!check.ok) {
+        return { ok: false, reason: check.reason };
+      }
     }
     if (!grant.semantics.singleUse) {
       return { ok: true, grant };
@@ -349,19 +391,16 @@ export function claimSingleUseGrantForApply(
     saveGrant(projectRoot, used);
     return { ok: true, grant: used };
   } finally {
-    if (lockFd !== null) {
-      try {
-        closeSync(lockFd);
-      } catch {
-        /* ignore */
-      }
+    try {
+      closeSync(lockFd);
+    } catch {
+      /* ignore */
     }
     try {
       rmSync(lockPath, { force: true });
     } catch {
       /* best-effort */
     }
-    void root;
   }
 }
 
