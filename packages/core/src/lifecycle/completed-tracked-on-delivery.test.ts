@@ -211,11 +211,12 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(result.message).toContain("delivery tip ref not found");
   });
 
-  it("returns config error for non-git root", () => {
+  it("soft-skips non-git roots (greenfield consumer fixtures)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-completed-tracked-nongit-"));
     temps.push(root);
     const result = evaluateCompletedTracked(root, { skipGh: true });
-    expect(result.code).toBe(2);
+    expect(result.code).toBe(0);
     expect(result.message).toContain("not a git worktree");
+    expect(result.message).toContain("skip");
   });
 });

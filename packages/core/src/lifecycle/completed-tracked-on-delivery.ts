@@ -425,13 +425,17 @@ export function evaluateCompletedTracked(
     };
   }
 
-  // Not a git worktree → config error (cannot assert tracked tip).
+  // Not a git worktree → nothing to assert about tracked tip (greenfield /
+  // temp consumer fixtures). Soft-skip like orphan-active's empty-root path.
   const gitProbe = runGit(root, ["rev-parse", "--is-inside-work-tree"]);
   if (gitProbe.code !== 0) {
+    if (quiet) {
+      return { code: 0, message: "", stream: "none", missing: [], tip: null };
+    }
     return {
-      code: 2,
-      message: `verify:completed-tracked: not a git worktree: ${root}`,
-      stream: "stderr",
+      code: 0,
+      message: `verify:completed-tracked: not a git worktree; skip tracked-land check (${root}).`,
+      stream: "stdout",
       missing: [],
       tip: null,
     };
