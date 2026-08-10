@@ -184,33 +184,40 @@ export function formatCompletedConsistencyFailure(
 }
 
 /**
- * Resolve inventory root for completed/ scan: prefer canonical xbrief/, else
- * legacy vbrief/ (read-accepted until migrate). Avoids green-skip on legacy-only.
+ * Lifecycle inventory roots that may host completed/ artifacts.
+ * Scans both canonical xbrief/ and read-accepted legacy vbrief/ when present
+ * (mixed roots must not green-skip retained legacy completed corpus).
  */
-function resolveConsistencyLifecycleRoot(projectRoot: string): string | null {
+function listConsistencyLifecycleRoots(
+  projectRoot: string,
+): readonly { absRoot: string; dirName: string }[] {
   const root = resolve(projectRoot);
-  try {
-    return resolveLifecycleRoot(root);
-  } catch {
-    // fall through to legacy
-  }
-  const legacy = join(root, LEGACY_ARTIFACT_DIR);
-  try {
-    if (existsSync(legacy) && statSync(legacy).isDirectory()) {
-      return legacy;
+  const ordered: { absRoot: string; dirName: string }[] = [];
+  const seen = new Set<string>();
+
+  const consider = (absRoot: string, dirName: string): void => {
+    try {
+      if (!existsSync(absRoot) || !statSync(absRoot).isDirectory()) return;
+    } catch {
+      return;
     }
-  } catch {
-    // ignore
-  }
-  const migrated = join(root, MIGRATED_ARTIFACT_DIR);
+    const key = absRoot.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    ordered.push({ absRoot, dirName });
+  };
+
+  // Always probe both layout dirs so mixed roots cannot green-skip legacy completed/.
+  // resolveLifecycleRoot is not required for inventory; retained for layout side effects.
   try {
-    if (existsSync(migrated) && statSync(migrated).isDirectory()) {
-      return migrated;
-    }
+    resolveLifecycleRoot(root);
   } catch {
-    // ignore
+    // ignore — still scan whatever dirs exist
   }
-  return null;
+
+  consider(join(root, MIGRATED_ARTIFACT_DIR), MIGRATED_ARTIFACT_DIR);
+  consider(join(root, LEGACY_ARTIFACT_DIR), LEGACY_ARTIFACT_DIR);
+  return ordered;
 }
 
 function unreadableFinding(relPath: string, detail: string): CompletedConsistencyFinding {
@@ -223,45 +230,24 @@ function unreadableFinding(relPath: string, detail: string): CompletedConsistenc
   };
 }
 
-/**
- * Scan `xbrief/completed/` (or legacy `vbrief/completed/`) for Q4 mismatches.
- * Offline / filesystem only. Missing completed/ is green (nothing to check).
- * Malformed completed artifacts fail closed (no silent skip).
- */
-export function scanCompletedLifecycleConsistency(projectRoot: string): CompletedConsistencyResult {
-  const lifecycleRoot = resolveConsistencyLifecycleRoot(projectRoot);
-  if (lifecycleRoot === null) {
-    return {
-      ok: true,
-      findings: [],
-      message: "Completed lifecycle consistency OK (#3242): no lifecycle root",
-    };
-  }
-
-  const completedDir = join(lifecycleRoot, "completed");
+function scanCompletedDir(
+  completedDir: string,
+  pathPrefix: string,
+): { findings: CompletedConsistencyFinding[]; scanned: number } {
   if (!existsSync(completedDir)) {
-    return {
-      ok: true,
-      findings: [],
-      message: "Completed lifecycle consistency OK (#3242): completed/ absent",
-    };
+    return { findings: [], scanned: 0 };
   }
-  /* v8 ignore next 5 -- rare: completed path exists but is not a directory */
+  /* v8 ignore next 3 -- rare: completed path exists but is not a directory */
   if (!statSync(completedDir).isDirectory()) {
-    return {
-      ok: true,
-      findings: [],
-      message: "Completed lifecycle consistency OK (#3242): completed/ absent",
-    };
+    return { findings: [], scanned: 0 };
   }
   const names = readdirSync(completedDir)
     .filter((n) => hasArtifactSuffix(n))
     .sort();
 
   const findings: CompletedConsistencyFinding[] = [];
-
   for (const name of names) {
-    const relPath = `completed/${name}`;
+    const relPath = `${pathPrefix}/completed/${name}`;
     const abs = join(completedDir, name);
     let data: unknown;
     try {
@@ -287,13 +273,53 @@ export function scanCompletedLifecycleConsistency(projectRoot: string): Complete
     const result = evaluateCompletedPlanConsistency(plan, { relPath });
     findings.push(...result.findings);
   }
+  return { findings, scanned: names.length };
+}
+
+/**
+ * Scan `xbrief/completed/` and/or legacy `vbrief/completed/` for Q4 mismatches.
+ * Offline / filesystem only. Missing completed/ is green (nothing to check).
+ * Malformed completed artifacts fail closed (no silent skip). Mixed roots scan both.
+ */
+export function scanCompletedLifecycleConsistency(projectRoot: string): CompletedConsistencyResult {
+  const roots = listConsistencyLifecycleRoots(projectRoot);
+  if (roots.length === 0) {
+    return {
+      ok: true,
+      findings: [],
+      message: "Completed lifecycle consistency OK (#3242): no lifecycle root",
+    };
+  }
+
+  const findings: CompletedConsistencyFinding[] = [];
+  let scanned = 0;
+  let anyCompletedPresent = false;
+
+  for (const { absRoot, dirName } of roots) {
+    const completedDir = join(absRoot, "completed");
+    if (existsSync(completedDir)) {
+      anyCompletedPresent = true;
+    }
+    // Always prefix with layout dir so mixed roots and exact paths are unambiguous.
+    const part = scanCompletedDir(completedDir, dirName);
+    findings.push(...part.findings);
+    scanned += part.scanned;
+  }
+
+  if (!anyCompletedPresent && findings.length === 0) {
+    return {
+      ok: true,
+      findings: [],
+      message: "Completed lifecycle consistency OK (#3242): completed/ absent",
+    };
+  }
 
   if (findings.length === 0) {
     return {
       ok: true,
       findings: [],
       message:
-        `Completed lifecycle consistency OK (#3242): scanned ${names.length} ` +
+        `Completed lifecycle consistency OK (#3242): scanned ${scanned} ` +
         `completed/ artifact(s)`,
     };
   }

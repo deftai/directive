@@ -217,6 +217,34 @@ describe("completed lifecycle consistency (#3242)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("scan mixed xbrief+vbrief roots includes legacy completed drift (#3242)", () => {
+    // Greptile: when both trees exist, do not only scan xbrief/completed.
+    const root = mkdtempSync(join(tmpdir(), "cc-mixed-"));
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "ok.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "ok", status: "completed", items: [] },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "vbrief", "completed", "legacy.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { title: "legacy", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+    const result = scanCompletedLifecycleConsistency(root);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("plan.status=running");
+    expect(result.message).toMatch(/vbrief\/completed\/legacy/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("default relPath and failed status without requireStatus are green", () => {
     const result = evaluateCompletedPlanConsistency({
       status: "failed",
