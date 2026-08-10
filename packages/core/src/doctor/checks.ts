@@ -26,6 +26,7 @@ import { stripGitignoreInlineComment } from "../triage/bootstrap/gitignore.js";
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_INFO_ROOT_KEY,
+  LEGACY_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
 } from "../xbrief-migrate/constants.js";
@@ -221,29 +222,32 @@ export function checkXbriefEnvelopeMajorVersion(
     };
   }
 
-  if (scan.worstDistance === "behind-major") {
-    const sample = scan.behindMajor.slice(0, 5);
-    const declaredVersions = [...new Set(sample.map((e) => e.declaredVersion ?? "unknown"))].join(
-      ", ",
-    );
+  // Fail closed only for migratable residual hybrid envelopes (#3243 / #3236):
+  // declared exactly 0.6. Other behind-major classifications (null / 0.5 / …)
+  // are not cleared by `migrate:xbrief` and must not block with that next action.
+  const migratableBehindMajor = scan.behindMajor.filter(
+    (e) => e.declaredVersion === LEGACY_VBRIEF_VERSION,
+  );
+  if (migratableBehindMajor.length > 0) {
+    const sample = migratableBehindMajor.slice(0, 5);
     const samplePaths = sample.map((e) => e.relativePath).join(", ");
     const more =
-      scan.behindMajor.length > sample.length
-        ? ` (+${scan.behindMajor.length - sample.length} more)`
+      migratableBehindMajor.length > sample.length
+        ? ` (+${migratableBehindMajor.length - sample.length} more)`
         : "";
     return {
       name: checkName,
       status: "fail",
       detail:
-        `behind-major -- declared ${declaredVersions}, framework ${targetVersion} ` +
-        `(${scan.behindMajor.length} artifact(s): ${samplePaths}${more}). ` +
+        `behind-major -- declared ${LEGACY_VBRIEF_VERSION}, framework ${targetVersion} ` +
+        `(${migratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
         `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` to bump project JSON envelopes ` +
         `to xBRIEFInfo@${targetVersion} (layout rename alone is not enough; #3236 rewrites hybrid 0.6 in place).`,
       data: {
         status: "behind-major",
         declared_versions: sample.map((e) => e.declaredVersion),
         target_version: targetVersion,
-        behind_major_count: scan.behindMajor.length,
+        behind_major_count: migratableBehindMajor.length,
         sample_paths: sample.map((e) => e.relativePath),
         next_command: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
         suggestion: XBRIEF_ENVELOPE_MIGRATE_COMMAND,
@@ -251,25 +255,36 @@ export function checkXbriefEnvelopeMajorVersion(
     };
   }
 
-  // current or behind-minor: this check is major-only (#3243).
+  const nonMigratableBehindMajor = scan.behindMajor.filter(
+    (e) => e.declaredVersion !== LEGACY_VBRIEF_VERSION,
+  );
+  // current, behind-minor, or non-migratable behind-major: this check is
+  // major-only for the 0.6 residual path (#3243). Non-migratable residuals
+  // pass so doctor does not recommend a command that cannot clear them.
   const declaredSummary =
     scan.entries
       .map((e) => e.declaredVersion)
       .filter((v): v is string => typeof v === "string")
       .slice(0, 3)
       .join(", ") || targetVersion;
+  const residualNote =
+    nonMigratableBehindMajor.length > 0
+      ? `; ${nonMigratableBehindMajor.length} non-0.6 behind-major residual(s) not fail-closed (migrate:xbrief rewrites ${LEGACY_VBRIEF_VERSION} only)`
+      : scan.worstDistance === "behind-minor"
+        ? "; behind-minor is non-failing for this check"
+        : "";
   return {
     name: checkName,
     status: "pass",
     detail:
       `current -- scanned ${scan.entries.length} envelope(s) at framework major ` +
-      `(declared sample ${declaredSummary}; framework ${targetVersion})` +
-      (scan.worstDistance === "behind-minor" ? "; behind-minor is non-failing for this check" : ""),
+      `(declared sample ${declaredSummary}; framework ${targetVersion})${residualNote}`,
     data: {
-      status: scan.worstDistance ?? "current",
+      status: migratableBehindMajor.length > 0 ? "behind-major" : (scan.worstDistance ?? "current"),
       target_version: targetVersion,
       scanned: scan.entries.length,
       worst_distance: scan.worstDistance,
+      non_migratable_behind_major: nonMigratableBehindMajor.length,
     },
   };
 }
