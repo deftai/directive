@@ -191,7 +191,7 @@ const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] 
 
 /**
  * Downloaders / decoders / remote-copy tools that can plant files without shell
- * redirects (#3206 / #3213). Not in INDIRECT_WRITE_BINS: those feed hasWriteShape
+ * redirects (#3206 / #3213 / #3245). Not in INDIRECT_WRITE_BINS: those feed hasWriteShape
  * and would classify bare `curl $URL` as a store write via opaque-expansion heuristics.
  */
 const DOWNLOADER_DECODER_BINS = new Set([
@@ -203,12 +203,44 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "scp",
   "aria2c",
   "certutil",
+  // #3245 residual after #3213: archive extractors + further alt downloaders.
+  "tar",
+  "bsdtar",
+  "unzip",
+  "7z",
+  "7za",
+  "7zr",
+  "rclone",
+  "axel",
+  "fetch",
+  "socat",
+  "lftp",
+]);
+
+/**
+ * Archive extractors / alt writers that can plant via pathish operands without
+ * shell redirects (#3245). Used for pathish authz/kill scans (prefer deny) and
+ * write-shape residual under UAT — not bare curl-class URL fetches.
+ */
+const ARCHIVE_ALT_WRITE_BINS = new Set([
+  "tar",
+  "bsdtar",
+  "unzip",
+  "7z",
+  "7za",
+  "7zr",
+  "rclone",
+  "axel",
+  "fetch",
+  "socat",
+  "lftp",
 ]);
 
 /**
  * File destination flags for downloaders/decoders (#3206).
  * normalizeToken lowercases, so wget `-O` and curl `-o` share `-o`.
  * scp: `-o` is an SSH option — excluded in isDownloaderDestFlag.
+ * 7z: `-oDIR` is attached-only (no separate value token).
  */
 const DOWNLOADER_FILE_DEST_FLAGS = new Set([
   "-o",
@@ -222,13 +254,29 @@ const DOWNLOADER_FILE_DEST_FLAGS = new Set([
 const CURL_DIR_DEST_FLAGS = new Set(["--output-dir"]);
 const WGET_DIR_DEST_FLAGS = new Set(["-p", "--directory-prefix"]);
 const ARIA2C_DIR_DEST_FLAGS = new Set(["-d", "--dir"]);
-
+/**
+ * tar/bsdtar extract directory (#3245).
+ * Case-sensitive: POSIX tar uses capital `-C` for chdir; lower `-c` is create and is NOT dest.
+ */
+const TAR_DIR_DEST_FLAGS_EXACT = new Set(["-C"]);
+const TAR_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
+/** unzip extract directory (#3245). */
+const UNZIP_DIR_DEST_FLAGS = new Set(["-d"]);
 /**
  * Symlink / hard-link plant bins (#3213). Absent from prior killWriteBins →
  * `ln -sf … .deft-directive-disable` classified empty → UAT fail-open.
  */
 const SYMLINK_PLANT_BINS = new Set(["ln", "link", "mklink"]);
 
+/** socat address prefixes that open a write target (#3245). */
+const SOCAT_WRITE_ADDR_PREFIXES = [
+  "open:",
+  "create:",
+  "creat:",
+  "append:",
+  "owronly:",
+  "oappend:",
+] as const;
 /** Final path segment of a token (path-qualified bins / .exe). */
 function binBareName(token: string): string {
   const pathish = token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
@@ -243,16 +291,32 @@ function isDownloaderDecoderBin(token: string): boolean {
   return DOWNLOADER_DECODER_BINS.has(binBareName(token));
 }
 
-function isDownloaderDestFlag(flag: string, bin: string): boolean {
+/**
+ * True when `flag` (normalized lower) or `rawFlag` (original token) is a dest flag for `bin`.
+ * tar `-C` must use raw case: lowercased `-c` is create-archive, not chdir (#3245).
+ * 7z uses attached `-oDIR` only — separate `-o PATH` is not a 7z dest form (handled elsewhere).
+ */
+function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): boolean {
   // scp: `-o` is OpenSSH option (ProxyCommand, …), not a file dest flag.
   if (bin === "scp") return false;
+  // 7z family: only attached `-oDIR` (parsed in attached-short branch), not separate `-o PATH`.
+  if (bin === "7z" || bin === "7za" || bin === "7zr") {
+    return false;
+  }
   if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) return true;
   if (bin === "curl" && CURL_DIR_DEST_FLAGS.has(flag)) return true;
   if (bin === "wget" && WGET_DIR_DEST_FLAGS.has(flag)) return true;
   if (bin === "aria2c" && ARIA2C_DIR_DEST_FLAGS.has(flag)) return true;
+  if (bin === "tar" || bin === "bsdtar") {
+    if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
+    if (TAR_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
+    // Exact match on raw when normalize collapsed case for long flags only.
+    if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_LOWER.has(normalizeToken(rawFlag))) return true;
+    return false;
+  }
+  if (bin === "unzip" && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
   return false;
 }
-
 /**
  * OpenSSH/scp flags that take a separate value token (`-o ProxyCommand=…`, `-i key`, `-P port`).
  * Not dest flags — must skip so value tokens are not mistaken for write destinations (#3213).
@@ -303,7 +367,8 @@ function firstUnquotedShellOpIndex(raw: string): number {
 /**
  * Destinations from curl/wget/xxd/openssl/scp/aria2c/certutil via -o/--output/-O/-out/
  * --output-dir/-P/-d/--dir (separate, =value, or attached short form), xxd -r path-like
- * write positionals (#3206), and positional dests for scp/certutil (#3213).
+ * write positionals (#3206), positional dests for scp/certutil (#3213), and #3245 residual
+ * archive/alt bins (tar -C, unzip -d, 7z -oDIR, rclone positionals, socat OPEN:, axel/fetch -o).
  * openssl uses flags only (no positional dests — avoids treating -in paths as writes).
  * Segment stops at shell operators so compound `scp …authz…; echo` cannot overwrite dests.
  * O(n) token walk — no nested-quantifier regex on untrusted input.
@@ -320,13 +385,25 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     i++;
     // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
     let xxdReverse = false;
-    // scp / certutil: collect pathish operands in this segment (#3213).
+    // scp / certutil / rclone / archive extractors: collect pathish operands in this segment.
     // Fail-closed under UAT: any pathish mentioning protected store/kill paths is a dest
     // candidate (scp source-or-dest of `.deft/authz` is treated as settings — prefer deny
     // over source/dest thrash). Last pathish remains the ordinary write dest.
     // Segment breaks (`;`/`\n`/glued ops) prevent following-command overwrite.
     let lastPositionalPath: string | null = null;
     const protectedPathish: string[] = [];
+    const collectsProtectedPositionals =
+      bin === "scp" ||
+      bin === "certutil" ||
+      bin === "rclone" ||
+      bin === "tar" ||
+      bin === "bsdtar" ||
+      bin === "unzip" ||
+      bin === "7z" ||
+      bin === "7za" ||
+      bin === "7zr" ||
+      bin === "socat" ||
+      bin === "lftp";
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -382,10 +459,12 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // --flag=value (and rare -out=value); scp -oOption=Value attached form also lands here.
+      // tar --directory=PATH also lands here.
       if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
         const eq = raw.indexOf("=");
-        const flag = normalizeToken(raw.slice(0, eq));
-        if (isDownloaderDestFlag(flag, bin)) {
+        const flagRaw = raw.slice(0, eq);
+        const flag = normalizeToken(flagRaw);
+        if (isDownloaderDestFlag(flag, bin, flagRaw)) {
           dests.push(pathishToken(raw.slice(eq + 1)));
         }
         // scp attached -oProxyCommand=… is not a file dest — skip without recording.
@@ -395,6 +474,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
 
       // Attached short: -oPATH / -OPATH (after lowercasing both are -opath…)
       // Skip for scp (OpenSSH -oOption=Value attached forms are not file dests).
+      // 7z requires attached -oDIR (#3245).
       if (bin !== "scp" && n.startsWith("-") && !n.startsWith("--") && n.length > 2) {
         if (n.startsWith("-out") && n.length > 4 && !n.startsWith("-output")) {
           dests.push(pathishToken(raw.slice(4)));
@@ -418,10 +498,22 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           i++;
           continue;
         }
+        // unzip attached -dDIR (#3245)
+        if (bin === "unzip" && n.startsWith("-d") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // tar attached -CDIR (rare; capital C required)
+        if ((bin === "tar" || bin === "bsdtar") && raw.startsWith("-C") && raw.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
       }
 
-      // Separate value: -o PATH / --output PATH / -out PATH / --output-dir / -P / -d
-      if (isDownloaderDestFlag(n, bin)) {
+      // Separate value: -o PATH / --output PATH / -out PATH / --output-dir / -P / -d / -C DIR
+      if (isDownloaderDestFlag(n, bin, raw)) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           dests.push(pathishToken(next));
@@ -445,16 +537,35 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
       }
 
-      // scp / certutil: pathish operands (quote-aware glued-op cut).
-      // certutil under UAT: any `.deft/authz` / kill-switch pathish is fail-closed settings
-      // (read vs write thrash deferred — prefer deny over dest-parser perfection; #3213).
-      if ((bin === "scp" || bin === "certutil") && !n.startsWith("-")) {
+      // socat write address forms: OPEN:path, CREATE:path, APPEND:path (#3245).
+      if (bin === "socat" && !n.startsWith("-")) {
+        const p = pathishToken(raw);
+        for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+          if (p.startsWith(prefix) && p.length > prefix.length) {
+            const dest = p.slice(prefix.length);
+            dests.push(dest);
+            if (
+              dest.includes(".deft/authz") ||
+              dest.includes(".deft-directive-disable") ||
+              dest.includes(".no-deft-directive")
+            ) {
+              protectedPathish.push(dest);
+            }
+            break;
+          }
+        }
+      }
+
+      // scp / certutil / rclone / archive extractors: pathish operands (quote-aware glued-op cut).
+      // Under UAT: any `.deft/authz` / kill-switch pathish is fail-closed settings
+      // (read vs write thrash deferred — prefer deny over dest-parser perfection; #3213 / #3245).
+      if (collectsProtectedPositionals && !n.startsWith("-")) {
         const cut = firstUnquotedShellOpIndex(raw);
         const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
         const p = pathishToken(cleaned);
         if (p.length > 0) {
           lastPositionalPath = p;
-          // Fail-closed: protected store/kill basenames anywhere in scp/certutil pathish.
+          // Fail-closed: protected store/kill basenames anywhere in pathish.
           if (
             p.includes(".deft/authz") ||
             p.includes(".deft-directive-disable") ||
@@ -480,7 +591,6 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
   }
   return dests;
 }
-
 function authzSubcommandFromToken(token: string): string | null {
   const t = normalizeToken(token);
   if (t.startsWith("authz:")) {
@@ -620,10 +730,12 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
     if (pathishMentionsKillSwitch(dest)) return true;
   }
 
-  // Write/destructive + symlink plant bins with a kill-switch path argument (#3213: ln/link/mklink).
+  // Write/destructive + symlink plant + archive/alt-write bins with a kill-switch path
+  // argument (#3213 ln/link/mklink; #3245 tar/axel/rclone/socat residual).
   const killWriteBins = new Set([
     ...INDIRECT_WRITE_BINS,
     ...SYMLINK_PLANT_BINS,
+    ...ARCHIVE_ALT_WRITE_BINS,
     "touch",
     "new-item",
     "ni",
@@ -636,7 +748,14 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
     const bare = binBareName(tokens[ti] as string);
     if (!killWriteBins.has(binTok) && !killWriteBins.has(bare)) continue;
     for (let tj = ti + 1; tj < tokens.length; tj++) {
-      if (pathishMentionsKillSwitch(pathishToken(tokens[tj] as string))) return true;
+      const p = pathishToken(tokens[tj] as string);
+      if (pathishMentionsKillSwitch(p)) return true;
+      // socat OPEN:.deft-directive-disable — path after address prefix (#3245).
+      for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+        if (p.startsWith(prefix) && pathishMentionsKillSwitch(p.slice(prefix.length))) {
+          return true;
+        }
+      }
     }
   }
   // Bare `touch .deft-directive-disable` / `ln -sf x .deft-directive-disable` — path later.
@@ -873,30 +992,37 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
     }
   }
 
-  // Write/destructive + symlink plant bins with an authz path argument (pathish =
-  // quote-strip resistant). Always run — do not gate on contiguous `.deft/authz`
-  // in the raw command (#3213). SYMLINK_PLANT_BINS: `ln -s forged .deft/authz/grants/x`
-  // must not fail-open as unclassifiable (SLizard residual).
+  // Write/destructive + symlink plant + archive/alt-write bins with an authz path argument
+  // (pathish = quote-strip resistant). Always run — do not gate on contiguous `.deft/authz`
+  // in the raw command (#3213 / #3245). SYMLINK_PLANT_BINS: `ln -s forged .deft/authz/grants/x`
+  // must not fail-open as unclassifiable (SLizard residual). ARCHIVE_ALT_WRITE_BINS: tar/rclone
+  // residual pathish without dest-flag perfection thrash.
   for (let ti = 0; ti < tokens.length; ti++) {
     const bare = binBareName(tokens[ti] as string);
     const n = normalizeToken(tokens[ti] as string);
     if (
       !INDIRECT_WRITE_BINS.has(n) &&
       !INDIRECT_WRITE_BINS.has(bare) &&
-      !SYMLINK_PLANT_BINS.has(bare)
+      !SYMLINK_PLANT_BINS.has(bare) &&
+      !ARCHIVE_ALT_WRITE_BINS.has(bare)
     ) {
       continue;
     }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
-      if (pathishIsAuthzDir(pathishToken(tokens[tj] as string))) return true;
+      const p = pathishToken(tokens[tj] as string);
+      if (pathishIsAuthzDir(p)) return true;
+      for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+        if (p.startsWith(prefix) && pathishIsAuthzDir(p.slice(prefix.length))) {
+          return true;
+        }
+      }
     }
   }
 
-  // Downloader/decoder destinations under .deft/authz (#3206 / #3213 scp/aria2c/certutil).
+  // Downloader/decoder destinations under .deft/authz (#3206 / #3213 / #3245 archive+alt).
   for (const dest of downloaderDecoderDestinations(tokens)) {
     if (pathishIsAuthzDir(dest)) return true;
   }
-
   // Contiguous mention without write shape stays false (reads like cat .deft/authz/…).
   return false;
 }
@@ -977,11 +1103,14 @@ function hasEnvExpansion(command: string): boolean {
 function hasWriteShape(command: string, tokens: readonly string[]): boolean {
   if (command.includes(">")) return true;
   for (const t of tokens) {
-    if (INDIRECT_WRITE_BINS.has(normalizeToken(t))) return true;
+    const bare = binBareName(t);
+    if (INDIRECT_WRITE_BINS.has(normalizeToken(t)) || INDIRECT_WRITE_BINS.has(bare)) return true;
+    // #3245: archive extractors / alt downloaders are write-shaped (defense-in-depth for
+    // unclassifiable plant paths under UAT — not bare curl $URL which stays non-write-shaped).
+    if (ARCHIVE_ALT_WRITE_BINS.has(bare)) return true;
   }
   return false;
 }
-
 /**
  * Split-path containment: `.deft` and `authz` both appear (e.g. `cd .deft && … authz/…`).
  * O(n) substring checks — no nested-quantifier regex.

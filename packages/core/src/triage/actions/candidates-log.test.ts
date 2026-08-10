@@ -1,7 +1,15 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContainedWriteError } from "../../fs/contained-write.js";
 import {
   createCandidatesLog,
   findByIssue,
@@ -134,6 +142,35 @@ describe("createCandidatesLog validation", () => {
         actor: "",
       }),
     ).toThrow(CandidatesLogError);
+  });
+});
+
+describe("createCandidatesLog symlink refuse (#3245)", () => {
+  it("refuses leaf symlink candidates.jsonl diverting append into tracked file", () => {
+    const root = makeRepo();
+    const victim = join(root, "AGENTS.md");
+    writeFileSync(victim, "# keep me\n", "utf8");
+    const logPath = resolveAuditLogPath(root);
+    try {
+      // Replace empty/missing log with symlink to in-tree tracked file.
+      rmSync(logPath, { force: true });
+      symlinkSync(victim, logPath);
+    } catch {
+      // Platform without symlink privilege — skip without failing the suite.
+      return;
+    }
+    const log = createCandidatesLog(root);
+    expect(() =>
+      log.append({
+        decision_id: "11111111-1111-1111-1111-111111111111",
+        timestamp: "2026-06-18T12:00:00Z",
+        repo: "deftai/directive",
+        issue_number: 1,
+        decision: "defer",
+        actor: "agent:test",
+      }),
+    ).toThrow(ContainedWriteError);
+    expect(readFileSync(victim, "utf8")).toBe("# keep me\n");
   });
 });
 
