@@ -1,0 +1,152 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Fail closed when a closed scoped GitHub issue has no tracked xbrief/completed or cancelled artifact on the delivery branch tip. One check, one remediation (finalize-cohort or lifecycle PR). Skill-only #1358 is insufficient.",
+    "updated": "2026-08-10T23:28:28Z"
+  },
+  "plan": {
+    "title": "bug(lifecycle,gates): completed xBRIEFs can remain untracked after merge (#1358 recurrence)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Closed scoped GitHub issues can ship product on master while completed xBRIEFs remain untracked on a laptop. Release orphan-active and lifecycle sync stay green because they watch active residue not completed-but-not-tracked artifacts. This story adds one fail-closed land detector with one remediation path.",
+      "UserStory": "As a swarm operator, I want a deterministic gate that fails when closed scoped work has no tracked completed xBRIEF on master, so that lifecycle hygiene is not left as untracked laptop residue.",
+      "ImplementationPlan": "In packages/core/src add a fail-closed land check (prefer doctor check or packages/core/src/lifecycle or packages/core/src/swarm finalize helpers): given closed GitHub issue with x-xbrief/github-issue origin on a lifecycle xBRIEF, require a tracked path under xbrief/completed/ or xbrief/cancelled/ on delivery tip (git ls-tree or equivalent). Fail message names task swarm:finalize-cohort or lifecycle PR. Wire into doctor and/or release preflight if one line. Tests under packages/core/src/doctor or packages/core/src/lifecycle. Run pnpm exec vitest on touched packages and task check. Cite #3264 in CHANGELOG.md [Unreleased].",
+      "Origin": "https://github.com/deftai/directive/issues/3264",
+      "Overview": "bug(lifecycle,gates): completed xBRIEFs can remain untracked after merge (#1358 recurrence)",
+      "Labels": "bug, swarm, agent-experience",
+      "NonGoals": "Skill-only rewrite; multi-role DONE matrix v1; NLP; issues with no scope xBRIEF.",
+      "AcceptanceJustification": "Items map to issue AC."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "title": "Detector fail-closed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a closed scoped GitHub issue with a known lifecycle xBRIEF origin and no tracked completed or cancelled artifact on the delivery tip, when the detector runs, it exits non-zero and names finalize-cohort or a lifecycle PR as remediation."
+        },
+        "evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3268",
+          "recorded_at": "2026-08-10T23:28:26Z",
+          "recorded_by": "grok-build-leaf-3264"
+        }
+      },
+      {
+        "effort": "M",
+        "title": "Green after land",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the same issue after a tracked completed artifact exists on the delivery tip, when the detector runs, it does not fail for that issue."
+        },
+        "evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3268 (Greptile CLEAN conf 5/5)",
+          "recorded_at": "2026-08-10T23:28:26Z",
+          "recorded_by": "grok-build-leaf-3264"
+        }
+      },
+      {
+        "effort": "M",
+        "title": "Carve-outs",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a closed issue with no scope xBRIEF origin, when the detector runs, it does not false-positive as missing completed land."
+        },
+        "evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3268",
+          "recorded_at": "2026-08-10T23:28:26Z",
+          "recorded_by": "grok-build-leaf-3264"
+        }
+      },
+      {
+        "effort": "M",
+        "title": "Tests and CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the PR, when vitest and CHANGELOG are checked, tests cover fail and pass fixtures and [Unreleased] cites #3264."
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts packages/cli/src/verify-completed-tracked.test.ts",
+          "recorded_at": "2026-08-10T23:28:26Z",
+          "recorded_by": "grok-build-leaf-3264"
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "cohort",
+      "lifecycle"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3264",
+        "title": "#3264"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/1358",
+        "title": "#1358 prior"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3262",
+        "title": "#3262 hygiene"
+      }
+    ],
+    "updated": "2026-08-10T23:28:28Z",
+    "id": "3264-lifecycle-completed-tracked-on-delivery",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor",
+          "packages/core/src/swarm",
+          "packages/core/src/verify-source",
+          "packages/core/src/lifecycle",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor packages/core/src/swarm packages/core/src/lifecycle",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3264",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "cohort-3264-lifecycle-land",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC; thin scope.",
+        "acceptance_criteria_justification": "Items map to issue AC."
+      },
+      "capacityBucket": "bugfix",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3268,
+        "prBase": null,
+        "mergeCommit": "1244164796a7784b933e79537c473222083dab4d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1244164796a7784b933e79537c473222083dab4d",
+        "verifiedAt": "2026-08-10T23:28:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-10T23:28:28Z"
+    }
+  }
+}
