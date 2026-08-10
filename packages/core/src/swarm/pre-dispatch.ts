@@ -9,6 +9,7 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
+import { existsSync, realpathSync } from "node:fs";
 import { isAbsolute, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
@@ -17,6 +18,8 @@ import {
   completeAttemptOnDisk,
   type DeliveryAttemptRecord,
   evaluatePreDispatch,
+  hasActiveAttempt,
+  listUnitLedgers,
   loadOrCreateUnitLedger,
   loadUnitLedger,
   markBlocked,
@@ -111,6 +114,49 @@ export function normalizeTargetId(projectRoot: string, targetId: string): string
     pathKey = pathKey.slice(0, -1);
   }
   return pathKey;
+}
+
+/**
+ * Best-effort physical identity for alias peer checks. Ledger keys stay lexical
+ * (stable); when a path exists, realpath groups symlink aliases that point at
+ * the same worktree so concurrent begins still DENY.
+ */
+export function physicalTargetKey(projectRoot: string, targetId: string): string {
+  const lexical = normalizeTargetId(projectRoot, targetId);
+  if (!existsSync(lexical)) {
+    // Windows realpath needs native separators sometimes; try resolve form too.
+    const abs = resolve(projectRoot, targetId.trim());
+    if (!existsSync(abs)) return lexical;
+    try {
+      return normalize(realpathSync(abs)).replace(/\\/g, "/").toLowerCase();
+    } catch {
+      return lexical;
+    }
+  }
+  try {
+    return normalize(realpathSync(lexical)).replace(/\\/g, "/").toLowerCase();
+  } catch {
+    return lexical;
+  }
+}
+
+/** True when another unit (same scope+workflow, different target key) is active on same physical path. */
+export function hasActiveAliasPeer(
+  projectRoot: string,
+  scopeId: string,
+  targetId: string,
+  workflowId: string,
+): boolean {
+  const mine = physicalTargetKey(projectRoot, targetId);
+  for (const ledger of listUnitLedgers(projectRoot)) {
+    if (ledger.scopeId !== scopeId || ledger.workflowId !== workflowId) continue;
+    if (ledger.targetId === targetId) continue;
+    if (!hasActiveAttempt(ledger)) continue;
+    if (physicalTargetKey(projectRoot, ledger.targetId) === mine) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function unitFields(input: SwarmPreDispatchInput): {
@@ -212,6 +258,15 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   // no stale preview decision on the success path).
   try {
     return withUnitLock(input.projectRoot, scopeId, targetId, workflowId, () => {
+      // Symlink alias peer: different lexical keys, same physical worktree.
+      if (hasActiveAliasPeer(input.projectRoot, scopeId, targetId, workflowId)) {
+        return baseResult(input, "begin", {
+          exitCode: EXIT_GATE_FAILED,
+          decision: "DENY_DUPLICATE_ACTIVE",
+          reason: "active attempt exists on alias/realpath peer of target",
+          activeAttemptIds: listActiveIds(input.projectRoot, scopeId, targetId, workflowId),
+        });
+      }
       const current = loadOrCreateUnitLedger(input.projectRoot, {
         scopeId,
         targetId,
