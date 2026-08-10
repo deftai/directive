@@ -49,7 +49,8 @@ function writeCodeBearing(root: string, name = "story.xbrief.json"): string {
           kind: "story",
           swarm: { file_scope: ["packages/core/src/scope/transition.ts"] },
         },
-        items: [{ title: "t", status: "pending" }],
+        // Empty items: delivery gate isolation; acceptance evidence is #3240.
+        items: [],
       },
     }),
     "utf8",

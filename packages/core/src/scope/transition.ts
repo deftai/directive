@@ -7,6 +7,11 @@ import {
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import type { GitRunner } from "../session/git.js";
+import {
+  type CriterionAcceptanceReport,
+  evaluateAcceptanceEvidenceGate,
+  formatAcceptanceCompletionListing,
+} from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { atomicWriteBrief, formatBriefJson, readBriefForMutation } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
@@ -39,6 +44,8 @@ import type { WipCapCheck } from "./wip-cap-check.js";
 export interface TransitionResult {
   readonly ok: boolean;
   readonly message: string;
+  /** Per-criterion acceptance reports when complete ran the #3240 gate. */
+  readonly acceptanceReports?: readonly CriterionAcceptanceReport[];
 }
 
 /** Optional completion evidence / disposition for the delivery gate (#3041). */
@@ -48,6 +55,11 @@ export interface TransitionOptions {
   readonly runGit?: GitRunner;
   readonly verifier?: string;
   readonly assumeEvidenceValidated?: boolean;
+  /**
+   * Test-only escape hatch: skip the #3240 per-item acceptance evidence gate.
+   * Production callers MUST leave this false/undefined.
+   */
+  readonly skipAcceptanceEvidenceGate?: boolean;
 }
 
 /** Item statuses that still represent unfinished work and should advance on terminal transitions (#2862). */
@@ -225,12 +237,29 @@ export function runTransition(
     }
   }
 
+  // #3240: per-criterion typed evidence or human-origin disposition before auto-advance.
+  let acceptanceReports: readonly CriterionAcceptanceReport[] | undefined;
+  let acceptanceListing = "";
+  if (act === "complete" && options.skipAcceptanceEvidenceGate !== true) {
+    const acceptanceGate = evaluateAcceptanceEvidenceGate(planObj);
+    acceptanceReports = acceptanceGate.reports;
+    if (!acceptanceGate.ok) {
+      return {
+        ok: false,
+        message: acceptanceGate.message,
+        acceptanceReports: acceptanceGate.reports,
+      };
+    }
+    acceptanceListing = formatAcceptanceCompletionListing(acceptanceGate.reports);
+  }
+
   planObj.status = targetStatus;
   planObj.updated = nowIso;
   // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).
   stampEnvelopeUpdated(data, nowIso);
 
   // Reconcile the completing brief's own plan.items (mirrors #1527 / #2566 registry sync) (#2862).
+  // On complete, items only reach here when #3240 evidence/disposition gate passed.
   if (OWN_ITEMS_RECONCILE_ACTIONS.has(act)) {
     advanceNonTerminalOwnItems(planObj.items, targetStatus);
   }
@@ -291,12 +320,17 @@ export function runTransition(
         message:
           `${actionLabel} ${basename}: brief moved to ${targetFolder}/ but ` +
           `PROJECT-DEFINITION sync failed: ${pdSyncError}`,
+        acceptanceReports,
       };
     }
     syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
+    const moveMsg =
+      `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
+      (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
     return {
       ok: true,
-      message: `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})`,
+      message: moveMsg,
+      acceptanceReports,
     };
   }
 
@@ -312,9 +346,13 @@ export function runTransition(
   }
 
   const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
+  const stayMsg =
+    `${actionLabel} ${basename}: stays in ${currentFolder}/ (status: ${targetStatus})` +
+    (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
   return {
     ok: true,
-    message: `${actionLabel} ${basename}: stays in ${currentFolder}/ (status: ${targetStatus})`,
+    message: stayMsg,
+    acceptanceReports,
   };
 }
 

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`scope:complete` requires typed evidence or human disposition per acceptance criterion (#3240).** Non-terminal `plan.items` (and nested `subItems`/`items`) no longer auto-complete from merge ancestry alone. Each criterion needs either `evidence` (`kind` in `test|review|merge|deploy|smoke|uat|observed_behavior` + `pointer` + `recorded_at` + `recorded_by`) or `disposition` (`waived|deferred|not_applicable` + `reason` + human-origin `provenance` + `recorded_at`). `merge`/`review` alone cannot satisfy smoke/UAT/deploy/observed_behavior criteria (inferred from title/Acceptance text or explicit `requires`/`acceptanceAxis`). Fail-closed lists missing criteria; success output lists evidence/disposition per item. Core: `packages/core/src/scope/acceptance-evidence.ts` + `transition.ts` gate. Closes #3240. Refs #3237 Q3, #3041, #2862.
+
 ### Changed
 
 ### Fixed
