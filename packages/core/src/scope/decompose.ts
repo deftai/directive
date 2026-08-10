@@ -1077,26 +1077,15 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
-  // Claim single-use grants before protected writes so concurrent applies cannot
-  // both observe unspent and both mutate (#3239 Greptile P1). Revalidate under
-  // lock so revocation/expiry/binding change after evaluate cannot authorize.
-  // Failed later writes leave single-use spent (operator remints).
-  if (authz.humanApprovalRef !== null) {
-    const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef, {
-      revalidate: (grant) => {
-        const again = evaluateDecomposeStructuralApply({
-          projectRoot,
-          parentPath,
-          draftPath,
-          draftDigest,
-          grants: [grant],
-        });
-        return again.allowed ? { ok: true as const } : { ok: false as const, reason: again.reason };
-      },
-    });
-    if (!claim.ok) {
-      throw new DecompositionError(claim.reason);
-    }
+  // Re-check covering grant immediately before writes (revocation/expiry/binding).
+  const recheck = evaluateDecomposeStructuralApply({
+    projectRoot,
+    parentPath,
+    draftPath,
+    draftDigest,
+  });
+  if (!recheck.allowed) {
+    throw new DecompositionError(recheck.reason);
   }
 
   for (const { target } of childPaths) {
@@ -1108,6 +1097,12 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   }
 
   writeJson(projectRoot, parentPath, parent);
+  // Mark single-use spent only after successful writes (retry stays possible).
+  // Concurrent double-apply of one single-use grant is residual local-file risk
+  // (#983 OOS / aligned-agent threat model #2944).
+  if (recheck.humanApprovalRef !== null) {
+    markGrantUsed(projectRoot, recheck.humanApprovalRef);
+  }
   actions.push(`UPDATE ${parentRel} references`);
   return actions;
 }
