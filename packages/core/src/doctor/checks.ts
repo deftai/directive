@@ -277,8 +277,9 @@ export function checkXbriefEnvelopeMajorVersion(
       detail:
         `behind-major (non-migratable) -- declared ${declaredVersions}, framework ${targetVersion} ` +
         `(${nonMigratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
-        `\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only rewrites exact ${LEGACY_VBRIEF_VERSION}; ` +
-        `set xBRIEFInfo.version to "${targetVersion}" on live envelopes (or re-emit via scope write-path tools).`,
+        `\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only rewrites exact ${LEGACY_VBRIEF_VERSION}. ` +
+        `Rewrite live envelopes to full xBRIEFInfo@${targetVersion} structure (re-emit via scope write-path tools ` +
+        `or apply the published transform path), then validate — do not only bump the version field.`,
       data: {
         status: "behind-major-non-migratable",
         declared_versions: sample.map((e) => e.declaredVersion),
@@ -286,7 +287,7 @@ export function checkXbriefEnvelopeMajorVersion(
         behind_major_count: nonMigratableBehindMajor.length,
         sample_paths: sample.map((e) => e.relativePath),
         next_command: null,
-        suggestion: `set xBRIEFInfo.version to "${targetVersion}"`,
+        suggestion: `rewrite live envelopes to full xBRIEFInfo@${targetVersion} structure (not version-only)`,
       },
     };
   }

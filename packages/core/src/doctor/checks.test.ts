@@ -681,7 +681,9 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
       expect(result.detail).not.toContain(
         `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\``,
       );
+      expect(result.detail).toContain("do not only bump the version field");
       expect(result.data?.next_command).toBeNull();
+      expect(String(result.data?.suggestion ?? "")).toMatch(/not version-only|structure/i);
       expect(deriveExitCode([result], [])).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
