@@ -8,12 +8,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { isHumanOrigin } from "./origin.js";
-import {
-  authzAuditPath,
-  authzGrantPath,
-  authzGrantsDir,
-  authzStatePath,
-} from "./paths.js";
+import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
 import {
   AUTHZ_OPERATIONS,
   type AuthzAuditRecord,
