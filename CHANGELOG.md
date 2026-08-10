@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **migrate:xbrief rewrites hybrid xBRIEFInfo@0.6 envelopes on already-xbrief trees (#3236).** When a project is already on `xbrief/` with no `vbrief/` but residual lifecycle artifacts still declare `xBRIEFInfo.version: "0.6"`, `migrate:xbrief` now applies `transformArtifactV06ToV08` in place (exit 0 with a rewrite report) instead of no-opping with the schemas-only `directive update` tip. Already-0.8 trees stay idempotent; deposited schema files under `xbrief/schemas/` remain the #2368 update path. Closes the gap left after #2974 (transform accepted hybrid, orchestrator did not rewrite). Refs #2970, #2974, #2368.
+
 ### Removed
 
 ## [0.99.0] - 2026-08-10

@@ -8,6 +8,7 @@ import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.j
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
+  LEGACY_VBRIEF_VERSION,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME,
@@ -19,7 +20,11 @@ import { hasVbriefDeprecationMarker, isDirectory, isEffectivelyEmptyDir } from "
 import { assertMigrationSourceSafe } from "./migration-containment.js";
 import { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 import type { JsonObject } from "./transforms.js";
-import { rewriteEmbeddedTokens, transformArtifactV06ToV08Transactional } from "./transforms.js";
+import {
+  readDeclaredArtifactVersion,
+  rewriteEmbeddedTokens,
+  transformArtifactV06ToV08Transactional,
+} from "./transforms.js";
 
 export interface XbriefMigrationArgs {
   readonly projectRoot: string;
@@ -44,6 +49,11 @@ export type XbriefMigrationOutcome =
   | { readonly kind: "noop"; readonly message: string }
   | { readonly kind: "refused"; readonly message: string }
   | { readonly kind: "migrated"; readonly backupDir: string; readonly files: number }
+  | {
+      readonly kind: "rewritten";
+      readonly files: number;
+      readonly message: string;
+    }
   | {
       readonly kind: "converged";
       readonly action: VbriefConvergeAction;
@@ -119,6 +129,77 @@ function writeMigratedFile(projectRoot: string, srcPath: string, destPath: strin
     data: rewriteEmbeddedTokens(raw),
     mode: "replace",
   });
+}
+
+/**
+ * Plan in-place hybrid envelope rewrites for xbrief lifecycle `.xbrief.json`
+ * artifacts that still declare `xBRIEFInfo@0.6` after the layout rename
+ * (#3236 / #2974). Pure probe — no writes. Already-0.8 artifacts, schema
+ * deposits, and non-0.6 JSON are skipped so residual #2368 schema-only markers
+ * still route to `directive update`.
+ */
+function planHybridEnvelopeRewrites(
+  projectRoot: string,
+):
+  | { ok: true; pending: ReadonlyArray<{ path: string; body: string }> }
+  | { ok: false; error: string } {
+  const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  const artifactPaths = collectFiles(migratedDir).filter((path) =>
+    path.endsWith(MIGRATED_ARTIFACT_SUFFIX),
+  );
+  const pending: Array<{ path: string; body: string }> = [];
+
+  for (const filePath of artifactPaths) {
+    let parsed: JsonObject;
+    try {
+      parsed = JSON.parse(readFileSync(filePath, "utf8")) as JsonObject;
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        error: `failed to parse hybrid envelope candidate ${relative(projectRoot, filePath)}: ${detail}`,
+      };
+    }
+    // Only residual v0.6 envelopes are rewrite candidates; skip 0.8 and unknown.
+    if (readDeclaredArtifactVersion(parsed) !== LEGACY_VBRIEF_VERSION) {
+      continue;
+    }
+    const result = transformArtifactV06ToV08Transactional(parsed);
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: `failed to transform hybrid envelope ${relative(projectRoot, filePath)}: ${result.error}`,
+      };
+    }
+    if (!result.changed) {
+      continue;
+    }
+    pending.push({
+      path: filePath,
+      body: `${JSON.stringify(result.artifact, null, 2)}\n`,
+    });
+  }
+
+  return { ok: true, pending };
+}
+
+/**
+ * Apply a previously planned hybrid-envelope rewrite set via containedWrite (#3236).
+ */
+function applyHybridEnvelopeRewrites(
+  projectRoot: string,
+  pending: ReadonlyArray<{ path: string; body: string }>,
+): number {
+  const root = resolve(projectRoot);
+  for (const entry of pending) {
+    containedWrite({
+      root,
+      target: entry.path,
+      data: entry.body,
+      mode: "replace",
+    });
+  }
+  return pending.length;
 }
 
 function backupMigrationInputs(
@@ -330,6 +411,34 @@ export function runXbriefMigration(
       break;
   }
 
+  // #3236: on already-xbrief trees with no vbrief/, rewrite residual hybrid
+  // xBRIEFInfo@0.6 envelopes in place (transform accepts hybrid — #2974).
+  // Run before the layout-detection short-circuit so compact `"version":"0.6"`
+  // JSON that the string-scan may miss still gets rewritten.
+  if (convergence.xbriefHasContent && !convergence.vbriefPresent) {
+    const plan = planHybridEnvelopeRewrites(projectRoot);
+    if (!plan.ok) {
+      return { kind: "config", message: plan.error };
+    }
+    if (plan.pending.length > 0) {
+      if (!args.force) {
+        const git = checkGitClean(projectRoot);
+        if (git.status === "WARN") {
+          return {
+            kind: "refused",
+            message: `${git.message} ${xbriefMigrationGuidance()} Pass --force to override.`,
+          };
+        }
+      }
+      const files = applyHybridEnvelopeRewrites(projectRoot, plan.pending);
+      return {
+        kind: "rewritten",
+        files,
+        message: `Rewrote ${files} hybrid xBRIEFInfo@0.6 envelope(s) in place to xBRIEFInfo@0.8 under '${MIGRATED_ARTIFACT_DIR}/'.`,
+      };
+    }
+  }
+
   const detection = detectLegacyVbriefLayout(projectRoot);
   if (!detection.legacyLayout) {
     return {
@@ -341,7 +450,7 @@ export function runXbriefMigration(
   if (!isDirectory(legacyDir)) {
     // Already on canonical xbrief/ with no vbrief/ tree — residual markers (e.g. a
     // stale deposited v0.6 schema under xbrief/schemas/) are refreshed by update,
-    // not migrate:xbrief (#2368).
+    // not migrate:xbrief (#2368). Hybrid 0.6 envelopes were handled above (#3236).
     if (convergence.xbriefHasContent && !convergence.vbriefPresent) {
       return {
         kind: "noop",
@@ -403,6 +512,9 @@ export function emitXbriefMigration(
         `Migrated ${outcome.files} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/.\n` +
           `Backup written to ${outcome.backupDir}.\n`,
       );
+      return 0;
+    case "rewritten":
+      io.writeOut(`${outcome.message}\n`);
       return 0;
     case "converged":
       io.writeOut(`${outcome.message}\n`);
