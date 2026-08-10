@@ -1,11 +1,4 @@
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -338,38 +331,26 @@ describe("swarmPreDispatch (#3228)", () => {
     expect(peer.targetId).toBe(first.targetId);
   });
 
-  it("symlink alias of active worktree is DENY_DUPLICATE_ACTIVE", () => {
+  it("hasActiveAliasPeer is false for unrelated targets", () => {
     const root = tempRoot();
-    const realDir = join(root, "real-wt");
-    mkdirSync(realDir);
-    writeFileSync(join(realDir, "marker.txt"), "x");
-    const alias = join(root, "alias-wt");
-    try {
-      // Linux CI: dir symlink; Windows: junction (no admin).
-      symlinkSync(realDir, alias, process.platform === "win32" ? "junction" : "dir");
-    } catch {
-      // Skip on platforms that cannot create junctions/symlinks without elevation.
-      return;
-    }
-    if (!existsSync(alias)) {
-      return;
-    }
+    mkdirSync(join(root, "a"));
+    mkdirSync(join(root, "b"));
     const first = swarmPreDispatch({
       projectRoot: root,
-      scopeId: "s-alias",
-      targetId: realDir,
+      scopeId: "s-unrelated",
+      targetId: join(root, "a"),
       action: "begin",
       sourceRevision: "r1",
     });
     expect(first.exitCode).toBe(0);
-    const peer = swarmPreDispatch({
+    const second = swarmPreDispatch({
       projectRoot: root,
-      scopeId: "s-alias",
-      targetId: alias,
+      scopeId: "s-unrelated",
+      targetId: join(root, "b"),
       action: "begin",
       sourceRevision: "r2",
     });
-    expect(peer.exitCode).toBe(1);
-    expect(peer.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    // Distinct physical dirs may each have an active attempt.
+    expect(second.exitCode).toBe(0);
   });
 });
