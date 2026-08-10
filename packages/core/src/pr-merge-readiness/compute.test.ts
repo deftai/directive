@@ -268,10 +268,7 @@ describe("computeGateResult #2260 reconciliation", () => {
       // wipe CI failures via #2260 reconciliation.
       fakeRunGh({ commentBody: "", mergeableState: "clean", mergeable: true }),
       {
-        requiredContexts: [
-          "TypeScript (build + lint + test)",
-          "terraform-plan",
-        ],
+        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
       },
     );
     expect(result.failures.join(" ")).toContain("ci_absent_required");
