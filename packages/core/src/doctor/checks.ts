@@ -60,6 +60,8 @@ export interface CheckSeams {
   readonly readText?: (path: string) => string | null;
   readonly isFile?: (path: string) => boolean;
   readonly isDir?: (path: string) => boolean;
+  /** List directory entries; throws on enum failure (fail-closed for live lifecycle dirs). */
+  readonly readdir?: (path: string) => string[];
 }
 
 function readText(path: string, seams: CheckSeams): string | null {
@@ -85,10 +87,19 @@ function isDirectoryPath(path: string, seams: CheckSeams): boolean {
  */
 const ENVELOPE_MAJOR_SCAN_FOLDERS = ["pending", "active"] as const;
 
-/** Collect live-path `*.xbrief.json` envelopes under xbrief/ for major check. */
-function collectLiveXbriefEnvelopePaths(projectRoot: string, seams: CheckSeams): string[] {
+/**
+ * Collect live-path `*.xbrief.json` envelopes under xbrief/ for major check.
+ * Existing lifecycle dirs that cannot be listed are returned as
+ * `enumFailures` (directory relative paths) so the scan fails closed rather
+ * than treating the tree as empty (#3243 review).
+ */
+function collectLiveXbriefEnvelopePaths(
+  projectRoot: string,
+  seams: CheckSeams,
+): { readonly paths: readonly string[]; readonly enumFailures: readonly string[] } {
   const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   const paths: string[] = [];
+  const enumFailures: string[] = [];
   const definitionPath = join(migratedRoot, `PROJECT-DEFINITION${MIGRATED_ARTIFACT_SUFFIX}`);
   // Existence must not require a successful read — unreadable paths still enter
   // the scan so the fail-closed unreadable branch can fire (#3243 review).
@@ -101,6 +112,7 @@ function collectLiveXbriefEnvelopePaths(projectRoot: string, seams: CheckSeams):
         return false;
       }
     });
+  const readdir = seams.readdir ?? readdirSync;
   if (isFile(definitionPath)) {
     paths.push(definitionPath);
   }
@@ -111,8 +123,11 @@ function collectLiveXbriefEnvelopePaths(projectRoot: string, seams: CheckSeams):
     }
     let names: string[];
     try {
-      names = readdirSync(dir);
+      names = readdir(dir);
     } catch {
+      // Dir exists but cannot be listed — fail closed via synthetic scan entry
+      // (directory path; no invented filenames).
+      enumFailures.push(relative(projectRoot, dir).replace(/\\/g, "/"));
       continue;
     }
     for (const name of names) {
@@ -121,7 +136,7 @@ function collectLiveXbriefEnvelopePaths(projectRoot: string, seams: CheckSeams):
       }
     }
   }
-  return paths;
+  return { paths, enumFailures };
 }
 
 /** One scanned project envelope and its schema distance vs the framework target. */
@@ -147,8 +162,18 @@ export function scanXbriefEnvelopeVersions(
   readonly worstDistance: XbriefSchemaDistance | null;
   readonly behindMajor: readonly XbriefEnvelopeScanEntry[];
 } {
-  const paths = collectLiveXbriefEnvelopePaths(projectRoot, seams);
+  const { paths, enumFailures } = collectLiveXbriefEnvelopePaths(projectRoot, seams);
   const entries: XbriefEnvelopeScanEntry[] = [];
+
+  // Existing pending/active dirs that cannot be enumerated fail closed as
+  // behind-major (null declared) — same class as unreadable files (#3243 review).
+  for (const relativePath of enumFailures) {
+    entries.push({
+      relativePath,
+      declaredVersion: null,
+      distance: "behind-major",
+    });
+  }
 
   for (const filePath of paths) {
     const relativePath = relative(projectRoot, filePath).replace(/\\/g, "/");

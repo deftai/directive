@@ -728,6 +728,45 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     }
   });
 
+  it("fails closed when an existing lifecycle dir cannot be listed (not skip/pass)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const activeDir = join(root, "xbrief", "active");
+      mkdirSync(activeDir, { recursive: true });
+      // Dir exists (isDir true) but readdir throws → synthetic behind-major entry.
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isDir: (p) =>
+          p === activeDir ||
+          p.endsWith(`${sep}active`) ||
+          p.includes(`${sep}xbrief`) ||
+          p.endsWith("xbrief"),
+        readdir: () => {
+          throw new Error("EACCES: permission denied");
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("xbrief/active");
+      expect(result.detail).toMatch(/missing\/unreadable|non-migratable/);
+      expect(result.data?.next_command).toBeNull();
+      expect(deriveExitCode([result], [])).toBe(1);
+      const scan = scanXbriefEnvelopeVersions(root, {
+        isDir: (p) =>
+          p === activeDir ||
+          p.endsWith(`${sep}active`) ||
+          p.includes(`${sep}xbrief`) ||
+          p.endsWith("xbrief"),
+        readdir: () => {
+          throw new Error("EACCES: permission denied");
+        },
+      });
+      expect(scan.entries.some((e) => e.relativePath === "xbrief/active")).toBe(true);
+      expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("reports mixed migratable and non-migratable behind-major in one fail", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
     try {
