@@ -199,13 +199,28 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
   }
 
   // #3235: head-bound plan:approved vs LIVE PR HEAD (before merge path).
-  // Always re-fetch HEAD — do not trust the watch snapshot alone (a later head
-  // may already have a fresh plan:approved; snapshot A would falsely revoke).
+  // Always re-fetch HEAD. Never fall back to the watch snapshot: a failed live
+  // read + snapshot A would retain auto-merge while GitHub head is B.
   if (options.skipMergeApprovalHeadGate !== true) {
     const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
-    const liveHead =
-      fetchHead(prNumber, repo) ??
-      (typeof watchResult.probe.headSha === "string" ? watchResult.probe.headSha : null);
+    const liveHead = fetchHead(prNumber, repo);
+    if (liveHead === null || liveHead.trim() === "") {
+      disablePullRequestAutoMerge(prNumber, repo);
+      const message =
+        `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: cannot read live HEAD ` +
+        "after CLEAN; auto-merge disabled (fail closed, #3235).";
+      log("merge", "stale-merge-approval", message);
+      return {
+        exitCode: EXIT_ACTION_REQUIRED,
+        haltReason: "stale-merge-approval",
+        message,
+        prNumber,
+        watchVerdict: VERDICT_CLEAN,
+        mergeAttempted: false,
+        mergeSkippedReason: "stale-merge-approval",
+        grantId: null,
+      };
+    }
     const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
     const headGate = headGateFn({
       prNumber,
