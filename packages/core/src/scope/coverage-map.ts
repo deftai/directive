@@ -192,8 +192,11 @@ export function extractParentRequirements(parent: unknown): ParentRequirement[] 
 
   const metadata = asRecord(plan.metadata);
   if (metadata !== null) {
-    for (const id of asStrList(metadata.requirement_ids ?? metadata.requirementIds)) {
+    for (const id of asStrList(metadata.requirement_ids)) {
       add(id, id, false, "plan.metadata.requirement_ids");
+    }
+    for (const id of asStrList(metadata.requirementIds)) {
+      add(id, id, false, "plan.metadata.requirementIds");
     }
   }
 

@@ -193,4 +193,249 @@ describe("coverage-map (#3238)", () => {
     expect(result.ok).toBe(true);
     expect(result.report.parent_requirement_ids).toEqual([]);
   });
+
+  it("extracts requirements from plan.requirements, metadata, and nested items", () => {
+    const parent = {
+      plan: {
+        items: [
+          {
+            id: "outer",
+            title: "Outer",
+            items: [{ id: "nested", title: "Nested", status: "pending" }],
+            subItems: [
+              {
+                id: "sub-neg",
+                negative_invariant: true,
+                title: "Sub neg",
+              },
+            ],
+          },
+        ],
+        requirements: [
+          "req-string",
+          { id: "req-obj", title: "Obj", type: "negative_invariant" },
+          { notAnId: true },
+          42,
+        ],
+        metadata: {
+          kind: "epic",
+          requirement_ids: ["meta-a", ""],
+          requirementIds: ["meta-b"],
+        },
+      },
+    };
+    const reqs = extractParentRequirements(parent);
+    const ids = reqs.map((r) => r.id);
+    expect(ids).toContain("outer");
+    expect(ids).toContain("nested");
+    expect(ids).toContain("sub-neg");
+    expect(ids).toContain("req-string");
+    expect(ids).toContain("req-obj");
+    expect(ids).toContain("meta-a");
+    expect(ids).toContain("meta-b");
+    expect(reqs.find((r) => r.id === "sub-neg")?.negativeInvariant).toBe(true);
+    expect(reqs.find((r) => r.id === "req-obj")?.negativeInvariant).toBe(true);
+  });
+
+  it("marks negative invariants via narrative and camelCase flags", () => {
+    const parent = {
+      plan: {
+        items: [
+          {
+            id: "n1",
+            negativeInvariant: true,
+            title: "camel",
+          },
+          {
+            id: "n2",
+            narrative: { NegativeInvariant: true },
+          },
+          {
+            id: "n3",
+            narrative: { negative_invariant: true },
+          },
+          { id: "plain", title: "plain" },
+        ],
+      },
+    };
+    const reqs = extractParentRequirements(parent);
+    expect(
+      reqs
+        .filter((r) => r.negativeInvariant)
+        .map((r) => r.id)
+        .sort(),
+    ).toEqual(["n1", "n2", "n3"]);
+  });
+
+  it("returns empty for non-object parent", () => {
+    expect(extractParentRequirements(null)).toEqual([]);
+    expect(extractParentRequirements("x")).toEqual([]);
+    expect(extractParentRequirements([])).toEqual([]);
+  });
+
+  it("rejects malformed coverage_map shapes and unknown parent IDs", () => {
+    expect(parseCoverageMap(null).entries).toEqual([]);
+    expect(parseCoverageMap("nope").errors.some((e) => e.includes("object map"))).toBe(true);
+    expect(parseCoverageMap([null, "x"]).errors.length).toBeGreaterThan(0);
+    expect(
+      parseCoverageMap([{ disposition: "covered" }]).errors.some((e) =>
+        e.includes("parent_requirement_id"),
+      ),
+    ).toBe(true);
+    expect(
+      parseCoverageMap({ bad: "not-object" }).errors.some((e) => e.includes("must be an object")),
+    ).toBe(true);
+
+    const unknown = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered" },
+          "req-forbid-a-to-c": { disposition: "covered" },
+          "req-terminal-failure": { disposition: "covered" },
+          "req-not-on-parent": { disposition: "covered" },
+        },
+      },
+    });
+    expect(unknown.ok).toBe(false);
+    expect(unknown.errors.some((e) => e.includes("unknown parent_requirement_id"))).toBe(true);
+  });
+
+  it("validates split side fields and incomplete groups", () => {
+    const missingGroup = parseCoverageMap({
+      r: { disposition: "split", part: "1" },
+    });
+    expect(missingGroup.errors.some((e) => e.includes("split_group"))).toBe(true);
+    const missingPart = parseCoverageMap({
+      r: { disposition: "split", split_group: "g" },
+    });
+    expect(missingPart.errors.some((e) => e.includes("part"))).toBe(true);
+
+    const incomplete = validateCoverageMap({
+      parent: { plan: { items: [{ id: "r1" }, { id: "r2" }] } },
+      draft: {
+        coverage_map: [
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g",
+            part: "1",
+          },
+          { parent_requirement_id: "r2", disposition: "covered" },
+        ],
+      },
+    });
+    expect(incomplete.ok).toBe(false);
+    expect(incomplete.errors.some((e) => e.includes("incomplete"))).toBe(true);
+  });
+
+  it("rejects unknown child_story_ids and deferred without reason", () => {
+    const badChild = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered", child_story_ids: ["missing"] },
+          "req-forbid-a-to-c": { disposition: "covered", child_story_ids: ["s1"] },
+          "req-terminal-failure": { disposition: "covered", child_story_ids: ["s1"] },
+        },
+      },
+      storyIds: ["s1"],
+    });
+    expect(badChild.ok).toBe(false);
+    expect(badChild.errors.some((e) => e.includes("unknown story"))).toBe(true);
+
+    const noReason = parseCoverageMap({
+      r: { disposition: "deferred", target_path: "x" },
+    });
+    expect(noReason.errors.some((e) => e.includes("reason"))).toBe(true);
+
+    const deferredOk = parseCoverageMap({
+      r: {
+        disposition: "deferred",
+        provenance: { reason: "later", target_story_id: "future" },
+      },
+    });
+    expect(deferredOk.errors).toEqual([]);
+    expect(deferredOk.entries[0]?.provenance?.target_story_id).toBe("future");
+  });
+
+  it("rejects incomplete and duplicate behavioral delta records", () => {
+    expect(parseBehavioralDeltas("x").errors.some((e) => e.includes("array"))).toBe(true);
+    expect(parseBehavioralDeltas([null]).errors.length).toBeGreaterThan(0);
+    const dup = parseBehavioralDeltas([
+      {
+        delta_id: "d1",
+        parent_requirement_ids: ["r"],
+        change_kind: "other",
+        summary: "s",
+        before: "b",
+        after: "a",
+        rationale: "why",
+      },
+      {
+        delta_id: "d1",
+        parent_requirement_ids: ["r"],
+        change_kind: "other",
+        summary: "s",
+        before: "b",
+        after: "a",
+        rationale: "why",
+      },
+    ]);
+    expect(dup.errors.some((e) => e.includes("duplicate"))).toBe(true);
+
+    const mismatch = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: {
+          "req-ordered-a-b-c": { disposition: "covered" },
+          "req-forbid-a-to-c": {
+            disposition: "behavioral_delta",
+            delta_id: "delta-x",
+          },
+          "req-terminal-failure": { disposition: "covered" },
+        },
+        behavioral_deltas: [
+          {
+            delta_id: "delta-x",
+            parent_requirement_ids: ["req-ordered-a-b-c"],
+            change_kind: "weaken_invariant",
+            summary: "s",
+            before: "b",
+            after: "a",
+            rationale: "r",
+          },
+        ],
+      },
+    });
+    expect(mismatch.ok).toBe(false);
+    expect(mismatch.errors.some((e) => e.includes("does not list parent_requirement_id"))).toBe(
+      true,
+    );
+  });
+
+  it("accepts camelCase draft keys and empty coverage when parent has IDs", () => {
+    const camel = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverageMap: {
+          "req-ordered-a-b-c": { disposition: "covered", childStoryIds: ["s1"] },
+          "req-forbid-a-to-c": { disposition: "covered" },
+          "req-terminal-failure": {
+            disposition: "deferred",
+            provenance: { reason: "later", targetPath: "xbrief/proposed/t.xbrief.json" },
+          },
+        },
+      },
+      storyIds: ["s1"],
+    });
+    expect(camel.ok).toBe(true);
+
+    const emptyMap = validateCoverageMap({
+      parent: abcParent,
+      draft: { coverage_map: {} },
+    });
+    expect(emptyMap.ok).toBe(false);
+    expect(emptyMap.errors.some((e) => e.includes("coverage_map is required"))).toBe(true);
+  });
 });
