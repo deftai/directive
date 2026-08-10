@@ -147,6 +147,11 @@ export function verdictBlockIsSoftOnly(
   ) {
     return false;
   }
+  // Advisory should-not-merge prose is never soft (#3225): GitHub Ready-to-merge
+  // must not reconcile away explicit bot prose while formal review stays Comment.
+  if (verdict.shouldNotMerge) {
+    return false;
+  }
   if (verdict.p0Count > 0 || verdict.p1Count > 0) {
     return false;
   }

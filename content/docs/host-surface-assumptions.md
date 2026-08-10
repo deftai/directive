@@ -132,6 +132,7 @@ Named hook home for managed-path deny: **Tier-1 host hooks** (`packages/core/src
 | Topic | Where |
 |-------|--------|
 | Self-improving, not self-editing stance | [main.md § Self-Improving, Not Self-Editing (#3164)](../../main.md#self-improving-not-self-editing-3164), [philosophy.md](../meta/philosophy.md) |
+| Gate integrity (do not clear red by editing the gate) | [gate-integrity.md](./gate-integrity.md) (#3156); refine-internal #2436 separate |
 | Skill pin tiers (process pins, not full #830) | [skill-pin-policy.md](./skill-pin-policy.md) |
 | Host lifecycle duty list | [host-lifecycle-duties.md](../contracts/host-lifecycle-duties.md) |
 | OpenClaw / session-first family | [openclaw-agent-host.md](./openclaw-agent-host.md) |

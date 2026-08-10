@@ -24,6 +24,7 @@ function verdictToDict(verdict: GreptileVerdict): Record<string, unknown> {
     p2_count: verdict.p2Count,
     informal_clean: verdict.informalClean,
     excluded_author: verdict.excludedAuthor,
+    should_not_merge: verdict.shouldNotMerge,
     raw_body_excerpt: verdict.rawBodyExcerpt,
   };
 }
@@ -75,6 +76,9 @@ export function printHuman(result: GateResult): string {
     lines.push(
       `  Findings:           P0=${result.verdict.p0Count}  ` +
         `P1=${result.verdict.p1Count}  P2=${result.verdict.p2Count}`,
+    );
+    lines.push(
+      `  Advisory should-not-merge: ${result.verdict.shouldNotMerge ? "True" : "False"} (#3225)`,
     );
     lines.push(`  Errored sentinel:   ${result.verdict.errored ? "True" : "False"}`);
   }

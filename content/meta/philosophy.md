@@ -18,6 +18,12 @@ Full stance and MUST/MAY bullets: [main.md § Self-Improving, Not Self-Editing](
 
 Host honesty when the **runtime** self-mutates or is REPL-first (file gates / pins cannot see host-kernel work): [host-surface-assumptions.md](../docs/host-surface-assumptions.md) (#3162). Does not reverse this stance.
 
+## Gate Integrity (#3156)
+
+When a gate fails, the fix MUST NOT be an edit to the gate. Fix the work under test, or change the gate via issue/PR + review (#3164 disposal). Refine-internal SkillOpt protection stays on #2436; this is the general product/process rule.
+
+Full rule, evidence pointer (Factorio / Continual Harness), and non-goals: [gate-integrity.md](../docs/gate-integrity.md). Parent epic #3179.
+
 ---
 
 ## Deterministic > Probabilistic

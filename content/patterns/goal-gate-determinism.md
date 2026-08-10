@@ -24,6 +24,8 @@ boundary; path is free).
   evidence before completion claims (output-side complement)
 - [../verification/verification.md](../verification/verification.md) — goal-backward
   verification; acceptance criteria as truths / artifacts / key links
+- [../docs/gate-integrity.md](../docs/gate-integrity.md) (#3156) — failing gate must
+  not be fixed by editing the gate (evaluator outside the edit surface)
 - [../skills/deft-directive-write-skill/SKILL.md](../skills/deft-directive-write-skill/SKILL.md)
   — skill authoring; demote path steps that are not gates
 - Content-manifest durability fields (#1669 v2) — file-granularity encoding of

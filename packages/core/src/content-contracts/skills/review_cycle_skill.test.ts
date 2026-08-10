@@ -176,6 +176,19 @@ describe("test_review_cycle_skill", () => {
     );
   });
 
+  it("mechanical_mergeability_necessary_never_sufficient_section_present (#3225)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("## Mechanical mergeability is necessary, never sufficient (#3225)");
+    expect(text).toContain("should-not-merge");
+    expect(text).toContain("minGreptileConfidence");
+    expect(text).toContain("necessary but never sufficient");
+    expect(
+      text.includes(
+        "Merge on mechanical Ready-to-merge / green checks while bot comment prose records should-not-merge",
+      ),
+    ).toBe(true);
+  });
+
   it("incomplete_but_rated_stall_signature_present", () => {
     expect(readReviewCycleSkill()).toContain("INCOMPLETE_BUT_RATED");
   });

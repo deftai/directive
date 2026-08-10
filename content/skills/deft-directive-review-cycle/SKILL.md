@@ -681,13 +681,33 @@ NOTES: <short>
 
 If the exit predicate is not met (any field `unknown`), go back to Step 2.
 
+## Mechanical mergeability is necessary, never sufficient (#3225)
+
+! GitHub **Ready to merge**, green required checks, and formal review state without Changes-Requested are **necessary but never sufficient** clean signals. Reviewer bots on repos without enforced review wiring often express **should-not-merge** + sub-threshold confidence **only in comment body prose** (no formal `REQUEST_CHANGES`, no blocking CheckRun). A shepherd that merges on mechanical signals alone merges against explicit advisory verdicts.
+
+! **`task pr:merge-ready` / `task pr:watch` / Step 6 clean** MUST parse advisory bot verdict text and confidence from comment bodies (the #1282-style body extraction path; shared detector in `packages/core/src/content-contracts/skills/greptile-detector.ts`). Treat any of the following as **blocking** regardless of formal review state or the Ready-to-merge box:
+
+1. Advisory should-not-merge prose (`should-not-merge`, `Not safe to merge`, `Do not merge`, `Safe to merge once corrected`, `not ready to merge`, …)
+2. Confidence below the resolved `minGreptileConfidence` floor (#3095 — project policy > dogfood 5 > consumer default 4)
+3. P0/P1 findings (triple-tier + inline threads) or errored Greptile sentinel
+
+! When advisory prose blocks or confidence is sub-threshold: continue the fix/document loop or exit **BLOCKED** — ⊗ do not treat mechanical mergeability as CLEAN.
+
+~ Recommend repo-level review-gate wiring (required review / blocking Greptile CheckRun) for org repos that lack it, so formal state and prose verdict cannot diverge silently. Directive dogfood already enforces #3095; portable babysit paths on other org repos still need this prose gate.
+
+⊗ Merge because the merge box says Ready to merge while bot comment prose says should-not-merge or confidence is below the resolved floor (#3225 / #3095).
+⊗ Treat formal Comment (non-blocking) review state as sufficient when the rolling-summary body carries an advisory block.
+
 ## Pre-Merge Re-Poll Gate (#1259)
 
 ! Immediately before any `gh pr merge` invocation, the agent MUST re-fetch reviewer state ONE more time — a fresh `gh pr view <number> --comments`, a fresh `gh api repos/<owner>/<repo>/commits/<HEAD>/check-runs`, and a fresh HEAD-SHA read — and re-evaluate the Step 6 fail-closed all-of against that fresh fetch. The exit-condition pass recorded at the end of the review loop is NOT sufficient authorization to merge: review state can go stale between the loop's last poll and the merge call (a new push, a Greptile re-trigger, a service-side check-run reset).
 
 ! Treat the re-poll and the `gh pr merge` as an atomic freshness window. If the re-poll shows ANY field `unknown`, ABORT the merge and return to Step 2.
 
+! Re-poll MUST also re-check advisory should-not-merge prose + confidence (#3225) — mechanical Ready-to-merge alone is never sufficient.
+
 ⊗ Call `gh pr merge` on the strength of a review verdict observed earlier in the loop without an immediately-preceding re-poll that re-satisfies the Step 6 all-of — merging on cached review state is forbidden (#1259).
+⊗ Call `gh pr merge` on mechanical Ready-to-merge / green checks while advisory bot prose still records should-not-merge or sub-threshold confidence (#3225).
 
 ### Informal-clean missing canonical fields (#1543)
 
@@ -825,6 +845,8 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Activate Approach 3 (blocking `Start-Sleep` loop) without first warning the user that it will lock the conversation pane and receiving confirmation
 - ⊗ Exit the review loop on a Greptile confidence number alone while the check run is non-terminal -- a confidence score is NOT a verdict without a terminal check-run (`completed` + `{success, neutral}`) AND a HEAD-matching `Last reviewed commit:` completion marker (#1259)
 - ⊗ Call `gh pr merge` on cached/earlier review state without an immediately-preceding pre-merge re-poll that re-satisfies the Step 6 fail-closed all-of (#1259)
+- ⊗ Merge on mechanical Ready-to-merge / green checks while bot comment prose records should-not-merge or confidence below `minGreptileConfidence` (#3225 / #3095)
+- ⊗ Treat formal non-blocking review state as sufficient when rolling-summary body carries an advisory block (#3225)
 - ⊗ Treat empty/unknown review-monitor settle as DONE/CLEAN/merge-ready without same-turn ground truth (#3044 / FC04 residual)
 - ⊗ Spawn a second review-monitor while prior owner is running or last settle was empty/unknown without terminal ground truth (#3044)
 - ⊗ Accept empty review-monitor final message missing STATUS/HEAD/CHECKS/MERGE handback (#3044)

@@ -5,6 +5,11 @@ import {
   BODY_AC4_MARKDOWN_LINK_CLEAN,
   BODY_AC4_THIRD_CONFIDENCE_FORM,
   BODY_AC4_TRUNCATED,
+  BODY_ADVISORY_DESCRIPTIVE_ONLY,
+  BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF,
+  BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3,
+  BODY_ADVISORY_STANDALONE_NOT_SAFE,
+  BODY_ADVISORY_SUBJECT_PREFIXED,
   BODY_CLEAN,
   BODY_CONFIDENCE_HEADING_ONLY,
   BODY_ESCAPED_BRACKET_LINK_TEXT,
@@ -21,6 +26,8 @@ import {
   BODY_UNFENCED_IMG_P0,
   detect,
   evaluateCleanGate,
+  hasShouldNotMergeProse,
+  parseAdvisoryReviewerVerdict,
   parseConfidence,
   parseLastReviewedShaMarkdownLink,
   parseLastReviewedShaNaiveInline,
@@ -72,6 +79,46 @@ describe("test_swarm_poller_template", () => {
     expect(result.tier2_p1).toBe(0);
     expect(result.tier3_sentinel === true).toBe(true);
     expect(result.has_blocking === true).toBe(true);
+  });
+  it("tier3_advisory_should_not_merge_conf3_blocks (#3225)", () => {
+    const result = detect(BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3);
+    expect(result.tier1_p0).toBe(0);
+    expect(result.tier1_p1).toBe(0);
+    expect(result.tier3_sentinel === true).toBe(true);
+    expect(result.has_blocking === true).toBe(true);
+    expect(parseConfidence(BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3)).toBe(3);
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3)).toBe(true);
+    const advisory = parseAdvisoryReviewerVerdict(BODY_ADVISORY_SHOULD_NOT_MERGE_CONF3);
+    expect(advisory.shouldNotMerge).toBe(true);
+    expect(advisory.confidence).toBe(3);
+    expect(advisory.hasBlocking).toBe(true);
+  });
+  it("tier3_do_not_merge_high_conf_still_blocks (#3225)", () => {
+    const result = detect(BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF);
+    expect(result.has_blocking === true).toBe(true);
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF)).toBe(true);
+    expect(parseConfidence(BODY_ADVISORY_DO_NOT_MERGE_HIGH_CONF)).toBe(5);
+  });
+  it("tier3_descriptive_overview_should_not_merge_does_not_false_block (#3225)", () => {
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_DESCRIPTIVE_ONLY)).toBe(false);
+    const result = detect(BODY_ADVISORY_DESCRIPTIVE_ONLY);
+    expect(result.has_blocking === false).toBe(true);
+    expect(parseConfidence(BODY_ADVISORY_DESCRIPTIVE_ONLY)).toBe(5);
+  });
+  it("tier3_standalone_not_safe_outside_confidence_still_blocks (#3225)", () => {
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_STANDALONE_NOT_SAFE)).toBe(true);
+    expect(detect(BODY_ADVISORY_STANDALONE_NOT_SAFE).has_blocking === true).toBe(true);
+  });
+  it("tier3_subject_prefixed_not_safe_still_blocks (#3225)", () => {
+    expect(hasShouldNotMergeProse(BODY_ADVISORY_SUBJECT_PREFIXED)).toBe(true);
+    expect(detect(BODY_ADVISORY_SUBJECT_PREFIXED).has_blocking === true).toBe(true);
+  });
+  it("tier3_descriptive_adds_phrase_does_not_line_anchor_block (#3225)", () => {
+    const mid =
+      "## Confidence Score: 5/5\n\n" +
+      "Adding should-not-merge matching and Not safe to merge detection to overview prose.\n\n" +
+      "No P0 or P1 issues found.\n";
+    expect(hasShouldNotMergeProse(mid)).toBe(false);
   });
   it("tier3_count_prose_three_p1_findings_triggers_blocking", () => {
     const result = detect(BODY_TIER3_COUNT_PROSE_ONLY);

@@ -196,20 +196,64 @@ for m in _TIER25_RE.finditer(body):
 # Greptile sometimes inlines the verdict as plain prose, e.g.
 #     Three P1 findings (two from prior review, one new): wrong exception ...
 #     Not safe to merge until the mocked-import test defect is resolved.
+#     should-not-merge / Do not merge until residual risk is documented (#3225)
+#     Safe to merge once corrected
 #     P1 -- wrong exception type for state validation in populate()
 # Negation-context guard applies to the count-prose sentinel (`No P0 findings`,
-# `Zero P1 findings` MUST NOT trigger). The `Not safe to merge` substring is
-# Greptile's explicit human-readable verdict and is treated as a hard block.
+# `Zero P1 findings` MUST NOT trigger). Advisory should-not-merge prose is a
+# hard block even when formal review is still Comment (#3225); composes with
+# minGreptileConfidence (#3095). Canonical TS detector:
+# packages/core/src/content-contracts/skills/greptile-detector.ts
 _TIER3_COUNT_RE = re.compile(
     r"\b(?:One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|\d+)\s+P[01]\s+findings?\b",
     re.IGNORECASE,
 )
 _TIER3_LINE_RE = re.compile(r"^\s*P[01]\s+--\s", re.MULTILINE)
 _TIER3_NEGATIONS = ("No ", "Zero ", "no ", "NO ")
+# #3225 advisory should-not-merge family — LINE-ANCHORED (parity with
+# packages/core/src/content-contracts/skills/greptile-detector.ts).
+# Mid-sentence descriptive mentions ("adds should-not-merge matching") MUST NOT
+# trigger; Summary:/Decision: labels, bullets, and short subject prefixes
+# ("The PR is …") are stripped before the match.
+_ADVISORY_SHOULD_NOT_MERGE_RES = (
+    re.compile(r"\bnot\s+(?:yet\s+)?safe\s+to\s+merge\b", re.IGNORECASE),
+    re.compile(r"\bshould\s*[-–—]?\s*not\s*[-–—]?\s*merge\b", re.IGNORECASE),
+    re.compile(r"\bsafe\s+to\s+merge\s+once\s+corrected\b", re.IGNORECASE),
+    re.compile(r"\bdo\s+not\s+merge\b", re.IGNORECASE),
+    re.compile(r"\bnot\s+ready\s+to\s+merge\b", re.IGNORECASE),
+    re.compile(r"\bnot\s+ready\s+for\s+merge\b", re.IGNORECASE),
+)
+_ADVISORY_LINE_PREFIX_RE = re.compile(
+    r"^(?:Summary|Decision|Verdict)\s*[:\-–—]\s*",
+    re.IGNORECASE,
+)
+_ADVISORY_SUBJECT_RE = re.compile(
+    r"^(?:the\s+pr|this\s+pr|this\s+change|the\s+change|this\s+diff)\s+is\s+",
+    re.IGNORECASE,
+)
+
+def _line_has_anchored_advisory(line: str) -> bool:
+    bare = line.strip()
+    bare = re.sub(r"^>\s*", "", bare)
+    bare = _ADVISORY_LINE_PREFIX_RE.sub("", bare, count=1)
+    bare = re.sub(r"^(?:[-*•]\s+)+", "", bare)
+    bare = re.sub(r"^\*\*", "", bare)
+    bare = re.sub(r"\*\*$", "", bare)
+    bare = re.sub(r"^_", "", bare)
+    bare = re.sub(r"_$", "", bare)
+    bare = _ADVISORY_SUBJECT_RE.sub("", bare, count=1).strip()
+    if not bare:
+        return False
+    for pat in _ADVISORY_SHOULD_NOT_MERGE_RES:
+        m = pat.search(bare)
+        if m is not None and m.start() <= 4:
+            return True
+    return False
 
 def _has_tier3_sentinel(body: str) -> bool:
-    if "Not safe to merge" in body:
-        return True
+    for line in body.splitlines():
+        if _line_has_anchored_advisory(line):
+            return True
     for m in _TIER3_COUNT_RE.finditer(body):
         line = _line_for(body, m.start())
         if any(neg in line for neg in _TIER3_NEGATIONS):

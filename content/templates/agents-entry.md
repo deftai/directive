@@ -83,6 +83,12 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
 ⊗ Stand down at CLEAN under human-merge with no reachable post-merge `scope:complete` owner.
 
+## Nuclear-family A2A topology (#3155)
+
+! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: `.deft/core/swarm/swarm.md` `## Communication Topology (#3155)`; security: `.deft/core/meta/security.md` `## Unbounded A2A graphs (#3155)`; ADR: `docs/decisions/ADR-003-a2a-nuclear-family-topology.md` (decision input to #2705; client-posture ADR remainder stays on #2705). Pair: retained children #3158; parent epic #3179.
+⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
+⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
@@ -116,6 +122,10 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Detect OS/shell; use portable syntax or explicit shell (#2568). `.deft/core/scm/github.md` (#2157/#2369): PS encoding→`deft verify:encoding` (#798); TS capture; cascade→`deft pr:wait-mergeable-and-merge`; SCM→`deft verify:scm-boundary`.
 
 ## Development Process
+
+### Gate integrity (#3156)
+
+! When a quality gate fails, fix the product/process/test under test — ⊗ clear red by editing the gate definition, verifier, reward, required check, coverage floor, or policy flag solely to go green. Deliberate gate changes go through issue/PR + review. Depth: `.deft/core/docs/gate-integrity.md` (refine-internal SkillOpt stays on #2436).
 
 ### Implementation Intent Gate (#810 / #1193)
 

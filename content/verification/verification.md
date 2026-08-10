@@ -4,7 +4,7 @@ Goal-backward verification of agent output — check outcomes, not checklists.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [coding/testing.md](../coding/testing.md) | [verification/uat.md](./uat.md) | [core/glossary.md](../glossary.md) | [patterns/goal-gate-determinism.md](../patterns/goal-gate-determinism.md) (#852 — rigid goals/gates; flexible execution path)
+**⚠️ See also**: [coding/testing.md](../coding/testing.md) | [verification/uat.md](./uat.md) | [core/glossary.md](../glossary.md) | [patterns/goal-gate-determinism.md](../patterns/goal-gate-determinism.md) (#852 — rigid goals/gates; flexible execution path) | [docs/gate-integrity.md](../docs/gate-integrity.md) (#3156 — do not clear red by editing the gate)
 
 > Adapted from [GSD](https://github.com/gsd-build/get-shit-done) verification model.
 
@@ -115,3 +115,4 @@ Pick the **strongest tier reachable** for each task.
 - ⊗ Accepting stubs as complete
 - ⊗ Asking a human to check what the agent can verify itself
 - ⊗ Verifying process ("I did steps 1–5") instead of outcomes ("user can log in")
+- ⊗ Clearing a failing gate by editing the gate definition, verifier, reward, required check, coverage floor, or policy flag — fix the work under test, or change the gate via issue/PR + review ([gate-integrity.md](../docs/gate-integrity.md) #3156)
