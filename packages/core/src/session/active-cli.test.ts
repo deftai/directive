@@ -109,6 +109,19 @@ describe("checkActiveCliAgainstTarget (#3233)", () => {
     expect(result.message).toMatch(/upgrade target is 0\.98\.1/);
   });
 
+  it("does not let a lone active CLI become its own default target", () => {
+    const result = checkActiveCliAgainstTarget(
+      null,
+      seamsFromMap({ "/opt/homebrew/bin/deft": "0.97.0" }, ["/opt/homebrew/bin/deft"], {
+        inProcessVersion: null,
+      }),
+    );
+    // No independent target and no shadow → not this gate's job (no false self-match).
+    expect(result.ok).toBe(true);
+    expect(result.targetVersion).toBeNull();
+    expect(result.message).toMatch(/not shadowed/);
+  });
+
   it("passes when multiple candidates share the same engine version", () => {
     const result = checkActiveCliAgainstTarget(
       "0.98.1",

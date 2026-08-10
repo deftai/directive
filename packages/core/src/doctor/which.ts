@@ -52,43 +52,6 @@ export function defaultWhichAll(name: string, options: WhichAllOptions = {}): st
   return whichAllFromPath(name, options);
 }
 
-/**
- * Optional shell-locator listing (`where` / `which -a`). Prefer
- * {@link defaultWhichAll} / {@link whichAllFromPath} for security-sensitive gates.
- * Kept for diagnostics and tests that intentionally exercise the locator.
- */
-export function whichAllViaLocator(name: string, options: WhichAllOptions = {}): string[] {
-  const platform = options.platform ?? process.platform;
-  const env = options.env ?? process.env;
-  const locator = platform === "win32" ? "where" : "which";
-  const args = platform === "win32" ? [name] : ["-a", name];
-  try {
-    const result = execFileSync(locator, args, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      env,
-    });
-    const lines = result
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-    if (lines.length > 0) {
-      const seen = new Set<string>();
-      const deduped: string[] = [];
-      for (const line of lines) {
-        const key = platform === "win32" ? line.toLowerCase() : line;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        deduped.push(line);
-      }
-      return deduped;
-    }
-  } catch {
-    // Fall through to PATH scan.
-  }
-  return whichAllFromPath(name, options);
-}
-
 /** Default PATH lookup mirroring Python `shutil.which` (first match only). */
 export function defaultWhich(name: string): string | null {
   const locator = process.platform === "win32" ? "where" : "which";

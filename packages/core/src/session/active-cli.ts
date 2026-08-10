@@ -301,9 +301,9 @@ function maxPublishableVersion(versions: readonly (string | null | undefined)[])
 
 /**
  * Default upgrade target when callers omit `targetEngineVersion` (#3233 P1):
- * the max of (1) publishable in-process engine version and (2) versions read
- * from all PATH candidates' install trees. Ensures a lone stale active CLI
- * fails when the running engine (or another candidate) is newer.
+ * the max of (1) publishable in-process engine version and (2) versions from
+ * **non-active** PATH candidates only. The shell-active CLI must never become
+ * its own expected target (lone stale self-match).
  */
 export function resolveDefaultActiveCliTarget(
   candidates: readonly CliCandidate[],
@@ -317,10 +317,11 @@ export function resolveDefaultActiveCliTarget(
       inProcess = null;
     }
   }
-  const fromCandidates = candidates.map((c) => c.version);
+  // Independent sources only — exclude precedence-0 (active) versions.
+  const fromShadows = candidates.filter((c) => c.precedence > 0).map((c) => c.version);
   return maxPublishableVersion([
     isPublishableSemver(inProcess) ? inProcess : null,
-    ...fromCandidates,
+    ...fromShadows,
   ]);
 }
 

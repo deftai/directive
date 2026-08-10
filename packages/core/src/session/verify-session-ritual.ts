@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
+import { readCorePackageVersion } from "../engine-version.js";
 import {
   type ActiveCliCheckResult,
   type ActiveCliCheckSeams,
@@ -537,9 +538,15 @@ export function verifySessionRitual(
 
     // #3233: after gated entrypoints, verify the shell-active deft/directive
     // is not a stale higher-precedence shadow of a multi-prefix install.
+    // Independent target = explicit option, else in-process publishable engine
+    // (never the active CLI's own version — see resolveDefaultActiveCliTarget).
     const targetEngineVersion = options.targetEngineVersion ?? null;
     const checkActiveCli = options.checkActiveCli ?? checkActiveCliAgainstTarget;
-    const activeCli = checkActiveCli(targetEngineVersion, options.activeCliSeams);
+    const activeCliSeams: ActiveCliCheckSeams = {
+      inProcessVersion: readCorePackageVersion(),
+      ...options.activeCliSeams,
+    };
+    const activeCli = checkActiveCli(targetEngineVersion, activeCliSeams);
     if (!activeCli.ok) {
       return {
         code: activeCli.code === 0 ? 1 : activeCli.code,

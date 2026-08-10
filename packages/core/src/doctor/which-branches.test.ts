@@ -5,7 +5,7 @@ vi.mock("node:child_process", () => ({
   execFileSync: vi.fn(),
 }));
 
-import { defaultWhich, defaultWhichAll, whichAllFromPath, whichAllViaLocator } from "./which.js";
+import { defaultWhich, defaultWhichAll, whichAllFromPath } from "./which.js";
 
 describe("defaultWhich branch edges", () => {
   beforeEach(() => {
@@ -109,55 +109,4 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
     expect(vi.mocked(execFileSync)).not.toHaveBeenCalled();
   });
 
-  it("whichAllViaLocator returns all where lines on win32", () => {
-    const original = process.platform;
-    Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
-    try {
-      vi.mocked(execFileSync).mockReturnValue(
-        "C:\\Homebrew\\bin\\deft.cmd\nC:\\nvm\\bin\\deft.cmd\n",
-      );
-      expect(whichAllViaLocator("deft", { platform: "win32" })).toEqual([
-        "C:\\Homebrew\\bin\\deft.cmd",
-        "C:\\nvm\\bin\\deft.cmd",
-      ]);
-      expect(vi.mocked(execFileSync)).toHaveBeenCalledWith(
-        "where",
-        ["deft"],
-        expect.objectContaining({ encoding: "utf8" }),
-      );
-    } finally {
-      Object.defineProperty(process, "platform", { configurable: true, value: original });
-    }
-  });
-
-  it("whichAllViaLocator uses which -a on posix", () => {
-    const original = process.platform;
-    Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
-    try {
-      vi.mocked(execFileSync).mockReturnValue("/opt/homebrew/bin/deft\n/Users/x/.nvm/bin/deft\n");
-      expect(whichAllViaLocator("deft", { platform: "linux" })).toEqual([
-        "/opt/homebrew/bin/deft",
-        "/Users/x/.nvm/bin/deft",
-      ]);
-      expect(vi.mocked(execFileSync)).toHaveBeenCalledWith(
-        "which",
-        ["-a", "deft"],
-        expect.objectContaining({ encoding: "utf8" }),
-      );
-    } finally {
-      Object.defineProperty(process, "platform", { configurable: true, value: original });
-    }
-  });
-
-  it("whichAllViaLocator falls back to PATH scan when locator throws", () => {
-    vi.mocked(execFileSync).mockImplementation(() => {
-      throw new Error("which missing");
-    });
-    const paths = whichAllViaLocator("deft", {
-      platform: "linux",
-      env: { PATH: "/only/bin" },
-      exists: (p) => p === "/only/bin/deft",
-    });
-    expect(paths).toEqual(["/only/bin/deft"]);
-  });
 });
