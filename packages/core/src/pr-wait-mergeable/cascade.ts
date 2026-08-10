@@ -1,5 +1,12 @@
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 import {
+  disablePullRequestAutoMerge,
+  type EnforceMergeApprovalHeadInput,
+  enforceMergeApprovalHead,
+  fetchPrHeadShaRest,
+  type MergeApprovalHeadResult,
+} from "../policy/merge-approval-head.js";
+import {
   type AgentMergeEvaluateResult,
   evaluateAgentMerge,
 } from "../policy/require-human-merge.js";
@@ -52,6 +59,16 @@ export interface WaitMergeableOptions {
   /** When true, skip human-merge / intent preflight (tests only). */
   readonly skipHumanMergeGate?: boolean;
   /**
+   * When true, skip head-bound plan:approved gate (#3235).
+   * Default: same as skipHumanMergeGate (test harnesses that skip human-merge
+   * also skip head-binding unless they opt in with skipMergeApprovalHeadGate=false).
+   */
+  readonly skipMergeApprovalHeadGate?: boolean;
+  /** Inject head-bound approval enforcer (unit tests). */
+  readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
+  /** Inject PR HEAD fetch (unit tests; defaults to REST `pulls/<N>`). */
+  readonly fetchPrHeadShaFn?: (prNumber: number, repo: string | null) => string | null;
+  /**
    * Post-merge umbrella reconcile (#1649). Defaults to live reconcileUmbrellas.
    * Pass `null` to skip (unit tests that inject mergeFn must pass null so they
    * never mutate real GitHub current-shape comments from the worktree cwd).
@@ -87,6 +104,32 @@ export function waitMergeableAndMerge(
         exitCode: EXIT_CONFIG_ERROR,
         error: intent.reason,
       });
+    }
+    // #3235: revoke stale head-bound approval / auto-merge even when human-merge
+    // will refuse the bot merge — otherwise auto-merge can land a later HEAD.
+    if (options.skipMergeApprovalHeadGate !== true) {
+      const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+      const earlyHead = headGateFn({
+        prNumber,
+        repo,
+        projectRoot,
+        currentHeadSha: null,
+        fetchHeadShaFn: fetchPrHeadShaRest,
+        disableAutoMergeOnDeny: true,
+      });
+      if (!earlyHead.allowed) {
+        const parts = [earlyHead.message];
+        if (earlyHead.recovery !== null) {
+          parts.push("", earlyHead.recovery);
+        }
+        return makeResult({
+          prNumber,
+          repo,
+          outcome: "stale-merge-approval",
+          exitCode: EXIT_CONFIG_ERROR,
+          error: parts.join("\n"),
+        });
+      }
     }
     const agentMergeFn = options.agentMergeFn ?? evaluateAgentMerge;
     const hm = agentMergeFn(projectRoot);
@@ -181,7 +224,99 @@ export function waitMergeableAndMerge(
     });
   }
 
-  const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo);
+  // #3235: head-bound plan:approved — refuse merge when approval is stale vs
+  // current HEAD; best-effort disable auto-merge + recovery instructions.
+  // Re-read live HEAD immediately before merge (TOCTOU / Greptile P1) and pin
+  // `gh pr merge --match-head-commit` to that exact SHA.
+  // Default skip when human-merge gate is skipped (unit-test harness convention).
+  const skipHeadGate =
+    options.skipMergeApprovalHeadGate === true ||
+    (options.skipMergeApprovalHeadGate === undefined && options.skipHumanMergeGate === true);
+  let matchHeadCommit: string | null = null;
+  if (!skipHeadGate) {
+    const readiness =
+      typeof monitorPayload.readiness === "object" &&
+      monitorPayload.readiness !== null &&
+      !Array.isArray(monitorPayload.readiness)
+        ? (monitorPayload.readiness as Record<string, unknown>)
+        : {};
+    const headFromMonitor =
+      typeof readiness.head_sha === "string"
+        ? readiness.head_sha
+        : typeof monitorPayload.head_sha === "string"
+          ? monitorPayload.head_sha
+          : null;
+    const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+    const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
+    // Live HEAD only — never authorize against a stale monitor snapshot when
+    // the REST read fails (would pin A while GitHub head is B).
+    const liveHead = fetchHead(prNumber, repo);
+    if (liveHead === null || liveHead.trim() === "") {
+      disablePullRequestAutoMerge(prNumber, repo);
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "stale-merge-approval",
+        exitCode: EXIT_CONFIG_ERROR,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error:
+          `❌ merge-approval-head (#3235): cannot read live PR HEAD for #${prNumber}` +
+          (headFromMonitor !== null ? ` (monitor had ${headFromMonitor.slice(0, 12)})` : "") +
+          "; refusing merge and disabling auto-merge (fail closed).",
+      });
+    }
+    const headGate = headGateFn({
+      prNumber,
+      repo,
+      projectRoot,
+      currentHeadSha: liveHead,
+      disableAutoMergeOnDeny: true,
+    });
+    if (!headGate.allowed) {
+      const parts = [headGate.message];
+      if (headGate.recovery !== null) {
+        parts.push("", headGate.recovery);
+      }
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "stale-merge-approval",
+        exitCode: EXIT_CONFIG_ERROR,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error: parts.join("\n"),
+      });
+    }
+    matchHeadCommit = liveHead;
+  } else {
+    // Gate skipped: still prefer a live HEAD pin when available.
+    const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
+    matchHeadCommit = fetchHead(prNumber, repo);
+    if (matchHeadCommit === null) {
+      const readiness =
+        typeof monitorPayload.readiness === "object" &&
+        monitorPayload.readiness !== null &&
+        !Array.isArray(monitorPayload.readiness)
+          ? (monitorPayload.readiness as Record<string, unknown>)
+          : {};
+      if (typeof readiness.head_sha === "string") {
+        matchHeadCommit = readiness.head_sha;
+      } else if (typeof monitorPayload.head_sha === "string") {
+        matchHeadCommit = monitorPayload.head_sha;
+      }
+    }
+  }
+
+  const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
+    matchHeadCommit,
+  });
+
+  // Pinned merge rejected (head advanced mid-call): revoke auto-merge so the
+  // unapproved head cannot land later under retained GitHub auto-merge.
+  if (mergeRc !== 0 && options.skipMergeApprovalHeadGate !== true) {
+    disablePullRequestAutoMerge(prNumber, repo);
+  }
 
   if (mergeRc === 0) {
     // Best-effort umbrella checklist + current-shape refresh after child merge (#1649).

@@ -8,6 +8,11 @@
  *  (3) branch-protection / setup docs require ≥1 human reviewer
  *
  * Override: `task policy:allow-bot-merge -- --confirm` + `DEFT_ALLOW_BOT_MERGE=1`.
+ *
+ * Head-bound Phase 5→6 approval (#3235): when a `plan:approved` event exists,
+ * merge paths also enforce `approved_head_sha == current_head_sha` via
+ * `merge-approval-head.ts` (stale head → fail closed + disable auto-merge).
+ * That gate is complementary to this policy surface and does not replace it.
  */
 
 import { existsSync, readFileSync } from "node:fs";

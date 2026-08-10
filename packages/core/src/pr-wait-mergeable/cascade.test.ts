@@ -31,9 +31,11 @@ function makeMonitorFn(
 }
 
 function makeMergeFn(returncode: number, stdout = "", stderr = ""): MergeFn {
-  const calls: Array<readonly [number, string | null]> = [];
-  const fn: MergeFn = (prNumber, repo) => {
-    calls.push([prNumber, repo]);
+  const calls: Array<
+    readonly [number, string | null, { readonly matchHeadCommit?: string | null } | undefined]
+  > = [];
+  const fn: MergeFn = (prNumber, repo, mergeOpts) => {
+    calls.push([prNumber, repo, mergeOpts]);
     return [returncode, stdout, stderr];
   };
   (fn as { calls: typeof calls }).calls = calls;
@@ -119,13 +121,17 @@ describe("waitMergeableAndMerge", () => {
         umbrellaCalls.push([root, repo]);
       },
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
     expect(result.outcome).toBe("merged");
     expect((protectedFn as { calls: unknown[] }).calls).toEqual([]);
     expect((monitorFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive", 30]]);
-    expect((mergeFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive"]]);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([
+      [1370, "deftai/directive", { matchHeadCommit: "a".repeat(40) }],
+    ]);
     expect(result.mergeStdout).toBe("merged via squash");
     // Post-merge umbrella reconcile fires after successful merge (#1649).
     expect(umbrellaCalls).toHaveLength(1);
@@ -145,6 +151,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -165,6 +173,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -183,6 +193,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -201,6 +213,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -218,6 +232,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -242,6 +258,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -268,6 +286,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -292,6 +312,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -316,6 +338,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -355,6 +379,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -372,6 +398,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn: makeMergeFn(1, "", "branch protection refused"),
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -389,6 +417,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -408,6 +438,8 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -425,10 +457,85 @@ describe("waitMergeableAndMerge", () => {
       mergeFn: makeMergeFn(0),
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.error).toContain("stderr tail:");
     expect(result.error).toContain("poll stderr tail marker");
+  });
+
+  it("stale head-bound plan:approved blocks merge and skips mergeFn (#3235)", () => {
+    const mergeFn = makeMergeFn(0, "should not merge");
+    let disableCalled = false;
+    const result = waitMergeableAndMerge(525, "3Ci-Consulting/runbound", {
+      capMinutes: 10,
+      protected: [],
+      protectedFn: makeProtectedFn(0),
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(525)),
+      mergeFn,
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: false,
+      projectRoot: process.cwd(),
+      fetchPrHeadShaFn: () => "a".repeat(40),
+      mergeApprovalHeadFn: (input) => {
+        expect(input.prNumber).toBe(525);
+        expect(input.currentHeadSha).toBe("a".repeat(40));
+        disableCalled = true;
+        return {
+          status: "stale",
+          allowed: false,
+          approved_head_sha: "b".repeat(40),
+          current_head_sha: "a".repeat(40),
+          pr_number: 525,
+          require_human_merge: true,
+          auto_merge_disabled: true,
+          message: "stale approval #3235",
+          recovery: "re-approve with --head-sha",
+        };
+      },
+      umbrellaReconcileFn: null,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("stale-merge-approval");
+    expect(result.error).toContain("#3235");
+    expect(result.error).toContain("re-approve");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect(disableCalled).toBe(true);
+  });
+
+  it("matching head-bound approval allows merge with match-head-commit (#3235)", () => {
+    const mergeFn = makeMergeFn(0, "merged");
+    const head = "a".repeat(40);
+    const result = waitMergeableAndMerge(100, "deftai/directive", {
+      capMinutes: 10,
+      protected: [],
+      protectedFn: makeProtectedFn(0),
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(100)),
+      mergeFn,
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: false,
+      fetchPrHeadShaFn: () => head,
+      mergeApprovalHeadFn: () => ({
+        status: "ok",
+        allowed: true,
+        approved_head_sha: head,
+        current_head_sha: head,
+        pr_number: 100,
+        require_human_merge: false,
+        auto_merge_disabled: null,
+        message: "ok",
+        recovery: null,
+      }),
+      umbrellaReconcileFn: null,
+    });
+
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(result.outcome).toBe("merged");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([
+      [100, "deftai/directive", { matchHeadCommit: head }],
+    ]);
   });
 
   it("cascade semantic-stale-base blocks before monitor or merge (#2385)", () => {
@@ -457,6 +564,8 @@ describe("waitMergeableAndMerge", () => {
       semanticGreenFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);

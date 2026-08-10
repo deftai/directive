@@ -245,6 +245,7 @@ describe("runPrFinishLoop", () => {
       projectRoot: root,
       prNumber: 42,
       watchFn: () => cleanWatch(42),
+      fetchPrHeadShaFn: () => "abc",
       writeProgress: false,
     });
     expect(r.exitCode).toBe(EXIT_OK);
@@ -273,6 +274,7 @@ describe("runPrFinishLoop", () => {
       prNumber: 9,
       merge: true,
       watchFn: () => cleanWatch(9),
+      fetchPrHeadShaFn: () => "abc",
       agentMergeFn: () => ({
         exitCode: 1 as const,
         allowed: false,
@@ -292,9 +294,45 @@ describe("runPrFinishLoop", () => {
     expect(r.mergeAttempted).toBe(false);
   });
 
+  it("stale merge approval after CLEAN fails closed and disables auto-merge path (#3235)", () => {
+    const root = tmpRoot();
+    mintFinishLoopTemplateGrant({ projectRoot: root });
+    let disableSeen = false;
+    const r = runPrFinishLoop({
+      projectRoot: root,
+      prNumber: 525,
+      merge: true,
+      watchFn: () => cleanWatch(525),
+      fetchPrHeadShaFn: () => "abc",
+      mergeApprovalHeadFn: (input) => {
+        expect(input.currentHeadSha).toBe("abc");
+        disableSeen = true;
+        return {
+          status: "stale",
+          allowed: false,
+          approved_head_sha: "727ab9306ef3b179eee94f6d6df5aef178ae18aa",
+          current_head_sha: "abc",
+          pr_number: 525,
+          require_human_merge: true,
+          auto_merge_disabled: true,
+          message: "stale approval #3235",
+          recovery: "re-approve with --head-sha abc",
+        };
+      },
+      writeProgress: false,
+    });
+    expect(r.exitCode).toBe(EXIT_ACTION_REQUIRED);
+    expect(r.haltReason).toBe("stale-merge-approval");
+    expect(r.mergeSkippedReason).toBe("stale-merge-approval");
+    expect(r.mergeAttempted).toBe(false);
+    expect(r.message).toContain("#3235");
+    expect(disableSeen).toBe(true);
+  });
+
   it("merge succeeds when policy allows and mergeFn returns 0", () => {
     const root = tmpRoot();
     mintFinishLoopTemplateGrant({ projectRoot: root });
+    let pinned: string | null | undefined;
     const r = runPrFinishLoop({
       projectRoot: root,
       prNumber: 3,
@@ -312,12 +350,17 @@ describe("runPrFinishLoop", () => {
           autoDeployOnMerge: false,
         },
       }),
-      mergeFn: () => 0,
+      fetchPrHeadShaFn: () => "abc",
+      mergeFn: (_pr, _repo, opts) => {
+        pinned = opts?.matchHeadCommit;
+        return 0;
+      },
       writeProgress: false,
     });
     expect(r.exitCode).toBe(EXIT_OK);
     expect(r.haltReason).toBe("merged");
     expect(r.mergeAttempted).toBe(true);
+    expect(pinned).toBe("abc");
   });
 });
 

@@ -52,13 +52,13 @@ describe("coverage boost", () => {
     const result = waitMergeableAndMerge(1, "o/r", {
       capMinutes: 1,
       protected: [],
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
       monitorFn: () => [
         0,
         JSON.stringify({
           monitor_result: "CLEAN",
           readiness: { merge_ready: true, via: "primary" },
-
-          skipHumanMergeGate: true,
         }),
         "",
       ],
@@ -71,13 +71,13 @@ describe("coverage boost", () => {
     const result = waitMergeableAndMerge(1, "o/r", {
       capMinutes: 1,
       protected: [],
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
       monitorFn: () => [
         0,
         JSON.stringify({
           monitor_result: "CLEAN",
           readiness: { merge_ready: true, via: "primary" },
-
-          skipHumanMergeGate: true,
         }),
         "",
       ],
@@ -118,6 +118,8 @@ describe("coverage boost", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     runWaitMergeable(["1", "--repo", "o/r"], {
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
       monitorFn: () => [
         0,
         JSON.stringify({

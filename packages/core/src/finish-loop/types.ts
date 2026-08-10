@@ -19,6 +19,7 @@ export type FinishLoopHaltReason =
   | "gate-deny"
   | "max-iterations"
   | "require-human-merge"
+  | "stale-merge-approval"
   | "address-findings"
   | "agent-implement"
   | "clean"
