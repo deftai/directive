@@ -10,7 +10,8 @@ export interface WhichAllOptions {
 
 /**
  * Enumerate every PATH match for `name` (PATH order, first = highest precedence).
- * Pure PATH scan — no shell locator — so tests and win32/posix stay hermetic (#3233).
+ * Pure PATH scan — no shell locator — so tests and win32/posix stay hermetic and
+ * gated ritual never executes a PATH-substituted `which`/`where` (#3233).
  */
 export function whichAllFromPath(name: string, options: WhichAllOptions = {}): string[] {
   const env = options.env ?? process.env;
@@ -44,10 +45,19 @@ export function whichAllFromPath(name: string, options: WhichAllOptions = {}): s
 }
 
 /**
- * Shell locator listing every match (`where` on win32, `which -a` on posix).
- * Falls back to {@link whichAllFromPath} when the locator is missing or empty.
+ * All PATH matches for `name` without shelling out (#3233 security).
+ * Alias of {@link whichAllFromPath} — never runs bare `which` / `where`.
  */
 export function defaultWhichAll(name: string, options: WhichAllOptions = {}): string[] {
+  return whichAllFromPath(name, options);
+}
+
+/**
+ * Optional shell-locator listing (`where` / `which -a`). Prefer
+ * {@link defaultWhichAll} / {@link whichAllFromPath} for security-sensitive gates.
+ * Kept for diagnostics and tests that intentionally exercise the locator.
+ */
+export function whichAllViaLocator(name: string, options: WhichAllOptions = {}): string[] {
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const locator = platform === "win32" ? "where" : "which";

@@ -5,7 +5,7 @@ vi.mock("node:child_process", () => ({
   execFileSync: vi.fn(),
 }));
 
-import { defaultWhich, defaultWhichAll, whichAllFromPath } from "./which.js";
+import { defaultWhich, defaultWhichAll, whichAllFromPath, whichAllViaLocator } from "./which.js";
 
 describe("defaultWhich branch edges", () => {
   beforeEach(() => {
@@ -98,14 +98,25 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
     );
   });
 
-  it("defaultWhichAll returns all where lines on win32", () => {
+  it("defaultWhichAll is PATH-scan only (never shells out to which/where)", () => {
+    vi.mocked(execFileSync).mockReturnValue("/forged/which/deft\n");
+    const paths = defaultWhichAll("deft", {
+      platform: "linux",
+      env: { PATH: "/only/bin" },
+      exists: (p) => p === "/only/bin/deft",
+    });
+    expect(paths).toEqual(["/only/bin/deft"]);
+    expect(vi.mocked(execFileSync)).not.toHaveBeenCalled();
+  });
+
+  it("whichAllViaLocator returns all where lines on win32", () => {
     const original = process.platform;
     Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
     try {
       vi.mocked(execFileSync).mockReturnValue(
         "C:\\Homebrew\\bin\\deft.cmd\nC:\\nvm\\bin\\deft.cmd\n",
       );
-      expect(defaultWhichAll("deft", { platform: "win32" })).toEqual([
+      expect(whichAllViaLocator("deft", { platform: "win32" })).toEqual([
         "C:\\Homebrew\\bin\\deft.cmd",
         "C:\\nvm\\bin\\deft.cmd",
       ]);
@@ -119,12 +130,12 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
     }
   });
 
-  it("defaultWhichAll uses which -a on posix", () => {
+  it("whichAllViaLocator uses which -a on posix", () => {
     const original = process.platform;
     Object.defineProperty(process, "platform", { configurable: true, value: "linux" });
     try {
       vi.mocked(execFileSync).mockReturnValue("/opt/homebrew/bin/deft\n/Users/x/.nvm/bin/deft\n");
-      expect(defaultWhichAll("deft", { platform: "linux" })).toEqual([
+      expect(whichAllViaLocator("deft", { platform: "linux" })).toEqual([
         "/opt/homebrew/bin/deft",
         "/Users/x/.nvm/bin/deft",
       ]);
@@ -138,11 +149,11 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
     }
   });
 
-  it("defaultWhichAll falls back to PATH scan when locator throws", () => {
+  it("whichAllViaLocator falls back to PATH scan when locator throws", () => {
     vi.mocked(execFileSync).mockImplementation(() => {
       throw new Error("which missing");
     });
-    const paths = defaultWhichAll("deft", {
+    const paths = whichAllViaLocator("deft", {
       platform: "linux",
       env: { PATH: "/only/bin" },
       exists: (p) => p === "/only/bin/deft",

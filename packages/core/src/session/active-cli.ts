@@ -26,7 +26,8 @@ import {
 export const ACTIVE_CLI_COMMANDS = ["deft", "directive"] as const;
 export type ActiveCliCommand = (typeof ACTIVE_CLI_COMMANDS)[number];
 
-const SEMVER_IN_TEXT_RE = /(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/;
+/** Bounded semver extract — avoids ReDoS on long zero-runs (CodeQL). */
+const SEMVER_IN_TEXT_RE = /\b(\d{1,6}\.\d{1,6}\.\d{1,6})\b/;
 const ENGINE_PKG_NAMES = new Set(["@deftai/directive", "@deftai/directive-core"]);
 
 export interface CliCandidate {
@@ -68,7 +69,9 @@ export interface ActiveCliCheckResult {
 }
 
 function parseVersionFromOutput(out: string): string | null {
-  const match = SEMVER_IN_TEXT_RE.exec(out);
+  // Cap scan length so CodeQL polynomial-regex alerts cannot fire on huge text.
+  const sample = out.length > 512 ? out.slice(0, 512) : out;
+  const match = SEMVER_IN_TEXT_RE.exec(sample);
   return match?.[1] ?? null;
 }
 
@@ -240,9 +243,11 @@ function collectCandidates(seams: ActiveCliCheckSeams): CliCandidate[] {
 }
 
 function formatCandidateLine(c: CliCandidate): string {
-  const ver = c.version ?? "unknown";
+  const ver = (c.version ?? "unknown").replace(/\r?\n/g, " ");
+  const path = c.path.replace(/\r?\n/g, " ");
+  const command = String(c.command).replace(/\r?\n/g, " ");
   const mark = c.precedence === 0 ? " (active)" : "";
-  return `  - ${c.path} → engine ${ver}${mark} [${c.command}]`;
+  return `  - ${path} → engine ${ver}${mark} [${command}]`;
 }
 
 function remediationLines(params: {
