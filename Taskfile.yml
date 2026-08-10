@@ -437,6 +437,7 @@ tasks:
       - verify:pack-drift
       - verify-wip-cap-framework-self-check
       - verify:orphan-active
+      - verify:completed-tracked
       - verify:agents-md-budget
       - verify-eval-health-relocation-framework-check
       - verify-eval-triggers-relocation-framework-check
@@ -468,6 +469,7 @@ tasks:
       - verify:cache-fresh
       - verify:wip-cap
       - verify:orphan-active
+      - verify:completed-tracked
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract

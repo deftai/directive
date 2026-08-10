@@ -69,6 +69,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:encoding",
   "verify:cache-fresh",
   "verify:orphan-active",
+  "verify:completed-tracked",
   "verify:license-sync",
   "verify:contract-drift",
   "toolchain:check",
@@ -113,6 +114,7 @@ export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:cache-fresh",
   "verify:wip-cap",
   "verify:orphan-active",
+  "verify:completed-tracked",
   "doctor",
   "toolchain:check-consumer",
   // #3145 enforcement trio (test placement, scope provenance, gate composition)

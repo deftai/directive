@@ -1,0 +1,221 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, describe, expect, it } from "vitest";
+import { evaluateCompletedTracked, resolveDeliveryTip } from "./completed-tracked-on-delivery.js";
+
+const temps: string[] = [];
+afterAll(() => {
+  for (const t of temps) {
+    rmSync(t, { recursive: true, force: true });
+  }
+});
+
+function git(root: string, args: string[]): void {
+  execFileSync("git", args, {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function makeGitRepo(): string {
+  const root = mkdtempSync(join(tmpdir(), "deft-completed-tracked-"));
+  temps.push(root);
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "t@t.dev"]);
+  git(root, ["config", "user.name", "t"]);
+  // Default branch name varies by git config; pin master for fixtures.
+  git(root, ["checkout", "-q", "-b", "master"]);
+  writeFileSync(join(root, "README.md"), "fixture\n", "utf8");
+  git(root, ["add", "README.md"]);
+  git(root, ["commit", "-q", "-m", "init"]);
+  return root;
+}
+
+function writeBrief(
+  root: string,
+  folder: string,
+  name: string,
+  plan: Record<string, unknown>,
+): string {
+  const dir = join(root, "xbrief", folder);
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, name);
+  writeFileSync(
+    path,
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan,
+    }),
+    "utf8",
+  );
+  return path;
+}
+
+function writeCachedIssue(
+  root: string,
+  repo: string,
+  number: number,
+  state: "open" | "closed",
+): void {
+  const [owner, name] = repo.split("/", 2);
+  if (!owner || !name) {
+    throw new Error(`invalid repo slug: ${repo}`);
+  }
+  const dir = join(root, ".deft-cache", "github-issue", owner, name, String(number));
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "raw.json"), JSON.stringify({ number, state }), "utf8");
+}
+
+const issuePlan = (number: number): Record<string, unknown> => ({
+  status: "completed",
+  title: `story ${number}`,
+  references: [
+    {
+      uri: `https://github.com/deftai/directive/issues/${number}`,
+      type: "x-xbrief/github-issue",
+    },
+  ],
+});
+
+describe("resolveDeliveryTip", () => {
+  it("uses explicit tip when present", () => {
+    const root = makeGitRepo();
+    const { tip, error } = resolveDeliveryTip(root, "HEAD", (cwd, args) => {
+      try {
+        const stdout = execFileSync("git", [...args], {
+          cwd,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        return { code: 0, stdout: String(stdout).trimEnd(), stderr: "" };
+      } catch {
+        return { code: 1, stdout: "", stderr: "fail" };
+      }
+    });
+    expect(error).toBeNull();
+    expect(tip).toBe("HEAD");
+  });
+});
+
+describe("evaluateCompletedTracked (#3264)", () => {
+  it("fails when closed scoped issue has untracked completed residue only", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "missing-land.xbrief.json", issuePlan(9001));
+    writeCachedIssue(root, "deftai/directive", 9001, "closed");
+    // Do NOT git-add the completed brief — untracked laptop residue.
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing).toHaveLength(1);
+    expect(result.missing[0]?.issue.number).toBe(9001);
+    expect(result.message).toContain("task swarm:finalize-cohort");
+    expect(result.message).toContain("lifecycle PR");
+    expect(result.message).toContain("9001");
+  });
+
+  it("is green when tracked completed on delivery tip references the closed issue", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "landed.xbrief.json", issuePlan(9002));
+    writeCachedIssue(root, "deftai/directive", 9002, "closed");
+    git(root, ["add", "xbrief/completed/landed.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "land completed"]);
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+    expect(result.missing).toEqual([]);
+    expect(result.message).toContain("tracked completed/cancelled");
+  });
+
+  it("does not false-positive for closed issues with no scope xBRIEF origin", () => {
+    const root = makeGitRepo();
+    writeCachedIssue(root, "deftai/directive", 9003, "closed");
+    // No lifecycle xBRIEF references 9003.
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+    expect(result.missing).toEqual([]);
+  });
+
+  it("does not fail open scoped issues still in active/", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "active", "open-story.xbrief.json", {
+      ...issuePlan(9004),
+      status: "running",
+    });
+    writeCachedIssue(root, "deftai/directive", 9004, "open");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+    expect(result.missing).toEqual([]);
+  });
+
+  it("fails when tip still has active brief for a closed issue and no terminal land", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "active", "stale-active.xbrief.json", {
+      ...issuePlan(9005),
+      status: "running",
+    });
+    writeCachedIssue(root, "deftai/directive", 9005, "closed");
+    git(root, ["add", "xbrief/active/stale-active.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "active only"]);
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9005);
+  });
+
+  it("accepts tracked cancelled as land", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "cancelled", "abandoned.xbrief.json", {
+      ...issuePlan(9006),
+      status: "cancelled",
+    });
+    writeCachedIssue(root, "deftai/directive", 9006, "closed");
+    git(root, ["add", "xbrief/cancelled/abandoned.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "cancel land"]);
+    // Local completed untracked residue should not fail once tip has cancelled.
+    writeBrief(root, "completed", "dup.xbrief.json", issuePlan(9006));
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("returns config error when tip override is missing", () => {
+    const root = makeGitRepo();
+    const result = evaluateCompletedTracked(root, {
+      tip: "refs/does-not-exist",
+      skipGh: true,
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("delivery tip ref not found");
+  });
+
+  it("returns config error for non-git root", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-completed-tracked-nongit-"));
+    temps.push(root);
+    const result = evaluateCompletedTracked(root, { skipGh: true });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("not a git worktree");
+  });
+});
