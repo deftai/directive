@@ -64,6 +64,26 @@ export interface CheckSeams {
   readonly readdir?: (path: string) => string[];
 }
 
+/** True when an fs error means the path is cleanly absent (not unreadable). */
+function isEnoentError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as NodeJS.ErrnoException).code === "ENOENT"
+  );
+}
+
+/**
+ * Path probe for fail-closed envelope collection (#3243 review):
+ * - present: path exists as the expected kind
+ * - absent: clean ENOENT (or seam returns false)
+ * - unreadable: exists/unknown but stat failed with non-ENOENT (EACCES/EPERM/IO)
+ *
+ * Seams may throw with `code: "ENOENT"` for absence or any other throw for unreadable.
+ */
+type PathPresence = "present" | "absent" | "unreadable";
+
 function readText(path: string, seams: CheckSeams): string | null {
   return (seams.readText ?? readTextSafe)(path);
 }
@@ -76,6 +96,43 @@ function isDirectoryPath(path: string, seams: CheckSeams): boolean {
     return statSync(path).isDirectory();
   } catch {
     return false;
+  }
+}
+
+/** Probe whether `path` is a file, absent, or unstatable (include for fail-closed). */
+function probeFilePresence(path: string, seams: CheckSeams): PathPresence {
+  if (seams.isFile) {
+    try {
+      return seams.isFile(path) ? "present" : "absent";
+    } catch (err) {
+      return isEnoentError(err) ? "absent" : "unreadable";
+    }
+  }
+  try {
+    return statSync(path).isFile() ? "present" : "absent";
+  } catch (err) {
+    // ENOENT → cleanly missing; EACCES/EPERM/other → treat as live but unreadable
+    // so Doctor cannot skip/pass past a definition it cannot inspect (#3243).
+    return isEnoentError(err) ? "absent" : "unreadable";
+  }
+}
+
+/**
+ * Probe whether `path` is a directory, absent, or unstatable.
+ * Unreadable pending/active must fail closed via enumFailures, not silent skip.
+ */
+function probeDirectoryPresence(path: string, seams: CheckSeams): PathPresence {
+  if (seams.isDir) {
+    try {
+      return seams.isDir(path) ? "present" : "absent";
+    } catch (err) {
+      return isEnoentError(err) ? "absent" : "unreadable";
+    }
+  }
+  try {
+    return statSync(path).isDirectory() ? "present" : "absent";
+  } catch (err) {
+    return isEnoentError(err) ? "absent" : "unreadable";
   }
 }
 
@@ -101,24 +158,24 @@ function collectLiveXbriefEnvelopePaths(
   const paths: string[] = [];
   const enumFailures: string[] = [];
   const definitionPath = join(migratedRoot, `PROJECT-DEFINITION${MIGRATED_ARTIFACT_SUFFIX}`);
-  // Existence must not require a successful read — unreadable paths still enter
-  // the scan so the fail-closed unreadable branch can fire (#3243 review).
-  const isFile =
-    seams.isFile ??
-    ((p: string) => {
-      try {
-        return statSync(p).isFile();
-      } catch {
-        return false;
-      }
-    });
+  // Existence must not require a successful read/stat — unreadable definitions
+  // still enter the scan so the fail-closed unreadable branch can fire
+  // (#3243 review: ENOENT = absent; EACCES/EPERM/other = include).
   const readdir = seams.readdir ?? readdirSync;
-  if (isFile(definitionPath)) {
+  const definitionPresence = probeFilePresence(definitionPath, seams);
+  if (definitionPresence === "present" || definitionPresence === "unreadable") {
     paths.push(definitionPath);
   }
   for (const folder of ENVELOPE_MAJOR_SCAN_FOLDERS) {
     const dir = join(migratedRoot, folder);
-    if (!isDirectoryPath(dir, seams)) {
+    const dirPresence = probeDirectoryPresence(dir, seams);
+    if (dirPresence === "absent") {
+      // Clean absence (ENOENT / seam false) — greenfield-ok for that folder.
+      continue;
+    }
+    if (dirPresence === "unreadable") {
+      // Stat failed with non-ENOENT before readdir — fail closed (do not pretend empty).
+      enumFailures.push(relative(projectRoot, dir).replace(/\\/g, "/"));
       continue;
     }
     let names: string[];
@@ -340,8 +397,10 @@ export function checkXbriefEnvelopeMajorVersion(
   }
 
   if (nonMigratableBehindMajor.length > 0) {
-    // Fail closed without recommending migrate:xbrief alone — that verb rewrites
-    // exact 0.6 only (#3236). Operators must re-emit full structure.
+    // Fail closed without claiming migrate:xbrief alone clears these — that verb
+    // rewrites exact 0.6 only (#3236). Give executable next actions per class
+    // (permissions / re-emit / delete-replace) so Doctor is not permanently blocked
+    // after a non-applicable remediation (#3243 review).
     const sample = nonMigratableBehindMajor.slice(0, 5);
     const declaredVersions = [
       ...new Set(sample.map((e) => e.declaredVersion ?? "missing/unreadable")),
@@ -357,9 +416,11 @@ export function checkXbriefEnvelopeMajorVersion(
       detail:
         `behind-major (non-migratable) -- declared ${declaredVersions}, framework ${targetVersion} ` +
         `(${nonMigratableBehindMajor.length} artifact(s): ${samplePaths}${more}). ` +
-        `\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only rewrites exact ${LEGACY_VBRIEF_VERSION}. ` +
-        `Rewrite live envelopes to full xBRIEFInfo@${targetVersion} structure (re-emit via scope write-path tools ` +
-        `or apply the published transform path), then validate — do not only bump the version field.`,
+        `Next actions: (1) if a path is unreadable, fix FS permissions then re-run doctor; ` +
+        `(2) re-emit full xBRIEFInfo@${targetVersion} via scope tools ` +
+        `(\`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\` only when declared is exact ${LEGACY_VBRIEF_VERSION}); ` +
+        `(3) delete or replace invalid lifecycle artifacts after human confirm — ` +
+        `do not only bump the version field.`,
       data: {
         status: "behind-major-non-migratable",
         declared_versions: sample.map((e) => e.declaredVersion),
@@ -367,7 +428,9 @@ export function checkXbriefEnvelopeMajorVersion(
         behind_major_count: nonMigratableBehindMajor.length,
         sample_paths: sample.map((e) => e.relativePath),
         next_command: null,
-        suggestion: `rewrite live envelopes to full xBRIEFInfo@${targetVersion} structure (not version-only)`,
+        suggestion:
+          `fix FS permissions if unreadable; re-emit full xBRIEFInfo@${targetVersion} via scope tools ` +
+          `(migrate:xbrief only for exact ${LEGACY_VBRIEF_VERSION}); or delete/replace invalid artifacts after human confirm (not version-only)`,
       },
     };
   }

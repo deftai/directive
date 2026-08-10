@@ -681,9 +681,17 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
       expect(result.detail).not.toContain(
         `Next action: run \`${XBRIEF_ENVELOPE_MIGRATE_COMMAND}\``,
       );
+      // Actionable next steps — not migrate-only, not version-only bump (#3243).
+      expect(result.detail).toContain("Next actions:");
+      expect(result.detail).toMatch(/fix FS permissions/i);
+      expect(result.detail).toMatch(/re-emit full xBRIEFInfo@/i);
+      expect(result.detail).toMatch(/delete or replace invalid lifecycle artifacts/i);
       expect(result.detail).toContain("do not only bump the version field");
+      expect(result.detail).toContain("only when declared is exact 0.6");
       expect(result.data?.next_command).toBeNull();
-      expect(String(result.data?.suggestion ?? "")).toMatch(/not version-only|structure/i);
+      expect(String(result.data?.suggestion ?? "")).toMatch(
+        /not version-only|re-emit|permissions|delete\/replace/i,
+      );
       expect(deriveExitCode([result], [])).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -728,6 +736,71 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     }
   });
 
+  it("fails closed when PROJECT-DEFINITION stat throws non-ENOENT (not treated absent)", () => {
+    // #3243 review: EACCES/EPERM on stat must include the definition path so
+    // Doctor cannot skip/pass past a live definition it cannot inspect.
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const def = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+      mkdirSync(dirname(def), { recursive: true });
+      const eacces = Object.assign(new Error("EACCES: permission denied"), {
+        code: "EACCES",
+      });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isFile: (p) => {
+          if (p === def || p.endsWith("PROJECT-DEFINITION.xbrief.json")) {
+            throw eacces;
+          }
+          return false;
+        },
+        isDir: (p) => p.includes(`${sep}xbrief`) || p.endsWith("xbrief"),
+        readText: () => null,
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("PROJECT-DEFINITION.xbrief.json");
+      expect(result.detail).toMatch(/fix FS permissions/i);
+      expect(deriveExitCode([result], [])).toBe(1);
+      const scan = scanXbriefEnvelopeVersions(root, {
+        isFile: (p) => {
+          if (p === def || p.endsWith("PROJECT-DEFINITION.xbrief.json")) {
+            throw eacces;
+          }
+          return false;
+        },
+        isDir: (p) => p.includes(`${sep}xbrief`) || p.endsWith("xbrief"),
+        readText: () => null,
+      });
+      expect(
+        scan.entries.some((e) => e.relativePath.endsWith("PROJECT-DEFINITION.xbrief.json")),
+      ).toBe(true);
+      expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not invent PROJECT-DEFINITION when isFile throws ENOENT", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      const enoent = Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isFile: () => {
+          throw enoent;
+        },
+        isDir: (p) =>
+          p.includes(`${sep}xbrief`) || p.endsWith("xbrief") || p.endsWith(`${sep}active`),
+        readdir: () => [],
+      });
+      // Clean absence → greenfield skip, not fail closed on a phantom definition.
+      expect(result.status).toBe("skip");
+      expect(result.data?.reason).toBe("no-envelopes");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("fails closed when an existing lifecycle dir cannot be listed (not skip/pass)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
     try {
@@ -762,6 +835,69 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
       });
       expect(scan.entries.some((e) => e.relativePath === "xbrief/active")).toBe(true);
       expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when lifecycle dir stat throws non-ENOENT before readdir", () => {
+    // #3243 review: isDirectoryPath false on EACCES used to skip readdir fail-closed.
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      const activeDir = join(root, "xbrief", "active");
+      mkdirSync(activeDir, { recursive: true });
+      const eperm = Object.assign(new Error("EPERM: operation not permitted"), {
+        code: "EPERM",
+      });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isDir: (p) => {
+          if (p === activeDir || p.endsWith(`${sep}active`)) {
+            throw eperm;
+          }
+          // xbrief root present so we are not legacy-only.
+          return p.includes(`${sep}xbrief`) || p.endsWith("xbrief");
+        },
+        readdir: () => {
+          throw new Error("should not readdir after unreadable stat");
+        },
+      });
+      expect(result.status).toBe("fail");
+      expect(result.data?.status).toBe("behind-major-non-migratable");
+      expect(result.detail).toContain("xbrief/active");
+      expect(result.detail).toMatch(/fix FS permissions/i);
+      expect(deriveExitCode([result], [])).toBe(1);
+      const scan = scanXbriefEnvelopeVersions(root, {
+        isDir: (p) => {
+          if (p === activeDir || p.endsWith(`${sep}active`)) {
+            throw eperm;
+          }
+          return p.includes(`${sep}xbrief`) || p.endsWith("xbrief");
+        },
+      });
+      expect(scan.entries.some((e) => e.relativePath === "xbrief/active")).toBe(true);
+      expect(scan.behindMajor.some((e) => e.declaredVersion === null)).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("skips lifecycle folder cleanly when isDir throws ENOENT", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeEnvelope(root, "xbrief/PROJECT-DEFINITION.xbrief.json", "0.8");
+      const enoent = Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+      const result = checkXbriefEnvelopeMajorVersion(root, {
+        isDir: (p) => {
+          if (p.endsWith(`${sep}active`) || p.endsWith(`${sep}pending`)) {
+            throw enoent;
+          }
+          return p.includes(`${sep}xbrief`) || p.endsWith("xbrief");
+        },
+      });
+      // Absent pending/active is OK when definition is current.
+      expect(result.status).toBe("pass");
+      expect(deriveExitCode([result], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
