@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Head-bound merge approval invalidates when PR HEAD changes (#3235).** Phase 5 → 6 `plan:approved` now participates in merge gates as an exact-head authorization: when `approved_head_sha != current_head_sha` (including multi-push auto-merge retention), `pr:wait-mergeable-and-merge` and `pr:finish-loop` fail closed, best-effort disable GitHub auto-merge (`gh pr merge --disable-auto`), and print recovery that requires a fresh `plan:approved` bound to the current head via `--head-sha`. Core: `packages/core/src/policy/merge-approval-head.ts` (+ cascade / finish-loop wiring). Does not change consumer repository rulesets. Closes #3235. Refs #1193, #635.
+
 ### Removed
 
 ## [0.99.0] - 2026-08-10

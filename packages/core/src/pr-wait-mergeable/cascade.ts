@@ -1,5 +1,11 @@
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 import {
+  type EnforceMergeApprovalHeadInput,
+  enforceMergeApprovalHead,
+  fetchPrHeadShaRest,
+  type MergeApprovalHeadResult,
+} from "../policy/merge-approval-head.js";
+import {
   type AgentMergeEvaluateResult,
   evaluateAgentMerge,
 } from "../policy/require-human-merge.js";
@@ -52,6 +58,13 @@ export interface WaitMergeableOptions {
   /** When true, skip human-merge / intent preflight (tests only). */
   readonly skipHumanMergeGate?: boolean;
   /**
+   * When true, skip head-bound plan:approved gate (#3235). Default false.
+   * Independent of skipHumanMergeGate so tests can exercise head binding alone.
+   */
+  readonly skipMergeApprovalHeadGate?: boolean;
+  /** Inject head-bound approval enforcer (unit tests). */
+  readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
+  /**
    * Post-merge umbrella reconcile (#1649). Defaults to live reconcileUmbrellas.
    * Pass `null` to skip (unit tests that inject mergeFn must pass null so they
    * never mutate real GitHub current-shape comments from the worktree cwd).
@@ -87,6 +100,32 @@ export function waitMergeableAndMerge(
         exitCode: EXIT_CONFIG_ERROR,
         error: intent.reason,
       });
+    }
+    // #3235: revoke stale head-bound approval / auto-merge even when human-merge
+    // will refuse the bot merge — otherwise auto-merge can land a later HEAD.
+    if (options.skipMergeApprovalHeadGate !== true) {
+      const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+      const earlyHead = headGateFn({
+        prNumber,
+        repo,
+        projectRoot,
+        currentHeadSha: null,
+        fetchHeadShaFn: fetchPrHeadShaRest,
+        disableAutoMergeOnDeny: true,
+      });
+      if (!earlyHead.allowed) {
+        const parts = [earlyHead.message];
+        if (earlyHead.recovery !== null) {
+          parts.push("", earlyHead.recovery);
+        }
+        return makeResult({
+          prNumber,
+          repo,
+          outcome: "stale-merge-approval",
+          exitCode: EXIT_CONFIG_ERROR,
+          error: parts.join("\n"),
+        });
+      }
     }
     const agentMergeFn = options.agentMergeFn ?? evaluateAgentMerge;
     const hm = agentMergeFn(projectRoot);
@@ -179,6 +218,46 @@ export function waitMergeableAndMerge(
       protectedCheck: protectedCheckPayload,
       error: errorPayload,
     });
+  }
+
+  // #3235: head-bound plan:approved — refuse merge when approval is stale vs
+  // current HEAD; best-effort disable auto-merge + recovery instructions.
+  if (options.skipMergeApprovalHeadGate !== true) {
+    const readiness =
+      typeof monitorPayload.readiness === "object" &&
+      monitorPayload.readiness !== null &&
+      !Array.isArray(monitorPayload.readiness)
+        ? (monitorPayload.readiness as Record<string, unknown>)
+        : {};
+    const headFromMonitor =
+      typeof readiness.head_sha === "string"
+        ? readiness.head_sha
+        : typeof monitorPayload.head_sha === "string"
+          ? monitorPayload.head_sha
+          : null;
+    const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+    const headGate = headGateFn({
+      prNumber,
+      repo,
+      projectRoot,
+      currentHeadSha: headFromMonitor,
+      disableAutoMergeOnDeny: true,
+    });
+    if (!headGate.allowed) {
+      const parts = [headGate.message];
+      if (headGate.recovery !== null) {
+        parts.push("", headGate.recovery);
+      }
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "stale-merge-approval",
+        exitCode: EXIT_CONFIG_ERROR,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error: parts.join("\n"),
+      });
+    }
   }
 
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo);

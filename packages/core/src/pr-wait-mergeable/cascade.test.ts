@@ -119,6 +119,7 @@ describe("waitMergeableAndMerge", () => {
         umbrellaCalls.push([root, repo]);
       },
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -145,6 +146,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -165,6 +167,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -183,6 +186,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -201,6 +205,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -218,6 +223,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -242,6 +248,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -268,6 +275,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -292,6 +300,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -316,6 +325,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -355,6 +365,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -372,6 +383,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn: makeMergeFn(1, "", "branch protection refused"),
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -389,6 +401,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_MERGED);
@@ -408,6 +421,7 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -425,10 +439,79 @@ describe("waitMergeableAndMerge", () => {
       mergeFn: makeMergeFn(0),
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.error).toContain("stderr tail:");
     expect(result.error).toContain("poll stderr tail marker");
+  });
+
+  it("stale head-bound plan:approved blocks merge and skips mergeFn (#3235)", () => {
+    const mergeFn = makeMergeFn(0, "should not merge");
+    let disableCalled = false;
+    const result = waitMergeableAndMerge(525, "3Ci-Consulting/runbound", {
+      capMinutes: 10,
+      protected: [],
+      protectedFn: makeProtectedFn(0),
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(525)),
+      mergeFn,
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: false,
+      projectRoot: process.cwd(),
+      mergeApprovalHeadFn: (input) => {
+        expect(input.prNumber).toBe(525);
+        expect(input.currentHeadSha).toBe("a".repeat(40));
+        disableCalled = true;
+        return {
+          status: "stale",
+          allowed: false,
+          approved_head_sha: "b".repeat(40),
+          current_head_sha: "a".repeat(40),
+          pr_number: 525,
+          require_human_merge: true,
+          auto_merge_disabled: true,
+          message: "stale approval #3235",
+          recovery: "re-approve with --head-sha",
+        };
+      },
+      umbrellaReconcileFn: null,
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("stale-merge-approval");
+    expect(result.error).toContain("#3235");
+    expect(result.error).toContain("re-approve");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect(disableCalled).toBe(true);
+  });
+
+  it("matching head-bound approval allows merge (#3235)", () => {
+    const mergeFn = makeMergeFn(0, "merged");
+    const result = waitMergeableAndMerge(100, "deftai/directive", {
+      capMinutes: 10,
+      protected: [],
+      protectedFn: makeProtectedFn(0),
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(100)),
+      mergeFn,
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: false,
+      mergeApprovalHeadFn: () => ({
+        status: "ok",
+        allowed: true,
+        approved_head_sha: "a".repeat(40),
+        current_head_sha: "a".repeat(40),
+        pr_number: 100,
+        require_human_merge: false,
+        auto_merge_disabled: null,
+        message: "ok",
+        recovery: null,
+      }),
+      umbrellaReconcileFn: null,
+    });
+
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(result.outcome).toBe("merged");
+    expect((mergeFn as { calls: unknown[] }).calls).toHaveLength(1);
   });
 
   it("cascade semantic-stale-base blocks before monitor or merge (#2385)", () => {
@@ -457,6 +540,7 @@ describe("waitMergeableAndMerge", () => {
       semanticGreenFn,
 
       skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
     });
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);

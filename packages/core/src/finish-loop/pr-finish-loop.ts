@@ -8,6 +8,11 @@
  * - Missing grants → fail closed BLOCKED
  */
 
+import {
+  type EnforceMergeApprovalHeadInput,
+  enforceMergeApprovalHead,
+  type MergeApprovalHeadResult,
+} from "../policy/merge-approval-head.js";
 import { evaluateAgentMerge } from "../policy/require-human-merge.js";
 import {
   EXIT_CLEAN,
@@ -32,6 +37,8 @@ export interface PrFinishLoopOptions {
   /** Attempt merge when CLEAN and policy allows (default false). */
   readonly merge?: boolean;
   readonly skipGrantGate?: boolean;
+  /** Skip #3235 head-bound plan:approved gate (tests). */
+  readonly skipMergeApprovalHeadGate?: boolean;
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly now?: Date;
   /** Inject watch for tests. */
@@ -39,6 +46,7 @@ export interface PrFinishLoopOptions {
   /** Inject merge cascade for tests; returns exit code. */
   readonly mergeFn?: (prNumber: number, repo: string | null) => number;
   readonly agentMergeFn?: typeof evaluateAgentMerge;
+  readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
   readonly writeProgress?: boolean;
   readonly iteration?: number;
 }
@@ -175,6 +183,46 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
       mergeSkippedReason: null,
       grantId: null,
     };
+  }
+
+  // #3235: head-bound plan:approved vs current PR HEAD (before merge path).
+  // Runs even when --merge is not requested so auto-merge is revoked on stale
+  // approval after CLEAN (multi-push retention class).
+  if (options.skipMergeApprovalHeadGate !== true) {
+    const currentHead =
+      typeof watchResult.probe.headSha === "string" ? watchResult.probe.headSha : null;
+    const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+    const headGate = headGateFn({
+      prNumber,
+      repo,
+      projectRoot,
+      currentHeadSha: currentHead,
+      disableAutoMergeOnDeny: true,
+    });
+    if (!headGate.allowed) {
+      const message = [
+        `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: stale or unbound merge approval.`,
+        headGate.message,
+        headGate.recovery ?? "",
+      ]
+        .filter((line) => line.length > 0)
+        .join("\n");
+      log("merge", "stale-merge-approval", message, {
+        approved_head_sha: headGate.approved_head_sha,
+        current_head_sha: headGate.current_head_sha,
+        auto_merge_disabled: headGate.auto_merge_disabled,
+      });
+      return {
+        exitCode: EXIT_ACTION_REQUIRED,
+        haltReason: "stale-merge-approval",
+        message,
+        prNumber,
+        watchVerdict: VERDICT_CLEAN,
+        mergeAttempted: false,
+        mergeSkippedReason: "stale-merge-approval",
+        grantId: null,
+      };
+    }
   }
 
   // CLEAN path
