@@ -116,6 +116,14 @@ function parseScope(raw: unknown): GrantScope | null {
     storyIds: readStringArray(rec.storyIds ?? rec.story_ids),
     issueIds: readNumberArray(rec.issueIds ?? rec.issue_ids),
     cohortId: readString(rec, "cohortId") ?? readString(rec, "cohort_id"),
+    // #3239 structural decompose apply bindings (snake_case accepted on load).
+    contentDigest:
+      readString(rec, "contentDigest") ??
+      readString(rec, "content_digest") ??
+      readString(rec, "draftDigest") ??
+      readString(rec, "draft_digest"),
+    parentPath: readString(rec, "parentPath") ?? readString(rec, "parent_path"),
+    targetPath: readString(rec, "targetPath") ?? readString(rec, "target_path"),
   };
 }
 

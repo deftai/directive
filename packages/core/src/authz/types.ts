@@ -6,7 +6,10 @@
  * Local-file forgery by a credential-compromised agent remains #983-class OOS.
  */
 
-/** Operation classes bound on a grant (Wave 1 structural binding + Wave 4 closed verbs). */
+/** Structural apply op for scope:decompose (#3239 / epic #3237 Q2). Always gated. */
+export const SCOPE_DECOMPOSE_APPLY_STRUCTURAL = "scope.decompose.apply.structural" as const;
+
+/** Operation classes bound on a grant (Wave 1 structural binding + Wave 4 closed verbs + #3239). */
 export const AUTHZ_OPERATIONS = [
   "edit",
   "push",
@@ -19,6 +22,8 @@ export const AUTHZ_OPERATIONS = [
   "release-cut",
   "release-publish",
   "release-rollback",
+  /** Human-origin exact-draft-digest gate for scope:decompose apply (#3239). */
+  SCOPE_DECOMPOSE_APPLY_STRUCTURAL,
 ] as const;
 
 export type AuthzOperation = (typeof AUTHZ_OPERATIONS)[number];
@@ -68,6 +73,21 @@ export interface GrantScope {
    * for product mutations; approving one cohort does not clear UAT.
    */
   readonly cohortId: string | null;
+  /**
+   * SHA-256 hex of exact bound artifact bytes (decompose draft for #3239).
+   * Unset/null = unbound (cannot satisfy structural decompose apply).
+   */
+  readonly contentDigest?: string | null;
+  /**
+   * Project-relative parent artifact path for structural decompose apply (#3239).
+   * Unset/null = unbound.
+   */
+  readonly parentPath?: string | null;
+  /**
+   * Project-relative draft/target path for structural decompose apply (#3239).
+   * Unset/null = unbound.
+   */
+  readonly targetPath?: string | null;
 }
 
 export interface GrantSemantics {

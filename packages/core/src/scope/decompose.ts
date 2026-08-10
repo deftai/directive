@@ -10,6 +10,8 @@
 import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { evaluateDecomposeStructuralApply, sha256FileHex } from "../authz/decompose-apply.js";
+import { markGrantUsed } from "../authz/store.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
@@ -1003,6 +1005,26 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   }
 
   if (checkOnly) return actions;
+
+  // #3239: structural apply requires human-origin grant bound to exact draft digest.
+  // --check is ungated (returned above). Fail closed before any child/parent writes.
+  const draftDigest = sha256FileHex(draftPath);
+  const authz = evaluateDecomposeStructuralApply({
+    projectRoot,
+    parentPath,
+    draftPath,
+    draftDigest,
+  });
+  if (!authz.allowed) {
+    throw new DecompositionError(authz.reason);
+  }
+  if (authz.humanApprovalRef !== null) {
+    // Best-effort single-use consumption; multi-use grants are no-ops.
+    markGrantUsed(projectRoot, authz.humanApprovalRef);
+  }
+  actions.push(
+    `AUTHZ grant=${authz.humanApprovalRef ?? "unknown"} digest=${draftDigest.slice(0, 12)}`,
+  );
 
   for (const { target } of childPaths) {
     mkdirSync(dirname(target), { recursive: true });
