@@ -293,6 +293,9 @@ describe("computeGateResult layered fallbacks", () => {
       if (joined.includes("nameWithOwner")) return "repo-view";
       if (joined.includes("headRefOid")) return "head-sha";
       if (joined.includes("/check-runs")) return "check-runs";
+      if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+        return "required-contexts";
+      }
       if (joined.includes("/pulls/") && !joined.includes("/comments")) return "pr-view-rest";
       if (joined.includes("/issues/") && joined.includes("/comments") && cmd.includes("--jq"))
         return "comments-jq";
@@ -318,7 +321,19 @@ describe("computeGateResult layered fallbacks", () => {
                   ],
                 }),
               }
-            : { returncode: 1, stderr: `unexpected ${label}` });
+            : label === "required-contexts"
+              ? { returncode: 1, stderr: "HTTP 404: Not Found" }
+              : label === "pr-view-rest"
+                ? {
+                    returncode: 0,
+                    stdout: JSON.stringify({
+                      head: { sha: HEAD },
+                      base: { ref: "master" },
+                      mergeable: true,
+                      mergeable_state: "clean",
+                    }),
+                  }
+                : { returncode: 1, stderr: `unexpected ${label}` });
       return {
         returncode: resp.returncode,
         stdout: resp.stdout ?? "",

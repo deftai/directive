@@ -59,6 +59,10 @@ function fakeRunGh(opts: FakeOpts): RunGhFn {
     if (joined.includes("/check-runs")) {
       return { returncode: 0, stdout: checks, stderr: "" };
     }
+    // No rulesets / classic protection configured (soft-empty inventory).
+    if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+      return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+    }
     if (joined.includes("/pulls/")) {
       return {
         returncode: 0,
@@ -240,9 +244,10 @@ describe("computeGateResult #2260 reconciliation", () => {
         fetchRequiredContextsFn: (_repo, branch) => {
           branchSeen = branch;
           return {
-            contexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+            contexts: [{ name: "TypeScript (build + lint + test)" }, { name: "terraform-plan" }],
             sources: ["rulesets"],
             error: "",
+            resolutionFailed: false,
           };
         },
       },
@@ -253,6 +258,27 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(ci.ready_state).toBe("ci_absent_required");
     expect(ci.required_contexts_source).toBe("rulesets");
     expect(ci.required_contexts_base_ref).toBe("master");
+  });
+
+  it("fails closed when required-context inventory resolution fails (#3234)", () => {
+    const result = computeGateResult(
+      3234,
+      "deftai/directive",
+      fakeRunGh({ commentBody: cleanGreptileBody(HEAD), mergeableState: "clean", mergeable: true }),
+      {
+        fetchRequiredContextsFn: () => ({
+          contexts: [],
+          sources: [],
+          error: "rules/branches parse: Unexpected token",
+          resolutionFailed: true,
+        }),
+      },
+    );
+    expect(result.failures.join(" ")).toContain("could not be resolved");
+    expect(result.failures.join(" ")).toContain("#3234");
+    const ci = (result.partialData as Record<string, unknown>).ci as Record<string, unknown>;
+    expect(ci.ready_state).toBe("blocked");
+    expect(ci.required_contexts_resolution_failed).toBe(true);
   });
 
   it("uses injectable fetchMergeabilityFn seam", () => {

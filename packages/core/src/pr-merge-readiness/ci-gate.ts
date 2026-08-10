@@ -1,4 +1,10 @@
-import type { CheckRunRecord } from "./gh.js";
+import {
+  type CheckRunRecord,
+  checkRunMatchesRequiredContext,
+  normalizeRequiredContexts,
+  type RequiredStatusContext,
+  requiredContextLabel,
+} from "./gh.js";
 import {
   type CapacityStallOptions,
   classifyCapacityStalledRequired,
@@ -94,11 +100,12 @@ export interface CiGateOptions {
   /** Injectable clock for capacity-stall tests. */
   readonly nowMs?: number;
   /**
-   * Required status-check context names from rulesets / branch protection (#3234).
-   * When set, a context with no matching exact-HEAD check-run name is fail-closed
-   * (path-filtered workflows never schedule). Empty/omitted preserves inventory-only.
+   * Required status-check contexts from rulesets / branch protection (#3234).
+   * Strings or `{ name, appId? }` specs. When set, a context with no matching
+   * exact-HEAD check-run (name + optional app id) is fail-closed (path-filtered
+   * workflows never schedule). Empty/omitted preserves inventory-only.
    */
-  readonly requiredContexts?: readonly string[];
+  readonly requiredContexts?: readonly (string | RequiredStatusContext)[];
 }
 
 export interface CiCheckConclusion {
@@ -210,11 +217,12 @@ export function evaluateCiGate(
   checkRuns: readonly CheckRunRecord[],
   options: CiGateOptions = {},
 ): CiGateResult {
-  const requiredContexts = [...(options.requiredContexts ?? [])];
+  const requiredSpecs = normalizeRequiredContexts(options.requiredContexts);
+  const requiredContextLabels = requiredSpecs.map(requiredContextLabel);
   if (options.skipCi === true) {
     return {
       failures: [],
-      summary: emptySummary("skipped", [], requiredContexts),
+      summary: emptySummary("skipped", [], requiredContextLabels),
     };
   }
 
@@ -271,16 +279,15 @@ export function evaluateCiGate(
     }
   }
 
-  // #3234: ruleset/BP required contexts with no exact-HEAD check-run (path-filtered).
-  // Exact name match against observed check-run names; operator-ignored contexts skip.
-  const observedNames = new Set(checkRuns.map((r) => r.name));
+  // #3234: ruleset/BP required contexts with no matching HEAD check-run
+  // (path-filtered). Match name + optional app id; operator-ignored contexts skip.
   const absentRequired: string[] = [];
-  for (const ctx of requiredContexts) {
-    if (ignoredSet.has(ctx)) {
+  for (const ctx of requiredSpecs) {
+    if (ignoredSet.has(ctx.name) || ignoredSet.has(requiredContextLabel(ctx))) {
       continue;
     }
-    if (!observedNames.has(ctx)) {
-      absentRequired.push(ctx);
+    if (!checkRuns.some((run) => checkRunMatchesRequiredContext(run, ctx))) {
+      absentRequired.push(requiredContextLabel(ctx));
     }
   }
 
@@ -308,7 +315,7 @@ export function evaluateCiGate(
         capacity_stalled_required: [],
         cancelled_required: [],
         absent_required: [],
-        required_contexts: requiredContexts,
+        required_contexts: requiredContextLabels,
         conclusions,
       },
     };
@@ -460,7 +467,7 @@ export function evaluateCiGate(
       capacity_stalled_required: capacityStalledRequired,
       cancelled_required: cancelledRequired,
       absent_required: absentRequired,
-      required_contexts: requiredContexts,
+      required_contexts: requiredContextLabels,
       conclusions,
     },
   };

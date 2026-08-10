@@ -143,6 +143,9 @@ describe("compute branches", () => {
       if (joined.includes("graphql")) return "graphql";
       if (joined.includes("headRefOid")) return "head-sha";
       if (joined.includes("/check-runs")) return "check-runs";
+      if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+        return "required-contexts";
+      }
       if (joined.includes("/pulls/") && !joined.includes("/comments")) return "pr-view-rest";
       if (joined.includes("/comments") && cmd.includes("--jq")) return "comments-jq";
       if (joined.includes("/comments")) return "comments-rest";
@@ -168,7 +171,9 @@ describe("compute branches", () => {
                   ],
                 }),
               }
-            : { returncode: 1, stderr: label });
+            : label === "required-contexts"
+              ? { returncode: 1, stderr: "HTTP 404: Not Found" }
+              : { returncode: 1, stderr: label });
       return { returncode: resp.returncode, stdout: resp.stdout ?? "", stderr: resp.stderr ?? "" };
     };
   }
@@ -184,7 +189,10 @@ describe("compute branches", () => {
         "head-sha": { returncode: 1, stderr: "timeout" },
         "pr-view-rest": {
           returncode: 0,
-          stdout: JSON.stringify({ head: { sha: "abc1234567890def1234567890abcdef12345678" } }),
+          stdout: JSON.stringify({
+            head: { sha: "abc1234567890def1234567890abcdef12345678" },
+            base: { ref: "master" },
+          }),
         },
         "comments-jq": { returncode: 1 },
         "comments-rest": {

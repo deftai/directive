@@ -19,12 +19,16 @@ export {
 export * from "./constants.js";
 export { evaluateGates, isMergeReady } from "./evaluate.js";
 export {
+  checkRunMatchesRequiredContext,
   contextsFromBranchProtection,
   contextsFromBranchRules,
   defaultRunGh,
   fetchPrBaseRef,
   fetchRequiredStatusContexts,
+  normalizeRequiredContexts,
+  type RequiredStatusContext,
   type RequiredStatusContextsResult,
+  requiredContextLabel,
 } from "./gh.js";
 export {
   evaluateInlineReviewThreads,

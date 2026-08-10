@@ -429,4 +429,22 @@ describe("evaluateCiGate absent required contexts (#3234)", () => {
     expect(buildCiSummaryLine(result.summary)).toContain("2 absent-required");
     expect(buildCiSummaryLine(result.summary)).toContain("ci_absent_required");
   });
+
+  it("requires app-bound context to match check-run app id (#3234)", () => {
+    const result = evaluateCiGate([run({ name: "modern-ci", appId: 999 })], {
+      nowMs: NOW,
+      requiredContexts: [{ name: "modern-ci", appId: 1 }],
+    });
+    expect(result.summary.ready_state).toBe("ci_absent_required");
+    expect(result.summary.absent_required).toEqual(["modern-ci (app:1)"]);
+  });
+
+  it("accepts app-bound context when app id matches (#3234)", () => {
+    const result = evaluateCiGate([run({ name: "modern-ci", appId: 1, conclusion: "success" })], {
+      nowMs: NOW,
+      requiredContexts: [{ name: "modern-ci", appId: 1 }],
+    });
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.summary.absent_required).toEqual([]);
+  });
 });

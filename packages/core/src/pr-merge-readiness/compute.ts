@@ -18,6 +18,9 @@ import {
   fetchPrHeadSha,
   fetchPrHeadShaRest,
   fetchRequiredStatusContexts,
+  normalizeRequiredContexts,
+  type RequiredStatusContext,
+  requiredContextLabel,
   resolveRepo,
 } from "./gh.js";
 import {
@@ -78,7 +81,12 @@ export type FetchRequiredContextsFn = (
   repo: string,
   branch: string,
   runGh: RunGhFn,
-) => { contexts: readonly string[]; sources: readonly string[]; error: string };
+) => {
+  contexts: readonly RequiredStatusContext[];
+  sources: readonly string[];
+  error: string;
+  resolutionFailed?: boolean;
+};
 
 export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   /** Override the GitHub-mergeability read (defaults to the REST reader). */
@@ -122,7 +130,7 @@ interface ReviewGateOutcome {
 function evaluateCiAndSlizard(
   checkRuns: readonly CheckRunRecord[],
   options: ComputeGateOptions,
-  requiredContexts: readonly string[] = [],
+  requiredContexts: readonly RequiredStatusContext[] = [],
   requiredMeta: Record<string, unknown> = {},
 ): { failures: string[]; ci: Record<string, unknown>; slizard: Record<string, unknown> } {
   const slizardResult = evaluateSlizardGate(checkRuns, options);
@@ -154,20 +162,26 @@ function evaluateCiAndSlizard(
 
 /**
  * Resolve ruleset/BP required contexts for the PR base branch (#3234).
- * Soft-degrades to empty when base ref or REST surfaces are unavailable.
+ * Soft-degrades to empty only when sources are cleanly absent (404 / none).
+ * Base-ref failures and untrusted inventory (parse/API hard errors) fail closed.
  */
 function resolveRequiredContextsForPr(
   prNumber: number,
   repo: string,
   runGh: RunGhFn,
   options: ComputeGateOptions,
-): { contexts: readonly string[]; meta: Record<string, unknown> } {
+): {
+  contexts: readonly RequiredStatusContext[];
+  meta: Record<string, unknown>;
+  hardError: string | null;
+} {
   if (options.requiredContexts !== undefined) {
     return {
-      contexts: options.requiredContexts,
+      contexts: normalizeRequiredContexts(options.requiredContexts),
       meta: {
         required_contexts_source: "injected",
       },
+      hardError: null,
     };
   }
 
@@ -179,18 +193,28 @@ function resolveRequiredContextsForPr(
         required_contexts_source: "unresolved",
         required_contexts_error: base.error || "base.ref unresolved",
       },
+      hardError:
+        "Could not resolve PR base.ref for required status-check contexts; " +
+        `fail closed (#3234). Root cause: ${base.error || "base.ref unresolved"}`,
     };
   }
 
   const fetchFn = options.fetchRequiredContextsFn ?? fetchRequiredStatusContexts;
   const resolved = fetchFn(repo, base.baseRef, runGh);
+  const contexts = normalizeRequiredContexts(resolved.contexts);
+  const resolutionFailed = resolved.resolutionFailed === true;
   return {
-    contexts: resolved.contexts,
+    contexts,
     meta: {
       required_contexts_source: resolved.sources.length > 0 ? resolved.sources.join("+") : "none",
       required_contexts_base_ref: base.baseRef,
       ...(resolved.error ? { required_contexts_error: resolved.error } : {}),
+      ...(resolutionFailed ? { required_contexts_resolution_failed: true } : {}),
     },
+    hardError: resolutionFailed
+      ? "Required status-check context inventory could not be resolved; " +
+        `fail closed (#3234). Root cause: ${resolved.error || "unknown inventory error"}`
+      : null,
   };
 }
 
@@ -221,12 +245,36 @@ function applyCiGateForHead(
     };
   }
 
-  const { contexts: requiredContexts, meta: requiredMeta } = resolveRequiredContextsForPr(
-    prNumber,
-    repo,
-    runGh,
-    options,
-  );
+  const {
+    contexts: requiredContexts,
+    meta: requiredMeta,
+    hardError,
+  } = resolveRequiredContextsForPr(prNumber, repo, runGh, options);
+
+  if (hardError !== null) {
+    return {
+      failures: [hardError],
+      ci: {
+        ready_state: "blocked",
+        error: hardError,
+        checked_count: 0,
+        ignored_checks: [...(options.ignoreCheckNames ?? [])],
+        failed_required: [],
+        pending_required: [],
+        capacity_stalled_required: [],
+        cancelled_required: [],
+        absent_required: [],
+        required_contexts: requiredContexts.map(requiredContextLabel),
+        conclusions: [],
+        ...requiredMeta,
+      },
+      slizard: {
+        ready_state: "skipped",
+        present: false,
+        summary_line: "SLizard review: skipped (required-context inventory unresolved)",
+      },
+    };
+  }
 
   // When CI is skipped we do not fetch check-runs, so the SLizard gate cannot
   // evaluate either; run both gates against an empty set to honor the overrides.
@@ -253,7 +301,7 @@ function applyCiGateForHead(
         capacity_stalled_required: [],
         cancelled_required: [],
         absent_required: [],
-        required_contexts: [...requiredContexts],
+        required_contexts: requiredContexts.map(requiredContextLabel),
         conclusions: [],
         ...requiredMeta,
       },

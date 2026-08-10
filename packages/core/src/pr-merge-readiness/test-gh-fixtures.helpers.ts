@@ -73,6 +73,9 @@ export function fakeRunGhForMonitor(options: FakeRunGhOptions = {}): RunGhFn {
         stderr: "",
       };
     }
+    if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+      return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+    }
     if (joined.includes("/pulls/")) {
       return {
         returncode: 0,
@@ -82,6 +85,7 @@ export function fakeRunGhForMonitor(options: FakeRunGhOptions = {}): RunGhFn {
           mergeable: true,
           mergeable_state: "clean",
           head: { sha: headSha },
+          base: { ref: "master" },
         }),
         stderr: "",
       };

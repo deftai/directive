@@ -151,6 +151,21 @@ function fakeRunGh(slizardSummary: string, slizardConclusion = "failure"): RunGh
         stderr: "",
       };
     }
+    if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+      return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+    }
+    if (joined.includes("/pulls/")) {
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          head: { sha: HEAD },
+          base: { ref: "master" },
+          mergeable: true,
+          mergeable_state: "clean",
+        }),
+        stderr: "",
+      };
+    }
     return { returncode: 1, stdout: "", stderr: "unexpected" };
   });
 }

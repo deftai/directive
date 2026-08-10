@@ -231,6 +231,16 @@ describe("coverage boost branches", () => {
           stderr: "",
         };
       }
+      if (j.includes("/rules/branches/") || j.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
+      if (j.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ head: { sha: HEAD }, base: { ref: "master" } }),
+          stderr: "",
+        };
+      }
       return { returncode: 1, stdout: "", stderr: "" };
     });
     expect(run(["5", "--repo", "deftai/directive"], { runGh })).toBe(0);
@@ -282,6 +292,16 @@ describe("coverage boost branches", () => {
               },
             ],
           }),
+          stderr: "",
+        };
+      }
+      if (j.includes("/rules/branches/") || j.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
+      if (j.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ head: { sha: HEAD }, base: { ref: "master" } }),
           stderr: "",
         };
       }
@@ -392,10 +412,13 @@ describe("coverage boost branches", () => {
       if (j.includes("/comments") && j.includes("--jq")) {
         return { returncode: 1, stdout: "", stderr: "primary comments failed" };
       }
+      if (j.includes("/rules/branches/") || j.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
       if (j.includes("/pulls/") && !j.includes("check-runs")) {
         return {
           returncode: 0,
-          stdout: JSON.stringify({ head: { sha: HEAD } }),
+          stdout: JSON.stringify({ head: { sha: HEAD }, base: { ref: "master" } }),
           stderr: "",
         };
       }
