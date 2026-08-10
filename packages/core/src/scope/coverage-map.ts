@@ -563,6 +563,20 @@ export function validateCoverageMap(opts: {
         parts = new Set();
         byParent.set(entry.parent_requirement_id, parts);
       }
+      if (parts.has(part)) {
+        const detail =
+          `duplicate split claim for '${entry.parent_requirement_id}' ` +
+          `split_group='${group}' part='${part}' (each part must be unique)`;
+        errors.push(`${loc}: ${detail}`);
+        entryReports.push({
+          parent_requirement_id: entry.parent_requirement_id,
+          disposition: entry.disposition,
+          ok: false,
+          detail,
+          negative_invariant: isNeg,
+        });
+        continue;
+      }
       parts.add(part);
     }
 

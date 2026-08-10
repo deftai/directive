@@ -497,6 +497,37 @@ describe("coverage-map (#3238)", () => {
     });
     expect(duplicateSame.ok).toBe(false);
     expect(duplicateSame.errors.some((e) => e.includes("duplicate coverage entries"))).toBe(true);
+
+    const duplicateSplitPart = validateCoverageMap({
+      parent: { plan: { items: [{ id: "r1" }] } },
+      draft: {
+        coverage_map: [
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g",
+            part: "1",
+            child_story_ids: ["s1"],
+          },
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g",
+            part: "1",
+            child_story_ids: ["s2"],
+          },
+          {
+            parent_requirement_id: "r1",
+            disposition: "split",
+            split_group: "g",
+            part: "2",
+          },
+        ],
+      },
+      storyIds: ["s1", "s2"],
+    });
+    expect(duplicateSplitPart.ok).toBe(false);
+    expect(duplicateSplitPart.errors.some((e) => e.includes("duplicate split claim"))).toBe(true);
   });
 
   it("covers remaining extract/parse edge branches", () => {
