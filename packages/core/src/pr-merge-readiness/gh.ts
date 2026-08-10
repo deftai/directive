@@ -599,22 +599,31 @@ export function fetchRequiredStatusContexts(
   const encoded = encodeURIComponent(branch);
 
   const rulesRc = runGh(["gh", "api", `repos/${repo}/rules/branches/${encoded}`]);
-  if (rulesRc.returncode === 0 && rulesRc.stdout.trim()) {
-    try {
-      const payload = JSON.parse(rulesRc.stdout) as unknown;
-      const fromRules = contextsFromBranchRules(payload);
-      if (fromRules.length > 0) {
-        for (const c of fromRules) {
-          found.set(contextDedupeKey(c), c);
-        }
-        sources.push("rulesets");
-      }
-    } catch (exc: unknown) {
-      const message = exc instanceof Error ? exc.message : String(exc);
-      notes.push(`rules/branches parse: ${message}`);
+  if (rulesRc.returncode === 0) {
+    if (!rulesRc.stdout.trim()) {
+      // Exit-zero empty body is not a trusted empty inventory (#3234 conf residual).
+      notes.push("rules/branches: empty body");
       hardFailure = true;
+    } else {
+      try {
+        const payload = JSON.parse(rulesRc.stdout) as unknown;
+        const fromRules = contextsFromBranchRules(payload);
+        // Successful parse (including `[]`) is trusted; only non-empty contributes.
+        if (fromRules.length > 0) {
+          for (const c of fromRules) {
+            found.set(contextDedupeKey(c), c);
+          }
+          sources.push("rulesets");
+        } else {
+          sources.push("rulesets");
+        }
+      } catch (exc: unknown) {
+        const message = exc instanceof Error ? exc.message : String(exc);
+        notes.push(`rules/branches parse: ${message}`);
+        hardFailure = true;
+      }
     }
-  } else if (rulesRc.returncode !== 0) {
+  } else {
     // 404 / no rulesets is common; keep diagnostic only.
     const err = rulesRc.stderr.trim();
     if (err.length > 0 && !/404|Not Found/i.test(err)) {
@@ -624,22 +633,31 @@ export function fetchRequiredStatusContexts(
   }
 
   const protRc = runGh(["gh", "api", `repos/${repo}/branches/${encoded}/protection`]);
-  if (protRc.returncode === 0 && protRc.stdout.trim()) {
-    try {
-      const payload = JSON.parse(protRc.stdout) as unknown;
-      const fromProt = contextsFromBranchProtection(payload);
-      if (fromProt.length > 0) {
-        for (const c of fromProt) {
-          found.set(contextDedupeKey(c), c);
-        }
-        sources.push("branch_protection");
-      }
-    } catch (exc: unknown) {
-      const message = exc instanceof Error ? exc.message : String(exc);
-      notes.push(`branches/protection parse: ${message}`);
+  if (protRc.returncode === 0) {
+    if (!protRc.stdout.trim()) {
+      notes.push("branches/protection: empty body");
       hardFailure = true;
+    } else {
+      try {
+        const payload = JSON.parse(protRc.stdout) as unknown;
+        const fromProt = contextsFromBranchProtection(payload);
+        if (fromProt.length > 0) {
+          for (const c of fromProt) {
+            found.set(contextDedupeKey(c), c);
+          }
+          sources.push("branch_protection");
+        } else {
+          // Successful protection payload with no required checks still counts
+          // as a trusted source (inventory empty intentionally).
+          sources.push("branch_protection");
+        }
+      } catch (exc: unknown) {
+        const message = exc instanceof Error ? exc.message : String(exc);
+        notes.push(`branches/protection parse: ${message}`);
+        hardFailure = true;
+      }
     }
-  } else if (protRc.returncode !== 0) {
+  } else {
     const err = protRc.stderr.trim();
     if (err.length > 0 && !/404|Not Found|Branch not protected/i.test(err)) {
       notes.push(`branches/protection: ${err}`);

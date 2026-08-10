@@ -113,6 +113,9 @@ describe("swarm verify-review-clean", () => {
           stderr: "",
         };
       }
+      if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
       if (joined.includes("/pulls/")) {
         return {
           returncode: 0,
@@ -122,6 +125,7 @@ describe("swarm verify-review-clean", () => {
             mergeable: true,
             mergeable_state: "clean",
             head: { sha },
+            base: { ref: "master" },
           }),
           stderr: "",
         };

@@ -232,6 +232,22 @@ describe("required status contexts (#3234)", () => {
     expect(result.error).toContain("parse");
   });
 
+  it("marks resolutionFailed on exit-zero empty body", () => {
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/rules/branches/")) {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "Branch not protected" };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected: ${joined}` };
+    };
+    const result = fetchRequiredStatusContexts("o/r", "master", runGh);
+    expect(result.resolutionFailed).toBe(true);
+    expect(result.error).toContain("empty body");
+  });
+
   it("marks resolutionFailed when one source succeeds and the other hard-fails", () => {
     const runGh: RunGhFn = (cmd) => {
       const joined = cmd.join(" ");
