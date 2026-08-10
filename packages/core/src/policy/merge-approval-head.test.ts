@@ -63,6 +63,27 @@ describe("findLatestPlanApprovalForPr", () => {
     expect(latest?.head_sha).toBe(HEAD_B);
   });
 
+  it("does not fall back to unscoped same-number approval when repo is set", () => {
+    const foreign: BehavioralEventRecord = {
+      id: "foreign",
+      event: "plan:approved",
+      category: "behavioral",
+      detected_at: "2026-08-01T00:00:00.000Z",
+      payload: {
+        plan_ref: "https://github.com/other/repo/pull/525",
+        repository: "other/repo",
+        approver: "x",
+        pr_number: 525,
+        head_sha: HEAD_A,
+      },
+    };
+    const latest = findLatestPlanApprovalForPr(525, {
+      records: [foreign],
+      repo: "3Ci-Consulting/runbound",
+    });
+    expect(latest).toBeNull();
+  });
+
   it("returns null when no approval for PR", () => {
     expect(findLatestPlanApprovalForPr(1, { records: [planApproved(2, HEAD_A)] })).toBeNull();
   });
@@ -156,7 +177,7 @@ describe("enforceMergeApprovalHead", () => {
     const disableCalls: Array<[number, string | null]> = [];
     const r = enforceMergeApprovalHead({
       prNumber: 525,
-      repo: "3Ci-Consulting/runbound",
+      // omit repo so fixture plan_ref (example/repo) still matches by PR number
       currentHeadSha: HEAD_C,
       records: [planApproved(525, HEAD_A)],
       requireHumanMerge: true,
@@ -169,7 +190,7 @@ describe("enforceMergeApprovalHead", () => {
     expect(r.allowed).toBe(false);
     expect(r.status).toBe("stale");
     expect(r.auto_merge_disabled).toBe(true);
-    expect(disableCalls).toEqual([[525, "3Ci-Consulting/runbound"]]);
+    expect(disableCalls).toEqual([[525, null]]);
     expect(r.recovery).toContain("auto-merge was disabled");
     expect(r.recovery).toContain(HEAD_C);
   });
@@ -177,7 +198,6 @@ describe("enforceMergeApprovalHead", () => {
   it("reports recovery when auto-merge disable fails", () => {
     const r = enforceMergeApprovalHead({
       prNumber: 1,
-      repo: "o/r",
       currentHeadSha: HEAD_B,
       records: [planApproved(1, HEAD_A)],
       requireHumanMerge: true,

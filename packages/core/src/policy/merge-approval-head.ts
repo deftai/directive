@@ -192,20 +192,19 @@ export function findLatestPlanApprovalForPr(
       ? options.repo.toLowerCase()
       : null;
   let latest: PlanApprovedRecord | null = null;
-  let latestScoped: PlanApprovedRecord | null = null;
   for (const record of stream) {
     if (record.event !== PLAN_APPROVED_EVENT) continue;
     const approved = toPlanApproved(record);
     if (approved.pr_number !== prNumber) continue;
-    latest = approved;
     if (wantRepo !== null) {
+      // When repo is known, never fall back to an unscoped same-number event
+      // (cross-repo shadow / Greptile conf floor on #3235).
       const recRepo = repositoryFromPayload(record.payload);
-      if (recRepo === wantRepo) {
-        latestScoped = approved;
-      }
+      if (recRepo !== wantRepo) continue;
     }
+    latest = approved;
   }
-  return latestScoped ?? latest;
+  return latest;
 }
 
 /** Recovery instructions when approval is stale or unbound. */
@@ -551,7 +550,24 @@ export function enforceMergeApprovalHead(
   };
 }
 
+/** Strip trailing path separators without regex (CodeQL-safe). */
+function trimTrailingSeparators(path: string): string {
+  let end = path.length;
+  while (end > 0) {
+    const ch = path.charCodeAt(end - 1);
+    if (ch === 47 || ch === 92) {
+      // / or \
+      end -= 1;
+      continue;
+    }
+    break;
+  }
+  return path.slice(0, end);
+}
+
 /** Default event log path relative to project root. */
 export function defaultMergeApprovalEventLog(projectRoot: string): string {
-  return `${projectRoot.replace(/[\\/]+$/, "")}/${DEFAULT_EVENT_LOG.replace(/\\/g, "/")}`;
+  const root = trimTrailingSeparators(projectRoot);
+  const log = DEFAULT_EVENT_LOG.split("\\").join("/");
+  return `${root}/${log}`;
 }
