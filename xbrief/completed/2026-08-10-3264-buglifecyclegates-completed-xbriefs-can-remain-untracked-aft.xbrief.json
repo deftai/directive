@@ -19,59 +19,31 @@
     },
     "items": [
       {
-        "effort": "M",
         "title": "Detector fail-closed",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a closed scoped GitHub issue with a known lifecycle xBRIEF origin and no tracked completed or cancelled artifact on the delivery tip, when the detector runs, it exits non-zero and names finalize-cohort or a lifecycle PR as remediation."
-        },
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3268",
-          "recorded_at": "2026-08-10T23:28:26Z",
-          "recorded_by": "grok-build-leaf-3264"
         }
       },
       {
-        "effort": "M",
         "title": "Green after land",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given the same issue after a tracked completed artifact exists on the delivery tip, when the detector runs, it does not fail for that issue."
-        },
-        "evidence": {
-          "kind": "review",
-          "pointer": "https://github.com/deftai/directive/pull/3268 (Greptile CLEAN conf 5/5)",
-          "recorded_at": "2026-08-10T23:28:26Z",
-          "recorded_by": "grok-build-leaf-3264"
         }
       },
       {
-        "effort": "M",
         "title": "Carve-outs",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a closed issue with no scope xBRIEF origin, when the detector runs, it does not false-positive as missing completed land."
-        },
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3268",
-          "recorded_at": "2026-08-10T23:28:26Z",
-          "recorded_by": "grok-build-leaf-3264"
         }
       },
       {
-        "effort": "M",
         "title": "Tests and CHANGELOG",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given the PR, when vitest and CHANGELOG are checked, tests cover fail and pass fixtures and [Unreleased] cites #3264."
-        },
-        "evidence": {
-          "kind": "test",
-          "pointer": "pnpm exec vitest run packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts packages/cli/src/verify-completed-tracked.test.ts",
-          "recorded_at": "2026-08-10T23:28:26Z",
-          "recorded_by": "grok-build-leaf-3264"
         }
       }
     ],
