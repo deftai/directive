@@ -162,6 +162,20 @@ describe("completed lifecycle consistency (#3242)", () => {
     expect(collectOpenPlanItems("nope")).toEqual([]);
   });
 
+  it("evaluate fails closed when plan.items is a non-array value (#3242)", () => {
+    const result = evaluateCompletedPlanConsistency(
+      {
+        title: "bad-items",
+        status: "completed",
+        items: "not-a-list" as unknown as [],
+      },
+      { relPath: "xbrief/completed/bad-items.xbrief.json" },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("plan.items is non-array");
+    expect(result.findings.some((f) => f.kind === "unreadable")).toBe(true);
+  });
+
   it("scan fails closed on malformed and plan-less files under completed/", () => {
     const root = mkdtempSync(join(tmpdir(), "cc-malformed-"));
     const dir = join(root, "xbrief", "completed");

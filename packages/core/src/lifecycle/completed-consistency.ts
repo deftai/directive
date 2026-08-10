@@ -136,19 +136,34 @@ export function evaluateCompletedPlanConsistency(
     });
   }
 
-  const openItems = collectOpenPlanItems(plan.items);
-  if (openItems.length > 0) {
-    const itemLines = openItems.map((h) => `${h.path} "${h.title}" status=${h.status}`).join("; ");
+  // Fail closed when plan.items is present but not a checklist array (cannot verify terminal).
+  if (plan.items !== undefined && plan.items !== null && !Array.isArray(plan.items)) {
     findings.push({
       relPath,
       planStatus,
       folder: "completed",
-      kind: "open_items",
+      kind: "unreadable",
       detail:
-        `${relPath}: folder=completed plan.status=${planStatus} has ` +
-        `${openItems.length} non-terminal plan.items: ${itemLines} (#3242)`,
-      openItems,
+        `${relPath}: folder=completed plan.status=${planStatus} ` +
+        `plan.items is non-array (cannot verify terminal checklist) (#3242)`,
     });
+  } else {
+    const openItems = collectOpenPlanItems(plan.items);
+    if (openItems.length > 0) {
+      const itemLines = openItems
+        .map((h) => `${h.path} "${h.title}" status=${h.status}`)
+        .join("; ");
+      findings.push({
+        relPath,
+        planStatus,
+        folder: "completed",
+        kind: "open_items",
+        detail:
+          `${relPath}: folder=completed plan.status=${planStatus} has ` +
+          `${openItems.length} non-terminal plan.items: ${itemLines} (#3242)`,
+        openItems,
+      });
+    }
   }
 
   if (findings.length === 0) {
