@@ -50,6 +50,32 @@ describe("headShaMatches", () => {
     expect(headShaMatches(HEAD_A.slice(0, 7), HEAD_A)).toBe(false);
     expect(headShaMatches(HEAD_A, HEAD_B)).toBe(false);
   });
+
+  it("rejects overlong hex approval SHA vs truncated current head", () => {
+    const overlong = `${HEAD_A}deadbeef`;
+    // Overlong is not a valid approved binding; evaluation treats as missing_binding.
+    const r = evaluateMergeApprovalHead({
+      prNumber: 1,
+      currentHeadSha: HEAD_A,
+      records: [
+        {
+          id: "overlong",
+          event: "plan:approved",
+          category: "behavioral",
+          detected_at: "2026-08-10T00:00:00.000Z",
+          payload: {
+            plan_ref: "https://github.com/example/repo/pull/1",
+            approver: "op",
+            pr_number: 1,
+            head_sha: overlong,
+          },
+        },
+      ],
+      requireHumanMerge: true,
+    });
+    expect(r.allowed).toBe(false);
+    expect(r.status).toBe("missing_binding");
+  });
 });
 
 describe("findLatestPlanApprovalForPr", () => {

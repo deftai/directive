@@ -79,10 +79,10 @@ function isHexSha(value: string): boolean {
 function normalizeSha(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim().toLowerCase();
-  if (trimmed.length < FULL_HEAD_SHA_LEN) return null;
+  // Exact full-object-id only — reject short and overlong tokens (#3235 Greptile).
+  if (trimmed.length !== FULL_HEAD_SHA_LEN) return null;
   if (!isHexSha(trimmed)) return null;
-  // Bind to first 40 hex chars only (reject ambiguous longer tokens).
-  return trimmed.slice(0, FULL_HEAD_SHA_LEN);
+  return trimmed;
 }
 
 /**
