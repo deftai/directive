@@ -336,8 +336,8 @@ export interface ClaimSingleUseGrantOptions {
   readonly revalidate?: (grant: HumanOriginGrant) => { ok: true } | { ok: false; reason: string };
   /**
    * Protected work under the exclusive claim (#3239 residual).
-   * Order: lock → revalidate → apply → mark single-use usedAt → release lock.
-   * If apply throws, usedAt is not set (grant reusable) and the lock is released.
+   * Order: lock → revalidate → mark single-use usedAt → apply → release lock.
+   * If apply throws, usedAt is rolled back (grant reusable) and the lock is released.
    * Concurrent claimants fail closed while the lock is held.
    */
   readonly apply?: (grant: HumanOriginGrant) => void;
@@ -347,13 +347,15 @@ export interface ClaimSingleUseGrantOptions {
  * Claim a single-use grant for structural apply (#3239).
  *
  * Concurrent-safe + failure-safe order when `apply` is provided:
- *   exclusive lock → re-load → revalidate → apply (writes) → mark usedAt → release lock.
+ *   exclusive lock → re-load → revalidate → mark single-use usedAt → apply (writes)
+ *   → on apply throw: rollback usedAt + release lock (grant reusable for retry).
  * Multi-use grants run apply (if any) without mutating usedAt.
- * Without `apply`, single-use is marked under the lock immediately (claim-only / test path).
+ * Without `apply`, single-use is marked under the lock (claim-only / test path).
  *
- * Crash recovery: lock files hold pid+token. Dead-PID (or corrupt) locks are reclaimable
- * via exclusive recreate (only one winner). Live PIDs are never reclaimed — no mtime-only
- * steal of a live critical section. PID-reuse residual: operator deletes the lock file.
+ * Crash after mark + before rollback: grant stays spent (no double-apply); operator remints.
+ * Dead-PID / corrupt locks reclaim via **rename-away** of the old lock path (only one
+ * renamer wins) then exclusive create — never blind rmSync of a live winner's lock.
+ * Live PIDs are never reclaimed. PID-reuse residual: operator deletes the lock file.
  */
 export function claimSingleUseGrantForApply(
   projectRoot: string,
@@ -363,6 +365,7 @@ export function claimSingleUseGrantForApply(
   // Back-compat: second arg was `now: Date` in the first #3239 revision.
   const opts: ClaimSingleUseGrantOptions = options instanceof Date ? { now: options } : options;
   const now = opts.now ?? new Date();
+  const usedAtIso = utcIso(now);
   const safe = grantId.replace(/[^a-zA-Z0-9._-]/g, "_");
   const root = resolve(projectRoot);
   const lockRel = join(".deft", "authz", "locks", `${safe}.lock`);
@@ -370,7 +373,7 @@ export function claimSingleUseGrantForApply(
   const lockToken = randomBytes(8).toString("hex");
   const lockBody = `${JSON.stringify({
     pid: process.pid,
-    startedAt: utcIso(now),
+    startedAt: usedAtIso,
     token: lockToken,
   } satisfies GrantClaimLockRecord)}\n`;
 
@@ -392,16 +395,28 @@ export function claimSingleUseGrantForApply(
     }
   };
 
+  /** True when the on-disk lock still carries our token (not stolen mid-section). */
+  const stillOwnLock = (): boolean => {
+    const rec = readGrantClaimLockRecord(lockPath);
+    return rec !== null && rec.token === lockToken && rec.pid === process.pid;
+  };
+
   let locked = tryCreateLock();
   if (!locked) {
-    // Dead-PID / corrupt lock reclaim: delete only when reclaimable, then one exclusive retry.
-    // Two reclaimers may both delete; only one create-exclusive succeeds (#3239).
+    // Dead-PID / corrupt reclaim: rename the old lock aside (atomic contention) then create.
+    // Blind rmSync is forbidden — a second reclaimer must not delete a winner's new lock.
     const existing = readGrantClaimLockRecord(lockPath);
     if (isGrantClaimLockReclaimable(existing)) {
+      const side = `${lockPath}.reclaim.${randomBytes(6).toString("hex")}`;
       try {
-        rmSync(lockPath, { force: true });
+        renameSync(lockPath, side);
+        try {
+          rmSync(side, { force: true });
+        } catch {
+          /* best-effort side cleanup */
+        }
       } catch {
-        /* best-effort */
+        // Lost rename race or lock already gone — fall through to exclusive create.
       }
       locked = tryCreateLock();
     }
@@ -416,6 +431,7 @@ export function claimSingleUseGrantForApply(
     };
   }
 
+  let markedUsedAt: string | null = null;
   try {
     const grant = loadGrant(projectRoot, grantId);
     if (grant === null) {
@@ -444,23 +460,51 @@ export function claimSingleUseGrantForApply(
           `${grant.semantics.usedAt}.`,
       };
     }
-    // Transactional path: run protected writes before spending the grant.
-    if (opts.apply !== undefined) {
-      opts.apply(grant);
-    }
+    // Spend under lock before protected writes so a post-write mark failure cannot
+    // leave completed mutations behind an unspent single-use grant (#3239 Greptile).
+    // Apply throw rolls usedAt back while the lock is still held (retry-safe).
     const used: HumanOriginGrant = {
       ...grant,
       semantics: {
         ...grant.semantics,
-        usedAt: utcIso(now),
+        usedAt: usedAtIso,
       },
     };
     saveGrant(projectRoot, used);
+    markedUsedAt = usedAtIso;
+
+    if (opts.apply !== undefined) {
+      try {
+        opts.apply(used);
+      } catch (applyErr) {
+        // Rollback spend so a failed multi-file apply does not strand the approval.
+        const current = loadGrant(projectRoot, grantId);
+        if (current?.semantics.singleUse && current.semantics.usedAt === markedUsedAt) {
+          const restored: HumanOriginGrant = {
+            ...current,
+            semantics: { ...current.semantics, usedAt: null },
+          };
+          saveGrant(projectRoot, restored);
+          markedUsedAt = null;
+        }
+        throw applyErr;
+      }
+    }
+
+    if (!stillOwnLock()) {
+      return {
+        ok: false,
+        reason:
+          `Directive denied scope:decompose apply: grant ${grantId} lock ownership lost mid-claim. ` +
+          "Human action required: inspect partial outputs and remint if needed.",
+      };
+    }
     return { ok: true, grant: used };
   } finally {
-    // Only the owner removes its lock; force so a partial crash mid-claim still cleans up
-    // when the process is still alive to run finally. Dead-process leftovers use reclaim.
-    rmSync(lockPath, { force: true });
+    // Only remove the lock when we still own it — never delete a successor's claim.
+    if (stillOwnLock()) {
+      rmSync(lockPath, { force: true });
+    }
   }
 }
 

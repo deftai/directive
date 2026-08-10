@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **scope:decompose single-use claim is failure-safe and crash-recoverable (#3239 residual).** Structural apply now holds an exclusive grant claim lock through revalidate → multi-file child/parent writes → then marks `usedAt` (not before writes). Apply throw leaves the grant unspent for retry. Dead-PID lock files reclaim via exclusive recreate; live holder PIDs are never reclaimed (no mtime-only double-apply). Refs #3239, #3237.
+- **scope:decompose single-use claim is failure-safe and crash-recoverable (#3239 residual).** Structural apply holds an exclusive grant claim lock through revalidate → mark `usedAt` → multi-file child/parent writes; apply throw rolls `usedAt` back under the lock (retry-safe) and best-effort removes this attempt's child files. Dead-PID/corrupt locks reclaim via rename-away (not blind `rmSync`) then exclusive create; live holder PIDs are never reclaimed. Refs #3239, #3237.
 
 - **scope:decompose --check rejects size=large with parallel_safe=true (#3252).** Decomposition check now matches swarm readiness: large work cannot be marked concurrent, so approved drafts stay allocatable. Closes #3252. Refs #3237.
 

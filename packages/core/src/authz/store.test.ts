@@ -404,7 +404,7 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
   });
 
-  it("apply success marks usedAt only after apply runs", () => {
+  it("apply success keeps usedAt marked before and after apply", () => {
     const root = tempRoot();
     const g = mintHumanOriginGrant({
       projectRoot: root,
@@ -416,7 +416,8 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     const claim = claimSingleUseGrantForApply(root, g.id, {
       apply: () => {
         order.push("apply");
-        expect(loadGrant(root, g.id)?.semantics.usedAt).toBeNull();
+        // Mark-before-write: spend is already durable before protected work.
+        expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
       },
     });
     order.push("after");
@@ -425,7 +426,7 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
   });
 
-  it("apply throw leaves single-use grant unspent (failure-safe)", () => {
+  it("apply throw rolls back usedAt so grant is reusable (failure-safe)", () => {
     const root = tempRoot();
     const g = mintHumanOriginGrant({
       projectRoot: root,
@@ -436,6 +437,8 @@ describe("claimSingleUseGrantForApply (#3239)", () => {
     expect(() =>
       claimSingleUseGrantForApply(root, g.id, {
         apply: () => {
+          // Observe spend mid-apply, then fail — claim must roll back.
+          expect(loadGrant(root, g.id)?.semantics.usedAt).toBeTruthy();
           throw new Error("partial write failed");
         },
       }),

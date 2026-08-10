@@ -7,7 +7,7 @@
  * that draft, writes the child story vBRIEFs, and updates the parent scope references.
  */
 
-import { accessSync, constants, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
@@ -1077,18 +1077,34 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       .map((r) => r as JsonObj),
   );
 
-  // Exclusive claim: revalidate under lock → write all children + parent → then
-  // mark single-use usedAt (#3239 residual). Concurrent claimants fail closed on
-  // the lock; apply throw leaves the grant unspent for retry. Dead-PID locks reclaim.
+  // Exclusive claim: revalidate under lock → mark single-use usedAt → write all
+  // children + parent; apply throw rolls usedAt back for retry (#3239 residual).
+  // Partial child files created in this attempt are best-effort removed so retry
+  // is not blocked by "child already exists".
   const writeProtected = (): void => {
-    for (const { target } of childPaths) {
-      mkdirSync(dirname(target), { recursive: true });
+    const created: string[] = [];
+    try {
+      for (const { target } of childPaths) {
+        mkdirSync(dirname(target), { recursive: true });
+      }
+      for (let i = 0; i < childPaths.length; i += 1) {
+        // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
+        const target = childPaths[i]!.target;
+        // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
+        writeJson(projectRoot, target, childDocs[i]!);
+        created.push(target);
+      }
+      writeJson(projectRoot, parentPath, parent);
+    } catch (err) {
+      for (const path of created.reverse()) {
+        try {
+          rmSync(path, { force: true });
+        } catch {
+          /* best-effort rollback of this attempt's children */
+        }
+      }
+      throw err;
     }
-    for (let i = 0; i < childPaths.length; i += 1) {
-      // biome-ignore lint/style/noNonNullAssertion: loop bound ensures these exist
-      writeJson(projectRoot, childPaths[i]!.target, childDocs[i]!);
-    }
-    writeJson(projectRoot, parentPath, parent);
   };
 
   if (authz.humanApprovalRef !== null) {
