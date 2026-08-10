@@ -16,7 +16,6 @@ import {
   hasArtifactSuffix,
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
-  resolveLifecycleRoot,
 } from "../layout/resolve.js";
 import { FOLDER_ALLOWED_STATUSES } from "../vbrief-validate/constants.js";
 
@@ -183,38 +182,55 @@ export function formatCompletedConsistencyFailure(
   );
 }
 
+type RootProbe =
+  | { kind: "dir"; absRoot: string; dirName: string }
+  | { kind: "unreadable"; dirName: string; detail: string };
+
 /**
  * Lifecycle inventory roots that may host completed/ artifacts.
  * Scans both canonical xbrief/ and read-accepted legacy vbrief/ when present
  * (mixed roots must not green-skip retained legacy completed corpus).
+ * Existing roots that cannot be inspected produce unreadable findings (fail closed).
  */
-function listConsistencyLifecycleRoots(
-  projectRoot: string,
-): readonly { absRoot: string; dirName: string }[] {
+function listConsistencyLifecycleRoots(projectRoot: string): readonly RootProbe[] {
   const root = resolve(projectRoot);
-  const ordered: { absRoot: string; dirName: string }[] = [];
+  const ordered: RootProbe[] = [];
   const seen = new Set<string>();
 
   const consider = (absRoot: string, dirName: string): void => {
-    try {
-      if (!existsSync(absRoot) || !statSync(absRoot).isDirectory()) return;
-    } catch {
-      return;
-    }
     const key = absRoot.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    ordered.push({ absRoot, dirName });
+
+    let exists: boolean;
+    try {
+      exists = existsSync(absRoot);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      ordered.push({
+        kind: "unreadable",
+        dirName,
+        detail: `lifecycle root existsSync failed: ${msg}`,
+      });
+      return;
+    }
+    if (!exists) return;
+
+    try {
+      if (!statSync(absRoot).isDirectory()) return;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      ordered.push({
+        kind: "unreadable",
+        dirName,
+        detail: `lifecycle root unreadable (stat failed): ${msg}`,
+      });
+      return;
+    }
+    ordered.push({ kind: "dir", absRoot, dirName });
   };
 
   // Always probe both layout dirs so mixed roots cannot green-skip legacy completed/.
-  // resolveLifecycleRoot is not required for inventory; retained for layout side effects.
-  try {
-    resolveLifecycleRoot(root);
-  } catch {
-    // ignore — still scan whatever dirs exist
-  }
-
   consider(join(root, MIGRATED_ARTIFACT_DIR), MIGRATED_ARTIFACT_DIR);
   consider(join(root, LEGACY_ARTIFACT_DIR), LEGACY_ARTIFACT_DIR);
   return ordered;
@@ -233,17 +249,63 @@ function unreadableFinding(relPath: string, detail: string): CompletedConsistenc
 function scanCompletedDir(
   completedDir: string,
   pathPrefix: string,
-): { findings: CompletedConsistencyFinding[]; scanned: number } {
-  if (!existsSync(completedDir)) {
-    return { findings: [], scanned: 0 };
+): { findings: CompletedConsistencyFinding[]; scanned: number; completedPresent: boolean } {
+  let completedPresent = false;
+  try {
+    if (!existsSync(completedDir)) {
+      return { findings: [], scanned: 0, completedPresent: false };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      findings: [
+        unreadableFinding(
+          `${pathPrefix}/completed`,
+          `completed/ existsSync failed (cannot inventory): ${msg}`,
+        ),
+      ],
+      scanned: 0,
+      completedPresent: true,
+    };
   }
-  /* v8 ignore next 3 -- rare: completed path exists but is not a directory */
-  if (!statSync(completedDir).isDirectory()) {
-    return { findings: [], scanned: 0 };
+
+  try {
+    if (!statSync(completedDir).isDirectory()) {
+      return { findings: [], scanned: 0, completedPresent: false };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      findings: [
+        unreadableFinding(
+          `${pathPrefix}/completed`,
+          `completed/ unreadable (stat failed): ${msg}`,
+        ),
+      ],
+      scanned: 0,
+      completedPresent: true,
+    };
   }
-  const names = readdirSync(completedDir)
-    .filter((n) => hasArtifactSuffix(n))
-    .sort();
+  completedPresent = true;
+
+  let names: string[];
+  try {
+    names = readdirSync(completedDir)
+      .filter((n) => hasArtifactSuffix(n))
+      .sort();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      findings: [
+        unreadableFinding(
+          `${pathPrefix}/completed`,
+          `completed/ readdir failed (cannot inventory): ${msg}`,
+        ),
+      ],
+      scanned: 0,
+      completedPresent: true,
+    };
+  }
 
   const findings: CompletedConsistencyFinding[] = [];
   for (const name of names) {
@@ -273,13 +335,14 @@ function scanCompletedDir(
     const result = evaluateCompletedPlanConsistency(plan, { relPath });
     findings.push(...result.findings);
   }
-  return { findings, scanned: names.length };
+  return { findings, scanned: names.length, completedPresent };
 }
 
 /**
  * Scan `xbrief/completed/` and/or legacy `vbrief/completed/` for Q4 mismatches.
  * Offline / filesystem only. Missing completed/ is green (nothing to check).
- * Malformed completed artifacts fail closed (no silent skip). Mixed roots scan both.
+ * Malformed completed artifacts and unreadable roots fail closed (no silent skip).
+ * Mixed roots scan both.
  */
 export function scanCompletedLifecycleConsistency(projectRoot: string): CompletedConsistencyResult {
   const roots = listConsistencyLifecycleRoots(projectRoot);
@@ -295,13 +358,17 @@ export function scanCompletedLifecycleConsistency(projectRoot: string): Complete
   let scanned = 0;
   let anyCompletedPresent = false;
 
-  for (const { absRoot, dirName } of roots) {
-    const completedDir = join(absRoot, "completed");
-    if (existsSync(completedDir)) {
+  for (const probe of roots) {
+    if (probe.kind === "unreadable") {
+      findings.push(unreadableFinding(probe.dirName, probe.detail));
+      continue;
+    }
+    const completedDir = join(probe.absRoot, "completed");
+    // Always prefix with layout dir so mixed roots and exact paths are unambiguous.
+    const part = scanCompletedDir(completedDir, probe.dirName);
+    if (part.completedPresent) {
       anyCompletedPresent = true;
     }
-    // Always prefix with layout dir so mixed roots and exact paths are unambiguous.
-    const part = scanCompletedDir(completedDir, dirName);
     findings.push(...part.findings);
     scanned += part.scanned;
   }

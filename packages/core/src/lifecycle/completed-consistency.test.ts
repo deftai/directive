@@ -245,6 +245,7 @@ describe("completed lifecycle consistency (#3242)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+
   it("default relPath and failed status without requireStatus are green", () => {
     const result = evaluateCompletedPlanConsistency({
       status: "failed",
