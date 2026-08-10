@@ -1,0 +1,113 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic #3237 child story #3243",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3243-doctor-envelope-major-mismatch",
+    "title": "fix(doctor): fail closed on xBRIEF envelope major version mismatch",
+    "status": "completed",
+    "narratives": {
+      "Description": "Doctor can leave operators without a hard fail when project xBRIEF envelopes declare an older major than the installed framework. Epic #3237 Q5 Option 2 limits the first deposit ship to envelope major mismatch only.",
+      "UserStory": "As an operator on a hybrid-migrated consumer, I want doctor to fail closed when project envelope major is behind the framework major, so that I am not left with a green session while migrate/version drift remains.",
+      "ImplementationPlan": "Strengthen the xbrief-envelope-version (or equivalent) check in packages/core/src/doctor so declared envelope major behind framework major fails closed with declared vs expected versions and migrate/upgrade remediation. Align with packages/core/src/xbrief-migrate for #3236 rewrite path messaging. Do not implement missing-file inventory or full compatibility manifest. Tests under packages/core/src/doctor. Run vitest and task check. Cite #3243 in CHANGELOG.md.",
+      "Origin": "https://github.com/deftai/directive/issues/3243",
+      "Overview": "fix(doctor): fail closed on xBRIEF envelope major version mismatch",
+      "Labels": "enhancement, process",
+      "NonGoals": "Out of issue scope; see epic #3237 current-shape.",
+      "AcceptanceJustification": "Acceptance items from locked epic contracts."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given lifecycle artifacts declaring xBRIEFInfo.version major 0.6 while framework expects 0.8, when doctor runs, the envelope-major check fails closed with both versions named."
+        },
+        "title": "Major mismatch fail closed",
+        "status": "completed"
+      },
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given all scanned envelopes at the framework major, when doctor runs, this check does not fail for major mismatch."
+        },
+        "title": "Aligned passes",
+        "status": "completed"
+      },
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md [Unreleased], when the PR lands, it cites #3243."
+        },
+        "title": "Tests+CHANGELOG",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "epic-3237",
+      "swarm"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3243",
+        "title": "Issue #3243"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3237",
+        "title": "Epic #3237"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/branches.test.ts",
+          "packages/core/src/engine-version.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor packages/core/src/vbrief-validate",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3243",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "epic3237-3243-envelope-major",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Epic #3237 locked decisions + issue body.",
+        "acceptance_criteria_justification": "Items map to locked contracts / issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3255,
+        "prBase": "master",
+        "mergeCommit": "7c72b74873f6324f970d2569e7fe58497c457df0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7c72b74873f6324f970d2569e7fe58497c457df0",
+        "verifiedAt": "2026-08-10T19:43:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-10T19:43:39Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

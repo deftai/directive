@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug cohort story for GitHub issue #3235 (operator-approved swarm 2026-08-10).",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3235-invalidate-merge-approval-on-head-change",
+    "title": "fix(review): invalidate merge approval when PR HEAD changes under auto-merge",
+    "status": "completed",
+    "narratives": {
+      "Description": "A human merge approval bound to an earlier PR head can remain operational after the PR head changes when GitHub auto-merge was already enabled. Under requireHumanMerge, approval should authorize one reviewed immutable PR head; retaining auto-merge across head changes silently widens authorization.",
+      "UserStory": "As an operator under requireHumanMerge, I want head-bound merge approval invalidated when PR HEAD changes, so that auto-merge cannot land a different head than the one approved.",
+      "ImplementationPlan": "Bind Phase 5/human merge approval to exact head SHA in Directive-owned state (prefer finish-loop / pr-wait-mergeable / policy require-human-merge path). On HEAD change: detect approved_head_sha != current_head_sha, fail closed with recovery instructions, and either disable pending auto-merge or require a new approval event for the current head before merge. Add tests covering auto-merge remaining enabled across subsequent pushes. Cite #3235 in CHANGELOG. Do not change consumer repository rulesets. Avoid editing packages/core/src/pr-merge-readiness/ci-gate.ts (owned by #3234).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3235",
+      "Overview": "fix(review): invalidate merge approval when PR HEAD changes under auto-merge",
+      "Labels": "bug, triaged, agent-safety",
+      "NonGoals": "Epic #3237 children; docs-only mitigation; changing consumer repo rulesets.",
+      "AcceptanceJustification": "Three acceptance items cover fix, fail-closed gate, and regression tests for this single-issue bug."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a recorded approval for head A, when PR HEAD becomes B, merge gates treat approval as stale and fail closed."
+        },
+        "title": "SHA-bound approval contract"
+      },
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given stale approval with auto-merge enabled, when the gate runs, it disables auto-merge or blocks merge until a new approval bound to current HEAD exists, with recovery text."
+        },
+        "title": "Auto-merge invalidation or re-approval path"
+      },
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given fixtures for multi-push auto-merge retention, when vitest runs finish-loop/pr-wait-mergeable/policy suites, cases pass; CHANGELOG cites #3235."
+        },
+        "title": "Tests and CHANGELOG"
+      }
+    ],
+    "tags": [
+      "bug",
+      "triaged",
+      "agent-safety",
+      "bug-cohort-3233-3236"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3235",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3235"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/finish-loop",
+          "packages/core/src/pr-wait-mergeable",
+          "packages/core/src/policy/require-human-merge.ts",
+          "packages/core/src/policy",
+          "packages/core/src/scm"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/finish-loop packages/core/src/pr-wait-mergeable packages/core/src/policy",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation for #3235",
+          "unit tests",
+          "CHANGELOG #3235"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-3235-merge-approval",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC + readiness evaluation 2026-08-10; file_scope is expected touch set for #3235.",
+        "acceptance_criteria_justification": "Three items: product fix, fail-closed gate behavior, tests+CHANGELOG."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-08-10T16:30:00Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

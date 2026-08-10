@@ -1,0 +1,95 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug cohort story for GitHub issue #3234 (operator-approved swarm 2026-08-10).",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3234-merge-ready-absent-ruleset-contexts",
+    "title": "fix(pr): merge-ready fails closed on absent required ruleset check contexts",
+    "status": "completed",
+    "narratives": {
+      "Description": "pr:merge-ready can report merge_ready true when repository rulesets require status-check contexts that have no check runs on the PR HEAD (path-filtered workflows never schedule). evaluateCiGate only inventories observed check runs, so absent required contexts are invisible while GitHub blocks merge.",
+      "UserStory": "As a merge-ready gate consumer, I want absent ruleset-required check contexts treated as blockers, so that merge-ready never greens when GitHub would still block the merge.",
+      "ImplementationPlan": "In packages/core/src/pr-merge-readiness, resolve applicable required status-check contexts from branch protection and/or rulesets (REST), compare against exact-HEAD check runs, and fail closed when a required context has no matching check run. Preserve existing handling for success, skipped, pending, failed, and capacity-stalled observed checks. Add unit tests with fixture required contexts and empty/partial check-run lists. Cite #3234 in CHANGELOG. Do not skip CI or lower conf floors.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3234",
+      "Overview": "fix(pr): merge-ready fails closed on absent required ruleset check contexts",
+      "Labels": "bug, triaged, agent-safety",
+      "NonGoals": "Epic #3237 children; docs-only mitigation; changing consumer repo rulesets.",
+      "AcceptanceJustification": "Three acceptance items cover fix, fail-closed gate, and regression tests for this single-issue bug."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a PR with ruleset-required contexts, when merge-ready evaluates, the required context list includes those names even if no check run exists."
+        },
+        "title": "Resolve required contexts from rulesets/protection"
+      },
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a required context with no check run on HEAD, when pr:merge-ready runs, merge_ready is false and the absent context is named in output/JSON."
+        },
+        "title": "Absent required context is fail-closed"
+      },
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given unit fixtures covering observed-green + absent-required, when vitest runs pr-merge-readiness, cases pass; CHANGELOG cites #3234."
+        },
+        "title": "Tests and CHANGELOG"
+      }
+    ],
+    "tags": [
+      "bug",
+      "triaged",
+      "agent-safety",
+      "bug-cohort-3233-3236"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3234",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3234"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "packages/core/src/pr-merge-readiness/compute.ts",
+          "packages/core/src/pr-merge-readiness/gh.ts",
+          "packages/core/src/pr-merge-readiness",
+          "packages/core/src/pr-merge-readiness/compute.test.ts",
+          "packages/core/src/pr-merge-readiness/ci-gate"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-merge-readiness",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation for #3234",
+          "unit tests",
+          "CHANGELOG #3234"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-3234-merge-ready-ci",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC + readiness evaluation 2026-08-10; file_scope is expected touch set for #3234.",
+        "acceptance_criteria_justification": "Three items: product fix, fail-closed gate behavior, tests+CHANGELOG."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-08-10T16:30:00Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

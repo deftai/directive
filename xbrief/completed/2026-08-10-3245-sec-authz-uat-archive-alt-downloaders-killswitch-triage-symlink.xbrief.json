@@ -1,0 +1,99 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Swarm story for #3245",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3245-sec-authz-uat-archive-alt-dl-killswitch-triage-symlink",
+    "title": "sec(authz): close UAT residual archive/alt-downloaders + kill-switch plant; harden triage-cache symlink follow",
+    "status": "completed",
+    "narratives": {
+      "Description": "AppSec @ 333602b9: under active UAT, archive extractors and alternate downloaders still classify empty and fail-open enough to plant .deft/authz grants or a regular-file .deft-directive-disable kill-switch. Separately, triage-cache JSONL writers follow in-tree leaf symlinks and can corrupt tracked files.",
+      "UserStory": "As a Directive operator running UAT with Shell hooks, I want residual archive and alternate-downloader writes into authz or kill-switch paths to fail closed, so that agents cannot bypass Wave-1 UAT or disable Directive via those bins.",
+      "ImplementationPlan": "Extend packages/core/src/authz/classify.ts write-bin/dest parsing for archive extractors and alt downloaders (tar/unzip/rclone/axel/fetch/socat/lftp/7z/bsdtar etc.) targeting .deft/authz or kill-switch basenames; under UAT fail closed on unclassifiable write-shaped Shell. Harden packages/core/src/triage triage-cache append (candidates-log) with assertWriteTargetSafe/containedWrite so leaf symlinks are not followed into tracked files. Port AppSec PoCs to failing Vitest then green; keep #3206/#3213 regressions green. CHANGELOG Unreleased security note without exploit cookbook. Stay in authz + triage writer paths.",
+      "Origin": "https://github.com/deftai/directive/issues/3245",
+      "Overview": "sec(authz): close UAT residual archive/alt-downloaders + kill-switch plant; harden triage-cache symlink follow",
+      "Labels": "bug",
+      "NonGoals": "Out of scope bullets from issue body.",
+      "AcceptanceJustification": "Four acceptance items cover product fix, regressions, and CHANGELOG."
+    },
+    "items": [
+      {
+        "narrative": {
+          "Acceptance": "Given active UAT and shell commands that extract or download into .deft/authz/grants, when classify+decideHook run, the op is settings/write-shaped fail-closed (not empty allow)."
+        },
+        "effort": "M",
+        "status": "completed",
+        "title": "Classify archive/alt-downloader plants into authz"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given active UAT and alt-downloader/archive targeting .deft-directive-disable as a regular file, when classified, decision is fail-closed settings (not allow)."
+        },
+        "effort": "M",
+        "status": "completed",
+        "title": "Classify regular-file kill-switch plants"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given candidates.jsonl is a leaf symlink to an in-tree tracked file, when triage append runs, write is refused or contained so the target tracked file is not corrupted."
+        },
+        "effort": "M",
+        "status": "completed",
+        "title": "Triage-cache append refuses leaf symlink follow"
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given Vitest fixtures for residual PoCs and #3206/#3213 regressions, when suites run, all pass; CHANGELOG cites #3245 without exploit detail."
+        },
+        "effort": "M",
+        "status": "completed",
+        "title": "Tests + CHANGELOG"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm-cohort-3245-3246"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3245",
+        "title": "Issue #3245"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz",
+          "packages/core/src/triage/actions/candidates-log.ts",
+          "packages/core/src/triage"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz packages/core/src/triage",
+          "task check"
+        ],
+        "expected_outputs": [
+          "fix for #3245",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "sec-3245-authz-uat-residuals",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC; file_scope expected touch set.",
+        "acceptance_criteria_justification": "Four items from issue triage readiness."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-08-10T16:30:00Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

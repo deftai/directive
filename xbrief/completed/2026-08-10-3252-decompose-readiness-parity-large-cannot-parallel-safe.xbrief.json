@@ -1,0 +1,113 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic #3237 child story #3252",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3252-decompose-readiness-parity-large-parallel-safe",
+    "title": "fix(scope,swarm): decompose --check rejects size=large with parallel_safe=true (readiness parity)",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:decompose --check currently accepts size=large with parallel_safe=true while swarm:readiness rejects that combination. A draft can validate and receive digest approval, then fail allocation. This story enforces the same invariant in decompose --check before approval or apply.",
+      "UserStory": "As a swarm operator, I want decompose --check to reject large+parallel_safe drafts with the same rule as swarm:readiness, so that approved decompositions are always allocatable.",
+      "ImplementationPlan": "Edit packages/core/src/scope/decompose.ts validation used by --check (and apply re-validation) to reject plan.metadata.swarm size=large with parallel_safe=true using the same rule as packages/core/src/swarm/readiness.ts. Add fixtures in packages/core/src/scope/decompose.test.ts and packages/core/src/swarm/readiness-branches.test.ts. Run pnpm exec vitest on those packages and task check. Cite #3252 in CHANGELOG.md [Unreleased].",
+      "Origin": "https://github.com/deftai/directive/issues/3252",
+      "Overview": "fix(scope,swarm): decompose --check rejects size=large with parallel_safe=true (readiness parity)",
+      "Labels": "enhancement, process",
+      "NonGoals": "Out of issue scope; see epic #3237 current-shape.",
+      "AcceptanceJustification": "Acceptance items from locked epic contracts."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a decompose draft story with swarm.size=large and parallel_safe=true, when scope:decompose --check runs, the command exits non-zero and names the large/parallel_safe invariant."
+        },
+        "title": "Shared invariant in decompose check",
+        "status": "completed"
+      },
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given the same draft fields, when swarm:readiness evaluates the story, the failure class matches the decompose check message family."
+        },
+        "title": "Tests",
+        "status": "completed"
+      },
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md [Unreleased], when the PR lands, it cites #3252 under Fixed."
+        },
+        "title": "CHANGELOG",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "epic-3237",
+      "swarm"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3252",
+        "title": "Issue #3252"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3237",
+        "title": "Epic #3237"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/decompose.ts",
+          "packages/core/src/scope/decompose.test.ts",
+          "packages/core/src/swarm/readiness.ts",
+          "packages/core/src/swarm/readiness-branches.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope packages/core/src/swarm",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3252",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "epic3237-3252-readiness-parity",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Epic #3237 locked decisions + issue body.",
+        "acceptance_criteria_justification": "Items map to locked contracts / issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3257,
+        "prBase": "master",
+        "mergeCommit": "95fa39cb50c76da5bb0e4ea40472668331bc33c2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "95fa39cb50c76da5bb0e4ea40472668331bc33c2",
+        "verifiedAt": "2026-08-10T17:34:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-10T17:34:45Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

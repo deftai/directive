@@ -1,0 +1,133 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic #3237 child story #3242",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3242-lifecycle-folder-status-items-reconcile",
+    "title": "feat(scope,doctor): fail closed when completed lifecycle disagrees with plan.status or open plan.items",
+    "status": "completed",
+    "narratives": {
+      "Description": "Lifecycle can report a scope completed while plan.items remain pending or plan.status disagrees with the completed folder. Epic #3237 Q4 locked a simple rule: completed folder, matching plan.status, and terminal plan.items only.",
+      "UserStory": "As an operator, I want doctor and scope:complete to fail closed when a completed scope still has open plan items or mismatched plan.status, so that lifecycle cannot report done with an open checklist.",
+      "ImplementationPlan": "Add a verifier used by scope:complete and doctor (packages/core/src/scope and packages/core/src/lifecycle or doctor checks) that fails closed when xbrief/completed/* has plan.status other than completed, or any plan.items entry is non-terminal. Print exact artifact paths and statuses. Do not couple history/changes. Tests under packages/core/src/scope and lifecycle. Run vitest and task check. Cite #3242 in CHANGELOG.md.",
+      "Origin": "https://github.com/deftai/directive/issues/3242",
+      "Overview": "feat(scope,doctor): fail closed when completed lifecycle disagrees with plan.status or open plan.items",
+      "Labels": "enhancement, process",
+      "NonGoals": "Out of issue scope; see epic #3237 current-shape.",
+      "AcceptanceJustification": "Acceptance items from locked epic contracts."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a file in xbrief/completed with plan.status=running, when doctor or the complete verifier runs, it fails closed naming the path and both statuses."
+        },
+        "title": "Folder vs status",
+        "status": "completed",
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-consistency.test.ts:folder vs status fail-closed",
+          "recorded_at": "2026-08-10T20:52:43.723Z",
+          "recorded_by": "agent:parent-post-merge-3242"
+        }
+      },
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given plan.items with a pending entry, when scope:complete runs, it exits non-zero."
+        },
+        "title": "Open items block complete",
+        "status": "completed",
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-consistency.test.ts:open plan.items block complete",
+          "recorded_at": "2026-08-10T20:52:43.723Z",
+          "recorded_by": "agent:parent-post-merge-3242"
+        }
+      },
+      {
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given completed folder, plan.status=completed, and all items terminal, when the verifier runs, this check is green."
+        },
+        "title": "Tests+CHANGELOG",
+        "status": "completed",
+        "evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3260",
+          "recorded_at": "2026-08-10T20:52:43.723Z",
+          "recorded_by": "agent:parent-post-merge-3242"
+        }
+      }
+    ],
+    "tags": [
+      "epic-3237",
+      "swarm"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3242",
+        "title": "Issue #3242"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3237",
+        "title": "Epic #3237"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/lifecycle/lifecycle-hygiene.ts",
+          "packages/core/src/lifecycle/lifecycle-hygiene.test.ts",
+          "packages/core/src/lifecycle/stats.ts",
+          "packages/core/src/lifecycle"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope packages/core/src/lifecycle packages/core/src/doctor",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3242",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [
+          "3240-scope-complete-acceptance-evidence"
+        ],
+        "conflict_group": "epic3237-3242-lifecycle-simple",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Epic #3237 locked decisions + issue body.",
+        "acceptance_criteria_justification": "Items map to locked contracts / issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3260,
+        "prBase": "master",
+        "mergeCommit": "70371b31cb01f2f56bf44be71f459c54cc78d832",
+        "deliveryBranch": "master",
+        "deliveryCommit": "70371b31cb01f2f56bf44be71f459c54cc78d832",
+        "verifiedAt": "2026-08-10T20:52:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-10T20:52:45Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}

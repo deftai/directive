@@ -1,0 +1,94 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bug cohort story for GitHub issue #3236 (operator-approved swarm 2026-08-10).",
+    "updated": "2026-08-10T21:36:29.525Z"
+  },
+  "plan": {
+    "id": "3236-migrate-xbrief-hybrid-06-inplace",
+    "title": "fix(migrate): rewrite hybrid xBRIEFInfo@0.6 envelopes on already-xbrief trees",
+    "status": "completed",
+    "narratives": {
+      "Description": "migrate:xbrief no-ops on xbrief-only trees that still have hybrid xBRIEFInfo.version 0.6, while doctor reports behind-major and points operators at migrate:xbrief. transformArtifactV06ToV08 already accepts hybrid input (#2974); runXbriefMigration must apply it in place when no vbrief/ tree remains.",
+      "UserStory": "As a Directive operator, I want migrate:xbrief to rewrite residual hybrid xBRIEFInfo@0.6 envelopes in place, so that doctor xbrief-envelope-version clears without out-of-band transforms.",
+      "ImplementationPlan": "In packages/core/src/xbrief-migrate/migrate-project.ts, when the tree is already on xbrief/ with no vbrief/ content, scan xbrief/**/*.xbrief.json for hybrid xBRIEFInfo@0.6 and apply transformArtifactV06ToV08Transactional in place (idempotent). Keep the existing noop message only when there are truly no residual 0.6 envelopes (schemas-only residual may still point at directive update). Add unit tests in migrate-project.test.ts and transforms fixtures covering hybrid-only trees. Cite #3236 in CHANGELOG [Unreleased]. Do not change transform semantics beyond orchestration.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3236",
+      "Overview": "fix(migrate): rewrite hybrid xBRIEFInfo@0.6 envelopes on already-xbrief trees",
+      "Labels": "bug, triaged, agent-safety",
+      "NonGoals": "Epic #3237 children; docs-only mitigation; changing consumer repo rulesets.",
+      "AcceptanceJustification": "Three acceptance items cover fix, fail-closed gate, and regression tests for this single-issue bug."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given xbrief/**/*.xbrief.json with xBRIEFInfo.version 0.6 and no vbrief/, when migrate:xbrief runs, envelopes become xBRIEFInfo@0.8 and exit 0 with a rewrite report."
+        },
+        "title": "In-place hybrid 0.6 rewrite on xbrief-only trees"
+      },
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given already-0.8 hybrid trees, when migrate:xbrief re-runs, it no-ops without corrupting files; doctor xbrief-envelope-version is clear after a successful rewrite."
+        },
+        "title": "Idempotent second pass and doctor path"
+      },
+      {
+        "effort": "M",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given unit tests for hybrid-only trees, when vitest runs on xbrief-migrate, new cases pass; CHANGELOG cites #3236."
+        },
+        "title": "Tests and CHANGELOG"
+      }
+    ],
+    "tags": [
+      "bug",
+      "triaged",
+      "agent-safety",
+      "bug-cohort-3233-3236"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3236",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3236"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "packages/core/src/xbrief-migrate/transforms.ts",
+          "packages/core/src/xbrief-migrate/detect.ts",
+          "packages/core/src/xbrief-migrate"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/xbrief-migrate",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation for #3236",
+          "unit tests",
+          "CHANGELOG #3236"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-3236-migrate",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC + readiness evaluation 2026-08-10; file_scope is expected touch set for #3236.",
+        "acceptance_criteria_justification": "Three items: product fix, fail-closed gate behavior, tests+CHANGELOG."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-08-10T16:30:00Z"
+    },
+    "updated": "2026-08-10T21:36:29.525Z"
+  }
+}
