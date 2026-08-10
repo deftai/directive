@@ -518,13 +518,13 @@ describe("xbrief envelope version check (#2971)", () => {
     return { findings, text: lines.join("") };
   }
 
-  it("skips greenfield when PROJECT-DEFINITION is absent", () => {
+  it("skips greenfield when no xBRIEF envelopes are present", () => {
     const root = makeRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });
     const { findings, text } = runEnvelope(root);
     expect(findings[0]?.severity).toBe("skip");
     expect(findings[0]?.status).toBe("skip");
-    expect(text).toContain("no PROJECT-DEFINITION");
+    expect(text.toLowerCase()).toMatch(/no project xbrief envelopes|greenfield/);
   });
 
   it("passes for single xBRIEFInfo@0.8", () => {
@@ -535,7 +535,8 @@ describe("xbrief envelope version check (#2971)", () => {
     });
     const { findings, text } = runEnvelope(root);
     expect(findings[0]?.status).toBe("current");
-    expect(text).toContain("xBRIEFInfo@0.8");
+    expect(text).toContain("0.8");
+    expect(text).toContain("framework 0.8");
   });
 
   it("fails closed on 0.6 under xbrief layout with migrate:xbrief next action", () => {
@@ -551,6 +552,8 @@ describe("xbrief envelope version check (#2971)", () => {
     expect(findings[0]?.suggestion).toBe("deft migrate:xbrief");
     expect(text).toContain("migrate:xbrief");
     expect(text).toContain("behind-major");
+    expect(text).toContain("declared 0.6");
+    expect(text).toContain("framework 0.8");
   });
 
   it("fails closed on dual vBRIEFInfo@0.6 + half xBRIEFInfo state", () => {
@@ -564,6 +567,29 @@ describe("xbrief envelope version check (#2971)", () => {
     expect(findings[0]?.severity).toBe("error");
     expect(findings[0]?.status).toBe("behind-major");
     expect(findings[0]?.next_command).toBe("deft migrate:xbrief");
+  });
+
+  it("fails closed when a lifecycle story is 0.6 even if PROJECT-DEFINITION is 0.8 (#3243)", () => {
+    const root = makeRoot();
+    writeProjectDefinition(root, {
+      xBRIEFInfo: { version: "0.8", description: "current definition" },
+      plan: { title: "t", status: "running", narratives: {}, items: [] },
+    });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.6", description: "hybrid residual" },
+        plan: { title: "stale story", status: "running", narratives: {}, items: [] },
+      }),
+      "utf8",
+    );
+    const { findings, text } = runEnvelope(root);
+    expect(findings[0]?.severity).toBe("error");
+    expect(findings[0]?.status).toBe("behind-major");
+    expect(text).toContain("declared 0.6");
+    expect(text).toContain("framework 0.8");
+    expect(text).toContain("story.xbrief.json");
   });
 
   it("cmdDoctor exits non-zero when project JSON is behind-major", () => {

@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, sep } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
@@ -15,9 +15,12 @@ import {
   checkSkillPathsResolve,
   checkStaleXbriefSchemaDeposit,
   checkTypescript7SideBySide,
+  checkXbriefEnvelopeMajorVersion,
   deriveExitCode,
   runChecks,
   runChecksImpl,
+  scanXbriefEnvelopeVersions,
+  XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
 
 describe("checks", () => {
@@ -577,6 +580,88 @@ describe("checkStaleXbriefSchemaDeposit (#2368)", () => {
       const line = renderXbriefMigrationLine(root);
       expect(line).toContain("xBrief migration: none");
       expect(line).not.toContain("migrate:xbrief");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
+  function writeEnvelope(
+    root: string,
+    relPath: string,
+    version: string,
+    infoKey: "xBRIEFInfo" | "vBRIEFInfo" = "xBRIEFInfo",
+  ): void {
+    const full = join(root, ...relPath.split("/"));
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(
+      full,
+      JSON.stringify({
+        [infoKey]: { version, description: "fixture" },
+        plan: { title: "t", status: "running", narratives: {}, items: [] },
+      }),
+      "utf8",
+    );
+  }
+
+  it("skips greenfield with empty xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("skip");
+      expect(result.data?.reason).toBe("no-envelopes");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes when all scanned envelopes are at framework major 0.8", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/PROJECT-DEFINITION.xbrief.json", "0.8");
+      writeEnvelope(root, "xbrief/active/story.xbrief.json", "0.8");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("pass");
+      expect(result.detail).toContain("framework 0.8");
+      expect(deriveExitCode([result], [])).toBe(0);
+      const scan = scanXbriefEnvelopeVersions(root);
+      expect(scan.worstDistance).toBe("current");
+      expect(scan.behindMajor).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when lifecycle artifact declares 0.6 vs framework 0.8", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      writeEnvelope(root, "xbrief/PROJECT-DEFINITION.xbrief.json", "0.8");
+      writeEnvelope(root, "xbrief/active/stale.xbrief.json", "0.6");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("behind-major");
+      expect(result.detail).toContain("declared 0.6");
+      expect(result.detail).toContain("framework 0.8");
+      expect(result.detail).toContain("stale.xbrief.json");
+      expect(result.detail).toContain(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(result.data?.next_command).toBe(XBRIEF_ENVELOPE_MIGRATE_COMMAND);
+      expect(deriveExitCode([result], [])).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not fail closed for behind-minor (major-only check)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-env-maj-"));
+    try {
+      // 0.7 vs framework 0.8 is behind-minor (minorGap 1), not behind-major.
+      writeEnvelope(root, "xbrief/active/almost.xbrief.json", "0.7");
+      const result = checkXbriefEnvelopeMajorVersion(root);
+      expect(result.status).toBe("pass");
+      expect(result.data?.worst_distance).toBe("behind-minor");
+      expect(deriveExitCode([result], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
