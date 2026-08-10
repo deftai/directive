@@ -73,8 +73,21 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
       platform: "linux",
       env: { PATH: "/opt/homebrew/bin:/Users/x/.nvm/bin:/usr/bin" },
       exists,
+      isExecutable: () => true,
     });
     expect(paths).toEqual(["/opt/homebrew/bin/deft", "/Users/x/.nvm/bin/deft"]);
+  });
+
+  it("skips non-executable / directory PATH entries before a real binary", () => {
+    const exists = (p: string) => p === "/trap/deft" || p === "/real/bin/deft";
+    const isExecutable = (p: string) => p === "/real/bin/deft";
+    const paths = whichAllFromPath("deft", {
+      platform: "linux",
+      env: { PATH: "/trap:/real/bin" },
+      exists,
+      isExecutable,
+    });
+    expect(paths).toEqual(["/real/bin/deft"]);
   });
 
   it("uses PATHEXT on win32 and one hit per directory", () => {
@@ -88,14 +101,20 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
         PATHEXT: ".COM;.EXE;.BAT;.CMD",
       },
       exists,
+      isExecutable: () => true,
     });
     expect(paths).toEqual(["C:\\Homebrew\\bin\\deft.CMD", "C:\\nvm\\bin\\deft.CMD"]);
   });
 
   it("returns empty when PATH is empty", () => {
-    expect(whichAllFromPath("deft", { env: {}, platform: "linux", exists: () => true })).toEqual(
-      [],
-    );
+    expect(
+      whichAllFromPath("deft", {
+        env: {},
+        platform: "linux",
+        exists: () => true,
+        isExecutable: () => true,
+      }),
+    ).toEqual([]);
   });
 
   it("defaultWhichAll is PATH-scan only (never shells out to which/where)", () => {
@@ -104,6 +123,7 @@ describe("whichAllFromPath / defaultWhichAll (#3233)", () => {
       platform: "linux",
       env: { PATH: "/only/bin" },
       exists: (p) => p === "/only/bin/deft",
+      isExecutable: () => true,
     });
     expect(paths).toEqual(["/only/bin/deft"]);
     expect(vi.mocked(execFileSync)).not.toHaveBeenCalled();

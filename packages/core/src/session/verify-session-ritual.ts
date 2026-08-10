@@ -542,8 +542,14 @@ export function verifySessionRitual(
     // (never the active CLI's own version — see resolveDefaultActiveCliTarget).
     const targetEngineVersion = options.targetEngineVersion ?? null;
     const checkActiveCli = options.checkActiveCli ?? checkActiveCliAgainstTarget;
+    let inProcessVersion: string | null = null;
+    try {
+      inProcessVersion = readCorePackageVersion();
+    } catch {
+      inProcessVersion = null;
+    }
     const activeCliSeams: ActiveCliCheckSeams = {
-      inProcessVersion: readCorePackageVersion(),
+      inProcessVersion,
       ...options.activeCliSeams,
     };
     const activeCli = checkActiveCli(targetEngineVersion, activeCliSeams);
