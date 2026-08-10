@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=0a2dfe20d62b refreshed=2026-08-09T23:50:03Z session=aa2fafa12b70 -->
+<!-- deft:managed-section v3 sha=pending refreshed=2026-08-09T00:00:00Z session=merge-resolve -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -244,6 +244,12 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
 ⊗ Stand down at CLEAN under human-merge with no reachable post-merge `scope:complete` owner.
+
+## Nuclear-family A2A topology (#3155)
+
+! Agent-to-agent messaging is **nuclear-family** only: parent / sibling (same cohort) / child. Cross-cohort or cross-session coordination goes through a shared parent or durable parent-owned artifacts — not peer mesh. Depth: `.deft/core/swarm/swarm.md` `## Communication Topology (#3155)`; security: `.deft/core/meta/security.md` `## Unbounded A2A graphs (#3155)`; ADR: `docs/decisions/ADR-003-a2a-nuclear-family-topology.md` (decision input to #2705; client-posture ADR remainder stays on #2705). Pair: retained children #3158; parent epic #3179.
+⊗ Open-mesh agent-to-agent messaging across cohorts or sessions ("agents everywhere").
+⊗ Treat retained / re-addressable children as license to mesh outside the nuclear family.
 
 ## Review-surface precedence (#2308)
 
