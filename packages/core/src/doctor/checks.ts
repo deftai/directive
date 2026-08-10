@@ -90,7 +90,17 @@ function collectLiveXbriefEnvelopePaths(projectRoot: string, seams: CheckSeams):
   const migratedRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   const paths: string[] = [];
   const definitionPath = join(migratedRoot, `PROJECT-DEFINITION${MIGRATED_ARTIFACT_SUFFIX}`);
-  const isFile = seams.isFile ?? ((p: string) => readText(p, seams) !== null);
+  // Existence must not require a successful read — unreadable paths still enter
+  // the scan so the fail-closed unreadable branch can fire (#3243 review).
+  const isFile =
+    seams.isFile ??
+    ((p: string) => {
+      try {
+        return statSync(p).isFile();
+      } catch {
+        return false;
+      }
+    });
   if (isFile(definitionPath)) {
     paths.push(definitionPath);
   }
