@@ -232,6 +232,19 @@ describe("required status contexts (#3234)", () => {
     expect(result.error).toContain("parse");
   });
 
+  it("marks resolutionFailed on nonzero exit with empty stderr", () => {
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/rules/branches/") || joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected: ${joined}` };
+    };
+    const result = fetchRequiredStatusContexts("o/r", "master", runGh);
+    expect(result.resolutionFailed).toBe(true);
+    expect(result.error).toMatch(/exit 1/);
+  });
+
   it("marks resolutionFailed on exit-zero empty body", () => {
     const runGh: RunGhFn = (cmd) => {
       const joined = cmd.join(" ");

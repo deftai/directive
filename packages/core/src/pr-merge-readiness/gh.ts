@@ -624,10 +624,13 @@ export function fetchRequiredStatusContexts(
       }
     }
   } else {
-    // 404 / no rulesets is common; keep diagnostic only.
+    // Soft-skip only when the error text clearly indicates no rulesets.
+    // Nonzero with empty stderr (or other errors) is fail-closed (#3234).
     const err = rulesRc.stderr.trim();
-    if (err.length > 0 && !/404|Not Found/i.test(err)) {
-      notes.push(`rules/branches: ${err}`);
+    if (/404|Not Found/i.test(err)) {
+      // no rulesets — soft empty contribution
+    } else {
+      notes.push(`rules/branches: ${err || `exit ${rulesRc.returncode}`}`);
       hardFailure = true;
     }
   }
@@ -659,8 +662,10 @@ export function fetchRequiredStatusContexts(
     }
   } else {
     const err = protRc.stderr.trim();
-    if (err.length > 0 && !/404|Not Found|Branch not protected/i.test(err)) {
-      notes.push(`branches/protection: ${err}`);
+    if (/404|Not Found|Branch not protected/i.test(err)) {
+      // no classic protection — soft empty contribution
+    } else {
+      notes.push(`branches/protection: ${err || `exit ${protRc.returncode}`}`);
       hardFailure = true;
     }
   }
