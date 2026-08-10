@@ -260,6 +260,27 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(ci.required_contexts_base_ref).toBe("master");
   });
 
+  it("does not discard ci_absent_required under soft-verdict CLEAN reconciliation (#3234)", () => {
+    const result = computeGateResult(
+      3234,
+      "deftai/directive",
+      // Absent Greptile verdict → soft block; GitHub CLEAN would previously
+      // wipe CI failures via #2260 reconciliation.
+      fakeRunGh({ commentBody: "", mergeableState: "clean", mergeable: true }),
+      {
+        requiredContexts: [
+          "TypeScript (build + lint + test)",
+          "terraform-plan",
+        ],
+      },
+    );
+    expect(result.failures.join(" ")).toContain("ci_absent_required");
+    expect(result.failures.join(" ")).toContain("terraform-plan");
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+    const ci = (result.partialData as Record<string, unknown>).ci as Record<string, unknown>;
+    expect(ci.ready_state).toBe("ci_absent_required");
+  });
+
   it("fails closed when required-context inventory resolution fails (#3234)", () => {
     const result = computeGateResult(
       3234,

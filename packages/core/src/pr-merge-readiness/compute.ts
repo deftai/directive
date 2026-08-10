@@ -386,11 +386,18 @@ function finalizeVerdictGate(
   const signal = fetchMergeabilityFn(prNumber, resolved.repo, runGh);
   partialData.mergeability = mergeabilityToDict(signal);
 
+  // #3234: never discard CI gate failures during soft-verdict reconciliation.
+  // GitHub CLEAN must not erase ci_absent_required / inventory hard-fails.
+  if (ci.failures.length > 0) {
+    failures.push(...ci.failures);
+    return { failures, partialData };
+  }
+
   if (isGithubMergeableClean(signal)) {
-    // GitHub itself reports CLEAN + MERGEABLE: required checks are green and the
-    // branch is mergeable. Proceed even though the OPTIONAL review verdict is
-    // absent/stale for the head SHA -- exactly the manual `gh pr merge --admin`
-    // case this fix reproduces automatically (#2260).
+    // GitHub itself reports CLEAN + MERGEABLE and our CI inventory is green:
+    // proceed even though the OPTIONAL review verdict is absent/stale for the
+    // head SHA -- exactly the manual `gh pr merge --admin` case this fix
+    // reproduces automatically (#2260).
     partialData.verdict_override = {
       reason: verdictShaIsStale(verdict, headSha) ? "verdict-stale-head-sha" : "verdict-absent",
       basis:
@@ -402,8 +409,7 @@ function finalizeVerdictGate(
   }
 
   // Not overridable (GitHub not CLEAN/MERGEABLE). Preserve the soft verdict
-  // failures and surface any CI failures so the heartbeat's blocked-on is clear.
-  failures.push(...ci.failures);
+  // failures so the heartbeat's blocked-on is clear.
   return { failures, partialData };
 }
 
