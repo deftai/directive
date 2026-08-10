@@ -42,11 +42,12 @@ function planApproved(
 }
 
 describe("headShaMatches", () => {
-  it("matches full and abbreviated forms", () => {
-    expect(headShaMatches(HEAD_A, HEAD_A.slice(0, 12))).toBe(true);
-    expect(headShaMatches(HEAD_A.slice(0, 7), HEAD_A)).toBe(true);
+  it("matches only exact full SHAs", () => {
+    expect(headShaMatches(HEAD_A, HEAD_A)).toBe(true);
   });
-  it("rejects different heads", () => {
+  it("rejects abbreviated or different heads (no prefix authorize)", () => {
+    expect(headShaMatches(HEAD_A, HEAD_A.slice(0, 12))).toBe(false);
+    expect(headShaMatches(HEAD_A.slice(0, 7), HEAD_A)).toBe(false);
     expect(headShaMatches(HEAD_A, HEAD_B)).toBe(false);
   });
 });

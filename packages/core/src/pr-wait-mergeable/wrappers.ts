@@ -186,9 +186,14 @@ export function runMonitor(
 
 export interface RunGhMergeOptions {
   readonly timeout?: number;
+  /**
+   * Pin merge to this exact head SHA via `gh pr merge --match-head-commit`
+   * (#3235 TOCTOU: refuse merge if PR head advanced after approval gate).
+   */
+  readonly matchHeadCommit?: string | null;
 }
 
-/** Invoke ``gh pr merge --squash --delete-branch --admin``. */
+/** Invoke ``gh pr merge --squash --delete-branch --admin`` [``--match-head-commit``]. */
 export function runGhMerge(
   prNumber: number,
   repo: string | null,
@@ -204,6 +209,13 @@ export function runGhMerge(
   const args = ["pr", "merge", String(prNumber), "--squash", "--delete-branch", "--admin"];
   if (repo) {
     args.push("--repo", repo);
+  }
+  const matchHead =
+    typeof options.matchHeadCommit === "string" && options.matchHeadCommit.trim().length > 0
+      ? options.matchHeadCommit.trim()
+      : null;
+  if (matchHead !== null) {
+    args.push("--match-head-commit", matchHead);
   }
   const result = captureExec(binary, args, timeoutSec * 1000);
   if (result.returncode === -1) {

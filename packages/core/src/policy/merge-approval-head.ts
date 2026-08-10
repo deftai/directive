@@ -63,33 +63,96 @@ export type FetchPrHeadShaFn = (prNumber: number, repo: string | null) => string
 
 export type ReadEventsFn = (logPath?: string | null) => BehavioralEventRecord[];
 
+/** Full Git object id length — approvals must bind to exact heads (#3235 / Greptile P1). */
+export const FULL_HEAD_SHA_LEN = 40;
+
+function isHexSha(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    const c = value.charCodeAt(i);
+    const isDigit = c >= 48 && c <= 57;
+    const isAf = c >= 97 && c <= 102;
+    if (!isDigit && !isAf) return false;
+  }
+  return value.length > 0;
+}
+
 function normalizeSha(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim().toLowerCase();
-  if (trimmed.length < 7) return null;
-  if (!/^[0-9a-f]+$/.test(trimmed)) return null;
-  return trimmed;
+  if (trimmed.length < FULL_HEAD_SHA_LEN) return null;
+  if (!isHexSha(trimmed)) return null;
+  // Bind to first 40 hex chars only (reject ambiguous longer tokens).
+  return trimmed.slice(0, FULL_HEAD_SHA_LEN);
 }
 
-/** Prefix-aware equality for full vs abbreviated SHAs. */
+/**
+ * Exact full-SHA equality only (#3235).
+ * Prefix matching is forbidden: abbreviated approval SHAs must not authorize a later head.
+ */
 export function headShaMatches(a: string | null, b: string | null): boolean {
   if (a === null || b === null) return false;
   const left = a.trim().toLowerCase();
   const right = b.trim().toLowerCase();
-  if (left.length === 0 || right.length === 0) return false;
-  return left === right || left.startsWith(right) || right.startsWith(left);
+  if (left.length !== FULL_HEAD_SHA_LEN || right.length !== FULL_HEAD_SHA_LEN) return false;
+  if (!isHexSha(left) || !isHexSha(right)) return false;
+  return left === right;
+}
+
+/** Extract trailing decimal digits starting at index (no regex — CodeQL safe). */
+function parseLeadingDigits(text: string, start: number): number | null {
+  let digits = "";
+  for (let i = start; i < text.length; i += 1) {
+    const c = text.charCodeAt(i);
+    if (c < 48 || c > 57) break;
+    digits += text[i];
+  }
+  if (digits.length === 0) return null;
+  const n = Number.parseInt(digits, 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 function prNumberFromPayload(payload: Record<string, unknown>): number | null {
   const raw = payload.pr_number;
   if (typeof raw === "number" && Number.isInteger(raw) && raw > 0) return raw;
-  if (typeof raw === "string" && /^\d+$/.test(raw.trim())) {
-    return Number.parseInt(raw.trim(), 10);
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    let allDigits = trimmed.length > 0;
+    for (let i = 0; i < trimmed.length; i += 1) {
+      const c = trimmed.charCodeAt(i);
+      if (c < 48 || c > 57) {
+        allDigits = false;
+        break;
+      }
+    }
+    if (allDigits) return Number.parseInt(trimmed, 10);
   }
   const planRef = payload.plan_ref;
   if (typeof planRef === "string") {
-    const m = /\/pull\/(\d+)/i.exec(planRef);
-    if (m?.[1] !== undefined) return Number.parseInt(m[1], 10);
+    const lower = planRef.toLowerCase();
+    const marker = "/pull/";
+    const idx = lower.indexOf(marker);
+    if (idx >= 0) {
+      return parseLeadingDigits(planRef, idx + marker.length);
+    }
+  }
+  return null;
+}
+
+function repositoryFromPayload(payload: Record<string, unknown>): string | null {
+  if (typeof payload.repository === "string" && payload.repository.includes("/")) {
+    return payload.repository.toLowerCase();
+  }
+  if (typeof payload.plan_ref === "string") {
+    const lower = payload.plan_ref.toLowerCase();
+    const marker = "github.com/";
+    const idx = lower.indexOf(marker);
+    if (idx >= 0) {
+      const rest = payload.plan_ref.slice(idx + marker.length);
+      const parts = rest.split("/");
+      if (parts.length >= 2 && parts[0] && parts[1]) {
+        return `${parts[0]}/${parts[1]}`.toLowerCase();
+      }
+    }
   }
   return null;
 }
@@ -108,7 +171,7 @@ function toPlanApproved(record: BehavioralEventRecord): PlanApprovedRecord {
 
 /**
  * Latest plan:approved for a PR (by log order; last write wins).
- * Matches pr_number or plan_ref pull URL.
+ * When `repo` is set, prefer records whose repository/plan_ref matches (P2 #3235).
  */
 export function findLatestPlanApprovalForPr(
   prNumber: number,
@@ -116,21 +179,33 @@ export function findLatestPlanApprovalForPr(
     readonly logPath?: string | null;
     readonly readEventsFn?: ReadEventsFn;
     readonly records?: readonly BehavioralEventRecord[];
+    /** owner/repo — scopes lookup when multiple remotes share a PR number. */
+    readonly repo?: string | null;
   } = {},
 ): PlanApprovedRecord | null {
   const stream =
     options.records !== undefined
       ? options.records
       : (options.readEventsFn ?? readEvents)(options.logPath ?? null);
+  const wantRepo =
+    typeof options.repo === "string" && options.repo.includes("/")
+      ? options.repo.toLowerCase()
+      : null;
   let latest: PlanApprovedRecord | null = null;
+  let latestScoped: PlanApprovedRecord | null = null;
   for (const record of stream) {
     if (record.event !== PLAN_APPROVED_EVENT) continue;
     const approved = toPlanApproved(record);
-    if (approved.pr_number === prNumber) {
-      latest = approved;
+    if (approved.pr_number !== prNumber) continue;
+    latest = approved;
+    if (wantRepo !== null) {
+      const recRepo = repositoryFromPayload(record.payload);
+      if (recRepo === wantRepo) {
+        latestScoped = approved;
+      }
     }
   }
-  return latest;
+  return latestScoped ?? latest;
 }
 
 /** Recovery instructions when approval is stale or unbound. */
@@ -183,6 +258,8 @@ export interface EvaluateMergeApprovalHeadInput {
   readonly projectRoot?: string;
   readonly logPath?: string | null;
   readonly requireHumanMerge?: boolean;
+  /** owner/repo for scoped approval lookup. */
+  readonly repo?: string | null;
   /**
    * When true (default), approval without head_sha fails closed under
    * requireHumanMerge. When false, missing binding is advisory only.
@@ -244,6 +321,7 @@ export function evaluateMergeApprovalHead(
           logPath: resolvedLogPath,
           readEventsFn: input.readEventsFn,
           records: input.records,
+          repo: input.repo ?? null,
         });
 
   if (approval === null) {

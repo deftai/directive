@@ -31,9 +31,11 @@ function makeMonitorFn(
 }
 
 function makeMergeFn(returncode: number, stdout = "", stderr = ""): MergeFn {
-  const calls: Array<readonly [number, string | null]> = [];
-  const fn: MergeFn = (prNumber, repo) => {
-    calls.push([prNumber, repo]);
+  const calls: Array<
+    readonly [number, string | null, { readonly matchHeadCommit?: string | null } | undefined]
+  > = [];
+  const fn: MergeFn = (prNumber, repo, mergeOpts) => {
+    calls.push([prNumber, repo, mergeOpts]);
     return [returncode, stdout, stderr];
   };
   (fn as { calls: typeof calls }).calls = calls;
@@ -126,7 +128,9 @@ describe("waitMergeableAndMerge", () => {
     expect(result.outcome).toBe("merged");
     expect((protectedFn as { calls: unknown[] }).calls).toEqual([]);
     expect((monitorFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive", 30]]);
-    expect((mergeFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive"]]);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([
+      [1370, "deftai/directive", { matchHeadCommit: "a".repeat(40) }],
+    ]);
     expect(result.mergeStdout).toBe("merged via squash");
     // Post-merge umbrella reconcile fires after successful merge (#1649).
     expect(umbrellaCalls).toHaveLength(1);
@@ -458,6 +462,7 @@ describe("waitMergeableAndMerge", () => {
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: false,
       projectRoot: process.cwd(),
+      fetchPrHeadShaFn: () => "a".repeat(40),
       mergeApprovalHeadFn: (input) => {
         expect(input.prNumber).toBe(525);
         expect(input.currentHeadSha).toBe("a".repeat(40));
@@ -485,8 +490,9 @@ describe("waitMergeableAndMerge", () => {
     expect(disableCalled).toBe(true);
   });
 
-  it("matching head-bound approval allows merge (#3235)", () => {
+  it("matching head-bound approval allows merge with match-head-commit (#3235)", () => {
     const mergeFn = makeMergeFn(0, "merged");
+    const head = "a".repeat(40);
     const result = waitMergeableAndMerge(100, "deftai/directive", {
       capMinutes: 10,
       protected: [],
@@ -495,11 +501,12 @@ describe("waitMergeableAndMerge", () => {
       mergeFn,
       skipHumanMergeGate: true,
       skipMergeApprovalHeadGate: false,
+      fetchPrHeadShaFn: () => head,
       mergeApprovalHeadFn: () => ({
         status: "ok",
         allowed: true,
-        approved_head_sha: "a".repeat(40),
-        current_head_sha: "a".repeat(40),
+        approved_head_sha: head,
+        current_head_sha: head,
         pr_number: 100,
         require_human_merge: false,
         auto_merge_disabled: null,
@@ -511,7 +518,9 @@ describe("waitMergeableAndMerge", () => {
 
     expect(result.exitCode).toBe(EXIT_MERGED);
     expect(result.outcome).toBe("merged");
-    expect((mergeFn as { calls: unknown[] }).calls).toHaveLength(1);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([
+      [100, "deftai/directive", { matchHeadCommit: head }],
+    ]);
   });
 
   it("cascade semantic-stale-base blocks before monitor or merge (#2385)", () => {

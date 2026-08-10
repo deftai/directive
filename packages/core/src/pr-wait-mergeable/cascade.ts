@@ -64,6 +64,8 @@ export interface WaitMergeableOptions {
   readonly skipMergeApprovalHeadGate?: boolean;
   /** Inject head-bound approval enforcer (unit tests). */
   readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
+  /** Inject PR HEAD fetch (unit tests; defaults to REST `pulls/<N>`). */
+  readonly fetchPrHeadShaFn?: (prNumber: number, repo: string | null) => string | null;
   /**
    * Post-merge umbrella reconcile (#1649). Defaults to live reconcileUmbrellas.
    * Pass `null` to skip (unit tests that inject mergeFn must pass null so they
@@ -222,6 +224,9 @@ export function waitMergeableAndMerge(
 
   // #3235: head-bound plan:approved — refuse merge when approval is stale vs
   // current HEAD; best-effort disable auto-merge + recovery instructions.
+  // Re-read live HEAD immediately before merge (TOCTOU / Greptile P1) and pin
+  // `gh pr merge --match-head-commit` to that exact SHA.
+  let matchHeadCommit: string | null = null;
   if (options.skipMergeApprovalHeadGate !== true) {
     const readiness =
       typeof monitorPayload.readiness === "object" &&
@@ -236,11 +241,14 @@ export function waitMergeableAndMerge(
           ? monitorPayload.head_sha
           : null;
     const headGateFn = options.mergeApprovalHeadFn ?? enforceMergeApprovalHead;
+    const fetchHead = options.fetchPrHeadShaFn ?? fetchPrHeadShaRest;
+    const liveHead =
+      fetchHead(prNumber, repo) ?? (typeof headFromMonitor === "string" ? headFromMonitor : null);
     const headGate = headGateFn({
       prNumber,
       repo,
       projectRoot,
-      currentHeadSha: headFromMonitor,
+      currentHeadSha: liveHead,
       disableAutoMergeOnDeny: true,
     });
     if (!headGate.allowed) {
@@ -258,9 +266,25 @@ export function waitMergeableAndMerge(
         error: parts.join("\n"),
       });
     }
+    matchHeadCommit = headGate.current_head_sha ?? liveHead;
+  } else {
+    // Even when the approval gate is skipped, pin merge to the monitor HEAD when known.
+    const readiness =
+      typeof monitorPayload.readiness === "object" &&
+      monitorPayload.readiness !== null &&
+      !Array.isArray(monitorPayload.readiness)
+        ? (monitorPayload.readiness as Record<string, unknown>)
+        : {};
+    if (typeof readiness.head_sha === "string") {
+      matchHeadCommit = readiness.head_sha;
+    } else if (typeof monitorPayload.head_sha === "string") {
+      matchHeadCommit = monitorPayload.head_sha;
+    }
   }
 
-  const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo);
+  const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
+    matchHeadCommit,
+  });
 
   if (mergeRc === 0) {
     // Best-effort umbrella checklist + current-shape refresh after child merge (#1649).

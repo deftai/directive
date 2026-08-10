@@ -26,4 +26,8 @@ export type MonitorFn = (
   options?: { readonly projectRoot?: string },
 ) => SubprocessTriple;
 
-export type MergeFn = (prNumber: number, repo: string | null) => SubprocessTriple;
+export type MergeFn = (
+  prNumber: number,
+  repo: string | null,
+  options?: { readonly matchHeadCommit?: string | null },
+) => SubprocessTriple;
