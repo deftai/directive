@@ -4,7 +4,6 @@
 <!-- Regenerate with: task packs:render -->
 <!-- Edit the source, not this file. Slice instead of loading every coding doc: task packs:slice rules by-tier --tier <TIER> (or by-domain, list) -->
 
-
 # Coding Guidelines
 
 Software development specific guidelines for AI agents.
