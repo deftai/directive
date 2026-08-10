@@ -371,3 +371,182 @@ export function fetchCheckRunsRest(
   }
   return { summary, checkRuns, error: "" };
 }
+
+/** PR base branch ref (rulesets / branch protection apply to the merge target) (#3234). */
+export function fetchPrBaseRef(
+  prNumber: number,
+  repo: string,
+  runGh: RunGhFn,
+): { baseRef: string | null; error: string } {
+  const rc = runGh(["gh", "api", `repos/${repo}/pulls/${prNumber}`]);
+  if (rc.returncode !== 0) {
+    return { baseRef: null, error: `gh api /pulls/${prNumber} failed: ${rc.stderr.trim()}` };
+  }
+  if (!rc.stdout.trim()) {
+    return { baseRef: null, error: "empty body from gh api /pulls/<N>" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rc.stdout) as unknown;
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { baseRef: null, error: `could not parse PR JSON: ${message}` };
+  }
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return { baseRef: null, error: "unexpected PR JSON shape (not a dict)" };
+  }
+  const base = (payload as Record<string, unknown>).base;
+  if (base !== null && typeof base === "object" && !Array.isArray(base)) {
+    const ref = (base as Record<string, unknown>).ref;
+    if (typeof ref === "string" && ref.length > 0) {
+      return { baseRef: ref, error: "" };
+    }
+  }
+  return { baseRef: null, error: "PR JSON missing base.ref" };
+}
+
+/** Extract context names from `GET .../rules/branches/{branch}` payload (#3234). */
+export function contextsFromBranchRules(payload: unknown): string[] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const rule of payload) {
+    if (rule === null || typeof rule !== "object" || Array.isArray(rule)) {
+      continue;
+    }
+    const r = rule as Record<string, unknown>;
+    if (r.type !== "required_status_checks") {
+      continue;
+    }
+    const params = r.parameters;
+    if (params === null || typeof params !== "object" || Array.isArray(params)) {
+      continue;
+    }
+    const checks = (params as Record<string, unknown>).required_status_checks;
+    if (!Array.isArray(checks)) {
+      continue;
+    }
+    for (const check of checks) {
+      if (check === null || typeof check !== "object" || Array.isArray(check)) {
+        continue;
+      }
+      const context = (check as Record<string, unknown>).context;
+      if (typeof context === "string" && context.length > 0) {
+        out.push(context);
+      }
+    }
+  }
+  return out;
+}
+
+/** Extract context names from classic branch-protection payload (#3234). */
+export function contextsFromBranchProtection(payload: unknown): string[] {
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return [];
+  }
+  const rsc = (payload as Record<string, unknown>).required_status_checks;
+  if (rsc === null || typeof rsc !== "object" || Array.isArray(rsc)) {
+    return [];
+  }
+  const block = rsc as Record<string, unknown>;
+  const out: string[] = [];
+  const contexts = block.contexts;
+  if (Array.isArray(contexts)) {
+    for (const c of contexts) {
+      if (typeof c === "string" && c.length > 0) {
+        out.push(c);
+      }
+    }
+  }
+  const checks = block.checks;
+  if (Array.isArray(checks)) {
+    for (const check of checks) {
+      if (check === null || typeof check !== "object" || Array.isArray(check)) {
+        continue;
+      }
+      const context = (check as Record<string, unknown>).context;
+      if (typeof context === "string" && context.length > 0) {
+        out.push(context);
+      }
+    }
+  }
+  return out;
+}
+
+export interface RequiredStatusContextsResult {
+  readonly contexts: readonly string[];
+  /** Which REST surfaces contributed contexts (`rulesets` / `branch_protection`). */
+  readonly sources: readonly string[];
+  readonly error: string;
+}
+
+/**
+ * Resolve required status-check context names for a branch from rulesets and/or
+ * classic branch protection (REST only) (#3234).
+ *
+ * Absent or 404 sources are soft-skipped (empty contribution). Callers compare
+ * the returned contexts against exact-HEAD check-run names and fail closed when
+ * a required context has no matching run (path-filtered workflows).
+ */
+export function fetchRequiredStatusContexts(
+  repo: string,
+  branch: string,
+  runGh: RunGhFn,
+): RequiredStatusContextsResult {
+  const found = new Set<string>();
+  const sources: string[] = [];
+  const notes: string[] = [];
+  const encoded = encodeURIComponent(branch);
+
+  const rulesRc = runGh(["gh", "api", `repos/${repo}/rules/branches/${encoded}`]);
+  if (rulesRc.returncode === 0 && rulesRc.stdout.trim()) {
+    try {
+      const payload = JSON.parse(rulesRc.stdout) as unknown;
+      const fromRules = contextsFromBranchRules(payload);
+      if (fromRules.length > 0) {
+        for (const c of fromRules) {
+          found.add(c);
+        }
+        sources.push("rulesets");
+      }
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      notes.push(`rules/branches parse: ${message}`);
+    }
+  } else if (rulesRc.returncode !== 0) {
+    // 404 / no rulesets is common; keep diagnostic only.
+    const err = rulesRc.stderr.trim();
+    if (err.length > 0 && !/404|Not Found/i.test(err)) {
+      notes.push(`rules/branches: ${err}`);
+    }
+  }
+
+  const protRc = runGh(["gh", "api", `repos/${repo}/branches/${encoded}/protection`]);
+  if (protRc.returncode === 0 && protRc.stdout.trim()) {
+    try {
+      const payload = JSON.parse(protRc.stdout) as unknown;
+      const fromProt = contextsFromBranchProtection(payload);
+      if (fromProt.length > 0) {
+        for (const c of fromProt) {
+          found.add(c);
+        }
+        sources.push("branch_protection");
+      }
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      notes.push(`branches/protection parse: ${message}`);
+    }
+  } else if (protRc.returncode !== 0) {
+    const err = protRc.stderr.trim();
+    if (err.length > 0 && !/404|Not Found|Branch not protected/i.test(err)) {
+      notes.push(`branches/protection: ${err}`);
+    }
+  }
+
+  return {
+    contexts: [...found].sort((a, b) => a.localeCompare(b)),
+    sources,
+    error: notes.join("; "),
+  };
+}

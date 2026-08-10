@@ -82,6 +82,8 @@ export type CiReadyState =
   | "runner_capacity_stall"
   | "ci_never_scheduled"
   | "ci_cancelled_no_failover"
+  /** Ruleset/BP required context with no check-run on HEAD (#3234). */
+  | "ci_absent_required"
   | "skipped";
 
 export interface CiGateOptions {
@@ -91,6 +93,12 @@ export interface CiGateOptions {
   readonly capacityStallBudgetMs?: number;
   /** Injectable clock for capacity-stall tests. */
   readonly nowMs?: number;
+  /**
+   * Required status-check context names from rulesets / branch protection (#3234).
+   * When set, a context with no matching exact-HEAD check-run name is fail-closed
+   * (path-filtered workflows never schedule). Empty/omitted preserves inventory-only.
+   */
+  readonly requiredContexts?: readonly string[];
 }
 
 export interface CiCheckConclusion {
@@ -111,6 +119,13 @@ export interface CiGateSummary {
   readonly capacity_stalled_required: readonly string[];
   /** Required checks cancelled without a green failover sibling (#3167). */
   readonly cancelled_required: readonly string[];
+  /**
+   * Ruleset/BP required contexts with no matching check-run on HEAD (#3234).
+   * Distinct from pending (never scheduled vs still running).
+   */
+  readonly absent_required: readonly string[];
+  /** Full required-context list used for the comparison (may be empty). */
+  readonly required_contexts: readonly string[];
   readonly conclusions: readonly CiCheckConclusion[];
 }
 
@@ -126,7 +141,11 @@ function isPending(status: string, conclusion: string): boolean {
   return status !== "completed" || conclusion === "none";
 }
 
-function emptySummary(readyState: CiReadyState, ignored: readonly string[] = []): CiGateSummary {
+function emptySummary(
+  readyState: CiReadyState,
+  ignored: readonly string[] = [],
+  requiredContexts: readonly string[] = [],
+): CiGateSummary {
   return {
     ready_state: readyState,
     checked_count: 0,
@@ -135,6 +154,8 @@ function emptySummary(readyState: CiReadyState, ignored: readonly string[] = [])
     pending_required: [],
     capacity_stalled_required: [],
     cancelled_required: [],
+    absent_required: [],
+    required_contexts: requiredContexts,
     conclusions: [],
   };
 }
@@ -150,6 +171,10 @@ export function buildCiSummaryLine(summary: CiGateSummary): string {
     summary.cancelled_required.length > 0
       ? ` / ${summary.cancelled_required.length} cancelled`
       : "";
+  const absentSuffix =
+    summary.absent_required.length > 0
+      ? ` / ${summary.absent_required.length} absent-required`
+      : "";
   const weather =
     summary.ready_state === "ci_never_scheduled"
       ? " (ci_never_scheduled)"
@@ -157,34 +182,39 @@ export function buildCiSummaryLine(summary: CiGateSummary): string {
         ? " (ci_cancelled_no_failover)"
         : summary.ready_state === "ci_failures"
           ? " (ci_failures)"
-          : "";
+          : summary.ready_state === "ci_absent_required"
+            ? " (ci_absent_required)"
+            : "";
   return (
     `CI check-runs: ${passed} passed / ` +
     `${summary.failed_required.length} failed / ${summary.pending_required.length} pending` +
     stallSuffix +
     cancelSuffix +
+    absentSuffix +
     weather
   );
 }
 
 /**
- * Classify required CI weather for a HEAD check-run list (#2169 / #2672 / #3167).
+ * Classify required CI weather for a HEAD check-run list (#2169 / #2672 / #3167 / #3234).
  *
  * Distinct ready_state codes:
  * - `ci_never_scheduled` — no CI workflow check-runs (bots alone / empty)
  * - `runner_capacity_stall` — queued past budget, no runner claimed
  * - `ci_failures` — completed failure / timed_out with product evidence
  * - `ci_cancelled_no_failover` — only cancelled failures; no green failover
+ * - `ci_absent_required` — ruleset/BP required context missing on HEAD (#3234)
  * - `not_ready_yet` / `ready` / `blocked` / `skipped` — legacy + residual
  */
 export function evaluateCiGate(
   checkRuns: readonly CheckRunRecord[],
   options: CiGateOptions = {},
 ): CiGateResult {
+  const requiredContexts = [...(options.requiredContexts ?? [])];
   if (options.skipCi === true) {
     return {
       failures: [],
-      summary: emptySummary("skipped"),
+      summary: emptySummary("skipped", [], requiredContexts),
     };
   }
 
@@ -241,14 +271,28 @@ export function evaluateCiGate(
     }
   }
 
+  // #3234: ruleset/BP required contexts with no exact-HEAD check-run (path-filtered).
+  // Exact name match against observed check-run names; operator-ignored contexts skip.
+  const observedNames = new Set(checkRuns.map((r) => r.name));
+  const absentRequired: string[] = [];
+  for (const ctx of requiredContexts) {
+    if (ignoredSet.has(ctx)) {
+      continue;
+    }
+    if (!observedNames.has(ctx)) {
+      absentRequired.push(ctx);
+    }
+  }
+
   // Operator --ci-ignore-check on every non-bot run is intentional, not weather.
   operatorIgnoredOnly =
     workflowCheckCount === 0 &&
     checkRuns.some((r) => ignoredSet.has(r.name) && !isBotReviewCheck(r.name));
 
   // #3167: no workflow CI check-runs at all (empty list or bots-only) → never scheduled.
+  // When ruleset/BP names the absents, prefer ci_absent_required (#3234) over weather.
   // Distinct from "all remaining checks operator-ignored" (legacy ready).
-  if (workflowCheckCount === 0 && !operatorIgnoredOnly) {
+  if (workflowCheckCount === 0 && !operatorIgnoredOnly && absentRequired.length === 0) {
     return {
       failures: [
         "Required CI workflow check-runs never scheduled (ci_never_scheduled): " +
@@ -263,6 +307,8 @@ export function evaluateCiGate(
         pending_required: [],
         capacity_stalled_required: [],
         cancelled_required: [],
+        absent_required: [],
+        required_contexts: requiredContexts,
         conclusions,
       },
     };
@@ -286,6 +332,14 @@ export function evaluateCiGate(
       `Required CI check-runs failed (ci_failures): ${failedProduct.join(", ")}. ` +
         "Required checks fail closed by default (#2169 / #3167).",
     );
+    if (absentRequired.length > 0) {
+      failures.push(
+        `Required status-check contexts absent on HEAD (ci_absent_required): ` +
+          `${absentRequired.join(", ")}. ` +
+          "Ruleset/branch-protection contexts with no check-run (path-filtered workflows) " +
+          "fail closed (#3234).",
+      );
+    }
   } else if (pendingRequired.length > 0) {
     // Pending wins over cancelled siblings (failover may still be arming).
     const allPendingStalled =
@@ -303,6 +357,14 @@ export function evaluateCiGate(
       failures.push(
         `Required CI check-runs still running (not-ready-yet): ${pendingRequired.join(", ")}. ` +
           "Wait for required checks to finish before merge.",
+      );
+    }
+    if (absentRequired.length > 0) {
+      failures.push(
+        `Required status-check contexts absent on HEAD (ci_absent_required): ` +
+          `${absentRequired.join(", ")}. ` +
+          "Ruleset/branch-protection contexts with no check-run (path-filtered workflows) " +
+          "fail closed (#3234).",
       );
     }
   } else if (cancelledRequired.length > 0) {
@@ -355,10 +417,34 @@ export function evaluateCiGate(
           "Cancelled required check with no green non-ignored authoritative suite aggregator (#3167 / #3168). " +
           "Do not multi-hour re-push thrash; BLOCKED after thrash caps.",
       );
+      if (absentRequired.length > 0) {
+        failures.push(
+          `Required status-check contexts absent on HEAD (ci_absent_required): ` +
+            `${absentRequired.join(", ")}. ` +
+            "Ruleset/branch-protection contexts with no check-run (path-filtered workflows) " +
+            "fail closed (#3234).",
+        );
+      }
+    } else if (absentRequired.length > 0) {
+      readyState = "ci_absent_required";
+      failures.push(
+        `Required status-check contexts absent on HEAD (ci_absent_required): ` +
+          `${absentRequired.join(", ")}. ` +
+          "Ruleset/branch-protection contexts with no check-run (path-filtered workflows) " +
+          "fail closed (#3234).",
+      );
     } else {
       // Every cancelled suite family has a green non-ignored aggregator; no non-suite cancels.
       readyState = "ready";
     }
+  } else if (absentRequired.length > 0) {
+    readyState = "ci_absent_required";
+    failures.push(
+      `Required status-check contexts absent on HEAD (ci_absent_required): ` +
+        `${absentRequired.join(", ")}. ` +
+        "Ruleset/branch-protection contexts with no check-run (path-filtered workflows) " +
+        "fail closed (#3234).",
+    );
   } else {
     readyState = "ready";
   }
@@ -373,6 +459,8 @@ export function evaluateCiGate(
       pending_required: pendingRequired,
       capacity_stalled_required: capacityStalledRequired,
       cancelled_required: cancelledRequired,
+      absent_required: absentRequired,
+      required_contexts: requiredContexts,
       conclusions,
     },
   };

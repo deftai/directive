@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateCiGate, isBotReviewCheck } from "./ci-gate.js";
+import { buildCiSummaryLine, evaluateCiGate, isBotReviewCheck } from "./ci-gate.js";
 import type { CheckRunRecord } from "./gh.js";
 import { DEFAULT_CAPACITY_STALL_MS } from "./runner-capacity-stall.js";
 
@@ -341,5 +341,92 @@ describe("evaluateCiGate (#2169 / #2672 / #3167)", () => {
     });
     expect(result.summary.ready_state).toBe("ready");
     expect(result.failures).toEqual([]);
+  });
+});
+
+describe("evaluateCiGate absent required contexts (#3234)", () => {
+  it("fails closed when observed checks are green but a ruleset context is absent", () => {
+    const result = evaluateCiGate(
+      [
+        run({ name: "TypeScript (build + lint + test)" }),
+        run({ name: "Go (test + build)" }),
+        run({ name: "Greptile Review" }),
+      ],
+      {
+        nowMs: NOW,
+        requiredContexts: [
+          "TypeScript (build + lint + test)",
+          "terraform-plan",
+          "terraform-apply-staging",
+        ],
+      },
+    );
+    expect(result.summary.ready_state).toBe("ci_absent_required");
+    expect(result.summary.absent_required).toEqual(["terraform-plan", "terraform-apply-staging"]);
+    expect(result.summary.required_contexts).toContain("terraform-plan");
+    expect(result.failures.join(" ")).toContain("ci_absent_required");
+    expect(result.failures.join(" ")).toContain("terraform-plan");
+    expect(result.failures.join(" ")).toContain("#3234");
+  });
+
+  it("stays ready when every required context has a matching HEAD check-run", () => {
+    const result = evaluateCiGate(
+      [run({ name: "TypeScript (build + lint + test)" }), run({ name: "terraform-plan" })],
+      {
+        nowMs: NOW,
+        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+      },
+    );
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.summary.absent_required).toEqual([]);
+    expect(result.failures).toEqual([]);
+  });
+
+  it("prefers product failures over absent-required as ready_state", () => {
+    const result = evaluateCiGate(
+      [
+        run({
+          name: "TypeScript (build + lint + test)",
+          status: "completed",
+          conclusion: "failure",
+        }),
+      ],
+      {
+        nowMs: NOW,
+        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+      },
+    );
+    expect(result.summary.ready_state).toBe("ci_failures");
+    expect(result.summary.absent_required).toEqual(["terraform-plan"]);
+    expect(result.failures.some((f) => f.includes("ci_absent_required"))).toBe(true);
+  });
+
+  it("reports ci_absent_required (not never_scheduled) when only bots observed and required missing", () => {
+    const result = evaluateCiGate([run({ name: "Greptile Review" })], {
+      nowMs: NOW,
+      requiredContexts: ["terraform-plan"],
+    });
+    expect(result.summary.ready_state).toBe("ci_absent_required");
+    expect(result.summary.absent_required).toEqual(["terraform-plan"]);
+    expect(result.failures.join(" ")).not.toContain("ci_never_scheduled");
+  });
+
+  it("honors operator ignore for a required context name", () => {
+    const result = evaluateCiGate([run({ name: "TypeScript (build + lint + test)" })], {
+      nowMs: NOW,
+      requiredContexts: ["TypeScript (build + lint + test)", "flaky-optional"],
+      ignoreCheckNames: ["flaky-optional"],
+    });
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.summary.absent_required).toEqual([]);
+  });
+
+  it("includes absent count in the summary line", () => {
+    const result = evaluateCiGate([run({ name: "TypeScript (build + lint + test)" })], {
+      nowMs: NOW,
+      requiredContexts: ["TypeScript (build + lint + test)", "missing-a", "missing-b"],
+    });
+    expect(buildCiSummaryLine(result.summary)).toContain("2 absent-required");
+    expect(buildCiSummaryLine(result.summary)).toContain("ci_absent_required");
   });
 });

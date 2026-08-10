@@ -68,6 +68,7 @@ function fakeRunGh(opts: FakeOpts): RunGhFn {
           mergeable: opts.mergeable ?? true,
           mergeable_state: opts.mergeableState ?? "clean",
           head: { sha: HEAD },
+          base: { ref: "master" },
         }),
         stderr: "",
       };
@@ -186,6 +187,72 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(result.failures).toEqual([]);
     // No override needed — the verdict itself was clean.
     expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+  });
+
+  it("fails closed on green observed CI when ruleset required context is absent (#3234)", () => {
+    const result = computeGateResult(
+      3234,
+      "deftai/directive",
+      fakeRunGh({ commentBody: cleanGreptileBody(HEAD), mergeableState: "clean", mergeable: true }),
+      {
+        requiredContexts: [
+          "TypeScript (build + lint + test)",
+          "terraform-plan",
+          "terraform-apply-staging",
+        ],
+      },
+    );
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect(result.failures.join(" ")).toContain("ci_absent_required");
+    expect(result.failures.join(" ")).toContain("terraform-plan");
+    const ci = (result.partialData as Record<string, unknown>).ci as Record<string, unknown>;
+    expect(ci.ready_state).toBe("ci_absent_required");
+    expect(ci.absent_required).toEqual(["terraform-plan", "terraform-apply-staging"]);
+    expect(ci.required_contexts).toEqual([
+      "TypeScript (build + lint + test)",
+      "terraform-plan",
+      "terraform-apply-staging",
+    ]);
+  });
+
+  it("stays merge-ready when injected required contexts are all observed green (#3234)", () => {
+    const result = computeGateResult(
+      3234,
+      "deftai/directive",
+      fakeRunGh({ commentBody: cleanGreptileBody(HEAD), mergeableState: "clean", mergeable: true }),
+      {
+        requiredContexts: ["TypeScript (build + lint + test)"],
+      },
+    );
+    expect(result.failures).toEqual([]);
+    const ci = (result.partialData as Record<string, unknown>).ci as Record<string, unknown>;
+    expect(ci.ready_state).toBe("ready");
+    expect(ci.absent_required).toEqual([]);
+  });
+
+  it("resolves required contexts via fetchRequiredContextsFn seam (#3234)", () => {
+    let branchSeen = "";
+    const result = computeGateResult(
+      3234,
+      "deftai/directive",
+      fakeRunGh({ commentBody: cleanGreptileBody(HEAD), mergeableState: "clean", mergeable: true }),
+      {
+        fetchRequiredContextsFn: (_repo, branch) => {
+          branchSeen = branch;
+          return {
+            contexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+            sources: ["rulesets"],
+            error: "",
+          };
+        },
+      },
+    );
+    expect(branchSeen).toBe("master");
+    expect(result.failures.join(" ")).toContain("terraform-plan");
+    const ci = (result.partialData as Record<string, unknown>).ci as Record<string, unknown>;
+    expect(ci.ready_state).toBe("ci_absent_required");
+    expect(ci.required_contexts_source).toBe("rulesets");
+    expect(ci.required_contexts_base_ref).toBe("master");
   });
 
   it("uses injectable fetchMergeabilityFn seam", () => {

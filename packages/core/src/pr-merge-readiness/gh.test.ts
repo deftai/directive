@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  contextsFromBranchProtection,
+  contextsFromBranchRules,
   defaultRunGh,
   fetchCheckRunsRest,
   fetchGreptileBodyRest,
+  fetchPrBaseRef,
   fetchPrHeadShaRest,
+  fetchRequiredStatusContexts,
   resolveRepo,
 } from "./gh.js";
 import type { RunGhFn } from "./types.js";
@@ -134,6 +138,78 @@ describe("fetchCheckRunsRest", () => {
   it("fails on missing check_runs list", () => {
     const runGh: RunGhFn = () => ({ returncode: 0, stdout: "{}", stderr: "" });
     expect(fetchCheckRunsRest("sha", "deftai/directive", runGh).summary).toBeNull();
+  });
+});
+
+describe("required status contexts (#3234)", () => {
+  it("parses rules/branches required_status_checks contexts", () => {
+    expect(
+      contextsFromBranchRules([
+        {
+          type: "required_status_checks",
+          parameters: {
+            required_status_checks: [
+              { context: "terraform-plan" },
+              { context: "TypeScript (build + lint + test)" },
+            ],
+          },
+        },
+        { type: "pull_request" },
+      ]),
+    ).toEqual(["terraform-plan", "TypeScript (build + lint + test)"]);
+  });
+
+  it("parses classic branch-protection contexts and checks", () => {
+    expect(
+      contextsFromBranchProtection({
+        required_status_checks: {
+          contexts: ["legacy-ci"],
+          checks: [{ context: "modern-ci", app_id: 1 }],
+        },
+      }),
+    ).toEqual(["legacy-ci", "modern-ci"]);
+  });
+
+  it("fetchRequiredStatusContexts unions rulesets + protection", () => {
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/rules/branches/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [{ context: "terraform-plan" }],
+              },
+            },
+          ]),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/protection")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            required_status_checks: { contexts: ["legacy-ci"], checks: [] },
+          }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected: ${joined}` };
+    };
+    const result = fetchRequiredStatusContexts("o/r", "master", runGh);
+    expect(result.contexts).toEqual(["legacy-ci", "terraform-plan"]);
+    expect(result.sources).toEqual(["rulesets", "branch_protection"]);
+  });
+
+  it("fetchPrBaseRef extracts base.ref", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({ base: { ref: "master" }, head: { sha: "abc" } }),
+      stderr: "",
+    });
+    expect(fetchPrBaseRef(1, "o/r", runGh).baseRef).toBe("master");
   });
 });
 
