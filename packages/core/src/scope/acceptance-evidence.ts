@@ -148,6 +148,12 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
 /**
  * Whether evidence.kind is suitable for the criterion's required strict axes.
  * merge and review never satisfy smoke/UAT/deploy/observed_behavior.
+ *
+ * A single evidence.kind covers only that axis. When free-text inference yields
+ * multiple axes (e.g. "smoke after deploy"), every required axis must match the
+ * same kind — which is only possible when the axes are identical. Otherwise use
+ * explicit `requires` / `acceptanceAxis` for a single axis, split the criterion,
+ * or record a human-origin disposition (#3240 Greptile P1).
  */
 export function isEvidenceKindSuitable(
   kind: AcceptanceEvidenceKind,
@@ -159,8 +165,8 @@ export function isEvidenceKindSuitable(
   if (kind === "merge" || kind === "review") {
     return false;
   }
-  // Evidence kind must match at least one required axis (exact).
-  return requiredAxes.some((axis) => kind === axis);
+  // All required strict axes must be covered by this single evidence kind.
+  return requiredAxes.every((axis) => kind === axis);
 }
 
 function parseEvidence(raw: unknown):

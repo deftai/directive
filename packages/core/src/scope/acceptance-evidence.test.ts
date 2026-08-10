@@ -87,6 +87,13 @@ describe("acceptance evidence inference (#3240)", () => {
     expect(isEvidenceKindSuitable("smoke", ["smoke"])).toBe(true);
     expect(isEvidenceKindSuitable("merge", [])).toBe(true);
   });
+
+  it("rejects single-axis evidence when multiple strict axes are required", () => {
+    // "Smoke after deploy" infers both axes — one kind cannot cover both (#3240 P1).
+    expect(isEvidenceKindSuitable("smoke", ["smoke", "deploy"])).toBe(false);
+    expect(isEvidenceKindSuitable("deploy", ["smoke", "deploy"])).toBe(false);
+    expect(isEvidenceKindSuitable("smoke", ["smoke", "smoke"])).toBe(true);
+  });
 });
 
 describe("acceptance evidence gate (#3240)", () => {
@@ -210,6 +217,26 @@ describe("acceptance evidence gate (#3240)", () => {
       plan: { items: Array<{ status: string }> };
     };
     expect(data.plan.items.every((i) => i.status === "completed")).toBe(true);
+  });
+
+  it("rejects smoke-only evidence when criterion text also requires deploy", () => {
+    root = makeRepo();
+    const file = writeActive(root, "smoke-deploy.xbrief.json", [
+      {
+        title: "Runtime smoke after deploy",
+        status: "pending",
+        narrative: { Acceptance: "Smoke must pass after deployment" },
+        evidence: {
+          kind: "smoke",
+          pointer: "ci:smoke-job#42",
+          recorded_at: "2026-08-10T12:00:00Z",
+          recorded_by: "ci",
+        },
+      },
+    ]);
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/not suitable|smoke|deploy/i);
   });
 
   it("evaluateAcceptanceEvidenceGate is pure and lists missing paths", () => {
