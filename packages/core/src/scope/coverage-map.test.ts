@@ -439,6 +439,37 @@ describe("coverage-map (#3238)", () => {
     expect(emptyMap.errors.some((e) => e.includes("coverage_map is required"))).toBe(true);
   });
 
+  it("rejects conflicting dispositions for the same parent requirement ID", () => {
+    const result = validateCoverageMap({
+      parent: abcParent,
+      draft: {
+        coverage_map: [
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "covered",
+            child_story_ids: ["s1"],
+          },
+          {
+            parent_requirement_id: "req-ordered-a-b-c",
+            disposition: "deferred",
+            provenance: { reason: "later", target_path: "xbrief/proposed/t.xbrief.json" },
+          },
+          {
+            parent_requirement_id: "req-forbid-a-to-c",
+            disposition: "covered",
+          },
+          {
+            parent_requirement_id: "req-terminal-failure",
+            disposition: "covered",
+          },
+        ],
+      },
+      storyIds: ["s1"],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("conflicting dispositions"))).toBe(true);
+  });
+
   it("covers remaining extract/parse edge branches", () => {
     // asStrList: empty string, non-list scalar, string list metadata
     const parent = {

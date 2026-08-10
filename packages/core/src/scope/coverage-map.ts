@@ -451,6 +451,8 @@ export function validateCoverageMap(opts: {
   const entryReports: CoverageEntryReport[] = [];
   const errors: string[] = [...parseErrors];
   const coveredIds = new Set<string>();
+  // parent_id → set of dispositions seen (conflicting dispositions fail closed)
+  const dispositionsByParent = new Map<string, Set<string>>();
 
   // split_group → parent_id → set of parts
   const splitParts = new Map<string, Map<string, Set<string>>>();
@@ -496,6 +498,26 @@ export function validateCoverageMap(opts: {
     }
 
     coveredIds.add(entry.parent_requirement_id);
+    let dispSet = dispositionsByParent.get(entry.parent_requirement_id);
+    if (dispSet === undefined) {
+      dispSet = new Set();
+      dispositionsByParent.set(entry.parent_requirement_id, dispSet);
+    }
+    dispSet.add(entry.disposition);
+    if (dispSet.size > 1) {
+      const detail =
+        `conflicting dispositions for '${entry.parent_requirement_id}': ` +
+        `${[...dispSet].sort().join(", ")} (exactly one disposition per parent ID)`;
+      errors.push(`${loc}: ${detail}`);
+      entryReports.push({
+        parent_requirement_id: entry.parent_requirement_id,
+        disposition: entry.disposition,
+        ok: false,
+        detail,
+        negative_invariant: isNeg,
+      });
+      continue;
+    }
 
     if (entry.child_story_ids !== undefined && knownStories !== null) {
       for (const sid of entry.child_story_ids) {
