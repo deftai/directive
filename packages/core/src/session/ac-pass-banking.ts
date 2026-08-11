@@ -21,7 +21,11 @@ import {
   resolveAcPassBanking,
 } from "../policy/ac-pass-banking.js";
 import type { HardEffortBudget, VerificationDepthPolicy } from "./effort-budget.js";
-import { formatDeepeningSkippedNote, recommendVerificationDepth } from "./effort-budget.js";
+import {
+  detectHardEffortBudget,
+  formatDeepeningSkippedNote,
+  recommendVerificationDepth,
+} from "./effort-budget.js";
 
 /** Durable bank ledger directory (gitignored under `.deft/`). */
 export const AC_PASS_BANK_DIR = ".deft/ac-pass-banks";
@@ -301,14 +305,44 @@ export function acPassBanksDir(projectRoot: string): string {
   return join(resolve(projectRoot), ...AC_PASS_BANK_DIR.split("/"));
 }
 
+/**
+ * Sanitize scopeId for a ledger filename without unbounded quantifiers (CodeQL).
+ * Walks characters once — O(n), no ReDoS risk on pathological "-" runs.
+ */
+export function sanitizeScopeIdForFilename(scopeId: string): string {
+  const out: string[] = [];
+  let prevDash = false;
+  for (let i = 0; i < scopeId.length && out.length < 48; i += 1) {
+    const ch = scopeId[i] as string;
+    const code = ch.charCodeAt(0);
+    const alnum =
+      (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+    const ok = alnum || ch === "." || ch === "_" || ch === "-";
+    if (ok) {
+      if (ch === "-") {
+        if (prevDash || out.length === 0) continue;
+        prevDash = true;
+        out.push("-");
+      } else {
+        prevDash = false;
+        out.push(ch);
+      }
+    } else if (!prevDash && out.length > 0) {
+      prevDash = true;
+      out.push("-");
+    }
+  }
+  while (out.length > 0 && out[out.length - 1] === "-") {
+    out.pop();
+  }
+  return out.join("") || "scope";
+}
+
 /** Stable filename for a scope bank record. */
 export function acPassBankFilename(scopeId: string): string {
   const digest = createHash("sha256").update(scopeId, "utf8").digest("hex").slice(0, 16);
-  const safe = scopeId
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-  return `${safe || "scope"}-${digest}.json`;
+  const safe = sanitizeScopeIdForFilename(scopeId);
+  return `${safe}-${digest}.json`;
 }
 
 export function acPassBankPath(projectRoot: string, scopeId: string): string {
@@ -321,6 +355,8 @@ export function acPassBankPath(projectRoot: string, scopeId: string): string {
  */
 export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   const bankedAt = utcIso(input.now);
+  // Preserve prior post-bank findings on re-bank so ledger history survives (#3285 Greptile).
+  const prior = readAcPassBank(input.projectRoot, input.scopeId);
   const record: AcPassBankRecord = {
     schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
     scopeId: input.scopeId,
@@ -333,7 +369,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     surplusThreshold: input.surplus.surplusThreshold,
     hadSurplus: input.surplus.hasSurplus,
     nextAction: input.nextAction,
-    postBankFindings: [],
+    postBankFindings: prior?.postBankFindings ?? [],
   };
 
   const root = resolve(input.projectRoot);
@@ -564,4 +600,76 @@ export function resolveBankingConfigForRoot(
     enabled: resolved.enabled,
     surplusThreshold: resolved.surplusThreshold,
   };
+}
+
+export interface MaybeBankOnAcPassInput {
+  readonly projectRoot: string;
+  /** plan.id or path-derived scope key. */
+  readonly scopeId: string;
+  readonly budget?: HardEffortBudget;
+  readonly config?: Partial<AcPassBankingConfig>;
+  readonly headSha?: string | null;
+  readonly now?: string;
+  readonly environ?: Readonly<Record<string, string | undefined>>;
+  /**
+   * Only bank when real acceptance commands executed and passed.
+   * Soft/advisory passes with zero runs do not bank.
+   */
+  readonly executableRuns: number;
+  readonly quiet?: boolean;
+}
+
+export interface MaybeBankOnAcPassResult {
+  readonly banked: boolean;
+  readonly decision: AcPassBankingDecision | null;
+  readonly bank: AcPassBankRecord | null;
+  readonly notes: readonly string[];
+}
+
+/**
+ * Production bridge (#3285 Greptile P1): after verify:ac reports executable
+ * success, FINALIZE the bank checkpoint + surplus decision.
+ * Fail-open: ledger/write errors become notes, never flip AC pass to fail.
+ */
+export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcPassResult {
+  if (input.executableRuns <= 0) {
+    return { banked: false, decision: null, bank: null, notes: [] };
+  }
+  try {
+    const budget =
+      input.budget ?? detectHardEffortBudget({ environ: input.environ ?? process.env });
+    const config =
+      input.config ?? resolveBankingConfigForRoot(input.projectRoot, input.environ ?? process.env);
+    const decision = evaluateAcPassBanking({
+      budget,
+      statedAcceptanceMet: true,
+      config,
+    });
+    const nextAction =
+      decision.nextAction === "still_open" ? "finalize_and_ship" : decision.nextAction;
+    const bank = bankAcPass({
+      projectRoot: input.projectRoot,
+      scopeId: input.scopeId,
+      budget,
+      surplus: decision.surplus,
+      nextAction,
+      headSha: input.headSha ?? null,
+      now: input.now,
+      environ: input.environ,
+    });
+    const notes = [
+      ...decision.notes,
+      `[deft ac-pass-banking] banked scope=${input.scopeId} next=${nextAction} ` +
+        `had_surplus=${decision.surplus.hasSurplus} (#3285)`,
+    ];
+    return { banked: true, decision, bank, notes };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      banked: false,
+      decision: null,
+      bank: null,
+      notes: [`[deft ac-pass-banking] bank skipped (fail-open): ${msg} (#3285)`],
+    };
+  }
 }

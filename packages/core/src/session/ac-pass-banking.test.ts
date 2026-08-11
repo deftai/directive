@@ -22,7 +22,10 @@ import {
   evaluateAcPassBanking,
   evaluateSurplus,
   formatBankEventLine,
+  maybeBankOnAcPass,
   readAcPassBank,
+  recordPostBankFinding,
+  sanitizeScopeIdForFilename,
   simulateSurplusInsufficientRun,
 } from "./ac-pass-banking.js";
 import {
@@ -290,6 +293,127 @@ describe("bank event telemetry (#3285)", () => {
     expect(reloaded).not.toBeNull();
     expect(reloaded?.headSha).toBe("abc123");
     expect(reloaded?.bankedAt).toBe("2026-08-11T15:00:00Z");
+  });
+});
+
+describe("re-bank preserves findings + production bridge (#3285)", () => {
+  it("re-banking keeps prior postBankFindings", () => {
+    const root = tempProject();
+    const budget = detectHardEffortBudget({
+      environ: {
+        [ENV_MAX_TURNS]: "100",
+        [ENV_REMAINING_TURNS]: "10",
+      },
+    });
+    const surplus = evaluateSurplus({ budget });
+    bankAcPass({
+      projectRoot: root,
+      scopeId: "rebank-scope",
+      budget,
+      surplus,
+      nextAction: "finalize_and_ship",
+      now: "2026-08-11T17:00:00Z",
+      environ: {},
+    });
+    const finding = decidePostBankFinding({
+      findingSummary: "out-of-scope debt",
+      regressesStatedAc: false,
+      hasSurplus: false,
+      now: "2026-08-11T17:01:00Z",
+    });
+    recordPostBankFinding(root, "rebank-scope", finding);
+    bankAcPass({
+      projectRoot: root,
+      scopeId: "rebank-scope",
+      budget,
+      surplus,
+      nextAction: "finalize_and_ship",
+      now: "2026-08-11T17:02:00Z",
+      environ: {},
+    });
+    const reloaded = readAcPassBank(root, "rebank-scope");
+    expect(reloaded?.postBankFindings).toHaveLength(1);
+    expect(reloaded?.postBankFindings[0]?.summary).toContain("out-of-scope");
+    expect(reloaded?.bankedAt).toBe("2026-08-11T17:02:00Z");
+  });
+
+  it("maybeBankOnAcPass banks only when executableRuns > 0", () => {
+    const root = tempProject();
+    const skipped = maybeBankOnAcPass({
+      projectRoot: root,
+      scopeId: "no-runs",
+      executableRuns: 0,
+      environ: { [ENV_MAX_TURNS]: "50" },
+    });
+    expect(skipped.banked).toBe(false);
+
+    const banked = maybeBankOnAcPass({
+      projectRoot: root,
+      scopeId: "with-runs",
+      executableRuns: 2,
+      environ: {
+        [ENV_MAX_TURNS]: "100",
+        [ENV_REMAINING_TURNS]: "50",
+      },
+      now: "2026-08-11T18:00:00Z",
+    });
+    expect(banked.banked).toBe(true);
+    expect(banked.bank?.scopeId).toBe("with-runs");
+    expect(banked.notes.some((n) => n.includes("banked scope="))).toBe(true);
+  });
+
+  it("sanitizeScopeIdForFilename collapses unsafe chars without ReDoS", () => {
+    expect(sanitizeScopeIdForFilename("a---b!!c")).toBe("a-b-c");
+    expect(sanitizeScopeIdForFilename("!!!")).toBe("scope");
+    expect(sanitizeScopeIdForFilename("-leading-")).toBe("leading");
+  });
+
+  it("evaluateAcPassBanking respects disabled config and cost surplus", () => {
+    const budget = detectHardEffortBudget({
+      environ: {
+        [ENV_MAX_BUDGET]: "10",
+        [ENV_REMAINING_BUDGET]: "5",
+      },
+    });
+    const disabled = evaluateAcPassBanking({
+      budget,
+      statedAcceptanceMet: true,
+      config: { enabled: false, surplusThreshold: 0.9 },
+    });
+    expect(disabled.nextAction).toBe("finalize_and_deepen");
+
+    const tightCost = evaluateAcPassBanking({
+      budget: detectHardEffortBudget({
+        environ: {
+          [ENV_MAX_BUDGET]: "10",
+          [ENV_REMAINING_BUDGET]: "1",
+        },
+      }),
+      statedAcceptanceMet: true,
+      config: { enabled: true, surplusThreshold: 0.2 },
+    });
+    expect(tightCost.nextAction).toBe("finalize_and_ship");
+  });
+
+  it("appendBankEventToRunSummary fail-open warns without throwing", () => {
+    const warnings: string[] = [];
+    const result = appendBankEventToRunSummary({
+      environ: { [ENV_RUN_SUMMARY_PATH]: join(tempProject(), "nested", "sum.jsonl") },
+      event: { type: "ac_pass_bank", schemaVersion: 1 },
+      writeLine: () => {
+        throw new Error("disk full");
+      },
+      warn: (m) => {
+        warnings.push(m);
+      },
+    });
+    expect(result.written).toBe(false);
+    expect(warnings.some((w) => w.includes("run-summary write failed"))).toBe(true);
+  });
+
+  it("readAcPassBank returns null for missing/corrupt records", () => {
+    const root = tempProject();
+    expect(readAcPassBank(root, "missing")).toBeNull();
   });
 });
 

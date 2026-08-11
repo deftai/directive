@@ -8,7 +8,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import {
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
@@ -16,6 +16,7 @@ import {
   type LiteralAcceptanceRunner,
   runLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
+import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
 import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
 import type { AcSourceRung, PlanAcceptance } from "./types.js";
 
@@ -41,6 +42,13 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   readonly checkIntegrated?: boolean;
   /** Allow task_statement sources to execute (tests / explicit promote). */
   readonly allowTaskStatement?: boolean;
+  /**
+   * When false, skip AC-pass banking after executable pass (#3285).
+   * Default true — first green executable AC banks a finalize checkpoint.
+   */
+  readonly bankOnPass?: boolean;
+  /** Optional scope id override for the bank ledger (default plan.id / path). */
+  readonly bankScopeId?: string | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -240,7 +248,48 @@ export function evaluateVerifyAcFromPath(
       acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
     };
   }
-  return evaluateVerifyAcFromPlan(plan, options);
+  const result = evaluateVerifyAcFromPlan(plan, options);
+  return maybeAttachAcPassBank(result, plan, abs, options);
+}
+
+/**
+ * After executable AC pass, FINALIZE the banking checkpoint (#3285).
+ * Soft/advisory passes with zero runs do not bank. Fail-open on ledger errors.
+ */
+function maybeAttachAcPassBank(
+  result: VerifyAcResult,
+  plan: Record<string, unknown>,
+  xbriefPath: string,
+  options: EvaluateVerifyAcOptions,
+): VerifyAcResult {
+  if (options.bankOnPass === false) {
+    return result;
+  }
+  if (!result.ok || result.runs.length === 0) {
+    return result;
+  }
+  const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
+  const scopeId =
+    (options.bankScopeId && options.bankScopeId.trim()) ||
+    planId ||
+    basename(xbriefPath)
+      .replace(/\.xbrief\.json$/i, "")
+      .replace(/\.vbrief\.json$/i, "");
+  const banked = maybeBankOnAcPass({
+    projectRoot,
+    scopeId,
+    executableRuns: result.runs.length,
+    quiet: options.quiet,
+  });
+  if (!banked.banked || banked.notes.length === 0 || options.quiet) {
+    return result;
+  }
+  const extra = banked.notes.join("\n");
+  return {
+    ...result,
+    message: result.message ? `${result.message}\n${extra}` : extra,
+  };
 }
 
 function softSkip(detail: string, quiet?: boolean): VerifyAcResult {
