@@ -648,11 +648,13 @@ export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBank
   const primary = primaryText !== null ? parseBankText(scopeId, primaryText) : null;
   const tmp = tmpText !== null ? parseBankText(scopeId, tmpText) : null;
 
-  // Prefer fully-parsed primary when both exist; union findings always.
+  // Prefer fresher fully-parsed record for metadata; always union findings.
   if (primary !== null && tmp !== null) {
+    const base = tmp.bankedAt >= primary.bankedAt ? tmp : primary;
+    const other = base === tmp ? primary : tmp;
     return {
-      ...primary,
-      postBankFindings: mergeFindings(primary.postBankFindings, tmp.postBankFindings),
+      ...base,
+      postBankFindings: mergeFindings(base.postBankFindings, other.postBankFindings),
     };
   }
   if (primary !== null) return primary;
