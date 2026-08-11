@@ -92,10 +92,14 @@ Operator-initiated resume after dual-stop, hard-stop, or conf-floor residual —
 
 **One residual pass (then re-stop):**
 1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` on the PR (CLI `deft` first, then `task deft:` — see review-cycle #2893).
-2. If a delivery attempt is still active: `task swarm:pre-dispatch -- --action cancel` then begin before residual spawn (#3228 / #3143).
+2. If a delivery attempt is still active, cancel then begin with the **same unit ids** (exit 0 required before residual spawn) (#3228 / #3143):
+   ```
+   task swarm:pre-dispatch -- --scope-id <story-or-issue-or-xbrief-id> --target-id <worktree-path-or-branch> --action cancel
+   task swarm:pre-dispatch -- --scope-id <story-or-issue-or-xbrief-id> --target-id <worktree-path-or-branch>
+   ```
 3. Spawn **one** active residual worker or review-cycle owner (not sleep-only re-poll as the only work). Monitor MUST NOT self-implement product fixes after merge-ready leaf handback (#2843).
-4. If the operator authorized a conf floor for **this PR only** (e.g. ≥4/5): document in a PR comment. ⊗ Edit global `minGreptileConfidence` policy for one residual.
-5. Wait re-review; merge when floor + gates met. Run `scope:complete` + lifecycle land when in scope (#3264 / finalize).
+4. If the operator authorized a conf floor for **this PR only** (e.g. ≥4/5): post a PR audit comment naming the floor, HEAD SHA, and who authorized it. That comment is the **human-merge / documented-override trail** — it does **not** rewrite `plan.policy.review.minGreptileConfidence` or make `pr:merge-ready` / `pr:watch` exit CLEAN below policy. Merge still requires policy CLEAN, bot-merge authority + override path, or human merge after the documented floor is met in the bot body. ⊗ Silent policy edit of `minGreptileConfidence` for one residual.
+5. Wait re-review; merge when policy floor + gates met (or human-merge after documented PR-local floor). Run `scope:complete` + lifecycle land when in scope (#3264 / finalize).
 
 ! Dual-stop re-entry: after the residual pass (+ re-review wait), if still blocked, halt again with a fresh resume line. Another pass requires **new** operator consent.
 

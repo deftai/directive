@@ -221,8 +221,8 @@ Operator-initiated resume after conf-hold, residual dual-stop, or hard-stop exit
 **One residual pass under operator consent:**
 1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` (#2893).
 2. Apply **one** residual fix batch **or** one re-review wait — not both as an unbounded loop.
-3. If operator authorized a conf floor for **this PR only** (e.g. ≥4/5): document in a PR comment. ⊗ Edit global `minGreptileConfidence`.
-4. Re-evaluate Step 6; merge when floor + gates met, or halt again with a fresh resume line.
+3. If operator authorized a conf floor for **this PR only** (e.g. ≥4/5): post a PR audit comment (floor, HEAD SHA, authorizer). That is the human-merge / documented-override trail — it does **not** rewrite policy or make `pr:merge-ready` / `pr:watch` CLEAN below `minGreptileConfidence`. ⊗ Silent policy edit for one residual.
+4. Re-evaluate Step 6; merge when **policy** floor + gates met, or human-merge after the documented PR-local floor is met in the bot body; else halt again with a fresh resume line.
 5. Post-merge `scope:complete` when this owner holds lifecycle (#2321 / #3264).
 
 ! Dual-stop re-entry: one residual pass then re-stop without new consent. Fresh operator consent required for another pass.
