@@ -13,6 +13,7 @@ import {
   estimateProvisionalCeremonyInputs,
   FIELD_CEREMONY_DIAL,
   FIELD_CEREMONY_DIAL_CLI_ALIAS,
+  formatCeremonyDialAuditLine,
   formatCeremonyDialStatusLine,
   inspectCeremonyDial,
   mergeCeremonyDialDeferrals,
@@ -20,8 +21,10 @@ import {
   normalizeCeremonyModelTier,
   normalizeCeremonyProjectShape,
   normalizeCeremonyTaskSize,
+  readCeremonyDialAudit,
   resolveCeremonyDial,
   resolveSessionCeremonyDialInputs,
+  selectCeremonyColdStartDepth,
   selectCeremonyDepth,
   selectCeremonyDepthFromMatrix,
   selectCeremonyDepthFromPartialEvidence,
@@ -122,24 +125,111 @@ describe("selectCeremonyDepthFromMatrix (#3214)", () => {
     ).toBe("elevated");
   });
 
-  it("two-stage partial evidence: start light; escalate on M/L or mid/low", () => {
+  it("two-stage partial evidence: size-only escalates; tier-only is #3263 cold-start", () => {
     // Size-only.
     expect(selectCeremonyDepthFromMatrix({ taskSize: "S" })).toBe("rapid");
     expect(selectCeremonyDepthFromMatrix({ taskSize: "M" })).toBe("standard");
     expect(selectCeremonyDepthFromMatrix({ taskSize: "L" })).toBe("elevated");
-    // Tier-only.
+    // Tier-only (size incomplete): tier-conditional cold-start (#3263).
     expect(selectCeremonyDepthFromMatrix({ modelTier: "frontier" })).toBe("rapid");
     expect(selectCeremonyDepthFromMatrix({ modelTier: "mid" })).toBe("standard");
-    expect(selectCeremonyDepthFromMatrix({ modelTier: "low" })).toBe("elevated");
-    // Both missing.
+    expect(selectCeremonyDepthFromMatrix({ modelTier: "low" })).toBe("standard");
+    // Both missing → unknown-tier cold default rapid.
     expect(selectCeremonyDepthFromPartialEvidence({ taskSize: null, modelTier: null })).toBe(
       "rapid",
     );
   });
 });
 
+describe("tier-conditional cold-start (#3263)", () => {
+  it("selectCeremonyColdStartDepth: mid/low → standard; frontier/unknown → rapid", () => {
+    expect(selectCeremonyColdStartDepth("frontier")).toBe("rapid");
+    expect(selectCeremonyColdStartDepth("mid")).toBe("standard");
+    expect(selectCeremonyColdStartDepth("low")).toBe("standard");
+    expect(selectCeremonyColdStartDepth(null)).toBe("rapid");
+    expect(selectCeremonyColdStartDepth(undefined)).toBe("rapid");
+  });
+
+  it("matrix incomplete size: mid/low cold-start standard; frontier remains rapid", () => {
+    expect(
+      selectCeremonyDepthFromMatrix({
+        modelTier: "mid",
+        projectShape: "project",
+      }),
+    ).toBe("standard");
+    expect(
+      selectCeremonyDepthFromMatrix({
+        modelTier: "low",
+        projectShape: "project",
+      }),
+    ).toBe("standard");
+    expect(
+      selectCeremonyDepthFromMatrix({
+        modelTier: "frontier",
+        projectShape: "project",
+      }),
+    ).toBe("rapid");
+  });
+
+  it("selectCeremonyDepth wires mid/low incomplete-size inputs to standard", () => {
+    const mid = selectCeremonyDepth({
+      inputs: { modelTier: "mid", projectShape: "project" },
+    });
+    expect(mid.depth).toBe("standard");
+    expect(mid.source).toBe("matrix");
+    expect(mid.profile.skipFatPath).toBe(false);
+
+    const low = selectCeremonyDepth({
+      inputs: { modelTier: "low" },
+    });
+    expect(low.depth).toBe("standard");
+    expect(low.profile.skipFatPath).toBe(false);
+
+    const frontier = selectCeremonyDepth({
+      inputs: { modelTier: "frontier" },
+    });
+    expect(frontier.depth).toBe("rapid");
+    expect(frontier.profile.skipFatPath).toBe(true);
+  });
+
+  it("override still wins over tier-conditional cold-start", () => {
+    const s = selectCeremonyDepth({
+      config: { override: "rapid" },
+      inputs: { modelTier: "mid", projectShape: "project" },
+    });
+    expect(s.depth).toBe("rapid");
+    expect(s.source).toBe("override");
+  });
+
+  it("escalate-on-evidence: size M/L still raises depth when tier is mid", () => {
+    // Cold mid is standard; known large size still elevates via full matrix.
+    expect(
+      selectCeremonyDepthFromMatrix({
+        taskSize: "L",
+        modelTier: "mid",
+        projectShape: "project",
+      }),
+    ).toBe("elevated");
+    expect(
+      selectCeremonyDepthFromMatrix({
+        taskSize: "M",
+        modelTier: "mid",
+        projectShape: "project",
+      }),
+    ).toBe("standard");
+    // Low × M elevates once size is known (full matrix, not cold-start floor alone).
+    expect(
+      selectCeremonyDepthFromMatrix({
+        taskSize: "M",
+        modelTier: "low",
+        projectShape: "project",
+      }),
+    ).toBe("elevated");
+  });
+});
+
 describe("selectCeremonyDepth precedence", () => {
-  it("uses rapid when no inputs (two-stage cold default)", () => {
+  it("uses rapid when no inputs (unknown-tier cold default)", () => {
     const s = selectCeremonyDepth({});
     expect(s.depth).toBe("rapid");
     expect(s.source).toBe("default");
@@ -370,5 +460,69 @@ describe("provisional intake estimate (#3214 design note option 1)", () => {
     // M + no tier → standard (escalate on substantial size).
     expect(selectCeremonyDepth({ inputs }).depth).toBe("standard");
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("readCeremonyDialAudit (#3263)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("reads depth + provisional reasons from ritual-state", () => {
+    root = makeProject({});
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "ritual-state.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        ceremony_dial: {
+          depth: "standard",
+          source: "matrix",
+          inputs: {
+            taskSize: null,
+            modelTier: "mid",
+            projectShape: "project",
+          },
+          provisional: {
+            taskSize: null,
+            modelTier: "mid",
+            projectShape: "project",
+            reasons: ["modelTier=mid from env"],
+          },
+        },
+      }),
+      "utf8",
+    );
+
+    const audit = readCeremonyDialAudit(root);
+    expect(audit.error).toBeNull();
+    expect(audit.depth).toBe("standard");
+    expect(audit.source).toBe("matrix");
+    expect(audit.inputs?.modelTier).toBe("mid");
+    expect(audit.provisional?.reasons).toContain("modelTier=mid from env");
+    expect(formatCeremonyDialAuditLine(audit)).toContain("depth=standard");
+    expect(formatCeremonyDialAuditLine(audit)).toContain("modelTier=mid");
+    expect(formatCeremonyDialAuditLine(audit)).toContain("provisional.reasons=");
+  });
+
+  it("reports missing ritual-state and missing ceremony_dial", () => {
+    root = makeProject({});
+    const missing = readCeremonyDialAudit(root);
+    expect(missing.depth).toBeNull();
+    expect(missing.error).toMatch(/ritual-state missing/);
+
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "ritual-state.json"),
+      JSON.stringify({ schemaVersion: 1, session_id: "x" }),
+      "utf8",
+    );
+    const noDial = readCeremonyDialAudit(root);
+    expect(noDial.error).toMatch(/no ceremony_dial/);
+    expect(formatCeremonyDialAuditLine(noDial)).toContain("error=");
   });
 });

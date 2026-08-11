@@ -1,5 +1,5 @@
 /**
- * Ceremony dial (#3214): ritual depth = f(task size × model tier × project shape).
+ * Ceremony dial (#3214 / #3263): ritual depth = f(task size × model tier × project shape).
  *
  * Selection policy over existing pieces — not a new subsystem.
  * Composes:
@@ -7,11 +7,15 @@
  *   - #3014 minimal consumer AGENTS profile (research pointer; not yet a shipped deposit)
  *   - effort estimate (#1581), model routing (#1976/#818), host capability (#1461)
  *
- * Two-stage dial (#3214 design note / #1581 ordering):
- *   cold-start / incomplete inputs → **rapid** (start light; no plan-item deadlock)
- *   escalate when evidence arrives (provisional M/L, mid/low tier, full matrix)
+ * Two-stage dial (#3214 design note / #1581 ordering) with tier-conditional cold-start (#3263):
+ *   cold-start / incomplete size → **tier-conditional**:
+ *     frontier (or unknown tier) → rapid; mid/low → standard (not rapid)
+ *   escalate when evidence arrives (provisional M/L size, full matrix)
  * Full matrix: S × frontier → rapid; non-project → minimal; else scales up.
  * Override always available via plan.policy.ceremonyDial.override; audited on write.
+ *
+ * Audit path (#3263): session:start records depth + provisional reasons on
+ * `.deft/ritual-state.json` under `ceremony_dial` — use `readCeremonyDialAudit`.
  */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -270,11 +274,32 @@ export function normalizeCeremonyProjectShape(raw: unknown): CeremonyProjectShap
 }
 
 /**
- * Two-stage / partial-evidence selection when size or tier is missing (#3214 design note).
+ * Tier-conditional cold-start depth when task size is incomplete (#3263).
  *
- * Start light (rapid) on cold incomplete inputs; escalate when partial evidence already
- * implies heavier ceremony (apps-bank safety: hard/substantial work must not stay rapid).
- * Does not invent plan-item effort (#1581 post-planning only).
+ * Mid/low models benefit from structure on hard tasks and should not cold-start
+ * at rapid (start-light / escalate-too-late signature). Frontier recovers from a
+ * light start. Unknown tier stays rapid (optimistic cold default; pass
+ * `--model-tier` / `DEFT_CEREMONY_MODEL_TIER` to unlock the mid/low floor).
+ *
+ * Escalate-on-evidence still applies when size later arrives (full matrix).
+ */
+export function selectCeremonyColdStartDepth(
+  modelTier: CeremonyModelTier | null | undefined,
+): CeremonyDepth {
+  if (modelTier === "mid" || modelTier === "low") {
+    return "standard";
+  }
+  // frontier or unknown → rapid
+  return "rapid";
+}
+
+/**
+ * Two-stage / partial-evidence selection when size or tier is missing
+ * (#3214 design note / #3263 tier-conditional cold-start).
+ *
+ * Cold incomplete size is tier-conditional (#3263): mid/low → standard, frontier
+ * or unknown → rapid. When size is known without tier, escalate on substantial
+ * size (apps-bank safety). Does not invent plan-item effort (#1581 post-planning only).
  */
 export function selectCeremonyDepthFromPartialEvidence(inputs: {
   readonly taskSize: CeremonyTaskSize | null;
@@ -290,26 +315,21 @@ export function selectCeremonyDepthFromPartialEvidence(inputs: {
     return "elevated"; // L / XL
   }
 
-  // Tier known, size unknown — mid/low need structure; frontier can start light.
-  if (size === null && tier !== null) {
-    if (tier === "frontier") return "rapid";
-    if (tier === "mid") return "standard";
-    return "elevated"; // low
-  }
-
-  // Both unknown: two-stage cold default.
-  return "rapid";
+  // Size incomplete (null), any tier including unknown: tier-conditional cold-start (#3263).
+  // Callers with both size and tier set use the full matrix instead.
+  return selectCeremonyColdStartDepth(tier);
 }
 
 /**
- * Pure default matrix (#3214 acceptance + two-stage design note):
+ * Pure default matrix (#3214 acceptance + #3263 tier-conditional cold-start):
  * - non-project → minimal (#3014 direction)
  * - S × frontier → rapid (strategies/rapid.md)
  * - S × mid → standard (mid-tier gains from structure)
  * - S × low → elevated
  * - M × low → elevated; M otherwise → standard
  * - L/XL → elevated (except L × frontier stays standard)
- * - Incomplete size/tier → two-stage partial evidence (default rapid; escalate on M/L or mid/low)
+ * - Incomplete size → tier-conditional cold-start (#3263): mid/low → standard; frontier/unknown → rapid
+ * - Size known, tier missing → escalate on M/L (partial evidence)
  */
 export function selectCeremonyDepthFromMatrix(inputs: CeremonyDialInputs): CeremonyDepth {
   const shape = inputs.projectShape ?? null;
@@ -371,7 +391,7 @@ export interface SelectCeremonyDepthOptions {
  * Deterministic depth selection (pure; no IO).
  *
  * Precedence: disabled → standard; override → forced depth; else matrix on inputs;
- * empty inputs → **rapid** (two-stage cold default; escalate when evidence arrives).
+ * empty inputs → **rapid** (unknown-tier cold default; #3263 mid/low need modelTier set).
  */
 export function selectCeremonyDepth(
   options: SelectCeremonyDepthOptions = {},
@@ -415,8 +435,8 @@ export function selectCeremonyDepth(
   const hasAnyInput =
     inputs.taskSize !== null || inputs.modelTier !== null || inputs.projectShape !== null;
   if (!hasAnyInput) {
-    // Two-stage dial cold default (#3214 design note / #1581 ordering).
-    const depth: CeremonyDepth = "rapid";
+    // Unknown-tier cold default (#3214 / #3263): rapid until modelTier or size arrives.
+    const depth = selectCeremonyColdStartDepth(null);
     return {
       depth,
       source: "default",
@@ -1037,4 +1057,161 @@ export function resolveSessionCeremonyDialInputs(
     inputs: mergeCeremonyDialInputsWithProvisional(explicit, provisional),
     provisional,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Audit path — read depth/provisional already recorded at session start (#3263)
+// ---------------------------------------------------------------------------
+
+export interface CeremonyDialAuditProvisional {
+  readonly taskSize: CeremonyTaskSize | null;
+  readonly modelTier: CeremonyModelTier | null;
+  readonly projectShape: CeremonyProjectShape | null;
+  readonly reasons: readonly string[];
+}
+
+/**
+ * Snapshot of dial selection recorded on `.deft/ritual-state.json` at session:start.
+ * Operators audit failed-task depth / provisional reasons without re-running ritual.
+ */
+export interface CeremonyDialAuditSnapshot {
+  readonly path: string;
+  readonly depth: CeremonyDepth | null;
+  readonly source: string | null;
+  readonly inputs: {
+    readonly taskSize: CeremonyTaskSize | null;
+    readonly modelTier: CeremonyModelTier | null;
+    readonly projectShape: CeremonyProjectShape | null;
+  } | null;
+  readonly provisional: CeremonyDialAuditProvisional | null;
+  readonly raw: Record<string, unknown> | null;
+  readonly error: string | null;
+}
+
+function asOptionalDepth(value: unknown): CeremonyDepth | null {
+  return isCeremonyDepth(value) ? value : null;
+}
+
+function asOptionalTaskSize(value: unknown): CeremonyTaskSize | null {
+  return isTaskSize(value) ? value : null;
+}
+
+function asOptionalModelTier(value: unknown): CeremonyModelTier | null {
+  return isModelTier(value) ? value : null;
+}
+
+function asOptionalProjectShape(value: unknown): CeremonyProjectShape | null {
+  return isProjectShape(value) ? value : null;
+}
+
+/**
+ * Read ceremony dial depth + provisional reasons from ritual-state (#3263 audit path).
+ * session:start already writes `ceremony_dial` (incl. provisional) — this is the
+ * operator/read path so failed runs can confirm start-light vs escalate timing.
+ *
+ * Returns `error` when ritual-state is missing/unreadable or lacks `ceremony_dial`;
+ * does not throw.
+ */
+export function readCeremonyDialAudit(projectRoot: string): CeremonyDialAuditSnapshot {
+  const path = join(projectRoot, ".deft", "ritual-state.json");
+  const empty = (error: string): CeremonyDialAuditSnapshot => ({
+    path,
+    depth: null,
+    source: null,
+    inputs: null,
+    provisional: null,
+    raw: null,
+    error,
+  });
+
+  try {
+    if (!existsSync(path) || !statSync(path).isFile()) {
+      return empty(`ritual-state missing at ${path}`);
+    }
+  } catch (exc) {
+    return empty(`ritual-state unreadable at ${path}: ${String(exc)}`);
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(readFileSync(path, { encoding: "utf8" }));
+  } catch (exc) {
+    if (exc instanceof SyntaxError) {
+      return empty(`ritual-state is not valid JSON: ${exc.message}`);
+    }
+    return empty(`ritual-state cannot be read: ${String(exc)}`);
+  }
+
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    return empty("ritual-state top-level value must be an object");
+  }
+
+  const root = payload as Record<string, unknown>;
+  const dialRaw = root.ceremony_dial;
+  if (dialRaw === undefined || dialRaw === null) {
+    return empty("ritual-state has no ceremony_dial field (pre-#3214 or non-mutation session)");
+  }
+  if (typeof dialRaw !== "object" || Array.isArray(dialRaw)) {
+    return empty("ritual-state ceremony_dial must be an object");
+  }
+
+  const dial = dialRaw as Record<string, unknown>;
+  const depth = asOptionalDepth(dial.depth);
+  const source = typeof dial.source === "string" ? dial.source : null;
+
+  let inputs: CeremonyDialAuditSnapshot["inputs"] = null;
+  const inputsRaw = dial.inputs;
+  if (typeof inputsRaw === "object" && inputsRaw !== null && !Array.isArray(inputsRaw)) {
+    const rec = inputsRaw as Record<string, unknown>;
+    inputs = {
+      taskSize: asOptionalTaskSize(rec.taskSize),
+      modelTier: asOptionalModelTier(rec.modelTier),
+      projectShape: asOptionalProjectShape(rec.projectShape),
+    };
+  }
+
+  let provisional: CeremonyDialAuditProvisional | null = null;
+  const provRaw = dial.provisional;
+  if (typeof provRaw === "object" && provRaw !== null && !Array.isArray(provRaw)) {
+    const rec = provRaw as Record<string, unknown>;
+    const reasons = Array.isArray(rec.reasons)
+      ? rec.reasons.filter((r): r is string => typeof r === "string")
+      : [];
+    provisional = {
+      taskSize: asOptionalTaskSize(rec.taskSize),
+      modelTier: asOptionalModelTier(rec.modelTier),
+      projectShape: asOptionalProjectShape(rec.projectShape),
+      reasons,
+    };
+  }
+
+  return {
+    path,
+    depth,
+    source,
+    inputs,
+    provisional,
+    raw: { ...dial },
+    error: null,
+  };
+}
+
+/** One-line operator summary for audit tooling / failed-task forensics (#3263). */
+export function formatCeremonyDialAuditLine(audit: CeremonyDialAuditSnapshot): string {
+  if (audit.error !== null) {
+    return `[deft ceremony-dial audit] error=${audit.error}`;
+  }
+  const parts = [
+    `[deft ceremony-dial audit] depth=${audit.depth ?? "-"}`,
+    `source=${audit.source ?? "-"}`,
+    `taskSize=${audit.inputs?.taskSize ?? "-"}`,
+    `modelTier=${audit.inputs?.modelTier ?? "-"}`,
+    `projectShape=${audit.inputs?.projectShape ?? "-"}`,
+  ];
+  if (audit.provisional !== null) {
+    const reasons =
+      audit.provisional.reasons.length > 0 ? audit.provisional.reasons.join("; ") : "(none)";
+    parts.push(`provisional.reasons=${reasons}`);
+  }
+  return parts.join(" ");
 }

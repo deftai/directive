@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Ceremony dial cold-start is tier-conditional (#3263).** Incomplete size no longer always starts `rapid`: mid/low model tiers cold-start at `standard` (structure floor); frontier and unknown tier stay `rapid`. Escalate-on-evidence (provisional M/L, full matrix) unchanged. Audit path: `readCeremonyDialAudit` / `formatCeremonyDialAuditLine` read depth + provisional reasons already recorded on `.deft/ritual-state.json` `ceremony_dial` at session:start. Core: `packages/core/src/policy/ceremony-dial.ts`. Closes #3263. Refs #3214, #1581, #759.
+
 - **Cursor ephemeral local-dev Task no longer needs a fake active xBRIEF (#3259).** Session assist env (`DEFT_SESSION_POSTURE` assist-set / `DEFT_HOOK_ASSIST=1`) is a structural ephemeral marker for **spawn tools only** (shared taxonomy with #1802 / #3080); implement envelope signals still win. Spawn-not-ready recovery and `commands.md` state free-text `[worker_role: ephemeral]` is not sufficient and name parent Shell + session assist as Cursor local-dev paths. Unmarked Multitask without assist still denies. Closes #3259. Refs #3080, #1802.
 
 - **scope:decompose single-use claim is failure-safe and crash-recoverable (#3239 residual).** Structural apply holds an exclusive grant claim lock through revalidate → mark `usedAt` → multi-file child/parent writes; apply throw rolls `usedAt` back under the lock (retry-safe) and best-effort removes this attempt's child files. Dead-PID/corrupt locks reclaim via rename-away (not blind `rmSync`) then exclusive create; live holder PIDs are never reclaimed. Refs #3239, #3237.
