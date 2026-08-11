@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vitest branch coverage restored above 85% (#3287).** Focused branch tests for literal-acceptance safety/capture edges, value readback pure helpers, and story-quality residual paths clear the v0.100.0 84.96% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.41%, branches 85.08%, functions 96.00%. Closes #3287.
+
 ### Removed
 
 ## [0.100.0] - 2026-08-11
