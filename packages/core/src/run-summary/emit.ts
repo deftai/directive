@@ -6,8 +6,8 @@
  * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { mkdirSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { mkdirSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -69,8 +69,26 @@ function isNestedUnder(parent: string, child: string): boolean {
 }
 
 /**
+ * Post-write realpath check: refuse parent-component TOCTOU where a parent was
+ * replaced with a symlink between validation and open (#3282 Greptile residual).
+ */
+function assertRealpathStillContained(root: string, targetAbs: string): void {
+  const realRoot = realpathSync(resolve(root));
+  const realTarget = realpathSync(targetAbs);
+  const prefix = realRoot.endsWith(sep) ? realRoot : `${realRoot}${sep}`;
+  if (realTarget !== realRoot && !realTarget.startsWith(prefix)) {
+    throw new Error(
+      `run-summary write refused: realpath escaped containment (${realTarget} not under ${realRoot})`,
+    );
+  }
+  // Re-assert path components are not symlinks after the write.
+  assertWriteTargetSafe(realRoot, realTarget);
+}
+
+/**
  * Append (or replace) a run-summary line with symlink refusal + containment.
  * Mirrors lifecycle/events.ts appendEventLogLine (#2766 / #2951 / #3282 Greptile P1).
+ * Post-write realpath re-check closes parent-replacement TOCTOU window.
  */
 function writeRunSummaryLine(
   projectRoot: string,
@@ -81,25 +99,29 @@ function writeRunSummaryLine(
   const targetAbs = resolve(targetPath);
   const data = `${textLine}\n`;
   if (isNestedUnder(projectRoot, targetAbs)) {
-    assertWriteTargetSafe(projectRoot, targetAbs);
+    const rootAbs = resolve(projectRoot);
+    assertWriteTargetSafe(rootAbs, targetAbs);
     containedWrite({
-      root: resolve(projectRoot),
+      root: rootAbs,
       target: targetAbs,
       data,
       mode,
     });
+    assertRealpathStillContained(rootAbs, targetAbs);
     return;
   }
   // Explicit path outside project: contain under the log parent (no symlink follow).
   const parent = dirname(targetAbs);
   mkdirSync(parent, { recursive: true });
-  assertWriteTargetSafe(parent, targetAbs);
+  const parentAbs = resolve(parent);
+  assertWriteTargetSafe(parentAbs, targetAbs);
   containedWrite({
-    root: resolve(parent),
+    root: parentAbs,
     target: basename(targetAbs),
     data,
     mode,
   });
+  assertRealpathStillContained(parentAbs, targetAbs);
 }
 
 /**
