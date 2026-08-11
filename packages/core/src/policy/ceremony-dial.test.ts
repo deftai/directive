@@ -284,6 +284,12 @@ describe("selectCeremonyDepth precedence", () => {
     expect(ceremonyDialProfile("minimal").lifecycleWrites).toBe("minimal");
     expect(ceremonyDialProfile("standard").autoDeferSteps).toEqual([]);
   });
+
+  it("literal acceptance-command verification required at every dial depth (#3267)", () => {
+    for (const depth of ["minimal", "rapid", "standard", "elevated"] as const) {
+      expect(ceremonyDialProfile(depth).literalAcceptanceRequired).toBe(true);
+    }
+  });
 });
 
 describe("normalize helpers", () => {

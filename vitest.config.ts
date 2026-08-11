@@ -136,6 +136,7 @@ const subpathAliases: Record<string, string> = {
   ),
   "@deftai/directive-core/legacy-bridge": sub("core", "legacy-bridge"),
   "@deftai/directive-core/lifecycle": sub("core", "lifecycle"),
+  "@deftai/directive-core/literal-acceptance": sub("core", "literal-acceptance"),
   "@deftai/directive-core/orchestration": sub("core", "orchestration"),
   "@deftai/directive-core/review-monitor": sub("core", "review-monitor"),
   "@deftai/directive-core/packs": sub("core", "packs"),

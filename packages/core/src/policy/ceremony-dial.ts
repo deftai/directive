@@ -85,6 +85,11 @@ export interface CeremonyDialProfile {
   readonly skipFatPath: boolean;
   /** How much lifecycle / history write budget this depth intends. */
   readonly lifecycleWrites: "minimal" | "light" | "full";
+  /**
+   * Literal acceptance-command verification is always required (#3267 / #3156).
+   * Ceremony dial never skips capture+verbatim run — including rapid/minimal.
+   */
+  readonly literalAcceptanceRequired: true;
   readonly label: string;
 }
 
@@ -125,6 +130,9 @@ export interface CeremonyDialSelection {
  *   (`verify:session-ritual --tier=gated`). Gated verify treats
  *   `deferred_reason` as satisfied, so dial-driven deferral would skip gates.
  * ! `verify_tools` also remains required on every dial depth (not skipFatPath).
+ * ! Literal acceptance-command verification (#3267) is required at every depth
+ *   (`literalAcceptanceRequired: true`), including rapid/minimal — capture exact
+ *   stated commands at intake and run them verbatim before done. Extends #973.
  * ~ Rapid/minimal MAY lighten informational cold path only: triage welcome,
  *   optional network/release probe, staleness tickler.
  */
@@ -135,6 +143,7 @@ const PROFILES: Readonly<Record<CeremonyDepth, CeremonyDialProfile>> = {
     autoDeferSteps: ["triage_welcome"],
     skipFatPath: true,
     lifecycleWrites: "minimal",
+    literalAcceptanceRequired: true,
     label: "minimal (non-project / #3014 direction)",
   },
   rapid: {
@@ -142,6 +151,7 @@ const PROFILES: Readonly<Record<CeremonyDepth, CeremonyDialProfile>> = {
     autoDeferSteps: ["triage_welcome"],
     skipFatPath: true,
     lifecycleWrites: "light",
+    literalAcceptanceRequired: true,
     label: "rapid (strategies/rapid.md light path)",
   },
   standard: {
@@ -149,6 +159,7 @@ const PROFILES: Readonly<Record<CeremonyDepth, CeremonyDialProfile>> = {
     autoDeferSteps: [],
     skipFatPath: false,
     lifecycleWrites: "full",
+    literalAcceptanceRequired: true,
     label: "standard (full session ritual)",
   },
   elevated: {
@@ -156,6 +167,7 @@ const PROFILES: Readonly<Record<CeremonyDepth, CeremonyDialProfile>> = {
     autoDeferSteps: [],
     skipFatPath: false,
     lifecycleWrites: "full",
+    literalAcceptanceRequired: true,
     label: "elevated (full ritual; prefer more gates for weaker tiers / large tasks)",
   },
 };
@@ -544,6 +556,7 @@ export function ceremonyDialToDict(selection: CeremonyDialSelection): Record<str
       autoDeferSteps: [...selection.profile.autoDeferSteps],
       skipFatPath: selection.profile.skipFatPath,
       lifecycleWrites: selection.profile.lifecycleWrites,
+      literalAcceptanceRequired: selection.profile.literalAcceptanceRequired,
       label: selection.profile.label,
     },
     composition: {

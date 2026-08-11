@@ -101,6 +101,15 @@ Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produ
 
 ---
 
+## Literal acceptance-command verification (#3267)
+
+Rapid lightens cold ceremony only. When the task statement names exact shell acceptance commands:
+
+- ! Capture them at intake as executable AC (`plan.metadata.literal_acceptance_commands`) — do not paraphrase.
+- ! Before done, run `task verify:literal-ac -- <active-story-path>` (verbatim flags/cwd). Fail closed on non-zero.
+- ! This check survives ceremony dial rapid/minimal (#3214) — it is the positive verification content of the light path.
+- ⊗ Treat self-chosen approximate checks as sufficient when the statement named exact commands.
+
 ## Anti-Patterns
 
 - ⊗ Using rapid for production features -- rapid output is explicitly throwaway

@@ -24,6 +24,7 @@ import {
   MIGRATED_INFO_ROOT_KEY,
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
+import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
 import {
   findAcHeading,
   parseCheckboxItems,
@@ -566,6 +567,14 @@ export function buildIssueVbrief(
       references.push(...extractCrossRefs(overviewSource, repoUrl, new Set([number])));
     }
     plan.references = references;
+  }
+
+  // #3267: capture exact stated acceptance commands from the issue body at intake.
+  // Stored as executable AC (plan.metadata.literal_acceptance_commands) — not paraphrased.
+  if (bodyStr.length > 0) {
+    const intakeText = [title, bodyStr].filter((s) => s.length > 0).join("\n\n");
+    const attached = captureAndAttachLiteralAcceptance(plan, intakeText);
+    Object.assign(plan, attached.plan);
   }
 
   const infoRootKey = options.infoRootKey ?? LEGACY_INFO_ROOT_KEY;

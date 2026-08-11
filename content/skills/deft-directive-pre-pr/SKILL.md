@@ -173,6 +173,13 @@ When session effort-budget is hard-capped (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` 
 - ! If remaining budget cannot fund another full Read-Write-Lint-Diff pass **and** a fix for a new finding, stop after the stated-pass chokepoint and record `deepening_skipped=true` with reason (#1006).
 - ! Dual-stop pre-PR defaults (max 3 polish / 2 no-diff) still apply; under a hard cap, prefer fewer polish iterations once AC + check are green.
 - ⊗ Start an unbounded self-imposed verification suite that exceeds stated AC while the hard budget is nearly exhausted (#3266).
+
+## Literal acceptance-command verification (#3267)
+
+- ! Before Phase 3 Lint exit / push, when the active scope xBRIEF has stated acceptance commands (metadata or narratives), run `task verify:literal-ac -- <active-xbrief>` and fail closed on exit 1.
+- ! Commands must be the exact strings from the task statement — same flags and cwd. Self-chosen verification is supplementary only.
+- ⊗ Skip literal AC run on rapid/minimal ceremony dial — #3267 is required at every depth.
+
 ## Probe-then-fill remote claims (#3120)
 
 ! Before filling any **remote** handoff field (PR URL, PR number, commit/HEAD SHA, CI green/success, review score) or claiming `status: pass` / ship/gate done, MUST **probe then fill**:

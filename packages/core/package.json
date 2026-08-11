@@ -284,6 +284,10 @@
       "types": "./dist/lifecycle/index.d.ts",
       "default": "./dist/lifecycle/index.js"
     },
+    "./literal-acceptance": {
+      "types": "./dist/literal-acceptance/index.d.ts",
+      "default": "./dist/literal-acceptance/index.js"
+    },
     "./packs": {
       "types": "./dist/packs/index.d.ts",
       "default": "./dist/packs/index.js"

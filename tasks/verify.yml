@@ -482,6 +482,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:completed-tracked --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  literal-ac:
+    desc: "Literal acceptance-command verification (#3267). Run stated acceptance commands from the active (or --xbrief) scope artifact VERBATIM before done — same flags/cwd. Capture-only audit: --capture-only. Three-state exit (0 pass or none stated / 1 command failed / 2 config). Extends #973; required on ceremony dial rapid/minimal (#3214)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:literal-ac --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   agents-md-budget:
     desc: "Layered AGENTS.md budget instrument (#645 + #2450). Fail-closed relative ratchet: counts the managed section and the unmanaged region separately (the #1309 propagation duplicates content across the marker) and fails when either region grows past plan.policy.agentsMdBudget. Seeded at current size, so it ships green; growth past the ratchet fails. ADVISORY absolute north-star: also reports managed-section size vs ≤8 KB / ~2k tok (#2372 layered instrument) without affecting exit codes in Wave 1. Three-state exit (0 within / 1 over ratchet / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'
