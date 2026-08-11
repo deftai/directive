@@ -100,12 +100,19 @@
         "readiness": "ready",
         "parallel_safe": true,
         "file_scope": [
-          "packages/core/src/session",
-          "packages/core/src/triage",
-          "packages/cli/src",
+          ".gitignore",
+          "AGENTS.md",
+          "CHANGELOG.md",
           "content/commands.md",
           "content/templates",
-          "CHANGELOG.md"
+          "meta/policy-changes.log",
+          "packages/cli/src",
+          "packages/core/src/triage",
+          "packages/core/src/ts-check-lane",
+          "packages/core/src/vbrief-validate",
+          "packages/core/src/vitest-runner",
+          "vitest.config.ts",
+          "xbrief"
         ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/triage/classify/mirror-discovery-tip.test.ts packages/core/src/triage/classify/label-mirror.test.ts --reporter=dot",

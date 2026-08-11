@@ -131,6 +131,9 @@ export const MIRROR_DISCOVERY_RECOMMENDED_ACTION_LABELS = {
 /** Dry-run command shown in the tip (open-only default). */
 export const MIRROR_DISCOVERY_DRY_RUN_COMMAND = "deft triage:classify -- --mirror";
 
+/** Operator ack command that dismisses the tip without a dry-run (#3124 Greptile). */
+export const MIRROR_DISCOVERY_ACK_COMMAND = "deft triage:classify -- --ack-discovery";
+
 /** Policy inspect command. */
 export const MIRROR_DISCOVERY_POLICY_SHOW_COMMAND =
   "deft policy:show --field=plan.policy.triageLabelMirror";
@@ -185,7 +188,7 @@ export function formatMirrorDiscoveryTipBody(): string {
     "  Recommended consumer labels + PD sketch: consumer kit **#2611**",
     "    (content/docs/consumer-issue-label-kit.md) — do not invent new triage:* vocabulary.",
     "  Depth: commands.md § triage:classify --mirror; tip hides after first successful dry-run",
-    "    or operator ack (not every session re-arm).",
+    `    or operator ack: \`${MIRROR_DISCOVERY_ACK_COMMAND}\` (not every session re-arm).`,
     "  Recommended PD sketch:",
     ...mapJson.split("\n").map((line) => `    ${line}`),
     MIRROR_DISCOVERY_ANTI_SWALLOW_RULE,

@@ -36,6 +36,8 @@ export const PLAN_CORE = new Set([
   "changeLog",
   "sequence",
   "fork",
+  // Product-first done-gate (#3284): plan.acceptance.commands / none_stated / source_rung.
+  "acceptance",
 ]);
 
 export const ITEM_CORE = new Set([
@@ -71,6 +73,8 @@ export const ITEM_CORE = new Set([
   "lastModifiedBy",
   "lockedBy",
   "items",
+  // Optional PlanItem.effort enum S/M/L/XL (#1581) — schema-validated, core not extension.
+  "effort",
 ]);
 
 export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/", "x-xbrief/"] as const;

@@ -7,6 +7,7 @@ import {
   formatMirrorDiscoveryTip,
   formatMirrorDiscoveryTipBody,
   isMirrorDiscoveryTipDue,
+  MIRROR_DISCOVERY_ACK_COMMAND,
   MIRROR_DISCOVERY_ANTI_SWALLOW_RULE,
   MIRROR_DISCOVERY_DRY_RUN_COMMAND,
   MIRROR_DISCOVERY_EMPTY_ACTION_LABELS_HINT,
@@ -62,6 +63,7 @@ describe("mirror discovery tip content (#3124)", () => {
     expect(body).toMatch(/exist on GitHub/i);
     expect(body).toMatch(/before.*actionLabels|skips re-enrichment/i);
     expect(body).toContain("#2611");
+    expect(body).toContain(MIRROR_DISCOVERY_ACK_COMMAND);
     expect(body).toContain(MIRROR_DISCOVERY_ANTI_SWALLOW_RULE);
     expect(MIRROR_DISCOVERY_RECOMMENDED_ACTION_LABELS.accept).toEqual(["triage:lifecycle-linked"]);
   });

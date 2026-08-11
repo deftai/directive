@@ -17,10 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 - **Consumer issue-label kit: optional `security` project routing label (#3299).** Documents optional portable `security` for advisory security review routing when a project uses that path — create on forge only if used; catalog in consumer `.github/ISSUE_LABELS.md`; not Core always-recommend; not a merge gate or maintainer AppSec taxonomy import. Source: `content/docs/consumer-issue-label-kit.md` (deposit on release). Closes #3299. Refs #2611, #2609.
 =======
 - **Operator discovery for SCM label mirror (#3124).** Cold `session:start` / `triage:welcome` surfaces a throttled tip (until first successful `--mirror` dry-run or ack — not every re-arm) that teaches existence **and** get-the-most: dry-run first, defaults only stamp `triaged` on matches (control stamp), board usability needs full five-chip `actionLabels`, match rate needs `triageAutoClassify`, never auto-accept, policy:show + PROJECT-DEFINITION location, GitHub labels must exist, re-enrich warning, pointer to consumer kit #2611. Dry-run digests hint when `actionLabels` is empty or open `no_match` dominates. Agent anti-swallow rule requires user-visible restatement when the tip fires. Core: `packages/core/src/triage/classify/mirror-discovery-tip.ts`; welcome + classify digest + CLI dry-run throttle. Also fixes vitest-3 coverage-debt soft-pass forwarding via `DEFT_TS_LANE_COVERAGE_DEBT` (CAC rejects unknown CLI debt tokens). Closes #3124. Refs #1423, #2611, #3125, #3197, #2573, #2618.
 >>>>>>> c56fa640 (feat(session,triage): operator discovery tip for SCM label mirror)
+=======
+- **Operator discovery for SCM label mirror (#3124).** Cold `session:start` / `triage:welcome` surfaces a throttled tip (until first successful `--mirror` dry-run or `triage:classify -- --ack-discovery` — not every re-arm) that teaches existence **and** get-the-most: dry-run first, defaults only stamp `triaged` on matches (control stamp), board usability needs full five-chip `actionLabels`, match rate needs `triageAutoClassify`, never auto-accept, policy:show + PROJECT-DEFINITION location, GitHub labels must exist, re-enrich warning, pointer to consumer kit #2611. Dry-run digests hint when `actionLabels` is empty or open `no_match` dominates. Agent anti-swallow rule requires user-visible restatement when the tip fires. Core: `packages/core/src/triage/classify/mirror-discovery-tip.ts`; welcome + classify digest + CLI dry-run throttle and ack entry. Also fixes vitest-3 coverage-debt soft-pass forwarding via `DEFT_TS_LANE_COVERAGE_DEBT` (CAC rejects unknown CLI debt tokens). Closes #3124. Refs #1423, #2611, #3125, #3197, #2573, #2618.
+>>>>>>> 7a98c5fd (fix(session,triage): wire discovery ack + bare-key conformance (#3124))
 
 - **AC-pass banking checkpoint — finalize on green; deepen only with surplus (#3285).** When stated acceptance criteria first pass, agents MUST FINALIZE (checkpoint the green state under .deft/ac-pass-banks/ and optional DEFT_RUN_SUMMARY_PATH bank-event JSONL) before any self-imposed deepening. Deepening requires remaining budget >= plan.policy.acPassBanking.surplusThreshold (default **20%** of max turns/cost; env DEFT_AC_PASS_SURPLUS_THRESHOLD) plus the absolute #3266 reserve. Post-bank out-of-scope findings are **reported, not chased** when surplus is insufficient (unless they regress stated AC). Sharpens #3266; composes product-first done-gate (#3284). Core: packages/core/src/session/ac-pass-banking.ts, packages/core/src/policy/ac-pass-banking.ts; skill: deft-directive-build. Closes #3285. Refs #3266, #3284, #3282, #1006, #3214, #1581.
 
@@ -32,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **vBRIEF bare-key conformance allows plan.acceptance and PlanItem.effort (#3124 / #3284 / #1581).** `PLAN_CORE` and `ITEM_CORE` now include the product-first done-gate `acceptance` block and the schema-validated `effort` enum so active stories with stated AC and effort stamps pass `evaluateConformance` without false #1620 bare-key hits.
 - **Vitest branch coverage restored above 85% (#3287).** Focused branch tests for literal-acceptance safety/capture edges, value readback pure helpers, and story-quality residual paths clear the v0.100.0 84.96% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.41%, branches 85.08%, functions 96.00%. Closes #3287.
 
 ### Removed
