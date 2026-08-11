@@ -346,7 +346,7 @@ describe("decompose-apply helpers (#3239)", () => {
     expect(formatDecomposeStructuralMintCommand("p.json", "d.json", { repo: "  " })).toBe(
       "deft authz:grant -- --parent p.json --draft d.json --confirm",
     );
-    // Whitespace / shell metacharacters use POSIX single quotes (Greptile PR #3300).
+    // Whitespace / shell metacharacters use single quotes (same in POSIX + pwsh).
     expect(
       formatDecomposeStructuralMintCommand(
         "xbrief/pending/my epic.xbrief.json",
@@ -358,15 +358,17 @@ describe("decompose-apply helpers (#3239)", () => {
         "--draft 'xbrief/.triage-cache/draft;rm.json' " +
         "--repo 'acme corp/directive' --confirm",
     );
-    // Command substitution / backticks must be inert under single quotes.
+    // Command substitution / backticks inert under single quotes (both shells).
     expect(
       formatDecomposeStructuralMintCommand("p$(whoami).json", "d`id`.json", { repo: "o/r$(x)" }),
     ).toBe(
       "deft authz:grant -- --parent 'p$(whoami).json' --draft 'd`id`.json' " +
         "--repo 'o/r$(x)' --confirm",
     );
+    // Apostrophe escapes differ: emit both POSIX and PowerShell forms.
     expect(formatDecomposeStructuralMintCommand("path'with'quotes.json", "draft.json")).toBe(
-      "deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm",
+      "deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm" +
+        "  (pwsh: deft authz:grant -- --parent 'path''with''quotes.json' --draft draft.json --confirm)",
     );
     // Newlines flattened so deny markdown cannot break out of a line.
     expect(formatDecomposeStructuralMintCommand("a\nb.json", "c\rd.json")).toBe(

@@ -65,31 +65,54 @@ export function sha256FileHex(path: string): string {
   return sha256Hex(readFileSync(path));
 }
 
+/** Flatten CR/LF so deny-reason markdown cannot break out of a line. */
+function flattenCliArgNewlines(value: string): string {
+  return value.replace(/\r\n/g, " ").replace(/[\r\n]/g, " ");
+}
+
 /**
  * Quote a CLI token for operator copy-paste when it has whitespace or shell
  * metacharacters (Greptile #3291 / PR #3300). Safe bare tokens stay unquoted
  * so deny-reason mint hints match the common path shape.
  *
- * Uses POSIX single quotes so `$()`, backticks, and `!` are inert when the
- * operator pastes into sh/bash (double quotes would still expand them).
- * Newlines are flattened so deny-reason markdown cannot break out of a line.
+ * Single quotes keep `$()`, backticks, and `!` inert. Apostrophe escape differs
+ * by shell: POSIX uses `'\''`; PowerShell uses `''`. Callers that need both
+ * pass dialect `"posix"` or `"pwsh"`.
  */
-function shellQuoteCliArg(value: string): string {
-  const flat = value.replace(/\r\n/g, " ").replace(/[\r\n]/g, " ");
+function shellQuoteCliArg(value: string, dialect: "posix" | "pwsh"): string {
+  const flat = flattenCliArgNewlines(value);
   // Allowlist: alnum + common path/repo chars without whitespace or shell meta.
   if (flat.length > 0 && /^[A-Za-z0-9_./:@+=,-]+$/.test(flat)) {
     return flat;
   }
+  if (dialect === "pwsh") {
+    // PowerShell single-quoted string: only ' is special, doubled as ''.
+    return `'${flat.replace(/'/g, "''")}'`;
+  }
   // POSIX single-quote; only ' needs escaping as '\''
   return `'${flat.replace(/'/g, `'\\''`)}'`;
+}
+
+function mintCommandWithDialect(
+  parent: string,
+  draft: string,
+  repo: string,
+  dialect: "posix" | "pwsh",
+): string {
+  return (
+    `deft authz:grant -- --parent ${shellQuoteCliArg(parent, dialect)} --draft ${shellQuoteCliArg(draft, dialect)}` +
+    (repo ? ` --repo ${shellQuoteCliArg(repo, dialect)}` : "") +
+    " --confirm"
+  );
 }
 
 /**
  * Exact operator CLI mint command for a structural decompose apply grant (#3291).
  * Paths are project-relative POSIX when inside projectRoot; otherwise as provided.
  * Parent / draft / repo tokens are shell-quoted when they contain whitespace or
- * shell metacharacters. Does not include agent/CI/TTY gates — those remain on
- * the CLI multi-factor path.
+ * shell metacharacters. When POSIX and PowerShell apostrophe escapes differ,
+ * both forms are emitted so either shell can copy-paste correctly. Does not
+ * include agent/CI/TTY gates — those remain on the CLI multi-factor path.
  */
 export function formatDecomposeStructuralMintCommand(
   parentPath: string,
@@ -104,11 +127,10 @@ export function formatDecomposeStructuralMintCommand(
     draft = toProjectRelativePosix(root, draftPath) ?? draft;
   }
   const repo = (options?.repo ?? "").trim();
-  return (
-    `deft authz:grant -- --parent ${shellQuoteCliArg(parent)} --draft ${shellQuoteCliArg(draft)}` +
-    (repo ? ` --repo ${shellQuoteCliArg(repo)}` : "") +
-    " --confirm"
-  );
+  const posix = mintCommandWithDialect(parent, draft, repo, "posix");
+  const pwsh = mintCommandWithDialect(parent, draft, repo, "pwsh");
+  if (posix === pwsh) return posix;
+  return `${posix}  (pwsh: ${pwsh})`;
 }
 
 /**
