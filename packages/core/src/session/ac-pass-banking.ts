@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
@@ -402,13 +402,26 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   // Preserve prior post-bank findings on re-bank so ledger history survives (#3285 Greptile).
   const prior = readAcPassBank(input.projectRoot, input.scopeId);
   const journal = readFindingsJournal(input.projectRoot, input.scopeId);
-  // Unrecoverable existing ledger: refuse silent success without a write.
-  // Keep the damaged bytes and fail so verify:ac cannot report banked green (#3285).
+  // Unrecoverable existing ledger (no findings recoverable): refuse overwrite.
   if (existed && prior === null) {
     throw new Error(
       `ac-pass-banking: unrecoverable existing ledger at ${path}; ` +
         `refusing overwrite and banked=true without write (#3285)`,
     );
+  }
+  // Partial recovery stub: do not treat stub as authoritative. Drop damaged
+  // primary/tmp so the next write is a fresh bank seeded from the journal only.
+  if (prior !== null && prior.bankedAt === "1970-01-01T00:00:00Z") {
+    try {
+      if (existsSync(path)) unlinkSync(path);
+    } catch {
+      // ignore
+    }
+    try {
+      if (existsSync(`${path}.tmp`)) unlinkSync(`${path}.tmp`);
+    } catch {
+      // ignore
+    }
   }
 
   const record: AcPassBankRecord = {
@@ -423,6 +436,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     surplusThreshold: input.surplus.surplusThreshold,
     hadSurplus: input.surplus.hasSurplus,
     nextAction: input.nextAction,
+    // Journal is append-only SoT for findings across corrupt rewrites (#3285).
     postBankFindings: mergeFindings(prior?.postBankFindings ?? [], journal),
   };
 
