@@ -248,21 +248,52 @@ function loadJsonFile(path: string): { ok: true; data: JsonObj } | { ok: false; 
  * same-name artifacts across folders cannot be safely disambiguated without a
  * durable content-addressed parent key. Stale planRef after a parent move fails
  * closed with an actionable rewrite message (identity-preserving).
+ *
+ * When the child stamps parent_plan_id, the loaded parent must match that id
+ * (exact-path replacement of a different plan under the same path is rejected).
  */
 export function loadParentExact(
   parentPath: string,
+  opts: { expectedParentPlanId?: string | null } = {},
 ): { ok: true; data: JsonObj; path: string } | { ok: false; error: string; path: string } {
   const primary = loadJsonFile(parentPath);
-  if (primary.ok) {
-    return { ok: true, data: primary.data, path: parentPath };
+  if (!primary.ok) {
+    return {
+      ok: false,
+      error:
+        `${primary.error}. Parent path must match planRef exactly — if the parent ` +
+        `moved lifecycle folders, rewrite the child's planRef (no basename guess).`,
+      path: parentPath,
+    };
   }
-  return {
-    ok: false,
-    error:
-      `${primary.error}. Parent path must match planRef exactly — if the parent ` +
-      `moved lifecycle folders, rewrite the child's planRef (no basename guess).`,
-    path: parentPath,
-  };
+  const expected = opts.expectedParentPlanId;
+  if (expected !== undefined && expected !== null && expected.trim().length > 0) {
+    const plan = asRecord(primary.data.plan) ?? primary.data;
+    const actual = typeof plan.id === "string" ? plan.id.trim() : "";
+    if (actual !== expected.trim()) {
+      return {
+        ok: false,
+        error:
+          `parent at ${parentPath} has plan.id='${actual || "(missing)"}' but child stamps ` +
+          `parent_plan_id='${expected.trim()}' — refuse identity mismatch (rewrite planRef or re-stamp)`,
+        path: parentPath,
+      };
+    }
+  }
+  return { ok: true, data: primary.data, path: parentPath };
+}
+
+/** Stamped parent_plan_id from child plan.metadata.parent_lineage (if any). */
+export function extractStampedParentPlanId(child: unknown): string | null {
+  const root = asRecord(child);
+  if (root === null) return null;
+  const plan = asRecord(root.plan) ?? root;
+  const metadata = asRecord(plan.metadata);
+  if (metadata === null) return null;
+  const lineage = asRecord(metadata.parent_lineage ?? metadata.parentLineage);
+  if (lineage === null) return null;
+  const raw = lineage.parent_plan_id ?? lineage.parentPlanId;
+  return typeof raw === "string" && raw.trim().length > 0 ? raw.trim() : null;
 }
 
 function classifyCoverageFailure(errors: readonly string[]): LineageDefectClass {
@@ -423,7 +454,9 @@ export function evaluateParentLineage(opts: {
     }
 
     // Exact planRef only (no basename lifecycle recovery — identity thrash #3241).
-    const loaded = loadParentExact(parentPath);
+    const loaded = loadParentExact(parentPath, {
+      expectedParentPlanId: extractStampedParentPlanId(child),
+    });
     if (!loaded.ok) {
       return failResult({
         defect_class: "child_spec",

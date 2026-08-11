@@ -291,6 +291,39 @@ describe("evaluateParentLineage (#3241)", () => {
     expect(result.message).toMatch(/not found|rewrite.*planRef|exactly/i);
   });
 
+  it("fails closed when exact parent path exists but plan.id mismatches stamp", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-id-mismatch-"));
+    temps.push(base);
+    const pending = join(base, "xbrief", "pending");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "imposter-parent",
+          items: [
+            { id: "req-ordered-a-b-c", title: "A" },
+            { id: "req-forbid-a-to-c", kind: "negative_invariant", title: "N" },
+            { id: "req-terminal-failure", title: "T" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const child = childWithLineage({
+      planRef: "pending/parent.xbrief.json",
+      coverage_map: fullCoverageMap,
+    });
+    // child stamps parent_plan_id epic-state-machine via childWithLineage
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/identity mismatch|parent_plan_id/i);
+  });
+
   it("evaluateParentLineageAtPath loads child and parent from disk", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-pl-disk-"));
     temps.push(base);
