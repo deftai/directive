@@ -155,6 +155,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       "alignment",
       "scm_readiness",
       "host_content_surface",
+      "effort_budget",
       "branch_policy",
       "verify_tools",
       "triage_welcome",

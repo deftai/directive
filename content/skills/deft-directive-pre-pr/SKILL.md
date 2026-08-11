@@ -164,6 +164,15 @@ git --no-pager diff master
 - ~ Track iteration count -- if you exceed 3 iterations, pause and assess whether you are oscillating between competing fixes
 
 
+
+## Budget-aware pre-PR depth (#3266)
+
+When session effort-budget is hard-capped (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` / session:start `effort_budget`):
+
+- ! Complete the merge-chokepoint path that proves stated AC (full `task check` once, stated AC evidence) before optional polish that only deepens beyond the bar.
+- ! If remaining budget cannot fund another full Read-Write-Lint-Diff pass **and** a fix for a new finding, stop after the stated-pass chokepoint and record `deepening_skipped=true` with reason (#1006).
+- ! Dual-stop pre-PR defaults (max 3 polish / 2 no-diff) still apply; under a hard cap, prefer fewer polish iterations once AC + check are green.
+- ⊗ Start an unbounded self-imposed verification suite that exceeds stated AC while the hard budget is nearly exhausted (#3266).
 ## Probe-then-fill remote claims (#3120)
 
 ! Before filling any **remote** handoff field (PR URL, PR number, commit/HEAD SHA, CI green/success, review score) or claiming `status: pass` / ship/gate done, MUST **probe then fill**:
@@ -211,3 +220,5 @@ Docs: `docs/decision-log.md`.
 - ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
 - ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
 - ⊗ Clear a failing gate by editing the gate (definition, verifier, reward, required check, coverage floor, policy, eval fixture) instead of the work under test — gate integrity (#3156); see [docs/gate-integrity.md](../../docs/gate-integrity.md)
+- ⊗ Under a hard turn/cost budget, gold-plate pre-PR polish past the stated bar until the budget expires (#3266)
+- ⊗ Exit pre-PR after skipping deepen-for-budget without naming the skip in the summary (#3266 / #1006)

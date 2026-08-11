@@ -236,6 +236,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "alignment",
       "scm_readiness",
       "host_content_surface",
+      "effort_budget",
       "branch_policy",
       "verify_tools",
       "triage_welcome",

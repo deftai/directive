@@ -280,6 +280,22 @@ Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a succ
 - ⊗ Continue "one more fix" after the envelope is exhausted.
 - ⊗ Reset the counter by opening a new commit, rewording the same change, or swapping workers while the same failure class remains.
 
+
+### Budget-aware effort - bank the pass before deepening (#3266)
+
+When a hard turn or cost budget is detectable (session:start `effort_budget` / env `DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` / host descriptor #1461), size effort to the **stated** acceptance bar first. This is the success-side analog of dual-stop (#2442): dual-stop stops thrash on failure; bank-the-pass stops budget exhaustion on over-deepening.
+
+- ! At implement start, read the session effort-budget signal (`task session:start` lines or JSON `effort_budget`, or env). When `posture=hard-capped`, treat the run as budget-constrained.
+- ! **Bank the pass first:** satisfy stated acceptance criteria (xBRIEF items / issue AC / official checker) and produce the passing artifact **before** any self-imposed deeper verification suite that exceeds the stated bar.
+- ! Only with **remaining** budget after the stated pass, extend verification depth. Never deepen past the point where a found defect could not also be fixed within budget (default reserve: enough turns/cost for one fix batch).
+- ! Self-verification scope scales with remaining budget - prefer the official/stated checks under a tight cap.
+- ! When deepening is skipped for budget, MUST say so in the run summary / handoff (`deepening_skipped=true` + reason) - fail-loud (#1006). Use `formatDeepeningSkippedNote` semantics from `packages/core/src/session/effort-budget.ts`.
+- ~ When no hard budget is detected (`posture=unbounded`), normal dual-stop defaults still apply; bank-the-pass is optional discipline, not a license to skip stated AC.
+- ⊗ Exhaust the turn/cost budget on self-imposed gold-plating after the stated bar is already within reach (#3266).
+- ⊗ Silently skip deepening without naming it, or silently gold-plate under a hard cap (#1006 / #3266).
+- ⊗ Treat bank-the-pass as permission to ship without meeting stated AC - stated AC remains the success stop.
+
+Core helper: `packages/core/src/session/effort-budget.ts` (`detectHardEffortBudget`, `recommendVerificationDepth`). Composes #2442, #1581, #3214, #1006.
 **Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit-breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, `.deft/delivery-attempts/`). Docs: `docs/delivery-attempt.md`. Route delivery/acceptance automatic retries through that gate; do not invent a parallel ledger in this skill.
 
 ## Step 3: Build Phase by Phase
@@ -459,3 +475,5 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
 - ⊗ Run multi-iteration implement / pre-PR loops without a failure stop (max iterations and/or no-progress) or without an operator-visible halt report when the envelope is exhausted (#2442)
 - ⊗ Silently continue after dual-stop failure halt — escalate; do not thrash (#2442)
+- ⊗ Exhaust hard turn/cost budget on self-imposed deepening after the stated acceptance bar is within reach (#3266)
+- ⊗ Silently skip deepening for budget without a fail-loud summary note (#3266 / #1006)

@@ -138,6 +138,7 @@ Loop engineering requires **two** stop conditions on multi-iteration autonomous 
 - #1613 covers STOP when plan **preconditions** fail (reality mismatch). Dual stop covers the case where the plan is still "valid" but the agent must quit after N failed attempts, N identical no-progress outcomes, or a budget limit.
 - Skills name concrete defaults: `skills/deft-directive-build/SKILL.md` (implement / pre-PR loops), `skills/deft-directive-swarm/SKILL.md` and its Phase 4 / core-ops references (repair / monitor loops).
 - **Delivery / acceptance mechanical enforcement** (durable attempt ledger, material-progress circuit breaker, cross-revision budgets) is **#3143** — library: `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, unit ledger under `.deft/delivery-attempts/`). Docs: `content/docs/delivery-attempt.md`. #2442 is the principle + skill defaults; #3143 is the deterministic pre-dispatch gate. Route delivery/acceptance loops through that surface rather than inventing a parallel ledger.
+- **Budget-aware effort / bank-the-pass (#3266)** is the success-side analog: when a hard turn or cost budget is detectable (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` / session:start `effort_budget`), bank the *stated* acceptance pass before self-imposed deepening; scale verification depth with remaining budget; fail-loud (#1006) when deepening is skipped. Core: `packages/core/src/session/effort-budget.ts`; guidance in build and pre-pr skills.
 
 **Adaptive Teaching:**
 - ~ When a recommendation is accepted without question, be concise

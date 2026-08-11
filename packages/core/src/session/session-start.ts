@@ -16,6 +16,12 @@ import {
   formatEnvironmentContext,
 } from "../platform/shell-context.js";
 import {
+  type DetectHardEffortBudgetInput,
+  effortBudgetToDict,
+  type HardEffortBudget,
+  maybeFormatEffortBudgetLines,
+} from "./effort-budget.js";
+import {
   type CeremonyDialInputs,
   type CeremonyDialSelection,
   ceremonyDialToDict,
@@ -173,6 +179,11 @@ export interface SessionStartOptions {
    * Fail-open advisory only — never blocks session:start.
    */
   readonly hostContentSurfaceSeams?: HostContentSurfaceSeams;
+  /**
+   * #3266: hard effort-budget detection seams (env / host descriptor).
+   * Fail-open advisory only — never blocks session:start.
+   */
+  readonly effortBudgetSeams?: DetectHardEffortBudgetInput;
   readonly probeReleaseAvailability?: (
     projectRoot: string,
     options: ReleaseAvailabilityProbeOptions,
@@ -579,6 +590,33 @@ function resolveHostContentSurface(
   }
 }
 
+function resolveEffortBudget(
+  options: SessionStartOptions,
+): { budget: HardEffortBudget; lines: string[] } {
+  try {
+    const seams = options.effortBudgetSeams ?? {};
+    return maybeFormatEffortBudgetLines({
+      ...seams,
+      environ: seams.environ ?? options.env ?? process.env,
+    });
+  } catch {
+    // best-effort — session start must not abort on effort-budget probe failures (#3266)
+    return {
+      budget: {
+        detected: false,
+        posture: "unbounded",
+        kind: "none",
+        maxTurns: null,
+        maxBudget: null,
+        remainingTurns: null,
+        remainingBudget: null,
+        sources: [],
+      },
+      lines: [],
+    };
+  }
+}
+
 function runReadOnlySessionStart(
   projectRoot: string,
   options: SessionStartOptions,
@@ -598,11 +636,14 @@ function runReadOnlySessionStart(
   const scm = resolveSessionScmReadiness(options, false);
   // #3162: host content-surface class + managed drift (advisory).
   const hostSurface = resolveHostContentSurface(projectRoot, options, scm.runtimeMode);
+  // #3266: hard effort-budget detection (advisory; bank-the-pass guidance).
+  const effortBudget = resolveEffortBudget(options);
   lines.push(READ_ONLY_ALIGNMENT_MESSAGE);
   lines.push(userMdLine);
   lines.push(formatEnvironmentContext(environment));
   lines.push(...formatScmReadinessLines(scm));
   lines.push(...hostSurface.lines);
+  lines.push(...effortBudget.lines);
   const resultPayload = {
     ready: true,
     exit_code: 0,
@@ -625,6 +666,7 @@ function runReadOnlySessionStart(
     environment: environmentContextToDict(environment),
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
+    effort_budget: effortBudgetToDict(effortBudget.budget),
     message: READ_ONLY_RESULT_MESSAGE,
   };
   return { code: 0, payload: resultPayload, lines };
@@ -680,6 +722,8 @@ function runSessionRearm(
   const scm = resolveSessionScmReadiness(options, false);
   // #3162: host content-surface class + managed drift (advisory).
   const hostSurface = resolveHostContentSurface(projectRoot, options, scm.runtimeMode);
+  // #3266: hard effort-budget detection (advisory).
+  const effortBudget = resolveEffortBudget(options);
 
   const lines: string[] = [
     READ_ONLY_ALIGNMENT_MESSAGE,
@@ -687,6 +731,7 @@ function runSessionRearm(
     formatEnvironmentContext(environment),
     ...formatScmReadinessLines(scm),
     ...hostSurface.lines,
+    ...effortBudget.lines,
     REARM_SKIPPED_FAT_PATH_MESSAGE,
   ];
 
@@ -896,6 +941,7 @@ function runSessionRearm(
       environment: environmentContextToDict(environment),
       scm: scmReadinessToDict(scm),
       host_content_surface: hostContentSurfaceToDict(hostSurface.report),
+      effort_budget: effortBudgetToDict(effortBudget.budget),
       message: code === 0 ? "session ritual re-armed" : "session ritual re-arm failed",
     },
     lines,
@@ -1096,6 +1142,15 @@ export function runSessionStart(
   stepTimings.push({
     name: "host_content_surface",
     duration_ms: elapsedMs(hostSurfaceStepStarted),
+  });
+
+  // #3266: hard effort-budget detection (advisory; bank-the-pass guidance).
+  const effortBudgetStepStarted = performance.now();
+  const effortBudget = resolveEffortBudget(options);
+  lines.push(...effortBudget.lines);
+  stepTimings.push({
+    name: "effort_budget",
+    duration_ms: elapsedMs(effortBudgetStepStarted),
   });
 
   if (!quickSteps.branch_policy) {
@@ -1395,6 +1450,7 @@ export function runSessionStart(
     environment: environmentContextToDict(environment),
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
+    effort_budget: effortBudgetToDict(effortBudget.budget),
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
   // #2994: local process-cost event (best-effort; never blocks ceremony).
