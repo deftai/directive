@@ -47,6 +47,7 @@ import {
 import { resolvePolicy } from "../policy/resolve.js";
 import { maybeFormatProductSignalConsentPrompt } from "../product-signal/consent-prompt.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
+import { RunSummaryEmitter } from "../run-summary/emit.js";
 import {
   formatScmReadinessLines,
   type ProbeScmReadinessOptions,
@@ -69,7 +70,6 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
-import { RunSummaryEmitter } from "../run-summary/emit.js";
 import { emitSessionStartProcessCost } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
@@ -1414,9 +1414,7 @@ export function runSessionStart(
     },
   };
   const preflightDict =
-    toolchainPreflightResult !== null
-      ? toolchainPreflightToDict(toolchainPreflightResult)
-      : null;
+    toolchainPreflightResult !== null ? toolchainPreflightToDict(toolchainPreflightResult) : null;
   const payload: Record<string, unknown> = {
     ...newRitualStatePayload({
       sessionId: coldSessionId,

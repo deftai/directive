@@ -1343,9 +1343,7 @@ export function escalateCeremonyDial(
     lines: [
       `✓ ceremony dial escalate: ${from} -> ${options.to}`,
       `  reason: ${oneLineAuditToken(options.reason)}`,
-      ...(options.evidence
-        ? [`  evidence: ${oneLineAuditToken(options.evidence)}`]
-        : []),
+      ...(options.evidence ? [`  evidence: ${oneLineAuditToken(options.evidence)}`] : []),
       ...setResult.stdout
         .split("\n")
         .map((l) => l.trimEnd())

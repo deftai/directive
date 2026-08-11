@@ -5,30 +5,20 @@
  * most one warning when an *explicit* DEFT_RUN_SUMMARY_PATH write fails.
  */
 
-import {
-  appendFileSync,
-  closeSync,
-  mkdirSync,
-  openSync,
-  writeFileSync,
-  writeSync,
-} from "node:fs";
+import { appendFileSync, closeSync, mkdirSync, openSync, writeFileSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
-import {
-  type ResolveRunSummaryDestinationOptions,
-  resolveRunSummaryDestination,
-} from "./path.js";
+import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import {
   type CheckInvocationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
+  RUN_SUMMARY_SCHEMA_VERSION,
+  RUN_SUMMARY_STDOUT_PREFIX,
+  RUN_SUMMARY_WRITE_WARNING,
   type RunSummaryDestination,
   type RunSummaryEventKind,
   type RunSummaryLine,
   type RunSummaryPayload,
-  RUN_SUMMARY_SCHEMA_VERSION,
-  RUN_SUMMARY_STDOUT_PREFIX,
-  RUN_SUMMARY_WRITE_WARNING,
   type SessionStartRunSummaryPayload,
 } from "./types.js";
 

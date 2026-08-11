@@ -37,11 +37,7 @@ describe("named-cause gate failures (#3282)", () => {
   });
 
   it("strips env-like lines from cause extraction", () => {
-    const cause = extractGateCause(
-      "",
-      "DEFT_FOO=secret\nreal failure: cache stale\n",
-      1,
-    );
+    const cause = extractGateCause("", "DEFT_FOO=secret\nreal failure: cache stale\n", 1);
     expect(cause).toBe("real failure: cache stale");
     expect(cause).not.toContain("DEFT_FOO");
   });

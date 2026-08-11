@@ -83,8 +83,7 @@ export function resolveRunSummaryDestination(
       };
     }
     // Unset: default path only with gitignore coverage.
-    const covers =
-      options.gitignoreCovers?.(projectRoot) ?? gitignoreCoversRunSummary(projectRoot);
+    const covers = options.gitignoreCovers?.(projectRoot) ?? gitignoreCoversRunSummary(projectRoot);
     if (!covers) {
       return { kind: "silent" };
     }

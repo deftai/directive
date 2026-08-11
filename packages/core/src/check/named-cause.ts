@@ -17,25 +17,31 @@ export interface NamedCauseMessage {
 const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:branch":
     "Create a feature branch (`git switch -c feat/<name>`) or set plan.policy.allowDirectCommitsToMaster with confirmation",
-  "verify:encoding": "Fix non-ASCII / encoding issues flagged by the gate; re-run task verify:encoding",
+  "verify:encoding":
+    "Fix non-ASCII / encoding issues flagged by the gate; re-run task verify:encoding",
   "verify:cache-fresh": "Run task cache:fetch-all or task triage:bootstrap to refresh the cache",
   "verify:orphan-active":
     "Complete or cancel active xBRIEFs whose issues are closed / PRs merged (task scope:complete / scope:cancel)",
-  "verify:wip-cap": "Demote stale pending scopes (task scope:demote) or raise plan.policy.wipCap deliberately",
+  "verify:wip-cap":
+    "Demote stale pending scopes (task scope:demote) or raise plan.policy.wipCap deliberately",
   doctor: "Run task doctor and follow the named recovery steps",
-  "toolchain:check": "Install missing maintainer tools reported by the gate (go, uv, git, gh, node, pnpm)",
+  "toolchain:check":
+    "Install missing maintainer tools reported by the gate (go, uv, git, gh, node, pnpm)",
   "toolchain:check-consumer":
     "Install missing consumer tools: go-task, git, gh, node, pnpm (corepack enable && corepack prepare pnpm@latest --activate)",
   "ts:check-lane": "Fix lint/type/test failures; re-run task ts:check-lane",
   "vbrief:validate": "Fix xBRIEF/vBRIEF schema errors reported by the gate",
-  "verify-strategy-output": "Re-run strategy output or fix non-conformant scope filenames / PROJECT-DEFINITION",
-  "verify:test-boundary": "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
+  "verify-strategy-output":
+    "Re-run strategy output or fix non-conformant scope filenames / PROJECT-DEFINITION",
+  "verify:test-boundary":
+    "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
   "verify:scope-provenance": "Record approved scope provenance for the failing paths",
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
   "verify:forward-coverage": "Add tests covering new source files (task verify:forward-coverage)",
   "verify:scm-boundary": "Move SCM mutations off GraphQL-heavy paths or wait for rate-limit reset",
   "verify:license-sync": "Sync LICENSE / package license fields",
-  "verify:agents-md-budget": "Trim AGENTS.md managed section or raise plan.policy.agentsMdBudget deliberately",
+  "verify:agents-md-budget":
+    "Trim AGENTS.md managed section or raise plan.policy.agentsMdBudget deliberately",
 };
 
 const SPAWN_ERROR_REMEDY =

@@ -25,11 +25,7 @@ import {
   gatesForCheckTarget,
   isSuiteCheckGate,
 } from "./gate-lists.js";
-import {
-  formatDegradedSkipReport,
-  formatNamedCauseFailure,
-  remedyForGate,
-} from "./named-cause.js";
+import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
 
 export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly onGateStart?: (gateId: string) => void;
@@ -77,7 +73,10 @@ function captureSpawn(
 }
 
 function writeLines(lines: readonly string[], stream: "stdout" | "stderr" = "stderr"): void {
-  const write = stream === "stdout" ? process.stdout.write.bind(process.stdout) : process.stderr.write.bind(process.stderr);
+  const write =
+    stream === "stdout"
+      ? process.stdout.write.bind(process.stdout)
+      : process.stderr.write.bind(process.stderr);
   for (const line of lines) {
     write(`${line}\n`);
   }
@@ -173,7 +172,7 @@ export function dispatchCachedTaskCheck(
   const skipSet = new Set(preflight?.skipGateIds ?? []);
   const degraded = preflight?.degraded === true;
 
-  if (preflight !== null && preflight.degraded) {
+  if (preflight?.degraded) {
     for (const line of preflight.lines) {
       process.stderr.write(`${line}\n`);
     }
@@ -190,8 +189,7 @@ export function dispatchCachedTaskCheck(
         const cause =
           preflight?.findings.find((f) => !f.present)?.cause ?? "toolchain preflight degraded";
         const remedy =
-          preflight?.findings.find((f) => !f.present)?.remedy ??
-          remedyForGate(id, cause);
+          preflight?.findings.find((f) => !f.present)?.remedy ?? remedyForGate(id, cause);
         gateOutcomes.push({ id, status: "skipped", cause, remedy });
         return { id, cause, remedy };
       });

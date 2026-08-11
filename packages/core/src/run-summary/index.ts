@@ -1,7 +1,7 @@
 export {
   appendRunSummaryRawLine,
-  emitRunSummaryEvent,
   type EmitRunSummaryResult,
+  emitRunSummaryEvent,
   RunSummaryEmitter,
   type RunSummaryEmitterOptions,
 } from "./emit.js";
@@ -16,14 +16,14 @@ export {
   DEFAULT_RUN_SUMMARY_BASENAME,
   type DialTransitionRunSummaryPayload,
   ENV_RUN_SUMMARY_PATH,
-  type RunSummaryBaseFields,
-  type RunSummaryDestination,
-  type RunSummaryEventKind,
   RUN_SUMMARY_EVENT_KINDS,
-  type RunSummaryLine,
-  type RunSummaryPayload,
   RUN_SUMMARY_SCHEMA_VERSION,
   RUN_SUMMARY_STDOUT_PREFIX,
   RUN_SUMMARY_WRITE_WARNING,
+  type RunSummaryBaseFields,
+  type RunSummaryDestination,
+  type RunSummaryEventKind,
+  type RunSummaryLine,
+  type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
 } from "./types.js";

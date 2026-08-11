@@ -7,9 +7,9 @@ import {
   DEFAULT_RUN_SUMMARY_BASENAME,
   ENV_RUN_SUMMARY_PATH,
   gitignoreCoversRunSummary,
-  resolveRunSummaryDestination,
   RUN_SUMMARY_STDOUT_PREFIX,
   RUN_SUMMARY_WRITE_WARNING,
+  resolveRunSummaryDestination,
 } from "./path.js";
 import { RUN_SUMMARY_SCHEMA_VERSION } from "./types.js";
 
@@ -150,8 +150,9 @@ describe("RunSummaryEmitter (#3282)", () => {
     });
     emitter.emitDialTransition({ from: "rapid", to: "standard", reason: "size=M" });
     expect(stdout).toHaveLength(1);
-    expect(stdout[0]?.startsWith(RUN_SUMMARY_STDOUT_PREFIX)).toBe(true);
-    const body = JSON.parse(stdout[0]!.slice(RUN_SUMMARY_STDOUT_PREFIX.length)) as {
+    const first = stdout[0] ?? "";
+    expect(first.startsWith(RUN_SUMMARY_STDOUT_PREFIX)).toBe(true);
+    const body = JSON.parse(first.slice(RUN_SUMMARY_STDOUT_PREFIX.length)) as {
       event: string;
     };
     expect(body.event).toBe("dial_transition");
