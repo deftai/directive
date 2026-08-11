@@ -1,0 +1,161 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Agents often declare done after self-chosen verification that only approximates the task statement. Runs that capture exact stated acceptance commands and execute them verbatim before finish pass official checkers more reliably. This story makes literal command capture and pre-done verbatim run the rapid-path verification core, extending #973.",
+    "updated": "2026-08-11T03:25:20Z"
+  },
+  "plan": {
+    "title": "feat(verification,strategies): literal acceptance-command verification - capture exact stated commands at intake, run verbatim before done",
+    "status": "completed",
+    "narratives": {
+      "Description": "Agents often declare done after self-chosen verification that only approximates the task statement. Runs that capture exact stated acceptance commands and execute them verbatim before finish pass official checkers more reliably. This story makes literal command capture and pre-done verbatim run the rapid-path verification core, extending #973.",
+      "UserStory": "As an operator, I want stated acceptance commands captured at intake and run verbatim before done, so that done means the checker the task named rather than a self-chosen approximation.",
+      "ImplementationPlan": "At intake (strategies/build path and/or xbrief plan items), record literal acceptance commands from the task statement when present. Before done, run those commands verbatim (same cwd flags paths) and compare to expected outputs where stated. Wire rapid/minimal ceremony profiles (#3214) to keep this check. Prefer packages for verify-ac or new small helper under packages/core/src plus skill text in deft-directive-build and pre-pr. Extends #973 machine-verifiable-spec. Tests with fixture task statements. Run vitest on touched packages and task check. Cite #3267 in CHANGELOG. Relates #3266 bank THIS pass first.",
+      "Origin": "https://github.com/deftai/directive/issues/3267",
+      "Overview": "feat(verification,strategies): literal acceptance-command verification - capture exact stated commands at intake, run verbatim before done",
+      "Labels": "enhancement, determinism, patterns",
+      "NonGoals": "Replacing all verification; public benchmark scores; NLP free-form invent of commands not in the task statement.",
+      "AcceptanceJustification": "Items map to issue acceptance sketch."
+    },
+    "items": [
+      {
+        "title": "Intake capture",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a task statement that names exact shell acceptance commands, when intake records acceptance criteria, those commands are stored as executable AC not paraphrased."
+        },
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "merge",
+            "pointer": "packages/core/src/literal-acceptance/capture.ts + issue:ingest task_statement; PR #3276 merge 3f3942cb",
+            "recorded_at": "2026-08-11T03:25:14.109Z",
+            "recorded_by": "parent-operator-conf-floor-merge"
+          }
+        }
+      },
+      {
+        "title": "Verbatim pre-done run",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given stored literal acceptance commands, when done-gate runs, it executes them with the same flags and cwd and fails closed if they do not pass."
+        },
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "merge",
+            "pointer": "packages/core/src/literal-acceptance/ run+evaluate + scope:complete gate; safety allowlist; PR #3276",
+            "recorded_at": "2026-08-11T03:25:14.109Z",
+            "recorded_by": "parent-operator-conf-floor-merge"
+          }
+        }
+      },
+      {
+        "title": "Rapid path keeps check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given ceremony dial rapid or minimal, when verification guidance applies, the literal acceptance-command run remains required."
+        },
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "merge",
+            "pointer": "literalAcceptanceRequired on ceremony dial depths; build/pre-pr/rapid skills; PR #3276",
+            "recorded_at": "2026-08-11T03:25:14.109Z",
+            "recorded_by": "parent-operator-conf-floor-merge"
+          }
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the PR, when vitest and CHANGELOG are checked, fixtures cover capture and verbatim run and [Unreleased] cites #3267."
+        },
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "literal-acceptance.test.ts + verify:literal-ac CLI; CHANGELOG [Unreleased] #3267; PR #3276 merge 3f3942cb",
+            "recorded_at": "2026-08-11T03:25:14.109Z",
+            "recorded_by": "parent-operator-conf-floor-merge"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "cohort",
+      "verification"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3267",
+        "title": "#3267"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/973",
+        "title": "#973"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3266",
+        "title": "#3266"
+      }
+    ],
+    "updated": "2026-08-11T03:25:20Z",
+    "id": "3267-literal-acceptance-command-verification",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src",
+          "content/skills/deft-directive-build",
+          "content/skills/deft-directive-pre-pr",
+          "content/strategies",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3267",
+          "skill guidance",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "cohort-3267-literal-ac-commands",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body + code pointers.",
+        "acceptance_criteria_justification": "Items map to issue AC sketch."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3276,
+        "prBase": null,
+        "mergeCommit": "3f3942cbf025ee74be6577c01e156e66eb875b49",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3f3942cbf025ee74be6577c01e156e66eb875b49",
+        "verifiedAt": "2026-08-11T03:25:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T03:25:20Z"
+    }
+  }
+}
