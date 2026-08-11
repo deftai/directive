@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-08-11-3124-featsessiontriage-operator-discovery-for-scm-label-mirror-af.xbrief.json",
+  "planId": "story-3124-scm-label-mirror-operator-discovery",
+  "approvedAt": "2026-08-11T22:12:17Z",
+  "fileScope": [
+    ".gitignore",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "content/commands.md",
+    "content/templates",
+    "meta/policy-changes.log",
+    "packages/cli/src",
+    "packages/core/src/triage",
+    "packages/core/src/ts-check-lane",
+    "packages/core/src/vbrief-validate",
+    "packages/core/src/vitest-runner",
+    "vitest.config.ts",
+    "xbrief"
+  ],
+  "fileScopeDigest": "00f97c1c5e3da389c65520add368c39379d23a78918cb53b1bdcdf712b78cf8b",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-08-11T22:12:17Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "xbriefBodyDigest": "8e8809759185b92869e7b27670f6ac18435d45bae741bd69221ce6ec785b9a07"
+}
