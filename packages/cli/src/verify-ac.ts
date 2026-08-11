@@ -82,6 +82,10 @@ export type FindActiveXbriefResult =
   | { readonly kind: "many"; readonly paths: readonly string[]; readonly dir: string };
 
 function listActiveXbriefs(projectRoot: string): FindActiveXbriefResult {
+  // Greptile conf residual #3284: scan BOTH lifecycle roots (xbrief + read-accepted
+  // vbrief). Returning after the first non-empty root left the other unchecked.
+  const paths: string[] = [];
+  const dirs: string[] = [];
   for (const dirName of ["xbrief", "vbrief"]) {
     const active = join(projectRoot, dirName, "active");
     if (!existsSync(active)) continue;
@@ -93,18 +97,21 @@ function listActiveXbriefs(projectRoot: string): FindActiveXbriefResult {
     } catch {
       continue;
     }
-    if (names.length === 1) {
-      return { kind: "one", path: join(active, names[0] as string) };
-    }
-    if (names.length > 1) {
-      return {
-        kind: "many",
-        paths: names.map((n) => join(active, n)),
-        dir: active,
-      };
+    if (names.length === 0) continue;
+    dirs.push(active);
+    for (const n of names) {
+      paths.push(join(active, n));
     }
   }
-  return { kind: "none" };
+  if (paths.length === 0) return { kind: "none" };
+  if (paths.length === 1) {
+    return { kind: "one", path: paths[0] as string };
+  }
+  return {
+    kind: "many",
+    paths,
+    dir: dirs.join(" + "),
+  };
 }
 
 /** Evaluate one or many xBRIEF paths; return worst non-zero code (fail closed). */

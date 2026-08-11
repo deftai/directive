@@ -56,6 +56,24 @@ describe("verify:ac run (#3284)", () => {
     expect(run(["--project-root", root])).toBe(1);
   });
 
+  it("scans both xbrief and vbrief active roots (#3284 conf residual)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-dual-root-"));
+    const xa = join(root, "xbrief", "active");
+    const va = join(root, "vbrief", "active");
+    mkdirSync(xa, { recursive: true });
+    mkdirSync(va, { recursive: true });
+    const body = JSON.stringify({
+      plan: {
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+      },
+    });
+    writeFileSync(join(xa, "x.xbrief.json"), body, "utf8");
+    writeFileSync(join(va, "v.vbrief.json"), body, "utf8");
+    // Both roots must be evaluated under check composition (not stop at xbrief only).
+    expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(0);
+  });
+
   it("exits 2 when no xbrief and soft-missing off", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-hard-"));
     expect(run(["--project-root", root])).toBe(2);
