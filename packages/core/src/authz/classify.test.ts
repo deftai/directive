@@ -193,8 +193,18 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Ordinary cleanup / non-store opaque dest stays unclassifiable (no overclassify).
     expect(classifyShellAuthzOps("rm -rf $TMPDIR/build")).toEqual([]);
     expect(classifyShellAuthzOps("rm -rf $HOME/.cache/tmp")).toEqual([]);
+    // Other destructive bins + opaque non-authz expansion stay unclassifiable.
+    expect(classifyShellAuthzOps("unlink $TMPDIR/x")).toEqual([]);
+    expect(classifyShellAuthzOps("shred $HOME/tmpfile")).toEqual([]);
+    expect(classifyShellAuthzOps("rmdir $TMPDIR/emptydir")).toEqual([]);
+    // getenv / $env without authz-store key stays non-settings for this residual path.
+    expect(classifyShellAuthzOps("python -c \"import os; print(os.getenv('PATH'))\"")).toEqual([]);
     // Shell expanded app state.json without authz context stays unclassifiable.
     expect(classifyShellAuthzOps('echo hi > "$APP_DIR/state.json"')).toEqual([]);
+    // Non-authz opaque expansion dest on write bins stays unclassifiable (ordinary prefix).
+    expect(classifyShellAuthzOps("cp x $HOME")).toEqual([]);
+    // Non-ordinary opaque dest without authz keywords is still settings (fail-closed residual).
+    expect(classifyShellAuthzOps("cp x $CUSTOM_BLOB")).toContain("settings");
     // #3186: write-capable programmatic shells classify as settings (UAT fail-closed rule)
     // even for non-authz destinations — evaluate still allows outside UAT (authz-inactive).
     expect(

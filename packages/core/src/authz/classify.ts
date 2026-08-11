@@ -290,6 +290,15 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "mbuffer",
 ]);
 
+/** wget family (directory-prefix dest flags). */
+const WGET_FAMILY_BINS = new Set(["wget", "wget2"]);
+/** aria2 family (dir dest flags). */
+const ARIA2_FAMILY_BINS = new Set(["aria2c", "aria2"]);
+/** 7z family (attached -oDIR only). */
+const SEVEN_Z_FAMILY_BINS = new Set(["7z", "7za", "7zr"]);
+/** tar family (chdir -C / --directory). */
+const TAR_FAMILY_BINS = new Set(["tar", "bsdtar"]);
+
 /**
  * File destination flags for downloaders/decoders (#3206).
  * normalizeToken lowercases, so wget `-O` and curl `-o` share `-o`.
@@ -361,7 +370,7 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   // scp: `-o` is OpenSSH option (ProxyCommand, …), not a file dest flag.
   if (bin === "scp") return false;
   // 7z family: only attached `-oDIR` (parsed in attached-short branch), not separate `-o PATH`.
-  if (bin === "7z" || bin === "7za" || bin === "7zr") {
+  if (SEVEN_Z_FAMILY_BINS.has(bin)) {
     return false;
   }
   // #3288: cpio `-o` is copy-out (create archive), not a file dest; dest is `-D` / `--directory`.
@@ -373,9 +382,9 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   }
   if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) return true;
   if (bin === "curl" && CURL_DIR_DEST_FLAGS.has(flag)) return true;
-  if ((bin === "wget" || bin === "wget2") && WGET_DIR_DEST_FLAGS.has(flag)) return true;
-  if ((bin === "aria2c" || bin === "aria2") && ARIA2C_DIR_DEST_FLAGS.has(flag)) return true;
-  if (bin === "tar" || bin === "bsdtar") {
+  if (WGET_FAMILY_BINS.has(bin) && WGET_DIR_DEST_FLAGS.has(flag)) return true;
+  if (ARIA2_FAMILY_BINS.has(bin) && ARIA2C_DIR_DEST_FLAGS.has(flag)) return true;
+  if (TAR_FAMILY_BINS.has(bin)) {
     if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
     if (TAR_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
     // Exact match on raw when normalize collapsed case for long flags only.
@@ -546,7 +555,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
         // wget / wget2 attached -Pdir
         if (
-          (bin === "wget" || bin === "wget2") &&
+          WGET_FAMILY_BINS.has(bin) &&
           n.startsWith("-p") &&
           n.length > 2 &&
           !n.startsWith("-proxy")
@@ -556,7 +565,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           continue;
         }
         // aria2c / aria2 attached -dDIR (#3213 / #3288)
-        if ((bin === "aria2c" || bin === "aria2") && n.startsWith("-d") && n.length > 2) {
+        if (ARIA2_FAMILY_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;
@@ -568,7 +577,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           continue;
         }
         // tar attached -CDIR (rare; capital C required)
-        if ((bin === "tar" || bin === "bsdtar") && raw.startsWith("-C") && raw.length > 2) {
+        if (TAR_FAMILY_BINS.has(bin) && raw.startsWith("-C") && raw.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;
