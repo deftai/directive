@@ -77,10 +77,7 @@ export function readOrientationState(projectRoot: string): OrientationState | nu
   }
 }
 
-export function writeOrientationState(
-  projectRoot: string,
-  state: OrientationState,
-): string {
+export function writeOrientationState(projectRoot: string, state: OrientationState): string {
   const path = orientationStatePath(projectRoot);
   const parent = dirname(path);
   mkdirSync(parent, { recursive: true });

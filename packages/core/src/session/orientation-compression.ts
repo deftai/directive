@@ -15,10 +15,13 @@ import {
 import { cmdDoctor } from "../doctor/main.js";
 import type { DoctorSeams } from "../doctor/types.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
-import { evaluate as evaluateCacheFresh, type EvaluateOptions } from "../preflight-cache/evaluate.js";
 import {
-  computeDepositSha,
+  type EvaluateOptions,
+  evaluate as evaluateCacheFresh,
+} from "../preflight-cache/evaluate.js";
+import {
   type ComputeDepositShaOptions,
+  computeDepositSha,
   DEPOSIT_SHA_MATCH_NOOP,
   depositShaMatches,
   formatDepositShaMatchLine,
@@ -47,11 +50,7 @@ export const ORIENTATION_GRADUATION_TRIGGER =
   "post-#3282 run-summary telemetry shows ritual+gate share >= 25% of tool calls " +
   "on a benchmark-suite run AFTER Now ships (starting threshold, tunable)";
 
-export type OrientationSectionName =
-  | "doctor"
-  | "preflight"
-  | "agents_refresh"
-  | "cache_fresh";
+export type OrientationSectionName = "doctor" | "preflight" | "agents_refresh" | "cache_fresh";
 
 export type OrientationSectionStatus =
   | "ok"
@@ -213,12 +212,9 @@ export function runDoctorOrientationSection(
       process.stdout.write = prevOut;
       process.stderr.write = prevErr;
     }
-    const status: OrientationSectionStatus =
-      code === 0 ? "ok" : code === 1 ? "dirty" : "error";
+    const status: OrientationSectionStatus = code === 0 ? "ok" : code === 1 ? "dirty" : "error";
     const summary =
-      code === 0
-        ? "[deft doctor] status: ok"
-        : `[deft doctor] status: ${status} (exit ${code})`;
+      code === 0 ? "[deft doctor] status: ok" : `[deft doctor] status: ${status} (exit ${code})`;
     return {
       name: "doctor",
       status,
@@ -323,7 +319,6 @@ export function runAgentsRefreshOrientationSection(
   },
 ): OrientationSectionResult {
   const started = performance.now();
-  const now = options.now ?? new Date();
   const prior = options.prior ?? null;
   if (
     prior &&
@@ -360,7 +355,11 @@ export function runAgentsRefreshOrientationSection(
         detail: { state: result.state, wrote: result.wrote },
       };
     }
-    if (result.state === "template-missing" || result.state === "template-malformed" || result.state === "unreadable") {
+    if (
+      result.state === "template-missing" ||
+      result.state === "template-malformed" ||
+      result.state === "unreadable"
+    ) {
       return {
         name: "agents_refresh",
         status: "error",
@@ -582,9 +581,4 @@ export function runOrientationCompression(options: RunOrientationOptions): Orien
   };
 }
 
-export {
-  computeDepositSha,
-  DEPOSIT_SHA_MATCH_NOOP,
-  depositShaMatches,
-  formatDepositShaMatchLine,
-};
+export { computeDepositSha, DEPOSIT_SHA_MATCH_NOOP, depositShaMatches, formatDepositShaMatchLine };

@@ -70,6 +70,11 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
+import {
+  type OrientationBundle,
+  type RunOrientationOptions,
+  runOrientationCompression,
+} from "./orientation-compression.js";
 import { emitSessionStartProcessCost } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
@@ -84,11 +89,6 @@ import {
   writeRitualState,
 } from "./ritual-sentinel.js";
 import { timestampIso } from "./time.js";
-import {
-  type OrientationBundle,
-  type RunOrientationOptions,
-  runOrientationCompression,
-} from "./orientation-compression.js";
 import {
   runToolchainPreflight,
   type ToolchainPreflightOptions,
@@ -1308,8 +1308,7 @@ export function runSessionStart(
             message: section.lines[0] ?? section.status,
             exitCode: section.exitCode,
             durationMs: section.durationMs,
-            command:
-              section.name === "doctor" ? ["doctor"] : ["verify:cache-fresh"],
+            command: section.name === "doctor" ? ["doctor"] : ["verify:cache-fresh"],
           });
         }
       }
@@ -1341,8 +1340,7 @@ export function runSessionStart(
               message: section.lines[0] ?? section.status,
               exitCode: section.exitCode,
               durationMs: section.durationMs,
-              command:
-                section.name === "doctor" ? ["doctor"] : ["verify:cache-fresh"],
+              command: section.name === "doctor" ? ["doctor"] : ["verify:cache-fresh"],
             });
           }
         }

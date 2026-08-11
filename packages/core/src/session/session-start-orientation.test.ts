@@ -9,11 +9,7 @@ import type { GitRunResult } from "./git.js";
 import type { OrientationBundle } from "./orientation-compression.js";
 import { ORIENTATION_LATER_STATUS } from "./orientation-compression.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
-import {
-  READ_ONLY_POSTURE,
-  runSessionStart,
-  type SessionStartOptions,
-} from "./session-start.js";
+import { READ_ONLY_POSTURE, runSessionStart, type SessionStartOptions } from "./session-start.js";
 
 const STANDARD_DIAL = selectCeremonyDepth({
   config: { enabled: true, override: "standard" },

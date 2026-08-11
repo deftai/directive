@@ -76,10 +76,7 @@ export function hashDepositTemplates(frameworkRoot: string): string {
  * Resolve payload / content version for the deposit fingerprint.
  * Prefer live generation token, then VERSION files under framework root.
  */
-export function resolveDepositPayloadVersion(
-  projectRoot: string,
-  frameworkRoot: string,
-): string {
+export function resolveDepositPayloadVersion(projectRoot: string, frameworkRoot: string): string {
   try {
     const live = readLiveGeneration(projectRoot);
     if (live?.contentVersion) {
@@ -106,16 +103,13 @@ export function resolveDepositPayloadVersion(
 }
 
 /** Resolve the three deposit-sha inputs (payload, templates, engine). */
-export function resolveDepositShaInputs(
-  options: ComputeDepositShaOptions = {},
-): DepositShaInputs {
+export function resolveDepositShaInputs(options: ComputeDepositShaOptions = {}): DepositShaInputs {
   const frameworkRoot = resolveAgentsFrameworkRoot({
     frameworkRoot: options.frameworkRoot,
   });
   const projectRoot = options.projectRoot ?? process.cwd();
   const engineVersion =
-    options.inputs?.engineVersion ??
-    (options.readEngineVersion ?? readCorePackageVersion)();
+    options.inputs?.engineVersion ?? (options.readEngineVersion ?? readCorePackageVersion)();
   const payloadVersion =
     options.inputs?.payloadVersion ??
     (options.readPayloadVersion ?? resolveDepositPayloadVersion)(projectRoot, frameworkRoot);
@@ -139,7 +133,10 @@ export function computeDepositSha(options: ComputeDepositShaOptions = {}): strin
 }
 
 /** True when two deposit fingerprints match (case-insensitive, trimmed). */
-export function depositShaMatches(a: string | null | undefined, b: string | null | undefined): boolean {
+export function depositShaMatches(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
   if (a == null || b == null) return false;
   const left = a.trim().toLowerCase();
   const right = b.trim().toLowerCase();

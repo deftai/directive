@@ -7,9 +7,9 @@ import {
   ENV_SESSION_COMPACT,
   formatOrientationCompactLines,
   ORIENTATION_LATER_STATUS,
+  type OrientationSectionResult,
   resolveSessionCompact,
   runOrientationCompression,
-  type OrientationSectionResult,
 } from "./orientation-compression.js";
 import { readOrientationState, writeOrientationState } from "./orientation-state.js";
 
@@ -78,9 +78,7 @@ describe("orientation compression (#3286)", () => {
     const names = bundle.sections.map((s) => s.name);
     expect(names).toEqual(["doctor", "preflight", "agents_refresh", "cache_fresh"]);
     expect(bundle.lines.some((l) => l.includes("doctor"))).toBe(true);
-    expect(bundle.lines.some((l) => l.includes("preflight") || l.includes("toolchain"))).toBe(
-      true,
-    );
+    expect(bundle.lines.some((l) => l.includes("preflight") || l.includes("toolchain"))).toBe(true);
     expect(bundle.later.status).toBe(ORIENTATION_LATER_STATUS);
     expect(bundle.orientationCallCount).toBe(4);
     expect(bundle.compact).toBe(false);
