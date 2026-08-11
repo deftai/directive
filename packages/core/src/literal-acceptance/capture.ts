@@ -450,6 +450,11 @@ function coerceCommandList(
     if (!isNonEmptyString(command)) continue;
     const normalized = normalizeCommand(command);
     if (normalized === null || !evaluateCommandSafety(normalized).ok) continue;
+    // Preserve persisted source when present so task_statement stays capture-only (#3267).
+    const persistedSource =
+      typeof rec.source === "string" && rec.source.trim().length > 0
+        ? (rec.source.trim() as LiteralAcceptanceSource)
+        : source;
     out.push({
       command: normalized,
       cwd: isNonEmptyString(rec.cwd) ? rec.cwd.trim() : null,
@@ -464,7 +469,7 @@ function coerceCommandList(
           : typeof rec.expected_exit_code === "number"
             ? rec.expected_exit_code
             : 0,
-      source,
+      source: persistedSource,
       sourceSpan: span,
     });
   }

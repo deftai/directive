@@ -288,6 +288,29 @@ describe("command safety (#3267 P1)", () => {
     expect(result.message).toMatch(/capture-only|Promote|verify_commands/);
   });
 
+  it("preserves task_statement source when reloading metadata (no reclassify to explicit)", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          { command: "task check", source: "task_statement", sourceSpan: "issue" },
+        ],
+      },
+      items: [],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.source).toBe("task_statement");
+    const result = runLiteralAcceptanceCommands(stored, {
+      projectRoot: process.cwd(),
+      runner: () => {
+        throw new Error("must not execute reloaded task_statement");
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/capture-only|Promote/);
+  });
+
   it("runs agent-authored verify_commands while noting skipped task_statement peers", () => {
     const result = runLiteralAcceptanceCommands(
       [
