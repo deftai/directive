@@ -407,8 +407,13 @@ export function runCacheFreshOrientationSection(
   void options.now;
   try {
     const evaluate = options.evaluateFn ?? evaluateCacheFresh;
+    // #3286 Greptile: do not treat missing cache/candidates as a successful
+    // cache-fresh for orientation / gated_steps (bootstrap must not look green).
+    // Session:start still continues; gated verify will re-run cache_fresh when
+    // ok is false.
     const result = evaluate(projectRoot, {
-      allowMissingBootstrap: true,
+      allowMissingBootstrap: false,
+      autoPopulateEmpty: false,
       ...options.evaluateOptions,
     });
     const ok = result.code === 0;
