@@ -578,6 +578,7 @@ flowchart TD
   - Step 3 (`Pre-flight vBRIEF lifecycle sync`) fetches GitHub issue states via REST. On HTTP 403 rate-limit exhaustion it sleeps once (capped at 120s) and retries before failing.
   - When Step 3 still fails with rate-limit exhaustion, stderr includes a `gh api rate_limit` probe (`core.remaining`, reset time) and recovery guidance. After local `task vbrief:validate` (or `task xbrief:validate`) exits 0, operators may pass `--allow-vbrief-drift` to skip Step 3 for that cut — reserved for transient SCM bucket stalls, not unreviewed lifecycle drift.
 - `task swarm:*` -- readiness, launch, pre-dispatch deny gate (#3228), review-clean verification, and cohort completion.
+- **Operator follow-up after dual-stop / hard stop (#3273):** when a dual-stop or conf-hold halt report lands, re-authorize one residual pass with phrases *pursue residual* / *follow-up hard-stop* / *same as conf-hold* / *continue dual-stopped PR* — steps in `skills/deft-directive-swarm` and `skills/deft-directive-review-cycle` § Operator follow-up after dual-stop / hard stop (not a separate task verb).
 - `task slice:*` -- feature-slice helpers.
 - `task policy:*` and `task capacity:*` -- policy inspection and allocation helpers.
 
