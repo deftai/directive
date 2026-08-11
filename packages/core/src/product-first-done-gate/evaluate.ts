@@ -75,27 +75,9 @@ export function evaluateVerifyAcFromPlan(
 
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
 
-  // Empty commands with valid none_stated → soft pass (rung recorded).
-  if (acceptance.commands.length === 0) {
-    const rungNote =
-      acceptance.source_rung === "project_floor"
-        ? "project_floor: no stated/derived commands — suite/hygiene gates own residual product signal under full check"
-        : "no acceptance.commands (none_stated)";
-    return {
-      ok: true,
-      code: 0,
-      message: options.quiet
-        ? ""
-        : `verify:ac passed (#3284): ${rungNote} [rung=${acceptance.source_rung}]`,
-      commands: [],
-      runs: [],
-      sourceRung: acceptance.source_rung,
-      noneStated: acceptance.none_stated,
-      acceptance,
-    };
-  }
-
   // Prefer shared literal-acceptance path so safety / promotion rules stay one place.
+  // Empty plan.acceptance.commands still consults the #3267 rejected ledger
+  // (Greptile P1: rejected stated AC must never soft-pass).
   // For derived/floor commands already on plan.acceptance, inject as explicit metadata
   // if the literal ledger is empty of executables.
   const base = evaluateLiteralAcceptanceFromPlan(plan, {
@@ -128,25 +110,27 @@ export function evaluateVerifyAcFromPlan(
     return annotate(direct, acceptance, options.quiet);
   }
 
-  // Check composition: mid-story capture noise must not block the full graph.
-  // Standalone verify:ac (done-gate) still fails closed on unpromoted + rejected.
-  // Executable command runs that fail still fail closed (product-first).
+  // Check composition: mid-story unpromoted capture-only may soft-pass so the
+  // framework graph is not deadlocked before agents promote peers.
+  // Greptile P1 #3284: safety-rejected stated commands NEVER soft-pass — they
+  // block product verification until a safe alternative is promoted.
   if (options.checkIntegrated === true && !base.ok && base.runs.length === 0) {
+    const hasRejected = (base.rejected?.length ?? 0) > 0;
+    if (hasRejected) {
+      return annotate(base, acceptance, options.quiet);
+    }
     const unpromoted =
       /capture-only|task_statement|no matching agent-promoted/i.test(base.message) ||
-      base.commands.every((c) => c.source === "task_statement");
-    const rejectedOnly =
-      (base.rejected?.length ?? 0) > 0 &&
-      base.commands.every((c) => c.source === "task_statement" || c.source === undefined);
-    if (unpromoted || rejectedOnly || base.commands.length === 0) {
+      (base.commands.length > 0 && base.commands.every((c) => c.source === "task_statement"));
+    if (unpromoted || base.commands.length === 0) {
       return {
         ok: true,
         code: 0,
         message: options.quiet
           ? ""
           : `verify:ac advisory (#3284 check-integrated): no executable AC peers yet ` +
-            `(capture-only / rejected ledger / empty). Done-gate standalone verify:ac still ` +
-            `requires promotion or a safe alternative. [rung=${acceptance.source_rung}]\n` +
+            `(capture-only / empty). Done-gate standalone verify:ac still requires promotion. ` +
+            `[rung=${acceptance.source_rung}]\n` +
             base.message,
         commands: base.commands,
         runs: [],

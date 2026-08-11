@@ -76,7 +76,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-function findActiveXbrief(projectRoot: string): string | null {
+/** Result of scanning lifecycle active/ for a unique scope artifact. */
+export type FindActiveXbriefResult =
+  | { readonly kind: "one"; readonly path: string }
+  | { readonly kind: "none" }
+  | { readonly kind: "ambiguous"; readonly count: number; readonly dir: string };
+
+function findActiveXbriefDetailed(projectRoot: string): FindActiveXbriefResult {
   for (const dirName of ["xbrief", "vbrief"]) {
     const active = join(projectRoot, dirName, "active");
     if (!existsSync(active)) continue;
@@ -89,10 +95,13 @@ function findActiveXbrief(projectRoot: string): string | null {
       continue;
     }
     if (names.length === 1) {
-      return join(active, names[0] as string);
+      return { kind: "one", path: join(active, names[0] as string) };
+    }
+    if (names.length > 1) {
+      return { kind: "ambiguous", count: names.length, dir: active };
     }
   }
-  return null;
+  return { kind: "none" };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -113,21 +122,32 @@ export function run(argv: string[]): number {
   const projectRoot = resolve(args.projectRoot);
   let xbriefPath = args.xbriefPath !== null ? resolve(projectRoot, args.xbriefPath) : null;
   if (xbriefPath === null) {
-    xbriefPath = findActiveXbrief(projectRoot);
-  }
-  if (xbriefPath === null) {
-    if (args.softMissingXbrief) {
+    const found = findActiveXbriefDetailed(projectRoot);
+    if (found.kind === "one") {
+      xbriefPath = found.path;
+    } else if (found.kind === "ambiguous") {
+      // Greptile P1 #3284: multi-active must not soft-pass as "missing" — fail closed.
+      process.stderr.write(
+        `verify_ac: ambiguous active scope (${found.count} artifacts in ${found.dir}).\n` +
+          "  Pass an explicit xBRIEF path: task verify:ac -- <path-to-active.xbrief.json>\n" +
+          "  Refs #3284 product-first done-gate (must not skip mandatory AC under multi-active)\n",
+      );
+      return 1;
+    } else if (args.softMissingXbrief) {
       if (!args.quiet) {
-        process.stdout.write("verify:ac skipped (#3284 soft-missing): no single active xBRIEF\n");
+        process.stdout.write(
+          "verify:ac skipped (#3284 soft-missing): no active xBRIEF in xbrief/active/\n",
+        );
       }
       return 0;
+    } else {
+      process.stderr.write(
+        "verify_ac: pass an xBRIEF path or ensure exactly one artifact in xbrief/active/\n" +
+          "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
+          "  Refs #3284 product-first done-gate (mechanism #3267)\n",
+      );
+      return 2;
     }
-    process.stderr.write(
-      "verify_ac: pass an xBRIEF path or ensure exactly one artifact in xbrief/active/\n" +
-        "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
-        "  Refs #3284 product-first done-gate (mechanism #3267)\n",
-    );
-    return 2;
   }
 
   if (args.captureOnly) {

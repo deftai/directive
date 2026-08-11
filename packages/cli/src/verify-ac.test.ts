@@ -38,6 +38,15 @@ describe("verify:ac run (#3284)", () => {
     expect(code).toBe(0);
   });
 
+  it("fails closed when multiple active xbriefs even with soft-missing (#3284 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-multi-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(join(active, "a.xbrief.json"), JSON.stringify({ plan: { items: [] } }), "utf8");
+    writeFileSync(join(active, "b.xbrief.json"), JSON.stringify({ plan: { items: [] } }), "utf8");
+    expect(run(["--project-root", root, "--soft-missing-xbrief"])).toBe(1);
+  });
+
   it("exits 2 when no xbrief and soft-missing off", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-hard-"));
     expect(run(["--project-root", root])).toBe(2);

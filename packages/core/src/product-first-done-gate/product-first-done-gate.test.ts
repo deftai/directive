@@ -207,6 +207,29 @@ describe("verify:ac evaluation (#3284)", () => {
     expect(integrated.ok).toBe(true);
     expect(integrated.message).toMatch(/check-integrated|capture-only/i);
   });
+
+  it("check-integrated does NOT soft-pass safety-rejected AC (#3284 P1)", () => {
+    const plan = {
+      title: "rejected only",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "project_floor",
+      },
+      metadata: {
+        literal_acceptance_commands: [],
+        literal_acceptance_rejected: [
+          { command: "rm -rf /", reason: "shell metacharacter not allowed" },
+        ],
+      },
+    };
+    const integrated = evaluateVerifyAcFromPlan(plan, {
+      captureFromNarratives: false,
+      checkIntegrated: true,
+    });
+    expect(integrated.ok).toBe(false);
+    expect(integrated.code).toBe(1);
+  });
 });
 
 describe("check mode (#3284)", () => {
