@@ -237,7 +237,32 @@ describe("evaluateLiteralAcceptanceFromPlan / Path", () => {
       runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
     });
     expect(result.ok).toBe(true);
-    expect(result.commands).toHaveLength(1);
+    expect(result.commands.map((c) => c.command)).toContain("task check");
+  });
+
+  it("merges narrative captures even when stored commands already exist", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [{ command: "task check", source: "explicit" }],
+      },
+      narratives: {
+        Overview: "verify: pnpm test",
+      },
+      items: [],
+    };
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: true,
+      runner: () => {
+        throw new Error("must fail closed on unpromoted narrative peer");
+      },
+    });
+    // Narrative pnpm test is capture-only without matching promote → fail closed.
+    expect(result.ok).toBe(false);
+    expect(result.commands.map((c) => c.command)).toEqual(
+      expect.arrayContaining(["task check", "pnpm test"]),
+    );
   });
 
   it("re-captures from Overview as task_statement and fails closed until promote", () => {
@@ -413,11 +438,29 @@ describe("command safety (#3267 P1)", () => {
     expect(result.message).toMatch(/capture-only|Promote/);
   });
 
-  it("runs agent-authored verify_commands while noting skipped task_statement peers", () => {
+  it("fails closed when task_statement peers lack matching promoted commands", () => {
+    // Mixed provenance: an unrelated executable peer must not waive other stated commands.
     const result = runLiteralAcceptanceCommands(
       [
         { command: "task check", source: "verify_commands" },
         { command: "pnpm test", source: "task_statement" },
+      ],
+      {
+        projectRoot: process.cwd(),
+        runner: () => {
+          throw new Error("must not run when unpromoted peers remain");
+        },
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/pnpm test|no matching|unrelated executable/);
+  });
+
+  it("runs when task_statement has a matching promoted peer of the same command string", () => {
+    const result = runLiteralAcceptanceCommands(
+      [
+        { command: "task check", source: "verify_commands" },
+        { command: "task check", source: "task_statement" },
       ],
       {
         projectRoot: process.cwd(),
@@ -426,7 +469,15 @@ describe("command safety (#3267 P1)", () => {
     );
     expect(result.ok).toBe(true);
     expect(result.runs).toHaveLength(1);
-    expect(result.message).toMatch(/skipped|task_statement/);
+  });
+
+  it("refuses npx registry/run forms while allowing npx vitest", async () => {
+    const { evaluateCommandSafety } = await import("./safety.js");
+    expect(evaluateCommandSafety("npx vitest run packages/core").ok).toBe(true);
+    expect(evaluateCommandSafety("npx --version").ok).toBe(true);
+    expect(evaluateCommandSafety("npx run test").ok).toBe(false);
+    expect(evaluateCommandSafety("npx exec vitest").ok).toBe(false);
+    expect(evaluateCommandSafety("npx some-evil-package").ok).toBe(false);
   });
 });
 

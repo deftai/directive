@@ -41,7 +41,10 @@ function planOf(data: Record<string, unknown>): Record<string, unknown> | null {
 }
 
 /**
- * Resolve commands + rejected ledger: stored first; optional narrative re-capture when empty.
+ * Resolve commands + rejected ledger.
+ * Stored first; when captureFromNarratives is true (default), also re-scan narratives
+ * and merge any newly stated commands so stored entries cannot hide AC updates
+ * (Greptile conf residual).
  */
 export function resolveLiteralAcceptanceDetailed(
   plan: Record<string, unknown>,
@@ -51,12 +54,6 @@ export function resolveLiteralAcceptanceDetailed(
   readonly rejected: readonly RejectedLiteralCommand[];
 } {
   const stored = readStoredLiteralAcceptanceDetailed(plan);
-  if (stored.commands.length > 0 || stored.rejected.length > 0) {
-    // When commands exist, still return any persisted rejected ledger.
-    if (stored.commands.length > 0) {
-      return stored;
-    }
-  }
   if (options.captureFromNarratives === false) {
     return stored;
   }
@@ -79,7 +76,27 @@ export function resolveLiteralAcceptanceDetailed(
   }
   if (parts.length === 0) return stored;
   const captured = captureLiteralAcceptanceCommandsDetailed(parts.join("\n\n"));
-  // Merge rejected ledgers (stored + narrative capture).
+
+  // Merge commands: keep stored (richer context) first; add narrative captures by
+  // composite key (command+cwd+exit) so new stated lines are not suppressed.
+  const cmdKey = (c: LiteralAcceptanceCommand): string => {
+    const cwd =
+      c.cwd !== null && c.cwd !== undefined && c.cwd.trim().length > 0 ? c.cwd.trim() : "";
+    const exit = typeof c.expectedExitCode === "number" ? c.expectedExitCode : 0;
+    return `${c.command}\0${cwd}\0${exit}`;
+  };
+  const seen = new Set(stored.commands.map(cmdKey));
+  const commands = [...stored.commands];
+  for (const c of captured.commands) {
+    const k = cmdKey(c);
+    if (seen.has(k)) continue;
+    // Also skip pure command-string dupes already stored (any cwd) so narrative
+    // re-capture does not invent a second null-cwd twin of an explicit row.
+    if (commands.some((s) => s.command === c.command)) continue;
+    seen.add(k);
+    commands.push(c);
+  }
+
   const rejectedSeen = new Set(stored.rejected.map((r) => `${r.command}\0${r.reason}`));
   const rejected = [...stored.rejected];
   for (const r of captured.rejected) {
@@ -88,7 +105,7 @@ export function resolveLiteralAcceptanceDetailed(
     rejectedSeen.add(k);
     rejected.push(r);
   }
-  return { commands: captured.commands, rejected };
+  return { commands, rejected };
 }
 
 /**

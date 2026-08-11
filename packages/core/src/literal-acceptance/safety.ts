@@ -126,6 +126,7 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
   }
 
   // Package managers: only test/exec vitest/run test|check|--version (no install/publish/net).
+  // npx is stricter (no run/exec registry forms) — see evaluatePackageManagerArgs.
   if (
     first === "pnpm" ||
     first === "npm" ||
@@ -133,7 +134,7 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
     first === "yarn" ||
     first === "bun"
   ) {
-    return evaluatePackageManagerArgs(rest);
+    return evaluatePackageManagerArgs(rest, first);
   }
 
   // vitest first-token: allow run / related test args only.
@@ -193,12 +194,37 @@ function evaluateWrapperSubcommand(rest: string): CommandSafetyResult {
   };
 }
 
-/** Package-manager subcommand allowlist (no install/publish/exec of arbitrary bins). */
-function evaluatePackageManagerArgs(rest: string): CommandSafetyResult {
+/**
+ * Package-manager subcommand allowlist (no install/publish/exec of arbitrary bins).
+ * `npx` is stricter than npm/pnpm/yarn/bun: it must not accept `run`/`exec` forms that
+ * resolve arbitrary registry packages with inherited env (Greptile conf residual).
+ */
+function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSafetyResult {
   if (rest.length === 0) {
     return { ok: false, reason: "package manager requires a restricted subcommand" };
   }
   const low = rest.toLowerCase();
+
+  // npx: only vitest (direct) or version/help — no `npx run` / `npx exec <pkg>` registry path.
+  if (firstToken === "npx") {
+    if (
+      low === "vitest" ||
+      low.startsWith("vitest ") ||
+      low === "--version" ||
+      low === "-v" ||
+      low === "--help" ||
+      low === "-h"
+    ) {
+      return { ok: true, reason: null };
+    }
+    return {
+      ok: false,
+      reason:
+        "npx is limited to vitest|--version|--help " +
+        "(npx run/exec/registry packages denied for ambient-authority)",
+    };
+  }
+
   // exec: only vitest (not deft/task — those re-open wrapper ambient authority).
   if (low.startsWith("exec ")) {
     const afterExec = low.slice("exec ".length).trim();

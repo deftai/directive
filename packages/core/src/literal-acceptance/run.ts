@@ -141,17 +141,22 @@ export function runLiteralAcceptanceCommands(
       (c.source === "task_statement" && options.allowTaskStatement === true),
   );
 
-  // Fail closed: stated task_statement commands without agent-promoted executable peers.
-  if (untrusted.length > 0 && executable.length === 0) {
-    const listed = untrusted.map((c) => `  - ${c.command} (source=${c.source})`).join("\n");
+  // Fail closed: every capture-only stated command must have a matching agent-promoted
+  // peer (same command string). An unrelated executable peer must NOT waive other
+  // stated commands (Greptile conf residual: mixed-provenance completion).
+  const executableCommandSet = new Set(executable.map((c) => c.command));
+  const unpromoted = untrusted.filter((c) => !executableCommandSet.has(c.command));
+  if (unpromoted.length > 0) {
+    const listed = unpromoted.map((c) => `  - ${c.command} (source=${c.source})`).join("\n");
     return {
       ok: false,
       code: 1,
       message:
-        `Literal acceptance-command gate FAILED (#3267): ${untrusted.length} stated command(s) ` +
-        `are capture-only (source=task_statement) and cannot auto-spawn from issue/task text.\n` +
+        `Literal acceptance-command gate FAILED (#3267): ${unpromoted.length} stated command(s) ` +
+        `are capture-only (source=task_statement) and have no matching agent-promoted peer.\n` +
         `Promote the exact command strings into plan.metadata.swarm.verify_commands ` +
         `(or plan item command / explicit metadata), then re-run.\n` +
+        `Note: an unrelated executable peer does not waive other stated commands.\n` +
         listed,
       commands,
       runs: [],
@@ -185,17 +190,13 @@ export function runLiteralAcceptanceCommands(
   const failed = runs.filter((r) => !r.ok);
   if (failed.length === 0) {
     const lines = runs.map((r) => `  ✓ ${r.command} — ${r.detail}`);
-    const note =
-      untrusted.length > 0
-        ? `\n  (note: ${untrusted.length} task_statement command(s) skipped — promote to verify_commands to execute)`
-        : "";
+    // Untrusted that matched an executable peer were promoted for run; no skip note needed.
     return {
       ok: true,
       code: 0,
       message:
         `Literal acceptance-command gate passed (#3267): ${runs.length} command(s) run verbatim\n` +
-        lines.join("\n") +
-        note,
+        lines.join("\n"),
       commands,
       runs,
     };
