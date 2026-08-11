@@ -293,6 +293,35 @@ describe("evaluateParentLineage (#3241)", () => {
     expect(result.parent_path?.replace(/\\/g, "/")).toMatch(/completed\/parent\.xbrief\.json$/);
   });
 
+  it("fails closed when basename matches multiple lifecycle parents (ambiguous)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-ambig-"));
+    temps.push(base);
+    const pending = join(base, "xbrief", "pending");
+    const completed = join(base, "xbrief", "completed");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(completed, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(join(completed, "parent.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({
+        plan: { id: "other-epic", items: [{ id: "other-req", title: "Other" }] },
+      }),
+      "utf8",
+    );
+    // Stale ref to proposed/ (missing); two same basenames elsewhere → ambiguous
+    const child = childWithLineage({
+      planRef: "proposed/parent.xbrief.json",
+      coverage_map: fullCoverageMap,
+    });
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/ambiguous basename/i);
+  });
+
   it("evaluateParentLineageAtPath loads child and parent from disk", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-pl-disk-"));
     temps.push(base);

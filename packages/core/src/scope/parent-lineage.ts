@@ -249,6 +249,9 @@ function loadJsonFile(path: string): { ok: true; data: JsonObj } | { ok: false; 
  * Load parent at the resolved planRef path; if missing, search other lifecycle
  * folders for the same basename (tolerates best-effort planRef rewrite lag after
  * parent moves — Greptile #3241 P1).
+ *
+ * Ambiguous same-basename hits fail closed (do not pick the first match — that
+ * can validate against an unrelated parent's requirement set).
  */
 export function loadParentWithLifecycleFallback(
   parentPath: string,
@@ -265,14 +268,36 @@ export function loadParentWithLifecycleFallback(
   if (!name || name === "." || name === "..") {
     return { ok: false, error: primary.error, path: parentPath };
   }
+
+  const candidates: Array<{ path: string; data: JsonObj }> = [];
   for (const folder of LIFECYCLE_FOLDERS_FOR_PARENT_LOOKUP) {
     const candidate = join(lifecycleRoot, folder, name);
     if (resolve(candidate) === resolve(parentPath)) continue;
     if (!existsSync(candidate)) continue;
     const loaded = loadJsonFile(candidate);
     if (loaded.ok) {
-      return { ok: true, data: loaded.data, path: candidate };
+      candidates.push({ path: candidate, data: loaded.data });
     }
+  }
+
+  if (candidates.length === 1) {
+    const only = candidates[0];
+    if (only !== undefined) {
+      return { ok: true, data: only.data, path: only.path };
+    }
+  }
+  if (candidates.length > 1) {
+    const listed = candidates
+      .map((c) => c.path.replace(/\\/g, "/"))
+      .sort()
+      .join(", ");
+    return {
+      ok: false,
+      error:
+        `parent not found at ${parentPath}; ambiguous basename '${name}' across lifecycle folders ` +
+        `(${listed}). Rewrite child planRef to the intended parent (do not guess).`,
+      path: parentPath,
+    };
   }
   return {
     ok: false,
