@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Product-first done-gate (#3284).** Stated acceptance criteria run **first** and are never skippable; hygiene gates run second and degrade under pressure. (1) `plan.acceptance.commands[]` schema with required `none_stated: true` when empty; AC-source ladder `stated` → `derived` → `project_floor` (probe lock). Intake stamps acceptance from #3267 capture. (2) `task verify:ac` / `deft verify:ac` runs commands verbatim (primary name; `verify:literal-ac` remains the #3267 mechanism). (3) `task check` composes `verify:ac` first (fail-fast) on framework and consumer lists; `--soft-missing-xbrief` avoids deadlock without an active story. (4) Pressure/degraded/hard-budget: hygiene advisory, AC still hard. (5) Ceremony dial rapid/minimal = AC-only check composition. Core: `packages/core/src/product-first-done-gate/`; CLI: `verify-ac`; skills: build + pre-pr; strategy: rapid. Architecture for #3267. Closes #3284. Refs #3267, #973, #3214, #3266, #3156.
+
 ### Changed
 
 ### Fixed

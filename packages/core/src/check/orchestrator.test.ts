@@ -340,6 +340,8 @@ tasks:
       join(framework, "tasks", "verify.yml"),
       `version: '3'
 tasks:
+  ac:
+    cmds: [echo ok]
   branch:
     cmds: [echo ok]
   cache-fresh:

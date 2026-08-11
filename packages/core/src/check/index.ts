@@ -24,6 +24,7 @@ export {
   gatesForCheckTarget,
   isFastBeforeSlowOrder,
   isSuiteCheckGate,
+  PRODUCT_FIRST_AC_GATE,
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 export type { CheckOrchestratorOptions, CheckOrchestratorSeams } from "./orchestrator.js";

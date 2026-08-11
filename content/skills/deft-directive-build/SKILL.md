@@ -335,19 +335,20 @@ task test:coverage  # >=85% or PROJECT-DEFINITION.xbrief.json override
 - ⊗ Re-run full install/session ceremony after offline seed when ritual is already complete (#3010) — use `session:ready` for recovery only.
 
 
-## Literal acceptance-command verification (#3267)
+## Product-first done-gate (#3284) / literal AC (#3267)
 
-At intake, capture the task statement's **exact** acceptance commands (when present) as executable AC. Before declaring done, run them **verbatim** — same paths, same flags, same working directory. Self-chosen verification is supplementary, never a substitute. Extends #973 machine-verifiable-spec. Required on ceremony dial rapid/minimal (#3214) — verification depth is constant (#3156).
+At intake, capture the task statement's **exact** acceptance commands as executable AC (`plan.acceptance.commands` + #3267 `literal_acceptance_commands`). Empty is allowed only with `none_stated: true` (ladder: stated → derived → project_floor). Before declaring done, run them **verbatim** — same paths, same flags, same working directory. Self-chosen verification is supplementary, never a substitute. Extends #973. `task check` runs `verify:ac` **first** (fail-fast); hygiene is second and may become advisory under pressure. Rapid ceremony = **AC-only**.
 
-- ! When reading the active scope xBRIEF / issue body at story start, capture stated shell acceptance commands into `plan.metadata.literal_acceptance_commands` (issue:ingest does this automatically). Do not paraphrase into a different command.
+- ! When reading the active scope xBRIEF / issue body at story start, capture stated shell acceptance commands into `plan.acceptance.commands` (issue:ingest stamps this + the #3267 ledger automatically). Do not paraphrase.
 - ! Before claiming phase or story done (and before merge-chokepoint PR handoff), run:
 ```
-task verify:literal-ac -- <active-story-path>
+task verify:ac -- <active-story-path>
 ```
-  Exit 0 = pass or no commands stated; exit 1 = a stated command failed; exit 2 = config.
+  Exit 0 = pass or none stated with valid marker; exit 1 = a stated command failed; exit 2 = config. (`verify:literal-ac` is the #3267 mechanism alias.)
 - ! Quote the literal invocations and their outputs in the completion note when commands were stated.
 - ⊗ Substitute a self-chosen approximation (`pnpm test` when the statement said `pnpm exec vitest run packages/core/src`) for the stated command.
-- ⊗ Skip this gate because ceremony dial is rapid/minimal — the check survives light ceremony.
+- ⊗ Skip this gate because ceremony dial is rapid/minimal — rapid's positive content is exactly this check (#3284).
+- ⊗ Leave `plan.acceptance.commands` empty without `none_stated: true` — absence must be an explicit decision.
 
 ## Operator-log hygiene (lazy-load, #1940)
 

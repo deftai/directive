@@ -8,6 +8,12 @@ import {
 import type { TaskRunResult } from "../cache/task-cache/types.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import {
+  applyProductFirstGateMode,
+  isHygieneGate,
+  isProductAcGate,
+  resolveProductFirstCheckMode,
+} from "../product-first-done-gate/index.js";
+import {
   evaluateConsumerGateIntegrity,
   formatConsumerGateIntegrityFailure,
 } from "./consumer-gate-integrity.js";
@@ -51,10 +57,15 @@ function captureSpawn(
  * Run check gates sequentially with content-hash caching (#1713).
  * Falls back to fail-open execution for undeclared / non-cacheable gates.
  *
- * Gate order is fast-before-slow (#3188): non-suite gates complete (or fail)
- * before any suite gate (`ts:check-lane` / vitest+coverage) is started. A
- * non-zero exit aborts the loop immediately — the suite never starts after a
- * fast-gate failure (observable via `onGateStart` / suite start log).
+ * Gate order (#3284 / #3188):
+ *  1. Product AC (`verify:ac`) first — fail-fast; never skippable when commands exist
+ *  2. Hygiene preflight (may be advisory under pressure / degraded)
+ *  3. Suite last (`ts:check-lane`)
+ *
+ * Modes (env / ceremony dial / hard budget — see resolveProductFirstCheckMode):
+ *  - full: AC hard → hygiene hard → suite
+ *  - pressure: AC hard → hygiene advisory → suite
+ *  - rapid: AC only (ceremony dial rapid/minimal positive content)
  */
 export function dispatchCachedTaskCheck(
   frameworkRoot: string,
@@ -67,8 +78,21 @@ export function dispatchCachedTaskCheck(
   const taskBin = options.taskBin ?? "task";
   const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
-  const gates = gatesForCheckTarget(target);
+  const modeResolution = resolveProductFirstCheckMode({
+    environ: options.env ?? process.env,
+    projectRoot: resolvedProject,
+  });
+  const baseGates = gatesForCheckTarget(target);
+  const gates = applyProductFirstGateMode(baseGates, modeResolution.mode, checkGateId);
   const codeVersion = readCorePackageVersion();
+
+  if (modeResolution.mode !== "full") {
+    process.stderr.write(
+      `check: product-first mode=${modeResolution.mode} ` +
+        `(sources=${modeResolution.sources.join(",")}; ` +
+        `hygieneAdvisory=${modeResolution.hygieneAdvisory}; acOnly=${modeResolution.acOnly}) (#3284)\n`,
+    );
+  }
 
   // #3070: fail loud with deposit-repair guidance when consumer check-graph
   // includes (e.g. tasks/verify.yml for verify:orphan-active) are missing,
@@ -103,6 +127,9 @@ export function dispatchCachedTaskCheck(
     if (isSuiteCheckGate(gateSpec)) {
       process.stderr.write(`check: starting suite gate ${gateId} after fast preflight (#3188)\n`);
     }
+    if (isProductAcGate(gateId)) {
+      process.stderr.write(`check: product AC gate ${gateId} first (#3284)\n`);
+    }
     options.onGateStart?.(gateId);
     const contract = resolveTaskContract(gateId);
     const taskArgs = checkGateSpawnArgs(gateSpec, taskfilePath);
@@ -128,8 +155,23 @@ export function dispatchCachedTaskCheck(
       },
     });
     options.onGateComplete?.(gateId, result.exitCode, result.fromCache);
-    // Fail-fast: do not start later gates (including suite) after a failure.
+    // Fail-fast: do not start later gates (including suite) after a failure —
+    // unless this is a hygiene gate under pressure mode (advisory only, #3284).
     if (result.exitCode !== 0) {
+      if (modeResolution.hygieneAdvisory && isHygieneGate(gateId) && !isProductAcGate(gateId)) {
+        process.stderr.write(
+          `check: hygiene gate ${gateId} failed (exit ${result.exitCode}) but is ADVISORY ` +
+            `under ${modeResolution.mode} mode — continuing (#3284)\n`,
+        );
+        continue;
+      }
+      if (isProductAcGate(gateId)) {
+        process.stderr.write(
+          `check: product AC gate ${gateId} failed (exit ${result.exitCode}); ` +
+            `failing closed before hygiene (#3284)\n`,
+        );
+        return result.exitCode;
+      }
       if (!isSuiteCheckGate(gateSpec)) {
         const remaining = gates.some(isSuiteCheckGate)
           ? "skipping remaining gates including suite"

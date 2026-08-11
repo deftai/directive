@@ -1,5 +1,7 @@
 /** Gate execution order mirrors Taskfile.yml check targets (#1713 dogfood). */
 
+import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
+
 /**
  * A check gate is either a bare Taskfile task name, or a public task plus CLI
  * args (after `--`). Framework-only shims that are `internal: true` in
@@ -12,6 +14,15 @@ export type CheckGateSpec =
       readonly task: string;
       readonly args?: readonly string[];
     };
+
+/**
+ * Product-first AC gate (#3284): always first; soft-missing when no active
+ * xBRIEF so framework self-check is not deadlocked without a story.
+ */
+export const PRODUCT_FIRST_AC_GATE: CheckGateSpec = {
+  task: PRODUCT_AC_GATE_ID,
+  args: ["--soft-missing-xbrief"],
+};
 
 export function checkGateId(spec: CheckGateSpec): string {
   return typeof spec === "string" ? spec : spec.task;
@@ -57,13 +68,16 @@ export function isFastBeforeSlowOrder(gates: readonly CheckGateSpec[]): boolean 
 }
 
 /**
- * Framework-source check composition (#1713 / #3188).
+ * Framework-source check composition (#1713 / #3188 / #3284).
  *
- * Order contract: cheap preflight gates first; `ts:check-lane` (lint+build+
- * vitest coverage suite) last so a stale cache / orphan-active / branch miss
- * fails in seconds without starting the suite.
+ * Order contract:
+ *  1. Product AC first (fail-fast; never skippable when commands exist) — #3284
+ *  2. Cheap hygiene preflight — #3188
+ *  3. `ts:check-lane` suite last
  */
 export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
+  // --- Product-first done-gate (#3284) — AC before any hygiene ---
+  PRODUCT_FIRST_AC_GATE,
   // --- Fast preflight (seconds–few min) — #3188 ---
   "verify:branch",
   "verify:encoding",
@@ -108,7 +122,9 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
 ];
 
 export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
-  // Cheap lifecycle / policy first (no suite co-list today; keep fail-fast order)
+  // Product-first: stated AC before hygiene (#3284)
+  PRODUCT_FIRST_AC_GATE,
+  // Cheap lifecycle / policy second (no suite co-list today; keep fail-fast order)
   "verify:branch",
   "verify:cache-fresh",
   "verify:wip-cap",

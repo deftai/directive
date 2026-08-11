@@ -101,14 +101,15 @@ Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produ
 
 ---
 
-## Literal acceptance-command verification (#3267)
+## Product-first done-gate / literal AC (#3284 / #3267)
 
-Rapid lightens cold ceremony only. When the task statement names exact shell acceptance commands:
+Rapid lightens cold ceremony only. The **positive verification content** of the light path is stated acceptance commands — not framework hygiene.
 
-- ! Capture them at intake as executable AC (`plan.metadata.literal_acceptance_commands`) — do not paraphrase.
-- ! Before done, run `task verify:literal-ac -- <active-story-path>` (verbatim flags/cwd). Fail closed on non-zero.
-- ! This check survives ceremony dial rapid/minimal (#3214) — it is the positive verification content of the light path.
+- ! Capture stated shell commands at intake into `plan.acceptance.commands` (and #3267 `literal_acceptance_commands`) — do not paraphrase. Empty requires `none_stated: true` with a ladder rung (`derived` or `project_floor`).
+- ! Before done, run `task verify:ac -- <active-story-path>` (verbatim flags/cwd). Fail closed on non-zero. (`verify:literal-ac` remains the #3267 mechanism alias.)
+- ! Ceremony dial rapid/minimal = **AC-only** verification for `task check` composition (#3284): hygiene degrades away; AC never degrades when commands exist.
 - ⊗ Treat self-chosen approximate checks as sufficient when the statement named exact commands.
+- ⊗ Skip AC because ceremony is rapid — rapid's job is to keep exactly this check.
 
 ## Anti-Patterns
 
