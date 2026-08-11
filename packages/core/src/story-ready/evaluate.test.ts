@@ -265,6 +265,102 @@ describe("evaluate", () => {
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("`plan` object");
   });
+
+  it("parent lineage missing coverage fails closed (exit 1) (#3241)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-lineage-"));
+    temps.push(base);
+    const pending = join(base, "xbrief", "pending");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "epic",
+          items: [
+            { id: "req-a", title: "A", status: "pending" },
+            {
+              id: "req-neg",
+              title: "No skip",
+              kind: "negative_invariant",
+              status: "pending",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(
+      childPath,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          planRef: "pending/parent.xbrief.json",
+          metadata: { kind: "story" },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluate(childPath, { gitStatus: CLEAN_TREE, projectRoot: base });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toMatch(/parent lineage|missing parent coverage/i);
+    expect(result.parentLineage?.defect_class).toBe("child_spec");
+  });
+
+  it("parent lineage full coverage passes (#3241)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-lineage-ok-"));
+    temps.push(base);
+    const pending = join(base, "xbrief", "pending");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "epic",
+          items: [
+            { id: "req-a", title: "A", status: "pending" },
+            {
+              id: "req-neg",
+              title: "No skip",
+              kind: "negative_invariant",
+              status: "pending",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(
+      childPath,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          planRef: "pending/parent.xbrief.json",
+          metadata: {
+            kind: "story",
+            parent_lineage: {
+              schema: "deft.scope.parent_lineage.v1",
+              coverage_map: {
+                "req-a": { disposition: "covered" },
+                "req-neg": { disposition: "covered" },
+              },
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluate(childPath, { gitStatus: CLEAN_TREE, projectRoot: base });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/parent lineage OK/i);
+    expect(result.parentLineage?.ok).toBe(true);
+    expect(result.parentLineage?.applicable).toBe(true);
+  });
 });
 
 describe("gitPorcelain", () => {

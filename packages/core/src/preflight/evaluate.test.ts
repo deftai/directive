@@ -131,6 +131,100 @@ describe("evaluate", () => {
   });
 });
 
+describe("parent lineage pre-PR (#3241)", () => {
+  it("fails when child omits negative invariant without behavioral_delta", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-lineage-"));
+    temps.push(root);
+    const pending = join(root, "xbrief", "pending");
+    const active = join(root, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          items: [
+            { id: "req-a", title: "A" },
+            { id: "req-forbid", title: "No A→C", kind: "negative_invariant" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const path = join(active, "child.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          planRef: "pending/parent.xbrief.json",
+          metadata: {
+            kind: "story",
+            parent_lineage: {
+              schema: "deft.scope.parent_lineage.v1",
+              coverage_map: {
+                "req-a": { disposition: "covered" },
+                // req-forbid omitted — parent/child drift
+              },
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluate(path, { projectRoot: root });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toMatch(/parent lineage|negative invariant|parent\/child drift/i);
+    expect(result.parentLineage?.defect_class).toBe("parent_child_drift");
+  });
+
+  it("passes when full coverage present", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-lineage-ok-"));
+    temps.push(root);
+    const pending = join(root, "xbrief", "pending");
+    const active = join(root, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          items: [
+            { id: "req-a", title: "A" },
+            { id: "req-forbid", title: "No A→C", kind: "negative_invariant" },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const path = join(active, "child.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          planRef: "pending/parent.xbrief.json",
+          metadata: {
+            kind: "story",
+            parent_lineage: {
+              schema: "deft.scope.parent_lineage.v1",
+              coverage_map: {
+                "req-a": { disposition: "covered" },
+                "req-forbid": { disposition: "covered" },
+              },
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluate(path, { projectRoot: root });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/parent lineage OK/);
+    expect(result.parentLineage?.ok).toBe(true);
+  });
+});
+
 describe("emitJson", () => {
   it("emits sorted keys matching the Python schema", () => {
     const json = emitJson("/x/y.xbrief.json", 0, "OK");
