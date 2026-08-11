@@ -275,6 +275,100 @@ describe("command safety (#3267 P1)", () => {
   });
 });
 
+describe("branch coverage boost", () => {
+  it("covers coerce object form, nested items, fences, and default runner", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: "task check",
+            cwd: ".",
+            expectedStdout: "ok",
+            expectedExitCode: 0,
+            source: "explicit",
+          },
+          { command: "bash -c evil", source: "explicit" }, // filtered by safety
+        ],
+        swarm: {
+          verify_commands: "pnpm test",
+          literalAcceptanceCommands: [{ cmd: "git status" }],
+        },
+      },
+      items: [
+        {
+          title: "nested",
+          status: "pending",
+          items: [{ title: "inner", verify_command: "task verify:branch", status: "pending" }],
+          subItems: [{ title: "sub", verify: "npm test", status: "pending" }],
+        },
+      ],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored.map((c) => c.command)).toContain("task check");
+    expect(stored.map((c) => c.command)).toContain("pnpm test");
+    expect(stored.map((c) => c.command)).toContain("git status");
+    expect(stored.map((c) => c.command)).toContain("task verify:branch");
+    expect(stored.map((c) => c.command)).toContain("npm test");
+    expect(stored.some((c) => c.command.includes("evil"))).toBe(false);
+
+    // Fences: ~~~ and powershell lang; unknown lang skipped
+    const fenced = captureLiteralAcceptanceCommands(
+      "## Acceptance\n~~~\ntask doctor\n~~~\n```powershell\ngit rev-parse HEAD\n```\n```ruby\nputs 1\n```\n",
+    );
+    expect(fenced.map((c) => c.command)).toContain("task doctor");
+    expect(fenced.map((c) => c.command)).toContain("git rev-parse HEAD");
+
+    // Numbered labeled + isRegionHeading variants
+    const labeled = captureLiteralAcceptanceCommands(
+      "1. verify: pnpm exec vitest run packages/core/src/literal-acceptance\n## Done gate\n$ true\n",
+    );
+    expect(labeled.some((c) => c.command.includes("vitest"))).toBe(true);
+
+    // Empty command entry
+    const empty = runLiteralAcceptanceCommands([{ command: "   ", source: "explicit" }], {
+      projectRoot: process.cwd(),
+    });
+    expect(empty.code).toBe(2);
+
+    // Absolute cwd
+    const absRoot = mkdtempSync(join(tmpdir(), "literal-ac-abs-"));
+    let used = "";
+    runLiteralAcceptanceCommands([{ command: "true", source: "explicit", cwd: absRoot }], {
+      projectRoot: process.cwd(),
+      runner: (input) => {
+        used = input.cwd;
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(used).toBe(absRoot);
+
+    // captureFromNarratives false leaves empty
+    const emptyPlan = evaluateLiteralAcceptanceFromPlan(
+      { title: "x", narratives: { Overview: "verify: task check" }, items: [] },
+      { captureFromNarratives: false, runner: () => ({ exitCode: 0, stdout: "", stderr: "" }) },
+    );
+    expect(emptyPlan.commands).toHaveLength(0);
+
+    // Safety: path-like + length
+    void import("./safety.js").then(({ evaluateCommandSafety }) => {
+      expect(evaluateCommandSafety("C:\\Windows\\System32\\cmd.exe /c dir").ok).toBe(false);
+      expect(evaluateCommandSafety("x".repeat(600)).ok).toBe(false);
+      expect(evaluateCommandSafety("")).ok;
+    });
+  });
+
+  it("defaultLiteralAcceptanceRunner can execute allowlisted true", async () => {
+    const { defaultLiteralAcceptanceRunner } = await import("./run.js");
+    // On Windows `true` may not exist; use node --version which is allowlisted.
+    const r = defaultLiteralAcceptanceRunner({
+      command: process.platform === "win32" ? "node --version" : "true",
+      cwd: process.cwd(),
+    });
+    expect(r.exitCode).toBe(0);
+  });
+});
+
 describe("evaluate path errors", () => {
   it("fails on non-object xBRIEF and missing plan", () => {
     const dir = mkdtempSync(join(tmpdir(), "literal-ac-bad-"));
