@@ -878,47 +878,36 @@ export interface MaybeBankOnAcPassResult {
 /**
  * Production bridge (#3285 Greptile P1): after verify:ac reports executable
  * success, FINALIZE the bank checkpoint + surplus decision.
- * Fail-open: ledger/write errors become notes, never flip AC pass to fail.
+ * Throws on I/O failure so verify:ac can fail closed (checkpoint mandatory).
  */
 export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcPassResult {
   if (input.executableRuns <= 0) {
     return { banked: false, decision: null, bank: null, notes: [] };
   }
-  try {
-    const budget =
-      input.budget ?? detectHardEffortBudget({ environ: input.environ ?? process.env });
-    const config =
-      input.config ?? resolveBankingConfigForRoot(input.projectRoot, input.environ ?? process.env);
-    const decision = evaluateAcPassBanking({
-      budget,
-      statedAcceptanceMet: true,
-      config,
-    });
-    const nextAction =
-      decision.nextAction === "still_open" ? "finalize_and_ship" : decision.nextAction;
-    const bank = bankAcPass({
-      projectRoot: input.projectRoot,
-      scopeId: input.scopeId,
-      budget,
-      surplus: decision.surplus,
-      nextAction,
-      headSha: input.headSha ?? null,
-      now: input.now,
-      environ: input.environ,
-    });
-    const notes = [
-      ...decision.notes,
-      `[deft ac-pass-banking] banked scope=${input.scopeId} next=${nextAction} ` +
-        `had_surplus=${decision.surplus.hasSurplus} (#3285)`,
-    ];
-    return { banked: true, decision, bank, notes };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return {
-      banked: false,
-      decision: null,
-      bank: null,
-      notes: [`[deft ac-pass-banking] bank skipped (fail-open): ${msg} (#3285)`],
-    };
-  }
+  const budget = input.budget ?? detectHardEffortBudget({ environ: input.environ ?? process.env });
+  const config =
+    input.config ?? resolveBankingConfigForRoot(input.projectRoot, input.environ ?? process.env);
+  const decision = evaluateAcPassBanking({
+    budget,
+    statedAcceptanceMet: true,
+    config,
+  });
+  const nextAction =
+    decision.nextAction === "still_open" ? "finalize_and_ship" : decision.nextAction;
+  const bank = bankAcPass({
+    projectRoot: input.projectRoot,
+    scopeId: input.scopeId,
+    budget,
+    surplus: decision.surplus,
+    nextAction,
+    headSha: input.headSha ?? null,
+    now: input.now,
+    environ: input.environ,
+  });
+  const notes = [
+    ...decision.notes,
+    `[deft ac-pass-banking] banked scope=${input.scopeId} next=${nextAction} ` +
+      `had_surplus=${decision.surplus.hasSurplus} (#3285)`,
+  ];
+  return { banked: true, decision, bank, notes };
 }
