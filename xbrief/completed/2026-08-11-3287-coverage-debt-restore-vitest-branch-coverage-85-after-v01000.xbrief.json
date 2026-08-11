@@ -1,0 +1,149 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3287",
+    "updated": "2026-08-11T17:10:39Z"
+  },
+  "plan": {
+    "title": "coverage-debt: restore vitest branch coverage >=85% after v0.100.0 hairline (84.96%)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Release Step 5 for v0.100.0 failed on a branch coverage hairline of 84.96 percent against an 85 percent threshold. This story restores statements, branches, functions, and lines all to at least 85 percent on master and retires the temporary coverage-debt exception for this miss.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3287",
+      "Overview": "## Summary\n\nRelease Step 5 for **v0.100.0** failed on a **branch-only** Vitest coverage hairline:\n\n| Metric | Measured | Threshold |\n|--------|----------|-----------|\n| Statements | 88.36% | 85% |\n| Branches | **84.96%** | 85% |\n| Functions | 96.00% | 85% |\n| Lines | 88.36% | 85% |\n\nAuto-hatch classifier returned UNKNOWN (fail-closed) despite BRANCH_HAIRLINE shape; filing debt ledger issue per #2866 / #3187 so the cut can proceed with `--allow-coverage-debt`.\n\n## Markers\n\n- coverage-debt\n- allow-coverage-debt\n\n## Acceptance\n\nRestore **all four** Vitest metrics (statements, branches, functions, lines) to ≥ 85% on master, then close this issue. Do not soft-pass a subsequent release while this remains open.\n\n## Context\n\n- Cut version: v0.100.0\n- Measured at: 2026-08-11 release Step 5 (`task check` / `ts:check-lane`)\n- Shortfall: branches 84.96% (−0.04pp)\r\n\n",
+      "Labels": "tooling",
+      "ImplementationPlan": "1. Run coverage report for packages/core to identify branch-miss paths near the 84.96 percent hairline (start with vbrief-validation and adjacent low-coverage modules).\n2. Add focused branch tests under packages/core/src/**/*.test.ts targeting missed conditionals until branches >= 85 percent.\n3. Re-run pnpm exec vitest run --coverage packages/core and confirm statements/branches/functions/lines all >= 85 percent.\n4. Confirm ts:check-lane / task check no longer needs allow-coverage-debt for this shortfall.",
+      "UserStory": "As a release engineer, I want Vitest branch coverage restored to at least 85 percent, so that v0.100.0 coverage-debt no longer blocks subsequent clean cuts.",
+      "Traces": "ISSUE-BODY"
+    },
+    "items": [
+      {
+        "id": "branch-coverage-restored",
+        "title": "Branch coverage restored",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given master after this change, when Vitest coverage runs in the check lane, then branch coverage is at least 85 percent.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "vitest --coverage branches 85.08% (41020/48213); task check green",
+          "recorded_at": "2026-08-11T17:09:29.673Z",
+          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        }
+      },
+      {
+        "id": "all-four-metrics-green",
+        "title": "All four metrics green",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given the same coverage run, when thresholds are evaluated, then statements, branches, functions, and lines are each at least 85 percent.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "vitest summary: statements/lines 88.42%, branches 85.08%, functions 96.00%",
+          "recorded_at": "2026-08-11T17:09:29.673Z",
+          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        }
+      },
+      {
+        "id": "no-debt-flag-required",
+        "title": "No debt flag required",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the restored metrics, when release Step 5 style check runs, then it does not require allow-coverage-debt for this hairline.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "task check / pr:watch CLEAN without --allow-coverage-debt; PR #3292",
+          "recorded_at": "2026-08-11T17:09:29.673Z",
+          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        }
+      },
+      {
+        "id": "regression-tests-for-missed-branches",
+        "title": "Regression tests for missed branches",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given the previously uncovered branches, when the new tests run, then they exercise those paths and stay green in CI.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/{literal-acceptance,value,vbrief-validation}/*branches*.test.ts (27+ tests)",
+          "recorded_at": "2026-08-11T17:09:29.673Z",
+          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        }
+      }
+    ],
+    "tags": [
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3287",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3287: coverage-debt: restore vitest branch coverage >=85% after v0.100.0 hairline (84.96%)"
+      }
+    ],
+    "updated": "2026-08-11T17:10:39Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-validation/story-quality.ts",
+          "packages/core/src/vbrief-validation/story-quality.test.ts",
+          "packages/core/src/vbrief-validation/story-quality-branches.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/literal-acceptance/safety-branches.test.ts packages/core/src/value/readback-branches.test.ts packages/core/src/vbrief-validation/story-quality-extra-branches.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "all four coverage metrics >= 85 percent"
+        ],
+        "depends_on": [],
+        "conflict_group": "coverage-debt-3287",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Coverage-debt ledger issue #3287; no FR registry entry required for metric restoration."
+      },
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/literal-acceptance/safety-branches.test.ts packages/core/src/value/readback-branches.test.ts packages/core/src/vbrief-validation/story-quality-extra-branches.test.ts --reporter=dot",
+          "source": "verify_commands",
+          "sourceSpan": "plan.metadata.swarm.verify_commands (restored coverage suite)",
+          "expectedExitCode": 0
+        }
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3292,
+        "prBase": "master",
+        "mergeCommit": "f4fea57ba68a314c8720eb10751b5612058a3f6c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f4fea57ba68a314c8720eb10751b5612058a3f6c",
+        "verifiedAt": "2026-08-11T17:10:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T17:10:39Z",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "story-3287-vitest-branch-coverage-hairline"
+  }
+}
