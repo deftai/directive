@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3124",
-    "updated": "2026-08-11T20:07:48Z"
+    "updated": "2026-08-11T22:43:57Z"
   },
   "plan": {
     "title": "feat(session,triage): operator discovery for SCM label mirror (after #1423 Wave 2)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Operator discovery for SCM label mirror is missing. Defaults are ON but consumers only learn via CHANGELOG. Discovery must teach existence plus get-the-most-out-of-it: dry-run, defaults only stamp triaged on matches, board usability needs actionLabels, match rate needs triageAutoClassify, never auto-accept.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3124",
@@ -20,51 +20,81 @@
       {
         "id": "throttled-tip",
         "title": "Throttled operator discovery tip",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given a cold mutation session or triage welcome, when discovery is due, then a short tip surfaces once until ack or first successful dry-run and does not spam every re-arm.",
           "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts#throttle",
+          "recorded_at": "2026-08-11T22:43:47Z",
+          "recorded_by": "leaf-worker/3124"
         }
       },
       {
         "id": "get-most-content",
         "title": "Tip teaches get-the-most-out-of-it",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given the tip fires, when the operator reads it, then it states dry-run and apply boundary, defaults only stamp triaged on matches, board usability requires actionLabels, more matches need triageAutoClassify, never auto-accept, and policy:show / PROJECT-DEFINITION location with full five-chip map recommendation.",
           "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts#content",
+          "recorded_at": "2026-08-11T22:43:47Z",
+          "recorded_by": "leaf-worker/3124"
         }
       },
       {
         "id": "digest-cues",
         "title": "Dry-run digest upgrade cues",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given dry-run planned actions with empty actionLabels or open no_match domination, when the digest prints, then a footer hint points at actionLabels or triageAutoClassify respectively.",
           "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/classify/label-mirror.test.ts#digest-cues",
+          "recorded_at": "2026-08-11T22:43:47Z",
+          "recorded_by": "leaf-worker/3124"
         }
       },
       {
         "id": "anti-swallow",
         "title": "Anti-swallow agent restatement rule",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given the tip fires, when an agent continues the session, then agent-facing guidance requires restating existence plus customization path in the user-visible message, not only absorbing ritual output.",
           "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts#anti-swallow",
+          "recorded_at": "2026-08-11T22:43:47Z",
+          "recorded_by": "leaf-worker/3124"
         }
       },
       {
         "id": "docs-changelog-tests",
         "title": "Docs CHANGELOG and tests",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given discovery ships, when docs and tests run, then commands.md has a depth pointer, CHANGELOG has an Unreleased entry, and unit tests cover throttle and required tip content.",
           "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "content/commands.md + CHANGELOG.md + vitest welcome/mirror tests; PR #3301 merge 1d135f56",
+          "recorded_at": "2026-08-11T22:43:47Z",
+          "recorded_by": "leaf-worker/3124"
         }
       }
     ],
@@ -128,7 +158,26 @@
         "model_tier": "medium",
         "missing_traces_justification": "Issue #3124 acceptance from body + amendments; depends Wave2/#2611/#3165 already shipped."
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3301,
+        "prBase": "master",
+        "mergeCommit": "1d135f563621e94717bdd73c0a27dcc7090f5e5b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1d135f563621e94717bdd73c0a27dcc7090f5e5b",
+        "verifiedAt": "2026-08-11T22:43:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T22:43:57Z",
+      "capacityBucket": "new-capability"
     },
     "id": "story-3124-scm-label-mirror-operator-discovery",
     "acceptance": {
@@ -139,6 +188,6 @@
       "none_stated": false,
       "source_rung": "stated"
     },
-    "updated": "2026-08-11T20:23:49.310Z"
+    "updated": "2026-08-11T22:43:57Z"
   }
 }
