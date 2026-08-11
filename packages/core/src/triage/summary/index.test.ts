@@ -633,4 +633,17 @@ describe("D2 suppression key (#1279)", () => {
     });
     expect(readFileSync(victim, "utf8")).toBe("# keep me\n");
   });
+
+  it("appendHistory swallows write failures without throwing (#3288 catch path)", () => {
+    const root = mkRoot();
+    // Parent is a file, not a directory — mkdir/containedWrite fails closed.
+    const blocker = join(root, "not-a-dir");
+    writeFileSync(blocker, "file-not-dir\n", "utf8");
+    const history = join(blocker, "summary-history.jsonl");
+    expect(() =>
+      appendHistory(history, baseResult({ untriaged: 3 }), "[triage] fail", {
+        emittedAt: "2026-08-11T12:30:00Z",
+      }),
+    ).not.toThrow();
+  });
 });
