@@ -1,0 +1,152 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Under hard turn or cost budgets, agents can over-deepen verification and exhaust the budget after the stated acceptance bar is already within reach. This story makes budget-aware sizing a first-class rule: bank the stated pass first, then deepen only with remaining budget, and fail-loud when deepening is skipped.",
+    "updated": "2026-08-11T02:29:01Z"
+  },
+  "plan": {
+    "title": "feat(build,session): budget-aware effort sizing - bank the pass before deepening",
+    "status": "completed",
+    "narratives": {
+      "Description": "Under hard turn or cost budgets, agents can over-deepen verification and exhaust the budget after the stated acceptance bar is already within reach. This story makes budget-aware sizing a first-class rule: bank the stated pass first, then deepen only with remaining budget, and fail-loud when deepening is skipped.",
+      "UserStory": "As an agent under a declared turn budget, I want to bank the stated acceptance pass before self-imposed deepening, so that I do not exhaust the budget after the official bar is already within reach.",
+      "ImplementationPlan": "Detect hard budgets at session start from env/flags/host descriptors (packages/core/src/session and related host capability #1461). Add bank-the-pass checkpoint guidance to content/skills/deft-directive-build and deft-directive-pre-pr (and a small packages/core helper or session note if needed for detectable budget). Self-verification depth scales with remaining budget; summary must state when deepening is skipped (#1006 fail-loud). Unit tests for budget detection and guidance surface. Run vitest on touched packages and task check. Cite #3266 in CHANGELOG. Composes #2442 dual-stop, #1581, #3214, #3263.",
+      "Origin": "https://github.com/deftai/directive/issues/3266",
+      "Overview": "feat(build,session): budget-aware effort sizing - bank the pass before deepening",
+      "Labels": "enhancement, agent-experience, harness",
+      "NonGoals": "Public benchmark naming/scores; removing dual-stop; removing framework ritual entirely.",
+      "AcceptanceJustification": "Items map to issue acceptance sketch."
+    },
+    "items": [
+      {
+        "effort": "M",
+        "title": "Budget detection",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a hard max-turns or max-budget flag or host-declared limit at session start, when session posture is established, a detectable budget signal is available to build/pre-pr guidance."
+        },
+        "evidence": {
+          "kind": "merge",
+          "pointer": "packages/core/src/session/effort-budget.ts + session:start effort_budget; vitest packages/core/src/session/effort-budget.test.ts; PR #3279",
+          "recorded_at": "2026-08-11T02:28:59.590Z",
+          "recorded_by": "swarm-leaf-3266"
+        }
+      },
+      {
+        "effort": "M",
+        "title": "Bank pass before deepen",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given remaining budget and stated acceptance criteria not yet satisfied, when build guidance applies, it prioritizes stated AC over self-imposed deeper verification suites."
+        },
+        "evidence": {
+          "kind": "merge",
+          "pointer": "content/skills/deft-directive-build + pre-pr bank-the-pass guidance; recommendVerificationDepth; PR #3279",
+          "recorded_at": "2026-08-11T02:28:59.590Z",
+          "recorded_by": "swarm-leaf-3266"
+        }
+      },
+      {
+        "effort": "M",
+        "title": "Fail-loud skip deepen",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given deepening is skipped for budget, when the run summary is written, it states that deepening was skipped rather than silent gold-plate or silent skip."
+        },
+        "evidence": {
+          "kind": "review",
+          "pointer": "formatDeepeningSkippedNote + skill fail-loud rules; PR #3279 Greptile CLEAN 5/5",
+          "recorded_at": "2026-08-11T02:28:59.590Z",
+          "recorded_by": "swarm-leaf-3266"
+        }
+      },
+      {
+        "effort": "M",
+        "title": "Tests and CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the PR, when vitest and CHANGELOG are checked, tests cover budget detection and [Unreleased] cites #3266."
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "effort-budget.test.ts (34) + session-start CLI tests; CHANGELOG [Unreleased] #3266; PR #3279 merge 65b457cf",
+          "recorded_at": "2026-08-11T02:28:59.590Z",
+          "recorded_by": "swarm-leaf-3266"
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "cohort",
+      "budget"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3266",
+        "title": "#3266"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/2442",
+        "title": "#2442"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3263",
+        "title": "#3263 mirror"
+      }
+    ],
+    "updated": "2026-08-11T02:29:01Z",
+    "id": "3266-budget-aware-effort-bank-pass-first",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session",
+          "content/skills/deft-directive-build",
+          "content/skills/deft-directive-pre-pr",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3266",
+          "skill guidance",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "cohort-3266-budget-effort",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body + code pointers.",
+        "acceptance_criteria_justification": "Items map to issue AC sketch."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3279,
+        "prBase": "master",
+        "mergeCommit": "65b457cfdbbd9cff04b752cde7287087e74ba146",
+        "deliveryBranch": "master",
+        "deliveryCommit": "65b457cfdbbd9cff04b752cde7287087e74ba146",
+        "verifiedAt": "2026-08-11T02:29:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T02:29:01Z"
+    }
+  }
+}
