@@ -353,6 +353,47 @@ export function acPassBankPath(projectRoot: string, scopeId: string): string {
  * Persist a bank checkpoint that survives session death (#3285).
  * Also appends a bank-event to DEFT_RUN_SUMMARY_PATH when set (fail-open).
  */
+/** Append-only findings journal (never truncated by re-bank). */
+export function acPassFindingsJournalPath(projectRoot: string, scopeId: string): string {
+  return `${acPassBankPath(projectRoot, scopeId)}.findings.jsonl`;
+}
+
+function readFindingsJournal(projectRoot: string, scopeId: string): readonly PostBankFinding[] {
+  const jpath = acPassFindingsJournalPath(projectRoot, scopeId);
+  if (!existsSync(jpath)) return [];
+  try {
+    const text = readFileSync(jpath, { encoding: "utf8" });
+    const out: PostBankFinding[] = [];
+    for (const line of text.split("\n")) {
+      const t = line.trim();
+      if (!t) continue;
+      try {
+        const parsed: unknown = JSON.parse(t);
+        if (isPostBankFinding(parsed)) out.push(parsed);
+      } catch {
+        // skip bad lines
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function appendFindingsJournal(
+  projectRoot: string,
+  scopeId: string,
+  findings: readonly PostBankFinding[],
+): void {
+  if (findings.length === 0) return;
+  const root = resolve(projectRoot);
+  const jpath = acPassFindingsJournalPath(root, scopeId);
+  const dir = acPassBanksDir(root);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const lines = findings.map((f) => JSON.stringify(f)).join("\n") + "\n";
+  containedWrite({ root, target: jpath, data: lines, mode: "append" });
+}
+
 export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   const bankedAt = utcIso(input.now);
   const root = resolve(input.projectRoot);
@@ -360,6 +401,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   const existed = existsSync(path);
   // Preserve prior post-bank findings on re-bank so ledger history survives (#3285 Greptile).
   const prior = readAcPassBank(input.projectRoot, input.scopeId);
+  const journal = readFindingsJournal(input.projectRoot, input.scopeId);
   // Unrecoverable existing ledger: refuse silent success without a write.
   // Keep the damaged bytes and fail so verify:ac cannot report banked green (#3285).
   if (existed && prior === null) {
@@ -381,7 +423,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     surplusThreshold: input.surplus.surplusThreshold,
     hadSurplus: input.surplus.hasSurplus,
     nextAction: input.nextAction,
-    postBankFindings: prior?.postBankFindings ?? [],
+    postBankFindings: mergeFindings(prior?.postBankFindings ?? [], journal),
   };
 
   const dir = acPassBanksDir(root);
@@ -650,17 +692,22 @@ export function recordPostBankFinding(
 ): AcPassBankRecord | null {
   const existing = readAcPassBank(projectRoot, scopeId);
   if (existing === null) return null;
+  // Durable append-only journal first so re-bank cannot lose this finding.
+  appendFindingsJournal(projectRoot, scopeId, [finding]);
   const updated: AcPassBankRecord = {
     ...existing,
-    postBankFindings: [...existing.postBankFindings, finding],
+    postBankFindings: mergeFindings(existing.postBankFindings, [finding]),
   };
   const root = resolve(projectRoot);
-  containedWrite({
-    root,
-    target: acPassBankPath(root, scopeId),
-    data: `${JSON.stringify(updated, null, 2)}\n`,
-    mode: "replace",
-  });
+  const path = acPassBankPath(root, scopeId);
+  const tmpPath = `${path}.tmp`;
+  const payload = `${JSON.stringify(updated, null, 2)}\n`;
+  containedWrite({ root, target: tmpPath, data: payload, mode: "replace" });
+  try {
+    renameSync(tmpPath, path);
+  } catch {
+    // leave .tmp; journal already durable
+  }
   return updated;
 }
 
