@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
@@ -378,12 +378,30 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     mkdirSync(dir, { recursive: true });
   }
   const path = acPassBankPath(root, input.scopeId);
+  // Write via temp + rename for crash-atomic replacement (#3285 Greptile residual).
+  const tmpPath = `${path}.tmp`;
   containedWrite({
     root,
-    target: path,
+    target: tmpPath,
     data: `${JSON.stringify(record, null, 2)}\n`,
     mode: "replace",
   });
+  try {
+    renameSync(tmpPath, path);
+  } catch {
+    // Fall back to direct replace if rename fails (cross-device edge).
+    containedWrite({
+      root,
+      target: path,
+      data: `${JSON.stringify(record, null, 2)}\n`,
+      mode: "replace",
+    });
+    try {
+      unlinkSync(tmpPath);
+    } catch {
+      // ignore
+    }
+  }
 
   appendBankEventToRunSummary({
     environ: input.environ ?? process.env,
@@ -408,16 +426,99 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   return record;
 }
 
-/** Load a bank record when present. */
+/**
+ * Best-effort recovery of postBankFindings from a truncated/corrupt ledger
+ * so re-bank cannot silently wipe history (#3285 Greptile residual).
+ */
+export function recoverFindingsFromLedgerText(raw: string): readonly PostBankFinding[] {
+  const key = '"postBankFindings"';
+  const idx = raw.indexOf(key);
+  if (idx < 0) return [];
+  let i = idx + key.length;
+  while (
+    i < raw.length &&
+    (raw[i] === " " || raw[i] === "\t" || raw[i] === "\n" || raw[i] === "\r" || raw[i] === ":")
+  ) {
+    i += 1;
+  }
+  if (raw[i] !== "[") return [];
+  let depth = 0;
+  const start = i;
+  for (; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (ch === "[") depth += 1;
+    else if (ch === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          const parsed: unknown = JSON.parse(raw.slice(start, i + 1));
+          if (!Array.isArray(parsed)) return [];
+          return parsed.filter(
+            (item): item is PostBankFinding =>
+              typeof item === "object" &&
+              item !== null &&
+              typeof (item as PostBankFinding).summary === "string" &&
+              typeof (item as PostBankFinding).action === "string",
+          );
+        } catch {
+          return [];
+        }
+      }
+    }
+  }
+  return [];
+}
+
+function recoveredStubRecord(
+  scopeId: string,
+  findings: readonly PostBankFinding[],
+): AcPassBankRecord {
+  return {
+    schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
+    scopeId,
+    bankedAt: utcIso(),
+    headSha: null,
+    remainingTurns: null,
+    remainingBudget: null,
+    maxTurns: null,
+    maxBudget: null,
+    surplusThreshold: DEFAULT_SURPLUS_THRESHOLD,
+    hadSurplus: false,
+    nextAction: "finalize_and_ship",
+    postBankFindings: findings,
+  };
+}
+
+/**
+ * Load a bank record when present. Corrupt files recover findings when possible
+ * so re-bank preserves post-bank history (#3285).
+ */
 export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBankRecord | null {
   const path = acPassBankPath(projectRoot, scopeId);
   if (!existsSync(path)) return null;
+  let text = "";
   try {
-    const raw = JSON.parse(readFileSync(path, { encoding: "utf8" })) as unknown;
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
-    return raw as AcPassBankRecord;
+    text = readFileSync(path, { encoding: "utf8" });
   } catch {
     return null;
+  }
+  try {
+    const raw = JSON.parse(text) as unknown;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      const findings = recoverFindingsFromLedgerText(text);
+      return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
+    }
+    const rec = raw as AcPassBankRecord;
+    if (!Array.isArray(rec.postBankFindings)) {
+      return {
+        ...rec,
+        postBankFindings: recoverFindingsFromLedgerText(text),
+      };
+    }
+    return rec;
+  } catch {
+    const findings = recoverFindingsFromLedgerText(text);
+    return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
   }
 }
 

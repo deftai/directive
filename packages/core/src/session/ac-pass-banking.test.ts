@@ -25,6 +25,7 @@ import {
   maybeBankOnAcPass,
   readAcPassBank,
   recordPostBankFinding,
+  recoverFindingsFromLedgerText,
   sanitizeScopeIdForFilename,
   simulateSurplusInsufficientRun,
 } from "./ac-pass-banking.js";
@@ -414,6 +415,14 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
   it("readAcPassBank returns null for missing/corrupt records", () => {
     const root = tempProject();
     expect(readAcPassBank(root, "missing")).toBeNull();
+  });
+
+  it("recoverFindingsFromLedgerText salvages truncated bank JSON", () => {
+    const truncated =
+      '{\n  "scopeId": "x",\n  "postBankFindings": [{"summary":"kept","action":"report","recordedAt":"t","regressesStatedAc":false}],\n  "nextActio';
+    const findings = recoverFindingsFromLedgerText(truncated);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.summary).toBe("kept");
   });
 });
 
