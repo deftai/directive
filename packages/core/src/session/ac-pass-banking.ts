@@ -662,22 +662,40 @@ export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBank
   const primary = primaryText !== null ? parseBankText(scopeId, primaryText) : null;
   const tmp = tmpText !== null ? parseBankText(scopeId, tmpText) : null;
 
-  // Prefer fresher fully-parsed record for metadata; always union findings.
+  const journal = readFindingsJournal(projectRoot, scopeId);
+
+  // Prefer fresher fully-parsed record for metadata; always union findings + journal.
   if (primary !== null && tmp !== null) {
     const base = tmp.bankedAt >= primary.bankedAt ? tmp : primary;
     const other = base === tmp ? primary : tmp;
     return {
       ...base,
-      postBankFindings: mergeFindings(base.postBankFindings, other.postBankFindings),
+      postBankFindings: mergeFindings(
+        mergeFindings(base.postBankFindings, other.postBankFindings),
+        journal,
+      ),
     };
   }
-  if (primary !== null) return primary;
-  if (tmp !== null) return tmp;
+  if (primary !== null) {
+    return {
+      ...primary,
+      postBankFindings: mergeFindings(primary.postBankFindings, journal),
+    };
+  }
+  if (tmp !== null) {
+    return {
+      ...tmp,
+      postBankFindings: mergeFindings(tmp.postBankFindings, journal),
+    };
+  }
 
-  // Both unparsable as records: union raw recoveries.
+  // Both unparsable as records: union raw recoveries + journal.
   const findings = mergeFindings(
-    primaryText !== null ? recoverFindingsFromLedgerText(primaryText) : [],
-    tmpText !== null ? recoverFindingsFromLedgerText(tmpText) : [],
+    mergeFindings(
+      primaryText !== null ? recoverFindingsFromLedgerText(primaryText) : [],
+      tmpText !== null ? recoverFindingsFromLedgerText(tmpText) : [],
+    ),
+    journal,
   );
   return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
 }
