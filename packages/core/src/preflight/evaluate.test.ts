@@ -143,6 +143,7 @@ describe("parent lineage pre-PR (#3241)", () => {
       join(pending, "parent.xbrief.json"),
       JSON.stringify({
         plan: {
+          id: "epic-preflight-lineage",
           items: [
             { id: "req-a", title: "A" },
             { id: "req-forbid", title: "No A→C", kind: "negative_invariant" },
@@ -162,6 +163,7 @@ describe("parent lineage pre-PR (#3241)", () => {
             kind: "story",
             parent_lineage: {
               schema: "deft.scope.parent_lineage.v1",
+              parent_plan_id: "epic-preflight-lineage",
               coverage_map: {
                 "req-a": { disposition: "covered" },
                 // req-forbid omitted — parent/child drift
@@ -189,6 +191,7 @@ describe("parent lineage pre-PR (#3241)", () => {
       join(pending, "parent.xbrief.json"),
       JSON.stringify({
         plan: {
+          id: "epic-preflight-lineage",
           items: [
             { id: "req-a", title: "A" },
             { id: "req-forbid", title: "No A→C", kind: "negative_invariant" },
@@ -208,6 +211,7 @@ describe("parent lineage pre-PR (#3241)", () => {
             kind: "story",
             parent_lineage: {
               schema: "deft.scope.parent_lineage.v1",
+              parent_plan_id: "epic-preflight-lineage",
               coverage_map: {
                 "req-a": { disposition: "covered" },
                 "req-forbid": { disposition: "covered" },

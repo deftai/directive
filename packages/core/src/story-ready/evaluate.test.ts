@@ -298,7 +298,14 @@ describe("evaluate", () => {
         plan: {
           status: "running",
           planRef: "pending/parent.xbrief.json",
-          metadata: { kind: "story" },
+          metadata: {
+            kind: "story",
+            // Identity stamped; coverage omitted — isolates missing-coverage fail-closed.
+            parent_lineage: {
+              schema: "deft.scope.parent_lineage.v1",
+              parent_plan_id: "epic",
+            },
+          },
         },
       }),
       "utf8",
@@ -345,6 +352,7 @@ describe("evaluate", () => {
             kind: "story",
             parent_lineage: {
               schema: "deft.scope.parent_lineage.v1",
+              parent_plan_id: "epic",
               coverage_map: {
                 "req-a": { disposition: "covered" },
                 "req-neg": { disposition: "covered" },
