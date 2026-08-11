@@ -1002,6 +1002,8 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
 
   // #3241: stamp full parent coverage artifacts onto every child so story-ready /
   // preflight can re-check lineage without re-reading the decompose draft.
+  // When parent authors requirement IDs, durable parent_plan_id is mandatory —
+  // omit/skip would let an exact-path replacement pass identity-unchecked.
   const draftRec = draft as JsonObj;
   const parentPlanRec =
     typeof parent.plan === "object" && parent.plan !== null && !Array.isArray(parent.plan)
@@ -1011,16 +1013,22 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
     typeof parentPlanRec.id === "string" && parentPlanRec.id.trim().length > 0
       ? parentPlanRec.id.trim()
       : undefined;
-  const parentLineageArtifact =
-    coverage.report.parent_requirement_ids.length > 0
-      ? buildParentLineageArtifact({
-          coverage_map: draftRec.coverage_map ?? draftRec.coverageMap,
-          behavioral_deltas: draftRec.behavioral_deltas ?? draftRec.behavioralDeltas,
-          parent_requirement_ids: coverage.report.parent_requirement_ids,
-          negative_invariant_ids: coverage.report.negative_invariant_ids,
-          parent_plan_id: parentPlanId,
-        })
-      : null;
+  let parentLineageArtifact: JsonObj | null = null;
+  if (coverage.report.parent_requirement_ids.length > 0) {
+    if (parentPlanId === undefined) {
+      throw new DecompositionError(
+        "parent authors requirement IDs but has no non-empty plan.id — " +
+          "refuse decompose without durable parent identity for parent_plan_id stamp (#3241)",
+      );
+    }
+    parentLineageArtifact = buildParentLineageArtifact({
+      coverage_map: draftRec.coverage_map ?? draftRec.coverageMap,
+      behavioral_deltas: draftRec.behavioral_deltas ?? draftRec.behavioralDeltas,
+      parent_requirement_ids: coverage.report.parent_requirement_ids,
+      negative_invariant_ids: coverage.report.negative_invariant_ids,
+      parent_plan_id: parentPlanId,
+    });
+  }
 
   const childPaths: Array<{ target: string; storyId: string; title: string }> = [];
   const childDocs: JsonObj[] = [];

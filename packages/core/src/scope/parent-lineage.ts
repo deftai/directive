@@ -11,7 +11,7 @@
  * Backward compatible: no parent link, or parent with zero requirement IDs → N/A pass.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import {
   type CoverageReport,
@@ -21,6 +21,15 @@ import {
 } from "./coverage-map.js";
 
 export const PARENT_LINEAGE_SCHEMA = "deft.scope.parent_lineage.v1" as const;
+
+/** Lifecycle folders scanned for unique plan.id recovery of a moved parent. */
+const PARENT_LINEAGE_LIFECYCLE_FOLDERS = [
+  "proposed",
+  "pending",
+  "active",
+  "completed",
+  "cancelled",
+] as const;
 
 /** Defect classes for gate output (#3241 AC: distinguish child-spec vs parent/child drift). */
 export const LINEAGE_DEFECT_CLASSES = ["child_spec", "parent_child_drift"] as const;
@@ -241,46 +250,128 @@ function loadJsonFile(path: string): { ok: true; data: JsonObj } | { ok: false; 
   }
 }
 
+/** Read plan.id from a loaded parent document (plan.id or root id). */
+export function extractPlanId(doc: unknown): string | null {
+  const root = asRecord(doc);
+  if (root === null) return null;
+  const plan = asRecord(root.plan) ?? root;
+  const id = plan.id;
+  return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
+}
+
 /**
- * Load parent at the exact planRef path only.
+ * Scan lifecycle folders for artifacts whose plan.id exactly equals parentPlanId.
+ * Returns every match (caller enforces uniqueness). Does not use basenames.
+ */
+export function findParentsByPlanId(
+  lifecycleRoot: string,
+  parentPlanId: string,
+): Array<{ path: string; data: JsonObj }> {
+  const want = parentPlanId.trim();
+  if (!want) return [];
+  const matches: Array<{ path: string; data: JsonObj }> = [];
+  for (const folder of PARENT_LINEAGE_LIFECYCLE_FOLDERS) {
+    const dir = join(lifecycleRoot, folder);
+    if (!existsSync(dir)) continue;
+    let entries: string[];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const name of entries) {
+      if (!name.endsWith(".json")) continue;
+      const full = join(dir, name);
+      const loaded = loadJsonFile(full);
+      if (!loaded.ok) continue;
+      const id = extractPlanId(loaded.data);
+      if (id === want) {
+        matches.push({ path: full, data: loaded.data });
+      }
+    }
+  }
+  return matches;
+}
+
+/**
+ * Load parent for lineage checks.
  *
- * Lifecycle-folder basename recovery was tried and withdrawn (#3241 review thrash):
- * same-name artifacts across folders cannot be safely disambiguated without a
- * durable content-addressed parent key. Stale planRef after a parent move fails
- * closed with an actionable rewrite message (identity-preserving).
- *
- * When the child stamps parent_plan_id, the loaded parent must match that id
- * (exact-path replacement of a different plan under the same path is rejected).
+ * 1. Prefer the exact planRef path when it exists; require plan.id match when
+ *    the child stamps parent_plan_id (path replacement with a different plan is rejected).
+ * 2. When the exact path is missing AND the child stamps parent_plan_id: recover by
+ *    scanning lifecycle folders for plan.id === parent_plan_id and accepting ONLY
+ *    when exactly one artifact matches. This handles lifecycle moves when child
+ *    planRef rewrite lagged — not silent basename recovery of unrelated files.
+ * 3. Without a durable stamp, stale/missing planRef fails closed (no basename guess).
  */
 export function loadParentExact(
   parentPath: string,
-  opts: { expectedParentPlanId?: string | null } = {},
+  opts: {
+    expectedParentPlanId?: string | null;
+    lifecycleRoot?: string | null;
+  } = {},
 ): { ok: true; data: JsonObj; path: string } | { ok: false; error: string; path: string } {
+  const expected =
+    opts.expectedParentPlanId !== undefined &&
+    opts.expectedParentPlanId !== null &&
+    opts.expectedParentPlanId.trim().length > 0
+      ? opts.expectedParentPlanId.trim()
+      : null;
+
   const primary = loadJsonFile(parentPath);
-  if (!primary.ok) {
-    return {
-      ok: false,
-      error:
-        `${primary.error}. Parent path must match planRef exactly — if the parent ` +
-        `moved lifecycle folders, rewrite the child's planRef (no basename guess).`,
-      path: parentPath,
-    };
+  if (primary.ok) {
+    if (expected !== null) {
+      const actual = extractPlanId(primary.data) ?? "";
+      if (actual !== expected) {
+        return {
+          ok: false,
+          error:
+            `parent at ${parentPath} has plan.id='${actual || "(missing)"}' but child stamps ` +
+            `parent_plan_id='${expected}' — refuse identity mismatch (rewrite planRef or re-stamp)`,
+          path: parentPath,
+        };
+      }
+    }
+    return { ok: true, data: primary.data, path: parentPath };
   }
-  const expected = opts.expectedParentPlanId;
-  if (expected !== undefined && expected !== null && expected.trim().length > 0) {
-    const plan = asRecord(primary.data.plan) ?? primary.data;
-    const actual = typeof plan.id === "string" ? plan.id.trim() : "";
-    if (actual !== expected.trim()) {
+
+  // Exact path missing: unique plan.id recovery only (no basename recovery).
+  // Documented intentional: when planRef is stale after a lifecycle move, a stamped
+  // parent_plan_id that matches exactly one active/completed/… artifact is the
+  // durable identity key — never recover by filename alone.
+  if (expected !== null && opts.lifecycleRoot !== undefined && opts.lifecycleRoot !== null) {
+    const matches = findParentsByPlanId(opts.lifecycleRoot, expected);
+    const unique = matches.length === 1 ? matches[0] : undefined;
+    if (unique !== undefined) {
+      return { ok: true, data: unique.data, path: unique.path };
+    }
+    if (matches.length > 1) {
+      const paths = matches.map((m) => m.path).join(", ");
       return {
         ok: false,
         error:
-          `parent at ${parentPath} has plan.id='${actual || "(missing)"}' but child stamps ` +
-          `parent_plan_id='${expected.trim()}' — refuse identity mismatch (rewrite planRef or re-stamp)`,
+          `parent planRef path missing at ${parentPath}; parent_plan_id='${expected}' matches ` +
+          `${matches.length} lifecycle artifacts (ambiguous — rewrite planRef): ${paths}`,
         path: parentPath,
       };
     }
+    return {
+      ok: false,
+      error:
+        `${primary.error}. Parent planRef path missing and no unique lifecycle artifact with ` +
+        `plan.id='${expected}' (rewrite the child's planRef; no basename guess).`,
+      path: parentPath,
+    };
   }
-  return { ok: true, data: primary.data, path: parentPath };
+
+  return {
+    ok: false,
+    error:
+      `${primary.error}. Parent path must match planRef exactly — if the parent ` +
+      `moved lifecycle folders, stamp parent_plan_id (decompose) or rewrite planRef ` +
+      `(no basename guess).`,
+    path: parentPath,
+  };
 }
 
 /** Stamped parent_plan_id from child plan.metadata.parent_lineage (if any). */
@@ -412,6 +503,7 @@ export function evaluateParentLineage(opts: {
 
   let parentDoc: JsonObj | null = asRecord(opts.parent);
   let parentPath: string | null = opts.parentPath ?? null;
+  const stampedParentPlanId = extractStampedParentPlanId(child);
 
   if (parentDoc === null) {
     let lifecycleRoot: string | null = null;
@@ -453,9 +545,10 @@ export function evaluateParentLineage(opts: {
       });
     }
 
-    // Exact planRef only (no basename lifecycle recovery — identity thrash #3241).
+    // Exact planRef, else unique parent_plan_id recovery (no basename guess).
     const loaded = loadParentExact(parentPath, {
-      expectedParentPlanId: extractStampedParentPlanId(child),
+      expectedParentPlanId: stampedParentPlanId,
+      lifecycleRoot,
     });
     if (!loaded.ok) {
       return failResult({
@@ -474,6 +567,22 @@ export function evaluateParentLineage(opts: {
   const negativeIds = requirements.filter((r) => r.negativeInvariant).map((r) => r.id);
 
   if (parentIds.length === 0) {
+    // Still refuse identity mismatch when child stamps a durable parent id.
+    if (stampedParentPlanId !== null) {
+      const actualId = extractPlanId(parentDoc) ?? "";
+      if (actualId !== stampedParentPlanId) {
+        return failResult({
+          defect_class: "child_spec",
+          message:
+            `parent lineage: parent plan.id='${actualId || "(missing)"}' but child stamps ` +
+            `parent_plan_id='${stampedParentPlanId}' — refuse identity mismatch`,
+          errors: [
+            `parent identity mismatch: plan.id='${actualId || "(missing)"}' vs parent_plan_id='${stampedParentPlanId}'`,
+          ],
+          parent_path: parentPath,
+        });
+      }
+    }
     return okResult({
       applicable: false,
       parent_path: parentPath,
@@ -481,6 +590,43 @@ export function evaluateParentLineage(opts: {
       negative_invariant_ids: [],
       coverage_report: null,
       message: "parent lineage: N/A (parent authors no requirement IDs)",
+    });
+  }
+
+  // When parent authors requirement IDs, durable parent identity is mandatory.
+  // Without parent_plan_id, an exact-path replacement can silently validate against
+  // the wrong parent (or N/A-pass an empty imposter). Decompose fails closed if the
+  // parent has no plan.id; hand-authored children must stamp the same field.
+  if (stampedParentPlanId === null) {
+    return failResult({
+      defect_class: "child_spec",
+      message:
+        "parent lineage: child missing durable parent_plan_id stamp while parent authors " +
+        `requirement ID(s) (${parentIds.join(", ")}). Re-decompose from a parent with plan.id, ` +
+        "or stamp plan.metadata.parent_lineage.parent_plan_id to the parent's plan.id.",
+      errors: [
+        "missing parent_plan_id stamp on child",
+        `parent authors requirement IDs: ${parentIds.join(", ")}`,
+      ],
+      parent_path: parentPath,
+      parent_requirement_ids: parentIds,
+      negative_invariant_ids: negativeIds,
+    });
+  }
+
+  const actualParentId = extractPlanId(parentDoc) ?? "";
+  if (actualParentId !== stampedParentPlanId) {
+    return failResult({
+      defect_class: "child_spec",
+      message:
+        `parent lineage: parent plan.id='${actualParentId || "(missing)"}' but child stamps ` +
+        `parent_plan_id='${stampedParentPlanId}' — refuse identity mismatch (rewrite planRef or re-stamp)`,
+      errors: [
+        `parent identity mismatch: plan.id='${actualParentId || "(missing)"}' vs parent_plan_id='${stampedParentPlanId}'`,
+      ],
+      parent_path: parentPath,
+      parent_requirement_ids: parentIds,
+      negative_invariant_ids: negativeIds,
     });
   }
 

@@ -63,6 +63,9 @@ function childWithLineage(opts: {
   coverage_map?: unknown;
   behavioral_deltas?: unknown;
   omitLineage?: boolean;
+  /** When true, stamp coverage but omit durable parent_plan_id (identity-gap fixture). */
+  omitParentPlanId?: boolean;
+  parent_plan_id?: string;
 }): Record<string, unknown> {
   const metadata: Record<string, unknown> = {
     kind: "story",
@@ -74,7 +77,9 @@ function childWithLineage(opts: {
       behavioral_deltas: opts.behavioral_deltas,
       parent_requirement_ids: ["req-ordered-a-b-c", "req-forbid-a-to-c", "req-terminal-failure"],
       negative_invariant_ids: ["req-forbid-a-to-c"],
-      parent_plan_id: "epic-state-machine",
+      ...(opts.omitParentPlanId
+        ? {}
+        : { parent_plan_id: opts.parent_plan_id ?? "epic-state-machine" }),
     });
   }
   return {
@@ -149,11 +154,30 @@ describe("evaluateParentLineage (#3241)", () => {
   });
 
   it("fails closed when child missing coverage artifacts after parent authors IDs", () => {
-    const result = evaluateParentLineage({
-      child: childWithLineage({
+    // Identity stamp present; coverage_map omitted — isolates coverage gate from identity gate.
+    const child = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "s1",
+        title: "Child story",
+        status: "running",
         planRef: "pending/parent.xbrief.json",
-        omitLineage: true,
-      }),
+        items: [],
+        metadata: {
+          kind: "story",
+          parent_lineage: buildParentLineageArtifact({
+            parent_plan_id: "epic-state-machine",
+            parent_requirement_ids: [
+              "req-ordered-a-b-c",
+              "req-forbid-a-to-c",
+              "req-terminal-failure",
+            ],
+          }),
+        },
+      },
+    };
+    const result = evaluateParentLineage({
+      child,
       parent: abcParent,
       parentPath: "/virtual/parent.xbrief.json",
     });
@@ -271,15 +295,38 @@ describe("evaluateParentLineage (#3241)", () => {
     expect(parsed.ok).toBe(true);
   });
 
-  it("fails closed when planRef path is stale after parent move (exact path only)", () => {
-    const base = mkdtempSync(join(tmpdir(), "deft-pl-stale-"));
+  it("recovers stale planRef via unique parent_plan_id (no basename guess)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-stale-ok-"));
     temps.push(base);
     const completed = join(base, "xbrief", "completed");
     const active = join(base, "xbrief", "active");
     mkdirSync(completed, { recursive: true });
     mkdirSync(active, { recursive: true });
+    // Parent moved to completed/; child planRef still pending/ — recover by plan.id only.
     writeFileSync(join(completed, "parent.xbrief.json"), JSON.stringify(abcParent), "utf8");
-    // Child still points at pending/ — exact path missing; no basename recovery.
+    const child = childWithLineage({
+      planRef: "pending/parent.xbrief.json",
+      coverage_map: fullCoverageMap,
+    });
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.ok).toBe(true);
+    expect(result.applicable).toBe(true);
+    expect(result.parent_path?.replace(/\\/g, "/")).toMatch(/completed\/parent\.xbrief\.json$/);
+  });
+
+  it("fails closed on stale planRef when parent_plan_id is ambiguous (multi match)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-stale-ambig-"));
+    temps.push(base);
+    const completed = join(base, "xbrief", "completed");
+    const active = join(base, "xbrief", "active");
+    const cancelled = join(base, "xbrief", "cancelled");
+    mkdirSync(completed, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    mkdirSync(cancelled, { recursive: true });
+    writeFileSync(join(completed, "parent-a.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    writeFileSync(join(cancelled, "parent-b.xbrief.json"), JSON.stringify(abcParent), "utf8");
     const child = childWithLineage({
       planRef: "pending/parent.xbrief.json",
       coverage_map: fullCoverageMap,
@@ -288,7 +335,28 @@ describe("evaluateParentLineage (#3241)", () => {
     writeFileSync(childPath, JSON.stringify(child), "utf8");
     const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
     expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/not found|rewrite.*planRef|exactly/i);
+    expect(result.message).toMatch(/ambiguous|matches 2/i);
+  });
+
+  it("fails closed on stale planRef without parent_plan_id (no basename recovery)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-stale-nostamp-"));
+    temps.push(base);
+    const completed = join(base, "xbrief", "completed");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(completed, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    writeFileSync(join(completed, "parent.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    // Same basename exists in completed/, but without stamp we must not recover by name.
+    const child = childWithLineage({
+      planRef: "pending/parent.xbrief.json",
+      coverage_map: fullCoverageMap,
+      omitParentPlanId: true,
+    });
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/not found|rewrite.*planRef|parent_plan_id|exactly/i);
   });
 
   it("fails closed when exact parent path exists but plan.id mismatches stamp", () => {
@@ -317,6 +385,45 @@ describe("evaluateParentLineage (#3241)", () => {
       coverage_map: fullCoverageMap,
     });
     // child stamps parent_plan_id epic-state-machine via childWithLineage
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/identity mismatch|parent_plan_id/i);
+  });
+
+  it("fails closed when parent authors IDs but child omits parent_plan_id stamp", () => {
+    const result = evaluateParentLineage({
+      child: childWithLineage({
+        planRef: "pending/parent.xbrief.json",
+        coverage_map: fullCoverageMap,
+        omitParentPlanId: true,
+      }),
+      parent: abcParent,
+      parentPath: "/virtual/parent.xbrief.json",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.defect_class).toBe("child_spec");
+    expect(result.message).toMatch(/parent_plan_id/i);
+  });
+
+  it("fails closed when exact path has empty imposter and child stamps parent_plan_id", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-empty-imposter-"));
+    temps.push(base);
+    const pending = join(base, "xbrief", "pending");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    // Unrelated artifact at planRef with zero requirement IDs — must not N/A-pass.
+    writeFileSync(
+      join(pending, "parent.xbrief.json"),
+      JSON.stringify({ plan: { id: "empty-other", items: [{ title: "no id" }] } }),
+      "utf8",
+    );
+    const child = childWithLineage({
+      planRef: "pending/parent.xbrief.json",
+      coverage_map: fullCoverageMap,
+    });
     const childPath = join(active, "child.xbrief.json");
     writeFileSync(childPath, JSON.stringify(child), "utf8");
     const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
