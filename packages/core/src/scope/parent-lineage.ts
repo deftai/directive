@@ -174,6 +174,8 @@ export function buildParentLineageArtifact(opts: {
   behavioral_deltas?: unknown;
   parent_requirement_ids?: readonly string[];
   negative_invariant_ids?: readonly string[];
+  /** Stable parent plan.id for lifecycle-fallback identity (exact match). */
+  parent_plan_id?: string;
 }): JsonObj {
   const out: JsonObj = {
     schema: PARENT_LINEAGE_SCHEMA,
@@ -189,6 +191,9 @@ export function buildParentLineageArtifact(opts: {
   }
   if (opts.negative_invariant_ids !== undefined) {
     out.negative_invariant_ids = [...opts.negative_invariant_ids];
+  }
+  if (opts.parent_plan_id !== undefined && opts.parent_plan_id.trim().length > 0) {
+    out.parent_plan_id = opts.parent_plan_id.trim();
   }
   return out;
 }
@@ -246,26 +251,54 @@ function loadJsonFile(path: string): { ok: true; data: JsonObj } | { ok: false; 
 }
 
 /**
- * Expected parent requirement IDs stamped on the child at decompose (#3241).
- * Used to identity-check lifecycle fallback candidates.
+ * Stamped identity anchors on the child (from decompose parent_lineage).
+ * Fallback requires exact parent plan.id match when present.
  */
-export function extractStampedParentRequirementIds(child: unknown): string[] {
+export function extractStampedParentIdentity(child: unknown): {
+  parentPlanId: string | null;
+  requirementIds: string[];
+} {
   const root = asRecord(child);
-  if (root === null) return [];
+  if (root === null) return { parentPlanId: null, requirementIds: [] };
   const plan = asRecord(root.plan) ?? root;
   const metadata = asRecord(plan.metadata);
-  if (metadata === null) return [];
+  if (metadata === null) return { parentPlanId: null, requirementIds: [] };
   const lineage = asRecord(metadata.parent_lineage ?? metadata.parentLineage);
-  if (lineage === null) return [];
+  if (lineage === null) return { parentPlanId: null, requirementIds: [] };
+  const planIdRaw = lineage.parent_plan_id ?? lineage.parentPlanId;
+  const parentPlanId =
+    typeof planIdRaw === "string" && planIdRaw.trim().length > 0 ? planIdRaw.trim() : null;
   const ids = lineage.parent_requirement_ids ?? lineage.parentRequirementIds;
-  if (!Array.isArray(ids)) return [];
-  return ids.map((x) => String(x).trim()).filter((s) => s.length > 0);
+  const requirementIds = Array.isArray(ids)
+    ? ids.map((x) => String(x).trim()).filter((s) => s.length > 0)
+    : [];
+  return { parentPlanId, requirementIds };
 }
 
-function parentHasAllRequirementIds(parent: unknown, expectedIds: readonly string[]): boolean {
-  if (expectedIds.length === 0) return false;
-  const present = new Set(extractParentRequirements(parent).map((r) => r.id));
-  return expectedIds.every((id) => present.has(id));
+function parentPlanIdOf(parent: unknown): string | null {
+  const root = asRecord(parent);
+  if (root === null) return null;
+  const plan = asRecord(root.plan) ?? root;
+  const id = plan.id;
+  return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
+}
+
+function parentMatchesIdentity(
+  parent: unknown,
+  identity: { parentPlanId: string | null; requirementIds: string[] },
+): boolean {
+  // Prefer stable plan.id exact match (SoT for parent identity).
+  if (identity.parentPlanId !== null) {
+    return parentPlanIdOf(parent) === identity.parentPlanId;
+  }
+  // Legacy stamp without plan.id: require exact same requirement ID set (not subset).
+  if (identity.requirementIds.length === 0) return false;
+  const present = extractParentRequirements(parent)
+    .map((r) => r.id)
+    .sort();
+  const expected = [...identity.requirementIds].sort();
+  if (present.length !== expected.length) return false;
+  return present.every((id, i) => id === expected[i]);
 }
 
 /**
@@ -280,7 +313,9 @@ function parentHasAllRequirementIds(parent: unknown, expectedIds: readonly strin
 export function loadParentWithLifecycleFallback(
   parentPath: string,
   lifecycleRoot: string | null,
-  opts: { expectedRequirementIds?: readonly string[] } = {},
+  opts: {
+    identity?: { parentPlanId: string | null; requirementIds: string[] };
+  } = {},
 ): { ok: true; data: JsonObj; path: string } | { ok: false; error: string; path: string } {
   const primary = loadJsonFile(parentPath);
   if (primary.ok) {
@@ -294,7 +329,9 @@ export function loadParentWithLifecycleFallback(
     return { ok: false, error: primary.error, path: parentPath };
   }
 
-  const expected = opts.expectedRequirementIds ?? [];
+  const identity = opts.identity ?? { parentPlanId: null, requirementIds: [] };
+  const hasIdentity = identity.parentPlanId !== null || identity.requirementIds.length > 0;
+
   const candidates: Array<{ path: string; data: JsonObj }> = [];
   for (const folder of LIFECYCLE_FOLDERS_FOR_PARENT_LOOKUP) {
     const candidate = join(lifecycleRoot, folder, name);
@@ -306,10 +343,9 @@ export function loadParentWithLifecycleFallback(
     }
   }
 
-  const identityMatched =
-    expected.length > 0
-      ? candidates.filter((c) => parentHasAllRequirementIds(c.data, expected))
-      : [];
+  const identityMatched = hasIdentity
+    ? candidates.filter((c) => parentMatchesIdentity(c.data, identity))
+    : [];
 
   if (identityMatched.length === 1) {
     const only = identityMatched[0];
@@ -326,12 +362,11 @@ export function loadParentWithLifecycleFallback(
       ok: false,
       error:
         `parent not found at ${parentPath}; multiple lifecycle parents match basename '${name}' ` +
-        `and stamped requirement IDs (${listed}). Rewrite child planRef.`,
+        `and stamped identity (${listed}). Rewrite child planRef.`,
       path: parentPath,
     };
   }
 
-  // No identity-safe fallback (including sole basename match without stamped IDs).
   if (candidates.length === 0) {
     return {
       ok: false,
@@ -341,13 +376,12 @@ export function loadParentWithLifecycleFallback(
       path: parentPath,
     };
   }
-  if (expected.length === 0) {
+  if (!hasIdentity) {
     return {
       ok: false,
       error:
         `${primary.error}; found ${candidates.length} same-basename lifecycle candidate(s) but ` +
-        `child has no stamped parent_requirement_ids for identity check — rewrite planRef ` +
-        `(do not guess by basename alone)`,
+        `child has no stamped parent_plan_id / parent_requirement_ids for identity — rewrite planRef`,
       path: parentPath,
     };
   }
@@ -355,7 +389,9 @@ export function loadParentWithLifecycleFallback(
     ok: false,
     error:
       `${primary.error}; found ${candidates.length} same-basename candidate(s) but none match ` +
-      `stamped parent_requirement_ids [${expected.join(", ")}] — rewrite child planRef`,
+      `stamped parent identity ` +
+      `(plan_id=${identity.parentPlanId ?? "null"}, req_ids=[${identity.requirementIds.join(", ")}]) ` +
+      `— rewrite child planRef`,
     path: parentPath,
   };
 }
@@ -520,7 +556,7 @@ export function evaluateParentLineage(opts: {
     // Prefer exact planRef; fall back across lifecycle folders when parent moved
     // but child planRef rewrite lagged (#3241 Greptile P1). Identity via stamped IDs.
     const loaded = loadParentWithLifecycleFallback(parentPath, lifecycleRoot, {
-      expectedRequirementIds: extractStampedParentRequirementIds(child),
+      identity: extractStampedParentIdentity(child),
     });
     if (!loaded.ok) {
       return failResult({

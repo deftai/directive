@@ -1003,6 +1003,14 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   // #3241: stamp full parent coverage artifacts onto every child so story-ready /
   // preflight can re-check lineage without re-reading the decompose draft.
   const draftRec = draft as JsonObj;
+  const parentPlanRec =
+    typeof parent.plan === "object" && parent.plan !== null && !Array.isArray(parent.plan)
+      ? (parent.plan as JsonObj)
+      : {};
+  const parentPlanId =
+    typeof parentPlanRec.id === "string" && parentPlanRec.id.trim().length > 0
+      ? parentPlanRec.id.trim()
+      : undefined;
   const parentLineageArtifact =
     coverage.report.parent_requirement_ids.length > 0
       ? buildParentLineageArtifact({
@@ -1010,6 +1018,7 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
           behavioral_deltas: draftRec.behavioral_deltas ?? draftRec.behavioralDeltas,
           parent_requirement_ids: coverage.report.parent_requirement_ids,
           negative_invariant_ids: coverage.report.negative_invariant_ids,
+          parent_plan_id: parentPlanId,
         })
       : null;
 

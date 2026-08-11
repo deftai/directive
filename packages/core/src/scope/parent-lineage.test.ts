@@ -74,6 +74,7 @@ function childWithLineage(opts: {
       behavioral_deltas: opts.behavioral_deltas,
       parent_requirement_ids: ["req-ordered-a-b-c", "req-forbid-a-to-c", "req-terminal-failure"],
       negative_invariant_ids: ["req-forbid-a-to-c"],
+      parent_plan_id: "epic-state-machine",
     });
   }
   return {
@@ -316,7 +317,7 @@ describe("evaluateParentLineage (#3241)", () => {
     writeFileSync(childPath, JSON.stringify(child), "utf8");
     const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
     expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/stamped parent_requirement_ids|identity/i);
+    expect(result.message).toMatch(/stamped parent identity|parent_plan_id|identity/i);
   });
 
   it("evaluateParentLineageAtPath loads child and parent from disk", () => {
