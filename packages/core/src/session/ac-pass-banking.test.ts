@@ -424,6 +424,14 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]?.summary).toBe("kept");
   });
+
+  it("recoverFindingsFromLedgerText salvages incomplete array missing ]", () => {
+    const cut =
+      '{"postBankFindings":[{"summary":"a","action":"report","recordedAt":"t","regressesStatedAc":false},{"summary":"b","actio';
+    const findings = recoverFindingsFromLedgerText(cut);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.summary).toBe("a");
+  });
 });
 
 describe("surplus-insufficient simulation (#3285)", () => {
