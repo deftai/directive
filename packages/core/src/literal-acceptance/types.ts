@@ -59,6 +59,16 @@ export interface LiteralAcceptanceRunResult {
   readonly detail: string;
 }
 
+/**
+ * Shell-shaped command that was refused by the safety allowlist (#3267 residual).
+ * Operators must see these — silent drop hides ambient-authority / shape mistakes.
+ */
+export interface RejectedLiteralCommand {
+  readonly command: string;
+  readonly reason: string;
+  readonly sourceSpan?: string | null;
+}
+
 /** Aggregate evaluate / done-gate result. */
 export interface LiteralAcceptanceGateResult {
   readonly ok: boolean;
@@ -67,7 +77,12 @@ export interface LiteralAcceptanceGateResult {
   readonly message: string;
   readonly commands: readonly LiteralAcceptanceCommand[];
   readonly runs: readonly LiteralAcceptanceRunResult[];
+  /** Safety-rejected shell-shaped lines (fail-loud ledger; may be empty). */
+  readonly rejected?: readonly RejectedLiteralCommand[];
 }
+
+/** Metadata key for operator-visible rejected command ledger (#3267). */
+export const LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY = "literal_acceptance_rejected" as const;
 
 /** Injectable shell runner for tests (default: spawnSync shell). */
 export type LiteralAcceptanceRunner = (input: {

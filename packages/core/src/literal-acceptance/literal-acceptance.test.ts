@@ -69,7 +69,7 @@ describe("captureLiteralAcceptanceCommands", () => {
 });
 
 describe("attach / read stored commands", () => {
-  it("stores exact commands on plan.metadata and swarm.verify_commands", () => {
+  it("stores task_statement on metadata without auto-promoting to verify_commands", () => {
     const captured = captureLiteralAcceptanceCommands(FIXTURE_TASK);
     const plan = attachLiteralAcceptanceCommands(
       { title: "t", status: "running", items: [] },
@@ -80,7 +80,19 @@ describe("attach / read stored commands", () => {
     const meta = plan.metadata as Record<string, unknown>;
     expect(Array.isArray(meta.literal_acceptance_commands)).toBe(true);
     const swarm = meta.swarm as Record<string, unknown>;
-    expect(swarm.verify_commands).toContain("task check");
+    // task_statement must not auto-spawn via verify_commands (#3267 promotion model)
+    const verify = Array.isArray(swarm.verify_commands) ? swarm.verify_commands : [];
+    expect(verify).not.toContain("task check");
+  });
+
+  it("mirrors only executable sources into swarm.verify_commands", () => {
+    const plan = attachLiteralAcceptanceCommands({ title: "t", items: [] }, [
+      { command: "task check", source: "explicit" },
+      { command: "pnpm test", source: "task_statement" },
+    ]);
+    const swarm = (plan.metadata as Record<string, unknown>).swarm as Record<string, unknown>;
+    expect(swarm.verify_commands).toEqual(["task check"]);
+    expect(swarm.verify_commands).not.toContain("pnpm test");
   });
 
   it("captureAndAttach is idempotent on re-run", () => {
@@ -97,6 +109,46 @@ describe("attach / read stored commands", () => {
     expect(stored).toHaveLength(1);
     expect(stored[0]?.command).toBe("task check");
     expect(stored[0]?.source).toBe("plan_item");
+  });
+
+  it("preserves cwd/expectedStdout/expectedExitCode on metadata reload", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: "task check",
+            cwd: "packages/core",
+            expectedStdout: "PASS",
+            expectedExitCode: 0,
+            source: "explicit",
+          },
+          {
+            command: "task check",
+            cwd: "packages/cli",
+            expectedExitCode: 0,
+            source: "explicit",
+          },
+        ],
+      },
+      items: [],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored).toHaveLength(2);
+    const core = stored.find((c) => c.cwd === "packages/core");
+    const cli = stored.find((c) => c.cwd === "packages/cli");
+    expect(core?.expectedStdout).toBe("PASS");
+    expect(core?.expectedExitCode).toBe(0);
+    expect(cli?.command).toBe("task check");
+  });
+
+  it("mergeCommands keeps distinct cwd contexts for the same command string", () => {
+    const plan = attachLiteralAcceptanceCommands({ title: "t", items: [] }, [
+      { command: "pnpm test", source: "explicit", cwd: "a" },
+      { command: "pnpm test", source: "explicit", cwd: "b" },
+    ]);
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored.filter((c) => c.command === "pnpm test")).toHaveLength(2);
   });
 });
 
@@ -272,6 +324,56 @@ describe("command safety (#3267 P1)", () => {
     );
     expect(refused.ok).toBe(false);
     expect(refused.runs[0]?.detail).toMatch(/refused|allowlist|metacharacter/);
+  });
+
+  it("restricts wrapper verbs to verification subcommands (no ambient authority)", async () => {
+    const { evaluateCommandSafety } = await import("./safety.js");
+    expect(evaluateCommandSafety("task check").ok).toBe(true);
+    expect(evaluateCommandSafety("task doctor").ok).toBe(true);
+    expect(evaluateCommandSafety("task verify:branch").ok).toBe(true);
+    expect(evaluateCommandSafety("task verify:literal-ac").ok).toBe(true);
+    expect(evaluateCommandSafety("deft --version").ok).toBe(true);
+    // State-mutating / ambient-authority verbs denied
+    expect(evaluateCommandSafety("task scope:complete").ok).toBe(false);
+    expect(evaluateCommandSafety("task policy:allow-bot-merge").ok).toBe(false);
+    expect(evaluateCommandSafety("task swarm:launch").ok).toBe(false);
+    expect(evaluateCommandSafety("task pr:merge").ok).toBe(false);
+    expect(evaluateCommandSafety("directive").ok).toBe(false);
+  });
+
+  it("records rejected shell-shaped commands on the ledger (not silent drop)", async () => {
+    const { captureLiteralAcceptanceCommandsDetailed } = await import("./capture.js");
+    const result = captureLiteralAcceptanceCommandsDetailed(
+      "## Acceptance\n```bash\ntask scope:promote -- x\npnpm install evil\ntask check\n```\n",
+    );
+    expect(result.commands.map((c) => c.command)).toContain("task check");
+    expect(result.rejected.some((r) => r.command.includes("scope:promote"))).toBe(true);
+    expect(result.rejected.some((r) => r.command.includes("pnpm install"))).toBe(true);
+    for (const r of result.rejected) {
+      expect(r.reason.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("package-manager exec is limited to vitest (not deft/task)", async () => {
+    const { evaluateCommandSafety } = await import("./safety.js");
+    expect(evaluateCommandSafety("pnpm exec vitest run packages/core").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm exec deft scope:promote").ok).toBe(false);
+    expect(evaluateCommandSafety("npm install").ok).toBe(false);
+  });
+
+  it("does not strip trailing path token `.` as sentence punctuation", async () => {
+    const { captureLiteralAcceptanceCommandsDetailed } = await import("./capture.js");
+    // docker is not allowlisted for execute, but normalize must preserve `.`
+    const detailed = captureLiteralAcceptanceCommandsDetailed(
+      "verify: pnpm test .\nAlso: verify: task check.",
+    );
+    // sentence period after task check strips; path `.` after pnpm test preserved if captured
+    expect(detailed.commands.some((c) => c.command === "task check")).toBe(true);
+    // If pnpm test . is captured, trailing `.` must remain (cwd path)
+    const withDot = detailed.commands.find((c) => c.command.startsWith("pnpm test"));
+    if (withDot !== undefined) {
+      expect(withDot.command).toBe("pnpm test .");
+    }
   });
 
   it("refuses task_statement-only commands until promoted to verify_commands", () => {

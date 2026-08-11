@@ -7,7 +7,8 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   evaluateLiteralAcceptanceFromPath,
-  resolveLiteralAcceptanceCommands,
+  formatRejectedLedger,
+  resolveLiteralAcceptanceDetailed,
 } from "@deftai/directive-core/literal-acceptance";
 
 interface ParsedArgs {
@@ -123,17 +124,28 @@ export function run(argv: string[]): number {
         process.stderr.write("verify_literal_ac: xBRIEF missing plan object\n");
         return 2;
       }
-      const commands = resolveLiteralAcceptanceCommands(plan, { captureFromNarratives: true });
+      const resolved = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives: true });
       const payload = {
         xbrief: xbriefPath,
-        count: commands.length,
-        commands: commands.map((c) => ({
+        count: resolved.commands.length,
+        rejected_count: resolved.rejected.length,
+        commands: resolved.commands.map((c) => ({
           command: c.command,
           source: c.source,
           sourceSpan: c.sourceSpan ?? null,
+          cwd: c.cwd ?? null,
+          expectedExitCode: c.expectedExitCode ?? 0,
+        })),
+        rejected: resolved.rejected.map((r) => ({
+          command: r.command,
+          reason: r.reason,
+          sourceSpan: r.sourceSpan ?? null,
         })),
       };
       process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+      if (resolved.rejected.length > 0) {
+        process.stderr.write(`${formatRejectedLedger(resolved.rejected)}\n`);
+      }
       return 0;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

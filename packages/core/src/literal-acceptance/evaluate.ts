@@ -5,14 +5,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
-  captureLiteralAcceptanceCommands,
-  readStoredLiteralAcceptanceCommands,
+  captureLiteralAcceptanceCommandsDetailed,
+  formatRejectedLedger,
+  readStoredLiteralAcceptanceDetailed,
 } from "./capture.js";
 import { runLiteralAcceptanceCommands } from "./run.js";
 import type {
   LiteralAcceptanceCommand,
   LiteralAcceptanceGateResult,
   LiteralAcceptanceRunner,
+  RejectedLiteralCommand,
 } from "./types.js";
 
 export interface EvaluateLiteralAcceptanceOptions {
@@ -39,22 +41,28 @@ function planOf(data: Record<string, unknown>): Record<string, unknown> | null {
 }
 
 /**
- * Resolve commands: stored first; optional narrative re-capture when empty.
+ * Resolve commands + rejected ledger: stored first; optional narrative re-capture when empty.
  */
-export function resolveLiteralAcceptanceCommands(
+export function resolveLiteralAcceptanceDetailed(
   plan: Record<string, unknown>,
   options: { readonly captureFromNarratives?: boolean } = {},
-): LiteralAcceptanceCommand[] {
-  const stored = readStoredLiteralAcceptanceCommands(plan);
-  if (stored.length > 0) {
-    return stored;
+): {
+  readonly commands: readonly LiteralAcceptanceCommand[];
+  readonly rejected: readonly RejectedLiteralCommand[];
+} {
+  const stored = readStoredLiteralAcceptanceDetailed(plan);
+  if (stored.commands.length > 0 || stored.rejected.length > 0) {
+    // When commands exist, still return any persisted rejected ledger.
+    if (stored.commands.length > 0) {
+      return stored;
+    }
   }
   if (options.captureFromNarratives === false) {
-    return [];
+    return stored;
   }
   const narratives = asRecord(plan.narratives);
   if (narratives === null) {
-    return [];
+    return stored;
   }
   const parts: string[] = [];
   for (const key of [
@@ -69,8 +77,38 @@ export function resolveLiteralAcceptanceCommands(
       parts.push(narratives[key] as string);
     }
   }
-  if (parts.length === 0) return [];
-  return captureLiteralAcceptanceCommands(parts.join("\n\n"));
+  if (parts.length === 0) return stored;
+  const captured = captureLiteralAcceptanceCommandsDetailed(parts.join("\n\n"));
+  // Merge rejected ledgers (stored + narrative capture).
+  const rejectedSeen = new Set(stored.rejected.map((r) => `${r.command}\0${r.reason}`));
+  const rejected = [...stored.rejected];
+  for (const r of captured.rejected) {
+    const k = `${r.command}\0${r.reason}`;
+    if (rejectedSeen.has(k)) continue;
+    rejectedSeen.add(k);
+    rejected.push(r);
+  }
+  return { commands: captured.commands, rejected };
+}
+
+/**
+ * Resolve commands: stored first; optional narrative re-capture when empty.
+ */
+export function resolveLiteralAcceptanceCommands(
+  plan: Record<string, unknown>,
+  options: { readonly captureFromNarratives?: boolean } = {},
+): LiteralAcceptanceCommand[] {
+  return [...resolveLiteralAcceptanceDetailed(plan, options).commands];
+}
+
+function appendRejectedNote(
+  message: string,
+  rejected: readonly RejectedLiteralCommand[],
+): string {
+  const ledger = formatRejectedLedger(rejected);
+  if (ledger.length === 0) return message;
+  if (message.length === 0) return ledger;
+  return `${message}\n${ledger}`;
 }
 
 /**
@@ -81,17 +119,22 @@ export function evaluateLiteralAcceptanceFromPlan(
   options: EvaluateLiteralAcceptanceOptions = {},
 ): LiteralAcceptanceGateResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const commands = resolveLiteralAcceptanceCommands(plan, {
+  const resolved = resolveLiteralAcceptanceDetailed(plan, {
     captureFromNarratives: options.captureFromNarratives,
   });
-  const result = runLiteralAcceptanceCommands(commands, {
+  const result = runLiteralAcceptanceCommands(resolved.commands, {
     projectRoot,
     runner: options.runner,
   });
-  if (options.quiet === true && result.ok) {
-    return { ...result, message: "" };
+  const withRejected: LiteralAcceptanceGateResult = {
+    ...result,
+    rejected: resolved.rejected,
+    message: appendRejectedNote(result.message, resolved.rejected),
+  };
+  if (options.quiet === true && withRejected.ok) {
+    return { ...withRejected, message: "" };
   }
-  return result;
+  return withRejected;
 }
 
 /**

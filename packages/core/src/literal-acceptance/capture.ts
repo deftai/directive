@@ -3,10 +3,22 @@
  *
  * Only extracts commands that appear literally in the text — never invents
  * or paraphrases. Prefer fenced blocks and labeled lines (verify:/command:/run:).
+ *
+ * Safety-rejected shell-shaped lines are recorded on a rejected ledger so they
+ * do not vanish silently (#3267 residual). Dedup keys include cwd/expectedExitCode
+ * so distinct execution contexts are not collapsed.
  */
 
 import { evaluateCommandSafety } from "./safety.js";
-import type { LiteralAcceptanceCommand, LiteralAcceptanceSource } from "./types.js";
+import type {
+  LiteralAcceptanceCommand,
+  LiteralAcceptanceSource,
+  RejectedLiteralCommand,
+} from "./types.js";
+import {
+  EXECUTABLE_LITERAL_SOURCES,
+  LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY,
+} from "./types.js";
 
 /** Labeled keywords (single-token, linear match). */
 const LABELED_KEYWORDS = new Set(["verify", "command", "run", "check", "exec", "shell"]);
@@ -19,14 +31,26 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+/**
+ * Normalize a captured command string.
+ * Trailing period is stripped only when it is sentence punctuation — not when the
+ * last token is `.` / `..` (cwd / parent path, e.g. `docker build .`).
+ */
 function normalizeCommand(raw: string): string | null {
   let s = raw.trim();
   // Strip surrounding backticks once.
   if (s.startsWith("`") && s.endsWith("`") && s.length >= 2) {
     s = s.slice(1, -1).trim();
   }
-  // Strip trailing period that is clearly sentence punctuation (not a path).
-  if (s.endsWith(".") && !s.endsWith("..") && !/\.\w+$/.test(s)) {
+  // Strip trailing period that is clearly sentence punctuation (not a path token).
+  // Preserve: `file.ts`, `..`, and commands ending in whitespace+`.` (cwd path).
+  if (
+    s.endsWith(".") &&
+    !s.endsWith("..") &&
+    !/\.\w+$/.test(s) &&
+    !/\s\.$/.test(s) &&
+    s !== "."
+  ) {
     s = s.slice(0, -1).trim();
   }
   if (s.length === 0) return null;
@@ -48,19 +72,80 @@ function looksLikeShellCommand(command: string): boolean {
   return false;
 }
 
+/** Dedupe key includes execution context so distinct cwd/exit targets stay distinct. */
+function commandDedupeKey(cmd: {
+  readonly command: string;
+  readonly cwd?: string | null;
+  readonly expectedExitCode?: number;
+}): string {
+  const cwd =
+    cmd.cwd !== null && cmd.cwd !== undefined && cmd.cwd.trim().length > 0 ? cmd.cwd.trim() : "";
+  const exit =
+    typeof cmd.expectedExitCode === "number" && Number.isFinite(cmd.expectedExitCode)
+      ? cmd.expectedExitCode
+      : 0;
+  return `${cmd.command}\0${cwd}\0${exit}`;
+}
+
+interface CaptureBuckets {
+  readonly out: LiteralAcceptanceCommand[];
+  readonly seen: Set<string>;
+  readonly rejected: RejectedLiteralCommand[];
+  readonly rejectedSeen: Set<string>;
+}
+
+function recordRejected(
+  buckets: CaptureBuckets,
+  command: string,
+  reason: string,
+  sourceSpan: string | null,
+): void {
+  const key = `${command}\0${reason}`;
+  if (buckets.rejectedSeen.has(key)) return;
+  buckets.rejectedSeen.add(key);
+  buckets.rejected.push({
+    command,
+    reason,
+    sourceSpan,
+  });
+}
+
+/**
+ * Push a full command record (preserves cwd / expectedStdout / expectedExitCode).
+ * Safety failures go to the rejected ledger instead of silent drop.
+ */
+function pushCommand(buckets: CaptureBuckets, cmd: LiteralAcceptanceCommand): void {
+  const safety = evaluateCommandSafety(cmd.command);
+  if (!safety.ok) {
+    recordRejected(
+      buckets,
+      cmd.command,
+      safety.reason ?? "unsafe command",
+      cmd.sourceSpan ?? null,
+    );
+    return;
+  }
+  const key = commandDedupeKey(cmd);
+  if (buckets.seen.has(key)) return;
+  buckets.seen.add(key);
+  buckets.out.push({
+    command: cmd.command,
+    cwd: cmd.cwd ?? null,
+    expectedStdout: cmd.expectedStdout ?? null,
+    expectedExitCode: cmd.expectedExitCode ?? 0,
+    source: cmd.source,
+    sourceSpan: cmd.sourceSpan ?? null,
+  });
+}
+
+/** Capture-path helper: command string only (defaults for context fields). */
 function pushUnique(
-  out: LiteralAcceptanceCommand[],
-  seen: Set<string>,
+  buckets: CaptureBuckets,
   command: string,
   source: LiteralAcceptanceSource,
   sourceSpan: string | null,
 ): void {
-  // Refuse unsafe / non-allowlisted commands (defense in depth with run gate).
-  if (!evaluateCommandSafety(command).ok) return;
-  const key = command;
-  if (seen.has(key)) return;
-  seen.add(key);
-  out.push({
+  pushCommand(buckets, {
     command,
     cwd: null,
     expectedStdout: null,
@@ -149,8 +234,7 @@ function matchPromptCommand(line: string): string | null {
 function extractFromFences(
   text: string,
   requireRegion: boolean,
-  out: LiteralAcceptanceCommand[],
-  seen: Set<string>,
+  buckets: CaptureBuckets,
 ): void {
   const lines = text.split(/\r?\n/);
   let inFence = false;
@@ -200,8 +284,7 @@ function extractFromFences(
     if (!looksLikeShellCommand(normalized) && (fenceLang === "" || !langOk)) continue;
 
     pushUnique(
-      out,
-      seen,
+      buckets,
       normalized,
       "task_statement",
       `fence@L${fenceStartLine}${fenceLang ? `:${fenceLang}` : ""}`,
@@ -255,11 +338,7 @@ function matchMarkdownHeading(line: string): { level: number; text: string } | n
 }
 
 /** Extract from labeled lines and `$` prompts anywhere in the statement. */
-function extractFromLabeledLines(
-  text: string,
-  out: LiteralAcceptanceCommand[],
-  seen: Set<string>,
-): void {
+function extractFromLabeledLines(text: string, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
@@ -272,7 +351,7 @@ function extractFromLabeledLines(
     if (labeledBody !== null) {
       const normalized = normalizeCommand(labeledBody);
       if (normalized !== null && looksLikeShellCommand(normalized)) {
-        pushUnique(out, seen, normalized, "task_statement", `labeled@L${i + 1}`);
+        pushUnique(buckets, normalized, "task_statement", `labeled@L${i + 1}`);
         capturedLabeled = true;
       }
     }
@@ -282,7 +361,7 @@ function extractFromLabeledLines(
     if (promptBody !== null) {
       const normalized = normalizeCommand(promptBody);
       if (normalized !== null && looksLikeShellCommand(normalized)) {
-        pushUnique(out, seen, normalized, "task_statement", `prompt@L${i + 1}`);
+        pushUnique(buckets, normalized, "task_statement", `prompt@L${i + 1}`);
       }
     }
   }
@@ -292,11 +371,7 @@ function extractFromLabeledLines(
  * Extract inline `` `command` `` spans that follow verify/run language on the same line.
  * Example: `run \`task check\` before done`
  */
-function extractInlineVerifySpans(
-  text: string,
-  out: LiteralAcceptanceCommand[],
-  seen: Set<string>,
-): void {
+function extractInlineVerifySpans(text: string, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
@@ -312,9 +387,46 @@ function extractInlineVerifySpans(
       if (inner.includes("\n")) continue;
       const normalized = normalizeCommand(inner);
       if (normalized === null || !looksLikeShellCommand(normalized)) continue;
-      pushUnique(out, seen, normalized, "task_statement", `inline@L${i + 1}`);
+      pushUnique(buckets, normalized, "task_statement", `inline@L${i + 1}`);
     }
   }
+}
+
+function emptyBuckets(): CaptureBuckets {
+  return {
+    out: [],
+    seen: new Set<string>(),
+    rejected: [],
+    rejectedSeen: new Set<string>(),
+  };
+}
+
+/** Result of capture including the operator-visible rejected ledger. */
+export interface CaptureLiteralAcceptanceResult {
+  readonly commands: readonly LiteralAcceptanceCommand[];
+  readonly rejected: readonly RejectedLiteralCommand[];
+}
+
+/**
+ * Capture literal acceptance commands from free-form task statement text.
+ * Returns commands + rejected ledger — never invents commands.
+ */
+export function captureLiteralAcceptanceCommandsDetailed(
+  taskStatement: string,
+): CaptureLiteralAcceptanceResult {
+  if (!isNonEmptyString(taskStatement)) {
+    return { commands: [], rejected: [] };
+  }
+  const buckets = emptyBuckets();
+
+  // Prefer fences under acceptance/verify headings first.
+  extractFromFences(taskStatement, true, buckets);
+  // Then any shell fences in the whole statement (still literal, not invented).
+  extractFromFences(taskStatement, false, buckets);
+  extractFromLabeledLines(taskStatement, buckets);
+  extractInlineVerifySpans(taskStatement, buckets);
+
+  return { commands: buckets.out, rejected: buckets.rejected };
 }
 
 /**
@@ -324,72 +436,85 @@ function extractInlineVerifySpans(
 export function captureLiteralAcceptanceCommands(
   taskStatement: string,
 ): LiteralAcceptanceCommand[] {
-  if (!isNonEmptyString(taskStatement)) {
-    return [];
-  }
-  const out: LiteralAcceptanceCommand[] = [];
-  const seen = new Set<string>();
-
-  // Prefer fences under acceptance/verify headings first.
-  extractFromFences(taskStatement, true, out, seen);
-  // Then any shell fences in the whole statement (still literal, not invented).
-  extractFromFences(taskStatement, false, out, seen);
-  extractFromLabeledLines(taskStatement, out, seen);
-  extractInlineVerifySpans(taskStatement, out, seen);
-
-  return out;
+  return [...captureLiteralAcceptanceCommandsDetailed(taskStatement).commands];
 }
 
 /**
  * Read already-stored commands from plan.metadata / swarm.verify_commands / item.command.
- * Preserves exact strings; does not re-parse or paraphrase.
+ * Preserves exact strings and execution context (cwd / expectedStdout / expectedExitCode).
  */
 export function readStoredLiteralAcceptanceCommands(
   plan: Record<string, unknown> | null | undefined,
 ): LiteralAcceptanceCommand[] {
+  return readStoredLiteralAcceptanceDetailed(plan).commands as LiteralAcceptanceCommand[];
+}
+
+/** Read stored commands plus any persisted rejected ledger. */
+export function readStoredLiteralAcceptanceDetailed(
+  plan: Record<string, unknown> | null | undefined,
+): CaptureLiteralAcceptanceResult {
   if (plan === null || plan === undefined || typeof plan !== "object") {
-    return [];
+    return { commands: [], rejected: [] };
   }
-  const out: LiteralAcceptanceCommand[] = [];
-  const seen = new Set<string>();
+  const buckets = emptyBuckets();
 
   const metadata = asRecord(plan.metadata);
   if (metadata !== null) {
     const explicit =
       metadata.literal_acceptance_commands ?? metadata.literalAcceptanceCommands ?? null;
     for (const cmd of coerceCommandList(explicit, "explicit", "metadata.literal_acceptance")) {
-      pushUnique(out, seen, cmd.command, cmd.source, cmd.sourceSpan ?? null);
+      pushCommand(buckets, cmd);
+    }
+
+    // Persisted rejected ledger (operator visibility across reloads).
+    const persistedRejected =
+      metadata[LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY] ??
+      metadata.literalAcceptanceRejected ??
+      null;
+    if (Array.isArray(persistedRejected)) {
+      for (const entry of persistedRejected) {
+        const rec = asRecord(entry);
+        if (rec === null) continue;
+        if (!isNonEmptyString(rec.command) || !isNonEmptyString(rec.reason)) continue;
+        recordRejected(
+          buckets,
+          rec.command.trim(),
+          rec.reason.trim(),
+          isNonEmptyString(rec.sourceSpan) ? rec.sourceSpan : null,
+        );
+      }
     }
 
     const swarm = asRecord(metadata.swarm);
     if (swarm !== null) {
+      // swarm.verify_commands is a string list (legacy). Prefer richer
+      // literal_acceptance_commands rows already loaded — do not invent a
+      // null-cwd duplicate for the same command text.
+      const alreadyHasCommand = (command: string): boolean =>
+        buckets.out.some((c) => c.command === command);
       for (const cmd of coerceCommandList(
         swarm.verify_commands,
         "verify_commands",
         "swarm.verify_commands",
       )) {
-        pushUnique(out, seen, cmd.command, cmd.source, cmd.sourceSpan ?? null);
+        if (alreadyHasCommand(cmd.command)) continue;
+        pushCommand(buckets, cmd);
       }
       for (const cmd of coerceCommandList(
         swarm.literal_acceptance_commands ?? swarm.literalAcceptanceCommands,
         "metadata",
         "swarm.literal_acceptance",
       )) {
-        pushUnique(out, seen, cmd.command, cmd.source, cmd.sourceSpan ?? null);
+        pushCommand(buckets, cmd);
       }
     }
   }
 
-  walkPlanItems(plan.items, "items", out, seen);
-  return out;
+  walkPlanItems(plan.items, "items", buckets);
+  return { commands: buckets.out, rejected: buckets.rejected };
 }
 
-function walkPlanItems(
-  items: unknown,
-  pathPrefix: string,
-  out: LiteralAcceptanceCommand[],
-  seen: Set<string>,
-): void {
+function walkPlanItems(items: unknown, pathPrefix: string, buckets: CaptureBuckets): void {
   if (!Array.isArray(items)) return;
   items.forEach((item, index) => {
     const rec = asRecord(item);
@@ -399,11 +524,11 @@ function walkPlanItems(
     if (isNonEmptyString(commandField)) {
       const normalized = normalizeCommand(commandField);
       if (normalized !== null) {
-        pushUnique(out, seen, normalized, "plan_item", `${path}.command`);
+        pushUnique(buckets, normalized, "plan_item", `${path}.command`);
       }
     }
-    walkPlanItems(rec.subItems, `${path}.subItems`, out, seen);
-    walkPlanItems(rec.items, `${path}.items`, out, seen);
+    walkPlanItems(rec.subItems, `${path}.subItems`, buckets);
+    walkPlanItems(rec.items, `${path}.items`, buckets);
   });
 }
 
@@ -415,7 +540,7 @@ function coerceCommandList(
   if (raw === null || raw === undefined) return [];
   if (typeof raw === "string") {
     const normalized = normalizeCommand(raw);
-    if (normalized === null || !evaluateCommandSafety(normalized).ok) return [];
+    if (normalized === null) return [];
     return [
       {
         command: normalized,
@@ -432,7 +557,7 @@ function coerceCommandList(
   for (const entry of raw) {
     if (typeof entry === "string") {
       const normalized = normalizeCommand(entry);
-      if (normalized !== null && evaluateCommandSafety(normalized).ok) {
+      if (normalized !== null) {
         out.push({
           command: normalized,
           cwd: null,
@@ -449,7 +574,7 @@ function coerceCommandList(
     const command = rec.command ?? rec.cmd ?? rec.shell;
     if (!isNonEmptyString(command)) continue;
     const normalized = normalizeCommand(command);
-    if (normalized === null || !evaluateCommandSafety(normalized).ok) continue;
+    if (normalized === null) continue;
     // Preserve persisted source when present so task_statement stays capture-only (#3267).
     const persistedSource =
       typeof rec.source === "string" && rec.source.trim().length > 0
@@ -470,7 +595,11 @@ function coerceCommandList(
             ? rec.expected_exit_code
             : 0,
       source: persistedSource,
-      sourceSpan: span,
+      sourceSpan: isNonEmptyString(rec.sourceSpan)
+        ? rec.sourceSpan
+        : isNonEmptyString(rec.source_span)
+          ? rec.source_span
+          : span,
     });
   }
   return out;
@@ -483,35 +612,60 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+function isExecutableSource(source: LiteralAcceptanceSource | string): boolean {
+  return (EXECUTABLE_LITERAL_SOURCES as readonly string[]).includes(source);
+}
+
 /**
  * Attach captured commands onto plan.metadata without paraphrasing.
- * Merges with existing literal_acceptance_commands and swarm.verify_commands.
+ * Merges with existing literal_acceptance_commands.
+ * Only agent-executable sources (not task_statement) are mirrored into
+ * swarm.verify_commands — issue text must be promoted explicitly (#3267).
  * Returns a shallow-cloned plan with updated metadata.
  */
 export function attachLiteralAcceptanceCommands(
   plan: Record<string, unknown>,
   commands: readonly LiteralAcceptanceCommand[],
+  rejected: readonly RejectedLiteralCommand[] = [],
 ): Record<string, unknown> {
-  if (commands.length === 0) {
+  if (commands.length === 0 && rejected.length === 0) {
     return plan;
   }
   const metadata = {
     ...(asRecord(plan.metadata) ?? {}),
   };
-  const existing = readStoredLiteralAcceptanceCommands(plan);
-  const merged = mergeCommands(existing, commands);
+  const existing = readStoredLiteralAcceptanceDetailed(plan);
+  const merged = mergeCommands(existing.commands, commands);
   metadata.literal_acceptance_commands = merged.map(toSerializable);
-  // Keep swarm.verify_commands in sync when swarm block exists or is created.
+
+  // Rejected ledger: merge and persist for operator visibility.
+  const rejectedMerged = mergeRejected(existing.rejected, rejected);
+  if (rejectedMerged.length > 0) {
+    metadata[LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY] = rejectedMerged.map((r) => {
+      const row: Record<string, unknown> = { command: r.command, reason: r.reason };
+      if (r.sourceSpan !== null && r.sourceSpan !== undefined && r.sourceSpan.length > 0) {
+        row.sourceSpan = r.sourceSpan;
+      }
+      return row;
+    });
+  }
+
+  // Keep swarm.verify_commands in sync only for executable (agent-authored) sources.
+  // task_statement stays capture-only until an agent promotes exact strings (#3267).
   const swarm = { ...(asRecord(metadata.swarm) ?? {}) };
-  const verifyList = merged.map((c) => c.command);
+  const executableCmds = merged
+    .filter((c) => isExecutableSource(c.source))
+    .map((c) => c.command);
   const prevVerify = Array.isArray(swarm.verify_commands)
     ? swarm.verify_commands.filter((x): x is string => typeof x === "string")
     : [];
   const verifyMerged = [...prevVerify];
-  for (const cmd of verifyList) {
+  for (const cmd of executableCmds) {
     if (!verifyMerged.includes(cmd)) verifyMerged.push(cmd);
   }
-  swarm.verify_commands = verifyMerged;
+  if (verifyMerged.length > 0) {
+    swarm.verify_commands = verifyMerged;
+  }
   metadata.swarm = swarm;
 
   return {
@@ -529,13 +683,16 @@ export function captureAndAttachLiteralAcceptance(
 ): {
   readonly plan: Record<string, unknown>;
   readonly commands: readonly LiteralAcceptanceCommand[];
+  readonly rejected: readonly RejectedLiteralCommand[];
 } {
-  const captured = captureLiteralAcceptanceCommands(taskStatement);
-  if (captured.length === 0) {
-    return { plan, commands: readStoredLiteralAcceptanceCommands(plan) };
+  const captured = captureLiteralAcceptanceCommandsDetailed(taskStatement);
+  if (captured.commands.length === 0 && captured.rejected.length === 0) {
+    const stored = readStoredLiteralAcceptanceDetailed(plan);
+    return { plan, commands: stored.commands, rejected: stored.rejected };
   }
-  const next = attachLiteralAcceptanceCommands(plan, captured);
-  return { plan: next, commands: readStoredLiteralAcceptanceCommands(next) };
+  const next = attachLiteralAcceptanceCommands(plan, captured.commands, captured.rejected);
+  const stored = readStoredLiteralAcceptanceDetailed(next);
+  return { plan: next, commands: stored.commands, rejected: stored.rejected };
 }
 
 function mergeCommands(
@@ -545,9 +702,25 @@ function mergeCommands(
   const seen = new Set<string>();
   const out: LiteralAcceptanceCommand[] = [];
   for (const cmd of [...a, ...b]) {
-    if (seen.has(cmd.command)) continue;
-    seen.add(cmd.command);
+    const key = commandDedupeKey(cmd);
+    if (seen.has(key)) continue;
+    seen.add(key);
     out.push(cmd);
+  }
+  return out;
+}
+
+function mergeRejected(
+  a: readonly RejectedLiteralCommand[],
+  b: readonly RejectedLiteralCommand[],
+): RejectedLiteralCommand[] {
+  const seen = new Set<string>();
+  const out: RejectedLiteralCommand[] = [];
+  for (const r of [...a, ...b]) {
+    const key = `${r.command}\0${r.reason}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
   }
   return out;
 }
@@ -574,4 +747,17 @@ function toSerializable(cmd: LiteralAcceptanceCommand): Record<string, unknown> 
     row.sourceSpan = cmd.sourceSpan;
   }
   return row;
+}
+
+/** Format rejected ledger for CLI / complete-gate messages. */
+export function formatRejectedLedger(rejected: readonly RejectedLiteralCommand[]): string {
+  if (rejected.length === 0) return "";
+  const lines = rejected.map((r) => {
+    const span = r.sourceSpan !== null && r.sourceSpan !== undefined ? ` @${r.sourceSpan}` : "";
+    return `  ✗ rejected: ${r.command}${span} — ${r.reason}`;
+  });
+  return (
+    `Literal acceptance rejected ${rejected.length} shell-shaped command(s) (#3267 safety ledger):\n` +
+    lines.join("\n")
+  );
 }

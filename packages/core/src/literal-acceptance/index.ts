@@ -9,7 +9,11 @@ export {
   attachLiteralAcceptanceCommands,
   captureAndAttachLiteralAcceptance,
   captureLiteralAcceptanceCommands,
+  captureLiteralAcceptanceCommandsDetailed,
+  formatRejectedLedger,
   readStoredLiteralAcceptanceCommands,
+  readStoredLiteralAcceptanceDetailed,
+  type CaptureLiteralAcceptanceResult,
 } from "./capture.js";
 export {
   type EvaluateLiteralAcceptanceOptions,
@@ -17,6 +21,7 @@ export {
   evaluateLiteralAcceptanceFromPlan,
   isLiteralAcceptanceRequiredAtCeremonyDepth,
   resolveLiteralAcceptanceCommands,
+  resolveLiteralAcceptanceDetailed,
 } from "./evaluate.js";
 export {
   defaultLiteralAcceptanceRunner,
@@ -32,9 +37,11 @@ export {
   EXECUTABLE_LITERAL_SOURCES,
   LITERAL_ACCEPTANCE_METADATA_KEY,
   LITERAL_ACCEPTANCE_METADATA_KEY_CAMEL,
+  LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY,
   type LiteralAcceptanceCommand,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
   type LiteralAcceptanceRunResult,
   type LiteralAcceptanceSource,
+  type RejectedLiteralCommand,
 } from "./types.js";
