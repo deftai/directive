@@ -21,64 +21,72 @@
         "id": "branch-coverage-restored",
         "title": "Branch coverage restored",
         "status": "completed",
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given master after this change, when Vitest coverage runs in the check lane, then branch coverage is at least 85 percent.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "vitest --coverage branches 85.08% (41020/48213); task check green",
-          "recorded_at": "2026-08-11T17:09:29.673Z",
-          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "vitest --coverage branches 85.08% (41020/48213); task check green",
+            "recorded_at": "2026-08-11T17:09:29.673Z",
+            "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+          }
         }
       },
       {
         "id": "all-four-metrics-green",
         "title": "All four metrics green",
         "status": "completed",
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given the same coverage run, when thresholds are evaluated, then statements, branches, functions, and lines are each at least 85 percent.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "vitest summary: statements/lines 88.42%, branches 85.08%, functions 96.00%",
-          "recorded_at": "2026-08-11T17:09:29.673Z",
-          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "vitest summary: statements/lines 88.42%, branches 85.08%, functions 96.00%",
+            "recorded_at": "2026-08-11T17:09:29.673Z",
+            "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+          }
         }
       },
       {
         "id": "no-debt-flag-required",
         "title": "No debt flag required",
         "status": "completed",
-        "effort": "S",
         "narrative": {
           "Acceptance": "Given the restored metrics, when release Step 5 style check runs, then it does not require allow-coverage-debt for this hairline.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "task check / pr:watch CLEAN without --allow-coverage-debt; PR #3292",
-          "recorded_at": "2026-08-11T17:09:29.673Z",
-          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        "metadata": {
+          "effort": "S",
+          "evidence": {
+            "kind": "test",
+            "pointer": "task check / pr:watch CLEAN without --allow-coverage-debt; PR #3292",
+            "recorded_at": "2026-08-11T17:09:29.673Z",
+            "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+          }
         }
       },
       {
         "id": "regression-tests-for-missed-branches",
         "title": "Regression tests for missed branches",
         "status": "completed",
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given the previously uncovered branches, when the new tests run, then they exercise those paths and stay green in CI.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/{literal-acceptance,value,vbrief-validation}/*branches*.test.ts (27+ tests)",
-          "recorded_at": "2026-08-11T17:09:29.673Z",
-          "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/{literal-acceptance,value,vbrief-validation}/*branches*.test.ts (27+ tests)",
+            "recorded_at": "2026-08-11T17:09:29.673Z",
+            "recorded_by": "agent5/fix/3287-vitest-branch-coverage-hairline"
+          }
         }
       }
     ],
