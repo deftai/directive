@@ -12,7 +12,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import {
   type CoverageReport,
   extractParentRequirements,
@@ -21,6 +21,15 @@ import {
 } from "./coverage-map.js";
 
 export const PARENT_LINEAGE_SCHEMA = "deft.scope.parent_lineage.v1" as const;
+
+/** Lifecycle folders searched when a child's planRef points at a moved parent (#3241 P1). */
+const LIFECYCLE_FOLDERS_FOR_PARENT_LOOKUP = [
+  "pending",
+  "active",
+  "completed",
+  "proposed",
+  "cancelled",
+] as const;
 
 /** Defect classes for gate output (#3241 AC: distinguish child-spec vs parent/child drift). */
 export const LINEAGE_DEFECT_CLASSES = ["child_spec", "parent_child_drift"] as const;
@@ -236,6 +245,44 @@ function loadJsonFile(path: string): { ok: true; data: JsonObj } | { ok: false; 
   }
 }
 
+/**
+ * Load parent at the resolved planRef path; if missing, search other lifecycle
+ * folders for the same basename (tolerates best-effort planRef rewrite lag after
+ * parent moves — Greptile #3241 P1).
+ */
+export function loadParentWithLifecycleFallback(
+  parentPath: string,
+  lifecycleRoot: string | null,
+): { ok: true; data: JsonObj; path: string } | { ok: false; error: string; path: string } {
+  const primary = loadJsonFile(parentPath);
+  if (primary.ok) {
+    return { ok: true, data: primary.data, path: parentPath };
+  }
+  if (lifecycleRoot === null) {
+    return { ok: false, error: primary.error, path: parentPath };
+  }
+  const name = basename(parentPath);
+  if (!name || name === "." || name === "..") {
+    return { ok: false, error: primary.error, path: parentPath };
+  }
+  for (const folder of LIFECYCLE_FOLDERS_FOR_PARENT_LOOKUP) {
+    const candidate = join(lifecycleRoot, folder, name);
+    if (resolve(candidate) === resolve(parentPath)) continue;
+    if (!existsSync(candidate)) continue;
+    const loaded = loadJsonFile(candidate);
+    if (loaded.ok) {
+      return { ok: true, data: loaded.data, path: candidate };
+    }
+  }
+  return {
+    ok: false,
+    error:
+      `${primary.error}; also searched lifecycle folders for basename '${name}' ` +
+      `(planRef may lag a parent move — rewrite child planRef or restore parent)`,
+    path: parentPath,
+  };
+}
+
 function classifyCoverageFailure(errors: readonly string[]): LineageDefectClass {
   // Missing map / parse shape issues are child-spec; uncovered/conflict vs parent is drift.
   const childSpecHints = [
@@ -393,16 +440,19 @@ export function evaluateParentLineage(opts: {
       });
     }
 
-    const loaded = loadJsonFile(parentPath);
+    // Prefer exact planRef; fall back across lifecycle folders when parent moved
+    // but child planRef rewrite lagged (#3241 Greptile P1).
+    const loaded = loadParentWithLifecycleFallback(parentPath, lifecycleRoot);
     if (!loaded.ok) {
       return failResult({
         defect_class: "child_spec",
         message: `parent lineage: ${loaded.error}`,
         errors: [loaded.error],
-        parent_path: parentPath,
+        parent_path: loaded.path,
       });
     }
     parentDoc = loaded.data;
+    parentPath = loaded.path;
   }
 
   const requirements = extractParentRequirements(parentDoc);

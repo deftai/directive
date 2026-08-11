@@ -270,6 +270,29 @@ describe("evaluateParentLineage (#3241)", () => {
     expect(parsed.ok).toBe(true);
   });
 
+  it("loads parent via lifecycle-folder fallback when planRef is stale (#3241 P1)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-pl-stale-"));
+    temps.push(base);
+    const pending = join(base, "xbrief", "pending");
+    const completed = join(base, "xbrief", "completed");
+    const active = join(base, "xbrief", "active");
+    mkdirSync(pending, { recursive: true });
+    mkdirSync(completed, { recursive: true });
+    mkdirSync(active, { recursive: true });
+    // Parent moved to completed/ but child still points at pending/
+    writeFileSync(join(completed, "parent.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    const child = childWithLineage({
+      planRef: "pending/parent.xbrief.json",
+      coverage_map: fullCoverageMap,
+    });
+    const childPath = join(active, "child.xbrief.json");
+    writeFileSync(childPath, JSON.stringify(child), "utf8");
+    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
+    expect(result.ok).toBe(true);
+    expect(result.applicable).toBe(true);
+    expect(result.parent_path?.replace(/\\/g, "/")).toMatch(/completed\/parent\.xbrief\.json$/);
+  });
+
   it("evaluateParentLineageAtPath loads child and parent from disk", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-pl-disk-"));
     temps.push(base);
