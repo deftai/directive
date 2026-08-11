@@ -525,4 +525,63 @@ describe("readCeremonyDialAudit (#3263)", () => {
     expect(noDial.error).toMatch(/no ceremony_dial/);
     expect(formatCeremonyDialAuditLine(noDial)).toContain("error=");
   });
+
+  it("reports invalid JSON and non-object ceremony_dial", () => {
+    root = makeProject({});
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "ritual-state.json"), "{not-json", "utf8");
+    const badJson = readCeremonyDialAudit(root);
+    expect(badJson.error).toMatch(/not valid JSON/);
+
+    writeFileSync(
+      join(root, ".deft", "ritual-state.json"),
+      JSON.stringify({ ceremony_dial: ["not-an-object"] }),
+      "utf8",
+    );
+    const badDial = readCeremonyDialAudit(root);
+    expect(badDial.error).toMatch(/ceremony_dial must be an object/);
+
+    writeFileSync(
+      join(root, ".deft", "ritual-state.json"),
+      JSON.stringify({
+        ceremony_dial: {
+          depth: "rapid",
+          source: "default",
+          inputs: null,
+          provisional: { reasons: ["ok", 12, "kept"] },
+        },
+      }),
+      "utf8",
+    );
+    const partial = readCeremonyDialAudit(root);
+    expect(partial.error).toBeNull();
+    expect(partial.depth).toBe("rapid");
+    expect(partial.inputs).toBeNull();
+    expect(partial.provisional?.reasons).toEqual(["ok", "kept"]);
+    expect(formatCeremonyDialAuditLine(partial)).toContain("provisional.reasons=ok; kept");
+  });
+
+  it("formats empty provisional reasons", () => {
+    root = makeProject({});
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "ritual-state.json"),
+      JSON.stringify({
+        ceremony_dial: {
+          depth: "standard",
+          source: "matrix",
+          inputs: { taskSize: "M", modelTier: "mid", projectShape: "project" },
+          provisional: {
+            taskSize: "M",
+            modelTier: "mid",
+            projectShape: "project",
+            reasons: [],
+          },
+        },
+      }),
+      "utf8",
+    );
+    const audit = readCeremonyDialAudit(root);
+    expect(formatCeremonyDialAuditLine(audit)).toContain("provisional.reasons=(none)");
+  });
 });
