@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
@@ -355,8 +355,50 @@ export function acPassBankPath(projectRoot: string, scopeId: string): string {
  */
 export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   const bankedAt = utcIso(input.now);
+  const root = resolve(input.projectRoot);
+  const path = acPassBankPath(root, input.scopeId);
+  const existed = existsSync(path);
   // Preserve prior post-bank findings on re-bank so ledger history survives (#3285 Greptile).
   const prior = readAcPassBank(input.projectRoot, input.scopeId);
+  // Unrecoverable existing ledger: do NOT overwrite (fail-open keep bytes).
+  if (existed && prior === null) {
+    const stub = recoveredStubRecord(input.scopeId, []);
+    const preserved: AcPassBankRecord = {
+      ...stub,
+      bankedAt,
+      headSha: input.headSha ?? null,
+      remainingTurns: input.budget.remainingTurns,
+      remainingBudget: input.budget.remainingBudget,
+      maxTurns: input.budget.maxTurns,
+      maxBudget: input.budget.maxBudget,
+      surplusThreshold: input.surplus.surplusThreshold,
+      hadSurplus: input.surplus.hasSurplus,
+      nextAction: input.nextAction,
+      postBankFindings: [],
+    };
+    appendBankEventToRunSummary({
+      environ: input.environ ?? process.env,
+      event: {
+        type: "ac_pass_bank",
+        schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
+        scopeId: preserved.scopeId,
+        bankedAt: preserved.bankedAt,
+        nextAction: preserved.nextAction,
+        hadSurplus: preserved.hadSurplus,
+        surplusThreshold: preserved.surplusThreshold,
+        remainingFraction: input.surplus.remainingFraction,
+        remainingTurns: preserved.remainingTurns,
+        remainingBudget: preserved.remainingBudget,
+        maxTurns: preserved.maxTurns,
+        maxBudget: preserved.maxBudget,
+        headSha: preserved.headSha,
+        path,
+        note: "unrecoverable existing ledger preserved; write skipped (#3285)",
+      },
+    });
+    return preserved;
+  }
+
   const record: AcPassBankRecord = {
     schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
     scopeId: input.scopeId,
@@ -372,13 +414,11 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     postBankFindings: prior?.postBankFindings ?? [],
   };
 
-  const root = resolve(input.projectRoot);
   const dir = acPassBanksDir(root);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  const path = acPassBankPath(root, input.scopeId);
-  // Write via temp + rename for crash-atomic replacement (#3285 Greptile residual).
+  // Crash-atomic replace only: write tmp then rename. Never truncate live ledger.
   const tmpPath = `${path}.tmp`;
   containedWrite({
     root,
@@ -386,22 +426,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     data: `${JSON.stringify(record, null, 2)}\n`,
     mode: "replace",
   });
-  try {
-    renameSync(tmpPath, path);
-  } catch {
-    // Fall back to direct replace if rename fails (cross-device edge).
-    containedWrite({
-      root,
-      target: path,
-      data: `${JSON.stringify(record, null, 2)}\n`,
-      mode: "replace",
-    });
-    try {
-      unlinkSync(tmpPath);
-    } catch {
-      // ignore
-    }
-  }
+  renameSync(tmpPath, path);
 
   appendBankEventToRunSummary({
     environ: input.environ ?? process.env,
