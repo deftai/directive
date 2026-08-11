@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
@@ -418,15 +418,28 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  // Crash-atomic replace only: write tmp then rename. Never truncate live ledger.
+  // Crash-atomic replace: write tmp then rename. Never truncate live ledger.
+  // If rename fails, keep .tmp as the durable checkpoint (read prefers newer).
   const tmpPath = `${path}.tmp`;
+  const payload = `${JSON.stringify(record, null, 2)}\n`;
   containedWrite({
     root,
     target: tmpPath,
-    data: `${JSON.stringify(record, null, 2)}\n`,
+    data: payload,
     mode: "replace",
   });
-  renameSync(tmpPath, path);
+  let durablePath = path;
+  try {
+    renameSync(tmpPath, path);
+  } catch {
+    if (!existed) {
+      // First bank: no prior ledger to protect — direct write is safe.
+      containedWrite({ root, target: path, data: payload, mode: "replace" });
+    } else {
+      // Prior ledger preserved; .tmp holds the refreshed checkpoint.
+      durablePath = tmpPath;
+    }
+  }
 
   appendBankEventToRunSummary({
     environ: input.environ ?? process.env,
@@ -444,7 +457,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
       maxTurns: record.maxTurns,
       maxBudget: record.maxBudget,
       headSha: record.headSha,
-      path,
+      path: durablePath,
     },
   });
 
@@ -572,10 +585,24 @@ function recoveredStubRecord(
  */
 export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBankRecord | null {
   const path = acPassBankPath(projectRoot, scopeId);
-  if (!existsSync(path)) return null;
+  const tmpPath = `${path}.tmp`;
+  // Prefer the newer of primary vs .tmp (rename-fail durable alternate).
+  let chosen: string | null = null;
+  if (existsSync(path) && existsSync(tmpPath)) {
+    try {
+      chosen = statSync(tmpPath).mtimeMs >= statSync(path).mtimeMs ? tmpPath : path;
+    } catch {
+      chosen = path;
+    }
+  } else if (existsSync(tmpPath)) {
+    chosen = tmpPath;
+  } else if (existsSync(path)) {
+    chosen = path;
+  }
+  if (chosen === null) return null;
   let text = "";
   try {
-    text = readFileSync(path, { encoding: "utf8" });
+    text = readFileSync(chosen, { encoding: "utf8" });
   } catch {
     return null;
   }
