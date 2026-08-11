@@ -5,25 +5,15 @@
  * or paraphrases. Prefer fenced blocks and labeled lines (verify:/command:/run:).
  */
 
+import { evaluateCommandSafety } from "./safety.js";
 import type { LiteralAcceptanceCommand, LiteralAcceptanceSource } from "./types.js";
 
-/** Heading tokens that mark an acceptance / verify region. */
-const REGION_HEADING_RE =
-  /\b(acceptance(\s+(criteria|sketch|commands?))?|verify(\s+commands?)?|verification|done[- ]?gate|check(er)?s?|run\s+verbatim)\b/i;
-
-/** Labeled command lines: `verify: task check`, `command: pnpm test`, etc. */
-const LABELED_COMMAND_RE =
-  /^\s*(?:[-*+]|\d+[.)])?\s*(?:verify|command|run|check|exec|shell)\s*:\s*(.+?)\s*$/i;
-
-/** Mid-line labeled command: `Also run: verify: node -e "…"` */
-const MIDLINE_LABELED_COMMAND_RE = /\b(?:verify|command|exec|shell)\s*:\s*([^\n]+?)\s*$/i;
-
-/** Shell-prompt style: `$ task check` or `> pnpm test`. */
-const PROMPT_COMMAND_RE = /^\s*[$>]\s+(\S.*\S|\S)\s*$/;
+/** Labeled keywords (single-token, linear match). */
+const LABELED_KEYWORDS = new Set(["verify", "command", "run", "check", "exec", "shell"]);
 
 /** Words that look like a CLI invocation start (not prose). */
 const CLI_START_RE =
-  /^(?:task|deft|directive|pnpm|npm|npx|yarn|bun|node|python|py|pytest|vitest|cargo|go|dotnet|make|curl|gh|git|uv|pip|poetry|docker|kubectl|rg|sed|awk|cat|ls|echo|true|false|sh|bash|pwsh|powershell)\b/i;
+  /^(?:task|deft|directive|pnpm|npm|npx|yarn|bun|node|python|py|pytest|vitest|cargo|go|dotnet|make|curl|gh|git|uv|pip|poetry|rg|echo|true|false)\b/i;
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -65,6 +55,8 @@ function pushUnique(
   source: LiteralAcceptanceSource,
   sourceSpan: string | null,
 ): void {
+  // Refuse unsafe / non-allowlisted commands at capture (defense in depth with run gate).
+  if (!evaluateCommandSafety(command).ok) return;
   const key = command;
   if (seen.has(key)) return;
   seen.add(key);
@@ -76,6 +68,78 @@ function pushUnique(
     source,
     sourceSpan,
   });
+}
+
+/** Linear: does heading text mention acceptance/verify regions? */
+function isRegionHeading(text: string): boolean {
+  const low = text.toLowerCase();
+  if (low.includes("acceptance")) return true;
+  if (low.includes("verify") || low.includes("verification")) return true;
+  if (low.includes("done-gate") || low.includes("done gate")) return true;
+  if (low.includes("run verbatim")) return true;
+  if (low === "check" || low.startsWith("check ") || low.endsWith(" check")) return true;
+  return false;
+}
+
+/** Skip leading spaces/tabs only (bounded, linear). */
+function skipWs(line: string, start: number): number {
+  let i = start;
+  while (i < line.length && (line[i] === " " || line[i] === "\t")) i += 1;
+  return i;
+}
+
+/** Parse `verify: cmd` / bullet-prefixed labeled lines without polynomial regex. */
+function matchLabeledCommand(line: string): string | null {
+  let i = skipWs(line, 0);
+  // Optional bullet or number prefix.
+  if (i < line.length && "-*+".includes(line[i] as string)) {
+    i = skipWs(line, i + 1);
+  } else if (i < line.length) {
+    const ch = line[i] as string;
+    if (ch >= "0" && ch <= "9") {
+      while (i < line.length) {
+        const d = line[i] as string;
+        if (d < "0" || d > "9") break;
+        i += 1;
+      }
+      if (i < line.length && (line[i] === "." || line[i] === ")")) i += 1;
+      i = skipWs(line, i);
+    }
+  }
+  const keywordStart = i;
+  while (i < line.length && /[a-zA-Z]/.test(line[i] as string)) i += 1;
+  if (i === keywordStart) return null;
+  const keyword = line.slice(keywordStart, i).toLowerCase();
+  if (!LABELED_KEYWORDS.has(keyword)) return null;
+  i = skipWs(line, i);
+  if (i >= line.length || line[i] !== ":") return null;
+  i = skipWs(line, i + 1);
+  if (i >= line.length) return null;
+  return line.slice(i).trimEnd();
+}
+
+/** Mid-line `verify: cmd` (e.g. "Also run: verify: task check"). */
+function matchMidlineLabeled(line: string): string | null {
+  const low = line.toLowerCase();
+  for (const kw of LABELED_KEYWORDS) {
+    if (kw === "run" || kw === "check") continue; // too ambiguous mid-line
+    const needle = `${kw}:`;
+    const idx = low.indexOf(needle);
+    if (idx < 0) continue;
+    const rest = line.slice(idx + needle.length).trim();
+    if (rest.length > 0) return rest;
+  }
+  return null;
+}
+
+/** `$ cmd` or `> cmd` prompt lines. */
+function matchPromptCommand(line: string): string | null {
+  let i = skipWs(line, 0);
+  if (i >= line.length) return null;
+  if (line[i] !== "$" && line[i] !== ">") return null;
+  i = skipWs(line, i + 1);
+  if (i >= line.length) return null;
+  return line.slice(i).trimEnd();
 }
 
 /**
@@ -98,18 +162,18 @@ function extractFromFences(
     const line = lines[i] ?? "";
     const heading = matchMarkdownHeading(line);
     if (heading !== null && !inFence) {
-      regionActive = requireRegion ? REGION_HEADING_RE.test(heading.text) : true;
+      regionActive = requireRegion ? isRegionHeading(heading.text) : true;
       continue;
     }
 
-    const fenceOpen = line.match(/^(`{3,}|~{3,})\s*([a-zA-Z0-9_+-]*)\s*$/);
+    const fenceOpen = matchFenceOpen(line);
     if (fenceOpen !== null && !inFence) {
       inFence = true;
-      fenceLang = (fenceOpen[2] ?? "").toLowerCase();
+      fenceLang = fenceOpen.lang;
       fenceStartLine = i + 1;
       continue;
     }
-    if (inFence && /^(`{3,}|~{3,})\s*$/.test(line)) {
+    if (inFence && matchFenceClose(line)) {
       inFence = false;
       fenceLang = "";
       continue;
@@ -123,19 +187,8 @@ function extractFromFences(
       continue;
     }
     // Shell-ish langs always accepted; unknown langs need CLI shape.
-    const langOk =
-      fenceLang === "" ||
-      fenceLang === "bash" ||
-      fenceLang === "sh" ||
-      fenceLang === "shell" ||
-      fenceLang === "zsh" ||
-      fenceLang === "console" ||
-      fenceLang === "powershell" ||
-      fenceLang === "pwsh" ||
-      fenceLang === "cmd" ||
-      fenceLang === "text";
-
-    if (!langOk) continue;
+    const langOk = isShellFenceLang(fenceLang);
+    if (!langOk && fenceLang !== "") continue;
 
     // Strip leading prompt markers inside fences.
     let body = trimmed;
@@ -144,10 +197,7 @@ function extractFromFences(
     }
     const normalized = normalizeCommand(body);
     if (normalized === null) continue;
-    if (!looksLikeShellCommand(normalized) && fenceLang === "") continue;
-    if (!looksLikeShellCommand(normalized) && !langOk) continue;
-    // For empty lang, require CLI shape; for shell langs, accept if non-empty.
-    if (fenceLang === "" && !looksLikeShellCommand(normalized)) continue;
+    if (!looksLikeShellCommand(normalized) && (fenceLang === "" || !langOk)) continue;
 
     pushUnique(
       out,
@@ -157,6 +207,42 @@ function extractFromFences(
       `fence@L${fenceStartLine}${fenceLang ? `:${fenceLang}` : ""}`,
     );
   }
+}
+
+function isShellFenceLang(lang: string): boolean {
+  return (
+    lang === "" ||
+    lang === "bash" ||
+    lang === "sh" ||
+    lang === "shell" ||
+    lang === "zsh" ||
+    lang === "console" ||
+    lang === "powershell" ||
+    lang === "pwsh" ||
+    lang === "cmd" ||
+    lang === "text"
+  );
+}
+
+/** Linear fence open: ```lang or ~~~lang */
+function matchFenceOpen(line: string): { lang: string } | null {
+  const t = line.trimEnd();
+  if (t.startsWith("```")) {
+    const rest = t.slice(3).trim().toLowerCase();
+    if (rest.includes(" ") || rest.includes("\t")) return null;
+    return { lang: rest };
+  }
+  if (t.startsWith("~~~")) {
+    const rest = t.slice(3).trim().toLowerCase();
+    if (rest.includes(" ") || rest.includes("\t")) return null;
+    return { lang: rest };
+  }
+  return null;
+}
+
+function matchFenceClose(line: string): boolean {
+  const t = line.trim();
+  return t === "```" || t === "~~~";
 }
 
 function matchMarkdownHeading(line: string): { level: number; text: string } | null {
@@ -178,13 +264,13 @@ function extractFromLabeledLines(
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     let capturedLabeled = false;
-    let labeled = line.match(LABELED_COMMAND_RE);
-    if (labeled === null && !/^\s*[$>]\s+/.test(line)) {
+    let labeledBody = matchLabeledCommand(line);
+    if (labeledBody === null && matchPromptCommand(line) === null) {
       // Avoid treating `$ task verify:branch` as labeled "branch".
-      labeled = line.match(MIDLINE_LABELED_COMMAND_RE);
+      labeledBody = matchMidlineLabeled(line);
     }
-    if (labeled !== null && isNonEmptyString(labeled[1])) {
-      const normalized = normalizeCommand(labeled[1]);
+    if (labeledBody !== null) {
+      const normalized = normalizeCommand(labeledBody);
       if (normalized !== null && looksLikeShellCommand(normalized)) {
         pushUnique(out, seen, normalized, "task_statement", `labeled@L${i + 1}`);
         capturedLabeled = true;
@@ -192,9 +278,9 @@ function extractFromLabeledLines(
     }
     if (capturedLabeled) continue;
 
-    const prompt = line.match(PROMPT_COMMAND_RE);
-    if (prompt !== null && isNonEmptyString(prompt[1])) {
-      const normalized = normalizeCommand(prompt[1]);
+    const promptBody = matchPromptCommand(line);
+    if (promptBody !== null) {
+      const normalized = normalizeCommand(promptBody);
       if (normalized !== null && looksLikeShellCommand(normalized)) {
         pushUnique(out, seen, normalized, "task_statement", `prompt@L${i + 1}`);
       }
@@ -329,25 +415,24 @@ function coerceCommandList(
   if (raw === null || raw === undefined) return [];
   if (typeof raw === "string") {
     const normalized = normalizeCommand(raw);
-    return normalized === null
-      ? []
-      : [
-          {
-            command: normalized,
-            cwd: null,
-            expectedStdout: null,
-            expectedExitCode: 0,
-            source,
-            sourceSpan: span,
-          },
-        ];
+    if (normalized === null || !evaluateCommandSafety(normalized).ok) return [];
+    return [
+      {
+        command: normalized,
+        cwd: null,
+        expectedStdout: null,
+        expectedExitCode: 0,
+        source,
+        sourceSpan: span,
+      },
+    ];
   }
   if (!Array.isArray(raw)) return [];
   const out: LiteralAcceptanceCommand[] = [];
   for (const entry of raw) {
     if (typeof entry === "string") {
       const normalized = normalizeCommand(entry);
-      if (normalized !== null) {
+      if (normalized !== null && evaluateCommandSafety(normalized).ok) {
         out.push({
           command: normalized,
           cwd: null,
@@ -364,7 +449,7 @@ function coerceCommandList(
     const command = rec.command ?? rec.cmd ?? rec.shell;
     if (!isNonEmptyString(command)) continue;
     const normalized = normalizeCommand(command);
-    if (normalized === null) continue;
+    if (normalized === null || !evaluateCommandSafety(normalized).ok) continue;
     out.push({
       command: normalized,
       cwd: isNonEmptyString(rec.cwd) ? rec.cwd.trim() : null,

@@ -8,6 +8,7 @@
 
 import { spawnSync } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
+import { evaluateCommandSafety } from "./safety.js";
 import type {
   LiteralAcceptanceCommand,
   LiteralAcceptanceGateResult,
@@ -62,6 +63,18 @@ export function runLiteralAcceptanceCommand(
   },
 ): LiteralAcceptanceRunResult {
   const cwd = resolveCwd(options.projectRoot, cmd);
+  const safety = evaluateCommandSafety(cmd.command);
+  if (!safety.ok) {
+    return {
+      command: cmd.command,
+      cwd,
+      exitCode: 2,
+      stdout: "",
+      stderr: safety.reason ?? "unsafe command",
+      ok: false,
+      detail: `refused: ${safety.reason ?? "unsafe command"}`,
+    };
+  }
   const runner = options.runner ?? defaultLiteralAcceptanceRunner;
   const result = runner({ command: cmd.command, cwd });
   const expectedExit = cmd.expectedExitCode ?? 0;

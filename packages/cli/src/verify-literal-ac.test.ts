@@ -67,4 +67,38 @@ describe("run", () => {
     expect(joined).toMatch(/task check/);
     expect(joined).toMatch(/"count": 1/);
   });
+
+  it("auto-finds single active xbrief and runs stored commands via evaluate", () => {
+    const root = mkdtempSync(join(tmpdir(), "literal-ac-cli-run-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "only.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          metadata: {
+            // Empty stored list → pass (nothing stated to run)
+            literal_acceptance_commands: [],
+          },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const chunks: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      chunks.push(String(c));
+      return true;
+    });
+    const code = run(["--project-root", root, "--quiet"]);
+    expect(code).toBe(0);
+  });
+
+  it("parseArgs supports --xbrief= form and rejects missing project-root value", () => {
+    expect(parseArgs(["--xbrief=a.xbrief.json"]).xbriefPath).toBe("a.xbrief.json");
+    expect(parseArgs(["--project-root"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--xbrief"]).error).toMatch(/expected one argument/);
+  });
 });
