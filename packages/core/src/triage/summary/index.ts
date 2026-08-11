@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve as pathResolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve as pathResolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import {
   hasArtifactSuffix,
   resolveLifecycleFolder,
@@ -669,8 +670,15 @@ export function appendHistory(
   });
   const payload = pythonStyleStringify(record);
   try {
-    mkdirSync(join(historyPath, ".."), { recursive: true });
-    appendFileSync(historyPath, `${payload}\n`, { encoding: "utf8" });
+    // #3288 / #3245 / #2980: refuse leaf symlink follow (in-tree diversion).
+    const parent = dirname(historyPath);
+    mkdirSync(parent, { recursive: true });
+    containedWrite({
+      root: pathResolve(parent),
+      target: historyPath,
+      data: `${payload}\n`,
+      mode: "append",
+    });
   } catch {
     // observability only — never crash the ritual
   }

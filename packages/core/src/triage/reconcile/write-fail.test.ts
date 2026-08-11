@@ -1,4 +1,12 @@
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -54,6 +62,28 @@ describe("reconcile write failures", () => {
     expect(() =>
       readFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "utf8"),
     ).toThrow();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses leaf symlink audit log diverting append into tracked file (#3288)", () => {
+    const root = mkdtempSync(join(tmpdir(), "reconcile-symlink-"));
+    scopeVbrief(join(root, "xbrief", "proposed"), "s", 33);
+    const victim = join(root, "package.json");
+    writeFileSync(victim, '{"name":"keep"}\n', "utf8");
+    const cacheDir = join(root, "xbrief", ".triage-cache");
+    mkdirSync(cacheDir, { recursive: true });
+    const auditPath = join(cacheDir, "candidates.jsonl");
+    try {
+      symlinkSync(victim, auditPath);
+    } catch {
+      rmSync(root, { recursive: true, force: true });
+      return;
+    }
+    const result = reconcile(root, { repo: "deftai/directive", auditLogPath: auditPath });
+    expect(result.exitCode).toBe(1);
+    expect(result.error).toBeTruthy();
+    expect(result.error ?? "").toMatch(/ContainedWriteError|symlink|refused/i);
+    expect(readFileSync(victim, "utf8")).toBe('{"name":"keep"}\n');
     rmSync(root, { recursive: true, force: true });
   });
 });

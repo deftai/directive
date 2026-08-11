@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -612,5 +612,25 @@ describe("D2 suppression key (#1279)", () => {
     const last = readLastHistoryRecord(history);
     expect(last?.untriaged).toBe(2);
     expect(last?.emitted_at).toBe("2026-06-29T11:00:00Z");
+  });
+
+  it("appendHistory refuses leaf symlink diversion into tracked file (#3288)", () => {
+    const root = mkRoot();
+    const victim = join(root, "AGENTS.md");
+    writeFileSync(victim, "# keep me\n", "utf8");
+    const cacheDir = join(root, "xbrief", ".triage-cache");
+    mkdirSync(cacheDir, { recursive: true });
+    const history = join(cacheDir, "summary-history.jsonl");
+    try {
+      symlinkSync(victim, history);
+    } catch {
+      // Platform without symlink privilege — skip without failing the suite.
+      return;
+    }
+    // Never throws (observability only); must not divert into the tracked fixture.
+    appendHistory(history, baseResult({ untriaged: 9 }), "[triage] symlink", {
+      emittedAt: "2026-08-11T12:00:00Z",
+    });
+    expect(readFileSync(victim, "utf8")).toBe("# keep me\n");
   });
 });

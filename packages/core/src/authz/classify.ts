@@ -215,12 +215,26 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "fetch",
   "socat",
   "lftp",
+  // #3288 residual after #3245: crypto / alt-download / pipe / archive bins.
+  "gpg",
+  "age",
+  "zstd",
+  "unzstd",
+  "sftp",
+  "wget2",
+  "http",
+  "https",
+  "yt-dlp",
+  "ytdlp",
+  "aria2",
+  "mbuffer",
+  "cpio",
 ]);
 
 /**
  * Archive extractors / alt writers that can plant via pathish operands without
- * shell redirects (#3245). Used for pathish authz/kill scans (prefer deny) and
- * write-shape residual under UAT — not bare curl-class URL fetches.
+ * shell redirects (#3245 / #3288). Used for pathish authz/kill scans (prefer deny)
+ * and write-shape residual under UAT — not bare curl-class URL fetches.
  */
 const ARCHIVE_ALT_WRITE_BINS = new Set([
   "tar",
@@ -234,6 +248,20 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "fetch",
   "socat",
   "lftp",
+  // #3288 residual after #3245.
+  "gpg",
+  "age",
+  "zstd",
+  "unzstd",
+  "sftp",
+  "wget2",
+  "http",
+  "https",
+  "yt-dlp",
+  "ytdlp",
+  "aria2",
+  "mbuffer",
+  "cpio",
 ]);
 
 /**
@@ -262,6 +290,13 @@ const TAR_DIR_DEST_FLAGS_EXACT = new Set(["-C"]);
 const TAR_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
 /** unzip extract directory (#3245). */
 const UNZIP_DIR_DEST_FLAGS = new Set(["-d"]);
+/**
+ * cpio chdir before extract/create (#3288).
+ * Case-sensitive short form: POSIX cpio uses capital `-D`; lower `-d` is a create option bit.
+ * Long form `--directory` is accepted lowercased.
+ */
+const CPIO_DIR_DEST_FLAGS_EXACT = new Set(["-D"]);
+const CPIO_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
 /**
  * Symlink / hard-link plant bins (#3213). Absent from prior killWriteBins →
  * `ln -sf … .deft-directive-disable` classified empty → UAT fail-open.
@@ -303,10 +338,19 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   if (bin === "7z" || bin === "7za" || bin === "7zr") {
     return false;
   }
+  // #3288: cpio `-o` is copy-out (create archive), not a file dest; dest is `-D` / `--directory`.
+  if (bin === "cpio") {
+    if (rawFlag !== undefined && CPIO_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
+    if (CPIO_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
+    if (rawFlag !== undefined && CPIO_DIR_DEST_FLAGS_LOWER.has(normalizeToken(rawFlag))) {
+      return true;
+    }
+    return false;
+  }
   if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) return true;
   if (bin === "curl" && CURL_DIR_DEST_FLAGS.has(flag)) return true;
-  if (bin === "wget" && WGET_DIR_DEST_FLAGS.has(flag)) return true;
-  if (bin === "aria2c" && ARIA2C_DIR_DEST_FLAGS.has(flag)) return true;
+  if ((bin === "wget" || bin === "wget2") && WGET_DIR_DEST_FLAGS.has(flag)) return true;
+  if ((bin === "aria2c" || bin === "aria2") && ARIA2C_DIR_DEST_FLAGS.has(flag)) return true;
   if (bin === "tar" || bin === "bsdtar") {
     if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
     if (TAR_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
@@ -403,7 +447,15 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       bin === "7za" ||
       bin === "7zr" ||
       bin === "socat" ||
-      bin === "lftp";
+      bin === "lftp" ||
+      // #3288 residual: remote-copy / archive / crypto pathish operands.
+      bin === "sftp" ||
+      bin === "cpio" ||
+      bin === "gpg" ||
+      bin === "age" ||
+      bin === "zstd" ||
+      bin === "unzstd" ||
+      bin === "mbuffer";
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -481,19 +533,25 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           i++;
           continue;
         }
-        if (n.startsWith("-o") && !n.startsWith("-out") && n.length > 2) {
+        // cpio `-o` is copy-out create mode, not a file dest (#3288).
+        if (bin !== "cpio" && n.startsWith("-o") && !n.startsWith("-out") && n.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;
         }
-        // wget attached -Pdir
-        if (bin === "wget" && n.startsWith("-p") && n.length > 2 && !n.startsWith("-proxy")) {
+        // wget / wget2 attached -Pdir
+        if (
+          (bin === "wget" || bin === "wget2") &&
+          n.startsWith("-p") &&
+          n.length > 2 &&
+          !n.startsWith("-proxy")
+        ) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;
         }
-        // aria2c attached -dDIR (#3213)
-        if (bin === "aria2c" && n.startsWith("-d") && n.length > 2) {
+        // aria2c / aria2 attached -dDIR (#3213 / #3288)
+        if ((bin === "aria2c" || bin === "aria2") && n.startsWith("-d") && n.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;
@@ -506,6 +564,12 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
         // tar attached -CDIR (rare; capital C required)
         if ((bin === "tar" || bin === "bsdtar") && raw.startsWith("-C") && raw.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // cpio attached -DDIR (#3288; capital D required)
+        if (bin === "cpio" && raw.startsWith("-D") && raw.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;

@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 import { loadDefaultCacheModule } from "./cache-module.js";
@@ -379,10 +380,21 @@ function buildAuditEntry(
   };
 }
 
+/**
+ * Default audit append for bootstrap backfill (#3288 / #3245 / #2980).
+ * Containment root is the audit parent (project root may be unavailable on inject path);
+ * leaf symlink follow is refused either way.
+ */
 function appendAuditEntryDefault(auditPath: string, entry: Record<string, unknown>): void {
-  mkdirSync(dirname(auditPath), { recursive: true });
+  const parent = dirname(auditPath);
+  mkdirSync(parent, { recursive: true });
   const sorted = Object.fromEntries(Object.entries(entry).sort(([a], [b]) => a.localeCompare(b)));
-  writeFileSync(auditPath, `${JSON.stringify(sorted)}\n`, { encoding: "utf8", flag: "a" });
+  containedWrite({
+    root: resolve(parent),
+    target: resolve(auditPath),
+    data: `${JSON.stringify(sorted)}\n`,
+    mode: "append",
+  });
 }
 
 /** Backfill `accept` audit entries for items already in lifecycle folders. */

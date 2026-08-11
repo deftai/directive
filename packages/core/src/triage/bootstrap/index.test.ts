@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -243,6 +243,27 @@ describe("stepBackfillAuditLog", () => {
     expect(lines.map((e) => e.issue_number).sort((a, b) => a - b)).toEqual([100, 101, 102]);
     expect(lines.every((e) => e.decision === "accept")).toBe(true);
     expect(lines.every((e) => e.actor === "agent:bootstrap")).toBe(true);
+  });
+
+  it("refuses leaf symlink audit log diverting append into tracked file (#3288)", () => {
+    const root = makeRoot();
+    writeScopeVbrief(root, "proposed", "story-s", 200);
+    const victim = join(root, "AGENTS.md");
+    writeFileSync(victim, "# keep bootstrap\n", "utf8");
+    const cacheDir = join(root, "xbrief", ".triage-cache");
+    mkdirSync(cacheDir, { recursive: true });
+    const audit = join(cacheDir, "candidates.jsonl");
+    try {
+      symlinkSync(victim, audit);
+    } catch {
+      return;
+    }
+    const outcome = stepBackfillAuditLog(root, "deftai/directive", {
+      nowIso: () => "2026-06-18T12:00:00Z",
+    });
+    expect(outcome.ok).toBe(false);
+    expect(outcome.error ?? "").toMatch(/ContainedWriteError|symlink|refused/i);
+    expect(readFileSync(victim, "utf8")).toBe("# keep bootstrap\n");
   });
 });
 

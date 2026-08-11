@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { mkdirSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { containedWrite } from "../../fs/contained-write.js";
 import { resolveLifecycleFolder } from "../../layout/resolve.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 import { auditKey, existingAuditRefs, scanLifecycleRefs } from "./audit.js";
@@ -149,9 +150,35 @@ function buildReconcileEntry(
   };
 }
 
-function appendAuditEntry(auditPath: string, entry: Record<string, unknown>): void {
-  mkdirSync(dirname(auditPath), { recursive: true });
-  appendFileSync(auditPath, `${JSON.stringify(entry)}\n`, "utf8");
+/**
+ * Containment root for reconcile audit appends (#3288 / #3245).
+ * Prefer project root when the log is nested under it; otherwise parent dir.
+ */
+function containmentRootForAudit(projectRoot: string, auditPath: string): string {
+  const rootAbs = resolve(projectRoot);
+  const logAbs = resolve(auditPath);
+  const parent = dirname(logAbs);
+  mkdirSync(parent, { recursive: true });
+  const rel = relative(rootAbs, logAbs);
+  if (rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel)) {
+    return rootAbs;
+  }
+  return resolve(parent);
+}
+
+/** #3288 / #3245 / #2980: product append refuses leaf symlink follow. */
+function appendAuditEntry(
+  projectRoot: string,
+  auditPath: string,
+  entry: Record<string, unknown>,
+): void {
+  const root = containmentRootForAudit(projectRoot, auditPath);
+  containedWrite({
+    root,
+    target: auditPath,
+    data: `${JSON.stringify(entry)}\n`,
+    mode: "append",
+  });
 }
 
 export interface ReconcileOptions {
@@ -190,7 +217,7 @@ export function reconcile(projectRoot: string, options: ReconcileOptions = {}): 
   for (const item of items) {
     const entry = buildReconcileEntry(item.repo, item.issueNumber, item.folder);
     try {
-      appendAuditEntry(auditPath, entry);
+      appendAuditEntry(root, auditPath, entry);
     } catch (err) {
       return {
         ...result,

