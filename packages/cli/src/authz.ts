@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Authz CLI (#2944 Wave 1 + #1095 Wave 4 + #3110): human-origin grants + UAT lease +
- * AFK closed-verb templates (mint via mintHumanOriginGrant only).
+ * Authz CLI (#2944 Wave 1 + #1095 Wave 4 + #3110 + #3291): human-origin grants + UAT lease +
+ * AFK closed-verb templates + structural scope:decompose apply grants
+ * (mint via mintHumanOriginGrant / mintDecomposeStructuralApplyGrant only).
  *
  *   deft authz:show
  *   deft authz:uat-start -- --campaign <id> [--actor <name>] [--note <text>] [--confirm]
@@ -9,6 +10,7 @@
  *   deft authz:grant -- --operations edit,push --surfaces 'src/**' --cohort <id> ... [--confirm]
  *   deft authz:grant -- --template release-publish --target 0.30.0 [--confirm]
  *   deft authz:grant -- --template finish-loop [--confirm]
+ *   deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> [--repo owner/name] [--confirm]
  *   deft authz:revoke -- <grant-id> [--confirm]
  *
  * **UAT-active hard refuse (#3110):** while any UAT lease is active, ALL mutating
@@ -20,23 +22,27 @@
  * TTY + controlling terminal + `--confirm` + typed phrase `mint`; agent/CI env
  * markers refuse fail-closed. Argv `--confirm` alone is never enough.
  */
-import { closeSync, openSync, readSync } from "node:fs";
+import { closeSync, existsSync, openSync, readSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 import {
   AFK_TEMPLATE_NAMES,
   AUTHZ_OPERATIONS,
   type AuthzOperation,
   CLOSED_VERB_TEMPLATE_NAMES,
   FINISH_LOOP_TEMPLATE_NAME,
+  formatDecomposeStructuralMintCommand,
   isAfkTemplateName,
   isClosedVerbTemplateName,
   isFinishLoopTemplateName,
   loadAuthzState,
   mintAfkTemplateGrant,
+  mintDecomposeStructuralApplyGrant,
   mintHumanOriginGrant,
   revokeGrant,
   showAuthzSnapshot,
   startUatLease,
   suspendUatLease,
+  toProjectRelativePosix,
 } from "@deftai/directive-core/authz";
 
 interface Parsed {
@@ -58,6 +64,10 @@ interface Parsed {
   grantId: string | null;
   template: string | null;
   target: string | null;
+  /** Parent xBRIEF path for structural decompose apply mint (#3291). */
+  parent: string | null;
+  /** Draft path for structural decompose apply mint (#3291). */
+  draft: string | null;
   format: "text" | "json";
   /** Explicit operator confirm for non-TTY / agent shells (#3110). */
   confirm: boolean;
@@ -169,6 +179,8 @@ function parseArgv(argv: string[]): Parsed {
     grantId: null,
     template: null,
     target: null,
+    parent: null,
+    draft: null,
     format: "text",
     confirm: false,
   };
@@ -289,6 +301,14 @@ function parseArgv(argv: string[]): Parsed {
       base.target = args[++i] ?? null;
       continue;
     }
+    if (a === "--parent") {
+      base.parent = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--draft") {
+      base.draft = args[++i] ?? null;
+      continue;
+    }
     if (a === "--confirm") {
       base.confirm = true;
       continue;
@@ -314,6 +334,8 @@ function helpText(): string {
     "      [--stories 2944] [--plan-ref <id>] [--repo owner/name] [--branch <b>] [--expires ISO] [--confirm]",
     "  deft authz:grant -- --template release-publish --target 0.30.0 [--actor <name>] [--expires ISO] [--confirm]",
     "  deft authz:grant -- --template finish-loop [--actor <name>] [--expires ISO] [--confirm]",
+    "  deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> \\",
+    "      [--repo owner/name] [--expires ISO] [--single-use] [--actor <name>] [--confirm]",
     "  deft authz:revoke -- <grant-id> [--confirm]",
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
@@ -328,6 +350,16 @@ function helpText(): string {
     "  - Known agent/CI env markers always refuse (fail-closed).",
     "  End UAT only after the lease is cleared out-of-band (state edit / suspend path",
     "  that does not run while the lease is active) — or suspend before re-minting.",
+    "",
+    "Structural scope:decompose apply (#3239 / #3291):",
+    "  Pass --parent + --draft (paths under project root). Digest is SHA-256 of exact",
+    "  draft bytes; binds parent, target, worktree, and optional --repo. Mints only",
+    "  scope.decompose.apply.structural via mintDecomposeStructuralApplyGrant.",
+    "  Example (after --check validates the draft):",
+    "    deft authz:grant -- --parent xbrief/pending/epic.xbrief.json \\",
+    "        --draft xbrief/.triage-cache/decompositions/draft.json --confirm",
+    "  Then: deft scope:decompose -- <parent> --draft <draft>",
+    "  scope:decompose --check remains ungated (no structural grant required).",
     "",
     `AFK templates (#1095 / #871): ${AFK_TEMPLATE_NAMES.join(", ")}`,
     `  Closed-verb (#1095): ${CLOSED_VERB_TEMPLATE_NAMES.join(", ")} — require --target`,
@@ -589,6 +621,94 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
         return 0;
       }
       case "grant": {
+        // Structural decompose apply path (#3291): --parent + --draft → mintDecomposeStructuralApplyGrant.
+        const parentRaw = args.parent?.trim() ?? "";
+        const draftRaw = args.draft?.trim() ?? "";
+        const hasParent = parentRaw.length > 0;
+        const hasDraft = draftRaw.length > 0;
+        if (hasParent !== hasDraft) {
+          process.stderr.write(
+            "authz:grant structural mint requires both --parent <path> and --draft <path>\n" +
+              `  Example: ${formatDecomposeStructuralMintCommand(
+                hasParent ? parentRaw : "xbrief/pending/parent.xbrief.json",
+                hasDraft ? draftRaw : "xbrief/.triage-cache/decompositions/draft.json",
+                { repo: args.repo },
+              )}\n`,
+          );
+          return 2;
+        }
+        if (hasParent && hasDraft) {
+          if (args.template !== null && args.template.trim().length > 0) {
+            process.stderr.write(
+              "authz:grant: --parent/--draft structural mint cannot be combined with --template\n",
+            );
+            return 2;
+          }
+          if (args.operations.length > 0) {
+            process.stderr.write(
+              "authz:grant: --parent/--draft structural mint cannot be combined with --operations " +
+                "(operation is fixed to scope.decompose.apply.structural)\n",
+            );
+            return 2;
+          }
+          const root = resolve(args.projectRoot);
+          const parentAbs = isAbsolute(parentRaw) ? resolve(parentRaw) : resolve(root, parentRaw);
+          const draftAbs = isAbsolute(draftRaw) ? resolve(draftRaw) : resolve(root, draftRaw);
+          const parentRel = toProjectRelativePosix(root, parentAbs);
+          const draftRel = toProjectRelativePosix(root, draftAbs);
+          if (parentRel === null) {
+            process.stderr.write(
+              `authz:grant: --parent path is outside project root: ${parentRaw}\n`,
+            );
+            return 2;
+          }
+          if (draftRel === null) {
+            process.stderr.write(
+              `authz:grant: --draft path is outside project root: ${draftRaw}\n`,
+            );
+            return 2;
+          }
+          if (!existsSync(parentAbs)) {
+            process.stderr.write(`authz:grant: --parent path does not exist: ${parentRaw}\n`);
+            return 2;
+          }
+          if (!existsSync(draftAbs)) {
+            process.stderr.write(`authz:grant: --draft path does not exist: ${draftRaw}\n`);
+            return 2;
+          }
+          const blocked = gateConfirm();
+          if (blocked !== null) return blocked;
+          const grant = mintDecomposeStructuralApplyGrant({
+            projectRoot: root,
+            parentPath: parentAbs,
+            draftPath: draftAbs,
+            actor: args.actor,
+            repo: args.repo,
+            expiresAt: args.expiresAt,
+            singleUse: args.singleUse,
+          });
+          // mintDecomposeStructuralApplyGrant always sets contentDigest + worktree.
+          const digest = grant.scope.contentDigest || "";
+          process.stdout.write(
+            `✓ human-origin structural grant minted id=${grant.id} origin=${grant.origin.kind}\n`,
+          );
+          process.stdout.write(
+            `  ops=[${grant.scope.operations.join(",")}] digest=${digest.slice(0, 12)}…\n`,
+          );
+          process.stdout.write(`  parent=${parentRel} draft=${draftRel}\n`);
+          if (grant.scope.repo) {
+            process.stdout.write(`  repo=${grant.scope.repo}\n`);
+          }
+          process.stdout.write(`  worktree=${grant.scope.worktree || root}\n`);
+          if (grant.semantics.singleUse) {
+            process.stdout.write("  single-use=true (spent on first successful apply)\n");
+          }
+          process.stdout.write(
+            "  Apply: deft scope:decompose -- <parent> --draft <draft>\n" +
+              "  Authorization SoT: Wave 1 grant store (.deft/authz/grants) — not session-auth.\n",
+          );
+          return 0;
+        }
         // AFK template path (#1095 / #871): presets only — still mintHumanOriginGrant.
         if (args.template !== null && args.template.trim().length > 0) {
           if (!isAfkTemplateName(args.template)) {
@@ -644,7 +764,8 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...> or --template <finish-loop|release-*> \n",
+            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*>, " +
+              "or --parent + --draft (structural scope:decompose apply)\n",
           );
           return 2;
         }

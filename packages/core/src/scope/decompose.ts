@@ -20,6 +20,7 @@ import {
   MIGRATED_ARTIFACT_DIR,
   resolveLifecycleRoot,
 } from "../layout/resolve.js";
+import { resolveRepo } from "../triage/queue/repo.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
@@ -939,10 +940,18 @@ export interface ApplyDecompositionOptions {
   draftPath: string;
   checkOnly: boolean;
   date: string;
+  /**
+   * Optional GitHub-style repo (owner/name). When omitted, resolved via
+   * DEFT_TRIAGE_REPO / git remote origin so repo-bound structural grants match (#3291).
+   */
+  repo?: string | null;
 }
 
 export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   const { projectRoot, parentPath, draftPath, checkOnly, date } = opts;
+  // Repo identity for structural apply grants that pin scope.repo (#3291).
+  const explicitRepo = (opts.repo ?? "").trim();
+  const repo = explicitRepo.length > 0 ? explicitRepo : resolveRepo(null, projectRoot);
   const vbriefDirPath = vbriefDir(projectRoot);
 
   const parent = loadJson(parentPath);
@@ -1067,13 +1076,15 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
 
   if (checkOnly) return actions;
 
-  // #3239: structural apply requires human-origin grant bound to exact draft digest
-  // from the single load above. --check is ungated (returned earlier).
+  // #3239 / #3291: structural apply requires human-origin grant bound to exact draft digest
+  // from the single load above. Thread repo into both evaluator calls so repo-bound grants
+  // match. --check is ungated (returned earlier).
   const authz = evaluateDecomposeStructuralApply({
     projectRoot,
     parentPath,
     draftPath,
     draftDigest,
+    repo,
   });
   if (!authz.allowed) {
     throw new DecompositionError(authz.reason);
@@ -1161,12 +1172,15 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
   if (authz.humanApprovalRef !== null) {
     const claim = claimSingleUseGrantForApply(projectRoot, authz.humanApprovalRef, {
       revalidate: (grant) => {
+        // Same repo binding as the initial check (#3291) — under-lock revalidation must not
+        // silently drop project identity or a repo-bound grant would fail closed incorrectly.
         const again = evaluateDecomposeStructuralApply({
           projectRoot,
           parentPath,
           draftPath,
           draftDigest,
           grants: [grant],
+          repo,
         });
         return again.allowed ? { ok: true as const } : { ok: false as const, reason: again.reason };
       },

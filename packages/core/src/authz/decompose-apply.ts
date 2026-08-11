@@ -66,6 +66,31 @@ export function sha256FileHex(path: string): string {
 }
 
 /**
+ * Exact operator CLI mint command for a structural decompose apply grant (#3291).
+ * Paths are project-relative POSIX when inside projectRoot; otherwise as provided.
+ * Does not include agent/CI/TTY gates — those remain on the CLI multi-factor path.
+ */
+export function formatDecomposeStructuralMintCommand(
+  parentPath: string,
+  draftPath: string,
+  options?: { readonly projectRoot?: string; readonly repo?: string | null },
+): string {
+  let parent = parentPath.replace(/\\/g, "/");
+  let draft = draftPath.replace(/\\/g, "/");
+  const root = options?.projectRoot;
+  if (root) {
+    parent = toProjectRelativePosix(root, parentPath) ?? parent;
+    draft = toProjectRelativePosix(root, draftPath) ?? draft;
+  }
+  const repo = (options?.repo ?? "").trim();
+  return (
+    `deft authz:grant -- --parent ${parent} --draft ${draft}` +
+    (repo ? ` --repo ${repo}` : "") +
+    " --confirm"
+  );
+}
+
+/**
  * Normalize a path to project-relative POSIX form for grant binding compare.
  * Returns null when the path escapes the project root.
  */
@@ -100,6 +125,7 @@ function pathsEqual(a: string, b: string): boolean {
 function grantValidity(
   grant: HumanOriginGrant,
   now: Date,
+  mintHint: string,
 ): { ok: true } | { ok: false; code: DecomposeApplyDecisionCode; reason: string } {
   if (!isHumanOriginGrant(grant)) {
     const kind = grant.origin.kind;
@@ -110,7 +136,7 @@ function grantValidity(
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} origin.kind=${kind} is ` +
           "agent/self-authored and cannot approve a decomposition draft. " +
-          "Human action required: mint via `deft authz:grant` (operator-cli) bound to the draft digest.",
+          `Human action required: \`${mintHint}\`.`,
       };
     }
     return {
@@ -118,7 +144,7 @@ function grantValidity(
       code: "authz-grant-origin-reject",
       reason:
         `Directive denied scope:decompose apply: grant ${grant.id} lacks human-origin provenance. ` +
-        "Human action required: `deft authz:grant` with operator-cli origin.",
+        `Human action required: \`${mintHint}\`.`,
     };
   }
   if (grant.semantics.revokedAt !== null) {
@@ -132,7 +158,9 @@ function grantValidity(
     return {
       ok: false,
       code: "authz-grant-single-use-spent",
-      reason: `Directive denied scope:decompose apply: single-use grant ${grant.id} already spent at ${grant.semantics.usedAt}.`,
+      reason:
+        `Directive denied scope:decompose apply: single-use grant ${grant.id} already spent at ${grant.semantics.usedAt}. ` +
+        `Human action required: \`${mintHint}\`.`,
     };
   }
   if (grant.semantics.expiresAt !== null) {
@@ -143,7 +171,7 @@ function grantValidity(
         code: "authz-grant-expired",
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} expired at ${grant.semantics.expiresAt}. ` +
-          "Human action required: re-mint a grant for the current draft digest.",
+          `Human action required: \`${mintHint}\`.`,
       };
     }
   }
@@ -167,13 +195,18 @@ export function evaluateDecomposeStructuralApply(
   const targetRel = toProjectRelativePosix(input.projectRoot, input.draftPath);
   const projectAbs = resolve(input.projectRoot);
   const grants = input.grants ?? listGrants(input.projectRoot);
+  const mintHint = formatDecomposeStructuralMintCommand(input.parentPath, input.draftPath, {
+    projectRoot: input.projectRoot,
+    repo: input.repo,
+  });
 
   if (parentRel === null || targetRel === null) {
     return {
       allowed: false,
       code: "authz-grant-scope-deny",
       reason:
-        "Directive denied scope:decompose apply: parent or draft path is outside the project root.",
+        "Directive denied scope:decompose apply: parent or draft path is outside the project root. " +
+        `Human action required: \`${mintHint}\` with paths inside the project root.`,
       humanApprovalRef: null,
       draftDigest: digest,
     };
@@ -187,7 +220,7 @@ export function evaluateDecomposeStructuralApply(
 
   for (const grant of grants) {
     if (!evidenceSatisfiesImplementationApproval({ grant })) {
-      const validity = grantValidity(grant, now);
+      const validity = grantValidity(grant, now, mintHint);
       if (!validity.ok) {
         lastReject = { code: validity.code, reason: validity.reason, grantId: grant.id };
         continue;
@@ -196,13 +229,13 @@ export function evaluateDecomposeStructuralApply(
         code: "authz-grant-origin-reject",
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} does not satisfy ` +
-          "human-origin implementation approval. Human action required: `deft authz:grant`.",
+          `human-origin implementation approval. Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
     }
 
-    const validity = grantValidity(grant, now);
+    const validity = grantValidity(grant, now, mintHint);
     if (!validity.ok) {
       lastReject = { code: validity.code, reason: validity.reason, grantId: grant.id };
       continue;
@@ -213,7 +246,7 @@ export function evaluateDecomposeStructuralApply(
         code: "authz-grant-scope-deny",
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} does not include operation ` +
-          `'${SCOPE_DECOMPOSE_APPLY_STRUCTURAL}'. Human action required: mint with that operation.`,
+          `'${SCOPE_DECOMPOSE_APPLY_STRUCTURAL}'. Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
@@ -231,7 +264,7 @@ export function evaluateDecomposeStructuralApply(
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} is missing required ` +
           "structural bindings (contentDigest, parentPath, targetPath). " +
-          "Human action required: re-mint bound to the exact draft.",
+          `Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
@@ -242,7 +275,8 @@ export function evaluateDecomposeStructuralApply(
         code: "authz-grant-binding-incomplete",
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} does not bind project ` +
-          "identity (repo and/or worktree). Human action required: re-mint with --repo or worktree.",
+          "identity (repo and/or worktree). " +
+          `Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
@@ -254,7 +288,8 @@ export function evaluateDecomposeStructuralApply(
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} is bound to draft digest ` +
           `${boundDigest.slice(0, 12)}… but the draft bytes hash to ${digest.slice(0, 12)}…. ` +
-          "Any content change after approval invalidates the grant. Re-mint for the current draft.",
+          "Any content change after approval invalidates the grant. " +
+          `Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
@@ -265,7 +300,8 @@ export function evaluateDecomposeStructuralApply(
         code: "authz-grant-parent-mismatch",
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} is bound to parent ` +
-          `'${boundParent}' but apply targets '${parentRel}'.`,
+          `'${boundParent}' but apply targets '${parentRel}'. ` +
+          `Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
@@ -276,7 +312,8 @@ export function evaluateDecomposeStructuralApply(
         code: "authz-grant-target-mismatch",
         reason:
           `Directive denied scope:decompose apply: grant ${grant.id} is bound to draft path ` +
-          `'${boundTarget}' but apply uses '${targetRel}'.`,
+          `'${boundTarget}' but apply uses '${targetRel}'. ` +
+          `Human action required: \`${mintHint}\`.`,
         grantId: grant.id,
       };
       continue;
@@ -290,7 +327,8 @@ export function evaluateDecomposeStructuralApply(
           code: "authz-grant-project-mismatch",
           reason:
             `Directive denied scope:decompose apply: grant ${grant.id} is bound to repo ` +
-            `'${boundRepo}' which does not match the apply context.`,
+            `'${boundRepo}' which does not match the apply context. ` +
+            `Human action required: \`${mintHint}\`.`,
           grantId: grant.id,
         };
         continue;
@@ -305,7 +343,8 @@ export function evaluateDecomposeStructuralApply(
           code: "authz-grant-project-mismatch",
           reason:
             `Directive denied scope:decompose apply: grant ${grant.id} is bound to worktree ` +
-            `'${boundWorktree}' which does not match project root '${projectAbs}'.`,
+            `'${boundWorktree}' which does not match project root '${projectAbs}'. ` +
+            `Human action required: \`${mintHint}\`.`,
           grantId: grant.id,
         };
         continue;
@@ -339,7 +378,7 @@ export function evaluateDecomposeStructuralApply(
     reason:
       "Directive denied scope:decompose apply: no human-origin grant covers " +
       `'${SCOPE_DECOMPOSE_APPLY_STRUCTURAL}' for this draft digest. ` +
-      "Human action required: mint a grant bound to the exact draft SHA-256 " +
+      `Human action required: \`${mintHint}\` ` +
       "(self-authored lifecycle/dispatch tokens do not count). --check remains ungated.",
     humanApprovalRef: null,
     draftDigest: digest,

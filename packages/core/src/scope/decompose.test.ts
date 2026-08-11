@@ -1377,6 +1377,153 @@ describe("applyDecomposition structural authz (#3239)", () => {
     );
     expect(childFiles.length).toBeGreaterThan(0);
   });
+
+  it("repo-bound grant matches when apply threads repo; mismatch fails before writes (#3291)", () => {
+    const { proj, parentPath, draftPath } = setup();
+    mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      repo: "deftai/directive",
+      grantId: "repo-match",
+    });
+    // Explicit matching repo allows apply
+    const actions = applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+      repo: "deftai/directive",
+    });
+    expect(actions.some((a) => a.startsWith("CREATE"))).toBe(true);
+    expect(actions.some((a) => a.startsWith("AUTHZ"))).toBe(true);
+
+    // Fresh project for mismatch path (children would already exist after success above)
+    const { proj: proj2, parentPath: p2, draftPath: d2 } = setup();
+    mintDecomposeStructuralApplyGrant({
+      projectRoot: proj2,
+      parentPath: p2,
+      draftPath: d2,
+      repo: "deftai/directive",
+      grantId: "repo-mismatch",
+    });
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj2,
+        parentPath: p2,
+        draftPath: d2,
+        checkOnly: false,
+        date: "2026-06-01",
+        repo: "other/repo",
+      }),
+    ).toThrow(/repo|project-mismatch|does not match/i);
+    const childFiles = readdirSafe(join(proj2, "xbrief", "pending")).filter(
+      (f) => f !== "parent.xbrief.json",
+    );
+    expect(childFiles).toHaveLength(0);
+  });
+
+  it("apply deny reason includes exact mint command (#3291)", () => {
+    const { proj, parentPath, draftPath } = setup();
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+        repo: "owner/name",
+      }),
+    ).toThrow(/deft authz:grant -- --parent/);
+  });
+
+  it("worktree-only grant still allows apply without repo (#3291)", () => {
+    const { proj, parentPath, draftPath } = setup();
+    // mintDecomposeStructuralApplyGrant always binds worktree; repo omitted.
+    mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      grantId: "worktree-only",
+    });
+    const actions = applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+      repo: null,
+    });
+    expect(actions.some((a) => a.startsWith("CREATE"))).toBe(true);
+  });
+
+  it("under-lock revalidation fails closed when grant is revoked between checks (#3291)", () => {
+    const { proj, parentPath, draftPath } = setup();
+    const grant = mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      singleUse: true,
+      grantId: "revoke-under-lock",
+    });
+    // Simulate concurrent revoke by patching revalidate path: mutate grant file after mint
+    // so the under-lock revalidate sees a revoked grant and refuses writes.
+    saveGrant(proj, {
+      ...grant,
+      semantics: { ...grant.semantics, revokedAt: "2026-08-11T00:00:00Z", singleUse: true },
+    });
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/revoked|denied|scope:decompose apply/i);
+    const childFiles = readdirSafe(join(proj, "xbrief", "pending")).filter(
+      (f) => f !== "parent.xbrief.json",
+    );
+    expect(childFiles).toHaveLength(0);
+  });
+
+  it("empty-string repo falls through to resolveRepo; whitespace repo is ignored (#3291)", () => {
+    const { proj, parentPath, draftPath } = setup();
+    mintDecomposeStructuralApplyGrant({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      grantId: "repo-empty-fallback",
+    });
+    // repo: "" and "   " should not pin a mismatch — worktree-only grant still applies.
+    const a1 = applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+      repo: "",
+    });
+    expect(a1.some((a) => a.startsWith("CREATE"))).toBe(true);
+
+    const s2 = setup();
+    mintDecomposeStructuralApplyGrant({
+      projectRoot: s2.proj,
+      parentPath: s2.parentPath,
+      draftPath: s2.draftPath,
+      grantId: "repo-ws-fallback",
+    });
+    const a2 = applyDecomposition({
+      projectRoot: s2.proj,
+      parentPath: s2.parentPath,
+      draftPath: s2.draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+      repo: "   ",
+    });
+    expect(a2.some((a) => a.startsWith("CREATE"))).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
