@@ -1,10 +1,18 @@
 #!/usr/bin/env node
 /**
  * agents:refresh — rewrite AGENTS.md managed section from the canonical template (#768 / #1996).
+ * #3286: deposit-sha fast-path prints one-line "unchanged - sha match" when orientation
+ * state records the same payload+templates+engine fingerprint (no refresh work).
  */
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { applyAgentsRefresh } from "@deftai/directive-core/platform";
+import {
+  computeDepositSha,
+  depositShaMatches,
+  formatDepositShaMatchLine,
+  readOrientationState,
+} from "@deftai/directive-core/session";
 
 export interface AgentsRefreshArgs {
   projectRoot: string;
@@ -46,6 +54,24 @@ export function runAgentsRefresh(argv: readonly string[]): number {
     return 2;
   }
 
+  // #3286: deposit-sha fast-path — one-line no-op when payload/templates/engine match.
+  if (!args.check && !args.dryRun) {
+    try {
+      const depositSha = computeDepositSha({ projectRoot: args.projectRoot });
+      const prior = readOrientationState(args.projectRoot);
+      if (
+        prior &&
+        depositShaMatches(prior.deposit_sha, depositSha) &&
+        prior.agents_refresh?.ok === true
+      ) {
+        process.stdout.write(`${formatDepositShaMatchLine("agents:refresh")}\n`);
+        return 0;
+      }
+    } catch {
+      // fall through to full refresh
+    }
+  }
+
   // The read->compute->write is serialized behind an advisory lock and written
   // atomically inside applyAgentsRefresh, so concurrent refreshers cannot clobber
   // one another's session= write or observe a partial write (#1329).
@@ -61,7 +87,8 @@ export function runAgentsRefresh(argv: readonly string[]): number {
   }
 
   if (state === "current") {
-    process.stdout.write("AGENTS.md managed section is current — no changes.\n");
+    // #3286: prefer the deposit-sha no-op phrasing for harness parsers.
+    process.stdout.write(`${formatDepositShaMatchLine("agents:refresh")}\n`);
     return 0;
   }
 

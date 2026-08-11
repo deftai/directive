@@ -16,6 +16,7 @@ describe("session-start parseArgs", () => {
     ceremonyDialInputs: { taskSize: null, modelTier: null, projectShape: null },
     ceremonyDepthOverride: null,
     effortBudgetHost: {},
+    compact: false,
   };
 
   it("defaults project root to cwd", () => {
@@ -76,6 +77,20 @@ describe("session-start parseArgs", () => {
       withNetwork: false,
       ceremonyTier: "cold",
       ...emptyDial,
+    });
+  });
+
+  it("parses --compact (#3286)", () => {
+    expect(parseArgs(["--compact", "--project-root", "/x"])).toEqual({
+      projectRoot: "/x",
+      deferValues: [],
+      emitJson: false,
+      noHistory: false,
+      readOnly: false,
+      withNetwork: false,
+      ceremonyTier: "cold",
+      ...emptyDial,
+      compact: true,
     });
   });
 

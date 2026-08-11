@@ -239,7 +239,12 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "effort_budget",
       "branch_policy",
       "verify_tools",
-      "toolchain_preflight",
+      // #3286: orientation compression composes doctor + preflight + refresh surfaces
+      "doctor",
+      "preflight",
+      "agents_refresh",
+      "cache_fresh",
+      "orientation",
       "triage_welcome",
       "release_probe",
       "ritual_write",

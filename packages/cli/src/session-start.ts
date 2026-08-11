@@ -48,6 +48,11 @@ export interface ParsedSessionStartArgs {
     maxBudget?: number;
     hardBudget?: boolean;
   };
+  /**
+   * #3286: compact orientation output (terse machine format). Verbose remains
+   * the default; also settable via DEFT_SESSION_COMPACT=1.
+   */
+  compact: boolean;
   error?: string;
 }
 
@@ -80,6 +85,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     ceremonyDialInputs: {},
     ceremonyDepthOverride: null,
     effortBudgetHost: {},
+    compact: false,
   };
   const dialInputs: {
     taskSize?: ReturnType<typeof normalizeCeremonyTaskSize>;
@@ -301,6 +307,9 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
       parsed.effortBudgetHost.maxBudget = n;
     } else if (arg === "--hard-budget") {
       parsed.effortBudgetHost.hardBudget = true;
+    } else if (arg === "--compact") {
+      // #3286: terse machine orientation output (opt-in; verbose remains default)
+      parsed.compact = true;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -370,6 +379,8 @@ export function run(argv: readonly string[]): number {
       ceremonyTier: args.ceremonyTier,
       ceremonyDialInputs: args.ceremonyDialInputs,
       effortBudgetSeams: { hostDescriptor, environ: process.env },
+      // #3286: --compact flag; DEFT_SESSION_COMPACT still resolved inside core.
+      compact: args.compact ? true : undefined,
       ...(args.ceremonyDepthOverride !== null
         ? {
             ceremonyDial: selectCeremonyDepth({

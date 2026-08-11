@@ -117,6 +117,44 @@ describe("package-manager network scope (#2182)", () => {
       runStalenessTickler: () => ({ lines: [], prompted: false }),
       // Keep triage on a no-op so the assertion is about release probe only.
       runTriageWelcome: () => ({ exitCode: 0 }),
+      // #3286: stub orientation so composed doctor does not probe npm config.
+      orientationOptions: {
+        doctorSection: {
+          name: "doctor",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["[deft doctor] status: ok"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        agentsRefreshSection: {
+          name: "agents_refresh",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["agents:refresh stub"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        cacheFreshSection: {
+          name: "cache_fresh",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["cache-fresh stub"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        toolchainPreflight: {
+          status: "ok",
+          ok: true,
+          degraded: false,
+          findings: [],
+          lines: ["[deft preflight] toolchain status: ok"],
+          skipGateIds: [],
+        },
+      },
     });
 
     expect(result.code === 0 || result.code === 1).toBe(true);
@@ -138,6 +176,44 @@ describe("package-manager network scope (#2182)", () => {
         taskSize: "M",
         modelTier: "mid",
         projectShape: "project",
+      },
+      // #3286: stub orientation so doctor npm config does not pollute the assertion.
+      orientationOptions: {
+        doctorSection: {
+          name: "doctor",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["[deft doctor] status: ok"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        agentsRefreshSection: {
+          name: "agents_refresh",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["agents:refresh stub"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        cacheFreshSection: {
+          name: "cache_fresh",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["cache-fresh stub"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        toolchainPreflight: {
+          status: "ok",
+          ok: true,
+          degraded: false,
+          findings: [],
+          lines: ["[deft preflight] toolchain status: ok"],
+          skipGateIds: [],
+        },
       },
     });
 

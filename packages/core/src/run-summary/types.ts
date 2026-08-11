@@ -44,6 +44,12 @@ export interface SessionStartRunSummaryPayload {
   readonly ceremony_tier?: string;
   readonly ready?: boolean;
   readonly exit_code?: number;
+  /** #3286: orientation surfaces composed into session:start (graduation trigger). */
+  readonly orientation_call_count?: number;
+  readonly orientation_compact?: boolean;
+  readonly deposit_sha?: string;
+  readonly orientation_later_status?: string;
+  readonly orientation_sections?: readonly Record<string, unknown>[];
 }
 
 export interface DialTransitionRunSummaryPayload {

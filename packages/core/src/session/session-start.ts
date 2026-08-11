@@ -85,6 +85,11 @@ import {
 } from "./ritual-sentinel.js";
 import { timestampIso } from "./time.js";
 import {
+  type OrientationBundle,
+  type RunOrientationOptions,
+  runOrientationCompression,
+} from "./orientation-compression.js";
+import {
   runToolchainPreflight,
   type ToolchainPreflightOptions,
   type ToolchainPreflightResult,
@@ -235,6 +240,8 @@ export interface SessionStartOptions {
   /**
    * #3282: done-gate toolchain preflight seams (tests inject result or probe).
    * When omitted, runs live preflight after verify_tools on cold path.
+   * #3286: preflight is composed into orientation sections with doctor +
+   * deposit-sha fast-paths for agents:refresh / cache-fresh.
    */
   readonly toolchainPreflight?: ToolchainPreflightResult | null;
   readonly toolchainPreflightOptions?: ToolchainPreflightOptions;
@@ -242,6 +249,17 @@ export interface SessionStartOptions {
   readonly emitRunSummary?: boolean;
   /** #3282: framework root for CLI dist probe (defaults to projectRoot). */
   readonly frameworkRoot?: string;
+  /**
+   * #3286: compact orientation output (terse machine lines). Default verbose.
+   * CLI: `--compact`; env: `DEFT_SESSION_COMPACT=1`.
+   */
+  readonly compact?: boolean;
+  /**
+   * #3286: orientation compression seams (tests inject full bundle or partial
+   * section overrides). When `orientation === null`, skip composition entirely.
+   */
+  readonly orientation?: OrientationBundle | null;
+  readonly orientationOptions?: Partial<RunOrientationOptions>;
 }
 
 /** Format preferred `session:start` recovery command for cold vs re-arm (#2992). */
@@ -1248,30 +1266,105 @@ export function runSessionStart(
     stepTimings.push({ name: "verify_tools", duration_ms: durationMs });
   }
 
-  // #3282: done-gate toolchain preflight (task/pnpm/node) — named cause + remedy
-  // in one turn; declares degraded mode instead of bootstrapping product-unneeded tooling.
+  // #3282 / #3286: orientation compression — compose doctor + toolchain preflight
+  // (+ agents:refresh / cache-fresh deposit-sha fast-paths) as inline sections with
+  // per-section status lines. Composition of existing steps, not a new monolith.
+  // Read-only posture never reaches here (#2176). Dual-path Later (`deft orient`)
+  // remains open — see orientation bundle.later.
   let toolchainPreflightResult: ToolchainPreflightResult | null = null;
+  let orientationBundle: OrientationBundle | null = null;
   {
     const stepStarted = performance.now();
-    if (options.toolchainPreflight === null) {
-      stepTimings.push({ name: "toolchain_preflight", duration_ms: 0, skipped: true });
-    } else {
-      try {
-        toolchainPreflightResult =
-          options.toolchainPreflight ??
-          runToolchainPreflight({
-            projectRoot,
-            frameworkRoot: options.frameworkRoot ?? projectRoot,
-            ...options.toolchainPreflightOptions,
-          });
+    if (options.orientation === null) {
+      // Explicit skip (tests): still honour legacy preflight-only path when set.
+      if (options.toolchainPreflight === null) {
+        stepTimings.push({ name: "orientation", duration_ms: 0, skipped: true });
+        stepTimings.push({ name: "toolchain_preflight", duration_ms: 0, skipped: true });
+      } else if (options.toolchainPreflight !== undefined) {
+        toolchainPreflightResult = options.toolchainPreflight;
         lines.push(...toolchainPreflightResult.lines);
         stepTimings.push({
           name: "toolchain_preflight",
           duration_ms: elapsedMs(stepStarted),
         });
+      } else {
+        stepTimings.push({ name: "orientation", duration_ms: 0, skipped: true });
+      }
+    } else if (options.orientation !== undefined) {
+      orientationBundle = options.orientation;
+      toolchainPreflightResult = orientationBundle.preflight;
+      lines.push(...orientationBundle.lines);
+      for (const section of orientationBundle.sections) {
+        stepTimings.push({
+          name: section.name,
+          duration_ms: section.durationMs,
+          ...(section.status === "skipped" ? { skipped: true } : {}),
+        });
+        // Record gated ritual steps so verify:session-ritual can skip re-runs.
+        if (section.name === "doctor" || section.name === "cache_fresh") {
+          gatedSteps[section.name] = ritualStep({
+            ok: section.ok,
+            ts: instant,
+            message: section.lines[0] ?? section.status,
+            exitCode: section.exitCode,
+            durationMs: section.durationMs,
+            command:
+              section.name === "doctor" ? ["doctor"] : ["verify:cache-fresh"],
+          });
+        }
+      }
+      stepTimings.push({ name: "orientation", duration_ms: elapsedMs(stepStarted) });
+    } else {
+      try {
+        orientationBundle = runOrientationCompression({
+          projectRoot,
+          frameworkRoot: options.frameworkRoot ?? projectRoot,
+          compact: options.compact,
+          env: options.env,
+          now: instant,
+          toolchainPreflight: options.toolchainPreflight,
+          toolchainPreflightOptions: options.toolchainPreflightOptions,
+          ...options.orientationOptions,
+        });
+        toolchainPreflightResult = orientationBundle.preflight;
+        lines.push(...orientationBundle.lines);
+        for (const section of orientationBundle.sections) {
+          stepTimings.push({
+            name: section.name,
+            duration_ms: section.durationMs,
+            ...(section.status === "skipped" ? { skipped: true } : {}),
+          });
+          if (section.name === "doctor" || section.name === "cache_fresh") {
+            gatedSteps[section.name] = ritualStep({
+              ok: section.ok,
+              ts: instant,
+              message: section.lines[0] ?? section.status,
+              exitCode: section.exitCode,
+              durationMs: section.durationMs,
+              command:
+                section.name === "doctor" ? ["doctor"] : ["verify:cache-fresh"],
+            });
+          }
+        }
+        stepTimings.push({ name: "orientation", duration_ms: elapsedMs(stepStarted) });
       } catch {
-        // fail-open: preflight must not abort session:start
-        stepTimings.push({ name: "toolchain_preflight", duration_ms: elapsedMs(stepStarted) });
+        // fail-open: orientation composition must not abort session:start —
+        // fall back to preflight-only (#3282).
+        try {
+          if (options.toolchainPreflight !== null) {
+            toolchainPreflightResult =
+              options.toolchainPreflight ??
+              runToolchainPreflight({
+                projectRoot,
+                frameworkRoot: options.frameworkRoot ?? projectRoot,
+                ...options.toolchainPreflightOptions,
+              });
+            lines.push(...toolchainPreflightResult.lines);
+          }
+        } catch {
+          // ignore
+        }
+        stepTimings.push({ name: "orientation", duration_ms: elapsedMs(stepStarted) });
       }
     }
   }
@@ -1459,7 +1552,8 @@ export function runSessionStart(
   const code = failed.length > 0 ? 1 : 0;
   const totalMs = elapsedMs(overallStarted);
 
-  // #3282: event-driven run-summary line (dial + preflight) — fail-open, silent when unset.
+  // #3282 / #3286: event-driven run-summary (dial + preflight + orientation call
+  // count for dual-path Later graduation trigger) — fail-open, silent when unset.
   if (options.emitRunSummary !== false) {
     try {
       const emitter = new RunSummaryEmitter({
@@ -1473,6 +1567,20 @@ export function runSessionStart(
         ceremony_tier: COLD_CEREMONY_TIER,
         ready: code === 0,
         exit_code: code,
+        ...(orientationBundle !== null
+          ? {
+              orientation_call_count: orientationBundle.orientationCallCount,
+              orientation_compact: orientationBundle.compact,
+              deposit_sha: orientationBundle.depositSha,
+              orientation_later_status: orientationBundle.later.status,
+              orientation_sections: orientationBundle.sections.map((s) => ({
+                name: s.name,
+                status: s.status,
+                ok: s.ok,
+                sha_match: s.shaMatch,
+              })),
+            }
+          : {}),
       });
     } catch {
       // fail-open
@@ -1517,6 +1625,23 @@ export function runSessionStart(
     ceremony_tier: COLD_CEREMONY_TIER,
     ceremony_dial: dialDict,
     ...(preflightDict !== null ? { toolchain_preflight: preflightDict } : {}),
+    ...(orientationBundle !== null
+      ? {
+          orientation: {
+            deposit_sha: orientationBundle.depositSha,
+            compact: orientationBundle.compact,
+            call_count: orientationBundle.orientationCallCount,
+            later: orientationBundle.later,
+            sections: orientationBundle.sections.map((s) => ({
+              name: s.name,
+              status: s.status,
+              ok: s.ok,
+              sha_match: s.shaMatch,
+              exit_code: s.exitCode,
+            })),
+          },
+        }
+      : {}),
     state_path: statePath,
     ...(freshnessBind ? { freshness: freshnessBind } : {}),
     quick_steps: quickSteps,
