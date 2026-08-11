@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { computeDepositSha } from "./deposit-sha.js";
 import {
   DEPOSIT_SHA_MATCH_NOOP,
   ENV_SESSION_COMPACT,
@@ -88,7 +89,7 @@ describe("orientation compression (#3286)", () => {
     expect(stored?.agents_refresh?.ok).toBe(true);
   });
 
-  it("second session prints deposit-sha no-ops for agents:refresh and cache-fresh", () => {
+  it("second session age-gates cache-fresh sha-match; agents always plans AGENTS.md", () => {
     const root = tempRoot();
     const inputs = {
       engineVersion: "1.2.3",
@@ -107,8 +108,9 @@ describe("orientation compression (#3286)", () => {
         lines: ["[deft preflight] toolchain status: ok"],
         skipGateIds: [],
       },
-      agentsRefreshSection: section("agents_refresh", "ok", {
-        lines: ["[deft agents:refresh] updated"],
+      agentsRefreshSection: section("agents_refresh", "sha_match", {
+        lines: [`agents:refresh: ${DEPOSIT_SHA_MATCH_NOOP}`],
+        shaMatch: true,
       }),
       cacheFreshSection: section("cache_fresh", "ok", {
         lines: ["✓ cache fresh"],
@@ -116,13 +118,18 @@ describe("orientation compression (#3286)", () => {
       depositShaOptions: { inputs },
     });
 
-    // Re-run with only refresh surfaces so prior state triggers sha_match.
+    // Age-gated cache-fresh sha-match when deposit matches and prior is young.
+    // agents:refresh injects a content-current plan (always re-plans AGENTS.md).
     const second = runOrientationCompression({
       projectRoot: root,
       persistState: false,
       includeDoctor: false,
       includePreflight: false,
       depositShaOptions: { inputs },
+      agentsRefreshSection: section("agents_refresh", "sha_match", {
+        lines: [`agents:refresh: ${DEPOSIT_SHA_MATCH_NOOP}`],
+        shaMatch: true,
+      }),
     });
 
     const agents = second.sections.find((s) => s.name === "agents_refresh");
@@ -132,6 +139,38 @@ describe("orientation compression (#3286)", () => {
     expect(cache?.shaMatch).toBe(true);
     expect(cache?.lines.join("\n")).toContain(DEPOSIT_SHA_MATCH_NOOP);
     expect(first.depositSha).toBe(second.depositSha);
+  });
+
+  it("does not cache-fresh sha-match when prior success is older than max age", () => {
+    const root = tempRoot();
+    writeOrientationState(root, {
+      schema_version: 1,
+      deposit_sha: computeDepositSha({
+        inputs: { engineVersion: "e", payloadVersion: "p", templatesHash: "t" },
+      }),
+      updated_at: "2020-01-01T00:00:00Z",
+      cache_fresh: {
+        ok: true,
+        ts: "2020-01-01T00:00:00Z",
+        exit_code: 0,
+      },
+    });
+    const bundle = runOrientationCompression({
+      projectRoot: root,
+      persistState: false,
+      includeDoctor: false,
+      includePreflight: false,
+      includeAgentsRefresh: false,
+      depositShaOptions: {
+        inputs: { engineVersion: "e", payloadVersion: "p", templatesHash: "t" },
+      },
+      cacheFreshSection: section("cache_fresh", "ok", {
+        lines: ["✓ full evaluate after age expire"],
+        shaMatch: false,
+      }),
+    });
+    const cache = bundle.sections.find((s) => s.name === "cache_fresh");
+    expect(cache?.shaMatch).toBe(false);
   });
 
   it("--compact / DEFT_SESSION_COMPACT emits terse machine format", () => {

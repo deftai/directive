@@ -305,9 +305,10 @@ export function runPreflightOrientationSection(
 }
 
 /**
- * agents:refresh with deposit-sha fast-path (#3286).
- * When prior orientation recorded the same deposit sha and last refresh was ok,
- * print one-line no-op and skip plan/write work.
+ * agents:refresh orientation section (#3286).
+ * Always plans against live AGENTS.md so local managed-section edits are
+ * detected (deposit fingerprint alone is insufficient). Content-current →
+ * one-line sha-match phrasing; deposit-sha is recorded for orientation telemetry.
  */
 export function runAgentsRefreshOrientationSection(
   projectRoot: string,
@@ -319,25 +320,7 @@ export function runAgentsRefreshOrientationSection(
   },
 ): OrientationSectionResult {
   const started = performance.now();
-  const prior = options.prior ?? null;
-  if (
-    prior &&
-    depositShaMatches(prior.deposit_sha, options.depositSha) &&
-    prior.agents_refresh?.ok === true
-  ) {
-    const line = formatDepositShaMatchLine("agents:refresh");
-    return {
-      name: "agents_refresh",
-      status: "sha_match",
-      ok: true,
-      exitCode: 0,
-      lines: [line],
-      shaMatch: true,
-      depositSha: options.depositSha,
-      durationMs: elapsedMs(started),
-    };
-  }
-
+  void options.prior;
   try {
     const apply = options.apply ?? applyAgentsRefresh;
     const result = apply(projectRoot, {});
@@ -388,12 +371,14 @@ export function runAgentsRefreshOrientationSection(
       detail: { state: result.state, wrote },
     };
   } catch (exc) {
+    // Fail-open for session:start composition, but do NOT persist as ok —
+    // next session must retry (Greptile #3286 P1).
     return {
       name: "agents_refresh",
       status: "error",
-      ok: true,
-      exitCode: 0,
-      lines: [`[deft agents:refresh] error (fail-open): ${String(exc)}`],
+      ok: false,
+      exitCode: 2,
+      lines: [`[deft agents:refresh] error (session continues): ${String(exc)}`],
       shaMatch: false,
       depositSha: options.depositSha,
       durationMs: elapsedMs(started),
@@ -401,9 +386,26 @@ export function runAgentsRefreshOrientationSection(
   }
 }
 
+/** Default max age for orientation cache-fresh sha-match short-circuit (hours). */
+export const ORIENTATION_CACHE_FRESH_MAX_AGE_HOURS = 24;
+
+function priorCacheFreshStillYoung(
+  prior: OrientationState | null | undefined,
+  now: Date,
+  maxAgeHours: number,
+): boolean {
+  if (!prior?.cache_fresh?.ok || !prior.cache_fresh.ts) return false;
+  const ts = Date.parse(prior.cache_fresh.ts);
+  if (Number.isNaN(ts)) return false;
+  const ageH = (now.getTime() - ts) / (1000 * 3600);
+  return ageH <= maxAgeHours;
+}
+
 /**
- * verify:cache-fresh with deposit-sha fast-path (#3286).
- * Same-deposit + prior ok → one-line no-op (no evaluate work).
+ * verify:cache-fresh orientation section (#3286).
+ * Deposit-sha short-circuit only when the same deposit fingerprint matches AND
+ * the prior successful evaluate is still within the age window — never skip
+ * age/drift solely because payload/templates/engine are unchanged.
  */
 export function runCacheFreshOrientationSection(
   projectRoot: string,
@@ -413,14 +415,17 @@ export function runCacheFreshOrientationSection(
     now?: Date;
     evaluateOptions?: EvaluateOptions;
     evaluateFn?: typeof evaluateCacheFresh;
+    maxAgeHours?: number;
   },
 ): OrientationSectionResult {
   const started = performance.now();
   const prior = options.prior ?? null;
+  const now = options.now ?? new Date();
+  const maxAgeHours = options.maxAgeHours ?? ORIENTATION_CACHE_FRESH_MAX_AGE_HOURS;
   if (
     prior &&
     depositShaMatches(prior.deposit_sha, options.depositSha) &&
-    prior.cache_fresh?.ok === true
+    priorCacheFreshStillYoung(prior, now, maxAgeHours)
   ) {
     const line = formatDepositShaMatchLine("verify:cache-fresh");
     return {
@@ -432,6 +437,7 @@ export function runCacheFreshOrientationSection(
       shaMatch: true,
       depositSha: options.depositSha,
       durationMs: elapsedMs(started),
+      detail: { age_gated: true, max_age_hours: maxAgeHours },
     };
   }
 
@@ -458,9 +464,9 @@ export function runCacheFreshOrientationSection(
     return {
       name: "cache_fresh",
       status: "error",
-      ok: true,
-      exitCode: 0,
-      lines: [`[deft cache-fresh] error (fail-open): ${String(exc)}`],
+      ok: false,
+      exitCode: 2,
+      lines: [`[deft cache-fresh] error (session continues): ${String(exc)}`],
       shaMatch: false,
       depositSha: options.depositSha,
       durationMs: elapsedMs(started),

@@ -26,12 +26,6 @@ import { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
 export { recoveryHintForStaleFailure } from "../session/cache-recovery.js";
 
 import { readPlanPolicy } from "../policy/plan-extensions.js";
-import {
-  computeDepositSha,
-  depositShaMatches,
-  formatDepositShaMatchLine,
-} from "../session/deposit-sha.js";
-import { readOrientationState } from "../session/orientation-state.js";
 import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
 import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 
@@ -78,12 +72,6 @@ export interface EvaluateOptions {
   probeDriftFn?: (repo: string, cacheRoot: string, source: string) => CacheDriftProbeResult | null;
   /** When true (default), empty cache triggers one GitHub fetch-all before failing (#2575). */
   autoPopulateEmpty?: boolean;
-  /**
-   * #3286: when true (default), allow deposit-sha orientation fast-path
-   * ("unchanged - sha match") when payload/templates/engine match last ok run.
-   * Disabled for --for-issue / release-preflight style probes that need a live check.
-   */
-  allowDepositShaFastPath?: boolean;
 }
 
 interface EvaluateContext {
@@ -385,33 +373,11 @@ const REMEDIATION_NO_CANDIDATES = [
  * Evaluate cache freshness for the given project root.
  *
  * Faithful port of scripts/preflight_cache.py::evaluate().
- * #3286: optional deposit-sha fast-path for repeat orientation (no refresh work).
+ * #3286 note: deposit-sha orientation no-ops live in session orientation
+ * composition (age-gated), not here — triage cache freshness is age/drift based
+ * and must not short-circuit solely on payload/templates/engine fingerprints.
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): GateResult {
-  const allowDepositShaFastPath = options.allowDepositShaFastPath !== false;
-  const forIssue = options.forIssue;
-  if (
-    allowDepositShaFastPath &&
-    (forIssue === undefined || forIssue === null) &&
-    !options.allowStale
-  ) {
-    try {
-      const depositSha = computeDepositSha({ projectRoot });
-      const prior = readOrientationState(projectRoot);
-      if (
-        prior &&
-        depositShaMatches(prior.deposit_sha, depositSha) &&
-        prior.cache_fresh?.ok === true
-      ) {
-        return {
-          code: 0,
-          message: formatDepositShaMatchLine("verify:cache-fresh"),
-        };
-      }
-    } catch {
-      // fall through to full evaluate
-    }
-  }
   return evaluateWithContext(projectRoot, options, { afterEmptyPopulate: false });
 }
 
