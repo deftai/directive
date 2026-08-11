@@ -346,6 +346,21 @@ describe("decompose-apply helpers (#3239)", () => {
     expect(formatDecomposeStructuralMintCommand("p.json", "d.json", { repo: "  " })).toBe(
       "deft authz:grant -- --parent p.json --draft d.json --confirm",
     );
+    // Whitespace / shell metacharacters are shell-quoted (Greptile PR #3300).
+    expect(
+      formatDecomposeStructuralMintCommand(
+        "xbrief/pending/my epic.xbrief.json",
+        "xbrief/.triage-cache/draft;rm.json",
+        { repo: "acme corp/directive" },
+      ),
+    ).toBe(
+      'deft authz:grant -- --parent "xbrief/pending/my epic.xbrief.json" ' +
+        '--draft "xbrief/.triage-cache/draft;rm.json" ' +
+        '--repo "acme corp/directive" --confirm',
+    );
+    expect(
+      formatDecomposeStructuralMintCommand('path"with"quotes.json', "draft.json"),
+    ).toBe('deft authz:grant -- --parent "path\\"with\\"quotes.json" --draft draft.json --confirm');
   });
 
   it("missing-grant deny includes exact mint command with paths (#3291)", () => {

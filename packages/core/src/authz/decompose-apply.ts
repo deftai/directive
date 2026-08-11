@@ -66,9 +66,25 @@ export function sha256FileHex(path: string): string {
 }
 
 /**
+ * Quote a CLI token for operator copy-paste when it has whitespace or shell
+ * metacharacters (Greptile #3291 / PR #3300). Safe bare tokens stay unquoted
+ * so deny-reason mint hints match the common path shape.
+ */
+function shellQuoteCliArg(value: string): string {
+  // Allowlist: alnum + common path/repo chars without whitespace or shell meta.
+  if (value.length > 0 && /^[A-Za-z0-9_./:@+=,-]+$/.test(value)) {
+    return value;
+  }
+  // Double-quote; escape \ and " for paste into sh / cmd / pwsh.
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/**
  * Exact operator CLI mint command for a structural decompose apply grant (#3291).
  * Paths are project-relative POSIX when inside projectRoot; otherwise as provided.
- * Does not include agent/CI/TTY gates — those remain on the CLI multi-factor path.
+ * Parent / draft / repo tokens are shell-quoted when they contain whitespace or
+ * shell metacharacters. Does not include agent/CI/TTY gates — those remain on
+ * the CLI multi-factor path.
  */
 export function formatDecomposeStructuralMintCommand(
   parentPath: string,
@@ -84,8 +100,8 @@ export function formatDecomposeStructuralMintCommand(
   }
   const repo = (options?.repo ?? "").trim();
   return (
-    `deft authz:grant -- --parent ${parent} --draft ${draft}` +
-    (repo ? ` --repo ${repo}` : "") +
+    `deft authz:grant -- --parent ${shellQuoteCliArg(parent)} --draft ${shellQuoteCliArg(draft)}` +
+    (repo ? ` --repo ${shellQuoteCliArg(repo)}` : "") +
     " --confirm"
   );
 }
