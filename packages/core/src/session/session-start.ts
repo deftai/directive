@@ -1301,7 +1301,11 @@ export function runSessionStart(
           ...(section.status === "skipped" ? { skipped: true } : {}),
         });
         // Record gated ritual steps so verify:session-ritual can skip re-runs.
-        if (section.name === "doctor" || section.name === "cache_fresh") {
+        // Do not overwrite explicit --defer (deferred_reason) records.
+        if (
+          (section.name === "doctor" || section.name === "cache_fresh") &&
+          !gatedSteps[section.name]?.deferred_reason
+        ) {
           gatedSteps[section.name] = ritualStep({
             ok: section.ok,
             ts: instant,
@@ -1315,6 +1319,9 @@ export function runSessionStart(
       stepTimings.push({ name: "orientation", duration_ms: elapsedMs(stepStarted) });
     } else {
       try {
+        // Skip composed doctor/cache_fresh work when those gated steps are deferred.
+        const doctorDeferred = Boolean(gatedSteps.doctor?.deferred_reason);
+        const cacheDeferred = Boolean(gatedSteps.cache_fresh?.deferred_reason);
         orientationBundle = runOrientationCompression({
           projectRoot,
           frameworkRoot: options.frameworkRoot ?? projectRoot,
@@ -1323,6 +1330,8 @@ export function runSessionStart(
           now: instant,
           toolchainPreflight: options.toolchainPreflight,
           toolchainPreflightOptions: options.toolchainPreflightOptions,
+          includeDoctor: !doctorDeferred,
+          includeCacheFresh: !cacheDeferred,
           ...options.orientationOptions,
         });
         toolchainPreflightResult = orientationBundle.preflight;
@@ -1333,7 +1342,10 @@ export function runSessionStart(
             duration_ms: section.durationMs,
             ...(section.status === "skipped" ? { skipped: true } : {}),
           });
-          if (section.name === "doctor" || section.name === "cache_fresh") {
+          if (
+            (section.name === "doctor" || section.name === "cache_fresh") &&
+            !gatedSteps[section.name]?.deferred_reason
+          ) {
             gatedSteps[section.name] = ritualStep({
               ok: section.ok,
               ts: instant,
