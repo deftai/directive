@@ -276,34 +276,33 @@ function maybeAttachAcPassBank(
     basename(xbriefPath)
       .replace(/\.xbrief\.json$/i, "")
       .replace(/\.vbrief\.json$/i, "");
-  const banked = maybeBankOnAcPass({
-    projectRoot,
-    scopeId,
-    executableRuns: result.runs.length,
-    quiet: options.quiet,
-  });
-  if (options.quiet) {
-    return result;
+  try {
+    const banked = maybeBankOnAcPass({
+      projectRoot,
+      scopeId,
+      executableRuns: result.runs.length,
+      quiet: options.quiet,
+    });
+    if (options.quiet || banked.notes.length === 0) {
+      return result;
+    }
+    const extra = banked.notes.join("\n");
+    return {
+      ...result,
+      message: result.message ? `${result.message}\n${extra}` : extra,
+    };
+  } catch (err: unknown) {
+    // Checkpoint is mandatory after executable AC green (#3285 Greptile residual).
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      ...result,
+      ok: false,
+      code: 1,
+      message:
+        `verify:ac bank checkpoint failed (#3285): ${msg}` +
+        (result.message ? `\n${result.message}` : ""),
+    };
   }
-  // Always surface bank notes (success or fail-open skip) so checkpoint
-  // failures are never silent under a green AC result (#3285 Greptile residual).
-  const notes =
-    banked.notes.length > 0
-      ? banked.notes
-      : banked.banked
-        ? []
-        : [
-            `[deft ac-pass-banking] bank not written for scope=${scopeId} ` +
-              `(fail-open; AC remains green) (#3285)`,
-          ];
-  if (notes.length === 0) {
-    return result;
-  }
-  const extra = notes.join("\n");
-  return {
-    ...result,
-    message: result.message ? `${result.message}\n${extra}` : extra,
-  };
 }
 
 function softSkip(detail: string, quiet?: boolean): VerifyAcResult {
