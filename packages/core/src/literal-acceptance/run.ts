@@ -8,7 +8,7 @@
 
 import { spawnSync } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
-import { evaluateCommandSafety } from "./safety.js";
+import { evaluateCommandSafety, isExecutableLiteralSource } from "./safety.js";
 import type {
   LiteralAcceptanceCommand,
   LiteralAcceptanceGateResult,
@@ -115,6 +115,11 @@ export function runLiteralAcceptanceCommands(
   options: {
     readonly projectRoot: string;
     readonly runner?: LiteralAcceptanceRunner;
+    /**
+     * When true, allow source=task_statement (raw issue text) to spawn.
+     * Default false — issue text is capture-only until promoted (#3267 Greptile P1).
+     */
+    readonly allowTaskStatement?: boolean;
   },
 ): LiteralAcceptanceGateResult {
   if (commands.length === 0) {
@@ -127,8 +132,44 @@ export function runLiteralAcceptanceCommands(
     };
   }
 
+  const untrusted = commands.filter(
+    (c) => c.source === "task_statement" && options.allowTaskStatement !== true,
+  );
+  const executable = commands.filter(
+    (c) =>
+      isExecutableLiteralSource(c.source) ||
+      (c.source === "task_statement" && options.allowTaskStatement === true),
+  );
+
+  // Fail closed: stated task_statement commands without agent-promoted executable peers.
+  if (untrusted.length > 0 && executable.length === 0) {
+    const listed = untrusted.map((c) => `  - ${c.command} (source=${c.source})`).join("\n");
+    return {
+      ok: false,
+      code: 1,
+      message:
+        `Literal acceptance-command gate FAILED (#3267): ${untrusted.length} stated command(s) ` +
+        `are capture-only (source=task_statement) and cannot auto-spawn from issue/task text.\n` +
+        `Promote the exact command strings into plan.metadata.swarm.verify_commands ` +
+        `(or plan item command / explicit metadata), then re-run.\n` +
+        listed,
+      commands,
+      runs: [],
+    };
+  }
+
+  if (executable.length === 0) {
+    return {
+      ok: true,
+      code: 0,
+      message: "Literal acceptance-command gate: no executable (agent-authored) commands (#3267)",
+      commands,
+      runs: [],
+    };
+  }
+
   const runs: LiteralAcceptanceRunResult[] = [];
-  for (const cmd of commands) {
+  for (const cmd of executable) {
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) {
       return {
         ok: false,
@@ -144,12 +185,17 @@ export function runLiteralAcceptanceCommands(
   const failed = runs.filter((r) => !r.ok);
   if (failed.length === 0) {
     const lines = runs.map((r) => `  ✓ ${r.command} — ${r.detail}`);
+    const note =
+      untrusted.length > 0
+        ? `\n  (note: ${untrusted.length} task_statement command(s) skipped — promote to verify_commands to execute)`
+        : "";
     return {
       ok: true,
       code: 0,
       message:
         `Literal acceptance-command gate passed (#3267): ${runs.length} command(s) run verbatim\n` +
-        lines.join("\n"),
+        lines.join("\n") +
+        note,
       commands,
       runs,
     };

@@ -112,8 +112,8 @@ describe("runLiteralAcceptanceCommands", () => {
     };
     const result = runLiteralAcceptanceCommands(
       [
-        { command: "pnpm test", source: "task_statement" },
-        { command: "task check", source: "task_statement" },
+        { command: "pnpm test", source: "explicit" },
+        { command: "task check", source: "explicit" },
       ],
       { projectRoot: process.cwd(), runner },
     );
@@ -178,7 +178,7 @@ describe("runLiteralAcceptanceCommands", () => {
 describe("evaluateLiteralAcceptanceFromPlan / Path", () => {
   it("evaluates stored metadata commands", () => {
     const plan = attachLiteralAcceptanceCommands({ title: "t", items: [] }, [
-      { command: "task check", source: "task_statement" },
+      { command: "task check", source: "explicit" },
     ]);
     const result = evaluateLiteralAcceptanceFromPlan(plan, {
       projectRoot: process.cwd(),
@@ -188,7 +188,7 @@ describe("evaluateLiteralAcceptanceFromPlan / Path", () => {
     expect(result.commands).toHaveLength(1);
   });
 
-  it("re-captures from Overview narrative when metadata empty", () => {
+  it("re-captures from Overview as task_statement and fails closed until promote", () => {
     const plan = {
       title: "t",
       narratives: {
@@ -198,15 +198,15 @@ describe("evaluateLiteralAcceptanceFromPlan / Path", () => {
     };
     const result = evaluateLiteralAcceptanceFromPlan(plan, {
       projectRoot: process.cwd(),
-      runner: (input) => {
-        expect(input.command).toBe("pnpm exec vitest run packages/core/src");
-        return { exitCode: 0, stdout: "", stderr: "" };
+      runner: () => {
+        throw new Error("must not execute task_statement narrative capture");
       },
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
     expect(result.commands.map((c) => c.command)).toContain(
       "pnpm exec vitest run packages/core/src",
     );
+    expect(result.message).toMatch(/capture-only|Promote|verify_commands/);
   });
 
   it("loads xBRIEF from path", () => {
@@ -262,7 +262,7 @@ describe("command safety (#3267 P1)", () => {
     expect(evil).toEqual([]);
 
     const refused = runLiteralAcceptanceCommands(
-      [{ command: "bash -c evil", source: "task_statement" }],
+      [{ command: "bash -c evil", source: "explicit" }],
       {
         projectRoot: process.cwd(),
         runner: () => {
@@ -272,6 +272,36 @@ describe("command safety (#3267 P1)", () => {
     );
     expect(refused.ok).toBe(false);
     expect(refused.runs[0]?.detail).toMatch(/refused|allowlist|metacharacter/);
+  });
+
+  it("refuses task_statement-only commands until promoted to verify_commands", () => {
+    const result = runLiteralAcceptanceCommands(
+      [{ command: "task check", source: "task_statement" }],
+      {
+        projectRoot: process.cwd(),
+        runner: () => {
+          throw new Error("must not execute task_statement");
+        },
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/capture-only|Promote|verify_commands/);
+  });
+
+  it("runs agent-authored verify_commands while noting skipped task_statement peers", () => {
+    const result = runLiteralAcceptanceCommands(
+      [
+        { command: "task check", source: "verify_commands" },
+        { command: "pnpm test", source: "task_statement" },
+      ],
+      {
+        projectRoot: process.cwd(),
+        runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.runs).toHaveLength(1);
+    expect(result.message).toMatch(/skipped|task_statement/);
   });
 });
 

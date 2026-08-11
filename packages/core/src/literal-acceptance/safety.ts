@@ -3,7 +3,11 @@
  *
  * Stored commands may originate from issue text. Before shell execution they
  * MUST pass an allowlist of argv-shaped CLI invocations without shell metacharacters.
+ * source=task_statement is capture-only until agent promotes to verify_commands.
  */
+
+import type { LiteralAcceptanceSource } from "./types.js";
+import { EXECUTABLE_LITERAL_SOURCES } from "./types.js";
 
 /** Characters that imply shell composition / expansion (refuse closed). */
 const SHELL_META_CHARS = new Set([
@@ -60,6 +64,11 @@ export interface CommandSafetyResult {
   readonly reason: string | null;
 }
 
+/** Whether this provenance is allowed to spawn a shell (#3267). */
+export function isExecutableLiteralSource(source: LiteralAcceptanceSource | string): boolean {
+  return (EXECUTABLE_LITERAL_SOURCES as readonly string[]).includes(source);
+}
+
 /**
  * Linear-time scan: refuse shell metacharacters and non-allowlisted first tokens.
  * Intentionally does not parse full shell grammar — fail closed on ambiguity.
@@ -81,13 +90,11 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
       };
     }
   }
-  // First token: skip leading whitespace already trimmed; split on space only.
   let end = 0;
   while (end < trimmed.length && trimmed[end] !== " " && trimmed[end] !== "\t") {
     end += 1;
   }
   const first = trimmed.slice(0, end).toLowerCase();
-  // Windows path / absolute path first tokens are refused (only bare allowlisted tools).
   if (first.includes("/") || first.includes("\\") || first.includes(":")) {
     return { ok: false, reason: "path-like first token is not allowlisted" };
   }

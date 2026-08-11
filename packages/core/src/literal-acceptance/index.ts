@@ -23,8 +23,13 @@ export {
   runLiteralAcceptanceCommand,
   runLiteralAcceptanceCommands,
 } from "./run.js";
-export { type CommandSafetyResult, evaluateCommandSafety } from "./safety.js";
 export {
+  type CommandSafetyResult,
+  evaluateCommandSafety,
+  isExecutableLiteralSource,
+} from "./safety.js";
+export {
+  EXECUTABLE_LITERAL_SOURCES,
   LITERAL_ACCEPTANCE_METADATA_KEY,
   LITERAL_ACCEPTANCE_METADATA_KEY_CAMEL,
   type LiteralAcceptanceCommand,

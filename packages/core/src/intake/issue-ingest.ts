@@ -569,11 +569,38 @@ export function buildIssueVbrief(
     plan.references = references;
   }
 
-  // #3267: capture exact stated acceptance commands from the issue body at intake.
-  // Stored as executable AC (plan.metadata.literal_acceptance_commands) — not paraphrased.
+  // #3267: capture exact stated acceptance commands from the issue body at intake
+  // into plan.metadata.literal_acceptance_commands (source=task_statement, capture-only).
+  // Agents MUST promote exact strings into swarm.verify_commands before shell execution
+  // (Greptile P1: raw issue text must not auto-spawn). Not paraphrased.
   if (bodyStr.length > 0) {
     const intakeText = [title, bodyStr].filter((s) => s.length > 0).join("\n\n");
     const attached = captureAndAttachLiteralAcceptance(plan, intakeText);
+    // Re-tag stored capture as task_statement so run refuses until promote.
+    const meta = attached.plan.metadata as Record<string, unknown> | undefined;
+    if (meta !== undefined && Array.isArray(meta.literal_acceptance_commands)) {
+      meta.literal_acceptance_commands = (
+        meta.literal_acceptance_commands as Record<string, unknown>[]
+      ).map((row) => ({ ...row, source: "task_statement" }));
+      // Do not copy untrusted issue text into swarm.verify_commands (executable).
+      const swarm = meta.swarm as Record<string, unknown> | undefined;
+      if (swarm !== undefined && Array.isArray(swarm.verify_commands)) {
+        // Keep only pre-existing verify_commands that were not just attached from capture.
+        // captureAndAttach merges captured into verify_commands — strip those that match
+        // task_statement captures so issue text cannot auto-execute.
+        const capturedSet = new Set(
+          (meta.literal_acceptance_commands as { command?: string }[])
+            .map((r) => (typeof r.command === "string" ? r.command : ""))
+            .filter((s) => s.length > 0),
+        );
+        swarm.verify_commands = (swarm.verify_commands as unknown[]).filter(
+          (c) => typeof c === "string" && !capturedSet.has(c),
+        );
+        if ((swarm.verify_commands as unknown[]).length === 0) {
+          delete swarm.verify_commands;
+        }
+      }
+    }
     Object.assign(plan, attached.plan);
   }
 

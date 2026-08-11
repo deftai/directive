@@ -16,6 +16,18 @@ export type LiteralAcceptanceSource =
   | "metadata";
 
 /**
+ * Sources trusted for automatic shell execution (#3267 Greptile P1).
+ * `task_statement` (raw issue/task text) is capture-only until an agent promotes
+ * the exact command into swarm.verify_commands / plan item / explicit metadata.
+ */
+export const EXECUTABLE_LITERAL_SOURCES: readonly LiteralAcceptanceSource[] = [
+  "verify_commands",
+  "plan_item",
+  "explicit",
+  "metadata",
+];
+
+/**
  * One executable acceptance command exactly as stated (no paraphrase).
  * `command` is the shell string to run with the same flags/cwd as written.
  */
