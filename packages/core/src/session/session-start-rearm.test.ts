@@ -366,6 +366,44 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
         searched: [],
       }),
       probeEnvironment: () => environment,
+      // #3286: hermetic orientation stubs (avoid live doctor / cache in unit test)
+      orientationOptions: {
+        doctorSection: {
+          name: "doctor",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["[deft doctor] status: ok"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        agentsRefreshSection: {
+          name: "agents_refresh",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["agents:refresh stub"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        cacheFreshSection: {
+          name: "cache_fresh",
+          status: "ok",
+          ok: true,
+          exitCode: 0,
+          lines: ["cache-fresh stub"],
+          shaMatch: false,
+          durationMs: 0,
+        },
+        toolchainPreflight: {
+          status: "ok",
+          ok: true,
+          degraded: false,
+          findings: [],
+          lines: ["[deft preflight] toolchain status: ok"],
+          skipGateIds: [],
+        },
+      },
     });
     expect(result.code).toBe(0);
     expect(result.payload.ceremony_tier).toBe("cold");
