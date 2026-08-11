@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Done-gate toolchain preflight + DEFT_RUN_SUMMARY_PATH run summary (#3282).** Session:start probes task/pnpm/node (and CLI dist) up front with named cause + remedy so agents stop reverse-engineering `directive check` in toolchain-incomplete containers. Check gate failures print gate name, cause, and remedy (no bare exit 1; no env values). Degraded mode completes with an explicit skip report when framework tooling is missing (exit 0 — missing tooling alone does not fail closed). Opt-in event-driven JSONL telemetry via `DEFT_RUN_SUMMARY_PATH` (path append, `-` for `DEFT-TLM:` stdout, unset = silent or gitignored `.deft-run-summary.json`). Fail-open: one warning on unwritable explicit path; exit codes unchanged. Dial transitions reified via `escalateCeremonyDial` for mid-session crash-complete lines. Core: `packages/core/src/run-summary/`, `session/toolchain-preflight.ts`, `check/named-cause.ts`. Deposit gitignore covers `.deft-run-summary.json`. Relates #3284, #3285, #3214, #3225. Closes #3282.
+
 ### Changed
 
 ### Fixed

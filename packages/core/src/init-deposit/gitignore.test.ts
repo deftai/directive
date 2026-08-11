@@ -139,6 +139,13 @@ describe("ensureInitGitignoreLines", () => {
     expect(readGitignore(root)).toContain(".deft/.cli/");
   });
 
+  it("covers default run-summary path (#3282)", () => {
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft-run-summary.json");
+    const root = freshRoot("gitignore-run-summary-");
+    ensureInitGitignoreLines(root, { printf: () => {} });
+    expect(readGitignore(root)).toContain(".deft-run-summary.json");
+  });
+
   it("is idempotent on a second init run", () => {
     const root = freshRoot("gitignore-idempotent-");
     const io = { printf: () => {} };

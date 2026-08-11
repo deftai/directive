@@ -158,6 +158,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       "effort_budget",
       "branch_policy",
       "verify_tools",
+      "toolchain_preflight",
       "triage_welcome",
       "release_probe",
       "ritual_write",

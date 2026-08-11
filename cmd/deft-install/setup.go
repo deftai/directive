@@ -362,6 +362,8 @@ var canonicalGitignoreLines = []string{
 	// per-project, never committed. MUST stay file-specific so the
 	// trackable .deft/core/ framework payload is unaffected.
 	".deft/routing.local.json",
+	// #3282: default run-summary JSONL at repo root (collectible harness path).
+	".deft-run-summary.json",
 	// Selective vbrief/.eval/* entries -- legacy layout path still deposited for
 	// back-compat with pre-#2344 consumers. Prefer .triage-cache/ entries below
 	// for the active post-migration layout (#3146 session state).

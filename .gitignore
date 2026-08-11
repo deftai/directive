@@ -179,3 +179,7 @@ docs/rule-map/
 # Local task / agent operator scratch logs (reconcile, release dry-runs, cohort notes).
 # Not source of truth; re-creatable. Keep out of version control.
 .task/
+
+# #3282 run-summary default path
+.deft-run-summary.json
+

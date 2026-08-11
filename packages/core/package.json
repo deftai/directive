@@ -316,6 +316,10 @@
       "types": "./dist/check/index.d.ts",
       "default": "./dist/check/index.js"
     },
+    "./run-summary": {
+      "types": "./dist/run-summary/index.d.ts",
+      "default": "./dist/run-summary/index.js"
+    },
     "./preflight-gh": {
       "types": "./dist/preflight-gh/index.d.ts",
       "default": "./dist/preflight-gh/index.js"

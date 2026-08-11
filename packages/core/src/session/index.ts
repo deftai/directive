@@ -13,4 +13,5 @@ export * from "./session-ready.js";
 export * from "./session-start.js";
 export * from "./session-start-hook.js";
 export * from "./time.js";
+export * from "./toolchain-preflight.js";
 export * from "./verify-session-ritual.js";

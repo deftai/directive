@@ -74,7 +74,14 @@ export function dispatchTaskCheck(
   });
 
   if (result.error !== undefined) {
-    process.stderr.write(`check: failed to invoke task: ${result.error.message}\n`);
+    // #3282: named cause + remedy instead of bare spawn failure.
+    const detail = result.error.message;
+    const missingTask = /ENOENT|not found|not recognized/i.test(detail);
+    process.stderr.write(
+      `check: gate ${target} failed (exit 2)\n` +
+        `  cause: ${missingTask ? "task binary not found on PATH (cannot spawn go-task)" : detail}\n` +
+        "  remedy: Install go-task (https://taskfile.dev/installation/) and ensure `task` is on PATH; then re-run task check\n",
+    );
     return 2;
   }
 

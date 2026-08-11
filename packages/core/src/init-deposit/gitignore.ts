@@ -38,6 +38,8 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/ritual-state.json",
   ".deft/last-session.json",
   ".deft/routing.local.json",
+  // #3282: opt-in default run-summary JSONL at repo root (collectible; must not dirty trees).
+  ".deft-run-summary.json",
   // Temporary test/local kill-switch — must stay untracked (#3039).
   DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE,
   "vbrief/.triage-cache/candidates.jsonl",

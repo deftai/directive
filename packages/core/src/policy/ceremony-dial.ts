@@ -20,6 +20,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { RunSummaryEmitter } from "../run-summary/emit.js";
 import {
   atomicWriteProjectDefinition,
   projectDefinitionMutationLock,
@@ -1240,4 +1241,115 @@ export function formatCeremonyDialAuditLine(audit: CeremonyDialAuditSnapshot): s
     parts.push(`provisional.reasons=${reasons.length > 0 ? reasons : "(none)"}`);
   }
   return parts.join(" ");
+}
+
+/**
+ * Reified dial transition for run-summary telemetry (#3282).
+ *
+ * IMPLEMENTATION PREREQUISITE from the issue: dial transitions must be
+ * engine-managed events, not prose-only policy. This function is the CLI-facing
+ * transition hook (`policy:set-ceremony-dial` / dial escalate): it persists the
+ * override (when confirm) and always emits a `dial_transition` run-summary line
+ * when a depth change is applied.
+ */
+export interface EscalateCeremonyDialOptions {
+  readonly to: CeremonyDepth;
+  readonly reason: string;
+  readonly evidence?: string;
+  readonly sessionId?: string;
+  readonly confirm?: boolean;
+  readonly actor?: string;
+  readonly note?: string;
+  /** When false, skip run-summary emission (tests). Default true. */
+  readonly emitRunSummary?: boolean;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+export interface EscalateCeremonyDialResult {
+  readonly exitCode: number;
+  readonly from: CeremonyDepth | null;
+  readonly to: CeremonyDepth;
+  readonly changed: boolean;
+  readonly lines: readonly string[];
+}
+
+export function escalateCeremonyDial(
+  projectRoot: string,
+  options: EscalateCeremonyDialOptions,
+): EscalateCeremonyDialResult {
+  const prior = resolveCeremonyDial(projectRoot);
+  const from = prior.depth;
+  if (options.confirm !== true) {
+    return {
+      exitCode: 1,
+      from,
+      to: options.to,
+      changed: false,
+      lines: [
+        "Ceremony dial escalate changes ritual depth for future session:start.",
+        "  Re-run with --confirm to apply.",
+        `  Proposed: ${from} -> ${options.to} (reason: ${oneLineAuditToken(options.reason)})`,
+      ],
+    };
+  }
+  const setResult = setCeremonyDial(projectRoot, {
+    override: options.to,
+    confirm: true,
+    actor: options.actor ?? policyColonInvocation("set-ceremony-dial"),
+    note: options.note ?? `escalate: ${options.reason}`,
+  });
+  if (setResult.exitCode !== 0) {
+    return {
+      exitCode: setResult.exitCode,
+      from,
+      to: options.to,
+      changed: false,
+      lines: setResult.stdout
+        .split("\n")
+        .map((l) => l.trimEnd())
+        .filter((l) => l.length > 0),
+    };
+  }
+  // #3282: event-driven dial_transition line (fail-open).
+  if (options.emitRunSummary !== false) {
+    try {
+      const audit = readCeremonyDialAudit(projectRoot);
+      const rawSid = (audit.raw as { session_id?: unknown } | null)?.session_id;
+      const sid =
+        options.sessionId ??
+        (typeof rawSid === "string" && rawSid.length > 0
+          ? rawSid
+          : `dial-${Date.now().toString(36)}`);
+      const emitter = new RunSummaryEmitter({
+        projectRoot,
+        sessionId: sid,
+        env: options.env,
+      });
+      emitter.emitDialTransition({
+        from,
+        to: options.to,
+        reason: options.reason,
+        evidence: options.evidence,
+      });
+    } catch {
+      // fail-open
+    }
+  }
+  return {
+    exitCode: 0,
+    from,
+    to: options.to,
+    changed: setResult.changed || from !== options.to,
+    lines: [
+      `✓ ceremony dial escalate: ${from} -> ${options.to}`,
+      `  reason: ${oneLineAuditToken(options.reason)}`,
+      ...(options.evidence
+        ? [`  evidence: ${oneLineAuditToken(options.evidence)}`]
+        : []),
+      ...setResult.stdout
+        .split("\n")
+        .map((l) => l.trimEnd())
+        .filter((l) => l.length > 0),
+    ],
+  };
 }

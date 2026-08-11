@@ -1,0 +1,91 @@
+/**
+ * Run-summary telemetry types (#3282).
+ *
+ * Event-driven JSONL lines for harness collection. Silent by default unless
+ * `DEFT_RUN_SUMMARY_PATH` is set (or the gitignored default path is writable).
+ */
+
+export const RUN_SUMMARY_SCHEMA_VERSION = 1 as const;
+
+/** Env var that opts into / redirects run-summary JSONL (#3282). */
+export const ENV_RUN_SUMMARY_PATH = "DEFT_RUN_SUMMARY_PATH";
+
+/** Repo-root default collectible path when gitignore coverage is present. */
+export const DEFAULT_RUN_SUMMARY_BASENAME = ".deft-run-summary.json";
+
+/** Prefix for stdout lines when `DEFT_RUN_SUMMARY_PATH=-`. */
+export const RUN_SUMMARY_STDOUT_PREFIX = "DEFT-TLM:";
+
+/** One warning when an explicitly requested write fails. */
+export const RUN_SUMMARY_WRITE_WARNING =
+  "[deft run-summary] failed to write DEFT_RUN_SUMMARY_PATH telemetry (fail-open; exit codes unchanged)";
+
+export const RUN_SUMMARY_EVENT_KINDS = [
+  "session_start",
+  "dial_transition",
+  "check_invocation",
+] as const;
+
+export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
+
+export interface RunSummaryBaseFields {
+  readonly schema_version: typeof RUN_SUMMARY_SCHEMA_VERSION;
+  readonly session_id: string;
+  readonly framework_version: string;
+  /** Monotonic per-emitter sequence (1-based). */
+  readonly seq: number;
+  readonly ts: string;
+  readonly event: RunSummaryEventKind;
+}
+
+export interface SessionStartRunSummaryPayload {
+  readonly ceremony_dial?: Record<string, unknown>;
+  readonly preflight?: Record<string, unknown>;
+  readonly ceremony_tier?: string;
+  readonly ready?: boolean;
+  readonly exit_code?: number;
+}
+
+export interface DialTransitionRunSummaryPayload {
+  readonly from: string | null;
+  readonly to: string;
+  readonly reason: string;
+  readonly evidence?: string;
+}
+
+export interface CheckGateOutcome {
+  readonly id: string;
+  readonly status: "run" | "skipped" | "failed";
+  readonly exit_code?: number;
+  readonly cause?: string;
+  readonly remedy?: string;
+  readonly from_cache?: boolean;
+}
+
+export interface CheckInvocationRunSummaryPayload {
+  readonly target: string;
+  readonly exit_code: number;
+  readonly degraded?: boolean;
+  readonly gates: readonly CheckGateOutcome[];
+}
+
+export type RunSummaryPayload =
+  | SessionStartRunSummaryPayload
+  | DialTransitionRunSummaryPayload
+  | CheckInvocationRunSummaryPayload;
+
+export type RunSummaryLine = RunSummaryBaseFields & {
+  readonly payload: RunSummaryPayload;
+};
+
+export type RunSummaryDestination =
+  | { readonly kind: "silent" }
+  | { readonly kind: "stdout" }
+  | {
+      readonly kind: "file";
+      readonly path: string;
+      /** Truncate default-path file on session_start only. */
+      readonly truncateOnSessionStart: boolean;
+      /** Explicit path (env set) vs default gitignored path. */
+      readonly explicit: boolean;
+    };

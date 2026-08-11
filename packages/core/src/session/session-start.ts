@@ -69,6 +69,7 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
+import { RunSummaryEmitter } from "../run-summary/emit.js";
 import { emitSessionStartProcessCost } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
@@ -83,6 +84,12 @@ import {
   writeRitualState,
 } from "./ritual-sentinel.js";
 import { timestampIso } from "./time.js";
+import {
+  runToolchainPreflight,
+  type ToolchainPreflightOptions,
+  type ToolchainPreflightResult,
+  toolchainPreflightToDict,
+} from "./toolchain-preflight.js";
 
 export const SESSION_POSTURES = ["read-only", "mutation"] as const;
 export type SessionPosture = (typeof SESSION_POSTURES)[number];
@@ -225,6 +232,16 @@ export interface SessionStartOptions {
    * loads plan.policy.ceremonyDial and applies inputs (after provisional fill).
    */
   readonly ceremonyDial?: CeremonyDialSelection;
+  /**
+   * #3282: done-gate toolchain preflight seams (tests inject result or probe).
+   * When omitted, runs live preflight after verify_tools on cold path.
+   */
+  readonly toolchainPreflight?: ToolchainPreflightResult | null;
+  readonly toolchainPreflightOptions?: ToolchainPreflightOptions;
+  /** #3282: disable run-summary emission (tests). */
+  readonly emitRunSummary?: boolean;
+  /** #3282: framework root for CLI dist probe (defaults to projectRoot). */
+  readonly frameworkRoot?: string;
 }
 
 /** Format preferred `session:start` recovery command for cold vs re-arm (#2992). */
@@ -1231,6 +1248,34 @@ export function runSessionStart(
     stepTimings.push({ name: "verify_tools", duration_ms: durationMs });
   }
 
+  // #3282: done-gate toolchain preflight (task/pnpm/node) — named cause + remedy
+  // in one turn; declares degraded mode instead of bootstrapping product-unneeded tooling.
+  let toolchainPreflightResult: ToolchainPreflightResult | null = null;
+  {
+    const stepStarted = performance.now();
+    if (options.toolchainPreflight === null) {
+      stepTimings.push({ name: "toolchain_preflight", duration_ms: 0, skipped: true });
+    } else {
+      try {
+        toolchainPreflightResult =
+          options.toolchainPreflight ??
+          runToolchainPreflight({
+            projectRoot,
+            frameworkRoot: options.frameworkRoot ?? projectRoot,
+            ...options.toolchainPreflightOptions,
+          });
+        lines.push(...toolchainPreflightResult.lines);
+        stepTimings.push({
+          name: "toolchain_preflight",
+          duration_ms: elapsedMs(stepStarted),
+        });
+      } catch {
+        // fail-open: preflight must not abort session:start
+        stepTimings.push({ name: "toolchain_preflight", duration_ms: elapsedMs(stepStarted) });
+      }
+    }
+  }
+
   // #3214: rapid/minimal skip informational cold-path ceremony only.
   if (!quickSteps.triage_welcome && !skipFatPath) {
     const stepStarted = performance.now();
@@ -1368,6 +1413,10 @@ export function runSessionStart(
       reasons: [...provisionalDial.reasons],
     },
   };
+  const preflightDict =
+    toolchainPreflightResult !== null
+      ? toolchainPreflightToDict(toolchainPreflightResult)
+      : null;
   const payload: Record<string, unknown> = {
     ...newRitualStatePayload({
       sessionId: coldSessionId,
@@ -1379,6 +1428,8 @@ export function runSessionStart(
     }),
     // #3214: record dial choice on ritual-state for audit / later re-arm context.
     ceremony_dial: dialDict,
+    // #3282: durable preflight snapshot for harness / later check degraded mode.
+    ...(preflightDict !== null ? { toolchain_preflight: preflightDict } : {}),
   };
   let statePath: string;
   try {
@@ -1405,8 +1456,30 @@ export function runSessionStart(
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
   // verify_tools is recorded on quick_steps; failure makes ready=false.
+  // #3282: toolchain preflight degraded mode does NOT flip ready=false by itself —
+  // agents still proceed with a named skip report at check time.
   const code = failed.length > 0 ? 1 : 0;
   const totalMs = elapsedMs(overallStarted);
+
+  // #3282: event-driven run-summary line (dial + preflight) — fail-open, silent when unset.
+  if (options.emitRunSummary !== false) {
+    try {
+      const emitter = new RunSummaryEmitter({
+        projectRoot,
+        sessionId: coldSessionId,
+        env: options.env,
+      });
+      emitter.emitSessionStart({
+        ceremony_dial: dialDict,
+        preflight: preflightDict ?? undefined,
+        ceremony_tier: COLD_CEREMONY_TIER,
+        ready: code === 0,
+        exit_code: code,
+      });
+    } catch {
+      // fail-open
+    }
+  }
 
   // #3117: bind live deposit generation when payload surfaces load (cold path).
   let freshnessBind: Record<string, unknown> | null = null;
@@ -1445,6 +1518,7 @@ export function runSessionStart(
     exit_code: code,
     ceremony_tier: COLD_CEREMONY_TIER,
     ceremony_dial: dialDict,
+    ...(preflightDict !== null ? { toolchain_preflight: preflightDict } : {}),
     state_path: statePath,
     ...(freshnessBind ? { freshness: freshnessBind } : {}),
     quick_steps: quickSteps,

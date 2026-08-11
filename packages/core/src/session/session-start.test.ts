@@ -239,6 +239,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "effort_budget",
       "branch_policy",
       "verify_tools",
+      "toolchain_preflight",
       "triage_welcome",
       "release_probe",
       "ritual_write",
