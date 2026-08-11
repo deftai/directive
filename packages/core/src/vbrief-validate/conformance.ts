@@ -75,6 +75,9 @@ export const ITEM_CORE = new Set([
   "items",
   // Optional PlanItem.effort enum S/M/L/XL (#1581) — schema-validated, core not extension.
   "effort",
+  // Acceptance evidence / disposition records for scope:complete (#3240).
+  "evidence",
+  "disposition",
 ]);
 
 export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/", "x-xbrief/"] as const;

@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **vBRIEF bare-key conformance allows PlanItem.evidence and disposition (#3240 / #3124).** ITEM_CORE includes scope:complete acceptance-evidence records so completed stories with test evidence pass evaluateConformance.
 - **vBRIEF bare-key conformance allows plan.acceptance and PlanItem.effort (#3124 / #3284 / #1581).** `PLAN_CORE` and `ITEM_CORE` now include the product-first done-gate `acceptance` block and the schema-validated `effort` enum so active stories with stated AC and effort stamps pass `evaluateConformance` without false #1620 bare-key hits.
 - **Vitest branch coverage restored above 85% (#3287).** Focused branch tests for literal-acceptance safety/capture edges, value readback pure helpers, and story-quality residual paths clear the v0.100.0 84.96% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.41%, branches 85.08%, functions 96.00%. Closes #3287.
 
