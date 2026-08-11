@@ -23,6 +23,7 @@ import {
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
+import { buildParentLineageArtifact } from "./parent-lineage.js";
 import { formatBriefJson } from "./vbrief-json.js";
 
 // ---------------------------------------------------------------------------
@@ -886,8 +887,10 @@ function buildChildVbrief(opts: {
   parent: JsonObj;
   parentRel: string;
   status: string;
+  /** #3241: stamp #3238 coverage artifacts onto the child for story-ready/preflight. */
+  parentLineage?: JsonObj | null;
 }): JsonObj {
-  const { story, storyId: stId, storyIndex, parent, parentRel, status } = opts;
+  const { story, storyId: stId, storyIndex, parent, parentRel, status, parentLineage } = opts;
   const title = String(story.title ?? stId);
   const sw = swarmMeta(story);
   const items = itemsFromStory(stId, story);
@@ -897,6 +900,9 @@ function buildChildVbrief(opts: {
       : {};
   metadata.kind = "story";
   metadata.swarm = sw;
+  if (parentLineage !== undefined && parentLineage !== null) {
+    metadata.parent_lineage = parentLineage;
+  }
 
   const parentPlan =
     typeof parent.plan === "object" && parent.plan !== null && !Array.isArray(parent.plan)
@@ -994,6 +1000,36 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
     actions.push(formatCoverageReportLine(coverage.report));
   }
 
+  // #3241: stamp full parent coverage artifacts onto every child so story-ready /
+  // preflight can re-check lineage without re-reading the decompose draft.
+  // When parent authors requirement IDs, durable parent_plan_id is mandatory —
+  // omit/skip would let an exact-path replacement pass identity-unchecked.
+  const draftRec = draft as JsonObj;
+  const parentPlanRec =
+    typeof parent.plan === "object" && parent.plan !== null && !Array.isArray(parent.plan)
+      ? (parent.plan as JsonObj)
+      : {};
+  const parentPlanId =
+    typeof parentPlanRec.id === "string" && parentPlanRec.id.trim().length > 0
+      ? parentPlanRec.id.trim()
+      : undefined;
+  let parentLineageArtifact: JsonObj | null = null;
+  if (coverage.report.parent_requirement_ids.length > 0) {
+    if (parentPlanId === undefined) {
+      throw new DecompositionError(
+        "parent authors requirement IDs but has no non-empty plan.id — " +
+          "refuse decompose without durable parent identity for parent_plan_id stamp (#3241)",
+      );
+    }
+    parentLineageArtifact = buildParentLineageArtifact({
+      coverage_map: draftRec.coverage_map ?? draftRec.coverageMap,
+      behavioral_deltas: draftRec.behavioral_deltas ?? draftRec.behavioralDeltas,
+      parent_requirement_ids: coverage.report.parent_requirement_ids,
+      negative_invariant_ids: coverage.report.negative_invariant_ids,
+      parent_plan_id: parentPlanId,
+    });
+  }
+
   const childPaths: Array<{ target: string; storyId: string; title: string }> = [];
   const childDocs: JsonObj[] = [];
 
@@ -1021,6 +1057,7 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
       parent,
       parentRel,
       status: storyStatus,
+      parentLineage: parentLineageArtifact,
     });
     childPaths.push({ target, storyId: stId, title });
     childDocs.push(child);

@@ -1823,4 +1823,66 @@ describe("semantic coverage map (#3238)", () => {
     ]);
     expect(code).toBe(0);
   });
+
+  it("apply stamps plan.metadata.parent_lineage coverage onto children (#3241)", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(parentPath, abcParent());
+    writeJson(draftPath, {
+      stories: [stagesStory()],
+      coverage_map: abcValidCoverage(),
+    });
+    approveApply(proj, parentPath, draftPath);
+    applyDecomposition({
+      projectRoot: proj,
+      parentPath,
+      draftPath,
+      checkOnly: false,
+      date: "2026-06-01",
+    });
+    const childDir = join(proj, "xbrief", "pending");
+    const childFiles = readdirSafe(childDir).filter((f) => f !== "parent.xbrief.json");
+    expect(childFiles.length).toBeGreaterThanOrEqual(1);
+    const child = JSON.parse(readFileSync(join(childDir, childFiles[0] as string), "utf8")) as {
+      plan: {
+        metadata: {
+          parent_lineage?: {
+            schema?: string;
+            coverage_map?: unknown;
+            parent_plan_id?: string;
+          };
+        };
+      };
+    };
+    expect(child.plan.metadata.parent_lineage?.schema).toBe("deft.scope.parent_lineage.v1");
+    expect(child.plan.metadata.parent_lineage?.coverage_map).toBeDefined();
+    expect(child.plan.metadata.parent_lineage?.parent_plan_id).toBe("epic-state-machine");
+  });
+
+  it("refuses decompose when parent authors IDs but lacks plan.id (#3241 identity)", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    const parentNoId = abcParent();
+    const plan = parentNoId.plan as Record<string, unknown>;
+    delete plan.id;
+    writeJson(parentPath, parentNoId);
+    writeJson(draftPath, {
+      stories: [stagesStory()],
+      coverage_map: abcValidCoverage(),
+    });
+    approveApply(proj, parentPath, draftPath);
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-06-01",
+      }),
+    ).toThrow(/plan\.id|parent_plan_id|durable parent identity/i);
+  });
 });
