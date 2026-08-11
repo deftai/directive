@@ -559,6 +559,59 @@ describe("mirrorLabels", () => {
     expect(report).toContain("kind=first-time");
   });
 
+  it("dry-run digest cues empty actionLabels and no_match domination (#3124)", () => {
+    const root = tmpRoot();
+    writeProject(root); // default policy: empty actionLabels
+    // One hold-marker match (planned) + several no_match open issues.
+    writeCachedIssue(root, "acme/demo", 70, {
+      number: 70,
+      state: "open",
+      body: "BLOCKED planned",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    for (let n = 71; n <= 75; n += 1) {
+      writeCachedIssue(root, "acme/demo", n, {
+        number: n,
+        state: "open",
+        body: "ordinary open issue with no classify signal",
+        labels: [{ name: "enhancement" }],
+        updated_at: "2026-08-01T00:00:00Z",
+      });
+    }
+    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    expect(outcome.planned).toBeGreaterThanOrEqual(1);
+    expect(outcome.skipped_no_match).toBeGreaterThanOrEqual(1);
+    const report = renderLabelMirrorReport(outcome);
+    expect(report).toContain("Hint (#3124)");
+    expect(report).toMatch(/actionLabels|alwaysLabels \(triaged\)/i);
+  });
+
+  it("digest omits empty-actionLabels cue when actionLabels configured (#3124)", () => {
+    const root = tmpRoot();
+    writeProject(root, {
+      triageLabelMirror: {
+        actionLabels: {
+          defer: ["triage:deferred"],
+          archive: ["triage:archived"],
+          accept: ["triage:lifecycle-linked"],
+          escalate: ["triage:needs-human"],
+        },
+      },
+    });
+    writeCachedIssue(root, "acme/demo", 80, {
+      number: 80,
+      state: "open",
+      body: "BLOCKED planned with chips",
+      labels: [],
+      updated_at: "2026-08-01T00:00:00Z",
+    });
+    const [, outcome] = mirrorLabels(root, { dryRun: true, useLiveLabels: false });
+    expect(outcome.planned).toBe(1);
+    const report = renderLabelMirrorReport(outcome);
+    expect(report).not.toContain("alwaysLabels (triaged) will be added");
+  });
+
   it("refuses cross-repo apply without allowCrossRepo", () => {
     const root = tmpRoot();
     writeProject(root);

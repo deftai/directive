@@ -10,13 +10,24 @@ import {
   resolveCoverageDebtIssue,
 } from "./coverage-debt.js";
 
-/** Vitest globalTeardown: enforce coverage goal or debt soft-pass (#2573). */
-export default async function coverageDebtTeardown(): Promise<void> {
+function resolveDebtIssueForTeardown(): { kind: "none" } | { kind: "valid"; issue: number } {
   const resolution = resolveCoverageDebtIssue(process.argv, process.env);
-  if (resolution.kind === "none") return;
+  if (resolution.kind === "valid") return resolution;
   if (resolution.kind === "invalid") {
     throw new Error(`coverage-debt: ${resolution.reason}`);
   }
+  const laneRaw = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+  if (laneRaw !== undefined && /^\d+$/.test(laneRaw.trim())) {
+    const issue = Number.parseInt(laneRaw.trim(), 10);
+    if (issue > 0) return { kind: "valid", issue };
+  }
+  return { kind: "none" };
+}
+
+/** Vitest globalTeardown: enforce coverage goal or debt soft-pass (#2573). */
+export default async function coverageDebtTeardown(): Promise<void> {
+  const resolution = resolveDebtIssueForTeardown();
+  if (resolution.kind === "none") return;
 
   const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
   const totals = readCoverageTotalsFromReport(join(repoRoot, "coverage"));

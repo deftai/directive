@@ -52,10 +52,20 @@ describe("coverageDebtTeardown (#2573 / #2836)", () => {
   }
 
   it("returns immediately when no coverage-debt flag is set", async () => {
-    const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    await coverageDebtTeardown();
-    expect(writeSpy).not.toHaveBeenCalled();
-    expect(mockReadCoverage).not.toHaveBeenCalled();
+    const priorLane = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+    delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+    try {
+      const writeSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      await coverageDebtTeardown();
+      expect(writeSpy).not.toHaveBeenCalled();
+      expect(mockReadCoverage).not.toHaveBeenCalled();
+    } finally {
+      if (priorLane === undefined) {
+        delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+      } else {
+        process.env.DEFT_TS_LANE_COVERAGE_DEBT = priorLane;
+      }
+    }
   });
 
   it("throws on invalid coverage-debt resolution", async () => {

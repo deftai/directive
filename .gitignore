@@ -183,3 +183,4 @@ docs/rule-map/
 # #3282 run-summary default path
 .deft-run-summary.json
 
+xbrief/.triage-cache/scm-label-mirror-discovery-state.json

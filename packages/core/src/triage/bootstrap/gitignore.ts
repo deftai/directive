@@ -36,6 +36,8 @@ export const GITIGNORE_EVAL_ENTRIES: readonly string[] = [
   // Per-clone session state (#3146); selective only — hybrid policy preserved.
   "xbrief/.triage-cache/staleness-tickler-state.json",
   "xbrief/.triage-cache/release-availability-state.json",
+  // SCM label-mirror discovery tip throttle (#3124).
+  "xbrief/.triage-cache/scm-label-mirror-discovery-state.json",
 ];
 
 /** Layout-aware gitignore lines for triage working-set files (#1703). */
@@ -50,6 +52,8 @@ export function gitignoreTriageCacheEntries(projectRoot: string): readonly strin
     // Per-clone session state (#3146); selective only — hybrid policy preserved.
     triageCacheRelPath(projectRoot, "staleness-tickler-state.json"),
     triageCacheRelPath(projectRoot, "release-availability-state.json"),
+    // SCM label-mirror discovery tip throttle (#3124).
+    triageCacheRelPath(projectRoot, "scm-label-mirror-discovery-state.json"),
   ];
 }
 
@@ -141,14 +145,16 @@ committed.
 | \`doctor-state.json\` | No | Per-clone throttle state for \`deft doctor\` re-probe timing. |
 | \`staleness-tickler-state.json\` | No | Per-clone upgrade-tickler throttle state. |
 | \`release-availability-state.json\` | No | Per-clone release-availability probe throttle state. |
+| \`scm-label-mirror-discovery-state.json\` | No | Per-clone SCM label-mirror discovery tip throttle (#3124). |
 
 Paths listed as "No" above are added to \`.gitignore\` during bootstrap; anything
 not listed remains committable by default. The selective ignore entries live in
 the repo-root \`.gitignore\` (\`vbrief/.triage-cache/candidates.jsonl\`,
 \`vbrief/.triage-cache/summary-history.jsonl\`, \`vbrief/.triage-cache/scope-lifecycle.jsonl\`,
 \`vbrief/.triage-cache/decompositions/\`, \`vbrief/.triage-cache/doctor-state.json\`,
-\`vbrief/.triage-cache/staleness-tickler-state.json\`, and
-\`vbrief/.triage-cache/release-availability-state.json\`).
+\`vbrief/.triage-cache/staleness-tickler-state.json\`,
+\`vbrief/.triage-cache/release-availability-state.json\`, and
+\`vbrief/.triage-cache/scm-label-mirror-discovery-state.json\`).
 
 ## Fresh clone
 

@@ -11,6 +11,7 @@ import {
   labelMirrorOutcomeToJson,
   listProject,
   mirrorLabels,
+  recordMirrorDiscoverySuccessfulDryRun,
   renderLabelMirrorReport,
   validateProject,
 } from "@deftai/directive-core/dist/triage/classify/index.js";
@@ -304,6 +305,14 @@ export function run(argv: string[], options: RunOptions = {}): number {
       process.stdout.write(`${JSON.stringify(labelMirrorOutcomeToJson(outcome), null, 2)}\n`);
     } else {
       process.stdout.write(renderLabelMirrorReport(outcome));
+    }
+    // #3124: first successful --mirror dry-run hides the operator discovery tip.
+    if (code === 0 && outcome.dry_run) {
+      try {
+        recordMirrorDiscoverySuccessfulDryRun(projectRoot);
+      } catch {
+        // Advisory tip state — never change the classify exit code.
+      }
     }
     return code;
   }

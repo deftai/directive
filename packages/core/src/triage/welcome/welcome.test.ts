@@ -22,6 +22,9 @@ describe("welcome prior state", () => {
     runDefaultMode(root, { output: (l) => lines.push(l), writeHistory: false });
     expect(lines[0]).toContain("[triage] cache empty");
     expect(lines.some((l) => l.includes("First-time?"))).toBe(true);
+    // #3124: first-time welcome also surfaces SCM label-mirror discovery tip.
+    expect(lines.some((l) => l.includes("SCM label mirror discovery"))).toBe(true);
+    expect(lines.some((l) => l.includes("triage:classify -- --mirror"))).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -40,6 +43,34 @@ describe("welcome prior state", () => {
     const lines: string[] = [];
     runDefaultMode(root, { output: (l) => lines.push(l), writeHistory: false });
     expect(lines.filter((l) => l.includes("[welcome]"))).toHaveLength(0);
+    // #3124 tip may still fire once until dry-run/ack (not [welcome] lines).
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("hides SCM label mirror discovery tip after successful dry-run (#3124)", () => {
+    const root = mkdtempSync(join(tmpdir(), "welcome-tip-"));
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "");
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: { triageScope: [{ rule: "all-open" }], wipCap: 8 } },
+      }),
+      "utf8",
+    );
+    const first: string[] = [];
+    runDefaultMode(root, { output: (l) => first.push(l), writeHistory: false });
+    expect(first.some((l) => l.includes("SCM label mirror discovery"))).toBe(true);
+    // Simulate first successful --mirror dry-run throttle.
+    writeFileSync(
+      join(root, "xbrief", ".triage-cache", "scm-label-mirror-discovery-state.json"),
+      JSON.stringify({ successfulDryRunAt: "2026-08-11T00:00:00.000Z" }),
+      "utf8",
+    );
+    const second: string[] = [];
+    runDefaultMode(root, { output: (l) => second.push(l), writeHistory: false });
+    expect(second.some((l) => l.includes("SCM label mirror discovery"))).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 

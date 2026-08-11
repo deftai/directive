@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { ensureTriageCacheHydrated } from "../../cache/empty-populate.js";
 import { maybeSelfHealCache } from "../../cache/fetch.js";
+import { maybeFormatMirrorDiscoveryTip } from "../classify/mirror-discovery-tip.js";
 import { FIRST_TIME_NUDGE, INCOMPLETE_NUDGE_TEMPLATE } from "./constants.js";
 import { classifyOnboarding, detectPriorState } from "./prior-state.js";
 import { emitOneliner } from "./summary.js";
@@ -84,6 +85,21 @@ export function runDefaultMode(
         onboardCommand,
       ),
     );
+  }
+
+  // #3124: throttled SCM label-mirror discovery tip (existence + get-the-most).
+  // Cold session:start runs this welcome path; re-arm skips welcome so tip is not spammed.
+  try {
+    const tip = maybeFormatMirrorDiscoveryTip(projectRoot, {
+      ...(options.now !== undefined ? { now: options.now } : {}),
+    });
+    if (tip.length > 0) {
+      for (const line of tip.trimEnd().split(/\r?\n/)) {
+        out(line);
+      }
+    }
+  } catch {
+    // Discovery tip is advisory — never fail welcome.
   }
 
   return outcome;

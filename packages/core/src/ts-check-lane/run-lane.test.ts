@@ -88,25 +88,43 @@ describe("runTsLane", () => {
     expect(runner.calls.every((c) => c.cwd === "/repo")).toBe(true);
   });
 
-  it("forwards --allow-coverage-debt to pnpm test when release Step-5 env is set (#2618)", () => {
+  it("stamps DEFT_TS_LANE_COVERAGE_DEBT for test when release Step-5 env is set (#2618 / vitest 3)", () => {
     const runner = new Runner([0, 0, 0]);
+    const seenDebt: Array<string | undefined> = [];
+    const prior = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+    delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+    const wrapped = (argv: readonly string[], cwd: string) => {
+      seenDebt.push(process.env.DEFT_TS_LANE_COVERAGE_DEBT);
+      return runner.run(argv, cwd);
+    };
 
-    const rc = runTsLane("/repo", {
-      pnpm: "/usr/bin/pnpm",
-      runner: runner.run,
-      out: () => undefined,
-      env: {
-        [COVERAGE_DEBT_ENV]: "2618",
-        [RELEASE_PREFLIGHT_ENV]: "1",
-      },
-    });
+    try {
+      const rc = runTsLane("/repo", {
+        pnpm: "/usr/bin/pnpm",
+        runner: wrapped,
+        out: () => undefined,
+        env: {
+          [COVERAGE_DEBT_ENV]: "2618",
+          [RELEASE_PREFLIGHT_ENV]: "1",
+        },
+      });
 
-    expect(rc).toBe(0);
-    expect(runner.calls.map((c) => c.argv)).toEqual([
-      ["/usr/bin/pnpm", "run", "lint"],
-      ["/usr/bin/pnpm", "run", "build"],
-      ["/usr/bin/pnpm", "run", "test", "--", "--allow-coverage-debt=2618"],
-    ]);
+      expect(rc).toBe(0);
+      expect(runner.calls.map((c) => c.argv)).toEqual([
+        ["/usr/bin/pnpm", "run", "lint"],
+        ["/usr/bin/pnpm", "run", "build"],
+        ["/usr/bin/pnpm", "run", "test"],
+      ]);
+      // Debt env is only active during the test step.
+      expect(seenDebt).toEqual([undefined, undefined, "2618"]);
+      expect(process.env.DEFT_TS_LANE_COVERAGE_DEBT).toBeUndefined();
+    } finally {
+      if (prior === undefined) {
+        delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+      } else {
+        process.env.DEFT_TS_LANE_COVERAGE_DEBT = prior;
+      }
+    }
   });
 
   it("fails fast on the first non-zero exit", () => {

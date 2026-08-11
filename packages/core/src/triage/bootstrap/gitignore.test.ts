@@ -86,6 +86,7 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     }
     expect(text).toContain("xbrief/.triage-cache/staleness-tickler-state.json");
     expect(text).toContain("xbrief/.triage-cache/release-availability-state.json");
+    expect(text).toContain("xbrief/.triage-cache/scm-label-mirror-discovery-state.json");
     expect(text).toContain(GITIGNORE_LINE);
     // Hybrid policy: no blanket ignore of the triage-cache directory.
     for (const forbidden of FORBIDDEN_BLANKET_EVAL_LINES) {
@@ -99,10 +100,14 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     expect(GITIGNORE_EVAL_ENTRIES).toContain(
       "xbrief/.triage-cache/release-availability-state.json",
     );
+    expect(GITIGNORE_EVAL_ENTRIES).toContain(
+      "xbrief/.triage-cache/scm-label-mirror-discovery-state.json",
+    );
     const root = makeRoot();
     const layoutAware = gitignoreTriageCacheEntries(root);
     expect(layoutAware).toContain("xbrief/.triage-cache/staleness-tickler-state.json");
     expect(layoutAware).toContain("xbrief/.triage-cache/release-availability-state.json");
+    expect(layoutAware).toContain("xbrief/.triage-cache/scm-label-mirror-discovery-state.json");
     // Selective only — hybrid policy keeps shared artifacts unhidden.
     expect(layoutAware).not.toContain("xbrief/.triage-cache/");
     expect(layoutAware).not.toContain("xbrief/.triage-cache");
@@ -279,5 +284,6 @@ describe("stepEnsureGitignoreEvalEntries README deposit", () => {
     expect(readme).toContain("candidates.jsonl");
     expect(readme).toContain("staleness-tickler-state.json");
     expect(readme).toContain("release-availability-state.json");
+    expect(readme).toContain("scm-label-mirror-discovery-state.json");
   });
 });

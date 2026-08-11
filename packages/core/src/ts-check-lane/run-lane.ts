@@ -85,12 +85,16 @@ export function shouldUseShellForCommand(
 }
 
 /** Default runner: an inherited-stdio pnpm invocation. */
-function defaultRunner(argv: readonly string[], cwd: string): RunnerResult {
+function defaultRunner(
+  argv: readonly string[],
+  cwd: string,
+  envOverride?: NodeJS.ProcessEnv,
+): RunnerResult {
   const [command, ...rest] = argv;
   const commandPath = command ?? "";
   const result = spawnSync(commandPath, rest, {
     cwd,
-    env: sanitizeTsLaneEnv(process.env),
+    env: envOverride ?? sanitizeTsLaneEnv(process.env),
     stdio: "inherit",
     shell: shouldUseShellForCommand(commandPath),
   });
@@ -153,10 +157,25 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
 
   for (const command of LANE_COMMANDS) {
     const argv = [pnpm, ...command];
+    // Soft-pass via lane-private env (vitest 3 CAC rejects unknown CLI debt tokens).
+    // vitest.config reads DEFT_TS_LANE_COVERAGE_DEBT without DEFT_RELEASE_PREFLIGHT
+    // (sanitizeTsLaneEnv strips preflight). Refs #2573 / #2618.
+    const prevDebt = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
     if (debtIssue !== null && command[1] === "test") {
-      argv.push("--", `--allow-coverage-debt=${debtIssue}`);
+      process.env.DEFT_TS_LANE_COVERAGE_DEBT = String(debtIssue);
     }
-    const result = runner(argv, projectRoot);
+    let result: RunnerResult;
+    try {
+      result = runner(argv, projectRoot);
+    } finally {
+      if (debtIssue !== null && command[1] === "test") {
+        if (prevDebt === undefined) {
+          delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+        } else {
+          process.env.DEFT_TS_LANE_COVERAGE_DEBT = prevDebt;
+        }
+      }
+    }
     const code = result.status;
     // A null status means the child was terminated by a signal (SIGKILL / OOM /
     // SIGTERM) before it could exit. Mapping that to 0 would silently pass a
