@@ -1,5 +1,4 @@
 export {
-  appendRunSummaryRawLine,
   type EmitRunSummaryResult,
   emitRunSummaryEvent,
   RunSummaryEmitter,
