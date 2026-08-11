@@ -1,0 +1,178 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3286",
+    "updated": "2026-08-11T18:36:16Z"
+  },
+  "plan": {
+    "title": "feat(session,agents): orientation compression Now+Later - compose doctor+preflight into session:start, deposit-sha fast-path, compact flag; graduate to unified deft orient on telemetry trigger (#2899 dual-path)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Orientation and ritual still consume a large share of early tool calls. This Now path composes doctor and toolchain preflight into session:start, adds deposit-sha no-ops for refresh paths, and offers opt-in compact output while preserving #2176 read-only routing and the dual-path Later graduation.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3286",
+      "Overview": "Dual-path graduation (issue 2899). Orientation and ritual still consume a large share of early tool calls. This Now path composes doctor and toolchain preflight into the mutation session start verb, adds deposit-sha no-ops for refresh paths, and offers opt-in compact output while preserving issue 2176 read-only routing and the dual-path Later graduation.\n\n## Now deliverable\n\nCompose doctor and preflight as inline sections with per-section status lines. Deposit-sha fast-path: when payload, templates, and engine fingerprints match, refresh surfaces print a one-line unchanged-sha-match no-op. Compact output is opt-in via the compact flag or DEFT_SESSION_COMPACT; verbose remains the default. No new command; no change to issue 2176 read-only-default routing.\n\nExpected effect: fewer orientation tool calls on mutation session start; repeat sessions near free.\n\n## Later graduation target (status open)\n\nA future unified orientation verb with advisory and mutation postures and per-section machine status. Graduation trigger: post-3282 run-summary telemetry shows ritual plus gate share at least 25 percent of tool calls on a benchmark-suite run after Now ships. Completing Now does not close Later.\n\n## Acceptance sketch (Now)\n\nSession start output includes doctor and preflight sections with status lines. Second session with an unchanged deposit sha prints sha-match no-ops for refresh surfaces. Compact flag is terse; default is verbose. Issue 2176 read-only behavior identical. Run summary records orientation call count.\n\nRefs issues 3282, 3284, 2176, 3214, 1149, 865, 2899.",
+      "Labels": "enhancement, agent-experience",
+      "ImplementationPlan": "1. Compose doctor + preflight sections in packages/core/src/session session:start and packages/cli/src/commands session handlers.\n2. Add deposit-sha fast-path short-circuits in packages/core/src/agents-refresh and cache-fresh verifier modules.\n3. Implement --compact / DEFT_SESSION_COMPACT formatting in session output renderer without changing #2176 read-only routing.\n4. Verify with pnpm exec vitest run packages/core/src -t session:start and -t compact; second session asserts sha-match no-ops.",
+      "UserStory": "As an agent at session start, I want doctor and preflight composed into session:start with deposit-sha fast-paths, so that orientation costs fewer tool calls without losing read-only defaults.",
+      "Traces": "ISSUE-BODY"
+    },
+    "items": [
+      {
+        "id": "compose-doctor-and-preflight",
+        "title": "Compose doctor and preflight",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a mutation session start, when orientation runs, then output includes doctor and preflight sections each with their own status line.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+          "recorded_at": "2026-08-11T17:12:09Z",
+          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        }
+      },
+      {
+        "id": "deposit-sha-fast-path",
+        "title": "Deposit-sha fast-path",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given an unchanged deposit sha on a second session, when agents:refresh and verify:cache-fresh run, then each prints a one-line sha-match no-op and performs no refresh work.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+          "recorded_at": "2026-08-11T17:12:09Z",
+          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        }
+      },
+      {
+        "id": "compact-orientation-flag",
+        "title": "Compact orientation flag",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given --compact or DEFT_SESSION_COMPACT, when session:start runs, then orientation uses terse machine format while default verbose output remains unchanged.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+          "recorded_at": "2026-08-11T17:12:09Z",
+          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        }
+      },
+      {
+        "id": "read-only-routing-preserved",
+        "title": "Read-only routing preserved",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a read-only session under #2176, when session:start runs after this change, then mutation ritual steps remain deferred exactly as before.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+          "recorded_at": "2026-08-11T17:12:09Z",
+          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        }
+      },
+      {
+        "id": "dual-path-later-remains-open",
+        "title": "Dual-path Later remains open",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given Now deliverables complete, when the issue is closed for Now, then Later unified orient graduation stays open with documented telemetry trigger.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+          "recorded_at": "2026-08-11T17:12:09Z",
+          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3286",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3286: feat(session,agents): orientation compression Now+Later - compose doctor+preflight into session:start, deposit-sha fast-path, compact flag; graduate to unified deft orient on telemetry trigger (#2899 dual-path)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src --reporter=dot -t session:start",
+          "source": "swarm"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src --reporter=dot -t compact",
+          "source": "swarm"
+        }
+      ],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session",
+          "packages/cli/src/commands/session",
+          "packages/core/src/agents-refresh"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src --reporter=dot -t session:start",
+          "pnpm exec vitest run packages/core/src --reporter=dot -t compact"
+        ],
+        "expected_outputs": [
+          "orientation compression tests pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "done-gate-session",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": "Ingested from GitHub issue #3286 dual-path Now; Later graduation tracked separately."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3297,
+        "prBase": "master",
+        "mergeCommit": "72443625bed35aefaa041b31ed78c27dcdb96c12",
+        "deliveryBranch": "master",
+        "deliveryCommit": "72443625bed35aefaa041b31ed78c27dcdb96c12",
+        "verifiedAt": "2026-08-11T18:36:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T18:36:16Z",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-08-11T18:36:16Z",
+    "id": "story-3286-orientation-compression-now",
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src --reporter=dot -t session:start",
+        "pnpm exec vitest run packages/core/src --reporter=dot -t compact"
+      ],
+      "none_stated": false,
+      "source": "derived"
+    }
+  }
+}
