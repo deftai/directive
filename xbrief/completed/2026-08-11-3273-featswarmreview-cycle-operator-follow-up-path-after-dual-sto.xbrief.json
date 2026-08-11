@@ -20,74 +20,39 @@
     },
     "items": [
       {
-        "effort": "M",
         "title": "Swarm follow-up section",
         "narrative": {
           "Acceptance": "Given the swarm skill after the PR, when an agent opens the dual-stop or residual handback path, a named section documents operator follow-up steps and one residual pass then re-stop."
         },
-        "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3277",
-          "recorded_at": "2026-08-11T01:54:44Z",
-          "recorded_by": "leaf-implementation-worker"
-        }
+        "status": "completed"
       },
       {
-        "effort": "M",
         "title": "Review-cycle follow-up section",
         "narrative": {
           "Acceptance": "Given the review-cycle skill after the PR, when conf-hold or residual dual-stop exits, a matching operator follow-up section exists under operator consent."
         },
-        "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3277",
-          "recorded_at": "2026-08-11T01:54:44Z",
-          "recorded_by": "leaf-implementation-worker"
-        }
+        "status": "completed"
       },
       {
-        "effort": "M",
         "title": "Halt-report resume line",
         "narrative": {
           "Acceptance": "Given dual-stop or hard-stop or conf-residual halt report templates in swarm and review-cycle skill surfaces, when the report is rendered, it includes residual class, example resume phrases, and skill section pointer."
         },
-        "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3277",
-          "recorded_at": "2026-08-11T01:54:44Z",
-          "recorded_by": "leaf-implementation-worker"
-        }
+        "status": "completed"
       },
       {
-        "effort": "M",
         "title": "Triggers and portability",
         "narrative": {
           "Acceptance": "Given When to Use lists, when operator says pursue residual or follow-up hard-stop or same as conf-hold, the skill routes to the follow-up section and guidance works for consumer and maintainer deposits."
         },
-        "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3277",
-          "recorded_at": "2026-08-11T01:54:44Z",
-          "recorded_by": "leaf-implementation-worker"
-        }
+        "status": "completed"
       },
       {
-        "effort": "M",
         "title": "Contract tests and CHANGELOG",
         "narrative": {
           "Acceptance": "Given packages/core content-contracts skill tests and CHANGELOG, when the PR lands, markers for follow-up section and halt resume are asserted and Unreleased cites #3273."
         },
-        "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/content-contracts/skills/dual_stop_operator_followup_3273.test.ts",
-          "recorded_at": "2026-08-11T01:54:44Z",
-          "recorded_by": "leaf-implementation-worker"
-        }
+        "status": "completed"
       }
     ],
     "tags": [
