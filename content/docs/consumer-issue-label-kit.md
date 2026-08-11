@@ -50,6 +50,17 @@ Optional action chips (only if you set `plan.policy.triageLabelMirror.actionLabe
 
 Richer chips (`triage:lifecycle-linked`, `triage:needs-human`) exist in the maintainer set; adopt them only when your policy maps those actions.
 
+### Optional project routing
+
+Not part of Core always-recommend. Create on the forge **only if your project uses the path**, then document the name in the consumer catalog (for example `.github/ISSUE_LABELS.md`) so agents do not invent labels outside the catalog.
+
+| Label | Role |
+|-------|------|
+| `security` | Marks security-axis issues/PRs for **advisory** security review routing when the project has that path (for example a Security Officer or security-review checklist). |
+
+- ⊗ Treat `security` as a merge gate or as a substitute for review bots (Greptile / SLizard / host security-review).
+- ⊗ Import maintainer-only AppSec facet trees or the full maintainer security taxonomy -- this kit stays portable and thin (#2609 boundary; #3007 is a different surface).
+
 ---
 
 ## Story / PR (MUST)
@@ -102,6 +113,9 @@ https://github.com/deftai/directive/blob/master/content/docs/consumer-issue-labe
 - triaged
 - optional action chips: triage:deferred, triage:archived
   (only if plan.policy.triageLabelMirror.actionLabels maps them)
+
+## Optional project routing (only if used)
+- security (advisory security review routing; not a merge gate)
 
 Do not invent labels outside this file. Prefer existing names over twins.
 ```
