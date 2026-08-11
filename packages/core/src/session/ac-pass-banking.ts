@@ -452,13 +452,13 @@ export function recoverCompleteJsonObjects(arrayBody: string): readonly unknown[
     const startObj = i;
     let depth = 0;
     let inString = false;
-    let escape = false;
+    let escapeNext = false;
     let closed = false;
     for (; i < arrayBody.length; i += 1) {
       const ch = arrayBody[i] as string;
       if (inString) {
-        if (escape) escape = false;
-        else if (ch === "\\") escape = true;
+        if (escapeNext) escapeNext = false;
+        else if (ch === "\\") escapeNext = true;
         else if (ch === '"') inString = false;
         continue;
       }
@@ -493,11 +493,7 @@ export function recoverFindingsFromLedgerText(raw: string): readonly PostBankFin
   let i = idx + key.length;
   while (
     i < raw.length &&
-    (raw[i] === " " ||
-      raw[i] === "\t" ||
-      raw[i] === "\n" ||
-      raw[i] === "\r" ||
-      raw[i] === ":")
+    (raw[i] === " " || raw[i] === "\t" || raw[i] === "\n" || raw[i] === "\r" || raw[i] === ":")
   ) {
     i += 1;
   }
