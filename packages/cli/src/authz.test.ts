@@ -1002,6 +1002,23 @@ describe("authz CLI structural decompose mint (#3291)", () => {
     expect(joined).toMatch(/worktree=/);
   });
 
+  it("structural mint refuses without controlling terminal after TTY+confirm", () => {
+    const root = tempRoot();
+    const { parent, draft } = writeStructuralFixture(root);
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      main(
+        ["grant", "--project-root", root, "--parent", parent, "--draft", draft, "--confirm"],
+        cleanOperatorSeams({ hasControllingTerminal: () => false }),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/controlling terminal/i);
+  });
+
   it("structural mint with wrong confirm phrase refuses after path validation", () => {
     const root = tempRoot();
     const { parent, draft } = writeStructuralFixture(root);
