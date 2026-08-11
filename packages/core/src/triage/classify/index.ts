@@ -936,6 +936,30 @@ import {
   validateTriageLabelMirrorOnPlan as validateTriageLabelMirrorOnPlanFromModule,
 } from "./label-mirror.js";
 
+// Operator discovery tip (#3124) — re-export for CLI + welcome.
+export {
+  formatMirrorDiscoveryDigestCues,
+  formatMirrorDiscoveryTip,
+  formatMirrorDiscoveryTipBody,
+  isMirrorDiscoveryTipDue,
+  MIRROR_DISCOVERY_ACK_COMMAND,
+  MIRROR_DISCOVERY_ANTI_SWALLOW_RULE,
+  MIRROR_DISCOVERY_DRY_RUN_COMMAND,
+  MIRROR_DISCOVERY_EMPTY_ACTION_LABELS_HINT,
+  MIRROR_DISCOVERY_NO_MATCH_DOMINATION_HINT,
+  MIRROR_DISCOVERY_POLICY_SHOW_COMMAND,
+  MIRROR_DISCOVERY_RECOMMENDED_ACTION_LABELS,
+  MIRROR_DISCOVERY_STATE_FILE,
+  type MirrorDiscoveryState,
+  type MirrorDiscoveryTipOptions,
+  maybeFormatMirrorDiscoveryTip,
+  mirrorDiscoveryStateExists,
+  parseMirrorDiscoveryState,
+  readMirrorDiscoveryState,
+  recordMirrorDiscoveryAcked,
+  recordMirrorDiscoverySuccessfulDryRun,
+  resolveMirrorDiscoveryStatePath,
+} from "./mirror-discovery-tip.js";
 export {
   buildLabelMirrorDigest,
   type ClassifyAction,

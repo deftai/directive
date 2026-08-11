@@ -31,7 +31,19 @@ const coverageDebt = resolveCoverageDebtIssue(process.argv, process.env);
 if (coverageDebt.kind === "invalid") {
   throw new Error(`coverage-debt: ${coverageDebt.reason}`);
 }
-const coverageDebtIssue = coverageDebt.kind === "valid" ? coverageDebt.issue : null;
+// Lane-private env (#2618 / vitest 3): ts-check-lane sets DEFT_TS_LANE_COVERAGE_DEBT
+// because vitest 3 CAC rejects unknown --allow-coverage-debt CLI tokens.
+const laneDebtRaw = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+const laneDebtIssue =
+  laneDebtRaw !== undefined && /^\d+$/.test(laneDebtRaw.trim())
+    ? Number.parseInt(laneDebtRaw.trim(), 10)
+    : null;
+const coverageDebtIssue =
+  coverageDebt.kind === "valid"
+    ? coverageDebt.issue
+    : laneDebtIssue !== null && laneDebtIssue > 0
+      ? laneDebtIssue
+      : null;
 const coverageDebtTeardown = resolve(
   import.meta.dirname,
   "packages/core/src/vitest-runner/coverage-debt-teardown.ts",

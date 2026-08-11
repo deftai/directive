@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -71,6 +71,46 @@ describe("parseArgs", () => {
       apply: true,
       repo: "o/r",
     });
+  });
+
+  it("parses --ack-discovery standalone (#3124 Greptile ack path)", () => {
+    expect(parseArgs(["--ack-discovery"])).toMatchObject({
+      ackDiscovery: true,
+      doMirror: false,
+    });
+    expect(parseArgs(["--ack-discovery", "--mirror"]).ackDiscovery).toBe(true);
+  });
+
+  it("ignores bare -- end-of-options separator (#3124 Greptile)", () => {
+    const ack = parseArgs(["--", "--ack-discovery"]);
+    expect(ack.ackDiscovery).toBe(true);
+    expect(ack.error).toBeUndefined();
+    const mirror = parseArgs(["--", "--mirror", "--json"]);
+    expect(mirror.doMirror).toBe(true);
+    expect(mirror.json).toBe(true);
+    expect(mirror.error).toBeUndefined();
+  });
+
+  it("run --ack-discovery persists tip dismissal state (#3124)", () => {
+    const root = buildRepo();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["--ack-discovery", "--project-root", root])).toBe(0);
+      const text = out.mock.calls.map((c) => String(c[0])).join("");
+      expect(text).toMatch(/acknowledged|ack/i);
+      const statePath = join(
+        root,
+        "xbrief",
+        ".triage-cache",
+        "scm-label-mirror-discovery-state.json",
+      );
+      expect(existsSync(statePath)).toBe(true);
+      const state = JSON.parse(readFileSync(statePath, "utf8")) as { ackedAt?: string };
+      expect(typeof state.ackedAt).toBe("string");
+      expect((state.ackedAt ?? "").length).toBeGreaterThan(0);
+    } finally {
+      out.mockRestore();
+    }
   });
 
   it("parses Wave 2 bootstrap filters and batch flags", () => {

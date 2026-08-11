@@ -37,6 +37,7 @@ import {
 } from "../author-filter.js";
 import { resolveCandidatesLogPath } from "../cache-path.js";
 import { iterCachedIssues } from "../summary/index.js";
+import { formatMirrorDiscoveryDigestCues } from "./mirror-discovery-tip.js";
 
 export const DEFAULT_IDEMPOTENCY_LABEL = "triaged";
 export const CACHE_DIR_NAME = ".deft-cache";
@@ -1225,6 +1226,22 @@ export function renderLabelMirrorReport(outcome: LabelMirrorOutcome): string {
         ? "Dry-run — re-run with --mirror --re-enrich --apply to write additive labels via SCM (batched; never triage:accept; never removals)."
         : "Dry-run — re-run with --mirror --apply to write these labels via SCM (batched; never triage:accept).",
     );
+  }
+
+  // #3124 SHOULD: digest upgrade cues (empty actionLabels / open no_match domination).
+  const actionLabelsEmpty = Object.keys(outcome.policy.actionLabels).length === 0;
+  const digestCues = formatMirrorDiscoveryDigestCues({
+    planned: outcome.planned,
+    applied: outcome.applied,
+    skipped_no_match: outcome.skipped_no_match,
+    skipped_already_triaged: outcome.skipped_already_triaged,
+    skipped_closed: outcome.skipped_closed,
+    actionLabelsEmpty,
+    dry_run: outcome.dry_run,
+  });
+  if (digestCues.length > 0) {
+    lines.push("");
+    lines.push(...digestCues);
   }
 
   return `${lines.join("\n")}\n`;

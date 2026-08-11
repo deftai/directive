@@ -10,7 +10,10 @@ import {
   type LabelMirrorOptions,
   labelMirrorOutcomeToJson,
   listProject,
+  mirrorDiscoveryStateExists,
   mirrorLabels,
+  recordMirrorDiscoveryAcked,
+  recordMirrorDiscoverySuccessfulDryRun,
   renderLabelMirrorReport,
   validateProject,
 } from "@deftai/directive-core/dist/triage/classify/index.js";
@@ -32,6 +35,11 @@ export interface ParsedArgs {
    * (#3197). Requires --mirror; dry-run by default until --apply.
    */
   reEnrich: boolean;
+  /**
+   * Dismiss SCM label-mirror discovery tip without running a dry-run (#3124).
+   * Standalone production entry for recordMirrorDiscoveryAcked.
+   */
+  ackDiscovery: boolean;
   /** Raw --author value (LOGIN, @me, comma allow-list); null = no filter (#3129). */
   author: string | null;
   /** Apply batch size (rate-limit awareness). */
@@ -78,6 +86,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     allowCrossRepo: false,
     includeClosed: false,
     reEnrich: false,
+    ackDiscovery: false,
     author: null,
     batchSize: null,
     delayMs: null,
@@ -101,6 +110,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.includeClosed = true;
     } else if (arg === "--re-enrich") {
       parsed.reEnrich = true;
+    } else if (arg === "--ack-discovery") {
+      parsed.ackDiscovery = true;
     } else if (arg === "--author-mine") {
       parsed.author = "@me";
     } else if (arg === "--author") {
@@ -198,6 +209,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--help" || arg === "-h") {
       return parsed;
+    } else if (arg === "--") {
     } else if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized arguments: ${arg}` };
     }
@@ -226,6 +238,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       ...parsed,
       error:
         "--include-closed / --author / --batch-size / --delay-ms / --sample-limit require --mirror (#3125 / #3129)",
+    };
+  }
+  // --ack-discovery is standalone (production entry for tip dismissal without dry-run).
+  // Combining with --mirror is allowed: ack runs first, then mirror proceeds.
+  if (parsed.ackDiscovery && (parsed.doList || parsed.doValidate) && !parsed.doMirror) {
+    return {
+      ...parsed,
+      error: "--ack-discovery cannot combine with --list/--validate without --mirror",
     };
   }
   return parsed;
@@ -273,6 +293,36 @@ export function run(argv: string[], options: RunOptions = {}): number {
     return result.code;
   }
 
+  // #3124: production entry for operator ack (dismiss tip without dry-run).
+  if (args.ackDiscovery) {
+    try {
+      recordMirrorDiscoveryAcked(projectRoot);
+      const statePresent = mirrorDiscoveryStateExists(projectRoot);
+      if (args.json) {
+        process.stdout.write(
+          `${JSON.stringify(
+            { ok: true, ack_discovery: true, projectRoot, statePresent },
+            null,
+            2,
+          )}\n`,
+        );
+      } else {
+        process.stdout.write(
+          "[deft triage] SCM label-mirror discovery tip acknowledged " +
+            `(state ${statePresent ? "persisted" : "missing"}) — ` +
+            "will not re-surface until state is cleared.\n",
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`ERR: failed to record discovery ack: ${msg}\n`);
+      return 1;
+    }
+    if (!args.doMirror) {
+      return 0;
+    }
+  }
+
   if (args.doMirror) {
     let authorFilter: LabelMirrorOptions["authorFilter"] = null;
     // Flag present (including empty `--author=`) must resolve or fail closed —
@@ -304,6 +354,14 @@ export function run(argv: string[], options: RunOptions = {}): number {
       process.stdout.write(`${JSON.stringify(labelMirrorOutcomeToJson(outcome), null, 2)}\n`);
     } else {
       process.stdout.write(renderLabelMirrorReport(outcome));
+    }
+    // #3124: first successful --mirror dry-run hides the operator discovery tip.
+    if (code === 0 && outcome.dry_run) {
+      try {
+        recordMirrorDiscoverySuccessfulDryRun(projectRoot);
+      } catch {
+        // Advisory tip state — never change the classify exit code.
+      }
     }
     return code;
   }
