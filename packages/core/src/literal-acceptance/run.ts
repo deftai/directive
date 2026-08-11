@@ -142,21 +142,59 @@ export function runLiteralAcceptanceCommands(
   );
 
   // Fail closed: every capture-only stated command must have a matching agent-promoted
-  // peer (same command string). An unrelated executable peer must NOT waive other
-  // stated commands (Greptile conf residual: mixed-provenance completion).
-  const executableCommandSet = new Set(executable.map((c) => c.command));
-  const unpromoted = untrusted.filter((c) => !executableCommandSet.has(c.command));
+  // peer with the same execution constraints (command + cwd + expectedStdout + exit).
+  // Command-text-only promotion must not drop cwd/expected-result (Greptile conf residual).
+  const promotionKey = (c: (typeof commands)[number]): string => {
+    const cwd =
+      c.cwd !== null && c.cwd !== undefined && String(c.cwd).trim().length > 0
+        ? String(c.cwd).trim()
+        : "";
+    const stdout =
+      c.expectedStdout !== null &&
+      c.expectedStdout !== undefined &&
+      String(c.expectedStdout).length > 0
+        ? String(c.expectedStdout)
+        : "";
+    const exit = typeof c.expectedExitCode === "number" ? c.expectedExitCode : 0;
+    return `${c.command}\0${cwd}\0${stdout}\0${exit}`;
+  };
+  const executableKeySet = new Set(executable.map(promotionKey));
+  // Also accept command-text match when both sides have default context (null cwd / exit 0),
+  // but never when the stated row carries a non-default constraint the peer lacks.
+  const unpromoted = untrusted.filter((c) => {
+    if (executableKeySet.has(promotionKey(c))) return false;
+    // Strict: if stated has non-default context, require exact peer key only.
+    const hasContext =
+      (c.cwd !== null && c.cwd !== undefined && String(c.cwd).trim().length > 0) ||
+      (c.expectedStdout !== null &&
+        c.expectedStdout !== undefined &&
+        String(c.expectedStdout).length > 0) ||
+      (typeof c.expectedExitCode === "number" && c.expectedExitCode !== 0);
+    if (hasContext) return true;
+    // Default-context stated: require at least same command text among executables.
+    return !executable.some((e) => e.command === c.command);
+  });
   if (unpromoted.length > 0) {
-    const listed = unpromoted.map((c) => `  - ${c.command} (source=${c.source})`).join("\n");
+    const listed = unpromoted
+      .map((c) => {
+        const bits = [`command=${JSON.stringify(c.command)}`];
+        if (c.cwd) bits.push(`cwd=${JSON.stringify(c.cwd)}`);
+        if (c.expectedStdout) bits.push(`expectedStdout=${JSON.stringify(c.expectedStdout)}`);
+        if (typeof c.expectedExitCode === "number" && c.expectedExitCode !== 0) {
+          bits.push(`expectedExitCode=${c.expectedExitCode}`);
+        }
+        return `  - ${bits.join(" ")} (source=${c.source})`;
+      })
+      .join("\n");
     return {
       ok: false,
       code: 1,
       message:
         `Literal acceptance-command gate FAILED (#3267): ${unpromoted.length} stated command(s) ` +
         `are capture-only (source=task_statement) and have no matching agent-promoted peer.\n` +
-        `Promote the exact command strings into plan.metadata.swarm.verify_commands ` +
-        `(or plan item command / explicit metadata), then re-run.\n` +
-        `Note: an unrelated executable peer does not waive other stated commands.\n` +
+        `Promote the exact command strings (and cwd/expectedStdout/expectedExitCode when stated) ` +
+        `into plan.metadata.swarm.verify_commands (or plan item / explicit metadata), then re-run.\n` +
+        `Note: an unrelated executable peer or a same-text peer with different context does not waive.\n` +
         listed,
       commands,
       runs: [],

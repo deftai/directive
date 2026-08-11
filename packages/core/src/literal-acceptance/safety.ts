@@ -137,23 +137,9 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
     return evaluatePackageManagerArgs(rest, first);
   }
 
-  // vitest first-token: allow run / related test args only.
+  // vitest first-token: allow run / related test args only (no watch/ui).
   if (first === "vitest") {
-    const low = rest.toLowerCase();
-    if (
-      rest.length === 0 ||
-      low === "run" ||
-      low.startsWith("run ") ||
-      low === "--version" ||
-      low === "-v" ||
-      low.startsWith("--run")
-    ) {
-      return { ok: true, reason: null };
-    }
-    return {
-      ok: false,
-      reason: "vitest args must be run|--version (watch/ui/network denied for ambient-authority)",
-    };
+    return evaluateVitestArgs(rest);
   }
 
   return { ok: true, reason: null };
@@ -207,15 +193,12 @@ function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSa
 
   // npx: only vitest (direct) or version/help — no `npx run` / `npx exec <pkg>` registry path.
   if (firstToken === "npx") {
-    if (
-      low === "vitest" ||
-      low.startsWith("vitest ") ||
-      low === "--version" ||
-      low === "-v" ||
-      low === "--help" ||
-      low === "-h"
-    ) {
+    if (low === "--version" || low === "-v" || low === "--help" || low === "-h") {
       return { ok: true, reason: null };
+    }
+    if (low === "vitest" || low.startsWith("vitest ")) {
+      const after = low === "vitest" ? "" : low.slice("vitest".length).trim();
+      return evaluateVitestArgs(after);
     }
     return {
       ok: false,
@@ -229,7 +212,8 @@ function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSa
   if (low.startsWith("exec ")) {
     const afterExec = low.slice("exec ".length).trim();
     if (afterExec === "vitest" || afterExec.startsWith("vitest ")) {
-      return { ok: true, reason: null };
+      const after = afterExec === "vitest" ? "" : afterExec.slice("vitest".length).trim();
+      return evaluateVitestArgs(after);
     }
     return {
       ok: false,
@@ -238,14 +222,17 @@ function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSa
         "(exec of deft/task/other bins denied for ambient-authority)",
     };
   }
+  if (low.startsWith("run vitest")) {
+    const after = low.slice("run vitest".length).trim();
+    return evaluateVitestArgs(after.length > 0 ? `run ${after}` : "run");
+  }
   const allowedPm =
     low === "test" ||
     low === "--version" ||
     low === "-v" ||
     low.startsWith("test ") ||
     low.startsWith("run test") ||
-    low.startsWith("run check") ||
-    low.startsWith("run vitest");
+    low.startsWith("run check");
   if (!allowedPm) {
     return {
       ok: false,
@@ -255,4 +242,44 @@ function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSa
     };
   }
   return { ok: true, reason: null };
+}
+
+/**
+ * Vitest args: only non-interactive run paths. Deny watch/ui/browser hang modes.
+ */
+function evaluateVitestArgs(rest: string): CommandSafetyResult {
+  const low = rest.trim().toLowerCase();
+  if (low.length === 0) {
+    // bare `vitest` defaults to watch in many setups — refuse closed.
+    return {
+      ok: false,
+      reason: "vitest requires explicit run (bare vitest defaults to watch; denied)",
+    };
+  }
+  for (const bad of ["watch", "ui", "browser", "--watch", "--ui", "--browser", "dev"]) {
+    if (
+      low === bad ||
+      low.startsWith(`${bad} `) ||
+      low.endsWith(` ${bad}`) ||
+      low.includes(` ${bad} `)
+    ) {
+      return {
+        ok: false,
+        reason: `vitest ${bad} is denied (hang/interactive mode; use run)`,
+      };
+    }
+  }
+  if (
+    low === "run" ||
+    low.startsWith("run ") ||
+    low === "--version" ||
+    low === "-v" ||
+    low.startsWith("--run")
+  ) {
+    return { ok: true, reason: null };
+  }
+  return {
+    ok: false,
+    reason: "vitest args must be run|--version (watch/ui/network denied for ambient-authority)",
+  };
 }

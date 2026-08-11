@@ -471,13 +471,61 @@ describe("command safety (#3267 P1)", () => {
     expect(result.runs).toHaveLength(1);
   });
 
-  it("refuses npx registry/run forms while allowing npx vitest", async () => {
+  it("refuses npx registry/run forms while allowing npx vitest run", async () => {
     const { evaluateCommandSafety } = await import("./safety.js");
     expect(evaluateCommandSafety("npx vitest run packages/core").ok).toBe(true);
     expect(evaluateCommandSafety("npx --version").ok).toBe(true);
     expect(evaluateCommandSafety("npx run test").ok).toBe(false);
     expect(evaluateCommandSafety("npx exec vitest").ok).toBe(false);
     expect(evaluateCommandSafety("npx some-evil-package").ok).toBe(false);
+    expect(evaluateCommandSafety("npx vitest").ok).toBe(false); // bare = watch
+    expect(evaluateCommandSafety("vitest run").ok).toBe(true);
+    expect(evaluateCommandSafety("vitest watch").ok).toBe(false);
+    expect(evaluateCommandSafety("pnpm exec vitest run --watch").ok).toBe(false);
+  });
+
+  it("fails closed when rejected ledger has safety-rejected stated commands", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [{ command: "task check", source: "explicit" }],
+        literal_acceptance_rejected: [
+          {
+            command: "task scope:promote -- x",
+            reason: "wrapper subcommand denied",
+          },
+        ],
+      },
+      items: [],
+    };
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/safety-rejected|rejected|scope:promote/);
+  });
+
+  it("fails promotion when same command text has different cwd context", () => {
+    const result = runLiteralAcceptanceCommands(
+      [
+        {
+          command: "task check",
+          source: "task_statement",
+          cwd: "packages/core",
+        },
+        { command: "task check", source: "verify_commands", cwd: null },
+      ],
+      {
+        projectRoot: process.cwd(),
+        runner: () => {
+          throw new Error("must not run with mismatched promotion context");
+        },
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/cwd|matching|context/);
   });
 });
 

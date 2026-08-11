@@ -140,10 +140,29 @@ export function evaluateLiteralAcceptanceFromPlan(
     projectRoot,
     runner: options.runner,
   });
+  // Rejected stated commands are fail-closed for completion (#3267 Greptile conf residual).
+  // A safety-rejected shell-shaped acceptance line is not "optional diagnostic" — operators
+  // must promote a safe alternative or remove the stated command from the task statement.
+  let ok = result.ok;
+  let code = result.code;
+  let message = appendRejectedNote(result.message, resolved.rejected);
+  if (resolved.rejected.length > 0) {
+    ok = false;
+    if (code === 0) code = 1;
+    const ledger = formatRejectedLedger(resolved.rejected);
+    message =
+      `Literal acceptance-command gate FAILED (#3267): ${resolved.rejected.length} ` +
+      `safety-rejected stated command(s) block completion until resolved ` +
+      `(promote a safe alternative or remove from the task statement).\n` +
+      ledger +
+      (result.message.length > 0 ? `\n${result.message}` : "");
+  }
   const withRejected: LiteralAcceptanceGateResult = {
     ...result,
+    ok,
+    code,
     rejected: resolved.rejected,
-    message: appendRejectedNote(result.message, resolved.rejected),
+    message,
   };
   if (options.quiet === true && withRejected.ok) {
     return { ...withRejected, message: "" };
