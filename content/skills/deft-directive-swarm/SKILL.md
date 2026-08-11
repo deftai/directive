@@ -145,7 +145,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ### Operator follow-up after dual-stop / hard stop (#3273)
 
-Operator-initiated **one residual pass** after dual-stop / hard stop / conf-hold — not automatic re-thrash. Depth (steps, anti-thrash, conf-floor this-PR-only): [`references/core-phase-4.md`](references/core-phase-4.md) same section title. Thin pointer: dual-invoke `pr:merge-ready` / `pr:watch`; spawn **one** residual worker or review-cycle owner; document authorized conf floor for this PR only (⊗ edit `minGreptileConfidence`); re-stop without new consent. ⊗ Unlimited auto-retry. ⊗ Parent self-implement (#2843). Portable consumer + maintainer.
+Operator-initiated **one residual pass** after dual-stop / hard stop / conf-hold — not automatic re-thrash. Depth (steps, anti-thrash, conf-floor this-PR-only): [`references/core-phase-4.md`](references/core-phase-4.md) same section title. Thin pointer: dual-invoke `pr:merge-ready` / `pr:watch`; spawn **one** residual worker or review-cycle owner; document authorized conf floor for this PR only as human-merge/override trail (⊗ silent policy rewrite; `pr:merge-ready` still uses policy floor); re-stop without new consent. ⊗ Unlimited auto-retry. ⊗ Parent self-implement (#2843). Portable consumer + maintainer.
 
 ## Runtime Capability Detection (summary)
 
