@@ -10,11 +10,14 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  formatRejectedLedger,
+  resolveLiteralAcceptanceDetailed,
+} from "@deftai/directive-core/literal-acceptance";
+import {
   evaluateVerifyAcFromPath,
   readPlanAcceptance,
   type VerifyAcResult,
 } from "@deftai/directive-core/product-first-done-gate";
-import { formatRejectedLedger, resolveLiteralAcceptanceDetailed } from "@deftai/directive-core/literal-acceptance";
 
 interface ParsedArgs {
   projectRoot: string;
@@ -115,9 +118,7 @@ export function run(argv: string[]): number {
   if (xbriefPath === null) {
     if (args.softMissingXbrief) {
       if (!args.quiet) {
-        process.stdout.write(
-          "verify:ac skipped (#3284 soft-missing): no single active xBRIEF\n",
-        );
+        process.stdout.write("verify:ac skipped (#3284 soft-missing): no single active xBRIEF\n");
       }
       return 0;
     }

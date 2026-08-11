@@ -21,7 +21,12 @@ import {
   resolveProductFirstCheckMode,
 } from "./check-mode.js";
 import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
-import { ENV_CHECK_AC_ONLY, ENV_CHECK_MODE, ENV_HYGIENE_ADVISORY, PRODUCT_AC_GATE_ID } from "./types.js";
+import {
+  ENV_CHECK_AC_ONLY,
+  ENV_CHECK_MODE,
+  ENV_HYGIENE_ADVISORY,
+  PRODUCT_AC_GATE_ID,
+} from "./types.js";
 
 describe("plan.acceptance schema (#3284)", () => {
   it("rejects empty commands without none_stated", () => {
@@ -54,9 +59,7 @@ describe("plan.acceptance schema (#3284)", () => {
     const plan = stampAcceptanceFromLiteralCapture({
       title: "t",
       metadata: {
-        literal_acceptance_commands: [
-          { command: "task verify:ac", source: "task_statement" },
-        ],
+        literal_acceptance_commands: [{ command: "task verify:ac", source: "task_statement" }],
       },
     });
     const acc = readPlanAcceptance(plan);

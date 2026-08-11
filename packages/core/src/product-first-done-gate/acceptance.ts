@@ -13,8 +13,8 @@ import {
 import {
   type AcceptanceCommand,
   type AcSourceRung,
-  type PlanAcceptance,
   PLAN_ACCEPTANCE_KEY,
+  type PlanAcceptance,
 } from "./types.js";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -77,7 +77,11 @@ export function validatePlanAcceptance(value: unknown): string[] {
   if ("commands" in rec && rec.commands !== undefined && !Array.isArray(rec.commands)) {
     errors.push("plan.acceptance.commands must be an array");
   }
-  if ("none_stated" in rec && rec.none_stated !== undefined && typeof rec.none_stated !== "boolean") {
+  if (
+    "none_stated" in rec &&
+    rec.none_stated !== undefined &&
+    typeof rec.none_stated !== "boolean"
+  ) {
     errors.push("plan.acceptance.none_stated must be a boolean");
   }
   if ("source_rung" in rec && rec.source_rung !== undefined && !isAcSourceRung(rec.source_rung)) {
@@ -104,7 +108,9 @@ export function validatePlanAcceptance(value: unknown): string[] {
  * Read plan.acceptance when present; otherwise synthesize from #3267
  * literal_acceptance_commands / empty+none_stated.
  */
-export function readPlanAcceptance(plan: Record<string, unknown> | null | undefined): PlanAcceptance {
+export function readPlanAcceptance(
+  plan: Record<string, unknown> | null | undefined,
+): PlanAcceptance {
   if (plan === null || plan === undefined) {
     return { commands: [], none_stated: true, source_rung: "project_floor" };
   }
@@ -113,7 +119,8 @@ export function readPlanAcceptance(plan: Record<string, unknown> | null | undefi
     const rec = asRecord(raw);
     if (rec !== null) {
       const commands = coerceCommands(rec.commands);
-      const noneStated = rec.none_stated === true || (commands.length === 0 && rec.none_stated !== false);
+      const noneStated =
+        rec.none_stated === true || (commands.length === 0 && rec.none_stated !== false);
       let sourceRung: AcSourceRung = isAcSourceRung(rec.source_rung)
         ? rec.source_rung
         : commands.length > 0
@@ -213,9 +220,7 @@ export function attachPlanAcceptance(
   // Mirror executable commands into #3267 ledger for verify:literal-ac interoperability.
   if (acceptance.commands.length > 0) {
     const source =
-      acceptance.source_rung === "stated"
-        ? ("task_statement" as const)
-        : ("explicit" as const);
+      acceptance.source_rung === "stated" ? ("task_statement" as const) : ("explicit" as const);
     // derived / floor commands are agent-authored → executable source=explicit
     const literalSource =
       acceptance.source_rung === "stated" ? ("task_statement" as const) : ("explicit" as const);

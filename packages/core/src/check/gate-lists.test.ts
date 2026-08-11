@@ -12,10 +12,16 @@ import {
 
 describe("gate-lists (#2791)", () => {
   it("places product AC gate first on framework and consumer lists (#3284)", () => {
-    expect(checkGateId(FRAMEWORK_CHECK_GATES[0]!)).toBe("verify:ac");
-    expect(checkGateId(CONSUMER_CHECK_GATES[0]!)).toBe("verify:ac");
-    const fwSpawn = checkGateSpawnArgs(FRAMEWORK_CHECK_GATES[0]!, "/repo/Taskfile.yml");
-    expect(fwSpawn).toContain("--soft-missing-xbrief");
+    const fwFirst = FRAMEWORK_CHECK_GATES[0];
+    const consumerFirst = CONSUMER_CHECK_GATES[0];
+    expect(fwFirst).toBeDefined();
+    expect(consumerFirst).toBeDefined();
+    if (fwFirst === undefined || consumerFirst === undefined) {
+      throw new Error("expected non-empty framework/consumer gate lists");
+    }
+    expect(checkGateId(fwFirst)).toBe("verify:ac");
+    expect(checkGateId(consumerFirst)).toBe("verify:ac");
+    expect(checkGateSpawnArgs(fwFirst, "/repo/Taskfile.yml")).toContain("--soft-missing-xbrief");
   });
 
   it("maps framework WIP-cap and eval-relocation shims to public tasks with flags", () => {

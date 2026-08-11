@@ -263,9 +263,7 @@ function softSkip(detail: string, quiet?: boolean): VerifyAcResult {
   return {
     ok: true,
     code: 0,
-    message: quiet
-      ? ""
-      : `verify:ac skipped (#3284 soft-missing): ${detail}`,
+    message: quiet ? "" : `verify:ac skipped (#3284 soft-missing): ${detail}`,
     commands: [],
     runs: [],
     sourceRung: "project_floor",
