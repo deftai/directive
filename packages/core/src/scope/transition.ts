@@ -7,10 +7,7 @@ import {
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
-import {
-  evaluateLiteralAcceptanceFromPlan,
-  readStoredLiteralAcceptanceCommands,
-} from "../literal-acceptance/index.js";
+import { evaluateLiteralAcceptanceFromPlan } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
 import {
   type CriterionAcceptanceReport,
@@ -257,23 +254,22 @@ export function runTransition(
     }
     acceptanceListing = formatAcceptanceCompletionListing(acceptanceGate.reports);
 
-    // #3267: when literal acceptance commands are stored, run them verbatim before complete.
-    // Ceremony dial never skips this (literalAcceptanceRequired). Empty storage → no-op.
-    const storedLiteral = readStoredLiteralAcceptanceCommands(planObj);
-    if (storedLiteral.length > 0) {
-      const literalGate = evaluateLiteralAcceptanceFromPlan(planObj, {
-        projectRoot,
-        captureFromNarratives: false,
-      });
-      if (!literalGate.ok) {
-        return {
-          ok: false,
-          message:
-            `Literal acceptance-command gate failed before scope:complete (#3267).\n` +
-            literalGate.message,
-          acceptanceReports: acceptanceGate.reports,
-        };
-      }
+    // #3267: run agent-authored literal AC before complete; re-scan narratives so
+    // narrative-only stated commands fail closed (promote required) rather than skip.
+    const literalGate = evaluateLiteralAcceptanceFromPlan(planObj, {
+      projectRoot,
+      captureFromNarratives: true,
+    });
+    if (!literalGate.ok) {
+      return {
+        ok: false,
+        message:
+          `Literal acceptance-command gate failed before scope:complete (#3267).\n` +
+          literalGate.message,
+        acceptanceReports: acceptanceGate.reports,
+      };
+    }
+    if (literalGate.commands.length > 0 || literalGate.message.length > 0) {
       acceptanceListing =
         acceptanceListing.length > 0
           ? `${acceptanceListing}\n${literalGate.message}`

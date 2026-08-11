@@ -29,9 +29,9 @@ pnpm exec vitest run packages/core/src/literal-acceptance
 task check
 \`\`\`
 
-Also run: verify: node --version
+Also run: verify: pnpm test
 
-Self-chosen \`echo hello\` is not enough — use the stated commands.
+Self-chosen approximations are not enough — use the stated commands.
 `;
 
 describe("captureLiteralAcceptanceCommands", () => {
@@ -40,7 +40,7 @@ describe("captureLiteralAcceptanceCommands", () => {
     const strings = cmds.map((c) => c.command);
     expect(strings).toContain("pnpm exec vitest run packages/core/src/literal-acceptance");
     expect(strings).toContain("task check");
-    expect(strings).toContain("node --version");
+    expect(strings).toContain("pnpm test");
     // Must preserve exact flags/path — no paraphrase into "run the tests"
     for (const c of cmds) {
       expect(c.command).not.toMatch(/run the tests/i);
@@ -56,8 +56,8 @@ describe("captureLiteralAcceptanceCommands", () => {
   });
 
   it("captures $ prompt lines", () => {
-    const cmds = captureLiteralAcceptanceCommands("$ task verify:branch\n$ git status");
-    expect(cmds.map((c) => c.command)).toEqual(["task verify:branch", "git status"]);
+    const cmds = captureLiteralAcceptanceCommands("$ task verify:branch\n$ pnpm test");
+    expect(cmds.map((c) => c.command)).toEqual(["task verify:branch", "pnpm test"]);
   });
 
   it("captures inline verify spans", () => {
@@ -136,7 +136,7 @@ describe("runLiteralAcceptanceCommands", () => {
     const result = runLiteralAcceptanceCommands(
       [
         {
-          command: "echo hi",
+          command: "task check",
           source: "explicit",
           expectedStdout: "EXPECTED_TOKEN",
         },
@@ -164,7 +164,7 @@ describe("runLiteralAcceptanceCommands", () => {
   it("uses stated cwd relative to project root", () => {
     const root = mkdtempSync(join(tmpdir(), "literal-ac-cwd-"));
     let usedCwd = "";
-    runLiteralAcceptanceCommands([{ command: "echo", source: "explicit", cwd: "sub" }], {
+    runLiteralAcceptanceCommands([{ command: "true", source: "explicit", cwd: "sub" }], {
       projectRoot: root,
       runner: (input) => {
         usedCwd = input.cwd;
@@ -345,7 +345,7 @@ describe("branch coverage boost", () => {
         ],
         swarm: {
           verify_commands: "pnpm test",
-          literalAcceptanceCommands: [{ cmd: "git status" }],
+          literalAcceptanceCommands: [{ cmd: "vitest run" }],
         },
       },
       items: [
@@ -360,17 +360,17 @@ describe("branch coverage boost", () => {
     const stored = readStoredLiteralAcceptanceCommands(plan);
     expect(stored.map((c) => c.command)).toContain("task check");
     expect(stored.map((c) => c.command)).toContain("pnpm test");
-    expect(stored.map((c) => c.command)).toContain("git status");
+    expect(stored.map((c) => c.command)).toContain("vitest run");
     expect(stored.map((c) => c.command)).toContain("task verify:branch");
     expect(stored.map((c) => c.command)).toContain("npm test");
     expect(stored.some((c) => c.command.includes("evil"))).toBe(false);
 
-    // Fences: ~~~ and powershell lang; unknown lang skipped
+    // Fences: ~~~ and shell lang; unknown lang / network tools skipped
     const fenced = captureLiteralAcceptanceCommands(
-      "## Acceptance\n~~~\ntask doctor\n~~~\n```powershell\ngit rev-parse HEAD\n```\n```ruby\nputs 1\n```\n",
+      "## Acceptance\n~~~\ntask doctor\n~~~\n```bash\npnpm test\n```\n```ruby\nputs 1\n```\n",
     );
     expect(fenced.map((c) => c.command)).toContain("task doctor");
-    expect(fenced.map((c) => c.command)).toContain("git rev-parse HEAD");
+    expect(fenced.map((c) => c.command)).toContain("pnpm test");
 
     // Numbered labeled + isRegionHeading variants
     const labeled = captureLiteralAcceptanceCommands(
@@ -411,11 +411,11 @@ describe("branch coverage boost", () => {
     });
   });
 
-  it("defaultLiteralAcceptanceRunner can execute allowlisted true", async () => {
+  it("defaultLiteralAcceptanceRunner can execute allowlisted true/false", async () => {
     const { defaultLiteralAcceptanceRunner } = await import("./run.js");
-    // On Windows `true` may not exist; use node --version which is allowlisted.
+    // Prefer true on POSIX; on Windows use pnpm --version (allowlisted).
     const r = defaultLiteralAcceptanceRunner({
-      command: process.platform === "win32" ? "node --version" : "true",
+      command: process.platform === "win32" ? "pnpm --version" : "true",
       cwd: process.cwd(),
     });
     expect(r.exitCode).toBe(0);

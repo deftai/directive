@@ -27,7 +27,12 @@ const SHELL_META_CHARS = new Set([
   "\0",
 ]);
 
-/** First-token allowlist for executable acceptance commands. */
+/**
+ * First-token allowlist for **execution** (#3267 Greptile P1 ambient-authority).
+ * Network/SCM tools (curl/gh/git/docker) are intentionally excluded — they retain
+ * ambient credentials. Capture may still record broader CLI shape; only these
+ * tokens may spawn.
+ */
 const ALLOWED_FIRST_TOKENS = new Set([
   "task",
   "deft",
@@ -37,24 +42,7 @@ const ALLOWED_FIRST_TOKENS = new Set([
   "npx",
   "yarn",
   "bun",
-  "node",
-  "python",
-  "python3",
-  "py",
-  "pytest",
   "vitest",
-  "cargo",
-  "go",
-  "dotnet",
-  "make",
-  "curl",
-  "gh",
-  "git",
-  "uv",
-  "pip",
-  "poetry",
-  "rg",
-  "echo",
   "true",
   "false",
 ]);
