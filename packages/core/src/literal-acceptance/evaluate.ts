@@ -101,10 +101,7 @@ export function resolveLiteralAcceptanceCommands(
   return [...resolveLiteralAcceptanceDetailed(plan, options).commands];
 }
 
-function appendRejectedNote(
-  message: string,
-  rejected: readonly RejectedLiteralCommand[],
-): string {
+function appendRejectedNote(message: string, rejected: readonly RejectedLiteralCommand[]): string {
   const ledger = formatRejectedLedger(rejected);
   if (ledger.length === 0) return message;
   if (message.length === 0) return ledger;

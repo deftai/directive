@@ -7,13 +7,13 @@
 
 export {
   attachLiteralAcceptanceCommands,
+  type CaptureLiteralAcceptanceResult,
   captureAndAttachLiteralAcceptance,
   captureLiteralAcceptanceCommands,
   captureLiteralAcceptanceCommandsDetailed,
   formatRejectedLedger,
   readStoredLiteralAcceptanceCommands,
   readStoredLiteralAcceptanceDetailed,
-  type CaptureLiteralAcceptanceResult,
 } from "./capture.js";
 export {
   type EvaluateLiteralAcceptanceOptions,

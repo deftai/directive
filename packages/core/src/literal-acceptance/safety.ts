@@ -126,7 +126,13 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
   }
 
   // Package managers: only test/exec vitest/run test|check|--version (no install/publish/net).
-  if (first === "pnpm" || first === "npm" || first === "npx" || first === "yarn" || first === "bun") {
+  if (
+    first === "pnpm" ||
+    first === "npm" ||
+    first === "npx" ||
+    first === "yarn" ||
+    first === "bun"
+  ) {
     return evaluatePackageManagerArgs(rest);
   }
 

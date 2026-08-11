@@ -15,10 +15,7 @@ import type {
   LiteralAcceptanceSource,
   RejectedLiteralCommand,
 } from "./types.js";
-import {
-  EXECUTABLE_LITERAL_SOURCES,
-  LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY,
-} from "./types.js";
+import { EXECUTABLE_LITERAL_SOURCES, LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY } from "./types.js";
 
 /** Labeled keywords (single-token, linear match). */
 const LABELED_KEYWORDS = new Set(["verify", "command", "run", "check", "exec", "shell"]);
@@ -44,13 +41,7 @@ function normalizeCommand(raw: string): string | null {
   }
   // Strip trailing period that is clearly sentence punctuation (not a path token).
   // Preserve: `file.ts`, `..`, and commands ending in whitespace+`.` (cwd path).
-  if (
-    s.endsWith(".") &&
-    !s.endsWith("..") &&
-    !/\.\w+$/.test(s) &&
-    !/\s\.$/.test(s) &&
-    s !== "."
-  ) {
+  if (s.endsWith(".") && !s.endsWith("..") && !/\.\w+$/.test(s) && !/\s\.$/.test(s) && s !== ".") {
     s = s.slice(0, -1).trim();
   }
   if (s.length === 0) return null;
@@ -117,12 +108,7 @@ function recordRejected(
 function pushCommand(buckets: CaptureBuckets, cmd: LiteralAcceptanceCommand): void {
   const safety = evaluateCommandSafety(cmd.command);
   if (!safety.ok) {
-    recordRejected(
-      buckets,
-      cmd.command,
-      safety.reason ?? "unsafe command",
-      cmd.sourceSpan ?? null,
-    );
+    recordRejected(buckets, cmd.command, safety.reason ?? "unsafe command", cmd.sourceSpan ?? null);
     return;
   }
   const key = commandDedupeKey(cmd);
@@ -231,11 +217,7 @@ function matchPromptCommand(line: string): string | null {
  * Walk fenced ``` / ~~~ blocks; keep fence body lines that look like shell.
  * When `requireRegion` is true, only fences under an acceptance/verify heading.
  */
-function extractFromFences(
-  text: string,
-  requireRegion: boolean,
-  buckets: CaptureBuckets,
-): void {
+function extractFromFences(text: string, requireRegion: boolean, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
   let inFence = false;
   let fenceLang = "";
@@ -653,9 +635,7 @@ export function attachLiteralAcceptanceCommands(
   // Keep swarm.verify_commands in sync only for executable (agent-authored) sources.
   // task_statement stays capture-only until an agent promotes exact strings (#3267).
   const swarm = { ...(asRecord(metadata.swarm) ?? {}) };
-  const executableCmds = merged
-    .filter((c) => isExecutableSource(c.source))
-    .map((c) => c.command);
+  const executableCmds = merged.filter((c) => isExecutableSource(c.source)).map((c) => c.command);
   const prevVerify = Array.isArray(swarm.verify_commands)
     ? swarm.verify_commands.filter((x): x is string => typeof x === "string")
     : [];
