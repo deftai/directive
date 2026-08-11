@@ -583,29 +583,7 @@ function recoveredStubRecord(
  * Load a bank record when present. Corrupt files recover findings when possible
  * so re-bank preserves post-bank history (#3285).
  */
-export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBankRecord | null {
-  const path = acPassBankPath(projectRoot, scopeId);
-  const tmpPath = `${path}.tmp`;
-  // Prefer the newer of primary vs .tmp (rename-fail durable alternate).
-  let chosen: string | null = null;
-  if (existsSync(path) && existsSync(tmpPath)) {
-    try {
-      chosen = statSync(tmpPath).mtimeMs >= statSync(path).mtimeMs ? tmpPath : path;
-    } catch {
-      chosen = path;
-    }
-  } else if (existsSync(tmpPath)) {
-    chosen = tmpPath;
-  } else if (existsSync(path)) {
-    chosen = path;
-  }
-  if (chosen === null) return null;
-  let text = "";
-  try {
-    text = readFileSync(chosen, { encoding: "utf8" });
-  } catch {
-    return null;
-  }
+function parseBankText(scopeId: string, text: string): AcPassBankRecord | null {
   try {
     const raw = JSON.parse(text) as unknown;
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
@@ -624,6 +602,68 @@ export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBank
     const findings = recoverFindingsFromLedgerText(text);
     return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
   }
+}
+
+function mergeFindings(
+  a: readonly PostBankFinding[],
+  b: readonly PostBankFinding[],
+): readonly PostBankFinding[] {
+  const out: PostBankFinding[] = [];
+  const seen = new Set<string>();
+  for (const f of [...a, ...b]) {
+    const key = `${f.action}|${f.summary}|${f.recordedAt}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(f);
+  }
+  return out;
+}
+
+/**
+ * Load bank record. When both primary and .tmp exist, prefer a fully-valid
+ * JSON primary over a partial tmp, and union recovered findings so partial
+ * recovery cannot erase durable history (#3285 Greptile residual).
+ */
+export function readAcPassBank(projectRoot: string, scopeId: string): AcPassBankRecord | null {
+  const path = acPassBankPath(projectRoot, scopeId);
+  const tmpPath = `${path}.tmp`;
+  let primaryText: string | null = null;
+  let tmpText: string | null = null;
+  if (existsSync(path)) {
+    try {
+      primaryText = readFileSync(path, { encoding: "utf8" });
+    } catch {
+      primaryText = null;
+    }
+  }
+  if (existsSync(tmpPath)) {
+    try {
+      tmpText = readFileSync(tmpPath, { encoding: "utf8" });
+    } catch {
+      tmpText = null;
+    }
+  }
+  if (primaryText === null && tmpText === null) return null;
+
+  const primary = primaryText !== null ? parseBankText(scopeId, primaryText) : null;
+  const tmp = tmpText !== null ? parseBankText(scopeId, tmpText) : null;
+
+  // Prefer fully-parsed primary when both exist; union findings always.
+  if (primary !== null && tmp !== null) {
+    return {
+      ...primary,
+      postBankFindings: mergeFindings(primary.postBankFindings, tmp.postBankFindings),
+    };
+  }
+  if (primary !== null) return primary;
+  if (tmp !== null) return tmp;
+
+  // Both unparsable as records: union raw recoveries.
+  const findings = mergeFindings(
+    primaryText !== null ? recoverFindingsFromLedgerText(primaryText) : [],
+    tmpText !== null ? recoverFindingsFromLedgerText(tmpText) : [],
+  );
+  return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
 }
 
 /**
