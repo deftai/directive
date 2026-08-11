@@ -141,9 +141,9 @@ export function formatDecomposeStructuralMintCommand(
   }
   const posix = mintCommandWithDialect(parent, draft, repo, "posix");
   const pwsh = mintCommandWithDialect(parent, draft, repo, "pwsh");
-  // Separate lines so each form is independently copy-pasteable (Greptile PR #3300).
+  // Labels on their own lines so the executable command is independently pasteable.
   if (posix === pwsh) return posix;
-  return `bash: ${posix}\npwsh: ${pwsh}`;
+  return `bash:\n${posix}\npwsh:\n${pwsh}`;
 }
 
 /**

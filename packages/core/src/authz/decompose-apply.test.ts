@@ -365,10 +365,12 @@ describe("decompose-apply helpers (#3239)", () => {
       "deft authz:grant -- --parent 'p$(whoami).json' --draft 'd`id`.json' " +
         "--repo 'o/r$(x)' --confirm",
     );
-    // Apostrophe escapes differ: separate labeled lines for independent paste.
+    // Apostrophe escapes differ: label on its own line; command is pure paste target.
     expect(formatDecomposeStructuralMintCommand("path'with'quotes.json", "draft.json")).toBe(
-      "bash: deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm\n" +
-        "pwsh: deft authz:grant -- --parent 'path''with''quotes.json' --draft draft.json --confirm",
+      "bash:\n" +
+        "deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm\n" +
+        "pwsh:\n" +
+        "deft authz:grant -- --parent 'path''with''quotes.json' --draft draft.json --confirm",
     );
     // Newline/NUL paths: refuse with rename guidance (no rewritten fake path).
     const refused = formatDecomposeStructuralMintCommand("a\nb.json", "c\rd.json");
