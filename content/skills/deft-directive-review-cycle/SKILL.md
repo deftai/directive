@@ -48,6 +48,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Operator asks to **babysit**, **shepherd**, or **watch** a PR -- including the Cursor product action **babysit-pull-request-in-cloud** (#2261 / #1862 intent-routing class)
 - A bot reviewer (Greptile) has posted findings on an open PR
 - Dispatching a cloud or background agent to monitor and resolve PR review findings until merge-ready
+- Operator re-authorizes after conf-hold / dual-stop residual: **pursue residual**, **follow-up hard-stop**, **same as conf-hold**, **continue dual-stopped PR**, or **re-babysit residual** — route to § Operator follow-up after dual-stop / hard stop (#3273)
 
 ## Cursor global babysit supersession (#2261)
 
@@ -204,11 +205,31 @@ Review fix cycles are multi-iteration work and MUST carry dual stop (`main.md` `
 
 **On failure stop:**
 
-- ! Halt automatic re-fix. Prefer `BLOCKED:` with PR number, HEAD SHA, blocker class (`review_cycle_cap` / `greptile_p0_p1` / `no_progress`), what was tried, and human decision needed (preamble §11 / #2843).
+- ! Halt automatic re-fix. Prefer `BLOCKED:` with PR number, HEAD SHA, blocker class (`review_cycle_cap` / `greptile_p0_p1` / `conf_floor` / `no_progress`), what was tried, and human decision needed (preamble §11 / #2843).
+- ! **Halt-report resume line (MUST, #3273 / AC6):** End the terminal halt with residual class + conf (if any) + PR URL, example phrases (**pursue residual** | **follow-up hard-stop** | **same as conf-hold** | **continue dual-stopped PR**), and skill pointer to § Operator follow-up after dual-stop / hard stop (#3273). Same affordance shape as swarm `references/core-phase-4.md`.
 - ⊗ Continue silent fix rounds after the envelope is exhausted.
 - ⊗ Reset the fix-batch counter solely by re-pushing, empty-committing, or swapping workers when the same primary finding fingerprint remains (poll-wait timer MAY reset for a new HEAD; the dual-stop fix-batch counter MUST NOT).
 
-**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit breaker: **#3143** packages/core/src/delivery-attempt/ (valuatePreDispatch). Docs: docs/delivery-attempt.md.
+**Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`). Docs: `docs/delivery-attempt.md`.
+
+### Operator follow-up after dual-stop / hard stop (#3273)
+
+Operator-initiated resume after conf-hold, residual dual-stop, or hard-stop exit — **not** automatic re-thrash. Composes Greptile floor (#3095) and advisory should-not-merge (#3225). Portable consumer + maintainer (`task` / `deft` dual-invoke).
+
+**Triggers:** pursue residual · follow-up hard-stop · same as conf-hold · continue dual-stopped PR · re-babysit residual
+
+**One residual pass under operator consent:**
+1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` (#2893).
+2. Apply **one** residual fix batch **or** one re-review wait — not both as an unbounded loop.
+3. If operator authorized a conf floor for **this PR only** (e.g. ≥4/5): document in a PR comment. ⊗ Edit global `minGreptileConfidence`.
+4. Re-evaluate Step 6; merge when floor + gates met, or halt again with a fresh resume line.
+5. Post-merge `scope:complete` when this owner holds lifecycle (#2321 / #3264).
+
+! Dual-stop re-entry: one residual pass then re-stop without new consent. Fresh operator consent required for another pass.
+
+⊗ Unlimited auto-retry after dual-stop without new operator consent (#3273 / #2442).
+⊗ Treat conf-only holds as authorization for unbounded redesign (#2881).
+⊗ Lower project-wide `minGreptileConfidence` for one residual.
 
 ### Step 3: Fix all findings in ONE batch commit
 
@@ -818,6 +839,8 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Misclassify Claude Code as `cursor-composer` from bare `Task` alone (#3134)
 - ⊗ Expand active story scope past xBRIEF AC mid-babysit without follow-up issue or consented brief amend (#2881)
 - ⊗ Treat confidence-only holds (0 P0/P1) as a mandate for unbounded redesign (#2881)
+- ⊗ Dual-stop / conf-residual terminal halt without #3273 resume line (residual class + pursue residual / follow-up hard-stop / same as conf-hold / continue dual-stopped PR + skill section pointer) (#3273)
+- ⊗ Unlimited residual auto-retry after dual-stop without new operator consent (#3273 / #2442)
 - ⊗ Invent freestyle sleep/poll loops when dual-invoke probes fail for `pr:watch` — use the official gh-only fallback and fail-loud missing-task (#2878 / #2893)
 - ⊗ Treat bare `task pr:watch` as the only consumer gate form — probe `deft` then `task deft:` first (#2893)
 - ⊗ Treat a passing SLizard/Greptile check run, a non-blocking review comment, or an ad hoc fix commit as the review-cycle exit predicate -- Step 6 fail-closed all-of (#1259) and multi-reviewer registry triage (#769) still apply
