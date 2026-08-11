@@ -16,7 +16,6 @@ import {
 import {
   evaluateVerifyAcFromPath,
   readPlanAcceptance,
-  type VerifyAcResult,
 } from "@deftai/directive-core/product-first-done-gate";
 
 interface ParsedArgs {
