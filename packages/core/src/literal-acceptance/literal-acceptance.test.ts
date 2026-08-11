@@ -71,7 +71,10 @@ describe("captureLiteralAcceptanceCommands", () => {
 describe("attach / read stored commands", () => {
   it("stores exact commands on plan.metadata and swarm.verify_commands", () => {
     const captured = captureLiteralAcceptanceCommands(FIXTURE_TASK);
-    const plan = attachLiteralAcceptanceCommands({ title: "t", status: "running", items: [] }, captured);
+    const plan = attachLiteralAcceptanceCommands(
+      { title: "t", status: "running", items: [] },
+      captured,
+    );
     const stored = readStoredLiteralAcceptanceCommands(plan);
     expect(stored.map((c) => c.command)).toContain("task check");
     const meta = plan.metadata as Record<string, unknown>;
@@ -121,13 +124,10 @@ describe("runLiteralAcceptanceCommands", () => {
   });
 
   it("passes when all commands exit 0", () => {
-    const result = runLiteralAcceptanceCommands(
-      [{ command: "true-cmd", source: "explicit" }],
-      {
-        projectRoot: process.cwd(),
-        runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
-      },
-    );
+    const result = runLiteralAcceptanceCommands([{ command: "true-cmd", source: "explicit" }], {
+      projectRoot: process.cwd(),
+      runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    });
     expect(result.ok).toBe(true);
     expect(result.code).toBe(0);
   });
@@ -164,26 +164,22 @@ describe("runLiteralAcceptanceCommands", () => {
   it("uses stated cwd relative to project root", () => {
     const root = mkdtempSync(join(tmpdir(), "literal-ac-cwd-"));
     let usedCwd = "";
-    runLiteralAcceptanceCommands(
-      [{ command: "echo", source: "explicit", cwd: "sub" }],
-      {
-        projectRoot: root,
-        runner: (input) => {
-          usedCwd = input.cwd;
-          return { exitCode: 0, stdout: "", stderr: "" };
-        },
+    runLiteralAcceptanceCommands([{ command: "echo", source: "explicit", cwd: "sub" }], {
+      projectRoot: root,
+      runner: (input) => {
+        usedCwd = input.cwd;
+        return { exitCode: 0, stdout: "", stderr: "" };
       },
-    );
+    });
     expect(usedCwd).toBe(join(root, "sub"));
   });
 });
 
 describe("evaluateLiteralAcceptanceFromPlan / Path", () => {
   it("evaluates stored metadata commands", () => {
-    const plan = attachLiteralAcceptanceCommands(
-      { title: "t", items: [] },
-      [{ command: "ok", source: "task_statement" }],
-    );
+    const plan = attachLiteralAcceptanceCommands({ title: "t", items: [] }, [
+      { command: "ok", source: "task_statement" },
+    ]);
     const result = evaluateLiteralAcceptanceFromPlan(plan, {
       projectRoot: process.cwd(),
       runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),

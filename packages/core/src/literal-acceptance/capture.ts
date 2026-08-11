@@ -16,8 +16,7 @@ const LABELED_COMMAND_RE =
   /^\s*(?:[-*+]|\d+[.)])?\s*(?:verify|command|run|check|exec|shell)\s*:\s*(.+?)\s*$/i;
 
 /** Mid-line labeled command: `Also run: verify: node -e "…"` */
-const MIDLINE_LABELED_COMMAND_RE =
-  /\b(?:verify|command|exec|shell)\s*:\s*([^\n]+?)\s*$/i;
+const MIDLINE_LABELED_COMMAND_RE = /\b(?:verify|command|exec|shell)\s*:\s*([^\n]+?)\s*$/i;
 
 /** Shell-prompt style: `$ task check` or `> pnpm test`. */
 const PROMPT_COMMAND_RE = /^\s*[$>]\s+(\S.*\S|\S)\s*$/;
@@ -236,7 +235,9 @@ function extractInlineVerifySpans(
  * Capture literal acceptance commands from free-form task statement text.
  * Returns [] when none are stated — never invents commands.
  */
-export function captureLiteralAcceptanceCommands(taskStatement: string): LiteralAcceptanceCommand[] {
+export function captureLiteralAcceptanceCommands(
+  taskStatement: string,
+): LiteralAcceptanceCommand[] {
   if (!isNonEmptyString(taskStatement)) {
     return [];
   }
@@ -276,7 +277,11 @@ export function readStoredLiteralAcceptanceCommands(
 
     const swarm = asRecord(metadata.swarm);
     if (swarm !== null) {
-      for (const cmd of coerceCommandList(swarm.verify_commands, "verify_commands", "swarm.verify_commands")) {
+      for (const cmd of coerceCommandList(
+        swarm.verify_commands,
+        "verify_commands",
+        "swarm.verify_commands",
+      )) {
         pushUnique(out, seen, cmd.command, cmd.source, cmd.sourceSpan ?? null);
       }
       for (const cmd of coerceCommandList(

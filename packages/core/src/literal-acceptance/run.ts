@@ -29,11 +29,7 @@ export function defaultLiteralAcceptanceRunner(input: {
     maxBuffer: 16 * 1024 * 1024,
   });
   const exitCode =
-    typeof result.status === "number"
-      ? result.status
-      : result.error !== undefined
-        ? 1
-        : 1;
+    typeof result.status === "number" ? result.status : result.error !== undefined ? 1 : 1;
   return {
     exitCode,
     stdout: typeof result.stdout === "string" ? result.stdout : "",
@@ -70,10 +66,9 @@ export function runLiteralAcceptanceCommand(
   const result = runner({ command: cmd.command, cwd });
   const expectedExit = cmd.expectedExitCode ?? 0;
   let ok = result.exitCode === expectedExit;
-  let detail =
-    ok
-      ? `exit ${result.exitCode} (expected ${expectedExit})`
-      : `exit ${result.exitCode} (expected ${expectedExit})`;
+  let detail = ok
+    ? `exit ${result.exitCode} (expected ${expectedExit})`
+    : `exit ${result.exitCode} (expected ${expectedExit})`;
 
   if (
     ok &&
@@ -113,8 +108,7 @@ export function runLiteralAcceptanceCommands(
     return {
       ok: true,
       code: 0,
-      message:
-        "Literal acceptance-command gate: no stated commands (nothing to run) (#3267)",
+      message: "Literal acceptance-command gate: no stated commands (nothing to run) (#3267)",
       commands: [],
       runs: [],
     };
@@ -126,8 +120,7 @@ export function runLiteralAcceptanceCommands(
       return {
         ok: false,
         code: 2,
-        message:
-          "Literal acceptance-command gate config error: empty command entry (#3267)",
+        message: "Literal acceptance-command gate config error: empty command entry (#3267)",
         commands,
         runs,
       };

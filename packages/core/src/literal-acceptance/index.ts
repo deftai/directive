@@ -12,11 +12,11 @@ export {
   readStoredLiteralAcceptanceCommands,
 } from "./capture.js";
 export {
+  type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPath,
   evaluateLiteralAcceptanceFromPlan,
   isLiteralAcceptanceRequiredAtCeremonyDepth,
   resolveLiteralAcceptanceCommands,
-  type EvaluateLiteralAcceptanceOptions,
 } from "./evaluate.js";
 export {
   defaultLiteralAcceptanceRunner,
