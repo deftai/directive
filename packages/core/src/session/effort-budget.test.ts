@@ -13,6 +13,7 @@ import {
   maybeFormatEffortBudgetLines,
   parseHostEffortBudgetEnv,
   recommendVerificationDepth,
+  resolveProductionHostEffortDescriptor,
 } from "./effort-budget.js";
 
 describe("detectHardEffortBudget (#3266)", () => {
@@ -382,5 +383,14 @@ describe("host descriptor edge branches (#3266)", () => {
   it("parseHostEffortBudgetEnv fails open on bad JSON", () => {
     expect(parseHostEffortBudgetEnv({ [ENV_HOST_EFFORT_BUDGET]: "not-json" })).toBeNull();
     expect(parseHostEffortBudgetEnv({ [ENV_HOST_EFFORT_BUDGET]: "[]" })).toBeNull();
+  });
+
+  it("resolveProductionHostEffortDescriptor maps harness env into descriptor", () => {
+    const desc = resolveProductionHostEffortDescriptor({
+      MAX_TURNS: "64",
+      AGENT_BUDGET: "9",
+      [ENV_HARD_BUDGET]: "1",
+    });
+    expect(desc).toMatchObject({ maxTurns: 64, maxBudget: 9, hardBudget: true });
   });
 });

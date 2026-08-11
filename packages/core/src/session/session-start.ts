@@ -65,6 +65,7 @@ import {
   effortBudgetToDict,
   type HardEffortBudget,
   maybeFormatEffortBudgetLines,
+  resolveProductionHostEffortDescriptor,
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
@@ -597,11 +598,16 @@ function resolveEffortBudget(options: SessionStartOptions): {
   try {
     const seams = options.effortBudgetSeams ?? {};
     const environ = seams.environ ?? options.env ?? process.env;
-    // Production wire: hostDescriptor from seams OR DEFT_HOST_EFFORT_BUDGET JSON (#3266).
-    // detectHardEffortBudget already falls back to the env JSON when hostDescriptor is omitted.
+    // Production host adapter (#3266 / #1461): always resolve a descriptor from env
+    // (and CLI-forwarded seams) so host-native max-turns/budget signals are not lost.
+    const productionHost = resolveProductionHostEffortDescriptor(environ);
+    const hostDescriptor =
+      seams.hostDescriptor !== undefined && seams.hostDescriptor !== null
+        ? { ...productionHost, ...seams.hostDescriptor }
+        : productionHost;
     return maybeFormatEffortBudgetLines({
       environ,
-      hostDescriptor: seams.hostDescriptor,
+      hostDescriptor,
     });
   } catch {
     // best-effort — session start must not abort on effort-budget probe failures (#3266)

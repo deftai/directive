@@ -13,9 +13,9 @@ import {
 import {
   COLD_CEREMONY_TIER,
   parseDeferrals,
-  parseHostEffortBudgetEnv,
   READ_ONLY_POSTURE,
   REARM_CEREMONY_TIER,
+  resolveProductionHostEffortDescriptor,
   ritualStatePath,
   runSessionStart,
   SESSION_CEREMONY_TIERS,
@@ -345,10 +345,9 @@ export function run(argv: readonly string[]): number {
     return true;
   }) as typeof process.stdout.write;
 
-  // #3266: production effort-budget host descriptor — CLI flags + DEFT_HOST_EFFORT_BUDGET.
-  const envHost = parseHostEffortBudgetEnv(process.env);
+  // #3266: production host adapter — native harness env + DEFT_HOST_EFFORT_BUDGET + CLI flags.
   const hostDescriptor: Record<string, unknown> = {
-    ...(envHost ?? {}),
+    ...resolveProductionHostEffortDescriptor(process.env),
   };
   if (args.effortBudgetHost.maxTurns !== undefined) {
     hostDescriptor.maxTurns = args.effortBudgetHost.maxTurns;
@@ -359,7 +358,6 @@ export function run(argv: readonly string[]): number {
   if (args.effortBudgetHost.hardBudget === true) {
     hostDescriptor.hardBudget = true;
   }
-  const hasHostDescriptor = Object.keys(hostDescriptor).length > 0;
 
   let result: ReturnType<typeof runSessionStart>;
   try {
@@ -371,9 +369,7 @@ export function run(argv: readonly string[]): number {
       allowOptionalNetwork: args.withNetwork ? true : undefined,
       ceremonyTier: args.ceremonyTier,
       ceremonyDialInputs: args.ceremonyDialInputs,
-      ...(hasHostDescriptor
-        ? { effortBudgetSeams: { hostDescriptor, environ: process.env } }
-        : { effortBudgetSeams: { environ: process.env } }),
+      effortBudgetSeams: { hostDescriptor, environ: process.env },
       ...(args.ceremonyDepthOverride !== null
         ? {
             ceremonyDial: selectCeremonyDepth({

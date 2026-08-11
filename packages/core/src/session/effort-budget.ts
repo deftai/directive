@@ -184,6 +184,47 @@ export function parseHostEffortBudgetEnv(
 }
 
 /**
+ * Production host-adapter: translate host/harness native signals into a descriptor
+ * object for detectHardEffortBudget (#1461 / #3266).
+ *
+ * Sources (later keys fill gaps only):
+ * 1. `DEFT_HOST_EFFORT_BUDGET` JSON (`maxTurns` / `maxBudget` / `hardBudget`)
+ * 2. Common harness env aliases already accepted as max-turns / max-budget
+ * 3. Explicit hard-budget flag env
+ *
+ * session:start CLI and resolveEffortBudget always call this so descriptor-only
+ * host caps are not lost when the host never set DEFT_HOST_EFFORT_BUDGET.
+ */
+export function resolveProductionHostEffortDescriptor(
+  environ: Readonly<Record<string, string | undefined>> = process.env,
+): Readonly<Record<string, unknown>> {
+  const out: Record<string, unknown> = {
+    ...(parseHostEffortBudgetEnv(environ) ?? {}),
+  };
+  if (out.maxTurns === undefined) {
+    const turns = firstNumericFromEnv(environ, MAX_TURNS_ENV_ALIASES);
+    if (turns.value !== null) out.maxTurns = turns.value;
+  }
+  if (out.maxBudget === undefined) {
+    const budget = firstNumericFromEnv(environ, MAX_BUDGET_ENV_ALIASES);
+    if (budget.value !== null) out.maxBudget = budget.value;
+  }
+  if (out.hardBudget === undefined && envTruthy(environ[ENV_HARD_BUDGET])) {
+    out.hardBudget = true;
+  }
+  // Remaining counters as soft descriptor fields (detection also reads them).
+  if (out.remainingTurns === undefined) {
+    const rem = firstNumericFromEnv(environ, [ENV_REMAINING_TURNS, "REMAINING_TURNS"]);
+    if (rem.value !== null) out.remainingTurns = rem.value;
+  }
+  if (out.remainingBudget === undefined) {
+    const rem = firstNumericFromEnv(environ, [ENV_REMAINING_BUDGET, "REMAINING_BUDGET"]);
+    if (rem.value !== null) out.remainingBudget = rem.value;
+  }
+  return out;
+}
+
+/**
  * Detect a hard turn/cost budget from env and optional host descriptor (#3266).
  * Defaults to unbounded when no signal is present.
  * When `hostDescriptor` is omitted, falls back to `DEFT_HOST_EFFORT_BUDGET` JSON.
