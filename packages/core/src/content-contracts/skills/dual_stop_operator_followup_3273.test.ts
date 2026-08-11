@@ -53,7 +53,9 @@ describe("dual_stop_operator_followup_3273", () => {
   it("swarm_ops_forbids_halt_without_resume_line", () => {
     const ops = readRepoFile("skills/deft-directive-swarm/references/core-ops.md");
     expect(ops).toContain("#3273");
-    expect(ops).toMatch(/\u2297 Emit a dual-stop \/ hard-stop \/ conf-residual terminal halt report/);
+    expect(ops).toMatch(
+      /\u2297 Emit a dual-stop \/ hard-stop \/ conf-residual terminal halt report/,
+    );
     for (const phrase of RESUME_PHRASES) {
       expect(ops).toContain(phrase);
     }
@@ -73,17 +75,10 @@ describe("dual_stop_operator_followup_3273", () => {
   });
 
   it("changelog_and_commands_cite_3273", () => {
-    const changelog = readRepoFile("CHANGELOG.md");
-    // CHANGELOG is root-resident; helpers resolve content/ first then root.
-    // readRepoFile for CHANGELOG.md may need direct root read if not under content/.
-    expect(changelog.includes("#3273") || readRootChangelog().includes("#3273")).toBe(true);
+    // CHANGELOG.md is root-resident; helpers fall back from content/ to root.
+    expect(readRepoFile("CHANGELOG.md")).toContain("#3273");
     const commands = readRepoFile("commands.md");
     expect(commands).toContain("#3273");
     expect(commands).toContain("pursue residual");
   });
 });
-
-function readRootChangelog(): string {
-  // CHANGELOG.md lives at repo root (not content/); resolveContentPath falls back.
-  return readRepoFile("CHANGELOG.md");
-}
