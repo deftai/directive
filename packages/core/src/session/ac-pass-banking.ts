@@ -12,7 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
