@@ -225,13 +225,14 @@ export function runDoctorOrientationSection(
       detail: { throttle_skipped: false, captured_len: captured.join("").length },
     };
   } catch (exc) {
-    // fail-open for session:start composition
+    // Session:start continues, but do not persist as a successful gated doctor
+    // step (Greptile #3286) — next verify:session-ritual must re-run doctor.
     return {
       name: "doctor",
       status: "error",
-      ok: true,
-      exitCode: 0,
-      lines: [`[deft doctor] status: error (fail-open): ${String(exc)}`],
+      ok: false,
+      exitCode: 2,
+      lines: [`[deft doctor] status: error (session continues): ${String(exc)}`],
       shaMatch: false,
       durationMs: elapsedMs(started),
     };
@@ -292,9 +293,9 @@ export function runPreflightOrientationSection(
       section: {
         name: "preflight",
         status: "error",
-        ok: true,
-        exitCode: 0,
-        lines: [`[deft preflight] toolchain status: error (fail-open): ${String(exc)}`],
+        ok: false,
+        exitCode: 2,
+        lines: [`[deft preflight] toolchain status: error (session continues): ${String(exc)}`],
         shaMatch: false,
         durationMs: elapsedMs(started),
       },
