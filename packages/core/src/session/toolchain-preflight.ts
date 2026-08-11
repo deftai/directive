@@ -71,54 +71,19 @@ const CAUSE: Record<ToolchainPreflightTool, string> = {
   git: "git binary not found on PATH",
 };
 
-/** Gates that require the task runner. */
-export const TASK_DEPENDENT_GATE_IDS: readonly string[] = [
-  "verify:branch",
-  "verify:encoding",
-  "verify:cache-fresh",
-  "verify:orphan-active",
-  "verify:license-sync",
-  "verify:contract-drift",
-  "toolchain:check",
-  "toolchain:check-consumer",
-  "verify:stubs",
-  "verify:links",
-  "verify:rule-ownership",
-  "verify:biome-config",
-  "verify:content-manifest",
-  "verify:skill-external-fetch-gate",
-  "verify:cursor-tier1",
-  "verify:openclaw-tier1",
-  "verify:go-freeze",
-  "verify:bridge-drift",
-  "verify:forward-coverage",
-  "verify:test-boundary",
-  "verify:scope-provenance",
-  "verify:consumer-check-contract",
-  "verify:vbrief-conformance",
-  "verify:destructive-gh-verbs",
-  "verify:scm-boundary",
-  "verify:xbrief-drift",
-  "verify:no-task-runtime",
-  "verify:pack-drift",
-  "verify:wip-cap",
-  "verify:agents-md-budget",
-  "verify:eval-health-relocation",
-  "verify:eval-triggers-relocation",
-  "vbrief:validate",
-  "codebase:validate-structure",
-  "verify:codebase-map-fresh",
-  "verify-strategy-output",
-  "ts:check-lane",
-  "doctor",
-];
-
-/** Gates that specifically need a package manager / built dist. */
+/**
+ * Gates that specifically need a package manager / built dist.
+ * When task/node is missing, the orchestrator skips *all* scheduled gates
+ * (dynamic from gate-lists), not this static list — avoids hardcode drift.
+ */
 export const PNPM_DEPENDENT_GATE_IDS: readonly string[] = [
   "toolchain:check",
   "toolchain:check-consumer",
   "ts:check-lane",
 ];
+
+/** Sentinel skip id meaning "every gate in the active check composition". */
+export const SKIP_ALL_GATES = "*";
 
 function probeTool(
   tool: ToolchainPreflightTool,
@@ -198,9 +163,8 @@ export function runToolchainPreflight(
 
   const skip = new Set<string>();
   if (taskMissing || nodeMissing) {
-    for (const id of TASK_DEPENDENT_GATE_IDS) {
-      skip.add(id);
-    }
+    // Dynamic: orchestrator expands SKIP_ALL_GATES to the live gate list.
+    skip.add(SKIP_ALL_GATES);
   } else if (pnpmMissing) {
     for (const id of PNPM_DEPENDENT_GATE_IDS) {
       skip.add(id);

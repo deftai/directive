@@ -12,6 +12,7 @@ import { RunSummaryEmitter } from "../run-summary/emit.js";
 import type { CheckGateOutcome } from "../run-summary/types.js";
 import {
   runToolchainPreflight,
+  SKIP_ALL_GATES,
   type ToolchainPreflightResult,
 } from "../session/toolchain-preflight.js";
 import {
@@ -169,7 +170,17 @@ export function dispatchCachedTaskCheck(
         })
       : options.preflight;
 
-  const skipSet = new Set(preflight?.skipGateIds ?? []);
+  // Expand SKIP_ALL_GATES sentinel to the live composition (avoids hardcode drift).
+  const skipSet = new Set<string>();
+  for (const id of preflight?.skipGateIds ?? []) {
+    if (id === SKIP_ALL_GATES) {
+      for (const g of gates) {
+        skipSet.add(checkGateId(g));
+      }
+    } else {
+      skipSet.add(id);
+    }
+  }
   const degraded = preflight?.degraded === true;
 
   if (preflight?.degraded) {
@@ -178,9 +189,9 @@ export function dispatchCachedTaskCheck(
     }
   }
 
-  // When task/node are missing, every task-dependent gate is skipped — complete
-  // with explicit skip report and exit 0 (do not fail closed solely for missing
-  // framework tooling).
+  // When task/node are missing, every gate is skipped — report named skips and
+  // exit 2 (config/environment), never exit 0 green (#3282 Greptile P1).
+  // Missing framework tooling must not look like a clean product pass.
   if (degraded && skipSet.size > 0) {
     const allSkipped = gates.every((g) => skipSet.has(checkGateId(g)));
     if (allSkipped) {
@@ -197,10 +208,11 @@ export function dispatchCachedTaskCheck(
         formatDegradedSkipReport({
           reason: "done-gate toolchain incomplete at check start",
           skipped,
+          exitCode: 2,
         }),
       );
-      emitSummary(0, true);
-      return 0;
+      emitSummary(2, true);
+      return 2;
     }
   }
 
@@ -320,22 +332,25 @@ export function dispatchCachedTaskCheck(
     });
   }
 
-  // Partial degraded (some gates skipped for pnpm, others ran): surface summary.
-  if (degraded && gateOutcomes.some((o) => o.status === "skipped")) {
-    const skipped = gateOutcomes
-      .filter((o) => o.status === "skipped")
-      .map((o) => ({
-        id: o.id,
-        cause: o.cause ?? "degraded",
-        remedy: o.remedy ?? remedyForGate(o.id, o.cause ?? "degraded"),
-      }));
+  // Partial degraded (some gates skipped for pnpm, others ran): never report a
+  // green pass when required suite/toolchain gates were skipped (#3282 Greptile P1).
+  const skippedOutcomes = gateOutcomes.filter((o) => o.status === "skipped");
+  if (degraded && skippedOutcomes.length > 0) {
+    const skipped = skippedOutcomes.map((o) => ({
+      id: o.id,
+      cause: o.cause ?? "degraded",
+      remedy: o.remedy ?? remedyForGate(o.id, o.cause ?? "degraded"),
+    }));
     writeLines(
       formatDegradedSkipReport({
-        reason: "partial toolchain; product/hygiene gates that could run completed",
+        reason: "partial toolchain; skipped gates did not run",
         skipped,
         ran: gateOutcomes.filter((o) => o.status === "run").map((o) => o.id),
+        exitCode: 2,
       }),
     );
+    emitSummary(2, true);
+    return 2;
   }
 
   emitSummary(0, degraded);

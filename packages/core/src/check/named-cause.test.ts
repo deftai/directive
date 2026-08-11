@@ -55,7 +55,7 @@ describe("named-cause gate failures (#3282)", () => {
     });
     expect(lines.join("\n")).toContain("degraded mode");
     expect(lines.join("\n")).toContain("toolchain:check-consumer");
-    expect(lines.join("\n")).toContain("exit 0 (degraded)");
+    expect(lines.join("\n")).toContain("exit 2 (degraded/config)");
   });
 
   it("returns a generic remedy for unknown gates", () => {

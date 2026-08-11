@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PNPM_DEPENDENT_GATE_IDS,
   runToolchainPreflight,
-  TASK_DEPENDENT_GATE_IDS,
+  SKIP_ALL_GATES,
   toolchainPreflightToDict,
 } from "./toolchain-preflight.js";
 
@@ -38,9 +38,7 @@ describe("runToolchainPreflight (#3282)", () => {
     expect(result.lines.some((l) => l.includes("remedy:"))).toBe(true);
     // Does not embed env values
     expect(result.lines.join("\n")).not.toMatch(/DEFT_[A-Z]+=/);
-    for (const id of ["toolchain:check-consumer", "verify:branch", "doctor"]) {
-      expect(result.skipGateIds).toContain(id);
-    }
+    expect(result.skipGateIds).toContain(SKIP_ALL_GATES);
   });
 
   it("marks only pnpm-dependent gates when only pnpm is missing", () => {
@@ -63,7 +61,7 @@ describe("runToolchainPreflight (#3282)", () => {
     const dict = toolchainPreflightToDict(result);
     expect(dict.status).toBe("degraded");
     expect(JSON.stringify(dict)).not.toMatch(/DEFT_[A-Z]+=/);
-    expect(TASK_DEPENDENT_GATE_IDS.length).toBeGreaterThan(5);
+    expect(result.skipGateIds).toContain(SKIP_ALL_GATES);
   });
 
   it("probes CLI dist when no global deft and dist missing", () => {

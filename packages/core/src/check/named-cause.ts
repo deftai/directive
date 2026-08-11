@@ -144,7 +144,10 @@ export function formatDegradedSkipReport(input: {
   readonly skipped: readonly { id: string; cause: string; remedy: string }[];
   readonly ran?: readonly string[];
   readonly failed?: readonly string[];
+  /** Default 2 = config/environment (never green-pass skipped required gates). */
+  readonly exitCode?: number;
 }): readonly string[] {
+  const exitCode = input.exitCode ?? 2;
   const lines: string[] = [
     `check: degraded mode — ${input.reason}`,
     `check: skipped ${input.skipped.length} gate(s) due to missing framework toolchain (#3282):`,
@@ -159,7 +162,8 @@ export function formatDegradedSkipReport(input: {
     lines.push(`check: failed: ${input.failed.join(", ")}`);
   }
   lines.push(
-    "check: exit 0 (degraded) — missing framework tooling alone does not fail closed; product defects still fail non-zero",
+    `check: exit ${exitCode} (degraded/config) — skipped required gates are not a green pass; ` +
+      "install missing tooling (see remedies above) and re-run task check",
   );
   return lines;
 }

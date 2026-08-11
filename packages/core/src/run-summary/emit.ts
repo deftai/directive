@@ -3,11 +3,14 @@
  *
  * Emission never changes exit codes, never throws to callers, and prints at
  * most one warning when an *explicit* DEFT_RUN_SUMMARY_PATH write fails.
+ * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { appendFileSync, closeSync, mkdirSync, openSync, writeFileSync, writeSync } from "node:fs";
-import { dirname } from "node:path";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { containedWrite } from "../fs/contained-write.js";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import {
   type CheckInvocationRunSummaryPayload,
@@ -58,6 +61,45 @@ function sortKeysDeep(value: unknown): unknown {
 
 function lineToJson(line: RunSummaryLine): string {
   return JSON.stringify(sortKeysDeep(line));
+}
+
+function isNestedUnder(parent: string, child: string): boolean {
+  const rel = relative(resolve(parent), resolve(child));
+  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+/**
+ * Append (or replace) a run-summary line with symlink refusal + containment.
+ * Mirrors lifecycle/events.ts appendEventLogLine (#2766 / #2951 / #3282 Greptile P1).
+ */
+function writeRunSummaryLine(
+  projectRoot: string,
+  targetPath: string,
+  textLine: string,
+  mode: "append" | "replace",
+): void {
+  const targetAbs = resolve(targetPath);
+  const data = `${textLine}\n`;
+  if (isNestedUnder(projectRoot, targetAbs)) {
+    assertWriteTargetSafe(projectRoot, targetAbs);
+    containedWrite({
+      root: resolve(projectRoot),
+      target: targetAbs,
+      data,
+      mode,
+    });
+    return;
+  }
+  // Explicit path outside project: contain under the log parent (no symlink follow).
+  const parent = dirname(targetAbs);
+  mkdirSync(parent, { recursive: true });
+  assertWriteTargetSafe(parent, targetAbs);
+  containedWrite({
+    root: resolve(parent),
+    target: basename(targetAbs),
+    data,
+    mode,
+  });
 }
 
 /**
@@ -115,24 +157,14 @@ export class RunSummaryEmitter {
         return { emitted: true, destination: this.destination, line, warning: false };
       }
 
-      // file destination
+      // file destination — no-follow containment (#3282 Greptile P1 security)
       const { path, truncateOnSessionStart, explicit } = this.destination;
       try {
-        mkdirSync(dirname(path), { recursive: true });
-        if (event === "session_start" && truncateOnSessionStart) {
-          writeFileSync(path, `${text}\n`, "utf8");
-        } else {
-          // O_APPEND single-line append for concurrent session safety.
-          const fd = openSync(path, "a");
-          try {
-            writeSync(fd, `${text}\n`, null, "utf8");
-          } finally {
-            closeSync(fd);
-          }
-        }
+        const mode = event === "session_start" && truncateOnSessionStart ? "replace" : "append";
+        writeRunSummaryLine(this.projectRoot, path, text, mode);
         return { emitted: true, destination: this.destination, line, warning: false };
       } catch {
-        // Fail-open: explicit path → one warning; default path → silent.
+        // Symlink / containment refusal and I/O both fail-open.
         if (explicit && !this.warned) {
           this.warned = true;
           this.writeStderr(RUN_SUMMARY_WRITE_WARNING);

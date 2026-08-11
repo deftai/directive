@@ -6,7 +6,7 @@ describe("degraded skip report in check (#3282)", () => {
     vi.restoreAllMocks();
   });
 
-  it("exits 0 with skip report when task is missing (all gates skipped)", () => {
+  it("exits 2 (config) with skip report when task is missing — never green", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const started: string[] = [];
     const code = dispatchCachedTaskCheck("/fw", "/fw", {
@@ -25,58 +25,22 @@ describe("degraded skip report in check (#3282)", () => {
           },
         ],
         lines: ["[deft preflight] toolchain status: degraded"],
-        skipGateIds: [
-          "verify:branch",
-          "verify:encoding",
-          "verify:cache-fresh",
-          "verify:orphan-active",
-          "verify:license-sync",
-          "verify:contract-drift",
-          "toolchain:check",
-          "verify:stubs",
-          "verify:links",
-          "verify:rule-ownership",
-          "verify:biome-config",
-          "verify:content-manifest",
-          "verify:skill-external-fetch-gate",
-          "verify:cursor-tier1",
-          "verify:openclaw-tier1",
-          "verify:go-freeze",
-          "verify:bridge-drift",
-          "verify:forward-coverage",
-          "verify:test-boundary",
-          "verify:scope-provenance",
-          "verify:consumer-check-contract",
-          "verify:vbrief-conformance",
-          "verify:destructive-gh-verbs",
-          "verify:scm-boundary",
-          "verify:xbrief-drift",
-          "verify:no-task-runtime",
-          "verify:pack-drift",
-          "verify:wip-cap",
-          "verify:agents-md-budget",
-          "verify:eval-health-relocation",
-          "verify:eval-triggers-relocation",
-          "vbrief:validate",
-          "codebase:validate-structure",
-          "verify:codebase-map-fresh",
-          "verify-strategy-output",
-          "ts:check-lane",
-          "doctor",
-          "toolchain:check-consumer",
-        ],
+        // Sentinel expands to the live gate composition (#3282).
+        skipGateIds: ["*"],
       },
       onGateStart: (id) => started.push(id),
       gateSpawnFn: () => {
         throw new Error("gates must not run when fully degraded");
       },
     });
-    expect(code).toBe(0);
+    expect(code).toBe(2);
     expect(started).toEqual([]);
     const msg = errWrite.mock.calls.map((c) => String(c[0])).join("");
     expect(msg).toMatch(/degraded mode/);
     expect(msg).toMatch(/skipped \d+ gate/);
     expect(msg).toMatch(/go-task binary not found/);
+    expect(msg).toMatch(/exit 2/);
+    expect(msg).not.toMatch(/exit 0 \(degraded\)/);
   });
 
   it("prints named cause when a gate fails", () => {
