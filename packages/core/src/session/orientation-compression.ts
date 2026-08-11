@@ -23,7 +23,6 @@ import {
   type ComputeDepositShaOptions,
   computeDepositSha,
   DEPOSIT_SHA_MATCH_NOOP,
-  depositShaMatches,
   formatDepositShaMatchLine,
 } from "./deposit-sha.js";
 import {
@@ -386,26 +385,12 @@ export function runAgentsRefreshOrientationSection(
   }
 }
 
-/** Default max age for orientation cache-fresh sha-match short-circuit (hours). */
-export const ORIENTATION_CACHE_FRESH_MAX_AGE_HOURS = 24;
-
-function priorCacheFreshStillYoung(
-  prior: OrientationState | null | undefined,
-  now: Date,
-  maxAgeHours: number,
-): boolean {
-  if (!prior?.cache_fresh?.ok || !prior.cache_fresh.ts) return false;
-  const ts = Date.parse(prior.cache_fresh.ts);
-  if (Number.isNaN(ts)) return false;
-  const ageH = (now.getTime() - ts) / (1000 * 3600);
-  return ageH <= maxAgeHours;
-}
-
 /**
  * verify:cache-fresh orientation section (#3286).
- * Deposit-sha short-circuit only when the same deposit fingerprint matches AND
- * the prior successful evaluate is still within the age window — never skip
- * age/drift solely because payload/templates/engine are unchanged.
+ * Always runs the live evaluate (age + drift). Deposit fingerprint is recorded
+ * for orientation telemetry only — it must not suppress triage-cache freshness.
+ * When evaluate is already clean, surface a one-line sha-match-style no-op only
+ * if the message is the canonical deposit phrase (not used for shortcuts).
  */
 export function runCacheFreshOrientationSection(
   projectRoot: string,
@@ -415,32 +400,11 @@ export function runCacheFreshOrientationSection(
     now?: Date;
     evaluateOptions?: EvaluateOptions;
     evaluateFn?: typeof evaluateCacheFresh;
-    maxAgeHours?: number;
   },
 ): OrientationSectionResult {
   const started = performance.now();
-  const prior = options.prior ?? null;
-  const now = options.now ?? new Date();
-  const maxAgeHours = options.maxAgeHours ?? ORIENTATION_CACHE_FRESH_MAX_AGE_HOURS;
-  if (
-    prior &&
-    depositShaMatches(prior.deposit_sha, options.depositSha) &&
-    priorCacheFreshStillYoung(prior, now, maxAgeHours)
-  ) {
-    const line = formatDepositShaMatchLine("verify:cache-fresh");
-    return {
-      name: "cache_fresh",
-      status: "sha_match",
-      ok: true,
-      exitCode: 0,
-      lines: [line],
-      shaMatch: true,
-      depositSha: options.depositSha,
-      durationMs: elapsedMs(started),
-      detail: { age_gated: true, max_age_hours: maxAgeHours },
-    };
-  }
-
+  void options.prior;
+  void options.now;
   try {
     const evaluate = options.evaluateFn ?? evaluateCacheFresh;
     const result = evaluate(projectRoot, {
@@ -448,14 +412,23 @@ export function runCacheFreshOrientationSection(
       ...options.evaluateOptions,
     });
     const ok = result.code === 0;
-    const status: OrientationSectionStatus = ok ? "ok" : result.code === 2 ? "error" : "dirty";
+    // Tag as sha_match only when message already uses the canonical phrase
+    // (e.g. tests inject it) — never invent a shortcut past evaluate.
+    const shaMatch = ok && result.message.includes(DEPOSIT_SHA_MATCH_NOOP);
+    const status: OrientationSectionStatus = shaMatch
+      ? "sha_match"
+      : ok
+        ? "ok"
+        : result.code === 2
+          ? "error"
+          : "dirty";
     return {
       name: "cache_fresh",
       status,
       ok,
       exitCode: result.code,
       lines: [result.message],
-      shaMatch: false,
+      shaMatch,
       depositSha: options.depositSha,
       durationMs: elapsedMs(started),
       detail: { code: result.code },
@@ -587,4 +560,9 @@ export function runOrientationCompression(options: RunOrientationOptions): Orien
   };
 }
 
-export { computeDepositSha, DEPOSIT_SHA_MATCH_NOOP, depositShaMatches, formatDepositShaMatchLine };
+export {
+  computeDepositSha,
+  DEPOSIT_SHA_MATCH_NOOP,
+  depositShaMatches,
+  formatDepositShaMatchLine,
+} from "./deposit-sha.js";
