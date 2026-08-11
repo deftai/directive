@@ -111,8 +111,9 @@ function mintCommandWithDialect(
  * Paths are project-relative POSIX when inside projectRoot; otherwise as provided.
  * Parent / draft / repo tokens are shell-quoted when they contain whitespace or
  * shell metacharacters. When POSIX and PowerShell apostrophe escapes differ,
- * both forms are emitted so either shell can copy-paste correctly. Does not
- * include agent/CI/TTY gates — those remain on the CLI multi-factor path.
+ * both forms are emitted on separate labeled lines (`bash:` / `pwsh:`) so each
+ * is independently copy-pasteable. Does not include agent/CI/TTY gates — those
+ * remain on the CLI multi-factor path.
  */
 export function formatDecomposeStructuralMintCommand(
   parentPath: string,
@@ -129,8 +130,9 @@ export function formatDecomposeStructuralMintCommand(
   const repo = (options?.repo ?? "").trim();
   const posix = mintCommandWithDialect(parent, draft, repo, "posix");
   const pwsh = mintCommandWithDialect(parent, draft, repo, "pwsh");
+  // Separate lines so each form is independently copy-pasteable (Greptile PR #3300).
   if (posix === pwsh) return posix;
-  return `${posix}  (pwsh: ${pwsh})`;
+  return `bash: ${posix}\npwsh: ${pwsh}`;
 }
 
 /**

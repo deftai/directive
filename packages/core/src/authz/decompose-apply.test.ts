@@ -365,10 +365,10 @@ describe("decompose-apply helpers (#3239)", () => {
       "deft authz:grant -- --parent 'p$(whoami).json' --draft 'd`id`.json' " +
         "--repo 'o/r$(x)' --confirm",
     );
-    // Apostrophe escapes differ: emit both POSIX and PowerShell forms.
+    // Apostrophe escapes differ: separate labeled lines for independent paste.
     expect(formatDecomposeStructuralMintCommand("path'with'quotes.json", "draft.json")).toBe(
-      "deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm" +
-        "  (pwsh: deft authz:grant -- --parent 'path''with''quotes.json' --draft draft.json --confirm)",
+      "bash: deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm\n" +
+        "pwsh: deft authz:grant -- --parent 'path''with''quotes.json' --draft draft.json --confirm",
     );
     // Newlines flattened so deny markdown cannot break out of a line.
     expect(formatDecomposeStructuralMintCommand("a\nb.json", "c\rd.json")).toBe(
