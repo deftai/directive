@@ -370,10 +370,11 @@ describe("decompose-apply helpers (#3239)", () => {
       "bash: deft authz:grant -- --parent 'path'\\''with'\\''quotes.json' --draft draft.json --confirm\n" +
         "pwsh: deft authz:grant -- --parent 'path''with''quotes.json' --draft draft.json --confirm",
     );
-    // Newlines flattened so deny markdown cannot break out of a line.
-    expect(formatDecomposeStructuralMintCommand("a\nb.json", "c\rd.json")).toBe(
-      "deft authz:grant -- --parent 'a b.json' --draft 'c d.json' --confirm",
-    );
+    // Newline/NUL paths: refuse with rename guidance (no rewritten fake path).
+    const refused = formatDecomposeStructuralMintCommand("a\nb.json", "c\rd.json");
+    expect(refused).toContain("rename parent/draft/repo");
+    expect(refused).toContain("deft authz:grant -- --parent <parent.xbrief.json>");
+    expect(refused).not.toContain("a b.json");
   });
 
   it("missing-grant deny includes exact mint command with paths (#3291)", () => {
