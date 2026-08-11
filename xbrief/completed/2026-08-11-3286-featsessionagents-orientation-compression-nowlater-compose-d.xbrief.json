@@ -21,80 +21,90 @@
         "id": "compose-doctor-and-preflight",
         "title": "Compose doctor and preflight",
         "status": "completed",
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a mutation session start, when orientation runs, then output includes doctor and preflight sections each with their own status line.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
-          "recorded_at": "2026-08-11T17:12:09Z",
-          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+            "recorded_at": "2026-08-11T17:12:09Z",
+            "recorded_by": "agent4/feat/3286-orientation-compression-now"
+          }
         }
       },
       {
         "id": "deposit-sha-fast-path",
         "title": "Deposit-sha fast-path",
         "status": "completed",
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given an unchanged deposit sha on a second session, when agents:refresh and verify:cache-fresh run, then each prints a one-line sha-match no-op and performs no refresh work.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
-          "recorded_at": "2026-08-11T17:12:09Z",
-          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+            "recorded_at": "2026-08-11T17:12:09Z",
+            "recorded_by": "agent4/feat/3286-orientation-compression-now"
+          }
         }
       },
       {
         "id": "compact-orientation-flag",
         "title": "Compact orientation flag",
         "status": "completed",
-        "effort": "S",
         "narrative": {
           "Acceptance": "Given --compact or DEFT_SESSION_COMPACT, when session:start runs, then orientation uses terse machine format while default verbose output remains unchanged.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
-          "recorded_at": "2026-08-11T17:12:09Z",
-          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        "metadata": {
+          "effort": "S",
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+            "recorded_at": "2026-08-11T17:12:09Z",
+            "recorded_by": "agent4/feat/3286-orientation-compression-now"
+          }
         }
       },
       {
         "id": "read-only-routing-preserved",
         "title": "Read-only routing preserved",
         "status": "completed",
-        "effort": "S",
         "narrative": {
           "Acceptance": "Given a read-only session under #2176, when session:start runs after this change, then mutation ritual steps remain deferred exactly as before.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
-          "recorded_at": "2026-08-11T17:12:09Z",
-          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        "metadata": {
+          "effort": "S",
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+            "recorded_at": "2026-08-11T17:12:09Z",
+            "recorded_by": "agent4/feat/3286-orientation-compression-now"
+          }
         }
       },
       {
         "id": "dual-path-later-remains-open",
         "title": "Dual-path Later remains open",
         "status": "completed",
-        "effort": "S",
         "narrative": {
           "Acceptance": "Given Now deliverables complete, when the issue is closed for Now, then Later unified orient graduation stays open with documented telemetry trigger.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
-          "recorded_at": "2026-08-11T17:12:09Z",
-          "recorded_by": "agent4/feat/3286-orientation-compression-now"
+        "metadata": {
+          "effort": "S",
+          "evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/session/orientation-compression.test.ts + session-start-orientation.test.ts + deposit-sha.test.ts",
+            "recorded_at": "2026-08-11T17:12:09Z",
+            "recorded_by": "agent4/feat/3286-orientation-compression-now"
+          }
         }
       }
     ],
@@ -162,17 +172,17 @@
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
       "completedAt": "2026-08-11T18:36:16Z",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "acceptance": {
+        "commands": [
+          "pnpm exec vitest run packages/core/src --reporter=dot -t session:start",
+          "pnpm exec vitest run packages/core/src --reporter=dot -t compact"
+        ],
+        "none_stated": false,
+        "source": "derived"
+      }
     },
-    "updated": "2026-08-11T18:36:16Z",
-    "id": "story-3286-orientation-compression-now",
-    "acceptance": {
-      "commands": [
-        "pnpm exec vitest run packages/core/src --reporter=dot -t session:start",
-        "pnpm exec vitest run packages/core/src --reporter=dot -t compact"
-      ],
-      "none_stated": false,
-      "source": "derived"
-    }
+    "updated": "2026-08-11T18:41:07.701Z",
+    "id": "story-3286-orientation-compression-now"
   }
 }
