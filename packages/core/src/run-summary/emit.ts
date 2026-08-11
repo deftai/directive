@@ -203,4 +203,3 @@ export function emitRunSummaryEvent(
   const emitter = new RunSummaryEmitter(options);
   return emitter.emit(options.event, options.payload);
 }
-
