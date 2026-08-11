@@ -55,7 +55,7 @@ function pushUnique(
   source: LiteralAcceptanceSource,
   sourceSpan: string | null,
 ): void {
-  // Refuse unsafe / non-allowlisted commands at capture (defense in depth with run gate).
+  // Refuse unsafe / non-allowlisted commands (defense in depth with run gate).
   if (!evaluateCommandSafety(command).ok) return;
   const key = command;
   if (seen.has(key)) return;

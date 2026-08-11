@@ -92,5 +92,30 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
       reason: `first token ${JSON.stringify(first)} is not in the literal-AC allowlist`,
     };
   }
+  // Package managers: only test/exec/run vitest/check/--version (no arbitrary scripts / net).
+  if (first === "pnpm" || first === "npm" || first === "npx" || first === "yarn" || first === "bun") {
+    const rest = trimmed.slice(end).trim().toLowerCase();
+    if (rest.length === 0) {
+      return { ok: false, reason: "package manager requires a restricted subcommand" };
+    }
+    const allowedPm =
+      rest === "test" ||
+      rest === "--version" ||
+      rest === "-v" ||
+      rest.startsWith("test ") ||
+      rest.startsWith("exec vitest") ||
+      rest.startsWith("exec deft") ||
+      rest.startsWith("run test") ||
+      rest.startsWith("run check") ||
+      rest.startsWith("run vitest");
+    if (!allowedPm) {
+      return {
+        ok: false,
+        reason:
+          "package-manager args must be test|exec vitest|run test|run check|--version " +
+          "(arbitrary scripts/network install denied for ambient-authority)",
+      };
+    }
+  }
   return { ok: true, reason: null };
 }
