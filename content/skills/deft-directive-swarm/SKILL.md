@@ -43,7 +43,6 @@ The swarm skill creates branches per agent so the guard is mostly informational 
 - User says "run agents", "parallel agents", "swarm", or "launch N agents on stories"
 - Multiple independent story-level xBRIEFs in `xbrief/active/` need to be worked on simultaneously
 - A batch of stories are ready and have no mutual dependencies
-- Operator re-authorizes a dual-stopped / hard-stopped / conf-hold unit: **pursue residual**, **follow-up hard-stop**, **same as conf-hold**, **continue dual-stopped PR**, or **re-babysit residual** — route to § Operator follow-up after dual-stop / hard stop (#3273)
 
 ## Prerequisites
 
@@ -139,13 +138,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! On failure stop: halt automatic continuation; emit an operator-visible report (what was tried, what is missing, what human decision is needed). ⊗ Silent re-dispatch or infinite monitor continuation after the envelope is exhausted.
 
-! **Halt-report resume line (MUST, #3273 / AC6):** Terminal dual-stop / hard-stop / conf-residual halt reports MUST end with residual class + conf (if any) + PR URL, example resume phrases (**pursue residual** | **follow-up hard-stop** | **same as conf-hold** | **continue dual-stopped PR**), and pointer to § Operator follow-up after dual-stop / hard stop. Full template: [`references/core-phase-4.md`](references/core-phase-4.md).
-
 ! Composes with minimal-subgraph repair guidance (#2439): keep repairs minimal **and** bounded by dual-stop -- minimal repair is not a license to thrash. Durable delivery/acceptance circuit-breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, unit ledger). Docs: `docs/delivery-attempt.md`. Skill defaults remain behavioral; mechanical gate lives in core.
-
-### Operator follow-up after dual-stop / hard stop (#3273)
-
-Operator-initiated **one residual pass** after dual-stop / hard stop / conf-hold — not automatic re-thrash. Depth (steps, anti-thrash, conf-floor this-PR-only): [`references/core-phase-4.md`](references/core-phase-4.md) same section title. Thin pointer: dual-invoke `pr:merge-ready` / `pr:watch`; spawn **one** residual worker or review-cycle owner; document authorized conf floor for this PR only as human-merge/override trail (⊗ silent policy rewrite; `pr:merge-ready` still uses policy floor); re-stop without new consent. ⊗ Unlimited auto-retry. ⊗ Parent self-implement (#2843). Portable consumer + maintainer.
 
 ## Runtime Capability Detection (summary)
 
@@ -217,7 +210,6 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
 - ⊗ Misclassify Claude Code as `cursor-composer` / `generic-terminal` (#3134)
 - ⊗ Run multi-iteration repair/monitor loops without a failure stop or with silent continuation after the envelope is exhausted (#2442)
-- ⊗ Dual-stop/hard-stop halt without #3273 resume line, or unlimited residual auto-retry without new operator consent (#3273)
 - ⊗ Force a second full dispatch on a retain-capable host solely for a mid-scope gate, or invent retain on one-shot hosts (#3158)
 - ⊗ Use retained-child messaging for mid-run constitution self-edit (#3158 / #3164)
 
