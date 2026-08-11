@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectHardEffortBudget,
   ENV_HARD_BUDGET,
+  ENV_HOST_EFFORT_BUDGET,
   ENV_MAX_BUDGET,
   ENV_MAX_TURNS,
   ENV_REMAINING_BUDGET,
@@ -10,6 +11,7 @@ import {
   formatDeepeningSkippedNote,
   formatEffortBudgetLines,
   maybeFormatEffortBudgetLines,
+  parseHostEffortBudgetEnv,
   recommendVerificationDepth,
 } from "./effort-budget.js";
 
@@ -294,7 +296,8 @@ describe("host descriptor edge branches (#3266)", () => {
       environ: { REMAINING_TURNS: "5" },
       hostDescriptor: { maxCost: 12 },
     });
-    expect(budget.kind).toBe("max-cost");
+    // Remaining turns alone count as a turns signal (#3266) → both with cost.
+    expect(budget.kind).toBe("both");
     expect(budget.maxBudget).toBe(12);
     expect(budget.remainingTurns).toBe(5);
   });
@@ -341,5 +344,43 @@ describe("host descriptor edge branches (#3266)", () => {
       if (prev === undefined) delete process.env[ENV_MAX_TURNS];
       else process.env[ENV_MAX_TURNS] = prev;
     }
+  });
+
+  it("remaining-only env still detects hard cap", () => {
+    const budget = detectHardEffortBudget({
+      environ: { [ENV_REMAINING_TURNS]: "8" },
+    });
+    expect(budget.detected).toBe(true);
+    expect(budget.posture).toBe("hard-capped");
+    expect(budget.kind).toBe("max-turns");
+    expect(budget.maxTurns).toBeNull();
+    expect(budget.remainingTurns).toBe(8);
+  });
+
+  it("remaining-only cost env detects max-cost", () => {
+    const budget = detectHardEffortBudget({
+      environ: { [ENV_REMAINING_BUDGET]: "2" },
+    });
+    expect(budget.kind).toBe("max-cost");
+    expect(budget.remainingBudget).toBe(2);
+  });
+
+  it("DEFT_HOST_EFFORT_BUDGET JSON wires host descriptor without seams", () => {
+    const parsed = parseHostEffortBudgetEnv({
+      [ENV_HOST_EFFORT_BUDGET]: JSON.stringify({ maxTurns: 90, hardBudget: true }),
+    });
+    expect(parsed).toMatchObject({ maxTurns: 90 });
+    const budget = detectHardEffortBudget({
+      environ: {
+        [ENV_HOST_EFFORT_BUDGET]: JSON.stringify({ maxTurns: 90 }),
+      },
+    });
+    expect(budget.maxTurns).toBe(90);
+    expect(budget.sources.some((s) => s.includes("HOST_EFFORT"))).toBe(true);
+  });
+
+  it("parseHostEffortBudgetEnv fails open on bad JSON", () => {
+    expect(parseHostEffortBudgetEnv({ [ENV_HOST_EFFORT_BUDGET]: "not-json" })).toBeNull();
+    expect(parseHostEffortBudgetEnv({ [ENV_HOST_EFFORT_BUDGET]: "[]" })).toBeNull();
   });
 });

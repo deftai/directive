@@ -27,6 +27,12 @@ export const ENV_REMAINING_BUDGET = "DEFT_REMAINING_BUDGET";
  * (truthy → hard-capped with unknown numeric ceiling).
  */
 export const ENV_HARD_BUDGET = "DEFT_HARD_BUDGET";
+/**
+ * Optional JSON host capability fragment for effort caps (#1461 / #3266).
+ * Example: `{"maxTurns":120,"maxBudget":10,"hardBudget":true}`.
+ * Production session:start merges this when `effortBudgetSeams.hostDescriptor` is unset.
+ */
+export const ENV_HOST_EFFORT_BUDGET = "DEFT_HOST_EFFORT_BUDGET";
 
 /** Additional env keys accepted as max-turns aliases (harness / CLI common). */
 export const MAX_TURNS_ENV_ALIASES = [
@@ -158,13 +164,40 @@ function hostTruthy(
 }
 
 /**
+ * Parse host effort-budget descriptor from env JSON (#1461 / #3266 production wire).
+ * Returns null when unset or unparseable (fail-open).
+ */
+export function parseHostEffortBudgetEnv(
+  environ: Readonly<Record<string, string | undefined>> = process.env,
+): Readonly<Record<string, unknown>> | null {
+  const raw = (environ[ENV_HOST_EFFORT_BUDGET] ?? "").trim();
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Readonly<Record<string, unknown>>;
+    }
+  } catch {
+    // fail-open
+  }
+  return null;
+}
+
+/**
  * Detect a hard turn/cost budget from env and optional host descriptor (#3266).
  * Defaults to unbounded when no signal is present.
+ * When `hostDescriptor` is omitted, falls back to `DEFT_HOST_EFFORT_BUDGET` JSON.
  */
 export function detectHardEffortBudget(input: DetectHardEffortBudgetInput = {}): HardEffortBudget {
   const environ = input.environ ?? process.env;
-  const host = input.hostDescriptor ?? null;
+  const host =
+    input.hostDescriptor !== undefined
+      ? (input.hostDescriptor ?? null)
+      : parseHostEffortBudgetEnv(environ);
   const sources: string[] = [];
+  if (host !== null && input.hostDescriptor === undefined) {
+    sources.push(`env:${ENV_HOST_EFFORT_BUDGET}`);
+  }
 
   const turnsEnv = firstNumericFromEnv(environ, MAX_TURNS_ENV_ALIASES);
   const budgetEnv = firstNumericFromEnv(environ, MAX_BUDGET_ENV_ALIASES);
@@ -202,8 +235,9 @@ export function detectHardEffortBudget(input: DetectHardEffortBudgetInput = {}):
     }
   }
 
-  const hasTurns = maxTurns !== null;
-  const hasCost = maxBudget !== null;
+  // Remaining-only signals still imply a hard cap even when max is unknown (#3266 Greptile).
+  const hasTurns = maxTurns !== null || remainingTurnsEnv.value !== null;
+  const hasCost = maxBudget !== null || remainingBudgetEnv.value !== null;
   let kind: EffortBudgetKind = "none";
   if (hasTurns && hasCost) kind = "both";
   else if (hasTurns) kind = "max-turns";

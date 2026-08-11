@@ -596,9 +596,12 @@ function resolveEffortBudget(options: SessionStartOptions): {
 } {
   try {
     const seams = options.effortBudgetSeams ?? {};
+    const environ = seams.environ ?? options.env ?? process.env;
+    // Production wire: hostDescriptor from seams OR DEFT_HOST_EFFORT_BUDGET JSON (#3266).
+    // detectHardEffortBudget already falls back to the env JSON when hostDescriptor is omitted.
     return maybeFormatEffortBudgetLines({
-      ...seams,
-      environ: seams.environ ?? options.env ?? process.env,
+      environ,
+      hostDescriptor: seams.hostDescriptor,
     });
   } catch {
     // best-effort — session start must not abort on effort-budget probe failures (#3266)
