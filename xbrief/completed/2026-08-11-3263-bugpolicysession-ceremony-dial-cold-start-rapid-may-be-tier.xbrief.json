@@ -1,0 +1,135 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Post-#3214 ceremony dial cold-starts rapid for incomplete inputs. Mid-tier hard tasks may start too light and escalate too late, adding turns without recovery. This story makes cold-start depth tier-conditional after telemetry confirms the signature. Frontier cold-start rapid stays; mid and low cold-start standard by default.",
+    "updated": "2026-08-11T01:44:10Z"
+  },
+  "plan": {
+    "title": "bug(policy,session): ceremony dial - cold-start rapid may be tier-hostile on hard tasks; make start depth tier-conditional (follows #3214)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Post-#3214 ceremony dial cold-starts rapid for incomplete inputs. Mid-tier hard tasks may start too light and escalate too late, adding turns without recovery. This story makes cold-start depth tier-conditional after telemetry confirms the signature. Frontier cold-start rapid stays; mid and low cold-start standard by default.",
+      "UserStory": "As an operator on a mid-tier model, I want cold-start ceremony depth to match model tier, so that hard tasks begin with enough structure without forcing frontier models into heavier starts.",
+      "ImplementationPlan": "Edit packages/core/src/policy/ceremony-dial.ts and ceremony-dial.test.ts (and session-start call sites that consume dial selection if needed). First: document or add a read path for dial depth/provisional reasons already recorded at session start (#3214) so operators can audit failed-task depth. If matrix change proceeds: mid/low tier cold-start selects standard; frontier cold-start remains rapid; keep escalate-on-evidence. Unit tests for tier matrix. Optional: measure/log escalation transition overhead. Run pnpm exec vitest run packages/core/src/policy packages/core/src/session and task check. Cite #3263 in CHANGELOG.md. Do not claim fix without tests matching matrix AC. Composes #3214 #1581 #759.",
+      "Origin": "https://github.com/deftai/directive/issues/3263",
+      "Overview": "bug(policy,session): ceremony dial - cold-start rapid may be tier-hostile on hard tasks; make start depth tier-conditional (follows #3214)",
+      "Labels": "bug, agent-experience",
+      "NonGoals": "Claiming benchmark scores publicly; changing frontier rapid without evidence; AGENTS budget (#865) as this story.",
+      "AcceptanceJustification": "Items map to issue acceptance sketch."
+    },
+    "items": [
+      {
+        "title": "Tier-conditional cold-start matrix",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given model tier mid or low and cold-start incomplete inputs, when ceremony dial selects depth, default depth is standard not rapid; frontier cold-start remains rapid unless override."
+        },
+        "metadata": {
+          "evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3274 merge d2be7a234b2c6b6bcad626beabb9576a96306664",
+            "recorded_at": "2026-08-11T01:44:03.718Z",
+            "recorded_by": "leaf-3263-ceremony-dial"
+          }
+        }
+      },
+      {
+        "title": "Unit tests",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given ceremony-dial unit tests, when vitest runs, mid/low cold-start and frontier cold-start matrix cases pass."
+        },
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "pnpm exec vitest run packages/core/src/policy/ceremony-dial.test.ts (34 passed)",
+            "recorded_at": "2026-08-11T01:44:03.718Z",
+            "recorded_by": "leaf-3263-ceremony-dial"
+          }
+        }
+      },
+      {
+        "title": "CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG [Unreleased], when the PR lands, it cites #3263."
+        },
+        "metadata": {
+          "evidence": {
+            "kind": "review",
+            "pointer": "PR #3274 CHANGELOG [Unreleased] cites #3263; Greptile conf 5/5",
+            "recorded_at": "2026-08-11T01:44:03.718Z",
+            "recorded_by": "leaf-3263-ceremony-dial"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "cohort",
+      "ceremony-dial"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3263",
+        "title": "#3263"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3214",
+        "title": "#3214"
+      }
+    ],
+    "updated": "2026-08-11T01:44:10Z",
+    "id": "3263-ceremony-dial-tier-conditional-cold-start",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/ceremony-dial.ts",
+          "packages/core/src/policy/ceremony-dial.test.ts",
+          "packages/core/src/session",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy packages/core/src/session",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3263",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "cohort-3263-ceremony-dial",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body + code pointers.",
+        "acceptance_criteria_justification": "Items map to issue AC sketch."
+      },
+      "capacityBucket": "bugfix",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3274,
+        "prBase": "master",
+        "mergeCommit": "d2be7a234b2c6b6bcad626beabb9576a96306664",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d2be7a234b2c6b6bcad626beabb9576a96306664",
+        "verifiedAt": "2026-08-11T01:44:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T01:44:10Z"
+    }
+  }
+}

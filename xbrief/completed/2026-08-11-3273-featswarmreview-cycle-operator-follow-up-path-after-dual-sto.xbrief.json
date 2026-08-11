@@ -1,0 +1,132 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Operator follow-up after dual-stop in swarm and review-cycle skills",
+    "updated": "2026-08-11T01:55:13Z"
+  },
+  "plan": {
+    "id": "3273-operator-followup-after-dual-stop",
+    "title": "feat(swarm,review-cycle): operator follow-up path after dual-stop / hard stop (consumer + maintainer)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Dual-stop correctly halts thrash but operators often still want one residual pass on conf holds or hard-stopped PRs. Today the resume path is ad-hoc chat. This story adds a named low-token operator follow-up section to deft-directive-swarm and deft-directive-review-cycle, with a mandatory halt-report resume line so agents discover it without prior chat memory. Consumer and maintainer deposits share the same skill text.",
+      "UserStory": "As an operator, I want a named swarm and review-cycle follow-up path after dual-stop with a resume line in the halt report, so that I can re-authorize one residual pass without inventing a new babysit prompt each time.",
+      "ImplementationPlan": "Edit content/skills/deft-directive-swarm/SKILL.md and references (core-phase-4.md dual-stop handback, core-ops.md halt report, core-phase-5-6 if needed) and content/skills/deft-directive-review-cycle/SKILL.md. Add named section Operator follow-up after dual-stop or hard stop: triggers, one residual pass, authorized conf floor this PR only, anti thrash. Require halt-report resume line with residual class, example phrases (pursue residual, follow-up hard-stop, same as conf-hold, continue dual-stopped PR), and skill section pointer. When to Use trigger list. Optional one-line commands.md pointer. Run packs:render if skills are pack-generated. Content-contract tests under packages/core/src/content-contracts/skills for section markers and halt-report markers. Cite #3273 in CHANGELOG. Portable for consumer and maintainer. Do not lower minGreptileConfidence. Do not allow parent self-implement after merge-ready leaf (#2843).",
+      "Origin": "https://github.com/deftai/directive/issues/3273",
+      "Overview": "feat(swarm,review-cycle): operator follow-up path after dual-stop / hard stop (consumer + maintainer)",
+      "Labels": "enhancement, swarm, agent-experience",
+      "NonGoals": "Removing dual-stop; unlimited auto-retry; parent self-implement; new host product; global conf policy change.",
+      "AcceptanceJustification": "Items map to issue AC1-AC9."
+    },
+    "items": [
+      {
+        "title": "Swarm follow-up section",
+        "narrative": {
+          "Acceptance": "Given the swarm skill after the PR, when an agent opens the dual-stop or residual handback path, a named section documents operator follow-up steps and one residual pass then re-stop."
+        },
+        "status": "completed"
+      },
+      {
+        "title": "Review-cycle follow-up section",
+        "narrative": {
+          "Acceptance": "Given the review-cycle skill after the PR, when conf-hold or residual dual-stop exits, a matching operator follow-up section exists under operator consent."
+        },
+        "status": "completed"
+      },
+      {
+        "title": "Halt-report resume line",
+        "narrative": {
+          "Acceptance": "Given dual-stop or hard-stop or conf-residual halt report templates in swarm and review-cycle skill surfaces, when the report is rendered, it includes residual class, example resume phrases, and skill section pointer."
+        },
+        "status": "completed"
+      },
+      {
+        "title": "Triggers and portability",
+        "narrative": {
+          "Acceptance": "Given When to Use lists, when operator says pursue residual or follow-up hard-stop or same as conf-hold, the skill routes to the follow-up section and guidance works for consumer and maintainer deposits."
+        },
+        "status": "completed"
+      },
+      {
+        "title": "Contract tests and CHANGELOG",
+        "narrative": {
+          "Acceptance": "Given packages/core content-contracts skill tests and CHANGELOG, when the PR lands, markers for follow-up section and halt resume are asserted and Unreleased cites #3273."
+        },
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "swarm",
+      "cohort",
+      "dual-stop"
+    ],
+    "references": [
+      {
+        "title": "#3273",
+        "uri": "https://github.com/deftai/directive/issues/3273",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "title": "#2442",
+        "uri": "https://github.com/deftai/directive/issues/2442",
+        "type": "x-xbrief/refs"
+      },
+      {
+        "title": "#2843",
+        "uri": "https://github.com/deftai/directive/issues/2843",
+        "type": "x-xbrief/refs"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-swarm",
+          "content/skills/deft-directive-review-cycle",
+          "packages/core/src/content-contracts/skills",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills",
+          "task check"
+        ],
+        "expected_outputs": [
+          "skill sections",
+          "halt-report markers",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "cohort-3273-dual-stop-followup",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body AC + skill paths.",
+        "acceptance_criteria_justification": "Items map to issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3277,
+        "prBase": "master",
+        "mergeCommit": "fded0281b20926a64267a667e6d44ffa811a1471",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fded0281b20926a64267a667e6d44ffa811a1471",
+        "verifiedAt": "2026-08-11T01:55:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T01:55:13Z"
+    },
+    "updated": "2026-08-11T01:55:13Z"
+  }
+}
