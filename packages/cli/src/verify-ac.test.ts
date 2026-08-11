@@ -38,13 +38,22 @@ describe("verify:ac run (#3284)", () => {
     expect(code).toBe(0);
   });
 
-  it("fails closed when multiple active xbriefs even with soft-missing (#3284 P1)", () => {
+  it("evaluates ALL active xbriefs under soft-missing multi-active (#3284)", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-multi-"));
     const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(active, "a.xbrief.json"), JSON.stringify({ plan: { items: [] } }), "utf8");
-    writeFileSync(join(active, "b.xbrief.json"), JSON.stringify({ plan: { items: [] } }), "utf8");
-    expect(run(["--project-root", root, "--soft-missing-xbrief"])).toBe(1);
+    const body = JSON.stringify({
+      plan: {
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+      },
+    });
+    writeFileSync(join(active, "a.xbrief.json"), body, "utf8");
+    writeFileSync(join(active, "b.xbrief.json"), body, "utf8");
+    // Check composition runs every active scope (both empty floor → pass).
+    expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(0);
+    // Standalone without soft-missing still requires an explicit path.
+    expect(run(["--project-root", root])).toBe(1);
   });
 
   it("exits 2 when no xbrief and soft-missing off", () => {

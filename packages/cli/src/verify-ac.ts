@@ -76,21 +76,21 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-/** Result of scanning lifecycle active/ for a unique scope artifact. */
+/** Result of scanning lifecycle active/ for scope artifacts. */
 export type FindActiveXbriefResult =
   | { readonly kind: "one"; readonly path: string }
   | { readonly kind: "none" }
-  | { readonly kind: "ambiguous"; readonly count: number; readonly dir: string };
+  | { readonly kind: "many"; readonly paths: readonly string[]; readonly dir: string };
 
-function findActiveXbriefDetailed(projectRoot: string): FindActiveXbriefResult {
+function listActiveXbriefs(projectRoot: string): FindActiveXbriefResult {
   for (const dirName of ["xbrief", "vbrief"]) {
     const active = join(projectRoot, dirName, "active");
     if (!existsSync(active)) continue;
     let names: string[] = [];
     try {
-      names = readdirSync(active).filter(
-        (n) => n.endsWith(".xbrief.json") || n.endsWith(".vbrief.json"),
-      );
+      names = readdirSync(active)
+        .filter((n) => n.endsWith(".xbrief.json") || n.endsWith(".vbrief.json"))
+        .sort();
     } catch {
       continue;
     }
@@ -98,10 +98,49 @@ function findActiveXbriefDetailed(projectRoot: string): FindActiveXbriefResult {
       return { kind: "one", path: join(active, names[0] as string) };
     }
     if (names.length > 1) {
-      return { kind: "ambiguous", count: names.length, dir: active };
+      return {
+        kind: "many",
+        paths: names.map((n) => join(active, n)),
+        dir: active,
+      };
     }
   }
   return { kind: "none" };
+}
+
+/** Evaluate one or many xBRIEF paths; return worst non-zero code (fail closed). */
+function evaluatePaths(
+  paths: readonly string[],
+  options: {
+    readonly projectRoot: string;
+    readonly quiet: boolean;
+    readonly softMissingXbrief: boolean;
+  },
+): number {
+  let worst = 0;
+  for (const path of paths) {
+    if (!options.quiet && paths.length > 1) {
+      process.stdout.write(`verify:ac — evaluating ${path}\n`);
+    }
+    const result = evaluateVerifyAcFromPath(path, {
+      projectRoot: options.projectRoot,
+      quiet: options.quiet,
+      softMissingXbrief: options.softMissingXbrief,
+      checkIntegrated: options.softMissingXbrief,
+    });
+    if (result.message.length > 0) {
+      if (result.ok) {
+        process.stdout.write(`${result.message}\n`);
+      } else {
+        process.stderr.write(`${result.message}\n`);
+      }
+    }
+    if (result.code !== 0 && (worst === 0 || result.code > worst)) {
+      // Prefer code 1 (fail) over 2 when both present — still non-zero.
+      worst = result.code;
+    }
+  }
+  return worst;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -120,19 +159,31 @@ export function run(argv: string[]): number {
   }
 
   const projectRoot = resolve(args.projectRoot);
-  let xbriefPath = args.xbriefPath !== null ? resolve(projectRoot, args.xbriefPath) : null;
-  if (xbriefPath === null) {
-    const found = findActiveXbriefDetailed(projectRoot);
+  let paths: string[] = [];
+  if (args.xbriefPath !== null) {
+    paths = [resolve(projectRoot, args.xbriefPath)];
+  } else {
+    const found = listActiveXbriefs(projectRoot);
     if (found.kind === "one") {
-      xbriefPath = found.path;
-    } else if (found.kind === "ambiguous") {
-      // Greptile P1 #3284: multi-active must not soft-pass as "missing" — fail closed.
-      process.stderr.write(
-        `verify_ac: ambiguous active scope (${found.count} artifacts in ${found.dir}).\n` +
-          "  Pass an explicit xBRIEF path: task verify:ac -- <path-to-active.xbrief.json>\n" +
-          "  Refs #3284 product-first done-gate (must not skip mandatory AC under multi-active)\n",
-      );
-      return 1;
+      paths = [found.path];
+    } else if (found.kind === "many") {
+      // Greptile #3284: multi-active must verify EVERY active scope, not skip.
+      if (args.softMissingXbrief || args.captureOnly) {
+        paths = [...found.paths];
+        if (!args.quiet) {
+          process.stdout.write(
+            `verify:ac multi-active (#3284): evaluating ${paths.length} scopes in ${found.dir}\n`,
+          );
+        }
+      } else {
+        process.stderr.write(
+          `verify_ac: ${found.paths.length} active scopes in ${found.dir}.\n` +
+            "  Pass an explicit path, or use check composition (--soft-missing-xbrief) to evaluate all.\n" +
+            "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
+            "  Refs #3284 product-first done-gate\n",
+        );
+        return 1;
+      }
     } else if (args.softMissingXbrief) {
       if (!args.quiet) {
         process.stdout.write(
@@ -151,68 +202,62 @@ export function run(argv: string[]): number {
   }
 
   if (args.captureOnly) {
-    try {
-      const data = asRecord(JSON.parse(readFileSync(xbriefPath, "utf8")));
-      if (data === null) {
-        process.stderr.write("verify_ac: xBRIEF top-level is not an object\n");
+    // Capture-only: report each path (multi-active) as a list.
+    const reports: unknown[] = [];
+    for (const xbriefPath of paths) {
+      try {
+        const data = asRecord(JSON.parse(readFileSync(xbriefPath, "utf8")));
+        if (data === null) {
+          process.stderr.write(`verify_ac: xBRIEF top-level is not an object: ${xbriefPath}\n`);
+          return 2;
+        }
+        const plan = asRecord(data.plan);
+        if (plan === null) {
+          process.stderr.write(`verify_ac: xBRIEF missing plan object: ${xbriefPath}\n`);
+          return 2;
+        }
+        const acceptance = readPlanAcceptance(plan);
+        const resolved = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives: true });
+        reports.push({
+          xbrief: xbriefPath,
+          source_rung: acceptance.source_rung,
+          none_stated: acceptance.none_stated,
+          acceptance_commands: acceptance.commands,
+          count: resolved.commands.length,
+          rejected_count: resolved.rejected.length,
+          commands: resolved.commands.map((c) => ({
+            command: c.command,
+            source: c.source,
+            sourceSpan: c.sourceSpan ?? null,
+            cwd: c.cwd ?? null,
+            expectedExitCode: c.expectedExitCode ?? 0,
+          })),
+          rejected: resolved.rejected.map((r) => ({
+            command: r.command,
+            reason: r.reason,
+            sourceSpan: r.sourceSpan ?? null,
+          })),
+        });
+        if (resolved.rejected.length > 0) {
+          process.stderr.write(`${formatRejectedLedger(resolved.rejected)}\n`);
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        process.stderr.write(`verify_ac: ${msg}\n`);
         return 2;
       }
-      const plan = asRecord(data.plan);
-      if (plan === null) {
-        process.stderr.write("verify_ac: xBRIEF missing plan object\n");
-        return 2;
-      }
-      const acceptance = readPlanAcceptance(plan);
-      const resolved = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives: true });
-      const payload = {
-        xbrief: xbriefPath,
-        source_rung: acceptance.source_rung,
-        none_stated: acceptance.none_stated,
-        acceptance_commands: acceptance.commands,
-        count: resolved.commands.length,
-        rejected_count: resolved.rejected.length,
-        commands: resolved.commands.map((c) => ({
-          command: c.command,
-          source: c.source,
-          sourceSpan: c.sourceSpan ?? null,
-          cwd: c.cwd ?? null,
-          expectedExitCode: c.expectedExitCode ?? 0,
-        })),
-        rejected: resolved.rejected.map((r) => ({
-          command: r.command,
-          reason: r.reason,
-          sourceSpan: r.sourceSpan ?? null,
-        })),
-      };
-      process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
-      if (resolved.rejected.length > 0) {
-        process.stderr.write(`${formatRejectedLedger(resolved.rejected)}\n`);
-      }
-      return 0;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`verify_ac: ${msg}\n`);
-      return 2;
     }
+    process.stdout.write(
+      `${JSON.stringify(reports.length === 1 ? reports[0] : { scopes: reports }, null, 2)}\n`,
+    );
+    return 0;
   }
 
-  const result: VerifyAcResult = evaluateVerifyAcFromPath(xbriefPath, {
+  return evaluatePaths(paths, {
     projectRoot,
     quiet: args.quiet,
     softMissingXbrief: args.softMissingXbrief,
-    // Check graph uses --soft-missing-xbrief; treat as check-integrated composition.
-    checkIntegrated: args.softMissingXbrief,
   });
-
-  if (result.message.length > 0) {
-    if (result.ok) {
-      process.stdout.write(`${result.message}\n`);
-    } else {
-      process.stderr.write(`${result.message}\n`);
-    }
-  }
-
-  return result.code;
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
