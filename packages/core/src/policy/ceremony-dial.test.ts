@@ -584,4 +584,30 @@ describe("readCeremonyDialAudit (#3263)", () => {
     const audit = readCeremonyDialAudit(root);
     expect(formatCeremonyDialAuditLine(audit)).toContain("provisional.reasons=(none)");
   });
+
+  it("collapses multiline reasons into a single audit line", () => {
+    root = makeProject({});
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "ritual-state.json"),
+      JSON.stringify({
+        ceremony_dial: {
+          depth: "standard",
+          source: "matrix",
+          inputs: { taskSize: null, modelTier: "mid", projectShape: "project" },
+          provisional: {
+            taskSize: null,
+            modelTier: "mid",
+            projectShape: "project",
+            reasons: ["taskSize=M\nfrom verb", "modelTier=mid\r\nfrom env"],
+          },
+        },
+      }),
+      "utf8",
+    );
+    const line = formatCeremonyDialAuditLine(readCeremonyDialAudit(root));
+    expect(line).not.toMatch(/[\r\n]/);
+    expect(line).toContain("taskSize=M from verb");
+    expect(line).toContain("modelTier=mid from env");
+  });
 });

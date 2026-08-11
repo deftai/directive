@@ -1196,10 +1196,18 @@ export function readCeremonyDialAudit(projectRoot: string): CeremonyDialAuditSna
   };
 }
 
+/** Collapse whitespace so operator audit lines stay single-line (Greptile P2 #3263). */
+function oneLineAuditToken(value: string): string {
+  return value
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/ {2,}/g, " ")
+    .trim();
+}
+
 /** One-line operator summary for audit tooling / failed-task forensics (#3263). */
 export function formatCeremonyDialAuditLine(audit: CeremonyDialAuditSnapshot): string {
   if (audit.error !== null) {
-    return `[deft ceremony-dial audit] error=${audit.error}`;
+    return `[deft ceremony-dial audit] error=${oneLineAuditToken(audit.error)}`;
   }
   const parts = [
     `[deft ceremony-dial audit] depth=${audit.depth ?? "-"}`,
@@ -1210,8 +1218,13 @@ export function formatCeremonyDialAuditLine(audit: CeremonyDialAuditSnapshot): s
   ];
   if (audit.provisional !== null) {
     const reasons =
-      audit.provisional.reasons.length > 0 ? audit.provisional.reasons.join("; ") : "(none)";
-    parts.push(`provisional.reasons=${reasons}`);
+      audit.provisional.reasons.length > 0
+        ? audit.provisional.reasons
+            .map(oneLineAuditToken)
+            .filter((r) => r.length > 0)
+            .join("; ")
+        : "(none)";
+    parts.push(`provisional.reasons=${reasons.length > 0 ? reasons : "(none)"}`);
   }
   return parts.join(" ");
 }
