@@ -271,7 +271,7 @@ function maybeAttachAcPassBank(
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
   const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
   const scopeId =
-    (options.bankScopeId && options.bankScopeId.trim()) ||
+    options.bankScopeId?.trim() ||
     planId ||
     basename(xbriefPath)
       .replace(/\.xbrief\.json$/i, "")
