@@ -15,6 +15,7 @@ describe("session-start parseArgs", () => {
   const emptyDial = {
     ceremonyDialInputs: { taskSize: null, modelTier: null, projectShape: null },
     ceremonyDepthOverride: null,
+    effortBudgetHost: {},
   };
 
   it("defaults project root to cwd", () => {
@@ -96,6 +97,18 @@ describe("session-start parseArgs", () => {
     expect(parseArgs(["--tier", "rearm"]).ceremonyTier).toBe("rearm");
     expect(parseArgs(["--tier=rearm"]).ceremonyTier).toBe("rearm");
     expect(parseArgs(["--tier=cold"]).ceremonyTier).toBe("cold");
+  });
+
+  it("parses --max-turns / --max-budget / --hard-budget (#3266)", () => {
+    expect(parseArgs(["--max-turns", "120"]).effortBudgetHost).toEqual({ maxTurns: 120 });
+    expect(
+      parseArgs(["--max-turns=40", "--max-budget=5", "--hard-budget"]).effortBudgetHost,
+    ).toEqual({
+      maxTurns: 40,
+      maxBudget: 5,
+      hardBudget: true,
+    });
+    expect(parseArgs(["--max-turns", "nope"]).error).toMatch(/non-negative number/);
   });
 
   it("parses ceremony dial inputs (#3214)", () => {

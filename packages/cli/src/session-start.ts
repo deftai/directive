@@ -13,6 +13,7 @@ import {
 import {
   COLD_CEREMONY_TIER,
   parseDeferrals,
+  parseHostEffortBudgetEnv,
   READ_ONLY_POSTURE,
   REARM_CEREMONY_TIER,
   ritualStatePath,
@@ -38,6 +39,15 @@ export interface ParsedSessionStartArgs {
    * Applied as resolve inputs via a one-shot config override in run().
    */
   ceremonyDepthOverride: CeremonyDepth | null;
+  /**
+   * #3266: host/CLI effort-budget cap fields for bank-the-pass guidance.
+   * Merged with DEFT_HOST_EFFORT_BUDGET JSON when present.
+   */
+  effortBudgetHost: {
+    maxTurns?: number;
+    maxBudget?: number;
+    hardBudget?: boolean;
+  };
   error?: string;
 }
 
@@ -69,6 +79,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     ceremonyTier: COLD_CEREMONY_TIER,
     ceremonyDialInputs: {},
     ceremonyDepthOverride: null,
+    effortBudgetHost: {},
   };
   const dialInputs: {
     taskSize?: ReturnType<typeof normalizeCeremonyTaskSize>;
@@ -239,6 +250,57 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
         };
       }
       parsed.ceremonyDepthOverride = depth;
+    } else if (arg === "--max-turns") {
+      // #3266: harness hard turn budget for bank-the-pass guidance
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --max-turns: expected one argument" };
+      }
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0) {
+        return {
+          ...parsed,
+          error: `argument --max-turns: expected non-negative number, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.effortBudgetHost.maxTurns = n;
+      i += 1;
+    } else if (arg?.startsWith("--max-turns=")) {
+      const value = arg.slice("--max-turns=".length);
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0) {
+        return {
+          ...parsed,
+          error: `argument --max-turns: expected non-negative number, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.effortBudgetHost.maxTurns = n;
+    } else if (arg === "--max-budget") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --max-budget: expected one argument" };
+      }
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0) {
+        return {
+          ...parsed,
+          error: `argument --max-budget: expected non-negative number, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.effortBudgetHost.maxBudget = n;
+      i += 1;
+    } else if (arg?.startsWith("--max-budget=")) {
+      const value = arg.slice("--max-budget=".length);
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0) {
+        return {
+          ...parsed,
+          error: `argument --max-budget: expected non-negative number, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.effortBudgetHost.maxBudget = n;
+    } else if (arg === "--hard-budget") {
+      parsed.effortBudgetHost.hardBudget = true;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -283,6 +345,22 @@ export function run(argv: readonly string[]): number {
     return true;
   }) as typeof process.stdout.write;
 
+  // #3266: production effort-budget host descriptor — CLI flags + DEFT_HOST_EFFORT_BUDGET.
+  const envHost = parseHostEffortBudgetEnv(process.env);
+  const hostDescriptor: Record<string, unknown> = {
+    ...(envHost ?? {}),
+  };
+  if (args.effortBudgetHost.maxTurns !== undefined) {
+    hostDescriptor.maxTurns = args.effortBudgetHost.maxTurns;
+  }
+  if (args.effortBudgetHost.maxBudget !== undefined) {
+    hostDescriptor.maxBudget = args.effortBudgetHost.maxBudget;
+  }
+  if (args.effortBudgetHost.hardBudget === true) {
+    hostDescriptor.hardBudget = true;
+  }
+  const hasHostDescriptor = Object.keys(hostDescriptor).length > 0;
+
   let result: ReturnType<typeof runSessionStart>;
   try {
     // #3214: --ceremony-depth forces this session only (not persisted to policy).
@@ -293,6 +371,9 @@ export function run(argv: readonly string[]): number {
       allowOptionalNetwork: args.withNetwork ? true : undefined,
       ceremonyTier: args.ceremonyTier,
       ceremonyDialInputs: args.ceremonyDialInputs,
+      ...(hasHostDescriptor
+        ? { effortBudgetSeams: { hostDescriptor, environ: process.env } }
+        : { effortBudgetSeams: { environ: process.env } }),
       ...(args.ceremonyDepthOverride !== null
         ? {
             ceremonyDial: selectCeremonyDepth({
