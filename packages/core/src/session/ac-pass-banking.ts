@@ -566,7 +566,9 @@ function recoveredStubRecord(
   return {
     schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
     scopeId,
-    bankedAt: utcIso(),
+    // Epoch so recovery stubs never win fresher-metadata selection over a
+    // valid primary ledger (#3285 Greptile residual).
+    bankedAt: "1970-01-01T00:00:00Z",
     headSha: null,
     remainingTurns: null,
     remainingBudget: null,
