@@ -6,7 +6,7 @@
  * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
 import { containedWrite } from "../fs/contained-write.js";
@@ -204,7 +204,3 @@ export function emitRunSummaryEvent(
   return emitter.emit(options.event, options.payload);
 }
 
-/** Convenience for tests: append a raw line without the emitter (not for production). */
-export function appendRunSummaryRawLine(path: string, line: string): void {
-  appendFileSync(path, `${line}\n`, "utf8");
-}
