@@ -209,6 +209,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--help" || arg === "-h") {
       return parsed;
+    } else if (arg === "--") {
     } else if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized arguments: ${arg}` };
     }

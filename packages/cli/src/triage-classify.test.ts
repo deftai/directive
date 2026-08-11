@@ -81,6 +81,16 @@ describe("parseArgs", () => {
     expect(parseArgs(["--ack-discovery", "--mirror"]).ackDiscovery).toBe(true);
   });
 
+  it("ignores bare -- end-of-options separator (#3124 Greptile)", () => {
+    const ack = parseArgs(["--", "--ack-discovery"]);
+    expect(ack.ackDiscovery).toBe(true);
+    expect(ack.error).toBeUndefined();
+    const mirror = parseArgs(["--", "--mirror", "--json"]);
+    expect(mirror.doMirror).toBe(true);
+    expect(mirror.json).toBe(true);
+    expect(mirror.error).toBeUndefined();
+  });
+
   it("run --ack-discovery persists tip dismissal state (#3124)", () => {
     const root = buildRepo();
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
