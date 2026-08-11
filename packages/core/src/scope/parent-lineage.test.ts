@@ -271,44 +271,15 @@ describe("evaluateParentLineage (#3241)", () => {
     expect(parsed.ok).toBe(true);
   });
 
-  it("loads parent via lifecycle-folder fallback when planRef is stale (#3241 P1)", () => {
+  it("fails closed when planRef path is stale after parent move (exact path only)", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-pl-stale-"));
     temps.push(base);
-    const pending = join(base, "xbrief", "pending");
     const completed = join(base, "xbrief", "completed");
     const active = join(base, "xbrief", "active");
-    mkdirSync(pending, { recursive: true });
     mkdirSync(completed, { recursive: true });
     mkdirSync(active, { recursive: true });
-    // Parent moved to completed/ but child still points at pending/
     writeFileSync(join(completed, "parent.xbrief.json"), JSON.stringify(abcParent), "utf8");
-    const child = childWithLineage({
-      planRef: "pending/parent.xbrief.json",
-      coverage_map: fullCoverageMap,
-    });
-    const childPath = join(active, "child.xbrief.json");
-    writeFileSync(childPath, JSON.stringify(child), "utf8");
-    const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
-    expect(result.ok).toBe(true);
-    expect(result.applicable).toBe(true);
-    expect(result.parent_path?.replace(/\\/g, "/")).toMatch(/completed\/parent\.xbrief\.json$/);
-  });
-
-  it("fails closed when sole same-basename candidate fails identity (stamped IDs)", () => {
-    const base = mkdtempSync(join(tmpdir(), "deft-pl-wrong-"));
-    temps.push(base);
-    const completed = join(base, "xbrief", "completed");
-    const active = join(base, "xbrief", "active");
-    mkdirSync(completed, { recursive: true });
-    mkdirSync(active, { recursive: true });
-    // Unrelated parent with same filename but different requirement IDs
-    writeFileSync(
-      join(completed, "parent.xbrief.json"),
-      JSON.stringify({
-        plan: { id: "other", items: [{ id: "unrelated-req", title: "Other" }] },
-      }),
-      "utf8",
-    );
+    // Child still points at pending/ — exact path missing; no basename recovery.
     const child = childWithLineage({
       planRef: "pending/parent.xbrief.json",
       coverage_map: fullCoverageMap,
@@ -317,7 +288,7 @@ describe("evaluateParentLineage (#3241)", () => {
     writeFileSync(childPath, JSON.stringify(child), "utf8");
     const result = evaluateParentLineageAtPath(childPath, { projectRoot: base });
     expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/stamped parent identity|parent_plan_id|identity/i);
+    expect(result.message).toMatch(/not found|rewrite.*planRef|exactly/i);
   });
 
   it("evaluateParentLineageAtPath loads child and parent from disk", () => {
