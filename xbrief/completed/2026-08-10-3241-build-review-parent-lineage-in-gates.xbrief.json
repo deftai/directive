@@ -20,45 +20,51 @@
     },
     "items": [
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a child xBRIEF missing parent coverage artifacts after #3238 schema lands, when story-ready runs, it exits non-zero."
         },
         "title": "Lineage in story-ready",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/story-ready/evaluate.test.ts",
-          "recorded_at": "2026-08-11T01:20:04.250Z",
-          "recorded_by": "agent:babysit-3241"
+        "metadata": {
+          "effort": "M",
+          "acceptanceEvidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/story-ready/evaluate.test.ts",
+            "recorded_at": "2026-08-11T01:20:04.250Z",
+            "recorded_by": "agent:babysit-3241"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given a child that contradicts a parent forbidden invariant without an approved delta, when pre-PR verification runs, it exits non-zero."
         },
         "title": "Pre-PR lineage",
         "status": "completed",
-        "evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/preflight/evaluate.test.ts",
-          "recorded_at": "2026-08-11T01:20:04.250Z",
-          "recorded_by": "agent:babysit-3241"
+        "metadata": {
+          "effort": "M",
+          "acceptanceEvidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/preflight/evaluate.test.ts",
+            "recorded_at": "2026-08-11T01:20:04.250Z",
+            "recorded_by": "agent:babysit-3241"
+          }
         }
       },
       {
-        "effort": "M",
         "narrative": {
           "Acceptance": "Given full coverage and no contradictions, when story-ready runs, lineage checks pass."
         },
         "title": "Tests+CHANGELOG",
         "status": "completed",
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3272",
-          "recorded_at": "2026-08-11T01:20:04.250Z",
-          "recorded_by": "agent:babysit-3241"
+        "metadata": {
+          "effort": "M",
+          "acceptanceEvidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3272",
+            "recorded_at": "2026-08-11T01:20:04.250Z",
+            "recorded_by": "agent:babysit-3241"
+          }
         }
       }
     ],
@@ -125,7 +131,8 @@
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "completedAt": "2026-08-11T01:20:11Z"
+      "completedAt": "2026-08-11T01:20:11Z",
+      "conformanceNote": "item.effort and item.evidence nested under item.metadata for #1620 bare-key gate (ITEM_CORE lacks effort/#1581 and evidence/#3240); follow-up to promote those keys into ITEM_CORE"
     },
     "updated": "2026-08-11T01:20:11Z"
   }
