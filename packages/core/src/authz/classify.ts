@@ -265,6 +265,32 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
 ]);
 
 /**
+ * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288).
+ * Prefer a Set over a long `||` chain so coverage counts one membership check, not N branches.
+ */
+const PROTECTED_POSITIONAL_BINS = new Set([
+  "scp",
+  "certutil",
+  "rclone",
+  "tar",
+  "bsdtar",
+  "unzip",
+  "7z",
+  "7za",
+  "7zr",
+  "socat",
+  "lftp",
+  // #3288 residual.
+  "sftp",
+  "cpio",
+  "gpg",
+  "age",
+  "zstd",
+  "unzstd",
+  "mbuffer",
+]);
+
+/**
  * File destination flags for downloaders/decoders (#3206).
  * normalizeToken lowercases, so wget `-O` and curl `-o` share `-o`.
  * scp: `-o` is an SSH option — excluded in isDownloaderDestFlag.
@@ -434,26 +460,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     // Segment breaks (`;`/`\n`/glued ops) prevent following-command overwrite.
     let lastPositionalPath: string | null = null;
     const protectedPathish: string[] = [];
-    const collectsProtectedPositionals =
-      bin === "scp" ||
-      bin === "certutil" ||
-      bin === "rclone" ||
-      bin === "tar" ||
-      bin === "bsdtar" ||
-      bin === "unzip" ||
-      bin === "7z" ||
-      bin === "7za" ||
-      bin === "7zr" ||
-      bin === "socat" ||
-      bin === "lftp" ||
-      // #3288 residual: remote-copy / archive / crypto pathish operands.
-      bin === "sftp" ||
-      bin === "cpio" ||
-      bin === "gpg" ||
-      bin === "age" ||
-      bin === "zstd" ||
-      bin === "unzstd" ||
-      bin === "mbuffer";
+    const collectsProtectedPositionals = PROTECTED_POSITIONAL_BINS.has(bin);
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);

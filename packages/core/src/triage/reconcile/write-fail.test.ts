@@ -108,4 +108,17 @@ describe("reconcile write failures", () => {
     rmSync(root, { recursive: true, force: true });
     rmSync(outside, { recursive: true, force: true });
   });
+
+  it("appends when audit path is outside project root via parent containment (#3288)", () => {
+    const root = mkdtempSync(join(tmpdir(), "reconcile-outwrite-"));
+    const outside = mkdtempSync(join(tmpdir(), "reconcile-audit-write-"));
+    scopeVbrief(join(root, "xbrief", "proposed"), "w", 55);
+    const auditPath = join(outside, "candidates.jsonl");
+    const result = reconcile(root, { repo: "deftai/directive", auditLogPath: auditPath });
+    expect(result.exitCode).toBe(0);
+    expect(result.restored).toBe(1);
+    expect(readFileSync(auditPath, "utf8")).toMatch(/issue_number.:55/);
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
 });
