@@ -19,45 +19,48 @@
     },
     "items": [
       {
-        "effort": "M",
         "title": "Tier-conditional cold-start matrix",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given model tier mid or low and cold-start incomplete inputs, when ceremony dial selects depth, default depth is standard not rapid; frontier cold-start remains rapid unless override."
         },
-        "evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/3274 merge d2be7a234b2c6b6bcad626beabb9576a96306664",
-          "recorded_at": "2026-08-11T01:44:03.718Z",
-          "recorded_by": "leaf-3263-ceremony-dial"
+        "metadata": {
+          "evidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3274 merge d2be7a234b2c6b6bcad626beabb9576a96306664",
+            "recorded_at": "2026-08-11T01:44:03.718Z",
+            "recorded_by": "leaf-3263-ceremony-dial"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Unit tests",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given ceremony-dial unit tests, when vitest runs, mid/low cold-start and frontier cold-start matrix cases pass."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "pnpm exec vitest run packages/core/src/policy/ceremony-dial.test.ts (34 passed)",
-          "recorded_at": "2026-08-11T01:44:03.718Z",
-          "recorded_by": "leaf-3263-ceremony-dial"
+        "metadata": {
+          "evidence": {
+            "kind": "test",
+            "pointer": "pnpm exec vitest run packages/core/src/policy/ceremony-dial.test.ts (34 passed)",
+            "recorded_at": "2026-08-11T01:44:03.718Z",
+            "recorded_by": "leaf-3263-ceremony-dial"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "CHANGELOG",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given CHANGELOG [Unreleased], when the PR lands, it cites #3263."
         },
-        "evidence": {
-          "kind": "review",
-          "pointer": "PR #3274 CHANGELOG [Unreleased] cites #3263; Greptile conf 5/5",
-          "recorded_at": "2026-08-11T01:44:03.718Z",
-          "recorded_by": "leaf-3263-ceremony-dial"
+        "metadata": {
+          "evidence": {
+            "kind": "review",
+            "pointer": "PR #3274 CHANGELOG [Unreleased] cites #3263; Greptile conf 5/5",
+            "recorded_at": "2026-08-11T01:44:03.718Z",
+            "recorded_by": "leaf-3263-ceremony-dial"
+          }
         }
       }
     ],
