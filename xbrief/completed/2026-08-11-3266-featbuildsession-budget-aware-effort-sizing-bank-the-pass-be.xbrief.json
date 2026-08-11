@@ -19,59 +19,67 @@
     },
     "items": [
       {
-        "effort": "M",
         "title": "Budget detection",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given a hard max-turns or max-budget flag or host-declared limit at session start, when session posture is established, a detectable budget signal is available to build/pre-pr guidance."
         },
-        "evidence": {
-          "kind": "merge",
-          "pointer": "packages/core/src/session/effort-budget.ts + session:start effort_budget; vitest packages/core/src/session/effort-budget.test.ts; PR #3279",
-          "recorded_at": "2026-08-11T02:28:59.590Z",
-          "recorded_by": "swarm-leaf-3266"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "merge",
+            "pointer": "packages/core/src/session/effort-budget.ts + session:start effort_budget; vitest packages/core/src/session/effort-budget.test.ts; PR #3279",
+            "recorded_at": "2026-08-11T02:28:59.590Z",
+            "recorded_by": "swarm-leaf-3266"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Bank pass before deepen",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given remaining budget and stated acceptance criteria not yet satisfied, when build guidance applies, it prioritizes stated AC over self-imposed deeper verification suites."
         },
-        "evidence": {
-          "kind": "merge",
-          "pointer": "content/skills/deft-directive-build + pre-pr bank-the-pass guidance; recommendVerificationDepth; PR #3279",
-          "recorded_at": "2026-08-11T02:28:59.590Z",
-          "recorded_by": "swarm-leaf-3266"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "merge",
+            "pointer": "content/skills/deft-directive-build + pre-pr bank-the-pass guidance; recommendVerificationDepth; PR #3279",
+            "recorded_at": "2026-08-11T02:28:59.590Z",
+            "recorded_by": "swarm-leaf-3266"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Fail-loud skip deepen",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given deepening is skipped for budget, when the run summary is written, it states that deepening was skipped rather than silent gold-plate or silent skip."
         },
-        "evidence": {
-          "kind": "review",
-          "pointer": "formatDeepeningSkippedNote + skill fail-loud rules; PR #3279 Greptile CLEAN 5/5",
-          "recorded_at": "2026-08-11T02:28:59.590Z",
-          "recorded_by": "swarm-leaf-3266"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "review",
+            "pointer": "formatDeepeningSkippedNote + skill fail-loud rules; PR #3279 Greptile CLEAN 5/5",
+            "recorded_at": "2026-08-11T02:28:59.590Z",
+            "recorded_by": "swarm-leaf-3266"
+          }
         }
       },
       {
-        "effort": "M",
         "title": "Tests and CHANGELOG",
         "status": "completed",
         "narrative": {
           "Acceptance": "Given the PR, when vitest and CHANGELOG are checked, tests cover budget detection and [Unreleased] cites #3266."
         },
-        "evidence": {
-          "kind": "test",
-          "pointer": "effort-budget.test.ts (34) + session-start CLI tests; CHANGELOG [Unreleased] #3266; PR #3279 merge 65b457cf",
-          "recorded_at": "2026-08-11T02:28:59.590Z",
-          "recorded_by": "swarm-leaf-3266"
+        "metadata": {
+          "effort": "M",
+          "evidence": {
+            "kind": "test",
+            "pointer": "effort-budget.test.ts (34) + session-start CLI tests; CHANGELOG [Unreleased] #3266; PR #3279 merge 65b457cf",
+            "recorded_at": "2026-08-11T02:28:59.590Z",
+            "recorded_by": "swarm-leaf-3266"
+          }
         }
       }
     ],
