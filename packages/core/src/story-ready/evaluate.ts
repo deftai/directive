@@ -1,6 +1,11 @@
 import { type PathLike, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  evaluateParentLineage,
+  formatParentLineageLine,
+  type ParentLineageResult,
+} from "../scope/parent-lineage.js";
+import {
   type AllocationFields,
   type ParsedAllocation,
   parseAllocationSection,
@@ -17,6 +22,8 @@ export interface EvaluateResult {
   readonly exitCode: 0 | 1 | 2;
   readonly message: string;
   readonly dispatchKind: string | null;
+  /** #3241 parent-lineage probe (present when vBRIEF checks ran). */
+  readonly parentLineage?: ParentLineageResult;
 }
 
 export interface EvaluateOptions {
@@ -24,9 +31,15 @@ export interface EvaluateOptions {
   readonly allocationContext?: string | null;
   readonly allowDirty?: boolean;
   readonly parsed?: ParsedAllocation;
+  /** Project root for resolving child planRef → parent (#3241). */
+  readonly projectRoot?: string;
+  /** Skip parent-lineage check (tests / opt-out). Default false. */
+  readonly skipParentLineage?: boolean;
 }
 
-function checkVbrief(vbriefPath: PathLike): { ok: true } | { ok: false; reason: string } {
+function checkVbrief(
+  vbriefPath: PathLike,
+): { ok: true; path: string; payload: Record<string, unknown> } | { ok: false; reason: string } {
   let path: string;
   try {
     path = resolve(String(vbriefPath));
@@ -96,7 +109,7 @@ function checkVbrief(vbriefPath: PathLike): { ok: true } | { ok: false; reason: 
     };
   }
 
-  return { ok: true };
+  return { ok: true, path, payload: payload as Record<string, unknown> };
 }
 
 function readyMessage(treeNote: string, suffix: string): string {
@@ -160,6 +173,9 @@ function classifyAllocation(fields: AllocationFields, treeNote: string): Evaluat
 /**
  * Pure evaluator — returns exit code + human message. Faithful to
  * `scripts/preflight_story_start.evaluate`.
+ *
+ * #3241: after structural active+running checks, re-check parent requirement
+ * lineage (coverage map + behavioral deltas) when the parent authors IDs.
  */
 export function evaluate(vbriefPath: PathLike, options: EvaluateOptions = {}): EvaluateResult {
   const gitStatus = options.gitStatus ?? null;
@@ -198,21 +214,63 @@ export function evaluate(vbriefPath: PathLike, options: EvaluateOptions = {}): E
     };
   }
 
+  // #3241 parent lineage (fail closed when parent authors IDs and child lacks coverage).
+  const lineage = evaluateParentLineage({
+    child: vbriefCheck.payload,
+    childPath: vbriefCheck.path,
+    projectRoot: options.projectRoot,
+    skip: options.skipParentLineage === true,
+  });
+  if (!lineage.ok) {
+    return {
+      exitCode: 1,
+      dispatchKind: null,
+      parentLineage: lineage,
+      message:
+        `not ready: ${lineage.message}` +
+        (lineage.defect_class !== null ? ` [defect_class=${lineage.defect_class}]` : "") +
+        `\n${formatParentLineageLine(lineage)}`,
+    };
+  }
+
+  const lineageNote = lineage.applicable
+    ? `parent lineage OK (${lineage.parent_requirement_ids.length} req IDs` +
+      (lineage.negative_invariant_ids.length > 0
+        ? `, ${lineage.negative_invariant_ids.length} negative invariants`
+        : "") +
+      ")"
+    : null;
+
   const [found, fields] =
     options.parsed ?? parseAllocationSection(options.allocationContext ?? null);
 
   if (!found) {
+    const base = readyMessage(
+      treeNote,
+      "no `## Allocation context` section (solo path, #1371 carve-out).",
+    );
     return {
       exitCode: 0,
       dispatchKind: null,
-      message: readyMessage(
-        treeNote,
-        "no `## Allocation context` section (solo path, #1371 carve-out).",
-      ),
+      parentLineage: lineage,
+      message: lineageNote !== null ? `${base.replace(/\.$/, "")}; ${lineageNote}.` : base,
     };
   }
 
-  return classifyAllocation(fields, treeNote);
+  const classified = classifyAllocation(fields, treeNote);
+  return {
+    ...classified,
+    parentLineage: lineage,
+    message:
+      classified.exitCode === 0 && lineageNote !== null
+        ? `${classified.message.replace(/\.$/, "")}; ${lineageNote}.`
+        : classified.message,
+  };
 }
 
+export {
+  evaluateParentLineage,
+  formatParentLineageLine,
+  type ParentLineageResult,
+} from "../scope/parent-lineage.js";
 export { parseAllocationSection, SOLO_KIND, SWARM_COHORT_KIND };

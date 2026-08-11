@@ -1040,9 +1040,10 @@ export function runSessionStart(
   // #3214 / #3156: select ritual (ceremony) depth before building deferral maps.
   // Rapid/minimal auto-defer informational cold steps only; mutation readiness
   // (doctor, cache_fresh, agent_hooks, verify_tools) stays constant.
-  // Two-stage + provisional intake (#3214 design note / #1581 ordering): fill
+  // Two-stage + provisional intake (#3214 / #3263 / #1581 ordering): fill
   // missing size/tier/shape from env/verb/files/deposit BEFORE resolve — never
-  // block on plan-item effort (post-planning only). Cold incomplete → rapid.
+  // block on plan-item effort (post-planning only). Cold incomplete size is
+  // tier-conditional (#3263): mid/low → standard; frontier/unknown → rapid.
   const { inputs: resolvedDialInputs, provisional: provisionalDial } =
     resolveSessionCeremonyDialInputs(projectRoot, options.ceremonyDialInputs, {
       ...options.ceremonyDialHints,

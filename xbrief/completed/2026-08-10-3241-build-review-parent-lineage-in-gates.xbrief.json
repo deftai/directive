@@ -1,0 +1,139 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Epic #3237 child story #3241",
+    "updated": "2026-08-11T01:20:11Z"
+  },
+  "plan": {
+    "id": "3241-build-review-parent-lineage-gates",
+    "title": "feat(scope,swarm): story-ready and pre-PR verify parent lineage not only child AC",
+    "status": "completed",
+    "narratives": {
+      "Description": "Story-ready, dispatch, and pre-PR gates verify child acceptance only. After #3238 coverage artifacts exist, a green child can still contradict parent invariants. This story adds lineage checks using authored parent IDs and coverage from #3238.",
+      "UserStory": "As an operator, I want pre-PR and story-ready to fail when the child contradicts an approved parent invariant, so that a green child implementation cannot pass against wrong lineage.",
+      "ImplementationPlan": "After #3238 ships coverage artifacts, extend packages/core/src/story-ready and pre-PR/preflight surfaces to verify parent requirement coverage and approved behavioral deltas for the active child xBRIEF. Fail closed on missing parent coverage or undeclared deltas. Tests under story-ready and preflight. Run vitest and task check. Cite #3241 in CHANGELOG.md. depends_on story 3238.",
+      "Origin": "https://github.com/deftai/directive/issues/3241",
+      "Overview": "feat(scope,swarm): story-ready and pre-PR verify parent lineage not only child AC",
+      "Labels": "enhancement, process",
+      "NonGoals": "Out of issue scope; see epic #3237 current-shape.",
+      "AcceptanceJustification": "Acceptance items from locked epic contracts."
+    },
+    "items": [
+      {
+        "narrative": {
+          "Acceptance": "Given a child xBRIEF missing parent coverage artifacts after #3238 schema lands, when story-ready runs, it exits non-zero."
+        },
+        "title": "Lineage in story-ready",
+        "status": "completed",
+        "metadata": {
+          "effort": "M",
+          "acceptanceEvidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/story-ready/evaluate.test.ts",
+            "recorded_at": "2026-08-11T01:20:04.250Z",
+            "recorded_by": "agent:babysit-3241"
+          }
+        }
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given a child that contradicts a parent forbidden invariant without an approved delta, when pre-PR verification runs, it exits non-zero."
+        },
+        "title": "Pre-PR lineage",
+        "status": "completed",
+        "metadata": {
+          "effort": "M",
+          "acceptanceEvidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/preflight/evaluate.test.ts",
+            "recorded_at": "2026-08-11T01:20:04.250Z",
+            "recorded_by": "agent:babysit-3241"
+          }
+        }
+      },
+      {
+        "narrative": {
+          "Acceptance": "Given full coverage and no contradictions, when story-ready runs, lineage checks pass."
+        },
+        "title": "Tests+CHANGELOG",
+        "status": "completed",
+        "metadata": {
+          "effort": "M",
+          "acceptanceEvidence": {
+            "kind": "merge",
+            "pointer": "https://github.com/deftai/directive/pull/3272",
+            "recorded_at": "2026-08-11T01:20:04.250Z",
+            "recorded_by": "agent:babysit-3241"
+          }
+        }
+      }
+    ],
+    "tags": [
+      "epic-3237",
+      "swarm"
+    ],
+    "references": [
+      {
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/3241",
+        "title": "Issue #3241"
+      },
+      {
+        "type": "x-xbrief/refs",
+        "uri": "https://github.com/deftai/directive/issues/3237",
+        "title": "Epic #3237"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/story-ready",
+          "packages/core/src/preflight",
+          "packages/core/src/swarm"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/story-ready packages/core/src/preflight packages/core/src/scope",
+          "task check"
+        ],
+        "expected_outputs": [
+          "implementation #3241",
+          "tests",
+          "CHANGELOG"
+        ],
+        "depends_on": [
+          "3238-decompose-semantic-fidelity-coverage-map"
+        ],
+        "conflict_group": "epic3237-3241-parent-lineage",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Epic #3237 locked decisions + issue body.",
+        "acceptance_criteria_justification": "Items map to locked contracts / issue AC."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3272,
+        "prBase": "master",
+        "mergeCommit": "e163f30efb37a2b97b801f7fa0f2e4cda0b58ad7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e163f30efb37a2b97b801f7fa0f2e4cda0b58ad7",
+        "verifiedAt": "2026-08-11T01:20:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T01:20:11Z",
+      "conformanceNote": "item.effort and item.evidence nested under item.metadata for #1620 bare-key gate (ITEM_CORE lacks effort/#1581 and evidence/#3240); follow-up to promote those keys into ITEM_CORE"
+    },
+    "updated": "2026-08-11T01:20:11Z"
+  }
+}

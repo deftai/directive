@@ -166,6 +166,7 @@ export function run(argv: string[]): number {
     allocationContext: allocationContextText,
     allowDirty: args.allowDirty,
     parsed,
+    projectRoot,
   });
 
   if (result.exitCode === 0 && !args.skipRouting) {

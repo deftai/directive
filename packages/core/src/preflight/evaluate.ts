@@ -1,6 +1,11 @@
 import { readFileSync, statSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
+import {
+  evaluateParentLineage,
+  formatParentLineageLine,
+  type ParentLineageResult,
+} from "../scope/parent-lineage.js";
 
 /** Canonical eligibility folder — only vbrief/active/ may spawn implementation. */
 export const ACTIVE_FOLDER = "active";
@@ -22,6 +27,15 @@ export const PREFLIGHT_USAGE_HINT =
 export interface EvaluateResult {
   readonly exitCode: 0 | 1;
   readonly message: string;
+  /** #3241 parent-lineage probe when structural checks passed far enough to load the payload. */
+  readonly parentLineage?: ParentLineageResult;
+}
+
+export interface EvaluateOptions {
+  /** Project root for resolving child planRef → parent (#3241). */
+  readonly projectRoot?: string;
+  /** Skip parent-lineage check (tests / opt-out). Default false. */
+  readonly skipParentLineage?: boolean;
 }
 
 /** Substitute `{path}` without `$`-pattern expansion in user paths (#1721). */
@@ -58,8 +72,12 @@ function nodeJsonErrorToPythonMsg(nodeMessage: string): string {
  * Pure evaluator — returns `{ exitCode, message }`. Never throws; every error
  * path collapses to exit 1 with an actionable message. Faithful to
  * `scripts/preflight_implementation.py::evaluate`.
+ *
+ * #3241: after active+running + intent ceiling, re-check parent requirement
+ * lineage (coverage + approved behavioral deltas). Fail closed on missing
+ * coverage or undeclared deltas when the parent authors requirement IDs.
  */
-export function evaluate(vbriefPath: string): EvaluateResult {
+export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): EvaluateResult {
   const path = vbriefPath;
 
   let st: ReturnType<typeof statSync>;
@@ -169,11 +187,47 @@ export function evaluate(vbriefPath: string): EvaluateResult {
     };
   }
 
+  // #3241 pre-PR / implementation preflight: parent lineage fail-closed.
+  const lineage = evaluateParentLineage({
+    child: record,
+    childPath: path,
+    projectRoot: options.projectRoot,
+    skip: options.skipParentLineage === true,
+  });
+  if (!lineage.ok) {
+    const defect = lineage.defect_class !== null ? ` [defect_class=${lineage.defect_class}]` : "";
+    return {
+      exitCode: 1,
+      parentLineage: lineage,
+      message: buildReject(
+        path,
+        `${lineage.message}${defect}\n  ${formatParentLineageLine(lineage)}`,
+      ),
+    };
+  }
+
+  // Keep the historical OK line when lineage is N/A (backward-compatible tests / agents).
+  const message = lineage.applicable
+    ? `OK ${path} -- ready for implementation. parent lineage OK ` +
+      `(${lineage.parent_requirement_ids.length} req IDs` +
+      (lineage.negative_invariant_ids.length > 0
+        ? `, ${lineage.negative_invariant_ids.length} negative invariants`
+        : "") +
+      `).`
+    : `OK ${path} -- ready for implementation.`;
+
   return {
     exitCode: 0,
-    message: `OK ${path} -- ready for implementation.`,
+    parentLineage: lineage,
+    message,
   };
 }
+
+export {
+  evaluateParentLineage,
+  formatParentLineageLine,
+  type ParentLineageResult,
+} from "../scope/parent-lineage.js";
 
 /** Structured `--json` payload (sorted keys), mirroring Python `_emit_json`. */
 export function emitJson(vbriefPath: string, exitCode: number, message: string): string {
