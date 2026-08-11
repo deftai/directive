@@ -16,12 +16,6 @@ import {
   formatEnvironmentContext,
 } from "../platform/shell-context.js";
 import {
-  type DetectHardEffortBudgetInput,
-  effortBudgetToDict,
-  type HardEffortBudget,
-  maybeFormatEffortBudgetLines,
-} from "./effort-budget.js";
-import {
   type CeremonyDialInputs,
   type CeremonyDialSelection,
   ceremonyDialToDict,
@@ -66,6 +60,12 @@ import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/reso
 import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import { maybeFormatCoverageCheckResumeNudge } from "./coverage-check-resume-nudge.js";
+import {
+  type DetectHardEffortBudgetInput,
+  effortBudgetToDict,
+  type HardEffortBudget,
+  maybeFormatEffortBudgetLines,
+} from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 import { emitSessionStartProcessCost } from "./process-cost.js";
@@ -590,9 +590,10 @@ function resolveHostContentSurface(
   }
 }
 
-function resolveEffortBudget(
-  options: SessionStartOptions,
-): { budget: HardEffortBudget; lines: string[] } {
+function resolveEffortBudget(options: SessionStartOptions): {
+  budget: HardEffortBudget;
+  lines: string[];
+} {
   try {
     const seams = options.effortBudgetSeams ?? {};
     return maybeFormatEffortBudgetLines({

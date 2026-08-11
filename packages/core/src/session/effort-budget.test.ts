@@ -115,12 +115,8 @@ describe("detectHardEffortBudget (#3266)", () => {
   });
 
   it("rejects negative and non-numeric values", () => {
-    expect(
-      detectHardEffortBudget({ environ: { [ENV_MAX_TURNS]: "-1" } }).detected,
-    ).toBe(false);
-    expect(
-      detectHardEffortBudget({ environ: { [ENV_MAX_TURNS]: "nope" } }).detected,
-    ).toBe(false);
+    expect(detectHardEffortBudget({ environ: { [ENV_MAX_TURNS]: "-1" } }).detected).toBe(false);
+    expect(detectHardEffortBudget({ environ: { [ENV_MAX_TURNS]: "nope" } }).detected).toBe(false);
   });
 });
 
@@ -129,18 +125,18 @@ describe("recommendVerificationDepth (#3266)", () => {
 
   it("unbounded → unconstrained-deepen", () => {
     const open = detectHardEffortBudget({ environ: {} });
-    expect(
-      recommendVerificationDepth({ budget: open, statedAcceptanceMet: false }),
-    ).toBe("unconstrained-deepen");
-    expect(
-      recommendVerificationDepth({ budget: open, statedAcceptanceMet: true }),
-    ).toBe("unconstrained-deepen");
+    expect(recommendVerificationDepth({ budget: open, statedAcceptanceMet: false })).toBe(
+      "unconstrained-deepen",
+    );
+    expect(recommendVerificationDepth({ budget: open, statedAcceptanceMet: true })).toBe(
+      "unconstrained-deepen",
+    );
   });
 
   it("hard budget + AC open → stated-only (bank the pass first)", () => {
-    expect(
-      recommendVerificationDepth({ budget: hard, statedAcceptanceMet: false }),
-    ).toBe("stated-only");
+    expect(recommendVerificationDepth({ budget: hard, statedAcceptanceMet: false })).toBe(
+      "stated-only",
+    );
   });
 
   it("hard budget + AC met + enough remaining → stated-then-deepen", () => {
@@ -150,9 +146,9 @@ describe("recommendVerificationDepth (#3266)", () => {
         [ENV_REMAINING_TURNS]: "40",
       },
     });
-    expect(
-      recommendVerificationDepth({ budget: mid, statedAcceptanceMet: true }),
-    ).toBe("stated-then-deepen");
+    expect(recommendVerificationDepth({ budget: mid, statedAcceptanceMet: true })).toBe(
+      "stated-then-deepen",
+    );
   });
 
   it("hard budget + AC met + low remaining → stated-only (skip deepen)", () => {
@@ -175,9 +171,9 @@ describe("recommendVerificationDepth (#3266)", () => {
     const flag = detectHardEffortBudget({
       environ: { [ENV_HARD_BUDGET]: "1" },
     });
-    expect(
-      recommendVerificationDepth({ budget: flag, statedAcceptanceMet: true }),
-    ).toBe("stated-then-deepen");
+    expect(recommendVerificationDepth({ budget: flag, statedAcceptanceMet: true })).toBe(
+      "stated-then-deepen",
+    );
   });
 });
 

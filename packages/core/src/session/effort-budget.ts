@@ -59,10 +59,7 @@ export type EffortBudgetPosture = "unbounded" | "hard-capped";
  * - stated-then-deepen: stated bar first; deepen only with remaining budget
  * - unconstrained-deepen: no hard budget signal; dual-stop still applies
  */
-export type VerificationDepthPolicy =
-  | "stated-only"
-  | "stated-then-deepen"
-  | "unconstrained-deepen";
+export type VerificationDepthPolicy = "stated-only" | "stated-then-deepen" | "unconstrained-deepen";
 
 export interface HardEffortBudget {
   readonly detected: boolean;
@@ -164,9 +161,7 @@ function hostTruthy(
  * Detect a hard turn/cost budget from env and optional host descriptor (#3266).
  * Defaults to unbounded when no signal is present.
  */
-export function detectHardEffortBudget(
-  input: DetectHardEffortBudgetInput = {},
-): HardEffortBudget {
+export function detectHardEffortBudget(input: DetectHardEffortBudgetInput = {}): HardEffortBudget {
   const environ = input.environ ?? process.env;
   const host = input.hostDescriptor ?? null;
   const sources: string[] = [];
@@ -184,10 +179,7 @@ export function detectHardEffortBudget(
   if (budgetEnv.source) sources.push(budgetEnv.source);
   else if (budgetHost.source) sources.push(budgetHost.source);
 
-  const remainingTurnsEnv = firstNumericFromEnv(environ, [
-    ENV_REMAINING_TURNS,
-    "REMAINING_TURNS",
-  ]);
+  const remainingTurnsEnv = firstNumericFromEnv(environ, [ENV_REMAINING_TURNS, "REMAINING_TURNS"]);
   const remainingBudgetEnv = firstNumericFromEnv(environ, [
     ENV_REMAINING_BUDGET,
     "REMAINING_BUDGET",
@@ -249,8 +241,7 @@ export function recommendVerificationDepth(
   const reserveTurns = input.deepenReserveTurns ?? 3;
   const reserveBudget = input.deepenReserveBudget ?? null;
 
-  const turnsOk =
-    budget.remainingTurns === null || budget.remainingTurns >= reserveTurns;
+  const turnsOk = budget.remainingTurns === null || budget.remainingTurns >= reserveTurns;
   const costOk =
     reserveBudget === null ||
     budget.remainingBudget === null ||
@@ -314,10 +305,7 @@ export function formatEffortBudgetLines(budget: HardEffortBudget): string[] {
     ];
   }
 
-  const parts: string[] = [
-    `[deft effort-budget] posture=${budget.posture}`,
-    `kind=${budget.kind}`,
-  ];
+  const parts: string[] = [`[deft effort-budget] posture=${budget.posture}`, `kind=${budget.kind}`];
   if (budget.maxTurns !== null) parts.push(`max_turns=${budget.maxTurns}`);
   if (budget.remainingTurns !== null && budget.remainingTurns !== budget.maxTurns) {
     parts.push(`remaining_turns=${budget.remainingTurns}`);
@@ -339,9 +327,10 @@ export function formatEffortBudgetLines(budget: HardEffortBudget): string[] {
 /**
  * Detect + format; fail-open for session-start callers.
  */
-export function maybeFormatEffortBudgetLines(
-  input: DetectHardEffortBudgetInput = {},
-): { budget: HardEffortBudget; lines: string[] } {
+export function maybeFormatEffortBudgetLines(input: DetectHardEffortBudgetInput = {}): {
+  budget: HardEffortBudget;
+  lines: string[];
+} {
   const budget = detectHardEffortBudget(input);
   return { budget, lines: formatEffortBudgetLines(budget) };
 }
