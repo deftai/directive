@@ -47,9 +47,10 @@ describe("captureLiteralAcceptanceCommands branch matrix (#3287)", () => {
     ].join("\n");
     const detailed = captureLiteralAcceptanceCommandsDetailed(text);
     const cmds = detailed.commands.map((c) => c.command);
-    // Fence under non-acceptance heading with requireRegion still may capture
-    // globally via labeled/fenced passes — assert acceptance-region captures exist.
-    expect(cmds.some((c) => c.includes("task doctor") || c.includes("pnpm"))).toBe(true);
+    // Fenced capture under Acceptance region + shell/text langs.
+    expect(cmds).toEqual(expect.arrayContaining(["task doctor", "pnpm test", "pnpm run test"]));
+    // Non-shell fence lang without CLI shape is not inventively captured.
+    expect(cmds.some((c) => c.includes("print"))).toBe(false);
   });
 
   it("handles ~~~ fences and fence langs with spaces as non-fences", () => {

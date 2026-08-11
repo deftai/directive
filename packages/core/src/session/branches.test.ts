@@ -300,7 +300,8 @@ describe("session branches", () => {
     vi.restoreAllMocks();
   });
 
-  it("runSessionStart triage exception path", () => {
+  // Linux CI full-suite can exceed the 5s default under load (merge-gate flake on #3287).
+  it("runSessionStart triage exception path", { timeout: 15_000 }, () => {
     const { root, head } = initRepo();
     const result = runSessionStart(root, {
       now: new Date("2026-06-09T01:00:00Z"),

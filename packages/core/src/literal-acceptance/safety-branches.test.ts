@@ -12,7 +12,11 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     expect(evaluateCommandSafety("   ").ok).toBe(false);
     expect(evaluateCommandSafety("x".repeat(501)).reason).toMatch(/500/);
     expect(evaluateCommandSafety("./local-bin run").reason).toMatch(/path-like|allowlist/i);
-    expect(evaluateCommandSafety("C:\\tools\\bin run").reason).toMatch(/path-like|allowlist/i);
+    // Path-like first token with slash (platform-neutral; avoids win32-only fixtures).
+    expect(evaluateCommandSafety("/usr/local/bin/task check").reason).toMatch(
+      /path-like|allowlist/i,
+    );
+    expect(evaluateCommandSafety("tools:bin run").reason).toMatch(/path-like|allowlist/i);
     expect(evaluateCommandSafety("python -m pytest").ok).toBe(false);
     expect(evaluateCommandSafety("curl https://example.com").ok).toBe(false);
   });

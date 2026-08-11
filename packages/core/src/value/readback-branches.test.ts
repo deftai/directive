@@ -59,15 +59,25 @@ describe("value readback pure helpers (#3287)", () => {
       /Off-flow signal \(bypass\)/,
     );
 
+    // Distinct detail vs capability so detail-precedence is observable.
     expect(
       formatAttributedSessionLine(
         evt("adoption:unused-capability", {
-          detail: "swarm",
-          capability: "swarm",
+          detail: "detail-wins",
+          capability: "capability-fallback",
           signal_class: "adoption",
         }),
       ),
-    ).toMatch(/Unused capability.*swarm/);
+    ).toMatch(/Unused capability.*detail-wins/);
+    expect(
+      formatAttributedSessionLine(
+        evt("adoption:unused-capability", {
+          detail: "detail-wins",
+          capability: "capability-fallback",
+          signal_class: "adoption",
+        }),
+      ),
+    ).not.toMatch(/capability-fallback/);
     expect(
       formatAttributedSessionLine(
         evt("adoption:unused-capability", { capability: "triage", signal_class: "adoption" }),
