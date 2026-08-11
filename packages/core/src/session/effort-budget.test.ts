@@ -312,11 +312,13 @@ describe("host descriptor edge branches (#3266)", () => {
         [ENV_REMAINING_BUDGET]: "1",
       },
     });
+    // Disable surplus fraction gate so this test isolates absolute cost reserve (#3266).
     expect(
       recommendVerificationDepth({
         budget: mid,
         statedAcceptanceMet: true,
         deepenReserveBudget: 5,
+        surplusThreshold: null,
       }),
     ).toBe("stated-only");
     expect(
@@ -324,6 +326,30 @@ describe("host descriptor edge branches (#3266)", () => {
         budget: mid,
         statedAcceptanceMet: true,
         deepenReserveBudget: 1,
+        surplusThreshold: null,
+      }),
+    ).toBe("stated-then-deepen");
+  });
+
+  it("surplus threshold (#3285) refuses deepen below 20% remaining of max", () => {
+    // 15/100 = 15% < default 20% surplus → stated-only even though absolute reserve of 3 is met.
+    const lowSurplus = detectHardEffortBudget({
+      environ: {
+        [ENV_MAX_TURNS]: "100",
+        [ENV_REMAINING_TURNS]: "15",
+      },
+    });
+    expect(
+      recommendVerificationDepth({
+        budget: lowSurplus,
+        statedAcceptanceMet: true,
+      }),
+    ).toBe("stated-only");
+    expect(
+      recommendVerificationDepth({
+        budget: lowSurplus,
+        statedAcceptanceMet: true,
+        surplusThreshold: 0.1,
       }),
     ).toBe("stated-then-deepen");
   });

@@ -298,6 +298,22 @@ When a hard turn or cost budget is detectable (session:start `effort_budget` / e
 Core helper: `packages/core/src/session/effort-budget.ts` (`detectHardEffortBudget`, `recommendVerificationDepth`). Composes #2442, #1581, #3214, #1006.
 **Enforcement note:** skill defaults are behavioral. Durable delivery/acceptance circuit-breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, `.deft/delivery-attempts/`). Docs: `docs/delivery-attempt.md`. Route delivery/acceptance automatic retries through that gate; do not invent a parallel ledger in this skill.
 
+### AC-pass banking checkpoint - finalize on green (#3285)
+
+Sharpens #3266: the **first** moment stated/official acceptance criteria pass is a **banking checkpoint**, not a license to keep spending the turn budget on self-imposed depth.
+
+- ! When stated acceptance criteria first pass (`task verify:ac` / product-first done-gate #3284 / official checker), the **next** action is **FINALIZE**: checkpoint-commit the green state and record the bank (durable under `.deft/ac-pass-banks/`; optional run-summary line when `DEFT_RUN_SUMMARY_PATH` is set).
+- ! **Deepening after the bank requires surplus budget.** Self-imposed extra verification, refactors, or polish are permitted only when remaining budget meets `plan.policy.acPassBanking.surplusThreshold` (default **0.2** = 20% of max turns/cost still remaining) **and** the absolute reserve from #3266. Env override: `DEFT_AC_PASS_SURPLUS_THRESHOLD`.
+- ! Deepening, when allowed, happens **on top of** the committed checkpoint so a failed experiment can revert to banked green.
+- ! **Post-bank discoveries are reported, not chased** when surplus is insufficient: file a note/issue in the deliverable for out-of-scope defects unless they **regress stated AC** (then fix-regression). Finding beyond the bar is a win; thrashing a dying budget into a zero is the failure mode this rule closes.
+- ! When surplus is insufficient, ship the banked state and fail-loud (`deepening_skipped=true` + surplus reason) via `evaluateAcPassBanking` / `formatDeepeningSkippedNote` semantics.
+- ~ When no hard budget is detected, dual-stop still applies; bank-on-first-AC-pass remains good discipline but is not a hard surplus gate.
+- ⊗ Convert a banked official pass into a scored failure by chasing post-bank polish until the turn budget dies (#3285).
+- ⊗ Start post-bank deepening without a finalize checkpoint when a hard budget is active (#3285).
+- ⊗ Chase out-of-scope post-bank findings when surplus is below threshold (#3285).
+
+Core helpers: `packages/core/src/session/ac-pass-banking.ts` (`evaluateAcPassBanking`, `bankAcPass`, `decidePostBankFinding`, `simulateSurplusInsufficientRun`); policy: `packages/core/src/policy/ac-pass-banking.ts` (`plan.policy.acPassBanking`). Composes #3266, #3284, #3282 (optional bank-event JSONL), #1006.
+
 ## Step 3: Build Phase by Phase
 
 For each phase:
@@ -492,3 +508,5 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Silently continue after dual-stop failure halt — escalate; do not thrash (#2442)
 - ⊗ Exhaust hard turn/cost budget on self-imposed deepening after the stated acceptance bar is within reach (#3266)
 - ⊗ Silently skip deepening for budget without a fail-loud summary note (#3266 / #1006)
+- ⊗ Chase post-bank out-of-scope findings when surplus budget is insufficient — report, do not thrash the banked pass (#3285)
+- ⊗ Skip finalize-on-green after first stated AC pass under a hard budget (#3285)

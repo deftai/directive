@@ -9,6 +9,11 @@ import {
   inspectOpenClawProductCommands,
 } from "../slash/openclaw-deposit.js";
 import {
+  FIELD_AC_PASS_BANKING,
+  FIELD_AC_PASS_BANKING_CLI_ALIAS,
+  inspectAcPassBanking,
+} from "./ac-pass-banking.js";
+import {
   FIELD_CEREMONY_DIAL,
   FIELD_CEREMONY_DIAL_CLI_ALIAS,
   inspectCeremonyDial,
@@ -73,6 +78,7 @@ import {
 } from "./value-feedback.js";
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
+export * from "./ac-pass-banking.js";
 export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
 export * from "./capacity.js";
@@ -545,6 +551,19 @@ function inspectCeremonyDialField(
   };
 }
 
+function inspectAcPassBankingField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectAcPassBanking(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -592,6 +611,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectRequireHumanMergeField,
   inspectHotfixCriteriaField,
   inspectCeremonyDialField,
+  inspectAcPassBankingField,
 ];
 
 /** Walk registered inspectors and return one row per field (#1148). */
@@ -633,7 +653,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
                                 ? FIELD_MIN_GREPTILE_CONFIDENCE
                                 : name === FIELD_CEREMONY_DIAL_CLI_ALIAS
                                   ? FIELD_CEREMONY_DIAL
-                                  : name;
+                                  : name === FIELD_AC_PASS_BANKING_CLI_ALIAS
+                                    ? FIELD_AC_PASS_BANKING
+                                    : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

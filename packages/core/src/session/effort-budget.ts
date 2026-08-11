@@ -103,6 +103,12 @@ export interface RecommendVerificationDepthInput {
   readonly deepenReserveTurns?: number;
   /** Reserve for a fix after a deeper finding (cost units). Default null (ignore). */
   readonly deepenReserveBudget?: number | null;
+  /**
+   * Minimum remaining fraction of max turns/cost required to deepen after AC bank
+   * (#3285). Default 0.2 (20%). Set null to skip the surplus fraction gate and
+   * use only the absolute reserve.
+   */
+  readonly surplusThreshold?: number | null;
 }
 
 function envTruthy(value: string | undefined): boolean {
@@ -315,6 +321,8 @@ export function recommendVerificationDepth(
 
   const reserveTurns = input.deepenReserveTurns ?? 3;
   const reserveBudget = input.deepenReserveBudget ?? null;
+  // #3285: default 20% surplus of max remaining after bank; null disables.
+  const surplusThreshold = input.surplusThreshold === undefined ? 0.2 : input.surplusThreshold;
 
   const turnsOk = budget.remainingTurns === null || budget.remainingTurns >= reserveTurns;
   const costOk =
@@ -328,10 +336,32 @@ export function recommendVerificationDepth(
     return "stated-then-deepen";
   }
 
-  if (turnsOk && costOk) {
-    return "stated-then-deepen";
+  if (!(turnsOk && costOk)) {
+    return "stated-only";
   }
-  return "stated-only";
+
+  // Surplus fraction gate (#3285): remaining/max must meet threshold on every
+  // known max+remaining axis. When max is unknown, absolute reserve alone applies.
+  if (surplusThreshold !== null) {
+    if (
+      budget.remainingTurns !== null &&
+      budget.maxTurns !== null &&
+      budget.maxTurns > 0 &&
+      budget.remainingTurns / budget.maxTurns < surplusThreshold
+    ) {
+      return "stated-only";
+    }
+    if (
+      budget.remainingBudget !== null &&
+      budget.maxBudget !== null &&
+      budget.maxBudget > 0 &&
+      budget.remainingBudget / budget.maxBudget < surplusThreshold
+    ) {
+      return "stated-only";
+    }
+  }
+
+  return "stated-then-deepen";
 }
 
 /**

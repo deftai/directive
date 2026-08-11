@@ -391,8 +391,8 @@ describe("inspectAllPolicies", () => {
     writeProjectDef(r, {});
     // deliveryBranch (#3041) + minGreptileConfidence (#3095) + hostSlashCommands (#3054)
     // + openClawProductCommands (#3064) + hostSkillDiscovery (#75) + triageLabelMirror (#1423)
-    // + coverageDebt + checkResume (#3189) + ceremonyDial (#3214).
-    expect(inspectAllPolicies(r)).toHaveLength(25);
+    // + coverageDebt + checkResume (#3189) + ceremonyDial (#3214) + acPassBanking (#3285).
+    expect(inspectAllPolicies(r)).toHaveLength(26);
   });
 
   it("surfaces typed allowDirectCommits", () => {
@@ -448,6 +448,7 @@ describe("inspectAllPolicies", () => {
     expect(registeredPolicyNames()).toContain(FIELD_RUNTIME_AUTHORITY);
     expect(registeredPolicyNames()).toContain("plan.policy.hostSkillDiscovery");
     expect(registeredPolicyNames()).toContain(FIELD_MIN_GREPTILE_CONFIDENCE);
+    expect(registeredPolicyNames()).toContain("plan.policy.acPassBanking");
   });
 
   it("python repr helpers match Python style", () => {
