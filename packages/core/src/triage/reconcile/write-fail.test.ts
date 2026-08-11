@@ -86,4 +86,26 @@ describe("reconcile write failures", () => {
     expect(readFileSync(victim, "utf8")).toBe('{"name":"keep"}\n');
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("refuses leaf symlink when audit path is outside project root (#3288)", () => {
+    const root = mkdtempSync(join(tmpdir(), "reconcile-outroot-"));
+    const outside = mkdtempSync(join(tmpdir(), "reconcile-audit-out-"));
+    scopeVbrief(join(root, "xbrief", "proposed"), "o", 44);
+    const victim = join(outside, "tracked.txt");
+    writeFileSync(victim, "keep-out\n", "utf8");
+    const auditPath = join(outside, "candidates.jsonl");
+    try {
+      symlinkSync(victim, auditPath);
+    } catch {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+      return;
+    }
+    const result = reconcile(root, { repo: "deftai/directive", auditLogPath: auditPath });
+    expect(result.exitCode).toBe(1);
+    expect(result.error).toBeTruthy();
+    expect(readFileSync(victim, "utf8")).toBe("keep-out\n");
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
 });

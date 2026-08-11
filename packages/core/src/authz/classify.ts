@@ -341,10 +341,8 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   // #3288: cpio `-o` is copy-out (create archive), not a file dest; dest is `-D` / `--directory`.
   if (bin === "cpio") {
     if (rawFlag !== undefined && CPIO_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
+    // Long form is case-insensitive via normalizeToken (`flag` already lowercased).
     if (CPIO_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
-    if (rawFlag !== undefined && CPIO_DIR_DEST_FLAGS_LOWER.has(normalizeToken(rawFlag))) {
-      return true;
-    }
     return false;
   }
   if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) return true;

