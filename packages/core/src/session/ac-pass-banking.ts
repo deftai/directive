@@ -360,43 +360,13 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
   const existed = existsSync(path);
   // Preserve prior post-bank findings on re-bank so ledger history survives (#3285 Greptile).
   const prior = readAcPassBank(input.projectRoot, input.scopeId);
-  // Unrecoverable existing ledger: do NOT overwrite (fail-open keep bytes).
+  // Unrecoverable existing ledger: refuse silent success without a write.
+  // Keep the damaged bytes and fail so verify:ac cannot report banked green (#3285).
   if (existed && prior === null) {
-    const stub = recoveredStubRecord(input.scopeId, []);
-    const preserved: AcPassBankRecord = {
-      ...stub,
-      bankedAt,
-      headSha: input.headSha ?? null,
-      remainingTurns: input.budget.remainingTurns,
-      remainingBudget: input.budget.remainingBudget,
-      maxTurns: input.budget.maxTurns,
-      maxBudget: input.budget.maxBudget,
-      surplusThreshold: input.surplus.surplusThreshold,
-      hadSurplus: input.surplus.hasSurplus,
-      nextAction: input.nextAction,
-      postBankFindings: [],
-    };
-    appendBankEventToRunSummary({
-      environ: input.environ ?? process.env,
-      event: {
-        type: "ac_pass_bank",
-        schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
-        scopeId: preserved.scopeId,
-        bankedAt: preserved.bankedAt,
-        nextAction: preserved.nextAction,
-        hadSurplus: preserved.hadSurplus,
-        surplusThreshold: preserved.surplusThreshold,
-        remainingFraction: input.surplus.remainingFraction,
-        remainingTurns: preserved.remainingTurns,
-        remainingBudget: preserved.remainingBudget,
-        maxTurns: preserved.maxTurns,
-        maxBudget: preserved.maxBudget,
-        headSha: preserved.headSha,
-        path,
-        note: "unrecoverable existing ledger preserved; write skipped (#3285)",
-      },
-    });
-    return preserved;
+    throw new Error(
+      `ac-pass-banking: unrecoverable existing ledger at ${path}; ` +
+        `refusing overwrite and banked=true without write (#3285)`,
+    );
   }
 
   const record: AcPassBankRecord = {
