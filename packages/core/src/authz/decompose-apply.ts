@@ -69,14 +69,19 @@ export function sha256FileHex(path: string): string {
  * Quote a CLI token for operator copy-paste when it has whitespace or shell
  * metacharacters (Greptile #3291 / PR #3300). Safe bare tokens stay unquoted
  * so deny-reason mint hints match the common path shape.
+ *
+ * Uses POSIX single quotes so `$()`, backticks, and `!` are inert when the
+ * operator pastes into sh/bash (double quotes would still expand them).
+ * Newlines are flattened so deny-reason markdown cannot break out of a line.
  */
 function shellQuoteCliArg(value: string): string {
+  const flat = value.replace(/\r\n/g, " ").replace(/[\r\n]/g, " ");
   // Allowlist: alnum + common path/repo chars without whitespace or shell meta.
-  if (value.length > 0 && /^[A-Za-z0-9_./:@+=,-]+$/.test(value)) {
-    return value;
+  if (flat.length > 0 && /^[A-Za-z0-9_./:@+=,-]+$/.test(flat)) {
+    return flat;
   }
-  // Double-quote; escape \ and " for paste into sh / cmd / pwsh.
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  // POSIX single-quote; only ' needs escaping as '\''
+  return `'${flat.replace(/'/g, `'\\''`)}'`;
 }
 
 /**
