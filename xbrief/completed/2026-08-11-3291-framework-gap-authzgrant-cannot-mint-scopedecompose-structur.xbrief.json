@@ -1,0 +1,189 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3291",
+    "updated": "2026-08-11T23:03:18Z"
+  },
+  "plan": {
+    "title": "[framework-gap] authz:grant cannot mint scope:decompose structural bindings",
+    "status": "completed",
+    "narratives": {
+      "Description": "authz:grant cannot mint scope.decompose.apply.structural grants with required bindings. This story wires the operator CLI to mintDecomposeStructuralApplyGrant and threads repo into evaluateDecomposeStructuralApply so approved decompositions can apply without weakening the gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3291",
+      "Overview": "## Summary\n\nDirective v0.100.0 requires a human-origin `scope.decompose.apply.structural` grant bound to the exact draft digest, parent path, target path, and project identity. The operator-facing `deft authz:grant` command cannot provide those fields, so an approved and valid decomposition cannot be applied through any supported human CLI path.\n\nThis is a fail-closed availability defect, not a request to weaken the gate.\n\n## Reproduction\n\n1. Validate an approved draft:\n\n```example\ntask deft:scope:decompose -- xbrief/pending/PARENT.xbrief.json --draft xbrief/.triage-cache/decompositions/DRAFT.json --check\nVALIDATED 3 story decomposition draft\n```\n\n2. Apply the same bytes:\n\n```example\ntask deft:scope:decompose -- xbrief/pending/PARENT.xbrief.json --draft xbrief/.triage-cache/decompositions/DRAFT.json\nERROR: Directive denied scope:decompose apply: no human-origin grant covers scope.decompose.apply.structural for this draft digest.\n```\n\n3. Inspect `deft authz:grant`. The CLI accepts operations, surfaces, cohort, plan-ref, repo, branch, stories, issues, expiry, and single-use, but exposes no content-digest, parent-path, target-path, worktree, or dedicated decomposition template.\n\n4. A generic grant containing the structural operation still fails. `evaluateDecomposeStructuralApply` requires `contentDigest`, `parentPath`, `targetPath`, and repo and/or worktree. The CLI call to `mintHumanOriginGrant` never passes those fields.\n\n## Root cause\n\nPR #3258 added the core evaluator and `mintDecomposeStructuralApplyGrant`, but its changed-file set does not include the operator CLI authz parser. The helper cannot be invoked through the multi-factor human-presence-gated command. Calling the library helper from an agent or manually editing the grant store would violate the human-origin contract and is not a workaround.\n\nRelated: #3239 and PR #3258.\n\n## Expected behavior\n\nExpose one operator-only CLI path that:\n\n- resolves parent and draft inside `projectRoot`;\n- computes or verifies SHA-256 over the exact draft bytes;\n- binds parent path, draft target path, repo and/or resolved worktree;\n- mints only `scope.decompose.apply.structural`;\n- preserves the existing TTY, controlling-terminal, `--confirm`, typed `mint`, agent/CI-marker refusal, UAT refusal, expiry, and single-use protections;\n- documents the exact command emitted by the apply failure; and\n- lets the matching apply succeed while mismatched, stale, incomplete, and agent-origin grants continue to fail before writes.\n\nA dedicated template/subcommand that accepts parent and draft paths and computes the digest internally is preferable to asking operators to transcribe the hash.\n\n## Acceptance criteria\n\n- `authz:grant` help documents a usable structural-decomposition grant flow.\n- The CLI routes all required bindings through `mintDecomposeStructuralApplyGrant` or an equivalent sole human-origin mint path.\n- Missing/out-of-root paths and incomplete project identity fail before a grant is written.\n- Matching exact bytes can be applied once when single-use is selected.\n- Digest, parent, target, project, expired, spent, and origin mismatches remain fail-closed before child or parent writes.\n- `scope:decompose --check` remains ungated.\n- Tests cover parser/help, human-presence enforcement, persisted bindings, successful apply, and all mismatch cases.\n\n## Consumer impact\n\nA Phase 1 remediation in `bxc-3ci/FreshserviceAI` has a validated three-story discovery draft and explicit operator approval, but Wave 1 is blocked before writes. The consumer did not hand-create child xBRIEFs or weaken the authorization gate.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @dbcall2 (2026-08-11T16:30:31Z)\n\nAdditional read-only code analysis found a second required bridge: `applyDecomposition` does not pass repository identity into `evaluateDecomposeStructuralApply` in either the initial authorization check or the single-use under-lock revalidation. Therefore a repo-bound structural grant would still fail even after the CLI mint path is connected.\n\nThe fix should thread resolved `repo` through both evaluator calls and test matching and mismatched repo behavior before writes. Worktree-only grants should remain valid because the evaluator contract allows repo and/or worktree, but the documented repo binding must be executable end to end.\n\nRelevant v0.100.0 paths: `packages/core/src/scope/decompose.ts` around the initial evaluator call and the single-use revalidation callback; `packages/core/src/authz/decompose-apply.ts` already evaluates `input.repo` correctly.",
+      "UserStory": "As a human operator, I want to mint a structural decompose apply grant from the CLI with parent and draft paths, so that validated decompositions can be applied through the supported human-origin path.",
+      "ImplementationPlan": "1. Wire packages/cli/src/authz.ts authz:grant to mintDecomposeStructuralApplyGrant for structural decompose flow (parent+draft paths, digest).\n2. Thread repo into both evaluateDecomposeStructuralApply calls in packages/core/src/scope/decompose.ts.\n3. Help and apply-deny messages must show exact mint command; keep TTY/--confirm/mint/agent refuse; --check stays ungated.\n4. Tests: parser/help, human presence, bindings, apply success, mismatch matrix in authz and decompose tests; CHANGELOG.",
+      "Traces": "ISSUE-BODY"
+    },
+    "items": [
+      {
+        "id": "cli-mint-path",
+        "title": "CLI mint via mintDecomposeStructuralApplyGrant",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given parent and draft paths under projectRoot, when the operator runs the documented authz:grant structural flow with TTY confirm, then a human-origin structural grant is minted with contentDigest parent target and project identity bindings.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/authz.test.ts#structural-mint",
+          "recorded_at": "2026-08-11T23:03:16.038Z",
+          "recorded_by": "leaf-worker/3291"
+        }
+      },
+      {
+        "id": "repo-thread",
+        "title": "Thread repo into evaluateDecomposeStructuralApply",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given apply with a repo-bound structural grant, when evaluateDecomposeStructuralApply runs at initial check and under-lock revalidation, then matching repo allows and mismatched repo fails before writes.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/decompose.test.ts#repo-binding",
+          "recorded_at": "2026-08-11T23:03:16.038Z",
+          "recorded_by": "leaf-worker/3291"
+        }
+      },
+      {
+        "id": "deny-help-command",
+        "title": "Help and deny show exact mint command",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given authz:grant help or a structural apply deny, when the message is printed, then it includes the exact mint command operators can run.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/decompose-apply.test.ts#mint-command",
+          "recorded_at": "2026-08-11T23:03:16.038Z",
+          "recorded_by": "leaf-worker/3291"
+        }
+      },
+      {
+        "id": "check-ungated",
+        "title": "scope:decompose --check remains ungated",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a valid draft without a structural grant, when scope:decompose --check runs, then validation succeeds without requiring a human-origin grant.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/decompose.test.ts#check-ungated",
+          "recorded_at": "2026-08-11T23:03:16.038Z",
+          "recorded_by": "leaf-worker/3291"
+        }
+      },
+      {
+        "id": "tests-matrix",
+        "title": "Tests cover mint and mismatch matrix",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given the new CLI and decompose paths, when unit tests run, then parser help human-presence bindings apply success and mismatch cases pass without weakening authz.",
+          "Traces": "ISSUE-BODY"
+        },
+        "evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/authz.test.ts + packages/core/src/authz/decompose-apply.test.ts + packages/core/src/scope/decompose.test.ts; PR #3300 merge 96bccaf8",
+          "recorded_at": "2026-08-11T23:03:16.038Z",
+          "recorded_by": "leaf-worker/3291"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3291",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3291: [framework-gap] authz:grant cannot mint scope:decompose structural bindings"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/cli/src/authz.test.ts --reporter=dot",
+          "source": "explicit"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/authz/decompose-apply.test.ts --reporter=dot",
+          "source": "explicit"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/decompose.test.ts --reporter=dot",
+          "source": "explicit"
+        }
+      ],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/authz.ts",
+          "packages/cli/src/authz.test.ts",
+          "packages/core/src/authz/decompose-apply.ts",
+          "packages/core/src/authz/decompose-apply.test.ts",
+          "packages/core/src/scope/decompose.ts",
+          "packages/core/src/scope/decompose.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/authz.test.ts --reporter=dot",
+          "pnpm exec vitest run packages/core/src/authz/decompose-apply.test.ts --reporter=dot",
+          "pnpm exec vitest run packages/core/src/scope/decompose.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "authz grant CLI and decompose structural apply tests pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-decompose-3291",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Framework-gap issue #3291; acceptance from issue body and operator brief."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3300,
+        "prBase": null,
+        "mergeCommit": "96bccaf8f4b09ae8cc50bcee81fd317aa087aa7d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "96bccaf8f4b09ae8cc50bcee81fd317aa087aa7d",
+        "verifiedAt": "2026-08-11T23:03:18Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-11T23:03:18Z",
+      "capacityBucket": "new-capability"
+    },
+    "id": "3291-decompose-structural-grant-cli",
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/cli/src/authz.test.ts --reporter=dot"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/authz/decompose-apply.test.ts --reporter=dot"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/decompose.test.ts --reporter=dot"
+        }
+      ],
+      "none_stated": false
+    },
+    "updated": "2026-08-11T23:03:18Z"
+  }
+}
