@@ -68,6 +68,7 @@ export * as prMonitor from "./pr-monitor/index.js";
 export * as prProtectedIssues from "./pr-protected-issues/index.js";
 export * as prWaitMergeable from "./pr-wait-mergeable/index.js";
 export * as preflight from "./preflight/index.js";
+export * as productFirstDoneGate from "./product-first-done-gate/index.js";
 export * as release from "./release/index.js";
 export * as releaseE2e from "./release-e2e/index.js";
 export * as releasePublish from "./release-publish/index.js";

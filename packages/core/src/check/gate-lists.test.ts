@@ -11,6 +11,19 @@ import {
 } from "./gate-lists.js";
 
 describe("gate-lists (#2791)", () => {
+  it("places product AC gate first on framework and consumer lists (#3284)", () => {
+    const fwFirst = FRAMEWORK_CHECK_GATES[0];
+    const consumerFirst = CONSUMER_CHECK_GATES[0];
+    expect(fwFirst).toBeDefined();
+    expect(consumerFirst).toBeDefined();
+    if (fwFirst === undefined || consumerFirst === undefined) {
+      throw new Error("expected non-empty framework/consumer gate lists");
+    }
+    expect(checkGateId(fwFirst)).toBe("verify:ac");
+    expect(checkGateId(consumerFirst)).toBe("verify:ac");
+    expect(checkGateSpawnArgs(fwFirst, "/repo/Taskfile.yml")).toContain("--soft-missing-xbrief");
+  });
+
   it("maps framework WIP-cap and eval-relocation shims to public tasks with flags", () => {
     const ids = FRAMEWORK_CHECK_GATES.map(checkGateId);
     expect(ids).toContain("verify:wip-cap");

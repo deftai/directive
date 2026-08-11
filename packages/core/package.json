@@ -288,6 +288,10 @@
       "types": "./dist/literal-acceptance/index.d.ts",
       "default": "./dist/literal-acceptance/index.js"
     },
+    "./product-first-done-gate": {
+      "types": "./dist/product-first-done-gate/index.d.ts",
+      "default": "./dist/product-first-done-gate/index.js"
+    },
     "./packs": {
       "types": "./dist/packs/index.d.ts",
       "default": "./dist/packs/index.js"

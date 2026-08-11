@@ -174,11 +174,12 @@ When session effort-budget is hard-capped (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` 
 - ! Dual-stop pre-PR defaults (max 3 polish / 2 no-diff) still apply; under a hard cap, prefer fewer polish iterations once AC + check are green.
 - ⊗ Start an unbounded self-imposed verification suite that exceeds stated AC while the hard budget is nearly exhausted (#3266).
 
-## Literal acceptance-command verification (#3267)
+## Product-first done-gate (#3284) / literal AC (#3267)
 
-- ! Before Phase 3 Lint exit / push, when the active scope xBRIEF has stated acceptance commands (metadata or narratives), run `task verify:literal-ac -- <active-xbrief>` and fail closed on exit 1.
+- ! Before Phase 3 Lint exit / push, when the active scope xBRIEF has acceptance commands (`plan.acceptance` or #3267 metadata/narratives), run `task verify:ac -- <active-xbrief>` and fail closed on exit 1. (`verify:literal-ac` is the mechanism alias.)
 - ! Commands must be the exact strings from the task statement — same flags and cwd. Self-chosen verification is supplementary only.
-- ⊗ Skip literal AC run on rapid/minimal ceremony dial — #3267 is required at every depth.
+- ! Full `task check` already runs `verify:ac` first; still run it explicitly before push when AC is stated so failures are visible without the full hygiene suite.
+- ⊗ Skip AC run on rapid/minimal ceremony dial — rapid = AC-only; AC never degrades when commands exist (#3284 / #3156).
 
 ## Probe-then-fill remote claims (#3120)
 
