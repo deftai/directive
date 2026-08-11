@@ -20,7 +20,11 @@ import {
   isProductAcGate,
   resolveProductFirstCheckMode,
 } from "./check-mode.js";
-import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
+import {
+  evaluateVerifyAcFromPath,
+  evaluateVerifyAcFromPlan,
+  isVerifyAcRequiredAtCeremonyDepth,
+} from "./evaluate.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -275,6 +279,209 @@ describe("check mode (#3284)", () => {
     expect(isProductAcGate("verify:literal-ac")).toBe(true);
     expect(isHygieneGate("verify:branch")).toBe(true);
     expect(isHygieneGate("verify:ac")).toBe(false);
+  });
+});
+
+describe("coverage boost for product-first helpers (#3284)", () => {
+  it("validates schema edge cases and attach with rich fields", () => {
+    expect(validatePlanAcceptance(null)).toEqual([]);
+    expect(validatePlanAcceptance("x").join(" ")).toMatch(/must be an object/);
+    expect(validatePlanAcceptance({ commands: "nope" }).length).toBeGreaterThan(0);
+    expect(validatePlanAcceptance({ none_stated: "yes" }).length).toBeGreaterThan(0);
+    expect(validatePlanAcceptance({ source_rung: "nope" }).length).toBeGreaterThan(0);
+
+    expect(() =>
+      attachPlanAcceptance(
+        { title: "t" },
+        { commands: [], none_stated: false, source_rung: "stated" },
+      ),
+    ).toThrow(/none_stated/);
+
+    const attached = attachPlanAcceptance(
+      { title: "t", metadata: {} },
+      {
+        commands: [
+          {
+            command: "true",
+            cwd: "sub",
+            expectedStdout: "ok",
+            expectedExitCode: 1,
+          },
+        ],
+        none_stated: true,
+        source_rung: "derived",
+        derived_reason: "agent wrote AC",
+      },
+    );
+    const acc = readPlanAcceptance(attached);
+    expect(acc.commands[0]?.cwd).toBe("sub");
+    expect(acc.commands[0]?.expectedStdout).toBe("ok");
+    expect(acc.derived_reason).toMatch(/agent/);
+
+    // Coerce shapes on read (string list, expected_stdout snake, etc.)
+    const coerced = readPlanAcceptance({
+      acceptance: {
+        commands: [
+          "echo hi",
+          {
+            cmd: "true",
+            expected_stdout: "y",
+            expected_exit_code: 2,
+            cwd: "d",
+          },
+        ],
+        none_stated: false,
+        source_rung: "stated",
+        derivedReason: "camel",
+      },
+    });
+    expect(coerced.commands.length).toBe(2);
+    expect(coerced.derived_reason).toBe("camel");
+
+    // none_stated + commands + stated rung reclassifies to derived on read
+    const reclass = readPlanAcceptance({
+      acceptance: {
+        commands: [{ command: "true" }],
+        none_stated: true,
+        source_rung: "stated",
+      },
+    });
+    expect(reclass.source_rung).toBe("derived");
+
+    // stamp with empty literal → floor + derived_reason
+    const stampedEmpty = stampAcceptanceFromLiteralCapture({ title: "e", metadata: {} });
+    expect(readPlanAcceptance(stampedEmpty).source_rung).toBe("project_floor");
+    expect(readPlanAcceptance(stampedEmpty).derived_reason).toBeTruthy();
+
+    // stamp with cwd/stdout/exit on literal rows
+    const stampedRich = stampAcceptanceFromLiteralCapture({
+      title: "r",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: "true",
+            source: "explicit",
+            cwd: "x",
+            expectedStdout: "o",
+            expectedExitCode: 3,
+          },
+        ],
+      },
+    });
+    const rich = readPlanAcceptance(stampedRich);
+    expect(rich.commands[0]?.cwd).toBe("x");
+    expect(rich.commands[0]?.expectedExitCode).toBe(3);
+  });
+
+  it("covers check-mode token variants, projectRoot audit, and gate helpers", () => {
+    expect(
+      resolveProductFirstCheckMode({
+        environ: { [ENV_CHECK_MODE]: "degraded" },
+        hardBudgetDetected: false,
+      }).mode,
+    ).toBe("pressure");
+    expect(
+      resolveProductFirstCheckMode({
+        environ: { [ENV_CHECK_MODE]: "standard" },
+        hardBudgetDetected: false,
+      }).mode,
+    ).toBe("full");
+    expect(
+      resolveProductFirstCheckMode({
+        environ: { [ENV_CHECK_MODE]: "not-a-mode" },
+        hardBudgetDetected: false,
+        ceremonyDepth: "standard",
+      }).mode,
+    ).toBe("full");
+    // projectRoot without ritual-state falls through
+    const root = mkdtempSync(join(tmpdir(), "pf-mode-"));
+    expect(
+      resolveProductFirstCheckMode({
+        environ: {},
+        projectRoot: root,
+        hardBudgetDetected: false,
+      }).mode,
+    ).toBe("full");
+
+    // rapid with empty ac list still returns filtered list
+    expect(applyProductFirstGateMode(["verify:branch"] as const, "rapid")).toEqual([]);
+    expect(applyProductFirstGateMode([{ task: "verify:ac" }] as const, "rapid")).toEqual([
+      { task: "verify:ac" },
+    ]);
+  });
+
+  it("covers evaluate path error branches and annotate/quiet paths", () => {
+    const dir = mkdtempSync(join(tmpdir(), "pf-eval-"));
+    // missing without soft
+    expect(evaluateVerifyAcFromPath(join(dir, "no.json")).code).toBe(2);
+    // unreadable
+    const bad = join(dir, "bad.json");
+    writeFileSync(bad, "{not-json", "utf8");
+    expect(evaluateVerifyAcFromPath(bad).code).toBe(2);
+    // not object
+    writeFileSync(bad, "[1]", "utf8");
+    expect(evaluateVerifyAcFromPath(bad).code).toBe(2);
+    // missing plan
+    writeFileSync(bad, JSON.stringify({ x: 1 }), "utf8");
+    expect(evaluateVerifyAcFromPath(bad).code).toBe(2);
+
+    // quiet empty pass
+    const quietPass = evaluateVerifyAcFromPlan(
+      {
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      { quiet: true, captureFromNarratives: false },
+    );
+    expect(quietPass.message).toBe("");
+
+    // soft skip quiet
+    expect(
+      evaluateVerifyAcFromPath(join(dir, "missing2.json"), {
+        softMissingXbrief: true,
+        quiet: true,
+      }).message,
+    ).toBe("");
+
+    // check-integrated quiet
+    const integratedQuiet = evaluateVerifyAcFromPlan(
+      {
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+        metadata: {
+          literal_acceptance_commands: [{ command: "pnpm test", source: "task_statement" }],
+        },
+      },
+      { checkIntegrated: true, quiet: true, captureFromNarratives: false },
+    );
+    expect(integratedQuiet.ok).toBe(true);
+    expect(integratedQuiet.message).toBe("");
+
+    // annotate path with executable failure message containing #3267
+    const failed = evaluateVerifyAcFromPlan(
+      {
+        acceptance: {
+          commands: [{ command: "false" }],
+          none_stated: true,
+          source_rung: "derived",
+        },
+        metadata: {
+          literal_acceptance_commands: [{ command: "false", source: "explicit" }],
+        },
+      },
+      {
+        runner: () => ({ exitCode: 1, stdout: "", stderr: "nope" }),
+        captureFromNarratives: false,
+      },
+    );
+    expect(failed.ok).toBe(false);
+    expect(failed.message).toMatch(/#3284/);
+
+    // isVerifyAcRequired always true
+    expect(isVerifyAcRequiredAtCeremonyDepth("rapid")).toBe(true);
+    expect(isVerifyAcRequiredAtCeremonyDepth(null)).toBe(true);
   });
 });
 

@@ -43,6 +43,51 @@ describe("verify:ac run (#3284)", () => {
     expect(run(["--project-root", root])).toBe(2);
   });
 
+  it("runs executable derived acceptance via evaluate path", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-run-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "only.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "project_floor",
+          },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    expect(run(["--project-root", root, "--quiet"])).toBe(0);
+  });
+
+  it("parseArgs supports equals forms and missing values", () => {
+    expect(parseArgs(["--xbrief=a.xbrief.json"]).xbriefPath).toBe("a.xbrief.json");
+    expect(parseArgs(["--vbrief=b.vbrief.json"]).xbriefPath).toBe("b.vbrief.json");
+    expect(parseArgs(["--project-root"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--xbrief"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--project-root=."]).projectRoot).toBe(".");
+  });
+
+  it("capture-only fails on malformed xBRIEF shapes", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-bad-"));
+    const path = join(root, "bad.json");
+    writeFileSync(path, "[1]", "utf8");
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(run(["--project-root", root, "--capture-only", path])).toBe(2);
+    writeFileSync(path, JSON.stringify({ plan: null }), "utf8");
+    expect(run(["--project-root", root, "--capture-only", path])).toBe(2);
+  });
+
   it("capture-only includes source_rung from plan.acceptance", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-cap-"));
     const active = join(root, "xbrief", "active");
