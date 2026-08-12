@@ -326,31 +326,42 @@ export function readNamespacedAcceptanceFields(item: Record<string, unknown>): {
   };
 }
 
+/** Clear bare and namespaced acceptance fields so stamps never leave dual/conflicting keys. */
+function clearAcceptanceStampFields(item: Record<string, unknown>): void {
+  delete item.evidence;
+  delete item.disposition;
+  delete item[ACCEPTANCE_EVIDENCE_KEY];
+  delete item[ACCEPTANCE_DISPOSITION_KEY];
+}
+
 /**
  * Stamp typed evidence under the canonical namespaced key only.
- * Overwrites any prior namespaced evidence; does not write bare keys.
+ * Clears bare evidence/disposition and any prior namespaced disposition so the item
+ * cannot carry both acceptance fields after a replace (#3305 Greptile P2).
  */
 export function stampNamespacedEvidence(
   item: Record<string, unknown>,
   record: AcceptanceEvidenceRecord,
 ): void {
+  clearAcceptanceStampFields(item);
   item[ACCEPTANCE_EVIDENCE_KEY] = {
     kind: record.kind,
     pointer: record.pointer,
     recorded_at: record.recorded_at,
     recorded_by: record.recorded_by,
   };
-  // Never leave bare keys as a success path; strip if present so re-serialize is clean.
-  delete item.evidence;
 }
 
 /**
  * Stamp human-origin disposition under the canonical namespaced key only.
+ * Clears bare evidence/disposition and any prior namespaced evidence so the item
+ * cannot carry both acceptance fields after a replace (#3305 Greptile P2).
  */
 export function stampNamespacedDisposition(
   item: Record<string, unknown>,
   record: AcceptanceDispositionRecord,
 ): void {
+  clearAcceptanceStampFields(item);
   const body: Record<string, unknown> = {
     disposition: record.disposition,
     reason: record.reason,
@@ -361,7 +372,6 @@ export function stampNamespacedDisposition(
     body.resume_when = record.resume_when;
   }
   item[ACCEPTANCE_DISPOSITION_KEY] = body;
-  delete item.disposition;
 }
 
 function evaluateOneItem(item: Record<string, unknown>, path: string): CriterionAcceptanceReport {

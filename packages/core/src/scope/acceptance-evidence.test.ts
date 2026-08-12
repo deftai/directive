@@ -123,20 +123,29 @@ describe("namespaced acceptance keys (#3305 Option B)", () => {
     expect(ITEM_CORE.has("disposition")).toBe(false);
   });
 
-  it("stamp helpers write only namespaced keys and strip matching bare leftovers", () => {
+  it("stamp helpers write only namespaced keys and clear conflicting acceptance fields", () => {
     const item: Record<string, unknown> = {
       title: "t",
       status: "pending",
       evidence: { kind: "test", pointer: "stale" },
+      [ACCEPTANCE_DISPOSITION_KEY]: {
+        disposition: "waived",
+        reason: "old",
+        provenance: humanProv,
+        recorded_at: "2026-08-10T12:00:00Z",
+      },
     };
     stampNamespacedEvidence(item, testEvidence);
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toEqual(testEvidence);
     expect(item.evidence).toBeUndefined();
+    expect(item.disposition).toBeUndefined();
+    expect(item[ACCEPTANCE_DISPOSITION_KEY]).toBeUndefined();
 
     const item2: Record<string, unknown> = {
       title: "t2",
       status: "pending",
       disposition: { disposition: "waived" },
+      [ACCEPTANCE_EVIDENCE_KEY]: testEvidence,
     };
     stampNamespacedDisposition(item2, {
       disposition: "deferred",
@@ -151,6 +160,8 @@ describe("namespaced acceptance keys (#3305 Option B)", () => {
       resume_when: "next sprint",
     });
     expect(item2.disposition).toBeUndefined();
+    expect(item2.evidence).toBeUndefined();
+    expect(item2[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
   });
 
   it("readNamespacedAcceptanceFields ignores bare keys", () => {
