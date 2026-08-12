@@ -105,6 +105,8 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Deterministic questions runtime obligation (#1470)",
   "## Skills",
   "## Skill pin policy (#2508)",
+  "## Rule Authority [AXIOM]",
+  "## Thin Fail-Closed Design (#3265)",
   "## Through-merge worker dispatch (#3032)",
   "## Mid-scope gate capability tier (#3158 / #954)",
   "## WIP cap",
@@ -132,6 +134,12 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
 ] as const;
 
 /** Always-on through-merge dispatch doctrine (#3032) — parent must not implement. */
+/** Pointer bodies for Rule Authority / #3265 — headings alone are not enough (#3313). */
+const RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS = [
+  "Prefer `task deft:*` over AGENTS.md prose",
+  "One fail-closed `task deft:*` check + one remediation",
+] as const;
+
 const THROUGH_MERGE_DISPATCH_MARKERS = [
   "Through-merge worker dispatch (#3032)",
   "drive-to: merge-ready",
@@ -733,6 +741,11 @@ describe("test_agents_entry_contract", () => {
   it("propagation_header_markers_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_HEADER_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, PROPAGATION_HEADER_MARKERS)).toEqual([]);
+  });
+
+  it("rule_authority_thin_fail_closed_pointer_bodies_present_in_both_files", () => {
+    expect(missingMarkers(template, RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS)).toEqual([]);
   });
 
   it("through_merge_dispatch_markers_present_in_both_files", () => {

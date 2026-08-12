@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=31ef55b19370 refreshed=2026-08-11T20:26:54Z session=fededf9beaaa -->
+<!-- deft:managed-section v3 sha=9415977b33b5 refreshed=2026-08-12T19:18:31Z session=5a99965c5626 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -215,7 +215,6 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Content packs
 
 ! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `deft packs:slice <pack> <slice>` — `commands.md` (§ packs); never enumerate names here.
-
 ## Codebase MAP Projection (#1595 / #1498)
 
 ! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated — `deft codebase:map` / `deft verify:codebase-map-fresh` (`commands.md`). ⊗ Do not hand-edit MAP, block on stale/absent MAP, or elevate projection above xBRIEF (#1595 / #1498).
@@ -223,13 +222,16 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Skills
 
 ! **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan before improvising; read `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); lessons → packs:slice.
-
 ## Skill pin policy (#2508)
 
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 ! **Dual stop (#2442):** multi-iteration work MUST have success + failure/budget stop (max iters / no-progress / budget); single-turn exempt; halt with operator-visible report; ⊗ thrash. Defaults: build, swarm, review-cycle skills. See main.md Dual Stop Rule. Ledger #3143 (`packages/core/src/delivery-attempt/`).
+## Rule Authority [AXIOM]
+! Prefer `task deft:*` over AGENTS.md prose. See main.md.
+## Thin Fail-Closed Design (#3265)
+! One fail-closed `task deft:*` check + one remediation. See main.md.
 
 ## Through-merge worker dispatch (#3032)
 
@@ -255,7 +257,6 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! Mid-scope gates: **split-dispatch** when `agent_id` is terminal; retain-capable hosts (continue-by-agent-id / message-later / steer-mid-flight) MAY re-message the live child. Retention = orchestration only — not constitution self-edit (#3164). Depth: preamble §10; `deft-directive-swarm`. Topology: #3155 nuclear-family. ⊗ Invent retain on one-shot hosts.
 
-
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).
@@ -266,7 +267,6 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Structured decision log (#1396 / #3211)
 ! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
-
 ## Eval and framework health (#1703)
 
 ! `deft eval:health` when orienting or after gate/policy changes (Tier 0; 4-hour debounce). Release: `deft eval:run` / `deft eval:report`; skill routing: `deft eval:triggers` (#1586 / #1703).
