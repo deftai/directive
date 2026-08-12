@@ -67,7 +67,7 @@ describe("test_portfolio_priority_skill", () => {
   it("portfolio_priority_skill_overlap_dispose_suppression", () => {
     const text = readRepoFile(SKILL_PATH);
     expect(text).toMatch(/List-before-re-recommend/i);
-    expect(text).toContain("task decision:list -- --issue N");
+    expect(text).toContain("task decision:list -- --issue N --json");
     expect(text).toMatch(/#3066\/#3082/);
     expect(text).toContain("#3310");
   });

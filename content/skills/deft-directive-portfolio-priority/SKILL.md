@@ -84,7 +84,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 3. ! Emit an ordered **shortlist** (deep dive / promote candidates) and a **park list** with park reasons.
 4. ! Separate **interrupt / non-portfolio** rows (escalate, hold, already dispositioned) so they are not ranked against park list.
 5. ⊗ Claim "#X supersedes #Y" from titles alone — see Phase 4 epistemic gates.
-6. ! **List-before-re-recommend** (#3315): for each cited `#N` before re-recommending an overlap, run `task decision:list -- --issue N`. Park / do not re-shortlist as novel overlap only when a dispose decision's `relatedIssues` covers this overlap's members (not some other relationship that merely mentions N), unless `revisitTrigger` applies. Advisory diligence — not a `task check` gate. ⊗ Auto-close issues or treat the brief as the dispose record.
+6. ! **List-before-re-recommend** (#3315): for each cited `#N` before re-recommending an overlap, run `task decision:list -- --issue N --json` and match `relatedIssues` from the JSON. Park / do not re-shortlist as novel overlap only when a dispose decision's `relatedIssues` covers this overlap's members (not some other relationship that merely mentions N), unless `revisitTrigger` applies. Advisory diligence — not a `task check` gate. ⊗ Auto-close issues or treat the brief as the dispose record.
 7. Parent/child, leaf/tracker, and sibling-validator pairs are **not** duplicates — #3066/#3082, #95/#96, #513/#514.
 
 ### Phase 4 — Epistemic gates (MUST)

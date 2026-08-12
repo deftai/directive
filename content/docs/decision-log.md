@@ -96,7 +96,7 @@ Cross-cutting process/architecture decisions often have empty `activeScopeRefs`.
 
 ! Human-dispose an overlap cluster with `task decision:write`. Put **every** member issue number in `relatedIssues`. Repeat `--related-issue` once per member, or pass `--body-file` JSON with `relatedIssues: [N, M, ...]`. Include a `revisitTrigger`. Free-text MAY name the relationship (duplicate / consolidate / not-duplicate / parent-child / related) and a proposed canonical. No new schema.
 
-! Before re-recommending an overlap, portfolio-priority runs `task decision:list -- --issue N` per cited member and parks only when a dispose decision's `relatedIssues` covers this overlap's members, unless `revisitTrigger` applies. This is **advisory skill diligence**, not a `task check` gate.
+! Before re-recommending an overlap, portfolio-priority runs `task decision:list -- --issue N --json` per cited member and parks only when a dispose decision's `relatedIssues` covers this overlap's members, unless `revisitTrigger` applies. This is **advisory skill diligence**, not a `task check` gate.
 
 ⊗ Treat the portfolio brief as the decision record (#3198/#3201). ⊗ Auto-close member issues from a dispose write. ⊗ Replace `triage:mark-duplicate`. ⊗ Project cluster labels.
 
