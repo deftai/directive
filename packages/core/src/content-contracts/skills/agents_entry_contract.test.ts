@@ -105,6 +105,8 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Deterministic questions runtime obligation (#1470)",
   "## Skills",
   "## Skill pin policy (#2508)",
+  "## Rule Authority [AXIOM]",
+  "## Thin Fail-Closed Design (#3265)",
   "## Through-merge worker dispatch (#3032)",
   "## Mid-scope gate capability tier (#3158 / #954)",
   "## WIP cap",

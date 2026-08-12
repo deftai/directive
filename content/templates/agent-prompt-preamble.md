@@ -533,6 +533,8 @@ The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 
 ## 10.6 Dual stop for multi-iteration worker loops (#2442)
 
 Multi-iteration implement, pre-PR, repair, and monitor loops require **two** stops: **success** (goal / AC / checker met) and **failure or budget** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. Principle and defaults: `main.md` `## Dual Stop Rule (#2442)`; build skill dual-stop table; swarm Phase 4 / core-ops.
+Principle: `main.md` `## Rule Authority [AXIOM]`.
+Principle: `main.md` `## Thin Fail-Closed Design (#3265)`.
 
 ! On failure stop: halt; emit an operator-visible report (what was tried, what is missing, what human decision is needed). Prefer `BLOCKED:` over silent retry. ⊗ Thrash past the envelope. Durable delivery/acceptance mechanical enforcement is **#3143** (`packages/core/src/delivery-attempt/`; not prompt-only).
 

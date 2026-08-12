@@ -1,0 +1,125 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3313",
+    "updated": "2026-08-12T20:00:34Z"
+  },
+  "plan": {
+    "id": "3313-rule-authority-thin-fail-closed-entry-pointers",
+    "title": "fix(agents-entry,preamble): Rule Authority [AXIOM] + Thin Fail-Closed (#3265) unreachable from agent entry surfaces",
+    "status": "running",
+    "narratives": {
+      "Description": "Rule Authority [AXIOM] and Thin Fail-Closed Design (#3265) live only in main.md, so agents that start from AGENTS.md or a dispatch preamble never see them and re-derive the principle. This story adds pointer-sufficient citations to the three agent entry surfaces and gates the agents-entry headers so removal fails a test.",
+      "UserStory": "As a dispatched agent working from AGENTS.md or a preamble, I want pointer-sufficient citations to Rule Authority and Thin Fail-Closed Design, so that I apply those axioms instead of re-deriving them or inflating local choices to constitution tier.",
+      "ImplementationPlan": "Add one surface-neutral pointer each for Rule Authority and #3265 in content/templates/agents-entry.md using consumer task deft:* wording. Gate both headers in PROPAGATION_HEADER_MARKERS in packages/core/src/content-contracts/skills/agents_entry_contract.test.ts. Add one-line citations in content/templates/agent-prompt-preamble.md matching the Dual Stop line. Run task agents:refresh so the managed AGENTS.md block picks up the pointers. Do not copy main.md body text into any entry surface. Cite #3313 in CHANGELOG.",
+      "AcceptanceJustification": "Four items cover entry pointers, contract gate, preamble plus refresh, and pointer-sufficient CHANGELOG close.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3313",
+      "Overview": "## Summary\n\nTwo framework design axioms live **only** in `main.md` and are unreachable from the agent entry surfaces. Agents that work from `AGENTS.md` or from a dispatch preamble never see them, and re-derive the principle from scratch every time.\n\n- `main.md` `## Rule Authority [AXIOM]` \u2014 deterministic > Taskfile > xBRIEF > RFC2119 > prose\n- `main.md` `## Thin Fail-Closed Design (#3265)` \u2014 one fail-closed deterministic check + one remediation string; thin closable slices\n\n## Evidence\n\nA repo search for Thin Fail-Closed and Rule Authority found those strings in main.md and supporting docs, not in the three agent entry surfaces.\n\nNeither string appears in any of the three agent entry surfaces:\n\n| Surface | Rule Authority | #3265 |\n|---|---|---|\n| root `AGENTS.md` (managed + unmanaged) | absent | absent |\n| `content/templates/agents-entry.md` (consumer managed block) | absent | absent |\n| `content/templates/agent-prompt-preamble.md` (dispatched workers) | absent | absent |\n\nThe preamble already demonstrates the pattern it is missing: line 535 cites `main.md ## Dual Stop Rule (#2442)` by name. Dispatched workers therefore inherit the dual-stop axiom and not the determinism one.\n\nNot a regression: #3269 landed #3265 as `docs(main)` only, so propagation was never in scope.\n\n## Observed failure\n\nOn #3310 (duplicate-candidate disposition), multiple evaluation passes independently re-derived \"prefer a thin deterministic check over skill prose\" and then proposed promoting an issue-scoped design choice to **axiom** tier \u2014 while `## Thin Fail-Closed Design (#3265)` and the Rule Authority ladder already said exactly that, and `decision:write` (#1396) was the correct home for the local choice. The passes that missed it were working from AGENTS.md / preamble context; the pass that applied #3265 unprompted had read `main.md` via session routing.\n\nCost of the gap: re-derivation tokens on every design thread, plus a live attempt to inflate a feature decision to constitution tier (which #3164 exists to prevent).\n\n## Consumer relevance (why this is not maintainer-only)\n\n- **Rule Authority** \u2014 consumers author project rules constantly. The ladder is what tells them to encode a rule as a `task` check instead of prose in their AGENTS.md. Already treated as framework-wide in ADR-001 / SPECIFICATION / philosophy.\n- **#3265** \u2014 the underlying pattern (close a process gap with one deterministic check + one remediation string, not a doc) applies to any consumer with `task deft:check`, hooks, or their own verifies. The main.md wording names framework-internal surfaces (release preflight, SkillOpt / #2436), so the consumer-facing pointer MUST be a surface-neutral restatement, not a copy-paste.\n\nPrecedent for a dual-audience axiom: #709 (`Repair Authority [AXIOM]` \u2014 \"for consumers and maintainers\").\n\n## Proposed fix (thin, pointer-sufficient \u2014 dogfoods #3265)\n\nThe agents-entry contract is **pointer-sufficient** since #2371 / #2457, so this is one line per rule, not a mirror:\n\n1. Add a compressed pointer for each rule to `content/templates/agents-entry.md`, surface-neutral wording (`task deft:*` form for consumers).\n2. Add the two headers to `PROPAGATION_HEADER_MARKERS` in `packages/core/src/content-contracts/skills/agents_entry_contract.test.ts` so the propagation is gated rather than aspirational.\n3. Add a one-line citation to `content/templates/agent-prompt-preamble.md` in the same style as the existing Dual Stop line (535).\n4. `task agents:refresh` to propagate into the managed AGENTS.md block.\n\nExplicit non-goal: copying the main.md bodies into any entry surface. #865 (every rule is a token tax) is the live counterweight \u2014 pointer-sufficient is what keeps this affordable.\n\n## Acceptance criteria\n\n- [ ] `agents-entry.md` carries a pointer for Rule Authority and for #3265, surface-neutral for consumers\n- [ ] `agents_entry_contract.test.ts` marker list gates both, so removal fails a test\n- [ ] `agent-prompt-preamble.md` cites both by `main.md` section name, matching the Dual Stop precedent\n- [ ] Managed AGENTS.md block regenerated via `task agents:refresh`\n- [ ] No main.md body text duplicated into any entry surface (pointer-sufficient only)\n- [ ] CHANGELOG updated\n\n## Cross-links\n\n- #3269 \u2014 landed #3265 in main.md (`docs(main)`); propagation out of scope there\n- #1309 \u2014 template propagation discipline: consumer-relevant maintainer rules MUST mirror into `agents-entry.md`\n- #2371 / #2457 \u2014 pointer-sufficient inversion of the agents-entry contract\n- #2316 \u2014 open: add a **preamble propagation contract gate**; the mechanism for AC 3 likely belongs there, this issue supplies the content\n- #865 \u2014 every-rule-is-a-token-tax (counterweight; why pointer-sufficient)\n- #709 \u2014 `Repair Authority [AXIOM]` precedent for consumer+maintainer axiom scope\n- #3310 \u2014 the thread where the gap surfaced\n\n",
+      "Labels": "determinism, meta"
+    },
+    "items": [
+      {
+        "title": "agents-entry pointers",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given agents-entry.md, when an agent reads the managed consumer block, it contains a surface-neutral pointer for Rule Authority and for Thin Fail-Closed Design (#3265) using task deft:* wording, without copying main.md body text."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/templates/agents-entry.md ## Rule Authority [AXIOM] and ## Thin Fail-Closed Design (#3265) pointers using task deft:*; no main.md body copy",
+          "recorded_at": "2026-08-12T20:00:34Z",
+          "recorded_by": "agent/leaf-implementation/3313"
+        }
+      },
+      {
+        "title": "agents-entry contract markers",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given PROPAGATION_HEADER_MARKERS in agents_entry_contract.test.ts, when either Rule Authority or #3265 header is removed from agents-entry.md, the contract test fails."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts PROPAGATION_HEADER_MARKERS includes both headers; 68 tests passed",
+          "recorded_at": "2026-08-12T20:00:34Z",
+          "recorded_by": "agent/leaf-implementation/3313"
+        }
+      },
+      {
+        "title": "preamble citations and refresh",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given agent-prompt-preamble.md Dual Stop citation style, when the story lands, preamble cites both main.md section names and task agents:refresh has regenerated the managed AGENTS.md block."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/templates/agent-prompt-preamble.md cites main.md ## Rule Authority [AXIOM] and ## Thin Fail-Closed Design (#3265); AGENTS.md refreshed via agents-refresh",
+          "recorded_at": "2026-08-12T20:00:34Z",
+          "recorded_by": "agent/leaf-implementation/3313"
+        }
+      },
+      {
+        "title": "pointer-sufficient CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the three entry surfaces after the change, when reviewed, none duplicate main.md body text (pointers only) and CHANGELOG cites #3313."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed cites #3313; entry surfaces are pointer-sufficient only",
+          "recorded_at": "2026-08-12T20:00:34Z",
+          "recorded_by": "agent/leaf-implementation/3313"
+        }
+      }
+    ],
+    "tags": [
+      "determinism",
+      "meta"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3313",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3313: fix(agents-entry,preamble): Rule Authority [AXIOM] + Thin Fail-Closed (#3265) unreachable from agent entry surfaces"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "pointer-sufficient agents-entry and preamble citations for Rule Authority and #3265",
+          "PROPAGATION_HEADER_MARKERS gate",
+          "refreshed managed AGENTS.md",
+          "CHANGELOG #3313"
+        ],
+        "depends_on": [],
+        "conflict_group": "growing-cohort-3313-entry-axioms",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue #3313 body AC plus operator through-merge 2026-08-12; file_scope is the expected touch set.",
+        "acceptance_criteria_justification": "Four items: entry pointers, contract markers, preamble+refresh, pointer-sufficient CHANGELOG."
+      },
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": []
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "updated": "2026-08-12T20:00:34Z"
+  }
+}
