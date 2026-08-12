@@ -62,6 +62,7 @@ import {
   writeState,
 } from "./doctor-state.js";
 import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } from "./flags.js";
+import { formatDoctorHelp } from "./help.js";
 import { pythonJsonDump } from "./json.js";
 import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { runNpmRegistryMirrorCheck } from "./npm-registry.js";
@@ -77,6 +78,15 @@ import {
   runningInsideDeftRepo,
 } from "./paths.js";
 import { runPayloadStalenessCheck } from "./payload-staleness.js";
+import {
+  loadSessionCodas,
+  projectRootRealpath,
+  resolveSessionCodaLine,
+  SESSION_CODA_ENV,
+  sessionCodaMode,
+  shouldEmitSessionCodaLine,
+  utcDateYmd,
+} from "./session-coda.js";
 import { runLocalSignpostChecks } from "./signpost-checks.js";
 import {
   classifyTaskfileInclude,
@@ -121,6 +131,11 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     sink.error(formatUnknownFlagsError(flags.unknown));
     sink.info(formatAllowedFlagsHint());
     return 2;
+  }
+
+  if (flags.help) {
+    process.stdout.write(formatDoctorHelp());
+    return 0;
   }
 
   const sessionMode = flags.session;
@@ -594,6 +609,15 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   sink.blank();
   if (errorCount === 0 && warningCount === 0) {
     sink.finalSuccess("System check passed!");
+    emitSessionCodaAfterFinalSuccess({
+      projectRoot,
+      frameworkRoot,
+      jsonMode,
+      exitOk: true,
+      now: nowFn(),
+      seams,
+      sink,
+    });
     return 0;
   }
   if (errorCount) {
@@ -605,7 +629,60 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     return 1;
   }
   sink.finalWarn(`System check completed with ${warningCount} warning(s).`);
+  emitSessionCodaAfterFinalSuccess({
+    projectRoot,
+    frameworkRoot,
+    jsonMode,
+    exitOk: true,
+    now: nowFn(),
+    seams,
+    sink,
+  });
   return 0;
+}
+
+/**
+ * After the final human success footer only (D2): optional off-hint or ✦ coda.
+ * Never mid-run Next command: block; never JSON; never hard-fail path (D1).
+ */
+function emitSessionCodaAfterFinalSuccess(input: {
+  readonly projectRoot: string;
+  readonly frameworkRoot: string;
+  readonly jsonMode: boolean;
+  readonly exitOk: boolean;
+  readonly now: Date;
+  readonly seams: DoctorSeams;
+  readonly sink: ReturnType<typeof createPlainSink>;
+}): void {
+  const stdoutIsTty = input.seams.stdoutIsTty ?? (() => process.stdout.isTTY === true);
+  // `in` so tests can force unset via `{ sessionCodaEnv: undefined }` without
+  // leaking the host process env.
+  const envRaw =
+    "sessionCodaEnv" in input.seams ? input.seams.sessionCodaEnv : process.env[SESSION_CODA_ENV];
+  const ciRaw = "ciEnv" in input.seams ? input.seams.ciEnv : process.env.CI;
+  const ci = Boolean(ciRaw && ciRaw !== "0" && String(ciRaw).toLowerCase() !== "false");
+  const shouldEmit = shouldEmitSessionCodaLine({
+    tty: stdoutIsTty(),
+    ci,
+    json: input.jsonMode,
+    exitOk: input.exitOk,
+  });
+  const mode = sessionCodaMode(envRaw);
+  const codas =
+    mode === "on"
+      ? (input.seams.loadSessionCodas?.(input.frameworkRoot) ??
+        loadSessionCodas(input.frameworkRoot, input.seams.readText))
+      : [];
+  const line = resolveSessionCodaLine({
+    mode,
+    shouldEmit,
+    date: utcDateYmd(input.now),
+    projectRoot: projectRootRealpath(input.projectRoot),
+    codas,
+  });
+  if (line === null) return;
+  input.sink.blank();
+  input.sink.raw(line);
 }
 
 export function runAgentHooksHealthCheck(
