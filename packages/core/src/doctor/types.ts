@@ -135,6 +135,22 @@ export interface DoctorSeams {
     },
   ) => string | null;
   readonly isTty?: () => boolean;
+  /**
+   * stdout TTY probe for session coda (#2712). Defaults to
+   * `process.stdout.isTTY === true` (not stdin). Separate from `isTty` (stdin
+   * used by --fix prompts).
+   */
+  readonly stdoutIsTty?: () => boolean;
+  /**
+   * Override DEFT_SESSION_CODA for tests (#2712). `undefined` means read
+   * process.env; pass `""` or omit via explicit nullish env simulation with
+   * `undefined` from a seam that returns undefined.
+   */
+  readonly sessionCodaEnv?: string | undefined;
+  /** Override CI env string for session coda gates (#2712). */
+  readonly ciEnv?: string | undefined;
+  /** Override session-coda pack loader for fail-open tests (#2712). */
+  readonly loadSessionCodas?: (frameworkRoot: string) => string[];
   readonly readYn?: (prompt: string, defaultYes: boolean) => boolean;
   readonly writeText?: (path: string, content: string) => void;
   readonly now?: () => Date;

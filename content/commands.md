@@ -613,6 +613,7 @@ Taskfile targets are the stable surface for validation, rendering, lifecycle mov
 - `.deft/core/run spec` -- interactive scope/spec interview flow.
 - `.deft/core/run validate` -- configuration validation compatibility surface.
 - `.deft/core/run doctor` -- compatibility entry to doctor checks.
+- **`DEFT_SESSION_CODA` (interactive doctor success, #2712):** after the final human success footer only (exit 0; TTY stdout; not CI; not `--json`): **unset** prints `Session coda: off (set DEFT_SESSION_CODA=1 to enable)`; **`=1`** prints one deterministic `✦ <line>` from the content pack; **`=0`** is silent. Never on hard fail, never in JSON. See `deft doctor --help`.
 - `.deft/core/run reset` -- reset helper.
 - `.deft/core/run upgrade` -- legacy metadata acknowledgment; it does not replace the framework payload.
 

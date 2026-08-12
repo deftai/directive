@@ -88,6 +88,11 @@
       "note": "Consumer-facing concept/guide docs promoted from the maintainer docs/ tree (BROWNFIELD.md, getting-started.md, good-agents-md.md) per #1669 Wave-1 C3."
     },
     {
+      "path": "content/doctor",
+      "bucket": "content",
+      "note": "Doctor operator microcopy pack (session-coda.json) for optional interactive session coda (#2712). Human TTY only; never AGENTS/skills/JSON."
+    },
+    {
       "path": "content/events",
       "bucket": "content",
       "note": "Event-driven framework docs and JSON schemas (event-record.schema.json, registry.schema.json)."
