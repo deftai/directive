@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
+
 ### Changed
 
 - **Retire the coverageDebt/checkResume consent ritual; keep two plain settings (#3314).** Session-start no longer quizzes Strict / Hatch-aware / Later. `policy:coverage-check-resume-preset|later|dismiss` and the nudge/preset modules are gone. `coverageDebt.mode` and `checkResume.localStamp` stay as optional fail-closed fields (default off). Interactive mutation ritual prints one disclosure line when either is non-default. Hatch and local stamp are reserved; live hatch is `--allow-coverage-debt=#N` (#2866). Closes #3314. Refs #3189, #3187, #2866.

@@ -57,10 +57,19 @@ describe("test_portfolio_priority_skill", () => {
 
   it("portfolio_priority_skill_epistemic_gates", () => {
     const text = readRepoFile(SKILL_PATH);
-    expect(text).toMatch(/Title-only supersession/i);
+    expect(text).toMatch(/Title-only supersession[\s*]*[,].*duplicate/i);
     expect(text).toMatch(/Read the body|read the body|read bodies/i);
+    expect(text).toContain("duplicate/consolidate classification");
     expect(text).toContain("gh api");
     expect(text).toMatch(/open\/closed|open\/closed accurately/i);
+  });
+
+  it("portfolio_priority_skill_overlap_dispose_suppression", () => {
+    const text = readRepoFile(SKILL_PATH);
+    expect(text).toMatch(/List-before-re-recommend/i);
+    expect(text).toContain("task decision:list -- --issue N --json");
+    expect(text).toMatch(/#3066\/#3082/);
+    expect(text).toContain("#3310");
   });
 
   it("portfolio_priority_skill_brief_template_sections", () => {
