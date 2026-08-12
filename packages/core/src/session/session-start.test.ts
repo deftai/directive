@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -471,5 +471,31 @@ describe("runSessionStart ceremony dial (#3214)", () => {
     };
     expect(dial.depth).toBe("minimal");
     expect(dial.composition.minimalAgentsProfile).toContain("#3014");
+  });
+
+  it("emits coverageDebt disclosure even when branch_policy is deferred (#3314)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "T",
+          status: "running",
+          items: [],
+          policy: { coverageDebt: { mode: "hatch" } },
+        },
+      }),
+      "utf8",
+    );
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      deferrals: { branch_policy: "ok" },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines.some((l) => l.includes("coverageDebt.mode=hatch"))).toBe(true);
+    expect(result.lines.some((l) => l.includes("reserved"))).toBe(true);
   });
 });

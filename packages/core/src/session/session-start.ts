@@ -1214,7 +1214,6 @@ export function runSessionStart(
     if (humanMergeLine !== null) {
       lines.push(humanMergeLine);
     }
-    pushCoverageCheckResumeDisclosure(lines, projectRoot);
     const branchSync = defaultBranchSync(projectRoot, runGit);
     if (branchSync.warning) {
       lines.push(branchSync.warning);
@@ -1231,6 +1230,8 @@ export function runSessionStart(
   } else {
     stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
   }
+  // Standing disclosure is independent of branch_policy deferral (#3314 / Greptile).
+  pushCoverageCheckResumeDisclosure(lines, projectRoot);
 
   // #3214 / #3156: verify_tools is mutation readiness — always run, even under
   // rapid/minimal. Dial skipFatPath only lightens *ceremony* (triage welcome,
