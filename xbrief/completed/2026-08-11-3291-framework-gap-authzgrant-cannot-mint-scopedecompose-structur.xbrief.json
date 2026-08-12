@@ -25,7 +25,7 @@
           "Acceptance": "Given parent and draft paths under projectRoot, when the operator runs the documented authz:grant structural flow with TTY confirm, then a human-origin structural grant is minted with contentDigest parent target and project identity bindings.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/authz.test.ts#structural-mint",
           "recorded_at": "2026-08-11T23:03:16.038Z",
@@ -41,7 +41,7 @@
           "Acceptance": "Given apply with a repo-bound structural grant, when evaluateDecomposeStructuralApply runs at initial check and under-lock revalidation, then matching repo allows and mismatched repo fails before writes.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/decompose.test.ts#repo-binding",
           "recorded_at": "2026-08-11T23:03:16.038Z",
@@ -57,7 +57,7 @@
           "Acceptance": "Given authz:grant help or a structural apply deny, when the message is printed, then it includes the exact mint command operators can run.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/authz/decompose-apply.test.ts#mint-command",
           "recorded_at": "2026-08-11T23:03:16.038Z",
@@ -73,7 +73,7 @@
           "Acceptance": "Given a valid draft without a structural grant, when scope:decompose --check runs, then validation succeeds without requiring a human-origin grant.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/decompose.test.ts#check-ungated",
           "recorded_at": "2026-08-11T23:03:16.038Z",
@@ -89,7 +89,7 @@
           "Acceptance": "Given the new CLI and decompose paths, when unit tests run, then parser help human-presence bindings apply success and mismatch cases pass without weakening authz.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/authz.test.ts + packages/core/src/authz/decompose-apply.test.ts + packages/core/src/scope/decompose.test.ts; PR #3300 merge 96bccaf8",
           "recorded_at": "2026-08-11T23:03:16.038Z",

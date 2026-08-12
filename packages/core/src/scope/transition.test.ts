@@ -42,13 +42,15 @@ function writeFile(path: string, data: unknown): void {
   writeFileSync(path, formatBriefJson(data), "utf8");
 }
 
-/** Minimal #3240 evidence so complete may advance non-terminal items in lifecycle tests. */
-function aceEvidence(pointer: string) {
+/** Minimal #3240/#3305 namespaced evidence so complete may advance non-terminal items. */
+function aceEvidence(pointer: string): Record<string, unknown> {
   return {
-    kind: "test" as const,
-    pointer,
-    recorded_at: "2026-07-27T00:00:00Z",
-    recorded_by: "vitest",
+    "x-directive/evidence": {
+      kind: "test" as const,
+      pointer,
+      recorded_at: "2026-07-27T00:00:00Z",
+      recorded_by: "vitest",
+    },
   };
 }
 
@@ -191,21 +193,21 @@ describe("runTransition", () => {
         status: "running",
         updated: staleEnvelope,
         items: [
-          { title: "pending-item", status: "pending", evidence: aceEvidence("pending-item") },
-          { title: "proposed-item", status: "proposed", evidence: aceEvidence("proposed-item") },
-          { title: "running-item", status: "running", evidence: aceEvidence("running-item") },
+          { title: "pending-item", status: "pending", ...aceEvidence("pending-item") },
+          { title: "proposed-item", status: "proposed", ...aceEvidence("proposed-item") },
+          { title: "running-item", status: "running", ...aceEvidence("running-item") },
           { title: "cancelled-item", status: "cancelled" },
           { title: "failed-item", status: "failed" },
           { title: "already-completed", status: "completed" },
           {
             title: "parent-with-sub",
             status: "pending",
-            evidence: aceEvidence("parent-with-sub"),
+            ...aceEvidence("parent-with-sub"),
             subItems: [
               {
                 title: "sub-pending",
                 status: "pending",
-                evidence: aceEvidence("sub-pending"),
+                ...aceEvidence("sub-pending"),
               },
               { title: "sub-cancelled", status: "cancelled" },
             ],
@@ -253,7 +255,7 @@ describe("runTransition", () => {
       plan: {
         title: "v06",
         status: "running",
-        items: [{ title: "a", status: "pending", evidence: aceEvidence("a") }],
+        items: [{ title: "a", status: "pending", ...aceEvidence("a") }],
       },
     });
     const fixed = new Date("2026-07-27T16:00:00.000Z");
@@ -339,13 +341,13 @@ describe("runTransition", () => {
           {
             title: "parent",
             status: "pending",
-            evidence: aceEvidence("parent"),
+            ...aceEvidence("parent"),
             // Nested under items[] (not only subItems) advances recursively.
             items: [
               {
                 title: "child-pending",
                 status: "pending",
-                evidence: aceEvidence("child-pending"),
+                ...aceEvidence("child-pending"),
               },
             ],
           },
@@ -383,12 +385,7 @@ describe("runTransition", () => {
       plan: {
         title: "junk",
         status: "running",
-        items: [
-          null,
-          "skip",
-          ["arr"],
-          { title: "ok", status: "pending", evidence: aceEvidence("ok") },
-        ],
+        items: [null, "skip", ["arr"], { title: "ok", status: "pending", ...aceEvidence("ok") }],
       },
     });
     // Invalid array entries are skipped by the walker; non-object entries may still fail

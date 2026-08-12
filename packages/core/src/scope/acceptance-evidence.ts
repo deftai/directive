@@ -5,10 +5,22 @@
  * plan item needs either typed evidence or a human-origin disposition before complete
  * may advance it. Kind suitability: merge/review alone cannot satisfy smoke, UAT,
  * deploy, or observed_behavior requirements.
+ *
+ * Canonical item keys are namespaced under #1620 / #3305 (Option B):
+ * - plan.items[].x-directive/evidence
+ * - plan.items[].x-directive/disposition
+ * Bare `evidence` / `disposition` are not valid typed evidence (no dual-read).
+ * ITEM_CORE is not expanded with bare keys; verify:vbrief-conformance rejects them.
  */
 
 import { isHumanOrigin } from "../authz/origin.js";
 import type { GrantOrigin } from "../authz/types.js";
+
+/** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
+export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
+
+/** Canonical namespaced key for human-origin disposition (#3305 / #1620). */
+export const ACCEPTANCE_DISPOSITION_KEY = "x-directive/disposition" as const;
 
 /** Closed evidence kinds (locked Q3). */
 export const ACCEPTANCE_EVIDENCE_KINDS = [
@@ -290,41 +302,113 @@ function itemLabel(item: Record<string, unknown>, path: string): string {
   return path;
 }
 
+/**
+ * Read only namespaced acceptance fields (#3305). Bare `evidence` / `disposition`
+ * are never treated as success (no permanent dual-read).
+ */
+export function readNamespacedAcceptanceFields(item: Record<string, unknown>): {
+  readonly evidence: unknown;
+  readonly disposition: unknown;
+  readonly hasEvidence: boolean;
+  readonly hasDisposition: boolean;
+  readonly hasBareEvidence: boolean;
+  readonly hasBareDisposition: boolean;
+} {
+  const evidence = item[ACCEPTANCE_EVIDENCE_KEY];
+  const disposition = item[ACCEPTANCE_DISPOSITION_KEY];
+  return {
+    evidence,
+    disposition,
+    hasEvidence: evidence !== undefined && evidence !== null,
+    hasDisposition: disposition !== undefined && disposition !== null,
+    hasBareEvidence: item.evidence !== undefined && item.evidence !== null,
+    hasBareDisposition: item.disposition !== undefined && item.disposition !== null,
+  };
+}
+
+/**
+ * Stamp typed evidence under the canonical namespaced key only.
+ * Overwrites any prior namespaced evidence; does not write bare keys.
+ */
+export function stampNamespacedEvidence(
+  item: Record<string, unknown>,
+  record: AcceptanceEvidenceRecord,
+): void {
+  item[ACCEPTANCE_EVIDENCE_KEY] = {
+    kind: record.kind,
+    pointer: record.pointer,
+    recorded_at: record.recorded_at,
+    recorded_by: record.recorded_by,
+  };
+  // Never leave bare keys as a success path; strip if present so re-serialize is clean.
+  delete item.evidence;
+}
+
+/**
+ * Stamp human-origin disposition under the canonical namespaced key only.
+ */
+export function stampNamespacedDisposition(
+  item: Record<string, unknown>,
+  record: AcceptanceDispositionRecord,
+): void {
+  const body: Record<string, unknown> = {
+    disposition: record.disposition,
+    reason: record.reason,
+    provenance: { ...record.provenance },
+    recorded_at: record.recorded_at,
+  };
+  if (record.resume_when !== undefined) {
+    body.resume_when = record.resume_when;
+  }
+  item[ACCEPTANCE_DISPOSITION_KEY] = body;
+  delete item.disposition;
+}
+
 function evaluateOneItem(item: Record<string, unknown>, path: string): CriterionAcceptanceReport {
   const title = itemLabel(item, path);
   const status = String(item.status ?? "");
   if (!NON_TERMINAL_ITEM_STATUSES.has(status)) {
+    // Already-terminal: complete does not re-validate typed evidence (#3240 / #3305).
+    // Suitability/provenance apply only when advancing non-terminal items. Pre-marking
+    // items completed with narrative-only fields still skips the typed gate — that is
+    // intentional for fail/cancel and historical terminals, not a silent dual success path.
     return {
       path,
       title,
       outcome: "already_terminal",
-      detail: `status=${status || "(empty)"} (not advanced)`,
+      detail: `status=${status || "(empty)"} (not advanced; typed evidence not re-checked)`,
     };
   }
 
-  const hasEvidence = item.evidence !== undefined && item.evidence !== null;
-  const hasDisposition = item.disposition !== undefined && item.disposition !== null;
+  const fields = readNamespacedAcceptanceFields(item);
+  const { hasEvidence, hasDisposition, hasBareEvidence, hasBareDisposition } = fields;
 
   if (hasEvidence && hasDisposition) {
     return {
       path,
       title,
       outcome: "invalid",
-      detail: "exactly one of evidence or disposition required; both present",
+      detail: `exactly one of ${ACCEPTANCE_EVIDENCE_KEY} or ${ACCEPTANCE_DISPOSITION_KEY} required; both present`,
     };
   }
 
   if (!hasEvidence && !hasDisposition) {
+    const bareHint =
+      hasBareEvidence || hasBareDisposition
+        ? ` bare evidence/disposition ignored — use ${ACCEPTANCE_EVIDENCE_KEY} or ${ACCEPTANCE_DISPOSITION_KEY} (#3305);`
+        : "";
     return {
       path,
       title,
       outcome: "missing",
-      detail: "no evidence or disposition; scope:complete refuses to auto-complete (#3240)",
+      detail:
+        `no ${ACCEPTANCE_EVIDENCE_KEY} or ${ACCEPTANCE_DISPOSITION_KEY};` +
+        `${bareHint} scope:complete refuses to auto-complete (#3240)`,
     };
   }
 
   if (hasDisposition) {
-    const parsed = parseDisposition(item.disposition);
+    const parsed = parseDisposition(fields.disposition);
     if (!parsed.ok) {
       return { path, title, outcome: "invalid", detail: parsed.message };
     }
@@ -337,7 +421,7 @@ function evaluateOneItem(item: Record<string, unknown>, path: string): Criterion
     };
   }
 
-  const parsed = parseEvidence(item.evidence);
+  const parsed = parseEvidence(fields.evidence);
   if (!parsed.ok) {
     return { path, title, outcome: "invalid", detail: parsed.message };
   }
@@ -405,12 +489,13 @@ export function evaluateAcceptanceEvidenceGate(
   return {
     ok: false,
     message:
-      `Acceptance evidence required for scope:complete (#3240). ` +
+      `Acceptance evidence required for scope:complete (#3240 / #3305). ` +
       `${blockers.length} criterion/criteria missing suitable evidence or disposition:\n` +
       `${lines.join("\n")}\n` +
-      `Each non-terminal plan item needs evidence ` +
+      `Each non-terminal plan item needs ${ACCEPTANCE_EVIDENCE_KEY} ` +
       `{kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by} ` +
-      `or disposition {disposition: waived|deferred|not_applicable, reason, provenance (human-origin), recorded_at}. ` +
+      `or ${ACCEPTANCE_DISPOSITION_KEY} {disposition: waived|deferred|not_applicable, reason, provenance (human-origin), recorded_at}. ` +
+      `Bare evidence/disposition keys are not valid (#1620 / #3305). ` +
       `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior criteria.`,
     reports,
   };

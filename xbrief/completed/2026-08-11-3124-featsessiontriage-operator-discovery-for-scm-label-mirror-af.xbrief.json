@@ -26,7 +26,7 @@
           "Acceptance": "Given a cold mutation session or triage welcome, when discovery is due, then a short tip surfaces once until ack or first successful dry-run and does not spam every re-arm.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts#throttle",
           "recorded_at": "2026-08-11T22:43:47Z",
@@ -42,7 +42,7 @@
           "Acceptance": "Given the tip fires, when the operator reads it, then it states dry-run and apply boundary, defaults only stamp triaged on matches, board usability requires actionLabels, more matches need triageAutoClassify, never auto-accept, and policy:show / PROJECT-DEFINITION location with full five-chip map recommendation.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts#content",
           "recorded_at": "2026-08-11T22:43:47Z",
@@ -58,7 +58,7 @@
           "Acceptance": "Given dry-run planned actions with empty actionLabels or open no_match domination, when the digest prints, then a footer hint points at actionLabels or triageAutoClassify respectively.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/triage/classify/label-mirror.test.ts#digest-cues",
           "recorded_at": "2026-08-11T22:43:47Z",
@@ -74,7 +74,7 @@
           "Acceptance": "Given the tip fires, when an agent continues the session, then agent-facing guidance requires restating existence plus customization path in the user-visible message, not only absorbing ritual output.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts#anti-swallow",
           "recorded_at": "2026-08-11T22:43:47Z",
@@ -90,7 +90,7 @@
           "Acceptance": "Given discovery ships, when docs and tests run, then commands.md has a depth pointer, CHANGELOG has an Unreleased entry, and unit tests cover throttle and required tip content.",
           "Traces": "ISSUE-BODY"
         },
-        "evidence": {
+        "x-directive/evidence": {
           "kind": "test",
           "pointer": "content/commands.md + CHANGELOG.md + vitest welcome/mirror tests; PR #3301 merge 1d135f56",
           "recorded_at": "2026-08-11T22:43:47Z",

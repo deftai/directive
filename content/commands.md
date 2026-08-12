@@ -137,6 +137,12 @@ Common commands:
 - `task scope:promote -- --batch` -- batch-promote **all** `xbrief/proposed/` scopes to `pending/` in one command (#3011 / epic #3009). Optional: `--batch <path>…` for an explicit list; `--force` overrides WIP cap (logged). Does **not** activate; implement remains one `scope:activate` at a time.
 - `task scope:activate -- xbrief/pending/<file>.xbrief.json` -- move accepted work to `active/` and set status to `running`.
 - `task scope:complete -- xbrief/active/<file>.xbrief.json` -- move running work to `completed/` and set status to `completed`.
+  - **Per-criterion acceptance evidence (#3240 / #3305):** each non-terminal `plan.items[]` entry needs either namespaced typed evidence or a human-origin disposition before complete may advance it:
+    - `plan.items[].x-directive/evidence` — `{ kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by }`
+    - `plan.items[].x-directive/disposition` — `{ disposition: waived|deferred|not_applicable, reason, provenance (human-origin), recorded_at }`
+  - Bare `evidence` / `disposition` keys are **not** valid (#1620 / Option B #3305). They fail `verify:vbrief-conformance` and are treated as missing by `scope:complete` (no dual-read). Migrate bare keys or narrative-only `Result`/`Verification` workarounds to the namespaced fields above while items are still non-terminal.
+  - Already-terminal items (`completed`/`failed`/`cancelled`/…) are not re-checked for typed evidence; pre-marking items complete to skip the gate is unsupported for the typed path.
+  - `merge`/`review` alone cannot satisfy smoke/UAT/deploy/observed_behavior criteria (title/Acceptance text or explicit axis).
 - `task scope:fail -- xbrief/active/<file>.xbrief.json` -- mark running work failed when the scope cannot complete.
 - `task scope:cancel -- <path>` -- move a scope to `cancelled/`.
 - `task scope:restore`, `task scope:block`, `task scope:unblock`, `task scope:demote`, and `task scope:undo:*` -- repair or reverse lifecycle transitions.

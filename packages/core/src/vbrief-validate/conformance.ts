@@ -75,9 +75,9 @@ export const ITEM_CORE = new Set([
   "items",
   // Optional PlanItem.effort enum S/M/L/XL (#1581) — schema-validated, core not extension.
   "effort",
-  // Acceptance evidence / disposition records for scope:complete (#3240).
-  "evidence",
-  "disposition",
+  // #3305 Option B: acceptance evidence/disposition are NOT ITEM_CORE.
+  // Canonical keys: plan.items[].x-directive/evidence and x-directive/disposition
+  // (accepted via EXTENSION_PREFIXES). Bare evidence/disposition fail #1620.
 ]);
 
 export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/", "x-xbrief/"] as const;

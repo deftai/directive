@@ -28,9 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **scope:complete acceptance evidence is namespaced under x-directive/ (#3305 / #1620 Option B).** Canonical per-item keys are `plan.items[].x-directive/evidence` and `plan.items[].x-directive/disposition` only (same typed shapes as #3240). Bare `evidence` / `disposition` are missing/invalid for the acceptance-evidence gate (no permanent dual-read) and continue to fail `verify:vbrief-conformance`. `ITEM_CORE` is **not** expanded with bare evidence/disposition (reverts the short-lived bare-core allow from the #3124 complete land). Writers/helpers stamp only namespaced keys. Cross-gate regression under vitest/`task check` proves a pending item with valid namespaced evidence passes both complete and `scanVbrief`. Docs/migration in `content/commands.md` § scope:complete. Closes #3305. Refs #3240, #1620, #3256, #3156.
+
 ### Fixed
 
-- **vBRIEF bare-key conformance allows PlanItem.evidence and disposition (#3240 / #3124).** ITEM_CORE includes scope:complete acceptance-evidence records so completed stories with test evidence pass evaluateConformance.
 - **vBRIEF bare-key conformance allows plan.acceptance and PlanItem.effort (#3124 / #3284 / #1581).** `PLAN_CORE` and `ITEM_CORE` now include the product-first done-gate `acceptance` block and the schema-validated `effort` enum so active stories with stated AC and effort stamps pass `evaluateConformance` without false #1620 bare-key hits.
 - **Vitest branch coverage restored above 85% (#3287).** Focused branch tests for literal-acceptance safety/capture edges, value readback pure helpers, and story-quality residual paths clear the v0.100.0 84.96% hairline so release Step 5 passes without `--allow-coverage-debt`. Measured: statements/lines 88.41%, branches 85.08%, functions 96.00%. Closes #3287.
 
