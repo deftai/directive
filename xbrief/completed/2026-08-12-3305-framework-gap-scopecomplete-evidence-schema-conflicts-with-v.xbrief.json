@@ -1,0 +1,179 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3305",
+    "updated": "2026-08-12T02:32:09Z"
+  },
+  "plan": {
+    "title": "[framework-gap] scope:complete evidence schema conflicts with vBRIEF conformance",
+    "status": "completed",
+    "narratives": {
+      "Description": "The scope complete acceptance-evidence path previously read bare plan item evidence and disposition fields while the vBRIEF conformance gate rejected those bare keys under issue 1620. Locked Option B uses only namespaced x-directive/evidence and x-directive/disposition. No permanent dual-read and no ITEM_CORE expansion. Cross-gate regression runs under the aggregate quality gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3305",
+      "Overview": "Unify scope complete acceptance evidence with vBRIEF conformance. Engine reads and writes only namespaced x-directive/evidence and x-directive/disposition. Bare keys are missing or invalid for complete and fail conformance. Cross-gate vitest proves pending namespaced evidence passes both gates under task check. Docs and CHANGELOG updated. Closes issue 3305.",
+      "UserStory": "As a consumer operator, I want completion evidence to use namespaced x-directive keys that pass conformance, so that I can complete scopes with typed evidence without failing the vBRIEF bare-key gate.",
+      "ImplementationPlan": "1. Change acceptance-evidence readers and writers to only use namespaced x-directive keys on plan items.\n2. Keep conformance rejecting bare evidence and disposition while accepting x-directive keys via existing prefix rules.\n3. Cross-gate regression under vitest and task check.\n4. Bare-key negatives plus already-terminal policy tests plus docs migration guidance and CHANGELOG.",
+      "Traces": "ISSUE-BODY"
+    },
+    "items": [
+      {
+        "id": "namespaced-schema",
+        "title": "Canonical x-directive evidence and disposition keys",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a non-terminal plan item with valid typed evidence at x-directive/evidence, when scope complete runs, then the acceptance-evidence gate accepts it and writers stamp only namespaced keys.",
+          "Traces": "ISSUE-BODY"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts#3305",
+          "recorded_at": "2026-08-12T02:31:35.195Z",
+          "recorded_by": "leaf-worker/3305"
+        }
+      },
+      {
+        "id": "no-bare-success",
+        "title": "Bare keys not valid typed evidence",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given bare item.evidence or disposition, when acceptance-evidence evaluates and conformance runs, then complete treats bare as missing or invalid and conformance rejects bare keys; permanent dual-read is forbidden.",
+          "Traces": "ISSUE-BODY"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts#3305",
+          "recorded_at": "2026-08-12T02:31:35.195Z",
+          "recorded_by": "leaf-worker/3305"
+        }
+      },
+      {
+        "id": "cross-gate-fixture",
+        "title": "Cross-gate regression under quality gate",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a hermetic pending item with valid namespaced evidence, when the aggregate quality gate runs, then both completion evidence path and vbrief-conformance pass in the same regression surface.",
+          "Traces": "ISSUE-BODY"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "238b6ca3277913bd779947fc7c6275af1f33e62f",
+          "recorded_at": "2026-08-12T02:31:35.195Z",
+          "recorded_by": "leaf-worker/3305"
+        }
+      },
+      {
+        "id": "terminal-policy",
+        "title": "Already-terminal evidence semantics tested",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given already-terminal items and human-origin dispositions, when tests run, then intended #3240 policy is explicit and cannot silently bypass suitability or provenance checks.",
+          "Traces": "ISSUE-BODY"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts#3305",
+          "recorded_at": "2026-08-12T02:31:35.195Z",
+          "recorded_by": "leaf-worker/3305"
+        }
+      },
+      {
+        "id": "docs-migration",
+        "title": "Docs and migration guidance",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the contract change, when docs and CHANGELOG are read, then happy path uses only namespaced keys and migration from bare or narrative workarounds is documented.",
+          "Traces": "ISSUE-BODY"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3308",
+          "recorded_at": "2026-08-12T02:31:35.195Z",
+          "recorded_by": "leaf-worker/3305"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3305",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3305: [framework-gap] scope:complete evidence schema conflicts with vBRIEF conformance"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts --reporter=dot",
+          "source": "explicit"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/transition.test.ts --reporter=dot",
+          "source": "explicit"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope",
+          "packages/core/src/vbrief-validate",
+          "content/docs",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts --reporter=dot",
+          "pnpm exec vitest run packages/core/src/scope/transition.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "namespaced evidence passes complete and conformance; bare keys fail"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-complete-evidence-3305",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Framework-gap #3305 locked Option B 2026-08-11; acceptance from issue body."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3308,
+        "prBase": "master",
+        "mergeCommit": "238b6ca3277913bd779947fc7c6275af1f33e62f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "238b6ca3277913bd779947fc7c6275af1f33e62f",
+        "verifiedAt": "2026-08-12T02:32:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-12T02:32:09Z",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "story-3305-scope-complete-evidence-conformance",
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/acceptance-evidence.test.ts --reporter=dot"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/scope/transition.test.ts --reporter=dot"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated"
+    },
+    "updated": "2026-08-12T02:32:09Z"
+  }
+}
