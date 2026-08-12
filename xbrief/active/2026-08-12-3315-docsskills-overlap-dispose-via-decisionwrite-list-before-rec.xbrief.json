@@ -1,0 +1,118 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3315",
+    "updated": "2026-08-12T20:16:07Z"
+  },
+  "plan": {
+    "id": "3315-overlap-dispose-decision-write-list-before-recommend",
+    "title": "docs(skills): overlap dispose via decision:write + list-before-recommend",
+    "status": "running",
+    "narratives": {
+      "Description": "Operators need a durable place to record that an overlap cluster was human-disposed so portfolio passes stop re-litigating the same pairs. This thin Phase 1 ship documents decision:write plus list-before-recommend suppression; it does not build a duplicate-clusters ledger.",
+      "UserStory": "As a portfolio-priority agent, I want to list existing dispose decisions before re-recommending an overlap cluster, so that I park already-disposed pairs instead of re-deriving them.",
+      "ImplementationPlan": "Edit pack source content/packs/skills/skills-pack-0.1.json for the portfolio-priority skill, then render the pack. Document the decision-write convention (every member in relatedIssues, revisitTrigger required). Add list-before-re-recommend: list dispose decisions for each cited issue before recommending an overlap; park if a dispose decision covers that issue unless revisitTrigger applies. Widen Phase 4 body-read and title-only forbids to name duplicate/consolidate classification (comment correction; no new epistemic-gate section). Add one-line negative-fixture note (#3066/#3082, #95/#96, #513/#514). Assert the suppression-step marker in portfolio_priority_skill.test.ts. Do not quietly raise portfolio_priority_skill_size_cap (#3156); if the cap must move, justify it in the PR body. Cite #3315 in CHANGELOG. Do not add runtime verbs or ledger files. Do not close #3310 from this PR (analysis archive; separate disposition). Do not dispose the four positive fixture pairs.",
+      "AcceptanceJustification": "Five items: convention+boundaries+earning condition, suppression+render, Phase 4 widen+negative fixtures, marker test, CHANGELOG with no new verbs.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3315",
+      "Overview": "## Summary\n\nThin Phase 1 resolution for the **duplicate-candidate disposition loop**.\n\nOperators need a durable, re-listable place to record that an overlap cluster was **human-disposed**, so portfolio/coupling passes stop re-litigating the same pairs. A multi-verb pending ledger is **not** justified at current volume (four high-confidence clusters); a thin-slice test showed `decision:write` + `decision:list --issue N` already closes dispose + suppress.\n\n**Supersedes the implementation scope of #3310** (analysis archive). Does **not** close any candidate issues and does **not** build a duplicate-clusters ledger.\n\n## Parent / analysis\n\n- **#3310** — full design thread, locks, thin-slice test, current-shape pass-14. Body of #3310 describes a larger candidate state machine that is **not planned** as first ship.\n- Rationale: `main.md` Rule Authority + Thin Fail-Closed (#3265).\n\n## Deliverables (only)\n\n1. **Documented convention**\n   - Human disposes an overlap cluster via `task decision:write`.\n   - **Every** member issue number in `relatedIssues`.\n   - Include a `revisitTrigger`.\n   - Free-text decision may name relationship (duplicate / consolidate / not-duplicate / parent-child / related) and proposed canonical; no new schema required.\n\n2. **Suppression call site (named)**\n   - In the portfolio-priority skill (and coupling guidance if a stable doc/skill owns it): for each cited issue before re-recommending an overlap, list existing dispose decisions for that issue (or equivalent).\n   - If a dispose decision exists covering that issue, **park / do not re-shortlist as novel overlap** unless `revisitTrigger` clearly applies.\n   - Advisory skill diligence is **deliberate** (not a `task check` gate).\n\n3. **Earning condition (documented, not built)**\n   - A dedicated tracked ledger (`xbrief/.triage-cache/duplicate-clusters.jsonl` + verbs) is **deferred**.\n   - **Build only when** a portfolio/coupling pass re-litigates a cluster **despite** a dispose decision already listing the member issue numbers.\n   - Design archive: #3310 (do not re-derive in this issue).\n\n4. **Boundaries** (one short matrix in docs/skill)\n   - #886 governance tracker; #1178 pre-filing; #786 PR-output cluster; #3198/#3201 brief is never the decision record; #1396 decision log is the Phase-1 home; `triage:mark-duplicate` unchanged; no cluster label projection.\n\n## Non-goals\n\n- Closing or editing fixture pairs (#623/#674, #688/#978, #656/#972, #820/#823)\n- Duplicate-clusters JSONL, propose/dispose/mark-applied/report/verify verbs\n- Auto-close, label projection, authz-grant re-proof on read\n- `decision:list --tag` (optional separate issue; not required for suppress)\n- Replacing `triage:queue` or portfolio ranking\n\n## Acceptance criteria\n\n- [ ] Convention documented where operators and agents will find it (skill and/or commands/docs pointer).\n- [ ] Portfolio-priority skill (pack source + render path as required by repo) includes the list-before-re-recommend suppression step.\n- [ ] Earning condition for a future ledger is written once (skill or doc), pointing at #3310.\n- [ ] Boundaries cross-linked (#886, #1178, #3198, #1396) in delivered guidance.\n- [ ] CHANGELOG updated.\n- [ ] No new runtime verbs or ledger files required to close this issue.\n- [ ] Four positive pairs remain **undisposed candidates** unless the operator separately disposes them (out of scope for the PR).\n\n## Test plan\n\n- [ ] Manual: `decision:list -- --issue <N> --json` on an issue with a known decision returns count >= 1; on an undisposed issue returns count 0.\n- [ ] Skill text review: suppression step is explicit and cannot be read as auto-close or brief-as-decision.\n- [ ] Pack-render / pack-drift path if skill is pack-rendered.\n\n## Implementation notes\n\n- Prefer pack-source edit plus pack render when the skill is pack-generated.\n- P1 light: agents must not author a **committed** terminal disposition as product workflow; dogfood may use dry-run or discarded writes.\n- Issue-scoped only — do not add framework axioms.\n\n\nIssue comments (amend the body; later 2026-08-12T20:11Z correction wins) are in narrative IssueComments — not scanned as literal AC.\n",
+      "Labels": "enhancement, triage, process, docs",
+      "IssueComments": "## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-12T20:07:11Z)\n\n## Scope check against #3310's acceptance criteria — one drop, one landmine\n\nReview of #3315 as filed. Evaluation only. No code, no closes, no label writes.\n\n**Verdict: #3315 satisfies the original *problem*, not the original *AC list* — and that is mostly correct by design.** Two things to fix before implementation, plus one hazard the AC does not mention.\n\n### AC mapping (#3310 body -> #3315)\n\n| #3310 AC | #3315 |\n|---|---|\n| 1. Documented record + lifecycle | **Partial** — convention, no lifecycle |\n| 2. Deterministic report: pending, accepted-not-applied, age | **No** — deferred by earning condition |\n| 3. Live-state + body/comment evidence gates before recommendation | **No — and not deferred. Absent.** |\n| 4. Operator disposal explicit + durably referenced | **Yes** |\n| 5. Propose-not-apply; writeback separately authorized | **Yes** |\n| 6. Four positive pairs remain candidates | **Yes** (non-goal) |\n| 7. Negative fixtures prevent collapsing #3066/#3082, #95/#96, #513/#514 | **No** — no tests, and the knowledge is not carried anywhere |\n| 8. Applied dispositions post-verified | **No** — deferred |\n| 9. #886 / #1178 / #3198 boundaries cross-linked | **Yes** (deliverable 4) |\n| 10. Tests: transitions, stale reporting, invalidation, no-writeback | **No** — nothing to test; deferred |\n| 11. CHANGELOG | **Yes** |\n\nFour yes, one partial, six no — **five of the six deliberately deferred** under the earning condition, which is the point of the collapse. The problem statement (\"detection without closure and repeated portfolio analysis\") is closed for **disposed** clusters; \"which clusters await a decision\" is answered by re-running detection rather than by a durable queue.\n\n### 1. Accidental drop — the epistemic gate (AC 3)\n\n#3310's safety block:\n\n> `!` Read bodies and comments before classifying semantic relationships.\n> `⊗` Infer duplicate status from title similarity alone.\n\nThere is no ledger for that rule to live in, so **deferring it means losing it**. It costs one sentence in the delivered guidance and it guards the single most likely failure mode of this whole area — title-similarity false positives.\n\n**Add to deliverable 1 or 2.**\n\n### 2. Carry the negative-fixture knowledge as documentation\n\nAC 7's examples were vetted across several passes — #3082's body literally declares `Primary child: #3066`. With no tests being built, that analysis evaporates unless it lands as prose.\n\nOne line in the guidance preserves it:\n\n> Parent/child, leaf/tracker, and sibling-validator pairs are **not** duplicates — see #3066/#3082, #95/#96, #513/#514.\n\n### 3. Landmine — the skill already has a line-count gate\n\n`packages/core/src/content-contracts/skills/portfolio_priority_skill.test.ts` already exists, with `toContain` marker assertions **and** `portfolio_priority_skill_size_cap`, which counts lines in the skill.\n\nTwo consequences the AC should state:\n\n- Adding the suppression step will likely push the skill past the cap. The tempting fix is raising the cap to go green — which is what **#3156 gate integrity** forbids. If the step earns its lines, raise the cap **deliberately, with rationale in the PR**; do not quietly bump it.\n- Upside: a marker assertion for the suppression step is a **~3-line addition to that existing test file**, not new infrastructure. That converts \"the skill text says to do this\" into a deterministic check — the #3265 move — for near-zero cost.\n\n**Suggested extra AC:** `portfolio_priority_skill.test.ts` asserts the suppression step marker, so the step cannot be silently removed; any size-cap change is deliberate and justified in the PR body.\n\n### 4. #3310 needs an explicit disposition\n\n#3315 says it \"supersedes the implementation scope of #3310\", which leaves #3310 open with eleven ACs (six unmet) and a body describing a state machine that is no longer planned.\n\nThat is **detection-without-closure applied to the issue about detection-without-closure.** Either:\n\n- close #3310 as superseded, with the AC delta recorded in its current-shape comment, or\n- retitle it as the analysis archive and mark the six deferred ACs against the earning condition.\n\nThe AC delta above has been added to the #3310 current-shape comment (edited in place, pass-15) so whichever disposition is chosen has the record.\n\n### Otherwise\n\nScope, non-goals, and test plan read correctly. Deliverables 1–4 are the right shape, the earning condition is written down where it can be checked later, and \"no new runtime verbs or ledger files required to close this issue\" is the AC that keeps this thin.\n\n— scope check; no code, no closes, no label writes.\n\n\n### Comment by @MScottAdams (2026-08-12T20:11:15Z)\n\n## Correction — AC 3 is not dropped; it is already in the portfolio skill\n\nCorrecting my previous scope check on this issue. Evaluation only. No code, no closes, no label writes.\n\nI reported #3310 AC 3 (live-state + body/comment evidence gates before recommendation) as **\"dropped, not deferred\"**. That is wrong. It is **inherited from `deft-directive-portfolio-priority`** and roughly 90% covered today.\n\n### What already ships\n\n`content/skills/deft-directive-portfolio-priority/SKILL.md`, **Phase 4 — Epistemic gates (MUST)**, applying \"before citing any `#N` in the brief\":\n\n```\n92: ! Verify existence + state for every cited issue via live gh api repos/OWNER/NAME/issues/N (REST)\n    or a proven-fresh cache entry whose state matches the claim.\n93: ! Read the body of every issue used for shortlist, park-as-superseded, pack membership,\n    or \"decided\" claims.\n94: ! When claiming decided / superseded / closed-by-comment, also read comments (REST issues/N/comments).\n95: ! State open/closed accurately; never invent issue numbers.\n96: ⊗ Title-only supersession or ownership claims.\n```\n\nPlus:\n\n- **Phase 0 step 1** — `! Run task verify:cache-fresh`, three-state (0 proceed / 1 refresh or **disclose stale** with operator consent / 2 `triage:bootstrap`). This is the deterministic live-state half, and `portfolio_priority_skill.test.ts` already asserts the `task verify:cache-fresh` marker, so it is regression-protected.\n- **Phase 3** — `⊗ Claim \"#X supersedes #Y\" from titles alone`.\n- **Brief structure item 8** — required \"Epistemic limits — what was cache-only, what needs follow-up probe\" disclosure.\n\nThat is AC 3 nearly verbatim, on precisely the surface AC 3 targets: the recommendation path.\n\n### The real residual — two words on existing lines\n\nBoth enumerations name claim **types**, and duplicate/consolidate is not among them. A literal reader proposing a duplicate cluster can argue neither MUST enumerates their claim:\n\n| Line | Now | Proposed |\n|---|---|---|\n| 93 | `... park-as-superseded, pack membership, or \"decided\" claims` | `... park-as-superseded, duplicate/consolidate classification, pack membership, or \"decided\" claims` |\n| 96 | `⊗ Title-only supersession or ownership claims` | `⊗ Title-only supersession, duplicate, or ownership claims` |\n\n**No new lines**, so the `portfolio_priority_skill_size_cap` hazard I flagged earlier **does not apply to this fix**. Under the Rule Authority ladder the deterministic layer is already in place; only the prose enumeration needs widening.\n\n### Revised guidance for this issue\n\n- **Drop** my earlier ask to add a fresh epistemic-gate rule to deliverable 1 or 2 — it would duplicate Phase 4 in a size-capped file.\n- **Replace with:** widen the two existing enumerations in Phase 4 (lines 93 and 96) to name duplicate/consolidate classification.\n- The negative-fixture documentation ask (#3066/#3082, #95/#96, #513/#514) and the suppression-step marker assertion **stand unchanged**.\n\n### Corrected AC 3 status\n\n| Body AC | Prior report | Corrected |\n|---|---|---|\n| 3. Live-state + body/comment evidence gates | Dropped, not deferred | **Substantially met** by existing Phase 4 gates; residual is a two-word enumeration widening |\n\n#3310's current-shape comment (section 10) has been amended in place to match.\n\n— correction; no code, no closes, no label writes."
+    },
+    "items": [
+      {
+        "title": "Convention, earning condition, boundaries",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the delivered skill/docs pointer, when an operator disposes an overlap cluster they use task decision:write with every member issue in relatedIssues and a revisitTrigger; earning condition for a future ledger points at #3310; boundaries cross-link #886, #1178, #3198, #1396."
+        }
+      },
+      {
+        "title": "List-before-re-recommend suppression",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given pack source plus task packs:render, when the portfolio-priority skill is read, it requires task decision:list -- --issue N before re-recommending an overlap and parks disposed issues unless revisitTrigger applies; text cannot be read as auto-close or brief-as-decision."
+        }
+      },
+      {
+        "title": "Phase 4 widen and negative fixtures",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given comment correction 2026-08-12T20:11Z, when Phase 4 is rendered, line 93 names duplicate/consolidate classification and line 96 forbids title-only duplicate claims; guidance states parent/child, leaf/tracker, and sibling-validator pairs are not duplicates (#3066/#3082, #95/#96, #513/#514). No new epistemic-gate section."
+        }
+      },
+      {
+        "title": "Suppression marker test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given portfolio_priority_skill.test.ts, when the suppression step is removed from the skill, the contract test fails. Any size-cap change is deliberate and justified in the PR body (#3156)."
+        }
+      },
+      {
+        "title": "CHANGELOG without new verbs or pair disposal",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the PR, when reviewed, CHANGELOG cites #3315; no new runtime verbs or ledger files exist; four positive pairs remain undisposed; #3310 is Refs not Closes."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "process",
+      "docs"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3315",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3315: docs(skills): overlap dispose via decision:write + list-before-recommend"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3310",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3310 analysis archive (do not close from #3315)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-portfolio-priority/SKILL.md",
+          "packages/core/src/content-contracts/skills/portfolio_priority_skill.test.ts",
+          "content/docs/decision-log.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/portfolio_priority_skill.test.ts"
+        ],
+        "expected_outputs": [
+          "decision:write overlap-dispose convention",
+          "list-before-re-recommend suppression in portfolio-priority skill",
+          "Phase 4 duplicate/consolidate enumeration widen",
+          "negative-fixture prose",
+          "suppression marker test",
+          "CHANGELOG #3315"
+        ],
+        "depends_on": [],
+        "conflict_group": "growing-cohort-3313-3315",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue #3315 body plus two maintainer comments 2026-08-12; file_scope is expected touch set.",
+        "acceptance_criteria_justification": "Five items covering convention, suppression, Phase 4/fixtures, marker test, CHANGELOG/non-goals."
+      },
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": []
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "updated": "2026-08-12T20:16:07Z"
+  }
+}

@@ -84,16 +84,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 3. ! Emit an ordered **shortlist** (deep dive / promote candidates) and a **park list** with park reasons.
 4. ! Separate **interrupt / non-portfolio** rows (escalate, hold, already dispositioned) so they are not ranked against park list.
 5. ⊗ Claim "#X supersedes #Y" from titles alone — see Phase 4 epistemic gates.
+6. ! **List-before-re-recommend** (#3315): for each cited `#N` before re-recommending an overlap, run `task decision:list -- --issue N`. If a dispose decision covers that issue, park / do not re-shortlist as novel overlap unless `revisitTrigger` applies. Advisory diligence — not a `task check` gate. ⊗ Auto-close issues or treat the brief as the dispose record.
+7. Parent/child, leaf/tracker, and sibling-validator pairs are **not** duplicates — #3066/#3082, #95/#96, #513/#514.
 
 ### Phase 4 — Epistemic gates (MUST)
 
 Before citing any `#N` in the brief:
 
 1. ! **Verify existence + state** for every cited issue via live `gh api repos/OWNER/NAME/issues/N` (REST) **or** a proven-fresh cache entry whose state matches the claim.
-2. ! **Read the body** of every issue used for shortlist, park-as-superseded, pack membership, or "decided" claims.
+2. ! **Read the body** of every issue used for shortlist, park-as-superseded, duplicate/consolidate classification, pack membership, or "decided" claims.
 3. ! When claiming decided / superseded / closed-by-comment, also **read comments** (REST `issues/N/comments`).
 4. ! State **open/closed accurately**; never invent issue numbers.
-5. ⊗ **Title-only supersession** or ownership claims.
+5. ⊗ **Title-only supersession**, duplicate, or ownership claims.
 6. ⊗ Cite PRs as issues without filtering `pull_request` on mixed issue lists.
 
 ### Phase 5 — Emit priority brief
@@ -117,9 +119,10 @@ Before citing any `#N` in the brief:
 ### Phase 6 — Dispose checklist (hand off)
 
 1. ! Present the dispose checklist to the operator (accept/edit shortlist + park; record dispose; optional plan-sequence for P1).
-2. ! Point dispose targets: `task decision:write` (#1396 structured decision log under `xbrief/decisions/`; optional interim issue comment only if the write surface is unavailable), and/or `task plan-sequence:set`.
+2. ! Point dispose targets: `task decision:write` (#1396 / [`docs/decision-log.md`](../../docs/decision-log.md)): every overlap-cluster member in `relatedIssues`; include `revisitTrigger`; free-text MAY name relationship. Optional `task plan-sequence:set`. Interim issue comment only if the write surface is unavailable.
 3. ⊗ Auto-promote shortlist into plan-sequence without explicit operator dispose.
 4. ⊗ Exit treating the brief alone as durable prioritization memory (#2741 class).
+~ Dedicated duplicate-clusters ledger is deferred; earn it only when a pass re-litigates a cluster despite a dispose decision listing the members (#3310). Boundaries: #886, #1178, #786, #3198/#3201, #1396.
 
 ## Anti-Patterns
 
@@ -130,6 +133,7 @@ Before citing any `#N` in the brief:
 - ⊗ Full open-backlog unattended ranking without an explicit slice
 - ⊗ Replacing `triage:queue` for buildable work selection
 - ⊗ Treating the brief as the decision record without dispose
+- ⊗ Re-shortlist a disposed overlap without `task decision:list -- --issue N` (#3315)
 
 ## EXIT
 
@@ -141,4 +145,5 @@ Before citing any `#N` in the brief:
 
 - #3198 process + dogfood · #3201 this skill · #3200 / patterns pilot brief
 - #1396 decision log · #3179 propose-not-apply · #1423 / #3197 classify filter only
+- #3315 overlap dispose · #3310 ledger archive · #886 / #1178 / #786 boundaries
 - Siblings: `deft-directive-triage`, `deft-directive-refinement` — not #1419/#1511 post-promotion

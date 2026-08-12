@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
+
 ### Changed
 
 ### Fixed
