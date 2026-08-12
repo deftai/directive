@@ -25,6 +25,7 @@ import {
   resolveCeremonyDial,
   resolveSessionCeremonyDialInputs,
 } from "../policy/ceremony-dial.js";
+import { maybeFormatCoverageCheckResumeDisclosure } from "../policy/coverage-debt.js";
 import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
@@ -60,7 +61,6 @@ import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
-import { maybeFormatCoverageCheckResumeNudge } from "./coverage-check-resume-nudge.js";
 import {
   type DetectHardEffortBudgetInput,
   effortBudgetToDict,
@@ -120,6 +120,18 @@ export const QUICK_STEPS = [
 ] as const;
 export const GATED_STEPS = ["agent_hooks", "doctor", "cache_fresh"] as const;
 export type GatedStepName = (typeof GATED_STEPS)[number];
+
+/** Standing one-liner when coverageDebt/checkResume is non-default (#3314). */
+function pushCoverageCheckResumeDisclosure(lines: string[], projectRoot: string): void {
+  try {
+    const line = maybeFormatCoverageCheckResumeDisclosure(projectRoot);
+    if (line !== null) {
+      lines.push(line);
+    }
+  } catch {
+    // best-effort — ritual must not abort
+  }
+}
 
 /** Env opt-in for optional session:start network (release probe + triage cache hydrate) (#2991). */
 export const ENV_SESSION_START_NETWORK = "DEFT_SESSION_START_NETWORK";
@@ -789,16 +801,7 @@ function runSessionRearm(
   if (humanMergeLine !== null) {
     lines.push(humanMergeLine);
   }
-
-  // #3189: re-arm still surfaces undecided coverage/check-resume once per ritual.
-  try {
-    const coverageNudge = maybeFormatCoverageCheckResumeNudge({ projectRoot });
-    if (coverageNudge.length > 0) {
-      lines.push(coverageNudge.trimEnd());
-    }
-  } catch {
-    // best-effort — re-arm must not abort
-  }
+  pushCoverageCheckResumeDisclosure(lines, projectRoot);
 
   const priorQuick = eligibility.state.quickSteps;
   const priorTriage = priorQuick.triage_welcome ?? ritualStep({ ok: true, ts: instant });
@@ -1211,6 +1214,7 @@ export function runSessionStart(
     if (humanMergeLine !== null) {
       lines.push(humanMergeLine);
     }
+    pushCoverageCheckResumeDisclosure(lines, projectRoot);
     const branchSync = defaultBranchSync(projectRoot, runGit);
     if (branchSync.warning) {
       lines.push(branchSync.warning);
@@ -1493,16 +1497,6 @@ export function runSessionStart(
   const consentPrompt = maybeFormatProductSignalConsentPrompt({ projectRoot });
   if (consentPrompt.length > 0) {
     lines.push(consentPrompt.trimEnd());
-  }
-
-  // #3189: skippable coverageDebt/checkResume project-decision nudge (fail-open; never blocks).
-  try {
-    const coverageNudge = maybeFormatCoverageCheckResumeNudge({ projectRoot });
-    if (coverageNudge.length > 0) {
-      lines.push(coverageNudge.trimEnd());
-    }
-  } catch {
-    // best-effort operator advisory — session start must not abort
   }
 
   const writeStarted = performance.now();

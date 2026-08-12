@@ -82,7 +82,7 @@ After suite **green** or `PASS_WITH_DEBT`, release writes a local stamp at `.def
 
 ### Scope
 
-The hatch is **framework-release-first / release-scoped only** — not the default for ordinary PR / `task check` work. Consumer auto-hatch expansion requires `plan.policy.coverageDebt` (#3189). Hangs, failing tests, multi-metric coverage misses, and other non-coverage Step 5 failures stay under § Fixable check failure during release (#2859).
+The hatch is **framework-release-first / release-scoped only** — not the default for ordinary PR / `task check` work. Consumer auto-hatch via `plan.policy.coverageDebt` is **reserved**; consumer expansion is not implemented (#3314). The live consumer hatch is `--allow-coverage-debt=#N` (#2866). Hangs, failing tests, multi-metric coverage misses, and other non-coverage Step 5 failures stay under § Fixable check failure during release (#2859).
 
 Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 branch-coverage threshold — open-issue ledger hatch (#2866 / #3187)**.
 

@@ -19,7 +19,6 @@ import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
-import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
 import type { XbriefSchemaDistance } from "../staleness-tickler/types.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
@@ -1257,12 +1256,6 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
 }
 
 /**
- * Surface undecided / invalid coverageDebt + checkResume policy (#3189).
- * Advisory skip when undecided; never hard-fails doctor / check:consumer.
- * Decided-off is quiet; dismiss-with-reason is pass with reason in detail.
- * Invalid typed blocks resolve fail-closed and surface via source=default-on-error.
- */
-/**
  * Fail closed when completed/ plan.status disagrees with the folder (#3242 AC1 / epic #3237 Q4).
  * Open plan.items under completed/ are reported by `checkCompletedOpenItems` (exit-exempt
  * until historical corpora are backfilled; scope:complete enforces items hard).
@@ -1346,6 +1339,11 @@ export function checkCompletedOpenItems(projectRoot: string): CheckResult {
   };
 }
 
+/**
+ * Surface invalid coverageDebt + checkResume typed blocks (#3314).
+ * Absent / default / valid typed values pass. Invalid blocks skip (advisory,
+ * fail-closed resolution). Doctor no longer reports "undecided".
+ */
 export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult {
   const debt = resolveCoverageDebt(projectRoot);
   const resume = resolveCheckResume(projectRoot);
@@ -1355,68 +1353,25 @@ export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult
       status: "skip",
       detail:
         "advisory: coverageDebt and/or checkResume block is invalid; " +
-        "resolution is fail-closed (mode off, localStamp off, CI never trusts stamps). " +
+        "resolution is fail-closed (mode off, localStamp off). " +
         `coverageDebt.error=${JSON.stringify(debt.error)}; ` +
         `checkResume.error=${JSON.stringify(resume.error)}. ` +
-        "Fix the typed block or re-apply Strict / Hatch-aware / dismiss-with-reason.",
+        "Fix the typed block in PROJECT-DEFINITION.",
       data: {
-        coverageDebt: { status: debt.status, source: debt.source, error: debt.error },
-        checkResume: { status: resume.status, source: resume.source, error: resume.error },
+        coverageDebt: { mode: debt.mode, source: debt.source, error: debt.error },
+        checkResume: { localStamp: resume.localStamp, source: resume.source, error: resume.error },
         advisory: true,
         invalid: true,
       },
     };
   }
-  const undecided = debt.status === "unset" || resume.status === "unset";
-  if (!undecided) {
-    const dismissParts: string[] = [];
-    if (debt.dismissReason) {
-      dismissParts.push(`coverageDebt.dismissReason=${JSON.stringify(debt.dismissReason)}`);
-    }
-    if (resume.dismissReason) {
-      dismissParts.push(`checkResume.dismissReason=${JSON.stringify(resume.dismissReason)}`);
-    }
-    const dismissNote = dismissParts.length > 0 ? ` Dismissed: ${dismissParts.join("; ")}.` : "";
-    return {
-      name: "coverage-check-resume-policy",
-      status: "pass",
-      detail:
-        `coverageDebt status=${debt.status} mode=${debt.mode}; ` +
-        `checkResume status=${resume.status} localStamp=${resume.localStamp}; ` +
-        `ciTrustsLocalStamp=false (fixed v1).${dismissNote}`,
-      data: {
-        coverageDebt: {
-          status: debt.status,
-          mode: debt.mode,
-          autoFile: debt.autoFile,
-          dismissReason: debt.dismissReason,
-        },
-        checkResume: {
-          status: resume.status,
-          localStamp: resume.localStamp,
-          ciTrustsLocalStamp: false,
-          dismissReason: resume.dismissReason,
-        },
-      },
-    };
-  }
-  // Advisory only (status=skip): never hard-fails doctor / check:consumer (#3189).
-  // Behavior remains fail-closed while unset; session-start nudge carries the ask.
   return {
     name: "coverage-check-resume-policy",
-    status: "skip",
-    detail:
-      "advisory: coverageDebt and/or checkResume policy is undecided (status=unset). " +
-      "Behavior stays fail-closed (no hatch soft-pass, no local suite stamp, CI never trusts stamps). " +
-      "Choose Strict / Hatch-aware on the next interactive session-start nudge, or record " +
-      "dismiss-with-reason. Inspect: " +
-      `\`${policyColonInvocation("show", " --field=coverageDebt")}\` / ` +
-      `\`${policyColonInvocation("show", " --field=checkResume")}\`.`,
+    status: "pass",
+    detail: `coverageDebt.mode=${debt.mode}; checkResume.localStamp=${resume.localStamp}.`,
     data: {
-      coverageDebt: { status: debt.status, mode: debt.mode },
-      checkResume: { status: resume.status, localStamp: resume.localStamp },
-      suggested_fix: policyColonInvocation("show", " --field=coverageDebt"),
-      advisory: true,
+      coverageDebt: { mode: debt.mode, autoFile: debt.autoFile, source: debt.source },
+      checkResume: { localStamp: resume.localStamp, source: resume.source },
     },
   };
 }

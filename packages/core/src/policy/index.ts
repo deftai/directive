@@ -84,7 +84,6 @@ export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./ceremony-dial.js";
 export * from "./check-resume.js";
-export * from "./coverage-check-resume-presets.js";
 export * from "./coverage-debt.js";
 export * from "./decisions.js";
 export * from "./deft-directive-disable.js";

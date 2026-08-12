@@ -1,6 +1,6 @@
 # Consumer check contract (`verify:consumer-check-contract`)
 
-Refs: #3145 · Related: #3070 consumer gate integrity, #1519 check:consumer · Policy: #3189 coverageDebt / checkResume
+Refs: #3145 · Related: #3070 consumer gate integrity, #1519 check:consumer · Policy: #3314 coverageDebt / checkResume (reserved)
 
 ## Problem
 
@@ -49,34 +49,26 @@ Root cause of red `greenfield-python-free-smoke` after #3145: the gate only insp
 
 `consumer-gate-integrity` proves Taskfile includes resolve. This gate proves the **required enforcement set** is present and composed — not merely that a random verify task exists.
 
-## Coverage-debt hatch and local check resume (#3189)
+## Coverage-debt hatch and local check resume (#3314)
 
-Release-born hatch and suite-stamp features must not expand to consumers as silent defaults. Project policy lives under `plan.policy` in PROJECT-DEFINITION:
+Release-born hatch and suite-stamp features must not expand to consumers as silent defaults. Two **plain optional** fields live under `plan.policy` in PROJECT-DEFINITION. Both default off. Both are **reserved** — `task check` and `task release` do not read them.
 
-| Field | Shape | Fail-closed when unset |
+| Field | Shape | Fail-closed when absent / invalid / off |
 |---|---|---|
-| `coverageDebt` | `status: unset \| decided`, `mode: off \| warn \| hatch`, `autoFile` (hatch only; default false) | mode off — no hatch soft-pass |
-| `checkResume` | `status: unset \| decided`, `localStamp: off \| on`, `ciTrustsLocalStamp: false` (fixed v1) | localStamp off; **CI never trusts a laptop stamp** |
+| `coverageDebt.mode` | `off \| warn \| hatch` | no hatch soft-pass |
+| `checkResume.localStamp` | `off \| on` | no local suite-stamp resume; **CI never trusts a laptop stamp** |
 
-**Unset vs decided-off:** Unset keeps fail-closed *behavior* and still **nags** on interactive mutation session-start. Decided-off is quiet. Inspect with `deft policy:show --field=coverageDebt` and `--field=checkResume`. Doctor check `coverage-check-resume-policy` surfaces undecided as an **advisory skip** (never hard-fails doctor or `check:consumer`).
+Inspect with `deft policy:show --field=coverageDebt` and `--field=checkResume`. Doctor check `coverage-check-resume-policy` reports a **malformed typed block** (advisory skip). Absent or valid values pass. Interactive mutation session-start prints a one-line disclosure when either field is non-default; silent when both default.
 
-### Skippable session nudge
+`task check` is fail-closed **by policy**. The live manual hatch is `--allow-coverage-debt=#N` (#2866). Framework `task release` Step 5 hatch is #3187. These flags do not control either path.
 
-On interactive cold or re-arm **mutation** session-start, when either field is unset:
+### Expansion gates
 
-- **Why:** long checks fail late or barely miss coverage; the project chooses fail-closed, warn, or hatch with a debt issue on **this** repo; local machines may resume a green suite at the same HEAD; CI must not trust a laptop stamp.
-- **What:** one bundled choice — **Strict** (recommended), **Hatch-aware**, or **Later** (plus Discuss / Back per #1470).
-- **Later** does **not** set `status=decided`; the next ritual nags again.
-- **Stop nag** only after Strict / Hatch-aware (preset write) or **dismiss-with-reason** (visible on policy:show / doctor).
-- Headless / CI / non-TTY: nudge is skipped (fail-open; never blocks).
-
-### Expansion gates (after decided)
-
-| Feature | Expand to consumers? | Gate |
+| Feature | Status | Notes |
 |---|---|---|
-| Fast-before-slow gate ordering | Yes (universal UX) | No policy wait |
-| Local suite stamp resume | When `checkResume.localStamp=on` | Local only; CI ignores |
-| Coverage hatch / auto-file | When `coverageDebt.mode=hatch` (+ optional `autoFile`) | Ledger on **this** consumer repo |
+| Fast-before-slow gate ordering | Available | Universal UX; no policy wait |
+| Local suite stamp resume | **Reserved** | Setting exists; consumer expansion not implemented |
+| Coverage hatch / auto-file | **Reserved** | Setting exists; consumer expansion not implemented. Live hatch: `--allow-coverage-debt=#N` (#2866) |
 | CI trusts local stamp | **Not v1** | Separate RFC |
 
 ### Non-goals
@@ -84,4 +76,4 @@ On interactive cold or re-arm **mutation** session-start, when either field is u
 - Silent default-on hatch for consumers.
 - Auto-filing coverage-debt issues on **deftai/directive** from a consumer tree — the ledger is always **this** repo.
 - USER.md as source of truth for ship bars (personal never weakens the project bar).
-- Blocking headless CI on the nudge.
+- A session-start Strict / Hatch-aware / Later quiz.

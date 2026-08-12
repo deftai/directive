@@ -337,7 +337,7 @@ describe("checks", () => {
     expect(result.exitCode).toBe(2);
   });
 
-  it("coverage-check-resume-policy is exit-exempt when undecided (#3189)", () => {
+  it("coverage-check-resume-policy passes when absent; invalid stays exit-exempt (#3314)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-ccr-"));
     try {
       mkdirSync(join(root, "xbrief"), { recursive: true });
@@ -349,13 +349,11 @@ describe("checks", () => {
         }),
         "utf8",
       );
-      const only = checkCoverageCheckResumePolicy(root);
-      expect(only.status).toBe("skip");
-      expect(only.detail).toContain("undecided");
-      expect(only.detail).toContain("advisory");
-      expect(deriveExitCode([only], [])).toBe(0);
+      const absent = checkCoverageCheckResumePolicy(root);
+      expect(absent.status).toBe("pass");
+      expect(absent.detail).not.toContain("undecided");
+      expect(deriveExitCode([absent], [])).toBe(0);
 
-      // decided path passes
       writeFileSync(
         join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
         JSON.stringify({
@@ -365,19 +363,33 @@ describe("checks", () => {
             status: "running",
             items: [],
             policy: {
-              coverageDebt: { status: "decided", mode: "off", autoFile: false },
-              checkResume: {
-                status: "decided",
-                localStamp: "off",
-                ciTrustsLocalStamp: false,
-              },
+              coverageDebt: { mode: "off" },
+              checkResume: { localStamp: "off" },
             },
           },
         }),
         "utf8",
       );
-      const decided = checkCoverageCheckResumePolicy(root);
-      expect(decided.status).toBe("pass");
+      expect(checkCoverageCheckResumePolicy(root).status).toBe("pass");
+
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "T",
+            status: "running",
+            items: [],
+            policy: { coverageDebt: "nope" },
+          },
+        }),
+        "utf8",
+      );
+      const invalid = checkCoverageCheckResumePolicy(root);
+      expect(invalid.status).toBe("skip");
+      expect(invalid.detail).toContain("invalid");
+      expect(invalid.detail).not.toContain("undecided");
+      expect(deriveExitCode([invalid], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

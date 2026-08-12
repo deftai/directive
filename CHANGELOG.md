@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Retire the coverageDebt/checkResume consent ritual; keep two plain settings (#3314).** Session-start no longer quizzes Strict / Hatch-aware / Later. `policy:coverage-check-resume-preset|later|dismiss` and the nudge/preset modules are gone. `coverageDebt.mode` and `checkResume.localStamp` stay as optional fail-closed fields (default off). Interactive mutation ritual prints one disclosure line when either is non-default. Hatch and local stamp are reserved; live hatch is `--allow-coverage-debt=#N` (#2866). Closes #3314. Refs #3189, #3187, #2866.
+
 ### Fixed
 
 - **Rule Authority and Thin Fail-Closed now reachable from agent entry surfaces (#3313).** Pointer-sufficient citations in agents-entry, preamble, and refreshed managed AGENTS.md. Contract markers gate both headers. Does not copy main.md bodies. Closes #3313.

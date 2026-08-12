@@ -1,22 +1,14 @@
 /**
- * Coverage-debt hatch policy (#3189).
+ * Coverage-debt hatch policy (#3189 / #3314).
  *
- * Consent / SoT surface for consumer expansion of release-originated hatch
- * behavior (#3187). Unset is fail-closed for behavior (mode off) but still
- * nags on interactive session-start until decided or dismissed with reason.
- *
- * Non-goal: a consumer tree never auto-files coverage-debt issues on
- * deftai/directive -- ledger is always THIS repo.
+ * Plain optional setting. Default off. Fail-closed when absent or invalid.
+ * Hatch / auto-file are reserved — not a ship gate. Live hatch is
+ * `--allow-coverage-debt=#N` (#2866).
  */
 
-import { readFileSync } from "node:fs";
-import {
-  atomicWriteProjectDefinition,
-  projectDefinitionMutationLock,
-} from "../vbrief-build/project-definition-io.js";
-import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
-import { policyColonInvocation } from "./policy-invocation.js";
-import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
+import { type CheckResumeResolved, resolveCheckResume } from "./check-resume.js";
+import { readPlanPolicy } from "./plan-extensions.js";
+import { loadProjectDefinition } from "./resolve.js";
 
 /** Canonical registered policy field name. */
 export const FIELD_COVERAGE_DEBT = "plan.policy.coverageDebt";
@@ -24,24 +16,18 @@ export const FIELD_COVERAGE_DEBT = "plan.policy.coverageDebt";
 /** Short alias for `policy:show --field=coverageDebt`. */
 export const FIELD_COVERAGE_DEBT_CLI_ALIAS = "coverageDebt";
 
-export const COVERAGE_DEBT_STATUSES = ["unset", "decided"] as const;
-export type CoverageDebtStatus = (typeof COVERAGE_DEBT_STATUSES)[number];
-
 export const COVERAGE_DEBT_MODES = ["off", "warn", "hatch"] as const;
 export type CoverageDebtMode = (typeof COVERAGE_DEBT_MODES)[number];
 
-/** Fail-closed effective mode when unset / missing / invalid. */
+/** Fail-closed effective mode when absent / missing / invalid. */
 export const DEFAULT_COVERAGE_DEBT_MODE: CoverageDebtMode = "off";
 
 /** Consumers default autoFile false even under hatch mode. */
 export const DEFAULT_COVERAGE_DEBT_AUTO_FILE = false;
 
 export interface CoverageDebtConfig {
-  readonly status: CoverageDebtStatus;
   readonly mode: CoverageDebtMode;
   readonly autoFile: boolean;
-  /** Present when decided via dismiss-with-reason (still visible to show/doctor). */
-  readonly dismissReason: string | null;
 }
 
 export type CoverageDebtSource = "typed" | "default" | "default-on-error";
@@ -56,10 +42,8 @@ function defaultResolved(
   error: string | null = null,
 ): CoverageDebtResolved {
   return {
-    status: "unset",
     mode: DEFAULT_COVERAGE_DEBT_MODE,
     autoFile: DEFAULT_COVERAGE_DEBT_AUTO_FILE,
-    dismissReason: null,
     source,
     error,
   };
@@ -69,11 +53,7 @@ function isMode(value: unknown): value is CoverageDebtMode {
   return typeof value === "string" && (COVERAGE_DEBT_MODES as readonly string[]).includes(value);
 }
 
-function isStatus(value: unknown): value is CoverageDebtStatus {
-  return typeof value === "string" && (COVERAGE_DEBT_STATUSES as readonly string[]).includes(value);
-}
-
-/** Validate a `plan.policy.coverageDebt` payload. */
+/** Validate a `plan.policy.coverageDebt` payload. Extra keys are ignored. */
 export function validateCoverageDebt(value: unknown): string[] {
   if (value === null || value === undefined) {
     return [];
@@ -83,28 +63,18 @@ export function validateCoverageDebt(value: unknown): string[] {
   }
   const rec = value as Record<string, unknown>;
   const errors: string[] = [];
-  if ("status" in rec && !isStatus(rec.status)) {
-    errors.push(`${FIELD_COVERAGE_DEBT}.status must be one of ${COVERAGE_DEBT_STATUSES.join("|")}`);
-  }
   if ("mode" in rec && !isMode(rec.mode)) {
     errors.push(`${FIELD_COVERAGE_DEBT}.mode must be one of ${COVERAGE_DEBT_MODES.join("|")}`);
   }
   if ("autoFile" in rec && typeof rec.autoFile !== "boolean") {
     errors.push(`${FIELD_COVERAGE_DEBT}.autoFile must be a boolean`);
   }
-  if (
-    "dismissReason" in rec &&
-    rec.dismissReason !== null &&
-    typeof rec.dismissReason !== "string"
-  ) {
-    errors.push(`${FIELD_COVERAGE_DEBT}.dismissReason must be a string or null`);
-  }
   return errors;
 }
 
 /**
- * Resolve a typed block. Missing/invalid → fail-closed mode off, status unset.
- * Unset is not the same as decided-off for nag purposes.
+ * Resolve a typed block. Missing/invalid → fail-closed mode off.
+ * `mode` is the setting; leftover ritual fields (status/dismissReason) are ignored.
  */
 export function resolveCoverageDebtFromTypedBlock(raw: unknown): CoverageDebtResolved {
   const errors = validateCoverageDebt(raw);
@@ -115,29 +85,19 @@ export function resolveCoverageDebtFromTypedBlock(raw: unknown): CoverageDebtRes
     return defaultResolved("default");
   }
   const block = raw as Record<string, unknown>;
-  const status: CoverageDebtStatus = isStatus(block.status) ? block.status : "unset";
   const mode: CoverageDebtMode = isMode(block.mode) ? block.mode : DEFAULT_COVERAGE_DEBT_MODE;
-  // Fail-closed: hatch modes only apply when decided.
-  const effectiveMode: CoverageDebtMode = status === "decided" ? mode : DEFAULT_COVERAGE_DEBT_MODE;
   const autoFileRaw =
     typeof block.autoFile === "boolean" ? block.autoFile : DEFAULT_COVERAGE_DEBT_AUTO_FILE;
-  // autoFile only meaningful under hatch; never on when not hatch.
-  const autoFile = effectiveMode === "hatch" ? autoFileRaw : false;
-  const dismissReason =
-    typeof block.dismissReason === "string" && block.dismissReason.trim().length > 0
-      ? block.dismissReason.trim()
-      : null;
+  const autoFile = mode === "hatch" ? autoFileRaw : false;
   return {
-    status,
-    mode: status === "decided" ? mode : DEFAULT_COVERAGE_DEBT_MODE,
+    mode,
     autoFile,
-    dismissReason: status === "decided" ? dismissReason : null,
     source: "typed",
     error: null,
   };
 }
 
-/** Resolve `plan.policy.coverageDebt` from PROJECT-DEFINITION (#3189). */
+/** Resolve `plan.policy.coverageDebt` from PROJECT-DEFINITION (#3314). */
 export function resolveCoverageDebt(projectRoot: string): CoverageDebtResolved {
   const [data, err] = loadProjectDefinition(projectRoot);
   if (data === null) {
@@ -155,9 +115,9 @@ export function resolveCoverageDebt(projectRoot: string): CoverageDebtResolved {
   return resolveCoverageDebtFromTypedBlock((policyBlock as Record<string, unknown>).coverageDebt);
 }
 
-/** Effective hatch soft-pass allowed only when decided mode=hatch. */
+/** Effective hatch soft-pass allowed only when mode=hatch. Reserved — unused by check/release. */
 export function isCoverageDebtHatchAllowed(policy: CoverageDebtResolved): boolean {
-  return policy.status === "decided" && policy.mode === "hatch";
+  return policy.mode === "hatch";
 }
 
 /** Auto-file debt issues only when hatch is allowed AND autoFile true. */
@@ -165,20 +125,10 @@ export function isCoverageDebtAutoFileAllowed(policy: CoverageDebtResolved): boo
   return isCoverageDebtHatchAllowed(policy) && policy.autoFile === true;
 }
 
-/**
- * Non-goal guard (#3189): consumer trees never auto-file coverage-debt on
- * deftai/directive. Ledger is always the project under check.
- */
-export function coverageDebtLedgerRepoIsSelfOnly(): true {
-  return true;
-}
-
 export function formatCoverageDebtStatusLine(policy: CoverageDebtResolved): string {
-  const dismiss =
-    policy.dismissReason !== null ? ` dismissReason=${JSON.stringify(policy.dismissReason)}` : "";
   return (
-    `[deft policy] coverageDebt status=${policy.status} mode=${policy.mode} ` +
-    `autoFile=${String(policy.autoFile)}${dismiss} (source=${policy.source}).`
+    `[deft policy] coverageDebt mode=${policy.mode} ` +
+    `autoFile=${String(policy.autoFile)} (source=${policy.source}).`
   );
 }
 
@@ -193,16 +143,12 @@ function fieldFromResolved(resolved: CoverageDebtResolved): CoverageDebtPolicyFi
   return {
     name: FIELD_COVERAGE_DEBT,
     current: {
-      status: resolved.status,
       mode: resolved.mode,
       autoFile: resolved.autoFile,
-      dismissReason: resolved.dismissReason,
     },
     default: {
-      status: "unset",
       mode: DEFAULT_COVERAGE_DEBT_MODE,
       autoFile: DEFAULT_COVERAGE_DEBT_AUTO_FILE,
-      dismissReason: null,
     },
     source: resolved.source,
   };
@@ -233,118 +179,34 @@ export function inspectCoverageDebt(
   );
 }
 
-export interface WriteCoverageDebtOptions {
-  readonly mode: CoverageDebtMode;
-  readonly autoFile?: boolean;
-  readonly dismissReason?: string | null;
-  readonly actor?: string;
-  readonly note?: string;
-}
-
-export interface WriteCoverageDebtResult {
-  readonly exitCode: 0 | 2;
-  readonly stdout: string;
-  readonly changed: boolean;
-}
-
-/** Persist decided coverageDebt (preset or dismiss-with-reason). */
-export function writeCoverageDebt(
-  projectRoot: string,
-  options: WriteCoverageDebtOptions,
-): WriteCoverageDebtResult {
-  const path = projectDefinitionPath(projectRoot);
-  try {
-    const { changed } = projectDefinitionMutationLock(projectRoot, () => {
-      const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
-      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-      }
-      const data = parsed as Record<string, unknown>;
-      if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
-        if (data.plan === undefined) {
-          data.plan = {};
-        } else {
-          throw new Error("PROJECT-DEFINITION 'plan' is not an object");
-        }
-      }
-      const plan = data.plan as Record<string, unknown>;
-      migrateLegacyPolicyKey(plan);
-      const existingPolicy = plan[PLAN_POLICY_KEY];
-      if (
-        typeof existingPolicy !== "object" ||
-        existingPolicy === null ||
-        Array.isArray(existingPolicy)
-      ) {
-        if (existingPolicy === undefined) {
-          plan[PLAN_POLICY_KEY] = {};
-        } else {
-          throw new Error("plan.policy is not an object");
-        }
-      }
-      const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
-      const previous = policyBlock.coverageDebt;
-      const autoFile =
-        options.mode === "hatch" ? (options.autoFile ?? DEFAULT_COVERAGE_DEBT_AUTO_FILE) : false;
-      const dismissReason =
-        typeof options.dismissReason === "string" && options.dismissReason.trim().length > 0
-          ? options.dismissReason.trim()
-          : null;
-      const nextBlock: CoverageDebtConfig = {
-        status: "decided",
-        mode: options.mode,
-        autoFile,
-        dismissReason,
-      };
-      const previousNormalized = resolveCoverageDebtFromTypedBlock(previous);
-      const changedFlag =
-        previousNormalized.status !== nextBlock.status ||
-        previousNormalized.mode !== nextBlock.mode ||
-        previousNormalized.autoFile !== nextBlock.autoFile ||
-        previousNormalized.dismissReason !== nextBlock.dismissReason;
-      policyBlock.coverageDebt = nextBlock;
-      if (changedFlag) {
-        atomicWriteProjectDefinition(path, data);
-      }
-
-      const actor = options.actor ?? policyColonInvocation("set-coverage-debt");
-      const note = options.note ?? "";
-      const parts = [
-        `actor=${actor}`,
-        "coverageDebt.status=decided",
-        `mode=${nextBlock.mode}`,
-        `autoFile=${String(nextBlock.autoFile)}`,
-        `dismissReason=${JSON.stringify(nextBlock.dismissReason)}`,
-        `previous=${JSON.stringify(previous ?? null)}`,
-      ];
-      if (note) {
-        parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
-      }
-      appendAuditLog(projectRoot, parts.join(" "));
-      return { changed: changedFlag };
-    });
-
-    const resolved = resolveCoverageDebt(projectRoot);
-    const lines = [
-      `\u2713 ${FIELD_COVERAGE_DEBT} status=decided mode=${resolved.mode}.`,
-      changed
-        ? "  audit: meta/policy-changes.log updated."
-        : "  no-op: value already matched (audit entry still appended for trail).",
-      formatCoverageDebtStatusLine(resolved),
-    ];
-    return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (
-      message.includes("PROJECT-DEFINITION not found") ||
-      message.includes("ENOENT") ||
-      message.includes("no such file")
-    ) {
-      return {
-        exitCode: 2,
-        stdout: `\u274c PROJECT-DEFINITION not found under ${projectRoot}\n`,
-        changed: false,
-      };
-    }
-    return { exitCode: 2, stdout: `\u274c Config error: ${message}\n`, changed: false };
+/**
+ * One-line standing disclosure when either setting is non-default (#3314).
+ * Silent when both default / invalid (invalid is fail-closed off).
+ */
+export function coverageCheckResumeDisclosureLine(
+  debt: CoverageDebtResolved,
+  resume: Pick<CheckResumeResolved, "localStamp" | "source">,
+): string | null {
+  const debtNonDefault =
+    debt.source !== "default-on-error" && debt.mode !== DEFAULT_COVERAGE_DEBT_MODE;
+  const resumeNonDefault = resume.source !== "default-on-error" && resume.localStamp === "on";
+  if (!debtNonDefault && !resumeNonDefault) {
+    return null;
   }
+  const parts: string[] = [];
+  if (debtNonDefault) {
+    parts.push(`coverageDebt.mode=${debt.mode}`);
+  }
+  if (resumeNonDefault) {
+    parts.push("checkResume.localStamp=on");
+  }
+  return `[deft policy] ${parts.join(" ")} (reserved; not a ship gate).`;
+}
+
+/** Resolve both settings and format the standing disclosure, or null. */
+export function maybeFormatCoverageCheckResumeDisclosure(projectRoot: string): string | null {
+  return coverageCheckResumeDisclosureLine(
+    resolveCoverageDebt(projectRoot),
+    resolveCheckResume(projectRoot),
+  );
 }

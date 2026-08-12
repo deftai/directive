@@ -267,9 +267,6 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:enable-value-feedback": "enable-value-feedback",
   "policy:set-ceremony-dial": "set-ceremony-dial",
   "policy:clear-value-feedback": "clear-value-feedback",
-  "policy:coverage-check-resume-preset": "coverage-check-resume-preset",
-  "policy:coverage-check-resume-dismiss": "coverage-check-resume-dismiss",
-  "policy:coverage-check-resume-later": "coverage-check-resume-later",
   "policy:disable-directive": "disable-directive",
   "policy:enable-directive": "enable-directive",
 };
