@@ -229,11 +229,25 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "aria2",
   "mbuffer",
   "cpio",
+  // #3311 residual after #3288: versioned / alternate write bins.
+  "gpg2",
+  "gpg1",
+  "rage",
+  "xh",
+  "httpie",
+  "wcurl",
+  "curlie",
+  "uudecode",
+  "iconv",
+  "gtar",
+  "star",
+  "gnutar",
+  "pax",
 ]);
 
 /**
  * Archive extractors / alt writers that can plant via pathish operands without
- * shell redirects (#3245 / #3288). Used for pathish authz/kill scans (prefer deny)
+ * shell redirects (#3245 / #3288 / #3311). Used for pathish authz/kill scans (prefer deny)
  * and write-shape residual under UAT — not bare curl-class URL fetches.
  */
 const ARCHIVE_ALT_WRITE_BINS = new Set([
@@ -262,10 +276,24 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "aria2",
   "mbuffer",
   "cpio",
+  // #3311 residual after #3288.
+  "gpg2",
+  "gpg1",
+  "rage",
+  "xh",
+  "httpie",
+  "wcurl",
+  "curlie",
+  "uudecode",
+  "iconv",
+  "gtar",
+  "star",
+  "gnutar",
+  "pax",
 ]);
 
 /**
- * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288).
+ * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311).
  * Prefer a Set over a long `||` chain so coverage counts one membership check, not N branches.
  */
 const PROTECTED_POSITIONAL_BINS = new Set([
@@ -288,6 +316,16 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "zstd",
   "unzstd",
   "mbuffer",
+  // #3311 residual: versioned crypto + archive/decoder peers.
+  "gpg2",
+  "gpg1",
+  "rage",
+  "uudecode",
+  "iconv",
+  "gtar",
+  "star",
+  "gnutar",
+  "pax",
 ]);
 
 /** wget family (directory-prefix dest flags). */
@@ -296,8 +334,10 @@ const WGET_FAMILY_BINS = new Set(["wget", "wget2"]);
 const ARIA2_FAMILY_BINS = new Set(["aria2c", "aria2"]);
 /** 7z family (attached -oDIR only). */
 const SEVEN_Z_FAMILY_BINS = new Set(["7z", "7za", "7zr"]);
-/** tar family (chdir -C / --directory). */
-const TAR_FAMILY_BINS = new Set(["tar", "bsdtar"]);
+/** tar family (chdir -C / --directory). Includes GNU/Schily aliases (#3311). */
+const TAR_FAMILY_BINS = new Set(["tar", "bsdtar", "gtar", "star", "gnutar"]);
+/** xh / httpie family (download-dir dest flags) (#3311). */
+const XH_FAMILY_BINS = new Set(["xh", "httpie"]);
 
 /**
  * File destination flags for downloaders/decoders (#3206).
@@ -309,6 +349,7 @@ const DOWNLOADER_FILE_DEST_FLAGS = new Set([
   "-o",
   "--output",
   "--output-document",
+  "--output-file",
   "-out",
   "--out",
 ]);
@@ -325,6 +366,8 @@ const TAR_DIR_DEST_FLAGS_EXACT = new Set(["-C"]);
 const TAR_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
 /** unzip extract directory (#3245). */
 const UNZIP_DIR_DEST_FLAGS = new Set(["-d"]);
+/** xh / httpie download directory (#3311). */
+const XH_DIR_DEST_FLAGS = new Set(["--download-dir"]);
 /**
  * cpio chdir before extract/create (#3288).
  * Case-sensitive short form: POSIX cpio uses capital `-D`; lower `-d` is a create option bit.
@@ -392,6 +435,7 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
     return false;
   }
   if (bin === "unzip" && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
+  if (XH_FAMILY_BINS.has(bin) && XH_DIR_DEST_FLAGS.has(flag)) return true;
   return false;
 }
 /**

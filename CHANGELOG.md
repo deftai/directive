@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **UAT Shell residual after #3288: versioned/alt write bins plant authz grants and kill-switch (#3311).** Under active UAT, residual bins (`gpg2`/`gpg1`/`rage`/`xh`/`httpie`/`wcurl`/`curlie`/`uudecode`/`iconv`/`gtar`/`star`/`gnutar`/`pax`) that write into `.deft/authz/**` or plant `.deft-directive-disable` / `.no-deft-directive` classify as settings deny (not unclassifiable allow). Dest flags cover `-o`/`--output`/`--output-file`/`--download-dir` and tar-family `-C`. Ordinary non-authz dests such as `/tmp` stay unclassifiable. Already-denied `gpg`/`age`/`http`/`curl`/`tar` peers stay denied. Closes #3311. Refs #3288, #3245, #3039.
+
 ### Removed
 
 ## [0.101.0] - 2026-08-12

