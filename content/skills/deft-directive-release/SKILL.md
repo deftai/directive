@@ -144,7 +144,7 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure d
 2. If **no open coverage-debt issue exists** → auto-hatch files `#N` (or operator files manually) with title prefix `coverage-debt:` and body containing both markers. The open `#N` remains WIP until coverage is restored and the issue is closed.
 3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real coverage (all four metrics ≥ 85%) and close the debt issue before the cut proceeds.
 
-**Framework-release-first (#3187):** auto-hatch applies to framework `task release` Step 5 (e.g. deftai/directive). Consumer expansion of auto-hatch is blocked on project `plan.policy.coverageDebt` (#3189) — refuse when `status=unset` or `mode=off`. Do not auto-file debt on the framework repo from consumer trees; consumer ledger is always the consumer repo.
+**Framework-release-first (#3187):** auto-hatch applies to framework `task release` Step 5 (e.g. deftai/directive). Consumer expansion of auto-hatch via `plan.policy.coverageDebt` is reserved; consumer expansion is not implemented (#3314). Refuse when unset or off. Live hatch is `--allow-coverage-debt=#N` (#2866). Do not auto-file debt on the framework repo from consumer trees; consumer ledger is always the consumer repo.
 
 ⊗ Auto-pass on a near-miss band without `#N` (#2573).
 ⊗ Silent soft-pass with no tracked issue.
