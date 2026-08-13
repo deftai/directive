@@ -27,9 +27,7 @@
   ],
   "whyWinner": "The named cause is over-application of intentional story/merge-ready process to one-shot hard tasks. The gates themselves are correct for their intended profile. Recovery belongs in a scoped follow-up (bank mid-run product pass; optional one-shot envelope) plus #3322/#3323 oracle work, not in a check or review-gate rollback.",
   "confidence": "high",
-  "activeScopeRefs": [
-    "xbrief/active/2026-08-13-3321-bugregression-two-hard-task-regressions-introduced-at-099-su.xbrief.json"
-  ],
+  "activeScopeRefs": [],
   "timestamp": "2026-08-13T01:21:21Z",
   "revisitTrigger": "If a follow-up ships a one-shot / bank-before-reverify envelope and the two tasks recover without touching check or #3225, this decision stays. Re-open only if new evidence shows #3145 or #3225 themselves flip a mid-run product pass to fail without a process tail.",
   "tags": [

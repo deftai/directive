@@ -470,26 +470,33 @@ describe("provisional intake estimate (#3214 design note option 1)", () => {
 });
 
 describe("deposit-as-project classifier (#3321 / #3214)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("treats .deft/core or AGENTS+xbrief as project; empty tree stays unknown", () => {
     const empty = mkdtempSync(join(tmpdir(), "ceremony-shape-empty-"));
+    roots.push(empty);
     expect(detectCeremonyProjectShape(empty)).toBeNull();
 
     const coreOnly = mkdtempSync(join(tmpdir(), "ceremony-shape-core-"));
+    roots.push(coreOnly);
     mkdirSync(join(coreOnly, ".deft", "core"), { recursive: true });
     expect(detectCeremonyProjectShape(coreOnly)).toBe("project");
 
     const agentsXbrief = mkdtempSync(join(tmpdir(), "ceremony-shape-agents-"));
+    roots.push(agentsXbrief);
     writeFileSync(join(agentsXbrief, "AGENTS.md"), "# A\n", "utf8");
     mkdirSync(join(agentsXbrief, "xbrief"), { recursive: true });
     expect(detectCeremonyProjectShape(agentsXbrief)).toBe("project");
-
-    rmSync(empty, { recursive: true, force: true });
-    rmSync(coreOnly, { recursive: true, force: true });
-    rmSync(agentsXbrief, { recursive: true, force: true });
   });
 
   it("mid x L on a vanilla deposit selects elevated (hard-task profile)", () => {
     const root = makeProject({});
+    roots.push(root);
     expect(detectCeremonyProjectShape(root)).toBe("project");
     expect(
       selectCeremonyDepthFromMatrix({
@@ -505,7 +512,6 @@ describe("deposit-as-project classifier (#3321 / #3214)", () => {
         projectShape: "non-project",
       }),
     ).toBe("minimal");
-    rmSync(root, { recursive: true, force: true });
   });
 });
 

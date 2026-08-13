@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Named cause for the 0.92→0.99 hard-task regression (#3321).** `#3153` made `drive-to: merge-ready` the default consumer unit of work and inserted the post-product verify-to-ship gap. `#3214` deposit-as-project × mid × hard selects elevated ceremony; `#3145` added three consumer check gates inside that tail. `#3225` is not the inserter (review-verdict detector runs only on PR merge-ready). Amends the 0.99 #3282 turn-sink-as-cause conclusion (disconfirmed by 0.101). Analysis: `docs/analysis/2026-08-13-3321-092-099-hard-task-regression.md`. Ceremony-dial test locks deposit-as-project + mid×L→elevated. Does not relax #3145 / #3225 / check (#3156). Follow-up #3325. Closes #3321. Refs #3282, #3153, #3214, #3145, #3225, #3322, #3323, #3324.
+- **Named cause for the 0.92→0.99 hard-task regression (#3321).** Default merge-ready (#3153) inserted the post-product verify-to-ship gap; ceremony dial + deposit-as-project (#3214) and the #3145 consumer-check trio lengthen that tail. #3225 is not the inserter. Amends the 0.99 #3282 turn-sink-as-cause conclusion. Gates kept (#3156). Follow-up #3325. Closes #3321.
 
 - **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
 
