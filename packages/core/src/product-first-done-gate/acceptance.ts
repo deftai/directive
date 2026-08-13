@@ -91,6 +91,19 @@ export function validatePlanAcceptance(value: unknown): string[] {
   if ("clauses" in rec && rec.clauses !== undefined && !Array.isArray(rec.clauses)) {
     errors.push("plan.acceptance.clauses must be an array");
   }
+  if (Array.isArray(rec.clauses)) {
+    rec.clauses.forEach((entry, index) => {
+      const row = asRecord(entry);
+      if (row === null) {
+        errors.push(`plan.acceptance.clauses[${index}] must be an object`);
+        return;
+      }
+      const text = isNonEmptyString(row.text) ? row.text.trim() : "";
+      if (text.length === 0) {
+        errors.push(`plan.acceptance.clauses[${index}].text must be a non-empty string`);
+      }
+    });
+  }
   const commands = coerceCommands(rec.commands);
   const noneStated = rec.none_stated === true;
   if (commands.length === 0 && !noneStated) {

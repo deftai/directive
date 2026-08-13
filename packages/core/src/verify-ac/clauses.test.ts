@@ -62,6 +62,24 @@ describe("deriveAcceptanceClauses (#3323)", () => {
     ).toEqual([]);
   });
 
+  it("keeps later acceptance sections and comment-thread clauses", () => {
+    const clauses = deriveAcceptanceClauses(`
+## Acceptance Criteria
+- First constraint binds packages/core/src/verify-ac/clauses.ts
+
+## Acceptance sketch
+- Second constraint binds packages/core/src/run-summary/types.ts
+
+### Comment by @MScottAdams
+AcceptanceCriteria: Third constraint binds CHANGELOG.md
+`);
+    expect(clauses.map((c) => c.artifact_path)).toEqual([
+      "packages/core/src/verify-ac/clauses.ts",
+      "packages/core/src/run-summary/types.ts",
+      "CHANGELOG.md",
+    ]);
+  });
+
   it("falls back to Fix lists and path-bearing bullets", () => {
     const fromFix = deriveAcceptanceClauses(`
 ## Fix
@@ -187,6 +205,31 @@ describe("walkAcceptanceClauses (#3323)", () => {
     expect(report.clauses[0]?.outcome).toBe("verified");
     expect(report.clauses[1]?.outcome).toBe("failed");
     expect(report.clauses[1]?.detail).toMatch(/buffer\/scratch/);
+  });
+
+  it("inverts existence when the clause is negated", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-neg-"));
+    writeFileSync(join(root, "present.ts"), "x\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "ghost.ts must not exist",
+          artifact_path: "ghost.ts",
+          ambiguous: false,
+        },
+        {
+          id: 2,
+          text: "present.ts must not exist",
+          artifact_path: "present.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+    );
+    expect(report.clauses[0]?.outcome).toBe("verified");
+    expect(report.clauses[1]?.outcome).toBe("failed");
+    expect(report.clauses[1]?.detail).toMatch(/requires absence/);
   });
 
   it("round-trips serialized clauses including chosen ambiguous reading", () => {

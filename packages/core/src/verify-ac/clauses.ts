@@ -54,6 +54,8 @@ const SCRATCH_SEGMENTS = new Set([
 ]);
 const EXISTENCE_CLAIM =
   /\b(?:exists?|stored on|written to|emitted? (?:at|to)|at its stated path|artifact path)\b/i;
+const NEGATED_EXISTENCE =
+  /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist)\b/i;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -133,9 +135,6 @@ function collectSectionItems(text: string, headingRe: RegExp): string[] {
           items.push(title);
         }
       }
-      if (items.length > 0) {
-        return items;
-      }
     }
     offset += line.length + 1;
   }
@@ -190,20 +189,18 @@ export function deriveAcceptanceClauses(taskStatement: string): AcceptanceClause
     return [];
   }
   const acHeading = findAcHeading(text);
-  let raw: string[] = [];
+  const raw: string[] = [];
   if (acHeading !== null) {
-    raw = parseListItems(sliceAcSection(text, acHeading))
-      .map((item) => normalizeClauseText(item.title.replace(/\*\*/g, "")))
-      .filter((title) => title.length > 0 && !isMetaClause(title));
+    raw.push(
+      ...parseListItems(sliceAcSection(text, acHeading))
+        .map((item) => normalizeClauseText(item.title.replace(/\*\*/g, "")))
+        .filter((title) => title.length > 0 && !isMetaClause(title)),
+    );
   }
+  raw.push(...collectSectionItems(text, SECTION_HEADING));
+  raw.push(...collectLabeledLines(text));
   if (raw.length === 0) {
-    raw = collectSectionItems(text, SECTION_HEADING);
-  }
-  if (raw.length === 0) {
-    raw = collectLabeledLines(text);
-  }
-  if (raw.length === 0) {
-    raw = collectPathBearingLines(text);
+    raw.push(...collectPathBearingLines(text));
   }
   const seen = new Set<string>();
   const clauses: AcceptanceClause[] = [];
@@ -419,6 +416,15 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
     };
   }
   if (!existsSync(abs)) {
+    if (NEGATED_EXISTENCE.test(clause.text)) {
+      return {
+        id: clause.id,
+        text: clause.text,
+        artifact_path: artifactPath,
+        outcome: "verified",
+        detail: `artifact correctly absent at ${artifactPath}`,
+      };
+    }
     return {
       id: clause.id,
       text: clause.text,
@@ -444,6 +450,15 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
       artifact_path: artifactPath,
       outcome: "failed",
       detail: `artifact unreadable at stated path ${artifactPath}`,
+    };
+  }
+  if (NEGATED_EXISTENCE.test(clause.text)) {
+    return {
+      id: clause.id,
+      text: clause.text,
+      artifact_path: artifactPath,
+      outcome: "failed",
+      detail: `artifact exists at ${artifactPath} but the clause requires absence`,
     };
   }
   const expected = extractExpectedTokens(clause);

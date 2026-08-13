@@ -321,6 +321,13 @@ describe("coverage boost for product-first helpers (#3284)", () => {
     expect(validatePlanAcceptance({ commands: "nope" }).length).toBeGreaterThan(0);
     expect(validatePlanAcceptance({ none_stated: "yes" }).length).toBeGreaterThan(0);
     expect(validatePlanAcceptance({ source_rung: "nope" }).length).toBeGreaterThan(0);
+    expect(
+      validatePlanAcceptance({
+        commands: [],
+        none_stated: true,
+        clauses: [{ text: "" }, "nope"],
+      }).some((e) => e.includes("clauses[")),
+    ).toBe(true);
 
     expect(() =>
       attachPlanAcceptance(
