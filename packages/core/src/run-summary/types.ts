@@ -23,6 +23,7 @@ export const RUN_SUMMARY_WRITE_WARNING =
 export const RUN_SUMMARY_EVENT_KINDS = [
   "session_start",
   "dial_transition",
+  "dial_escalation_evaluation",
   "check_invocation",
 ] as const;
 
@@ -59,6 +60,16 @@ export interface DialTransitionRunSummaryPayload {
   readonly evidence?: string;
 }
 
+/** One evaluation of escalate-on-evidence (#3319). Absence of this event ≠ declined. */
+export type DialEscalationEvaluationOutcome = "escalated" | "declined";
+
+export interface DialEscalationEvaluationRunSummaryPayload {
+  /** Ceremony depth considered (the start/current tier under evaluation). */
+  readonly tier: string;
+  readonly outcome: DialEscalationEvaluationOutcome;
+  readonly reason: string;
+}
+
 export interface CheckGateOutcome {
   readonly id: string;
   readonly status: "run" | "skipped" | "failed";
@@ -78,6 +89,7 @@ export interface CheckInvocationRunSummaryPayload {
 export type RunSummaryPayload =
   | SessionStartRunSummaryPayload
   | DialTransitionRunSummaryPayload
+  | DialEscalationEvaluationRunSummaryPayload
   | CheckInvocationRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {

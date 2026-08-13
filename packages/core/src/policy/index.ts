@@ -83,6 +83,7 @@ export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./ceremony-dial.js";
+export * from "./ceremony-dial-escalation.js";
 export * from "./check-resume.js";
 export * from "./coverage-debt.js";
 export * from "./decisions.js";

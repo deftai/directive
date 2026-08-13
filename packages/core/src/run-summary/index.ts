@@ -13,6 +13,8 @@ export {
   type CheckGateOutcome,
   type CheckInvocationRunSummaryPayload,
   DEFAULT_RUN_SUMMARY_BASENAME,
+  type DialEscalationEvaluationOutcome,
+  type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
   ENV_RUN_SUMMARY_PATH,
   RUN_SUMMARY_EVENT_KINDS,

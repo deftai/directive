@@ -398,6 +398,10 @@ describe("resolveCeremonyDial + policy surface", () => {
       inputs: { taskSize: "S", modelTier: "frontier", projectShape: "project" },
     });
     expect(formatCeremonyDialStatusLine(s)).toContain("depth=rapid");
+    expect(formatCeremonyDialStatusLine(s)).not.toContain("provenance=");
+    expect(formatCeremonyDialStatusLine(s, { startTierProvenance: "cold-start" })).toContain(
+      "provenance=cold-start",
+    );
     expect(ceremonyDialToDict(s).depth).toBe("rapid");
   });
 });

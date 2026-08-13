@@ -387,6 +387,7 @@ export function run(argv: readonly string[]): number {
               config: { enabled: true, override: args.ceremonyDepthOverride },
               inputs: args.ceremonyDialInputs,
             }),
+            ceremonyDialStartTierProvenance: "external-pin" as const,
           }
         : {}),
     });

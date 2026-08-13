@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
+import { ENV_RUN_SUMMARY_PATH } from "../run-summary/types.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import type { GitRunResult } from "./git.js";
 import {
@@ -497,5 +498,110 @@ describe("runSessionStart ceremony dial (#3214)", () => {
     expect(result.code).toBe(0);
     expect(result.lines.some((l) => l.includes("coverageDebt.mode=hatch"))).toBe(true);
     expect(result.lines.some((l) => l.includes("reserved"))).toBe(true);
+  });
+});
+
+describe("runSessionStart start-tier provenance + evaluation events (#3319)", () => {
+  it("surfaces external-pin provenance and #3274 bypass with unset-the-pin remediation", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      ceremonyDial: STANDARD_DIAL,
+      ceremonyDialStartTierProvenance: "external-pin",
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const text = result.lines.join("\n");
+    expect(text).toContain("start-tier=standard");
+    expect(text).toContain("provenance=external-pin");
+    expect(text).toContain("#3274 cold-start selection is bypassed (external-pin)");
+    expect(text).toContain("Unset the pin");
+    const dial = result.payload.ceremony_dial as {
+      start_tier: string;
+      start_tier_provenance: string;
+    };
+    expect(dial.start_tier).toBe("standard");
+    expect(dial.start_tier_provenance).toBe("external-pin");
+  });
+
+  it("emits a declined evaluation event when #3274 stays at the cold-start floor", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "project",
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines.join("\n")).toContain("provenance=cold-start");
+    const events = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { event: string; payload: Record<string, unknown> });
+    const evals = events.filter((e) => e.event === "dial_escalation_evaluation");
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.payload.outcome).toBe("declined");
+    expect(evals[0]?.payload.tier).toBe("rapid");
+    expect(String(evals[0]?.payload.reason)).toContain("insufficient evidence");
+  });
+
+  it("emits an escalated evaluation event when provisional evidence raises depth", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      ceremonyDialHints: { verb: "implement" },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const events = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { event: string; payload: Record<string, unknown> });
+    const evals = events.filter((e) => e.event === "dial_escalation_evaluation");
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.payload.outcome).toBe("escalated");
+    expect(evals[0]?.payload.tier).toBe("standard");
+  });
+
+  it("emits no evaluation event when the start tier is pinned", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      ceremonyDial: STANDARD_DIAL,
+      ceremonyDialStartTierProvenance: "external-pin",
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const events = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { event: string });
+    expect(events.some((e) => e.event === "session_start")).toBe(true);
+    expect(events.some((e) => e.event === "dial_escalation_evaluation")).toBe(false);
+  });
+
+  it("stays silent when DEFT_RUN_SUMMARY_PATH is unset", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: {},
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "project",
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(existsSync(join(root, ".deft-run-summary.json"))).toBe(false);
   });
 });

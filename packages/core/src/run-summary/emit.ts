@@ -14,6 +14,7 @@ import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import {
   type CheckInvocationRunSummaryPayload,
+  type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
   RUN_SUMMARY_SCHEMA_VERSION,
   RUN_SUMMARY_STDOUT_PREFIX,
@@ -205,6 +206,12 @@ export class RunSummaryEmitter {
 
   emitDialTransition(payload: DialTransitionRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("dial_transition", payload);
+  }
+
+  emitDialEscalationEvaluation(
+    payload: DialEscalationEvaluationRunSummaryPayload,
+  ): EmitRunSummaryResult {
+    return this.emit("dial_escalation_evaluation", payload);
   }
 
   emitCheckInvocation(payload: CheckInvocationRunSummaryPayload): EmitRunSummaryResult {

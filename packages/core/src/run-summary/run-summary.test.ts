@@ -209,4 +209,70 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(lines).toHaveLength(2);
     expect(lines.some((l) => "stale" in l)).toBe(false);
   });
+
+  it("emits dial_escalation_evaluation with tier, outcome, and reason (#3319)", () => {
+    const root = freshRoot("run-summary-eval-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-eval",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    const declined = emitter.emitDialEscalationEvaluation({
+      tier: "rapid",
+      outcome: "declined",
+      reason: "insufficient evidence to raise above rapid (size=- modelTier=-)",
+    });
+    const escalated = emitter.emitDialEscalationEvaluation({
+      tier: "standard",
+      outcome: "escalated",
+      reason: "evidence raised rapid -> standard (size=M modelTier=frontier)",
+    });
+    expect(declined.emitted).toBe(true);
+    expect(escalated.emitted).toBe(true);
+    const lines = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map(
+        (l) =>
+          JSON.parse(l) as {
+            event: string;
+            payload: { tier: string; outcome: string; reason: string };
+          },
+      );
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.event).toBe("dial_escalation_evaluation");
+    expect(lines[0]?.payload).toEqual({
+      outcome: "declined",
+      reason: "insufficient evidence to raise above rapid (size=- modelTier=-)",
+      tier: "rapid",
+    });
+    expect(lines[1]?.payload.outcome).toBe("escalated");
+    expect(lines[1]?.payload.tier).toBe("standard");
+    expect(lines[0]?.payload.outcome).not.toBe(lines[1]?.payload.outcome);
+  });
+
+  it("stays silent for dial_escalation_evaluation when path is unset (#3319)", () => {
+    const root = freshRoot("run-summary-eval-silent-");
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "s",
+      frameworkVersion: "0.0.0",
+      env: {},
+      gitignoreCovers: () => false,
+      writeStdout: (line) => stdout.push(line),
+      writeStderr: (line) => stderr.push(line),
+    });
+    const result = emitter.emitDialEscalationEvaluation({
+      tier: "rapid",
+      outcome: "declined",
+      reason: "no evidence",
+    });
+    expect(result.emitted).toBe(false);
+    expect(stdout).toEqual([]);
+    expect(stderr).toEqual([]);
+  });
 });

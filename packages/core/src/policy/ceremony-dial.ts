@@ -525,7 +525,12 @@ export function resolveCeremonyDial(
 }
 
 /** Human-readable status line for session:start / policy:show. */
-export function formatCeremonyDialStatusLine(selection: CeremonyDialSelection): string {
+export function formatCeremonyDialStatusLine(
+  selection: CeremonyDialSelection,
+  extras?: {
+    readonly startTierProvenance?: string;
+  },
+): string {
   const parts = [
     `[deft ceremony-dial] depth=${selection.depth}`,
     `source=${selection.source}`,
@@ -533,6 +538,10 @@ export function formatCeremonyDialStatusLine(selection: CeremonyDialSelection): 
     `modelTier=${selection.inputs.modelTier ?? "-"}`,
     `projectShape=${selection.inputs.projectShape ?? "-"}`,
   ];
+  if (extras?.startTierProvenance !== undefined && extras.startTierProvenance.length > 0) {
+    parts.push(`start-tier=${selection.depth}`);
+    parts.push(`provenance=${extras.startTierProvenance}`);
+  }
   if (selection.composition.rapidStrategy) {
     parts.push(`compose=${selection.composition.rapidStrategy}`);
   }
@@ -1279,7 +1288,46 @@ export function escalateCeremonyDial(
 ): EscalateCeremonyDialResult {
   const prior = resolveCeremonyDial(projectRoot);
   const from = prior.depth;
+  const emitEscalationEvaluation = (applied: boolean): void => {
+    if (options.emitRunSummary === false) {
+      return;
+    }
+    try {
+      const audit = readCeremonyDialAudit(projectRoot);
+      const rawSid = (audit.raw as { session_id?: unknown } | null)?.session_id;
+      const sid =
+        options.sessionId ??
+        (typeof rawSid === "string" && rawSid.length > 0
+          ? rawSid
+          : `dial-${Date.now().toString(36)}`);
+      const rank: Record<CeremonyDepth, number> = {
+        minimal: 0,
+        rapid: 1,
+        standard: 2,
+        elevated: 3,
+      };
+      const raised = rank[options.to] > rank[from];
+      const outcome = applied && raised ? "escalated" : "declined";
+      const reason =
+        options.confirm === true
+          ? options.reason
+          : `${options.reason}; not applied (need --confirm)`;
+      const emitter = new RunSummaryEmitter({
+        projectRoot,
+        sessionId: sid,
+        env: options.env,
+      });
+      emitter.emitDialEscalationEvaluation({
+        tier: outcome === "escalated" ? options.to : from,
+        outcome,
+        reason,
+      });
+    } catch {
+      // fail-open
+    }
+  };
   if (options.confirm !== true) {
+    emitEscalationEvaluation(false);
     return {
       exitCode: 1,
       from,
@@ -1299,6 +1347,7 @@ export function escalateCeremonyDial(
     note: options.note ?? `escalate: ${options.reason}`,
   });
   if (setResult.exitCode !== 0) {
+    emitEscalationEvaluation(false);
     return {
       exitCode: setResult.exitCode,
       from,
@@ -1310,6 +1359,8 @@ export function escalateCeremonyDial(
         .filter((l) => l.length > 0),
     };
   }
+  // #3319: evaluation event on every escalate path (applied or not).
+  emitEscalationEvaluation(true);
   // #3282: event-driven dial_transition line (fail-open).
   if (options.emitRunSummary !== false) {
     try {
