@@ -243,11 +243,24 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "star",
   "gnutar",
   "pax",
+  // #3336 residual after #3311: further write bins (oras/ncat/patch peers).
+  "oras",
+  "lwp-download",
+  "ncat",
+  "patch",
+  "base32",
+  "lrzip",
+  "unar",
+  "cabextract",
+  "ditto",
+  "dpkg-deb",
+  "hg",
+  "msguniq",
 ]);
 
 /**
  * Archive extractors / alt writers that can plant via pathish operands without
- * shell redirects (#3245 / #3288 / #3311). Used for pathish authz/kill scans (prefer deny)
+ * shell redirects (#3245 / #3288 / #3311 / #3336). Used for pathish authz/kill scans (prefer deny)
  * and write-shape residual under UAT — not bare curl-class URL fetches.
  */
 const ARCHIVE_ALT_WRITE_BINS = new Set([
@@ -290,10 +303,23 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "star",
   "gnutar",
   "pax",
+  // #3336 residual after #3311.
+  "oras",
+  "lwp-download",
+  "ncat",
+  "patch",
+  "base32",
+  "lrzip",
+  "unar",
+  "cabextract",
+  "ditto",
+  "dpkg-deb",
+  "hg",
+  "msguniq",
 ]);
 
 /**
- * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311).
+ * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311 / #3336).
  * Prefer a Set over a long `||` chain so coverage counts one membership check, not N branches.
  */
 const PROTECTED_POSITIONAL_BINS = new Set([
@@ -326,6 +352,19 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "star",
   "gnutar",
   "pax",
+  // #3336 residual: positional dest writers (ditto/dpkg-deb/hg/lwp-download).
+  "oras",
+  "lwp-download",
+  "ncat",
+  "patch",
+  "base32",
+  "lrzip",
+  "unar",
+  "cabextract",
+  "ditto",
+  "dpkg-deb",
+  "hg",
+  "msguniq",
 ]);
 
 /** wget family (directory-prefix dest flags). */
@@ -352,6 +391,10 @@ const DOWNLOADER_FILE_DEST_FLAGS = new Set([
   "--output-file",
   "-out",
   "--out",
+  "--outfile",
+  // unar single-dash long form; GNU/others use --output-directory.
+  "-output-directory",
+  "--output-directory",
 ]);
 
 /** Directory destination flags (curl --output-dir / wget -P / aria2c -d); bin-scoped below. */
@@ -364,8 +407,9 @@ const ARIA2C_DIR_DEST_FLAGS = new Set(["-d", "--dir"]);
  */
 const TAR_DIR_DEST_FLAGS_EXACT = new Set(["-C"]);
 const TAR_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
-/** unzip extract directory (#3245). */
+/** unzip / cabextract extract directory (#3245 / #3336). */
 const UNZIP_DIR_DEST_FLAGS = new Set(["-d"]);
+const UNZIP_DIR_DEST_BINS = new Set(["unzip", "cabextract"]);
 /** xh / httpie download directory (#3311). */
 const XH_DIR_DEST_FLAGS = new Set(["--download-dir"]);
 /**
@@ -434,7 +478,7 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
     if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_LOWER.has(normalizeToken(rawFlag))) return true;
     return false;
   }
-  if (bin === "unzip" && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
+  if (UNZIP_DIR_DEST_BINS.has(bin) && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
   if (XH_FAMILY_BINS.has(bin) && XH_DIR_DEST_FLAGS.has(flag)) return true;
   return false;
 }
@@ -614,8 +658,8 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           i++;
           continue;
         }
-        // unzip attached -dDIR (#3245)
-        if (bin === "unzip" && n.startsWith("-d") && n.length > 2) {
+        // unzip / cabextract attached -dDIR (#3245 / #3336)
+        if (UNZIP_DIR_DEST_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;

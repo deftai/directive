@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Rule Authority and Thin Fail-Closed now reachable from agent entry surfaces (#3313).** Pointer-sufficient citations in agents-entry, preamble, and refreshed managed AGENTS.md. Contract markers gate both headers. Does not copy main.md bodies. Closes #3313.
 
+- **UAT Shell residual after #3311: further write bins plant authz grants and kill-switch (#3336).** Under active UAT, residual bins (`oras`/`lwp-download`/`ncat`/`patch`/`base32`/`lrzip`/`unar`/`cabextract`/`ditto`/`dpkg-deb`/`hg`/`msguniq`) that write into `.deft/authz/**` or plant `.deft-directive-disable` / `.no-deft-directive` classify as settings deny (not unclassifiable allow). Dest flags cover `-o`/`--output`/`--outfile`/`-output-directory` and cabextract `-d`; positional dests cover ditto/dpkg-deb/hg/lwp-download. Ordinary non-authz dests such as `/tmp` stay unclassifiable. Already-denied `gpg2`/`rage`/`xh`/`wcurl`/`curl` peers stay denied. Closes #3336. Refs #3311, #3288, #3039.
+
 - **UAT Shell residual after #3288: versioned/alt write bins plant authz grants and kill-switch (#3311).** Under active UAT, residual bins (`gpg2`/`gpg1`/`rage`/`xh`/`httpie`/`wcurl`/`curlie`/`uudecode`/`iconv`/`gtar`/`star`/`gnutar`/`pax`) that write into `.deft/authz/**` or plant `.deft-directive-disable` / `.no-deft-directive` classify as settings deny (not unclassifiable allow). Dest flags cover `-o`/`--output`/`--output-file`/`--download-dir` and tar-family `-C`. Ordinary non-authz dests such as `/tmp` stay unclassifiable. Already-denied `gpg`/`age`/`http`/`curl`/`tar` peers stay denied. Closes #3311. Refs #3288, #3245, #3039.
 
 ### Removed

