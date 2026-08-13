@@ -276,6 +276,14 @@ describe("consumer-deposit marker (#3324)", () => {
     assert.equal(isBuildableSource(root), false);
   });
 
+  it("does not treat a source checkout mounted at .deft/core as a deposit", () => {
+    const root = join(tempRoot(), ".deft", "core");
+    writeBuildableTree(root);
+    mkdirSync(join(root, ".git"));
+    assert.equal(isVendoredCoreRoot(root), false);
+    assert.equal(isBuildableSource(root), true);
+  });
+
   it("never treats a marked deposit as buildable source", () => {
     const root = tempRoot();
     writeBuildableTree(root, { deftConsumerDeposit: true });

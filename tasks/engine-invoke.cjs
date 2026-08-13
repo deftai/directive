@@ -99,9 +99,23 @@ function shellSplit(input) {
  * Greptile P1) — the path itself is the deposit identity.
  * @param {string} root
  */
-function isVendoredCoreRoot(root) {
+function isVendoredCoreRoot(root, opts = {}) {
+  const io = opts.fs || fs;
+  const pathMod = opts.path || path;
   const norm = String(root).replace(/\\/g, "/").replace(/\/+$/, "");
-  return /(^|\/)\.deft\/core$/.test(norm);
+  if (!/(^|\/)\.deft\/core$/.test(norm)) {
+    return false;
+  }
+  // Installer tarballs exclude .git (#1425). A genuine source checkout mounted
+  // at this path still has .git and must keep the self-build path.
+  try {
+    if (io.existsSync(pathMod.join(root, ".git"))) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 function hasConsumerDepositMarker(root, opts = {}) {
@@ -110,7 +124,7 @@ function hasConsumerDepositMarker(root, opts = {}) {
   if (!root) {
     return false;
   }
-  if (isVendoredCoreRoot(root)) {
+  if (isVendoredCoreRoot(root, opts)) {
     return true;
   }
   const markerPath = pathMod.join(root, CONSUMER_DEPOSIT_MARKER_FILE);
