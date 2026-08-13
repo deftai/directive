@@ -7,6 +7,7 @@
 
 export {
   type EvaluateProductOracleIntegrityOptions,
+  emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
   type OracleIntegrityResultFields,

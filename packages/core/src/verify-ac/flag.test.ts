@@ -35,12 +35,14 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
         method_fingerprint: "diff-v1",
         outcome: "fail",
         independent_rederivation: false,
+        session_id: "s1",
       },
       {
         check_id: "eq",
         method_fingerprint: "diff-v1",
         outcome: "pass",
         independent_rederivation: false,
+        session_id: "s1",
       },
     ]);
     expect(flagged).toEqual([]);
@@ -100,6 +102,53 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
     ]);
   });
 
+  it("clears a same-method pass so a later method change is not stale-flagged", () => {
+    const flagged = flagPassAfterFailWithMethodChange([
+      {
+        check_id: "eq",
+        method_fingerprint: "diff-v1",
+        outcome: "fail",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "diff-v1",
+        outcome: "pass",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "json-v2",
+        outcome: "pass",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+    ]);
+    expect(flagged).toEqual([]);
+  });
+
+  it("does not pair a fail in one session with a pass in another", () => {
+    const flagged = flagPassAfterFailWithMethodChange([
+      {
+        check_id: "eq",
+        method_fingerprint: "diff-v1",
+        outcome: "fail",
+        independent_rederivation: false,
+        session_id: "sess-old",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "json-v2",
+        outcome: "pass",
+        independent_rederivation: false,
+        session_id: "sess-new",
+      },
+    ]);
+    expect(flagged).toEqual([]);
+  });
+
   it("skips malformed verification lines", () => {
     const attempts = readVerificationAttempts(
       parseRunSummaryJsonl(
@@ -144,6 +193,7 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
         method_fingerprint: "m",
         outcome: "fail",
         independent_rederivation: false,
+        session_id: "s1",
       },
     ]);
   });

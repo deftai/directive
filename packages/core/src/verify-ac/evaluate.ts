@@ -7,7 +7,12 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { parseRunSummaryJsonl, resolveRunSummaryDestination } from "../run-summary/index.js";
+import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
+import {
+  parseRunSummaryJsonl,
+  RunSummaryEmitter,
+  resolveRunSummaryDestination,
+} from "../run-summary/index.js";
 import {
   type FlaggedMethodChangePass,
   flagPassAfterFailWithMethodChange,
@@ -43,6 +48,44 @@ function formatUnresolved(flag: FlaggedMethodChangePass): string {
   );
 }
 
+const VERIFY_AC_CHECK_ID = "verify:ac";
+
+/**
+ * Record each executed acceptance command as a verification event (#3322).
+ * Fail-open: missing dest / write errors never change the AC result.
+ */
+export function emitVerifyAcAttempts(options: {
+  readonly projectRoot: string;
+  readonly runs: readonly LiteralAcceptanceRunResult[];
+  readonly env?: NodeJS.ProcessEnv;
+  readonly sessionId?: string;
+}): void {
+  if (options.runs.length === 0) {
+    return;
+  }
+  try {
+    const env = options.env ?? process.env;
+    const sessionId =
+      options.sessionId?.trim() ||
+      (typeof env.DEFT_SESSION_ID === "string" ? env.DEFT_SESSION_ID.trim() : "") ||
+      "verify-ac";
+    const emitter = new RunSummaryEmitter({
+      projectRoot: resolve(options.projectRoot),
+      sessionId,
+      env,
+    });
+    for (const run of options.runs) {
+      emitter.emitVerification({
+        check_id: VERIFY_AC_CHECK_ID,
+        method_fingerprint: `${run.command}\0${run.cwd}`,
+        outcome: run.ok ? "pass" : "fail",
+      });
+    }
+  } catch {
+    // fail-open
+  }
+}
+
 function loadRunSummaryText(projectRoot: string, env: NodeJS.ProcessEnv): string | null {
   const dest = resolveRunSummaryDestination(resolve(projectRoot), { env });
   if (dest.kind !== "file") {
@@ -64,10 +107,12 @@ function loadRunSummaryText(projectRoot: string, env: NodeJS.ProcessEnv): string
 export function evaluateProductOracleIntegrity(
   options: EvaluateProductOracleIntegrityOptions,
 ): ProductOracleIntegrityVerdict {
-  const env = options.env ?? process.env;
+  const env = options.env;
   const text =
     options.runSummaryText === undefined
-      ? loadRunSummaryText(options.projectRoot, env)
+      ? env !== undefined
+        ? loadRunSummaryText(options.projectRoot, env)
+        : null
       : options.runSummaryText;
   if (text === null || text.trim().length === 0) {
     return { ok: true, code: 0, flagged: [], unresolved: [], message: "" };

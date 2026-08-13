@@ -1,10 +1,14 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
-import { evaluateProductOracleIntegrity, mergeOracleVerdict } from "./evaluate.js";
+import {
+  emitVerifyAcAttempts,
+  evaluateProductOracleIntegrity,
+  mergeOracleVerdict,
+} from "./evaluate.js";
 
 function jsonl(
   events: readonly {
@@ -25,6 +29,39 @@ function jsonl(
     )
     .join("\n");
 }
+
+describe("emitVerifyAcAttempts (#3322)", () => {
+  it("writes a verification event for each executed AC run", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-emit-"));
+    const path = join(root, "summary.jsonl");
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-ac",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      runs: [
+        {
+          command: "true",
+          cwd: root,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const line = JSON.parse(readFileSync(path, "utf8").trim()) as {
+      event: string;
+      session_id: string;
+      payload: { check_id: string; outcome: string; method_fingerprint: string };
+    };
+    expect(line.event).toBe("verification");
+    expect(line.session_id).toBe("sess-ac");
+    expect(line.payload.check_id).toBe("verify:ac");
+    expect(line.payload.outcome).toBe("pass");
+    expect(line.payload.method_fingerprint).toContain("true");
+  });
+});
 
 describe("evaluateProductOracleIntegrity (#3322)", () => {
   it("is a no-op when no run-summary exists", () => {

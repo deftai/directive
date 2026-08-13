@@ -14,6 +14,8 @@ export interface VerificationAttempt {
   readonly method_fingerprint: string;
   readonly outcome: VerificationOutcome;
   readonly independent_rederivation: boolean;
+  /** Session that emitted the attempt; used to avoid cross-session pairing. */
+  readonly session_id: string;
 }
 
 export interface FlaggedMethodChangePass {
@@ -58,6 +60,7 @@ function readAttempt(line: RunSummaryLine): VerificationAttempt | null {
     method_fingerprint: fingerprint,
     outcome: payload.outcome,
     independent_rederivation: payload.independent_rederivation === true,
+    session_id: line.session_id,
   };
 }
 
@@ -83,12 +86,17 @@ export function flagPassAfterFailWithMethodChange(
   const lastFail = new Map<string, string>();
   const flagged: FlaggedMethodChangePass[] = [];
   for (const attempt of attempts) {
+    const key = `${attempt.session_id}\0${attempt.check_id}`;
     if (attempt.outcome === "fail") {
-      lastFail.set(attempt.check_id, attempt.method_fingerprint);
+      lastFail.set(key, attempt.method_fingerprint);
       continue;
     }
-    const failedMethod = lastFail.get(attempt.check_id);
-    if (failedMethod === undefined || failedMethod === attempt.method_fingerprint) {
+    const failedMethod = lastFail.get(key);
+    if (failedMethod === undefined) {
+      continue;
+    }
+    if (failedMethod === attempt.method_fingerprint) {
+      lastFail.delete(key);
       continue;
     }
     flagged.push({

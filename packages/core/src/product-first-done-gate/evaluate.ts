@@ -17,7 +17,11 @@ import {
   runLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
 import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
-import { evaluateProductOracleIntegrity, mergeOracleVerdict } from "../verify-ac/evaluate.js";
+import {
+  emitVerifyAcAttempts,
+  evaluateProductOracleIntegrity,
+  mergeOracleVerdict,
+} from "../verify-ac/evaluate.js";
 import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
 import type { AcSourceRung, PlanAcceptance } from "./types.js";
 
@@ -170,13 +174,23 @@ export function evaluateVerifyAcFromPlan(
 }
 
 function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
+  const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  // Emit/read disk only when the caller supplied env (CLI passes process.env).
+  // Tests stay isolated unless they opt in with env or runSummaryText.
+  if (options.env !== undefined) {
+    emitVerifyAcAttempts({
+      projectRoot,
+      runs: result.runs,
+      env: options.env,
+    });
+  }
   if (options.applyOracleIntegrity === false) {
     return result;
   }
   const verdict = evaluateProductOracleIntegrity({
-    projectRoot: resolve(options.projectRoot ?? process.cwd()),
+    projectRoot,
     runSummaryText: options.runSummaryText,
-    env: options.env ?? process.env,
+    env: options.env,
   });
   return mergeOracleVerdict(result, verdict);
 }
