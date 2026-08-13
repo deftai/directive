@@ -129,6 +129,40 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
     expect(flagged).toEqual([]);
   });
 
+  it("flags fail A then fail B then pass B as a method change", () => {
+    const flagged = flagPassAfterFailWithMethodChange([
+      {
+        check_id: "eq",
+        method_fingerprint: "diff-v1",
+        outcome: "fail",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "json-v2",
+        outcome: "fail",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "json-v2",
+        outcome: "pass",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+    ]);
+    expect(flagged).toEqual([
+      {
+        check_id: "eq",
+        failed_method: "diff-v1",
+        passed_method: "json-v2",
+        independent_rederivation: false,
+      },
+    ]);
+  });
+
   it("does not keep a re-derived pass as an active failure", () => {
     const flagged = flagPassAfterFailWithMethodChange([
       {

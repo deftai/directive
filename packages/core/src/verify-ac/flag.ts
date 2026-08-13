@@ -83,29 +83,37 @@ export function readVerificationAttempts(lines: readonly RunSummaryLine[]): Veri
 export function flagPassAfterFailWithMethodChange(
   attempts: readonly VerificationAttempt[],
 ): FlaggedMethodChangePass[] {
-  const lastFail = new Map<string, string>();
+  const failedMethods = new Map<string, Set<string>>();
   const flagged: FlaggedMethodChangePass[] = [];
   for (const attempt of attempts) {
     const key = `${attempt.session_id}\0${attempt.check_id}`;
     if (attempt.outcome === "fail") {
-      lastFail.set(key, attempt.method_fingerprint);
+      const set = failedMethods.get(key) ?? new Set<string>();
+      set.add(attempt.method_fingerprint);
+      failedMethods.set(key, set);
       continue;
     }
-    const failedMethod = lastFail.get(key);
-    if (failedMethod === undefined) {
+    const prior = failedMethods.get(key);
+    if (prior === undefined || prior.size === 0) {
       continue;
     }
-    if (failedMethod === attempt.method_fingerprint) {
-      lastFail.delete(key);
-      continue;
+    const other = [...prior].find((method) => method !== attempt.method_fingerprint);
+    if (other !== undefined) {
+      flagged.push({
+        check_id: attempt.check_id,
+        failed_method: other,
+        passed_method: attempt.method_fingerprint,
+        independent_rederivation: attempt.independent_rederivation,
+      });
     }
-    flagged.push({
-      check_id: attempt.check_id,
-      failed_method: failedMethod,
-      passed_method: attempt.method_fingerprint,
-      independent_rederivation: attempt.independent_rederivation,
-    });
-    lastFail.delete(key);
+    if (attempt.independent_rederivation || other === undefined) {
+      failedMethods.delete(key);
+    } else {
+      prior.delete(attempt.method_fingerprint);
+      if (prior.size === 0) {
+        failedMethods.delete(key);
+      }
+    }
   }
   return flagged;
 }
