@@ -229,4 +229,26 @@ describe("escalateCeremonyDial evaluation events (#3319)", () => {
     const evaluation = events.find((e) => e.event === "dial_escalation_evaluation");
     expect(evaluation?.payload.outcome).toBe("escalated");
   });
+
+  it("names persist failure in the declined reason when confirm cannot apply", () => {
+    const root = mkdtempSync(join(tmpdir(), "dial-escalate-noconfig-"));
+    temps.push(root);
+    const out = join(root, "summary.jsonl");
+    const result = escalateCeremonyDial(root, {
+      to: "standard",
+      reason: "size=M",
+      confirm: true,
+      sessionId: "sess-persist-fail",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    expect(result.exitCode).not.toBe(0);
+    const line = JSON.parse(readFileSync(out, "utf8").trim()) as {
+      event: string;
+      payload: { outcome: string; reason: string };
+    };
+    expect(line.event).toBe("dial_escalation_evaluation");
+    expect(line.payload.outcome).toBe("declined");
+    expect(line.payload.reason).toContain("persist failed");
+    expect(line.payload.reason).toMatch(/exit \d+/);
+  });
 });

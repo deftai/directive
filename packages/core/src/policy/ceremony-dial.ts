@@ -1288,7 +1288,7 @@ export function escalateCeremonyDial(
 ): EscalateCeremonyDialResult {
   const prior = resolveCeremonyDial(projectRoot);
   const from = prior.depth;
-  const emitEscalationEvaluation = (applied: boolean): void => {
+  const emitEscalationEvaluation = (applied: boolean, reasonSuffix?: string): void => {
     if (options.emitRunSummary === false) {
       return;
     }
@@ -1308,10 +1308,14 @@ export function escalateCeremonyDial(
       };
       const raised = rank[options.to] > rank[from];
       const outcome = applied && raised ? "escalated" : "declined";
-      const reason =
+      const baseReason =
         options.confirm === true
           ? options.reason
           : `${options.reason}; not applied (need --confirm)`;
+      const reason =
+        reasonSuffix !== undefined && reasonSuffix.length > 0
+          ? `${baseReason}; ${reasonSuffix}`
+          : baseReason;
       const emitter = new RunSummaryEmitter({
         projectRoot,
         sessionId: sid,
@@ -1347,7 +1351,13 @@ export function escalateCeremonyDial(
     note: options.note ?? `escalate: ${options.reason}`,
   });
   if (setResult.exitCode !== 0) {
-    emitEscalationEvaluation(false);
+    const persistDetail = oneLineAuditToken(
+      setResult.stdout.trim().split("\n")[0] ?? `exit ${setResult.exitCode}`,
+    );
+    emitEscalationEvaluation(
+      false,
+      `persist failed (exit ${setResult.exitCode}): ${persistDetail}`,
+    );
     return {
       exitCode: setResult.exitCode,
       from,
