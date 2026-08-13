@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **#3179 Wave 4 proposer path mapping.** Thin SoT maps skill/playbook propose path onto #1307 / #2436 / #2741 (consume, do not refile): evidence → staged proposal → deferred control bar → PR disposal. Closes Wave 4 mapping AC; dual-credits #2436 written-mapping AC. Path: `docs/analysis/2026-08-13-3179-wave4-proposer-path-mapping.md`.
 
 ### Changed
 
@@ -2832,6 +2833,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **#3179 Wave 4 proposer path mapping.** Thin SoT maps skill/playbook propose path onto #1307 / #2436 / #2741 (consume, do not refile): evidence → staged proposal → deferred control bar → PR disposal. Closes Wave 4 mapping AC; dual-credits #2436 written-mapping AC. Path: `docs/analysis/2026-08-13-3179-wave4-proposer-path-mapping.md`.
 
 - **feat(cache): size cap + LRU eviction + disk quota (#947)** -- the v1 cache layer (#883) shipped without any size or entry caps; bulk-triage workflows against an active backlog grew `.deft-cache/` unboundedly until an operator noticed a several-GB folder. Real-scale evidence from `docs/smoke-2026-05-07-v0.26.0-rerun.md`: 320 entries = 3.03 MB on disk (~10 KB/entry average); a 50,000-issue mono-repo would consume ~500 MB at that ratio. New defaults (configurable via `DEFT_CACHE_MAX_BYTES`, `DEFT_CACHE_MAX_ENTRIES`; 0 disables either): 100 MB total bytes, 10,000 total entries. Either threshold trips eviction. LRU is tracked via `meta.json` mtime touched on `cache:get` -- zero schema change, zero migration burden for v0.26.0-era cache trees, no edit to the FROZEN `vbrief/schemas/cache-meta.schema.json`. `cache:put` projects the new total pre-write, evicts oldest-first by (mtime, path) until the put fits, and refuses with a structured `CacheCapBreachedError` (CLI exit-3) when caps cannot be honored even after eviction. New `task cache:prune -- --to-cap` mode drains LRU on demand and is idempotent (`--dry-run` previews via `predict_eviction_set`). Every eviction appends one `cache:evict` record to the existing `quarantine-audit.jsonl` (with `{source, key, timestamp, reason, trigger, freed_bytes, last_accessed_at}`) so operators can trace why an entry vanished. Implementation extracted to `scripts/_cache_quota.py` to keep `scripts/cache.py` under the deft 1000-line MUST limit (mirrors the existing `_cache_fetch` / `_cache_validate` split). Audit-log retention/rotation tracked separately under #948 and is explicitly out of scope for this change.
 
@@ -3298,6 +3300,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- **#3179 Wave 4 proposer path mapping.** Thin SoT maps skill/playbook propose path onto #1307 / #2436 / #2741 (consume, do not refile): evidence → staged proposal → deferred control bar → PR disposal. Closes Wave 4 mapping AC; dual-credits #2436 written-mapping AC. Path: `docs/analysis/2026-08-13-3179-wave4-proposer-path-mapping.md`.
 
 - **feat(strategy): standalone map/brownfield analysis without requiring interview** (#103): `/deft:run:map` can now be invoked as a standalone first-class command without an active interview context. `strategies/map.md` gains an Invocation Modes section distinguishing Standalone vs Chained modes, a Completion section that splits artifact registration (shared) from mode-specific handoff (Chained returns to interview.md chaining gate; Standalone presents a narrative summary and offers next-step options: interview / discuss / research / done). The `⊗ End the session after mapping without returning to the chaining gate` rule is scoped to Chained mode only. `strategies/interview.md` and `strategies/README.md` gain a standalone invocation note for preparatory strategies. `strategies/discuss.md` and `strategies/research.md` gain a `!` standalone-context rule and update their Workflow chaining step so invocations from a standalone strategy return to the invoking strategy's next-step menu instead of the interview chaining gate. `tests/content/test_strategy_chaining.py` accepts both the original `## Then: Chaining Gate` heading and the new `### Chained Mode` pattern for preparatory strategies. Closes #103.
 
