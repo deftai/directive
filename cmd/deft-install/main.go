@@ -414,6 +414,16 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		removeOrphanDeftVersion(w, result)
 	}
 
+	// #3331: plant the #3324 consumer-deposit marker on the just-written
+	// payload (canonical .deft/core or --legacy-layout deft/) so engine:invoke
+	// does not treat a source-looking tarball as buildable framework source.
+	// After VendorDeft / UpdateDeft so a file-swap cannot wipe the marker.
+	// Fail-closed: an unmarked deposit is not a successful install.
+	if _, err := plantConsumerDepositMarker(w, result.DeftDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1

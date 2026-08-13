@@ -116,6 +116,9 @@ func TestEndToEnd_VendoredUpgrade_DoctorInvariants(t *testing.T) {
 	if _, err := WriteInstallManifest(result.ProjectDir, result.DeftDir, fields); err != nil {
 		t.Fatalf("WriteInstallManifest: %v", err)
 	}
+	if _, err := plantConsumerDepositMarker(w, result.DeftDir); err != nil {
+		t.Fatalf("plantConsumerDepositMarker: %v", err)
+	}
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {
 		t.Fatalf("WriteAgentsMD: %v", err)
 	}
@@ -162,6 +165,9 @@ func TestEndToEnd_VendoredUpgrade_DoctorInvariants(t *testing.T) {
 	if bare == "0.0.0-dev" {
 		t.Errorf("vbrief/.deft-version was not regenerated (still the stale 0.0.0-dev)")
 	}
+
+	// #3331: file-swap upgrade must leave the consumer-deposit marker in core.
+	assertConsumerDepositMarker(t, core)
 }
 
 // deriveTagFromManifestForTest extracts the bare semver the doctor's

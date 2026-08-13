@@ -68,6 +68,16 @@ const frameworkSelfTestRelPath = ".deft/core/tests"
 // to pruneFrameworkSelfTests (#1474, which prunes the Python self-test suite).
 const vendoredTSPackagesRelPath = ".deft/core/packages"
 
+// consumerDepositMarkerFile is the #3324 identity file engine-invoke honors
+// at DEFT_ROOT. The installer plants it after every vendor/update so a
+// source-looking tarball under .deft/core or legacy deft/ is not classified
+// as buildable framework source (#3331). Content matches the #3324 fixture
+// ("1\n") so hasConsumerDepositMarker treats presence as sufficient.
+const (
+	consumerDepositMarkerFile    = ".deft-consumer-deposit"
+	consumerDepositMarkerContent = "1\n"
+)
+
 // vendoredTSTestFileRe matches a basename that vitest's default include glob
 // (**/*.{test,spec}.?(c|m)[jt]s?(x)) would discover as a test file:
 // *.test.{ts,tsx,js,jsx,cts,mts,cjs,mjs} and the *.spec.* equivalents,
@@ -401,6 +411,33 @@ func depositNeutralization(w *Wizard, projectDir string) {
 	if _, err := pruneVendoredTSTests(w, projectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not prune vendored TypeScript test files: %v\n", err)
 	}
+}
+
+// plantConsumerDepositMarker writes the #3324 consumer-deposit marker into
+// deftDir (canonical .deft/core or --legacy-layout deft/). Fail-closed: an
+// empty or missing deposit dir is an error so install cannot succeed unmarked.
+// Idempotent when the file already has the expected contents. Does not touch
+// the consumer project root or a genuine source checkout (#3331).
+func plantConsumerDepositMarker(w *Wizard, deftDir string) (bool, error) {
+	if strings.TrimSpace(deftDir) == "" {
+		return false, fmt.Errorf("plantConsumerDepositMarker: deftDir must not be empty")
+	}
+	info, err := os.Stat(deftDir)
+	if err != nil {
+		return false, fmt.Errorf("plantConsumerDepositMarker: deposit dir %s: %w", deftDir, err)
+	}
+	if !info.IsDir() {
+		return false, fmt.Errorf("plantConsumerDepositMarker: %s is not a directory", deftDir)
+	}
+	path := filepath.Join(deftDir, consumerDepositMarkerFile)
+	if data, readErr := os.ReadFile(path); readErr == nil && string(data) == consumerDepositMarkerContent {
+		return false, nil
+	}
+	if err := os.WriteFile(path, []byte(consumerDepositMarkerContent), 0o644); err != nil {
+		return false, fmt.Errorf("could not plant consumer-deposit marker: %w", err)
+	}
+	w.printf("Planted consumer-deposit marker (%s) so engine:invoke uses the global CLI (#3331).\n", consumerDepositMarkerFile)
+	return true, nil
 }
 
 // pruneFrameworkSelfTests removes the vendored framework self-test suite

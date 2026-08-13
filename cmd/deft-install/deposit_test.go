@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -1175,6 +1176,167 @@ func TestCoreGuard_GithooksClassifyInstallerManaged(t *testing.T) {
 	if guardWouldFail(changed) {
 		t.Error("guard must PASS a framework-deposit PR mixing .deft/core/** with .githooks/* (#1478)")
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Consumer-deposit marker (#3331)
+// ---------------------------------------------------------------------------
+
+func assertConsumerDepositMarker(t *testing.T, deftDir string) {
+	t.Helper()
+	path := filepath.Join(deftDir, consumerDepositMarkerFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("deposit missing %s: %v", consumerDepositMarkerFile, err)
+	}
+	if string(data) != consumerDepositMarkerContent {
+		t.Fatalf("marker content = %q, want %q", string(data), consumerDepositMarkerContent)
+	}
+}
+
+func TestPlantConsumerDepositMarker_CanonicalCore(t *testing.T) {
+	tmp := t.TempDir()
+	core := filepath.Join(tmp, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Source-looking payload (GitHub tarball): root package.json + packages/cli.
+	if err := os.WriteFile(filepath.Join(core, "package.json"), []byte(`{"name":"looks-like-source","scripts":{"build":"tsc -b"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(core, "packages", "cli"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := plantConsumerDepositMarker(newDepositWizard(), core)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on first plant")
+	}
+	assertConsumerDepositMarker(t, core)
+	if pathExists(filepath.Join(tmp, consumerDepositMarkerFile)) {
+		t.Error("must not plant the marker at the consumer project root")
+	}
+}
+
+func TestPlantConsumerDepositMarker_LegacyDeft(t *testing.T) {
+	tmp := t.TempDir()
+	legacy := filepath.Join(tmp, LegacyFrameworkSubdir)
+	if err := os.MkdirAll(legacy, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(legacy, "package.json"), []byte(`{"name":"looks-like-source","scripts":{"build":"tsc -b"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := plantConsumerDepositMarker(newDepositWizard(), legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on first plant into legacy deft/")
+	}
+	assertConsumerDepositMarker(t, legacy)
+	if pathExists(filepath.Join(tmp, consumerDepositMarkerFile)) {
+		t.Error("must not plant the marker at the consumer project root")
+	}
+}
+
+func TestPlantConsumerDepositMarker_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	core := filepath.Join(tmp, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	w := newDepositWizard()
+	if _, err := plantConsumerDepositMarker(w, core); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := plantConsumerDepositMarker(w, core)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Error("expected changed=false when the marker is already present")
+	}
+	assertConsumerDepositMarker(t, core)
+}
+
+func TestPlantConsumerDepositMarker_RejectsEmptyDeftDir(t *testing.T) {
+	if _, err := plantConsumerDepositMarker(newDepositWizard(), ""); err == nil {
+		t.Fatal("empty deftDir must fail closed")
+	}
+}
+
+func TestPlantConsumerDepositMarker_RejectsMissingDir(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "no-such-deposit")
+	if _, err := plantConsumerDepositMarker(newDepositWizard(), missing); err == nil {
+		t.Fatal("missing deposit dir must fail closed")
+	}
+}
+
+func TestPlantConsumerDepositMarker_HonoredByEngineInvoke(t *testing.T) {
+	root, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Tests run from cmd/deft-install; engine-invoke lives at repo-root/tasks.
+	invoke := filepath.Join(filepath.Dir(filepath.Dir(root)), "tasks", "engine-invoke.cjs")
+	if _, err := os.Stat(invoke); err != nil {
+		t.Skip("engine-invoke.cjs not found; #3324 honor path not in this tree")
+	}
+
+	tmp := t.TempDir()
+	legacy := filepath.Join(tmp, LegacyFrameworkSubdir)
+	if err := os.MkdirAll(filepath.Join(legacy, "packages", "cli"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(legacy, "package.json"), []byte(`{"name":"looks-like-source","scripts":{"build":"tsc -b"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(legacy, "packages", "cli", "package.json"), []byte(`{"name":"@deftai/directive-cli"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	before := exec.Command("node", invoke, "is-buildable-source", legacy)
+	if out, err := before.CombinedOutput(); err != nil {
+		t.Fatalf("unmarked legacy deft/ must look buildable before plant; err=%v out=%s", err, out)
+	}
+
+	if _, err := plantConsumerDepositMarker(newDepositWizard(), legacy); err != nil {
+		t.Fatal(err)
+	}
+
+	marker := exec.Command("node", invoke, "deposit-marker", legacy)
+	if out, err := marker.CombinedOutput(); err != nil {
+		t.Fatalf("engine-invoke must honor planted marker; err=%v out=%s", err, out)
+	}
+	buildable := exec.Command("node", invoke, "is-buildable-source", legacy)
+	if out, err := buildable.CombinedOutput(); err == nil {
+		t.Fatalf("marked legacy deft/ must not be buildable source; out=%s", out)
+	}
+}
+
+func TestPlantConsumerDepositMarker_RepairsWrongContent(t *testing.T) {
+	tmp := t.TempDir()
+	core := filepath.Join(tmp, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(core, consumerDepositMarkerFile)
+	if err := os.WriteFile(stale, []byte("stale\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := plantConsumerDepositMarker(newDepositWizard(), core)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true when repairing stale marker content")
+	}
+	assertConsumerDepositMarker(t, core)
 }
 
 // ---------------------------------------------------------------------------
