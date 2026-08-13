@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,7 +11,7 @@ import {
   isSoftEmptyAcText,
   projectHasSuiteFloor,
 } from "./empty-resolution.js";
-import { evaluateVerifyAcFromPlan } from "./evaluate.js";
+import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
 
 describe("empty verify:ac resolution (#3334)", () => {
   it("classifies zero-command results as empty and matches the soft_empty token", () => {
@@ -156,5 +156,41 @@ describe("empty verify:ac resolution (#3334)", () => {
     expect(suiteLine.event).toBe("acceptance");
     expect(suiteLine.payload.outcome).toBe("empty-pass");
     expect(suiteLine.payload.resolved_command_count).toBe(0);
+  });
+
+  it("emits acceptance from the path helper after the bank checkpoint", () => {
+    const root = mkdtempSync(join(tmpdir(), "empty-ac-bank-emit-"));
+    const path = join(root, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          acceptance: {
+            commands: [{ command: "true" }],
+            none_stated: true,
+            source_rung: "derived",
+          },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const summary = join(root, "summary.jsonl");
+    const result = evaluateVerifyAcFromPath(path, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      env: { [ENV_RUN_SUMMARY_PATH]: summary },
+    });
+    expect(result.ok).toBe(true);
+    const lines = readFileSync(summary, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map((l) => JSON.parse(l) as { event: string; payload: { outcome?: string } });
+    const acceptance = lines.filter((l) => l.event === "acceptance");
+    expect(acceptance).toHaveLength(1);
+    expect(acceptance[0]?.payload.outcome).toBe("verified-pass");
   });
 });

@@ -38,4 +38,14 @@ describe("acceptance-activate-gate (#3334)", () => {
       { key: "Verification" },
     ]);
   });
+
+  it("refuses activate when plan.acceptance is present but invalid", () => {
+    const gate = evaluateAcceptanceActivateGate({
+      narratives: { Test: "pnpm test should pass" },
+      acceptance: { commands: [], none_stated: false },
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toMatch(/plan\.acceptance is present but invalid \(#3334\)/);
+    expect(gate.message).toMatch(/none_stated/);
+  });
 });

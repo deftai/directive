@@ -82,6 +82,11 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    * suite floor; consumer projects do not (#3334).
    */
   readonly hasSuiteFloor?: boolean;
+  /**
+   * When true, skip the acceptance run-summary emit so the path helper can
+   * emit after the #3285 bank checkpoint.
+   */
+  readonly skipAcceptanceEmit?: boolean;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -329,7 +334,9 @@ function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): 
       next = { ...next, resolution: "fail" };
     }
   }
-  emitAcceptanceOutcome(next, options, projectRoot);
+  if (options.skipAcceptanceEmit !== true) {
+    emitAcceptanceOutcome(next, options, projectRoot);
+  }
   return next;
 }
 
@@ -404,8 +411,10 @@ export function evaluateVerifyAcFromPath(
   if (plan === null) {
     return applyOracle(configResult(`verify:ac: xBRIEF missing plan object: ${abs}`), options);
   }
-  const result = evaluateVerifyAcFromPlan(plan, options);
-  return maybeAttachAcPassBank(result, plan, abs, options);
+  const result = evaluateVerifyAcFromPlan(plan, { ...options, skipAcceptanceEmit: true });
+  const banked = maybeAttachAcPassBank(result, plan, abs, options);
+  emitAcceptanceOutcome(banked, options, resolve(options.projectRoot ?? process.cwd()));
+  return banked;
 }
 
 /**

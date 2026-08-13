@@ -6,6 +6,8 @@
  * with one remediation: stamp the acceptance block.
  */
 
+import { validatePlanAcceptance } from "../product-first-done-gate/acceptance.js";
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -63,6 +65,17 @@ export function evaluateAcceptanceActivateGate(
     return { ok: true, message: "", hits: [] };
   }
   if (plan.acceptance !== undefined && plan.acceptance !== null) {
+    const schemaErrors = validatePlanAcceptance(plan.acceptance);
+    if (schemaErrors.length > 0) {
+      return {
+        ok: false,
+        message:
+          `Refusing activate: plan.acceptance is present but invalid (#3334): ` +
+          `${schemaErrors.join("; ")}. Stamp a valid plan.acceptance block ` +
+          `(author commands or none_stated via intake capture / task issue:ingest).`,
+        hits,
+      };
+    }
     return { ok: true, message: "", hits };
   }
   const keys = hits.map((h) => h.key).join(", ");
