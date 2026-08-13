@@ -1,14 +1,19 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
+  resetInProcessVerificationBuffer,
 } from "./evaluate.js";
+
+beforeEach(() => {
+  resetInProcessVerificationBuffer();
+});
 
 function jsonl(
   events: readonly {
@@ -92,6 +97,86 @@ describe("evaluateProductOracleIntegrity (#3322)", () => {
         runSummaryText: "   ",
       }).ok,
     ).toBe(true);
+  });
+
+  it("fails closed on PATH=- method-change pass from in-process attempts", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-stdout-mcp-"));
+    const env = { [ENV_RUN_SUMMARY_PATH]: "-", DEFT_SESSION_ID: "sess-stdout" };
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-stdout",
+      env,
+      writeStdout: () => undefined,
+      runs: [
+        {
+          command: "diff-v1",
+          cwd: root,
+          exitCode: 1,
+          stdout: "",
+          stderr: "mismatch",
+          ok: false,
+          detail: "fail",
+        },
+        {
+          command: "json-v2",
+          cwd: root,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.code).toBe(1);
+    expect(verdict.unresolved).toHaveLength(1);
+    expect(verdict.message).toMatch(/UNRESOLVED product-oracle discrepancy \(#3322\)/);
+    expect(
+      evaluateProductOracleIntegrity({
+        projectRoot: root,
+        env: {},
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("pairs successive PATH=- emits via the in-process session", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-stdout-session-"));
+    const env = { [ENV_RUN_SUMMARY_PATH]: "-" };
+    const failRun = {
+      command: "diff-v1",
+      cwd: root,
+      exitCode: 1,
+      stdout: "",
+      stderr: "mismatch",
+      ok: false,
+      detail: "fail",
+    };
+    const passRun = {
+      command: "json-v2",
+      cwd: root,
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+      ok: true,
+      detail: "ok",
+    };
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      env,
+      writeStdout: () => undefined,
+      runs: [failRun],
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      env,
+      writeStdout: () => undefined,
+      runs: [passRun],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.unresolved).toHaveLength(1);
   });
 
   it("fails closed on unresolved method-change pass", () => {

@@ -3,6 +3,9 @@
  *
  * Missing run-summary is a no-op (no evidence). A flagged
  * fail → method-change → pass without independent_rederivation fails closed.
+ * Stdout dest (`DEFT_RUN_SUMMARY_PATH=-`) evaluates the same-process
+ * attempts just emitted by this verify:ac — it does not treat non-file
+ * dest as no evidence.
  */
 
 import { randomUUID } from "node:crypto";
@@ -51,36 +54,71 @@ function formatUnresolved(flag: FlaggedMethodChangePass): string {
 
 const VERIFY_AC_CHECK_ID = "verify:ac";
 
+/** Same-process verification JSONL when dest is stdout (`-`). */
+const inProcessVerificationLines: string[] = [];
+let inProcessStdoutSessionId: string | undefined;
+
+/** Test seam: isolate stdout-dest buffer across cases. */
+export function resetInProcessVerificationBuffer(): void {
+  inProcessVerificationLines.length = 0;
+  inProcessStdoutSessionId = undefined;
+}
+
+function inProcessVerificationText(): string | null {
+  if (inProcessVerificationLines.length === 0) {
+    return null;
+  }
+  return inProcessVerificationLines.join("\n");
+}
+
 /**
  * Record each executed acceptance command as a verification event (#3322).
  * Fail-open: missing dest / write errors never change the AC result.
+ * Stdout dest also appends to the same-process buffer so evaluate can
+ * inspect this invocation without re-reading a file.
  */
 export function emitVerifyAcAttempts(options: {
   readonly projectRoot: string;
   readonly runs: readonly LiteralAcceptanceRunResult[];
   readonly env?: NodeJS.ProcessEnv;
   readonly sessionId?: string;
+  /** stdout seam (tests). */
+  readonly writeStdout?: (line: string) => void;
 }): void {
   if (options.runs.length === 0) {
     return;
   }
   try {
     const env = options.env ?? process.env;
-    const sessionId =
+    const projectRoot = resolve(options.projectRoot);
+    const dest = resolveRunSummaryDestination(projectRoot, { env });
+    const explicitSession =
       options.sessionId?.trim() ||
-      (typeof env.DEFT_SESSION_ID === "string" ? env.DEFT_SESSION_ID.trim() : "") ||
-      randomUUID();
+      (typeof env.DEFT_SESSION_ID === "string" ? env.DEFT_SESSION_ID.trim() : "");
+    let sessionId = explicitSession;
+    if (!sessionId) {
+      if (dest.kind === "stdout") {
+        inProcessStdoutSessionId ??= randomUUID();
+        sessionId = inProcessStdoutSessionId;
+      } else {
+        sessionId = randomUUID();
+      }
+    }
     const emitter = new RunSummaryEmitter({
-      projectRoot: resolve(options.projectRoot),
+      projectRoot,
       sessionId,
       env,
+      writeStdout: options.writeStdout,
     });
     for (const run of options.runs) {
-      emitter.emitVerification({
+      const emitted = emitter.emitVerification({
         check_id: VERIFY_AC_CHECK_ID,
         method_fingerprint: `${run.command}\0${run.cwd}`,
         outcome: run.ok ? "pass" : "fail",
       });
+      if (dest.kind === "stdout" && emitted.line !== null) {
+        inProcessVerificationLines.push(JSON.stringify(emitted.line));
+      }
     }
   } catch {
     // fail-open
@@ -89,6 +127,9 @@ export function emitVerifyAcAttempts(options: {
 
 function loadRunSummaryText(projectRoot: string, env: NodeJS.ProcessEnv): string | null {
   const dest = resolveRunSummaryDestination(resolve(projectRoot), { env });
+  if (dest.kind === "stdout") {
+    return inProcessVerificationText();
+  }
   if (dest.kind !== "file") {
     return null;
   }
