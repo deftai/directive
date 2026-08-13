@@ -27,6 +27,7 @@ import {
 } from "../policy/ceremony-dial.js";
 import {
   type CeremonyStartTierProvenance,
+  emitCeremonyDialEscalationEvaluation,
   evaluateSessionStartCeremonyDialEscalation,
   formatCeremonyDialPinBypassLine,
   isCeremonyStartTierPinned,
@@ -1617,13 +1618,13 @@ export function runSessionStart(
       // #3319: evaluate escalate-on-evidence only when #3274 is live. A pin
       // emits nothing so never-evaluated stays distinguishable from declined.
       if (!isCeremonyStartTierPinned(startTierProvenance)) {
-        const evaluation = evaluateSessionStartCeremonyDialEscalation({
-          selection: ceremonyDialSelection,
-        });
-        emitter.emitDialEscalationEvaluation({
-          tier: evaluation.tier,
-          outcome: evaluation.outcome,
-          reason: evaluation.reason,
+        emitCeremonyDialEscalationEvaluation({
+          projectRoot,
+          sessionId: coldSessionId,
+          env: options.env,
+          evaluation: evaluateSessionStartCeremonyDialEscalation({
+            selection: ceremonyDialSelection,
+          }),
         });
       }
     } catch {
