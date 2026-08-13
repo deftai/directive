@@ -24,6 +24,7 @@ import {
   type RunSummaryLine,
   type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
+  type ToolTurnDenominatorRunSummaryPayload,
 } from "./types.js";
 
 export interface RunSummaryEmitterOptions extends ResolveRunSummaryDestinationOptions {
@@ -164,6 +165,7 @@ export class RunSummaryEmitter {
         return { emitted: false, destination: this.destination, line: null, warning: false };
       }
       this.seq += 1;
+      const denominator = readPayloadToolTurnDenominator(payload);
       const line: RunSummaryLine = {
         schema_version: RUN_SUMMARY_SCHEMA_VERSION,
         session_id: this.sessionId,
@@ -172,6 +174,7 @@ export class RunSummaryEmitter {
         ts: this.now().toISOString(),
         event,
         payload,
+        ...(denominator !== undefined ? { total_tool_turns: denominator } : {}),
       };
       const text = lineToJson(line);
 
@@ -217,6 +220,18 @@ export class RunSummaryEmitter {
   emitCheckInvocation(payload: CheckInvocationRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("check_invocation", payload);
   }
+
+  emitToolTurnDenominator(payload: ToolTurnDenominatorRunSummaryPayload): EmitRunSummaryResult {
+    return this.emit("tool_turn_denominator", payload);
+  }
+}
+
+function readPayloadToolTurnDenominator(payload: RunSummaryPayload): number | undefined {
+  if (!("total_tool_turns" in payload)) {
+    return undefined;
+  }
+  const value = payload.total_tool_turns;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 /**

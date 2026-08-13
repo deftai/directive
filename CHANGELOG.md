@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Run-summary emits a tool/turn denominator so #3286 Later share is evaluable (#3320).** The #3282 stream now carries `total_tool_turns` (event `tool_turn_denominator`). `eval:report` prints ritual+gate share when that field is present and **trigger unevaluable** when it is absent — it does not invent a ratio from check counts. Emitter stays fail-open when `DEFT_RUN_SUMMARY_PATH` is unset. Closes #3320. Refs #3286, #3282, #3265.
+
 - **Ceremony-dial escalation evaluations emit a run-summary event (#3319).** Every evaluation records tier, outcome (`escalated`|`declined`), and reason so a decline is distinct from never-evaluated. Session-start surfaces start-tier provenance; an external or operator pin states that #3274 cold-start selection is bypassed and names unset-the-pin as remediation. Emitter stays fail-open when `DEFT_RUN_SUMMARY_PATH` is unset. Does not change thresholds or the default tier. Closes #3319. Refs #3282, #3274, #3263, #3214.
 
 - **Rule Authority and Thin Fail-Closed now reachable from agent entry surfaces (#3313).** Pointer-sufficient citations in agents-entry, preamble, and refreshed managed AGENTS.md. Contract markers gate both headers. Does not copy main.md bodies. Closes #3313.

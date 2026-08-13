@@ -10,6 +10,12 @@ export {
   resolveRunSummaryDestination,
 } from "./path.js";
 export {
+  computeRitualGateShare,
+  parseRunSummaryJsonl,
+  type RitualGateShare,
+  readToolTurnDenominator,
+} from "./share.js";
+export {
   type CheckGateOutcome,
   type CheckInvocationRunSummaryPayload,
   DEFAULT_RUN_SUMMARY_BASENAME,
@@ -27,4 +33,5 @@ export {
   type RunSummaryLine,
   type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
+  type ToolTurnDenominatorRunSummaryPayload,
 } from "./types.js";

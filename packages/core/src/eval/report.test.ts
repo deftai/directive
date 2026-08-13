@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -75,6 +75,7 @@ describe("reportGoldenEval", () => {
       championVersion: "0.70.0",
       challengerVersion: "0.71.0",
       model: "composer-fixture",
+      env: {},
     });
 
     expect(result.code).toBe(0);
@@ -83,6 +84,8 @@ describe("reportGoldenEval", () => {
     expect(result.message).toContain("primaryPassRate");
     expect(result.report?.versionPurity.pure).toBe(true);
     expect(result.message).toMatch(/version purity: ok/);
+    expect(result.report?.laterGraduation.verdict).toBe("unevaluable");
+    expect(result.message).toMatch(/#3286 Later: trigger unevaluable/);
   });
 
   it("refuses aggregation when a version cell mixes framework pins (#3215)", () => {
@@ -246,5 +249,172 @@ describe("findLatestGoldenRun", () => {
       .split("\n")
       .map((line) => JSON.parse(line) as GoldenRunRecord);
     expect(findLatestGoldenRun(records, "1.0.0", "m")?.runId).toBe("new");
+  });
+});
+
+describe("reportGoldenEval #3286 Later share (#3320)", () => {
+  it("prints ritual+gate share when the denominator is present", () => {
+    const root = seedProject();
+    const summary = join(root, "summary.jsonl");
+    writeFileSync(
+      summary,
+      [
+        JSON.stringify({ event: "check_invocation", session_id: "s", payload: {} }),
+        JSON.stringify({
+          event: "tool_turn_denominator",
+          session_id: "s",
+          payload: { total_tool_turns: 10 },
+        }),
+      ].join("\n"),
+      "utf8",
+    );
+    persistGoldenRun(root, {
+      schemaVersion: 1,
+      runId: "c1",
+      directiveVersion: "0.70.0",
+      model: "m",
+      harness: "h",
+      seeds: [1],
+      corpusVersion: "fixture",
+      recordedAt: "2026-07-05T19:00:00Z",
+      results: [{ taskId: "a", seed: 1, passed: true, holdout: false, metrics: {} }],
+      summary: {
+        primaryPassRate: 1,
+        holdoutPassRate: 0,
+        passRate: 1,
+        primaryTotal: 1,
+        holdoutTotal: 0,
+      },
+    });
+    persistGoldenRun(root, {
+      schemaVersion: 1,
+      runId: "c2",
+      directiveVersion: "0.71.0",
+      model: "m",
+      harness: "h",
+      seeds: [1],
+      corpusVersion: "fixture",
+      recordedAt: "2026-07-05T20:00:00Z",
+      results: [{ taskId: "a", seed: 1, passed: true, holdout: false, metrics: {} }],
+      summary: {
+        primaryPassRate: 1,
+        holdoutPassRate: 0,
+        passRate: 1,
+        primaryTotal: 1,
+        holdoutTotal: 0,
+      },
+    });
+    const result = reportGoldenEval({
+      projectRoot: root,
+      championVersion: "0.70.0",
+      challengerVersion: "0.71.0",
+      model: "m",
+      runSummaryPath: summary,
+      env: {},
+    });
+    expect(result.code).toBe(0);
+    expect(result.report?.laterGraduation.verdict).toBe("do-not-graduate");
+    expect(result.report?.laterGraduation.share).toBe(0.1);
+    expect(result.message).toMatch(/ritual\+gate share 10\.0%/);
+    expect(result.message).toMatch(/do-not-graduate/);
+  });
+
+  it("answers the trigger from eval:report with no champion flags", () => {
+    const root = seedProject();
+    const result = reportGoldenEval({
+      projectRoot: root,
+      championVersion: "",
+      challengerVersion: "",
+      model: "",
+      env: {},
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toMatch(/#3286 Later: trigger unevaluable/);
+  });
+
+  it("still requires champion/challenger/model when only some flags are set", () => {
+    const root = seedProject();
+    const partial = reportGoldenEval({
+      projectRoot: root,
+      championVersion: "0.70.0",
+      challengerVersion: "",
+      model: "m",
+      env: {},
+    });
+    expect(partial.code).toBe(2);
+    expect(partial.message).toMatch(/--champion and --challenger are required/);
+    const noModel = reportGoldenEval({
+      projectRoot: root,
+      championVersion: "0.70.0",
+      challengerVersion: "0.71.0",
+      model: "",
+      env: {},
+    });
+    expect(noModel.code).toBe(2);
+    expect(noModel.message).toMatch(/--model is required/);
+  });
+
+  it("includes the later line when a champion golden run is missing", () => {
+    const root = seedProject();
+    persistGoldenRun(root, {
+      schemaVersion: 1,
+      runId: "c2",
+      directiveVersion: "0.71.0",
+      model: "m",
+      harness: "h",
+      seeds: [1],
+      corpusVersion: "fixture",
+      recordedAt: "2026-07-05T20:00:00Z",
+      results: [{ taskId: "a", seed: 1, passed: true, holdout: false, metrics: {} }],
+      summary: {
+        primaryPassRate: 1,
+        holdoutPassRate: 0,
+        passRate: 1,
+        primaryTotal: 1,
+        holdoutTotal: 0,
+      },
+    });
+    const result = reportGoldenEval({
+      projectRoot: root,
+      championVersion: "0.70.0",
+      challengerVersion: "0.71.0",
+      model: "m",
+      env: {},
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/no golden run found for champion/);
+    expect(result.message).toMatch(/#3286 Later/);
+  });
+
+  it("includes the later line when a challenger golden run is missing", () => {
+    const root = seedProject();
+    persistGoldenRun(root, {
+      schemaVersion: 1,
+      runId: "c1",
+      directiveVersion: "0.70.0",
+      model: "m",
+      harness: "h",
+      seeds: [1],
+      corpusVersion: "fixture",
+      recordedAt: "2026-07-05T19:00:00Z",
+      results: [{ taskId: "a", seed: 1, passed: true, holdout: false, metrics: {} }],
+      summary: {
+        primaryPassRate: 1,
+        holdoutPassRate: 0,
+        passRate: 1,
+        primaryTotal: 1,
+        holdoutTotal: 0,
+      },
+    });
+    const result = reportGoldenEval({
+      projectRoot: root,
+      championVersion: "0.70.0",
+      challengerVersion: "0.71.0",
+      model: "m",
+      env: {},
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/no golden run found for challenger/);
+    expect(result.message).toMatch(/#3286 Later: trigger unevaluable/);
   });
 });

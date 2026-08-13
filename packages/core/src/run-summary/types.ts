@@ -25,6 +25,7 @@ export const RUN_SUMMARY_EVENT_KINDS = [
   "dial_transition",
   "dial_escalation_evaluation",
   "check_invocation",
+  "tool_turn_denominator",
 ] as const;
 
 export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
@@ -37,6 +38,11 @@ export interface RunSummaryBaseFields {
   readonly seq: number;
   readonly ts: string;
   readonly event: RunSummaryEventKind;
+  /**
+   * Session total tool/turn count (#3320). Present so ritual+gate share is
+   * computable from the summary alone. Absence means the #3286 trigger is unevaluable.
+   */
+  readonly total_tool_turns?: number;
 }
 
 export interface SessionStartRunSummaryPayload {
@@ -86,11 +92,17 @@ export interface CheckInvocationRunSummaryPayload {
   readonly gates: readonly CheckGateOutcome[];
 }
 
+/** Total tool/turn count for the session (#3320). */
+export interface ToolTurnDenominatorRunSummaryPayload {
+  readonly total_tool_turns: number;
+}
+
 export type RunSummaryPayload =
   | SessionStartRunSummaryPayload
   | DialTransitionRunSummaryPayload
   | DialEscalationEvaluationRunSummaryPayload
-  | CheckInvocationRunSummaryPayload;
+  | CheckInvocationRunSummaryPayload
+  | ToolTurnDenominatorRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {
   readonly payload: RunSummaryPayload;

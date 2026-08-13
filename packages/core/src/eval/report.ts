@@ -1,5 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolveEvalPath } from "../layout/resolve.js";
+import {
+  evaluateLaterGraduationTrigger,
+  formatLaterGraduationLine,
+  type LaterGraduationTrigger,
+} from "./later-graduation.js";
 import { GOLDEN_RUNS_HISTORY_REL, type GoldenRunRecord, type GoldenTaskResult } from "./run.js";
 import {
   aggregateCellWithVersionPurity,
@@ -51,6 +56,8 @@ export interface GoldenEvalReport {
   readonly holdoutTripwire: HoldoutTripwire;
   /** Cell-level framework version purity for the reported model (#3215). */
   readonly versionPurity: VersionPurityEvidence;
+  /** #3286 Later graduation trigger from the run-summary denominator (#3320). */
+  readonly laterGraduation: LaterGraduationTrigger;
 }
 
 export interface ReportGoldenEvalOptions {
@@ -63,6 +70,9 @@ export interface ReportGoldenEvalOptions {
    * ledger runs for this model disagree on framework version within a treatment.
    */
   readonly mixedVersionPolicy?: MixedVersionPolicy;
+  /** Override run-summary JSONL path (#3320). Default: DEFT_RUN_SUMMARY_PATH or repo default. */
+  readonly runSummaryPath?: string;
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 export interface ReportGoldenEvalResult {
@@ -220,18 +230,35 @@ export function goldenRunToVersionedRun(record: GoldenRunRecord): {
 
 /** Diff two directive versions with metric deltas and significance (#1703 Tier 2). */
 export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGoldenEvalResult {
-  if (!options.championVersion.trim() || !options.challengerVersion.trim()) {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const laterGraduation = evaluateLaterGraduationTrigger({
+    projectRoot,
+    runSummaryPath: options.runSummaryPath,
+    env: options.env,
+  });
+  const laterLine = formatLaterGraduationLine(laterGraduation);
+
+  const championMissing = !options.championVersion.trim();
+  const challengerMissing = !options.challengerVersion.trim();
+  const modelMissing = !options.model.trim();
+  if (championMissing && challengerMissing && modelMissing) {
+    return {
+      code: 0,
+      report: null,
+      message: `eval:report ${laterLine}`,
+    };
+  }
+  if (championMissing || challengerMissing) {
     return {
       code: 2,
       report: null,
-      message: "eval:report: --champion and --challenger are required",
+      message: `eval:report: --champion and --challenger are required\n  ${laterLine}`,
     };
   }
-  if (!options.model.trim()) {
-    return { code: 2, report: null, message: "eval:report: --model is required" };
+  if (modelMissing) {
+    return { code: 2, report: null, message: `eval:report: --model is required\n  ${laterLine}` };
   }
 
-  const projectRoot = options.projectRoot ?? process.cwd();
   const policy = options.mixedVersionPolicy ?? "refuse";
   const records = readGoldenRuns(projectRoot);
   const modelRecords = records.filter((r) => r.model === options.model);
@@ -273,7 +300,7 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
     return {
       code: 1,
       report: null,
-      message: `eval:report: mixed framework versions in treatment cell(s) — aggregation refused (#3215)\n  ${versionPurity.summary}`,
+      message: `eval:report: mixed framework versions in treatment cell(s) — aggregation refused (#3215)\n  ${versionPurity.summary}\n  ${laterLine}`,
     };
   }
 
@@ -284,14 +311,14 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
     return {
       code: 1,
       report: null,
-      message: `eval:report: no golden run found for champion v${options.championVersion} model=${options.model}`,
+      message: `eval:report: no golden run found for champion v${options.championVersion} model=${options.model}\n  ${laterLine}`,
     };
   }
   if (challenger === null) {
     return {
       code: 1,
       report: null,
-      message: `eval:report: no golden run found for challenger v${options.challengerVersion} model=${options.model}`,
+      message: `eval:report: no golden run found for challenger v${options.challengerVersion} model=${options.model}\n  ${laterLine}`,
     };
   }
 
@@ -354,6 +381,7 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
     deltas,
     holdoutTripwire,
     versionPurity,
+    laterGraduation,
   };
 
   const lines = [
@@ -371,6 +399,7 @@ export function reportGoldenEval(options: ReportGoldenEvalOptions): ReportGolden
     `  version purity: ${versionPurity.pure ? "ok" : "mixed"} — ${versionPurity.summary}`,
     `  champion cell pin: v${champion.frameworkVersionPin?.frameworkVersion ?? champion.directiveVersion}`,
     `  challenger cell pin: v${challenger.frameworkVersionPin?.frameworkVersion ?? challenger.directiveVersion}`,
+    `  ${laterLine}`,
   ];
 
   const code = holdoutTripwire.triggered ? 1 : 0;
