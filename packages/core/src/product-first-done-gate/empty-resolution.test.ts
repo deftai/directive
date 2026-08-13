@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
+import { deriveAcceptanceClauses } from "../verify-ac/clauses.js";
 import {
   EMPTY_AC_CAUSE,
   EMPTY_AC_REMEDY,
@@ -192,5 +193,104 @@ describe("empty verify:ac resolution (#3334)", () => {
     const acceptance = lines.filter((l) => l.event === "acceptance");
     expect(acceptance).toHaveLength(1);
     expect(acceptance[0]?.payload.outcome).toBe("verified-pass");
+  });
+});
+
+describe("verify:ac check-integrated narrative recapture (#3323)", () => {
+  it("does not fail the check graph on backtick verify:ac prose when the stamped ledger is empty", () => {
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "prose",
+        narratives: {
+          Overview: "Done-time clause walk. `verify:ac` walks every clause. none_stated: true.",
+        },
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        metadata: { literal_acceptance_commands: [], literal_acceptance_rejected: [] },
+        items: [],
+      },
+      { checkIntegrated: true, captureFromNarratives: undefined, hasSuiteFloor: true },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.resolution).toBe("empty-pass");
+    expect(result.message).not.toMatch(/safety-rejected/);
+  });
+});
+
+describe("verify:ac clause walk (#3323)", () => {
+  it("walks stamped clauses and leads the done report with failed/unverifiable", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-ac-eval-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const clauses = deriveAcceptanceClauses(`
+## Acceptance Criteria
+- shipped.ts exists at the stated path
+- behavioral contract with no machine check against shipped.ts
+- missing.ts must exist
+`);
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "derived",
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          clauses,
+        },
+        items: [],
+      },
+      { projectRoot: root, captureFromNarratives: false },
+    );
+    expect(result.clauseWalked).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.resolution).toBe("fail");
+    expect(result.message).toMatch(/\[failed\]/);
+    expect(result.message).toMatch(/\[unverifiable\]/);
+    expect(result.message.indexOf("[failed]")).toBeLessThan(result.message.indexOf("[verified]"));
+    expect(result.clauseOutcomes?.map((c) => c.outcome)).toEqual([
+      "verified",
+      "unverifiable",
+      "failed",
+    ]);
+  });
+
+  it("does not treat a successful clause walk as #3334 empty resolution", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-ac-pass-"));
+    writeFileSync(join(root, "CHANGELOG.md"), "- cites #3323\n", "utf8");
+    const clauses = deriveAcceptanceClauses(
+      "## Acceptance Criteria\n- CHANGELOG.md exists and cites the issue\n",
+    );
+    const summary = join(root, "summary.jsonl");
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "derived pass",
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          clauses,
+        },
+        items: [],
+      },
+      {
+        projectRoot: root,
+        captureFromNarratives: false,
+        env: { [ENV_RUN_SUMMARY_PATH]: summary },
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.resolution).toBe("verified-pass");
+    expect(result.message).not.toMatch(/soft_empty/);
+    const lines = readFileSync(summary, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (l) =>
+          JSON.parse(l) as {
+            event: string;
+            payload: { source_rung?: string; clause_count?: number };
+          },
+      );
+    const acceptance = lines.find((l) => l.event === "acceptance");
+    expect(acceptance?.payload.source_rung).toBe("derived");
+    expect(acceptance?.payload.clause_count).toBe(1);
   });
 });

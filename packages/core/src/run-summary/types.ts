@@ -31,6 +31,7 @@ export const RUN_SUMMARY_EVENT_KINDS = [
   "tool_turn_denominator",
   "verification",
   "acceptance",
+  "acceptance_stamp",
 ] as const;
 
 export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
@@ -90,11 +91,21 @@ export interface CheckGateOutcome {
   readonly from_cache?: boolean;
 }
 
+/** Per-clause coverage row carried on verify:ac telemetry (#3323). */
+export interface AcceptanceClauseOutcomeRow {
+  readonly id: number;
+  readonly outcome: "verified" | "unverifiable" | "failed";
+}
+
 export interface CheckInvocationRunSummaryPayload {
   readonly target: string;
   readonly exit_code: number;
   readonly degraded?: boolean;
   readonly gates: readonly CheckGateOutcome[];
+  /** Additive verify:ac fields (#3323). Consumers ignore unknown keys. */
+  readonly source_rung?: string;
+  readonly none_stated?: boolean;
+  readonly clause_outcomes?: readonly AcceptanceClauseOutcomeRow[];
 }
 
 /** Total tool/turn count for the session (#3320). */
@@ -112,6 +123,17 @@ export interface AcceptanceRunSummaryPayload {
   readonly resolved_command_count: number;
   readonly outcome: AcceptanceRunSummaryOutcome;
   readonly source_rung?: string;
+  readonly none_stated?: boolean;
+  readonly clause_count?: number;
+  readonly clause_outcomes?: readonly AcceptanceClauseOutcomeRow[];
+}
+
+/** Intake-time stamp: which rung locked, whether commands were stated, counts (#3323). */
+export interface AcceptanceStampRunSummaryPayload {
+  readonly rung: string;
+  readonly none_stated: boolean;
+  readonly command_count: number;
+  readonly clause_count: number;
 }
 
 export interface VerificationRunSummaryPayload {
@@ -133,7 +155,8 @@ export type RunSummaryPayload =
   | CheckInvocationRunSummaryPayload
   | ToolTurnDenominatorRunSummaryPayload
   | VerificationRunSummaryPayload
-  | AcceptanceRunSummaryPayload;
+  | AcceptanceRunSummaryPayload
+  | AcceptanceStampRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {
   readonly payload: RunSummaryPayload;

@@ -24,6 +24,11 @@ import {
 } from "../run-summary/index.js";
 import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
 import {
+  type ClauseWalkResult,
+  formatClauseWalkMessage,
+  walkAcceptanceClauses,
+} from "../verify-ac/clauses.js";
+import {
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
@@ -43,6 +48,8 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly acceptance: PlanAcceptance;
   readonly resolution: VerifyAcResolution;
   readonly resolvedCommandCount: number;
+  readonly clauseOutcomes?: readonly ClauseWalkResult[];
+  readonly clauseWalked?: boolean;
 }
 
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
@@ -134,7 +141,11 @@ export function evaluateVerifyAcFromPlan(
   const base = evaluateLiteralAcceptanceFromPlan(plan, {
     projectRoot,
     runner: options.runner,
-    captureFromNarratives: options.captureFromNarratives,
+    // Check composition uses the stamped ledger only. Re-scanning issue prose
+    // during `task check` re-captures backtick `verify:ac` lines as rejected
+    // and deadlocks the graph (#3323 / #3284 check-integrated).
+    captureFromNarratives:
+      options.captureFromNarratives ?? (options.checkIntegrated === true ? false : undefined),
     quiet: options.quiet,
   });
 
@@ -304,15 +315,46 @@ function emitAcceptanceOutcome(
       resolved_command_count: result.resolvedCommandCount,
       outcome,
       source_rung: result.sourceRung,
+      none_stated: result.noneStated,
+      clause_count: result.clauseOutcomes?.length,
+      clause_outcomes: result.clauseOutcomes?.map((row) => ({
+        id: row.id,
+        outcome: row.outcome,
+      })),
     });
   } catch {
     // fail-open
   }
 }
 
+function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
+  const clauses = result.acceptance.clauses ?? [];
+  if (clauses.length === 0 || result.resolution === "config" || result.resolution === "skipped") {
+    return result;
+  }
+  const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  const report = walkAcceptanceClauses(clauses, projectRoot);
+  const message = options.quiet ? result.message : formatClauseWalkMessage(report, result.message);
+  const ok = result.ok && report.ok;
+  return {
+    ...result,
+    ok,
+    code: ok ? result.code : result.code === 2 ? 2 : 1,
+    message,
+    resolution: ok
+      ? result.resolution === "empty-pass"
+        ? "verified-pass"
+        : result.resolution
+      : "fail",
+    clauseOutcomes: report.clauses,
+    clauseWalked: true,
+  };
+}
+
 function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const gated = applyEmptyFloorPolicy(result, options);
+  const walked = applyClauseWalk(result, options);
+  const gated = walked.clauseWalked === true ? walked : applyEmptyFloorPolicy(walked, options);
   // Emit/read disk only when the caller supplied env (CLI passes process.env).
   // Tests stay isolated unless they opt in with env or runSummaryText.
   if (options.env !== undefined) {

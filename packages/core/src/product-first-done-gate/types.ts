@@ -1,3 +1,5 @@
+import type { AcceptanceClause } from "../verify-ac/clauses.js";
+
 /**
  * Product-first done-gate (#3284): stated acceptance criteria run FIRST and are
  * never skippable; hygiene gates run second and may degrade under pressure.
@@ -34,6 +36,8 @@ export interface PlanAcceptance {
   readonly source_rung: AcSourceRung;
   /** Why derived/floor was chosen (required for derived when recorded). */
   readonly derived_reason?: string | null;
+  /** Rung-2 independently testable clauses (#3323). Parallel to commands[]. */
+  readonly clauses?: readonly AcceptanceClause[];
 }
 
 /** How `task check` composes product vs hygiene gates under pressure (#3284). */

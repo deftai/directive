@@ -149,6 +149,23 @@ describe("RunSummaryEmitter (#3282)", () => {
       .map((l) => JSON.parse(l) as { event: string; payload: { outcome?: string } });
     expect(after[2]?.event).toBe("acceptance");
     expect(after[2]?.payload.outcome).toBe("empty-pass");
+    const r4 = emitter.emitAcceptanceStamp({
+      rung: "derived",
+      none_stated: true,
+      command_count: 0,
+      clause_count: 4,
+    });
+    expect(r4.emitted).toBe(true);
+    const stamped = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map(
+        (l) =>
+          JSON.parse(l) as { event: string; schema_version: number; payload: { rung?: string } },
+      );
+    expect(stamped[3]?.event).toBe("acceptance_stamp");
+    expect(stamped[3]?.schema_version).toBe(RUN_SUMMARY_SCHEMA_VERSION);
+    expect(stamped[3]?.payload.rung).toBe("derived");
   });
 
   it("prefixes stdout with DEFT-TLM: when path is -", () => {

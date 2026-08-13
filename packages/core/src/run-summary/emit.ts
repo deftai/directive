@@ -14,6 +14,7 @@ import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import {
   type AcceptanceRunSummaryPayload,
+  type AcceptanceStampRunSummaryPayload,
   type CheckInvocationRunSummaryPayload,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
@@ -237,6 +238,10 @@ export class RunSummaryEmitter {
 
   emitAcceptance(payload: AcceptanceRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("acceptance", payload);
+  }
+
+  emitAcceptanceStamp(payload: AcceptanceStampRunSummaryPayload): EmitRunSummaryResult {
+    return this.emit("acceptance_stamp", payload);
   }
 
   /** Emit the harness-supplied denominator when DEFT_TOTAL_TOOL_TURNS is set. */

@@ -58,6 +58,90 @@ describe("buildIssueVbrief", () => {
     expect((plan.narratives as Record<string, string>).Overview).toContain("Acceptance Criteria");
   });
 
+  it("derives numbered clauses at intake when no commands are stated (#3323)", () => {
+    const body = `## Acceptance sketch
+- Record clauses on plan.acceptance before the first product edit
+- Walk every clause with packages/core/src/verify-ac/clauses.ts
+- Emit acceptance_stamp from packages/core/src/run-summary/types.ts
+`;
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 3323,
+        title: "rung-2 derived AC",
+        url: "https://github.com/deftai/directive/issues/3323",
+        body,
+        labels: [],
+      },
+      "proposed",
+      "https://github.com/deftai/directive",
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    const acceptance = plan.acceptance as {
+      none_stated: boolean;
+      source_rung: string;
+      commands: unknown[];
+      clauses: { id: number; text: string; artifact_path: string | null }[];
+    };
+    expect(acceptance.none_stated).toBe(true);
+    expect(acceptance.source_rung).toBe("derived");
+    expect(acceptance.commands).toEqual([]);
+    expect(acceptance.clauses).toHaveLength(3);
+    expect(acceptance.clauses[1]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
+    expect(acceptance.clauses.map((c) => c.id)).toEqual([1, 2, 3]);
+  });
+
+  it("emits acceptance_stamp when ingest writes a none_stated brief (#3323)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ingest-stamp-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    const summary = join(root, "summary.jsonl");
+    const prev = process.env.DEFT_RUN_SUMMARY_PATH;
+    process.env.DEFT_RUN_SUMMARY_PATH = summary;
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 3323,
+          title: "rung-2 stamp",
+          html_url: "https://github.com/o/r/issues/3323",
+          body: "## Acceptance sketch\n- Record clauses on packages/core/src/verify-ac/clauses.ts\n",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toBeTruthy();
+      const lines = readFileSync(summary, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map(
+          (l) =>
+            JSON.parse(l) as {
+              event: string;
+              schema_version: number;
+              payload: { rung?: string; none_stated?: boolean; clause_count?: number };
+            },
+        );
+      expect(lines[0]?.event).toBe("acceptance_stamp");
+      expect(lines[0]?.schema_version).toBe(1);
+      expect(lines[0]?.payload.rung).toBe("derived");
+      expect(lines[0]?.payload.none_stated).toBe(true);
+      expect(lines[0]?.payload.clause_count).toBe(1);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_RUN_SUMMARY_PATH;
+      } else {
+        process.env.DEFT_RUN_SUMMARY_PATH = prev;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("materializes CurrentShape narrative + comment permalink from maintainer shape (#1870)", () => {
     const shapeBody =
       "## Current shape (as of pass-3)\n\n" +

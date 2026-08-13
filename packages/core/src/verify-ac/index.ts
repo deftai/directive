@@ -6,6 +6,20 @@
  */
 
 export {
+  type AcceptanceClause,
+  type AcceptanceClauseReading,
+  type ClauseOutcome,
+  type ClauseWalkReport,
+  type ClauseWalkResult,
+  deriveAcceptanceClauses,
+  formatClauseWalkMessage,
+  isScratchArtifactPath,
+  readAcceptanceClauses,
+  serializeAcceptanceClauses,
+  stampDerivedClausesOnAcceptance,
+  walkAcceptanceClauses,
+} from "./clauses.js";
+export {
   type EvaluateProductOracleIntegrityOptions,
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
